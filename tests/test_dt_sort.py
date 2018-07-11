@@ -21,7 +21,7 @@ def test_sort_len0():
     d0 = dt.Frame([[]])
     assert d0.shape == (0, 1)
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.shape == (0, 1)
 
 
@@ -29,7 +29,7 @@ def test_sort_len1():
     d0 = dt.Frame([10**6])
     assert d0.shape == (1, 1)
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[10**6]]
 
 
@@ -46,7 +46,7 @@ def test_sort_len1_view():
 def test_sort_len2():
     d0 = dt.Frame([None, 10000000])
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, 10000000]]
     d0 = dt.Frame([10000000, None])
     d2 = d0.sort(0)
@@ -57,8 +57,8 @@ def test_sort_with_engine():
     d0 = dt.Frame([random.randint(0, 20) for _ in range(100)])
     d1 = d0(sort=0, engine="llvm")
     d2 = d0(sort=0, engine="eager")
-    assert d1.internal.check()
-    assert d2.internal.check()
+    d1.internal.check()
+    d2.internal.check()
     assert d1.shape == d2.shape == d0.shape
     assert d1.topython() == d2.topython() == [sorted(d0.topython()[0])]
 
@@ -69,8 +69,8 @@ def test_nonfirst_column():
                    [random.randint(0, 50) for _ in range(100)]],
                   names=["A", "B"])
     d1 = d0.sort("B")
-    assert d0.internal.check()
-    assert d1.internal.check()
+    d0.internal.check()
+    d1.internal.check()
     assert d1.internal.isview
     assert d0.shape == d1.shape == (100, 2)
     assert d0.names == d1.names == ("A", "B")
@@ -89,7 +89,7 @@ def test_int32_small():
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, -45, 1, 2, 17, 34, 96, 245, 847569]]
 
 
@@ -99,7 +99,7 @@ def test_int32_small_stable():
         [1, 5, 10, 20, 50, 100, 200, 500]
     ], names=["A", "B"])
     d1 = d0.sort("A")
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [
         [None, None, None, 3, 3, 5, 5, 1000000],
         [20, 100, 500, 5, 200, 1, 10, 50],
@@ -185,7 +185,7 @@ def test_int32_unsigned():
     d0 = dt.Frame(tbl)
     assert d0.stypes == (stype.int32, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [tbl]
 
 
@@ -204,7 +204,7 @@ def test_int8_small():
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
 
 
@@ -214,7 +214,7 @@ def test_int8_small_stable():
         [1, 5, 10, 20, 50, 100, 200, 500]
     ], names=["A", "B"])
     d1 = d0(sort="A")
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [
         [None, None, None, 3, 3, 5, 5, 100],
         [20, 100, 500, 5, 200, 1, 10, 50],
@@ -225,7 +225,7 @@ def test_int8_large():
     d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)])
     d1 = d0.sort(0)
     assert d1.stypes == (stype.int8, )
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sum(([i] * 10 for i in range(-50, 51)), [])]
 
 
@@ -249,7 +249,7 @@ def test_bool8_small():
     d1 = d0(sort="C0")
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, None, False, False, True, True, True]]
 
 
@@ -261,7 +261,7 @@ def test_bool8_small_stable():
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, None, False, False, True, True, True],
                              [4, 7, 2, 3, 1, 5, 6]]
 
@@ -274,8 +274,8 @@ def test_bool8_large(n):
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview
-    assert d0.internal.check()
-    assert d1.internal.check()
+    d0.internal.check()
+    d1.internal.check()
     nn = 2 * n
     assert d1.topython() == [[None] * nn + [False] * nn + [True] * nn]
 
@@ -286,7 +286,7 @@ def test_bool8_large_stable(n):
     assert d0.stypes[0] == stype.bool8
     d1 = d0(sort="A", select="B")
     assert d1.internal.isview
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [list(range(2, 3 * n, 3)) +
                              list(range(1, 3 * n, 3)) +
                              list(range(0, 3 * n, 3))]
@@ -299,7 +299,7 @@ def test_int16_small():
     d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None])
     assert d0.stypes[0] == stype.int16
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None, -1000, -10, 0, 2, 100, 999, 10000]]
 
 
@@ -308,7 +308,7 @@ def test_int16_small_stable():
                    [1, 2, 3, 4, 5, 6, 7, 8, 9]])
     assert d0.stypes[0] == stype.int16
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[0, 0, 0, 0, 0, 0, 1000, 1000, 1000],
                              [1, 3, 4, 6, 7, 9, 2, 5, 8]]
 
@@ -317,7 +317,7 @@ def test_int16_large():
     d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)])
     d1 = d0.sort(0)
     assert d1.stypes == (stype.int16, )
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [list(range(-5003, 5004))]
 
 
@@ -327,7 +327,7 @@ def test_int16_large_stable(n):
                   names=["A", "B"])
     assert d0.stypes[0] == stype.int16
     d1 = d0(sort="A", select="B")
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [list(range(1, 5 * n, 5)) +
                              list(range(3, 5 * n, 5)) +
                              list(range(0, 5 * n, 5)) +
@@ -343,7 +343,7 @@ def test_int64_small():
     assert d0.stypes == (stype.int64, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[None] + [10**i for i in range(13)]]
 
 
@@ -351,7 +351,7 @@ def test_int64_small_stable():
     d0 = dt.Frame([[0, None, -1000, 11**11] * 3, range(12)])
     assert d0.stypes == (stype.int64, stype.int8)
     d1 = d0(sort=0, select=1)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
 
 
@@ -363,8 +363,8 @@ def test_int64_large0(n):
     d = 5206891724645893889
     d0 = dt.Frame([c, d, a, b] * n)
     d1 = d0.sort(0)
-    assert d0.internal.check()
-    assert d1.internal.check()
+    d0.internal.check()
+    d1.internal.check()
     assert d1.internal.isview
     assert b < a < d < c
     assert d0.topython() == [[c, d, a, b] * n]
@@ -408,7 +408,7 @@ def test_float32_large():
     d0 = dt.Frame([-1000, 0, 1.5e10, 7.2, math.inf] * 100, stype="float32")
     assert d0.stypes == (stype.float32, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     dr = dt.Frame([-1000] * 100 + [0] * 100 + [7.2] * 100 +
                   [1.5e10] * 100 + [math.inf] * 100)
     assert list_equals(d1.topython(), dr.topython())
@@ -431,7 +431,7 @@ def test_float64_small():
     d0 = dt.Frame([0.1, -0.5, 1.6, 0, None, -inf, inf, 3.3, 1e100])
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     dr = dt.Frame([None, -inf, -0.5, 0, 0.1, 1.6, 3.3, 1e100, inf])
     assert list_equals(d1.topython(), dr.topython())
 
@@ -441,7 +441,7 @@ def test_float64_zeros():
     d0 = dt.Frame([0.5] + [z, -z] * 100)
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     dr = dt.Frame([-z] * 100 + [z] * 100 + [0.5])
     assert str(d1.topython()) == str(dr.topython())
 
@@ -452,7 +452,7 @@ def test_float64_large(n):
     d0 = dt.Frame([12.6, .3, inf, -5.1, 0, -inf, None] * n)
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     dr = dt.Frame([None] * n + [-inf] * n + [-5.1] * n +
                   [0] * n + [.3] * n + [12.6] * n + [inf] * n)
     assert list_equals(d1.topython(), dr.topython())
@@ -474,11 +474,11 @@ def test_sort_view1():
     d0 = dt.Frame([5, 10])
     d1 = d0(rows=[i % 2 for i in range(10)])
     assert d1.shape == (10, 1)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.internal.isview
     d2 = d1(sort=0)
     assert d2.shape == d1.shape
-    assert d2.internal.check()
+    d2.internal.check()
     assert d2.internal.isview
     assert d2.topython() == [[5] * 5 + [10] * 5]
 
@@ -487,7 +487,7 @@ def test_sort_view2():
     d0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
     d1 = d0.sort(0)
     d2 = d1(sort=0)
-    assert d2.internal.check()
+    d2.internal.check()
     assert d2.topython() == d1.topython()
 
 
@@ -495,7 +495,7 @@ def test_sort_view3():
     d0 = dt.Frame(range(1000))
     d1 = d0[::-5, :]
     d2 = d1(sort=0)
-    assert d2.internal.check()
+    d2.internal.check()
     assert d2.shape == (200, 1)
     assert d2.topython() == [list(range(4, 1000, 5))]
 
@@ -505,8 +505,8 @@ def test_sort_view4():
                    "rem", "aye", "nay"])
     d1 = d0[1::2, :].sort(0)
     d2 = d0[0::2, :].sort(0)
-    assert d1.internal.check()
-    assert d2.internal.check()
+    d1.internal.check()
+    d2.internal.check()
     assert d1.shape == d2.shape == (5, 1)
     assert d1.topython() == [[None, "bar", "lalala", "nay", "rem"]]
     assert d2.topython() == [["", "aye", "baz", "foo", "quo"]]
@@ -515,7 +515,7 @@ def test_sort_view4():
 def test_sort_view_large_strs():
     d0 = dt.Frame(list("abcbpeiuqenvkjqperufhqperofin;d") * 100)
     d1 = d0[::2].sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     elems = d1.topython()[0]
     assert elems == sorted(elems)
 
@@ -539,7 +539,7 @@ def test_strXX_small1(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
@@ -549,7 +549,7 @@ def test_strXX_small2(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     src.remove(None)
     assert d1.topython() == [[None] + sorted(src)]
 
@@ -561,7 +561,7 @@ def test_strXX_large1(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
@@ -571,7 +571,7 @@ def test_strXX_large2(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
@@ -581,7 +581,7 @@ def test_strXX_large3(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
@@ -593,7 +593,7 @@ def test_strXX_large4(st):
     d0 = dt.Frame(src, stype=st)
     assert d0.stypes == (st, )
     d1 = d0.sort(0)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
@@ -606,7 +606,7 @@ def test_strXX_large5(st):
     dt0 = dt.Frame(src, stype=st)
     assert dt0.stypes == (st, )
     dt1 = dt0(sort=0)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.topython()[0] == sorted(src)
 
 
@@ -623,5 +623,5 @@ def test_strXX_large6(st):
     dt0 = dt.Frame(words, stype=st)
     assert dt0.stypes == (st, )
     dt1 = dt0(sort=0)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.topython()[0] == sorted(words)

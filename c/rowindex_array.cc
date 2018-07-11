@@ -10,7 +10,6 @@
 #include <cstdlib>             // std::memcpy
 #include <limits>              // std::numeric_limits
 #include "column.h"            // Column, BoolColumn
-#include "datatable_check.h"   // IntegrityCheckContext
 #include "memrange.h"          // MemoryRange
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
@@ -183,7 +182,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
       #pragma omp ordered
       {
         out_offset = out_length;
-        out_length += (size_t) buf_length;
+        out_length += static_cast<size_t>(buf_length);
       }
     }
     // Note: if the underlying array is small, then some threads may have
@@ -327,14 +326,14 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    MemoryRange xbuf(zn * sizeof(int32_t), ind32.data(), /*owned = */ false);
-    xassert(xbuf.is_writeable());
+    MemoryRange xbuf = MemoryRange::external(ind32.data(), zn * sizeof(int32_t));
+    xassert(xbuf.is_writable());
     col3 = col2->cast(ST_INTEGER_I4, std::move(xbuf));
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zn);
-    MemoryRange xbuf(zn * sizeof(int64_t), ind64.data(), /*owned = */ false);
-    xassert(xbuf.is_writeable());
+    MemoryRange xbuf = MemoryRange::external(ind64.data(), zn * sizeof(int64_t));
+    xassert(xbuf.is_writable());
     col3 = col2->cast(ST_INTEGER_I8, std::move(xbuf));
   }
 
@@ -508,81 +507,51 @@ size_t ArrayRowIndexImpl::memory_footprint() const {
 }
 
 
-
-bool ArrayRowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
-  if (!RowIndexImpl::verify_integrity(icc)) return false;
-  auto end = icc.end();
-  size_t zlen = static_cast<size_t>(length);
-
-  if (type != RowIndexType::RI_ARR32 && type != RowIndexType::RI_ARR64) {
-    icc << "Invalid type = " << type << " in ArrayRowIndex" << end;
-    return false;
+template <typename T>
+static void verify_integrity_helper(
+    const dt::array<T>& ind, int64_t len, int64_t min, int64_t max
+) {
+  size_t zlen = static_cast<size_t>(len);
+  if (ind.size() != zlen) {
+    throw AssertionError() << "length of data array (" << ind.size()
+        << ") does not match the length of the rowindex (" << zlen << ")";
   }
+  T tmin = std::numeric_limits<T>::max();
+  T tmax = 0;
+  for (size_t i = 0; i < zlen; ++i) {
+    T x = ind[i];
+    if (ISNA<T>(x)) {
+      throw AssertionError()
+          << "Element " << i << " in the ArrayRowIndex is NA";
+    }
+    if (x < 0) {
+      throw AssertionError()
+          << "Element " << i << " in the ArrayRowIndex is negative: " << x;
+    }
+    if (x < tmin) tmin = x;
+    if (x > tmax) tmax = x;
+  }
+  if (!zlen) tmin = 0;
+  if (tmin != min || tmax != max) {
+    throw AssertionError()
+        << "Mismatching min/max values in the ArrayRowIndex min=" << min
+        << "/max=" << max << " compared to the computed min=" << tmin
+        << "/max=" << tmax;
+  }
+}
+
+void ArrayRowIndexImpl::verify_integrity() const {
+  RowIndexImpl::verify_integrity();
 
   if (type == RowIndexType::RI_ARR32) {
-    if (ind64) {
-      icc << "ind64 array has size " << ind64.size() << " in Array32 RowIndex"
-          << end;
-      return false;
-    }
-    if (ind32.size() != zlen) {
-      icc << "length of ind32 array (" << ind32.size() << ") does not match "
-          << "the length of the rowindex (" << zlen << ")" << end;
-      return false;
-    }
-    int32_t tmin = std::numeric_limits<int32_t>::max();
-    int32_t tmax = 0;
-    for (size_t i = 0; i < zlen; ++i) {
-      int32_t x = ind32[i];
-      if (ISNA<int32_t>(x)) {
-        icc << "Element " << i << " in the ArrayRowIndex is NA" << end;
-      }
-      if (x < 0) {
-        icc << "Element " << i << " in the ArrayRowIndex is negative: "
-            << x << end;
-      }
-      if (x < tmin) tmin = x;
-      if (x > tmax) tmax = x;
-    }
-    if (tmin != min || tmax != max) {
-      icc << "Mismatching min/max values in the ArrayRowIndex (" << min
-          << "/" << max << ") compared to the computed ones (" << tmin
-          << "/" << tmax << ")" << end;
-    }
+    verify_integrity_helper<int32_t>(ind32, length, min, max);
+  } else if (type == RowIndexType::RI_ARR64) {
+    verify_integrity_helper<int64_t>(ind64, length, min, max);
+  } else {
+    throw AssertionError() << "Invalid type = " << type << " in ArrayRowIndex";
   }
-
-  if (type == RowIndexType::RI_ARR64) {
-    if (ind32) {
-      icc << "ind32 array has size " << ind32.size() << " in Array64 RowIndex"
-          << end;
-      return false;
-    }
-    if (ind64.size() != zlen) {
-      icc << "length of ind64 array (" << ind64.size() << ") does not match "
-          << "the length of the rowindex (" << zlen << ")" << end;
-      return false;
-    }
-    int64_t tmin = std::numeric_limits<int64_t>::max();
-    int64_t tmax = 0;
-    if (zlen == 0) tmin = tmax = 0;
-    for (size_t i = 0; i < zlen; ++i) {
-      int64_t x = ind64[i];
-      if (ISNA<int64_t>(x)) {
-        icc << "Element " << i << " in the ArrayRowIndex is NA" << end;
-      }
-      if (x < 0) {
-        icc << "Element " << i << " in the ArrayRowIndex is negative: "
-            << x << end;
-      }
-      if (x < tmin) tmin = x;
-      if (x > tmax) tmax = x;
-    }
-    if (tmin != min || tmax != max) {
-      icc << "Mismatching min/max values in the ArrayRowIndex (" << min
-          << "/" << max << ") compared to the computed ones (" << tmin
-          << "/" << tmax << ")" << end;
-    }
+  if (ind32 && ind64) {
+    throw AssertionError()
+        << "ind32 and ind64 are both non-empty in an ArrayRowIndex";
   }
-
-  return true;
 }

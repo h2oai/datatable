@@ -9,7 +9,6 @@
 #define dt_STATS_h
 #include <bitset>
 #include <vector>
-#include "datatable_check.h"
 #include "types.h"
 
 class Column;
@@ -20,6 +19,8 @@ enum Stat {
   Sum,
   Mean,
   StDev,
+  Skew,
+  Kurt,
   Min,
   Qt25,
   Median,
@@ -42,20 +43,20 @@ enum Stat {
  * Base class in the hierarchy of Statistics Containers:
  *
  *                                +-------+
- *                                | Stats |
- *                                +-------+ --------------~
+ *                                | Stats | ______________
+ *                                +-------+               \
  *                                 /     \                 \
  *                 +----------------+   +-------------+   +---------------+
- *                 | NumericalStats |   | StringStats |   | PyObjectStats |
- *                 +----------------+   +-------------+   +---------------+
- *                   /           \
- *         +--------------+   +-----------+
- *         | IntegerStats |   | RealStats |
- *         +--------------+   +-----------+
- *              /
- *     +--------------+
- *     | BooleanStats |
- *     +--------------+
+ *         ________| NumericalStats |   | StringStats |   | PyObjectStats |
+ *        /        +----------------+   +-------------+   +---------------+
+ *       /              /           \
+ *      /      +--------------+   +-----------+
+ *     |       | IntegerStats |   | RealStats |
+ *     |       +--------------+   +-----------+
+ *     |
+ *   +--------------+
+ *   | BooleanStats |
+ *   +--------------+
  *
  * `NumericalStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
@@ -94,8 +95,7 @@ class Stats {
     virtual void merge_stats(const Stats*);
 
     virtual size_t memory_footprint() const = 0;
-    bool verify_integrity(IntegrityCheckContext&,
-                          const std::string& name = "Stats") const;
+    virtual void verify_integrity(const Column*) const;
 
   protected:
     virtual void compute_countna(const Column*) = 0;
@@ -110,10 +110,10 @@ class Stats {
 
 /**
  * Base class for all numerical STypes. The class is parametrized by:
- *   T - The type of "min"/"max" statistics. This is should be the same as the
+ *   T - The type of "min"/"max" statistics. This should be the same as the
  *       type of a column's element.
- *   A - The type "sum" statistic. This is either `int64_t` for integral types,
- *       or `double` for real-valued columns.
+ *   A - The type of "sum" statistic. This is either `int64_t` for integral
+ *       types, or `double` for real-valued columns.
  *
  * This class itself is not compatible with any SType; one of its children
  * should be used instead (see the inheritance diagram above).
@@ -123,6 +123,8 @@ class NumericalStats : public Stats {
   protected:
     double _mean;
     double _sd;
+    double _skew;
+    double _kurt;
     A _sum;
     T _min;
     T _max;
@@ -134,6 +136,8 @@ class NumericalStats : public Stats {
 
     double mean(const Column*);
     double stdev(const Column*);
+    double skew(const Column*);
+    double kurt(const Column*);
     T min(const Column*);
     T max(const Column*);
     T mode(const Column*);
@@ -231,8 +235,8 @@ class StringStats : public Stats {
     virtual void compute_sorted_stats(const Column*) override;
 };
 
-extern template class StringStats<int32_t>;
-extern template class StringStats<int64_t>;
+extern template class StringStats<uint32_t>;
+extern template class StringStats<uint64_t>;
 
 
 

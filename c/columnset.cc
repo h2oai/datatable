@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
+#include "utils/alloc.h"
 #include "utils/exceptions.h"
 
 
@@ -28,8 +29,7 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
   }
 
   Column** srccols = dt->columns;
-  Column** columns = nullptr;
-  dtmalloc(columns, Column*, count + 1);
+  Column** columns = dt::amalloc<Column*>(count + 1);
   columns[count] = nullptr;
 
   for (int64_t i = 0, j = start; i < count; i++, j += step) {
@@ -50,8 +50,7 @@ Column** columns_from_array(DataTable* dt, const RowIndex& rowindex,
   if (!dt) return nullptr;
   if (!indices && ncols) return nullptr;
   Column** srccols = dt->columns;
-  Column** columns = nullptr;
-  dtmalloc(columns, Column*, ncols + 1);
+  Column** columns = dt::amalloc<Column*>(ncols + 1);
   columns[ncols] = nullptr;
 
   for (int64_t i = 0; i < ncols; i++) {
@@ -99,13 +98,15 @@ Column** columns_from_mixed(
   for (int64_t i = 0; i < ncols; i++) {
     ncomputedcols += (spec[i] < 0);
   }
-  if (dt == nullptr && ncomputedcols < ncols) dterrr0("Missing DataTable");
-  if (ncomputedcols == 0) dterrr0("Num computed columns = 0");
+  if (dt == nullptr && ncomputedcols < ncols) {
+    throw RuntimeError() << "Missing DataTable";
+  }
+  if (ncomputedcols == 0) {
+    throw ValueError() << "Num computed columns = 0";
+  }
 
-  void** out = nullptr;
-  Column** columns = nullptr;
-  dtmalloc(out, void*, ncomputedcols);
-  dtmalloc(columns, Column*, ncols + 1);
+  void** out = dt::amalloc<void*>(ncomputedcols);
+  Column** columns = dt::amalloc<Column*>(ncols + 1);
   columns[ncols] = nullptr;
 
   int64_t j = 0;
@@ -113,7 +114,7 @@ Column** columns_from_mixed(
     if (spec[i] >= 0) {
       columns[i] = dt->columns[spec[i]]->shallowcopy();
     } else {
-      SType stype = (SType)(-spec[i]);
+      SType stype = static_cast<SType>(-spec[i]);
       columns[i] = Column::new_data_column(stype, nrows);
       out[j] = columns[i]->data_w();
       j++;

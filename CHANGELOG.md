@@ -8,7 +8,29 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.5.0)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.6.0)
+#### Added
+- Frame can now be created from a list/dict of numpy arrays.
+- Filters can now be used together with groupby expressions.
+- fread's verbose output now includes time for opening the input file.
+
+#### Fixed
+- Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
+- Fix bug with applying a cast expression to a view column.
+- Fix occasional memory errors caused by a lack of available mmap handles.
+- Fixed memory leak in groupby operations.
+- `names` parameter in Frame constructor is now checked for correctness.
+- Fix a bug in fread with QR bump occurring out-of-sample.
+- `import datatable` now takes only 0.13s, down from 0.6s.
+- fread no longer wastes time reading the full input, if max_nrows option is used.
+- fix bug where max_nrows parameter was sometimes causing a seg.fault
+- fix fread performance bug caused by memory-mapped file being accidentally
+  copied into RAM.
+- fix rare crash in fread when resizing the number of rows.
+- fix saving view frames to csv.
+
+
+### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
 #### Added
 - fread will detect feather file and issue an appropriate error message.
 - when fread extracts data from archives into memory, it will now display
@@ -20,6 +42,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - during grouping, group keys are now added automatically to the select list.
 - implement `sum()` reducer.
 - `==` operator now works for string columns too.
+- Improved performance of groupby operations.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.

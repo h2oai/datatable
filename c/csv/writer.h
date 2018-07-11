@@ -28,7 +28,7 @@ class CsvWriter {
   WritableBuffer::Strategy strategy;
   bool usehex;
   bool verbose;
-  __attribute__((unused)) char _padding[1];
+  int : 8;
 
   // Intermediate values used while writing the file
   std::unique_ptr<WritableBuffer> wb;

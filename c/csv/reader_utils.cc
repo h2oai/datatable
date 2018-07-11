@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
-  strdata = nullptr;
-  type = PT::Mu;
+  strbuf = nullptr;
+  ptype = PT::Mu;
   rtype = RT::RAuto;
   typeBumped = false;
   presentInOutput = true;
@@ -30,40 +30,67 @@ GReaderColumn::GReaderColumn() {
 }
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
-  : mbuf(std::move(o.mbuf)), name(std::move(o.name)), strdata(o.strdata),
-    type(o.type), rtype(o.rtype), typeBumped(o.typeBumped),
+  : name(std::move(o.name)), databuf(std::move(o.databuf)), strbuf(o.strbuf),
+    ptype(o.ptype), rtype(o.rtype), typeBumped(o.typeBumped),
     presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
 {
-  o.strdata = nullptr;
+  o.strbuf = nullptr;
 }
 
 GReaderColumn::~GReaderColumn() {
-  delete strdata;
+  delete strbuf;
 }
 
 
+//---- Column's data -------------------
+
 void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
-  bool col_is_string = isstring();
+  bool col_is_string = is_string();
   size_t allocsize = (nrows + col_is_string) * elemsize();
-  mbuf.resize(allocsize);
+  databuf.resize(allocsize);
   if (col_is_string) {
     if (elemsize() == 4)
-      mbuf.set_element<int32_t>(0, -1);
+      databuf.set_element<int32_t>(0, 0);
     else
-      mbuf.set_element<int64_t>(0, -1);
-    if (!strdata) {
-      strdata = new MemoryWritableBuffer(allocsize);
+      databuf.set_element<int64_t>(0, 0);
+    if (!strbuf) {
+      strbuf = new MemoryWritableBuffer(allocsize);
     }
   }
 }
 
-const char* GReaderColumn::typeName() const {
-  return ParserLibrary::info(type).name.data();
+void* GReaderColumn::data_w() {
+  return databuf.wptr();
 }
 
-const std::string& GReaderColumn::get_name() const {
+WritableBuffer* GReaderColumn::strdata_w() {
+  return strbuf;
+}
+
+MemoryRange GReaderColumn::extract_databuf() {
+  return std::move(databuf);
+}
+
+MemoryRange GReaderColumn::extract_strbuf() {
+  if (!(strbuf && is_string())) return MemoryRange();
+  strbuf->finalize();
+  return strbuf->get_mbuf();
+}
+
+
+//---- Column's name -------------------
+
+const std::string& GReaderColumn::get_name() const noexcept {
   return name;
+}
+
+void GReaderColumn::set_name(std::string&& newname) noexcept {
+  name = std::move(newname);
+}
+
+void GReaderColumn::swap_names(GReaderColumn& other) noexcept {
+  name.swap(other.name);
 }
 
 const char* GReaderColumn::repr_name(const GenericReader& g) const {
@@ -73,86 +100,177 @@ const char* GReaderColumn::repr_name(const GenericReader& g) const {
 }
 
 
+//---- Column's type -------------------
+
+PT GReaderColumn::get_ptype() const {
+  return ptype;
+}
+
+SType GReaderColumn::get_stype() const {
+  return ParserLibrary::info(ptype).stype;
+}
+
+GReaderColumn::ptype_iterator
+GReaderColumn::get_ptype_iterator(int8_t* qr_ptr) const {
+  return GReaderColumn::ptype_iterator(ptype, rtype, qr_ptr);
+}
+
+void GReaderColumn::set_ptype(const GReaderColumn::ptype_iterator& it) {
+  xassert(rtype == it.get_rtype());
+  ptype = *it;
+  typeBumped = true;
+}
+
+// Set .ptype to the provided value, disregarding the restrictions imposed
+// by the .rtype field.
+void GReaderColumn::force_ptype(PT new_ptype) {
+  ptype = new_ptype;
+}
+
+void GReaderColumn::set_rtype(int64_t it) {
+  rtype = static_cast<RT>(it);
+  // Temporary
+  switch (rtype) {
+    case RDrop:
+      ptype = PT::Str32;
+      presentInOutput = false;
+      presentInBuffer = false;
+      break;
+    case RAuto:    break;
+    case RBool:    ptype = PT::Bool01; break;
+    case RInt:     ptype = PT::Int32; break;
+    case RInt32:   ptype = PT::Int32; break;
+    case RInt64:   ptype = PT::Int64; break;
+    case RFloat:   ptype = PT::Float32Hex; break;
+    case RFloat32: ptype = PT::Float32Hex; break;
+    case RFloat64: ptype = PT::Float64Plain; break;
+    case RStr:     ptype = PT::Str32; break;
+    case RStr32:   ptype = PT::Str32; break;
+    case RStr64:   ptype = PT::Str64; break;
+  }
+}
+
+const char* GReaderColumn::typeName() const {
+  return ParserLibrary::info(ptype).name.data();
+}
+
+
+//---- Column info ---------------------
+
+bool GReaderColumn::is_string() const {
+  return ParserLibrary::info(ptype).isstring();
+}
+
+bool GReaderColumn::is_dropped() const {
+  return rtype == RT::RDrop;
+}
+
+bool GReaderColumn::is_type_bumped() const {
+  return typeBumped;
+}
+
+bool GReaderColumn::is_in_output() const {
+  return presentInOutput;
+}
+
+bool GReaderColumn::is_in_buffer() const {
+  return presentInBuffer;
+}
+
 size_t GReaderColumn::elemsize() const {
-  return static_cast<size_t>(ParserLibrary::info(type).elemsize);
+  return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
 }
 
-bool GReaderColumn::isstring() const {
-  return ParserLibrary::info(type).isstring();
+void GReaderColumn::reset_type_bumped() {
+  typeBumped = false;
 }
 
-MemoryRange GReaderColumn::extract_databuf() {
-  return std::move(mbuf);
+void GReaderColumn::set_in_buffer(bool f) {
+  presentInBuffer = f;
 }
 
-MemoryRange GReaderColumn::extract_strbuf() {
-  if (!(strdata && isstring())) return MemoryRange();
-  // TODO: make get_mbuf() method available on WritableBuffer itself
-  strdata->finalize();
-  return strdata->get_mbuf();
-}
 
-size_t GReaderColumn::getAllocSize() const {
-  return mbuf.memory_footprint() +
-         (strdata? strdata->size() : 0) +
-         name.size() + sizeof(*this);
-}
-
+//---- Misc ----------------------------
 
 void GReaderColumn::convert_to_str64() {
-  xassert(type == PT::Str32);
-  size_t nelems = mbuf.size() / sizeof(int32_t);
-  MemoryRange new_mbuf(nelems * sizeof(int64_t));
-  const int32_t* old_data = static_cast<const int32_t*>(mbuf.rptr());
+  xassert(ptype == PT::Str32);
+  size_t nelems = databuf.size() / sizeof(int32_t);
+  MemoryRange new_mbuf = MemoryRange::mem(nelems * sizeof(int64_t));
+  const int32_t* old_data = static_cast<const int32_t*>(databuf.rptr());
   int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
   for (size_t i = 0; i < nelems; ++i) {
     new_data[i] = old_data[i];
   }
-  type = PT::Str64;
-  mbuf = std::move(new_mbuf);
+  ptype = PT::Str64;
+  databuf = std::move(new_mbuf);
 }
 
-
-PyTypeObject* GReaderColumn::NameTypePyTuple = nullptr;
-
-void GReaderColumn::init_nametypepytuple() {
-  if (NameTypePyTuple) return;
+static PyTypeObject* init_nametypepytuple() {
   static const char* tuple_name = "column_descriptor";
   static const char* field0 = "name";
   static const char* field1 = "type";
-  PyStructSequence_Field* fields = new PyStructSequence_Field[3];
+  PyStructSequence_Desc desc;
+  PyStructSequence_Field fields[3];
   fields[0].name = const_cast<char*>(field0);
   fields[1].name = const_cast<char*>(field1);
   fields[2].name = nullptr;
   fields[0].doc = nullptr;
   fields[1].doc = nullptr;
   fields[2].doc = nullptr;
-  PyStructSequence_Desc* desc = new PyStructSequence_Desc;
-  desc->name = const_cast<char*>(tuple_name);
-  desc->doc = nullptr;
-  desc->fields = fields;
-  desc->n_in_sequence = 2;
+  desc.name = const_cast<char*>(tuple_name);
+  desc.doc = nullptr;
+  desc.fields = fields;
+  desc.n_in_sequence = 2;
   // Do not use PyStructSequence_NewType, because it is buggy
   // (see https://lists.gt.net/python/bugs/1320383)
   // The memory must also be cleared because https://bugs.python.org/issue33742
-  NameTypePyTuple = new PyTypeObject();
-  PyStructSequence_InitType(NameTypePyTuple, desc);
-
-  // clean up
-  delete[] fields;
-  delete desc;
+  auto res = new PyTypeObject();
+  PyStructSequence_InitType(res, &desc);
+  return res;
 }
 
-
 PyObj GReaderColumn::py_descriptor() const {
-  if (!NameTypePyTuple) init_nametypepytuple();
-  PyObject* nt_tuple = PyStructSequence_New(NameTypePyTuple);  // new ref
+  static PyTypeObject* name_type_pytuple = init_nametypepytuple();
+  PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = py_stype_objs[ParserLibrary::info(type).stype];
+  PyObject* stype = py_stype_objs[ParserLibrary::info(ptype).stype];
   Py_INCREF(stype);
   PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
   PyStructSequence_SetItem(nt_tuple, 1, stype);
   return PyObj(std::move(nt_tuple));
+}
+
+size_t GReaderColumn::memory_footprint() const {
+  return databuf.memory_footprint() +
+         (strbuf? strbuf->size() : 0) +
+         name.size() + sizeof(*this);
+}
+
+
+//---- ptype_iterator ------------------
+
+GReaderColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
+
+PT GReaderColumn::ptype_iterator::operator*() const {
+  return curr_ptype;
+}
+
+RT GReaderColumn::ptype_iterator::get_rtype() const {
+  return rtype;
+}
+
+GReaderColumn::ptype_iterator& GReaderColumn::ptype_iterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool GReaderColumn::ptype_iterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
 }
 
 
@@ -161,55 +279,72 @@ PyObj GReaderColumn::py_descriptor() const {
 // GReaderColumns
 //------------------------------------------------------------------------------
 
-GReaderColumns::GReaderColumns() noexcept
-    : std::vector<GReaderColumn>(), allocnrows(0) {}
+GReaderColumns::GReaderColumns() noexcept : allocnrows(0) {}
 
 
-size_t GReaderColumns::get_nrows() const {
+size_t GReaderColumns::size() const noexcept {
+  return cols.size();
+}
+
+size_t GReaderColumns::get_nrows() const noexcept {
   return allocnrows;
 }
 
 void GReaderColumns::set_nrows(size_t nrows) {
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    (*this)[i].allocate(nrows);
+  for (auto& col : cols) {
+    col.allocate(nrows);
   }
   allocnrows = nrows;
 }
 
 
+GReaderColumn& GReaderColumns::operator[](size_t i) & {
+  return cols[i];
+}
+
+const GReaderColumn& GReaderColumns::operator[](size_t i) const & {
+  return cols[i];
+}
+
+void GReaderColumns::add_columns(size_t n) {
+  cols.reserve(cols.size() + n);
+  for (size_t i = 0; i < n; ++i) {
+    cols.push_back(GReaderColumn());
+  }
+}
+
+
 std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
-  std::unique_ptr<PT[]> res(new PT[size()]);
+  std::unique_ptr<PT[]> res(new PT[cols.size()]);
   saveTypes(res);
   return res;
 }
 
 void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    types[i] = (*this)[i].type;
+  size_t i = 0;
+  for (const auto& col : cols) {
+    types[i++] = col.get_ptype();
   }
 }
 
 bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    if (types[i] != (*this)[i].type) return false;
+  size_t i = 0;
+  for (const auto& col : cols) {
+    if (types[i++] != col.get_ptype()) return false;
   }
   return true;
 }
 
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    (*this)[i].type = types[i];
+  size_t i = 0;
+  for (auto& col : cols) {
+    col.force_ptype(types[i++]);
   }
 }
 
 void GReaderColumns::setType(PT type) {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    (*this)[i].type = type;
+  for (auto& col : cols) {
+    col.force_ptype(type);
   }
 }
 
@@ -221,7 +356,7 @@ const char* GReaderColumns::printTypes() const {
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[(*this)[i].type].code;
+    *ch++ = parsers[cols[i].get_ptype()].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -230,7 +365,7 @@ const char* GReaderColumns::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[(*this)[i].type].code;
+      *ch++ = parsers[cols[i].get_ptype()].code;
   }
   *ch = '\0';
   return out;
@@ -238,40 +373,40 @@ const char* GReaderColumns::printTypes() const {
 
 size_t GReaderColumns::nColumnsInOutput() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
-    n += col.presentInOutput;
+  for (const auto& col : cols) {
+    n += col.is_in_output();
   }
   return n;
 }
 
 size_t GReaderColumns::nColumnsInBuffer() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
-    n += col.presentInBuffer;
+  for (const auto& col : cols) {
+    n += col.is_in_buffer();
   }
   return n;
 }
 
 size_t GReaderColumns::nColumnsToReread() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
-    n += col.typeBumped;
+  for (const auto& col : cols) {
+    n += col.is_type_bumped();
   }
   return n;
 }
 
 size_t GReaderColumns::nStringColumns() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
-    n += col.isstring();
+  for (const auto& col : cols) {
+    n += col.is_string();
   }
   return n;
 }
 
 size_t GReaderColumns::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  for (const GReaderColumn& col : *this) {
-    allocsize += col.getAllocSize();
+  for (const auto& col : cols) {
+    allocsize += col.memory_footprint();
   }
   return allocsize;
 }
@@ -283,120 +418,37 @@ size_t GReaderColumns::totalAllocSize() const {
 // LocalParseContext
 //------------------------------------------------------------------------------
 
-LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
-  tbuf = nullptr;
-  tbuf_ncols = 0;
-  tbuf_nrows = 0;
+LocalParseContext::LocalParseContext(size_t ncols, size_t nrows)
+  : tbuf(ncols * nrows + 1), sbuf(0), strinfo(ncols)
+{
+  tbuf_ncols = ncols;
+  tbuf_nrows = nrows;
   used_nrows = 0;
   row0 = 0;
-  allocate_tbuf(ncols, nrows);
+}
+
+
+LocalParseContext::~LocalParseContext() {
+  if (used_nrows != 0) {
+    printf("Assertion error in ~LocalParseContext(): used_nrows != 0\n");
+  }
 }
 
 
 void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
-  size_t old_size = tbuf? (tbuf_ncols * tbuf_nrows + 1) * sizeof(field64) : 0;
-  size_t new_size = (ncols * nrows + 1) * sizeof(field64);
-  if (new_size > old_size) {
-    void* tbuf_raw = realloc(tbuf, new_size);
-    if (!tbuf_raw) {
-      throw MemoryError() << "Cannot allocate " << new_size
-                          << " bytes for a temporary buffer";
-    }
-    tbuf = static_cast<field64*>(tbuf_raw);
-  }
+  tbuf.resize(ncols * nrows + 1);
   tbuf_ncols = ncols;
   tbuf_nrows = nrows;
 }
 
 
-LocalParseContext::~LocalParseContext() {
-  if (used_nrows != 0) printf("used_nrows!=0 in ~LocalParseContext()\n");
-  free(tbuf);
+size_t LocalParseContext::get_nrows() const {
+  return used_nrows;
 }
 
 
-// void LocalParseContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
-//   size_t ncols = columns.size();
-//   for (size_t i = 0; i < ncols; ++i) {
-//     if (columns[i].type == ColumnSpec::Type::String) {
-//       strbufs.push_back(StrBuf2(static_cast<int64_t>(i)));
-//     }
-//   }
-// }
-
-
-field64* LocalParseContext::next_row() {
-  if (used_nrows == tbuf_nrows) {
-    allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
-  }
-  return tbuf + (used_nrows++) * tbuf_ncols;
+void LocalParseContext::set_nrows(size_t n) {
+  xassert(n <= used_nrows);
+  used_nrows = n;
 }
-
-
-void LocalParseContext::push_buffers()
-{
-  if (used_nrows == 0) return;
-  /*
-  size_t rowsize8 = ctx.rowsize / 8;
-  for (size_t i = 0, j = 0, k = 0; i < colspec.size(); ++i) {
-    auto coltype = colspec[i].type;
-    if (coltype == ColumnSpec::Type::Drop) {
-      continue;
-    }
-    if (coltype == ColumnSpec::Type::String) {
-      StrBuf2& sb = ctx.strbufs[k];
-      outcols[j].strdata->write_at(sb.writepos, sb.usedsize, sb.strdata);
-      sb.usedsize = 0;
-
-      int32_t* dest = static_cast<int32_t*>(outcols[j].data);
-      RelStr* src = static_cast<RelStr*>(ctx.tbuf);
-      int32_t offset = abs(dest[-1]);
-      for (int64_t row = 0; row < ctx.used_nrows; ++row) {
-        int32_t o = src->offset;
-        dest[row] = o >= 0? o + offset : o - offset;
-        src += rowsize8;
-      }
-      k++;
-    } else {
-      // ... 3 cases, depending on colsize
-    }
-    j++;
-  }
-  */
-  used_nrows = 0;
-}
-
-
-
-
-
-//------------------------------------------------------------------------------
-// StrBuf2
-//------------------------------------------------------------------------------
-
-StrBuf2::StrBuf2(int64_t i) {
-  colidx = i;
-  writepos = 0;
-  usedsize = 0;
-  allocsize = 1024;
-  strdata = static_cast<char*>(malloc(allocsize));
-  if (!strdata) {
-    throw RuntimeError()
-          << "Unable to allocate 1024 bytes for a temporary buffer";
-  }
-}
-
-StrBuf2::~StrBuf2() {
-  free(strdata);
-}
-
-void StrBuf2::resize(size_t newsize) {
-  strdata = static_cast<char*>(realloc(strdata, newsize));
-  allocsize = newsize;
-  if (!strdata) {
-    throw RuntimeError() << "Unable to allocate " << newsize
-                         << " bytes for a temporary buffer";
-  }
-}
-
 

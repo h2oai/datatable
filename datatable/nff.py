@@ -47,7 +47,7 @@ def save(self, dest, _strategy="auto"):
 
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:
-        out.write("# NFF1+\n")
+        out.write("# NFF2\n")
         out.write("# nrows = %d\n" % self.nrows)
         out.write('filename,stype,meta,colname,min,max\n')
         l = len(str(self.ncols))
@@ -98,6 +98,8 @@ def open(path):
             nff_version = 1
         elif info[0] == "NFF1+":
             nff_version = 1.5
+        elif info[0] == "NFF2":
+            nff_version = 2
         if nff_version:
             assert len(info) == 2
             mm = re.match("nrows\s*=\s*(\d+)", info[1])
@@ -115,7 +117,7 @@ def open(path):
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
     f1 = f0(select=["filename", "stype", "meta"])
     colnames = f0["colname"].topython()[0]
-    _dt = core.datatable_load(f1.internal, nrows, path)
+    _dt = core.datatable_load(f1.internal, nrows, path, nff_version < 2)
     df = dt.Frame(_dt, names=colnames)
     assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
     return df

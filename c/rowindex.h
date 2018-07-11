@@ -12,7 +12,6 @@
 class Column;
 class BoolColumn;
 class RowIndex;
-class IntegrityCheckContext;
 
 
 
@@ -55,7 +54,7 @@ class RowIndexImpl {
     virtual void shrink(int64_t n) = 0;
     virtual RowIndexImpl* shrunk(int64_t n) = 0;
     virtual size_t memory_footprint() const = 0;
-    virtual bool verify_integrity(IntegrityCheckContext&) const;
+    virtual void verify_integrity() const;
 
   protected:
     virtual ~RowIndexImpl() {}
@@ -89,7 +88,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     void shrink(int64_t n) override;
     RowIndexImpl* shrunk(int64_t n) override;
     size_t memory_footprint() const override;
-    bool verify_integrity(IntegrityCheckContext&) const override;
+    void verify_integrity() const override;
 
   private:
     // Helper function that computes and sets proper `min` / `max` fields for
@@ -128,7 +127,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     void shrink(int64_t n) override;
     RowIndexImpl* shrunk(int64_t n) override;
     size_t memory_footprint() const override;
-    bool verify_integrity(IntegrityCheckContext&) const override;
+    void verify_integrity() const override;
 
   protected:
     friend RowIndex;
@@ -263,7 +262,7 @@ class RowIndex {
     template<typename F> void strided_loop(
         int64_t istart, int64_t iend, int64_t istep, F f) const;
 
-    bool verify_integrity(IntegrityCheckContext&) const;
+    void verify_integrity() const;
 
   private:
     RowIndex(RowIndexImpl* rii);

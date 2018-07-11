@@ -9,7 +9,6 @@
 #define dt_DATATABLE_h
 #include <vector>
 #include <string>
-#include "datatable_check.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
@@ -61,14 +60,14 @@ class DataTable {
   public:
     DataTable(Column**);
     ~DataTable();
-    DataTable* delete_columns(int*, int);
+    DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
     void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(DataTable**, int**, int, int64_t);
-    DataTable* cbind(DataTable**, int);
+    void rbind(DataTable**, int**, int64_t, int64_t);
+    DataTable* cbind(DataTable**, int64_t);
     size_t memory_footprint();
 
     /**
@@ -88,14 +87,16 @@ class DataTable {
     DataTable* sum_datatable() const;
     DataTable* mean_datatable() const;
     DataTable* sd_datatable() const;
+    DataTable* skew_datatable() const;
+    DataTable* kurt_datatable() const;
     DataTable* countna_datatable() const;
     DataTable* nunique_datatable() const;
     DataTable* nmodal_datatable() const;
 
-    bool verify_integrity(IntegrityCheckContext& icc) const;
+    void verify_integrity() const;
 
     static DataTable* load(DataTable* schema, int64_t nrows,
-                           const std::string& path);
+                           const std::string& path, bool recode);
 
   private:
     DataTable* _statdt(colmakerfn f) const;

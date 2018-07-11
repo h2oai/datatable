@@ -45,12 +45,12 @@ public:
       throw ValueError() << "Cannot write type " << col->stype();
     }
     if (col->stype() == ST_STRING_I4_VCHAR) {
-      strbuf = static_cast<StringColumn<int32_t>*>(col)->strdata();
-      data = static_cast<StringColumn<int32_t>*>(col)->offsets();
+      strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
+      data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
     }
     else if (col->stype() == ST_STRING_I8_VCHAR) {
-      strbuf = static_cast<StringColumn<int64_t>*>(col)->strdata();
-      data = static_cast<StringColumn<int64_t>*>(col)->offsets();
+      strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
+      data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
     }
   }
 
@@ -61,8 +61,8 @@ public:
   // This should only be called on a CsvColumn of type i4s / i8s!
   template <typename T>
   size_t strsize(int64_t row0, int64_t row1) {
-    const T* offsets = static_cast<const T*>(data) - 1;
-    return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
+    const T* offsets = static_cast<const T*>(data);
+    return (offsets[row1 - 1] - offsets[row0 - 1]) & ~GETNA<T>();
   }
 };
 
@@ -95,10 +95,10 @@ template <typename T>
 void write_str(char** pch, CsvColumn* col, int64_t row)
 {
   T offset1 = (static_cast<const T*>(col->data))[row];
-  T offset0 = abs((static_cast<const T*>(col->data))[row - 1]);
+  T offset0 = (static_cast<const T*>(col->data))[row - 1] & ~GETNA<T>();
   char *ch = *pch;
 
-  if (offset1 < 0) return;
+  if (ISNA<T>(offset1)) return;
   if (offset0 == offset1) {
     ch[0] = '"';
     ch[1] = '"';
@@ -119,7 +119,7 @@ void write_str(char** pch, CsvColumn* col, int64_t row)
   if (sch < strend || sch[-1] == 32) {
     quote:
     ch = *pch;
-    memcpy(ch+1, strstart, static_cast<size_t>(sch - strstart));
+    std::memcpy(ch + 1, strstart, static_cast<size_t>(sch - strstart));
     *ch = '"';
     ch += sch - strstart + 1;
     while (sch < strend) {
@@ -313,7 +313,6 @@ void CsvWriter::write()
   size_t nstrcols64 = strcolumns64.size();
 
   OmpExceptionManager oem;
-  #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
 
   // Start writing the CSV
   #pragma omp parallel num_threads(nthreads)
@@ -327,17 +326,19 @@ void CsvWriter::write()
     }
     // Initialize thread-local variables
     size_t thbufsize = bytes_per_chunk * 2;
-    char  *thbuf = nullptr;
+    char*  thbuf = nullptr;
     size_t th_write_at = 0;
     size_t th_write_size = 0;
-    OMPCODE(
+    try {
       // Note: do not use new[] here, as it can't be safely realloced
       thbuf = static_cast<char*>(malloc(thbufsize));
       if (!thbuf) {
         throw RuntimeError() << "Unable to allocate " << thbufsize
                              << " bytes for thread-local buffer";
       }
-    )
+    } catch (...) {
+      oem.capture_exception();
+    }
 
     // Main data-writing loop
     #pragma omp for ordered schedule(dynamic)
@@ -347,7 +348,7 @@ void CsvWriter::write()
       int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
       if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
 
-      OMPCODE(
+      try {
         // write the thread-local buffer into the output
         if (th_write_size) {
           wb->write_at(th_write_at, th_write_size, thbuf);
@@ -359,10 +360,10 @@ void CsvWriter::write()
         // expand twice in size (if every character needs to be escaped).
         size_t reqsize = 0;
         for (size_t col = 0; col < nstrcols32; col++) {
-          reqsize += strcolumns32[col]->strsize<int32_t>(row0, row1);
+          reqsize += strcolumns32[col]->strsize<uint32_t>(row0, row1);
         }
         for (size_t col = 0; col < nstrcols64; col++) {
-          reqsize += strcolumns64[col]->strsize<int64_t>(row0, row1);
+          reqsize += strcolumns64[col]->strsize<uint64_t>(row0, row1);
         }
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
@@ -376,30 +377,39 @@ void CsvWriter::write()
         }
 
         // Write the data in rows row0..row1 and in all columns
-        char *thch = thbuf;
-        for (int64_t row = row0; row < row1; row++) {
-          for (size_t col = 0; col < ncols; col++) {
-            columns[col]->write(&thch, row);
-            *thch++ = ',';
-          }
-          thch[-1] = '\n';
-        }
+        char* thch = thbuf;
+        dt->rowindex.strided_loop(row0, row1, 1,
+          [&](int64_t row) {
+            for (size_t col = 0; col < ncols; col++) {
+              columns[col]->write(&thch, row);
+              *thch++ = ',';
+            }
+            thch[-1] = '\n';
+          });
+        // for (int64_t row = row0; row < row1; row++) {
+        // }
         th_write_size = static_cast<size_t>(thch - thbuf);
-      )
+      } catch (...) {
+        oem.capture_exception();
+      }
 
       #pragma omp ordered
       {
-        OMPCODE(
+        try {
           th_write_at = wb->prep_write(th_write_size, thbuf);
-        )
+        } catch (...) {
+          oem.capture_exception();
+        }
       }
     }
-    OMPCODE(
+    try {
       if (th_write_size && !oem.exception_caught()) {
         wb->write_at(th_write_at, th_write_size, thbuf);
       }
       free(thbuf);
-    )
+    } catch (...) {
+      oem.capture_exception();
+    }
   }
   oem.rethrow_exception_if_any();
   t_write_data = checkpoint();
@@ -456,10 +466,10 @@ size_t CsvWriter::estimate_output_size()
   size_t total_columns_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
-    if (auto scol32 = dynamic_cast<StringColumn<int32_t>*>(col)) {
+    if (auto scol32 = dynamic_cast<StringColumn<uint32_t>*>(col)) {
       total_string_size += scol32->datasize();
     } else
-    if (auto scol64 = dynamic_cast<StringColumn<int64_t>*>(col)) {
+    if (auto scol64 = dynamic_cast<StringColumn<uint64_t>*>(col)) {
       total_string_size += scol64->datasize();
     }
     SType stype = col->stype();
@@ -602,13 +612,13 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
-  writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
-  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_iN<int8_t>;
-  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_iN<int16_t>;
-  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_iN<int32_t>;
-  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_iN<int64_t>;
-  writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
-  writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
-  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_str<int32_t>;
-  writers_per_stype[ST_STRING_I8_VCHAR] = (writer_fn) write_str<int64_t>;
+  writers_per_stype[ST_BOOLEAN_I1] = write_b1;
+  writers_per_stype[ST_INTEGER_I1] = write_iN<int8_t>;
+  writers_per_stype[ST_INTEGER_I2] = write_iN<int16_t>;
+  writers_per_stype[ST_INTEGER_I4] = write_iN<int32_t>;
+  writers_per_stype[ST_INTEGER_I8] = write_iN<int64_t>;
+  writers_per_stype[ST_REAL_F4]    = write_f4_dec;
+  writers_per_stype[ST_REAL_F8]    = write_f8_dec;
+  writers_per_stype[ST_STRING_I4_VCHAR] = write_str<uint32_t>;
+  writers_per_stype[ST_STRING_I8_VCHAR] = write_str<uint64_t>;
 }

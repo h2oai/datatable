@@ -205,7 +205,7 @@ class Frame(object):
             e = src[i]
             if isinstance(e, range):
                 src[i] = list(e)
-            elif isinstance(e, list):
+            elif isinstance(e, list) or is_type(e, NumpyArray_t):
                 pass
             else:
                 if i == 0:
@@ -232,7 +232,17 @@ class Frame(object):
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
-        if not names:
+        if names:
+            if isinstance(names, str):
+                names = [names]
+            if not isinstance(names, (tuple, list)):
+                raise TTypeError("The `names` parameter should be either a "
+                                 "tuple or a list, not %r" % type(names))
+            if len(names) != self._ncols:
+                raise TValueError("The length of the `names` parameter (%d) "
+                                  "does not match the number of columns in the "
+                                  "Frame (%d)" % (len(names), self._ncols))
+        else:
             names = [None] * self._ncols
         self._names, self._inames = Frame._dedup_names(names)
 
@@ -255,7 +265,7 @@ class Frame(object):
                 assert coldtype.isnative
             if coldtype.char == 'e' and str(coldtype) == "float16":
                 colarrays[i] = colarrays[i].astype("float32")
-        dt = core.datatable_from_buffers(colarrays)
+        dt = core.datatable_from_list(colarrays, None)
         self._fill_from_dt(dt, names=names)
 
 
@@ -275,13 +285,13 @@ class Frame(object):
 
         ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
-            dt = core.datatable_from_buffers([arr.data[:, i]
-                                              for i in range(ncols)])
-            mask = core.datatable_from_buffers([arr.mask[:, i]
-                                                for i in range(ncols)])
+            dt = core.datatable_from_list([arr.data[:, i]
+                                           for i in range(ncols)], None)
+            mask = core.datatable_from_list([arr.mask[:, i]
+                                             for i in range(ncols)], None)
             dt.apply_na_mask(mask)
         else:
-            dt = core.datatable_from_buffers([arr[:, i] for i in range(ncols)])
+            dt = core.datatable_from_list([arr[:, i] for i in range(ncols)], None)
 
         if names is None:
             names = [None] * ncols
@@ -303,6 +313,9 @@ class Frame(object):
                 fill_default_names = True
                 tnames.append(None)  # Placeholder, filled in below
                 continue
+            if not isinstance(name, str):
+                raise TTypeError("Invalid `names` list: element %d is not a "
+                                 "string" % i)
             if name[:len(prefix)] == prefix and name[len(prefix):].isdigit():
                 min_c = max(min_c, int(name[len(prefix):]) + 1)
             else:
@@ -980,7 +993,7 @@ options.register_option(
     "sort.max_chunk_length", xtype=int, default=1024, core=True)
 
 options.register_option(
-    "sort.max_radix_bits", xtype=int, default=8, core=True)
+    "sort.max_radix_bits", xtype=int, default=12, core=True)
 
 options.register_option(
     "sort.over_radix_bits", xtype=int, default=8, core=True)

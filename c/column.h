@@ -82,11 +82,13 @@ public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_na_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
+  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
+                                  bool recode = false);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
+  static Column* from_buffer(PyObject* buffer);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -227,6 +229,8 @@ public:
   virtual Column* sum_column() const;
   virtual Column* mean_column() const;
   virtual Column* sd_column() const;
+  virtual Column* skew_column() const;
+  virtual Column* kurt_column() const;
   virtual Column* countna_column() const;
   virtual Column* nunique_column() const;
   virtual Column* nmodal_column() const;
@@ -237,24 +241,24 @@ public:
   virtual PyObject* sum_pyscalar() const;
   virtual PyObject* mean_pyscalar() const;
   virtual PyObject* sd_pyscalar() const;
+  virtual PyObject* skew_pyscalar() const;
+  virtual PyObject* kurt_pyscalar() const;
   virtual PyObject* countna_pyscalar() const;
   virtual PyObject* nunique_pyscalar() const;
   virtual PyObject* nmodal_pyscalar() const;
   virtual PyObject* mode_pyscalar() const;
 
   /**
-   * Check that the data in this Column object is correct. Use the provided
-   * `IntegrityCheckContext` to report any errors, and `name` is the name of
-   * the column to be used in the output messages.
+   * Check that the data in this Column object is correct. `name` is the name of
+   * the column to be used in the diagnostic messages.
    */
-  virtual bool verify_integrity(IntegrityCheckContext&,
-                                const std::string& name = "Column") const;
+  virtual void verify_integrity(const std::string& name) const;
 
 protected:
   Column(int64_t nrows = 0);
   virtual void init_data() = 0;
   virtual void init_mmap(const std::string& filename) = 0;
-  virtual void open_mmap(const std::string& filename) = 0;
+  virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
@@ -277,8 +281,8 @@ protected:
   virtual void cast_into(IntColumn<int64_t>*) const;
   virtual void cast_into(RealColumn<float>*) const;
   virtual void cast_into(RealColumn<double>*) const;
-  virtual void cast_into(StringColumn<int32_t>*) const;
-  virtual void cast_into(StringColumn<int64_t>*) const;
+  virtual void cast_into(StringColumn<uint32_t>*) const;
+  virtual void cast_into(StringColumn<uint64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
 
@@ -331,7 +335,7 @@ public:
 protected:
   void init_data() override;
   void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -382,7 +386,7 @@ public:
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
 
-protected:
+  protected:
   BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -393,11 +397,10 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "Column") const override;
+  void verify_integrity(const std::string& name) const override;
 
   using Column::mbuf;
   friend Column;
@@ -419,6 +422,8 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
+  double skew() const;
+  double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
 
@@ -428,12 +433,16 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  Column* skew_column() const override;
+  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
+  PyObject* skew_pyscalar() const override;
+  PyObject* kurt_pyscalar() const override;
 
 protected:
   IntegerStats<T>* get_stats() const override;
@@ -446,8 +455,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   using Column::stats;
   using Column::mbuf;
@@ -479,6 +488,8 @@ public:
   double sum() const;
   double mean() const;
   double sd() const;
+  double skew() const;
+  double kurt() const;
 
   Column* min_column() const override;
   Column* max_column() const override;
@@ -486,12 +497,16 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  Column* skew_column() const override;
+  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
+  PyObject* skew_pyscalar() const override;
+  PyObject* kurt_pyscalar() const override;
 
 protected:
   RealStats<T>* get_stats() const override;
@@ -504,8 +519,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   using Column::stats;
   using Column::new_data_column;
@@ -549,7 +564,7 @@ protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
   PyObjectStats* get_stats() const override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool) override;
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -559,8 +574,8 @@ protected:
   // void cast_into(RealColumn<float>*) const override;
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<int32_t>*) const;
-  // void cast_into(StringColumn<int64_t>*) const;
+  // void cast_into(StringColumn<uint32_t>*) const;
+  // void cast_into(StringColumn<uint64_t>*) const;
 
   void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -610,14 +625,13 @@ public:
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "Column") const override;
+  void verify_integrity(const std::string& name) const override;
 
 protected:
   StringColumn();
   void init_data() override;
   void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -633,8 +647,8 @@ protected:
   // void cast_into(RealColumn<float>*) const override;
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<int32_t>*) const;
-  void cast_into(StringColumn<int64_t>*) const override;
+  // void cast_into(StringColumn<uint32_t>*) const;
+  void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
@@ -644,10 +658,10 @@ protected:
 };
 
 
-template <> void StringColumn<int32_t>::cast_into(StringColumn<int64_t>*) const;
-template <> void StringColumn<int64_t>::cast_into(StringColumn<int64_t>*) const;
-extern template class StringColumn<int32_t>;
-extern template class StringColumn<int64_t>;
+template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
+template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
+extern template class StringColumn<uint32_t>;
+extern template class StringColumn<uint64_t>;
 
 
 
@@ -655,30 +669,28 @@ extern template class StringColumn<int64_t>;
 
 // "Fake" column, its only use is to serve as a placeholder for a Column with an
 // unknown type. This column cannot be put into a DataTable.
-class VoidColumn : public Column
-{
-public:
-  VoidColumn(int64_t nrows) : Column(nrows) {}
-  SType stype() const override { return ST_VOID; }
-  size_t elemsize() const override { return 0; }
-  bool is_fixedwidth() const override { return true; }
-  int64_t data_nrows() const override { return nrows; }
-  void reify() override {}
-  void resize_and_fill(int64_t) override {}
-  void rbind_impl(std::vector<const Column*>&, int64_t, bool) override {}
-  void apply_na_mask(const BoolColumn*) override {}
-  void replace_values(RowIndex, const Column*) override {}
-protected:
-  VoidColumn() {}
-  void init_data() override {}
-  void init_mmap(const std::string&) override {}
-  void open_mmap(const std::string&) override {}
-  void init_xbuf(Py_buffer*) override {}
+class VoidColumn : public Column {
+  public:
+    VoidColumn(int64_t nrows);
+    SType stype() const override;
+    size_t elemsize() const override;
+    bool is_fixedwidth() const override;
+    int64_t data_nrows() const override;
+    void reify() override;
+    void resize_and_fill(int64_t) override;
+    void rbind_impl(std::vector<const Column*>&, int64_t, bool) override;
+    void apply_na_mask(const BoolColumn*) override;
+    void replace_values(RowIndex, const Column*) override;
+  protected:
+    VoidColumn();
+    void init_data() override;
+    void init_mmap(const std::string&) override;
+    void open_mmap(const std::string&, bool) override;
+    void init_xbuf(Py_buffer*) override;
+    Stats* get_stats() const override;
+    void fill_na() override;
 
-  Stats* get_stats() const override { return nullptr; }
-  void fill_na() override {}
-
-  friend Column;
+    friend Column;
 };
 
 

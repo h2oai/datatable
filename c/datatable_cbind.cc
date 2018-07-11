@@ -16,11 +16,11 @@
  * it will be filled with NAs; with the exception of 1-row datatables which will
  * be expanded to the desired height by duplicating that row.
  */
-DataTable* DataTable::cbind(DataTable **dts, int ndts)
+DataTable* DataTable::cbind(DataTable **dts, int64_t ndts)
 {
     int64_t t_ncols = ncols;
     int64_t t_nrows = nrows;
-    for (int i = 0; i < ndts; ++i) {
+    for (int64_t i = 0; i < ndts; ++i) {
         t_ncols += dts[i]->ncols;
         if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
     }
@@ -37,10 +37,10 @@ DataTable* DataTable::cbind(DataTable **dts, int ndts)
     }
 
     // Append columns from `dts` into the "main" datatable
-    dtrealloc(columns, Column*, t_ncols + 1);
+    columns = dt::arealloc(columns, t_ncols + 1);
     columns[t_ncols] = nullptr;
     int64_t j = ncols;
-    for (int i = 0; i < ndts; ++i) {
+    for (int64_t i = 0; i < ndts; ++i) {
         int64_t ncolsi = dts[i]->ncols;
         int64_t nrowsi = dts[i]->nrows;
         for (int64_t ii = 0; ii < ncolsi; ++ii) {

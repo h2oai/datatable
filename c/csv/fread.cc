@@ -104,167 +104,8 @@ DataTablePtr FreadReader::read()
 
   if (verbose) fo.t_initialized = wallclock();
 
-
-  //*********************************************************************************************
-  // [2] Auto detect separator, quoting rule, first line and ncols, simply,
-  //     using jump 0 only.
-  //
-  //     Always sample as if nrows= wasn't supplied. That's probably *why*
-  //     user is setting nrow=0 to get the column names and types, without
-  //     actually reading the data yet. Most likely to check consistency
-  //     across a set of files.
-  //*********************************************************************************************
-  {
-    if (verbose) trace("[2] Detect separator, quoting rule, and ncolumns");
-
-    int nseps;
-    char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
-    char topSep;             // which sep matches the input best so far
-    // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
-
-    if (sep == '\xFF') {   // '\xFF' means 'auto'
-      nseps = (int) strlen(seps);
-      topSep = '\xFE';     // '\xFE' means single-column mode
-    } else {
-      // Cannot use '\n' as a separator, because it prevents us from proper
-      // detection of line endings
-      if (sep == '\n') sep = '\xFE';
-      seps[0] = sep;
-      seps[1] = '\0';
-      topSep = sep;
-      nseps = 1;
-      trace("Using supplied sep '%s'",
-            sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
-    }
-
-    const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
-    int topNumLines = 0;      // the most number of lines with the same number of fields, so far
-    int topNumFields = 0;     // how many fields that was, to resolve ties
-    int8_t topQuoteRule = -1;  // which quote rule that was
-    int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
-                              //   (when fill=true, the max is usually the header row and is the longest but there are more
-                              //    lines of fewer)
-
-    field64 trash;
-    FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
-    const char*& tch = ctx.ch;
-
-    // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
-    // covers the header row, at this stage we don't know if it's present), and
-    // detect the number of fields on each line. If several consecutive lines
-    // have the same number of fields, we'll call them a "contiguous group of
-    // lines". Arrays `numFields` and `numLines` contain information about each
-    // contiguous group of lines encountered while scanning the first JUMPLINES
-    // + 1 lines: 'numFields` gives the count of fields in each group, and
-    // `numLines` has the number of lines in each group.
-    int numFields[JUMPLINES+1];
-    int numLines[JUMPLINES+1];
-    for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
-      for (int s=0; s<nseps; s++) {
-        sep = seps[s];
-        whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
-        ctx.ch = sof;
-        ctx.sep = sep;
-        ctx.whiteChar = whiteChar;
-        ctx.quoteRule = quoteRule;
-        // if (verbose) trace("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
-        for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
-        int i=-1; // The slot we're counting the currently contiguous consistent ncols
-        int thisLine=0, lastncol=-1;
-        while (tch < eof && thisLine++ < JUMPLINES) {
-          // Compute num columns and move `tch` to the start of next line
-          int thisncol = ctx.countfields();
-          if (thisncol < 0) {
-            // invalid file with this sep and quote rule; abort
-            numFields[0] = -1;
-            break;
-          }
-          if (thisncol != lastncol) {  // new contiguous consistent ncols started
-            numFields[++i] = thisncol;
-            lastncol = thisncol;
-          }
-          numLines[i]++;
-        }
-        if (numFields[0] == -1) continue;
-        if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
-        if (topQuoteRule < 0) topQuoteRule = quoteRule;
-        bool updated = false;
-        int nmax = 0;
-
-        i = -1;
-        while (numLines[++i]) {
-          if (numFields[i] > nmax) {  // for fill=true to know max number of columns
-            nmax = numFields[i];
-          }
-          if ( numFields[i]>1 &&
-              (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
-              ((numLines[i]>topNumLines) ||   // most number of consistent ncols wins
-               (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
-               //                                       ^ ties in numLines resolved by numFields (more fields win)
-               //                                                           ^ but don't resolve a tie with a higher quote
-               //                                                             rule unless the sep is different too: #2404, #2839
-            topNumLines = numLines[i];
-            topNumFields = numFields[i];
-            topSep = sep;
-            topQuoteRule = quoteRule;
-            topNmax = nmax;
-            firstJumpEnd = tch;  // So that after the header we know how many bytes jump point 0 is
-            updated = true;
-            // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
-            // updated flag is just to print once.
-          } else if (topNumFields == 0 && nseps == 1 && quoteRule != 2) {
-            topNumFields = numFields[i];
-            topSep = sep;
-            topQuoteRule = quoteRule;
-            topNmax = nmax;
-          }
-        }
-        if (verbose && updated) {
-          trace(sep<' '? "sep='\\x%02x' with %d lines of %d fields using quote rule %d" :
-                         "sep='%c' with %d lines of %d fields using quote rule %d",
-                sep, topNumLines, topNumFields, topQuoteRule);
-        }
-      }
-    }
-    if (!topNumFields) topNumFields = 1;
-    xassert(firstJumpEnd && topQuoteRule >= 0);
-    quoteRule = ctx.quoteRule = topQuoteRule;
-    sep = ctx.sep = topSep;
-    whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
-    if (sep==' ' && !fill) {
-      trace("sep=' ' detected, setting fill to True");
-      fill = 1;
-    }
-
-    int ncols = fill? topNmax : topNumFields;
-    xassert(ncols >= 1 && line >= 1);
-
-    // Create vector of Column objects
-    columns.reserve(static_cast<size_t>(ncols));
-    for (int i = 0; i < ncols; i++) {
-      columns.push_back(GReaderColumn());
-    }
-
-    first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
-
-    if (verbose) {
-      trace("Detected %d columns", ncols);
-      if (sep == '\xFE') trace("sep = <single-column mode>");
-      else if (sep >= ' ') trace("sep = '%c'", sep);
-      else trace("sep = '\\x%02x'", int(sep));
-      trace("Quote rule = %d", quoteRule);
-      fo.t_parse_parameters_detected = wallclock();
-    }
-
-    // if (ncols > 1) {
-    //   // Don't do this for ncols = 1, because then blank lines are significant.
-    //   skip_trailing_whitespace();
-    // }
-  }
-
-
+  detect_sep_and_qr();    // [2]
   detect_column_types();  // [3]
-
 
   //*********************************************************************************************
   // [4] Parse column names (if present)
@@ -298,19 +139,18 @@ DataTablePtr FreadReader::read()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.rtype == RT::RDrop) {
+      col.reset_type_bumped();
+      if (col.is_dropped()) {
         ndropped++;
-        col.presentInOutput = false;
-        col.presentInBuffer = false;
         continue;
       } else {
-        if (col.type < oldtypes[i]) {
+        if (col.get_ptype() < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
                i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
-        nUserBumped += (col.type != oldtypes[i]);
+        nUserBumped += (col.get_ptype() != oldtypes[i]);
       }
     }
     if (verbose) {
@@ -335,7 +175,6 @@ DataTablePtr FreadReader::read()
   // [6] Read the data
   //*********************************************************************************************
   bool firstTime = true;
-  int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
 
   std::unique_ptr<PT[]> typesPtr = columns.getTypes();
   PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
@@ -349,27 +188,17 @@ DataTablePtr FreadReader::read()
     if (firstTime) {
       fo.t_data_read = fo.t_data_reread = wallclock();
       size_t ncols = columns.size();
-
-      for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
-      for (size_t i = 0; i < ncols; i++) {
-        typeCounts[columns[i].type]++;
-      }
-
       size_t ncols_to_reread = columns.nColumnsToReread();
       if (ncols_to_reread) {
         fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
-          if (!col.presentInOutput) continue;
-          if (col.typeBumped) {
-            // column was bumped due to out-of-sample type exception
-            col.typeBumped = false;
-            col.presentInBuffer = true;
-            n_type_bump_cols++;
-          } else {
-            col.presentInBuffer = false;
-          }
+          if (!col.is_in_output()) continue;
+          bool bumped = col.is_type_bumped();
+          col.reset_type_bumped();
+          col.set_in_buffer(bumped);
+          n_type_bump_cols += bumped;
         }
         firstTime = false;
         if (verbose) {

@@ -72,7 +72,7 @@ PyObject* exec_function(PyObject* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
       return nullptr;
 
-  return ((PyCFunction) fnptr)(self, fnargs);
+  return reinterpret_cast<PyCFunction>(fnptr)(self, fnargs);
 }
 
 
@@ -98,7 +98,8 @@ PyObject* register_function(PyObject*, PyObject *args) {
 }
 
 
-#define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
+#define ADD(f) \
+  PyTuple_SetItem(res, i++, PyLong_FromSize_t(reinterpret_cast<size_t>(f)))
 
 PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   const int SIZE = 6;
@@ -106,9 +107,9 @@ PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   PyObject *res = PyTuple_New(SIZE);
   if (!res) return nullptr;
 
-  ADD(_dt_malloc);
-  ADD(_dt_realloc);
-  ADD(_dt_free);
+  ADD(dt::malloc<void>);
+  ADD(dt::realloc<void>);
+  ADD(dt::free);
   ADD(datatable_get_column_data);
   ADD(datatable_unpack_slicerowindex);
   ADD(datatable_unpack_arrayrowindex);
@@ -171,7 +172,6 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pyrowindex::rowindex_from_filterfn),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
-    METHODv(pydatatable::datatable_from_buffers),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(config::set_option),
     METHODv(gread),

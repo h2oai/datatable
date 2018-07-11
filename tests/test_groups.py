@@ -31,14 +31,14 @@ def test_groups_internal2():
                        ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
                       names=["A", "B"])
     d1 = d0(groupby="A")
-    assert d1.internal.check()
+    d1.internal.check()
     gb = d1.internal.groupby
     assert gb.ngroups == 5
     assert gb.group_sizes == [1, 4, 1, 2, 1]
     assert d1.topython() == [[None, 1, 1, 1, 1, 2, 3, 3, 5],
                              ["d", "a", None, "b", "h", "a", "c", "f", "b"]]
     d2 = d0(groupby="B")
-    assert d2.internal.check()
+    d2.internal.check()
     gb = d2.internal.groupby
     assert gb.ngroups == 7
     assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
@@ -49,7 +49,7 @@ def test_groups_internal2():
 def test_groups_internal3():
     f0 = dt.Frame({"A": [1, 2, 1, 3, 2, 2, 2, 1, 3, 1], "B": range(10)})
     f1 = f0(select=["B", f.A + f.B], groupby="A")
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.topython() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                              [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
                              [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
@@ -68,7 +68,7 @@ def test_groups_internal4(seed):
     f0 = dt.Frame({"A": src})
     f1 = f0(groupby="A")
     gb = f1.internal.groupby
-    assert f1.internal.check()
+    f1.internal.check()
     assert gb
     grp_offsets = gb.group_offsets
     ssrc = sorted(src)
@@ -89,7 +89,7 @@ def test_groups_internal5_strs(seed):
     f0 = dt.Frame({"A": src})
     f1 = f0(groupby="A")
     gb = f1.internal.groupby
-    assert f1.internal.check()
+    f1.internal.check()
     assert gb
     grp_offsets = gb.group_offsets
     ssrc = sorted(src)
@@ -123,7 +123,7 @@ def test_groups_multiple():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [min(f.size), max(f.size)], "color"]
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.topython() == [["blue", "green", "red"], [2, 0, 5], [2, 7, 13]]
 
 
@@ -131,10 +131,30 @@ def test_groups_autoexpand():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [mean(f.size), "size"], f.color]
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.topython() == [["blue", "green", "green", "red", "red"],
                              [2.0, 3.5, 3.5, 9.0, 9.0],
                              [2, 7, 0, 5, 13]]
+
+
+def test_groupby_with_filter1():
+    f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
+    f1 = f0[f.X > 0, sum(f.X), f.KEY]
+    assert f1.topython() == [[1, 2], [4, 2]]
+
+
+def test_groupby_with_filter2():
+    # Check that rowindex works even when applied to a view
+    n = 10000
+    src0 = [random.getrandbits(2) for _ in range(n)]
+    src1 = [random.gauss(1, 1) for _ in range(n)]
+    f0 = dt.Frame({"key": src0, "val": src1})
+    f1 = f0[f.val >= 0, :]
+    f2 = f1[f.val <= 2, sum(f.val), f.key]
+    answer = [sum(src1[i] for i in range(n)
+                  if src0[i] == key and 0 <= src1[i] <= 2)
+              for key in range(4)]
+    assert f2.topython() == [[0, 1, 2, 3], answer]
 
 
 
@@ -147,7 +167,7 @@ def test_reduce_sum():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, -1]})
     f1 = f0[:, sum(f.size), f.color]
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.topython() == [["blue", "green", "red"],
                              [2, 6, 18]]
 
@@ -176,7 +196,7 @@ def test_groups_large2_str(n, seed):
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
     f1 = f0(groupby="A")
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.internal.groupby.ngroups == len(set(src))
 
 

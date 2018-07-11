@@ -11,7 +11,6 @@ import pathlib
 import re
 import shutil
 import tempfile
-import urllib.request
 import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
@@ -26,14 +25,11 @@ from datatable.utils.misc import (normalize_slice, normalize_range,
 from datatable.utils.misc import plural_form as plural
 from datatable.types import stype, ltype
 
-try:
-    import psutil
-except ImportError:
-    psutil = None
 
 _log_color = term.bright_black
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
+_psutil_load_attempted = False
 
 
 def fread(
@@ -193,7 +189,7 @@ class GenericReader(object):
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
                 if self.verbose:
-                    self.logger.debug("Input has length %d characters, "
+                    self.logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
             else:
@@ -326,13 +322,13 @@ class GenericReader(object):
 
 
     def _resolve_source_url(self, url):
-        if url is None:
-            return
-        targetfile = tempfile.mktemp(dir=self.tempdir)
-        urllib.request.urlretrieve(url, filename=targetfile)
-        self._tempfiles.append(targetfile)
-        self._file = targetfile
-        self._src = url
+        if url is not None:
+            import urllib.request
+            targetfile = tempfile.mktemp(dir=self.tempdir)
+            urllib.request.urlretrieve(url, filename=targetfile)
+            self._tempfiles.append(targetfile)
+            self._file = targetfile
+            self._src = url
 
 
     def _resolve_archive(self, filename, subpath=None):
@@ -784,6 +780,14 @@ class GenericReader(object):
         exception if it determines that it cannot find a good strategy to
         handle a dataset of the requested size.
         """
+        global _psutil_load_attempted
+        if not _psutil_load_attempted:
+            _psutil_load_attempted = True
+            try:
+                import psutil
+            except ImportError:
+                psutil = None
+
         if self.verbose and estimated_size > 1:
             self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
@@ -886,9 +890,14 @@ class GenericReader(object):
         if isinstance(colspec, dict):
             return self._apply_columns_dict(colspec, coldescs)
 
+        if isinstance(colspec, (type, stype, ltype)):
+            newcs = {colspec: slice(None)}
+            return self._apply_columns_dict(newcs, coldescs)
+
         if callable(colspec):
             return self._apply_columns_function(colspec, coldescs)
 
+        print(colspec, coldescs)
         raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
                            % colspec)
 
@@ -979,6 +988,32 @@ class GenericReader(object):
         default_entry = colsdict.get(..., ...)
         colnames = []
         coltypes = [rtype.rdrop.value] * len(colsdesc)
+        new_entries = {}
+        for key, val in colsdict.items():
+            if isinstance(key, (type, stype, ltype)):
+                if isinstance(val, str):
+                    val = [val]
+                if isinstance(val, slice):
+                    val = [colsdesc[i].name
+                           for i in range(*val.indices(len(colsdesc)))]
+                if isinstance(val, range):
+                    val = [colsdesc[i].name for i in val]
+                if isinstance(val, (list, tuple, set)):
+                    for entry in val:
+                        if not isinstance(entry, str):
+                            raise TTypeError(
+                                "Type %s in the `columns` parameter should map"
+                                " to a string or list of strings (column names)"
+                                "; however it contains an entry %r"
+                                % (key, entry))
+                        if entry in colsdict:
+                            continue
+                        new_entries[entry] = key
+                else:
+                    raise TTypeError(
+                        "Unknown entry %r for %s in `columns`" % (val, key))
+        if new_entries:
+            colsdict = {**colsdict, **new_entries}
         for i in range(len(colsdesc)):
             name = colsdesc[i].name
             entry = colsdict.get(name, default_entry)

@@ -16,6 +16,7 @@
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
+#include "utils/array.h"
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
 
@@ -41,38 +42,73 @@ class GenericReader;
  */
 class GReaderColumn {
   private:
-    MemoryRange mbuf;
-    static PyTypeObject* NameTypePyTuple;
-
-  public:
     std::string name;
-    MemoryWritableBuffer* strdata;
-    PT type;
+    MemoryRange databuf;
+    MemoryWritableBuffer* strbuf;
+    PT ptype;
     RT rtype;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
     int32_t : 24;
 
+    class ptype_iterator {
+      private:
+        int8_t* pqr;
+        RT rtype;
+        PT orig_ptype;
+        PT curr_ptype;
+        int64_t : 40;
+      public:
+        ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
+        PT operator*() const;
+        ptype_iterator& operator++();
+        bool has_incremented() const;
+        RT get_rtype() const;
+    };
+
   public:
     GReaderColumn();
     GReaderColumn(const GReaderColumn&) = delete;
     GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
-    const char* typeName() const;
-    const std::string& get_name() const;
-    const char* repr_name(const GenericReader& g) const;
-    size_t elemsize() const;
-    size_t getAllocSize() const;
-    bool isstring() const;
-    const void* data_r() const { return mbuf.rptr(); }
-    void* data_w() { return mbuf.wptr(); }
+
+    // Column's data
     void allocate(size_t nrows);
+    void* data_w();
+    WritableBuffer* strdata_w();
     MemoryRange extract_databuf();
     MemoryRange extract_strbuf();
+
+    // Column's name
+    const std::string& get_name() const noexcept;
+    void set_name(std::string&& newname) noexcept;
+    void swap_names(GReaderColumn& other) noexcept;
+    const char* repr_name(const GenericReader& g) const;  // static ptr
+
+    // Column's type(s)
+    PT get_ptype() const;
+    SType get_stype() const;
+    ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
+    void set_rtype(int64_t it);
+    void set_ptype(const ptype_iterator& it);
+    void force_ptype(PT new_ptype);
+    const char* typeName() const;
+
+    // Column info
+    bool is_string() const;
+    bool is_dropped() const;
+    bool is_type_bumped() const;
+    bool is_in_output() const;
+    bool is_in_buffer() const;
+    size_t elemsize() const;
+    void reset_type_bumped();
+    void set_in_buffer(bool f);
+
+    // Misc
     void convert_to_str64();
     PyObj py_descriptor() const;
-    static void init_nametypepytuple();
+    size_t memory_footprint() const;
 };
 
 
@@ -82,12 +118,22 @@ class GReaderColumn {
 // GReaderColumns
 //------------------------------------------------------------------------------
 
-class GReaderColumns : public std::vector<GReaderColumn> {
+class GReaderColumns {
   private:
+    std::vector<GReaderColumn> cols;
     size_t allocnrows;
 
   public:
     GReaderColumns() noexcept;
+
+    size_t size() const noexcept;
+    size_t get_nrows() const noexcept;
+    void set_nrows(size_t nrows);
+
+    GReaderColumn& operator[](size_t i) &;
+    const GReaderColumn& operator[](size_t i) const &;
+
+    void add_columns(size_t n);
 
     std::unique_ptr<PT[]> getTypes() const;
     void saveTypes(std::unique_ptr<PT[]>& types) const;
@@ -101,9 +147,6 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     size_t nColumnsToReread() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
-
-    size_t get_nrows() const;
-    void set_nrows(size_t nrows);
 };
 
 
@@ -184,6 +227,7 @@ class GenericReader
     bool cr_is_newline;
     int : 24;
     GReaderColumns columns;
+    double t_open_input{ 0 };
 
   private:
     PyObj logger;
@@ -288,41 +332,12 @@ class GenericReader
 //------------------------------------------------------------------------------
 
 /**
- * Per-column per-thread temporary string buffers used to assemble processed
- * string data. This buffer is used as a "staging ground" where the string data
- * is being stored / postprocessed before being transferred to the "main"
- * string buffer in a Column. Such 2-stage process is needed for the multi-
- * threaded string data writing.
- *
- * Members of this struct:
- *   .strdata -- memory region where the string data is stored.
- *   .allocsize -- allocation size of this memory buffer.
- *   .usedsize -- amount of memory already in use in the buffer.
- *   .writepos -- position in the global string data buffer where the current
- *       buffer's data should be moved. This value is returned from
- *       `WritableBuffer::prep_write()`.
- */
-struct StrBuf2 {
-  char* strdata;
-  size_t allocsize;
-  size_t usedsize;
-  size_t writepos;
-  int64_t colidx;
-
-  StrBuf2(int64_t i);
-  ~StrBuf2();
-  void resize(size_t newsize);
-};
-
-
-
-/**
  * "Relative string": a string defined as an offset+length relative to some
  * anchor point (which has to be provided separately). This is the internal data
  * structure for reading strings from a file.
  */
 struct RelStr {
-  int32_t offset;
+  uint32_t offset;
   int32_t length;
 
   bool isna() { return length == std::numeric_limits<int32_t>::min(); }
@@ -366,13 +381,8 @@ struct ChunkCoordinates {
     : start(nullptr), end(nullptr), true_start(false), true_end(false) {}
   ChunkCoordinates(const char* s, const char* e)
     : start(s), end(e), true_start(false), true_end(false) {}
-  ChunkCoordinates& operator=(const ChunkCoordinates& cc) {
-    start = cc.start;
-    end = cc.end;
-    true_start = cc.true_start;
-    true_end = cc.true_end;
-    return *this;
-  }
+  ChunkCoordinates(const ChunkCoordinates&) = default;
+  ChunkCoordinates& operator=(const ChunkCoordinates&) = default;
 
   operator bool() const { return end == nullptr; }
 };
@@ -384,6 +394,10 @@ struct ChunkCoordinates {
 //------------------------------------------------------------------------------
 
 /**
+ * This is a helper class for ChunkedDataReader (see below). It carries
+ * variables that will be local to each thread during the parallel reading of
+ * the input.
+ *
  * tbuf
  *   Output buffer. Within the buffer the data is stored in row-major order,
  *   i.e. in the same order as in the original CSV file. We view the buffer as
@@ -401,24 +415,26 @@ struct ChunkCoordinates {
  */
 class LocalParseContext {
   public:
-    field64* tbuf;
+    struct SInfo { size_t start, size, write_at; };
+
+    dt::array<field64> tbuf;
+    dt::array<uint8_t> sbuf;
+    dt::array<SInfo> strinfo;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
     size_t row0;
-    // std::vector<StrBuf2> strbufs;
 
   public:
     LocalParseContext(size_t ncols, size_t nrows);
     virtual ~LocalParseContext();
-    virtual field64* next_row();
+
     virtual void push_buffers() = 0;
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void orderBuffer() = 0; // { row0 = r0; }
-    virtual size_t get_nrows() { return used_nrows; }
-    virtual void set_nrows(size_t n) { used_nrows = n; }
+    virtual void orderBuffer() = 0;
 
-  public:
+    size_t get_nrows() const;
+    void set_nrows(size_t n);
     void allocate_tbuf(size_t ncols, size_t nrows);
 };
 

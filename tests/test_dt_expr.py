@@ -63,8 +63,8 @@ def test_dt_invert(src):
     dt0 = dt.Frame(src)
     df1 = dt0(select=~f[0], engine="llvm")
     df2 = dt0(select=~f[0], engine="eager")
-    assert df1.internal.check()
-    assert df2.internal.check()
+    df1.internal.check()
+    df2.internal.check()
     assert df1.stypes == dt0.stypes
     assert df2.stypes == dt0.stypes
     assert df1.topython() == [[inv(x) for x in src]]
@@ -95,7 +95,7 @@ def neg(t):
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: -f[0])
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == dt0.stypes
     assert list_equals(dtr.topython()[0], [neg(x) for x in src])
 
@@ -118,7 +118,7 @@ def test_dt_neg_invalid(src):
 def test_dt_pos(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: +f[0])
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == dt0.stypes
     assert list_equals(dtr.topython()[0], list(src))
 
@@ -142,8 +142,8 @@ def test_dt_isna(src):
     dt0 = dt.Frame(src)
     dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
     dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.stypes == dt2.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
     assert dt1.topython()[0] == pyans
@@ -159,7 +159,7 @@ def test_dt_isna(src):
 def test_cast_to_float32(src):
     dt0 = dt.Frame(src)
     dt1 = dt0[:, [dt.float32(f[i]) for i in range(dt0.ncols)]]
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.stypes == (dt.float32,) * dt0.ncols
     pyans = [float(x) if x is not None else None for x in src]
     assert list_equals(dt1.topython()[0], pyans)
@@ -170,7 +170,7 @@ def test_cast_int_to_str(stype0):
     dt0 = dt.Frame([None, 0, -3, 189, 77, 14, None, 394831, -52939047130424957],
                    stype=stype0)
     dt1 = dt0[:, [dt.str32(f.C0), dt.str64(f.C0)]]
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.stypes == (dt.str32, dt.str64)
     assert dt1.shape == (dt0.nrows, 2)
     ans = [None if v is None else str(v)
@@ -189,8 +189,16 @@ def test_cast_to_str(src):
     dt0 = dt.Frame(src)
     dt1 = dt0[:, [dt.str32(f[i]) for i in range(dt0.ncols)]]
     dt2 = dt0[:, [dt.str64(f[i]) for i in range(dt0.ncols)]]
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.stypes == (dt.str32,) * dt0.ncols
     assert dt2.stypes == (dt.str64,) * dt0.ncols
     assert dt1.topython()[0] == [to_str(x) for x in src]
+
+
+def test_cast_view():
+    df0 = dt.Frame({"A": [1, 2, 3]})
+    df1 = df0[::-1, :][:, dt.float32(f.A)]
+    df1.internal.check()
+    assert df1.stypes == (dt.float32,)
+    assert df1.topython() == [[3.0, 2.0, 1.0]]

@@ -132,13 +132,13 @@ def test_repeating_names():
         assert_equals(dt0, dtr)
 
         dt0 = dt.Frame({"a": [23]})
-        dt1 = dt.Frame([[2], [4], [8]], names="aaa")
-        dtr = dt.Frame([[23, 2], [None, 4], [None, 8]], names="aaa")
+        dt1 = dt.Frame([[2], [4], [8]], names=["a"] * 3)
+        dtr = dt.Frame([[23, 2], [None, 4], [None, 8]], names=("a",) * 3)
         dt0.rbind(dt1, force=True)
         assert_equals(dt0, dtr)
 
-        dt0 = dt.Frame([[22], [44], [88]], names="aba")
-        dt1 = dt.Frame([[2], [4], [8]], names="aaa")
+        dt0 = dt.Frame([[22], [44], [88]], names=list("aba"))
+        dt1 = dt.Frame([[2], [4], [8]], names=list("aaa"))
         dtr = dt.Frame([[22, 2], [44, None], [88, 4], [None, 8]],
                        names=["a", "b", "a", "a"])
         dt0.rbind(dt1, force=True)
@@ -288,8 +288,8 @@ def test_rbind_different_stypes3():
                     range(-50, 0, 5)],
                    stypes=[stype.int8, stype.int16, stype.int32, stype.int64])
     dt1 = dt.Frame([["alpha"], ["beta"], ["gamma"], ["delta"]])
-    assert dt0.internal.check()
-    assert dt1.internal.check()
+    dt0.internal.check()
+    dt1.internal.check()
     assert dt0.stypes == (stype.int8, stype.int16, stype.int32, stype.int64)
     assert dt1.stypes == (stype.str32,) * 4
     dt0.rbind(dt1)
@@ -312,8 +312,8 @@ def test_rbind_different_stypes4():
     dt1 = dt.Frame([["vega", "altair", None],
                     [None, "wren", "crow"],
                     ["f", None, None]])
-    assert dt0.internal.check()
-    assert dt1.internal.check()
+    dt0.internal.check()
+    dt1.internal.check()
     assert dt0.stypes == (stype.bool8, stype.float32, stype.float64)
     assert dt1.stypes == (stype.str32, ) * 3
     dt0.rbind(dt1)
@@ -345,17 +345,20 @@ def test_rbind_all_stypes():
             f2 = dt.Frame(sources[st2], stype=st2)
             f3 = dt.Frame().rbind(f1, f2)
             f1.rbind(f2)
-            assert f1.internal.check()
-            assert f2.internal.check()
-            assert f3.internal.check()
+            f1.internal.check()
+            f2.internal.check()
+            f3.internal.check()
             assert f1.nrows == len(sources[st1]) + len(sources[st2])
             assert f3.shape == f1.shape
             assert f1.topython() == f3.topython()
+            del f1
+            del f2
+            del f3
 
 
 def test_rbind_modulefn():
     f0 = dt.Frame([1, 5409, 204])
     f1 = dt.Frame([109813, None, 9385])
     f3 = dt.rbind(f0, f1)
-    assert f3.internal.check()
+    f3.internal.check()
     assert f3.topython()[0] == f0.topython()[0] + f1.topython()[0]

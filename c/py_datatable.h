@@ -119,12 +119,9 @@ DECLARE_METHOD(
 
 DECLARE_METHOD(
   check,
-  "check(stream=STDOUT)\n\n"
-  "Check the DataTable for internal consistency. Returns False if any\n"
-  "internal problem is found, or True otherwise.\n"
-  "This method accepts a single optional parameter 'stream', which should be\n"
-  "a file-like object where the error messages if any will be written. If \n"
-  "this parameter is not given, then errors will be written to STDOUT.\n"
+  "check()\n\n"
+  "Check the DataTable for internal consistency. Raises an AssertionError if\n"
+  "any internal problem is found.\n"
 )
 
 DECLARE_METHOD(
@@ -216,6 +213,14 @@ DECLARE_METHOD(
   "Get the standard deviation for each column in the DataTable")
 
 DECLARE_METHOD(
+  get_skew,
+  "Get the skew for each column in the DataTable")
+
+DECLARE_METHOD(
+  get_kurt,
+  "Get the kurtosis for each column in the DataTable")
+
+DECLARE_METHOD(
   get_countna,
   "Get the NA count for each column in the DataTable")
 
@@ -290,15 +295,6 @@ DECLARE_FUNCTION(
 DECLARE_FUNCTION(
   install_buffer_hooks,
   "install_buffer_hooks(...)\n\n",
-  PY_BUFFERS_cc)
-
-DECLARE_FUNCTION(
-  datatable_from_buffers,
-  "datatable_from_buffers(buffers: List)\n\n"
-  "Load datatable from a list of Python objects supporting Buffers protocol.\n"
-  "This is typically a list of numpy arrays, and this function is invoked\n"
-  "when converting a pandas DataFrame into a DataTable (each column in pandas\n"
-  "has its own type, and is backed by a separate numpy array).\n",
   PY_BUFFERS_cc)
 
 

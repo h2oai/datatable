@@ -1,7 +1,7 @@
 BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
-ifdef JENKINS_URL
+ifneq ($(CI),)
 PYTEST_FLAGS := -vv -s
 endif
 
@@ -16,7 +16,6 @@ DIST_DIR := dist/$(PLATFORM)
 .PHONY: all clean mrproper build install uninstall test_install test \
 		benchmark debug bi coverage fast dist
 .SECONDARY: main-fast
-
 
 all:
 	$(MAKE) clean
@@ -220,6 +219,161 @@ ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
 ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
+ARCH_NAME ?= $(shell uname -m)
+DOCKER_IMAGE_TAG ?= 0.3.2-PR-996.3
+CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
+UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
+
+centos7_build_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate $(BUILD_VENV) && \
+			make CI=$(CI) dist"
+
+centos7_build_py36_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
+
+centos7_build_py35_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
+
+centos7_version_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate datatable-py36-with-pandas && \
+			python --version && \
+			mkdir -p dist && \
+			make CI=$(CI) version > dist/VERSION.txt && \
+			cat dist/VERSION.txt"
+
+centos7_test_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate $(TEST_VENV) && \
+			python --version && \
+			pip install --no-cache-dir --upgrade dist/*.whl && \
+			make CI=$(CI) MODULE=datatable test_install && \
+			make test CI=$(CI)"
+
+centos7_test_py36_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
+
+centos7_test_py35_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py35-with-pandas centos7_test_in_docker_impl
+
+centos7_test_py36_with_numpy_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-numpy centos7_test_in_docker_impl
+
+centos7_test_py36_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36 centos7_test_in_docker_impl
+
+ubuntu_build_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/$(BUILD_VENV)/bin/activate && \
+			python --version && \
+			make CI=$(CI) dist"
+
+ubuntu_build_sdist_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
+			python --version && \
+			make CI=$(CI) sdist"
+
+ubuntu_build_py36_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
+
+ubuntu_build_py35_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py35-with-pandas ubuntu_build_in_docker_impl
+
+ubuntu_coverage_py36_with_pandas_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
+			python --version && \
+			make CI=$(CI) coverage"
+
+ubuntu_test_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/$(TEST_VENV)/bin/activate && \
+			python --version && \
+			pip freeze && \
+			pip install --no-cache-dir dist/*.whl && \
+			python --version && \
+			make CI=$(CI) MODULE=datatable test_install && \
+			make CI=$(CI) test"
+
+ubuntu_test_py36_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
+
+ubuntu_test_py35_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py35-with-pandas ubuntu_test_in_docker_impl
+
+ubuntu_test_py36_with_numpy_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-numpy ubuntu_test_in_docker_impl
+
+ubuntu_test_py36_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
+
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
@@ -233,8 +387,6 @@ printvars:
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
-
-
 
 #-------------------------------------------------------------------------------
 # "Fast" (but fragile) datatable build
@@ -262,7 +414,6 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	csv/writer.o              \
 	datatable.o               \
 	datatable_cbind.o         \
-	datatable_check.o         \
 	datatable_load.o          \
 	datatable_rbind.o         \
 	datatablemodule.o         \
@@ -300,6 +451,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	stats.o                   \
 	types.o                   \
 	utils.o                   \
+	utils/alloc.o             \
 	utils/exceptions.o        \
 	utils/file.o              \
 	utils/pyobj.o             \
@@ -315,7 +467,7 @@ fast:
 	$(eval EXTEXT := $(shell python setup.py get_EXTEXT))
 	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
 	@echo • Checking dependencies graph
-	@python fastcheck.py
+	@python ci/fastcheck.py
 	@$(MAKE) --no-print-directory main-fast
 
 post-fast:
@@ -351,13 +503,9 @@ $(BUILDDIR)/columnset.h: c/columnset.h $(BUILDDIR)/column.h $(BUILDDIR)/datatabl
 	@echo • Refreshing c/columnset.h
 	@cp c/columnset.h $@
 
-$(BUILDDIR)/datatable.h: c/datatable.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
+$(BUILDDIR)/datatable.h: c/datatable.h $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/datatable.h
 	@cp c/datatable.h $@
-
-$(BUILDDIR)/datatable_check.h: c/datatable_check.h
-	@echo • Refreshing c/datatable_check.h
-	@cp c/datatable_check.h $@
 
 $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
@@ -423,7 +571,7 @@ $(BUILDDIR)/sort.h: c/sort.h $(BUILDDIR)/utils/array.h
 	@echo • Refreshing c/sort.h
 	@cp c/sort.h $@
 
-$(BUILDDIR)/stats.h: c/stats.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/types.h
+$(BUILDDIR)/stats.h: c/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/stats.h
 	@cp c/stats.h $@
 
@@ -435,7 +583,7 @@ $(BUILDDIR)/utils.h: c/utils.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils.h
 	@cp c/utils.h $@
 
-$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
@@ -463,7 +611,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -509,7 +657,11 @@ $(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
 	@cp c/python/string.h $@
 
 
-$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/utils/alloc.h: c/utils/alloc.h
+	@echo • Refreshing c/utils/alloc.h
+	@cp c/utils/alloc.h $@
+
+$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
 	@cp c/utils/array.h $@
 
@@ -547,7 +699,7 @@ $(BUILDDIR)/capi.o : c/capi.cc $(BUILDDIR)/capi.h $(BUILDDIR)/datatable.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -567,7 +719,7 @@ $(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils.h
+$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -575,11 +727,11 @@ $(BUILDDIR)/column_real.o : c/column_real.cc $(BUILDDIR)/column.h $(BUILDDIR)/cs
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_string.o : c/column_string.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/column_string.o : c/column_string.cc $(BUILDDIR)/column.h $(BUILDDIR)/encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -619,15 +771,11 @@ $(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable.o : c/datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/datatable.o : c/datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/datatable_cbind.o : c/datatable_cbind.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
-	@echo • Compiling $<
-	@$(CC) -c $< $(CCFLAGS) -o $@
-
-$(BUILDDIR)/datatable_check.o : c/datatable_check.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -643,7 +791,7 @@ $(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/encodings.o : c/encodings.c $(BUILDDIR)/encodings.h
+$(BUILDDIR)/encodings.o : c/encodings.cc $(BUILDDIR)/encodings.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -671,7 +819,7 @@ $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -699,7 +847,7 @@ $(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -707,7 +855,7 @@ $(BUILDDIR)/py_datawindow.o : c/py_datawindow.cc $(BUILDDIR)/datatable.h $(BUILD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_encodings.o : c/py_encodings.c $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/py_encodings.o : c/py_encodings.cc $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -719,11 +867,11 @@ $(BUILDDIR)/py_rowindex.o : c/py_rowindex.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_types.o : c/py_types.c $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/column.h
+$(BUILDDIR)/py_types.o : c/py_types.cc $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/column.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_utils.o : c/py_utils.c $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_utils.o : c/py_utils.cc $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -743,19 +891,19 @@ $(BUILDDIR)/python/string.o : c/python/string.cc $(BUILDDIR)/python/string.h $(B
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/options.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/options.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -771,11 +919,15 @@ $(BUILDDIR)/stats.o : c/stats.cc $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(B
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/types.o : c/types.c $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/types.o : c/types.cc $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils.o : c/utils.c $(BUILDDIR)/utils.h
+$(BUILDDIR)/utils.o : c/utils.cc $(BUILDDIR)/utils.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/utils/alloc.o : c/utils/alloc.cc $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -791,6 +943,6 @@ $(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@

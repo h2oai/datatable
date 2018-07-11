@@ -1,354 +1,660 @@
-#!/usr/bin/groovy
+#! /usr/bin/groovy
 
-@Library('test-shared-library@1.2') _
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                        //
+// DISCLAIMER: Code in this pipeline is currently "unwinded" for better readability of non-Jenkins users. //
+//                                                                                                        //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@Library('test-shared-library@1.3') _
 
 import ai.h2o.ci.Utils
+import ai.h2o.ci.buildsummary.StagesSummary
+import ai.h2o.ci.buildsummary.DetailsSummary
+import ai.h2o.ci.BuildResult
 
 def utilsLib = new Utils()
 
-properties([
-        parameters([
-                booleanParam(name: 'BUILD_PPC64LE', defaultValue: true, description: '[BUILD] Trigger build of PPC64le artifacts'),
-                booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
-                booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
-        ]),
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
-])
+BuildResult result = BuildResult.FAILURE
 
+// initialize build summary
+buildSummary('https://github.com/h2oai/datatable', true)
+// use default StagesSummary implementation
+buildSummary.get().addStagesSummary(this, new StagesSummary())
+
+///////////////
+// CONSTANTS //
+///////////////
+NODE_LABEL = 'docker && !mr-0xc8'
+OSX_NODE_LABEL = 'osx'
+PPC_NODE_LABEL = 'ibm-power'
+RELEASE_NODE_LABEL = 'master'
 RELEASE_BRANCH_PREFIX = 'rel-'
-
 CREDS_ID = 'h2o-ops-personal-auth-token'
 GITCONFIG_CRED_ID = 'master-gitconfig'
 RSA_CRED_ID = 'master-id-rsa'
-
-def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
-
-def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:${DOCKER_IMAGE_TAG}"
-
+DOCKER_IMAGE_TAG = '0.6.0-PR-1147.4'
+X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
 EXPECTED_SHAS = [
         files : [
-                'ci/Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
-                'ci/Dockerfile-centos7.in': 'ae1ef9a0b3a665ea311c3a627108bd51ebcc3b93',
+                'ci/Dockerfile-ubuntu.in' : 'c4d38fd01807c6427b40bd87d54365d2b272805e',
+                'ci/Dockerfile-centos7.in': '9a6957ba2b23762bcfe2162634717297c9e477f6',
         ]
 ]
 
-// Default mapping
-def platformDefaults = [
-        env      : [],
-        pythonBin: 'python',
-        test     : true,
-        coverage : true,
-]
-
-// Default mapping for CentOS environments
-def centosDefaults = [
-        env      : ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
-]
-
-def PPC64LE_PLATFORM = 'ppc64le_linux'
-def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
-        node       : 'ibm-power',
-        coverage   : false,
-        test       : false,
-        dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
-]
-
-def LINUX_PLATFORM = 'x86_64_linux'
-
-// Build platforms parameters
-def BUILD_MATRIX = [
-        // Linux build definition
-        (LINUX_PLATFORM)   : platformDefaults + [
-                node       : 'docker && linux',
-                dockerImage: X86_64_LINUX_DOCKER_IMAGE
-        ],
-        // CentOS 7 build definition
-        x86_64_centos7: platformDefaults + centosDefaults + [
-                node       : 'docker && linux',
-                coverage   : false,
-                dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
-        ],
-        // OSX
-        x86_64_macos  : platformDefaults + [
-                node: 'osx',
-                env : [
-                        "LLVM4=/usr/local/opt/llvm@4",
-                        "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
-                ],
-        ]
-]
-
-if ((!isPrJob() && params.BUILD_PPC64LE) || isRelease()) {
-    BUILD_MATRIX[PPC64LE_PLATFORM] = PPC64LE_BUILD_CONF
-    manager.addBadge("success.gif", "PPC64LE build triggered!")
-}
-
-// Virtualenv used for build and coverage
-def DEFAULT_PY36_ENV = 'datatable-py36-with-pandas'
-def DEFAULT_PY35_ENV = 'datatable-py35-with-pandas'
-// Virtualenvs used for PR testing
-PR_TEST_ENVIRONMENTS = [
-        DEFAULT_PY35_ENV,
-        DEFAULT_PY36_ENV
-]
-// Virtualenvs used for nightly testing
-NIGHTLY_TEST_ENVIRONMENTS = PR_TEST_ENVIRONMENTS + [
-        'datatable-py36',
-        'datatable-py36-with-numpy'
-]
-
-// Computed version suffix
-def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
-
-// Global project build trigger filled in init stage
-def project
-
-// Needs invocation of larger tests
-def needsLargerTest
-
+OSX_ENV = ["LLVM4=/usr/local/opt/llvm@4", "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"]
+OSX_CONDA_ACTIVATE_PATH = '/Users/jenkins/anaconda/bin/activate'
 // Paths should be absolute
 SOURCE_DIR = "/home/0xdiag"
 TARGET_DIR = "/tmp/pydatatable_large_data"
-
-
 BUCKET = 'h2o-release'
 STABLE_FOLDER = 'datatable/stable'
 S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
 HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
-
 // Data map for linking into container
-def linkMap = [
-        "Data"     : "h2oai-benchmarks/Data",
-        "smalldata": "h2o-3/smalldata",
-        "bigdata"  : "h2o-3/bigdata",
-        "fread"    : "h2o-3/fread",
+LINK_MAP = [
+    "Data"     : "h2oai-benchmarks/Data",
+    "smalldata": "h2o-3/smalldata",
+    "bigdata"  : "h2o-3/bigdata",
+    "fread"    : "h2o-3/fread",
 ]
 
-def dockerArgs = createDockerArgs(linkMap, SOURCE_DIR, TARGET_DIR)
+// Computed version suffix
+def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
+// Global project build trigger filled in init stage
+def project
+// Needs invocation of larger tests
+def needsLargerTest
+def dockerArgs = createDockerArgs()
+// String with current version
+def versionText
 
-/////////////////////////////////////
-// Build, Coverage and Test stages //
-/////////////////////////////////////
-def stages = [:]
-BUILD_MATRIX.each { platform, config ->
-    stages[platform] = {
-        node(config.node) {
-            final def buildDir = 'build'
+MAKE_OPTS = "CI=1"
 
-            cleanWs()
-            def buildStageName = "Build ${platform}"
-            withCustomCommitStates(scm, CREDS_ID, buildStageName) {
-                stage(buildStageName) {
-                    dir(buildDir) {
-                        unstash 'datatable-sources'
-                    }
-                    // Specify build Closure
-                    def buildClosure = {
-                        project.buildAll(buildDir, platform, CI_VERSION_SUFFIX, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), getVenvActivationCmd(platform, DEFAULT_PY35_ENV), BUILD_MATRIX[platform]['env'])
-                    }
-                    callInEnv(config.dockerImage, dockerArgs, buildClosure)
-                }
-            }
+//////////////
+// PIPELINE //
+//////////////
+properties([
+    parameters([
+        booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
+        booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
+        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: true, description: '[BUILD] Trigger all tests even for PR')
+    ]),
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
+])
 
-
-            if (config.coverage && !params.DISABLE_COVERAGE) {
-                final def coverageDir = "coverage-${platform}"
-                dir(coverageDir) {
-                    unstash 'datatable-sources'
-                }
-                def coverageStageName = "Coverage ${platform}"
-                coverageStageName = appendLargeTestsSuffixIfRequired(coverageStageName, needsLargerTest)
-                withCustomCommitStates(scm, CREDS_ID, coverageStageName) {
-                    stage(coverageStageName) {
-                        def coverageClosure = {
-                            project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
-                        }
-                        callInEnv(config.dockerImage, dockerArgs, coverageClosure)
-                    }
-                }
-            } else {
-                stage("Coverage ${platform} - SKIPPED") {
-                    echo "SKIPPED"
-                }
-            }
-
-            boolean failure = false
-            getRelevantTestEnvs().each { testEnv ->
-                final def testDir = "test-${platform}-${testEnv}"
-                try {
-                    def testStageName = "Test ${platform} with ${testEnv}"
-                    if (config.test && !params.DISABLE_TESTS) {
-                        testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
-                        withCustomCommitStates(scm, CREDS_ID, testStageName) {
-                            stage(testStageName) {
-                                dir(testDir) {
-                                    unstash 'datatable-sources'
-                                }
-                                def testClosure = {
-                                    project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
-                                }
-                                callInEnv(config.dockerImage, dockerArgs, testClosure)
-                            }
-                        }
-                    } else {
-                        stage(testStageName) {
-                            echo "SKIPPED"
-                        }
-                    }
-                } catch (e) {
-                    failure = true
-                    StringWriter sw = new StringWriter()
-                    e.printStackTrace(new PrintWriter(sw))
-                    echo sw.toString()
-                }
-            }
-            if (failure) {
-                error 'There were one or more test failures. Please check the stacktrace above.'
-            }
-        }
-    }
-}
-
-////////////////////////
-// Main pipeline code //
-////////////////////////
 ansiColor('xterm') {
     timestamps {
         if (isPrJob()) {
             cancelPreviousBuilds()
         }
+        timeout(time: 120, unit: 'MINUTES') {
+            // Checkout stage
+            node(NODE_LABEL) {
+                def stageDir = 'checkout'
+                buildSummary.stageWithSummary('Checkout', stageDir) {
+                    dir (stageDir) {
+                        def scmEnv = checkout scm
+                        env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
+                        if (doPPC()) {
+                            manager.addBadge("success.gif", "PPC64LE build triggered!")
+                        }
+                        buildInfo(env.BRANCH_NAME, isRelease())
+                        project = load 'ci/default.groovy'
+                        if (isRelease()) {
+                            CI_VERSION_SUFFIX = ''
+                        }
+                        needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
+                        if (needsLargerTest) {
+                            env.DT_LARGE_TESTS_ROOT = TARGET_DIR
+                            manager.addBadge("warning.gif", "Large tests required")
+                        }
+                        stash 'datatable-sources'
+                        stash includes: "CHANGELOG.md", name: 'CHANGELOG'
 
-        // Checkout, apply patch and stash sources
-        node('linux') {
-            stage('Init') {
-                checkout scm
-                buildInfo(env.BRANCH_NAME, isRelease())
-                project = load 'ci/default.groovy'
-                if (isRelease()) {
-                    CI_VERSION_SUFFIX = ''
-                }
-                needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
-                if (needsLargerTest) {
-                    echo "Large tests will be executed for this build"
-                    manager.addBadge("warning.gif", "Large tests required")
-                }
-                stash 'datatable-sources'
-                stash includes: "CHANGELOG.md", name: 'CHANGELOG'
-
-                docker.image(X86_64_LINUX_DOCKER_IMAGE).inside {
-                    def dockerfileSHAsString = ""
-                    EXPECTED_SHAS.files.each { filename, sha ->
-                        dockerfileSHAsString += "${sha}\t${filename}\n"
-                    }
-                    try {
-                        sh """
-                            echo "${dockerfileSHAsString}" > dockerfiles.sha
-                            sha1sum -c dockerfiles.sha
-                            rm -f dockerfiles.sha
-                        """
-                    } catch (e) {
-                        error "Dockerfiles do not have expected checksums. Please make sure, you have built the " +
-                                "new images using the Jenkins pipeline and that you have changed the required " +
-                                "fields in this pipeline."
-                        throw e
-                    }
-                }
-            }
-        }
-
-        // Build, Coverage and Test stages for all platforms
-        parallel stages
-
-        def versionText = null
-        def publishS3Dir = 'publish-s3'
-        // If building master or rel-* branch, publish to S3
-        if (doPublish()) {
-            // Build and archive sdist wheel and read information required for following stages.
-            node('docker && !mr-0xc8') {
-                final def buildDir = 'build-sdist'
-                stage('Build sdist') {
-                    dir(buildDir) {
-                        unstash 'datatable-sources'
-                    }
-                    // read additional information for following stages
-                    unstash 'VERSION'
-                    versionText = readFile("build/dist/VERSION.txt").trim()
-
-                    def buildClosure = {
-                        project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
-                    }
-                    callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
-                }
-            }
-
-            if (versionText == null || versionText.trim() == '') {
-                error 'Version cannot be read'
-            }
-
-            // Always publish to artifacts.h2o.ai
-            node('master') {
-                stage('Publish snapshot to S3') {
-                    cleanWs()
-                    dumpInfo()
-                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                    BUILD_MATRIX.each { platform, config ->
-                        uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
-                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
+                        docker.image(X86_64_CENTOS_DOCKER_IMAGE).inside {
+                            def dockerfileSHAsString = ""
+                            EXPECTED_SHAS.files.each { filename, sha ->
+                                dockerfileSHAsString += "${sha}\t${filename}\n"
+                            }
+                            try {
+                                sh """
+                                    echo "${dockerfileSHAsString}" > dockerfiles.sha
+                                    sha1sum -c dockerfiles.sha
+                                    rm -f dockerfiles.sha
+                                """
+                            } catch (e) {
+                                error "Dockerfiles do not have expected checksums. Please make sure, you have built the " +
+                                        "new images using the Jenkins pipeline and that you have changed the required " +
+                                        "fields in this pipeline."
+                                throw e
+                            }
+                        }
                     }
                 }
             }
-
-            // If we are building rel-* branch, ask for user confirmation in order to promote this build. Given approval,
-            // artifacts will be copied to h2o-release and a GitHub release will be created.
-            if (isRelease()) {
-                timeout(unit: 'HOURS', time: 24) {
-                    input('Promote build?')
-                }
-                node('master') {
-                    cleanWs()
-                    // git repository and CHANGELOG.md must be present in order to create GitHub Release
-                    dir(publishS3Dir) {
-                        checkout scm
-                        unstash 'CHANGELOG'
-                    }
-                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-
-                    final def publishPublicS3StageName = 'Publish to public S3'
-                    stage(publishPublicS3StageName) {
-                        dumpInfo()
-                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                                docker.image("docker.h2o.ai/s3cmd").inside {
-                                    sh """
-                                        s3cmd put -P ${publishS3Dir}/dist/*.whl ${getS3TargetUrl(versionText)}
-                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz ${getS3TargetUrl(versionText)}
-                                    """
+            // Build stages
+            parallel([
+                'Build on x86_64_centos7': {
+                    node(NODE_LABEL) {
+                        final stageDir = 'build-x86_64_centos7'
+                        buildSummary.stageWithSummary('Build on x86_64_centos7', stageDir) {
+                            cleanWs()
+                            dumpInfo()
+                            dir(stageDir) {
+                                unstash 'datatable-sources'
+                                withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
+                                    stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
+                                    stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                    sh "make ${MAKE_OPTS} centos7_version_in_docker"
+                                    stash name: 'VERSION', includes: "dist/VERSION.txt"
+                                    arch "dist/VERSION.txt"
+                                    versionText = readFile('dist/VERSION.txt').trim()
+                                    echo "Version is: ${versionText}"
                                 }
                             }
                         }
                     }
-
-                    stage('GitHub Release') {
+                },
+                'Build on x86_64_macos': {
+                    node(OSX_NODE_LABEL) {
+                        def stageDir = 'build-x86_64_macos'
+                        buildSummary.stageWithSummary('Build on x86_64_macos', stageDir) {
+                            cleanWs()
+							dumpInfo()
+                            dir(stageDir) {
+                                unstash 'datatable-sources'
+                                withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
+                                    sh """
+                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
+                                        make ${MAKE_OPTS} clean
+                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                    """
+                                    stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                        sh """
+                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
+                                            make ${MAKE_OPTS} clean
+                                            make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        """
+                                    stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                }
+                            }
+                        }
+                    }
+                },
+                'Build on ppc64le_centos7': {
+                    if (doPPC()) {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'build-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
+                                if(doPPC()) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
+                                            stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
+                                            arch "dist/*.whl"
+                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
+                                            stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
+                                            arch "dist/*.whl"
+                                        }
+                                    }
+                                } else {
+                                    echo 'Build on ppc64le_centos7 SKIPPED'
+                                }
+                            }
+                        }
+                    }
+                }
+            ])
+            // Coverage stages
+            if (!params.DISABLE_COVERAGE) {
+                parallel ([
+                    'Coverage on x86_64_linux': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_linux'
+                            buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    try {
+                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                    } finally {
+                                        arch "/tmp/cores/*"
+                                    }
+                                    testReport "build/coverage-c", "x86_64_linux coverage report for C"
+                                    testReport "build/coverage-py", "x86_64_linux coverage report for Python"
+                                }
+                            }
+                        }
+                    },
+                    'Coverage on x86_64_macos': {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_osx'
+                            buildSummary.stageWithSummary('Coverage on x86_64_macos', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    withEnv(OSX_ENV) {
+                                        sh """
+                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
+                                            make ${MAKE_OPTS} coverage
+                                        """
+                                    }
+                                    testReport "build/coverage-c", "x86_64_osx coverage report for C"
+                                    testReport "build/coverage-py", "x86_64_osx coverage report for Python"
+                                }
+                            }
+                        }
+                    }
+                ])
+            }
+            // Test stages
+            if (!params.DISABLE_TESTS) {
+                parallel ([
+                    'Test Py36 with Pandas on x86_64_linux': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_linux'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_linux', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py35 with Pandas on x86_64_linux': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_linux'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_linux', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py35-whl'
+                                    testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py36 with Numpy on x86_64_linux': {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_linux'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_linux', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_centos7-py36-whl'
+                                        testInDocker('ubuntu_test_py36_with_numpy_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 with Numpy on x86_64_linux - SKIPPED'
+                        }
+                    },
+                    'Test Py36 on x86_64_linux': {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_linux'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_linux', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_centos7-py36-whl'
+                                        testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 on x86_64_linux - SKIPPED'
+                        }
+                    },
+                    'Test Py36 with Pandas on x86_64_centos7': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_centos7'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_centos7', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py35 with Pandas on x86_64_centos7': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_centos7'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_centos7', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py35-whl'
+                                    testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py36 with Numpy on x86_64_centos7': {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_centos7'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_centos7', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_centos7-py36-whl'
+                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 with Numpy on x86_64_centos7 - SKIPPED'
+                        }
+                    },
+                    'Test Py36 on x86_64_centos7': {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_centos7'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_centos7', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_centos7-py36-whl'
+                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 on x86_64_centos7 - SKIPPED'
+                        }
+                    },
+                    'Test Py36 with Pandas on ppc64le_centos7': {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'test-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on ppc64le_centos7') {
+                                if (doPPC()) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'ppc64le_centos7-py36-whl'
+                                        testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    'Test Py35 with Pandas on ppc64le_centos7': {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'test-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on ppc64le_centos7', stageDir) {
+                                if (doPPC()) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'ppc64le_centos7-py35-whl'
+                                        testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    'Test Py36 with Numpy on ppc64le_centos7': {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(PPC_NODE_LABEL) {
+                                final stageDir = 'test-ppc64le_centos7'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on ppc64le_centos7', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'ppc64le_centos7-py36-whl'
+                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 with Numpy on ppc64le_centos7 - SKIPPED'
+                        }
+                    },
+                    'Test Py36 on ppc64le_centos7': {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(PPC_NODE_LABEL) {
+                                final stageDir = 'test-ppc64le_centos7'
+                                buildSummary.stageWithSummary('Test Py36 on ppc64le_centos7', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'ppc64le_centos7-py36-whl'
+                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 on ppc64le_centos7 - SKIPPED'
+                        }
+                    },
+                    'Test Py36 with Pandas on x86_64_osx': {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'test-x86_64_osx'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_osx', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_osx-py36-whl'
+                                    testOSX('datatable-py36-with-pandas', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py35 with Pandas on x86_64_osx': {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'test-x86_64_osx'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_osx', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_osx-py35-whl'
+                                    testOSX('datatable-py35-with-pandas', needsLargerTest)
+                                }
+                            }
+                        }
+                    },
+                    'Test Py36 with Numpy on x86_64_osx': {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR)  {
+                            node(OSX_NODE_LABEL) {
+                                final stageDir = 'test-x86_64_osx'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_osx', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_osx-py36-whl'
+                                        testOSX('datatable-py36-with-numpy', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 with Numpy on x86_64_osx - SKIPPED'
+                        }
+                    },
+                    'Test Py36 on x86_64_osx': {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
+                            node(OSX_NODE_LABEL) {
+                                final stageDir = 'test-x86_64_osx'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_osx', stageDir) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        unstash 'x86_64_osx-py36-whl'
+                                        testOSX('datatable-py36', needsLargerTest)
+                                    }
+                                }
+                            }
+                        } else {
+                            echo 'Test Py36 on x86_64_osx - SKIPPED'
+                        }
+                    },
+                ])
+            }
+            // Build sdist
+            if (doPublish()) {
+                node(NODE_LABEL) {
+                    def stageDir = 'build-sdist'
+                    buildSummary.stageWithSummary ('Build sdist', stageDir) {
+                        cleanWs()
                         dumpInfo()
+                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                            dir (stageDir) {
+                                unstash 'datatable-sources'
+                                unstash 'VERSION'
+                                sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
+                                stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
+                                arch "dist/*.tar.gz"
+                            }
+                        }
+                    }
+                }
+            }
+            // Publish snapshot to S3
+            if (doPublish()) {
+                node(RELEASE_NODE_LABEL) {
+                    def stageDir = 'publish-snapshot'
+                    buildSummary.stageWithSummary('Publish Snapshot to S3', stageDir) {
+                        cleanWs()
+                        dumpInfo()
+                        dir(stageDir) {
+
+                            dir('x86_64-centos7') {
+                                unstash 'x86_64_centos7-py36-whl'
+                                unstash 'x86_64_centos7-py35-whl'
+                                s3upDocker {
+                                    localArtifact = 'dist/*.whl'
+                                    artifactId = 'pydatatable'
+                                    version = versionText
+                                    keepPrivate = false
+                                    platform = 'x86_64-centos7'
+                                    isRelease = true
+                                }
+                            }
+
+                            dir('ppc64le-centos7') {
+                                unstash 'ppc64le_centos7-py36-whl'
+                                unstash 'ppc64le_centos7-py35-whl'
+                                s3upDocker {
+                                    localArtifact = 'dist/*.whl'
+                                    artifactId = 'pydatatable'
+                                    version = versionText
+                                    keepPrivate = false
+                                    platform = 'ppc64le-centos7'
+                                    isRelease = true
+                                }
+                            }
+
+                            dir('x86_64-osx') {
+                                unstash 'x86_64_osx-py36-whl'
+                                unstash 'x86_64_osx-py35-whl'
+                                s3upDocker {
+                                    localArtifact = 'dist/*.whl'
+                                    artifactId = 'pydatatable'
+                                    version = versionText
+                                    keepPrivate = false
+                                    platform = 'x86_64-osx'
+                                    isRelease = true
+                                }
+                            }
+
+                            dir('sdist') {
+                                unstash 'sdist-tar'
+                                s3upDocker {
+                                    localArtifact = 'dist/*.tar.gz'
+                                    artifactId = 'pydatatable'
+                                    version = versionText
+                                    keepPrivate = false
+                                    platform = 'any'
+                                    isRelease = true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Release to S3 and GitHub
+            if (isRelease()) {
+                node(RELEASE_NODE_LABEL) {
+                    def stageDir = 'release'
+                    buildSummary.stageWithSummary('Release', stageDir) {
+                        timeout(unit: 'HOURS', time: 24) {
+                            input('Promote build?')
+                        }
+                        cleanWs()
+                        dumpInfo()
+                        dir(stageDir) {
+                            checkout scm
+                            unstash 'CHANGELOG'
+                            unstash 'VERSION'
+                            unstash 'x86_64_centos7-py36-whl'
+                            unstash 'x86_64_centos7-py35-whl'
+                            unstash 'x86_64_osx-py36-whl'
+                            unstash 'x86_64_osx-py35-whl'
+                            unstash 'ppc64le_centos7-py36-whl'
+                            unstash 'ppc64le_centos7-py35-whl'
+                            unstash 'sdist-tar'
+                        }
                         docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                docker.image("docker.h2o.ai/s3cmd").inside {
+                                    sh """
+                                        s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
+                                        s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
+                                    """
+                                }
+                            }
                             docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init") {
                                 withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
                                     def releaseMsg = """v${versionText}
 
-${project.getChangelogPartForVersion(versionText, "${publishS3Dir}/CHANGELOG.md")}
+${project.getChangelogPartForVersion(versionText, "release/CHANGELOG.md")}
 ---
-${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "${getHTTPSTargetUrl(versionText)}")}
+${project.getReleaseDownloadLinksText("release/dist", "${getHTTPSTargetUrl(versionText)}")}
 """
-                                    writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: releaseMsg)
+                                    writeFile(file: "release/${releaseMsgFile}", text: releaseMsg)
                                     sh """
                                         mkdir -p ~/.ssh
                                         cp \${ID_RSA_PATH} ~/.ssh/id_rsa
                                         cp \${GITCONFIG_PATH} ~/.gitconfig
-                                        cd ${publishS3Dir}
+                                        cd release
                                         hub release create -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}"
                                     """
-                                    echo readFile("${publishS3Dir}/${releaseMsgFile}")
+                                    echo readFile("release/${releaseMsgFile}").trim()
                                 }
                             }
                         }
@@ -359,50 +665,41 @@ ${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "${getHTTPSTargetU
     }
 }
 
-//////////////////////
-// Helper functions //
-//////////////////////
-def uploadToS3(artifact, versionText, platformDir) {
-    s3upDocker {
-        localArtifact = artifact
-        artifactId = 'pydatatable'
-        version = versionText
-        keepPrivate = false
-        platform = platformDir
-        isRelease = true
+
+def testInDocker(final testTarget, final needsLargerTest) {
+    try {
+        sh """
+            env
+            rm -rf datatable
+            mkdir -p /tmp/cores
+            make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
+        """
+    } finally {
+        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true' 
+        arch "build/cores/*.*"
+        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 
-def getS3TargetUrl(final versionText) {
-    return "${S3_URL_STABLE}/datatable-${versionText}/"
-}
-
-def getHTTPSTargetUrl(final versionText) {
-    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
-}
-
-def getVenvActivationCmd(final platform, final venvName) {
-    switch (platform) {
-        case 'x86_64_linux':
-            return ". /envs/${venvName}/bin/activate"
-        case 'x86_64_centos7':
-            return ". activate ${venvName}"
-        case 'x86_64_macos':
-            return ". /Users/jenkins/anaconda/bin/activate ${venvName}"
-        case 'ppc64le_linux':
-            return ". activate ${venvName}"
+def testOSX(final environment, final needsLargerTest) {
+    try {
+        withEnv(OSX_ENV) {
+            sh """
+                env
+                rm -rf datatable
+                . ${OSX_CONDA_ACTIVATE_PATH} ${environment}
+                pip install --no-cache-dir --upgrade dist/*.whl
+                make ${MAKE_OPTS} test_install MODULE=datatable
+                make ${MAKE_OPTS} test
+            """
+        }
+    } finally {
+        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 
 def isPrJob() {
     return env.CHANGE_BRANCH != null && env.CHANGE_BRANCH != ''
-}
-
-def getRelevantTestEnvs() {
-    if (isPrJob()) {
-        return PR_TEST_ENVIRONMENTS
-    }
-    return NIGHTLY_TEST_ENVIRONMENTS
 }
 
 def isModified(pattern) {
@@ -422,51 +719,8 @@ def isModified(pattern) {
     return !(out.isEmpty() || out == "0")
 }
 
-def createDockerArgs(linkMap, sourceDir, targetDir) {
-    def out = ""
-    linkMap.each { key, value ->
-        out += "-v ${sourceDir}/${key}:${targetDir}/${value} "
-    }
-    return out
-}
-
-def linkFolders(sourceDir, targetDir) {
-    sh """
-        mkdir -p ${targetDir}
-
-        mkdir -p ${targetDir}/h2oai-benchmarks
-        ln -sf ${sourceDir}/Data ${targetDir}/h2oai-benchmarks
-
-        mkdir -p ${targetDir}/h2o-3
-        ln -sf ${sourceDir}/smalldata ${targetDir}/h2o-3
-        ln -sf ${sourceDir}/bigdata ${targetDir}/h2o-3
-        ln -sf ${sourceDir}/fread ${targetDir}/h2o-3
-        find ${targetDir}
-    """
-}
-
-/**
- * If dockerImage is specified, than execute the body inside container, otherwise execute that on host
- * @param dockerImage docker image to use, or null to run on host
- * @param body body (Closure) to execute
- */
-def callInEnv(dockerImage, dockerArgs, body) {
-    // Call closure inside dockerImage or directly on host
-    if (dockerImage != null) {
-        docker.image(dockerImage).inside(dockerArgs) {
-            body()
-        }
-    } else {
-        linkFolders(SOURCE_DIR, TARGET_DIR)
-        body()
-    }
-}
-
-def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
-    if (needsLargerTest) {
-        stageName += ' with large tests'
-    }
-    return stageName
+def doPPC() {
+    return !isPrJob() || params.FORCE_BUILD_PPC64LE || params.FORCE_ALL_TESTS_IN_PR
 }
 
 def doPublish() {
@@ -477,3 +731,15 @@ def isRelease() {
     return env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)
 }
 
+def createDockerArgs() {
+    def out = ""
+    LINK_MAP.each { key, value ->
+        out += "-v ${SOURCE_DIR}/${key}:${TARGET_DIR}/${value} "
+    }
+    out += "-v /tmp/cores:/tmp/cores "
+    return out
+}
+
+def getHTTPSTargetUrl(final versionText) {
+    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
+}

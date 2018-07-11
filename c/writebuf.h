@@ -10,6 +10,7 @@
 #include <stdio.h>     // size_t
 #include <string>      // std::string
 #include "utils/file.h"
+#include "utils/shared_mutex.h"
 
 class MemoryRange;
 
@@ -25,8 +26,8 @@ protected:
 public:
   enum class Strategy : int8_t { Auto, Mmap, Write };
 
-  WritableBuffer(): bytes_written(0) {}
-  virtual ~WritableBuffer() {}
+  WritableBuffer();
+  virtual ~WritableBuffer();
 
   /**
    * Factory method for instantiating one of the `WritableBuffer` derived
@@ -127,8 +128,7 @@ class ThreadsafeWritableBuffer : public WritableBuffer
 protected:
   void*  buffer;
   size_t allocsize;
-  volatile int nlocks;
-  int    _unused;
+  dt::shared_mutex shmutex;
 
   virtual void realloc(size_t newsize) = 0;
 

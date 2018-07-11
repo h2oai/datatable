@@ -36,18 +36,19 @@ constexpr T infinity() {
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static Column* reduce_first(Column* arg, const Groupby& groupby) {
+static Column* reduce_first(const Column* arg, const Groupby& groupby) {
   if (arg->nrows == 0) {
     return Column::new_data_column(arg->stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
-  arr32_t indices(ngrps);
-  // TODO: avoid copy (by allowing RowIndex to be created from a MemoryRange)
-  std::memcpy(indices.data(), groupby.offsets_r(), ngrps * sizeof(int32_t));
-  RowIndex ri = RowIndex::from_array32(std::move(indices), true);
-  Column* res = arg->shallowcopy(ri);
-  res->reify();
-  return res;
+  // groupby.offsets array has length `ngrps + 1` and contains offsets of the
+  // beginning of each group. We will take this array and reinterpret it as a
+  // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
+  // to the column will produce the vector of first elements in that column.
+  arr32_t indices(ngrps, groupby.offsets_r());
+  RowIndex ri = RowIndex::from_array32(std::move(indices), true)
+                .uplift(arg->rowindex());
+  return arg->shallowcopy(ri);
 }
 
 
@@ -66,11 +67,12 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
   OT sum = 0;
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-  for (int32_t i = row0; i < row1; ++i) {
-    IT x = inputs[i];
-    if (ISNA<IT>(x)) continue;
-    sum += static_cast<OT>(x);
-  }
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      IT x = inputs[i];
+      if (!ISNA<IT>(x))
+        sum += static_cast<OT>(x);
+    });
   outputs[grp] = sum;
 }
 
@@ -109,15 +111,16 @@ static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
   OT delta = 0;
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-  for (int32_t i = row0; i < row1; ++i) {
-    IT x = inputs[i];
-    if (ISNA<IT>(x)) continue;
-    OT y = static_cast<OT>(x) - delta;
-    OT t = sum + y;
-    delta = (t - sum) - y;
-    sum = t;
-    cnt++;
-  }
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      IT x = inputs[i];
+      if (ISNA<IT>(x)) return;
+      OT y = static_cast<OT>(x) - delta;
+      OT t = sum + y;
+      delta = (t - sum) - y;
+      sum = t;
+      cnt++;
+    });
   outputs[grp] = cnt == 0? GETNA<OT>() : sum / cnt;
 }
 
@@ -139,15 +142,16 @@ static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
   int64_t cnt = 0;
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-  for (int32_t i = row0; i < row1; ++i) {
-    IT x = inputs[i];
-    if (ISNA<IT>(x)) continue;
-    cnt++;
-    OT t1 = x - mean;
-    mean += t1 / cnt;
-    OT t2 = x - mean;
-    m2 += t1 * t2;
-  }
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      IT x = inputs[i];
+      if (ISNA<IT>(x)) return;
+      cnt++;
+      OT t1 = x - mean;
+      mean += t1 / cnt;
+      OT t2 = x - mean;
+      m2 += t1 * t2;
+    });
   outputs[grp] = cnt <= 1? GETNA<OT>() : std::sqrt(m2 / (cnt - 1));
 }
 
@@ -166,12 +170,13 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
   T res = infinity<T>();
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-  for (int32_t i = row0; i < row1; ++i) {
-    T x = inputs[i];
-    if (!ISNA<T>(x) && x < res) {
-      res = x;
-    }
-  }
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      T x = inputs[i];
+      if (!ISNA<T>(x) && x < res) {
+        res = x;
+      }
+    });
   outputs[grp] = res;
 }
 
@@ -190,12 +195,13 @@ static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
   T res = -infinity<T>();
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-  for (int32_t i = row0; i < row1; ++i) {
-    T x = inputs[i];
-    if (!ISNA<T>(x) && x > res) {
-      res = x;
-    }
-  }
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      T x = inputs[i];
+      if (!ISNA<T>(x) && x > res) {
+        res = x;
+      }
+    });
   outputs[grp] = res;
 }
 

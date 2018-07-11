@@ -35,7 +35,8 @@ template <typename T> T      RealColumn<T>::mode() const  { return get_stats()->
 template <typename T> double RealColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double RealColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double RealColumn<T>::sd() const   { return get_stats()->stdev(this); }
-
+template <typename T> double RealColumn<T>::skew() const { return get_stats()->skew(this); }
+template <typename T> double RealColumn<T>::kurt() const   { return get_stats()->kurt(this); }
 
 // Retrieve stat value as a column
 template <typename T>
@@ -80,13 +81,28 @@ Column* RealColumn<T>::sd_column() const {
   return col;
 }
 
+template <typename T>
+Column* RealColumn<T>::skew_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, skew());
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::kurt_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, kurt());
+  return col;
+}
+
 template <typename T> PyObject* RealColumn<T>::min_pyscalar() const { return float_to_py(min()); }
 template <typename T> PyObject* RealColumn<T>::max_pyscalar() const { return float_to_py(max()); }
 template <typename T> PyObject* RealColumn<T>::mode_pyscalar() const { return float_to_py(mode()); }
 template <typename T> PyObject* RealColumn<T>::sum_pyscalar() const { return float_to_py(sum()); }
 template <typename T> PyObject* RealColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
 template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
-
+template <typename T> PyObject* RealColumn<T>::skew_pyscalar() const { return float_to_py(skew()); }
+template <typename T> PyObject* RealColumn<T>::kurt_pyscalar() const { return float_to_py(kurt()); }
 
 
 //------------------------------------------------------------------------------
@@ -114,16 +130,16 @@ inline static MemoryRange cast_str_helper(
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
-  OT offset = 1;
-  toffsets[-1] = -1;
+  OT offset = 0;
+  toffsets[-1] = 0;
   for (int64_t i = 0; i < src->nrows; ++i) {
     IT x = src_data[i];
     if (ISNA<IT>(x)) {
-      toffsets[i] = -offset;
+      toffsets[i] = offset | GETNA<OT>();
     } else {
       char* ch0 = ch;
       toa<IT>(&ch, x);
-      offset += ch - ch0;
+      offset += static_cast<OT>(ch - ch0);
       toffsets[i] = offset;
       if (ch > tmpend) {
         wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
@@ -171,14 +187,14 @@ void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
 }
 
 template <typename T>
-void RealColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  MemoryRange strbuf = cast_str_helper<T, int32_t>(this, target);
+void RealColumn<T>::cast_into(StringColumn<uint32_t>* target) const {
+  MemoryRange strbuf = cast_str_helper<T, uint32_t>(this, target);
   target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
-void RealColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryRange strbuf = cast_str_helper<T, int64_t>(this, target);
+void RealColumn<T>::cast_into(StringColumn<uint64_t>* target) const {
+  MemoryRange strbuf = cast_str_helper<T, uint64_t>(this, target);
   target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 

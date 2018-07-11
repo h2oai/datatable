@@ -6,7 +6,6 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
-#include "utils.h"          // set_value, add_ptr
 #include "utils/assert.h"
 
 
@@ -34,9 +33,9 @@ SType PyObjectColumn::stype() const {
 
 // "PyObj" columns cannot be properly saved. So if somehow they were, then when
 // opening, we'll just fill the column with NAs.
-void PyObjectColumn::open_mmap(const std::string&) {
+void PyObjectColumn::open_mmap(const std::string&, bool) {
   xassert(!ri);
-  mbuf = MemoryRange(static_cast<size_t>(nrows) * sizeof(PyObject*))
+  mbuf = MemoryRange::mem(static_cast<size_t>(nrows) * sizeof(PyObject*))
          .set_pyobjects(/*clear_data = */ true);
 }
 

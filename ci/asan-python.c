@@ -11,28 +11,35 @@ $LLVM6/bin/clang \
 
 int main(int argc, char** argv)
 {
-  wchar_t** wargv = malloc(sizeof(wchar_t*) * (argc + 1));
+  wchar_t** wargv = malloc(sizeof(wchar_t*) * (argc + 1));  // new ref
   for (int i = 0; i < argc; ++i) {
-    wargv[i] = Py_DecodeLocale(argv[i], NULL);
+    wargv[i] = Py_DecodeLocale(argv[i], NULL);  // to free use PyMem_RawFree
   }
   wargv[argc] = NULL;
 
-  char* venv0 = getenv("DT_ASAN_TARGETDIR");
+  char* venv0 = getenv("DT_ASAN_TARGETDIR");  // borrowed ref
   if (!venv0) {
     fprintf(stderr, "Environment variable DT_ASAN_TARGETDIR is missing\n");
     exit(1);
   }
-  char* venv1 = realpath(venv0, NULL);
+  char* venv1 = realpath(venv0, NULL);  // new ref
 
   wchar_t* wpath0 = Py_GetPath();
   char* pypath0 = malloc(wcslen(wpath0) + 1);
   sprintf(pypath0, "%S", wpath0);
 
-  char* path = malloc(strlen(venv1) + strlen(pypath0) + 2);
+  char* path = malloc(strlen(venv1) + strlen(pypath0) + 2);  // new ref
   sprintf(path, "%s:%s", venv1, pypath0);
   wchar_t* wpath = Py_DecodeLocale(path, NULL);
   Py_SetPath(wpath);
 
   if (argc == 1) printf("[my-python: PATH=%s]\n", path);
-  return Py_Main(argc, wargv);
+  int ret = Py_Main(argc, wargv);
+
+  // Clean-up allocated resources, so that leak sanitizer wouldn't report them
+  free(venv1);
+  free(path);
+  for (int i = 0; i < argc; ++i) PyMem_RawFree(wargv[i]);
+  free(wargv);
+  return ret;
 }

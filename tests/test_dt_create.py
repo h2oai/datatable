@@ -25,41 +25,41 @@ def test_create_from_list():
     assert d0.shape == (3, 1)
     assert d0.names == ("C0", )
     assert d0.ltypes == (ltype.int, )
-    assert d0.internal.check()
+    d0.internal.check()
 
 
 def test_create_from_list_of_lists():
-    d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names="ABC")
+    d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names=list("ABC"))
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
-    assert d1.internal.check()
+    d1.internal.check()
 
 
 def test_create_from_tuple():
     d2 = dt.Frame((3, 5, 6, 0))
     assert d2.shape == (4, 1)
     assert d2.ltypes == (ltype.int, )
-    assert d2.internal.check()
+    d2.internal.check()
 
 
 def test_create_from_set():
     d3 = dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
     assert d3.shape == (7, 1)
     assert d3.ltypes == (ltype.int, )
-    assert d3.internal.check()
+    d3.internal.check()
 
 
 def test_create_from_range():
     d0 = dt.Frame(range(8))
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (8, 1)
     assert d0.topython() == [list(range(8))]
 
 
 def test_create_from_list_of_ranges():
     d0 = dt.Frame([range(6), range(0, 12, 2)])
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (6, 2)
     assert d0.topython() == [list(range(6)), list(range(0, 12, 2))]
 
@@ -70,7 +70,7 @@ def test_create_from_nothing():
     assert d4.names == tuple()
     assert d4.ltypes == tuple()
     assert d4.stypes == tuple()
-    assert d4.internal.check()
+    d4.internal.check()
 
 
 def test_create_from_empty_list():
@@ -79,7 +79,7 @@ def test_create_from_empty_list():
     assert d5.names == ("C0", )
     assert d5.ltypes == (ltype.bool, )
     assert d5.stypes == (stype.bool8, )
-    assert d5.internal.check()
+    d5.internal.check()
 
 
 def test_create_from_empty_list_of_lists():
@@ -87,7 +87,7 @@ def test_create_from_empty_list_of_lists():
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
     assert d6.ltypes == (ltype.bool, )
-    assert d6.internal.check()
+    d6.internal.check()
 
 
 def test_create_from_dict():
@@ -97,7 +97,7 @@ def test_create_from_dict():
     assert d7.shape == (3, 3)
     assert same_iterables(d7.names, ("A", "B", "C"))
     assert same_iterables(d7.ltypes, (ltype.int, ltype.bool, ltype.str))
-    assert d7.internal.check()
+    d7.internal.check()
 
 
 def test_create_from_datatable():
@@ -117,7 +117,7 @@ def test_create_from_string():
         0,5.5,,bar
         ,NaN,1000,""
     """)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == ("A", "B", "C", "D")
     assert d0.ltypes == (dt.ltype.bool, dt.ltype.real, dt.ltype.int,
                          dt.ltype.str)
@@ -132,14 +132,14 @@ def test_create_from_string():
 
 def test_create_from_nones():
     d0 = dt.Frame([None, None, None])
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.bool8, )
     assert d0.shape == (3, 1)
 
 
 def test_create_as_int8():
     d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], stype=stype.int8)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.int8, )
     assert d0.shape == (7, 1)
     assert d0.topython() == [[1, None, -1, -24, 2, 123, None]]
@@ -147,7 +147,7 @@ def test_create_as_int8():
 
 def test_create_as_int16():
     d0 = dt.Frame([1e50, 1000, None, "27", "?", True], stype=stype.int16)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.int16, )
     assert d0.shape == (6, 1)
     # int(1e50) = 2407412430484045 * 2**115, which is ≡0 (mod 2**16)
@@ -156,7 +156,7 @@ def test_create_as_int16():
 
 def test_create_as_int32():
     d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], stype=stype.int32)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
     assert d0.topython() == [[1, 2, 5, 3, None]]
@@ -165,7 +165,7 @@ def test_create_as_int32():
 def test_create_as_float32():
     d0 = dt.Frame([1, 5, 2.6, "7.7777", -1.2e+50, 1.3e-50],
                   stype=stype.float32)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.float32, )
     assert d0.shape == (6, 1)
     # Apparently, float "inf" converts into double "inf" when cast. Good!
@@ -176,7 +176,7 @@ def test_create_as_float64():
     d0 = dt.Frame([[1, 2, 3, 4, 5, None],
                    [2.7, "3.1", False, "foo", 10**1000, -12**321]],
                   stype=float)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.float64, stype.float64)
     assert d0.shape == (6, 2)
     assert d0.topython() == [[1.0, 2.0, 3.0, 4.0, 5.0, None],
@@ -185,7 +185,7 @@ def test_create_as_float64():
 
 def test_create_as_str32():
     d0 = dt.Frame([1, 2.7, "foo", None, (3, 4)], stype=stype.str32)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.str32, )
     assert d0.shape == (5, 1)
     assert d0.topython() == [["1", "2.7", "foo", None, "(3, 4)"]]
@@ -193,10 +193,51 @@ def test_create_as_str32():
 
 def test_create_as_str64():
     d0 = dt.Frame(range(10), stype=stype.str64)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (stype.str64, )
     assert d0.shape == (10, 1)
     assert d0.topython() == [[str(n) for n in range(10)]]
+
+
+
+#-------------------------------------------------------------------------------
+# Create with names
+#-------------------------------------------------------------------------------
+
+def test_create_names0():
+    d0 = dt.Frame(range(10), names="xyz")
+    d1 = dt.Frame(range(10), names=["xyz"])
+    d2 = dt.Frame(range(10), names=("xyz",))
+    assert d0.shape == d1.shape == d2.shape == (10, 1)
+    assert d0.names == d1.names == d2.names == ("xyz",)
+
+
+def test_create_names_bad1():
+    with pytest.raises(ValueError) as e:
+        dt.Frame(range(10), names=["a", "b"])
+    assert ("The length of the `names` parameter (2) does not match the "
+            "number of columns in the Frame (1)" in str(e.value))
+
+
+def test_create_names_bad2():
+    with pytest.raises(ValueError) as e:
+        dt.Frame([[1], [2], [3]], names="xyz")
+    assert ("The length of the `names` parameter (1) does not match the "
+            "number of columns in the Frame (3)" in str(e.value))
+
+
+def test_create_names_bad3():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(range(5), names={"x": 1})
+    assert ("The `names` parameter should be either a tuple or a list"
+            in str(e.value))
+
+
+def test_create_names_bad4():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(range(5), names=[3])
+    assert ("Invalid `names` list: element 0 is not a string"
+            in str(e.value))
 
 
 
@@ -209,7 +250,7 @@ def test_create_from_pandas(pandas):
     d = dt.Frame(p)
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("A", "B"))
-    assert d.internal.check()
+    d.internal.check()
 
 
 def test_create_from_pandas2(pandas, numpy):
@@ -217,14 +258,14 @@ def test_create_from_pandas2(pandas, numpy):
     d = dt.Frame(p)
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")
-    assert d.internal.check()
+    d.internal.check()
 
 
 def test_create_from_pandas_series(pandas):
     p = pandas.Series([1, 5, 9, -12])
     d = dt.Frame(p)
     assert d.shape == (4, 1)
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[1, 5, 9, -12]]
 
 
@@ -233,13 +274,13 @@ def test_create_from_pandas_with_names(pandas):
     d = dt.Frame(p, names=["miniature", "miniscule"])
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("miniature", "miniscule"))
-    assert d.internal.check()
+    d.internal.check()
 
 
 def test_create_from_pandas_series_with_names(pandas):
     p = pandas.Series([10000, 5, 19, -12])
     d = dt.Frame(p, names=["ha!"])
-    assert d.internal.check()
+    d.internal.check()
     assert d.shape == (4, 1)
     assert d.names == ("ha!", )
     assert d.topython() == [[10000, 5, 19, -12]]
@@ -249,7 +290,7 @@ def test_create_from_pandas_float16(pandas):
     src = [1.5, 2.6, 7.8]
     p = pandas.Series(src, dtype="float16")
     d = dt.Frame(p)
-    assert d.internal.check()
+    d.internal.check()
     assert d.stypes == (stype.float32, )
     assert d.shape == (3, 1)
     # The precision of `float16`s is too low for `list_equals()` method.
@@ -267,7 +308,7 @@ def test_create_from_0d_numpy_array(numpy):
     d = dt.Frame(a)
     assert d.shape == (1, 1)
     assert d.names == ("C0", )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[100]]
 
 
@@ -276,7 +317,7 @@ def test_create_from_1d_numpy_array(numpy):
     d = dt.Frame(a)
     assert d.shape == (3, 1)
     assert d.names == ("C0", )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
@@ -285,7 +326,7 @@ def test_create_from_2d_numpy_array(numpy):
     d = dt.Frame(a)
     assert d.shape == a.shape
     assert d.names == ("C0", "C1", "C2", "C3", "C4")
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == a.T.tolist()
 
 
@@ -299,7 +340,7 @@ def test_create_from_3d_numpy_array(numpy):
 def test_create_from_string_numpy_array(numpy):
     a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "юйґї"])
     d = dt.Frame(a)
-    assert d.internal.check()
+    d.internal.check()
     assert d.shape == (6, 1)
     assert d.names == ("C0", )
     assert d.topython() == [a.tolist()]
@@ -312,7 +353,7 @@ def test_create_from_masked_numpy_array1(numpy):
     d = dt.Frame(arr)
     assert d.shape == (5, 1)
     assert d.stypes == (stype.bool8, )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[True, None, True, False, None]]
 
 
@@ -324,7 +365,7 @@ def test_create_from_masked_numpy_array2(numpy):
     d = dt.Frame(arr)
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int16, )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -336,7 +377,7 @@ def test_create_from_masked_numpy_array3(numpy):
     d = dt.Frame(arr)
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int32, )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -348,7 +389,7 @@ def test_create_from_masked_numpy_array4(numpy):
     d = dt.Frame(arr)
     assert d.shape == (n, 1)
     assert d.stypes == (stype.float64, )
-    assert d.internal.check()
+    d.internal.check()
     assert list_equals(d.topython(), [arr.tolist()])
 
 
@@ -357,7 +398,7 @@ def test_create_from_numpy_array_with_names(numpy):
     d = dt.Frame(a, names=["gargantuan"])
     assert d.shape == (3, 1)
     assert d.names == ("gargantuan", )
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
@@ -365,13 +406,43 @@ def test_create_from_numpy_float16(numpy):
     src = [11.11, -3.162, 4.93, 0, 17.2]
     a = numpy.array(src, dtype="float16")
     d = dt.Frame(a)
-    assert d.internal.check()
+    d.internal.check()
     assert d.stypes == (stype.float32, )
     assert d.shape == (len(src), 1)
     # The precision of `float16`s is too low for `list_equals()` method.
     res = d.topython()[0]
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
+
+def test_create_from_list_of_numpy_arrays(numpy):
+    df = dt.Frame([numpy.random.randint(2**30, size=100),
+                   numpy.random.randn(100)], names=["A", "B"])
+    df.internal.check()
+    assert df.shape == (100, 2)
+    assert df.names == ("A", "B")
+    assert df.stypes == (stype.int64, stype.float64)
+
+
+def test_create_from_dict_of_numpy_arrays(numpy):
+    df = dt.Frame({"A": numpy.random.randn(67),
+                   "B": numpy.random.randn(67),
+                   "C": numpy.random.randn(67)})
+    df.internal.check()
+    assert df.shape == (67, 3)
+    assert df.stypes == (stype.float64,) * 3
+    assert same_iterables(df.names, ("A", "B", "C"))
+
+
+def test_create_from_mixed_sources(numpy):
+    df = dt.Frame({"A": numpy.random.randn(5),
+                   "B": range(5),
+                   "C": ["foo", "baw", "garrgh", "yex", "fin"],
+                   "D": numpy.array([5, 8, 1, 3, 5813], dtype="int32")})
+    df.internal.check()
+    assert df.shape == (5, 4)
+    assert same_iterables(df.names, ("A", "B", "C", "D"))
+    assert same_iterables(df.stypes,
+                          (stype.float64, stype.int8, stype.str32, stype.int32))
 
 
 
@@ -392,17 +463,17 @@ def test_issue_42():
     d = dt.Frame([-1])
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    assert d.internal.check()
+    d.internal.check()
     d = dt.Frame([-1, 2, 5, "hooray"])
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )
-    assert d.internal.check()
+    d.internal.check()
 
 
 def test_issue_409():
     from math import inf, copysign
     d = dt.Frame([10**333, -10**333, 10**-333, -10**-333])
-    assert d.internal.check()
+    d.internal.check()
     assert d.ltypes == (ltype.real, )
     p = d.topython()
     assert p == [[inf, -inf, 0.0, -0.0]]
@@ -441,5 +512,5 @@ def test_create_datatable():
     """DataTable is old symbol for Frame."""
     d = dt.DataTable([1, 2, 3])
     assert d.__class__.__name__ == "Frame"
-    assert d.internal.check()
+    d.internal.check()
     assert d.topython() == [[1, 2, 3]]

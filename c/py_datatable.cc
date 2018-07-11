@@ -11,7 +11,6 @@
 #include <iostream>
 #include <vector>
 #include "datatable.h"
-#include "datatable_check.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datawindow.h"
@@ -74,10 +73,11 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   DataTable* colspec;
   int64_t nrows;
   const char* path;
-  if (!PyArg_ParseTuple(args, "O&ns:datatable_load",
-                        &unwrap, &colspec, &nrows, &path))
+  int recode;
+  if (!PyArg_ParseTuple(args, "O&nsi:datatable_load",
+                        &unwrap, &colspec, &nrows, &path, &recode))
     return nullptr;
-  return wrap(DataTable::load(colspec, nrows, path));
+  return wrap(DataTable::load(colspec, nrows, path, recode));
 }
 
 
@@ -102,7 +102,7 @@ PyObject* get_isview(obj* self) {
 
 PyObject* get_ltypes(obj* self) {
   int64_t i = self->ref->ncols;
-  PyObject* list = PyTuple_New((Py_ssize_t) i);
+  PyObject* list = PyTuple_New(i);
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = self->ref->columns[i]->stype();
@@ -116,7 +116,7 @@ PyObject* get_ltypes(obj* self) {
 PyObject* get_stypes(obj* self) {
   DataTable* dt = self->ref;
   int64_t i = dt->ncols;
-  PyObject* list = PyTuple_New((Py_ssize_t) i);
+  PyObject* list = PyTuple_New(i);
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = dt->columns[i]->stype();
@@ -155,7 +155,7 @@ int set_groupby(obj* self, PyObject* value) {
 
 
 PyObject* get_datatable_ptr(obj* self) {
-  return PyLong_FromLongLong((long long int)self->ref);
+  return PyLong_FromLongLong(reinterpret_cast<long long int>(self->ref));
 }
 
 
@@ -179,8 +179,9 @@ PyObject* window(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
     return nullptr;
 
+  PyObject* dwtype = reinterpret_cast<PyObject*>(&pydatawindow::type);
   PyObject* nargs = Py_BuildValue("Ollll", self, row0, row1, col0, col1);
-  PyObject* res = PyObject_CallObject((PyObject*) &pydatawindow::type, nargs);
+  PyObject* res = PyObject_CallObject(dwtype, nargs);
   Py_XDECREF(nargs);
 
   return res;
@@ -201,26 +202,10 @@ PyObject* to_scalar(obj* self, PyObject*) {
 }
 
 
-PyObject* check(obj* self, PyObject* args) {
+PyObject* check(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  PyObject* stream = nullptr;
-
-  if (!PyArg_ParseTuple(args, "|O:check", &stream)) return nullptr;
-
-  IntegrityCheckContext icc(200);
-  dt->verify_integrity(icc);
-  if (icc.has_errors()) {
-    if (stream) {
-      PyObject* ret = PyObject_CallMethod(stream, "write", "s",
-                                          icc.errors().str().c_str());
-      if (ret == nullptr) return nullptr;
-      Py_DECREF(ret);
-    }
-    else {
-      std::cout << icc.errors().str();
-    }
-  }
-  return incref(icc.has_errors()? Py_False : Py_True);
+  dt->verify_integrity();
+  return none();
 }
 
 
@@ -236,7 +221,7 @@ PyObject* column(obj* self, PyObject* args) {
   if (colidx < 0) colidx += dt->ncols;
   pycolumn::obj* pycol =
       pycolumn::from_column(dt->columns[colidx], self, colidx);
-  return (PyObject*) pycol;
+  return pycol;
 }
 
 
@@ -247,16 +232,15 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
     return nullptr;
 
-  int ncols = (int) PyList_Size(list);
-  int *cols_to_remove = nullptr;
-  dtmalloc(cols_to_remove, int, ncols);
-  for (int i = 0; i < ncols; i++) {
+  int64_t ncols = static_cast<int64_t>(PyList_Size(list));
+  int* cols_to_remove = dt::amalloc<int>(ncols);
+  for (int64_t i = 0; i < ncols; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
-    cols_to_remove[i] = (int) PyLong_AsLong(item);
+    cols_to_remove[i] = static_cast<int>(PyLong_AsLong(item));
   }
   dt->delete_columns(cols_to_remove, ncols);
 
-  dtfree(cols_to_remove);
+  dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
 
@@ -408,19 +392,17 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int final_ncols;
+  int64_t final_ncols;
   PyObject* list;
-  if (!PyArg_ParseTuple(args, "iO!:delete_columns",
+  if (!PyArg_ParseTuple(args, "lO!:delete_columns",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
 
-  int ndts = (int) PyList_Size(list);
-  DataTable** dts = nullptr;
-  dtmalloc(dts, DataTable*, ndts);
-  int** cols_to_append = nullptr;
-  dtmalloc(cols_to_append, int*, final_ncols);
-  for (int i = 0; i < final_ncols; i++) {
-    dtmalloc(cols_to_append[i], int, ndts);
+  int64_t ndts = static_cast<int64_t>(PyList_Size(list));
+  DataTable** dts = dt::amalloc<DataTable*>(ndts);
+  int** cols_to_append = dt::amalloc<int*>(final_ncols);
+  for (int64_t i = 0; i < final_ncols; i++) {
+    cols_to_append[i] = dt::amalloc<int>(ndts);
   }
   for (int i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
@@ -440,7 +422,7 @@ PyObject* rbind(obj* self, PyObject* args) {
       for (; j < ncolsi; ++j) {
         PyObject* itemj = PyList_GET_ITEM(colslist, j);
         cols_to_append[j][i] = (itemj == Py_None)? -1
-                               : (int) PyLong_AsLong(itemj);
+                               : static_cast<int>(PyLong_AsLong(itemj));
       }
     }
     for (; j < final_ncols; ++j) {
@@ -451,8 +433,8 @@ PyObject* rbind(obj* self, PyObject* args) {
 
   dt->rbind(dts, cols_to_append, ndts, final_ncols);
 
-  dtfree(cols_to_append);
-  dtfree(dts);
+  dt::free(cols_to_append);
+  dt::free(dts);
   Py_RETURN_NONE;
 }
 
@@ -463,22 +445,21 @@ PyObject* cbind(obj* self, PyObject* args) {
                         &PyList_Type, &pydts)) return nullptr;
 
   DataTable* dt = self->ref;
-  int ndts = (int) PyList_Size(pydts);
-  DataTable** dts = nullptr;
-  dtmalloc(dts, DataTable*, ndts);
-  for (int i = 0; i < ndts; i++) {
+  int64_t ndts = static_cast<int64_t>(PyList_Size(pydts));
+  DataTable** dts = dt::amalloc<DataTable*>(ndts);
+  for (int64_t i = 0; i < ndts; i++) {
     PyObject* elem = PyList_GET_ITEM(pydts, i);
     if (!PyObject_TypeCheck(elem, &type)) {
       PyErr_Format(PyExc_ValueError,
           "Element %d of the array is not a DataTable object", i);
       return nullptr;
     }
-    dts[i] = ((pydatatable::obj*) elem)->ref;
+    dts[i] = static_cast<pydatatable::obj*>(elem)->ref;
   }
   DataTable* ret = dt->cbind( dts, ndts);
   if (ret == nullptr) return nullptr;
 
-  dtfree(dts);
+  dt::free(dts);
   Py_RETURN_NONE;
 }
 
@@ -507,6 +488,8 @@ PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatab
 PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
 PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datatable()); }
 PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
+PyObject* get_skew   (obj* self, PyObject*) { return wrap(self->ref->skew_datatable()); }
+PyObject* get_kurt   (obj* self, PyObject*) { return wrap(self->ref->kurt_datatable()); }
 PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
 PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
 PyObject* get_nunique(obj* self, PyObject*) { return wrap(self->ref->nunique_datatable()); }
@@ -537,8 +520,7 @@ PyObject* materialize(obj* self, PyObject*) {
     return nullptr;
   }
 
-  Column** cols = nullptr;
-  dtmalloc(cols, Column*, dt->ncols + 1);
+  Column** cols = dt::amalloc<Column*>(dt->ncols + 1);
   for (int64_t i = 0; i < dt->ncols; ++i) {
     cols[i] = dt->columns[i]->shallowcopy();
     if (cols[i] == nullptr) return nullptr;
@@ -572,7 +554,7 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
 
 static void dealloc(obj* self) {
   delete self->ref;
-  Py_TYPE(self)->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 
@@ -584,7 +566,7 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHODv(window),
   METHOD0(to_scalar),
-  METHODv(check),
+  METHOD0(check),
   METHODv(column),
   METHODv(delete_columns),
   METHODv(aggregate),
@@ -601,6 +583,8 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(get_sum),
   METHOD0(get_mean),
   METHOD0(get_sd),
+  METHOD0(get_skew),
+  METHOD0(get_kurt),
   METHOD0(get_countna),
   METHOD0(get_nunique),
   METHOD0(get_nmodal),

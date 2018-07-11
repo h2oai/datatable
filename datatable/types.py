@@ -104,8 +104,8 @@ class stype(enum.Enum):
 
     @property
     def dtype(self):
-        if not _stype_2_dtype:
-            raise RuntimeError("numpy module is not installed")
+        if not _numpy_init_attempted:
+            _init_numpy_transforms()
         return _stype_2_dtype[self]
 
 
@@ -177,6 +177,10 @@ def ___new___(cls, value):
     try:
         if value in cls._value2member_map_ and type(value) is not bool:
             return cls._value2member_map_[value]
+        if not isinstance(value, int) and not _numpy_init_attempted:
+            _init_numpy_transforms()
+            if value in cls._value2member_map_:
+                return cls._value2member_map_[value]
     except TypeError:
         # `value` is not hasheable -- not valid for our enum. Pass-through
         # and raise the TValueError below.
@@ -227,22 +231,41 @@ _stype_2_ctype = {
     stype.obj64: ctypes.py_object,
 }
 
-try:
-    import numpy
-    _stype_2_dtype = {
-        stype.bool8: numpy.dtype("bool"),
-        stype.int8: numpy.dtype("int8"),
-        stype.int16: numpy.dtype("int16"),
-        stype.int32: numpy.dtype("int32"),
-        stype.int64: numpy.dtype("int64"),
-        stype.float32: numpy.dtype("float32"),
-        stype.float64: numpy.dtype("float64"),
-        stype.str32: numpy.dtype("object"),
-        stype.str64: numpy.dtype("object"),
-        stype.obj64: numpy.dtype("object"),
-    }
-except ImportError:
-    _stype_2_dtype = {}
+_numpy_init_attempted = False
+_stype_2_dtype = {}
+
+def _init_numpy_transforms():
+    global _numpy_init_attempted
+    global _stype_2_dtype
+    _numpy_init_attempted = True
+    try:
+        import numpy as np
+        _stype_2_dtype = {
+            stype.bool8: np.dtype("bool"),
+            stype.int8: np.dtype("int8"),
+            stype.int16: np.dtype("int16"),
+            stype.int32: np.dtype("int32"),
+            stype.int64: np.dtype("int64"),
+            stype.float32: np.dtype("float32"),
+            stype.float64: np.dtype("float64"),
+            stype.str32: np.dtype("object"),
+            stype.str64: np.dtype("object"),
+            stype.obj64: np.dtype("object"),
+        }
+        _init_value2members_from([
+            (np.dtype("bool"), stype.bool8),
+            (np.dtype("int8"), stype.int8),
+            (np.dtype("int16"), stype.int16),
+            (np.dtype("int32"), stype.int32),
+            (np.dtype("int64"), stype.int64),
+            (np.dtype("float32"), stype.float32),
+            (np.dtype("float64"), stype.float64),
+            (np.dtype("str"), stype.str64),
+            (np.dtype("object"), stype.obj64),
+        ])
+    except ImportError:
+        pass
+
 
 _stype_2_struct = {
     stype.bool8: "b",
@@ -279,19 +302,7 @@ def _additional_stype_members():
     yield ("obj", stype.obj64)
     yield ("object", stype.obj64)
     yield ("object64", stype.obj64)
-    try:
-        import numpy as np
-        yield (np.dtype("bool"), stype.bool8)
-        yield (np.dtype("int8"), stype.int8)
-        yield (np.dtype("int16"), stype.int16)
-        yield (np.dtype("int32"), stype.int32)
-        yield (np.dtype("int64"), stype.int64)
-        yield (np.dtype("float32"), stype.float32)
-        yield (np.dtype("float64"), stype.float64)
-        yield (np.dtype("str"), stype.str64)
-        yield (np.dtype("object"), stype.obj64)
-    except ImportError:  # pragma: no cover
-        pass
+
     # "old"-style stypes
     yield ("i1b", stype.bool8)
     yield ("i1i", stype.int8)
@@ -305,10 +316,14 @@ def _additional_stype_members():
     yield ("p8p", stype.obj64)
 
 
-for k, st in _additional_stype_members():
-    assert type(st) is stype
-    stype._value2member_map_[k] = st
-    ltype._value2member_map_[k] = st.ltype
+
+def _init_value2members_from(iterator):
+    for k, st in iterator:
+        assert type(st) is stype
+        stype._value2member_map_[k] = st
+        ltype._value2member_map_[k] = st.ltype
+
+_init_value2members_from(_additional_stype_members())
 
 core.register_function(2, stype)
 core.register_function(3, ltype)

@@ -61,11 +61,6 @@ inline static int8_t op_isna(T x) {
 }
 
 template<typename T>
-inline static int8_t strop_isna(T x) {
-  return (x < 0);
-}
-
-template<typename T>
 struct Inverse {
   inline static T impl(T x) {
     return ISNA<T>(x) ? x : ~x;
@@ -107,7 +102,7 @@ static mapperfn resolve1(int opcode) {
 template<typename T>
 static mapperfn resolve_str(int opcode) {
   if (opcode == OpCode::IsNa) {
-    return strmap_n<T, int8_t, strop_isna<T>>;
+    return strmap_n<T, int8_t, op_isna<T>>;
   }
   return nullptr;
 }
@@ -124,8 +119,8 @@ static mapperfn resolve0(SType stype, int opcode) {
     case ST_INTEGER_I8: return resolve1<int64_t>(opcode);
     case ST_REAL_F4:    return resolve1<float>(opcode);
     case ST_REAL_F8:    return resolve1<double>(opcode);
-    case ST_STRING_I4_VCHAR: return resolve_str<int32_t>(opcode);
-    case ST_STRING_I8_VCHAR: return resolve_str<int64_t>(opcode);
+    case ST_STRING_I4_VCHAR: return resolve_str<uint32_t>(opcode);
+    case ST_STRING_I8_VCHAR: return resolve_str<uint64_t>(opcode);
     default: break;
   }
   return nullptr;
@@ -135,6 +130,7 @@ static mapperfn resolve0(SType stype, int opcode) {
 Column* unaryop(int opcode, Column* arg)
 {
   if (opcode == OpCode::Plus) return arg->shallowcopy();
+  arg->reify();
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;

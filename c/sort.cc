@@ -119,6 +119,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils.h"
+#include "utils/alloc.h"
 #include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
@@ -262,7 +263,7 @@ class SortContext {
     nth = static_cast<size_t>(config::sort_nthreads);
     n = static_cast<size_t>(col->nrows);
     order = (col->rowindex()).extract_as_array32();
-    use_order = (bool) order;
+    use_order = static_cast<bool>(order);
     if (!use_order) order.resize(n);
     o = order.data();
     if (make_groups) {
@@ -281,8 +282,8 @@ class SortContext {
       case ST_INTEGER_I8: _initI<int64_t, uint64_t>(col); break;
       case ST_REAL_F4:    _initF<uint32_t>(col); break;
       case ST_REAL_F8:    _initF<uint64_t>(col); break;
-      case ST_STRING_I4_VCHAR: _initS<int32_t>(col); break;
-      case ST_STRING_I8_VCHAR: _initS<int64_t>(col); break;
+      case ST_STRING_I4_VCHAR: _initS<uint32_t>(col); break;
+      case ST_STRING_I8_VCHAR: _initS<uint64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -495,13 +496,17 @@ class SortContext {
     for (size_t j = 0; j < n; ++j) {
       int32_t k = use_order? o[j] : static_cast<int32_t>(j);
       T offend = offs[k];
-      if (offend < 0) {  // NA
-        xo[j] = 0;
+      if (ISNA<T>(offend)) {
+        xo[j] = 0;    // NA string
       } else {
-        T offstart = std::abs(offs[k - 1]);
-        T len = offend - offstart;
-        xo[j] = len > 0? strdata[offstart] + 2 : 1;
-        if (len > maxlen) maxlen = len;
+        T offstart = offs[k - 1] & ~GETNA<T>();
+        if (offend > offstart) {
+          xo[j] = strdata[offstart] + 2;
+          T len = offend - offstart;
+          if (len > maxlen) maxlen = len;
+        } else {
+          xo[j] = 1;  // empty string
+        }
       }
     }
     next_elemsize = (maxlen > 1);
@@ -566,8 +571,7 @@ class SortContext {
   void build_histogram() {
     size_t counts_size = nchunks * nradixes;
     if (histogram_size < counts_size) {
-      histogram = static_cast<size_t*>(
-        std::realloc(histogram, counts_size * sizeof(size_t)));
+      histogram = dt::arealloc<size_t>(histogram, counts_size);
       histogram_size = counts_size;
     }
     std::memset(histogram, 0, counts_size * sizeof(size_t));
@@ -636,8 +640,8 @@ class SortContext {
     }
     if (strtype) {
       if (next_x) {
-        if (strtype == 1) _reorder_str<int32_t>();
-        else              _reorder_str<int64_t>();
+        if (strtype == 1) _reorder_str<uint32_t>();
+        else              _reorder_str<uint64_t>();
       } else _reorder_impl<uint8_t, char, false>();
     } else {
       switch (elemsize) {
@@ -711,11 +715,16 @@ class SortContext {
         xassert(k < n);
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
         T offend = soffs[w];
-        T offstart = std::abs(soffs[w - 1]) + sstart;
-        T len = offend - offstart;
-        xo[k] = len > 0? strdata[offstart] + 2 : 1;
+        T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
+        xassert(!ISNA<T>(offend));
+        if (offend > offstart) {
+          xo[k] = strdata[offstart] + 2;
+          T len = offend - offstart;
+          if (len > maxlen) maxlen = len;
+        } else {
+          xo[k] = 1;  // string is shorter than sstart
+        }
         next_o[k] = w;
-        if (len > maxlen) maxlen = len;
       }
     }
     next_elemsize = maxlen > 0;
@@ -854,9 +863,10 @@ class SortContext {
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
         n = sz;
-        x = add_ptr(_x, off * zelemsize);
+        x = static_cast<void*>(static_cast<char*>(_x) + off * zelemsize);
         o = _o + off;
-        next_x = add_ptr(_next_x, off * zelemsize);
+        next_x = static_cast<void*>(
+                    static_cast<char*>(_next_x) + off * zelemsize);
         next_o = _next_o + off;
         elemsize = _elemsize;
         if (make_groups) {
@@ -923,12 +933,12 @@ class SortContext {
               case 8: insert_sort_keys<>(static_cast<uint64_t*>(tx), to, oo, tn, tgg); break;
             }
           } else if (strtype == 1) {
-            const int32_t* soffs = static_cast<const int32_t*>(stroffs);
-            int32_t ss = static_cast<int32_t>(_strstart + 1);
+            const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
+            uint32_t ss = static_cast<uint32_t>(_strstart + 1);
             insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
           } else {
-            const int64_t* soffs = static_cast<const int64_t*>(stroffs);
-            int64_t ss = static_cast<int64_t>(_strstart + 1);
+            const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
+            uint64_t ss = static_cast<uint64_t>(_strstart + 1);
             insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
           }
           if (make_groups) {
@@ -968,11 +978,11 @@ class SortContext {
         case 8: _insert_sort_keys<uint64_t>(tmp); break;
       }
     } else if (strtype == 1) {
-      const int32_t* soffs = static_cast<const int32_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, int32_t(0), o, tmp, nn, gg);
+      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
+      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg);
     } else {
-      const int64_t* soffs = static_cast<const int64_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, int64_t(0), o, tmp, nn, gg);
+      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
+      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg);
     }
   }
 
@@ -986,12 +996,12 @@ class SortContext {
       }
     } else if (strtype == 1) {
       int32_t nn = static_cast<int32_t>(n);
-      const int32_t* soffs = static_cast<const int32_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, int32_t(0), o, nn, gg);
+      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
+      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg);
     } else {
       int32_t nn = static_cast<int32_t>(n);
-      const int64_t* soffs = static_cast<const int64_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, int64_t(0), o, nn, gg);
+      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
+      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg);
     }
   }
 

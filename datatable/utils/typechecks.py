@@ -7,9 +7,9 @@
 """
 Utility for checking types at runtime.
 """
-import importlib
 import typesentry
 import warnings
+import sys
 from typesentry import U
 from datatable.utils.terminal import term
 
@@ -47,17 +47,11 @@ class _LazyClass(typesentry.MagicType):
             return self._module + "." + self._symbol
 
     def check(self, var):
-        if not self._checker:
-            self._load_symbol()
-        return self._checker(var)
-
-    def _load_symbol(self):
-        try:
-            mod = importlib.import_module(self._module)
-            cls = getattr(mod, self._symbol, False)
-            self._checker = lambda x: isinstance(x, cls)
-        except ImportError:
-            self._checker = lambda x: False
+        if self._module in sys.modules:
+            mod = sys.modules[self._module]
+            cls = getattr(mod, self._symbol, tuple())
+            return isinstance(var, cls)
+        return False
 
 
 Frame_t = _LazyClass("datatable", "Frame")

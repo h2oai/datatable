@@ -38,6 +38,7 @@ PyObject* expr_cast(PyObject*, PyObject* args)
   PyObj pyarg(arg1);
 
   Column* col = pyarg.as_column();
+  col->reify();
   Column* res = col->cast(static_cast<SType>(stype));
   return pycolumn::from_column(res, nullptr, 0);
 }
@@ -58,7 +59,7 @@ PyObject* expr_column(PyObject*, PyObject* args)
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", index);
   }
   Column* col = dt->columns[index]->shallowcopy(ri);
-  col->reify();
+  // col->reify();
   return pycolumn::from_column(col, nullptr, 0);
 }
 
