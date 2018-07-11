@@ -524,9 +524,22 @@ $(BUILDDIR)/jay/jay.capnp.h: c/jay/jay.capnp.h
 	@echo • Refreshing c/jay/jay.capnp.h
 	@cp c/jay/jay.capnp.h $@
 
-$(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h
+$(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h $(BUILDDIR)/lib/flatbuffers/flatbuffers.h
 	@echo • Refreshing c/jay/jay_generated.h
 	@cp c/jay/jay_generated.h $@
+
+$(BUILDDIR)/lib/flatbuffers/base.h: c/lib/flatbuffers/base.h $(BUILDDIR)/lib/flatbuffers/stl_emulation.h
+	@echo • Refreshing c/lib/flatbuffers/base.h
+	@cp c/lib/flatbuffers/base.h $@
+
+$(BUILDDIR)/lib/flatbuffers/flatbuffers.h: c/lib/flatbuffers/flatbuffers.h $(BUILDDIR)/lib/flatbuffers/base.h
+	@echo • Refreshing c/lib/flatbuffers/flatbuffers.h
+	@cp c/lib/flatbuffers/flatbuffers.h $@
+
+$(BUILDDIR)/lib/flatbuffers/stl_emulation.h: c/lib/flatbuffers/stl_emulation.h
+	@echo • Refreshing c/lib/flatbuffers/stl_emulation.h
+	cp c/lib/flatbuffers/stl_emulation.h $@
+
 
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memrange.h

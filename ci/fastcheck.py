@@ -25,7 +25,6 @@ def get_files():
         for f in filenames:
             fullname = os.path.join(dirpath, f)
             if f.endswith(".h"):
-                if "flatbuffers" in dirpath: continue
                 headers.append(fullname)
             elif f.endswith(".c") or f.endswith(".cc"):
                 sources.append(fullname)
@@ -48,7 +47,6 @@ def find_includes(filename):
             if line.startswith("#"):
                 mm = re.match(rx_include, line)
                 if mm:
-                    if mm.group(1) == "flatbuffers/flatbuffers.h": continue
                     includename = os.path.join("c", mm.group(1))
                     includes.append(includename)
     return includes
@@ -221,6 +219,7 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
 def create_build_directories(objmap):
     dirs = set(os.path.join("build/fast", os.path.dirname(objfile))
                for objfile in objmap)
+    dirs |= {os.path.join("build/fast", "lib/flatbuffers")}
     for d in dirs:
         os.makedirs(d, exist_ok=True)
 

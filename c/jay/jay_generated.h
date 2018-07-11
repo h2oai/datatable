@@ -4,7 +4,7 @@
 #ifndef FLATBUFFERS_GENERATED_JAY_FBJAY_H_
 #define FLATBUFFERS_GENERATED_JAY_FBJAY_H_
 
-#include "flatbuffers/flatbuffers.h"
+#include "lib/flatbuffers/flatbuffers.h"
 
 namespace fbjay {
 

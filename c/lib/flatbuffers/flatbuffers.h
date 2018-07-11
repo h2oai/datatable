@@ -27,7 +27,7 @@
 #pragma clang diagnostic ignored "-Wpadded"
 
 
-#include "flatbuffers/base.h"
+#include "lib/flatbuffers/base.h"
 
 namespace flatbuffers {
 // Wrapper for uoffset_t to allow safe template specialization.
