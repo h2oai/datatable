@@ -266,7 +266,7 @@ ansiColor('xterm') {
             // Test stages
             if (!params.DISABLE_ALL_TESTS) {
                 parallel ([
-                    'Test Py36 with Pandas on x86_64_linux': {
+                    namedStage('Test Py36 with Pandas on x86_64_linux', {
                         node(NODE_LABEL) {
                             final stageDir = 'test-py36-pandas-x86_64_linux'
                             buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_linux', stageDir) {
@@ -279,7 +279,7 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
+                    }),
                     'Test Py35 with Pandas on x86_64_linux': {
                         node(NODE_LABEL) {
                             final stageDir = 'test-py35-pandas-x86_64_linux'
@@ -295,10 +295,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_linux': {
+                        final stageName = 'Test Py36 with Numpy on x86_64_linux'
                         if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(NODE_LABEL) {
                                 final stageDir = 'test-py36-numpy-x86_64_linux'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_linux', stageDir) {
+                                buildSummary.stageWithSummary(stageName, stageDir) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -309,14 +310,15 @@ ansiColor('xterm') {
                                 }
                             }
                         } else {
-                            echo 'Test Py36 with Numpy on x86_64_linux - SKIPPED'
+                            markSkipped(stageName)
                         }
                     },
                     'Test Py36 on x86_64_linux': {
+                        final stageName = 'Test Py36 on x86_64_linux'
                         if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(NODE_LABEL) {
                                 final stageDir = 'test-py36-x86_64_linux'
-                                buildSummary.stageWithSummary('Test Py36 on x86_64_linux', stageDir) {
+                                buildSummary.stageWithSummary(stageName, stageDir) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -327,7 +329,7 @@ ansiColor('xterm') {
                                 }
                             }
                         } else {
-                            echo 'Test Py36 on x86_64_linux - SKIPPED'
+                            markSkipped(stageName)
                         }
                     },
                     'Test Py36 with Pandas on x86_64_centos7': {
@@ -359,10 +361,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_centos7': {
+                        final stageName = 'Test Py36 with Numpy on x86_64_centos7'
                         if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(NODE_LABEL) {
                                 final stageDir = 'test-py36-numpy-x86_64_centos7'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_centos7', stageDir) {
+                                buildSummary.stageWithSummary(stageName, stageDir) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -373,14 +376,15 @@ ansiColor('xterm') {
                                 }
                             }
                         } else {
-                            echo 'Test Py36 with Numpy on x86_64_centos7 - SKIPPED'
+                            markSkipped(stageName)
                         }
                     },
                     'Test Py36 on x86_64_centos7': {
+                        final stageName = 'Test Py36 on x86_64_centos7'
                         if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(NODE_LABEL) {
                                 final stageDir = 'test-py36-x86_64_centos7'
-                                buildSummary.stageWithSummary('Test Py36 on x86_64_centos7', stageDir) {
+                                buildSummary.stageWithSummary(stageName, stageDir) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -757,5 +761,19 @@ def markSkipped(String stageName) {
     stage (stageName) {
         markStageWithTag(STAGE_NAME, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
     }
+}
+
+def namedStage(String stageName, Clojure body, boolean doRun) {
+    return stageName : {
+        if (doRun) {
+            body(stageName)
+        } else { 
+            markSkipped(stageName)
+        }   
+    }
+}
+
+def namedStage(String stageName, Clojure body) {
+    return namedStage(stageName, body, true)
 }
 
