@@ -27,7 +27,7 @@ PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryRange&& mb)
 
 
 SType PyObjectColumn::stype() const {
-  return ST_OBJECT_PYPTR;
+  return SType::OBJ;
 }
 
 
@@ -111,10 +111,10 @@ void PyObjectColumn::rbind_impl(
     dest_data += old_nrows;
   }
   for (const Column* col : columns) {
-    if (col->stype() == ST_VOID) {
+    if (col->stype() == SType::VOID) {
       dest_data += static_cast<size_t>(col->nrows);
     } else {
-      if (col->stype() != ST_OBJECT_PYPTR) {
+      if (col->stype() != SType::OBJ) {
         Column* newcol = col->cast(stype());
         delete col;
         col = newcol;

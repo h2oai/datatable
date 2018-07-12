@@ -110,17 +110,17 @@ static mapperfn resolve_str(int opcode) {
 
 static mapperfn resolve0(SType stype, int opcode) {
   switch (stype) {
-    case ST_BOOLEAN_I1:
+    case SType::BOOL:
       if (opcode == OpCode::Invert) return map_n<int8_t, int8_t, bool_inverse>;
       return resolve1<int8_t>(opcode);
-    case ST_INTEGER_I1: return resolve1<int8_t>(opcode);
-    case ST_INTEGER_I2: return resolve1<int16_t>(opcode);
-    case ST_INTEGER_I4: return resolve1<int32_t>(opcode);
-    case ST_INTEGER_I8: return resolve1<int64_t>(opcode);
-    case ST_REAL_F4:    return resolve1<float>(opcode);
-    case ST_REAL_F8:    return resolve1<double>(opcode);
-    case ST_STRING_I4_VCHAR: return resolve_str<uint32_t>(opcode);
-    case ST_STRING_I8_VCHAR: return resolve_str<uint64_t>(opcode);
+    case SType::INT8:    return resolve1<int8_t>(opcode);
+    case SType::INT16:   return resolve1<int16_t>(opcode);
+    case SType::INT32:   return resolve1<int32_t>(opcode);
+    case SType::INT64:   return resolve1<int64_t>(opcode);
+    case SType::FLOAT32: return resolve1<float>(opcode);
+    case SType::FLOAT64: return resolve1<double>(opcode);
+    case SType::STR32:   return resolve_str<uint32_t>(opcode);
+    case SType::STR64:   return resolve_str<uint64_t>(opcode);
     default: break;
   }
   return nullptr;
@@ -135,9 +135,9 @@ Column* unaryop(int opcode, Column* arg)
   SType arg_type = arg->stype();
   SType res_type = arg_type;
   if (opcode == OpCode::IsNa) {
-    res_type = ST_BOOLEAN_I1;
-  } else if (arg_type == ST_BOOLEAN_I1 && opcode == OpCode::Minus) {
-    res_type = ST_INTEGER_I1;
+    res_type = SType::BOOL;
+  } else if (arg_type == SType::BOOL && opcode == OpCode::Minus) {
+    res_type = SType::INT8;
   }
   void* params[2];
   params[0] = arg;

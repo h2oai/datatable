@@ -157,7 +157,8 @@ void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
 
 template <typename T>
 SType StringColumn<T>::stype() const {
-  return stype_string(sizeof(T));
+  return sizeof(T) == 4? SType::STR32 :
+         sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
 
 template <typename T>
@@ -379,7 +380,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     const Column* col = columns[i];
-    if (col->stype() == ST_VOID) continue;
+    if (col->stype() == SType::VOID) continue;
     if (col->stype() != stype()) {
       columns[i] = col->cast(stype());
       delete col;
@@ -408,7 +409,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     offs += old_nrows;
   }
   for (const Column* col : columns) {
-    if (col->stype() == ST_VOID) {
+    if (col->stype() == SType::VOID) {
       rows_to_fill += col->nrows;
     } else {
       if (rows_to_fill) {

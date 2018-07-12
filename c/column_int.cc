@@ -15,7 +15,10 @@
 
 template <typename T>
 SType IntColumn<T>::stype() const {
-  return stype_integer(sizeof(T));
+  return sizeof(T) == 1? SType::INT8 :
+         sizeof(T) == 2? SType::INT16 :
+         sizeof(T) == 4? SType::INT32 :
+         sizeof(T) == 8? SType::INT64 : SType::VOID;
 }
 
 
