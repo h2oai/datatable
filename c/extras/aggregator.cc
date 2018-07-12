@@ -6,24 +6,43 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 
+#define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
 #include <stdlib.h>
 #include "utils/omp.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
+#include "utils/pyobj.h"
 
+PyObject* aggregate(PyObject*, PyObject* args) {
+  double epsilon;
+  int32_t n_bins, nx_bins, ny_bins, max_dimensions;
+  unsigned int seed;
+  PyObject* arg0;
 
-Aggregator::Aggregator(DataTable* dt) : dt_in(dt) {
-  create_dt_out();
+  if (!PyArg_ParseTuple(args, "OdiiiiI:aggregate",
+                        &arg0, &epsilon, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
+
+  DataTable* dt_in = PyObj(arg0).as_datatable();
+  DataTablePtr dt_out;
+
+  Aggregator agg(dt_in);
+  dt_out = DataTablePtr(agg.aggregate(epsilon, n_bins, nx_bins, ny_bins, max_dimensions, seed));
+
+  return pydatatable::wrap(dt_out.release());
 }
 
-DataTable* Aggregator::create_dt_out() {
+Aggregator::Aggregator(DataTable* dt_in){
+  create_dt_out(dt_in);
+}
+
+DataTablePtr Aggregator::create_dt_out(DataTable* dt_in) {
   Column** cols = dt::amalloc<Column*>(dt_in->ncols + 2);
 
   for (int32_t i = 0; i < dt_in->ncols; ++i) {
     LType ltype = stype_info[dt_in->columns[i]->stype()].ltype;
-      switch (ltype) {
+    switch (ltype) {
       case LT_BOOLEAN:
       case LT_INTEGER:
       case LT_REAL:    cols[i] = dt_in->columns[i]->cast(ST_REAL_F8); break;
@@ -33,22 +52,24 @@ DataTable* Aggregator::create_dt_out() {
 
   cols[dt_in->ncols] = Column::new_data_column(ST_INTEGER_I4, dt_in->nrows);
   cols[dt_in->ncols + 1] = nullptr;
-  dt_out = new DataTable(cols);
+  dt_out = DataTablePtr(new DataTable(cols));
 
-  return dt_out;
+  return nullptr;
 }
 
 
-DataTable* Aggregator::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins, int32_t max_dimensions, unsigned int seed) {
-  switch (dt_in->ncols) {
-    case 1:  return aggregate_1d(epsilon, n_bins);
-    case 2:  return aggregate_2d(epsilon, nx_bins, ny_bins);
-    default: return aggregate_nd(max_dimensions, seed);
+DataTablePtr Aggregator::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins, int32_t max_dimensions, unsigned int seed) {
+  switch (dt_out->ncols) {
+    case 2:  aggregate_1d(epsilon, n_bins); break;
+    case 3:  aggregate_2d(epsilon, nx_bins, ny_bins); break;
+    default: aggregate_nd(max_dimensions, seed);
   }
+
+  return std::move(dt_out);
 }
 
 
-DataTable* Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
+void Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
   LType ltype = stype_info[dt_out->columns[0]->stype()].ltype;
 
   switch (ltype) {
@@ -56,14 +77,12 @@ DataTable* Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
     case LT_INTEGER:
     case LT_REAL:     aggregate_1d_continuous(epsilon, n_bins); break;
     case LT_STRING:   aggregate_1d_categorical(/*n_bins*/); break;
-    default:          return nullptr;
+    default:          throw ValueError() << "Datatype is not supported";
   }
-
-  return dt_out;
 }
 
 
-DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) {
+void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) {
   LType ltype0 = stype_info[dt_out->columns[0]->stype()].ltype;
   LType ltype1 = stype_info[dt_out->columns[1]->stype()].ltype;
 
@@ -76,7 +95,7 @@ DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_
                           case LT_INTEGER:
                           case LT_REAL:    aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
                           case LT_STRING:  aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
-                          default:         return nullptr;
+                          default:         throw ValueError() << "Datatype is not supported";
                         }
                       }
                       break;
@@ -87,15 +106,13 @@ DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_
                           case LT_INTEGER:
                           case LT_REAL:    aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
                           case LT_STRING:  aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
-                          default:         return nullptr;
+                          default:         throw ValueError() << "Datatype is not supported";
                         }
                       }
                       break;
 
-    default:          return nullptr;
+    default:          throw ValueError() << "Datatype is not supported";
   }
-
-  return dt_out;
 }
 
 
@@ -209,17 +226,17 @@ void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_
 // Leland's algorithm for N-dimensional aggregation, see [1-2] for more details
 // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
 // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
-DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
+void Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
   size_t exemplar_id = 0;
-  int64_t ndims = std::min(mcols, static_cast<int32_t>(dt_in->ncols));
+  int64_t ndims = std::min(mcols, static_cast<int32_t>(dt_out->ncols - 1));
   double* exemplar = new double[ndims];
   double* member = new double[ndims];
   double* pmatrix = nullptr;
   std::vector<double*> exemplars;
-  double delta, radius = .025 * dt_in->ncols, distance = 0.0;
-  int32_t* d_cn = static_cast<int32_t*>(dt_out->columns[dt_in->ncols]->data_w());
+  double delta, radius = .025 * (dt_out->ncols - 1), distance = 0.0;
+  int32_t* d_cn = static_cast<int32_t*>(dt_out->columns[dt_out->ncols - 1]->data_w());
 
-  if (dt_in->ncols > mcols) {
+  if (dt_out->ncols - 1 > mcols) {
     adjust_radius(mcols, radius);
     pmatrix = generate_pmatrix(mcols, seed);
     project_row(exemplar, 0, pmatrix, mcols);
@@ -231,7 +248,7 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
 
   for (int32_t i = 1; i < dt_out->nrows; ++i) {
     double min_distance = std::numeric_limits<double>::max();
-    if (dt_in->ncols > mcols) project_row(member, i, pmatrix, mcols);
+    if (dt_out->ncols - 1 > mcols) project_row(member, i, pmatrix, mcols);
     else normalize_row(member, i);
 
     for (size_t j = 0; j < exemplars.size(); ++j) {
@@ -258,19 +275,17 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
   for (size_t i= 0; i < exemplars.size(); ++i) {
     delete[] exemplars[i];
   }
-
-  return dt_out;
 }
 
 
 void Aggregator::adjust_radius(int32_t mcols, double& radius) {
   double diff = 0;
-  for (int i = 0; i < dt_in->ncols; ++i) {
+  for (int i = 0; i < dt_out->ncols - 1; ++i) {
     RealColumn<double>* ci = static_cast<RealColumn<double>*>(dt_out->columns[i]);
     diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
   }
 
-  diff /= dt_in->ncols;
+  diff /= dt_out->ncols - 1;
   radius = .05 * log(mcols);
   if (diff > 10000.0) radius *= .4;
 }
@@ -292,7 +307,7 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 
 
 void Aggregator::normalize_row(double* r, int32_t row_id) {
-  for (int32_t i = 0; i < dt_in->ncols; ++i) {
+  for (int32_t i = 0; i < dt_out->ncols - 1; ++i) {
     RealColumn<double>* c = static_cast<RealColumn<double>*>(dt_out->columns[i]);
     const double* d_c = static_cast<const double*>(dt_out->columns[i]->data());
 
@@ -313,8 +328,8 @@ double* Aggregator::generate_pmatrix(int32_t mcols, unsigned int seed) {
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
 
-  pmatrix = new double[dt_in->ncols * mcols];
-  for (int32_t i = 0; i < dt_in->ncols * mcols; ++i) {
+  pmatrix = new double[(dt_out->ncols - 1) * mcols];
+  for (int32_t i = 0; i < (dt_out->ncols - 1) * mcols; ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -325,7 +340,7 @@ double* Aggregator::generate_pmatrix(int32_t mcols, unsigned int seed) {
 void Aggregator::project_row(double* r, int32_t row_id, double* pmatrix, int32_t mcols) {
   std::memset(r, 0, static_cast<size_t>(mcols) * sizeof(double));
 
-  for (int32_t i = 0; i < dt_in->ncols*mcols; ++i) {
+  for (int32_t i = 0; i < (dt_out->ncols - 1) * mcols; ++i) {
     RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_out->columns[i / mcols]);
     const double* d_c = static_cast<const double*>(dt_out->columns[i / mcols]->data());
 

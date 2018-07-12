@@ -243,11 +243,11 @@ static gmapperfn resolve0(int opcode, SType stype) {
     switch (stype) {
       case ST_BOOLEAN_I1:
       case ST_INTEGER_I1:       return count_skipna<int8_t, uint64_t>;
-      case ST_INTEGER_I2:  		  return count_skipna<int16_t, uint64_t>;
-      case ST_INTEGER_I4:  		  return count_skipna<int32_t, uint64_t>;
-      case ST_INTEGER_I8: 		  return count_skipna<int64_t, uint64_t>;
-      case ST_REAL_F4:     		  return count_skipna<float, uint64_t>;
-      case ST_REAL_F8:     		  return count_skipna<double, uint64_t>;
+      case ST_INTEGER_I2:       return count_skipna<int16_t, uint64_t>;
+      case ST_INTEGER_I4:       return count_skipna<int32_t, uint64_t>;
+      case ST_INTEGER_I8:       return count_skipna<int64_t, uint64_t>;
+      case ST_REAL_F4:          return count_skipna<float, uint64_t>;
+      case ST_REAL_F8:          return count_skipna<double, uint64_t>;
       case ST_STRING_I4_VCHAR:  return count_skipna<int32_t, uint64_t>;
       case ST_STRING_I8_VCHAR:  return count_skipna<int64_t, uint64_t>;
       default:                  return nullptr;

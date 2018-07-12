@@ -11,22 +11,20 @@
 #include "types.h"
 #include "datatable.h"
 #include <random>
+#include "py_datatable.h"
+
 
 class Aggregator {
   public:
     Aggregator(DataTable*);
-    ~Aggregator();
-    DataTable* aggregate(double, int32_t, int32_t, int32_t, int32_t, unsigned int);
-
-  public:
-    DataTable* dt_in;
-    DataTable* dt_out;
+    DataTablePtr aggregate(double, int32_t, int32_t, int32_t, int32_t, unsigned int);
 
   private:
-    DataTable* create_dt_out();
-    DataTable* aggregate_1d(double, int32_t);
-    DataTable* aggregate_2d(double, int32_t, int32_t);
-    DataTable* aggregate_nd(int32_t, unsigned int);
+    DataTablePtr dt_out;
+    DataTablePtr create_dt_out(DataTable*);
+    void aggregate_1d(double, int32_t);
+    void aggregate_2d(double, int32_t, int32_t);
+    void aggregate_nd(int32_t, unsigned int);
     void aggregate_1d_continuous(double, int32_t);
     void aggregate_2d_continuous(double, int32_t, int32_t);
     void aggregate_1d_categorical(/*int32_t*/);
@@ -39,3 +37,9 @@ class Aggregator {
     double* generate_pmatrix(int32_t, unsigned int);
     void project_row(double*, int32_t, double*, int32_t);
 };
+
+
+DECLARE_FUNCTION(
+  aggregate,
+  "aggregate()\n\n",
+  dt_EXTRAS_AGGREGATOR_cc)

@@ -636,7 +636,7 @@ $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/gr
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
 
-$(BUILDDIR)/extras/aggregator.h: c/extras/aggregator.h $(BUILDDIR)/datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
+$(BUILDDIR)/extras/aggregator.h: c/extras/aggregator.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/extras/aggregator.h
 	@cp c/extras/aggregator.h $@
 
@@ -787,7 +787,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -811,7 +811,7 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 	
-$(BUILDDIR)/extras/aggregator.o : c/extras/aggregator.cc $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/extras/aggregator.o : c/extras/aggregator.cc $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -843,7 +843,7 @@ $(BUILDDIR)/py_columnset.o : c/py_columnset.cc $(BUILDDIR)/columnset.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
