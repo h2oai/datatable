@@ -1001,7 +1001,7 @@ def test_round_filesize(tempfile, mul, eol):
 
 
 def test_maxnrows_on_large_dataset():
-    src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(1000000))
+    src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(2000000))
     t0 = time.time()
     d0 = dt.fread(src, max_nrows=5, verbose=True)
     t0 = time.time() - t0
@@ -1011,6 +1011,7 @@ def test_maxnrows_on_large_dataset():
     t1 = time.time()
     d1 = dt.fread(src)
     t1 = time.time() - t1
+    assert d1.shape == (2000000, 3)
     assert t0 < t1 / 2, ("Reading with max_nrows=5 should be faster than "
                          "reading the whole dataset")
 
@@ -1020,6 +1021,7 @@ def test_typebumps(capsys):
     lines[105] = "Fals,3.5,boo,\"1,000\""
     src = "A,B,C,D\n" + "\n".join(lines)
     d0 = dt.fread(src, verbose=True)
+    d0.internal.check()
     out, err = capsys.readouterr()
     assert ("4 columns need to be re-read because their types have changed"
             in out)

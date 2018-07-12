@@ -102,7 +102,7 @@ Error& Error::operator<<(const CErrno&) {
 }
 
 Error& Error::operator<<(SType stype) {
-  error << stype_info[stype].code2;
+  error << info(stype).name();
   return *this;
 }
 

@@ -8,6 +8,7 @@ import time
 
 import datatable
 from datatable.options import options
+from datatable.types import ltype
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
 
@@ -123,7 +124,7 @@ class DataFrameWidget(object):
 
         # Create column with row indices
         oldwidth = self._colwidths.get("index", 3)
-        indexcolumn = _Column(name="", ctype="str", data=indices)
+        indexcolumn = _Column(name="", ctype=ltype.str, data=indices)
         indexcolumn.color = term.bright_black
         indexcolumn.margin = "  "
         indexcolumn.width = max(oldwidth, indexcolumn.width)
@@ -133,9 +134,9 @@ class DataFrameWidget(object):
         columns = [indexcolumn]
         for i in range(self._view_ncols):
             if self._show_types == 1:
-                name = term.green(coltypes[i])
+                name = term.green(coltypes[i].name)
             elif self._show_types == 2:
-                name = term.cyan(stypes[i])
+                name = term.cyan(stypes[i].name)
             else:
                 name = colnames[i]
             oldwidth = self._colwidths.get(i + self._view_col0, 0)
@@ -336,25 +337,24 @@ class _Column(object):
     MAX_WIDTH = 50
 
     formatters = {
-        "int": str,
-        "str": lambda x: x,
-        "enum": lambda x: x,  # should already be mapped to strings
-        "real": lambda x: "%.6g" % x,
-        "time": lambda x: time.strftime("%Y-%m-%d %H:%M:%S",
-                                        time.gmtime(x / 1000)),
-        "bool": lambda x: "1" if x else "0",
-        "obj": repr,
+        ltype.int: str,
+        ltype.str: lambda x: x,
+        ltype.real: lambda x: "%.6g" % x,
+        ltype.time: lambda x: time.strftime("%Y-%m-%d %H:%M:%S",
+                                            time.gmtime(x / 1000)),
+        ltype.bool: lambda x: "1" if x else "0",
+        ltype.obj: repr,
     }
 
     def __init__(self, name, ctype, data, color=None):
         self._name = name
         self._type = ctype
         self._color = color
-        self._alignleft = ctype in {"str", "enum", "time"}
+        self._alignleft = ctype in (ltype.str, ltype.time)
         # May be empty if the column has 0 rows.
         self._strdata = list(self._stringify_data(data))
         self._rmargin = "  "
-        if ctype == "real":
+        if ctype == ltype.real:
             self._align_at_dot()
         if self._strdata:
             self._width = max(term.length(name), 2,

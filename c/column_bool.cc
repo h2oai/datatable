@@ -13,7 +13,7 @@
 
 
 SType BoolColumn::stype() const {
-  return ST_BOOLEAN_I1;
+  return SType::BOOL;
 }
 
 

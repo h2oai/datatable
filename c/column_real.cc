@@ -14,7 +14,8 @@
 
 template <typename T>
 SType RealColumn<T>::stype() const {
-  return stype_real(sizeof(T));
+  return sizeof(T) == 4? SType::FLOAT32 :
+         sizeof(T) == 8? SType::FLOAT64 : SType::VOID;
 }
 
 

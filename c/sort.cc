@@ -275,15 +275,15 @@ class SortContext {
     // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = col->stype();
     switch (stype) {
-      case ST_BOOLEAN_I1: _initB(col); break;
-      case ST_INTEGER_I1: _initI<int8_t,  uint8_t>(col); break;
-      case ST_INTEGER_I2: _initI<int16_t, uint16_t>(col); break;
-      case ST_INTEGER_I4: _initI<int32_t, uint32_t>(col); break;
-      case ST_INTEGER_I8: _initI<int64_t, uint64_t>(col); break;
-      case ST_REAL_F4:    _initF<uint32_t>(col); break;
-      case ST_REAL_F8:    _initF<uint64_t>(col); break;
-      case ST_STRING_I4_VCHAR: _initS<uint32_t>(col); break;
-      case ST_STRING_I8_VCHAR: _initS<uint64_t>(col); break;
+      case SType::BOOL:    _initB(col); break;
+      case SType::INT8:    _initI<int8_t,  uint8_t>(col); break;
+      case SType::INT16:   _initI<int16_t, uint16_t>(col); break;
+      case SType::INT32:   _initI<int32_t, uint32_t>(col); break;
+      case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
+      case SType::FLOAT32: _initF<uint32_t>(col); break;
+      case SType::FLOAT64: _initF<uint64_t>(col); break;
+      case SType::STR32:   _initS<uint32_t>(col); break;
+      case SType::STR64:   _initS<uint64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }

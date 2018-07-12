@@ -326,9 +326,9 @@ template<typename LT, typename RT, typename VT>
 static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, OpMode mode) {
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
-    stype = ST_BOOLEAN_I1;
+    stype = SType::BOOL;
   } else if (opcode == OpCode::Divide && std::is_integral<VT>::value) {
-    stype = ST_REAL_F8;
+    stype = SType::FLOAT64;
   }
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
@@ -362,7 +362,7 @@ static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mod
     mode = OpMode::N_to_One;
     std::swap(params[0], params[1]);
   }
-  params[2] = Column::new_data_column(ST_BOOLEAN_I1, nrows);
+  params[2] = Column::new_data_column(SType::BOOL, nrows);
   switch (opcode) {
     case OpCode::Equal:    return resolve2str<T0, T1, int8_t, strop_eq<T0, T1>>(mode);
     case OpCode::NotEqual: return resolve2str<T0, T1, int8_t, strop_ne<T0, T1>>(mode);
@@ -375,89 +375,89 @@ static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mod
 static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, int64_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
-    case ST_BOOLEAN_I1:
-    case ST_INTEGER_I1:
+    case SType::BOOL:
+    case SType::INT8:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<int8_t, int8_t, int8_t>(opcode, ST_INTEGER_I1, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<int8_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<int8_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<int8_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<int8_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<int8_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<int8_t, int8_t, int8_t>(opcode, SType::INT8, params, nrows, mode);
+        case SType::INT16:   return resolve1<int8_t, int16_t, int16_t>(opcode, SType::INT16, params, nrows, mode);
+        case SType::INT32:   return resolve1<int8_t, int32_t, int32_t>(opcode, SType::INT32, params, nrows, mode);
+        case SType::INT64:   return resolve1<int8_t, int64_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<int8_t, float, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<int8_t, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_INTEGER_I2:
+    case SType::INT16:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<int16_t, int8_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<int16_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<int16_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<int16_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<int16_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<int16_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<int16_t, int8_t, int16_t>(opcode, SType::INT16, params, nrows, mode);
+        case SType::INT16:   return resolve1<int16_t, int16_t, int16_t>(opcode, SType::INT16, params, nrows, mode);
+        case SType::INT32:   return resolve1<int16_t, int32_t, int32_t>(opcode, SType::INT32, params, nrows, mode);
+        case SType::INT64:   return resolve1<int16_t, int64_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<int16_t, float, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<int16_t, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_INTEGER_I4:
+    case SType::INT32:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<int32_t, int8_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<int32_t, int16_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<int32_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<int32_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<int32_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<int32_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<int32_t, int8_t, int32_t>(opcode, SType::INT32, params, nrows, mode);
+        case SType::INT16:   return resolve1<int32_t, int16_t, int32_t>(opcode, SType::INT32, params, nrows, mode);
+        case SType::INT32:   return resolve1<int32_t, int32_t, int32_t>(opcode, SType::INT32, params, nrows, mode);
+        case SType::INT64:   return resolve1<int32_t, int64_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<int32_t, float, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<int32_t, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_INTEGER_I8:
+    case SType::INT64:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<int64_t, int8_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<int64_t, int16_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<int64_t, int32_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<int64_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<int64_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<int64_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<int64_t, int8_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::INT16:   return resolve1<int64_t, int16_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::INT32:   return resolve1<int64_t, int32_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::INT64:   return resolve1<int64_t, int64_t, int64_t>(opcode, SType::INT64, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<int64_t, float, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<int64_t, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_REAL_F4:
+    case SType::FLOAT32:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<float, int8_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<float, int16_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<float, int32_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<float, int64_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<float, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<float, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<float, int8_t, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::INT16:   return resolve1<float, int16_t, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::INT32:   return resolve1<float, int32_t, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::INT64:   return resolve1<float, int64_t, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<float, float, float>(opcode, SType::FLOAT32, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<float, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_REAL_F8:
+    case SType::FLOAT64:
       switch (rhs_type) {
-        case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve1<double, int8_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
-        case ST_INTEGER_I2: return resolve1<double, int16_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
-        case ST_INTEGER_I4: return resolve1<double, int32_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
-        case ST_INTEGER_I8: return resolve1<double, int64_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
-        case ST_REAL_F4:    return resolve1<double, float, double>(opcode, ST_REAL_F8, params, nrows, mode);
-        case ST_REAL_F8:    return resolve1<double, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case SType::BOOL:
+        case SType::INT8:    return resolve1<double, int8_t, double>(opcode, SType::FLOAT64, params, nrows, mode);
+        case SType::INT16:   return resolve1<double, int16_t, double>(opcode, SType::FLOAT64, params, nrows, mode);
+        case SType::INT32:   return resolve1<double, int32_t, double>(opcode, SType::FLOAT64, params, nrows, mode);
+        case SType::INT64:   return resolve1<double, int64_t, double>(opcode, SType::FLOAT64, params, nrows, mode);
+        case SType::FLOAT32: return resolve1<double, float, double>(opcode, SType::FLOAT64, params, nrows, mode);
+        case SType::FLOAT64: return resolve1<double, double, double>(opcode, SType::FLOAT64, params, nrows, mode);
         default: break;
       }
       break;
 
-    case ST_STRING_I4_VCHAR:
+    case SType::STR32:
       switch (rhs_type) {
-        case ST_STRING_I4_VCHAR: return resolve1str<uint32_t, uint32_t>(opcode, params, nrows, mode);
-        case ST_STRING_I8_VCHAR: return resolve1str<uint32_t, uint64_t>(opcode, params, nrows, mode);
+        case SType::STR32: return resolve1str<uint32_t, uint32_t>(opcode, params, nrows, mode);
+        case SType::STR64: return resolve1str<uint32_t, uint64_t>(opcode, params, nrows, mode);
         default: break;
       }
       break;

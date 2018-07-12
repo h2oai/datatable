@@ -44,7 +44,7 @@ void DataTable::save_jay(const std::string& path,
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
   for (size_t i = 0; i < static_cast<size_t>(ncols); ++i) {
     Column* col = columns[i];
-    if (col->stype() == ST_OBJECT_PYPTR) {
+    if (col->stype() == SType::OBJ) {
       Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
     } else {
       auto saved_col = column_to_jay(col, colnames[i], fbb, wb);
@@ -86,31 +86,31 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   flatbuffers::Offset<void> jsto;
   Stats* colstats = col->get_stats_if_exist();
   switch (col->stype()) {
-    case ST_BOOLEAN_I1:
+    case SType::BOOL:
       jsto = saveStats<int8_t,  int64_t, jay::StatsBool>(colstats, fbb);
       jsttype = jay::Stats_Bool;
       break;
-    case ST_INTEGER_I1:
+    case SType::INT8:
       jsto = saveStats<int8_t,  int64_t, jay::StatsInt8>(colstats, fbb);
       jsttype = jay::Stats_Int8;
       break;
-    case ST_INTEGER_I2:
+    case SType::INT16:
       jsto = saveStats<int16_t, int64_t, jay::StatsInt16>(colstats, fbb);
       jsttype = jay::Stats_Int16;
       break;
-    case ST_INTEGER_I4:
+    case SType::INT32:
       jsto = saveStats<int32_t, int64_t, jay::StatsInt32>(colstats, fbb);
       jsttype = jay::Stats_Int32;
       break;
-    case ST_INTEGER_I8:
+    case SType::INT64:
       jsto = saveStats<int64_t, int64_t, jay::StatsInt64>(colstats, fbb);
       jsttype = jay::Stats_Int64;
       break;
-    case ST_REAL_F4:
+    case SType::FLOAT32:
       jsto = saveStats<float,   double,  jay::StatsFloat32>(colstats, fbb);
       jsttype = jay::Stats_Float32;
       break;
-    case ST_REAL_F8:
+    case SType::FLOAT64:
       jsto = saveStats<double,  double,  jay::StatsFloat64>(colstats, fbb);
       jsttype = jay::Stats_Float64;
       break;
@@ -120,7 +120,7 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   auto sname = fbb.CreateString(name.c_str());
 
   jay::ColumnBuilder cbb(fbb);
-  cbb.add_type(stype_to_jaytype[col->stype()]);
+  cbb.add_type(stype_to_jaytype[static_cast<int>(col->stype())]);
   cbb.add_name(sname);
   cbb.add_nullcount(static_cast<uint64_t>(col->countna()));
 
@@ -132,13 +132,13 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
     cbb.add_stats(jsto);
   }
 
-  if (col->stype() == ST_STRING_I4_VCHAR) {
+  if (col->stype() == SType::STR32) {
     auto scol = static_cast<StringColumn<uint32_t>*>(col);
     MemoryRange sbuf = scol->str_buf();
     jay::Buffer saved_strbuf = saveMemoryRange(&sbuf, wb);
     cbb.add_strdata(&saved_strbuf);
   }
-  if (col->stype() == ST_STRING_I8_VCHAR) {
+  if (col->stype() == SType::STR64) {
     auto scol = static_cast<StringColumn<uint64_t>*>(col);
     MemoryRange sbuf = scol->str_buf();
     jay::Buffer saved_strbuf = saveMemoryRange(&sbuf, wb);
@@ -155,15 +155,15 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
 //------------------------------------------------------------------------------
 
 void init_jay() {
-  stype_to_jaytype[ST_BOOLEAN_I1]      = jay::Type_Bool8;
-  stype_to_jaytype[ST_INTEGER_I1]      = jay::Type_Int8;
-  stype_to_jaytype[ST_INTEGER_I2]      = jay::Type_Int16;
-  stype_to_jaytype[ST_INTEGER_I4]      = jay::Type_Int32;
-  stype_to_jaytype[ST_INTEGER_I8]      = jay::Type_Int64;
-  stype_to_jaytype[ST_REAL_F4]         = jay::Type_Float32;
-  stype_to_jaytype[ST_REAL_F8]         = jay::Type_Float64;
-  stype_to_jaytype[ST_STRING_I4_VCHAR] = jay::Type_Str32;
-  stype_to_jaytype[ST_STRING_I8_VCHAR] = jay::Type_Str64;
+  stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
+  stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;
+  stype_to_jaytype[int(SType::INT16)]   = jay::Type_Int16;
+  stype_to_jaytype[int(SType::INT32)]   = jay::Type_Int32;
+  stype_to_jaytype[int(SType::INT64)]   = jay::Type_Int64;
+  stype_to_jaytype[int(SType::FLOAT32)] = jay::Type_Float32;
+  stype_to_jaytype[int(SType::FLOAT64)] = jay::Type_Float64;
+  stype_to_jaytype[int(SType::STR32)]   = jay::Type_Str32;
+  stype_to_jaytype[int(SType::STR64)]   = jay::Type_Str64;
 }
 
 
