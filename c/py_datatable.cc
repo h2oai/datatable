@@ -127,8 +127,7 @@ PyObject* get_ltypes(obj* self) {
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = self->ref->columns[i]->stype();
-    LType lt = stype_info[static_cast<int>(st)].ltype;
-    PyTuple_SET_ITEM(list, i, incref(py_ltype_objs[lt]));
+    PyTuple_SET_ITEM(list, i, info(st).py_ltype());
   }
   return list;
 }
@@ -141,7 +140,7 @@ PyObject* get_stypes(obj* self) {
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = dt->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, incref(py_stype_objs[static_cast<int>(st)]));
+    PyTuple_SET_ITEM(list, i, info(st).py_stype());
   }
   return list;
 }

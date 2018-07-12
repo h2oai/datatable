@@ -9,6 +9,10 @@
 #include "types.h"
 #include "utils.h"
 
+static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
+static PyObject* py_stype_objs[DT_STYPES_COUNT];
+
+
 
 //==============================================================================
 // Static asserts
@@ -47,14 +51,48 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 //==============================================================================
 // Initialize auxiliary data structures
 //==============================================================================
+/**
+ * Information about `SType`s, for programmatic access.
+ *
+ * code:
+ *     0-terminated 3-character string representing the stype in a form easily
+ *     understandable by humans.
+ *
+ * elemsize:
+ *     number of storage bytes per element (for fixed-size types), so that the
+ *     amount of memory required to store a column with `n` rows would be
+ *     `n * elemsize`. For variable-size types, this field gives the minimal
+ *     storage size per element.
+ *
+ * varwidth:
+ *     flag indicating whether the field is variable-width. If this is false,
+ *     then the column is a plain array of elements, each of `elemsize` bytes
+ *     (except for FSTR, where each element's size is `meta->n`).
+ *     If this flag is true, then the field has more complex layout and
+ *     specialized logic to handle that layout.
+ *
+ * ltype:
+ *     which :enum:`LType` corresponds to this SType.
+ *
+ */
+struct STypeInfo {
+  size_t      elemsize;
+  const void *na;
+  char        code[4];
+  char        code2[3];
+  LType       ltype;
+  bool        varwidth;
+  int64_t : 56;  // padding
+};
 
-STypeInfo stype_info[DT_STYPES_COUNT];
+
+static STypeInfo stype_info[DT_STYPES_COUNT];
 static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
   #define STI(T, code, code2, csize, vw, ltype, na) \
-      stype_info[int(T)] = (STypeInfo){csize, 0, na, code, code2, ltype, vw}
+      stype_info[int(T)] = STypeInfo{csize, na, code, code2, ltype, vw}
   STI(SType::VOID,    "---", "--", 0, 0, LT_MU,       NULL);
   STI(SType::BOOL,    "i1b", "b1", 1, 0, LT_BOOLEAN,  &NA_I1);
   STI(SType::INT8,    "i1i", "i1", 1, 0, LT_INTEGER,  &NA_I1);
@@ -199,4 +237,63 @@ SType stype_from_string(const std::string& str)
 
 SType common_stype_for_buffer(SType stype1, SType stype2) {
   return stype_upcast_map[int(stype1)][int(stype2)];
+}
+
+
+void init_py_stype_objs(PyObject* stype_enum) {
+  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
+    // The call may raise an exception -- that's ok
+    py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
+    if (py_stype_objs[i] == nullptr) {
+      PyErr_Clear();
+      py_stype_objs[i] = Py_None;
+    }
+  }
+}
+
+void init_py_ltype_objs(PyObject* ltype_enum)
+{
+  for (int i = 0; i < DT_LTYPES_COUNT; i++) {
+    // The call may raise an exception -- that's ok
+    py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
+    if (py_ltype_objs[i] == nullptr) {
+      PyErr_Clear();
+      py_ltype_objs[i] = Py_None;
+    }
+  }
+}
+
+
+//------------------------------------------------------------------------------
+
+info::info(SType s) {
+  stype = static_cast<uint8_t>(s);
+}
+
+const char* info::name() const {
+  return stype_info[stype].code2;
+}
+
+size_t info::elemsize() const {
+  return stype_info[stype].elemsize;
+}
+
+bool info::is_varwidth() const {
+  return stype_info[stype].varwidth;
+}
+
+LType info::ltype() const {
+  return stype_info[stype].ltype;
+}
+
+PyObject* info::py_ltype() const {
+  PyObject* res = py_ltype_objs[ltype()];
+  Py_INCREF(res);
+  return res;
+}
+
+PyObject* info::py_stype() const {
+  PyObject* res = py_stype_objs[stype];
+  Py_INCREF(res);
+  return res;
 }

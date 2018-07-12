@@ -9,10 +9,8 @@
 #include "py_utils.h"
 #include "column.h"
 
-PyObject* py_ltype_names[DT_LTYPES_COUNT];
-PyObject* py_stype_names[DT_STYPES_COUNT];
-PyObject* py_ltype_objs[DT_LTYPES_COUNT];
-PyObject* py_stype_objs[DT_STYPES_COUNT];
+// TODO: merge with types.h / types.cc
+
 
 stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 size_t py_buffers_size;
@@ -120,24 +118,6 @@ int init_py_types(PyObject*)
   init_types();
   py_buffers_size = sizeof(Py_buffer);
 
-  py_ltype_names[LT_MU]       = PyUnicode_FromString("mu");
-  py_ltype_names[LT_BOOLEAN]  = PyUnicode_FromString("bool");
-  py_ltype_names[LT_INTEGER]  = PyUnicode_FromString("int");
-  py_ltype_names[LT_REAL]     = PyUnicode_FromString("real");
-  py_ltype_names[LT_STRING]   = PyUnicode_FromString("str");
-  py_ltype_names[LT_DATETIME] = PyUnicode_FromString("time");
-  py_ltype_names[LT_DURATION] = PyUnicode_FromString("duration");
-  py_ltype_names[LT_OBJECT]   = PyUnicode_FromString("obj");
-
-  for (int i = 0; i < DT_LTYPES_COUNT; i++) {
-    if (py_ltype_names[i] == nullptr) return 0;
-  }
-
-  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
-    py_stype_names[i] = PyUnicode_FromString(stype_info[i].code);
-    if (py_stype_names[i] == nullptr) return 0;
-  }
-
   py_stype_formatters[int(SType::VOID)]    = stype_notimpl;
   py_stype_formatters[int(SType::BOOL)]    = stype_boolean_i8_tostring;
   py_stype_formatters[int(SType::INT8)]    = stype_integer_i8_tostring;
@@ -162,27 +142,4 @@ int init_py_types(PyObject*)
   py_stype_formatters[int(SType::OBJ)]     = stype_object_pyptr_tostring;
 
   return 1;
-}
-
-void init_py_stype_objs(PyObject* stype_enum) {
-  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
-    // The call may raise an exception -- that's ok
-    py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
-    if (py_stype_objs[i] == nullptr) {
-      PyErr_Clear();
-      py_stype_objs[i] = none();
-    }
-  }
-}
-
-void init_py_ltype_objs(PyObject* ltype_enum)
-{
-  for (int i = 0; i < DT_LTYPES_COUNT; i++) {
-    // The call may raise an exception -- that's ok
-    py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
-    if (py_ltype_objs[i] == nullptr) {
-      PyErr_Clear();
-      py_ltype_objs[i] = none();
-    }
-  }
 }

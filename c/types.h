@@ -13,11 +13,6 @@
 #include <Python.h>
 
 
-// intXX(32)  =>  int32_t
-// intXX(64)  =>  int64_t
-// etc.
-#define intXX(bits)  int ## bits ## _t
-
 struct CString {
   const char* ch;
   int64_t size;
@@ -319,89 +314,19 @@ constexpr size_t DT_STYPES_COUNT =
 
 //==============================================================================
 
-/**
- * Information about `SType`s, for programmatic access.
- *
- * code:
- *     0-terminated 3-character string representing the stype in a form easily
- *     understandable by humans.
- *
- * elemsize:
- *     number of storage bytes per element (for fixed-size types), so that the
- *     amount of memory required to store a column with `n` rows would be
- *     `n * elemsize`. For variable-size types, this field gives the minimal
- *     storage size per element.
- *
- * metasize:
- *     size of the meta structure associated with the field. If the field
- *     doesn't need meta then this will be zero.
- *
- * varwidth:
- *     flag indicating whether the field is variable-width. If this is false,
- *     then the column is a plain array of elements, each of `elemsize` bytes
- *     (except for FSTR, where each element's size is `meta->n`).
- *     If this flag is true, then the field has more complex layout and
- *     specialized logic to handle that layout.
- *
- * ltype:
- *     which :enum:`LType` corresponds to this SType.
- *
- */
-typedef struct STypeInfo {
-    size_t      elemsize;
-    size_t      metasize;
-    const void *na;
-    char        code[4];
-    char        code2[3];
-    LType       ltype;
-    bool        varwidth;
-    int64_t : 56;  // padding
-} STypeInfo;
+class info {
+  private:
+    uint8_t stype;
 
-extern STypeInfo stype_info[DT_STYPES_COUNT];
-
-
-
-//==============================================================================
-
-/**
- * Structs for meta information associated with particular types.
- *
- * DecimalMeta (DEC16, DEC32, DEC64)
- *     scale: the number of digits after the decimal point. For example stored
- *            value 123 represents actual value 1.23 when `scale = 2`, or
- *            actual value 123000 when `scale = -3`.
- *
- * VarcharMeta (SType::STR32, SType::STR64)
- *     offoff: location within the data buffer of the section with offsets.
- *
- * FixcharMeta (FSTR)
- *     n: number of characters in the fixed-width string.
- *
- * EnumMeta (CAT8, CAT16, CAT32)
- *     offoff: location within the data buffer of the section with offsets.
- *     dataoff: location of the section with categorical levels (one per row).
- *     nlevels: total number of categorical levels.
- *
- */
-typedef struct DecimalMeta {  // ST_REAL_IX
-    int32_t scale;
-} DecimalMeta;
-
-typedef struct VarcharMeta {  // ST_STRING_IX_VCHAR
-    int64_t offoff;
-} VarcharMeta;
-
-typedef struct FixcharMeta {  // FSTR
-    int32_t n;
-} FixcharMeta;
-
-typedef struct EnumMeta {     // ST_STRING_UX_ENUM
-    int64_t offoff;
-    int64_t dataoff;
-    int32_t nlevels;
-    char _padding[4];
-} EnumMeta;
+  public:
+    info(SType s);
+    const char* name() const;
+    size_t elemsize() const;
+    bool is_varwidth() const;
+    LType ltype() const;
+    PyObject* py_stype() const;  // new ref
+    PyObject* py_ltype() const;  // new ref
+};
 
 
 
@@ -476,6 +401,10 @@ template<> inline bool IsIntNA(int64_t x)   { return x == NA_I8; }
 
 // Initializer function
 void init_types(void);
+void init_py_stype_objs(PyObject* stype_enum);
+void init_py_ltype_objs(PyObject* ltype_enum);
+
+
 SType stype_from_string(const std::string&);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 

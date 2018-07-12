@@ -282,7 +282,7 @@ static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags) {
     // time for a read-only buffer.
     throw ValueError() << "Cannot create a writable buffer for a Column";
   }
-  if (stype_info[int(col->stype())].varwidth) {
+  if (info(col->stype()).is_varwidth()) {
     throw ValueError() << "Column's data has variable width";
   }
 
@@ -423,8 +423,8 @@ static int getbuffer_DataTable(
   }
 
   // Allocate the final buffer
-  xassert(!stype_info[int(stype)].varwidth);
-  size_t elemsize = stype_info[int(stype)].elemsize;
+  xassert(!info(stype).is_varwidth());
+  size_t elemsize = info(stype).elemsize();
   size_t colsize = nrows * elemsize;
   MemoryRange memr = MemoryRange::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);
@@ -492,7 +492,7 @@ static int getbuffer_DataTable(
     https://github.com/numpy/numpy/issues/9456
 
     if (REQ_INDIRECT(flags)) {
-        size_t elemsize = stype_info[stype].elemsize;
+        size_t elemsize = info(stype).elemsize();
         Py_ssize_t *info = dt::amalloc<Py_ssize_t>(6);
         void** buf = dt::amalloc<void*>(ncols);
         for (int i = 0; i < ncols; i++) {

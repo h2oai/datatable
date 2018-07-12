@@ -38,17 +38,11 @@ class Column;
 
 typedef PyObject* (stype_formatter)(Column *col, int64_t row);
 
-extern PyObject* py_ltype_names[DT_LTYPES_COUNT];
-extern PyObject* py_stype_names[DT_STYPES_COUNT];
-extern PyObject* py_ltype_objs[DT_LTYPES_COUNT];
-extern PyObject* py_stype_objs[DT_STYPES_COUNT];
 extern stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 extern size_t py_buffers_size;
 
 
 int init_py_types(PyObject *module);
-void init_py_stype_objs(PyObject* stype_enum);
-void init_py_ltype_objs(PyObject* ltype_enum);
 
 
 PyObject* bool_to_py(int8_t x);

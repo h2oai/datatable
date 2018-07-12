@@ -125,10 +125,9 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   if (stypes == nullptr || ltypes == nullptr) goto fail;
   for (int64_t i = col0; i < col1; i++) {
     Column *col = dt->columns[i];
-    int itype = static_cast<int>(col->stype());
-    LType ltype = stype_info[itype].ltype;
-    PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
-    PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[itype]));
+    info info_stype(col->stype());
+    PyList_SET_ITEM(ltypes, i - col0, info_stype.py_ltype());
+    PyList_SET_ITEM(stypes, i - col0, info_stype.py_stype());
   }
 
   self->row0 = row0;
@@ -218,11 +217,10 @@ static int _init_hexview(
   stypes = PyList_New(ncols);
   ltypes = PyList_New(ncols);
   if (!stypes || !ltypes) goto fail;
-  PyObject* ltype0 = py_ltype_names[LT_STRING];
-  PyObject* stype0 = py_stype_names[int(SType::FSTR)];
+  info itype(SType::STR32);
   for (int64_t i = 0; i < ncols; i++) {
-    PyList_SET_ITEM(ltypes, i, incref(ltype0));
-    PyList_SET_ITEM(stypes, i, incref(stype0));
+    PyList_SET_ITEM(ltypes, i, itype.py_ltype());
+    PyList_SET_ITEM(stypes, i, itype.py_stype());
   }
 
   self->row0 = row0;
