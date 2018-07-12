@@ -761,13 +761,13 @@ def markSkipped(String stageName) {
 }
 
 def namedStage(String stageName, Clojure body, boolean doRun) {
-    return stageName : {
+    return [ (stageName) : {
         if (doRun) {
             body(stageName)
         } else { 
             markSkipped(stageName)
         }   
-    }
+    }]
 }
 
 def namedStage(String stageName, Clojure body) {
