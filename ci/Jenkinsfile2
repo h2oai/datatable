@@ -11,6 +11,7 @@ import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary
 import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
+import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
 
 def utilsLib = new Utils()
 
@@ -24,6 +25,7 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
+X86_64_BUILD_NODE_LABEL = "buildMachine"
 NODE_LABEL = 'docker && !mr-0xc8'
 OSX_NODE_LABEL = 'osx'
 PPC_NODE_LABEL = 'ibm-power'
@@ -91,7 +93,7 @@ ansiColor('xterm') {
         }
         timeout(time: 120, unit: 'MINUTES') {
             // Checkout stage
-            node(NODE_LABEL) {
+            node(X86_64_BUILD_NODE_LABEL) {
                 def stageDir = 'checkout'
                 buildSummary.stageWithSummary('Checkout', stageDir) {
                     dir (stageDir) {
@@ -137,7 +139,7 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64_centos7': {
-                    node(NODE_LABEL) {
+                    node(X86_64_BUILD_NODE_LABEL) {
                         final stageDir = 'build-x86_64_centos7'
                         buildSummary.stageWithSummary('Build on x86_64_centos7', stageDir) {
                             cleanWs()
@@ -208,11 +210,12 @@ ansiColor('xterm') {
                                             arch "dist/*.whl"
                                         }
                                     }
-                                } else {
-                                    echo 'Build on ppc64le_centos7 SKIPPED'
-                                }
+                                } 
                             }
                         }
+                    } else {
+                        echo 'Build on ppc64le_centos7 SKIPPED'
+                        markSkipped("Build on ppc64le_centos7")
                     }
                 }
             ])
@@ -262,11 +265,11 @@ ansiColor('xterm') {
             }
             // Test stages
             if (!params.DISABLE_ALL_TESTS) {
-                parallel ([
-                    'Test Py36 with Pandas on x86_64_linux': {
+                def testStages = [:]
+                testStages <<
+                    namedStage('Test Py36 with Pandas on x86_64_linux', { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            final stageDir = 'test-x86_64_linux'
-                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_linux', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
@@ -276,11 +279,10 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py35 with Pandas on x86_64_linux': {
+                    }) <<
+                    namedStage('Test Py35 with Pandas on x86_64_linux', { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            final stageDir = 'test-x86_64_linux'
-                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_linux', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
@@ -290,46 +292,35 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py36 with Numpy on x86_64_linux': {
-                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(NODE_LABEL) {
-                                final stageDir = 'test-x86_64_linux'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_linux', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('ubuntu_test_py36_with_numpy_in_docker', needsLargerTest)
-                                    }
-                                }
-                            }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_linux - SKIPPED'
-                        }
-                    },
-                    'Test Py36 on x86_64_linux': {
-                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(NODE_LABEL) {
-                                final stageDir = 'test-x86_64_linux'
-                                buildSummary.stageWithSummary('Test Py36 on x86_64_linux', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
-                                    }
-                                }
-                            }
-                        } else {
-                            echo 'Test Py36 on x86_64_linux - SKIPPED'
-                        }
-                    },
-                    'Test Py36 with Pandas on x86_64_centos7': {
+                    }) <<
+                    namedStage('Test Py36 with Numpy on x86_64_linux', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            final stageDir = 'test-x86_64_centos7'
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('ubuntu_test_py36_with_numpy_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test Py36 on x86_64_linux', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test Py36 with Pandas on x86_64_centos7', { stageName, stageDir ->
+                        node(NODE_LABEL) {
                             buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_centos7', stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -340,10 +331,9 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py35 with Pandas on x86_64_centos7': {
+                    }) <<
+                    namedStage('Test Py35 with Pandas on x86_64_centos7', { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            final stageDir = 'test-x86_64_centos7'
                             buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_centos7', stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -354,115 +344,88 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py36 with Numpy on x86_64_centos7': {
-                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(NODE_LABEL) {
-                                final stageDir = 'test-x86_64_centos7'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_centos7', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 with Numpy on x86_64_centos7', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_centos7 - SKIPPED'
                         }
-                    },
-                    'Test Py36 on x86_64_centos7': {
-                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(NODE_LABEL) {
-                                final stageDir = 'test-x86_64_centos7'
-                                buildSummary.stageWithSummary('Test Py36 on x86_64_centos7', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 on x86_64_centos7', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_in_docker', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on x86_64_centos7 - SKIPPED'
                         }
-                    },
-                    'Test Py36 with Pandas on ppc64le_centos7': {
+                    }) <<
+                    namedStage('Test Py36 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
-                            final stageDir = 'test-ppc64le_centos7'
-                            buildSummary.stageWithSummary('Test Py36 with Pandas on ppc64le_centos7') {
-                                if (doPPC() && doTestPPC64LE()) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
-                                    }
+                            buildSummary.stageWithSummary(stageName) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
                         }
-                    },
-                    'Test Py35 with Pandas on ppc64le_centos7': {
+                    }) <<
+                    namedStage('Test Py35 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
-                            final stageDir = 'test-ppc64le_centos7'
-                            buildSummary.stageWithSummary('Test Py35 with Pandas on ppc64le_centos7', stageDir) {
-                                if (doPPC() && doTestPPC64LE()) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py35-whl'
-                                        testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
-                                    }
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le_centos7-py35-whl'
+                                    testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
                         }
-                    },
-                    'Test Py36 with Numpy on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(PPC_NODE_LABEL) {
-                                final stageDir = 'test-ppc64le_centos7'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on ppc64le_centos7', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 with Numpy on ppc64le_centos7', !isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(PPC_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on ppc64le_centos7 - SKIPPED'
                         }
-                    },
-                    'Test Py36 on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(PPC_NODE_LABEL) {
-                                final stageDir = 'test-ppc64le_centos7'
-                                buildSummary.stageWithSummary('Test Py36 on ppc64le_centos7', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 on ppc64le_centos7', !isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(PPC_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le_centos7-py36-whl'
+                                    testInDocker('centos7_test_py36_in_docker', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on ppc64le_centos7 - SKIPPED'
                         }
-                    },
-                    'Test Py36 with Pandas on x86_64_osx': {
+                    }) <<
+                    namedStage('Test Py36 with Pandas on x86_64_osx', { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
-                            final stageDir = 'test-x86_64_osx'
-                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_osx', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
@@ -472,11 +435,10 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py35 with Pandas on x86_64_osx': {
+                    }) <<
+                    namedStage('Test Py35 with Pandas on x86_64_osx', { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
-                            final stageDir = 'test-x86_64_osx'
-                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_osx', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
@@ -486,48 +448,39 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    },
-                    'Test Py36 with Numpy on x86_64_osx': {
-                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR)  {
-                            node(OSX_NODE_LABEL) {
-                                final stageDir = 'test-x86_64_osx'
-                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_osx', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_osx-py36-whl'
-                                        testOSX('datatable-py36-with-numpy', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 with Numpy on x86_64_osx', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(OSX_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_osx-py36-whl'
+                                    testOSX('datatable-py36-with-numpy', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_osx - SKIPPED'
                         }
-                    },
-                    'Test Py36 on x86_64_osx': {
-                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
-                            node(OSX_NODE_LABEL) {
-                                final stageDir = 'test-x86_64_osx'
-                                buildSummary.stageWithSummary('Test Py36 on x86_64_osx', stageDir) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_osx-py36-whl'
-                                        testOSX('datatable-py36', needsLargerTest)
-                                    }
+                    }) <<
+                    namedStage('Test Py36 on x86_64_osx', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                        node(OSX_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_osx-py36-whl'
+                                    testOSX('datatable-py36', needsLargerTest)
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on x86_64_osx - SKIPPED'
                         }
-                    },
-                ])
+                    })
+                // Execute defined stages in parallel
+                parallel(testStages)
             }
             // Build sdist
             if (doPublish()) {
-                node(NODE_LABEL) {
+                node(X86_64_BUILD_NODE_LABEL) {
                     def stageDir = 'build-sdist'
                     buildSummary.stageWithSummary ('Build sdist', stageDir) {
                         cleanWs()
@@ -749,3 +702,26 @@ def createDockerArgs() {
 def getHTTPSTargetUrl(final versionText) {
     return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
 }
+
+def markSkipped(String stageName) {
+    stage (stageName) {
+        echo "Stage ${stageName} SKIPPED!"
+        markStageWithTag(STAGE_NAME, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
+    }
+}
+
+def namedStage(String stageName, boolean doRun, Closure body) {
+    return [ (stageName) : {
+        if (doRun) {
+            def stageDir = stageName.toLowerCase().replaceAll(" ", "_")
+            body(stageName, stageDir)
+        } else { 
+            markSkipped(stageName)
+        }   
+    }]
+}
+
+def namedStage(String stageName, Closure body) {
+    return namedStage(stageName, true, body)
+}
+
