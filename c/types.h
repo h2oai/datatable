@@ -25,11 +25,11 @@ struct CString {
  * "Logical" type of a data column.
  *
  * Logical type is supposed to match the user's notion of a column type. For
- * example logical "LT_INTEGER" type corresponds to the mathematical set of
+ * example logical "LType::INT" type corresponds to the mathematical set of
  * integers, and thus reflects the usual notion of what the "integer" *is*.
  *
  * Each logical type has multiple underlying "storage" types, that describe
- * how the type is actually stored in memory. For example, LT_INTEGER can be
+ * how the type is actually stored in memory. For example, LType::INT can be
  * stored as an 8-, 16-, 32- or a 64-bit integer. All "storage" types within
  * a single logical type should be freely interchangeable: operators or
  * functions that accept certain logical type should be able to work with any
@@ -41,50 +41,50 @@ struct CString {
  * bit shift operators require integer (or boolean) arguments.
  *
  *
- * LT_MU
+ * LType::MU
  *     special "marker" type for a column that has unknown type. For example,
  *     this can be used to indicate that the system should autodetect the
  *     column's type from the data. This type has no storage types.
  *
- * LT_BOOLEAN
+ * LType::BOOL
  *     column for storing boolean (0/1) values. Right now we only allow to
  *     store booleans as 1-byte signed chars. In most arithmetic expressions
  *     booleans are automatically promoted to integers (or reals) if needed.
  *
- * LT_INTEGER
+ * LType::INT
  *     integer values, equivalent of ℤ in mathematics. We support multiple
  *     storage sizes for integers: from 8 bits to 64 bits, but do not allow
  *     arbitrary-length integers. In most expressions integers will be
  *     automatically promoted to reals if needed.
  *
- * LT_REAL
+ * LType::REAL
  *     real values, equivalent of ℝ in mathematics. We store these in either
  *     fixed- or floating-point formats.
  *
- * LT_STRING
+ * LType::STRING
  *     all strings are encoded in UTF-8. We allow either variable-width strings
  *     or fixed-width.
  *
- * LT_DATETIME
- * LT_DURATION
+ * LType::DATETIME
+ * LType::DURATION
  *
- * LT_OBJECT
+ * LType::OBJECT
  *     column for storing all other values of arbitrary (possibly heterogeneous)
  *     types. Each element is a `PyObject*`. Missing values are `Py_None`s.
  *
  */
-typedef enum LType {
-    LT_MU       = 0,
-    LT_BOOLEAN  = 1,
-    LT_INTEGER  = 2,
-    LT_REAL     = 3,
-    LT_STRING   = 4,
-    LT_DATETIME = 5,
-    LT_DURATION = 6,
-    LT_OBJECT   = 7,
-} __attribute__ ((__packed__)) LType;
+enum class LType : uint8_t {
+  MU       = 0,
+  BOOL     = 1,
+  INT      = 2,
+  REAL     = 3,
+  STRING   = 4,
+  DATETIME = 5,
+  DURATION = 6,
+  OBJECT   = 7,
+};
 
-#define DT_LTYPES_COUNT  (LT_OBJECT + 1)  // 1 + the largest LT_* type
+constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
 
 
 
@@ -307,8 +307,7 @@ enum class SType : uint8_t {
   OBJ     = 21,
 };
 
-constexpr size_t DT_STYPES_COUNT =
-    static_cast<size_t>(SType::OBJ) + 1;
+constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::OBJ) + 1;
 
 
 

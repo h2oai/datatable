@@ -58,7 +58,7 @@ def c_stypes():
                     r'"(..)",\s*'
                     r"(\d+),\s*"
                     r"(\d),\s*"
-                    r"(?:0|(\w+)),\s*"
+                    r"LType::(\w+),\s*"
                     r"&?(\w+)\)",
                     txt2)
     for name, code3, code2, elemsize, varwidth, ltype, na in mm:
@@ -281,7 +281,7 @@ def test_ltype_repr():
 def test_stype_ltypes(c_stypes2):
     from datatable import stype, ltype
     for st in stype:
-        assert st.ltype is ltype(c_stypes2[st.code]["ltype"][3:].lower())
+        assert st.ltype is ltype(c_stypes2[st.code]["ltype"].lower())
 
 
 def test_ltype_stypes():

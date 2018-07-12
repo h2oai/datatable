@@ -410,7 +410,7 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
   if (ltype0 > 0) {
     for (int i = curr_stype + 1; i < int(DT_STYPES_COUNT); i++) {
       if (i >= int(SType::FSTR) && i <= int(SType::DATE16)) continue;
-      if (info(static_cast<SType>(i)).ltype() == ltype0) return i;
+      if (int(info(static_cast<SType>(i)).ltype()) == ltype0) return i;
     }
     return curr_stype;
   }
@@ -418,7 +418,7 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
     for (int i = curr_stype + 1; i < int(DT_STYPES_COUNT); i++) {
       if (i >= int(SType::FSTR) &&
           i <= int(SType::DATE16)) continue;
-      if (info(static_cast<SType>(i)).ltype() <= -ltype0) return i;
+      if (int(info(static_cast<SType>(i)).ltype()) <= -ltype0) return i;
     }
     return curr_stype;
   }

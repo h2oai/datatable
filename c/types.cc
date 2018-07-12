@@ -93,28 +93,28 @@ void init_types(void)
 {
   #define STI(T, code, code2, csize, vw, ltype, na) \
       stype_info[int(T)] = STypeInfo{csize, na, code, code2, ltype, vw}
-  STI(SType::VOID,    "---", "--", 0, 0, LT_MU,       NULL);
-  STI(SType::BOOL,    "i1b", "b1", 1, 0, LT_BOOLEAN,  &NA_I1);
-  STI(SType::INT8,    "i1i", "i1", 1, 0, LT_INTEGER,  &NA_I1);
-  STI(SType::INT16,   "i2i", "i2", 2, 0, LT_INTEGER,  &NA_I2);
-  STI(SType::INT32,   "i4i", "i4", 4, 0, LT_INTEGER,  &NA_I4);
-  STI(SType::INT64,   "i8i", "i8", 8, 0, LT_INTEGER,  &NA_I8);
-  STI(SType::FLOAT32, "f4r", "r4", 4, 0, LT_REAL,     &NA_F4);
-  STI(SType::FLOAT64, "f8r", "r8", 8, 0, LT_REAL,     &NA_F8);
-  STI(SType::DEC16,   "i2r", "d2", 2, 0, LT_REAL,     &NA_I2);
-  STI(SType::DEC32,   "i4r", "d4", 4, 0, LT_REAL,     &NA_I4);
-  STI(SType::DEC64,   "i8r", "d8", 8, 0, LT_REAL,     &NA_I8);
-  STI(SType::STR32,   "i4s", "s4", 4, 1, LT_STRING,   NULL);
-  STI(SType::STR64,   "i8s", "s8", 8, 1, LT_STRING,   NULL);
-  STI(SType::FSTR,    "c#s", "sx", 0, 0, LT_STRING,   NULL);
-  STI(SType::CAT8,    "u1e", "e1", 1, 1, LT_STRING,   &NA_U1);
-  STI(SType::CAT16,   "u2e", "e2", 2, 1, LT_STRING,   &NA_U2);
-  STI(SType::CAT32,   "u4e", "e4", 4, 1, LT_STRING,   &NA_U4);
-  STI(SType::DATE64,  "i8d", "t8", 8, 0, LT_DATETIME, &NA_I8);
-  STI(SType::TIME32,  "i4t", "T4", 4, 0, LT_DATETIME, &NA_I4);
-  STI(SType::DATE32,  "i4d", "t4", 4, 0, LT_DATETIME, &NA_I4);
-  STI(SType::DATE16,  "i2d", "t2", 2, 0, LT_DATETIME, &NA_I2);
-  STI(SType::OBJ,     "p8p", "o8", 8, 0, LT_OBJECT,   NULL);
+  STI(SType::VOID,    "---", "--", 0, 0, LType::MU,       nullptr);
+  STI(SType::BOOL,    "i1b", "b1", 1, 0, LType::BOOL,     &NA_I1);
+  STI(SType::INT8,    "i1i", "i1", 1, 0, LType::INT,      &NA_I1);
+  STI(SType::INT16,   "i2i", "i2", 2, 0, LType::INT,      &NA_I2);
+  STI(SType::INT32,   "i4i", "i4", 4, 0, LType::INT,      &NA_I4);
+  STI(SType::INT64,   "i8i", "i8", 8, 0, LType::INT,      &NA_I8);
+  STI(SType::FLOAT32, "f4r", "r4", 4, 0, LType::REAL,     &NA_F4);
+  STI(SType::FLOAT64, "f8r", "r8", 8, 0, LType::REAL,     &NA_F8);
+  STI(SType::DEC16,   "i2r", "d2", 2, 0, LType::REAL,     &NA_I2);
+  STI(SType::DEC32,   "i4r", "d4", 4, 0, LType::REAL,     &NA_I4);
+  STI(SType::DEC64,   "i8r", "d8", 8, 0, LType::REAL,     &NA_I8);
+  STI(SType::STR32,   "i4s", "s4", 4, 1, LType::STRING,   nullptr);
+  STI(SType::STR64,   "i8s", "s8", 8, 1, LType::STRING,   nullptr);
+  STI(SType::FSTR,    "c#s", "sx", 0, 0, LType::STRING,   nullptr);
+  STI(SType::CAT8,    "u1e", "e1", 1, 1, LType::STRING,   &NA_U1);
+  STI(SType::CAT16,   "u2e", "e2", 2, 1, LType::STRING,   &NA_U2);
+  STI(SType::CAT32,   "u4e", "e4", 4, 1, LType::STRING,   &NA_U4);
+  STI(SType::DATE64,  "i8d", "t8", 8, 0, LType::DATETIME, &NA_I8);
+  STI(SType::TIME32,  "i4t", "T4", 4, 0, LType::DATETIME, &NA_I4);
+  STI(SType::DATE32,  "i4d", "t4", 4, 0, LType::DATETIME, &NA_I4);
+  STI(SType::DATE16,  "i2d", "t2", 2, 0, LType::DATETIME, &NA_I2);
+  STI(SType::OBJ,     "p8p", "o8", 8, 0, LType::OBJECT,   nullptr);
   #undef STI
 
   #define UPCAST(stype1, stype2, stypeR)         \
@@ -241,7 +241,7 @@ SType common_stype_for_buffer(SType stype1, SType stype2) {
 
 
 void init_py_stype_objs(PyObject* stype_enum) {
-  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
+  for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
     if (py_stype_objs[i] == nullptr) {
@@ -253,7 +253,7 @@ void init_py_stype_objs(PyObject* stype_enum) {
 
 void init_py_ltype_objs(PyObject* ltype_enum)
 {
-  for (int i = 0; i < DT_LTYPES_COUNT; i++) {
+  for (size_t i = 0; i < DT_LTYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
     if (py_ltype_objs[i] == nullptr) {
@@ -287,7 +287,7 @@ LType info::ltype() const {
 }
 
 PyObject* info::py_ltype() const {
-  PyObject* res = py_ltype_objs[ltype()];
+  PyObject* res = py_ltype_objs[static_cast<uint8_t>(ltype())];
   Py_INCREF(res);
   return res;
 }
