@@ -47,14 +47,13 @@ class Frame(object):
                  "_inames", "_dt")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
-        if "colnames" in kwargs and names is None:
-            names = kwargs.pop("colnames")
-            dtwarn("Parameter `colnames` in Frame constructor is "
-                   "deprecated. Use `names` instead.")
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
-            dtwarn("Unknown options %r to Frame()" % kwargs)
+            if src is None:
+                src = kwargs
+            else:
+                dtwarn("Unknown options %r to Frame()" % kwargs)
         Frame._id_counter_ += 1
         self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
