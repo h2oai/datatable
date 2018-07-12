@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Filters can now be used together with groupby expressions.
 - fread's verbose output now includes time for opening the input file.
 - Added ability to read/write Jay files.
+- Frames can now be constructed via the keyword-args list of columns
+  (i.e. `Frame(A=..., B=...)`).
 
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.

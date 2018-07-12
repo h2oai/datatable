@@ -100,6 +100,24 @@ def test_create_from_dict():
     d7.internal.check()
 
 
+def test_create_from_kwargs():
+    d0 = dt.Frame(A=[1, 2, 3], B=[True, None, False], C=["a", "b", "c"])
+    d0.internal.check()
+    assert same_iterables(d0.names, ("A", "B", "C"))
+    assert same_iterables(d0.topython(), [[1, 2, 3],
+                                          [True, None, False],
+                                          ["a", "b", "c"]])
+
+
+def test_create_from_kwargs2():
+    d0 = dt.Frame(x=range(4), y=[1, 3, 8, 0], stypes=[dt.int64, dt.float32])
+    d0.internal.check()
+    assert d0.shape == (4, 2)
+    assert same_iterables(d0.names, ("x", "y"))
+    assert same_iterables(d0.stypes, (dt.int64, dt.float32))
+    assert same_iterables(d0.topython(), [[0, 1, 2, 3], [1, 3, 8, 0]])
+
+
 def test_create_from_datatable():
     d8_0 = dt.Frame({"A": [1, 4, 3],
                      "B": [False, True, False],
