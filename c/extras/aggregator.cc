@@ -33,7 +33,7 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   return pydatatable::wrap(dt_out.release());
 }
 
-Aggregator::Aggregator(DataTable* dt_in){
+Aggregator::Aggregator(DataTable* dt_in) {
   create_dt_out(dt_in);
 }
 
@@ -95,7 +95,7 @@ void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) 
                           case LT_INTEGER:
                           case LT_REAL:    aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
                           case LT_STRING:  aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
-                          default:         throw ValueError() << "Datatype is not supported";
+                          default:          throw ValueError() << "Datatype is not supported";
                         }
                       }
                       break;
@@ -106,7 +106,7 @@ void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) 
                           case LT_INTEGER:
                           case LT_REAL:    aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
                           case LT_STRING:  aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
-                          default:         throw ValueError() << "Datatype is not supported";
+                          default:          throw ValueError() << "Datatype is not supported";
                         }
                       }
                       break;
