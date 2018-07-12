@@ -42,7 +42,7 @@ PyObject* wrap(DataTable* dt)
   if (pydt) {
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
-    pypydt->use_stype_for_buffers = ST_VOID;
+    pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
 }
@@ -127,7 +127,7 @@ PyObject* get_ltypes(obj* self) {
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = self->ref->columns[i]->stype();
-    LType lt = stype_info[st].ltype;
+    LType lt = stype_info[static_cast<int>(st)].ltype;
     PyTuple_SET_ITEM(list, i, incref(py_ltype_objs[lt]));
   }
   return list;
@@ -141,7 +141,7 @@ PyObject* get_stypes(obj* self) {
   if (list == nullptr) return nullptr;
   while (--i >= 0) {
     SType st = dt->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, incref(py_stype_objs[st]));
+    PyTuple_SET_ITEM(list, i, incref(py_stype_objs[static_cast<int>(st)]));
   }
   return list;
 }
@@ -214,7 +214,7 @@ PyObject* to_scalar(obj* self, PyObject*) {
   if (dt->ncols == 1 && dt->nrows == 1) {
     Column* col = dt->columns[0];
     int64_t i = col->rowindex().nth(0);
-    auto f = py_stype_formatters[col->stype()];
+    auto f = py_stype_formatters[static_cast<int>(col->stype())];
     return f(col, i);
   } else {
     throw ValueError() << ".scalar() method cannot be applied to a Frame with "

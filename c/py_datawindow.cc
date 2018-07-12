@@ -112,7 +112,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
                rindex_is_arr32? rindexarr32[j] :
                rindex_is_arr64? rindexarr64[j] :
                       rindexstart + rindexstep * j;
-      PyObject *value = py_stype_formatters[col->stype()](col, irow);
+      int itype = static_cast<int>(col->stype());
+      PyObject *value = py_stype_formatters[itype](col, irow);
       if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }
@@ -124,10 +125,10 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   if (stypes == nullptr || ltypes == nullptr) goto fail;
   for (int64_t i = col0; i < col1; i++) {
     Column *col = dt->columns[i];
-    SType stype = col->stype();
-    LType ltype = stype_info[stype].ltype;
+    int itype = static_cast<int>(col->stype());
+    LType ltype = stype_info[itype].ltype;
     PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
-    PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
+    PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[itype]));
   }
 
   self->row0 = row0;
@@ -217,9 +218,11 @@ static int _init_hexview(
   stypes = PyList_New(ncols);
   ltypes = PyList_New(ncols);
   if (!stypes || !ltypes) goto fail;
+  PyObject* ltype0 = py_ltype_names[LT_STRING];
+  PyObject* stype0 = py_stype_names[int(SType::FSTR)];
   for (int64_t i = 0; i < ncols; i++) {
-    PyList_SET_ITEM(ltypes, i, incref(py_ltype_names[LT_STRING]));
-    PyList_SET_ITEM(stypes, i, incref(py_stype_names[ST_STRING_FCHAR]));
+    PyList_SET_ITEM(ltypes, i, incref(ltype0));
+    PyList_SET_ITEM(stypes, i, incref(stype0));
   }
 
   self->row0 = row0;

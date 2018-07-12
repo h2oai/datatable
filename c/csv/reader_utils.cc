@@ -233,7 +233,7 @@ PyObj GReaderColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = py_stype_objs[ParserLibrary::info(ptype).stype];
+  PyObject* stype = py_stype_objs[int(ParserLibrary::info(ptype).stype)];
   Py_INCREF(stype);
   PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
   PyStructSequence_SetItem(nt_tuple, 1, stype);

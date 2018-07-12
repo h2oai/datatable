@@ -103,13 +103,13 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
   switch (col->stype()) {
-    case ST_BOOLEAN_I1:
+    case SType::BOOL:
       init_from_boolean_column(static_cast<BoolColumn*>(col));
       break;
-    case ST_INTEGER_I1:
-    case ST_INTEGER_I2:
-    case ST_INTEGER_I4:
-    case ST_INTEGER_I8:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:
       init_from_integer_column(col);
       break;
     default:
@@ -328,13 +328,13 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
     // the column is destructed.
     MemoryRange xbuf = MemoryRange::external(ind32.data(), zn * sizeof(int32_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(ST_INTEGER_I4, std::move(xbuf));
+    col3 = col2->cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zn);
     MemoryRange xbuf = MemoryRange::external(ind64.data(), zn * sizeof(int64_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(ST_INTEGER_I8, std::move(xbuf));
+    col3 = col2->cast(SType::INT64, std::move(xbuf));
   }
 
   delete col2;

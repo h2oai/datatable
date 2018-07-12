@@ -408,15 +408,16 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
     return std::min(curr_stype + 1, -stype0);
   }
   if (ltype0 > 0) {
-    for (int i = curr_stype + 1; i < DT_STYPES_COUNT; i++) {
-      if (i >= ST_STRING_FCHAR && i <= ST_DATETIME_I2_MONTH) continue;
+    for (int i = curr_stype + 1; i < int(DT_STYPES_COUNT); i++) {
+      if (i >= int(SType::FSTR) && i <= int(SType::DATE16)) continue;
       if (stype_info[i].ltype == ltype0) return i;
     }
     return curr_stype;
   }
   if (ltype0 < 0) {
-    for (int i = curr_stype + 1; i < DT_STYPES_COUNT; i++) {
-      if (i >= ST_STRING_FCHAR && i <= ST_DATETIME_I2_MONTH) continue;
+    for (int i = curr_stype + 1; i < int(DT_STYPES_COUNT); i++) {
+      if (i >= int(SType::FSTR) &&
+          i <= int(SType::DATE16)) continue;
       if (stype_info[i].ltype <= -ltype0) return i;
     }
     return curr_stype;
@@ -424,7 +425,7 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
   if (curr_stype == DT_STYPES_COUNT - 1) {
     return curr_stype;
   }
-  return (curr_stype + 1) % DT_STYPES_COUNT;
+  return (curr_stype + 1) % int(DT_STYPES_COUNT);
 }
 
 
@@ -437,22 +438,23 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
 
   MemoryRange membuf;
   MemoryRange strbuf;
+  // TODO: Perhaps `stype` and `curr_stype` should have type SType ?
   int stype = find_next_stype(0, stype0, ltype0);
   size_t i = 0;
   while (stype) {
     int next_stype = find_next_stype(stype, stype0, ltype0);
     if (stype == next_stype) {
-      switch (stype) {
-        case ST_BOOLEAN_I1:      force_as_bool(list, membuf); break;
-        case ST_INTEGER_I1:      force_as_int<int8_t>(list, membuf); break;
-        case ST_INTEGER_I2:      force_as_int<int16_t>(list, membuf); break;
-        case ST_INTEGER_I4:      force_as_int<int32_t>(list, membuf); break;
-        case ST_INTEGER_I8:      force_as_int<int64_t>(list, membuf); break;
-        case ST_REAL_F4:         force_as_real<float>(list, membuf); break;
-        case ST_REAL_F8:         force_as_real<double>(list, membuf); break;
-        case ST_STRING_I4_VCHAR: force_as_str<uint32_t>(list, membuf, strbuf); break;
-        case ST_STRING_I8_VCHAR: force_as_str<uint64_t>(list, membuf, strbuf); break;
-        case ST_OBJECT_PYPTR:    parse_as_pyobj(list, membuf); break;
+      switch (static_cast<SType>(stype)) {
+        case SType::BOOL:    force_as_bool(list, membuf); break;
+        case SType::INT8:    force_as_int<int8_t>(list, membuf); break;
+        case SType::INT16:   force_as_int<int16_t>(list, membuf); break;
+        case SType::INT32:   force_as_int<int32_t>(list, membuf); break;
+        case SType::INT64:   force_as_int<int64_t>(list, membuf); break;
+        case SType::FLOAT32: force_as_real<float>(list, membuf); break;
+        case SType::FLOAT64: force_as_real<double>(list, membuf); break;
+        case SType::STR32:   force_as_str<uint32_t>(list, membuf, strbuf); break;
+        case SType::STR64:   force_as_str<uint64_t>(list, membuf, strbuf); break;
+        case SType::OBJ:     parse_as_pyobj(list, membuf); break;
         default:
           throw RuntimeError()
             << "Unable to create Column of type " << stype << " from list";
@@ -460,16 +462,16 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
       break; // while(stype)
     } else {
       bool ret = false;
-      switch (stype) {
-        case ST_BOOLEAN_I1:      ret = parse_as_bool(list, membuf, i); break;
-        case ST_INTEGER_I1:      ret = parse_as_int<int8_t>(list, membuf, i); break;
-        case ST_INTEGER_I2:      ret = parse_as_int<int16_t>(list, membuf, i); break;
-        case ST_INTEGER_I4:      ret = parse_as_int<int32_t>(list, membuf, i); break;
-        case ST_INTEGER_I8:      ret = parse_as_int<int64_t>(list, membuf, i); break;
-        case ST_REAL_F8:         ret = parse_as_double(list, membuf, i); break;
-        case ST_STRING_I4_VCHAR: ret = parse_as_str<uint32_t>(list, membuf, strbuf); break;
-        case ST_STRING_I8_VCHAR: ret = parse_as_str<uint64_t>(list, membuf, strbuf); break;
-        case ST_OBJECT_PYPTR:    ret = parse_as_pyobj(list, membuf); break;
+      switch (static_cast<SType>(stype)) {
+        case SType::BOOL:    ret = parse_as_bool(list, membuf, i); break;
+        case SType::INT8:    ret = parse_as_int<int8_t>(list, membuf, i); break;
+        case SType::INT16:   ret = parse_as_int<int16_t>(list, membuf, i); break;
+        case SType::INT32:   ret = parse_as_int<int32_t>(list, membuf, i); break;
+        case SType::INT64:   ret = parse_as_int<int64_t>(list, membuf, i); break;
+        case SType::FLOAT64: ret = parse_as_double(list, membuf, i); break;
+        case SType::STR32:   ret = parse_as_str<uint32_t>(list, membuf, strbuf); break;
+        case SType::STR64:   ret = parse_as_str<uint64_t>(list, membuf, strbuf); break;
+        case SType::OBJ:     ret = parse_as_pyobj(list, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (ret) break;
@@ -477,10 +479,12 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
     }
   }
   Column* col = Column::new_column(static_cast<SType>(stype));
-  if (stype == ST_OBJECT_PYPTR) {
+  if (static_cast<SType>(stype) == SType::OBJ) {
     membuf.set_pyobjects(/* clear_data = */ false);
   }
-  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+  if (static_cast<SType>(stype) == SType::STR32 ||
+      static_cast<SType>(stype) == SType::STR64)
+  {
     col->replace_buffer(std::move(membuf), std::move(strbuf));
   } else {
     col->replace_buffer(std::move(membuf));

@@ -42,7 +42,8 @@ def c_stypes():
     file1 = os.path.join(os.path.dirname(__file__), "..", "c", "types.h")
     with open(file1, "r", encoding="utf-8") as f:
         txt1 = f.read()
-    mm = re.search(r"typedef enum SType {\s*(.*?),?\s*}", txt1, re.DOTALL)
+    mm = re.search(r"enum class SType : uint8_t {\s*(.*?),?\s*}",
+                   txt1, re.DOTALL)
     assert mm
     txt2 = mm.group(1)
     for name, i in re.findall(r"(\w+)\s*=\s*(\d+)", txt2):
@@ -52,20 +53,18 @@ def c_stypes():
     file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.cc")
     with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
-    mm = re.findall(r"STI\((\w+),\s*"
+    mm = re.findall(r"STI\(SType::(\w+),\s*"
                     r'"(...)",\s*'
                     r'"(..)",\s*'
                     r"(\d+),\s*"
-                    r"(?:0|sizeof\((\w+)\)),\s*"
                     r"(\d),\s*"
                     r"(?:0|(\w+)),\s*"
                     r"&?(\w+)\)",
                     txt2)
-    for name, code3, code2, elemsize, meta, varwidth, ltype, na in mm:
+    for name, code3, code2, elemsize, varwidth, ltype, na in mm:
         stypes[name]["stype"] = code3
         stypes[name]["code2"] = code2
         stypes[name]["elemsize"] = int(elemsize)
-        stypes[name]["meta"] = meta
         stypes[name]["varwidth"] = bool(int(varwidth))
         stypes[name]["ltype"] = ltype
         stypes[name]["na"] = na

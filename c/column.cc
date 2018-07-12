@@ -22,17 +22,17 @@ Column::Column(int64_t nrows_)
 
 Column* Column::new_column(SType stype) {
   switch (stype) {
-    case ST_VOID:            return new VoidColumn();
-    case ST_BOOLEAN_I1:      return new BoolColumn();
-    case ST_INTEGER_I1:      return new IntColumn<int8_t>();
-    case ST_INTEGER_I2:      return new IntColumn<int16_t>();
-    case ST_INTEGER_I4:      return new IntColumn<int32_t>();
-    case ST_INTEGER_I8:      return new IntColumn<int64_t>();
-    case ST_REAL_F4:         return new RealColumn<float>();
-    case ST_REAL_F8:         return new RealColumn<double>();
-    case ST_STRING_I4_VCHAR: return new StringColumn<uint32_t>();
-    case ST_STRING_I8_VCHAR: return new StringColumn<uint64_t>();
-    case ST_OBJECT_PYPTR:    return new PyObjectColumn();
+    case SType::VOID:    return new VoidColumn();
+    case SType::BOOL:    return new BoolColumn();
+    case SType::INT8:    return new IntColumn<int8_t>();
+    case SType::INT16:   return new IntColumn<int16_t>();
+    case SType::INT32:   return new IntColumn<int32_t>();
+    case SType::INT64:   return new IntColumn<int64_t>();
+    case SType::FLOAT32: return new RealColumn<float>();
+    case SType::FLOAT64: return new RealColumn<double>();
+    case SType::STR32:   return new StringColumn<uint32_t>();
+    case SType::STR64:   return new StringColumn<uint64_t>();
+    case SType::OBJ:     return new PyObjectColumn();
     default:
       throw ValueError() << "Unable to create a column of SType = " << stype;
   }
@@ -121,7 +121,7 @@ Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf,
                                 MemoryRange&& strbuf)
 {
   Column* col = new_column(stype);
-  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+  if (stype == SType::STR32 || stype == SType::STR64) {
     col->replace_buffer(std::move(mbuf), std::move(strbuf));
   } else {
     xassert(!strbuf);
@@ -176,10 +176,10 @@ PyObject* Column::mbuf_repr() const {
 Column* Column::rbind(std::vector<const Column*>& columns)
 {
   // Is the current column "empty" ?
-  bool col_empty = (stype() == ST_VOID);
+  bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
   int64_t new_nrows = this->nrows;
-  SType new_stype = col_empty? ST_BOOLEAN_I1 : stype();
+  SType new_stype = col_empty? SType::BOOL : stype();
   for (const Column* col : columns) {
     new_nrows += col->nrows;
     new_stype = std::max(new_stype, col->stype());
@@ -252,10 +252,10 @@ int64_t Column::nmodal() const  { return get_stats()->nmodal(this); }
  * Methods for retrieving stats but in column form. These should be populated
  * with NA values when called from the base column instance.
  */
-Column* Column::mean_column() const { return new_na_column(ST_REAL_F8, 1); }
-Column* Column::sd_column() const   { return new_na_column(ST_REAL_F8, 1); }
-Column* Column::skew_column() const   { return new_na_column(ST_REAL_F8, 1); }
-Column* Column::kurt_column() const   { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::mean_column() const { return new_na_column(SType::FLOAT64, 1); }
+Column* Column::sd_column() const   { return new_na_column(SType::FLOAT64, 1); }
+Column* Column::skew_column() const { return new_na_column(SType::FLOAT64, 1); }
+Column* Column::kurt_column() const { return new_na_column(SType::FLOAT64, 1); }
 Column* Column::min_column() const  { return new_na_column(stype(), 1); }
 Column* Column::max_column() const  { return new_na_column(stype(), 1); }
 Column* Column::mode_column() const { throw NotImplError(); }
@@ -318,16 +318,16 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
     res = Column::new_data_column(new_stype, nrows);
   }
   switch (new_stype) {
-    case ST_BOOLEAN_I1:      cast_into(static_cast<BoolColumn*>(res)); break;
-    case ST_INTEGER_I1:      cast_into(static_cast<IntColumn<int8_t>*>(res)); break;
-    case ST_INTEGER_I2:      cast_into(static_cast<IntColumn<int16_t>*>(res)); break;
-    case ST_INTEGER_I4:      cast_into(static_cast<IntColumn<int32_t>*>(res)); break;
-    case ST_INTEGER_I8:      cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
-    case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
-    case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
-    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
-    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
-    case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
+    case SType::BOOL:    cast_into(static_cast<BoolColumn*>(res)); break;
+    case SType::INT8:    cast_into(static_cast<IntColumn<int8_t>*>(res)); break;
+    case SType::INT16:   cast_into(static_cast<IntColumn<int16_t>*>(res)); break;
+    case SType::INT32:   cast_into(static_cast<IntColumn<int32_t>*>(res)); break;
+    case SType::INT64:   cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
+    case SType::FLOAT32: cast_into(static_cast<RealColumn<float>*>(res)); break;
+    case SType::FLOAT64: cast_into(static_cast<RealColumn<double>*>(res)); break;
+    case SType::STR32:   cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
+    case SType::STR64:   cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
+    case SType::OBJ:     cast_into(static_cast<PyObjectColumn*>(res)); break;
     default:
       throw ValueError() << "Unable to cast into stype = " << new_stype;
   }
@@ -423,7 +423,7 @@ void Column::verify_integrity(const std::string& name) const {
 
 VoidColumn::VoidColumn() {}
 VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
-SType VoidColumn::stype() const { return ST_VOID; }
+SType VoidColumn::stype() const { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }
 int64_t VoidColumn::data_nrows() const { return nrows; }

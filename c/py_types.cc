@@ -133,40 +133,39 @@ int init_py_types(PyObject*)
     if (py_ltype_names[i] == nullptr) return 0;
   }
 
-  for (int i = 0; i < DT_STYPES_COUNT; i++) {
+  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
     py_stype_names[i] = PyUnicode_FromString(stype_info[i].code);
     if (py_stype_names[i] == nullptr) return 0;
   }
 
-  py_stype_formatters[ST_VOID]               = stype_notimpl;
-  py_stype_formatters[ST_BOOLEAN_I1]         = stype_boolean_i8_tostring;
-  py_stype_formatters[ST_INTEGER_I1]         = stype_integer_i8_tostring;
-  py_stype_formatters[ST_INTEGER_I2]         = stype_integer_i16_tostring;
-  py_stype_formatters[ST_INTEGER_I4]         = stype_integer_i32_tostring;
-  py_stype_formatters[ST_INTEGER_I8]         = stype_integer_i64_tostring;
-  py_stype_formatters[ST_REAL_F4]            = stype_real_f32_tostring;
-  py_stype_formatters[ST_REAL_F8]            = stype_real_f64_tostring;
-  py_stype_formatters[ST_REAL_I2]            = stype_notimpl;
-  py_stype_formatters[ST_REAL_I4]            = stype_notimpl;
-  py_stype_formatters[ST_REAL_I8]            = stype_notimpl;
-  py_stype_formatters[ST_STRING_I4_VCHAR]    = stype_vchar_T_tostring<uint32_t>;
-  py_stype_formatters[ST_STRING_I8_VCHAR]    = stype_vchar_T_tostring<uint64_t>;
-  py_stype_formatters[ST_STRING_FCHAR]       = stype_notimpl;
-  py_stype_formatters[ST_STRING_U1_ENUM]     = stype_notimpl;
-  py_stype_formatters[ST_STRING_U2_ENUM]     = stype_notimpl;
-  py_stype_formatters[ST_STRING_U4_ENUM]     = stype_notimpl;
-  py_stype_formatters[ST_DATETIME_I8_EPOCH]  = stype_notimpl;
-  py_stype_formatters[ST_DATETIME_I4_TIME]   = stype_notimpl;
-  py_stype_formatters[ST_DATETIME_I4_DATE]   = stype_notimpl;
-  py_stype_formatters[ST_DATETIME_I2_MONTH]  = stype_notimpl;
-  py_stype_formatters[ST_OBJECT_PYPTR]       = stype_object_pyptr_tostring;
+  py_stype_formatters[int(SType::VOID)]    = stype_notimpl;
+  py_stype_formatters[int(SType::BOOL)]    = stype_boolean_i8_tostring;
+  py_stype_formatters[int(SType::INT8)]    = stype_integer_i8_tostring;
+  py_stype_formatters[int(SType::INT16)]   = stype_integer_i16_tostring;
+  py_stype_formatters[int(SType::INT32)]   = stype_integer_i32_tostring;
+  py_stype_formatters[int(SType::INT64)]   = stype_integer_i64_tostring;
+  py_stype_formatters[int(SType::FLOAT32)] = stype_real_f32_tostring;
+  py_stype_formatters[int(SType::FLOAT64)] = stype_real_f64_tostring;
+  py_stype_formatters[int(SType::DEC16)]   = stype_notimpl;
+  py_stype_formatters[int(SType::DEC32)]   = stype_notimpl;
+  py_stype_formatters[int(SType::DEC64)]   = stype_notimpl;
+  py_stype_formatters[int(SType::STR32)]   = stype_vchar_T_tostring<uint32_t>;
+  py_stype_formatters[int(SType::STR64)]   = stype_vchar_T_tostring<uint64_t>;
+  py_stype_formatters[int(SType::FSTR)]    = stype_notimpl;
+  py_stype_formatters[int(SType::CAT8)]    = stype_notimpl;
+  py_stype_formatters[int(SType::CAT16)]   = stype_notimpl;
+  py_stype_formatters[int(SType::CAT32)]   = stype_notimpl;
+  py_stype_formatters[int(SType::DATE64)]  = stype_notimpl;
+  py_stype_formatters[int(SType::TIME32)]  = stype_notimpl;
+  py_stype_formatters[int(SType::DATE32)]  = stype_notimpl;
+  py_stype_formatters[int(SType::DATE16)]  = stype_notimpl;
+  py_stype_formatters[int(SType::OBJ)]     = stype_object_pyptr_tostring;
 
   return 1;
 }
 
-void init_py_stype_objs(PyObject* stype_enum)
-{
-  for (int i = 0; i < DT_STYPES_COUNT; i++) {
+void init_py_stype_objs(PyObject* stype_enum) {
+  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
     if (py_stype_objs[i] == nullptr) {

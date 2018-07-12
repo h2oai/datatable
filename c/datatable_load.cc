@@ -37,8 +37,7 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     }
     SType stypef = colspec->columns[0]->stype();
     SType stypes = colspec->columns[1]->stype();
-    if (stypef != ST_STRING_I4_VCHAR ||
-        stypes != ST_STRING_I4_VCHAR) {
+    if (stypef != SType::STR32 || stypes != SType::STR32) {
         throw ValueError() << "String columns are expected in colspec table, "
                            << "instead got " << stypef << " and "
                            << stypes;
@@ -73,7 +72,7 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
         }
         std::string stype_str(cols->strdata() + ssta, slen);
         SType stype = stype_from_string(stype_str);
-        if (stype == ST_VOID) {
+        if (stype == SType::VOID) {
             throw ValueError() << "Unrecognized stype: " << stype_str;
         }
 

@@ -208,24 +208,24 @@ static gmapperfn resolve1(int opcode) {
 static gmapperfn resolve0(int opcode, SType stype) {
   if (opcode == OpCode::Sum) {
     switch (stype) {
-      case ST_BOOLEAN_I1:
-      case ST_INTEGER_I1:  return sum_skipna<int8_t, int64_t>;
-      case ST_INTEGER_I2:  return sum_skipna<int16_t, int64_t>;
-      case ST_INTEGER_I4:  return sum_skipna<int32_t, int64_t>;
-      case ST_INTEGER_I8:  return sum_skipna<int64_t, int64_t>;
-      case ST_REAL_F4:     return sum_skipna<float, double>;
-      case ST_REAL_F8:     return sum_skipna<double, double>;
+      case SType::BOOL:
+      case SType::INT8:    return sum_skipna<int8_t, int64_t>;
+      case SType::INT16:   return sum_skipna<int16_t, int64_t>;
+      case SType::INT32:   return sum_skipna<int32_t, int64_t>;
+      case SType::INT64:   return sum_skipna<int64_t, int64_t>;
+      case SType::FLOAT32: return sum_skipna<float, double>;
+      case SType::FLOAT64: return sum_skipna<double, double>;
       default:             return nullptr;
     }
   }
   switch (stype) {
-    case ST_BOOLEAN_I1:
-    case ST_INTEGER_I1:  return resolve1<int8_t, double>(opcode);
-    case ST_INTEGER_I2:  return resolve1<int16_t, double>(opcode);
-    case ST_INTEGER_I4:  return resolve1<int32_t, double>(opcode);
-    case ST_INTEGER_I8:  return resolve1<int64_t, double>(opcode);
-    case ST_REAL_F4:     return resolve1<float, float>(opcode);
-    case ST_REAL_F8:     return resolve1<double, double>(opcode);
+    case SType::BOOL:
+    case SType::INT8:    return resolve1<int8_t, double>(opcode);
+    case SType::INT16:   return resolve1<int16_t, double>(opcode);
+    case SType::INT32:   return resolve1<int32_t, double>(opcode);
+    case SType::INT64:   return resolve1<int64_t, double>(opcode);
+    case SType::FLOAT32: return resolve1<float, float>(opcode);
+    case SType::FLOAT64: return resolve1<double, double>(opcode);
     default:             return nullptr;
   }
 }
@@ -243,12 +243,12 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
   }
   SType arg_type = arg->stype();
   SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
-                   arg_type == ST_REAL_F4 ? arg_type : ST_REAL_F8;
+                   arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
   if (opcode == OpCode::Sum) {
-    if (arg_type == ST_REAL_F4 || arg_type == ST_REAL_F8) {
-      res_type = ST_REAL_F8;
+    if (arg_type == SType::FLOAT32 || arg_type == SType::FLOAT64) {
+      res_type = SType::FLOAT64;
     } else {
-      res_type = ST_INTEGER_I8;
+      res_type = SType::INT64;
     }
   }
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());

@@ -102,42 +102,42 @@ typedef enum LType {
  * That is, a single logical type may have multiple storage types, but not the
  * other way around.
  *
- * ST_VOID
+ * SType::VOID
  *     "Fake" type, column with this stype is in an invalid state. This type may
  *     be used internally to indicate that a column is being constructed.
  *
  * -----------------------------------------------------------------------------
  *
- * ST_BOOLEAN_I1
+ * SType::BOOL
  *     elem: int8_t (1 byte)
  *     NA:   -128
  *     A boolean with True = 1, False = 0. All other values are invalid.
  *
  * -----------------------------------------------------------------------------
  *
- * ST_INTEGER_I1
+ * SType::INT8
  *     elem: int8_t (1 byte)
  *     NA:   -2**7 = -128
  *     An integer in the range -127 .. 127.
  *
- * ST_INTEGER_I2
+ * SType::INT16
  *     elem: int16_t (2 bytes)
  *     NA:   -2**15 = -32768
  *     An integer in the range -32767 .. 32767.
  *
- * ST_INTEGER_I4
+ * SType::INT32
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31 = -2147483648
  *     An integer in the range -2147483647 .. 2147483647.
  *
- * ST_INTEGER_I8
+ * SType::INT64
  *     elem: int64_t (8 bytes)
  *     NA:   -2**63 = -9223372036854775808
  *     An integer in the range -9223372036854775807 .. 9223372036854775807.
  *
  * -----------------------------------------------------------------------------
  *
- * ST_REAL_F4
+ * SType::FLOAT32
  *     elem: float (4 bytes)
  *     NA:   0x7F8007A2
  *     Floating-point real number, corresponding to C's `float` (IEEE 754). We
@@ -145,12 +145,12 @@ typedef enum LType {
  *     numbers starting with 0x7F8 or 0xFF8 should be treated as actual NANs (or
  *     infinities).
  *
- * ST_REAL_F8
+ * SType::FLOAT64
  *     elem: double (8 bytes)
  *     NA:   0x7FF00000000007A2
  *     Floating-point real number, corresponding to C's `double` (IEEE 754).
  *
- * ST_REAL_I2
+ * SType::DEC16
  *     elem: int16_t (2 bytes)
  *     NA:   -2**15 = -32768
  *     meta: `scale` (int)
@@ -162,13 +162,13 @@ typedef enum LType {
  *     each value. Thus, all values will have common scale, which greatly
  *     simplifies their use.
  *
- * ST_REAL_I4
+ * SType::DEC32
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     meta: `scale` (int)
  *     Fixed-point real number stored as a 32-bit integer.
  *
- * ST_REAL_I8
+ * SType::DEC64
  *     elem: int64_t (8 bytes)
  *     NA:   -2**63
  *     meta: `scale` (int)
@@ -176,7 +176,7 @@ typedef enum LType {
  *
  * -----------------------------------------------------------------------------
  *
- * ST_STRING_I4_VCHAR
+ * SType::STR32
  *     elem: uint32_t (4 bytes) + unsigned char[]
  *     NA:   (1 << 31) mask
  *     Variable-width strings. The data consists of 2 buffers:
@@ -198,13 +198,13 @@ typedef enum LType {
  *         strbuf  = [h e l l o]
  *         offsets = [0, 1<<31, 5, 5, 5|(1<<31)]
  *
- * ST_STRING_I8_VCHAR
+ * SType::STR64
  *     elem: uint64_t (8 bytes) + unsigned char[]
  *     NA:   (1 << 63) mask
- *     Variable-width strings: same as ST_STRING_I4_VCHAR but use 64-bit
+ *     Variable-width strings: same as SType::STR32 but use 64-bit
  *     offsets.
  *
- * ST_STRING_FCHAR
+ * SType::FSTR
  *     elem: unsigned char[] (n bytes)
  *     NA:   0xFF 0xFF ... 0xFF
  *     meta: `n` (int)
@@ -215,7 +215,7 @@ typedef enum LType {
  *     data is encoded in UTF-8. The NA value is encoded as a sequence of 0xFF
  *     bytes, which is not a valid UTF-8 string.
  *
- * ST_STRING_U1_ENUM
+ * SType::CAT8
  *     elem: uint8_t (1 byte)
  *     NA:   255
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
@@ -229,42 +229,42 @@ typedef enum LType {
  *     to a multiple of 8 bytes); finally comes the array of categorical
  *     indices. Meta information contains offsets of the second and the third
  *     sections. The layout of the first 2 sections is exactly the same as
- *     that of the ST_STRING_I4_VCHAR type.
+ *     that of the SType::STR32 type.
  *
- * ST_STRING_U2_ENUM
+ * SType::CAT16
  *     elem: uint16_t (2 bytes)
  *     NA:   65535
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 65535 distinct
- *     levels. The layout is exactly the same as that of ST_STRING_U1_ENUM, only
+ *     levels. The layout is exactly the same as that of CAT8, only
  *     the last section uses 2 bytes per element instead of just 1 byte.
  *
- * ST_STRING_U4_ENUM
+ * SType::CAT32
  *     elem: uint32_t (4 bytes)
  *     NA:   2**32-1
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 2**32-1
  *     distinct levels. (The combined size of all categorical strings may not
- *     exceed 2**32 too). The layout is same as that of ST_STRING_U1_ENUM, only
+ *     exceed 2**32 too). The layout is same as that of CAT8, only
  *     the last section uses 4 bytes per element instead of just 1 byte.
  *
  *
  * -----------------------------------------------------------------------------
  *
- * ST_DATETIME_I8_EPOCH
+ * SType::DATE64
  *     elem: int64_t (8 bytes)
  *     NA:   -2**63
  *     Timestamp, stored as the number of microseconds since 0000-03-01. The
  *     allowed time range is ≈290,000 years around the epoch. The time is
  *     assumed to be in UTC, and does not allow specifying a time zone.
  *
- * ST_DATETIME_I4_DATE
+ * SType::DATE32
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     Date only: the number of days since 0000-03-01. The allowed time range
  *     is ≈245,000 years.
  *
- * ST_DATETIME_I2_MONTH
+ * SType::DATE16
  *     elem: int16_t (2 bytes)
  *     NA:   -2**15
  *     Year+month only: the number of months since 0000-03-01. The allowed time
@@ -273,7 +273,7 @@ typedef enum LType {
  *     adding/subtraction in monthly/yearly intervals (other datetime types do
  *     not allow that since months/years have uneven lengths).
  *
- * ST_DATETIME_I4_TIME
+ * SType::TIME32
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     Time only: the number of milliseconds since midnight. The allowed time
@@ -282,37 +282,38 @@ typedef enum LType {
  *
  * -----------------------------------------------------------------------------
  *
- * ST_OBJECT_PTR
+ * SType::OBJ
  *     elem: PyObject*
  *     NA:   Py_None
  *
  */
-typedef enum SType {
-    ST_VOID              = 0,
-    ST_BOOLEAN_I1        = 1,
-    ST_INTEGER_I1        = 2,
-    ST_INTEGER_I2        = 3,
-    ST_INTEGER_I4        = 4,
-    ST_INTEGER_I8        = 5,
-    ST_REAL_F4           = 6,
-    ST_REAL_F8           = 7,
-    ST_REAL_I2           = 8,
-    ST_REAL_I4           = 9,
-    ST_REAL_I8           = 10,
-    ST_STRING_I4_VCHAR   = 11,
-    ST_STRING_I8_VCHAR   = 12,
-    ST_STRING_FCHAR      = 13,
-    ST_STRING_U1_ENUM    = 14,
-    ST_STRING_U2_ENUM    = 15,
-    ST_STRING_U4_ENUM    = 16,
-    ST_DATETIME_I8_EPOCH = 17,
-    ST_DATETIME_I4_TIME  = 18,
-    ST_DATETIME_I4_DATE  = 19,
-    ST_DATETIME_I2_MONTH = 20,
-    ST_OBJECT_PYPTR      = 21,
-} __attribute__ ((__packed__)) SType;
+enum class SType : uint8_t {
+  VOID    = 0,
+  BOOL    = 1,
+  INT8    = 2,
+  INT16   = 3,
+  INT32   = 4,
+  INT64   = 5,
+  FLOAT32 = 6,
+  FLOAT64 = 7,
+  DEC16   = 8,
+  DEC32   = 9,
+  DEC64   = 10,
+  STR32   = 11,
+  STR64   = 12,
+  FSTR    = 13,
+  CAT8    = 14,
+  CAT16   = 15,
+  CAT32   = 16,
+  DATE64  = 17,
+  TIME32  = 18,
+  DATE32  = 19,
+  DATE16  = 20,
+  OBJ     = 21,
+};
 
-#define DT_STYPES_COUNT  (ST_OBJECT_PYPTR + 1)
+constexpr size_t DT_STYPES_COUNT =
+    static_cast<size_t>(SType::OBJ) + 1;
 
 
 
@@ -338,7 +339,7 @@ typedef enum SType {
  * varwidth:
  *     flag indicating whether the field is variable-width. If this is false,
  *     then the column is a plain array of elements, each of `elemsize` bytes
- *     (except for ST_STRING_FCHAR, where each element's size is `meta->n`).
+ *     (except for FSTR, where each element's size is `meta->n`).
  *     If this flag is true, then the field has more complex layout and
  *     specialized logic to handle that layout.
  *
@@ -366,18 +367,18 @@ extern STypeInfo stype_info[DT_STYPES_COUNT];
 /**
  * Structs for meta information associated with particular types.
  *
- * DecimalMeta (ST_REAL_I2, ST_REAL_I4, ST_REAL_I8)
+ * DecimalMeta (DEC16, DEC32, DEC64)
  *     scale: the number of digits after the decimal point. For example stored
  *            value 123 represents actual value 1.23 when `scale = 2`, or
  *            actual value 123000 when `scale = -3`.
  *
- * VarcharMeta (ST_STRING_I4_VCHAR, ST_STRING_I8_VCHAR)
+ * VarcharMeta (SType::STR32, SType::STR64)
  *     offoff: location within the data buffer of the section with offsets.
  *
- * FixcharMeta (ST_STRING_FCHAR)
+ * FixcharMeta (FSTR)
  *     n: number of characters in the fixed-width string.
  *
- * EnumMeta (ST_STRING_U1_ENUM, ST_STRING_U2_ENUM, ST_STRING_U4_ENUM)
+ * EnumMeta (CAT8, CAT16, CAT32)
  *     offoff: location within the data buffer of the section with offsets.
  *     dataoff: location of the section with categorical levels (one per row).
  *     nlevels: total number of categorical levels.
@@ -391,7 +392,7 @@ typedef struct VarcharMeta {  // ST_STRING_IX_VCHAR
     int64_t offoff;
 } VarcharMeta;
 
-typedef struct FixcharMeta {  // ST_STRING_FCHAR
+typedef struct FixcharMeta {  // FSTR
     int32_t n;
 } FixcharMeta;
 
@@ -480,20 +481,20 @@ SType common_stype_for_buffer(SType stype1, SType stype2);
 
 
 constexpr SType stype_integer(size_t s) {
-    return s == 1? ST_INTEGER_I1 :
-           s == 2? ST_INTEGER_I2 :
-           s == 4? ST_INTEGER_I4 :
-           s == 8? ST_INTEGER_I8 : ST_VOID;
+    return s == 1? SType::INT8 :
+           s == 2? SType::INT16 :
+           s == 4? SType::INT32 :
+           s == 8? SType::INT64 : SType::VOID;
 }
 
 constexpr SType stype_real(size_t s) {
-    return s == 4? ST_REAL_F4 :
-           s == 8? ST_REAL_F8 : ST_VOID;
+    return s == 4? SType::FLOAT32 :
+           s == 8? SType::FLOAT64 : SType::VOID;
 }
 
 constexpr SType stype_string(size_t s) {
-    return s == 4? ST_STRING_I4_VCHAR :
-           s == 8? ST_STRING_I8_VCHAR : ST_VOID;
+    return s == 4? SType::STR32 :
+           s == 8? SType::STR64 : SType::VOID;
 }
 
 
