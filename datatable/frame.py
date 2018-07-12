@@ -47,16 +47,12 @@ class Frame(object):
                  "_inames", "_dt")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
-        if src is None and kwargs:
-            src = kwargs
-            if names is not None:
-                src["names"] = names
-            if stypes is not None:
-                src["stypes"] = stypes
-        else:
-            if "stype" in kwargs:
-                stypes = [kwargs.pop("stype")]
-            if kwargs:
+        if "stype" in kwargs:
+            stypes = [kwargs.pop("stype")]
+        if kwargs:
+            if src is None:
+                src = kwargs
+            else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
         Frame._id_counter_ += 1
         self._id = Frame._id_counter_  # type: int
