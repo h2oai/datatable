@@ -408,22 +408,4 @@ SType stype_from_string(const std::string&);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 
 
-constexpr SType stype_integer(size_t s) {
-    return s == 1? SType::INT8 :
-           s == 2? SType::INT16 :
-           s == 4? SType::INT32 :
-           s == 8? SType::INT64 : SType::VOID;
-}
-
-constexpr SType stype_real(size_t s) {
-    return s == 4? SType::FLOAT32 :
-           s == 8? SType::FLOAT64 : SType::VOID;
-}
-
-constexpr SType stype_string(size_t s) {
-    return s == 4? SType::STR32 :
-           s == 8? SType::STR64 : SType::VOID;
-}
-
-
 #endif

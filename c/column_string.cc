@@ -157,7 +157,8 @@ void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
 
 template <typename T>
 SType StringColumn<T>::stype() const {
-  return stype_string(sizeof(T));
+  return sizeof(T) == 4? SType::STR32 :
+         sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
 
 template <typename T>
