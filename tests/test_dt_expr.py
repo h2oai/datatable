@@ -5,6 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import pytest
+import random
 import datatable as dt
 from datatable import f, stype, ltype
 from tests import list_equals
@@ -202,3 +203,62 @@ def test_cast_view():
     df1.internal.check()
     assert df1.stypes == (dt.float32,)
     assert df1.topython() == [[3.0, 2.0, 1.0]]
+
+
+
+#-------------------------------------------------------------------------------
+# logical ops
+#-------------------------------------------------------------------------------
+
+def test_logical_and1():
+    src1 = [1, 5, 12, 3, 7, 14]
+    src2 = [1, 2] * 3
+    ans = [i for i in range(6)
+           if src1[i] < 10 and src2[i] == 1]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[(f.A < 10) & (f.B == 1), [f.A, f.B]]
+    assert df1.topython() == [[src1[i] for i in ans],
+                              [src2[i] for i in ans]]
+
+
+def test_logical_or1():
+    src1 = [1, 5, 12, 3, 7, 14]
+    src2 = [1, 2] * 3
+    ans = [i for i in range(6)
+           if src1[i] < 10 or src2[i] == 1]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[(f.A < 10) | (f.B == 1), [f.A, f.B]]
+    assert df1.topython() == [[src1[i] for i in ans],
+                              [src2[i] for i in ans]]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_logical_and2(seed):
+    random.seed(seed)
+    n = 1000
+    src1 = [random.choice([True, False, None]) for _ in range(n)]
+    src2 = [random.choice([True, False, None]) for _ in range(n)]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[:, f.A & f.B]
+    assert df1.topython()[0] == \
+        [None if (src1[i] is None or src2[i] is None) else
+         src1[i] and src2[i]
+         for i in range(n)]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_logical_or2(seed):
+    random.seed(seed)
+    n = 1000
+    src1 = [random.choice([True, False, None]) for _ in range(n)]
+    src2 = [random.choice([True, False, None]) for _ in range(n)]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[:, f.A | f.B]
+    assert df1.topython()[0] == \
+        [None if (src1[i] is None or src2[i] is None) else
+         src1[i] or src2[i]
+         for i in range(n)]

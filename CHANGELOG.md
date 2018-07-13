@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added ability to read/write Jay files.
 - Frames can now be constructed via the keyword-args list of columns
   (i.e. `Frame(A=..., B=...)`).
+- Implemented logical operatos `&`, `|` for eager evaluator.
 
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.

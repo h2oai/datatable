@@ -294,6 +294,23 @@ inline static int8_t strop_ne(T1 start1, T1 end1, const char* strdata1,
 
 
 
+//------------------------------------------------------------------------------
+// Logical operators
+//------------------------------------------------------------------------------
+
+inline static int8_t op_and(int8_t x, int8_t y) {
+  bool x_isna = ISNA<int8_t>(x);
+  bool y_isna = ISNA<int8_t>(y);
+  return (x_isna || y_isna) ? GETNA<int8_t>() : (x && y);
+}
+
+inline static int8_t op_or(int8_t x, int8_t y) {
+  bool x_isna = ISNA<int8_t>(x);
+  bool y_isna = ISNA<int8_t>(y);
+  return (x_isna || y_isna) ? GETNA<int8_t>() : (x || y);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Resolve the right mapping function
@@ -376,6 +393,14 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
+      if (rhs_type == SType::BOOL && (opcode == OpCode::LogicalAnd ||
+                                      opcode == OpCode::LogicalOr)) {
+        params[2] = Column::new_data_column(SType::BOOL, nrows);
+        if (opcode == OpCode::LogicalAnd) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
+        if (opcode == OpCode::LogicalOr)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
+      }
+      [[clang::fallthrough]];
+
     case SType::INT8:
       switch (rhs_type) {
         case SType::BOOL:
