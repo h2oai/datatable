@@ -17,19 +17,20 @@
 class Aggregator {
   public:
     Aggregator(DataTable*);
-    DataTablePtr aggregate(double, int32_t, int32_t, int32_t, int32_t, unsigned int);
+    DataTablePtr aggregate(int32_t, int32_t, int32_t, int32_t, unsigned int);
+    static constexpr double epsilon = 1.0e-15;
 
   private:
     DataTablePtr dt_out;
     DataTablePtr create_dt_out(DataTable*);
-    void aggregate_1d(double, int32_t);
-    void aggregate_2d(double, int32_t, int32_t);
+    void aggregate_1d(int32_t);
+    void aggregate_2d(int32_t, int32_t);
     void aggregate_nd(int32_t, unsigned int);
-    void aggregate_1d_continuous(double, int32_t);
-    void aggregate_2d_continuous(double, int32_t, int32_t);
+    void aggregate_1d_continuous(int32_t);
+    void aggregate_2d_continuous(int32_t, int32_t);
     void aggregate_1d_categorical(/*int32_t*/);
     void aggregate_2d_categorical(/*int32_t, int32_t*/);
-    void aggregate_2d_mixed(bool, double, int32_t/*, int32_t*/);
+    void aggregate_2d_mixed(bool, int32_t/*, int32_t*/);
 
     void normalize_row(double*, int32_t);
     double calculate_distance(double*, double*, int64_t, double);

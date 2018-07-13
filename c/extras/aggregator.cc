@@ -16,19 +16,18 @@
 #include "utils/pyobj.h"
 
 PyObject* aggregate(PyObject*, PyObject* args) {
-  double epsilon;
   int32_t n_bins, nx_bins, ny_bins, max_dimensions;
   unsigned int seed;
   PyObject* arg0;
 
-  if (!PyArg_ParseTuple(args, "OdiiiiI:aggregate",
-                        &arg0, &epsilon, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
+  if (!PyArg_ParseTuple(args, "OiiiiI:aggregate",
+                        &arg0, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
   DataTable* dt_in = PyObj(arg0).as_datatable();
   DataTablePtr dt_out;
 
   Aggregator agg(dt_in);
-  dt_out = DataTablePtr(agg.aggregate(epsilon, n_bins, nx_bins, ny_bins, max_dimensions, seed));
+  dt_out = DataTablePtr(agg.aggregate(n_bins, nx_bins, ny_bins, max_dimensions, seed));
 
   return pydatatable::wrap(dt_out.release());
 }
@@ -58,10 +57,10 @@ DataTablePtr Aggregator::create_dt_out(DataTable* dt_in) {
 }
 
 
-DataTablePtr Aggregator::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins, int32_t max_dimensions, unsigned int seed) {
+DataTablePtr Aggregator::aggregate(int32_t n_bins, int32_t nx_bins, int32_t ny_bins, int32_t max_dimensions, unsigned int seed) {
   switch (dt_out->ncols) {
-    case 2:  aggregate_1d(epsilon, n_bins); break;
-    case 3:  aggregate_2d(epsilon, nx_bins, ny_bins); break;
+    case 2:  aggregate_1d(n_bins); break;
+    case 3:  aggregate_2d(nx_bins, ny_bins); break;
     default: aggregate_nd(max_dimensions, seed);
   }
 
@@ -69,20 +68,20 @@ DataTablePtr Aggregator::aggregate(double epsilon, int32_t n_bins, int32_t nx_bi
 }
 
 
-void Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
+void Aggregator::aggregate_1d(int32_t n_bins) {
   LType ltype = info(dt_out->columns[0]->stype()).ltype();
 
   switch (ltype) {
     case LType::BOOL:
     case LType::INT:
-    case LType::REAL:   aggregate_1d_continuous(epsilon, n_bins); break;
+    case LType::REAL:   aggregate_1d_continuous(n_bins); break;
     case LType::STRING: aggregate_1d_categorical(/*n_bins*/); break;
     default:            throw ValueError() << "Datatype is not supported";
   }
 }
 
 
-void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) {
+void Aggregator::aggregate_2d(int32_t nx_bins, int32_t ny_bins) {
   LType ltype0 = info(dt_out->columns[0]->stype()).ltype();
   LType ltype1 = info(dt_out->columns[1]->stype()).ltype();
 
@@ -93,8 +92,8 @@ void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) 
                            switch (ltype1) {
                              case LType::BOOL:
                              case LType::INT:
-                             case LType::REAL:   aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
-                             case LType::STRING: aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
+                             case LType::REAL:   aggregate_2d_continuous(nx_bins, ny_bins); break;
+                             case LType::STRING: aggregate_2d_mixed(0, nx_bins/*, ny_bins*/); break;
                              default:            throw ValueError() << "Datatype is not supported";
                            }
                         }
@@ -104,7 +103,7 @@ void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) 
                            switch (ltype1) {
                              case LType::BOOL:
                              case LType::INT:
-                             case LType::REAL:   aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
+                             case LType::REAL:   aggregate_2d_mixed(1, nx_bins/*, ny_bins*/); break;
                              case LType::STRING: aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
                              default:            throw ValueError() << "Datatype is not supported";
                            }
@@ -116,7 +115,7 @@ void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) 
 }
 
 
-void Aggregator::aggregate_1d_continuous(double epsilon, int32_t n_bins) {
+void Aggregator::aggregate_1d_continuous(int32_t n_bins) {
   RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_out->columns[0]);
   const double* d_c0 = static_cast<const double*>(dt_out->columns[0]->data());
   int32_t* d_c1 = static_cast<int32_t*>(dt_out->columns[1]->data_w());
@@ -130,7 +129,7 @@ void Aggregator::aggregate_1d_continuous(double epsilon, int32_t n_bins) {
 }
 
 
-void Aggregator::aggregate_2d_continuous(double epsilon, int32_t nx_bins, int32_t ny_bins) {
+void Aggregator::aggregate_2d_continuous(int32_t nx_bins, int32_t ny_bins) {
   RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_out->columns[0]);
   RealColumn<double>* c1 = static_cast<RealColumn<double>*>(dt_out->columns[1]);
   double* d_c0 = static_cast<double*>(dt_out->columns[0]->data_w());
@@ -200,7 +199,7 @@ void Aggregator::aggregate_2d_categorical(/*int32_t nx_bins, int32_t ny_bins*/) 
 }
 
 
-void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_bins/*, int32_t ny_bins*/) {
+void Aggregator::aggregate_2d_mixed(bool cont_index, int32_t nx_bins/*, int32_t ny_bins*/) {
   arr32_t cols(1);
 
   cols[0] = !cont_index;
