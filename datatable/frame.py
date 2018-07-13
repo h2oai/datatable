@@ -19,8 +19,8 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, Frame_t, dtwarn,
-    PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
+    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t, dtwarn,
+    typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.options import options
@@ -964,6 +964,7 @@ def column_hexview(col, dt, colidx):
 core.register_function(1, column_hexview)
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
+core.register_function(6, DatatableWarning)
 core.install_buffer_hooks(Frame())
 
 

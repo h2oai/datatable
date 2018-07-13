@@ -235,7 +235,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     resptr += old_alloc_size;
   }
   for (const Column* col : columns) {
-    if (col->stype() == ST_VOID) {
+    if (col->stype() == SType::VOID) {
       rows_to_fill += static_cast<size_t>(col->nrows);
     } else {
       if (rows_to_fill) {

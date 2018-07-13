@@ -191,6 +191,12 @@ DECLARE_METHOD(
   use_stype_for_buffers,
   "use_stype_for_buffers(stype)\n\n")
 
+DECLARE_METHOD(
+  save_jay,
+  "save_jay(file, colnames)\n\n"
+  "Save DataTable into a .jay file.\n")
+
+
 
 DECLARE_METHOD(
    get_min,
@@ -287,6 +293,14 @@ DECLARE_FUNCTION(
   datatable_load,
   "datatable_load(...)\n\n",
   HOMEFLAG)
+
+DECLARE_FUNCTION(
+  open_jay,
+  "open_jay(file)\n\n"
+  "Open DataTable from a .jay file, and return as a tuple (frame, colnames),\n"
+  "where `colnames` is a list of column names.\n",
+  HOMEFLAG)
+
 
 DECLARE_FUNCTION(
   install_buffer_hooks,

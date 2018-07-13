@@ -40,15 +40,15 @@ public:
   CsvColumn(Column *col) {
     data = col->data();
     strbuf = nullptr;
-    writer = writers_per_stype[col->stype()];
+    writer = writers_per_stype[static_cast<int>(col->stype())];
     if (!writer) {
       throw ValueError() << "Cannot write type " << col->stype();
     }
-    if (col->stype() == ST_STRING_I4_VCHAR) {
+    if (col->stype() == SType::STR32) {
       strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
       data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
     }
-    else if (col->stype() == ST_STRING_I8_VCHAR) {
+    else if (col->stype() == SType::STR64) {
       strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
       data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
     }
@@ -473,7 +473,7 @@ size_t CsvWriter::estimate_output_size()
       total_string_size += scol64->datasize();
     }
     SType stype = col->stype();
-    fixed_size_per_row += bytes_per_stype[stype];
+    fixed_size_per_row += bytes_per_stype[static_cast<int>(stype)];
     total_columns_size += column_names[i].size() + 1;
   }
   size_t bytes_total = fixed_size_per_row * nrows
@@ -577,15 +577,15 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
 void CsvWriter::create_column_writers(size_t ncols)
 {
   columns.reserve(ncols);
-  writers_per_stype[ST_REAL_F4] = usehex? write_f4_hex : write_f4_dec;
-  writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
+  writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
+  writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
   for (int64_t i = 0; i < dt->ncols; i++) {
     Column *dtcol = dt->columns[i];
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);
-    if (stype == ST_STRING_I4_VCHAR) strcolumns32.push_back(csvcol);
-    if (stype == ST_STRING_I8_VCHAR) strcolumns64.push_back(csvcol);
+    if (stype == SType::STR32) strcolumns32.push_back(csvcol);
+    if (stype == SType::STR64) strcolumns64.push_back(csvcol);
   }
   t_prepare_for_writing = checkpoint();
 }
@@ -598,27 +598,27 @@ void CsvWriter::create_column_writers(size_t ncols)
 
 void init_csvwrite_constants() {
 
-  for (int i = 0; i < DT_STYPES_COUNT; i++) {
+  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
     bytes_per_stype[i] = 0;
     writers_per_stype[i] = nullptr;
   }
-  bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
-  bytes_per_stype[ST_INTEGER_I1]      = 5;  // -100, -0x7F
-  bytes_per_stype[ST_INTEGER_I2]      = 7;  // -32767, -0xFFFF
-  bytes_per_stype[ST_INTEGER_I4]      = 11; // -2147483647, -0x7FFFFFFF
-  bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775807, -0x7FFFFFFFFFFFFFFF
-  bytes_per_stype[ST_REAL_F4]         = 16; // -0x1.123456p+120 / -1.23456789e+37
-  bytes_per_stype[ST_REAL_F8]         = 25; // -1.1234567890123457e+307, -0x1.23456789ABCDEp+1022
-  bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
-  bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
+  bytes_per_stype[int(SType::BOOL)]    = 1;  // 1
+  bytes_per_stype[int(SType::INT8)]    = 5;  // -100, -0x7F
+  bytes_per_stype[int(SType::INT16)]   = 7;  // -32767, -0xFFFF
+  bytes_per_stype[int(SType::INT32)]   = 11; // -2147483647, -0x7FFFFFFF
+  bytes_per_stype[int(SType::INT64)]   = 20; // -9223372036854775807, -0x7FFFFFFFFFFFFFFF
+  bytes_per_stype[int(SType::FLOAT32)] = 16; // -0x1.123456p+120 / -1.23456789e+37
+  bytes_per_stype[int(SType::FLOAT64)] = 25; // -1.1234567890123457e+307, -0x1.23456789ABCDEp+1022
+  bytes_per_stype[int(SType::STR32)]   = 2;  // ""
+  bytes_per_stype[int(SType::STR64)]   = 2;  // ""
 
-  writers_per_stype[ST_BOOLEAN_I1] = write_b1;
-  writers_per_stype[ST_INTEGER_I1] = write_iN<int8_t>;
-  writers_per_stype[ST_INTEGER_I2] = write_iN<int16_t>;
-  writers_per_stype[ST_INTEGER_I4] = write_iN<int32_t>;
-  writers_per_stype[ST_INTEGER_I8] = write_iN<int64_t>;
-  writers_per_stype[ST_REAL_F4]    = write_f4_dec;
-  writers_per_stype[ST_REAL_F8]    = write_f8_dec;
-  writers_per_stype[ST_STRING_I4_VCHAR] = write_str<uint32_t>;
-  writers_per_stype[ST_STRING_I8_VCHAR] = write_str<uint64_t>;
+  writers_per_stype[int(SType::BOOL)]    = write_b1;
+  writers_per_stype[int(SType::INT8)]    = write_iN<int8_t>;
+  writers_per_stype[int(SType::INT16)]   = write_iN<int16_t>;
+  writers_per_stype[int(SType::INT32)]   = write_iN<int32_t>;
+  writers_per_stype[int(SType::INT64)]   = write_iN<int64_t>;
+  writers_per_stype[int(SType::FLOAT32)] = write_f4_dec;
+  writers_per_stype[int(SType::FLOAT64)] = write_f8_dec;
+  writers_per_stype[int(SType::STR32)]   = write_str<uint32_t>;
+  writers_per_stype[int(SType::STR64)]   = write_str<uint64_t>;
 }

@@ -50,6 +50,10 @@ int64_t Stats::nmodal(const Column* col) {
   return _nmodal;
 }
 
+void Stats::set_countna(int64_t n) {
+  _computed.set(Stat::NaCount, !ISNA<int64_t>(n));
+  _countna = n;
+}
 
 size_t Stats::memory_footprint() const {
   return sizeof(*this);
@@ -286,6 +290,18 @@ double NumericalStats<T, A>::kurt(const Column* col) {
 template<typename T, typename A>
 void NumericalStats<T, A>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
+}
+
+template<typename T, typename A>
+void NumericalStats<T, A>::set_min(T value) {
+  _computed.set(Stat::Min, !ISNA<T>(value));
+  _min = value;
+}
+
+template<typename T, typename A>
+void NumericalStats<T, A>::set_max(T value) {
+  _computed.set(Stat::Max, !ISNA<T>(value));
+  _max = value;
 }
 
 

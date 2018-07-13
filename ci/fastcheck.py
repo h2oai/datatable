@@ -219,6 +219,7 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
 def create_build_directories(objmap):
     dirs = set(os.path.join("build/fast", os.path.dirname(objfile))
                for objfile in objmap)
+    dirs |= {os.path.join("build/fast", "lib/flatbuffers")}
     for d in dirs:
         os.makedirs(d, exist_ok=True)
 

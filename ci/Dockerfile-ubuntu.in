@@ -80,8 +80,3 @@ ENV \
 
 # A separated layer to collect core dumps
 RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
-
-# Install capnproto
-COPY ci/install-capnproto.sh /install-capnproto.sh
-RUN /install-capnproto.sh
-

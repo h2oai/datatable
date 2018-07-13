@@ -41,16 +41,16 @@ DataTablePtr Aggregator::create_dt_out(DataTable* dt_in) {
   Column** cols = dt::amalloc<Column*>(dt_in->ncols + 2);
 
   for (int32_t i = 0; i < dt_in->ncols; ++i) {
-    LType ltype = stype_info[dt_in->columns[i]->stype()].ltype;
+    LType ltype = info(dt_in->columns[i]->stype()).ltype();
     switch (ltype) {
-      case LT_BOOLEAN:
-      case LT_INTEGER:
-      case LT_REAL:    cols[i] = dt_in->columns[i]->cast(ST_REAL_F8); break;
-      default:         cols[i] = dt_in->columns[i]->shallowcopy();
+      case LType::BOOL:
+      case LType::INT:
+      case LType::REAL:    cols[i] = dt_in->columns[i]->cast(SType::FLOAT64); break;
+      default:                cols[i] = dt_in->columns[i]->shallowcopy();
     }
   }
 
-  cols[dt_in->ncols] = Column::new_data_column(ST_INTEGER_I4, dt_in->nrows);
+  cols[dt_in->ncols] = Column::new_data_column(SType::INT32, dt_in->nrows);
   cols[dt_in->ncols + 1] = nullptr;
   dt_out = DataTablePtr(new DataTable(cols));
 
@@ -70,48 +70,48 @@ DataTablePtr Aggregator::aggregate(double epsilon, int32_t n_bins, int32_t nx_bi
 
 
 void Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
-  LType ltype = stype_info[dt_out->columns[0]->stype()].ltype;
+  LType ltype = info(dt_out->columns[0]->stype()).ltype();
 
   switch (ltype) {
-    case LT_BOOLEAN:
-    case LT_INTEGER:
-    case LT_REAL:     aggregate_1d_continuous(epsilon, n_bins); break;
-    case LT_STRING:   aggregate_1d_categorical(/*n_bins*/); break;
-    default:          throw ValueError() << "Datatype is not supported";
+    case LType::BOOL:
+    case LType::INT:
+    case LType::REAL:   aggregate_1d_continuous(epsilon, n_bins); break;
+    case LType::STRING: aggregate_1d_categorical(/*n_bins*/); break;
+    default:            throw ValueError() << "Datatype is not supported";
   }
 }
 
 
 void Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  LType ltype0 = stype_info[dt_out->columns[0]->stype()].ltype;
-  LType ltype1 = stype_info[dt_out->columns[1]->stype()].ltype;
+  LType ltype0 = info(dt_out->columns[0]->stype()).ltype();
+  LType ltype1 = info(dt_out->columns[1]->stype()).ltype();
 
   switch (ltype0) {
-    case LT_BOOLEAN:
-    case LT_INTEGER:
-    case LT_REAL:    {
-                        switch (ltype1) {
-                          case LT_BOOLEAN:
-                          case LT_INTEGER:
-                          case LT_REAL:    aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
-                          case LT_STRING:  aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
-                          default:          throw ValueError() << "Datatype is not supported";
+    case LType::BOOL:
+    case LType::INT:
+    case LType::REAL:   {
+                           switch (ltype1) {
+                             case LType::BOOL:
+                             case LType::INT:
+                             case LType::REAL:   aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
+                             case LType::STRING: aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
+                             default:            throw ValueError() << "Datatype is not supported";
+                           }
                         }
-                      }
-                      break;
+                        break;
 
-    case LT_STRING:  {
-                        switch (ltype1) {
-                          case LT_BOOLEAN:
-                          case LT_INTEGER:
-                          case LT_REAL:    aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
-                          case LT_STRING:  aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
-                          default:          throw ValueError() << "Datatype is not supported";
+    case LType::STRING: {
+                           switch (ltype1) {
+                             case LType::BOOL:
+                             case LType::INT:
+                             case LType::REAL:   aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
+                             case LType::STRING: aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
+                             default:            throw ValueError() << "Datatype is not supported";
+                           }
                         }
-                      }
-                      break;
+                        break;
 
-    default:          throw ValueError() << "Datatype is not supported";
+    default:            throw ValueError() << "Datatype is not supported";
   }
 }
 

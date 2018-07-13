@@ -87,7 +87,7 @@ Column* Column::from_buffer(PyObject* buffer)
   int64_t nrows = view->len / view->itemsize;
 
   Column* res = nullptr;
-  if (stype == ST_STRING_I4_VCHAR) {
+  if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   } else if (view->strides == nullptr) {
     res = Column::new_xbuf_column(stype, nrows, view);
@@ -116,7 +116,7 @@ Column* Column::from_buffer(PyObject* buffer)
         out[j] = inp[j * stride];
     }
   }
-  if (res->stype() == ST_OBJECT_PYPTR) {
+  if (res->stype() == SType::OBJ) {
     res = try_to_resolve_object_column(res);
   }
   return res;
@@ -245,12 +245,12 @@ struct XInfo {
   XInfo() {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
-    stype = ST_VOID;
+    stype = SType::VOID;
   }
 
   ~XInfo() {
     // if (mbuf.is_nonempty()) {
-      // if (mbuf->get_refcount() == 1 && stype == ST_OBJECT_PYPTR) {
+      // if (mbuf->get_refcount() == 1 && stype == SType::OBJ) {
       //   PyObject** elems = static_cast<PyObject**>(mbuf->get());
       //   size_t nelems = mbuf->size() / sizeof(PyObject*);
       //   for (size_t i = 0; i < nelems; ++i) {
@@ -282,7 +282,7 @@ static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags) {
     // time for a read-only buffer.
     throw ValueError() << "Cannot create a writable buffer for a Column";
   }
-  if (stype_info[col->stype()].varwidth) {
+  if (info(col->stype()).is_varwidth()) {
     throw ValueError() << "Column's data has variable width";
   }
 
@@ -410,20 +410,21 @@ static int getbuffer_DataTable(
 
   // First, find the common stype for all columns in the DataTable.
   SType stype = self->use_stype_for_buffers;
-  if (stype == ST_VOID) {
+  if (stype == SType::VOID) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
       SType next_stype = dt->columns[i]->stype();
-      if (stypes_mask & (1 << next_stype)) continue;
-      stypes_mask |= 1 << next_stype;
+      uint64_t unstype = static_cast<uint64_t>(next_stype);
+      if (stypes_mask & (1 << unstype)) continue;
+      stypes_mask |= 1 << unstype;
       stype = common_stype_for_buffer(stype, next_stype);
     }
   }
 
   // Allocate the final buffer
-  xassert(!stype_info[stype].varwidth);
-  size_t elemsize = stype_info[stype].elemsize;
+  xassert(!info(stype).is_varwidth());
+  size_t elemsize = info(stype).elemsize();
   size_t colsize = nrows * elemsize;
   MemoryRange memr = MemoryRange::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);
@@ -491,7 +492,7 @@ static int getbuffer_DataTable(
     https://github.com/numpy/numpy/issues/9456
 
     if (REQ_INDIRECT(flags)) {
-        size_t elemsize = stype_info[stype].elemsize;
+        size_t elemsize = info(stype).elemsize();
         Py_ssize_t *info = dt::amalloc<Py_ssize_t>(6);
         void** buf = dt::amalloc<void*>(ncols);
         for (int i = 0; i < ncols; i++) {
@@ -592,36 +593,36 @@ PyObject* pydatatable::install_buffer_hooks(PyObject*, PyObject* args)
 
 static SType stype_from_format(const char* format, int64_t itemsize)
 {
-  SType stype = ST_VOID;
+  SType stype = SType::VOID;
   char c = format[0];
   if (c == '@' || c == '=') c = format[1];
 
   if (c == 'b' || c == 'h' || c == 'i' || c == 'l' || c == 'q' || c == 'n') {
     // These are all various integer types
-    stype = itemsize == 1 ? ST_INTEGER_I1 :
-            itemsize == 2 ? ST_INTEGER_I2 :
-            itemsize == 4 ? ST_INTEGER_I4 :
-            itemsize == 8 ? ST_INTEGER_I8 : ST_VOID;
+    stype = itemsize == 1 ? SType::INT8 :
+            itemsize == 2 ? SType::INT16 :
+            itemsize == 4 ? SType::INT32 :
+            itemsize == 8 ? SType::INT64 : SType::VOID;
   }
   else if (c == 'd' || c == 'f') {
-    stype = itemsize == 4 ? ST_REAL_F4 :
-            itemsize == 8 ? ST_REAL_F8 : ST_VOID;
+    stype = itemsize == 4 ? SType::FLOAT32 :
+            itemsize == 8 ? SType::FLOAT64 : SType::VOID;
   }
   else if (c == '?') {
-    stype = itemsize == 1 ? ST_BOOLEAN_I1 : ST_VOID;
+    stype = itemsize == 1 ? SType::BOOL : SType::VOID;
   }
   else if (c == 'O') {
-    stype = ST_OBJECT_PYPTR;
+    stype = SType::OBJ;
   }
   else if (c >= '1' && c <= '9') {
     if (format[strlen(format) - 1] == 'w') {
       int numeral = atoi(format);
       if (itemsize == numeral * 4) {
-        stype = ST_STRING_I4_VCHAR;
+        stype = SType::STR32;
       }
     }
   }
-  if (stype == ST_VOID) {
+  if (stype == SType::VOID) {
     throw ValueError()
         << "Unknown format '" << format << "' with itemsize " << itemsize;
   }
@@ -630,12 +631,12 @@ static SType stype_from_format(const char* format, int64_t itemsize)
 
 static const char* format_from_stype(SType stype)
 {
-  return stype == ST_BOOLEAN_I1? "?" :
-         stype == ST_INTEGER_I1? "b" :
-         stype == ST_INTEGER_I2? "h" :
-         stype == ST_INTEGER_I4? "i" :
-         stype == ST_INTEGER_I8? "q" :
-         stype == ST_REAL_F4? "f" :
-         stype == ST_REAL_F8? "d" :
-         stype == ST_OBJECT_PYPTR? "O" : "x";
+  return stype == SType::BOOL? "?" :
+         stype == SType::INT8? "b" :
+         stype == SType::INT16? "h" :
+         stype == SType::INT32? "i" :
+         stype == SType::INT64? "q" :
+         stype == SType::FLOAT32? "f" :
+         stype == SType::FLOAT64? "d" :
+         stype == SType::OBJ? "O" : "x";
 }
