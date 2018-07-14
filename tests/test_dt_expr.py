@@ -271,12 +271,10 @@ def test_logical_or2(seed):
 
 @pytest.mark.parametrize("seed", [random.getrandbits(63)])
 def test_div_mod(seed):
-    seed = 4477504608989349510
     random.seed(seed)
-    n = 100
+    n = 1000
     src1 = [random.randint(-100, 100) for _ in range(n)]
     src2 = [random.randint(-10, 10) for _ in range(n)]
-    print(src1[:10], src2[:10])
 
     df0 = dt.Frame(x=src1, y=src2)
     df1 = df0[:, [f.x // f.y, f.x % f.y]]
