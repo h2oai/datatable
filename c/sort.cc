@@ -716,8 +716,9 @@ class SortContext {
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
         T offend = soffs[w];
         T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
-        xassert(!ISNA<T>(offend));
-        if (offend > offstart) {
+        if (ISNA<T>(offend)) {
+          xo[k] = 0;
+        } else if (offend > offstart) {
           xo[k] = strdata[offstart] + 2;
           T len = offend - offstart;
           if (len > maxlen) maxlen = len;
