@@ -20,19 +20,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Implemented integer division `//` and modulo `%` operators.
 
 #### Fixed
-- Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
-- Fix bug with applying a cast expression to a view column.
-- Fix occasional memory errors caused by a lack of available mmap handles.
-- Fixed memory leak in groupby operations.
+- bug in dt.cbind() where the first Frame in the list was ignored.
+- bug with applying a cast expression to a view column.
+- occasional memory errors caused by a lack of available mmap handles.
+- memory leak in groupby operations.
 - `names` parameter in Frame constructor is now checked for correctness.
-- Fix a bug in fread with QR bump occurring out-of-sample.
+- bug in fread with QR bump occurring out-of-sample.
 - `import datatable` now takes only 0.13s, down from 0.6s.
 - fread no longer wastes time reading the full input, if max_nrows option is used.
-- fix bug where max_nrows parameter was sometimes causing a seg.fault
-- fix fread performance bug caused by memory-mapped file being accidentally
+- bug where max_nrows parameter was sometimes causing a seg.fault
+- fread performance bug caused by memory-mapped file being accidentally
   copied into RAM.
-- fix rare crash in fread when resizing the number of rows.
-- fix saving view frames to csv.
+- rare crash in fread when resizing the number of rows.
+- saving view frames to csv.
+- crash when sorting string columns containins NA strings.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
