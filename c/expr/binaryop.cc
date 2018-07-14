@@ -177,13 +177,25 @@ inline static VT op_mul(LT x, RT y) {
 
 template<typename LT, typename RT, typename VT>
 inline static VT op_div(LT x, RT y) {
-  return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y);
+  if (IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0) return GETNA<VT>();
+  VT vx = static_cast<VT>(x);
+  VT vy = static_cast<VT>(y);
+  VT res = vx / vy;
+  if (vx < 0 != vy < 0 && vx != res * vy) {
+    --res;
+  }
+  return res;
 }
 
 template<typename LT, typename RT, typename VT>
 struct Mod {
   inline static VT impl(LT x, RT y)  {
-    return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y);
+    if (IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0) return GETNA<VT>();
+    VT res = static_cast<VT>(x) % static_cast<VT>(y);
+    if (x < 0 != y < 0 && res != 0) {
+      res += static_cast<VT>(y);
+    }
+    return res;
   }
 };
 
@@ -294,6 +306,23 @@ inline static int8_t strop_ne(T1 start1, T1 end1, const char* strdata1,
 
 
 
+//------------------------------------------------------------------------------
+// Logical operators
+//------------------------------------------------------------------------------
+
+inline static int8_t op_and(int8_t x, int8_t y) {
+  bool x_isna = ISNA<int8_t>(x);
+  bool y_isna = ISNA<int8_t>(y);
+  return (x_isna || y_isna) ? GETNA<int8_t>() : (x && y);
+}
+
+inline static int8_t op_or(int8_t x, int8_t y) {
+  bool x_isna = ISNA<int8_t>(x);
+  bool y_isna = ISNA<int8_t>(y);
+  return (x_isna || y_isna) ? GETNA<int8_t>() : (x || y);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Resolve the right mapping function
@@ -376,6 +405,14 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
+      if (rhs_type == SType::BOOL && (opcode == OpCode::LogicalAnd ||
+                                      opcode == OpCode::LogicalOr)) {
+        params[2] = Column::new_data_column(SType::BOOL, nrows);
+        if (opcode == OpCode::LogicalAnd) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
+        if (opcode == OpCode::LogicalOr)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
+      }
+      [[clang::fallthrough]];
+
     case SType::INT8:
       switch (rhs_type) {
         case SType::BOOL:
