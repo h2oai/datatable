@@ -10,8 +10,8 @@ import pytest
 import random
 import time
 import datatable as dt
-from datatable import stype
-from tests import list_equals
+from datatable import stype, ltype
+from tests import list_equals, random_string
 
 
 
@@ -518,6 +518,50 @@ def test_sort_view_large_strs():
     d1.internal.check()
     elems = d1.topython()[0]
     assert elems == sorted(elems)
+
+
+@pytest.mark.parametrize("st", [stype.bool8, stype.int8, stype.int16,
+                                stype.int32, stype.int64, stype.float32,
+                                stype.float64, stype.str32, stype.str64])
+def test_sort_view_all_stypes(st):
+    def random_bool():
+        return random.choice([True, True, False, False, None])
+
+    def random_int():
+        if random.random() < 0.1: return None
+        return random.randint(-100000, 1999873)
+
+    def random_real():
+        if random.random() < 0.1: return None
+        return random.normalvariate(5, 10)
+
+    def random_str():
+        if random.random() < 0.1: return None
+        return random_string(random.randint(1, 20))
+
+    def sortkey_num(x):
+        return -1e10 if x is None else x
+
+    def sortkey_str(x):
+        return "" if x is None else x
+
+    fn = (random_bool if st == stype.bool8 else
+          random_int if st.ltype == ltype.int else
+          random_real if st.ltype == ltype.real else
+          random_str)
+    sortkey = (sortkey_str if st.ltype == ltype.str else
+               sortkey_num)
+    n = 1000
+    src = [fn() for _ in range(n)]
+    d0 = dt.Frame(src, stype=st)
+    if st in (stype.int8, stype.int16, stype.float32):
+        src = d0.topython()[0]
+    d1 = d0[::3, :].sort(0)
+    d0.internal.check()
+    d1.internal.check()
+    assert d1.shape == ((n + 2) // 3, 1)
+    assert d1.stypes == (st, )
+    assert d1.topython()[0] == sorted(src[::3], key=sortkey)
 
 
 
