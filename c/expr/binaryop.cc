@@ -177,13 +177,25 @@ inline static VT op_mul(LT x, RT y) {
 
 template<typename LT, typename RT, typename VT>
 inline static VT op_div(LT x, RT y) {
-  return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y);
+  if (IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0) return GETNA<VT>();
+  VT vx = static_cast<VT>(x);
+  VT vy = static_cast<VT>(y);
+  VT res = vx / vy;
+  if (vx < 0 != vy < 0 && vx != res * vy) {
+    --res;
+  }
+  return res;
 }
 
 template<typename LT, typename RT, typename VT>
 struct Mod {
   inline static VT impl(LT x, RT y)  {
-    return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y);
+    if (IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0) return GETNA<VT>();
+    VT res = static_cast<VT>(x) % static_cast<VT>(y);
+    if (x < 0 != y < 0 && res != 0) {
+      res += static_cast<VT>(y);
+    }
+    return res;
   }
 };
 

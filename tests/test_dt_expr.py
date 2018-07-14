@@ -262,3 +262,25 @@ def test_logical_or2(seed):
         [None if (src1[i] is None or src2[i] is None) else
          src1[i] or src2[i]
          for i in range(n)]
+
+
+
+#-------------------------------------------------------------------------------
+# Division
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_div_mod(seed):
+    seed = 4477504608989349510
+    random.seed(seed)
+    n = 100
+    src1 = [random.randint(-100, 100) for _ in range(n)]
+    src2 = [random.randint(-10, 10) for _ in range(n)]
+    print(src1[:10], src2[:10])
+
+    df0 = dt.Frame(x=src1, y=src2)
+    df1 = df0[:, [f.x // f.y, f.x % f.y]]
+    assert df1.topython() == [
+        [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
+        [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)]
+    ]

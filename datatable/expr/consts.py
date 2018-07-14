@@ -86,6 +86,11 @@ for i, st1 in enumerate(stypes_ladder):
         for op in ["+", "-", "*"]:
             ops_rules[(op, st1, st2)] = st2
             ops_rules[(op, st2, st1)] = st2
+        if st1 in stype_int and st2 in stype_int:
+            ops_rules[("%", st1, st2)] = st2
+            ops_rules[("%", st2, st1)] = st2
+            ops_rules[("//", st1, st2)] = st2
+            ops_rules[("//", st2, st1)] = st2
 
 for st1 in stypes_ladder:
     for st2 in stypes_ladder:
