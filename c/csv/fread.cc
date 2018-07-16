@@ -7,10 +7,6 @@
 // obtain one at https://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 #include "csv/fread.h"
-#include "csv/freadLookups.h"
-#include "csv/reader.h"
-#include "csv/reader_fread.h"
-#include "csv/reader_parsers.h"
 #include <ctype.h>     // isspace
 #include <stdarg.h>    // va_list, va_start
 #include <stdio.h>     // vsnprintf
@@ -18,6 +14,11 @@
 #include <cmath>       // std::sqrt, std::ceil
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
+#include "csv/freadLookups.h"
+#include "csv/reader.h"
+#include "csv/reader_fread.h"
+#include "csv/reader_parsers.h"
+#include "datatable.h"
 #include "utils/assert.h"
 
 
@@ -97,7 +98,7 @@ void FreadChunkedReader::adjust_chunk_coordinates(
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-DataTablePtr FreadReader::read()
+std::unique_ptr<DataTable> FreadReader::read()
 {
   detect_lf();
   skip_preamble();
@@ -219,7 +220,7 @@ DataTablePtr FreadReader::read()
 
 
   trace("[7] Finalize the datatable");
-  DataTablePtr res = makeDatatable();
+  auto res = makeDatatable();
   if (verbose) fo.report();
   return res;
 }

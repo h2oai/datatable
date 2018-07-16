@@ -612,7 +612,7 @@ $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
 
-$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/field64.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Refreshing c/csv/fread.h
 	@cp c/csv/fread.h $@
 
@@ -632,15 +632,15 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h $(BUILDDIR)/read/parallel_reader.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
-$(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
+$(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/datatable.h
 	@echo • Refreshing c/csv/reader_arff.h
 	@cp c/csv/reader_arff.h $@
 
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/parallel_reader.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
@@ -774,7 +774,8 @@ $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/uti
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
+
+$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/datatable.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -782,7 +783,7 @@ $(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/options.h $(BUILDDIR)/csv
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/encodings.h $(BUILDDIR)/options.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/datatable.h $(BUILDDIR)/encodings.h $(BUILDDIR)/options.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -801,6 +802,7 @@ $(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread
 $(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
+
 
 $(BUILDDIR)/datatable.o : c/datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
@@ -846,6 +848,7 @@ $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+
 $(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -853,6 +856,7 @@ $(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDI
 $(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
+
 
 $(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<

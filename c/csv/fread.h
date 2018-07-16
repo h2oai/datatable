@@ -13,6 +13,7 @@
 #include "utils/omp.h"
 #include "memrange.h"
 #include "csv/reader.h"
+#include "read/field64.h"
 
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];

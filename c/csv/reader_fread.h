@@ -14,6 +14,7 @@
 #include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
 #include "memrange.h"
+#include "read/parallel_reader.h"
 #include "utils/shared_mutex.h"
 
 class FreadLocalParseContext;
@@ -122,7 +123,7 @@ public:
   explicit FreadReader(const GenericReader&);
   virtual ~FreadReader() override;
 
-  DataTablePtr read();
+  std::unique_ptr<DataTable> read();
 
   // Simple getters
   double get_mean_line_len() const { return meanLineLen; }

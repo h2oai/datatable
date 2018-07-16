@@ -7,23 +7,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
-#include <Python.h>
-#include <limits>         // std::numeric_limits
-#include <memory>         // std::unique_ptr
-#include <string>         // std::string
-#include <vector>         // std::vector
-#include "read/column.h"
-#include "read/columns.h"
-#include "read/parallel_reader.h"
-#include "read/thread_context.h"
-#include "column.h"       // Column
-#include "datatable.h"    // DataTable
-#include "memrange.h"     // MemoryRange
-#include "writebuf.h"     // WritableBuffer
-#include "utils/array.h"
-#include "utils/pyobj.h"
-#include "utils/shared_mutex.h"
+#include <memory>           // std::unique_ptr
+#include "read/columns.h"   // dt::read::Columns
+#include "memrange.h"       // MemoryRange
+#include "utils/pyobj.h"    // PyObj
 
+class DataTable;
 
 
 /**
@@ -32,6 +21,8 @@
  */
 class GenericReader
 {
+  using DataTablePtr = std::unique_ptr<DataTable>;
+
   //---- Input parameters ----
   // nthreads:
   //   Number of threads to use; 0 means use maximum possible, negative number
