@@ -72,7 +72,7 @@ void ChunkedDataReader::determine_chunking_strategy() {
 
 
 ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
-  size_t i, LocalParseContext* ctx) const
+  size_t i, dt::read::ThreadContext* ctx) const
 {
   xassert(i < chunkCount);
   ChunkCoordinates c;
@@ -110,7 +110,7 @@ double ChunkedDataReader::work_done_amount() const {
 
 
 void ChunkedDataReader::adjust_chunk_coordinates(
-      ChunkCoordinates&, LocalParseContext*) const {}
+      ChunkCoordinates&, dt::read::ThreadContext*) const {}
 
 
 

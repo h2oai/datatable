@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_FIELD64_h
 #define dt_READ_FIELD64_h
-#include <limits>  // std::numeric_limits
+#include <cstdint>  // int32_t, INT32_MIN, ...
 
 namespace dt {
 namespace read {
@@ -22,8 +22,8 @@ struct RelStr {
   uint32_t offset;
   int32_t length;
 
-  bool isna() { return length == std::numeric_limits<int32_t>::min(); }
-  void setna() { length = std::numeric_limits<int32_t>::min(); }
+  bool isna() { return length == INT32_MIN; }
+  void setna() { length = INT32_MIN; }
 };
 
 

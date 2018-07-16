@@ -444,7 +444,8 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	python/long.o             \
 	python/string.o           \
 	read/column.o             \
-	read/columns.o          \
+	read/columns.o            \
+	read/thread_context.o     \
 	rowindex.o                \
 	rowindex_array.o          \
 	rowindex_slice.o          \
@@ -607,6 +608,7 @@ $(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h $(BUILDDIR)/utils/
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
+
 $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
@@ -631,7 +633,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/field64.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -685,6 +687,10 @@ $(BUILDDIR)/read/columns.h: c/read/columns.h $(BUILDDIR)/read/column.h
 $(BUILDDIR)/read/field64.h: c/read/field64.h
 	@echo • Refreshing c/read/field64.h
 	@cp c/read/field64.h $@
+
+$(BUILDDIR)/read/thread_context.h: c/read/thread_context.h $(BUILDDIR)/read/field64.h $(BUILDDIR)/utils/array.h
+	@echo • Refreshing c/read/thread_context.h
+	@cp c/read/thread_context.h $@
 
 
 $(BUILDDIR)/utils/alloc.h: c/utils/alloc.h
@@ -931,6 +937,10 @@ $(BUILDDIR)/read/column.o : c/read/column.cc $(BUILDDIR)/read/column.h $(BUILDDI
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/read/columns.o : c/read/columns.cc $(BUILDDIR)/read/columns.h $(BUILDDIR)/csv/reader_parsers.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/read/thread_context.o : c/read/thread_context.cc $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

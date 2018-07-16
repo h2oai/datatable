@@ -14,7 +14,7 @@
 #include <vector>         // std::vector
 #include "read/column.h"
 #include "read/columns.h"
-#include "read/field64.h"
+#include "read/thread_context.h"
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
@@ -232,55 +232,12 @@ struct ChunkCoordinates {
 
 
 //------------------------------------------------------------------------------
-// LocalParseContext
+// dt::read::ThreadContext
 //------------------------------------------------------------------------------
 
-/**
- * This is a helper class for ChunkedDataReader (see below). It carries
- * variables that will be local to each thread during the parallel reading of
- * the input.
- *
- * tbuf
- *   Output buffer. Within the buffer the data is stored in row-major order,
- *   i.e. in the same order as in the original CSV file. We view the buffer as
- *   a rectangular grid having `tbuf_ncols * tbuf_nrows` elements (+1 extra).
- *
- * tbuf_ncols, tbuf_nrows
- *   Dimensions of the output buffer.
- *
- * used_nrows
- *   Number of rows of data currently stored in `tbuf`. This can never exceed
- *   `tbuf_nrows`.
- *
- * row0
- *   Starting row index within the output DataTable for the current data chunk.
- */
-class LocalParseContext {
-  public:
-    struct SInfo { size_t start, size, write_at; };
 
-    dt::array<dt::read::field64> tbuf;
-    dt::array<uint8_t> sbuf;
-    dt::array<SInfo> strinfo;
-    size_t tbuf_ncols;
-    size_t tbuf_nrows;
-    size_t used_nrows;
-    size_t row0;
 
-  public:
-    LocalParseContext(size_t ncols, size_t nrows);
-    virtual ~LocalParseContext();
-
-    virtual void push_buffers() = 0;
-    virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void orderBuffer() = 0;
-
-    size_t get_nrows() const;
-    void set_nrows(size_t n);
-    void allocate_tbuf(size_t ncols, size_t nrows);
-};
-
-typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
+typedef std::unique_ptr<dt::read::ThreadContext> LocalParseContextPtr;
 
 
 
@@ -328,7 +285,7 @@ class ChunkedDataReader {
      * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
      * must be in the range [0..chunkCount).
      *
-     * The optional `LocalParseContext` instance may be needed for some
+     * The optional `dt::read::ThreadContext` instance may be needed for some
      * implementations of `ChunkedDataReader` in order to perform additional
      * parsing using a thread-local context.
      *
@@ -336,7 +293,7 @@ class ChunkedDataReader {
      * assuming that different invocation receive different `ctx` objects.
      */
     ChunkCoordinates compute_chunk_boundaries(
-      size_t i, LocalParseContext* ctx) const;
+      size_t i, dt::read::ThreadContext* ctx) const;
 
     /**
      * This method can be overridden in derived classes in order to implement
@@ -346,12 +303,12 @@ class ChunkedDataReader {
      * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
-      ChunkCoordinates& cc, LocalParseContext* ctx) const;
+      ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const;
 
     /**
-     * Return an instance of a `LocalParseContext` class. Implementations of
+     * Return an instance of a `dt::read::ThreadContext` class. Implementations of
      * `ChunkedDataReader` are expected to override this method to return
-     * appropriate subclasses of `LocalParseContext`.
+     * appropriate subclasses of `dt::read::ThreadContext`.
      */
     virtual LocalParseContextPtr init_thread_context() = 0;
 

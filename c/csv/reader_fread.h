@@ -154,7 +154,7 @@ private:
  *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
  *
  */
-class FreadLocalParseContext : public LocalParseContext
+class FreadLocalParseContext : public dt::read::ThreadContext
 {
   public:
     const char* anchor;
@@ -215,15 +215,15 @@ class FreadChunkedReader : public ChunkedDataReader {
       const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
 
   protected:
-    virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
+    virtual std::unique_ptr<dt::read::ThreadContext> init_thread_context() override {
       size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
       size_t tcols = f.columns.nColumnsInBuffer();
-      return std::unique_ptr<LocalParseContext>(
+      return std::unique_ptr<dt::read::ThreadContext>(
                 new FreadLocalParseContext(tcols, trows, f, types, shmutex));
     }
 
     void adjust_chunk_coordinates(
-      ChunkCoordinates& cc, LocalParseContext* ctx) const override;
+      ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const override;
 
 };
 

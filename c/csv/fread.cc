@@ -63,7 +63,7 @@ bool FreadChunkedReader::next_good_line_start(
 
 
 void FreadChunkedReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, LocalParseContext* ctx) const
+  ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.

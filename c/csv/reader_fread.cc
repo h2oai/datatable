@@ -917,7 +917,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f, PT* types_,
     dt::shared_mutex& mut
-  ) : LocalParseContext(bcols, brows),
+  ) : dt::read::ThreadContext(bcols, brows),
       types(types_),
       freader(f),
       columns(f.columns),
