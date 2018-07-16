@@ -124,7 +124,7 @@ public:
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 
-  FreadTokenizer makeTokenizer(field64* target, const char* anchor) const;
+  FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
 
 private:
   void parse_column_names(FreadTokenizer& ctx);

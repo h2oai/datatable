@@ -54,7 +54,7 @@ FreadReader::~FreadReader() {}
 
 
 FreadTokenizer FreadReader::makeTokenizer(
-    field64* target, const char* anchor) const
+    dt::read::field64* target, const char* anchor) const
 {
   return {
     .ch = nullptr,
@@ -263,7 +263,7 @@ void FreadReader::detect_sep_and_qr() {
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
 
-  field64 trash;
+  dt::read::field64 trash;
   FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
   const char*& tch = ctx.ch;
 
@@ -552,7 +552,7 @@ void FreadReader::detect_column_types()
   size_t ncols = columns.size();
   int64_t sncols = static_cast<int64_t>(ncols);
 
-  field64 tmp;
+  dt::read::field64 tmp;
   FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
@@ -674,7 +674,7 @@ void FreadReader::detect_header() {
   size_t ncols = columns.size();
   int64_t sncols = static_cast<int64_t>(ncols);
 
-  field64 tmp;
+  dt::read::field64 tmp;
   FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
@@ -780,7 +780,7 @@ void FreadReader::skip_preamble() {
     return;
   }
 
-  field64 tmp;
+  dt::read::field64 tmp;
   auto fctx = makeTokenizer(&tmp, /* anchor = */ nullptr);
   const char*& ch = fctx.ch;
 
@@ -1044,7 +1044,7 @@ void FreadLocalParseContext::read_chunk(
           // start of the chunk is valid.
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
-          if (cc.true_start) {
+          if (cc.start_exact) {
             ++ptype_iter;
             tch = fieldStart;
           } else {
@@ -1052,11 +1052,11 @@ void FreadLocalParseContext::read_chunk(
           }
         }
 
-        // Type-bump. This may only happen if cc.true_start is true, which flag
+        // Type-bump. This may only happen if cc.start_exact is true, which flag
         // is only set to true on one thread at a time. Thus, there is no need
         // for "critical" section here.
         if (ptype_iter.has_incremented()) {
-          xassert(cc.true_start);
+          xassert(cc.start_exact);
           if (verbose) {
             freader.fo.type_bump_info(j + 1, columns[j], *ptype_iter, fieldStart,
                                       tch - fieldStart,
@@ -1097,7 +1097,7 @@ void FreadLocalParseContext::read_chunk(
       // not enough columns observed (including empty line). If fill==true,
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
-      if (cc.true_start) {
+      if (cc.start_exact) {
         throw RuntimeError() << "Too few fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but found only " << j
@@ -1108,7 +1108,7 @@ void FreadLocalParseContext::read_chunk(
       }
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
-      if (cc.true_start) {
+      if (cc.start_exact) {
         throw RuntimeError() << "Too many fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but more are present. <<"
@@ -1139,7 +1139,7 @@ void FreadLocalParseContext::postprocess() {
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
-      field64* coldata = tbuf.data() + j;
+      dt::read::field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
         // Initially, offsets of all entries are given relative to `zanchor`.
         // If a string is NA, its length will be INT_MIN.
@@ -1238,7 +1238,7 @@ void FreadLocalParseContext::push_buffers() {
     } else if (col.is_string()) {
       WritableBuffer* wb = col.strdata_w();
       SInfo& si = strinfo[j];
-      field64* lo = tbuf.data() + j;
+      dt::read::field64* lo = tbuf.data() + j;
 
       wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
 
@@ -1261,7 +1261,7 @@ void FreadLocalParseContext::push_buffers() {
       }
 
     } else {
-      const field64* src = tbuf.data() + j;
+      const dt::read::field64* src = tbuf.data() + j;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(data) + row0;
         for (size_t r = 0; r < used_nrows; r++) {

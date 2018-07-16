@@ -67,7 +67,7 @@ void FreadChunkedReader::adjust_chunk_coordinates(
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
-  if (!cc.true_start) {
+  if (!cc.start_exact) {
     auto fctx = static_cast<FreadLocalParseContext*>(ctx);
     const char* start = cc.start;
     while (*start=='\n' || *start=='\r') start++;
@@ -80,7 +80,7 @@ void FreadChunkedReader::adjust_chunk_coordinates(
   // plus 1 more character, thus guaranteeing that the entire next line will
   // also "belong" to the current chunk (this because chunk reader stops at
   // the first end of the line after `end`).
-  if (!cc.true_end) {
+  if (!cc.end_exact) {
     const char* end = cc.end;
     while (*end=='\n' || *end=='\r') end++;
     cc.end = end + 1;
@@ -115,7 +115,7 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   if (header == 1) {
     trace("[4] Assign column names");
-    field64 tmp;
+    dt::read::field64 tmp;
     FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
     parse_column_names(fctx);

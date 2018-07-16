@@ -25,7 +25,7 @@ struct FreadTokenizer {
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
-  field64* target;
+  dt::read::field64* target;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.

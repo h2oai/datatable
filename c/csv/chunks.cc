@@ -82,7 +82,7 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
 
   if (nthreads == 1 || isFirstChunk) {
     c.start = lastChunkEnd;
-    c.true_start = true;
+    c.start_exact = true;
   } else {
     c.start = inputStart + i * chunkSize;
   }
@@ -92,7 +92,7 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
   c.end = c.start + chunkSize;
   if (isLastChunk || c.end >= inputEnd) {
     c.end = inputEnd;
-    c.true_end = true;
+    c.end_exact = true;
   }
 
   adjust_chunk_coordinates(c, ctx);
@@ -292,7 +292,7 @@ void ChunkedDataReader::order_chunk(
       return;
     }
     xcc.start = lastChunkEnd;
-    xcc.true_start = true;
+    xcc.start_exact = true;
 
     ctx->read_chunk(xcc, acc);
     xassert(i);

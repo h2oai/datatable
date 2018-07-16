@@ -14,6 +14,7 @@
 #include <vector>         // std::vector
 #include "read/column.h"
 #include "read/columns.h"
+#include "read/field64.h"
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
@@ -200,38 +201,6 @@ class GenericReader
 
 
 
-//------------------------------------------------------------------------------
-// Helper classes
-//------------------------------------------------------------------------------
-
-/**
- * "Relative string": a string defined as an offset+length relative to some
- * anchor point (which has to be provided separately). This is the internal data
- * structure for reading strings from a file.
- */
-struct RelStr {
-  uint32_t offset;
-  int32_t length;
-
-  bool isna() { return length == std::numeric_limits<int32_t>::min(); }
-  void setna() { length = std::numeric_limits<int32_t>::min(); }
-};
-
-
-
-union field64 {
-  int8_t   int8;
-  int32_t  int32;
-  int64_t  int64;
-  uint8_t  uint8;
-  uint32_t uint32;
-  uint64_t uint64;
-  float    float32;
-  double   float64;
-  RelStr   str32;
-};
-
-
 
 //------------------------------------------------------------------------------
 // ChunkCoordinates struct
@@ -240,20 +209,20 @@ union field64 {
 /**
  * Helper struct containing the beginning / end for a chunk.
  *
- * Additional flags `true_start` and `true_end` indicate whether the beginning /
+ * Additional flags `start_exact` and `end_exact` indicate whether the beginning /
  * end of the chunk are known with certainty or guessed.
  */
 struct ChunkCoordinates {
   const char* start;
   const char* end;
-  bool true_start;
-  bool true_end;
+  bool start_exact;
+  bool end_exact;
   size_t : 48;
 
   ChunkCoordinates()
-    : start(nullptr), end(nullptr), true_start(false), true_end(false) {}
+    : start(nullptr), end(nullptr), start_exact(false), end_exact(false) {}
   ChunkCoordinates(const char* s, const char* e)
-    : start(s), end(e), true_start(false), true_end(false) {}
+    : start(s), end(e), start_exact(false), end_exact(false) {}
   ChunkCoordinates(const ChunkCoordinates&) = default;
   ChunkCoordinates& operator=(const ChunkCoordinates&) = default;
 
@@ -290,7 +259,7 @@ class LocalParseContext {
   public:
     struct SInfo { size_t start, size, write_at; };
 
-    dt::array<field64> tbuf;
+    dt::array<dt::read::field64> tbuf;
     dt::array<uint8_t> sbuf;
     dt::array<SInfo> strinfo;
     size_t tbuf_ncols;
@@ -374,7 +343,7 @@ class ChunkedDataReader {
      * more advanced chunk boundaries detection. This method will be called from
      * within `compute_chunk_boundaries()` only.
      * This method should modify `cc` by-reference; making sure not to alter
-     * `start` / `end` if the flags `true_start` / `true_end` are set.
+     * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
       ChunkCoordinates& cc, LocalParseContext* ctx) const;
@@ -417,7 +386,7 @@ class ChunkedDataReader {
      * `lastChunkEnd` variable and returns.
      *
      * Otherwise, it re-parses the chunk with correct coordinates. When doing
-     * so, it will set `xcc.true_start` to true, thus informing the chunk
+     * so, it will set `xcc.start_exact` to true, thus informing the chunk
      * parser that the coordinates that it received are true.
      */
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,

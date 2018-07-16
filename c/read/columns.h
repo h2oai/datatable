@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_READ_COLUMNSET_h
-#define dt_READ_COLUMNSET_h
+#ifndef dt_READ_COLUMNS_h
+#define dt_READ_COLUMNS_h
 #include <vector>           // std::vector
 #include <memory>           // std::unique_ptr
 #include "read/column.h"

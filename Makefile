@@ -631,7 +631,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/field64.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -681,6 +681,10 @@ $(BUILDDIR)/read/column.h: c/read/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/ut
 $(BUILDDIR)/read/columns.h: c/read/columns.h $(BUILDDIR)/read/column.h
 	@echo • Refreshing c/read/columns.h
 	@cp c/read/columns.h $@
+
+$(BUILDDIR)/read/field64.h: c/read/field64.h
+	@echo • Refreshing c/read/field64.h
+	@cp c/read/field64.h $@
 
 
 $(BUILDDIR)/utils/alloc.h: c/utils/alloc.h
