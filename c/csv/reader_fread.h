@@ -171,7 +171,7 @@ class FreadLocalParseContext : public LocalParseContext
     PT* types;
 
     FreadReader& freader;
-    GReaderColumns& columns;
+    dt::read::Columns& columns;
     dt::shared_mutex& shmutex;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;

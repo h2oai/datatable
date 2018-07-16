@@ -13,6 +13,7 @@
 #include <string>         // std::string
 #include <vector>         // std::vector
 #include "read/column.h"
+#include "read/columns.h"
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
@@ -20,45 +21,6 @@
 #include "utils/array.h"
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
-
-enum PT : uint8_t;
-
-
-
-//------------------------------------------------------------------------------
-// GReaderColumns
-//------------------------------------------------------------------------------
-
-class GReaderColumns {
-  private:
-    std::vector<dt::read::Column> cols;
-    size_t allocnrows;
-
-  public:
-    GReaderColumns() noexcept;
-
-    size_t size() const noexcept;
-    size_t get_nrows() const noexcept;
-    void set_nrows(size_t nrows);
-
-    dt::read::Column& operator[](size_t i) &;
-    const dt::read::Column& operator[](size_t i) const &;
-
-    void add_columns(size_t n);
-
-    std::unique_ptr<PT[]> getTypes() const;
-    void saveTypes(std::unique_ptr<PT[]>& types) const;
-    bool sameTypes(std::unique_ptr<PT[]>& types) const;
-    void setTypes(const std::unique_ptr<PT[]>& types);
-    void setType(PT type);
-    const char* printTypes() const;
-
-    size_t nColumnsInOutput() const;
-    size_t nColumnsInBuffer() const;
-    size_t nColumnsToReread() const;
-    size_t nStringColumns() const;
-    size_t totalAllocSize() const;
-};
 
 
 
@@ -137,7 +99,7 @@ class GenericReader
     int32_t fileno;
     bool cr_is_newline;
     int : 24;
-    GReaderColumns columns;
+    dt::read::Columns columns;
     double t_open_input{ 0 };
 
   private:
