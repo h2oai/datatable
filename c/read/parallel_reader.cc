@@ -5,18 +5,19 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "csv/reader.h"
+#include "read/parallel_reader.h"
 #include <algorithm>           // std::max
-#include "csv/reader_fread.h"  // FreadReader, FreadLocalParseContext
+#include "csv/reader.h"
 #include "utils/assert.h"
 
+extern double wallclock();
+
+namespace dt {
+namespace read {
 
 
-//------------------------------------------------------------------------------
-// ChunkedDataReader
-//------------------------------------------------------------------------------
 
-ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
+ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
   : g(reader)
 {
   chunkSize = 0;
@@ -35,7 +36,7 @@ ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
 }
 
 
-void ChunkedDataReader::determine_chunking_strategy() {
+void ParallelReader::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
   size_t size1000 = static_cast<size_t>(1000 * lineLength);
   size_t zThreads = static_cast<size_t>(nthreads);
@@ -71,8 +72,8 @@ void ChunkedDataReader::determine_chunking_strategy() {
 
 
 
-ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
-  size_t i, dt::read::ThreadContext* ctx) const
+ChunkCoordinates ParallelReader::compute_chunk_boundaries(
+  size_t i, ThreadContext* ctx) const
 {
   xassert(i < chunkCount);
   ChunkCoordinates c;
@@ -102,20 +103,20 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
 }
 
 
-double ChunkedDataReader::work_done_amount() const {
+double ParallelReader::work_done_amount() const {
   double done = static_cast<double>(lastChunkEnd - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);
   return done / total;
 }
 
 
-void ChunkedDataReader::adjust_chunk_coordinates(
-      ChunkCoordinates&, dt::read::ThreadContext*) const {}
+void ParallelReader::adjust_chunk_coordinates(
+      ChunkCoordinates&, ThreadContext*) const {}
 
 
 
 
-void ChunkedDataReader::read_all()
+void ParallelReader::read_all()
 {
   // Any exceptions that are thrown within OMP blocks must be captured within
   // the same block. If allowed to propagate, they may corrupt the stack and
@@ -260,7 +261,7 @@ void ChunkedDataReader::read_all()
 
 
 
-void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
+void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 {
   if (ichunk == chunkCount - 1) {
     // If we're on the last jump, then `new_alloc` is exactly how many rows
@@ -282,8 +283,8 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 }
 
 
-void ChunkedDataReader::order_chunk(
-  ChunkCoordinates& acc, ChunkCoordinates& xcc, LocalParseContextPtr& ctx)
+void ParallelReader::order_chunk(
+  ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
 {
   int i = 2;
   while (i--) {
@@ -298,3 +299,8 @@ void ChunkedDataReader::order_chunk(
     xassert(i);
   }
 }
+
+
+
+}  // namespace read
+}  // namespace dt

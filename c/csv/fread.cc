@@ -28,7 +28,7 @@
 // Find the next "good line", in the sense that we find at least 5 lines
 // with `ncols` fields from that point on.
 bool FreadChunkedReader::next_good_line_start(
-  const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
+  const dt::read::ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
 {
   int ncols = static_cast<int>(f.get_ncols());
   bool fill = f.fill;
@@ -63,7 +63,7 @@ bool FreadChunkedReader::next_good_line_start(
 
 
 void FreadChunkedReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const
+  dt::read::ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.

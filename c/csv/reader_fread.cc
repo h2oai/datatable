@@ -421,8 +421,8 @@ class ColumnTypeDetectionChunkster {
       }
     }
 
-    ChunkCoordinates compute_chunk_boundaries(size_t j) {
-      ChunkCoordinates cc(f.eof, f.eof);
+    dt::read::ChunkCoordinates compute_chunk_boundaries(size_t j) {
+      dt::read::ChunkCoordinates cc(f.eof, f.eof);
       if (j == 0) {
         if (f.header == 0) {
           cc.start = f.sof;
@@ -573,7 +573,7 @@ void FreadReader::detect_column_types()
   std::unique_ptr<PT[]> saved_types(new PT[ncols]);
 
   for (size_t j = 0; j < nChunks; ++j) {
-    ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
+    dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
     tch = cc.start;
     if (tch >= eof) continue;
 
@@ -949,7 +949,7 @@ FreadLocalParseContext::~FreadLocalParseContext() {
 
 
 void FreadLocalParseContext::read_chunk(
-  const ChunkCoordinates& cc, ChunkCoordinates& actual_cc)
+  const dt::read::ChunkCoordinates& cc, dt::read::ChunkCoordinates& actual_cc)
 {
   double t0 = verbose? wallclock() : 0;
   // If any error in the loop below occurs, we'll do `return;` and the output

@@ -403,14 +403,12 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	column_real.o             \
 	column_string.o           \
 	columnset.o               \
-	csv/chunks.o              \
 	csv/fread.o               \
 	csv/py_csv.o              \
 	csv/reader.o              \
 	csv/reader_arff.o         \
 	csv/reader_fread.o        \
 	csv/reader_parsers.o      \
-	csv/reader_utils.o        \
 	csv/writer.o              \
 	datatable.o               \
 	datatable_cbind.o         \
@@ -445,6 +443,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	python/string.o           \
 	read/column.o             \
 	read/columns.o            \
+	read/parallel_reader.o    \
 	read/thread_context.o     \
 	rowindex.o                \
 	rowindex_array.o          \
@@ -633,7 +632,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/column.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h $(BUILDDIR)/read/parallel_reader.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -687,6 +686,10 @@ $(BUILDDIR)/read/columns.h: c/read/columns.h $(BUILDDIR)/read/column.h
 $(BUILDDIR)/read/field64.h: c/read/field64.h
 	@echo • Refreshing c/read/field64.h
 	@cp c/read/field64.h $@
+
+$(BUILDDIR)/read/parallel_reader.h: c/read/parallel_reader.h $(BUILDDIR)/read/thread_context.h
+	@echo • Refreshing c/read/parallel_reader.h
+	@cp c/read/parallel_reader.h $@
 
 $(BUILDDIR)/read/thread_context.h: c/read/thread_context.h $(BUILDDIR)/read/field64.h $(BUILDDIR)/utils/array.h
 	@echo • Refreshing c/read/thread_context.h
@@ -771,10 +774,6 @@ $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/uti
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
-	@echo • Compiling $<
-	@$(CC) -c $< $(CCFLAGS) -o $@
-
 $(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -796,10 +795,6 @@ $(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc $(BUILDDIR)/column.h $(BU
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
-	@echo • Compiling $<
-	@$(CC) -c $< $(CCFLAGS) -o $@
-
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -937,6 +932,10 @@ $(BUILDDIR)/read/column.o : c/read/column.cc $(BUILDDIR)/read/column.h $(BUILDDI
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/read/columns.o : c/read/columns.cc $(BUILDDIR)/read/columns.h $(BUILDDIR)/csv/reader_parsers.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/read/parallel_reader.o : c/read/parallel_reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/read/parallel_reader.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
