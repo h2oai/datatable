@@ -789,7 +789,7 @@ DataTablePtr GenericReader::makeDatatable() {
   ccols = dt::malloc<Column*>((ocols + 1) * sizeof(Column*));
   ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
-    GReaderColumn& col = columns[i];
+    dt::read::Column& col = columns[i];
     if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();

@@ -57,9 +57,9 @@ class FreadObserver {
     FreadObserver(const GenericReader&);
     ~FreadObserver();
 
-    void type_bump_info(size_t icol, const GReaderColumn& col, PT new_type,
+    void type_bump_info(size_t icol, const dt::read::Column& col, PT new_type,
                         const char* field, int64_t len, int64_t lineno);
-    void str64_bump(size_t icol, const GReaderColumn& col);
+    void str64_bump(size_t icol, const dt::read::Column& col);
 
     void report();
 };

@@ -12,6 +12,7 @@
 #include <memory>         // std::unique_ptr
 #include <string>         // std::string
 #include <vector>         // std::vector
+#include "read/column.h"
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
@@ -21,96 +22,6 @@
 #include "utils/shared_mutex.h"
 
 enum PT : uint8_t;
-enum RT : uint8_t;
-class GenericReader;
-
-
-//------------------------------------------------------------------------------
-// GReaderColumn
-//------------------------------------------------------------------------------
-
-/**
- * Information about a single input column in a GenericReader. An "input column"
- * means a collection of fields at the same index on every line in the input.
- * All these fields are assumed to have a common underlying type.
- *
- * An input column usually translates into an output column in a DataTable
- * returned to the user. The exception to this are "dropped" columns. They are
- * marked with `presentInOutput = false` flag (and have rtype RT::RDrop).
- *
- * Implemented in "csv/reader_utils.cc".
- */
-class GReaderColumn {
-  private:
-    std::string name;
-    MemoryRange databuf;
-    MemoryWritableBuffer* strbuf;
-    PT ptype;
-    RT rtype;
-    bool typeBumped;
-    bool presentInOutput;
-    bool presentInBuffer;
-    int32_t : 24;
-
-    class ptype_iterator {
-      private:
-        int8_t* pqr;
-        RT rtype;
-        PT orig_ptype;
-        PT curr_ptype;
-        int64_t : 40;
-      public:
-        ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
-        PT operator*() const;
-        ptype_iterator& operator++();
-        bool has_incremented() const;
-        RT get_rtype() const;
-    };
-
-  public:
-    GReaderColumn();
-    GReaderColumn(const GReaderColumn&) = delete;
-    GReaderColumn(GReaderColumn&&);
-    virtual ~GReaderColumn();
-
-    // Column's data
-    void allocate(size_t nrows);
-    void* data_w();
-    WritableBuffer* strdata_w();
-    MemoryRange extract_databuf();
-    MemoryRange extract_strbuf();
-
-    // Column's name
-    const std::string& get_name() const noexcept;
-    void set_name(std::string&& newname) noexcept;
-    void swap_names(GReaderColumn& other) noexcept;
-    const char* repr_name(const GenericReader& g) const;  // static ptr
-
-    // Column's type(s)
-    PT get_ptype() const;
-    SType get_stype() const;
-    ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
-    void set_rtype(int64_t it);
-    void set_ptype(const ptype_iterator& it);
-    void force_ptype(PT new_ptype);
-    const char* typeName() const;
-
-    // Column info
-    bool is_string() const;
-    bool is_dropped() const;
-    bool is_type_bumped() const;
-    bool is_in_output() const;
-    bool is_in_buffer() const;
-    size_t elemsize() const;
-    void reset_type_bumped();
-    void set_in_buffer(bool f);
-
-    // Misc
-    void convert_to_str64();
-    PyObj py_descriptor() const;
-    size_t memory_footprint() const;
-};
-
 
 
 
@@ -120,7 +31,7 @@ class GReaderColumn {
 
 class GReaderColumns {
   private:
-    std::vector<GReaderColumn> cols;
+    std::vector<dt::read::Column> cols;
     size_t allocnrows;
 
   public:
@@ -130,8 +41,8 @@ class GReaderColumns {
     size_t get_nrows() const noexcept;
     void set_nrows(size_t nrows);
 
-    GReaderColumn& operator[](size_t i) &;
-    const GReaderColumn& operator[](size_t i) const &;
+    dt::read::Column& operator[](size_t i) &;
+    const dt::read::Column& operator[](size_t i) const &;
 
     void add_columns(size_t n);
 

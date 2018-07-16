@@ -138,7 +138,7 @@ DataTablePtr FreadReader::read()
     size_t ndropped = 0;
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
-      GReaderColumn& col = columns[i];
+      dt::read::Column& col = columns[i];
       col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
@@ -193,7 +193,7 @@ DataTablePtr FreadReader::read()
         fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
-          GReaderColumn& col = columns[j];
+          dt::read::Column& col = columns[j];
           if (!col.is_in_output()) continue;
           bool bumped = col.is_type_bumped();
           col.reset_type_bumped();

@@ -479,11 +479,11 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
 
   size_t ncols = columns.size();
   size_t j = 0;
-  GReaderColumn dummy_col;
+  dt::read::Column dummy_col;
   dummy_col.force_ptype(PT::Str32);
 
   while (true) {
-    GReaderColumn& col = j < ncols ? columns[j] : dummy_col;
+    dt::read::Column& col = j < ncols ? columns[j] : dummy_col;
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
@@ -835,7 +835,7 @@ void FreadReader::skip_preamble() {
  * correctly, so that `parse_string()` can parse each field without error. If
  * not, a `RuntimeError` will be thrown.
  */
-// TODO name-cleaning should be a method of GReaderColumn
+// TODO name-cleaning should be a method of dt::read::Column
 void FreadReader::parse_column_names(FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
@@ -1135,7 +1135,7 @@ void FreadLocalParseContext::postprocess() {
                   quoteRule == 1? '\\' : 0xFF;
   uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
-    GReaderColumn& col = columns[i];
+    dt::read::Column& col = columns[i];
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
@@ -1189,7 +1189,7 @@ void FreadLocalParseContext::postprocess() {
 void FreadLocalParseContext::orderBuffer() {
   if (!used_nrows) return;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
-    GReaderColumn& col = columns[i];
+    dt::read::Column& col = columns[i];
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
@@ -1227,7 +1227,7 @@ void FreadLocalParseContext::push_buffers() {
   double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; i++) {
-    GReaderColumn& col = columns[i];
+    dt::read::Column& col = columns[i];
     if (!col.is_in_buffer()) continue;
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
@@ -1580,7 +1580,7 @@ void FreadObserver::report() {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const GReaderColumn& col, PT new_type,
+  size_t icol, const dt::read::Column& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   static const int BUF_SIZE = 1000;
@@ -1595,7 +1595,7 @@ void FreadObserver::type_bump_info(
 }
 
 
-void FreadObserver::str64_bump(size_t icol, const GReaderColumn& col) {
+void FreadObserver::str64_bump(size_t icol, const dt::read::Column& col) {
   static const int BUF_SIZE = 1000;
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
