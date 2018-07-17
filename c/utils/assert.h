@@ -28,6 +28,7 @@
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
 #ifdef NDEBUG
+  #define weak_assert(EXPRESSION)
   #define xassert(EXPRESSION)
 #else
   #define aAPPLY(macro, arg) macro(arg)
