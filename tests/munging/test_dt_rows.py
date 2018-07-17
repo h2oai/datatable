@@ -440,6 +440,19 @@ def test_rows_function_invalid(dt0):
                      "Unexpected result produced by the `rows` function")
 
 
+def test_0rows_frame():
+    dt0 = dt.Frame(A=[], B=[], stype=int)
+    assert dt0.shape == (0, 2)
+    dt1 = dt0[f.A == 0, :]
+    dt1.internal.check()
+    assert dt1.shape == (0, 2)
+    assert dt1.names == ("A", "B")
+    dt2 = dt0[:, f.A - f.B]
+    dt2.internal.check()
+    assert dt2.shape == (0, 1)
+    assert dt2.ltypes == (ltype.int, )
+
+
 
 #-------------------------------------------------------------------------------
 # Test eager selectors
