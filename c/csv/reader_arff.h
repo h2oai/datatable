@@ -5,9 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_READER_ARFF_H
-#define dt_CSV_READER_ARFF_H
+#ifndef dt_CSV_READER_ARFF_h
+#define dt_CSV_READER_ARFF_h
 #include "csv/reader.h"
+#include "datatable.h"
 
 
 /**
@@ -25,13 +26,13 @@ class ArffReader
   const char* ch;  // pointer to the current reading location
   int line;        // current line number within the input (1-based)
   int : 32;
-  std::vector<GReaderColumn> columns;
+  std::vector<dt::read::Column> columns;
 
 public:
   ArffReader(GenericReader&);
   ~ArffReader();
 
-  DataTablePtr read();
+  std::unique_ptr<DataTable> read();
 
 private:
   // Read the comment lines at the beginning of the file, and store them in

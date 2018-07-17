@@ -12,10 +12,12 @@
 #include <strings.h>  // strcasecmp
 #include <cerrno>     // errno
 #include <cstring>    // std::memcmp
+#include "datatable.h"
 #include "encodings.h"
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
+#include "python/list.h"
 #include "python/long.h"
 #include "python/string.h"
 
@@ -281,7 +283,7 @@ void GenericReader::init_overridecolumntypes() {
 // Main read() function
 //------------------------------------------------------------------------------
 
-DataTablePtr GenericReader::read()
+std::unique_ptr<DataTable> GenericReader::read()
 {
   open_input();
   detect_and_skip_bom();
@@ -290,7 +292,7 @@ DataTablePtr GenericReader::read()
   skip_initial_whitespace();
   skip_trailing_whitespace();
 
-  DataTablePtr dt(nullptr);
+  std::unique_ptr<DataTable> dt(nullptr);
   if (!dt) dt = read_empty_input();
   if (!dt) detect_improper_files();
   if (!dt) dt = FreadReader(*this).read();
@@ -696,13 +698,13 @@ void GenericReader::skip_to_line_with_string() {
 }
 
 
-DataTablePtr GenericReader::read_empty_input() {
+std::unique_ptr<DataTable> GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
     cols[0] = nullptr;
-    return DataTablePtr(new DataTable(cols));
+    return std::unique_ptr<DataTable>(new DataTable(cols));
   }
   return nullptr;
 }
@@ -789,7 +791,7 @@ DataTablePtr GenericReader::makeDatatable() {
   ccols = dt::malloc<Column*>((ocols + 1) * sizeof(Column*));
   ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
-    GReaderColumn& col = columns[i];
+    dt::read::Column& col = columns[i];
     if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();

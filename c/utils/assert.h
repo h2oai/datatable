@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_ASSERT_h
 #define dt_UTILS_ASSERT_h
+#include <cstdio>
 #include "utils/exceptions.h"
 
 // First, fix the NDEBUG macro.
@@ -27,12 +28,23 @@
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
 #ifdef NDEBUG
-  #define xassert(EXPRESSION) ((void)0)
+  #define weak_assert(EXPRESSION)
+  #define xassert(EXPRESSION)
 #else
+  #define aAPPLY(macro, arg) macro(arg)
+  #define aSTRINGIFY_(L) #L
+  #define aSTRINGIFY(x) aAPPLY(aSTRINGIFY_, x)
+
+  #define weak_assert(EXPRESSION) \
+    if (!(EXPRESSION)) { \
+      std::printf("Assertion '" #EXPRESSION "' failed in " \
+          aSTRINGIFY(__FILE__) ", line " aSTRINGIFY(__LINE__)); \
+    }
+
   #define xassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
       throw AssertionError() << "Assertion '" << #EXPRESSION << "' failed in " \
-          << __FILE__ << ", line " << __LINE__; \
+          aSTRINGIFY(__FILE__) ", line " aSTRINGIFY(__LINE__); \
     }
 #endif
 

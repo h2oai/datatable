@@ -13,9 +13,9 @@
 #include "types.h"
 
 struct FreadTokenizer;
-class GReaderColumn;
+namespace dt { namespace read { class Column; } }
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
-typedef PyObject* (*FormatGeneratorFn)(GReaderColumn& col);
+typedef PyObject* (*FormatGeneratorFn)(dt::read::Column& col);
 
 
 // In order to add a new type:

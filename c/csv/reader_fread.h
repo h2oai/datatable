@@ -14,11 +14,16 @@
 #include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
 #include "memrange.h"
+#include "read/parallel_reader.h"
 #include "utils/shared_mutex.h"
 
 class FreadLocalParseContext;
 class FreadChunkedReader;
-class ChunkedDataReader;
+namespace dt {
+namespace read {
+  struct ChunkCoordinates;
+  class ParallelReader;
+}}
 class ColumnTypeDetectionChunkster;
 
 
@@ -57,9 +62,9 @@ class FreadObserver {
     FreadObserver(const GenericReader&);
     ~FreadObserver();
 
-    void type_bump_info(size_t icol, const GReaderColumn& col, PT new_type,
+    void type_bump_info(size_t icol, const dt::read::Column& col, PT new_type,
                         const char* field, int64_t len, int64_t lineno);
-    void str64_bump(size_t icol, const GReaderColumn& col);
+    void str64_bump(size_t icol, const dt::read::Column& col);
 
     void report();
 };
@@ -118,13 +123,13 @@ public:
   explicit FreadReader(const GenericReader&);
   virtual ~FreadReader() override;
 
-  DataTablePtr read();
+  std::unique_ptr<DataTable> read();
 
   // Simple getters
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 
-  FreadTokenizer makeTokenizer(field64* target, const char* anchor) const;
+  FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
 
 private:
   void parse_column_names(FreadTokenizer& ctx);
@@ -139,7 +144,7 @@ private:
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
-  friend ChunkedDataReader;
+  friend dt::read::ParallelReader;
   friend ColumnTypeDetectionChunkster;
 };
 
@@ -154,7 +159,7 @@ private:
  *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
  *
  */
-class FreadLocalParseContext : public LocalParseContext
+class FreadLocalParseContext : public dt::read::ThreadContext
 {
   public:
     const char* anchor;
@@ -171,7 +176,7 @@ class FreadLocalParseContext : public LocalParseContext
     PT* types;
 
     FreadReader& freader;
-    GReaderColumns& columns;
+    dt::read::Columns& columns;
     dt::shared_mutex& shmutex;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
@@ -184,7 +189,7 @@ class FreadLocalParseContext : public LocalParseContext
     virtual ~FreadLocalParseContext() override;
 
     virtual void push_buffers() override;
-    void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
+    void read_chunk(const dt::read::ChunkCoordinates&, dt::read::ChunkCoordinates&) override;
     void postprocess();
     void orderBuffer() override;
 };
@@ -193,37 +198,37 @@ class FreadLocalParseContext : public LocalParseContext
 
 
 
-class FreadChunkedReader : public ChunkedDataReader {
+class FreadChunkedReader : public dt::read::ParallelReader {
   private:
     FreadReader& f;
     PT* types;
 
   public:
     FreadChunkedReader(FreadReader& reader, PT* types_)
-      : ChunkedDataReader(reader, reader.get_mean_line_len()), f(reader)
+      : dt::read::ParallelReader(reader, reader.get_mean_line_len()), f(reader)
     {
       types = types_;
     }
     virtual ~FreadChunkedReader() override {}
 
     virtual void read_all() override {
-      ChunkedDataReader::read_all();
+      dt::read::ParallelReader::read_all();
       f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
     }
 
     bool next_good_line_start(
-      const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
+      const dt::read::ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
 
   protected:
-    virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
+    virtual std::unique_ptr<dt::read::ThreadContext> init_thread_context() override {
       size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
       size_t tcols = f.columns.nColumnsInBuffer();
-      return std::unique_ptr<LocalParseContext>(
+      return std::unique_ptr<dt::read::ThreadContext>(
                 new FreadLocalParseContext(tcols, trows, f, types, shmutex));
     }
 
     void adjust_chunk_coordinates(
-      ChunkCoordinates& cc, LocalParseContext* ctx) const override;
+      dt::read::ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const override;
 
 };
 
