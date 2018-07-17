@@ -7,6 +7,7 @@
 import pytest
 import datatable as dt
 from datatable import stype, ltype, f
+from tests import same_iterables
 
 
 #-------------------------------------------------------------------------------
@@ -446,7 +447,7 @@ def test_0rows_frame():
     dt1 = dt0[f.A == 0, :]
     dt1.internal.check()
     assert dt1.shape == (0, 2)
-    assert dt1.names == ("A", "B")
+    assert same_iterables(dt1.names, ("A", "B"))
     dt2 = dt0[:, f.A - f.B]
     dt2.internal.check()
     assert dt2.shape == (0, 1)
