@@ -179,17 +179,18 @@ class Frame(object):
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
         length = max(2, len(str(row1)))
+        nk = self._nkeys
         return {
-            "names": self._names[col0:col1],
+            "names": self._names[:nk] + self._names[col0 + nk:col1 + nk],
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
-            "indices": ["%*d" % (length, x) for x in range(row0, row1)],
+            "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
         }
 
     def view(self, interactive=True):
-        widget = DataFrameWidget(self._nrows, self._ncols, self._data_viewer,
-                                 interactive)
+        widget = DataFrameWidget(self._nrows, self._ncols, self._nkeys,
+                                 self._data_viewer, interactive)
         widget.render()
 
 
@@ -978,7 +979,7 @@ def column_hexview(col, dt, colidx):
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
-            "indices": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
+            "rownumbers": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
         }
 
     print("Column %d" % colidx)

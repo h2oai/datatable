@@ -37,7 +37,7 @@ class DataFrameWidget(object):
     VIEW_NROWS_MAX = 30
     RIGHT_MARGIN = 2
 
-    def __init__(self, nrows, ncols, viewdata_callback, interactive=True):
+    def __init__(self, nrows, ncols, nkeys, viewdata_callback, interactive=True):
         """
         Initialize a new frame widget.
 
@@ -54,6 +54,7 @@ class DataFrameWidget(object):
         # number of rows / columns in the dataframe being displayed
         self._frame_nrows = nrows
         self._frame_ncols = ncols
+        self._frame_nkeys = nkeys
         # callback function to fetch dataframe's data
         self._data_callback = viewdata_callback
 
@@ -120,19 +121,34 @@ class DataFrameWidget(object):
         coltypes = data["types"]
         stypes = data["stypes"]
         coldata = data["columns"]
-        indices = data["indices"]
+        indices = data["rownumbers"]
+        nkeys = self._frame_nkeys
 
         # Create column with row indices
-        oldwidth = self._colwidths.get("index", 3)
-        indexcolumn = _Column(name="", ctype=ltype.str, data=indices)
-        indexcolumn.color = term.bright_black
-        indexcolumn.margin = "  "
-        indexcolumn.width = max(oldwidth, indexcolumn.width)
-        self._colwidths["index"] = indexcolumn.width
+        if nkeys:
+            columns = []
+            for i in range(nkeys):
+                colname = colnames[i]
+                oldwidth = self._colwidths.get(colname, 3)
+                keycol = _Column(name=colname, ctype=coltypes[i],
+                                 data=coldata[i])
+                keycol.color = term.bright_black
+                keycol.width = max(oldwidth, keycol.width)
+                self._colwidths[colname] = keycol.width
+                columns.append(keycol)
+            columns[-1].margin = ""
+            columns.append(_Divider())
+        else:
+            oldwidth = self._colwidths.get("", 3)
+            indexcolumn = _Column(name="", ctype=ltype.str, data=indices)
+            indexcolumn.color = term.bright_black
+            indexcolumn.margin = "  "
+            indexcolumn.width = max(oldwidth, indexcolumn.width)
+            self._colwidths[""] = indexcolumn.width
+            columns = [indexcolumn]
 
         # Data columns
-        columns = [indexcolumn]
-        for i in range(self._view_ncols):
+        for i in range(nkeys, self._view_ncols):
             if self._show_types == 1:
                 name = term.green(coltypes[i].name)
             elif self._show_types == 2:
@@ -457,6 +473,17 @@ class _Column(object):
                 return whitespace + value
         else:
             return value[:self._width - 1] + "…"
+
+
+class _Divider:
+    def __init__(self):
+        self.width = 4
+        self.margin = ""
+        self.header = term.bright_black(" |  ")
+        self.divider = term.bright_black("-+  ")
+
+    def value(self, row):
+        return self.header
 
 
 
