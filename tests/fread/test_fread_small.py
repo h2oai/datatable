@@ -1001,15 +1001,18 @@ def test_round_filesize(tempfile, mul, eol):
 
 
 def test_maxnrows_on_large_dataset():
+    # Limit number of threads during reading, otherwise the test may fail on a
+    # machine with many cores (all chunks read at once, in the same amount of
+    # time as the single chunk containing the first 5 rows).
     src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(2000000))
     t0 = time.time()
-    d0 = dt.fread(src, max_nrows=5, verbose=True)
+    d0 = dt.fread(src, nthreads=4, max_nrows=5, verbose=True)
     t0 = time.time() - t0
     d0.internal.check()
     assert d0.shape == (5, 3)
     assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
     t1 = time.time()
-    d1 = dt.fread(src)
+    d1 = dt.fread(src, nthreads=4)
     t1 = time.time() - t1
     assert d1.shape == (2000000, 3)
     assert t0 < t1 / 2, ("Reading with max_nrows=5 should be faster than "
