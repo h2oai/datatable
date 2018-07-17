@@ -7,10 +7,6 @@
 // obtain one at https://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 #include "csv/fread.h"
-#include "csv/freadLookups.h"
-#include "csv/reader.h"
-#include "csv/reader_fread.h"
-#include "csv/reader_parsers.h"
 #include <ctype.h>     // isspace
 #include <stdarg.h>    // va_list, va_start
 #include <stdio.h>     // vsnprintf
@@ -18,6 +14,11 @@
 #include <cmath>       // std::sqrt, std::ceil
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
+#include "csv/freadLookups.h"
+#include "csv/reader.h"
+#include "csv/reader_fread.h"
+#include "csv/reader_parsers.h"
+#include "datatable.h"
 #include "utils/assert.h"
 
 
@@ -28,7 +29,7 @@
 // Find the next "good line", in the sense that we find at least 5 lines
 // with `ncols` fields from that point on.
 bool FreadChunkedReader::next_good_line_start(
-  const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
+  const dt::read::ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
 {
   int ncols = static_cast<int>(f.get_ncols());
   bool fill = f.fill;
@@ -63,11 +64,11 @@ bool FreadChunkedReader::next_good_line_start(
 
 
 void FreadChunkedReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, LocalParseContext* ctx) const
+  dt::read::ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
-  if (!cc.true_start) {
+  if (!cc.start_exact) {
     auto fctx = static_cast<FreadLocalParseContext*>(ctx);
     const char* start = cc.start;
     while (*start=='\n' || *start=='\r') start++;
@@ -80,7 +81,7 @@ void FreadChunkedReader::adjust_chunk_coordinates(
   // plus 1 more character, thus guaranteeing that the entire next line will
   // also "belong" to the current chunk (this because chunk reader stops at
   // the first end of the line after `end`).
-  if (!cc.true_end) {
+  if (!cc.end_exact) {
     const char* end = cc.end;
     while (*end=='\n' || *end=='\r') end++;
     cc.end = end + 1;
@@ -97,7 +98,7 @@ void FreadChunkedReader::adjust_chunk_coordinates(
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-DataTablePtr FreadReader::read()
+std::unique_ptr<DataTable> FreadReader::read()
 {
   detect_lf();
   skip_preamble();
@@ -115,7 +116,7 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   if (header == 1) {
     trace("[4] Assign column names");
-    field64 tmp;
+    dt::read::field64 tmp;
     FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
     parse_column_names(fctx);
@@ -138,7 +139,7 @@ DataTablePtr FreadReader::read()
     size_t ndropped = 0;
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
-      GReaderColumn& col = columns[i];
+      dt::read::Column& col = columns[i];
       col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
@@ -193,7 +194,7 @@ DataTablePtr FreadReader::read()
         fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
-          GReaderColumn& col = columns[j];
+          dt::read::Column& col = columns[j];
           if (!col.is_in_output()) continue;
           bool bumped = col.is_type_bumped();
           col.reset_type_bumped();
@@ -219,7 +220,7 @@ DataTablePtr FreadReader::read()
 
 
   trace("[7] Finalize the datatable");
-  DataTablePtr res = makeDatatable();
+  auto res = makeDatatable();
   if (verbose) fo.report();
   return res;
 }

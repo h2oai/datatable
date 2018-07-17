@@ -13,6 +13,7 @@
 #include "utils/omp.h"
 #include "memrange.h"
 #include "csv/reader.h"
+#include "read/field64.h"
 
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
@@ -25,7 +26,7 @@ struct FreadTokenizer {
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
-  field64* target;
+  dt::read::field64* target;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
