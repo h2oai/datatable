@@ -516,6 +516,9 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   rhs->reify();
   int64_t lhs_nrows = lhs->nrows;
   int64_t rhs_nrows = rhs->nrows;
+  if (lhs_nrows == 0 || rhs_nrows == 0) {
+    lhs_nrows = rhs_nrows = 0;
+  }
   SType lhs_type = lhs->stype();
   SType rhs_type = rhs->stype();
   void* params[3];
@@ -531,8 +534,8 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   if (!mapfn) {
     throw RuntimeError()
       << "Unable to apply op " << opcode << " to column1(stype=" << lhs_type
-      << ", nrows=" << lhs_nrows << ") and column2(stype=" << rhs_type
-      << ", nrows=" << rhs_nrows << ")";
+      << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
+      << ", nrows=" << rhs->nrows << ")";
   }
 
   int64_t nrows = std::max(lhs_nrows, rhs_nrows);

@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - rare crash in fread when resizing the number of rows.
 - saving view frames to csv.
 - crash when sorting string columns containins NA strings.
+- crash when applying a filter to a 0-rows frame.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
