@@ -166,10 +166,20 @@ PyObject* get_groupby(obj* self) {
   return gb.ngroups()? pygroupby::wrap(gb) : none();
 }
 
-
 int set_groupby(obj* self, PyObject* value) {
   Groupby* gb = pygroupby::unwrap(value);
   self->ref->replace_groupby(gb? *gb : Groupby());
+  return 0;
+}
+
+
+PyObject* get_nkeys(obj* self) {
+  return PyLong_FromLongLong(self->ref->nkeys);
+}
+
+int set_nkeys(obj* self, PyObject* value) {
+  int64_t nk = PyObj(value).as_int64();
+  self->ref->set_nkeys(nk);
   return 0;
 }
 
@@ -636,6 +646,7 @@ static PyGetSetDef datatable_getseters[] = {
   GETTER(isview),
   GETTER(rowindex),
   GETSET(groupby),
+  GETSET(nkeys),
   GETTER(rowindex_type),
   GETTER(datatable_ptr),
   GETTER(alloc_size),

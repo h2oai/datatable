@@ -44,7 +44,7 @@ class Frame(object):
     _id_counter_ = 0
 
     __slots__ = ("_id", "_ncols", "_nrows", "_ltypes", "_stypes", "_names",
-                 "_inames", "_dt")
+                 "_inames", "_dt", "_nkeys")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "stype" in kwargs:
@@ -58,6 +58,7 @@ class Frame(object):
         self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
         self._nrows = 0      # type: int
+        self._nkeys = 0      # type: int
         self._ltypes = None  # type: Tuple[ltype]
         self._stypes = None  # type: Tuple[stype]
         self._names = None   # type: Tuple[str]
@@ -73,13 +74,19 @@ class Frame(object):
 
     @property
     def nrows(self):
-        """Number of rows in the datatable."""
+        """Number of rows in the frame."""
         return self._nrows
 
     @property
     def ncols(self):
-        """Number of columns in the datatable."""
+        """Number of columns in the frame."""
         return self._ncols
+
+    @property
+    def key(self):
+        """Tuple of column names that comprise the Frame's key. If the Frame
+        is not keyed, this will return an empty tuple."""
+        return self._names[:self._nkeys]
 
     @property
     def shape(self):
@@ -107,7 +114,7 @@ class Frame(object):
 
     @property
     def internal(self):
-        """Access to the underlying C Frame object."""
+        """Access to the internal C DataTable object."""
         return self._dt
 
 
@@ -118,6 +125,30 @@ class Frame(object):
     @nrows.setter
     def nrows(self, n):
         self.resize(n)
+
+    @key.setter
+    def key(self, colnames):
+        if colnames is None:
+            self._nkeys = 0
+            self._dt.nkeys = 0
+            return
+        if isinstance(colnames, (int, str)):
+            colnames = [colnames]
+        nk = len(colnames)
+        colindices = [self.colindex(n) for n in colnames]
+        if colindices == list(range(nk)):
+            # The key columns are already in the right order: no need to
+            # rearrange the columns
+            pass
+        elif len(set(colindices)) == nk:
+            allindices = colindices + [i for i in range(self._ncols)
+                                       if i not in colindices]
+            self.__init__(self[:, allindices])
+        else:
+            raise ValueError("Duplicate columns requested for the key: %r"
+                             % [self._names[i] for i in colindices])
+        self._nkeys = nk
+        self._dt.nkeys = nk
 
     @names.setter
     @typed()
@@ -148,17 +179,18 @@ class Frame(object):
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
         length = max(2, len(str(row1)))
+        nk = self._nkeys
         return {
-            "names": self._names[col0:col1],
+            "names": self._names[:nk] + self._names[col0 + nk:col1 + nk],
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
-            "indices": ["%*d" % (length, x) for x in range(row0, row1)],
+            "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
         }
 
     def view(self, interactive=True):
-        widget = DataFrameWidget(self._nrows, self._ncols, self._data_viewer,
-                                 interactive)
+        widget = DataFrameWidget(self._nrows, self._ncols, self._nkeys,
+                                 self._data_viewer, interactive)
         widget.render()
 
 
@@ -947,7 +979,7 @@ def column_hexview(col, dt, colidx):
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
-            "indices": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
+            "rownumbers": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
         }
 
     print("Column %d" % colidx)

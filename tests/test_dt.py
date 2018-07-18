@@ -831,6 +831,38 @@ def test_scalar_on_view(dt0):
 
 
 #-------------------------------------------------------------------------------
+# Keys
+#-------------------------------------------------------------------------------
+
+def test_keys_simple():
+    dt0 = dt.Frame([["Joe", "Mary", "Leslie", "Adam", "Alice"],
+                    [1, 5, 15, 12, 8],
+                    [3.6, 9.78, 2.01, -4.23, 5.3819]],
+                   names=["name", "sex", "avg"])
+    assert dt0.key == tuple()
+    dt0.key = "name"
+    dt0.internal.check()
+    assert dt0.key == ("name",)
+    assert dt0.shape == (5, 3)
+    assert dt0.names == ("name", "sex", "avg")
+    assert dt0.topython() == [["Adam", "Alice", "Joe", "Leslie", "Mary"],
+                              [12, 8, 1, 15, 5],
+                              [-4.23, 5.3819, 3.6, 2.01, 9.78]]
+    dt0.key = "sex"
+    dt0.internal.check()
+    assert not dt0.internal.isview
+    assert dt0.key == ("sex",)
+    assert dt0.shape == (5, 3)
+    assert dt0.names == ("sex", "name", "avg")
+    assert dt0.topython() == [[1, 5, 8, 12, 15],
+                              ["Joe", "Mary", "Alice", "Adam", "Leslie"],
+                              [3.6, 9.78, 5.3819, -4.23, 2.01]]
+    dt0.key = None
+    assert dt0.key == tuple()
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
