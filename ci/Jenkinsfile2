@@ -43,7 +43,7 @@ EXPECTED_SHAS = [
         ]
 ]
 
-OSX_ENV = ["LLVM4=/usr/local/opt/llvm@4", "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"]
+OSX_ENV = ["LLVM6=/usr/local/opt/llvm@6", "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"]
 OSX_CONDA_ACTIVATE_PATH = '/Users/jenkins/anaconda/bin/activate'
 // Paths should be absolute
 SOURCE_DIR = "/home/0xdiag"
