@@ -118,14 +118,19 @@ def test_create_from_kwargs2():
     assert same_iterables(d0.topython(), [[0, 1, 2, 3], [1, 3, 8, 0]])
 
 
-def test_create_from_datatable():
-    d8_0 = dt.Frame({"A": [1, 4, 3],
-                     "B": [False, True, False],
-                     "C": ["str1", "str2", "str3"]})
-    d8_1 = dt.Frame(d8_0)
-    d8_2 = dt.Frame(d8_0.internal, d8_0.names)
-    assert_equals(d8_0, d8_1)
-    assert_equals(d8_0, d8_2)
+def test_create_from_frame():
+    d0 = dt.Frame(A=[1, 4, 3],
+                  B=[False, True, False],
+                  C=["str1", "str2", "str3"])
+    d1 = dt.Frame(d0)
+    assert_equals(d0, d1)
+    # Now check that d1 is a true copy of d0, rather than reference
+    del d1["C"]
+    d1.nrows = 10
+    assert d1.nrows == d1.internal.nrows == 10
+    assert d1.ncols == d1.internal.ncols == 2
+    assert d0.nrows == d0.internal.nrows == 3
+    assert d0.ncols == d0.internal.ncols == 3
 
 
 def test_create_from_string():
