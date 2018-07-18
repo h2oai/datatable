@@ -13,7 +13,7 @@ RUN \
         bzip2 && \
     wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
     bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
-    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps/1.0-PR-2-9/ARCH_SUBST-centos7/llvm.tar.bz2 && \
+    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps/1.0-master-2/ARCH_SUBST-centos7/llvm.tar.bz2 && \
     tar xvf llvm.tar.bz2 && \
     cp -r llvm/* /opt/h2oai/dai/ && \
     rm -rf llvm*
