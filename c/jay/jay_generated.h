@@ -308,13 +308,17 @@ struct Frame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_NROWS = 4,
     VT_NCOLS = 6,
-    VT_COLUMNS = 8
+    VT_NKEYS = 8,
+    VT_COLUMNS = 10
   };
   uint64_t nrows() const {
     return GetField<uint64_t>(VT_NROWS, 0);
   }
   uint64_t ncols() const {
     return GetField<uint64_t>(VT_NCOLS, 0);
+  }
+  int32_t nkeys() const {
+    return GetField<int32_t>(VT_NKEYS, 0);
   }
   const flatbuffers::Vector<flatbuffers::Offset<Column>> *columns() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Column>> *>(VT_COLUMNS);
@@ -323,6 +327,7 @@ struct Frame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_NROWS) &&
            VerifyField<uint64_t>(verifier, VT_NCOLS) &&
+           VerifyField<int32_t>(verifier, VT_NKEYS) &&
            VerifyOffset(verifier, VT_COLUMNS) &&
            verifier.Verify(columns()) &&
            verifier.VerifyVectorOfTables(columns()) &&
@@ -339,6 +344,9 @@ struct FrameBuilder {
   }
   void add_ncols(uint64_t ncols) {
     fbb_.AddElement<uint64_t>(Frame::VT_NCOLS, ncols, 0);
+  }
+  void add_nkeys(int32_t nkeys) {
+    fbb_.AddElement<int32_t>(Frame::VT_NKEYS, nkeys, 0);
   }
   void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Column>>> columns) {
     fbb_.AddOffset(Frame::VT_COLUMNS, columns);
@@ -359,11 +367,13 @@ inline flatbuffers::Offset<Frame> CreateFrame(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t nrows = 0,
     uint64_t ncols = 0,
+    int32_t nkeys = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Column>>> columns = 0) {
   FrameBuilder builder_(_fbb);
   builder_.add_ncols(ncols);
   builder_.add_nrows(nrows);
   builder_.add_columns(columns);
+  builder_.add_nkeys(nkeys);
   return builder_.Finish();
 }
 
@@ -371,11 +381,13 @@ inline flatbuffers::Offset<Frame> CreateFrameDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t nrows = 0,
     uint64_t ncols = 0,
+    int32_t nkeys = 0,
     const std::vector<flatbuffers::Offset<Column>> *columns = nullptr) {
   return jay::CreateFrame(
       _fbb,
       nrows,
       ncols,
+      nkeys,
       columns ? _fbb.CreateVector<flatbuffers::Offset<Column>>(*columns) : 0);
 }
 

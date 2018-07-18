@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Implemented logical operators "and" `&` and "or" `|` for eager evaluator.
 - Implemented integer division `//` and modulo `%` operators.
 - Now a key column can be set on a Frame.
+- Key column(s) are saved when the frame is saved into a Jay file.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.

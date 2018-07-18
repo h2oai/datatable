@@ -56,6 +56,7 @@ void DataTable::save_jay(const std::string& path,
   auto frame = jay::CreateFrameDirect(fbb,
                   static_cast<size_t>(nrows),
                   msg_columns.size(),
+                  static_cast<int>(nkeys),
                   &msg_columns);
   fbb.Finish(frame);
 

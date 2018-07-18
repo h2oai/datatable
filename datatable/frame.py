@@ -260,6 +260,7 @@ class Frame(object):
         self._dt = _dt
         self._ncols = _dt.ncols
         self._nrows = _dt.nrows
+        self._nkeys = _dt.nkeys
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
