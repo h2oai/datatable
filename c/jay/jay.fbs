@@ -57,6 +57,7 @@ struct StatsFloat64 { min: float64; max: float64; }
 table Frame {
   nrows:   uint64;
   ncols:   uint64;
+  nkeys:   int;
   columns: [Column];
 }
 
