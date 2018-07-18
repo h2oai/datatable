@@ -147,9 +147,12 @@ std::unique_ptr<DataTable> FreadReader::read()
       } else {
         if (col.get_ptype() < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
-          STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
-               "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-               i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
+          throw RuntimeError()
+              << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
+              << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
+              << "' down to '" << col.typeName() << "' which will lose accuracy. "
+                 "If this was intended, please coerce to the lower type afterwards. Only "
+                 "overrides to a higher type are permitted.";
         }
         nUserBumped += (col.get_ptype() != oldtypes[i]);
       }

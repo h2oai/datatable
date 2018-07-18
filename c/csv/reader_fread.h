@@ -234,18 +234,4 @@ class FreadChunkedReader : public dt::read::ParallelReader {
 
 
 
-//------------------------------------------------------------------------------
-// Old helper macros
-//------------------------------------------------------------------------------
-
-// Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
-//     if (cond) STOP("Bad things happened: %s", smth_bad);
-//
-#define STOP(...)                                                              \
-    do {                                                                       \
-        PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
-        throw PyError();                                                       \
-    } while(0)
-
-
 #endif

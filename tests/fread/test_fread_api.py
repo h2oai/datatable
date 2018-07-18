@@ -453,7 +453,7 @@ def test_fread_columns_list_bad4():
     assert d0.topython() == [["01", "002"], [3.14, 6.28]]
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, columns=[str, float, float])
-    assert "Attempt to override column 2 \"B\" of inherent type 'Str32' " \
+    assert "Attempt to override column 2 \"B\" with detected type 'Str32' " \
            in str(e)
     with pytest.raises(ValueError) as e:
         dt.fread(src, columns=[str, str])
