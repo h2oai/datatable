@@ -54,17 +54,36 @@ def assert_valueerror(datatable, rows, error_message):
 @pytest.mark.run(order=0.8)
 def test_dt_loadtime(nocov):
     # Check that datatable's loading time is not too big. At the time of writing
-    # this test, `t1 - t0` was ≈ 0.133s on a MacBook Pro laptop, and `t0` was
-    # ≈ 0.05s.
-    t0 = time.time()
-    out = subprocess.check_output([sys.executable, "-c", ""])
-    t0 = time.time() - t0
-    assert out == b""
-    t1 = time.time()
-    out = subprocess.check_output([sys.executable, "-c", "import datatable"])
-    t1 = time.time() - t1
-    assert out == b""
-    assert t1 - t0 < max(0.5, 6 * t0)
+    # this test, on a MacBook Pro laptop, the timings were the following:
+    #     t_python:    0.0505s
+    #     t_smtplib:   0.0850s
+    #     t_datatable: 0.1335s
+    #     ratio:  2.07 - 2.42
+    python = sys.executable
+    attempts = 0
+    while attempts < 3:
+        attempts += 1
+        t0 = time.time()
+        out = subprocess.check_output([python, "-c", ""])
+        tpy = time.time() - t0
+        t0 = time.time()
+        out = subprocess.check_output([python, "-c", "import smtplib"])
+        t_smtplib = time.time() - t0
+        t0 = time.time()
+        out = subprocess.check_output([python, "-c", "import datatable"])
+        t_datatable = time.time() - t0
+        assert out == b""
+        print()
+        print("t_python:    %.4fs" % tpy)
+        print("t_smtplib:   %.4fs  (%.4fs)" % (t_smtplib, t_smtplib - tpy))
+        print("t_datatable: %.4fs  (%.4fs)" % (t_datatable, t_datatable - tpy))
+        if t_datatable < tpy or t_smtplib < tpy:
+            continue
+        ratio = (t_datatable - tpy) / (t_smtplib - tpy)
+        print("Ratio: %.6f" % ratio)
+        if ratio < 3:
+            return
+    assert ratio < 3
 
 
 @pytest.mark.run(order=0.9)
