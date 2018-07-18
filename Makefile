@@ -441,6 +441,8 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	python/list.o             \
 	python/long.o             \
 	python/string.o           \
+	read/fread/fread_parallel_reader.o \
+	read/fread/fread_thread_context.o \
 	read/column.o             \
 	read/columns.o            \
 	read/parallel_reader.o    \
@@ -640,7 +642,7 @@ $(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h $(BU
 	@echo • Refreshing c/csv/reader_arff.h
 	@cp c/csv/reader_arff.h $@
 
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/parallel_reader.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/read/fread/fread_parallel_reader.h $(BUILDDIR)/read/parallel_reader.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
@@ -674,6 +676,14 @@ $(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/string.h
 	@cp c/python/string.h $@
 
+
+$(BUILDDIR)/read/fread/fread_parallel_reader.h: c/read/fread/fread_parallel_reader.h $(BUILDDIR)/read/parallel_reader.h $(BUILDDIR)/read/thread_context.h
+	@echo • Refreshing c/read/fread/fread_parallel_reader.h
+	@cp c/read/fread/fread_parallel_reader.h $@
+
+$(BUILDDIR)/read/fread/fread_thread_context.h: c/read/fread/fread_thread_context.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/read/columns.h $(BUILDDIR)/read/thread_context.h $(BUILDDIR)/utils/shared_mutex.h
+	@echo • Refreshing c/read/fread/fread_thread_context.h
+	@cp c/read/fread/fread_thread_context.h $@
 
 $(BUILDDIR)/read/column.h: c/read/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/read/column.h
@@ -930,6 +940,14 @@ $(BUILDDIR)/python/string.o : c/python/string.cc $(BUILDDIR)/python/string.h $(B
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+
+$(BUILDDIR)/read/fread/fread_parallel_reader.o : c/read/fread/fread_parallel_reader.cc $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/read/fread/fread_parallel_reader.h $(BUILDDIR)/read/fread/fread_thread_context.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/read/fread/fread_thread_context.o : c/read/fread/fread_thread_context.cc $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/encodings.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/read/fread/fread_thread_context.h $(BUILDDIR)/read/parallel_reader.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/read/column.o : c/read/column.cc $(BUILDDIR)/read/column.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/python/string.h
 	@echo • Compiling $<
