@@ -220,7 +220,9 @@ class Frame(object):
         elif is_type(src, Frame_t):
             if names is None:
                 names = src.names
-            self._fill_from_dt(src.internal, names=names)
+            _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
+                      .to_datatable()
+            self._fill_from_dt(_dt, names=names)
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
