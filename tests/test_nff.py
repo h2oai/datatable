@@ -183,3 +183,16 @@ def test_jay_all_types(tempfile):
     assert os.path.isfile(tempfile)
     d1 = dt.open(tempfile)
     assert_equals(d0, d1)
+
+
+def test_jay_keys(tempfile):
+    d0 = dt.Frame([["ab", "cd", "eee", "coo", "aop"],
+                   [1, 2, 3, 4, 5]], names=("x", "y"))
+    d0.key = "x"
+    assert len(d0.key) == 1
+    assert d0.topython() == [["ab", "aop", "cd", "coo", "eee"],
+                             [1, 5, 2, 4, 3]]
+    d0.save(tempfile, format="jay")
+    d1 = dt.open(tempfile)
+    assert d1.key == ("x",)
+    assert_equals(d0, d1)

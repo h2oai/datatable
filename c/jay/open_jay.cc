@@ -66,7 +66,9 @@ DataTable* DataTable::open_jay(const std::string& path,
     colnames.push_back(jcol->name()->str());
   }
 
-  return new DataTable(columns);
+  auto dt = new DataTable(columns);
+  dt->nkeys = frame->nkeys();
+  return dt;
 }
 
 
