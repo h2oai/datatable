@@ -15,14 +15,15 @@
 #include "csv/py_csv.h"
 #include "memrange.h"
 #include "read/parallel_reader.h"
+#include "read/fread/fread_parallel_reader.h"
 #include "utils/shared_mutex.h"
 
-class FreadLocalParseContext;
-class FreadChunkedReader;
 namespace dt {
 namespace read {
   struct ChunkCoordinates;
   class ParallelReader;
+  class FreadParallelReader;
+  class FreadThreadContext;
 }}
 class ColumnTypeDetectionChunkster;
 
@@ -142,110 +143,13 @@ private:
   void detect_header();
   int64_t parse_single_line(FreadTokenizer&);
 
-  friend FreadLocalParseContext;
-  friend FreadChunkedReader;
+  friend dt::read::FreadThreadContext;
+  friend dt::read::FreadParallelReader;
   friend dt::read::ParallelReader;
   friend ColumnTypeDetectionChunkster;
 };
 
 
-
-//------------------------------------------------------------------------------
-// FreadLocalParseContext
-//------------------------------------------------------------------------------
-
-/**
- * anchor
- *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
- *
- */
-class FreadLocalParseContext : public dt::read::ThreadContext
-{
-  public:
-    const char* anchor;
-    int quoteRule;
-    char quote;
-    char sep;
-    bool verbose;
-    bool fill;
-    bool skipEmptyLines;
-    bool numbersMayBeNAs;
-    int64_t : 48;
-    double ttime_push;
-    double ttime_read;
-    PT* types;
-
-    FreadReader& freader;
-    dt::read::Columns& columns;
-    dt::shared_mutex& shmutex;
-    FreadTokenizer tokenizer;
-    const ParserFnPtr* parsers;
-
-  public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, PT* types,
-                           dt::shared_mutex&);
-    FreadLocalParseContext(const FreadLocalParseContext&) = delete;
-    FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
-    virtual ~FreadLocalParseContext() override;
-
-    virtual void push_buffers() override;
-    void read_chunk(const dt::read::ChunkCoordinates&, dt::read::ChunkCoordinates&) override;
-    void postprocess();
-    void orderBuffer() override;
-};
-
-
-
-
-
-class FreadChunkedReader : public dt::read::ParallelReader {
-  private:
-    FreadReader& f;
-    PT* types;
-
-  public:
-    FreadChunkedReader(FreadReader& reader, PT* types_)
-      : dt::read::ParallelReader(reader, reader.get_mean_line_len()), f(reader)
-    {
-      types = types_;
-    }
-    virtual ~FreadChunkedReader() override {}
-
-    virtual void read_all() override {
-      dt::read::ParallelReader::read_all();
-      f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
-    }
-
-    bool next_good_line_start(
-      const dt::read::ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
-
-  protected:
-    virtual std::unique_ptr<dt::read::ThreadContext> init_thread_context() override {
-      size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
-      size_t tcols = f.columns.nColumnsInBuffer();
-      return std::unique_ptr<dt::read::ThreadContext>(
-                new FreadLocalParseContext(tcols, trows, f, types, shmutex));
-    }
-
-    void adjust_chunk_coordinates(
-      dt::read::ChunkCoordinates& cc, dt::read::ThreadContext* ctx) const override;
-
-};
-
-
-
-//------------------------------------------------------------------------------
-// Old helper macros
-//------------------------------------------------------------------------------
-
-// Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
-//     if (cond) STOP("Bad things happened: %s", smth_bad);
-//
-#define STOP(...)                                                              \
-    do {                                                                       \
-        PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
-        throw PyError();                                                       \
-    } while(0)
 
 
 #endif
