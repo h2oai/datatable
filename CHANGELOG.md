@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - saving view frames to csv.
 - crash when sorting string columns containins NA strings.
 - crash when applying a filter to a 0-rows frame.
+- if `x` is a Frame, then `y = dt.Frame(x)` now creates a shallow copy
+  instead of a copy-by-reference.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
