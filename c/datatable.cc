@@ -20,6 +20,7 @@ static int _compare_ints(const void *a, const void *b);
 DataTable::DataTable(Column** cols)
   : nrows(0),
     ncols(0),
+    nkeys(0),
     columns(cols)
 {
   if (cols == nullptr) {
@@ -111,6 +112,36 @@ void DataTable::replace_groupby(const Groupby& newgb) {
   groupby = newgb;
 }
 
+
+void DataTable::set_nkeys(int64_t nk) {
+  if (nk < 0) {
+    throw ValueError() << "Number of keys cannot be negative: " << nk;
+  }
+  if (nk > 1) {
+    throw NotImplError() << "More than 1 key column is not supported yet";
+  }
+  if (nk == 0) {
+    nkeys = 0;
+    return;
+  }
+
+  Groupby gb;
+  arr32_t cols(static_cast<size_t>(nk));
+  for (int32_t i = 0; i < nk; ++i) {
+    cols[static_cast<size_t>(i)] = i;
+  }
+  RowIndex ri = sortby(cols, &gb);
+  xassert(ri.length() == nrows);
+
+  if (gb.ngroups() != static_cast<size_t>(nrows)) {
+    throw ValueError() << "Cannot set column as a key: the values are not unique";
+  }
+
+  replace_rowindex(ri.uplift(rowindex));
+  reify();
+
+  nkeys = nk;
+}
 
 
 /**

@@ -55,7 +55,6 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   pydatatable::obj *pydt;
   DataTable *dt;
   PyObject *stypes = nullptr, *ltypes = nullptr, *view = nullptr;
-  int n_init_cols = 0;
   int64_t row0, row1, col0, col1;
   int64_t column = -1;
 
@@ -96,15 +95,19 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
   int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
-  // Create and fill-in the `data` list
+  stypes = PyList_New(ncols);
+  ltypes = PyList_New(ncols);
   view = PyList_New(ncols);
   if (view == nullptr) goto fail;
-  for (int64_t i = col0; i < col1; ++i) {
+  if (stypes == nullptr || ltypes == nullptr) goto fail;
+  for (int64_t s = 0; s < col1 - col0; ++s) {
+    int64_t i = s < dt->nkeys? s : s + col0;
     Column *col = dt->columns[i];
 
+    // Create and fill-in the `data` list
     PyObject *py_coldata = PyList_New(nrows);
     if (py_coldata == nullptr) goto fail;
-    PyList_SET_ITEM(view, n_init_cols++, py_coldata);
+    PyList_SET_ITEM(view, s, py_coldata);
 
     int n_init_rows = 0;
     for (int64_t j = row0; j < row1; ++j) {
@@ -117,17 +120,11 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
       if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }
-  }
 
-  // Create and fill-in the `stypes` list
-  stypes = PyList_New(ncols);
-  ltypes = PyList_New(ncols);
-  if (stypes == nullptr || ltypes == nullptr) goto fail;
-  for (int64_t i = col0; i < col1; i++) {
-    Column *col = dt->columns[i];
+    // Create and fill-in the `stypes` list
     info info_stype(col->stype());
-    PyList_SET_ITEM(ltypes, i - col0, info_stype.py_ltype());
-    PyList_SET_ITEM(stypes, i - col0, info_stype.py_stype());
+    PyList_SET_ITEM(ltypes, s, info_stype.py_ltype());
+    PyList_SET_ITEM(stypes, s, info_stype.py_stype());
   }
 
   self->row0 = row0;

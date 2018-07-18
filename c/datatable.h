@@ -53,6 +53,7 @@ class DataTable {
   public:
     int64_t  nrows;
     int64_t  ncols;
+    int64_t  nkeys;
     RowIndex rowindex;
     Groupby  groupby;
     Column** columns;
@@ -80,6 +81,8 @@ class DataTable {
      * information will be computed and stored with the RowIndex.
      */
     RowIndex sortby(const arr32_t& colindices, Groupby* out_grps) const;
+
+    void set_nkeys(int64_t nk);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
