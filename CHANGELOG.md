@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   (i.e. `Frame(A=..., B=...)`).
 - Implemented logical operators "and" `&` and "or" `|` for eager evaluator.
 - Implemented integer division `//` and modulo `%` operators.
+- Now a key column can be set on a Frame.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
