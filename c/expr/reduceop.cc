@@ -85,13 +85,20 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
 
 template<typename IT, typename OT>
 static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
+  Column* col0 = static_cast<Column*>(params[0]);
   Column* col1 = static_cast<Column*>(params[1]);
+  const IT* inputs = static_cast<const IT*>(col0->data());
   OT* outputs = static_cast<OT*>(col1->data_w());
-
+  OT count = 0;
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
-
-  outputs[grp] = static_cast<OT>(row1 - row0);
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      IT x = inputs[i];
+      if (!ISNA<IT>(x))
+        ++count;
+    });
+  outputs[grp] = count;
 }
 
 
