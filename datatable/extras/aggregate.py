@@ -7,8 +7,7 @@
 import datatable as dt
 from datatable import Frame
 from datatable.lib import core
-    
-#@typed(n_bins=int,nx_bins=int,ny_bins=int)
+
 def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, max_dimensions=50, seed=0):
   dt_exemplars, dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, max_dimensions, seed)
   return Frame(dt_exemplars), Frame(dt_members)

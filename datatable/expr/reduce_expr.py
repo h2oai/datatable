@@ -17,11 +17,11 @@ def sum(iterable, start=0):
         return ReduceExpr("sum", iterable)
     else:
         return _builtin_sum(iterable, start)
-    
+
 def count(iterable, start=0):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("count", iterable)
-    
+
 def first(iterable, start=0):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("first", iterable)
