@@ -6,7 +6,8 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "read/fread/fread_parallel_reader.h"
-#include "csv/reader_fread.h"    // FreadReader
+#include "read/fread/fread_thread_context.h"  // FreadThreadContext
+#include "csv/reader_fread.h"                 // FreadReader
 
 namespace dt {
 namespace read {
@@ -28,7 +29,7 @@ std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
   size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
   size_t tcols = f.columns.nColumnsInBuffer();
   return std::unique_ptr<ThreadContext>(
-            new FreadLocalParseContext(tcols, trows, f, types, shmutex));
+            new FreadThreadContext(tcols, trows, f, types, shmutex));
 }
 
 
@@ -75,7 +76,7 @@ void FreadParallelReader::adjust_chunk_coordinates(
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
   if (!cc.start_exact) {
-    auto fctx = static_cast<FreadLocalParseContext*>(ctx);
+    auto fctx = static_cast<FreadThreadContext*>(ctx);
     const char* start = cc.start;
     while (*start=='\n' || *start=='\r') start++;
     cc.start = start;
