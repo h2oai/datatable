@@ -94,8 +94,7 @@ static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
   col0->rowindex().strided_loop(row0, row1, 1,
     [&](int64_t i) {
       IT x = inputs[i];
-      if (!ISNA<IT>(x))
-        ++count;
+      count += !ISNA<IT>(x);
     });
   outputs[grp] = count;
 }
