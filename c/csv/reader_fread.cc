@@ -384,7 +384,7 @@ void FreadReader::detect_sep_and_qr() {
 class ColumnTypeDetectionChunkster {
   public:
     const FreadReader& f;
-    FreadChunkedReader fcr;
+    dt::read::FreadParallelReader fcr;
     FreadTokenizer fctx;
     size_t nchunks;
     size_t chunk_distance;
