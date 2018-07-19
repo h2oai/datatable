@@ -22,6 +22,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "utils/assert.h"
+#include "extras/aggregator.h"
 
 extern void init_jay();
 
@@ -191,6 +192,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_unaryop),
     METHOD0(is_debug_mode),
     METHOD0(has_omp_support),
+    METHODv(aggregate),
 
     {nullptr, nullptr, 0, nullptr}  /* Sentinel */
 };

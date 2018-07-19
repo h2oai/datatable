@@ -599,7 +599,6 @@ class Frame(object):
         self._fill_from_dt(self._dt, names=newnames)
 
 
-
     @typed(name=U(str, int))
     def colindex(self, name):
         """

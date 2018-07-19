@@ -102,6 +102,7 @@ for st in stypes_ladder:
     ops_rules[("mean", st)] = stype.float64
     ops_rules[("sd", st)] = stype.float64
     ops_rules[("sum", st)] = stype.int64
+    ops_rules[("count", st)] = stype.int64
     ops_rules[("min", st)] = st
     ops_rules[("max", st)] = st
     ops_rules[("first", st)] = st
@@ -118,6 +119,8 @@ ops_rules[("first", stype.str32)] = stype.str32
 ops_rules[("first", stype.str64)] = stype.str64
 ops_rules[("sum", stype.float32)] = stype.float64
 ops_rules[("sum", stype.float64)] = stype.float64
+ops_rules[("count", stype.str32)] = stype.int64
+ops_rules[("count", stype.str64)] = stype.int64
 
 division_ops = {"//", "/", "%"}
 
@@ -148,4 +151,5 @@ reduce_opcodes = {
     "stdev": 4,
     "first": 5,
     "sum": 6,
+    "count": 7,
 }

@@ -21,6 +21,7 @@ enum OpCode {
   Stdev = 4,
   First = 5,
   Sum   = 6,
+  Count = 7,
 };
 
 template<typename T>
@@ -73,6 +74,29 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
         sum += static_cast<OT>(x);
     });
   outputs[grp] = sum;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Count calculation
+//------------------------------------------------------------------------------
+
+template<typename IT, typename OT>
+static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* inputs = static_cast<const IT*>(col0->data());
+  OT* outputs = static_cast<OT*>(col1->data_w());
+  OT count = 0;
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  col0->rowindex().strided_loop(row0, row1, 1,
+    [&](int64_t i) {
+      IT x = inputs[i];
+      count += !ISNA<IT>(x);
+    });
+  outputs[grp] = count;
 }
 
 
@@ -200,6 +224,7 @@ static gmapperfn resolve1(int opcode) {
     case OpCode::Max:   return max_skipna<T1>;
     case OpCode::Stdev: return stdev_skipna<T1, T2>;
     case OpCode::Sum:   return sum_skipna<T1, T2>;
+    case OpCode::Count: return count_skipna<T1, T2>;
     default:            return nullptr;
   }
 }
@@ -218,6 +243,22 @@ static gmapperfn resolve0(int opcode, SType stype) {
       default:             return nullptr;
     }
   }
+
+  if (opcode == OpCode::Count) {
+    switch (stype) {
+      case SType::BOOL:
+      case SType::INT8:    return count_skipna<int8_t, uint64_t>;
+      case SType::INT16:   return count_skipna<int16_t, uint64_t>;
+      case SType::INT32:   return count_skipna<int32_t, uint64_t>;
+      case SType::INT64:   return count_skipna<int64_t, uint64_t>;
+      case SType::FLOAT32: return count_skipna<float, uint64_t>;
+      case SType::FLOAT64: return count_skipna<double, uint64_t>;
+      case SType::STR32:   return count_skipna<int32_t, uint64_t>;
+      case SType::STR64:   return count_skipna<int64_t, uint64_t>;
+      default:             return nullptr;
+    }
+  }
+
   switch (stype) {
     case SType::BOOL:
     case SType::INT8:    return resolve1<int8_t, double>(opcode);
@@ -251,6 +292,11 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
       res_type = SType::INT64;
     }
   }
+
+  if (opcode == OpCode::Count) {
+    res_type = SType::INT64;
+  }
+
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
   if (ngrps == 0) ngrps = 1;
 
