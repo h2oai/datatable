@@ -514,6 +514,7 @@ void GenericReader::open_input() {
   } else if ((text = text_arg.as_cstring(&size))) {
     input_mbuf = MemoryRange::external(text, size + 1);
     extra_byte = 1;
+    input_is_string = true;
 
   } else if ((filename = file_arg.as_cstring())) {
     input_mbuf = MemoryRange::overmap(filename, /* extra = */ 1);

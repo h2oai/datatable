@@ -57,7 +57,7 @@ void ParallelReader::determine_chunking_strategy() {
     if (inputSize_reduced) {
       // If chunkCount is 1 then we'll attempt to read the whole input
       // with the first chunk, which is not what we want...
-      chunkCount++;
+      chunkCount += 2;
       g.trace("Number of threads reduced to %d because due to max_nrows=%zu "
               "we estimate the amount of data to be read will be small",
               nthreads, nrows_max);
@@ -263,6 +263,9 @@ void ParallelReader::read_all()
 
 void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 {
+  if (new_alloc == nrows_allocated) {
+    return;
+  }
   if (ichunk == chunkCount - 1) {
     // If we're on the last jump, then `new_alloc` is exactly how many rows
     // will be needed.

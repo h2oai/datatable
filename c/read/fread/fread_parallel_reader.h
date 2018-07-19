@@ -32,9 +32,6 @@ class FreadParallelReader : public ParallelReader {
 
     virtual void read_all() override;
 
-    bool next_good_line_start(
-      const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
-
   protected:
     virtual std::unique_ptr<ThreadContext> init_thread_context() override;
 

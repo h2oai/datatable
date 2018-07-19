@@ -384,14 +384,13 @@ void FreadReader::detect_sep_and_qr() {
 class ColumnTypeDetectionChunkster {
   public:
     const FreadReader& f;
-    dt::read::FreadParallelReader fcr;
     FreadTokenizer fctx;
     size_t nchunks;
     size_t chunk_distance;
     const char* last_row_end;
 
     ColumnTypeDetectionChunkster(FreadReader& fr, FreadTokenizer& ft)
-    : f(fr), fcr(fr, nullptr), fctx(ft)
+        : f(fr), fctx(ft)
     {
       nchunks = 0;
       chunk_distance = 0;
@@ -447,7 +446,8 @@ class ColumnTypeDetectionChunkster {
         while (*tch == '\n' || *tch == '\r') tch++;
 
         if (tch < f.eof) {
-          bool ok = fcr.next_good_line_start(cc, fctx);
+          bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),
+                                              f.fill, f.skip_blank_lines);
           if (ok) cc.start = fctx.ch;
         }
       }
@@ -563,7 +563,7 @@ void FreadReader::detect_column_types()
   double sumLenSq = 0.0;
   int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
   int maxLen = -1;
-  int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 99)) + 1;
+  int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 100));
 
   // Start with all columns having the smallest possible type
   columns.setType(PT::Mu);
@@ -1092,6 +1092,42 @@ int FreadTokenizer::countfields()
 }
 
 
+// Find the next "good line", in the sense that we find at least 5 lines
+// with `ncols` fields from that point on.
+bool FreadTokenizer::next_good_line_start(
+  const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
+{
+  // int ncols = static_cast<int>(f.get_ncols());
+  // bool fill = f.fill;
+  // bool skipEmptyLines = f.skip_blank_lines;
+  ch = cc.start;
+  const char* end = cc.end;
+  int attempts = 0;
+  while (ch < end && attempts++ < 10) {
+    while (ch < end && *ch != '\n' && *ch != '\r') ch++;
+    if (ch == end) break;
+    skip_eol();  // updates `ch`
+    // countfields() below moves the parse location, so store it in `ch1` in
+    // order to revert to the current parsing location later.
+    const char* ch1 = ch;
+    int i = 0;
+    for (; i < 5; ++i) {
+      // `countfields()` advances `ch` to the beginning of the next line
+      int n = countfields();
+      if (n != ncols &&
+          !(ncols == 1 && n == 0) &&
+          !(skipEmptyLines && n == 0) &&
+          !(fill && n < ncols)) break;
+    }
+    ch = ch1;
+    // `i` is the count of consecutive consistent rows
+    if (i == 5) return true;
+  }
+  return false;
+}
+
+
+
 
 //==============================================================================
 // FreadObserver
@@ -1154,8 +1190,10 @@ void FreadObserver::report() {
           humanize_number(n_cols_read), (n_cols_read == 1 ? "" : "s"),
           filesize_to_str(input_size),
           total_minutes, total_seconds);
-  g.trace(" = %*.3fs (%2.0f%%) memory-mapping input file", p,
-          g.t_open_input, 100 * g.t_open_input / total_time);
+  g.trace(" = %*.3fs (%2.0f%%) %s", p,
+          g.t_open_input, 100 * g.t_open_input / total_time,
+          g.input_is_string? "converting input string into bytes"
+                           : "memory-mapping input line");
   g.trace(" + %*.3fs (%2.0f%%) detecting parse parameters", p,
           params_time, 100 * params_time / total_time);
   g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,
