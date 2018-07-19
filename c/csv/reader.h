@@ -86,7 +86,8 @@ class GenericReader
     size_t line;
     int32_t fileno;
     bool cr_is_newline;
-    int : 24;
+    bool input_is_string{ false };
+    int : 16;
     dt::read::Columns columns;
     double t_open_input{ 0 };
 

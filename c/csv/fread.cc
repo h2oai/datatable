@@ -90,8 +90,10 @@ std::unique_ptr<DataTable> FreadReader::read()
       }
     }
     if (verbose) {
-      trace("After %d type and %d drop user overrides : %s",
-            nUserBumped, ndropped, columns.printTypes());
+      if (nUserBumped || ndropped) {
+        trace("After %d type and %d drop user overrides : %s",
+              nUserBumped, ndropped, columns.printTypes());
+      }
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }

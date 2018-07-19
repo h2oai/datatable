@@ -33,43 +33,6 @@ std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
 }
 
 
-// Find the next "good line", in the sense that we find at least 5 lines
-// with `ncols` fields from that point on.
-bool FreadParallelReader::next_good_line_start(
-  const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
-{
-  int ncols = static_cast<int>(f.get_ncols());
-  bool fill = f.fill;
-  bool skipEmptyLines = f.skip_blank_lines;
-  const char*& ch = tokenizer.ch;
-  ch = cc.start;
-  const char* eof = cc.end;
-  int attempts = 0;
-  while (ch < eof && attempts++ < 10) {
-    while (ch < eof && *ch != '\n' && *ch != '\r') ch++;
-    if (ch == eof) break;
-    tokenizer.skip_eol();  // updates `ch`
-    // countfields() below moves the parse location, so store it in `ch1` in
-    // order to revert to the current parsing location later.
-    const char* ch1 = ch;
-    int i = 0;
-    for (; i < 5; ++i) {
-      // `countfields()` advances `ch` to the beginning of the next line
-      int n = tokenizer.countfields();
-      if (n != ncols &&
-          !(ncols == 1 && n == 0) &&
-          !(skipEmptyLines && n == 0) &&
-          !(fill && n < ncols)) break;
-    }
-    ch = ch1;
-    // `i` is the count of consecutive consistent rows
-    if (i == 5) return true;
-  }
-  return false;
-}
-
-
-
 void FreadParallelReader::adjust_chunk_coordinates(
   ChunkCoordinates& cc, ThreadContext* ctx) const
 {
@@ -80,7 +43,8 @@ void FreadParallelReader::adjust_chunk_coordinates(
     const char* start = cc.start;
     while (*start=='\n' || *start=='\r') start++;
     cc.start = start;
-    if (next_good_line_start(cc, fctx->tokenizer)) {
+    int ncols = static_cast<int>(f.get_ncols());
+    if (fctx->tokenizer.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
       cc.start = fctx->tokenizer.ch;
     }
   }
