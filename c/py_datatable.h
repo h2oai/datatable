@@ -281,8 +281,6 @@ DECLARE_METHOD(
    nmodal1,
    "Get the number of modal values in a single-column DataTable")
 
-
-
 //---- Python API --------------------------------------------------------------
 
 DECLARE_FUNCTION(

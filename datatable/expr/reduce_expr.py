@@ -18,7 +18,13 @@ def sum(iterable, start=0):
     else:
         return _builtin_sum(iterable, start)
 
+def count(iterable, start=0):
+    if isinstance(iterable, BaseExpr):
+        return ReduceExpr("count", iterable)
 
+def first(iterable, start=0):
+    if isinstance(iterable, BaseExpr):
+        return ReduceExpr("first", iterable)
 
 class ReduceExpr(BaseExpr):
     __slots__ = ["_op", "_expr"]

@@ -206,7 +206,7 @@ PyObject* PyObj::as_pyobject() const {
 DataTable* PyObj::as_datatable() const {
   DataTable* dt = nullptr;
   int ret = pydatatable::unwrap(obj, &dt);
-  if (!ret) throw Error();
+  if (!ret) throw Error() << "Argument passed is not a datatable";
   return dt;
 }
 
