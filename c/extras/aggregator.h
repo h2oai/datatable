@@ -17,7 +17,7 @@
 class Aggregator {
   public:
     Aggregator(int32_t, int32_t, int32_t, int32_t, unsigned int);
-    void aggregate(DataTable*, DataTable*);
+    DataTable* aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
 
   private:

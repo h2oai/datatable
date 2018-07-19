@@ -24,35 +24,13 @@ PyObject* aggregate(PyObject*, PyObject* args) {
                         &dt, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
   DataTable* dt_in = PyObj(dt).as_datatable();
-  DataTable* dt_exemplars = nullptr;
-  DataTable* dt_members = nullptr;
-  Column** cols_exemplars = dt::amalloc<Column*>(dt_in->ncols + 1);
-  Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+  DataTablePtr dt_members = nullptr;
 
-  for (int32_t i = 0; i < dt_in->ncols; ++i) {
-    LType ltype = info(dt_in->columns[i]->stype()).ltype();
-    switch (ltype) {
-      case LType::BOOL:
-      case LType::INT:
-      case LType::REAL: cols_exemplars[i] = dt_in->columns[i]->cast(SType::FLOAT64); break;
-      default:          cols_exemplars[i] = dt_in->columns[i]->shallowcopy();
-    }
-  }
-
-  cols_exemplars[dt_in->ncols] = nullptr;
-  cols_members[0] = Column::new_data_column(SType::INT32, dt_in->nrows);
-  cols_members[1] = nullptr;
-  dt_exemplars = new DataTable(cols_exemplars);
-  dt_members = new DataTable(cols_members);
 
   Aggregator agg(n_bins, nx_bins, ny_bins, max_dimensions, seed);
-  agg.aggregate(dt_exemplars, dt_members);
+  dt_members = DataTablePtr(agg.aggregate(dt_in));
 
-  PyObject *res = PyTuple_New(2);
-  PyTuple_SET_ITEM(res, 0, pydatatable::wrap(dt_exemplars));
-  PyTuple_SET_ITEM(res, 1, pydatatable::wrap(dt_members));
-
-  return res;
+  return pydatatable::wrap(dt_members.release());
 }
 
 
@@ -66,13 +44,37 @@ Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in
 }
 
 
-void Aggregator::aggregate(DataTable* dt_exemplars, DataTable* dt_members) {
-  switch (dt_exemplars->ncols) {
-    case 1:  group_1d(dt_exemplars, dt_members); break;
-    case 2:  group_2d(dt_exemplars, dt_members); break;
-    default: group_nd(dt_exemplars, dt_members);
+DataTable* Aggregator::aggregate(DataTable* dt) {
+  DataTable* dt_members = nullptr;
+  DataTable* dt_double = nullptr;
+  Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
+  Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+
+  for (int32_t i = 0; i < dt->ncols; ++i) {
+    LType ltype = info(dt->columns[i]->stype()).ltype();
+    switch (ltype) {
+      case LType::BOOL:
+      case LType::INT:
+      case LType::REAL: cols_double[i] = dt->columns[i]->cast(SType::FLOAT64); break;
+      default:          cols_double[i] = dt->columns[i]->shallowcopy();
+    }
   }
-  aggregate_exemplars(dt_exemplars, dt_members);
+
+  cols_double[dt->ncols] = nullptr;
+  cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
+  cols_members[1] = nullptr;
+  dt_double = new DataTable(cols_double);
+  dt_members = new DataTable(cols_members);
+
+  switch (dt_double->ncols) {
+    case 1:  group_1d(dt_double, dt_members); break;
+    case 2:  group_2d(dt_double, dt_members); break;
+    default: group_nd(dt_double, dt_members);
+  }
+
+  aggregate_exemplars(dt, dt_members); // modify dt in place
+  delete dt_double;
+  return dt_members;
 }
 
 void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTable* dt_members) {
@@ -281,7 +283,9 @@ void Aggregator::group_nd(DataTable* dt_exemplars, DataTable* dt_members) {
     adjust_radius(dt_exemplars, radius);
     pmatrix = generate_pmatrix(dt_exemplars);
     project_row(dt_exemplars, exemplar, 0, pmatrix);
-  } else normalize_row(dt_exemplars, exemplar, 0);
+  } else {
+    normalize_row(dt_exemplars, exemplar, 0);
+  }
 
   delta = radius * radius;
   exemplars.push_back(exemplar);

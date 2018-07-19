@@ -9,7 +9,8 @@ from datatable import Frame
 from datatable.lib import core
 
 def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, max_dimensions=50, seed=0):
-  dt_exemplars, dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, max_dimensions, seed)
+  dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, max_dimensions, seed)
   names_exemplars = self.names + ("count",)
   names_members = ("exemplar_id")
-  return Frame(dt_exemplars, names_exemplars), Frame(dt_members, names_members)
+  self.__init__(self.internal, names_exemplars)
+  return Frame(dt_members, names_members)
