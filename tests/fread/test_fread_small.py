@@ -907,7 +907,7 @@ def test_int64s_and_typebumps(capsys):
            ]
     src[2][111] = 4568034971487098  # i64-2s
     src[3][111] += 0.11  # f64-1
-    src[4][111] = 11111111111111.11  #  f64-2
+    src[4][111] = 11111111111111.11  # f64-2
     src[6][111] = "111e"  # s32-2
     src[7][111] = "1111111111111111111111"  # s32-3
     src[8][111] = "1.23e"
@@ -1004,7 +1004,7 @@ def test_maxnrows_on_large_dataset():
     # Limit number of threads during reading, otherwise the test may fail on a
     # machine with many cores (all chunks read at once, in the same amount of
     # time as the single chunk containing the first 5 rows).
-    src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(2000000))
+    src = b"A,B,C\n" + b"\n".join(b"%06d,x,1" % i for i in range(2000000))
     t0 = time.time()
     d0 = dt.fread(src, nthreads=4, max_nrows=5, verbose=True)
     t0 = time.time() - t0
@@ -1012,7 +1012,7 @@ def test_maxnrows_on_large_dataset():
     assert d0.shape == (5, 3)
     assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
     t1 = time.time()
-    d1 = dt.fread(src, nthreads=4)
+    d1 = dt.fread(src, nthreads=4, verbose=True)
     t1 = time.time() - t1
     assert d1.shape == (2000000, 3)
     assert t0 < t1 / 2, ("Reading with max_nrows=5 should be faster than "

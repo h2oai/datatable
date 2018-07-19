@@ -805,15 +805,19 @@ def test_skip_to_string_bad():
 # `max_nrows`
 #-------------------------------------------------------------------------------
 
-def test_fread_max_nrows():
+def test_fread_max_nrows(capsys):
     d0 = dt.fread("A,B,C\n"
                   "1,foo,1\n"
                   "3,bar,0\n"
                   "5,baz,0\n"
-                  "7,meh,1\n", max_nrows=2)
+                  "7,meh,1\n", max_nrows=2, verbose=True)
+    out, err = capsys.readouterr()
     d0.internal.check()
     assert d0.names == ("A", "B", "C")
     assert d0.topython() == [[1, 3], ["foo", "bar"], [True, False]]
+    assert "Allocating 3 column slots with 2 rows" in out
+    assert "Too few rows allocated" not in out
+    assert "converting input string into bytes" in out
 
 
 def test_fread_max_nrows_0rows():
@@ -821,6 +825,20 @@ def test_fread_max_nrows_0rows():
     d0.internal.check()
     assert d0.names == ("A", )
     assert d0.shape == (0, 1)
+
+
+@pytest.mark.xfail()
+def test_fread_max_nrows_correct_types():
+    d0 = dt.fread("A,B\n"
+                  "1,2\n"
+                  "3,4\n"
+                  "5,6\n"
+                  "foo,bar\n"
+                  "zzzzz\n", max_nrows=3)
+    assert d0.names == ("A", "B")
+    assert d0.shape == (3, 2)
+    assert d0.ltypes == (ltype.int, ltype.int)
+    assert d0.topython() == [[1, 3, 5], [2, 4, 6]]
 
 
 

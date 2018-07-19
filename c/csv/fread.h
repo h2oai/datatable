@@ -18,6 +18,10 @@
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
+namespace dt {
+namespace read {
+  struct ChunkCoordinates;
+}}
 
 
 struct FreadTokenizer {
@@ -69,6 +73,11 @@ struct FreadTokenizer {
   int countfields();
   bool skip_eol();
   bool at_eof() const { return ch == eof; }
+
+  bool next_good_line_start(
+    const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines);
+
+
 };
 
 
