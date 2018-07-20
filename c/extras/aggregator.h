@@ -17,7 +17,7 @@
 class Aggregator {
   public:
     Aggregator(int32_t, int32_t, int32_t, int32_t, unsigned int);
-    void aggregate(DataTable*, DataTable*);
+    DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
 
   private:
@@ -27,21 +27,21 @@ class Aggregator {
     int32_t max_dimensions;
     unsigned int seed;
 
-    void group_1d(DataTable*, DataTable*);
-    void group_2d(DataTable*, DataTable*);
-    void group_nd(DataTable*, DataTable*);
-    void group_1d_continuous(DataTable*, DataTable*);
-    void group_2d_continuous(DataTable*, DataTable*);
-    void group_1d_categorical(DataTable*, DataTable*);
-    void group_2d_categorical(DataTable*, DataTable*);
-    void group_2d_mixed(bool, DataTable*, DataTable*);
-    void aggregate_exemplars(DataTable*, DataTable*);
+    void group_1d(DataTablePtr&, DataTablePtr&);
+    void group_2d(DataTablePtr&, DataTablePtr&);
+    void group_nd(DataTablePtr&, DataTablePtr&);
+    void group_1d_continuous(DataTablePtr&, DataTablePtr&);
+    void group_2d_continuous(DataTablePtr&, DataTablePtr&);
+    void group_1d_categorical(DataTablePtr&, DataTablePtr&);
+    void group_2d_categorical(DataTablePtr&, DataTablePtr&);
+    void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
+    void aggregate_exemplars(DataTable*, DataTablePtr&);
 
-    void normalize_row(DataTable*, double*, int32_t);
+    void normalize_row(DataTablePtr&, double*, int32_t);
     double calculate_distance(double*, double*, int64_t, double);
-    void adjust_radius(DataTable*, double&);
-    double* generate_pmatrix(DataTable*);
-    void project_row(DataTable*, double*, int32_t, double*);
+    void adjust_radius(DataTablePtr&, double&);
+    double* generate_pmatrix(DataTablePtr&);
+    void project_row(DataTablePtr&, double*, int32_t, double*);
 };
 
 
