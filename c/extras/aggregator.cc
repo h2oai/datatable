@@ -28,7 +28,7 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 
 
   Aggregator agg(n_bins, nx_bins, ny_bins, max_dimensions, seed);
-  dt_members = DataTablePtr(agg.aggregate(dt_in));
+  dt_members = agg.aggregate(dt_in);
 
   return pydatatable::wrap(dt_members.release());
 }
@@ -44,9 +44,9 @@ Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in
 }
 
 
-DataTable* Aggregator::aggregate(DataTable* dt) {
-  DataTable* dt_members = nullptr;
-  DataTable* dt_double = nullptr;
+DataTablePtr Aggregator::aggregate(DataTable* dt) {
+  DataTablePtr dt_members = nullptr;
+  DataTablePtr dt_double = nullptr;
   Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
 
@@ -63,8 +63,8 @@ DataTable* Aggregator::aggregate(DataTable* dt) {
   cols_double[dt->ncols] = nullptr;
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
-  dt_double = new DataTable(cols_double);
-  dt_members = new DataTable(cols_members);
+  dt_double = DataTablePtr(new DataTable(cols_double));
+  dt_members = DataTablePtr(new DataTable(cols_members));
 
   switch (dt_double->ncols) {
     case 1:  group_1d(dt_double, dt_members); break;
@@ -73,11 +73,10 @@ DataTable* Aggregator::aggregate(DataTable* dt) {
   }
 
   aggregate_exemplars(dt, dt_members); // modify dt in place
-  delete dt_double;
   return dt_members;
 }
 
-void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
   cols[0] = 0;
 
@@ -113,7 +112,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTable* dt_memb
 }
 
 
-void Aggregator::group_1d(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   LType ltype = info(dt_exemplars->columns[0]->stype()).ltype();
 
   switch (ltype) {
@@ -126,7 +125,7 @@ void Aggregator::group_1d(DataTable* dt_exemplars, DataTable* dt_members) {
 }
 
 
-void Aggregator::group_2d(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   LType ltype0 = info(dt_exemplars->columns[0]->stype()).ltype();
   LType ltype1 = info(dt_exemplars->columns[1]->stype()).ltype();
 
@@ -160,7 +159,7 @@ void Aggregator::group_2d(DataTable* dt_exemplars, DataTable* dt_members) {
 }
 
 
-void Aggregator::group_1d_continuous(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
   const double* d_c0 = static_cast<const double*>(dt_exemplars->columns[0]->data());
   int32_t* d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -174,7 +173,7 @@ void Aggregator::group_1d_continuous(DataTable* dt_exemplars, DataTable* dt_memb
 }
 
 
-void Aggregator::group_2d_continuous(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
   RealColumn<double>* c1 = static_cast<RealColumn<double>*>(dt_exemplars->columns[1]);
 
@@ -193,7 +192,7 @@ void Aggregator::group_2d_continuous(DataTable* dt_exemplars, DataTable* dt_memb
 }
 
 
-void Aggregator::group_1d_categorical(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = 0;
@@ -212,7 +211,7 @@ void Aggregator::group_1d_categorical(DataTable* dt_exemplars, DataTable* dt_mem
 }
 
 
-void Aggregator::group_2d_categorical(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = 0;
@@ -243,7 +242,7 @@ void Aggregator::group_2d_categorical(DataTable* dt_exemplars, DataTable* dt_mem
 }
 
 
-void Aggregator::group_2d_mixed(bool cont_index, DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = !cont_index;
@@ -269,7 +268,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTable* dt_exemplars, DataTa
 // Leland's algorithm for N-dimensional aggregation, see [1-2] for more details
 // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
 // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
-void Aggregator::group_nd(DataTable* dt_exemplars, DataTable* dt_members) {
+void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   size_t exemplar_id = 0;
   int64_t ndims = std::min(max_dimensions, static_cast<int32_t>(dt_exemplars->ncols));
   double* exemplar = new double[ndims];
@@ -323,7 +322,7 @@ void Aggregator::group_nd(DataTable* dt_exemplars, DataTable* dt_members) {
 }
 
 
-void Aggregator::adjust_radius(DataTable* dt_exemplars, double& radius) {
+void Aggregator::adjust_radius(DataTablePtr& dt_exemplars, double& radius) {
   double diff = 0;
   for (int i = 0; i < dt_exemplars->ncols; ++i) {
     RealColumn<double>* ci = static_cast<RealColumn<double>*>(dt_exemplars->columns[i]);
@@ -351,17 +350,17 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 }
 
 
-void Aggregator::normalize_row(DataTable* dt_exemplars, double* r, int32_t row_id) {
-  for (int32_t i = 0; i < dt_exemplars->ncols; ++i) {
-    RealColumn<double>* c = static_cast<RealColumn<double>*>(dt_exemplars->columns[i]);
-    const double* d_c = static_cast<const double*>(dt_exemplars->columns[i]->data());
+void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
+  for (int32_t i = 0; i < dt->ncols; ++i) {
+    RealColumn<double>* c = static_cast<RealColumn<double>*>(dt->columns[i]);
+    const double* d_c = static_cast<const double*>(dt->columns[i]->data());
 
     r[i] =  (d_c[row_id] - c->min()) / (c->max() - c->min());
   }
 }
 
 
-double* Aggregator::generate_pmatrix(DataTable* dt_exemplars) {
+double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   std::default_random_engine generator;
   double* pmatrix;
 
@@ -382,7 +381,7 @@ double* Aggregator::generate_pmatrix(DataTable* dt_exemplars) {
 }
 
 
-void Aggregator::project_row(DataTable* dt_exemplars, double* r, int32_t row_id, double* pmatrix) {
+void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_id, double* pmatrix) {
   std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
 
   for (int32_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
