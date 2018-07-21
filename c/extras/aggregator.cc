@@ -389,15 +389,17 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_id, double* pmatrix) {
   std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
 
-  for (int32_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
-    int col_id = i / max_dimensions;
-    if (dt_exemplars->columns[col_id]->stype() == SType::FLOAT64) {
-      RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_exemplars->columns[col_id]);
-      const double* d_c = static_cast<const double*>(dt_exemplars->columns[col_id]->data());
-
+  for (int32_t i = 0; i < dt_exemplars->ncols; ++i) {
+    if (dt_exemplars->columns[i]->stype() == SType::FLOAT64) {
+      const double* d_c = static_cast<const double*>(dt_exemplars->columns[i]->data());
       if (!ISNA<double>(d_c[row_id])) {
-        // TODO: handle missing values and do r[j] /= n normalization at the end
-        r[i % max_dimensions] +=  pmatrix[i] * (d_c[row_id] - c->min()) / (c->max() - c->min());
+
+        RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_exemplars->columns[i]);
+        for (int32_t j = 0; j < max_dimensions; ++j) {
+          //TODO: handle missing values and do r[j] /= n normalization at the end
+          r[j] +=  pmatrix[i * max_dimensions + j] * (d_c[row_id] - c->min()) / (c->max() - c->min());
+        }
+
       }
     }
   }
