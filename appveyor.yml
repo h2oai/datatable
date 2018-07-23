@@ -1,0 +1,41 @@
+# Windows 7 and 10 build
+build: false
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python36"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+
+
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+
+install:
+  - choco install mingw
+  - choco install llvm
+  - choco install make
+  - "%PYTHON%/Scripts/pip.exe install setuptools"
+  - "%PYTHON%/Scripts/pip.exe install python-dateutil"
+  - "%PYTHON%/Scripts/pip.exe install numpy"
+  - "%PYTHON%/Scripts/pip.exe install colorama"
+  - "%PYTHON%/Scripts/pip.exe install typesentry"
+  - "%PYTHON%/Scripts/pip.exe install blessed"
+  - "%PYTHON%/Scripts/pip.exe install llvmlite
+  - "%PYTHON%/Scripts/pip.exe install pandas"
+  - "%PYTHON%/Scripts/pip.exe install pytest"
+  - "%PYTHON%/Scripts/pip.exe install virtualenv
+  - "%PYTHON%/Scripts/pip.exe install wheel"
+
+
+test_script:
+  - make test_install
+  - make
+
+  #artifacts:
+    # Archive the generated package.
+    # - path: '*.tar.bz2'
