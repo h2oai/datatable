@@ -397,6 +397,7 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 
 void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_id, double* pmatrix) {
   std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
+  int32_t n = 0;
 
   for (int32_t i = 0; i < dt_exemplars->ncols; ++i) {
     Column* c = dt_exemplars->columns[i];
@@ -408,23 +409,27 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
 
         double norm_factor, norm_shift;
         set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
-        double norm_row = (norm_factor * d_real[row_id] + norm_shift);
+        double norm_row = norm_factor * d_real[row_id] + norm_shift;
         for (int32_t j = 0; j < max_dimensions; ++j) {
-          //TODO: handle missing values and do r[j] /= n normalization at the end
           r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
         }
-
+        ++n;
       }
 
     }
   }
+
+  for (int32_t j = 0; j < max_dimensions; ++j) {
+    r[j] /= n;
+  }
 }
+
 
 /*
 *  To normalize a continuous column x to [0; 1] range we use
 *  the following formula: x_i_new = (x_i - min) / (max - min),
 *  where x_i is the value stored in the i-th row, max and min are the column
-*  maximum and minimum respectively. To save on arithmetics, this can be
+*  maximum and minimum, respectively. To save on arithmetics, this can be
 *  easily converted to x_i_new = x_i * norm_factor + norm_shift,
 *  where norm_factor = 1 / (max - min) and norm_shift = - min / (max - min).
 *  When max = min, i.e. the column is constant, there is a singularity
