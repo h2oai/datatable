@@ -34,6 +34,16 @@ def test_bool1():
     assert d0.topython() == [[True, False, None]] * 4
 
 
+def test_bool_nas():
+    d0 = dt.fread("A,B,C\n"
+                  "true,TRUE,5\n"
+                  "false,FALSE,10\n"
+                  "NA,NA,100\n")
+    assert d0.ltypes == (ltype.bool, ltype.bool, ltype.int)
+    assert d0.topython() == [[True, False, None], [True, False, None],
+                             [5, 10, 100]]
+
+
 def test_bool_truncated():
     d0 = dt.fread("A\nTrue\nFalse\nFal")
     d0.internal.check()
@@ -126,6 +136,12 @@ def test_float_hex_invalid():
     d0 = dt.fread("A,B,C,D,E,F\n" + ",".join(fields))
     d0.internal.check()
     assert d0.topython() == [[f] for f in fields]
+
+
+def test_float_decimal0():
+    assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
+    assert (dt.fread("A\n1.23456789123456789123456999\n").scalar() ==
+            1.23456789123456789123456999)
 
 
 def test_float_precision():
@@ -519,6 +535,49 @@ def test_runaway_quote():
     assert d0.topython() == [[1, 4], [2, 5], [3, 6]]
 
 
+def test_unmatched_quotes():
+    # Should instead all quotes remain around 'aa', 'bb' and 'cc' ?
+    assert dt.fread('A,B\n"aa",1\n"bb,2\n"cc",3\n') \
+             .topython() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+    assert dt.fread('A,B\n"aa",1\n""bb",2\n"cc",3\n') \
+             .topython() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+    assert dt.fread('A,B\n"aa",1\nbb",2\n"cc",3\n') \
+             .topython() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
+    assert dt.fread('A,B\n"aa",1\n"bb"",2\n"cc",3\n') \
+             .topython() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
+
+
+def test_unescaped_quotes():
+    d0 = dt.fread('key\tvalue\tcheck\n'
+                  '8591\t{"item":12,"content":"TABLE"}\tok')
+    assert d0.names == ("key", "value", "check")
+    assert d0.topython() == [[8591], ['{"item":12,"content":"TABLE"}'], ["ok"]]
+
+
+def test_unescaped_quotes2():
+    d0 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d"\nfo"o,bar,"b,az""\n')
+    assert d0.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                             ['a"b"c"d', 'b,az"']]
+    d1 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d""\nfo"o,bar,"b,az""\n')
+    assert d1.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                             ['a"b"c"d"', 'b,az"']]
+    d2 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d""\nfo"o,bar,"b,"az""\n')
+    assert d2.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                             ['a"b"c"d"', 'b,"az"']]
+
+
+def test_quoted_headers():
+    d0 = dt.fread('"One,Two","Three",Four\n12,3,4\n56,7,8\n')
+    assert d0.names == ("One,Two", "Three", "Four")
+    assert d0.topython() == [[12, 56], [3, 7], [4, 8]]
+
+
+def test_trailing_backslash():
+    d0 = dt.fread('dir,size\n"C:\\",123\n')
+    assert d0.names == ("dir", "size")
+    assert d0.topython() == [["C:\\"], [123]]
+
+
 def test_space_separated_numbers():
     # Roughly based on http://www.stats.ox.ac.uk/pub/datasets/csb/ch11b.dat
     src = "\n".join("%03d %03d %04d %4.2f %d"
@@ -814,6 +873,36 @@ def test_headers_with_na():
     d.internal.check()
     assert d.names == ("A", "B", "C0")
     assert d.topython() == [[1], [2], [3]]
+
+
+def test_file_nolock(tempfile):
+    # Check that after an exception the lock on a file is released
+    with open(tempfile, "wb") as o:
+        o.write(b"A,B,C\n1,2,3\n4\n5,6,7\n8,9\n")
+    assert os.path.isfile(tempfile)
+    assert os.stat(tempfile).st_size == 24
+    with pytest.raises(Exception):
+        dt.fread(tempfile)
+    # Try appending to the file
+    with open(tempfile, "ab") as o:
+        o.write(b"10,11,1\n")
+    assert os.stat(tempfile).st_size == 32
+    # Try reading the file again
+    d0 = dt.fread(tempfile, fill=True)
+    assert d0.topython() == [[1, 4, 5, 8, 10],
+                             [2, None, 6, 9, 11],
+                             [3, None, 7, None, 1]]
+    # Try overwriting the file
+    with open(tempfile, "wb") as o:
+        o.write(b"A,B\n1\n2,3\n")
+    d0 = dt.fread(tempfile, fill=True)
+    assert d0.topython() == [[1, 2], [None, 3]]
+    # Try removing the file
+    os.unlink(tempfile)
+    assert not os.path.exists(tempfile)
+    # Create the file again because the fixture wants to remove it
+    open(tempfile, "w").close()
+
 
 
 

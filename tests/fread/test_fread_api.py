@@ -58,6 +58,13 @@ def test_fread_from_cmd2():
     assert d1.nrows == 372
 
 
+def test_fread_from_cmd3(tempfile):
+    with open(tempfile, "w") as o:
+        o.write("A,B\n1,2\n3,4\n5,6\n7,3\n8,9\n")
+    assert dt.fread(cmd="grep -v 3 %s" % tempfile) \
+             .topython() == [[1, 5, 8], [2, 6, 9]]
+
+
 def test_fread_from_url1():
     with pytest.raises(ValueError) as e:
         dt.fread(url="A")
@@ -418,7 +425,7 @@ def test_fread_columns_list3():
     assert d0.topython() == [["1"]]
 
 
-def test_fread_list_of_types():
+def test_fread_columns_list_of_types():
     d0 = dt.fread(text="A,B,C\n1,2,3",
                   columns=(stype.int32, stype.float64, stype.str32))
     d0.internal.check()
@@ -538,14 +545,16 @@ def test_fread_columns_dict_reverse():
     assert d1.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
     d2 = dt.fread(src, columns={str: slice(None)})
     assert d2.ltypes == (ltype.str, ltype.str, ltype.str)
-    assert d2.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
+    assert d2.topython() == [["01", "002"], ["foo", "bar"],
+                             ["3.140", "6.28000"]]
 
 
 def test_fread_columns_type():
     src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
     d0 = dt.fread(src, columns=str)
     assert d0.ltypes == (ltype.str, ltype.str, ltype.str)
-    assert d0.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
+    assert d0.topython() == [["01", "002"], ["foo", "bar"],
+                             ["3.140", "6.28000"]]
 
 
 def test_fread_columns_fn1():
@@ -580,6 +589,7 @@ def test_fread_columns_empty(columns):
     assert d0.shape == (1, 3)
     assert d0.names == ("A", "B", "C")
     assert d0.topython() == [[1], [2], [3]]
+
 
 
 

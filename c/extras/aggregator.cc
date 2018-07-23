@@ -415,7 +415,7 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
         }
         ++n;
       }
-
+      
     }
   }
 
