@@ -25,7 +25,7 @@ install:
   - "%PYTHON%/Scripts/pip.exe install colorama"
   - "%PYTHON%/Scripts/pip.exe install typesentry"
   - "%PYTHON%/Scripts/pip.exe install blessed"
-  - "%PYTHON%/Scripts/pip.exe install llvmlite
+  - "%PYTHON%/Scripts/pip.exe install llvmlite"
   - "%PYTHON%/Scripts/pip.exe install pandas"
   - "%PYTHON%/Scripts/pip.exe install pytest"
   - "%PYTHON%/Scripts/pip.exe install virtualenv"
