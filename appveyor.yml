@@ -27,7 +27,6 @@ install:
   - appveyor DownloadFile "https://drive.google.com/uc?export=download&id=1VTs8qaSiVAGO1BQYUbfafAXigDuxra5H" -FileName llvm-5.0.0.7z
   - 7z x llvm-5.0.0.7z -oC:\
   - set PATH=C:\llvm-5.0.0\bin;%PATH%
-  - llvm-config --version
   - refreshenv
   - "%PYTHON%/Scripts/pip.exe install setuptools"
   - "%PYTHON%/Scripts/pip.exe install python-dateutil"
