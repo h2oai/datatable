@@ -1,6 +1,9 @@
 # Windows 7 and 10 build
 build: false
 
+image:
+- Visual Studio 2015
+- Visual Studio 2017
 environment:
   matrix:
     - PYTHON: "C:\\Python35"
