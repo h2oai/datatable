@@ -1,27 +1,34 @@
 # Windows 7 and 10 build
 build: false
-os: Visual Studio 2017
+
+before_build:
+  - appveyor DownloadFile "https://drive.google.com/uc?export=download&id=1VTs8qaSiVAGO1BQYUbfafAXigDuxra5H" -FileName llvm-5.0.0.7z
+  - 7z x llvm-5.0.0.7z -oC:\
+  - set PATH=C:\llvm-5.0.0\bin;%PATH%
+  - llvm-config --version
 
 environment:
-  LLVM6: C:\Program Files\LLVM\bin
-  LLVM_CONFIG: C:\Program Files\LLVM\bin\llvm-config
-  PATH: "%LLVM6%;%LLVM_CONFIG%;%PATH%"
+  #LLVM6: C:\Program Files\LLVM\bin
+  #LLVM_CONFIG: C:\Program Files\LLVM\bin\llvm-config
+  #PATH: "%LLVM6%;%LLVM_CONFIG%;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
+      DISTRIBUTIONS: "sdist bdist_wheel"
 
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
+      DISTRIBUTIONS: "sdist bdist_wheel"
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
   - choco install mingw
-  - choco install llvm
+#  - choco install llvm
   - choco install make
   - refreshenv
   - "%PYTHON%/Scripts/pip.exe install setuptools"
@@ -45,6 +52,5 @@ test_script:
   - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
   - make
 
-  #artifacts:
-    # Archive the generated package.
-    # - path: '*.tar.bz2'
+artifacts:
+  - path: dist\*
