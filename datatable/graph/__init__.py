@@ -33,7 +33,7 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
     update_mode = mode == "update"
     delete_mode = mode == "delete"
     with f.bind_datatable(dt):
-        ee = make_engine(engine, dt)
+        ee = make_engine(engine, dt, None)
         ee.rowindex = dt.internal.rowindex
         rowsnode = ee.make_rowfilter(rows)
         grbynode = ee.make_groupby(groupby)
