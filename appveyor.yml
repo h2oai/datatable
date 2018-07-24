@@ -1,5 +1,6 @@
 # Windows 7 and 10 build
 build: false
+os: Visual Studio 2017
 
 environment:
   LLVM6: C:\Program Files\LLVM\bin
@@ -38,7 +39,7 @@ install:
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
-  - "%LOCALAPPDATA%\pip\Cache"
+  - '%LOCALAPPDATA%\pip\Cache'
 
 test_script:
   - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
