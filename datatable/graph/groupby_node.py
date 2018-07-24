@@ -7,6 +7,7 @@
 from .cols_node import process_column
 from datatable.lib import core
 from datatable.utils.typechecks import TTypeError
+from datatable.graph.dtproxy import f
 
 
 class SimpleGroupbyNode:
@@ -23,6 +24,7 @@ class SimpleGroupbyNode:
             df = cf.to_datatable()
             col = 0
         rowindex, groupby = df.sort(col, True)
+        f.set_rowindex(rowindex)
         self._engine.rowindex = rowindex
         self._engine.groupby = groupby
         self._engine.groupby_cols = [self._col]
