@@ -2,8 +2,8 @@
 build: false
 
 environment:
-  LLVM6: C:\Program Files\LLVM\bin
-  LLVM_CONFIG: %LLVM6%\bin\llvm-config
+  LLVM6: "C:\Program Files\LLVM\bin"
+  LLVM_CONFIG: ""%LLVM6%\bin\llvm-config"
   PATH: "%LLVM6%;%LLVM_CONFIG%;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
