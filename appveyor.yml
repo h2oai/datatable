@@ -5,6 +5,7 @@ environment:
   LLVM6: C:\Program Files\LLVM\bin
   LLVM_CONFIG: C:\Program Files\LLVM\bin\llvm-config
   PATH: "%LLVM6%;%LLVM_CONFIG%;%PATH%"
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
