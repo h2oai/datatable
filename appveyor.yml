@@ -33,7 +33,7 @@ install:
 
 
 test_script:
-  - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir
+  - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
   - make
 
   #artifacts:
