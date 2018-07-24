@@ -2,11 +2,10 @@
 image: Visual Studio 2017
 platform:
 - x64
-build: false
 
 environment:
-  LLVM6: C:\Program Files\LLVM\bin
-  PATH: "%LLVM6%;%PATH%"
+  #LLVM6: C:\Program Files\LLVM\bin
+  #PATH: "%LLVM6%;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
