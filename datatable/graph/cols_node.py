@@ -51,6 +51,58 @@ class ColumnSetNode:
     def _compute_columns(self):
         raise NotImplementedError
 
+    def is_all(self):
+        return False
+
+
+
+#===============================================================================
+
+class AllCSNode(ColumnSetNode):
+
+    def __init__(self, ee):
+        super().__init__(ee)
+        self._make_column_names()
+
+    def __repr__(self):
+        return "<datatable.graph.AllCSNode>"
+
+    def _make_column_names(self):
+        jdt = self._engine.joindt
+        if jdt:
+            self._names = self.dt.names + jdt.names[len(jdt.keys):]
+        else:
+            self._names = self.dt.names
+
+    def _compute_columns(self):
+        res = core.columns_from_slice(self.dt.internal, self._engine.rowindex,
+                                      0, self.dt.ncols, 1)
+        jdt = self._engine.joindt
+        if jdt:
+            nk = len(jdt.keys)
+            res2 = core.columns_from_slice(jdt.internal, self._engine.joinindex,
+                                           nk, jdt.ncols - nk, 1)
+            res.append_columns(res2)
+        return res
+
+
+    def execute_update(self, dt, replacement):
+        ri = self._engine.rowindex
+        dt.internal.replace_column_slice(0, self.dt.ncols, 1,
+                                         ri, replacement.internal)
+        # Clear cached stypes/ltypes; No need to update names
+        dt._stypes = None
+        dt._ltypes = None
+
+
+    def get_list(self):
+        return list(range(self.dt.ncols))
+
+
+    def is_all(self):
+        return True
+
+
 
 
 
@@ -245,8 +297,9 @@ def make_columnset(arg, ee, new_cols_allowed=False):
     """
     dt = ee.dt
 
-    if arg is None or arg is Ellipsis:
-        return SliceCSNode(ee, 0, dt.ncols, 1)
+    if (arg is None or arg is Ellipsis or
+            (isinstance(arg, slice) and arg == slice(None))):
+        return AllCSNode(ee)
 
     if isinstance(arg, (int, str, slice, BaseExpr)):
         if isinstance(arg, bool):

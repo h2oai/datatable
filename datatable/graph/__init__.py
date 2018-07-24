@@ -51,7 +51,7 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 
         if delete_mode or update_mode:
             assert grbynode is None
-            allcols = isinstance(colsnode, SliceCSNode) and colsnode.is_all()
+            allcols = colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
             if delete_mode:
                 if allrows:
