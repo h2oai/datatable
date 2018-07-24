@@ -1,4 +1,7 @@
 # Windows 7 and 10 build
+image: Visual Studio 2017
+platform:
+- x64
 build: false
 
 environment:
@@ -21,10 +24,12 @@ init:
 
 install:
   - choco install mingw
-  - choco install llvm
+  #- choco install llvm
   - choco install make
-  - set LLVM_CONFIG=C:\Program Files\LLVM\bin
-  - refreshenv
+  - set PATH=%PATH%;C:\Libraries\llvm-5.0.0\bin
+  #- set LLVM_CONFIG=C:\Program Files\LLVM\bin
+  - llvm-config --version
+  - llvm-config --host-target
   - "%PYTHON%/Scripts/pip.exe install setuptools"
   - "%PYTHON%/Scripts/pip.exe install python-dateutil"
   - "%PYTHON%/Scripts/pip.exe install numpy"
