@@ -1,12 +1,6 @@
 # Windows 7 and 10 build
 build: false
 
-before_build:
-  - appveyor DownloadFile "https://drive.google.com/uc?export=download&id=1VTs8qaSiVAGO1BQYUbfafAXigDuxra5H" -FileName llvm-5.0.0.7z
-  - 7z x llvm-5.0.0.7z -oC:\
-  - set PATH=C:\llvm-5.0.0\bin;%PATH%
-  - llvm-config --version
-
 environment:
   #LLVM6: C:\Program Files\LLVM\bin
   #LLVM_CONFIG: C:\Program Files\LLVM\bin\llvm-config
@@ -22,6 +16,12 @@ environment:
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
+
+before_build:
+  - appveyor DownloadFile "https://drive.google.com/uc?export=download&id=1VTs8qaSiVAGO1BQYUbfafAXigDuxra5H" -FileName llvm-5.0.0.7z
+  - 7z x llvm-5.0.0.7z -oC:\
+  - set PATH=C:\llvm-5.0.0\bin;%PATH%
+  - llvm-config --version
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
