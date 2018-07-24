@@ -1,10 +1,9 @@
 # Windows 7 and 10 build
 build: false
 
-image:
-- Visual Studio 2015
-- Visual Studio 2017
 environment:
+  LLVM6: C:\Program Files\LLVM\bin
+  PATH: "%LLVM6%;%PATH%"
   matrix:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
@@ -13,10 +12,7 @@ environment:
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor.yml
-  - '%LOCALAPPDATA%\pip\Cache'
+
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
@@ -37,6 +33,10 @@ install:
   - "%PYTHON%/Scripts/pip.exe install virtualenv"
   - "%PYTHON%/Scripts/pip.exe install wheel"
 
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor.yml
+  - '%LOCALAPPDATA%\pip\Cache'
 
 test_script:
   - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
