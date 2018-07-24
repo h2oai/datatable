@@ -19,6 +19,7 @@ class Aggregator {
     Aggregator(int32_t, int32_t, int32_t, int32_t, unsigned int);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
+    static void set_norm_coeffs(double&, double&, double, double, int32_t);
 
   private:
     int32_t n_bins;
@@ -36,6 +37,7 @@ class Aggregator {
     void group_2d_categorical(DataTablePtr&, DataTablePtr&);
     void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
+
 
     void normalize_row(DataTablePtr&, double*, int32_t);
     double calculate_distance(double*, double*, int64_t, double);
