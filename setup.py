@@ -432,7 +432,7 @@ setup(
 
     # Runtime dependencies
     install_requires=[
-        "typesentry>=0.2.4",
+        "typesentry>=0.2.6",
         "blessed",
         "llvmlite" + llvmlite_req,
     ],
