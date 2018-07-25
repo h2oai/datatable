@@ -1,7 +1,5 @@
 # Windows 7 and 10 build
-image: Visual Studio 2017
-platform:
-- x64
+build: false
 
 environment:
   LLVM6: C:\Program Files\LLVM
@@ -26,7 +24,7 @@ install:
   - choco install llvm
   - choco install make
   #- set LLVM_CONFIG=C:\Program Files\LLVM\bin
-  #- llvm-config --version
+  - llvm-config --version
   #- llvm-config --host-target
   - "%PYTHON%/Scripts/pip.exe install setuptools"
   - "%PYTHON%/Scripts/pip.exe install python-dateutil"
