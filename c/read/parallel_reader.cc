@@ -38,7 +38,6 @@ ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
 
 void ParallelReader::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
-  size_t size1000 = static_cast<size_t>(1000 * lineLength);
   size_t zThreads = static_cast<size_t>(nthreads);
   double maxrowsSize = nrows_max * lineLength;
   bool inputSize_reduced = false;
@@ -46,7 +45,14 @@ void ParallelReader::determine_chunking_strategy() {
     inputSize = static_cast<size_t>(maxrowsSize * 1.5) + 1;
     inputSize_reduced = true;
   }
-  chunkSize = std::max<size_t>(size1000, 1 << 18);
+  chunkSize = std::max<size_t>(
+                std::min<size_t>(
+                  std::max<size_t>(
+                    static_cast<size_t>(1000 * lineLength),
+                    1 << 16),
+                  1 << 20),
+                static_cast<size_t>(10 * lineLength)
+              );
   chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
   if (chunkCount > zThreads) {
     chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);
