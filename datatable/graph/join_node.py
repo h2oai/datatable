@@ -4,7 +4,6 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-from datatable.lib import core
 from .dtproxy import g
 
 __all__ = ("join",)
@@ -32,7 +31,6 @@ class join:
                 raise TypeError("Join column `%s` has type %s in the left "
                                 "Frame, and type %s in the right Frame. "
                                 % (colname, l_ltype, r_ltype))
-        jindex = core.join_frame(dt.internal, self.frame.internal,
-                                 ee.rowindex, xcols)
+        jindex = dt.internal.join(ee.rowindex, self.frame.internal, xcols)
         ee.joinindex = jindex
         g.set_rowindex(jindex)

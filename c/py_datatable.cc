@@ -496,6 +496,22 @@ PyObject* sort(obj* self, PyObject* args) {
 
 
 
+PyObject* join(obj* self, PyObject* args) {
+  PyObject *arg1, *arg2, *arg3;
+  if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
+
+  // DataTable* dt = self->ref;
+  // RowIndex* ri = PyObj(arg1).as_rowindex();
+  // DataTable* jdt = PyObj(arg2).as_datatable();
+  // PyyList cols(arg3);
+
+
+
+  Py_RETURN_NONE;
+}
+
+
+
 PyObject* get_min    (obj* self, PyObject*) { return wrap(self->ref->min_datatable()); }
 PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatable()); }
 PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
