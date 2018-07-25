@@ -44,10 +44,10 @@ cache:
   - '%LOCALAPPDATA%\pip\Cache'
 
 test_script:
-  - make test PYTHON=%PYTHON%\bin\python.exe
-  - python -m pip install .[testing] --no-cache-dir
+  - make test_install PYTHON=%PYTHON%\bin\python.exe
+  #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
-  - make
+  - make PYTHON=%PYTHON%\bin\python.exe
 
 artifacts:
   - path: dist\*
