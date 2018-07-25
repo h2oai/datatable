@@ -4,8 +4,8 @@ platform:
 - x64
 
 environment:
-  #LLVM6: C:\Program Files\LLVM\bin
-  #PATH: "%LLVM6%;%PATH%"
+  LLVM6: C:\Program Files\LLVM
+  PATH: "%LLVM6%;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
@@ -23,9 +23,8 @@ init:
 
 install:
   - choco install mingw
-  #- choco install llvm
+  - choco install llvm
   - choco install make
-  - set PATH=%PATH%;C:\Libraries\llvm-5.0.0\bin
   #- set LLVM_CONFIG=C:\Program Files\LLVM\bin
   - llvm-config --version
   - llvm-config --host-target
@@ -47,7 +46,9 @@ cache:
   - '%LOCALAPPDATA%\pip\Cache'
 
 test_script:
-  - "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
+  - make test PYTHON=%PYTHON%\bin\python.exe
+  - python -m pip install .[testing] --no-cache-dir
+  #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
   - make
 
 artifacts:
