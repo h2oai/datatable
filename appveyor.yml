@@ -44,11 +44,11 @@ cache:
   - '%LOCALAPPDATA%\pip\Cache'
 
 test_script:
-  - dir C:\ProgramData\chocolatey\lib\make\tools\
-  - C:\ProgramData\chocolatey\lib\make\tools\make.exe test_install PYTHON=%PYTHON%\bin\python.exe
+  - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
+  - C:\ProgramData\chocolatey\lib\make\tools\bin\make.exe test_install PYTHON=%PYTHON%\bin\python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
-  - C:\ProgramData\chocolatey\lib\make\tools\make.exe PYTHON=%PYTHON%\bin\python.exe
+  - C:\ProgramData\chocolatey\lib\make\tools\bin\make.exe PYTHON=%PYTHON%\bin\python.exe
 
 artifacts:
   - path: dist\*
