@@ -191,7 +191,7 @@ def test_groups_large1():
                                     for x in (100, 200, 300, 500, 1000, 0)])
 def test_groups_large2_str(n, seed):
     random.seed(seed)
-    if n == 0:
+    while n == 0:
         n = int(random.expovariate(0.0005))
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
