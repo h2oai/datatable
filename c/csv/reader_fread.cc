@@ -607,7 +607,7 @@ void FreadReader::detect_column_types()
       int thisLineLen = static_cast<int>(tch - lineStart);
       xassert(thisLineLen >= 0);
       sumLen += thisLineLen;
-      sumLenSq += thisLineLen*thisLineLen;
+      sumLenSq += 1.0 * thisLineLen * thisLineLen;
       if (thisLineLen<minLen) minLen = thisLineLen;
       if (thisLineLen>maxLen) maxLen = thisLineLen;
     }
