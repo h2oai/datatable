@@ -5,7 +5,7 @@ platform:
 
 environment:
   LLVM6: C:\Program Files\LLVM
-  PATH: "%LLVM6%;%PATH%"
+  PATH: "%LLVM6%\bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
@@ -26,8 +26,8 @@ install:
   - choco install llvm
   - choco install make
   #- set LLVM_CONFIG=C:\Program Files\LLVM\bin
-  - llvm-config --version
-  - llvm-config --host-target
+  #- llvm-config --version
+  #- llvm-config --host-target
   - "%PYTHON%/Scripts/pip.exe install setuptools"
   - "%PYTHON%/Scripts/pip.exe install python-dateutil"
   - "%PYTHON%/Scripts/pip.exe install numpy"
