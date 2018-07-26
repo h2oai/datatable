@@ -168,7 +168,8 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
-    d_cg[i] = static_cast<int32_t>(norm_factor * d_c0[i] + norm_shift);
+    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
+    d_cg[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
   }
 }
 
@@ -186,8 +187,10 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
-    d_cg[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
-              static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
+    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
+    double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
+    d_cg[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
+              static_cast<int32_t>(normx_factor * v0 + normx_shift);
   }
 }
 
@@ -264,8 +267,9 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     int32_t g0_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
+      double v0 = ISNA<double>(d_c0[group_indices_0[j]])? 0 : d_c0[group_indices_0[j]];
       d_cg[group_indices_0[j]] = g0_id +
-                                 static_cast<int32_t>(normx_factor * d_c0[group_indices_0[j]] + normx_shift);
+                                 static_cast<int32_t>(normx_factor * v0 + normx_shift);
     }
   }
 }
@@ -330,15 +334,18 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 void Aggregator::adjust_radius(DataTablePtr& dt_exemplars, double& radius) {
   double diff = 0;
   for (int i = 0; i < dt_exemplars->ncols; ++i) {
-    if (dt_exemplars->columns[i]->stype() == SType::FLOAT64) {
-      auto ci = static_cast<RealColumn<double>*>(dt_exemplars->columns[i]);
-      diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
+    Column* c = dt_exemplars->columns[i];
+    if (c->stype() == SType::FLOAT64) {
+      auto c_double = static_cast<RealColumn<double>*>(c);
+      if (!ISNA<double>(c_double->min())) {
+        diff += (c_double->max() - c_double->min()) * (c_double->max() - c_double->min());
+      }
     }
   }
 
   diff /= dt_exemplars->ncols;
   radius = .05 * log(max_dimensions);
-  if (diff > 10000.0) radius *= .4;
+  if (diff > 10000.0) radius *= .25;
 }
 
 
@@ -406,7 +413,6 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
       auto d_real = c_real->elements_r();
 
       if (!ISNA<double>(d_real[row_id])) {
-
         double norm_factor, norm_shift;
         set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
         double norm_row = norm_factor * d_real[row_id] + norm_shift;
