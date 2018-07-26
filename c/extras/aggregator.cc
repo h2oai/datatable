@@ -86,29 +86,40 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
   const int32_t* offsets = gb_members.offsets_r();
   arr32_t exemplar_indices(gb_members.ngroups());
   const int32_t* ri_members_indices = ri_members.indices32();
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
-  // Setting up a table for weights
-  DataTable* dt_weights;
-  Column** cols_weights = dt::amalloc<Column*>(static_cast<int64_t>(2));
-  cols_weights[0] = Column::new_data_column(SType::INT32, static_cast<int64_t>(gb_members.ngroups()));
-  cols_weights[1] = nullptr;
-  dt_weights = new DataTable(cols_weights);
-  auto d_weights = static_cast<int32_t*>(dt_weights->columns[0]->data_w());
-  std::memset(d_weights, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
+  // Setting up a table for counts
+  DataTable* dt_counts;
+  Column** cols_counts = dt::amalloc<Column*>(static_cast<int64_t>(2));
+  cols_counts[0] = Column::new_data_column(SType::INT32, static_cast<int64_t>(gb_members.ngroups()));
+  cols_counts[1] = nullptr;
+  dt_counts = new DataTable(cols_counts);
+  auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
+  std::memset(d_counts, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
 
-  // Setting up exemplar indices and weights
+  // Setting up exemplar indices and counts
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
     exemplar_indices[i] = ri_members_indices[offsets[i]];
-    d_weights[i] = offsets[i+1] - offsets[i];
+    d_counts[i] = offsets[i+1] - offsets[i];
   }
 
-  // Applying exemplars row index and binding exemplars with the weights
+  // Replacing group ids with the exemplar ids for 1D and 2D aggregations
+  if (dt_exemplars->ncols < 3) {
+    for (size_t i = 0; i < gb_members.ngroups(); ++i) {
+      for (size_t j = 0; j < static_cast<size_t>(d_counts[i]); ++j) {
+        size_t member_shift = static_cast<size_t>(offsets[i]) + j;
+        d_members[ri_members_indices[member_shift]] = static_cast<int32_t>(i);
+      }
+    }
+  }
+
+  // Applying exemplars row index and binding exemplars with the counts
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
   dt_exemplars->replace_rowindex(ri_exemplars);
   DataTable* dt[1];
-  dt[0] = dt_weights;
+  dt[0] = dt_counts;
   dt_exemplars->cbind(dt, 1);
-  delete dt_weights;
+  delete dt_counts;
 }
 
 
@@ -162,13 +173,14 @@ void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
   const double* d_c0 = c0->elements_r();
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   double norm_factor, norm_shift;
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
-    d_cg[i] = static_cast<int32_t>(norm_factor * d_c0[i] + norm_shift);
+    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
+    d_members[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
   }
 }
 
@@ -178,7 +190,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   auto c1 = static_cast<RealColumn<double>*>(dt_exemplars->columns[1]);
   double* d_c0 = c0->elements_w();
   double* d_c1 = c1->elements_w();
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   double normx_factor, normx_shift;
   double normy_factor, normy_shift;
@@ -186,8 +198,10 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
-    d_cg[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
-              static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
+    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
+    double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
+    d_groups[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
+              static_cast<int32_t>(normx_factor * v0 + normx_shift);
   }
 }
 
@@ -200,13 +214,13 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   RowIndex ri0 = dt_exemplars->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    auto g_id = static_cast<int32_t>(i);
+    auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_cg[group_indices_0[j]] = g_id;
+      d_groups[group_indices_0[j]] = group_id;
     }
   }
 }
@@ -225,21 +239,21 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   RowIndex ri1 = dt_exemplars->sortby(cols, &grpby1);
   const int32_t* group_indices_1 = ri1.indices32();
 
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    auto g_id = static_cast<int32_t>(i);
+    auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_cg[group_indices_0[j]] = g_id;
+      d_groups[group_indices_0[j]] = group_id;
     }
   }
 
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
-    auto g_id = static_cast<int32_t>(grpby0.ngroups() * i);
+    auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
-      d_cg[group_indices_1[j]] += g_id;
+      d_groups[group_indices_1[j]] += group_id;
     }
   }
 }
@@ -249,23 +263,24 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
   arr32_t cols(1);
 
   cols[0] = !cont_index;
-  Groupby grpby0;
-  RowIndex ri0 = dt_exemplars->sortby(cols, &grpby0);
-  const int32_t* group_indices_0 = ri0.indices32();
+  Groupby grpby;
+  RowIndex ri_cat = dt_exemplars->sortby(cols, &grpby);
+  const int32_t* gi_cat = ri_cat.indices32();
 
-  auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[cont_index]);
-  auto d_c0 = c0->elements_r();
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  const int32_t* offsets0 = grpby0.offsets_r();
+  auto c_cont = static_cast<RealColumn<double>*>(dt_exemplars->columns[cont_index]);
+  auto d_cont = c_cont->elements_r();
+  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  const int32_t* offsets_cat = grpby.offsets_r();
 
   double normx_factor, normx_shift;
-  set_norm_coeffs(normx_factor, normx_shift, c0->min(), c0->max(), nx_bins);
+  set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
 
-  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    int32_t g0_id = nx_bins * static_cast<int32_t>(i);
-    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_cg[group_indices_0[j]] = g0_id +
-                                 static_cast<int32_t>(normx_factor * d_c0[group_indices_0[j]] + normx_shift);
+  for (size_t i = 0; i < grpby.ngroups(); ++i) {
+    int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
+    for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
+      double v_cont = ISNA<double>(d_cont[gi_cat[j]])? 0 : d_cont[gi_cat[j]];
+      d_groups[gi_cat[j]] = group_cat_id +
+                                 static_cast<int32_t>(normx_factor * v_cont + normx_shift);
     }
   }
 }
@@ -282,7 +297,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   double* pmatrix = nullptr;
   std::vector<double*> exemplars;
   double delta, radius = .025 * (dt_exemplars->ncols), distance = 0.0;
-  auto d_cg = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_counts = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   if (dt_exemplars->ncols > max_dimensions) {
     adjust_radius(dt_exemplars, radius);
@@ -294,7 +309,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
   delta = radius * radius;
   exemplars.push_back(exemplar);
-  d_cg[0] = 0;
+  d_counts[0] = 0;
 
   for (int32_t i = 1; i < dt_exemplars->nrows; ++i) {
     double min_distance = std::numeric_limits<double>::max();
@@ -303,6 +318,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
     for (size_t j = 0; j < exemplars.size(); ++j) {
       distance = calculate_distance(member, exemplars[j], ndims, delta);
+
       if (distance < min_distance) {
         min_distance = distance;
         exemplar_id = j;
@@ -311,9 +327,9 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
     }
 
     if (min_distance < delta) {
-      d_cg[i] = static_cast<int32_t>(exemplar_id);
+      d_counts[i] = static_cast<int32_t>(exemplar_id);
     } else {
-      d_cg[i] = static_cast<int32_t>(exemplars.size());
+      d_counts[i] = static_cast<int32_t>(exemplars.size());
       exemplars.push_back(member);
       member = new double[ndims];
     }
@@ -330,15 +346,18 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 void Aggregator::adjust_radius(DataTablePtr& dt_exemplars, double& radius) {
   double diff = 0;
   for (int i = 0; i < dt_exemplars->ncols; ++i) {
-    if (dt_exemplars->columns[i]->stype() == SType::FLOAT64) {
-      auto ci = static_cast<RealColumn<double>*>(dt_exemplars->columns[i]);
-      diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
+    Column* c = dt_exemplars->columns[i];
+    if (c->stype() == SType::FLOAT64) {
+      auto c_double = static_cast<RealColumn<double>*>(c);
+      if (!ISNA<double>(c_double->min())) {
+        diff += (c_double->max() - c_double->min()) * (c_double->max() - c_double->min());
+      }
     }
   }
 
   diff /= dt_exemplars->ncols;
   radius = .05 * log(max_dimensions);
-  if (diff > 10000.0) radius *= .4;
+  if (diff > 10000.0) radius *= .25;
 }
 
 
@@ -364,7 +383,6 @@ void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
       auto c_real = static_cast<RealColumn<double>*>(c);
       const double* d_real = c_real->elements_r();
       double norm_factor, norm_shift;
-
       set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
       r[i] =  norm_factor * d_real[row_id] + norm_shift;
     } else {
@@ -406,7 +424,6 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
       auto d_real = c_real->elements_r();
 
       if (!ISNA<double>(d_real[row_id])) {
-
         double norm_factor, norm_shift;
         set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
         double norm_row = norm_factor * d_real[row_id] + norm_shift;
