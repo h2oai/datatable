@@ -201,7 +201,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
     d_groups[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
-              static_cast<int32_t>(normx_factor * v0 + normx_shift);
+                  static_cast<int32_t>(normx_factor * v0 + normx_shift);
   }
 }
 
