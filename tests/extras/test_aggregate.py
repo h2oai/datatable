@@ -27,7 +27,7 @@ def test_aggregate_1d_continuous_integer_equal():
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+    assert d_members.topython() == [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     d_in.internal.check()
     assert d_in.shape == (1, 2)
     assert d_in.ltypes == (ltype.bool, ltype.int)
@@ -107,7 +107,7 @@ def test_aggregate_2d_continuous_integer_sorted():
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 0, 0, 0, 4, 4, 4, 8, 8, 8]]
+    assert d_members.topython() == [[0, 0, 0, 0, 1, 1, 1, 2, 2, 2]]
     d_in.internal.check()
     assert d_in.shape == (3, 3)
     assert d_in.ltypes == (ltype.int, ltype.int, ltype.int)
@@ -125,7 +125,7 @@ def test_aggregate_2d_continuous_integer_random():
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[2, 5, 6, 0, 3, 3, 7, 7, 8, 0]]
+    assert d_members.topython() == [[1, 3, 4, 0, 2, 2, 5, 5, 6, 0]]
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.int, ltype.int, ltype.int)
@@ -143,7 +143,7 @@ def test_aggregate_2d_continuous_real_sorted():
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 0, 0, 0, 4, 4, 4, 8, 8, 8]]
+    assert d_members.topython() == [[0, 0, 0, 0, 1, 1, 1, 2, 2, 2]]
     d_in.internal.check()
     assert d_in.shape == (3, 3)
     assert d_in.ltypes == (ltype.real, ltype.real, ltype.int)
@@ -161,7 +161,7 @@ def test_aggregate_2d_continuous_real_random():
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[2, 5, 6, 0, 3, 3, 7, 7, 8, 0]]
+    assert d_members.topython() == [[1, 3, 4, 0, 2, 2, 5, 5, 6, 0]]
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.real, ltype.real, ltype.int)
@@ -203,7 +203,7 @@ def test_aggregate_2d_categorical_sorted():
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 8, 16, 24, 32, 40, 48]]
+    assert d_members.topython() == [[0, 1, 2, 3, 4, 5, 6]]
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
@@ -220,7 +220,7 @@ def test_aggregate_2d_categorical_random():
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[5, 6, 22, 13, 19, 3, 22]]
+    assert d_members.topython() == [[1, 2, 5, 3, 4, 0, 5]]
     d_in.internal.check()
     assert d_in.shape == (6, 3)
     assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
@@ -237,7 +237,7 @@ def test_aggregate_2d_mixed_sorted():
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 8, 16, 24, 32, 40, 48]]
+    assert d_members.topython() == [[0, 1, 2, 3, 4, 5, 6]]
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.int, ltype.str, ltype.int)
@@ -254,7 +254,7 @@ def test_aggregate_2d_mixed_random():
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[2, 6, 17, 23, 24, 19, 15]]
+    assert d_members.topython() == [[0, 1, 3, 5, 6, 4, 2]]
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.int, ltype.str, ltype.int)
