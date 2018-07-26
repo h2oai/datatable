@@ -70,7 +70,7 @@ class AllCSNode(ColumnSetNode):
     def _make_column_names(self):
         jdt = self._engine.joindt
         if jdt:
-            self._names = self.dt.names + jdt.names[len(jdt.keys):]
+            self._names = self.dt.names + jdt.names[len(jdt.key):]
         else:
             self._names = self.dt.names
 
@@ -79,7 +79,7 @@ class AllCSNode(ColumnSetNode):
                                       0, self.dt.ncols, 1)
         jdt = self._engine.joindt
         if jdt:
-            nk = len(jdt.keys)
+            nk = len(jdt.key)
             res2 = core.columns_from_slice(jdt.internal, self._engine.joinindex,
                                            nk, jdt.ncols - nk, 1)
             res.append_columns(res2)

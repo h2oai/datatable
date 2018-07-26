@@ -485,6 +485,29 @@ void StringColumn<T>::fill_na() {
 }
 
 
+template <typename T>
+RowIndex StringColumn<T>::join(const Column* keycol) const {
+  xassert(stype() == keycol->stype());
+
+  auto kcol = static_cast<const StringColumn<T>*>(keycol);
+  xassert(!kcol->ri);
+
+  // arr32_t target_indices(static_cast<size_t>(nrows));
+  // int32_t* trg_indices = target_indices.data();
+  // const T* src_data = elements_r();
+  // const T* search_data = kcol->elements_r();
+  // int32_t search_n = static_cast<int32_t>(keycol->nrows);
+
+  // ri.strided_loop2(0, nrows, 1,
+  //   [&](int64_t i, int64_t j) {
+  //     T value = src_data[j];
+  //     trg_indices[i] = binsearch<T>(search_data, search_n, value);
+  //   });
+
+  // return RowIndex::from_array32(std::move(target_indices));
+  return RowIndex();
+}
+
 
 //------------------------------------------------------------------------------
 // Stats

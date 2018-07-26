@@ -438,3 +438,4 @@ void VoidColumn::open_mmap(const std::string&, bool) {}
 void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
+RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }

@@ -158,11 +158,15 @@ PyObject* to_datatable(obj* self, PyObject*) {
 
 PyObject* append_columns(obj* self, PyObject* args) {
   PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O&:append_columns", &arg1)) return nullptr;
+  if (!PyArg_ParseTuple(args, "O:append_columns", &arg1)) return nullptr;
   if (!PyObject_TypeCheck(arg1, &type)) {
     throw TypeError() << "Expected argument of type Columnset";
   }
   obj* other = static_cast<obj*>(arg1);
+  // TODO: remove in #1188
+  for (int64_t i = 0; i < other->ncols; ++i) {
+    other->columns[i]->reify();
+  }
 
   int64_t newncols = self->ncols + other->ncols;
   Column** columns = self->columns;
