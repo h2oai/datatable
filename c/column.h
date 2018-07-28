@@ -626,6 +626,7 @@ public:
   size_t datasize() const;
   int64_t data_nrows() const override;
   const char* strdata() const;
+  const uint8_t* ustrdata() const;
   const T* offsets() const;
   T* offsets_w();
 
