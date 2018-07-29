@@ -5,6 +5,8 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 from .dtproxy import g
+from datatable.utils.typechecks import TValueError, TTypeError
+
 
 __all__ = ("join",)
 
@@ -22,15 +24,15 @@ class join:
         xcols = [None] * len(self.frame.key)
         for i, colname in enumerate(self.frame.key):
             if colname not in dt._inames:
-                raise ValueError("Key column `%s` does not exist in the "
-                                 "left Frame" % colname)
+                raise TValueError("Key column `%s` does not exist in the "
+                                  "left Frame" % colname)
             xcols[i] = dt._inames[colname]
             l_ltype = dt.ltypes[xcols[i]]
             r_ltype = self.frame.ltypes[i]
             if l_ltype != r_ltype:
-                raise TypeError("Join column `%s` has type %s in the left "
-                                "Frame, and type %s in the right Frame. "
-                                % (colname, l_ltype, r_ltype))
+                raise TTypeError("Join column `%s` has type %s in the left "
+                                 "Frame, and type %s in the right Frame. "
+                                 % (colname, l_ltype.name, r_ltype.name))
         jindex = dt.internal.join(ee.rowindex, self.frame.internal, xcols)
         ee.joinindex = jindex
         g.set_rowindex(jindex)

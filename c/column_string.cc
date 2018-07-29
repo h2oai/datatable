@@ -284,12 +284,11 @@ void StringColumn<T>::reify() {
     T prev_off = 0;
     ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
-        T off1 = offs1[i];
-        if (ISNA<T>(off1)) {
+        if (ISNA(i) || ISNA<T>(offs1[i])) {
           *offs_dest++ = prev_off | GETNA<T>();
         } else {
           T off0 = offs0[i] & ~GETNA<T>();
-          T str_len = off1 - off0;
+          T str_len = offs1[i] - off0;
           if (str_len != 0) {
             std::memcpy(strs_dest, strs_src + off0, str_len);
             strs_dest += str_len;
@@ -529,9 +528,10 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
   // Use unsigned indices in order to avoid overflows. LOL about -1
   uint32_t start = -1U;
   uint32_t end   = len;
+  const T* start_offsets = offsets - 1;
   while (end - start > 1) {
     uint32_t mid = (start + end) >> 1;
-    T vstart = offsets[mid - 1] & ~GETNA<T>();
+    T vstart = start_offsets[mid] & ~GETNA<T>();
     T vend = offsets[mid];
     int cmp = compare_strings<T>(strdata, vstart, vend, src, ostart, oend);
     if (cmp < 0) {  // mid < o
@@ -558,7 +558,7 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
   const T* src_offsets = offsets();
   const T* key_offsets = kcol->offsets();
   const uint8_t* src_strdata = ustrdata();
-  const uint8_t* key_strdata = ustrdata();
+  const uint8_t* key_strdata = kcol->ustrdata();
   uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
 
   ri.strided_loop2(0, nrows, 1,

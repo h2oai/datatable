@@ -293,7 +293,8 @@ void RowIndex::strided_loop(
     case RI_ARR32: {
       const int32_t* ridata = indices32();
       for (int64_t i = istart; i < iend; i += istep) {
-        f(static_cast<int64_t>(ridata[i]));
+        int32_t j = ridata[i];
+        f(ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
       }
       break;
     }
@@ -333,7 +334,8 @@ void RowIndex::strided_loop2(
     case RI_ARR32: {
       const int32_t* ridata = indices32();
       for (int64_t i = istart; i < iend; i += istep) {
-        f(i, static_cast<int64_t>(ridata[i]));
+        int32_t j = ridata[i];
+        f(i, ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
       }
       break;
     }

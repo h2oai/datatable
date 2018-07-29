@@ -174,8 +174,7 @@ void FwColumn<T>::reify() {
        : static_cast<T*>(newmr.resize(newsize).wptr());
     ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
-        *data_dest = data_src[i];
-        ++data_dest;
+        *data_dest++ = ISNA(i)? GETNA<T>() : data_src[i];
       });
   }
 
