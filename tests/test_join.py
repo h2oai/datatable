@@ -7,7 +7,8 @@
 import datatable as dt
 import pytest
 import random
-from datatable import join
+from tests import random_string
+from datatable import join, ltype, stype
 
 
 
@@ -63,3 +64,40 @@ def test_join_errors():
         d0[:, :, join(d1)]
     assert ("Join column `A` has type int in the left Frame, and type real "
             "in the right Frame" in str(e.value))
+
+
+@pytest.mark.parametrize("seed,lt", [(random.getrandbits(32), ltype.bool),
+                                     (random.getrandbits(32), ltype.int),
+                                     (random.getrandbits(32), ltype.real),
+                                     (random.getrandbits(32), ltype.str)])
+def test_join_random(seed, lt):
+    random.seed(seed)
+    ndata = int(random.expovariate(0.0005))
+    nkeys = int(random.expovariate(0.01)) + 1
+    st = random.choice(lt.stypes)
+    if lt == ltype.bool:
+        keys = [True, False]
+    elif lt == ltype.int:
+        nbits = (6 if st == stype.int8 else
+                 12 if st == stype.int16 else
+                 24)
+        keys = list(set(random.getrandbits(nbits) for _ in range(nkeys)))
+    elif lt == ltype.real:
+        keys = list(set(random.random() for _ in range(nkeys)))
+    else:
+        l = int(random.expovariate(0.05)) + 1
+        keys = list(set(random_string(l) for _ in range(nkeys)))
+    nkeys = len(keys)
+
+    dkey = dt.Frame(KEY=keys, VAL=range(nkeys), stypes=(st, int))
+    dkey.key = "KEY"
+    keys, vals = dkey.topython()
+    main = [random.choice(keys) for i in range(ndata)]
+    dmain = dt.Frame(KEY=main, stype=st)
+    res = [vals[keys.index(main[i])] for i in range(ndata)]
+
+    djoined = dmain[:, :, join(dkey)]
+    djoined.internal.check()
+    assert djoined.shape == (ndata, 2)
+    assert djoined.names == ("KEY", "VAL")
+    assert djoined.topython() == [main, res]
