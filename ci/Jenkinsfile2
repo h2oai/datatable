@@ -210,7 +210,7 @@ ansiColor('xterm') {
                                             arch "dist/*.whl"
                                         }
                                     }
-                                } 
+                                }
                             }
                         }
                     } else {
@@ -629,7 +629,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
             make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
-        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true' 
+        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true'
         arch "build/cores/*.*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
@@ -715,9 +715,9 @@ def namedStage(String stageName, boolean doRun, Closure body) {
         if (doRun) {
             def stageDir = stageName.toLowerCase().replaceAll(" ", "_")
             body(stageName, stageDir)
-        } else { 
+        } else {
             markSkipped(stageName)
-        }   
+        }
     }]
 }
 
