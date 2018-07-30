@@ -68,7 +68,6 @@ def get_c_sources(folder, include_headers=False):
 def get_py_sources():
     """Find python source directories."""
     packages = find_packages(exclude=["tests", "tests.munging", "temp", "c"])
-    print("\nFound packages: %r\n" % packages, file=stderr)
     return packages
 
 
@@ -83,12 +82,19 @@ def get_test_dependencies():
     ]
 
 
-def make_git_version_file():
+def make_git_version_file(force):
     import subprocess
     if not os.path.isdir(".git"):
+        if force:
+            raise SystemExit("Cannot determine git revision of the package "
+                             "because folder .git is missing. Current "
+                             "directory: %s"
+                             % os.path.abspath(os.path.curdir))
+        print("Could not generate __git__.py", file=stderr)
         return
     out = subprocess.check_output(["git", "rev-parse", "HEAD"])
     githash = out.decode("ascii").strip()
+    print("Generating __git__.py with hash=%s\n" % githash, file=stderr)
     with open("datatable/__git__.py", "w", encoding="utf-8") as o:
         o.write(
             "#!/usr/bin/env python3\n"
@@ -385,7 +391,9 @@ print("Setting environment variables:", file=stderr)
 for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG"]:
     print("  %s = %s" % (n, os.environ.get(n, "")), file=stderr)
 
-make_git_version_file()
+if sys.argv[1] in ("--version", "build", "fast", "dist", "sdist"):
+    force = sys.argv[1] in ("--version", "dist", "sdist")
+    make_git_version_file(force)
 
 
 #-------------------------------------------------------------------------------
