@@ -45,6 +45,8 @@ public:
   Error& operator<<(char);
   Error& operator<<(size_t);
   Error& operator<<(uint32_t);
+  Error& operator<<(float);
+  Error& operator<<(double);
   Error& operator<<(SType);
   Error& operator<<(const CErrno&);
   Error& operator<<(PyObject*);

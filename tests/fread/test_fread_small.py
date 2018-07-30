@@ -14,6 +14,7 @@ import os
 import pytest
 import random
 import re
+import sys
 import time
 from tests import random_string, list_equals
 
@@ -139,7 +140,9 @@ def test_float_hex_invalid():
 
 
 def test_float_decimal0():
-    assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
+    assert dt.fread("1.3485701e-303\n").scalar() == 1.3485701e-303
+    if "powerpc64" not in str(sys.implementation):
+        assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
     assert (dt.fread("A\n1.23456789123456789123456999\n").scalar() ==
             1.23456789123456789123456999)
 

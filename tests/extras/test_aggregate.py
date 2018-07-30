@@ -218,6 +218,7 @@ def test_aggregate_2d_categorical_random():
 
     d_members = aggregate(d_in)
     d_members.internal.check()
+    d_in.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.topython() == [[1, 2, 5, 3, 4, 0, 5]]
