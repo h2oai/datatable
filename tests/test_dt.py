@@ -83,7 +83,7 @@ def test_dt_loadtime(nocov):
         print("Ratio: %.6f" % ratio)
         if ratio < 3:
             return
-    assert ratio < 3
+    assert ratio < 4
 
 
 @pytest.mark.run(order=0.9)
