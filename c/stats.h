@@ -14,7 +14,7 @@
 class Column;
 
 
-enum Stat {
+enum class Stat : uint8_t {
   NaCount,
   Sum,
   Mean,
@@ -28,10 +28,9 @@ enum Stat {
   Max,
   Mode,
   NModal,
-  NUnique,
-
-  NSTATS
+  NUnique
 };
+constexpr uint8_t NSTATS = 14;
 
 
 
@@ -42,21 +41,18 @@ enum Stat {
 /**
  * Base class in the hierarchy of Statistics Containers:
  *
- *                                +-------+
- *                                | Stats | ______________
- *                                +-------+               \
- *                                 /     \                 \
- *                 +----------------+   +-------------+   +---------------+
- *         ________| NumericalStats |   | StringStats |   | PyObjectStats |
- *        /        +----------------+   +-------------+   +---------------+
- *       /              /           \
- *      /      +--------------+   +-----------+
- *     |       | IntegerStats |   | RealStats |
- *     |       +--------------+   +-----------+
- *     |
- *   +--------------+
- *   | BooleanStats |
- *   +--------------+
+ *                           +---------+
+ *                  _________|  Stats  |____________
+ *                 /         +---------+            \
+ *                /               |                  \
+ *  +---------------+    +--------------------+    +-------------+
+ *  | PyObjectStats |    |   NumericalStats   |    | StringStats |
+ *  +---------------+    +--------------------+    +-------------+
+ *                      /          |           \
+ *       +--------------+   +--------------+   +-----------+
+ *       | BooleanStats |   | IntegerStats |   | RealStats |
+ *       +--------------+   +--------------+   +-----------+
+ *
  *
  * `NumericalStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
@@ -75,7 +71,7 @@ enum Stat {
  */
 class Stats {
   protected:
-    std::bitset<Stat::NSTATS> _computed;
+    std::bitset<NSTATS> _computed;
     int64_t _countna;
     int64_t _nunique;
     int64_t _nmodal;
@@ -101,6 +97,8 @@ class Stats {
   protected:
     virtual void compute_countna(const Column*) = 0;
     virtual void compute_sorted_stats(const Column*) = 0;
+    void set_computed(Stat s);
+    void set_computed(Stat s, bool flag);
 };
 
 

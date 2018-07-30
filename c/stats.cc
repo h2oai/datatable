@@ -32,26 +32,35 @@ void Stats::reset() {
 }
 
 bool Stats::is_computed(Stat s) const {
-  return _computed.test(s);
+  return _computed.test(static_cast<size_t>(s));
 }
 
+void Stats::set_computed(Stat s) {
+  _computed.set(static_cast<size_t>(s));
+}
+
+void Stats::set_computed(Stat s, bool flag) {
+  _computed.set(static_cast<size_t>(s), flag);
+}
+
+
 int64_t Stats::countna(const Column* col) {
-  if (!_computed.test(Stat::NaCount)) compute_countna(col);
+  if (!is_computed(Stat::NaCount)) compute_countna(col);
   return _countna;
 }
 
 int64_t Stats::nunique(const Column* col) {
-  if (!_computed.test(Stat::NUnique)) compute_sorted_stats(col);
+  if (!is_computed(Stat::NUnique)) compute_sorted_stats(col);
   return _nunique;
 }
 
 int64_t Stats::nmodal(const Column* col) {
-  if (!_computed.test(Stat::NModal)) compute_sorted_stats(col);
+  if (!is_computed(Stat::NModal)) compute_sorted_stats(col);
   return _nmodal;
 }
 
 void Stats::set_countna(int64_t n) {
-  _computed.set(Stat::NaCount, !ISNA<int64_t>(n));
+  set_computed(Stat::NaCount, !ISNA<int64_t>(n));
   _countna = n;
 }
 
@@ -190,14 +199,14 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     _skew = count_notna > 1 ? std::sqrt(count_notna) * m3/std::pow(m2,1.5) : 0;
     _kurt = count_notna > 1 ? (static_cast<double>(m4)*count_notna)/(m2*m2) : 0;
   }
-  _computed.set(Stat::Min);
-  _computed.set(Stat::Max);
-  _computed.set(Stat::Sum);
-  _computed.set(Stat::Mean);
-  _computed.set(Stat::StDev);
-  _computed.set(Stat::Skew);
-  _computed.set(Stat::Kurt);
-  _computed.set(Stat::NaCount);
+  set_computed(Stat::Min);
+  set_computed(Stat::Max);
+  set_computed(Stat::Sum);
+  set_computed(Stat::Mean);
+  set_computed(Stat::StDev);
+  set_computed(Stat::Skew);
+  set_computed(Stat::Kurt);
+  set_computed(Stat::NaCount);
 }
 
 
@@ -212,15 +221,15 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   // Sorting gathers all NA elements at the top (in the first group). Thus if
   // we did not yet compute the NA count for the column, we can do so now by
   // checking whether the elements in the first group are NA or not.
-  if (!_computed.test(Stat::NaCount)) {
+  if (!is_computed(Stat::NaCount)) {
     T x0 = coldata[ri.nth(0)];
     _countna = ISNA<T>(x0)? groups[1] : 0;
-    _computed.set(Stat::NaCount);
+    set_computed(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
   _nunique = static_cast<int64_t>(n_groups) - has_nas;
-  _computed.set(Stat::NUnique);
+  set_computed(Stat::NUnique);
 
   int64_t max_grpsize = 0;
   size_t best_igrp = 0;
@@ -234,56 +243,56 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
 
   _nmodal = max_grpsize;
   _mode = max_grpsize ? coldata[ri.nth(groups[best_igrp])] : GETNA<T>();
-  _computed.set(Stat::NModal);
-  _computed.set(Stat::Mode);
+  set_computed(Stat::NModal);
+  set_computed(Stat::Mode);
 }
 
 
 template <typename T, typename A>
 A NumericalStats<T, A>::sum(const Column* col) {
-  if (!_computed.test(Stat::Sum)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Sum)) compute_numerical_stats(col);
   return _sum;
 }
 
 template <typename T, typename A>
 T NumericalStats<T, A>::min(const Column* col) {
-  if (!_computed.test(Stat::Min)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Min)) compute_numerical_stats(col);
   return _min;
 }
 
 template <typename T, typename A>
 T NumericalStats<T, A>::max(const Column* col) {
-  if (!_computed.test(Stat::Max)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Max)) compute_numerical_stats(col);
   return _max;
 }
 
 template <typename T, typename A>
 T NumericalStats<T, A>::mode(const Column* col) {
-  if (!_computed.test(Stat::Mode)) compute_sorted_stats(col);
+  if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
   return _mode;
 }
 
 template <typename T, typename A>
 double NumericalStats<T, A>::mean(const Column* col) {
-  if (!_computed.test(Stat::Mean)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Mean)) compute_numerical_stats(col);
   return _mean;
 }
 
 template <typename T, typename A>
 double NumericalStats<T, A>::stdev(const Column* col) {
-  if (!_computed.test(Stat::StDev)) compute_numerical_stats(col);
+  if (!is_computed(Stat::StDev)) compute_numerical_stats(col);
   return _sd;
 }
 
 template <typename T, typename A>
 double NumericalStats<T, A>::skew(const Column* col) {
-  if (!_computed.test(Stat::Skew)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Skew)) compute_numerical_stats(col);
   return _skew;
 }
 
 template <typename T, typename A>
 double NumericalStats<T, A>::kurt(const Column* col) {
-  if (!_computed.test(Stat::Kurt)) compute_numerical_stats(col);
+  if (!is_computed(Stat::Kurt)) compute_numerical_stats(col);
   return _kurt;
 }
 
@@ -294,13 +303,13 @@ void NumericalStats<T, A>::compute_countna(const Column* col) {
 
 template<typename T, typename A>
 void NumericalStats<T, A>::set_min(T value) {
-  _computed.set(Stat::Min, !ISNA<T>(value));
+  set_computed(Stat::Min, !ISNA<T>(value));
   _min = value;
 }
 
 template<typename T, typename A>
 void NumericalStats<T, A>::set_max(T value) {
-  _computed.set(Stat::Max, !ISNA<T>(value));
+  set_computed(Stat::Max, !ISNA<T>(value));
   _max = value;
 }
 
@@ -399,15 +408,15 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   _nunique = (!!count0) + (!!count1);
   _mode = _nunique ? (count1 >= count0) : GETNA<int8_t>();
   _nmodal = _mode == 1 ? count1 : _mode == 0 ? count0 : 0;
-  _computed.set(Stat::Max);
-  _computed.set(Stat::Mean);
-  _computed.set(Stat::Min);
-  _computed.set(Stat::Mode);
-  _computed.set(Stat::NaCount);
-  _computed.set(Stat::NModal);
-  _computed.set(Stat::NUnique);
-  _computed.set(Stat::StDev);
-  _computed.set(Stat::Sum);
+  set_computed(Stat::Max);
+  set_computed(Stat::Mean);
+  set_computed(Stat::Min);
+  set_computed(Stat::Mode);
+  set_computed(Stat::NaCount);
+  set_computed(Stat::NModal);
+  set_computed(Stat::NUnique);
+  set_computed(Stat::StDev);
+  set_computed(Stat::Sum);
 }
 
 void BooleanStats::compute_sorted_stats(const Column *col) {
@@ -446,7 +455,7 @@ void StringStats<T>::compute_countna(const Column* col) {
   }
 
   _countna = countna;
-  _computed.set(Stat::NaCount);
+  set_computed(Stat::NaCount);
 }
 
 
@@ -459,15 +468,15 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
 
-  if (!_computed.test(Stat::NaCount)) {
+  if (!is_computed(Stat::NaCount)) {
     T off0 = offsets[ri.nth(0)];
     _countna = ISNA<T>(off0)? groups[1] : 0;
-    _computed.set(Stat::NaCount);
+    set_computed(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
   _nunique = static_cast<int64_t>(n_groups) - has_nas;
-  _computed.set(Stat::NUnique);
+  set_computed(Stat::NUnique);
 
   int64_t max_grpsize = 0;
   size_t best_igrp = 0;
@@ -491,14 +500,14 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
     _mode.ch = nullptr;
     _mode.size = -1;
   }
-  _computed.set(Stat::NModal);
-  _computed.set(Stat::Mode);
+  set_computed(Stat::NModal);
+  set_computed(Stat::Mode);
 }
 
 
 template <typename T>
 CString StringStats<T>::mode(const Column* col) {
-  if (!_computed.test(Stat::Mode)) compute_sorted_stats(col);
+  if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
   return _mode;
 }
 
@@ -537,7 +546,7 @@ void PyObjectStats::compute_countna(const Column* col) {
   }
 
   _countna = countna;
-  _computed.set(Stat::NaCount);
+  set_computed(Stat::NaCount);
 }
 
 
