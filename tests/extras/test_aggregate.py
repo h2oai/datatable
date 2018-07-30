@@ -20,7 +20,6 @@ from datatable import stype
 # Aggregate 1D
 #-------------------------------------------------------------------------------
 
-@pytest.mark.xfail()
 def test_aggregate_1d_continuous_integer_equal():
     n_bins = 3
     d_in = dt.Frame([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -99,7 +98,6 @@ def test_aggregate_1d_continuous_real_random():
 # Aggregate 2D
 #-------------------------------------------------------------------------------
 
-@pytest.mark.xfail()
 def test_aggregate_2d_continuous_integer_sorted():
     nx_bins = 3
     ny_bins = 3
@@ -118,7 +116,6 @@ def test_aggregate_2d_continuous_integer_sorted():
                                [4, 3, 3]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_continuous_integer_random():
     nx_bins = 3
     ny_bins = 3
@@ -137,7 +134,6 @@ def test_aggregate_2d_continuous_integer_random():
                                [2, 1, 2, 1, 1, 2, 1]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_continuous_real_sorted():
     nx_bins = 3
     ny_bins = 3
@@ -156,7 +152,6 @@ def test_aggregate_2d_continuous_real_sorted():
                                [4, 3, 3]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_continuous_real_random():
     nx_bins = 3
     ny_bins = 3
@@ -201,7 +196,6 @@ def test_aggregate_1d_categorical_random():
                                [2, 1, 1, 1, 1, 1]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_categorical_sorted():
     d_in = dt.Frame([["blue", "green", "indigo", "orange", "red", "violet", "yellow"],
                      ["Friday", "Monday", "Saturday", "Sunday", "Thursday", "Tuesday", "Wednesday"]])
@@ -218,13 +212,13 @@ def test_aggregate_2d_categorical_sorted():
                                [1, 1, 1, 1, 1, 1, 1]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_categorical_random():
     d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet", "red"],
                      ["Monday", "Monday", "Wednesday", "Saturday", "Thursday", "Friday", "Wednesday"]])
 
     d_members = aggregate(d_in)
     d_members.internal.check()
+    d_in.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.topython() == [[1, 2, 5, 3, 4, 0, 5]]
@@ -236,7 +230,6 @@ def test_aggregate_2d_categorical_random():
                                [1, 1, 1, 1, 1, 2]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_mixed_sorted():
     nx_bins = 7
     d_in = dt.Frame([[0, 1, 2, 3, 4, 5, 6],
@@ -254,7 +247,6 @@ def test_aggregate_2d_mixed_sorted():
                                [1, 1, 1, 1, 1, 1, 1]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_2d_mixed_random():
     nx_bins = 6
     d_in = dt.Frame([[3, 0, 6, 6, 1, 2, 4],

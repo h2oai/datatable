@@ -112,6 +112,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
       }
     }
   }
+  dt_members->columns[0]->get_stats()->reset();
 
   // Applying exemplars row index and binding exemplars with the counts
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
