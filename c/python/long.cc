@@ -100,6 +100,7 @@ PyObject* PyyLong::release() {
 
 
 template<> long PyyLong::value<long>(int* overflow) const {
+  if (!obj) return GETNA<long>();
   long value = PyLong_AsLongAndOverflow(obj, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long>::max()
@@ -110,6 +111,7 @@ template<> long PyyLong::value<long>(int* overflow) const {
 
 
 template<> long long PyyLong::value<long long>(int* overflow) const {
+  if (!obj) return GETNA<long long>();
   long long value = PyLong_AsLongLongAndOverflow(obj, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long long>::max()
@@ -120,6 +122,7 @@ template<> long long PyyLong::value<long long>(int* overflow) const {
 
 
 template<> double PyyLong::value<double>(int* overflow) const {
+  if (!obj) return GETNA<double>();
   double value = PyLong_AsDouble(obj);
   if (value == -1 && PyErr_Occurred()) {
     int sign = _PyLong_Sign(obj);
@@ -134,6 +137,7 @@ template<> double PyyLong::value<double>(int* overflow) const {
 
 
 template<> float PyyLong::value<float>(int* overflow) const {
+  if (!obj) return GETNA<float>();
   static constexpr double max_float =
     static_cast<double>(std::numeric_limits<float>::max());
   double value = PyLong_AsDouble(obj);
@@ -151,6 +155,7 @@ template<> float PyyLong::value<float>(int* overflow) const {
 
 
 template<typename T> T PyyLong::value(int* overflow) const {
+  if (!obj) return GETNA<T>();
   constexpr T MAX = std::numeric_limits<T>::max();
   long x = value<long>(overflow);
   if (x > MAX) {
@@ -166,6 +171,7 @@ template<typename T> T PyyLong::value(int* overflow) const {
 
 
 template<typename T> T PyyLong::value() const {
+  if (!obj) return GETNA<T>();
   int overflow;
   T res = value<T>(&overflow);
   if (overflow) {
@@ -176,6 +182,7 @@ template<typename T> T PyyLong::value() const {
 
 
 template<> long long int PyyLong::masked_value() const {
+  if (!obj) return GETNA<long long int>();
   unsigned long long x = PyLong_AsUnsignedLongLongMask(obj);
   if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
@@ -186,6 +193,7 @@ template<> long long int PyyLong::masked_value() const {
 
 
 template<typename T> T PyyLong::masked_value() const {
+  if (!obj) return GETNA<T>();
   unsigned long x = PyLong_AsUnsignedLongMask(obj);
   if (x == static_cast<unsigned long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();

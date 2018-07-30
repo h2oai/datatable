@@ -261,6 +261,8 @@ class RowIndex {
      */
     template<typename F> void strided_loop(
         int64_t istart, int64_t iend, int64_t istep, F f) const;
+    template<typename F> void strided_loop2(
+        int64_t istart, int64_t iend, int64_t istep, F f) const;
 
     void verify_integrity() const;
 
@@ -291,7 +293,8 @@ void RowIndex::strided_loop(
     case RI_ARR32: {
       const int32_t* ridata = indices32();
       for (int64_t i = istart; i < iend; i += istep) {
-        f(static_cast<int64_t>(ridata[i]));
+        int32_t j = ridata[i];
+        f(ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
       }
       break;
     }
@@ -309,6 +312,47 @@ void RowIndex::strided_loop(
       int64_t j = slice_start() + istart * slice_step();
       for (int64_t i = istart; i < iend; i += istep) {
         f(j);
+        j += jstep;
+      }
+      break;
+    }
+  }
+}
+
+
+template<typename F>
+void RowIndex::strided_loop2(
+    int64_t istart, int64_t iend, int64_t istep, F f) const
+{
+  switch (impl? impl->type : RowIndexType::RI_UNKNOWN) {
+    case RI_UNKNOWN: {
+      for (int64_t i = istart; i < iend; i += istep) {
+        f(i, i);
+      }
+      break;
+    }
+    case RI_ARR32: {
+      const int32_t* ridata = indices32();
+      for (int64_t i = istart; i < iend; i += istep) {
+        int32_t j = ridata[i];
+        f(i, ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
+      }
+      break;
+    }
+    case RI_ARR64: {
+      const int64_t* ridata = indices64();
+      for (int64_t i = istart; i < iend; i += istep) {
+        f(i, ridata[i]);
+      }
+      break;
+    }
+    case RI_SLICE: {
+      // Careful with negative slice steps (in which case j goes down,
+      // and therefore we cannot iterate until `j < jend`).
+      int64_t jstep = slice_step() * istep;
+      int64_t j = slice_start() + istart * slice_step();
+      for (int64_t i = istart; i < iend; i += istep) {
+        f(i, j);
         j += jstep;
       }
       break;
