@@ -95,8 +95,8 @@ ansiColor('xterm') {
             // Checkout stage
             node(X86_64_BUILD_NODE_LABEL) {
                 def stageDir = 'checkout'
-                buildSummary.stageWithSummary('Checkout', stageDir) {
-                    dir (stageDir) {
+                dir (stageDir) {
+                    buildSummary.stageWithSummary('Checkout', stageDir) {
                         def scmEnv = checkout scm
                         env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
                         if (doPPC()) {
@@ -112,7 +112,6 @@ ansiColor('xterm') {
                             env.DT_LARGE_TESTS_ROOT = TARGET_DIR
                             manager.addBadge("warning.gif", "Large tests required")
                         }
-                        stash 'datatable-sources'
                         stash includes: "CHANGELOG.md", name: 'CHANGELOG'
 
                         docker.image(X86_64_CENTOS_DOCKER_IMAGE).inside {
@@ -134,6 +133,15 @@ ansiColor('xterm') {
                             }
                         }
                     }
+                    buildSummary.stageWithSummary('Generate version and git files', stageDir) {
+                        sh "make ${MAKE_OPTS} centos7_version_in_docker"
+                        stash name: 'VERSION', includes: "dist/VERSION.txt"
+                        arch "dist/VERSION.txt"
+                        arch "datatable/__git__.py"
+                        versionText = readFile('dist/VERSION.txt').trim()
+                        echo "Version is: ${versionText}"
+                    }
+                    stash 'datatable-sources'
                 }
             }
             // Build stages
@@ -153,11 +161,6 @@ ansiColor('xterm') {
                                     sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                     stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    sh "make ${MAKE_OPTS} centos7_version_in_docker"
-                                    stash name: 'VERSION', includes: "dist/VERSION.txt"
-                                    arch "dist/VERSION.txt"
-                                    versionText = readFile('dist/VERSION.txt').trim()
-                                    echo "Version is: ${versionText}"
                                 }
                             }
                         }
@@ -724,4 +727,3 @@ def namedStage(String stageName, boolean doRun, Closure body) {
 def namedStage(String stageName, Closure body) {
     return namedStage(stageName, true, body)
 }
-
