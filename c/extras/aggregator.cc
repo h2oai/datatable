@@ -120,6 +120,9 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
   DataTable* dt[1];
   dt[0] = dt_counts;
   dt_exemplars->cbind(dt, 1);
+  for (int32_t i = 0; i < dt_exemplars->ncols-1; ++i) {
+    dt_exemplars->columns[i]->get_stats()->reset();
+  }
   delete dt_counts;
 }
 
