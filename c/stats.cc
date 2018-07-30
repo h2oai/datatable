@@ -6,8 +6,9 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "stats.h"
-#include <cmath>     // std::isinf, std::sqrt
-#include <limits>    // std::numeric_limits
+#include <cmath>        // std::isinf, std::sqrt
+#include <limits>       // std::numeric_limits
+#include <type_traits>  // std::is_floating_point
 #include "column.h"
 #include "rowindex.h"
 #include "utils.h"
@@ -19,6 +20,25 @@ constexpr T infinity() {
   return std::numeric_limits<T>::has_infinity
          ? std::numeric_limits<T>::infinity()
          : std::numeric_limits<T>::max();
+}
+
+static const char* stat_name(Stat s) {
+  switch (s) {
+    case Stat::NaCount: return "NaCount";
+    case Stat::Sum:     return "Sum";
+    case Stat::Mean:    return "Mean";
+    case Stat::StDev:   return "StDev";
+    case Stat::Skew:    return "Skew";
+    case Stat::Kurt:    return "Kurt";
+    case Stat::Min:     return "Min";
+    case Stat::Qt25:    return "Qt25";
+    case Stat::Median:  return "Median";
+    case Stat::Qt75:    return "Qt75";
+    case Stat::Max:     return "Max";
+    case Stat::Mode:    return "Mode";
+    case Stat::NModal:  return "NModal";
+    case Stat::NUnique: return "NUnique";
+  }
 }
 
 
@@ -77,8 +97,27 @@ void Stats::merge_stats(const Stats*) {
 /**
  * See DataTable::verify_integrity for method description
  */
-void Stats::verify_integrity(const Column*) const {
-  // TODO: implement (#1143)
+void Stats::verify_integrity(const Column* col) const {
+  auto test = std::unique_ptr<Stats>(make());
+  verify_stat(Stat::NaCount, _countna, [&](){ return test->countna(col); });
+  verify_stat(Stat::NUnique, _nunique, [&](){ return test->nunique(col); });
+  verify_stat(Stat::NModal,  _nmodal,  [&](){ return test->nmodal(col); });
+  verify_more(test.get(), col);
+}
+
+void Stats::verify_more(Stats*, const Column*) const {}
+
+
+template <typename T, typename F>
+void Stats::verify_stat(Stat s, T value, F getter) const {
+  if (!is_computed(s)) return;
+  T test_value = getter();
+  if (value == test_value) return;
+  if (std::is_floating_point<T>::value && (value != 0) &&
+      std::abs(1.0 - static_cast<double>(test_value/value)) < 1e-14) return;
+  throw AssertionError()
+      << "Stored " << stat_name(s) << " stat is " << value
+      << ", whereas computed " << stat_name(s) << " is " << getter();
 }
 
 
@@ -125,6 +164,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 
     rowindex.strided_loop(ith, nrows, nth,
       [&](int64_t i) {
+        if (ISNA<int64_t>(i)) return;
         T x = data[i];
         if (ISNA<T>(x)) return;
         n1 = t_count_notna;
@@ -314,6 +354,21 @@ void NumericalStats<T, A>::set_max(T value) {
 }
 
 
+template<typename T, typename A>
+void NumericalStats<T, A>::verify_more(Stats* test, const Column* col) const
+{
+  auto ntest = static_cast<NumericalStats<T, A>*>(test);
+  verify_stat(Stat::Min,   _min,   [&](){ return ntest->min(col); });
+  verify_stat(Stat::Max,   _max,   [&](){ return ntest->max(col); });
+  verify_stat(Stat::Sum,   _sum,   [&](){ return ntest->sum(col); });
+  verify_stat(Stat::Mean,  _mean,  [&](){ return ntest->mean(col); });
+  // verify_stat(Stat::StDev, _sd,    [&](){ return ntest->stdev(col); });
+  // verify_stat(Stat::Skew,  _skew,  [&](){ return ntest->skew(col); });
+  // verify_stat(Stat::Kurt,  _kurt,  [&](){ return ntest->kurt(col); });
+}
+
+
+
 template class NumericalStats<int8_t, int64_t>;
 template class NumericalStats<int16_t, int64_t>;
 template class NumericalStats<int32_t, int64_t>;
@@ -343,6 +398,12 @@ void RealStats<T>::compute_numerical_stats(const Column *col) {
 }
 
 
+template <typename T>
+RealStats<T>* RealStats<T>::make() const {
+  return new RealStats<T>();
+}
+
+
 template class RealStats<float>;
 template class RealStats<double>;
 
@@ -351,6 +412,12 @@ template class RealStats<double>;
 //==============================================================================
 // IntegerStats
 //==============================================================================
+
+template <typename T>
+IntegerStats<T>* IntegerStats<T>::make() const {
+  return new IntegerStats<T>();
+}
+
 
 template class IntegerStats<int8_t>;
 template class IntegerStats<int16_t>;
@@ -419,8 +486,14 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   set_computed(Stat::Sum);
 }
 
+
 void BooleanStats::compute_sorted_stats(const Column *col) {
   compute_numerical_stats(col);
+}
+
+
+BooleanStats* BooleanStats::make() const {
+  return new BooleanStats();
 }
 
 
@@ -512,6 +585,12 @@ CString StringStats<T>::mode(const Column* col) {
 }
 
 
+template <typename T>
+StringStats<T>* StringStats<T>::make() const {
+  return new StringStats<T>();
+}
+
+
 template class StringStats<uint32_t>;
 template class StringStats<uint64_t>;
 
@@ -552,4 +631,8 @@ void PyObjectStats::compute_countna(const Column* col) {
 
 void PyObjectStats::compute_sorted_stats(const Column*) {
   throw NotImplError();
+}
+
+PyObjectStats* PyObjectStats::make() const {
+  return new PyObjectStats();
 }
