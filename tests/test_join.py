@@ -89,7 +89,7 @@ def test_join_random(seed, lt):
         keys = list(set(random_string(l) for _ in range(nkeys)))
     nkeys = len(keys)
 
-    dkey = dt.Frame(KEY=keys, VAL=range(nkeys), stypes=(st, int))
+    dkey = dt.Frame(KEY=keys, VAL=range(nkeys), stypes={"KEY": st})
     dkey.key = "KEY"
     keys, vals = dkey.topython()
     main = [random.choice(keys) for i in range(ndata)]

@@ -206,6 +206,8 @@ class Frame(object):
         elif isinstance(src, (tuple, set, range)):
             self._fill_from_list([list(src)], names=names, stypes=stypes)
         elif isinstance(src, dict):
+            if isinstance(stypes, dict):
+                stypes = [stypes.get(n, None) for n in src.keys()]
             self._fill_from_list(list(src.values()), names=tuple(src.keys()),
                                  stypes=stypes)
         elif isinstance(src, core.DataTable):
@@ -249,7 +251,8 @@ class Frame(object):
             if len(stypes) == 1:
                 types = [stype(stypes[0]).value] * len(src)
             elif len(stypes) == len(src):
-                types = [stype(s).value for s in stypes]
+                types = [0 if s is None else stype(s).value
+                         for s in stypes]
             else:
                 raise TValueError("Number of stypes (%d) is different from "
                                   "the number of source columns (%d)"
