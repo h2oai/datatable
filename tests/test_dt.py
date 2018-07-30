@@ -103,6 +103,15 @@ def test_dt_dependencies():
     assert int(n) < 200
 
 
+@pytest.mark.run(order=0.91)
+def test_dt_version():
+    assert dt.__version__
+    assert isinstance(dt.__version__, str)
+    assert dt.__git_revision__
+    assert isinstance(dt.__git_revision__, str)
+    assert len(dt.__git_revision__) == 40
+
+
 @pytest.mark.run(order=1)
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
