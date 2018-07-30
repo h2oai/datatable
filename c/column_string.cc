@@ -191,6 +191,11 @@ const char* StringColumn<T>::strdata() const {
 }
 
 template <typename T>
+const uint8_t* StringColumn<T>::ustrdata() const {
+  return static_cast<const uint8_t*>(strbuf.rptr());
+}
+
+template <typename T>
 const T* StringColumn<T>::offsets() const {
   return static_cast<const T*>(mbuf.rptr()) + 1;
 }
@@ -279,12 +284,11 @@ void StringColumn<T>::reify() {
     T prev_off = 0;
     ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
-        T off1 = offs1[i];
-        if (ISNA<T>(off1)) {
+        if (ISNA(i) || ISNA<T>(offs1[i])) {
           *offs_dest++ = prev_off | GETNA<T>();
         } else {
           T off0 = offs0[i] & ~GETNA<T>();
-          T str_len = off1 - off0;
+          T str_len = offs1[i] - off0;
           if (str_len != 0) {
             std::memcpy(strs_dest, strs_src + off0, str_len);
             strs_dest += str_len;
@@ -482,6 +486,90 @@ void StringColumn<T>::fill_na() {
     off_data[i] = GETNA<T>();
   }
   ri.clear();
+}
+
+
+// Compare 2 strings, each is given as a string buffer + offsets to each
+// strings' start and end.
+// Return -1 if str1 < str2; 0 if str1 == str2; and 1 if str1 > str2.
+// An NA string compares equal to another NA string, but < than any other
+// non-NA string.
+// Note: this function presumes that `start1` and `start2` were already
+// cleared from the NA flag.
+//
+template <typename T>
+int compare_strings(const uint8_t* strdata1, T start1, T end1,
+                    const uint8_t* strdata2, T start2, T end2)
+{
+  if (ISNA<T>(end1)) return ISNA<T>(end2) - 1;
+  if (ISNA<T>(end2)) return 1;
+
+  T len1 = end1 - start1;
+  T len2 = end2 - start2;
+  strdata1 += start1;
+  strdata2 += start2;
+  for (T i = 0; i < len1; ++i) {
+    if (i == len2) return 1;  // str2 is shorter than str1
+    uint8_t ch1 = strdata1[i];
+    uint8_t ch2 = strdata2[i];
+    if (ch1 != ch2) {
+      return 1 - 2*(ch1 < ch2);
+    }
+  }
+  return -(len1 != len2);
+}
+
+
+template <typename T>
+static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
+                         const uint8_t* src, T ostart, T oend)
+{
+  ostart &= ~GETNA<T>();
+  // Use unsigned indices in order to avoid overflows. LOL about -1
+  uint32_t start = -1U;
+  uint32_t end   = len;
+  const T* start_offsets = offsets - 1;
+  while (end - start > 1) {
+    uint32_t mid = (start + end) >> 1;
+    T vstart = start_offsets[mid] & ~GETNA<T>();
+    T vend = offsets[mid];
+    int cmp = compare_strings<T>(strdata, vstart, vend, src, ostart, oend);
+    if (cmp < 0) {  // mid < o
+      start = mid;
+    } else if (cmp > 0) {
+      end = mid;
+    } else {
+      return static_cast<int32_t>(mid);
+    }
+  }
+  return GETNA<int32_t>();
+}
+
+
+template <typename T>
+RowIndex StringColumn<T>::join(const Column* keycol) const {
+  xassert(stype() == keycol->stype());
+
+  auto kcol = static_cast<const StringColumn<T>*>(keycol);
+  xassert(!kcol->ri);
+
+  arr32_t target_indices(static_cast<size_t>(nrows));
+  int32_t* trg_indices = target_indices.data();
+  const T* src_offsets = offsets();
+  const T* key_offsets = kcol->offsets();
+  const uint8_t* src_strdata = ustrdata();
+  const uint8_t* key_strdata = kcol->ustrdata();
+  uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
+
+  ri.strided_loop2(0, nrows, 1,
+    [&](int64_t i, int64_t j) {
+      T ostart = src_offsets[j - 1];
+      T oend = src_offsets[j];
+      trg_indices[i] = binsearch<T>(key_strdata, key_offsets, key_n,
+                                    src_strdata, ostart, oend);
+    });
+
+  return RowIndex::from_array32(std::move(target_indices));
 }
 
 

@@ -55,6 +55,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
       if (types) {
         PyyLong t = types[i];
         stype = t.value<int32_t>();
+        if (ISNA<int32_t>(stype)) stype = 0;
       }
       cols[i] = Column::from_pylist(list, stype);
     } else {

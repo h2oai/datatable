@@ -10,7 +10,8 @@ from .cols_node import SliceCSNode, ArrayCSNode
 from .context import make_engine
 from .groupby_node import make_groupby
 from .sort_node import make_sort
-from .dtproxy import f
+from .join_node import join
+from .dtproxy import f, g
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("make_datatable",
@@ -21,8 +22,8 @@ __all__ = ("make_datatable",
 
 
 
-def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
-                   mode=None, replacement=None):
+def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
+                   engine=None, mode=None, replacement=None):
     """
     Implementation of the `Frame.__call__()` method.
 
@@ -32,14 +33,18 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
     """
     update_mode = mode == "update"
     delete_mode = mode == "delete"
-    with f.bind_datatable(dt):
-        ee = make_engine(engine, dt)
+    jframe = join.frame if join else None
+    with f.bind_datatable(dt), g.bind_datatable(jframe):
+        ee = make_engine(engine, dt, jframe)
         ee.rowindex = dt.internal.rowindex
         rowsnode = ee.make_rowfilter(rows)
         grbynode = ee.make_groupby(groupby)
         colsnode = ee.make_columnset(select,
                                      new_cols_allowed=update_mode)
         sortnode = ee.make_sort(sort)
+
+        if join:
+            join.execute(ee)
 
         if sortnode:
             if isinstance(rowsnode, AllRFNode) and not grbynode:
@@ -51,7 +56,7 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 
         if delete_mode or update_mode:
             assert grbynode is None
-            allcols = isinstance(colsnode, SliceCSNode) and colsnode.is_all()
+            allcols = colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
             if delete_mode:
                 if allrows:
@@ -107,15 +112,20 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 def resolve_selector(item):
     rows = None
     grby = None
+    jointo = None
     if isinstance(item, tuple):
         if len(item) == 1:
             cols = item[0]
         elif len(item) == 2:
             rows, cols = item
         elif len(item) == 3:
-            rows, cols, grby = item
+            rows, cols, x = item
+            if isinstance(x, join):
+                jointo = x
+            else:
+                grby = x
         else:
             raise TValueError("Selector %r is not supported" % (item, ))
     else:
         cols = item
-    return (rows, cols, grby)
+    return (rows, cols, grby, jointo)

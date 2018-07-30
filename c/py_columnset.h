@@ -44,6 +44,11 @@ DECLARE_METHOD(
   to_datatable,
   "Convert this ColumnSet into a DataTable.")
 
+DECLARE_METHOD(
+  append_columns,
+  "Add another ColumnSet to the current. This append uses move semantics:\n"
+  "after this call, the other ColumnSet becomes empty.")
+
 
 
 //---- External API ------------------------------------------------------------
