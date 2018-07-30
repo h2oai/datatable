@@ -200,6 +200,10 @@ DECLARE_METHOD(
   "save_jay(file, colnames)\n\n"
   "Save DataTable into a .jay file.\n")
 
+DECLARE_METHOD(
+  join,
+  "join(rowindex, join_frame, cols)\n\n")
+
 
 DECLARE_METHOD(
    get_min,

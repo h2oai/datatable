@@ -64,6 +64,7 @@ class RFNode:
     def execute(self):
         rowindex = self._make_final_rowindex()
         self._engine.rowindex = rowindex
+        f.set_rowindex(rowindex)
 
 
     def _make_source_rowindex(self) -> Optional[core.RowIndex]:

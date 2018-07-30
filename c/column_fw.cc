@@ -174,8 +174,7 @@ void FwColumn<T>::reify() {
        : static_cast<T*>(newmr.resize(newsize).wptr());
     ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
-        *data_dest = data_src[i];
-        ++data_dest;
+        *data_dest++ = ISNA(i)? GETNA<T>() : data_src[i];
       });
   }
 
@@ -318,6 +317,44 @@ void FwColumn<T>::replace_values(
       });
   }
 }
+
+
+template <typename T>
+static int32_t binsearch(const T* data, int32_t len, T value) {
+  // Use unsigned indices in order to avoid overflows
+  uint32_t start = 0;
+  uint32_t end   = static_cast<uint32_t>(len);
+  while (end - start > 1) {
+    uint32_t mid = (start + end) >> 1;
+    if (data[mid] > value) end = mid;
+    else start = mid;
+  }
+  return (data[start] == value)? static_cast<int32_t>(start) : GETNA<int32_t>();
+}
+
+
+template <typename T>
+RowIndex FwColumn<T>::join(const Column* keycol) const {
+  xassert(stype() == keycol->stype());
+
+  auto kcol = static_cast<const FwColumn<T>*>(keycol);
+  xassert(!kcol->ri);
+
+  arr32_t target_indices(static_cast<size_t>(nrows));
+  int32_t* trg_indices = target_indices.data();
+  const T* src_data = elements_r();
+  const T* search_data = kcol->elements_r();
+  int32_t search_n = static_cast<int32_t>(keycol->nrows);
+
+  ri.strided_loop2(0, nrows, 1,
+    [&](int64_t i, int64_t j) {
+      T value = src_data[j];
+      trg_indices[i] = binsearch<T>(search_data, search_n, value);
+    });
+
+  return RowIndex::from_array32(std::move(target_indices));
+}
+
 
 
 // Explicit instantiations

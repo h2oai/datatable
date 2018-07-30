@@ -8,7 +8,6 @@ import math
 import os
 import pytest
 import random
-import time
 import datatable as dt
 from datatable import stype, ltype
 from tests import list_equals, random_string

@@ -7,7 +7,7 @@
 
 from datatable.expr.column_expr import ColSelectorExpr
 
-__all__ = ("f", )
+__all__ = ("f", "g")
 
 
 
@@ -57,7 +57,7 @@ class DatatableProxy(object):
     >>> d3 = d0[:, expr]
     >>> d4 = d0[expr > 0, expr]
     """
-    __slots__ = ["_datatable"]
+    __slots__ = ["_datatable", "_rowindex"]
 
     # Developer notes:
     # This class uses dynamic name resolution to convert arbitrary attribute
@@ -67,10 +67,17 @@ class DatatableProxy(object):
 
     def __init__(self):
         self._datatable = None
+        self._rowindex = None
 
 
     def get_datatable(self):
         return self._datatable
+
+    def get_rowindex(self):
+        return self._rowindex
+
+    def set_rowindex(self, ri):
+        self._rowindex = ri
 
 
     def bind_datatable(self, dt):
@@ -79,10 +86,11 @@ class DatatableProxy(object):
         return self
 
     def __enter__(self):
-        assert self._datatable
+        pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._datatable = None
+        self._rowindex = None
         # Don't return anything, so that the exception is propagated
 
 
@@ -154,3 +162,4 @@ class DatatableProxy(object):
 
 
 f = DatatableProxy()
+g = DatatableProxy()

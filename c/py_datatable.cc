@@ -18,6 +18,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "python/long.h"
 #include "python/string.h"
 
 
@@ -496,6 +497,35 @@ PyObject* sort(obj* self, PyObject* args) {
 
 
 
+PyObject* join(obj* self, PyObject* args) {
+  PyObject *arg1, *arg2, *arg3;
+  if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
+
+  DataTable* dt = self->ref;
+  DataTable* jdt = PyObj(arg2).as_datatable();
+  RowIndex ri = PyObj(arg1).as_rowindex();
+  PyyList cols(arg3);
+
+  if (cols.size() != 1) {
+    throw NotImplError() << "Only single-column joins are currently supported";
+  }
+  PyyLong icol = cols[0];
+  int64_t i = icol.value<int64_t>();
+  if (i < 0 || i >= dt->ncols) {
+    throw ValueError() << "Invalid index " << i << " for a Frame with "
+        << dt->ncols << " columns";
+  }
+
+  Column* col = dt->columns[i]->shallowcopy();
+  if (ri) col->replace_rowindex(ri);
+  RowIndex join_ri = col->join(jdt->columns[0]);
+  delete col;
+
+  return pyrowindex::wrap(join_ri);
+}
+
+
+
 PyObject* get_min    (obj* self, PyObject*) { return wrap(self->ref->min_datatable()); }
 PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatable()); }
 PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
@@ -611,6 +641,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),
+  METHODv(join),
   METHOD0(get_min),
   METHOD0(get_max),
   METHOD0(get_mode),

@@ -15,14 +15,17 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "rowindex", "groupby", "groupby_cols", "columns"]
+    __slots__ = ["dt", "rowindex", "groupby", "groupby_cols", "columns",
+                 "joindt", "joinindex"]
 
-    def __init__(self, dt):
+    def __init__(self, dt, joindt=None):
         self.dt = dt
+        self.joindt = joindt
         self.rowindex = None
         self.groupby = None
         self.groupby_cols = None
         self.columns = None
+        self.joinindex = None
 
     def is_compiled(self):
         """Return True iff the engine requires code compilation step."""
@@ -46,16 +49,16 @@ class EvaluationEngine:
 
 
 
-def make_engine(engine, dt):
+def make_engine(engine, dt, joindt):
     if engine == "eager":
-        return EagerEvaluationEngine(dt)
+        return EagerEvaluationEngine(dt, joindt)
     if engine == "llvm":
-        return LlvmEvaluationEngine(dt)
+        return LlvmEvaluationEngine(dt, joindt)
     if engine is None:
         # if dt.nrows < 1000 or not llvm.available:
-            return EagerEvaluationEngine(dt)
+            return EagerEvaluationEngine(dt, joindt)
         # else:
-        #     return LlvmEvaluationEngine(dt)
+        #     return LlvmEvaluationEngine(dt, joindt)
     raise ValueError("Unknown value for parameter `engine`: %r" % (engine,))
 
 
@@ -96,8 +99,8 @@ class LlvmEvaluationEngine(EvaluationEngine):
     requires access to Clang+LLVM runtime.
     """
 
-    def __init__(self, dt):
-        super().__init__(dt)
+    def __init__(self, dt, joindt=None):
+        super().__init__(dt, joindt)
         self._result = None
         self._var_counter = 0
         self._functions = {}
