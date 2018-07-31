@@ -20,6 +20,7 @@ environment:
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+  - "ECHO %LLVM6%"
 
 install:
   - choco install mingw
@@ -48,10 +49,9 @@ cache:
 test_script:
   # Apparently, 'dir' does not understand forward-slash paths...
   - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
-  - dir %LLVM6%\
-  - dir %LLVM6%\bin\
+  - dir C:\Program Files\LLVM\
+  - dir C:\Program Files\LLVM\bin\
   - dir %PYTHON%\
-  - dir
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
