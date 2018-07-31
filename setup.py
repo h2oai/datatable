@@ -326,6 +326,9 @@ includes = os.path.join(llvmx, "include")
 llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
                 ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
                 ">=0.23.0        " if llvmver == "LLVM6" else None)
+if sys.platform == "win32":
+    clang += ".exe"
+
 for ff in [llvm_config, clang, libsdir, includes]:
     if ff == llvm_config and sys.platform == "win32":
         # There is no llvm-config on Windows:
