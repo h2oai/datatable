@@ -48,8 +48,8 @@ cache:
 test_script:
   # Apparently, 'dir' does not understand forward-slash paths...
   - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
-  - dir %LLVM%\
-  - dir %LLVM%\bin\
+  - dir %LLVM6%\
+  - dir %LLVM6%\bin\
   - dir %PYTHON%\
   - dir
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
