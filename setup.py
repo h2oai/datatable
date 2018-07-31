@@ -148,8 +148,10 @@ def get_rpath():
 @memoize()
 def get_cc(with_isystem=False):
     cc = os.path.join(get_llvm(), "bin", "clang++")
+    if sys.platform == "win32":
+        cc += ".exe"
     if not os.path.exists(cc):
-        raise SystemExit("Cannot find CLang compiler at `%r`" % cc)
+        raise SystemExit("Cannot find Clang compiler at `%s`" % cc)
     if with_isystem and sysconfig.get_config_var("CONFINCLUDEPY"):
         cc += " -isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
     return cc
