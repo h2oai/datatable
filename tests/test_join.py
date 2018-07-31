@@ -83,7 +83,11 @@ def test_join_random(seed, lt):
                  24)
         keys = list(set(random.getrandbits(nbits) for _ in range(nkeys)))
     elif lt == ltype.real:
-        keys = list(set(random.random() for _ in range(nkeys)))
+        keys = [random.random() for _ in range(nkeys)]
+        if st == stype.float32:
+            keys = list(set(dt.Frame(keys, stype=st).topython()[0]))
+        else:
+            keys = list(set(keys))
     else:
         l = int(random.expovariate(0.05)) + 1
         keys = list(set(random_string(l) for _ in range(nkeys)))
