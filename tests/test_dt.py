@@ -51,8 +51,28 @@ def assert_valueerror(datatable, rows, error_message):
 # Run the tests
 #-------------------------------------------------------------------------------
 
+@pytest.mark.run(order=0.0)
+def test_platform():
+    # This test performs only minimal checks, and also outputs diagnostic
+    # information about the platform being run.
+    print()
+    print("executable     = %s" % sys.executable)
+    print("platform       = %s" % sys.platform)
+    print("version        = %s" % sys.version.replace("\n", " "))
+    print("implementation = %s" % sys.implementation)
+    print("int_info   = %s" % (sys.int_info, ))
+    print("maxsize    = %s" % (sys.maxsize, ))
+    print("maxunicode = %s" % (sys.maxunicode, ))
+    print("float_info = %s" % (sys.float_info, ))
+    print("hash_info  = %s" % (sys.hash_info, ))
+    assert sys.byteorder == "little"
+    assert sys.maxsize == 2**63 - 1
+
+
+
 @pytest.mark.run(order=0.8)
-@pytest.mark.xfail()
+@pytest.mark.skipif(sys.platform != "darwin",
+                    reason="This test behaves unpredictably on Linux")
 def test_dt_loadtime(nocov):
     # Check that datatable's loading time is not too big. At the time of writing
     # this test, on a MacBook Pro laptop, the timings were the following:
