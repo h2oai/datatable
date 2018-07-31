@@ -4,18 +4,16 @@ build: false
 skip_branch_with_pr: true
 
 environment:
-  LLVM6: /Program Files/LLVM
+  LLVM6: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
     - PYTHON: "C:\\Python35"
-      PYTHONU: "/Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
     - PYTHON: "C:\\Python36"
-      PYTHONU: "/Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
@@ -50,10 +48,13 @@ cache:
 test_script:
   # Apparently, 'dir' does not understand forward-slash paths...
   - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
+  - dir %LLVM%\
+  - dir %LLVM%\bin\
   - dir %PYTHON%\
-  # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHONU%/python.exe
+  - dir
+  # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
-  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHONU%/python.exe
+  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
 
 artifacts:
   - path: dist/*

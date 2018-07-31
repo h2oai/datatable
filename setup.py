@@ -327,8 +327,9 @@ llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
                 ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
                 ">=0.23.0        " if llvmver == "LLVM6" else None)
 for ff in [llvm_config, clang, libsdir, includes]:
+    ff = os.path.abspath(ff)
     if not os.path.exists(ff):
-        raise SystemExit("Cannot find %s folder. "
+        raise SystemExit("Cannot find %s. "
                          "Is this a valid Llvm installation?" % ff)
 
 # Compiler
