@@ -46,7 +46,8 @@ cache:
   - '%LOCALAPPDATA%/pip/Cache'
 
 test_script:
-  - dir C:\ProgramData/chocolatey/lib/make/tools/bin/
+  # Apparently, 'dir' does not understand forward-slash paths...
+  - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
