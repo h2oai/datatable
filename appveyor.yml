@@ -1,6 +1,8 @@
 # Windows 7 and 10 build
 build: false
 
+skip_branch_with_pr: true
+
 environment:
   LLVM6: /Program Files/LLVM
   PATH: "%LLVM6%/bin;%PATH%"
@@ -44,7 +46,7 @@ cache:
   - '%LOCALAPPDATA%/pip/Cache'
 
 test_script:
-  - dir /ProgramData/chocolatey/lib/make/tools/bin/
+  - dir C:\ProgramData/chocolatey/lib/make/tools/bin/
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
