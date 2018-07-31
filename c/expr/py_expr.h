@@ -45,6 +45,12 @@ DECLARE_FUNCTION(
   "column.\n",
   dt_EXPR_PY_EXPR_CC)
 
+DECLARE_FUNCTION(
+  expr_count,
+  "expr_count(groupby)\n\n"
+  "Compute number of rows in each group, using the provided Groupby object.\n",
+  dt_EXPR_PY_EXPR_CC)
+
 
 namespace expr {
 

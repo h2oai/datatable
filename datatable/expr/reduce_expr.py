@@ -18,13 +18,47 @@ def sum(iterable, start=0):
     else:
         return _builtin_sum(iterable, start)
 
-def count(iterable, start=0):
+
+def count(iterable=None):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("count", iterable)
+    elif iterable is None:
+        return CountExpr()
+    else:
+        return _builtin_sum(1 for x in iterable)
 
-def first(iterable, start=0):
+
+def first(iterable):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("first", iterable)
+    else:
+        for x in iterable:
+            if x:
+                return x
+              
+              
+class CountExpr(BaseExpr):
+    def __init__(self):
+        super().__init__()
+
+    def is_reduce_expr(self, ee):
+        return True
+
+    def resolve(self):
+       self._stype = int
+#        self._expr.resolve()
+#         if self._stype is None:
+#             raise ValueError(
+#                 "Cannot compute %s of a variable of type %s"
+#                 % (self._op, expr_stype))
+
+    def evaluate_eager(self, ee):
+        return core.expr_count(ee.groupby)
+
+    def __str__(self):
+        return ""
+
+
 
 class ReduceExpr(BaseExpr):
     __slots__ = ["_op", "_expr"]
@@ -40,6 +74,7 @@ class ReduceExpr(BaseExpr):
     def resolve(self):
         self._expr.resolve()
         expr_stype = self._expr.stype
+#         print(self._expr.stype)
         self._stype = ops_rules.get((self._op, expr_stype))
         if self._stype is None:
             raise ValueError(

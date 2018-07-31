@@ -85,6 +85,27 @@ PyObject* expr_reduceop(PyObject*, PyObject* args)
   return pycolumn::from_column(res, nullptr, 0);
 }
 
+PyObject* expr_count(PyObject*, PyObject* args)
+{
+  PyObject* arg;
+  if (!PyArg_ParseTuple(args, "O:expr_count", &arg))
+    return nullptr;
+
+  PyObj pyarg1(arg);
+  Groupby* grpby = pyarg1.as_groupby();
+  size_t ng = grpby->ngroups();
+  const int32_t* offsets = grpby->offsets_r();
+
+  Column* res = Column::new_data_column(SType::INT32, static_cast<int64_t>(ng));
+  auto d_res = static_cast<int32_t*>(res->data_w());
+
+  for (size_t i = 0; i < ng; ++i) {
+    d_res[i] = offsets[i + 1] - offsets[i];
+  }
+
+  return pycolumn::from_column(res, nullptr, 0);
+}
+
 
 PyObject* expr_unaryop(PyObject*, PyObject* args)
 {
