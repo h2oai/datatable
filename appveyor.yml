@@ -53,6 +53,7 @@ test_script:
   - dir "C:\Program Files\"
   - dir "C:\Program Files\LLVM\"
   - dir "C:\Program Files\LLVM\bin\"
+  - dir "C:\Program Files\LLVM\lib\"
   - dir %PYTHON%\
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
