@@ -2,16 +2,16 @@
 build: false
 
 environment:
-  LLVM6: C:/Program Files/LLVM
+  LLVM6: /Program Files/LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
-    - PYTHON: "C:/Python35"
+    - PYTHON: "/Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
-    - PYTHON: "C:/Python36"
+    - PYTHON: "/Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
@@ -23,7 +23,7 @@ install:
   - choco install mingw
   - choco install llvm
   - choco install make
-  #- set LLVM_CONFIG=C:/Program Files/LLVM/bin
+  #- set LLVM_CONFIG=/Program Files/LLVM/bin
   # - llvm-config --version
   #- llvm-config --host-target
   - "%PYTHON%/Scripts/pip.exe install setuptools"
@@ -39,16 +39,16 @@ install:
   - "%PYTHON%/Scripts/pip.exe install wheel"
 
 cache:
-  - C:/ProgramData/chocolatey/bin -> appveyor.yml
-  - C:/ProgramData/chocolatey/lib -> appveyor.yml
+  - /ProgramData/chocolatey/bin -> appveyor.yml
+  - /ProgramData/chocolatey/lib -> appveyor.yml
   - '%LOCALAPPDATA%/pip/Cache'
 
 test_script:
-  - dir C:/ProgramData/chocolatey/lib/make/tools/bin/
-  - C:/ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
+  - dir /ProgramData/chocolatey/lib/make/tools/bin/
+  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
-  - C:/ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/bin/python.exe
+  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/bin/python.exe
 
 artifacts:
   - path: dist/*
