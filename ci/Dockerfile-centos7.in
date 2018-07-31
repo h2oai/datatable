@@ -24,6 +24,7 @@ ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM6/bin:$PATH
 ENV PANDAS_VERSION=0.20.0
+ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
 RUN pip install llvmlite==0.23.0 wheel virtualenv && \
     \
