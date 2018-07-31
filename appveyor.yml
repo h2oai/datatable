@@ -50,11 +50,10 @@ test_script:
   - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   - dir C:\
   - dir %PYTHON%\
-  - dir %PYTHON%\bin\
-  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
+  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
-  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/bin/python.exe
+  - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
 
 artifacts:
   - path: dist/*
