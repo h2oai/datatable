@@ -8,12 +8,12 @@ environment:
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   matrix:
-    - PYTHON: "/Python35"
+    - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
-    - PYTHON: "/Python36"
+    - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
@@ -48,6 +48,7 @@ cache:
 test_script:
   # Apparently, 'dir' does not understand forward-slash paths...
   - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
+  - dir %PYTHON%\bin
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/bin/python.exe
   #- python -m pip install .[testing] --no-cache-dir
   #- "%PYTHON%/Scripts/pip.exe install .[testing] --no-cache-dir"
