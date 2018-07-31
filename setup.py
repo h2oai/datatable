@@ -327,7 +327,7 @@ llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
                 ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
                 ">=0.23.0        " if llvmver == "LLVM6" else None)
 for ff in [llvm_config, clang, libsdir, includes]:
-    if ff == llvm_config and sys.platform == "windows":
+    if ff == llvm_config and sys.platform == "win32":
         # There is no llvm-config on Windows:
         # https://github.com/ihnorton/Clang.jl/issues/183
         continue
