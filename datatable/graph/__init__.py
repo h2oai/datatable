@@ -31,7 +31,7 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
     """
     update_mode = mode == "update"
     delete_mode = mode == "delete"
-    jframe = join.frame if join else None
+    jframe = join.joinframe if join else None
     with f.bind_datatable(dt), g.bind_datatable(jframe):
         ee = make_engine(engine, dt, jframe)
         ee.rowindex = dt.internal.rowindex

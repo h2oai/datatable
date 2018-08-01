@@ -62,8 +62,12 @@ class RFNode:
         self._inverse = not self._inverse
 
     def execute(self):
-        rowindex = self._make_final_rowindex()
-        self._engine.rowindex = rowindex
+        ee = self._engine
+        srcri = self._make_source_rowindex()
+        ee.set_source_rowindex(srcri)
+
+        rowindex = self._make_final_rowindex(srcri)
+        ee.rowindex = rowindex
         f.set_rowindex(rowindex)
 
 
@@ -78,7 +82,7 @@ class RFNode:
         raise NotImplementedError  # pragma: no cover
 
 
-    def _make_final_rowindex(self) -> Optional[core.RowIndex]:
+    def _make_final_rowindex(self, ri_source) -> Optional[core.RowIndex]:
         """
         Construct the "final" RowIndex object.
 
@@ -88,7 +92,7 @@ class RFNode:
         be None indicating absense of any RowIndex.
         """
         _dt = self._engine.dt.internal
-        ri_source = self._make_source_rowindex()
+        # ri_source = self._make_source_rowindex()
         ri_target = _dt.rowindex
 
         if ri_source is None:
@@ -320,7 +324,8 @@ class FilterExprRFNode(RFNode):
             ee.add_node(self)
 
 
-    def _make_final_rowindex(self):
+    def _make_final_rowindex(self, ri_source):
+        assert ri_source == NotImplemented
         ee = self._engine
         nrows = ee.dt.nrows
         if isinstance(ee, LlvmEvaluationEngine):
@@ -384,7 +389,11 @@ class SortedRFNode(RFNode):
         super().__init__(sort_node.engine)
         self._sortnode = sort_node
 
-    def _make_final_rowindex(self):
+    def _make_source_rowindex(self):
+        return NotImplemented
+
+    def _make_final_rowindex(self, ri_source):
+        assert ri_source == NotImplemented
         return self._sortnode.make_rowindex()
 
 

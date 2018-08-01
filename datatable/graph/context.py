@@ -34,7 +34,7 @@ class EvaluationEngine:
 
     def get_final_rowindex(self, trg_rowindex):
         trgid = 0
-        if trg_rowindex is None:
+        if trg_rowindex is not None:
             trgid = trg_rowindex.ptr()
         if trgid not in self._final_rowindex:
             if self._source_rowindex is NotImplemented:
@@ -50,7 +50,7 @@ class EvaluationEngine:
 
     def set_final_rowindex(self, final_rowindex, trg_rowindex):
         trgid = 0
-        if trg_rowindex is None:
+        if trg_rowindex is not None:
             trgid = trg_rowindex.ptr()
         self._source_rowindex = NotImplemented
         self._final_rowindex = {trgid: final_rowindex}
