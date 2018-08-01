@@ -206,6 +206,8 @@ class Frame(object):
         elif isinstance(src, (tuple, set, range)):
             self._fill_from_list([list(src)], names=names, stypes=stypes)
         elif isinstance(src, dict):
+            if isinstance(stypes, dict):
+                stypes = [stypes.get(n, None) for n in src.keys()]
             self._fill_from_list(list(src.values()), names=tuple(src.keys()),
                                  stypes=stypes)
         elif isinstance(src, core.DataTable):
@@ -249,7 +251,8 @@ class Frame(object):
             if len(stypes) == 1:
                 types = [stype(stypes[0]).value] * len(src)
             elif len(stypes) == len(src):
-                types = [stype(s).value for s in stypes]
+                types = [0 if s is None else stype(s).value
+                         for s in stypes]
             else:
                 raise TValueError("Number of stypes (%d) is different from "
                                   "the number of source columns (%d)"
@@ -391,8 +394,8 @@ class Frame(object):
     #---------------------------------------------------------------------------
 
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
-                 groupby=None, sort=None, engine=None
-                 #update=None, join=None, limit=None
+                 groupby=None, join=None, sort=None, engine=None
+                 #update=None, limit=None
                  ):
         """
         Perform computation on a datatable, and return the result.
@@ -541,7 +544,7 @@ class Frame(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select, groupby, sort, engine)
+        res = make_datatable(self, rows, select, groupby, join, sort, engine)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
@@ -558,17 +561,15 @@ class Frame(object):
             df[::-1, :]  # all rows of the Frame in reverse order
         etc.
         """
-        rows, cols, grby = resolve_selector(item)
-        return make_datatable(self, rows, cols, grby)
+        return make_datatable(self, *resolve_selector(item))
 
 
     def __setitem__(self, item, value):
         """
         Update values in Frame, in-place.
         """
-        rows, cols, grby = resolve_selector(item)
-        return make_datatable(self, rows, cols, grby, mode="update",
-                              replacement=value)
+        return make_datatable(self, *resolve_selector(item),
+                              mode="update", replacement=value)
 
 
     def __delitem__(self, item):
@@ -582,8 +583,8 @@ class Frame(object):
             del df["col5":"col9"]
             del df[(i for i in range(df.ncols) if i % 3 <= 1)]
         """
-        drows, dcols, grby = resolve_selector(item)
-        return make_datatable(self, drows, dcols, mode="delete")
+        return make_datatable(self, *resolve_selector(item),
+                              mode="delete")
 
 
     def _delete_columns(self, cols):

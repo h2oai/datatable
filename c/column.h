@@ -206,6 +206,8 @@ public:
    */
   virtual void reify() = 0;
 
+  virtual RowIndex join(const Column* keycol) const = 0;
+
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
   int64_t countna() const;
@@ -337,6 +339,7 @@ public:
   bool is_fixedwidth() const override;
   virtual void reify() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
+  virtual RowIndex join(const Column* keycol) const override;
 
 protected:
   void init_data() override;
@@ -617,11 +620,13 @@ public:
   void reify() override;
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
+  RowIndex join(const Column* keycol) const override;
 
   MemoryRange str_buf() { return strbuf; }
   size_t datasize() const;
   int64_t data_nrows() const override;
   const char* strdata() const;
+  const uint8_t* ustrdata() const;
   const T* offsets() const;
   T* offsets_w();
 
@@ -688,6 +693,7 @@ class VoidColumn : public Column {
     void rbind_impl(std::vector<const Column*>&, int64_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
+    RowIndex join(const Column* keycol) const override;
   protected:
     VoidColumn();
     void init_data() override;

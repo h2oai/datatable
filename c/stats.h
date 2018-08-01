@@ -14,7 +14,7 @@
 class Column;
 
 
-enum Stat {
+enum class Stat : uint8_t {
   NaCount,
   Sum,
   Mean,
@@ -28,10 +28,9 @@ enum Stat {
   Max,
   Mode,
   NModal,
-  NUnique,
-
-  NSTATS
+  NUnique
 };
+constexpr uint8_t NSTATS = 14;
 
 
 
@@ -42,21 +41,18 @@ enum Stat {
 /**
  * Base class in the hierarchy of Statistics Containers:
  *
- *                                +-------+
- *                                | Stats | ______________
- *                                +-------+               \
- *                                 /     \                 \
- *                 +----------------+   +-------------+   +---------------+
- *         ________| NumericalStats |   | StringStats |   | PyObjectStats |
- *        /        +----------------+   +-------------+   +---------------+
- *       /              /           \
- *      /      +--------------+   +-----------+
- *     |       | IntegerStats |   | RealStats |
- *     |       +--------------+   +-----------+
- *     |
- *   +--------------+
- *   | BooleanStats |
- *   +--------------+
+ *                           +---------+
+ *                  _________|  Stats  |____________
+ *                 /         +---------+            \
+ *                /               |                  \
+ *  +---------------+    +--------------------+    +-------------+
+ *  | PyObjectStats |    |   NumericalStats   |    | StringStats |
+ *  +---------------+    +--------------------+    +-------------+
+ *                      /          |           \
+ *       +--------------+   +--------------+   +-----------+
+ *       | BooleanStats |   | IntegerStats |   | RealStats |
+ *       +--------------+   +--------------+   +-----------+
+ *
  *
  * `NumericalStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
@@ -75,7 +71,7 @@ enum Stat {
  */
 class Stats {
   protected:
-    std::bitset<Stat::NSTATS> _computed;
+    std::bitset<NSTATS> _computed;
     int64_t _countna;
     int64_t _nunique;
     int64_t _nmodal;
@@ -99,8 +95,14 @@ class Stats {
     virtual void verify_integrity(const Column*) const;
 
   protected:
+    virtual Stats* make() const = 0;
+    template <typename T, typename F> void verify_stat(Stat, T, F) const;
+    virtual void verify_more(Stats*, const Column*) const;
+
     virtual void compute_countna(const Column*) = 0;
     virtual void compute_sorted_stats(const Column*) = 0;
+    void set_computed(Stat s);
+    void set_computed(Stat s, bool flag);
 };
 
 
@@ -147,7 +149,11 @@ class NumericalStats : public Stats {
     void set_min(T value);
     void set_max(T value);
 
+    // void verify_integrity(const Column*) const override;
+
   protected:
+    void verify_more(Stats*, const Column*) const override;
+
     // Helper method that computes min, max, sum, mean, sd, and countna
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*) override;
@@ -173,6 +179,7 @@ extern template class NumericalStats<double, double>;
 template <typename T>
 class RealStats : public NumericalStats<T, double> {
   protected:
+    virtual RealStats<T>* make() const override;
     void compute_numerical_stats(const Column*) override;
 };
 
@@ -190,6 +197,8 @@ extern template class RealStats<double>;
  */
 template <typename T>
 class IntegerStats : public NumericalStats<T, int64_t> {
+  protected:
+    virtual IntegerStats<T>* make() const override;
 };
 
 extern template class IntegerStats<int8_t>;
@@ -210,6 +219,7 @@ extern template class IntegerStats<int64_t>;
  */
 class BooleanStats : public NumericalStats<int8_t, int64_t> {
   protected:
+    virtual BooleanStats* make() const override;
     void compute_numerical_stats(const Column *col) override;
     void compute_sorted_stats(const Column*) override;
 };
@@ -235,8 +245,9 @@ class StringStats : public Stats {
     CString mode(const Column*);
 
   protected:
-    virtual void compute_countna(const Column*) override;
-    virtual void compute_sorted_stats(const Column*) override;
+    StringStats<T>* make() const override;
+    void compute_countna(const Column*) override;
+    void compute_sorted_stats(const Column*) override;
 };
 
 extern template class StringStats<uint32_t>;
@@ -253,6 +264,7 @@ class PyObjectStats : public Stats {
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
   protected:
+    PyObjectStats* make() const override;
     void compute_countna(const Column*) override;
     void compute_sorted_stats(const Column*) override;
 };
