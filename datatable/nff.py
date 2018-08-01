@@ -63,16 +63,13 @@ def save(self, dest, format="nff", _strategy="auto"):
             colname = self.names[i].replace('"', '""')
             _col = self.internal.column(i)
             stype = _col.stype
-            meta = _col.meta
             if stype == dt.stype.obj64:
                 dtwarn("Column %r of type obj64 was not saved" % self.names[i])
                 continue
-            if meta is None:
-                meta = ""
             smin = _stringify(mins[i][0])
             smax = _stringify(maxs[i][0])
-            out.write('%s,%s,%s,"%s",%s,%s\n'
-                      % (filename, stype.code, meta, colname, smin, smax))
+            out.write('%s,%s,,"%s",%s,%s\n'
+                      % (filename, stype.code, colname, smin, smax))
             filename = os.path.join(dest, filename)
             _col.save_to_disk(filename, _strategy)
 

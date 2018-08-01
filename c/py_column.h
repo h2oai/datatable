@@ -79,10 +79,6 @@ DECLARE_GETTER(
   "Reference count of the column")
 
 DECLARE_GETTER(
-  meta,
-  "String representation of the column's `meta` struct")
-
-DECLARE_GETTER(
   nrows,
   "Return the number of rows in this column")
 

@@ -15,17 +15,26 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "rowindex", "groupby", "groupby_cols", "columns",
+    __slots__ = ["dt", "_rowindex", "groupby", "groupby_cols", "columns",
                  "joindt", "joinindex"]
 
     def __init__(self, dt, joindt=None):
         self.dt = dt
         self.joindt = joindt
-        self.rowindex = None
+        self._rowindex = None
         self.groupby = None
         self.groupby_cols = None
         self.columns = None
         self.joinindex = None
+
+    @property
+    def rowindex(self):
+        return self._rowindex
+
+    @rowindex.setter
+    def rowindex(self, value):
+        self._rowindex = value
+
 
     def is_compiled(self):
         """Return True iff the engine requires code compilation step."""

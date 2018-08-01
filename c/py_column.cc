@@ -85,12 +85,6 @@ PyObject* get_data_pointer(pycolumn::obj* self) {
 }
 
 
-PyObject* get_meta(pycolumn::obj*) {
-  // Does nothing after the removal of metas in StringColumns.
-  // Might be used when fixed-point decimals are implemented
-  return none();
-}
-
 
 PyObject* get_refcount(pycolumn::obj*) {
   // "-1" because self->ref is a shallow copy of the "original" column, and
@@ -182,7 +176,6 @@ static PyGetSetDef column_getseters[] = {
   GETTER(ltype),
   GETTER(data_size),
   GETTER(data_pointer),
-  GETTER(meta),
   GETTER(refcount),
   GETTER(nrows),
   {nullptr, nullptr, nullptr, nullptr, nullptr}
