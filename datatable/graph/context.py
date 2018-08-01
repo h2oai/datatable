@@ -29,8 +29,13 @@ class EvaluationEngine:
         self.columns = None
         self.joinindex = None
 
+    def get_source_rowindex(self):
+        return self._source_rowindex
+
     def get_final_rowindex(self, trg_rowindex):
-        trgid = trg_rowindex.ptr()
+        trgid = 0
+        if trg_rowindex is None:
+            trgid = trg_rowindex.ptr()
         if trgid not in self._final_rowindex:
             if self._source_rowindex is NotImplemented:
                 raise RuntimeError("Attempt to retrieve RowIndex that cannot "
@@ -44,7 +49,9 @@ class EvaluationEngine:
         self._source_rowindex = src_rowindex
 
     def set_final_rowindex(self, final_rowindex, trg_rowindex):
-        trgid = trg_rowindex.ptr()
+        trgid = 0
+        if trg_rowindex is None:
+            trgid = trg_rowindex.ptr()
         self._source_rowindex = NotImplemented
         self._final_rowindex = {trgid: final_rowindex}
 
