@@ -1,4 +1,9 @@
-#! /usr/bin/groovy
+#!/usr/bin/groovy
+//------------------------------------------------------------------------------
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//------------------------------------------------------------------------------
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                        //
@@ -69,6 +74,8 @@ def needsLargerTest
 def dockerArgs = createDockerArgs()
 // String with current version
 def versionText
+// String with current git revision
+def gitHash
 
 MAKE_OPTS = "CI=1"
 
@@ -98,7 +105,8 @@ ansiColor('xterm') {
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout', stageDir) {
                         def scmEnv = checkout scm
-                        env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
+                        gitHash = scmEnv.GIT_COMMIT
+                        env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '_')
                         if (doPPC()) {
                             manager.addBadge("success.gif", "PPC64LE build triggered!")
                         }
@@ -482,20 +490,18 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Build sdist
-            if (doPublish()) {
-                node(X86_64_BUILD_NODE_LABEL) {
-                    def stageDir = 'build-sdist'
-                    buildSummary.stageWithSummary ('Build sdist', stageDir) {
-                        cleanWs()
-                        dumpInfo()
-                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                            dir (stageDir) {
-                                unstash 'datatable-sources'
-                                unstash 'VERSION'
-                                sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
-                                stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
-                                arch "dist/*.tar.gz"
-                            }
+            node(X86_64_BUILD_NODE_LABEL) {
+                def stageDir = 'build-sdist'
+                buildSummary.stageWithSummary ('Build sdist', stageDir) {
+                    cleanWs()
+                    dumpInfo()
+                    withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}", "DTBL_GIT_HASH=${gitHash}"]) {
+                        dir (stageDir) {
+                            unstash 'datatable-sources'
+                            unstash 'VERSION'
+                            sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
+                            stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
+                            arch "dist/*.tar.gz"
                         }
                     }
                 }
