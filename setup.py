@@ -84,16 +84,21 @@ def get_test_dependencies():
 
 def make_git_version_file(force):
     import subprocess
-    if not os.path.isdir(".git"):
-        if force:
-            raise SystemExit("Cannot determine git revision of the package "
-                             "because folder .git is missing. Current "
-                             "directory: %s"
-                             % os.path.abspath(os.path.curdir))
-        print("Could not generate __git__.py", file=stderr)
-        return
-    out = subprocess.check_output(["git", "rev-parse", "HEAD"])
-    githash = out.decode("ascii").strip()
+    # Try to read git revision from env.
+    githash = os.getenv('DTBL_GIT_HASH', None)
+    if not githash:
+        # Need to get git revision from git cmd. Fail if .git dir is not accessible.
+        if not os.path.isdir(".git"):
+            if force:
+                raise SystemExit("Cannot determine git revision of the package "
+                                 "because folder .git is missing and DTBL_GIT_HASH "
+                                 "is not set. Current directory: %s"
+                                 % os.path.abspath(os.path.curdir))
+            print("Could not generate __git__.py", file=stderr)
+            return
+        # Read git revision using cmd.
+        out = subprocess.check_output(["git", "rev-parse", "HEAD"])
+        githash = out.decode("ascii").strip()
     print("Generating __git__.py with hash=%s\n" % githash, file=stderr)
     with open("datatable/__git__.py", "w", encoding="utf-8") as o:
         o.write(
