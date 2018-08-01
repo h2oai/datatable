@@ -485,26 +485,22 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Build sdist
-
-            // FIXME
-            // if (doPublish()) {
-                node(X86_64_BUILD_NODE_LABEL) {
-                    def stageDir = 'build-sdist'
-                    buildSummary.stageWithSummary ('Build sdist', stageDir) {
-                        cleanWs()
-                        dumpInfo()
-                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}", "DTBL_GIT_HASH=${gitHash}"]) {
-                            dir (stageDir) {
-                                unstash 'datatable-sources'
-                                unstash 'VERSION'
-                                sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
-                                stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
-                                arch "dist/*.tar.gz"
-                            }
+            node(X86_64_BUILD_NODE_LABEL) {
+                def stageDir = 'build-sdist'
+                buildSummary.stageWithSummary ('Build sdist', stageDir) {
+                    cleanWs()
+                    dumpInfo()
+                    withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}", "DTBL_GIT_HASH=${gitHash}"]) {
+                        dir (stageDir) {
+                            unstash 'datatable-sources'
+                            unstash 'VERSION'
+                            sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
+                            stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
+                            arch "dist/*.tar.gz"
                         }
                     }
                 }
-            // }
+            }
             // Publish snapshot to S3
             if (doPublish()) {
                 node(RELEASE_NODE_LABEL) {
