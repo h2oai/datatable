@@ -34,8 +34,7 @@ DECLARE_FUNCTION(
 DECLARE_FUNCTION(
   expr_reduceop,
   "expr_reduceop(op, col, groupby)\n\n"
-  "Compute a reduction over the provided column, using the provided Groupby\n"
-  "object.\n",
+  "Compute number of rows in each group, using the provided Groupby object.\n",
   dt_EXPR_PY_EXPR_CC)
 
 DECLARE_FUNCTION(
@@ -47,8 +46,9 @@ DECLARE_FUNCTION(
 
 DECLARE_FUNCTION(
   expr_count,
-  "expr_count(groupby)\n\n"
-  "Compute number of rows in each group, using the provided Groupby object.\n",
+  "expr_count(dt, groupby)\n\n"
+  "Compute a reduction over the Groupby object if provided, otherwise simply\n"
+  "return number of rows in dataframe.\n",
   dt_EXPR_PY_EXPR_CC)
 
 
