@@ -66,7 +66,9 @@ class RFNode:
         srcri = self._make_source_rowindex()
         ee.set_source_rowindex(srcri)
 
+        ri_target = ee.dt.internal.rowindex
         rowindex = self._make_final_rowindex(srcri)
+        ee.set_final_rowindex(rowindex, ri_target)
         ee.rowindex = rowindex
         f.set_rowindex(rowindex)
 
@@ -92,7 +94,6 @@ class RFNode:
         be None indicating absense of any RowIndex.
         """
         _dt = self._engine.dt.internal
-        # ri_source = self._make_source_rowindex()
         ri_target = _dt.rowindex
 
         if ri_source is None:

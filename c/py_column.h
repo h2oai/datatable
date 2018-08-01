@@ -107,6 +107,13 @@ DECLARE_METHOD(
   "are elements in the corresponding group of the `groupby`. The number of\n"
   "rows in the current Column must be equal to the number of groups.\n")
 
+DECLARE_METHOD(
+  replace_rowindex,
+  "replace_rowindex(new_rowindex)\n\n"
+  "Replaces rowindex of the current Column with the provided one. The new\n"
+  "rowindex should be compatible with the Column's data source. This method\n"
+  "does not affect the Frame from which this Column was extracted.\n")
+
 
 //---- Python API --------------------------------------------------------------
 

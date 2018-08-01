@@ -186,8 +186,14 @@ class ArrayCSNode(ColumnSetNode):
                             for i in range(len(self._elems))))
 
     def _compute_columns(self):
-        return core.columns_from_array(self.dt.internal, self._engine.rowindex,
-                                       self._elems)
+        ee = self._engine
+        _dt = self.dt.internal
+        cols = [_dt.column(i) for i in self._elems]
+        if ee.get_source_rowindex():
+            for _col in cols:
+                ri = ee.get_final_rowindex(_col.rowindex)
+                _col.replace_rowindex(ri)
+        return core.columns_from_columns(cols)
 
     def get_list(self):
         return self._elems

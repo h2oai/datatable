@@ -163,6 +163,22 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 }
 
 
+PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
+  RowIndex newri = PyObj(arg1).as_rowindex();
+
+  Column* col = self->ref;
+  self->ref = col->shallowcopy(newri);
+  delete col;
+  self->pydt = nullptr;
+  self->colidx = GETNA<int64_t>();
+
+  Py_RETURN_NONE;
+}
+
+
+
 static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
@@ -194,6 +210,7 @@ static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
   METHOD0(hexview),
   METHODv(ungroup),
+  METHODv(replace_rowindex),
   {nullptr, nullptr, 0, nullptr}
 };
 

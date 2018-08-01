@@ -69,29 +69,6 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 }
 
 
-PyObject* columns_from_array(PyObject*, PyObject *args)
-{
-  PyObject *arg1, *arg2;
-  PyObject* elems;
-  if (!PyArg_ParseTuple(args, "OOO!:columns_from_array",
-                        &arg1, &arg2, &PyList_Type, &elems))
-    return nullptr;
-  DataTable* dt = PyObj(arg1).as_datatable();
-  RowIndex rowindex = PyObj(arg2).as_rowindex();
-
-  int64_t ncols = PyList_Size(elems);
-  int64_t* indices = dt::amalloc<int64_t>(ncols);
-  for (int64_t i = 0; i < ncols; i++) {
-    PyObject* elem = PyList_GET_ITEM(elems, i);
-    indices[i] = static_cast<int64_t>(PyLong_AsSize_t(elem));
-  }
-
-  Column** columns = columns_from_array(dt, rowindex, indices, ncols);
-  PyObject* res = wrap(columns, ncols);
-  return res;
-}
-
-
 PyObject* columns_from_mixed(PyObject*, PyObject *args)
 {
   PyObject* pyspec;
