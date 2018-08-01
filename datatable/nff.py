@@ -121,7 +121,7 @@ def open(path):
     if nff_version > 1:
         coltypes += [None] * 2
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
-    f1 = f0(select=["filename", "stype", "meta"])
+    f1 = f0(select=["filename", "stype"])
     colnames = f0["colname"].topython()[0]
     _dt = core.datatable_load(f1.internal, nrows, path, nff_version < 2)
     df = dt.Frame(_dt, names=colnames)
