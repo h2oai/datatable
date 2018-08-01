@@ -15,17 +15,38 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "_rowindex", "groupby", "groupby_cols", "columns",
-                 "joindt", "joinindex"]
+    __slots__ = ["dt", "groupby", "groupby_cols", "columns", "_rowindex",
+                 "joindt", "joinindex", "_source_rowindex", "_final_rowindex"]
 
     def __init__(self, dt, joindt=None):
         self.dt = dt
         self.joindt = joindt
         self._rowindex = None
+        self._source_rowindex = None
+        self._final_rowindex = {}
         self.groupby = None
         self.groupby_cols = None
         self.columns = None
         self.joinindex = None
+
+    def get_final_rowindex(self, trg_rowindex):
+        trgid = trg_rowindex.ptr()
+        if trgid not in self._final_rowindex:
+            if self._source_rowindex is NotImplemented:
+                raise RuntimeError("Attempt to retrieve RowIndex that cannot "
+                                   "be computed")
+            self._final_rowindex[trgid] = \
+                self._source_rowindex.uplift(trg_rowindex)
+        return self._final_rowindex[trgid]
+
+    def set_source_rowindex(self, src_rowindex):
+        assert not self._final_rowindex
+        self._source_rowindex = src_rowindex
+
+    def set_final_rowindex(self, final_rowindex, trg_rowindex):
+        trgid = trg_rowindex.ptr()
+        self._source_rowindex = NotImplemented
+        self._final_rowindex = {trgid: final_rowindex}
 
     @property
     def rowindex(self):

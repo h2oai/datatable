@@ -75,6 +75,10 @@ DECLARE_GETTER(
   "invalid pointer may return incorrect data, or result in a seg.fault.")
 
 DECLARE_GETTER(
+  rowindex,
+  "Rowindex object defined for this Column.\n")
+
+DECLARE_GETTER(
   refcount,
   "Reference count of the column")
 

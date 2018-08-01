@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #define dt_PY_COLUMN_cc
 #include "py_column.h"
+#include "py_rowindex.h"
 #include "py_types.h"
 #include "writebuf.h"
 #include "utils/pyobj.h"
@@ -82,6 +83,13 @@ PyObject* get_data_size(pycolumn::obj* self) {
 PyObject* get_data_pointer(pycolumn::obj* self) {
   Column* col = self->ref;
   return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data()));
+}
+
+
+PyObject* get_rowindex(pycolumn::obj* self) {
+  Column* col = self->ref;
+  const RowIndex& ri = col->rowindex();
+  return ri? pyrowindex::wrap(ri) : none();
 }
 
 
@@ -176,6 +184,7 @@ static PyGetSetDef column_getseters[] = {
   GETTER(ltype),
   GETTER(data_size),
   GETTER(data_pointer),
+  GETTER(rowindex),
   GETTER(refcount),
   GETTER(nrows),
   {nullptr, nullptr, nullptr, nullptr, nullptr}
