@@ -71,19 +71,6 @@ class EvaluationEngine:
     def execute(self, node):
         raise NotImplementedError
 
-    def make_rowfilter(self, rows):
-        return datatable.graph.rows_node.make_rowfilter(rows, self)
-
-    def make_groupby(self, grby):
-        return datatable.graph.groupby_node.make_groupby(grby, self)
-
-    def make_columnset(self, cols, new_cols_allowed):
-        return datatable.graph.cols_node.make_columnset(cols, self,
-                                                        new_cols_allowed)
-
-    def make_sort(self, sort):
-        return datatable.graph.sort_node.make_sort(sort, self)
-
 
 
 def make_engine(engine, dt, joindt):
