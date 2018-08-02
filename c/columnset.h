@@ -23,13 +23,6 @@ Column** columns_from_slice(
   int64_t step
 );
 
-Column** columns_from_array(
-  DataTable *dt,
-  const RowIndex& rowindex,
-  int64_t *indices,
-  int64_t ncols
-);
-
 Column** columns_from_mixed(
   int64_t *spec,
   int64_t ncols,

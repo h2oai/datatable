@@ -15,17 +15,55 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "rowindex", "groupby", "groupby_cols", "columns",
-                 "joindt", "joinindex"]
+    __slots__ = ["dt", "groupby", "groupby_cols", "columns", "_rowindex",
+                 "joindt", "joinindex", "_source_rowindex", "_final_rowindex"]
 
     def __init__(self, dt, joindt=None):
         self.dt = dt
         self.joindt = joindt
-        self.rowindex = None
+        self._rowindex = None
+        self._source_rowindex = None
+        self._final_rowindex = {}
         self.groupby = None
         self.groupby_cols = None
         self.columns = None
         self.joinindex = None
+
+    def get_source_rowindex(self):
+        return self._source_rowindex
+
+    def get_final_rowindex(self, trg_rowindex):
+        trgid = 0
+        if trg_rowindex is not None:
+            trgid = trg_rowindex.ptr
+        if trgid not in self._final_rowindex:
+            if self._source_rowindex is NotImplemented:
+                raise RuntimeError("Attempt to retrieve RowIndex that cannot "
+                                   "be computed")
+            self._final_rowindex[trgid] = \
+                self._source_rowindex.uplift(trg_rowindex)
+        return self._final_rowindex[trgid]
+
+    def set_source_rowindex(self, src_rowindex):
+        self._source_rowindex = src_rowindex
+
+    def set_final_rowindex(self, final_rowindex, trg_rowindex):
+        trgid = 0
+        if trg_rowindex is not None:
+            trgid = trg_rowindex.ptr
+        self._final_rowindex = {trgid: final_rowindex}
+
+    def clear_final_rowindex(self):
+        self._final_rowindex = {}
+
+    @property
+    def rowindex(self):
+        return self._rowindex
+
+    @rowindex.setter
+    def rowindex(self, value):
+        self._rowindex = value
+
 
     def is_compiled(self):
         """Return True iff the engine requires code compilation step."""
@@ -33,19 +71,6 @@ class EvaluationEngine:
 
     def execute(self, node):
         raise NotImplementedError
-
-    def make_rowfilter(self, rows):
-        return datatable.graph.rows_node.make_rowfilter(rows, self)
-
-    def make_groupby(self, grby):
-        return datatable.graph.groupby_node.make_groupby(grby, self)
-
-    def make_columnset(self, cols, new_cols_allowed):
-        return datatable.graph.cols_node.make_columnset(cols, self,
-                                                        new_cols_allowed)
-
-    def make_sort(self, sort):
-        return datatable.graph.sort_node.make_sort(sort, self)
 
 
 

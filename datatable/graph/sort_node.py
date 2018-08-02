@@ -26,11 +26,11 @@ class SingleColumnSortNode(SortNode):
 
     def __init__(self, ee, colidx):
         super().__init__(ee)
-        self._colidx = colidx
+        self.colidx = colidx
 
     def make_rowindex(self):
         _dt = self.engine.dt.internal
-        rowindex = _dt.sort(self._colidx)[0]
+        rowindex = _dt.sort(self.colidx)[0]
         return rowindex
 
 

@@ -17,17 +17,22 @@ class SimpleGroupbyNode:
         self._col = col
 
     def execute(self):
-        df = self._engine.dt.internal
+        ee = self._engine
+        df = ee.dt.internal
         col = self._col
-        if self._engine.rowindex:
-            cf = core.columns_from_slice(df, self._engine.rowindex, col, 1, 1)
+        if ee.rowindex:
+            cf = core.columns_from_slice(df, ee.rowindex, col, 1, 1)
             df = cf.to_datatable()
             col = 0
         rowindex, groupby = df.sort(col, True)
         f.set_rowindex(rowindex)
-        self._engine.rowindex = rowindex
-        self._engine.groupby = groupby
-        self._engine.groupby_cols = [self._col]
+        ee.set_source_rowindex(rowindex)
+        ee.clear_final_rowindex()
+        if ee.rowindex:
+            ee.set_final_rowindex(rowindex, ee.rowindex)
+        ee.rowindex = rowindex
+        ee.groupby = groupby
+        ee.groupby_cols = [self._col]
 
 
 

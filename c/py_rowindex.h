@@ -62,6 +62,9 @@ DECLARE_GETTER(
   max,
   "Largest value in the rowindex")
 
+DECLARE_GETTER(
+  ptr,
+  "Pointer to internal data, converted to int64_t.")
 
 
 //---- Methods -----------------------------------------------------------------

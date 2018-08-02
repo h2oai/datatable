@@ -148,7 +148,6 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::DEC16
  *     elem: int16_t (2 bytes)
  *     NA:   -2**15 = -32768
- *     meta: `scale` (int)
  *     The fixed-point real number (aka decimal); the scale variable in the meta
  *     indicates the number of digits after the decimal point. For example,
  *     number 7.11 can be stored as integer 711 with scale = 2.
@@ -160,13 +159,11 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::DEC32
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31
- *     meta: `scale` (int)
  *     Fixed-point real number stored as a 32-bit integer.
  *
  * SType::DEC64
  *     elem: int64_t (8 bytes)
  *     NA:   -2**63
- *     meta: `scale` (int)
  *     Fixed-point real number stored as a 64-bit integer.
  *
  * -----------------------------------------------------------------------------
@@ -202,7 +199,6 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::FSTR
  *     elem: unsigned char[] (n bytes)
  *     NA:   0xFF 0xFF ... 0xFF
- *     meta: `n` (int)
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
  *     constant width `n` and are therefore stored as `char[n]` arrays. They are
  *     *not* null-terminated, however strings that are shorter than `n` in width
@@ -213,7 +209,6 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::CAT8
  *     elem: uint8_t (1 byte)
  *     NA:   255
- *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     String column stored as a categorical variable (aka "factor" or "enum").
  *     This type is suitable for columns with low cardinality, i.e. having no
  *     more than 255 distinct string values.
@@ -229,7 +224,6 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::CAT16
  *     elem: uint16_t (2 bytes)
  *     NA:   65535
- *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 65535 distinct
  *     levels. The layout is exactly the same as that of CAT8, only
  *     the last section uses 2 bytes per element instead of just 1 byte.
@@ -237,7 +231,6 @@ constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
  * SType::CAT32
  *     elem: uint32_t (4 bytes)
  *     NA:   2**32-1
- *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 2**32-1
  *     distinct levels. (The combined size of all categorical strings may not
  *     exceed 2**32 too). The layout is same as that of CAT8, only

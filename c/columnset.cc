@@ -41,27 +41,6 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
 
 
 /**
- * Create a list of columns by extracting columns at the given indices from
- * datatable `dt`.
- */
-Column** columns_from_array(DataTable* dt, const RowIndex& rowindex,
-                            int64_t* indices, int64_t ncols)
-{
-  if (!dt) return nullptr;
-  if (!indices && ncols) return nullptr;
-  Column** srccols = dt->columns;
-  Column** columns = dt::amalloc<Column*>(ncols + 1);
-  columns[ncols] = nullptr;
-
-  for (int64_t i = 0; i < ncols; i++) {
-    columns[i] = srccols[indices[i]]->shallowcopy(rowindex);
-  }
-  return columns;
-}
-
-
-
-/**
  * Create a list of columns from "mixed" sources: some columns are taken from
  * the datatable `dt` directly, others are computed with function `mapfn`.
  *

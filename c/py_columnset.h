@@ -60,12 +60,6 @@ DECLARE_FUNCTION(
   HOMEFLAG)
 
 DECLARE_FUNCTION(
-  columns_from_array,
-  "columns_from_array(dt, rowindex, indices)\n\n"
-  "Extract an array of columns at given indices from DataTable `dt`.\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   columns_from_mixed,
   "columns_from_mixed()\n\n",
   HOMEFLAG)

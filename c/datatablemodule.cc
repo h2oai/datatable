@@ -166,7 +166,6 @@ PyObject* has_omp_support(PyObject*, PyObject*) {
 static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pycolumnset::columns_from_mixed),
     METHODv(pycolumnset::columns_from_slice),
-    METHODv(pycolumnset::columns_from_array),
     METHODv(pycolumnset::columns_from_columns),
     METHODv(pycolumn::column_from_list),
     METHODv(pyrowindex::rowindex_from_slice),
