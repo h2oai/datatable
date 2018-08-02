@@ -165,6 +165,11 @@ PyObject* get_max(obj* self) {
   return PyLong_FromLongLong(self->ref->max());
 }
 
+PyObject* get_ptr(obj* self) {
+  const void* ptr = self->ref->ptr();
+  return PyLong_FromSize_t(reinterpret_cast<size_t>(ptr));
+}
+
 
 
 
@@ -258,6 +263,7 @@ static PyGetSetDef rowindex_getsetters[] = {
   GETTER(nrows),
   GETTER(min),
   GETTER(max),
+  GETTER(ptr),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
 };
 

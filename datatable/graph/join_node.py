@@ -15,24 +15,24 @@ __all__ = ("join",)
 class join:
 
     def __init__(self, frame):
-        self.frame = frame
+        self.joinframe = frame
         if not frame.key:
             raise ValueError("The join frame is not keyed")
 
     def execute(self, ee):
         dt = ee.dt
-        xcols = [None] * len(self.frame.key)
-        for i, colname in enumerate(self.frame.key):
+        xcols = [None] * len(self.joinframe.key)
+        for i, colname in enumerate(self.joinframe.key):
             if colname not in dt._inames:
                 raise TValueError("Key column `%s` does not exist in the "
                                   "left Frame" % colname)
             xcols[i] = dt._inames[colname]
             l_ltype = dt.ltypes[xcols[i]]
-            r_ltype = self.frame.ltypes[i]
+            r_ltype = self.joinframe.ltypes[i]
             if l_ltype != r_ltype:
                 raise TTypeError("Join column `%s` has type %s in the left "
                                  "Frame, and type %s in the right Frame. "
                                  % (colname, l_ltype.name, r_ltype.name))
-        jindex = dt.internal.join(ee.rowindex, self.frame.internal, xcols)
+        jindex = dt.internal.join(ee.rowindex, self.joinframe.internal, xcols)
         ee.joinindex = jindex
         g.set_rowindex(jindex)

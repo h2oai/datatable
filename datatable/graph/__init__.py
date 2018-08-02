@@ -5,8 +5,8 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable
-from .rows_node import AllRFNode, SortedRFNode
-from .cols_node import SliceCSNode, ArrayCSNode
+from .rows_node import AllRFNode, SortedRFNode, make_rowfilter
+from .cols_node import SliceCSNode, ArrayCSNode, make_columnset
 from .context import make_engine
 from .groupby_node import make_groupby
 from .sort_node import make_sort
@@ -15,8 +15,6 @@ from .dtproxy import f, g
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("make_datatable",
-           "make_groupby",
-           "make_sort",
            "resolve_selector",
            "SliceCSNode")
 
@@ -33,15 +31,14 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
     """
     update_mode = mode == "update"
     delete_mode = mode == "delete"
-    jframe = join.frame if join else None
+    jframe = join.joinframe if join else None
     with f.bind_datatable(dt), g.bind_datatable(jframe):
         ee = make_engine(engine, dt, jframe)
         ee.rowindex = dt.internal.rowindex
-        rowsnode = ee.make_rowfilter(rows)
-        grbynode = ee.make_groupby(groupby)
-        colsnode = ee.make_columnset(select,
-                                     new_cols_allowed=update_mode)
-        sortnode = ee.make_sort(sort)
+        rowsnode = make_rowfilter(rows, ee)
+        grbynode = make_groupby(groupby, ee)
+        colsnode = make_columnset(select, ee, update_mode)
+        sortnode = make_sort(sort, ee)
 
         if join:
             join.execute(ee)

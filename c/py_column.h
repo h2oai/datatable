@@ -75,12 +75,12 @@ DECLARE_GETTER(
   "invalid pointer may return incorrect data, or result in a seg.fault.")
 
 DECLARE_GETTER(
-  refcount,
-  "Reference count of the column")
+  rowindex,
+  "Rowindex object defined for this Column.\n")
 
 DECLARE_GETTER(
-  meta,
-  "String representation of the column's `meta` struct")
+  refcount,
+  "Reference count of the column")
 
 DECLARE_GETTER(
   nrows,
@@ -106,6 +106,18 @@ DECLARE_METHOD(
   "Return this Column expanded with each row repeated as many times as there\n"
   "are elements in the corresponding group of the `groupby`. The number of\n"
   "rows in the current Column must be equal to the number of groups.\n")
+
+DECLARE_METHOD(
+  replace_rowindex,
+  "replace_rowindex(new_rowindex)\n\n"
+  "Replaces rowindex of the current Column with the provided one. The new\n"
+  "rowindex should be compatible with the Column's data source. This method\n"
+  "does not affect the Frame from which this Column was extracted.\n")
+
+DECLARE_METHOD(
+  topython,
+  "topython()\n\n"
+  "Return the contents of the Column as a plain Python list.\n")
 
 
 //---- Python API --------------------------------------------------------------
