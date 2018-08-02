@@ -29,7 +29,6 @@ def c_stypes():
         * code2 (str): 2-character string code of the SType
         * ctype (str): C-type of a single element in this column
         * elemsize (int): size in bytes of each element in this column
-        * meta (str): name of the C meta class (or empty string)
         * varwidth (bool): is this a variable-width SType?
         * ltype (str): name of the C enum constant with the LType corresponding
           to the current SType

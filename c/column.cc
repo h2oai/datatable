@@ -79,8 +79,7 @@ void Column::save_to_disk(const std::string& filename,
 /**
  * Restore a Column previously saved via `column_save_to_disk()`. The column's
  * data buffer is taken from the file `filename`; and the column is assumed to
- * have type `stype`, number of rows `nrows`, and its meta information stored
- * as a string `metastr`.
+ * have type `stype`, number of rows `nrows`.
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */

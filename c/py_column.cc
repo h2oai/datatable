@@ -7,8 +7,10 @@
 //------------------------------------------------------------------------------
 #define dt_PY_COLUMN_cc
 #include "py_column.h"
+#include "py_rowindex.h"
 #include "py_types.h"
 #include "writebuf.h"
+#include "python/list.h"
 #include "utils/pyobj.h"
 
 namespace pycolumn
@@ -85,11 +87,12 @@ PyObject* get_data_pointer(pycolumn::obj* self) {
 }
 
 
-PyObject* get_meta(pycolumn::obj*) {
-  // Does nothing after the removal of metas in StringColumns.
-  // Might be used when fixed-point decimals are implemented
-  return none();
+PyObject* get_rowindex(pycolumn::obj* self) {
+  Column* col = self->ref;
+  const RowIndex& ri = col->rowindex();
+  return ri? pyrowindex::wrap(ri) : none();
 }
+
 
 
 PyObject* get_refcount(pycolumn::obj*) {
@@ -161,6 +164,38 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 }
 
 
+PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
+  RowIndex newri = PyObj(arg1).as_rowindex();
+
+  Column* col = self->ref;
+  self->ref = col->shallowcopy(newri);
+  delete col;
+  self->pydt = nullptr;
+  self->colidx = GETNA<int64_t>();
+
+  Py_RETURN_NONE;
+}
+
+
+PyObject* topython(pycolumn::obj* self, PyObject*) {
+  Column* col = self->ref;
+
+  int itype = static_cast<int>(col->stype());
+  auto formatter = py_stype_formatters[itype];
+  PyyList out(static_cast<size_t>(col->nrows));
+
+  col->rowindex().strided_loop2(0, col->nrows, 1,
+    [&](int64_t i, int64_t j) {
+      PyObject* val = ISNA(j)? none() : formatter(col, j);
+      out[static_cast<size_t>(i)] = val;
+    });
+
+  return out.release();
+}
+
+
 static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
@@ -182,7 +217,7 @@ static PyGetSetDef column_getseters[] = {
   GETTER(ltype),
   GETTER(data_size),
   GETTER(data_pointer),
-  GETTER(meta),
+  GETTER(rowindex),
   GETTER(refcount),
   GETTER(nrows),
   {nullptr, nullptr, nullptr, nullptr, nullptr}
@@ -192,6 +227,8 @@ static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
   METHOD0(hexview),
   METHODv(ungroup),
+  METHODv(replace_rowindex),
+  METHOD0(topython),
   {nullptr, nullptr, 0, nullptr}
 };
 

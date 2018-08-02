@@ -66,8 +66,7 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
  *
  * varwidth:
  *     flag indicating whether the field is variable-width. If this is false,
- *     then the column is a plain array of elements, each of `elemsize` bytes
- *     (except for FSTR, where each element's size is `meta->n`).
+ *     then the column is a plain array of elements, each of `elemsize` bytes.
  *     If this flag is true, then the field has more complex layout and
  *     specialized logic to handle that layout.
  *

@@ -17,12 +17,11 @@
  *
  * colspec
  *     A DataTable object containing information about the columns of the
- *     datatable stored on disk. This object should contain 3 columns, with
- *     file names, stypes, and meta-information of each column in the stored
- *     datatable.
+ *     datatable stored on disk. This object should contain 2 columns, with
+ *     file names, and stypes of each column in the stored Frame.
  *
  * nrows
- *     Number of rows in the stored datatable.
+ *     Number of rows in the stored Frame.
  */
 DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path,
                            bool recode)
@@ -31,8 +30,8 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     Column** columns = dt::amalloc<Column*>(ncols + 1);
     columns[ncols] = nullptr;
 
-    if (colspec->ncols != 3 && colspec->ncols != 5) {
-        throw ValueError() << "colspec table should have had 3 or 5 columns, "
+    if (colspec->ncols != 2 && colspec->ncols != 4) {
+        throw ValueError() << "colspec table should have had 2 or 4 columns, "
                            << "but " << colspec->ncols << " were passed";
     }
     SType stypef = colspec->columns[0]->stype();

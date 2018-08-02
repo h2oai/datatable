@@ -118,7 +118,12 @@ PyObject* get_ncols(obj* self) {
 }
 
 PyObject* get_isview(obj* self) {
-  return incref(self->ref->rowindex.isabsent()? Py_False : Py_True);
+  DataTable* dt = self->ref;
+  for (int64_t i = 0; i < dt->ncols; ++i) {
+    if (dt->columns[i]->rowindex())
+      return incref(Py_True);
+  }
+  return incref(Py_False);
 }
 
 
