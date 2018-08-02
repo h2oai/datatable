@@ -1,4 +1,9 @@
-#! /usr/bin/groovy
+#!/usr/bin/groovy
+//------------------------------------------------------------------------------
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//------------------------------------------------------------------------------
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                        //
@@ -34,12 +39,12 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 CREDS_ID = 'h2o-ops-personal-auth-token'
 GITCONFIG_CRED_ID = 'master-gitconfig'
 RSA_CRED_ID = 'master-id-rsa'
-DOCKER_IMAGE_TAG = '0.6.0-PR-1010.4'
+DOCKER_IMAGE_TAG = '0.6.0-PR-1210.1'
 X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
 EXPECTED_SHAS = [
         files : [
                 'ci/Dockerfile-ubuntu.in' : 'd5b19e748c079d65964e6c1e458f525854aee0f3',
-                'ci/Dockerfile-centos7.in': 'd9ef4a7f981719e05fff49487c6176b7ba445817',
+                'ci/Dockerfile-centos7.in': '5d7dc9fc0033e00b00df8c81f1fd2371aa88cc74',
         ]
 ]
 
@@ -69,6 +74,8 @@ def needsLargerTest
 def dockerArgs = createDockerArgs()
 // String with current version
 def versionText
+// String with current git revision
+def gitHash
 
 MAKE_OPTS = "CI=1"
 
@@ -98,7 +105,8 @@ ansiColor('xterm') {
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout', stageDir) {
                         def scmEnv = checkout scm
-                        env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
+                        gitHash = scmEnv.GIT_COMMIT
+                        env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '_')
                         if (doPPC()) {
                             manager.addBadge("success.gif", "PPC64LE build triggered!")
                         }
@@ -482,20 +490,18 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Build sdist
-            if (doPublish()) {
-                node(X86_64_BUILD_NODE_LABEL) {
-                    def stageDir = 'build-sdist'
-                    buildSummary.stageWithSummary ('Build sdist', stageDir) {
-                        cleanWs()
-                        dumpInfo()
-                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                            dir (stageDir) {
-                                unstash 'datatable-sources'
-                                unstash 'VERSION'
-                                sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
-                                stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
-                                arch "dist/*.tar.gz"
-                            }
+            node(X86_64_BUILD_NODE_LABEL) {
+                def stageDir = 'build-sdist'
+                buildSummary.stageWithSummary ('Build sdist', stageDir) {
+                    cleanWs()
+                    dumpInfo()
+                    withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}", "DTBL_GIT_HASH=${gitHash}"]) {
+                        dir (stageDir) {
+                            unstash 'datatable-sources'
+                            unstash 'VERSION'
+                            sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
+                            stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
+                            arch "dist/*.tar.gz"
                         }
                     }
                 }

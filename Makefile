@@ -195,6 +195,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CONTAINER_NAME_TAG) \
 		-c 'make dist'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
@@ -220,7 +221,7 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.6.0-PR-1010.4
+DOCKER_IMAGE_TAG ?= 0.6.0-PR-1210.1
 CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
@@ -233,6 +234,7 @@ centos7_build_in_docker_impl:
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
@@ -253,6 +255,7 @@ centos7_version_in_docker:
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate datatable-py36-with-pandas && \
@@ -270,6 +273,7 @@ centos7_test_in_docker_impl:
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(TEST_VENV) && \
@@ -300,6 +304,7 @@ ubuntu_build_in_docker_impl:
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/$(BUILD_VENV)/bin/activate && \
@@ -316,6 +321,7 @@ ubuntu_build_sdist_in_docker:
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
@@ -337,6 +343,7 @@ ubuntu_coverage_py36_with_pandas_in_docker:
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
@@ -352,6 +359,7 @@ ubuntu_test_in_docker_impl:
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/$(TEST_VENV)/bin/activate && \

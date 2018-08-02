@@ -139,10 +139,12 @@ def test_float_hex_invalid():
     assert d0.topython() == [[f] for f in fields]
 
 
-def test_float_decimal0():
+def test_float_decimal0(noppc64):
+    # PPC64 platform doesn't have proper long doubles, which may cause loss of
+    # precision in the last digit when converting double literals into double
+    # values.
     assert dt.fread("1.3485701e-303\n").scalar() == 1.3485701e-303
-    if "powerpc64" not in str(sys.implementation):
-        assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
+    assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
     assert (dt.fread("A\n1.23456789123456789123456999\n").scalar() ==
             1.23456789123456789123456999)
 

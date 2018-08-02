@@ -28,6 +28,22 @@ def py36():
 
 
 @pytest.fixture(scope="session")
+def noppc64():
+    """
+    Skip the test if running in PowerPC64 or Python 3.5.
+
+    The reason we include Python3.6 requirement is because in Python 3.5 it
+    is not possible to determine whether the platform is PPC64 or not. Or at
+    least I don't know how... sys.platform is "linux", and
+    sys.implementation.cache_tag is "cpython-35".
+    """
+    if sys.version_info < (3, 6):
+        pytest.skip("Python3.6+ is required")
+    if "powerpc64" in str(sys.implementation):
+        pytest.skip("Disabled on PowerPC64 platform")
+
+
+@pytest.fixture(scope="session")
 def nocov():
     """Skip this test when running in the 'coverage' mode"""
     if "DTCOVERAGE" in os.environ:
