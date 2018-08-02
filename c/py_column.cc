@@ -10,6 +10,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "writebuf.h"
+#include "python/list.h"
 #include "utils/pyobj.h"
 
 namespace pycolumn
@@ -178,6 +179,22 @@ PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
 }
 
 
+PyObject* topython(pycolumn::obj* self, PyObject*) {
+  Column* col = self->ref;
+
+  int itype = static_cast<int>(col->stype());
+  auto formatter = py_stype_formatters[itype];
+  PyyList out(static_cast<size_t>(col->nrows));
+
+  col->rowindex().strided_loop2(0, col->nrows, 1,
+    [&](int64_t i, int64_t j) {
+      PyObject* val = ISNA(j)? none() : formatter(col, j);
+      out[static_cast<size_t>(i)] = val;
+    });
+
+  return out.release();
+}
+
 
 static void dealloc(pycolumn::obj* self)
 {
@@ -211,6 +228,7 @@ static PyMethodDef column_methods[] = {
   METHOD0(hexview),
   METHODv(ungroup),
   METHODv(replace_rowindex),
+  METHOD0(topython),
   {nullptr, nullptr, 0, nullptr}
 };
 

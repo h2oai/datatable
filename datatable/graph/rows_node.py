@@ -390,13 +390,16 @@ class SortedRFNode(RFNode):
         super().__init__(sort_node.engine)
         self._sortnode = sort_node
 
-    def _make_source_rowindex(self):
-        return NotImplemented
+    def execute(self):
+        ee = self._engine
+        _dt = ee.dt.internal
+        ri_target = _dt.column(self._sortnode.colidx).rowindex
 
-    def _make_final_rowindex(self, ri_source):
-        assert ri_source == NotImplemented
-        return self._sortnode.make_rowindex()
-
+        finalri = self._sortnode.make_rowindex()
+        ee.set_source_rowindex(NotImplemented)
+        ee.set_final_rowindex(finalri, ri_target)
+        ee.rowindex = finalri
+        f.set_rowindex(finalri)
 
 
 

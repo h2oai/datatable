@@ -47,7 +47,7 @@ def test_groups_internal2():
 
 
 def test_groups_internal3():
-    f0 = dt.Frame({"A": [1, 2, 1, 3, 2, 2, 2, 1, 3, 1], "B": range(10)})
+    f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
     f1 = f0(select=["B", f.A + f.B], groupby="A")
     f1.internal.check()
     assert f1.topython() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],

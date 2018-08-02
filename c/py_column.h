@@ -114,6 +114,11 @@ DECLARE_METHOD(
   "rowindex should be compatible with the Column's data source. This method\n"
   "does not affect the Frame from which this Column was extracted.\n")
 
+DECLARE_METHOD(
+  topython,
+  "topython()\n\n"
+  "Return the contents of the Column as a plain Python list.\n")
+
 
 //---- Python API --------------------------------------------------------------
 

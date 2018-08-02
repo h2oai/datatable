@@ -113,7 +113,6 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
       return nullptr;
     }
     reinterpret_cast<pycolumn::obj*>(elem)->ref = nullptr;
-    columns[i]->reify();
   }
   columns[ncols] = nullptr;
 
