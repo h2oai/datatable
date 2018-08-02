@@ -30,14 +30,21 @@ DataTable::DataTable(Column** cols)
   rowindex = RowIndex(cols[0]->rowindex());
   nrows = cols[0]->nrows;
 
-  for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
+  bool need_to_materialize = false;
+  for (ncols = 1; ; ++ncols) {
+    Column* col = cols[ncols];
+    if (!col) break;
     if (rowindex != col->rowindex()) {
-      throw ValueError() << "Mismatched RowIndex in Column " << ncols;
+      need_to_materialize = true;
     }
     if (nrows != col->nrows) {
       throw ValueError() << "Mismatched length in Column " << ncols << ": "
                          << "found " << col->nrows << ", expected " << nrows;
     }
+  }
+  // TODO: remove in #1188
+  if (need_to_materialize) {
+    reify();
   }
 }
 

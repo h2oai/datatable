@@ -990,7 +990,6 @@ def column_hexview(col, dt, colidx):
           % (col.ltype.name, col.stype.name, col.mtype))
     datasize = col.data_size
     print("Bytes: %d" % datasize)
-    print("Meta: %s" % col.meta)
     print("Refcnt: %d" % col.refcount)
     widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
     widget.render()
