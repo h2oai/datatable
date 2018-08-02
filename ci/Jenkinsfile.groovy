@@ -103,23 +103,29 @@ ansiColor('xterm') {
             node(X86_64_BUILD_NODE_LABEL) {
                 def stageDir = 'checkout'
                 dir (stageDir) {
-                    buildSummary.stageWithSummary('Checkout', stageDir) {
+                    buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         def scmEnv = checkout scm
-                        gitHash = scmEnv.GIT_COMMIT
+                        env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '_')
+
                         if (doPPC()) {
                             manager.addBadge("success.gif", "PPC64LE build triggered!")
                         }
+
                         buildInfo(env.BRANCH_NAME, isRelease())
                         project = load 'ci/default.groovy'
+
                         if (isRelease()) {
                             CI_VERSION_SUFFIX = ''
                         }
+                        env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
+
                         needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
                         if (needsLargerTest) {
                             env.DT_LARGE_TESTS_ROOT = TARGET_DIR
                             manager.addBadge("warning.gif", "Large tests required")
                         }
+
                         stash includes: "CHANGELOG.md", name: 'CHANGELOG'
 
                         docker.image(X86_64_CENTOS_DOCKER_IMAGE).inside {
@@ -162,14 +168,12 @@ ansiColor('xterm') {
                             dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
-                                    stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
-                                    stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                }
+                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
+                                stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
+                                arch "dist/*.whl"
+                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
+                                stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
+                                arch "dist/*.whl"
                             }
                         }
                     }
@@ -182,7 +186,7 @@ ansiColor('xterm') {
 							dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
+                                withEnv(OSX_ENV) {
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -212,14 +216,12 @@ ansiColor('xterm') {
                                     dumpInfo()
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
-                                            stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
-                                            arch "dist/*.whl"
-                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
-                                            stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
-                                            arch "dist/*.whl"
-                                        }
+                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
+                                        stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
+                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
+                                        stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
                                     }
                                 }
                             }
@@ -495,14 +497,12 @@ ansiColor('xterm') {
                 buildSummary.stageWithSummary ('Build sdist', stageDir) {
                     cleanWs()
                     dumpInfo()
-                    withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}", "DTBL_GIT_HASH=${gitHash}"]) {
-                        dir (stageDir) {
-                            unstash 'datatable-sources'
-                            unstash 'VERSION'
-                            sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
-                            stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
-                            arch "dist/*.tar.gz"
-                        }
+                    dir (stageDir) {
+                        unstash 'datatable-sources'
+                        unstash 'VERSION'
+                        sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
+                        stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
+                        arch "dist/*.tar.gz"
                     }
                 }
             }
