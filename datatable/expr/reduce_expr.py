@@ -66,7 +66,6 @@ class ReduceExpr(BaseExpr):
     def resolve(self):
         self._expr.resolve()
         expr_stype = self._expr.stype
-#         print(self._expr.stype)
         self._stype = ops_rules.get((self._op, expr_stype))
         if self._stype is None:
             raise ValueError(
