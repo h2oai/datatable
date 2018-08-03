@@ -48,7 +48,8 @@ static Column* reduce_first(const Column* arg, const Groupby& groupby) {
     // frame. Return the first row then.
     arr32_t indices(1);
     indices[0] = 0;
-    ri = RowIndex::from_array32(std::move(indices), true);
+    ri = RowIndex::from_array32(std::move(indices), true)
+                  .uplift(arg->rowindex());
   } else {
     // groupby.offsets array has length `ngrps + 1` and contains offsets of the
     // beginning of each group. We will take this array and reinterpret it as a
