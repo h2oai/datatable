@@ -69,13 +69,15 @@ def test_count_2d_dt_groupby_integer():
 
 
 def test_count_array_string():
-    a = [None, "blue", "green", "indico", None, None, "orange", "red", "violet", "yellow", "green", None, "blue"]
+    a = [None, "blue", "green", "indico", None, None, "orange", "red", 
+         "violet", "yellow", "green", None, "blue"]
     af = count(a)
     assert af == 9
 
 
 def test_count_dt_string():    
-    df = dt.Frame([None, "blue", "green", "indico", None, None, "orange", "red", "violet", "yellow", "green", None, "blue"])
+    df = dt.Frame([None, "blue", "green", "indico", None, None, "orange", 
+                   "red", "violet", "yellow", "green", None, "blue"])
     dfg = df(select=[count(f.C0),count()])
     dfg.internal.check()
     assert dfg.shape == (1, 2)
@@ -84,12 +86,14 @@ def test_count_dt_string():
     
         
 def test_count_dt_groupby_string():    
-    df = dt.Frame([None, "blue", "green", "indico", None, None, "orange", "red", "violet", "yellow", "green", None, "blue"])
+    df = dt.Frame([None, "blue", "green", "indico", None, None, "orange", 
+                   "red", "violet", "yellow", "green", None, "blue"])
     dfg = df(select=[count(f.C0),count()], groupby="C0")
     dfg.internal.check()
     assert dfg.shape == (8, 3)
     assert dfg.ltypes == (ltype.str,ltype.int,ltype.int,)
-    assert dfg.topython() == [[None, "blue", "green", "indico", "orange", "red", "violet", "yellow"],
+    assert dfg.topython() == [[None, "blue", "green", "indico", "orange", 
+                               "red", "violet", "yellow"],
                               [0, 2, 2, 1, 1, 1, 1, 1],
                               [4, 2, 2, 1, 1, 1, 1, 1]]
         
