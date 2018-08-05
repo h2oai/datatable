@@ -42,24 +42,16 @@ static Column* reduce_first(const Column* arg, const Groupby& groupby) {
     return Column::new_data_column(arg->stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
-  RowIndex ri;
-  if (ngrps == 1) {
-    // This is needed for the case when there was no grouping operation on the
-    // frame. Return the first row then.
-    arr32_t indices(1);
-    indices[0] = 0;
-    ri = RowIndex::from_array32(std::move(indices), true)
-                  .uplift(arg->rowindex());
-  } else {
-    // groupby.offsets array has length `ngrps + 1` and contains offsets of the
-    // beginning of each group. We will take this array and reinterpret it as a
-    // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
-    // to the column will produce the vector of first elements in that column.
-    arr32_t indices(ngrps, groupby.offsets_r());
-    ri = RowIndex::from_array32(std::move(indices), true)
-                  .uplift(arg->rowindex());
-  }
-  return arg->shallowcopy(ri);
+  // groupby.offsets array has length `ngrps + 1` and contains offsets of the
+  // beginning of each group. We will take this array and reinterpret it as a
+  // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
+  // to the column will produce the vector of first elements in that column.
+  arr32_t indices(ngrps, groupby.offsets_r());
+  RowIndex ri = RowIndex::from_array32(std::move(indices), true)
+                .uplift(arg->rowindex());
+  Column* res = arg->shallowcopy(ri);
+  if (ngrps == 1) res->reify();
+  return res;
 }
 
 
