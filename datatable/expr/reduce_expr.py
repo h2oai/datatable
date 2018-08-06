@@ -9,6 +9,7 @@
 from .base_expr import BaseExpr
 from .consts import reduce_opcodes, ops_rules
 from datatable.lib import core
+from datatable.types import stype
 
 _builtin_sum = sum
 
@@ -18,13 +19,38 @@ def sum(iterable, start=0):
     else:
         return _builtin_sum(iterable, start)
 
-def count(iterable, start=0):
+
+def count(iterable=None):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("count", iterable)
+    elif iterable is None:
+        return CountExpr()
+    else:
+        return _builtin_sum((x is not None) for x in iterable)
 
-def first(iterable, start=0):
+
+def first(iterable):
     if isinstance(iterable, BaseExpr):
         return ReduceExpr("first", iterable)
+    else:
+        for x in iterable:
+            return x
+              
+              
+class CountExpr(BaseExpr):
+    def is_reduce_expr(self, ee):
+        return True
+
+    def resolve(self):
+        self._stype = stype.int64
+
+    def evaluate_eager(self, ee):
+        return core.expr_count(ee.dt.internal, ee.groupby)
+
+    def __str__(self):
+        return "count()"
+
+
 
 class ReduceExpr(BaseExpr):
     __slots__ = ["_op", "_expr"]
