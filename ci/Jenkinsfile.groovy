@@ -150,10 +150,12 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Generate version and git files', stageDir) {
                         sh "make ${MAKE_OPTS} centos7_version_in_docker"
                         stash name: 'VERSION', includes: "dist/VERSION.txt"
+                        stash name: 'GIT_HASH_FILE', includes: "datatable/__git__.py"
                         arch "dist/VERSION.txt"
                         arch "datatable/__git__.py"
                         versionText = readFile('dist/VERSION.txt').trim()
                         echo "Version is: ${versionText}"
+                        sh "make ${MAKE_OPTS} mrproper"
                     }
                     stash 'datatable-sources'
                 }
@@ -168,9 +170,13 @@ ansiColor('xterm') {
                             dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
+                                unstash 'VERSION'
+                                unstash 'GIT_HASH_FILE'
                                 sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                 stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
+                                unstash 'VERSION'
+                                unstash 'GIT_HASH_FILE'
                                 sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                 stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
@@ -186,6 +192,8 @@ ansiColor('xterm') {
 							dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
+                                unstash 'VERSION'
+                                unstash 'GIT_HASH_FILE'
                                 withEnv(OSX_ENV) {
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
@@ -194,11 +202,13 @@ ansiColor('xterm') {
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                        sh """
-                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
-                                            make ${MAKE_OPTS} clean
-                                            make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
-                                        """
+                                    unstash 'VERSION'
+                                    unstash 'GIT_HASH_FILE'
+                                    sh """
+                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
+                                        make ${MAKE_OPTS} clean
+                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                    """
                                     stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                 }
@@ -216,9 +226,13 @@ ansiColor('xterm') {
                                     dumpInfo()
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
+                                        unstash 'VERSION'
+                                        unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                         stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
+                                        unstash 'VERSION'
+                                        unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                         stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
