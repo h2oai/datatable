@@ -11,6 +11,7 @@
 #include <Python.h>
 #include "python/args.h"
 #include "utils/exceptions.h"
+#include "utils/pyobj.h"
 
 namespace py {
 
@@ -18,10 +19,12 @@ namespace py {
  * Usage:
  *   class MyObj : public PyObject {
  *     public:
- *       class Type : public py::ExtType<MyObj> {
+ *       struct Type : public py::ExtType<MyObj> {
  *         static const char* classname();  // required
  *         static const char* classdoc();
  *         static PyTypeObject* baseclass();
+ *
+ *         static void init_getsetters(GetSetters& gs);
  *       };
  *
  *       MyObj();
@@ -29,7 +32,6 @@ namespace py {
  *       void m__dealloc__();
  *
  *       void init_methods();
- *       void init_getsetters();
  *   };
  *
  * Then, in datatablemodule.c:
@@ -45,7 +47,20 @@ struct ExtType {
   static const char* classdoc() { return nullptr; }
   static PyTypeObject* baseclass() { return nullptr; }
   static bool is_subclassable() { return false; }
+
+  class GetSetters {
+    std::vector<PyGetSetDef> defs;
+    public:
+      using getter = PyObj (T::*)() const;
+      using setter = void (T::*)(PyObj);
+      template <getter fg, setter fs = nullptr>
+      void add(const char* name, const char* doc = nullptr);
+
+      PyGetSetDef* finalize();
+  };
 };
+
+
 
 
 
@@ -57,8 +72,8 @@ namespace _impl {
   template <typename T>
   int _safe_init(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
-      T::args__init__.bind(args, kwds);
-      static_cast<T*>(self)->m__init__(T::args__init__);
+      T::Type::args__init__.bind(args, kwds);
+      static_cast<T*>(self)->m__init__(T::Type::args__init__);
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -98,11 +113,25 @@ namespace _impl {
     }
   }
 
+  template <typename T, PyObj (T::*F)() const>
+  PyObject* _safe_getter(PyObject* self, void*) {
+    try {
+      T* t = static_cast<T*>(self);
+      PyObj res = (t->*F)();
+      return res.release();
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return nullptr;
+    }
+  }
+
+
   /**
    * SFINAE checker for the presence of various methods:
    *   has<T>::buffers  will return true if T has method `m__get_buffer__`
    *                    (signature is not verified)
-   *   has<T>::init returns true if T has method `m__init__`
+   *   has<T>::init     returns true if T has method `m__init__`
+   *   has<T>::getsets  returns true if T::Type has `init_getsettes`
    */
   template <typename T>
   class has {
@@ -110,10 +139,13 @@ namespace _impl {
     template <class C> static long test_init(...);
     template <class C> static char test_buf(decltype(&C::m__get_buffer__));
     template <class C> static long test_buf(...);
+    template <class C> static char test_gs(decltype(&C::Type::init_getsetters));
+    template <class C> static long test_gs(...);
 
   public:
     static constexpr bool _init_ = (sizeof(test_init<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
+    static constexpr bool getsets = (sizeof(test_gs<T>(nullptr)) == 1);
   };
 
   /**
@@ -129,6 +161,7 @@ namespace _impl {
   struct init {
     static void _init_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
+    static void getsets(PyTypeObject&) {}
   };
 
   template <typename T>
@@ -142,6 +175,12 @@ namespace _impl {
       bufs->bf_getbuffer = _safe_getbuffer<T>;
       bufs->bf_releasebuffer = _safe_releasebuffer<T>;
       type.tp_as_buffer = bufs;
+    }
+
+    static void getsets(PyTypeObject& type) {
+      typename T::Type::GetSetters gs;
+      T::Type::init_getsetters(gs);
+      type.tp_getset = gs.finalize();
     }
   };
 
@@ -180,6 +219,7 @@ void ExtType<T>::init(PyObject* module) {
 
   _impl::init<T, _impl::has<T>::_init_>::_init_(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
+  _impl::init<T, _impl::has<T>::getsets>::getsets(type);
 
   // Finish type initialization
   int r = PyType_Ready(&type);
@@ -191,6 +231,26 @@ void ExtType<T>::init(PyObject* module) {
 
   r = PyModule_AddObject(module, name, pyobj_type);
   if (r < 0) throw PyError();
+}
+
+
+template <class T>
+template <PyObj (T::*f)() const, void (T::*g)(PyObj)>
+void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
+  defs.push_back(PyGetSetDef {
+    const_cast<char*>(name),
+    &_impl::_safe_getter<T, f>,
+    nullptr,
+    const_cast<char*>(doc),
+    nullptr  // closure
+  });
+}
+
+template <class T>
+PyGetSetDef* ExtType<T>::GetSetters::finalize() {
+  PyGetSetDef* res = new PyGetSetDef[1 + defs.size()]();
+  std::memcpy(res, defs.data(), defs.size() * sizeof(PyGetSetDef));
+  return res;
 }
 
 

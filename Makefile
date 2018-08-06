@@ -689,7 +689,7 @@ $(BUILDDIR)/python/args.h: c/python/args.h $(BUILDDIR)/python/arg.h
 	@echo • Refreshing c/python/args.h
 	@cp c/python/args.h $@
 
-$(BUILDDIR)/python/ext_type.h: c/python/ext_type.h $(BUILDDIR)/python/args.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/python/ext_type.h: c/python/ext_type.h $(BUILDDIR)/python/args.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/ext_type.h
 	@cp c/python/ext_type.h $@
 
@@ -894,7 +894,7 @@ $(BUILDDIR)/extras/aggregator.o : c/extras/aggregator.cc $(BUILDDIR)/extras/aggr
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 
-$(BUILDDIR)/frame/py_frame.o : c/frame/py_frame.cc $(BUILDDIR)/frame/py_frame.h
+$(BUILDDIR)/frame/py_frame.o : c/frame/py_frame.cc $(BUILDDIR)/frame/py_frame.h $(BUILDDIR)/python/long.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

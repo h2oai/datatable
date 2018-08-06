@@ -7,9 +7,11 @@
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include <iostream>
+#include "python/long.h"
 
 namespace dt {
 
+py::NoArgs Frame::Type::args__init__("__init__");
 
 
 const char* Frame::Type::classname() {
@@ -28,6 +30,16 @@ const char* Frame::Type::classdoc() {
     "This is a primary data structure for datatable module.\n";
 }
 
+void Frame::Type::init_getsetters(GetSetters& gs) {
+  gs.add<&Frame::get_ncols>("ncols");
+  gs.add<&Frame::get_nrows>("nrows");
+}
+
+
+void Frame::m__init__(py::Args&) {
+  std::cout << "In Frame.__init__()\n";
+}
+
 void Frame::m__dealloc__() {
   std::cout << "In Frame::dealloc (dt=" << dt << ")\n";
 }
@@ -38,6 +50,13 @@ void Frame::m__get_buffer__(Py_buffer* , int ) const {
 void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
+PyObj Frame::get_ncols() const {
+  return PyObj(PyyLong(11));
+}
+
+PyObj Frame::get_nrows() const {
+  return PyObj(PyyLong(47));
+}
 
 
 }  // namespace dt

@@ -36,7 +36,7 @@ Arg Args::get(const char*) const { throw AssertionError(); }
 //------------------------------------------------------------------------------
 
 void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
-  if (Py_SIZE(_args) || PyDict_Size(_kwds)) {
+  if ((_args && Py_SIZE(_args)) || (_kwds && PyDict_Size(_kwds))) {
     throw TypeError() << fn_name << "() accepts no arguments";
   }
 }

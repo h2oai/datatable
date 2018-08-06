@@ -25,13 +25,20 @@ class Frame : public PyObject {
   public:
     class Type : public py::ExtType<Frame> {
       public:
+        static py::NoArgs args__init__;
         static const char* classname();
         static const char* classdoc();
+
+        static void init_getsetters(GetSetters& gs);
     };
 
+    void m__init__(py::Args&);
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
+
+    PyObj get_ncols() const;
+    PyObj get_nrows() const;
 };
 
 
