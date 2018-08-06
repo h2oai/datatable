@@ -6,8 +6,6 @@ init:
         $ErrorActionPreference = "Stop"
         Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
         Import-Module '..\appveyor-tool.ps1'
-install:   # this is needed.  Don't remove it. Don't know what it does, though.  It is not Bootstrap CSS it seems.
-  ps: Bootstrap
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   - "ECHO %LLVM6%"
 
@@ -31,6 +29,7 @@ environment:
       DISTRIBUTIONS: "sdist bdist_wheel"
 
 install:
+  ps: Bootstrap
   - choco install mingw
   - choco install llvm
   - choco install make
