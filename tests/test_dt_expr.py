@@ -7,7 +7,7 @@
 import pytest
 import random
 import datatable as dt
-from datatable import f, stype, ltype, first, count
+from datatable import f, stype, ltype
 from tests import list_equals
 
 
@@ -282,4 +282,3 @@ def test_div_mod(seed):
         [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
         [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)]
     ]
-
