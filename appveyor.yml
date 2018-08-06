@@ -24,7 +24,7 @@ install:
   - "%PYTHON%/Scripts/pip.exe install pytest"
   - "%PYTHON%/Scripts/pip.exe install virtualenv"
   - "%PYTHON%/Scripts/pip.exe install wheel"
-  ps: Bootstrap
+  #ps: Bootstrap
 
 skip_branch_with_pr: true
 
