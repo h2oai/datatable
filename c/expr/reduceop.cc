@@ -8,6 +8,7 @@
 #include "expr/py_expr.h"
 #include <cmath>      // std::sqrt
 #include <limits>     // std::numeric_limits<?>::max, ::infinity
+#include <type_traits>
 #include "types.h"
 
 namespace expr
@@ -48,9 +49,10 @@ static Column* reduce_first(const Column* arg, const Groupby& groupby) {
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex::from_array32(std::move(indices), true)
                 .uplift(arg->rowindex());
-  return arg->shallowcopy(ri);
+  Column* res = arg->shallowcopy(ri);
+  if (ngrps == 1) res->reify();
+  return res;
 }
-
 
 
 
@@ -87,6 +89,8 @@ static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
   Column* col0 = static_cast<Column*>(params[0]);
   Column* col1 = static_cast<Column*>(params[1]);
   const IT* inputs = static_cast<const IT*>(col0->data());
+  if (std::is_same<uint32_t, IT>::value ||
+      std::is_same<uint64_t, IT>::value) inputs++;
   OT* outputs = static_cast<OT*>(col1->data_w());
   OT count = 0;
   int32_t row0 = groups[grp];
@@ -247,14 +251,14 @@ static gmapperfn resolve0(int opcode, SType stype) {
   if (opcode == OpCode::Count) {
     switch (stype) {
       case SType::BOOL:
-      case SType::INT8:    return count_skipna<int8_t, uint64_t>;
-      case SType::INT16:   return count_skipna<int16_t, uint64_t>;
-      case SType::INT32:   return count_skipna<int32_t, uint64_t>;
-      case SType::INT64:   return count_skipna<int64_t, uint64_t>;
-      case SType::FLOAT32: return count_skipna<float, uint64_t>;
-      case SType::FLOAT64: return count_skipna<double, uint64_t>;
-      case SType::STR32:   return count_skipna<int32_t, uint64_t>;
-      case SType::STR64:   return count_skipna<int64_t, uint64_t>;
+      case SType::INT8:    return count_skipna<int8_t, int64_t>;
+      case SType::INT16:   return count_skipna<int16_t, int64_t>;
+      case SType::INT32:   return count_skipna<int32_t, int64_t>;
+      case SType::INT64:   return count_skipna<int64_t, int64_t>;
+      case SType::FLOAT32: return count_skipna<float, int64_t>;
+      case SType::FLOAT64: return count_skipna<double, int64_t>;
+      case SType::STR32:   return count_skipna<uint32_t, int64_t>;
+      case SType::STR64:   return count_skipna<uint64_t, int64_t>;
       default:             return nullptr;
     }
   }

@@ -85,6 +85,40 @@ PyObject* expr_reduceop(PyObject*, PyObject* args)
   return pycolumn::from_column(res, nullptr, 0);
 }
 
+PyObject* expr_count(PyObject*, PyObject* args)
+{
+  PyObject* arg1;
+  PyObject* arg2;
+  if (!PyArg_ParseTuple(args, "OO:expr_count", &arg1, &arg2))
+    return nullptr;
+
+  DataTable* dt = PyObj(arg1).as_datatable();
+  Groupby* grpby = PyObj(arg2).as_groupby();
+
+  Column* res = nullptr;
+
+  // If there is no Groupby object, return number of rows in dataframe
+  if (grpby == nullptr) {
+    res = Column::new_data_column(SType::INT64, static_cast<int64_t>(1));
+    auto d_res = static_cast<int64_t*>(res->data_w());
+    d_res[0] = dt->nrows;
+
+  // If there is, return number of rows in each group
+  } else {
+    size_t ng = grpby->ngroups();
+    const int32_t* offsets = grpby->offsets_r();
+
+    res = Column::new_data_column(SType::INT32, static_cast<int32_t>(ng));
+    auto d_res = static_cast<int32_t*>(res->data_w());
+
+    for (size_t i = 0; i < ng; ++i) {
+      d_res[i] = offsets[i + 1] - offsets[i];
+    }
+  }
+
+  return pycolumn::from_column(res, nullptr, 0);
+}
+
 
 PyObject* expr_unaryop(PyObject*, PyObject* args)
 {

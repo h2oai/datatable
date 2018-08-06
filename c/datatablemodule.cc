@@ -188,6 +188,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_cast),
     METHODv(expr_column),
     METHODv(expr_reduceop),
+    METHODv(expr_count),
     METHODv(expr_unaryop),
     METHOD0(is_debug_mode),
     METHOD0(has_omp_support),
