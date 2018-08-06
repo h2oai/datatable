@@ -698,7 +698,7 @@ PyTypeObject type = {
   nullptr,                            /* tp_print */
   nullptr,                            /* tp_getattr */
   nullptr,                            /* tp_setattr */
-  nullptr,                            /* tp_compare */
+  nullptr,                            /* tp_as_sync */
   nullptr,                            /* tp_repr */
   nullptr,                            /* tp_as_number */
   nullptr,                            /* tp_as_sequence */
