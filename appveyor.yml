@@ -2,8 +2,6 @@
 
 # Download script file from GitHub
 init:
-  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
-  - "ECHO %LLVM6%"
   ps: |
         $ErrorActionPreference = "Stop"
         Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
@@ -47,6 +45,8 @@ install:
   - "%PYTHON%/Scripts/pip.exe install pytest"
   - "%PYTHON%/Scripts/pip.exe install virtualenv"
   - "%PYTHON%/Scripts/pip.exe install wheel"
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+  - "ECHO %LLVM6%"
 
 cache:
   - /ProgramData/chocolatey/bin -> appveyor.yml
