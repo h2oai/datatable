@@ -7,7 +7,6 @@ init:
         Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
         Import-Module '..\appveyor-tool.ps1'
 install:
-  ps: Bootstrap
   - choco install mingw
   - choco install llvm
   - choco install make
@@ -25,6 +24,7 @@ install:
   - "%PYTHON%/Scripts/pip.exe install pytest"
   - "%PYTHON%/Scripts/pip.exe install virtualenv"
   - "%PYTHON%/Scripts/pip.exe install wheel"
+  ps: Bootstrap
 
 skip_branch_with_pr: true
 
