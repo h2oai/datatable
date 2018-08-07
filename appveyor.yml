@@ -1,5 +1,6 @@
 # DO NOT CHANGE the "init" and "install" sections below
-
+image:
+- Visual Studio 2017
 # Download script file from GitHub
 build: false
 
@@ -10,7 +11,7 @@ init:
         Import-Module '..\appveyor-tool.ps1'
 install:
   - choco install mingw
-  - choco install llvm
+#  - choco install llvm
   - choco install make
 #- set LLVM_CONFIG=/Program Files/LLVM/bin
 # - llvm-config --version
@@ -32,7 +33,7 @@ skip_branch_with_pr: true
 
 environment:
   global:
-    GCC_PATH: mingw_64
+  GCC_PATH: mingw_64
   LLVM6: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
