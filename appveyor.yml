@@ -11,7 +11,7 @@ init:
         Import-Module '..\appveyor-tool.ps1'
 install:
   - choco install mingw
-  - choco install vcredist2013
+  - choco install vcredist2015
 #  - choco install llvm
   - choco install make
 #- set LLVM_CONFIG=/Program Files/LLVM/bin
