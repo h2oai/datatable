@@ -72,7 +72,7 @@ test_script:
   - dir "C:\Program Files\LLVM\share\"
   - dir %PYTHON%\
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
-  - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
+  - "%PYTHON%/python.exe -m pip install .[testing] --disable-openmp --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
 
 artifacts:
