@@ -156,7 +156,15 @@ struct ExtType {
   };
 
   class Methods {
-
+    std::vector<PyMethodDef> defs;
+    public:
+      template <typename A, PyObj (T::*F)(A&), A& ARGS>
+      void add(const char* name, const char* doc = nullptr);
+      template <PyObj (T::*F)(NoArgs&), NoArgs& ARGS>
+      void add(const char* name, const char* doc = nullptr);
+      template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+      void add(const char* name, const char* doc = nullptr);
+      PyMethodDef* finalize();
   };
 };
 
@@ -248,6 +256,19 @@ namespace _impl {
     }
   }
 
+  template <typename T, typename A, PyObj (T::*F)(A&), A& ARGS>
+  PyObject* _safe_method(PyObject* self, PyObject* args, PyObject* kwds) {
+    try {
+      T* tself = static_cast<T*>(self);
+      ARGS.bind(args, kwds);
+      PyObj res = (tself->*F)(ARGS);
+      return res.release();
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return nullptr;
+    }
+  }
+
 
   /**
    * SFINAE checker for the presence of various methods:
@@ -298,6 +319,7 @@ namespace _impl {
     static void _repr_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
     static void getsets(PyTypeObject&) {}
+    static void methods(PyTypeObject&) {}
   };
 
   template <typename T>
@@ -325,6 +347,12 @@ namespace _impl {
       typename T::Type::GetSetters gs;
       T::Type::init_getsetters(gs);
       type.tp_getset = gs.finalize();
+    }
+
+    static void methods(PyTypeObject& type) {
+      typename T::Type::Methods mm;
+      T::Type::init_methods(mm);
+      type.tp_methods = mm.finalize();
     }
   };
 
@@ -365,6 +393,7 @@ void ExtType<T>::init(PyObject* module) {
   _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
   _impl::init<T, _impl::has<T>::getsets>::getsets(type);
+  _impl::init<T, _impl::has<T>::methods>::methods(type);
 
   // Finish type initialization
   int r = PyType_Ready(&type);
@@ -378,6 +407,8 @@ void ExtType<T>::init(PyObject* module) {
   if (r < 0) throw PyError();
 }
 
+
+//---- GetSetters ----
 
 template <class T>
 template <PyObj (T::*f)() const>
@@ -407,6 +438,39 @@ template <class T>
 PyGetSetDef* ExtType<T>::GetSetters::finalize() {
   PyGetSetDef* res = new PyGetSetDef[1 + defs.size()]();
   std::memcpy(res, defs.data(), defs.size() * sizeof(PyGetSetDef));
+  return res;
+}
+
+
+//---- Methods ----
+
+template <class T>
+template <typename A, PyObj (T::*F)(A&), A& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  defs.push_back(PyMethodDef {
+    name,
+    reinterpret_cast<PyCFunction>(&_impl::_safe_method<T, A, F, ARGS>),
+    METH_VARARGS | METH_KEYWORDS,
+    doc
+  });
+}
+
+template <class T>
+template <PyObj (T::*F)(NoArgs&), NoArgs& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  add<NoArgs, F, ARGS>(name, doc);
+}
+
+template <class T>
+template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  add<PosAndKwdArgs, F, ARGS>(name, doc);
+}
+
+template <class T>
+PyMethodDef* ExtType<T>::Methods::finalize() {
+  PyMethodDef* res = new PyMethodDef[1 + defs.size()]();
+  std::memcpy(res, defs.data(), defs.size() * sizeof(PyMethodDef));
   return res;
 }
 

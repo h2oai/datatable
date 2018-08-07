@@ -11,7 +11,14 @@
 
 namespace dt {
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+
 py::NoArgs Frame::Type::args__init__("__init__");
+py::NoArgs Frame::Type::args_bang("bang");
+
+#pragma clang diagnostic pop
 
 
 const char* Frame::Type::classname() {
@@ -33,6 +40,10 @@ const char* Frame::Type::classdoc() {
 void Frame::Type::init_getsetters(GetSetters& gs) {
   gs.add<&Frame::get_ncols>("ncols");
   gs.add<&Frame::get_nrows>("nrows");
+}
+
+void Frame::Type::init_methods(Methods& mm) {
+  mm.add<&Frame::bang, args_bang>("bang");
 }
 
 
@@ -58,5 +69,9 @@ PyObj Frame::get_nrows() const {
   return PyObj(PyyLong(47));
 }
 
+PyObj Frame::bang(py::NoArgs&) {
+  std::cout << "Yay, Frame::bang()!\n";
+  return PyObj::none();
+}
 
 }  // namespace dt

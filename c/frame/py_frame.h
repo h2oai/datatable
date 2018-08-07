@@ -26,10 +26,12 @@ class Frame : public PyObject {
     class Type : public py::ExtType<Frame> {
       public:
         static py::NoArgs args__init__;
+        static py::NoArgs args_bang;
         static const char* classname();
         static const char* classdoc();
 
         static void init_getsetters(GetSetters& gs);
+        static void init_methods(Methods& gs);
     };
 
     void m__init__(py::Args&);
@@ -39,6 +41,8 @@ class Frame : public PyObject {
 
     PyObj get_ncols() const;
     PyObj get_nrows() const;
+
+    PyObj bang(py::NoArgs&);
 };
 
 
