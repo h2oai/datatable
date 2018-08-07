@@ -51,3 +51,4 @@ microbench/groupby/groupby
 # Auto-generated files
 datatable/__git__.py
 .asan/
+ci/fast.mk
