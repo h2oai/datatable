@@ -429,6 +429,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
 	extras/aggregator.o       \
+	frame/py_frame.o          \
 	groupby.o                 \
 	jay/open_jay.o            \
 	jay/save_jay.o            \
@@ -446,6 +447,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	py_rowindex.o             \
 	py_types.o                \
 	py_utils.o                \
+	python/args.o             \
 	python/float.o            \
 	python/list.o             \
 	python/long.o             \
@@ -528,6 +530,7 @@ $(BUILDDIR)/encodings.h: c/encodings.h
 $(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h
 	@echo • Refreshing c/groupby.h
 	@cp c/groupby.h $@
+
 
 $(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h $(BUILDDIR)/lib/flatbuffers/flatbuffers.h
 	@echo • Refreshing c/jay/jay_generated.h
@@ -671,6 +674,24 @@ $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/gr
 $(BUILDDIR)/extras/aggregator.h: c/extras/aggregator.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/extras/aggregator.h
 	@cp c/extras/aggregator.h $@
+
+
+$(BUILDDIR)/frame/py_frame.h: c/frame/py_frame.h $(BUILDDIR)/python/ext_type.h $(BUILDDIR)/datatable.h
+	@echo • Refreshing c/frame/py_frame.h
+	@cp c/frame/py_frame.h $@
+
+
+$(BUILDDIR)/python/arg.h: c/python/arg.h
+	@echo • Refreshing c/python/arg.h
+	@cp c/python/arg.h $@
+
+$(BUILDDIR)/python/args.h: c/python/args.h $(BUILDDIR)/python/arg.h
+	@echo • Refreshing c/python/args.h
+	@cp c/python/args.h $@
+
+$(BUILDDIR)/python/ext_type.h: c/python/ext_type.h $(BUILDDIR)/python/args.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/ext_type.h
+	@cp c/python/ext_type.h $@
 
 $(BUILDDIR)/python/float.h: c/python/float.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/float.h
@@ -842,13 +863,14 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/frame/py_frame.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/encodings.o : c/encodings.cc $(BUILDDIR)/encodings.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
+
 
 $(BUILDDIR)/expr/binaryop.o : c/expr/binaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
@@ -866,9 +888,16 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+
 $(BUILDDIR)/extras/aggregator.o : c/extras/aggregator.cc $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
+
+
+$(BUILDDIR)/frame/py_frame.o : c/frame/py_frame.cc $(BUILDDIR)/frame/py_frame.h $(BUILDDIR)/python/long.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
 
 $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/groupby.h
 	@echo • Compiling $<
@@ -937,6 +966,11 @@ $(BUILDDIR)/py_types.o : c/py_types.cc $(BUILDDIR)/py_types.h $(BUILDDIR)/py_uti
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/py_utils.o : c/py_utils.cc $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+
+$(BUILDDIR)/python/args.o : c/python/args.cc $(BUILDDIR)/python/args.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
