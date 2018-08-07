@@ -75,6 +75,10 @@ namespace py {
  *      If the class supports getter / setter properties, then this method
  *      should be declare them. See more details below.
  *
+ *   static void init_methods(Methods& mm)
+ *      If the class support instance methods, then they must be declared
+ *      here. See more details below.
+ *
  *
  * In addition to these static methods, the main class itself can declare
  * certain special instance methods:
@@ -88,6 +92,10 @@ namespace py {
  *   void m__dealloc__()
  *      This is the python-facing "destructor". Its job is to release any
  *      resources that the class is currently holding.
+ *
+ *   PyObj m__repr__()
+ *      Return the stringified representation of the class. This is equivalent
+ *      to pythonic `__repr__(self)` method.
  *
  *   void m__get_buffer__(Py_buffer* buf, int flags)
  *   void m__release_buffer__(Py_buffer* buf)
@@ -123,6 +131,9 @@ namespace py {
  *    };
  *
  *
+ * Methods
+ * -------
+ *
  */
 template <class T>
 struct ExtType {
@@ -142,6 +153,10 @@ struct ExtType {
       template <getter fg>            void add(const char* name, const char* doc = nullptr);
       template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
       PyGetSetDef* finalize();
+  };
+
+  class Methods {
+
   };
 };
 
@@ -163,6 +178,17 @@ namespace _impl {
     } catch (const std::exception& e) {
       exception_to_python(e);
       return -1;
+    }
+  }
+
+  template <typename T>
+  PyObject* _safe_repr(PyObject* self) {
+    try {
+      PyObj res = static_cast<T*>(self)->m__repr__();
+      return res.release();
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return nullptr;
     }
   }
 
@@ -228,25 +254,33 @@ namespace _impl {
    *   has<T>::buffers  will return true if T has method `m__get_buffer__`
    *                    (signature is not verified)
    *   has<T>::_init_   returns true if T has method `m__init__`
+   *   has<T>::_repr_   returns true if T has method `m__repr__`
    *   has<T>::dealloc  returns true if T has method `m__dealloc__`
    *   has<T>::getsets  returns true if T::Type has `init_getsettes`
+   *   has<T>::meth     returns true if T::Type has `init_methods`
    */
   template <typename T>
   class has {
     template <class C> static char test_init(decltype(&C::m__init__));
     template <class C> static long test_init(...);
+    template <class C> static char test_repr(decltype(&C::m__repr__));
+    template <class C> static long test_repr(...);
     template <class C> static char test_dealloc(decltype(&C::m__dealloc__));
     template <class C> static long test_dealloc(...);
     template <class C> static char test_buf(decltype(&C::m__get_buffer__));
     template <class C> static long test_buf(...);
     template <class C> static char test_gs(decltype(&C::Type::init_getsetters));
     template <class C> static long test_gs(...);
+    template <class C> static char test_meth(decltype(&C::Type::init_methods));
+    template <class C> static long test_meth(...);
 
   public:
     static constexpr bool _init_  = (sizeof(test_init<T>(nullptr)) == 1);
+    static constexpr bool _repr_  = (sizeof(test_repr<T>(nullptr)) == 1);
     static constexpr bool dealloc = (sizeof(test_dealloc<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
     static constexpr bool getsets = (sizeof(test_gs<T>(nullptr)) == 1);
+    static constexpr bool methods = (sizeof(test_meth<T>(nullptr)) == 1);
   };
 
   /**
@@ -261,6 +295,7 @@ namespace _impl {
   template <typename, bool>
   struct init {
     static void _init_(PyTypeObject&) {}
+    static void _repr_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
     static void getsets(PyTypeObject&) {}
   };
@@ -269,6 +304,10 @@ namespace _impl {
   struct init<T, true> {
     static void _init_(PyTypeObject& type) {
       type.tp_init = _safe_init<T>;
+    }
+
+    static void _repr_(PyTypeObject& type) {
+      type.tp_repr = _safe_repr<T>;
     }
 
     static void dealloc(PyTypeObject& type) {
@@ -322,6 +361,7 @@ void ExtType<T>::init(PyObject* module) {
   type.tp_new       = &PyType_GenericNew;
 
   _impl::init<T, _impl::has<T>::_init_>::_init_(type);
+  _impl::init<T, _impl::has<T>::_repr_>::_repr_(type);
   _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
   _impl::init<T, _impl::has<T>::getsets>::getsets(type);
