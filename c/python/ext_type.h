@@ -16,28 +16,114 @@
 namespace py {
 
 /**
- * Usage:
- *   class MyObj : public PyObject {
- *     public:
- *       struct Type : public py::ExtType<MyObj> {
- *         static const char* classname();  // required
- *         static const char* classdoc();
- *         static PyTypeObject* baseclass();
+ * This functionality can be used in order to create new Python classes
+ * from C++. In Python terminology they are called "extension types".
  *
- *         static void init_getsetters(GetSetters& gs);
- *       };
+ * This framework is the syntactic sugar over the "native" Python C API, as
+ * described e.g. here: https://docs.python.org/3/extending/newtypes.html
+ * You do not need to know the native API in order to use this framework.
  *
- *       MyObj();
- *       void m__init__(Args);
- *       void m__dealloc__();
+ * Here's a minimal example of how one might declare python class "Please":
  *
- *       void init_methods();
- *   };
+ *    class Please : public PyObject {
+ *    public:
+ *      struct Type : public py::ExtType<Please> {
+ *        static const char* classname() { return "datatable.Please"; }
+ *        static const char* classdoc();
+ *      };
+ *      ...
+ *    };
  *
- * Then, in datatablemodule.c:
- *   MyObj::Type::init(module);
+ * Then, in order to attach this class to a python module, call at the module
+ * initialization stage:
+ *
+ *    Please::Type::init(module);
+ *
+ * Note that unlike standard Python C extension types, this initialization
+ * method does not return a status code. Instead, should an error occur, it
+ * will be thrown as an exception.
+ *
+ * Thus, in order to declare a python extension type, you should create a
+ * class derived from `PyObject`, and containing a public internal class
+ * `Type` deriving from `py::ExtType<YourClass>`. This internal class will
+ * provide certain static methods which describe your main class to python.
+ * The "main" class must not be virtual (i.e. it should not contain any
+ * virtual methods) -- if not, the Python might lose its vtable part when
+ * converting your object into a `PyObject*`.
+ *
+ * The methods that can be declared in class `Type` are:
+ *
+ *   static const char* classname()
+ *      Return the name of the class (as a static string). This name should
+ *      contain a proper module name. This is the only required method needed
+ *      to create a functional extension type.
+ *
+ *   static const char* classdoc()
+ *      Return the documentation text for the class. This should be provided
+ *      for every user-facing class.
+ *
+ *   static PyTypeObject* baseclass()
+ *      If this class derives from another class, it must be specified here.
+ *      For example if `Please` was derived from `Request`, then this method
+ *      should have returned `&Request::Type::type`.
+ *
+ *   static bool is_subclassable()
+ *      Return true if the class allows to be derived from, or false if the
+ *      class is final (default).
+ *
+ *   static void init_getsetters(GetSetters& gs)
+ *      If the class supports getter / setter properties, then this method
+ *      should be declare them. See more details below.
+ *
+ *
+ * In addition to these static methods, the main class itself can declare
+ * certain special instance methods:
+ *
+ *   void m__init__(py::Args& args)
+ *      This is the python-facing "constructor", the equivalent of pythonic
+ *      `__init__(self, ...)`. Note that the argument to this function is a
+ *      `py::Args` instance which must be declared as a static variable inside
+ *      the `Type` class and named `args__init__`.
+ *
+ *   void m__dealloc__()
+ *      This is the python-facing "destructor". Its job is to release any
+ *      resources that the class is currently holding.
+ *
+ *   void m__get_buffer__(Py_buffer* buf, int flags)
+ *   void m__release_buffer__(Py_buffer* buf)
+ *      These 2 methods, if present, signify that the object supports "Buffers
+ *      protocol" (https://docs.python.org/3/c-api/buffer.html).
+ *
+ *
+ * Getters / setters
+ * -----------------
+ * A property getter has generic signature `PyObj (T::*)() const`, and a setter
+ * has signature `void (T::*)(PyObj)`. These methods should be implemented in
+ * your main class, and then declared in `Type::init_getsetters(GetSetters&)`.
+ * Inside the `init_getsetters(gs)` you should call
+ * `gs.add<getter, setter>(name, doc)` for each property in your class. Some
+ * properties may not have setters, and the documentation string is optional
+ * too: `gs.add<getter>(name)`.
+ *
+ * For example, in order to define property "pretty" for our class `Please`,
+ * we would write the following:
+ *
+ *    class Please : public PyObject {
+ *    public:
+ *      PyObj get_pretty() const;
+ *      void set_pretty(PyObj);
+ *      ...
+ *      struct Type : py::ExtType<Please> {
+ *        ...
+ *        static void init_getsetters(GetSetters& gs) {
+ *          gs.add<&Please::get_pretty, &Please::set_pretty>("please",
+ *            "True for 'pretty please', or False otherwise");
+ *        }
+ *      };
+ *    };
+ *
+ *
  */
-
 template <class T>
 struct ExtType {
   static PyTypeObject type;
@@ -53,9 +139,8 @@ struct ExtType {
     public:
       using getter = PyObj (T::*)() const;
       using setter = void (T::*)(PyObj);
-      template <getter fg, setter fs = nullptr>
-      void add(const char* name, const char* doc = nullptr);
-
+      template <getter fg>            void add(const char* name, const char* doc = nullptr);
+      template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
       PyGetSetDef* finalize();
   };
 };
@@ -125,25 +210,41 @@ namespace _impl {
     }
   }
 
+  template <typename T, void (T::*F)(PyObj)>
+  int _safe_setter(PyObject* self, PyObject* value, void*) {
+    try {
+      T* t = static_cast<T*>(self);
+      (t->*F)(PyObj(value));
+      return 0;
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return -1;
+    }
+  }
+
 
   /**
    * SFINAE checker for the presence of various methods:
    *   has<T>::buffers  will return true if T has method `m__get_buffer__`
    *                    (signature is not verified)
-   *   has<T>::init     returns true if T has method `m__init__`
+   *   has<T>::_init_   returns true if T has method `m__init__`
+   *   has<T>::dealloc  returns true if T has method `m__dealloc__`
    *   has<T>::getsets  returns true if T::Type has `init_getsettes`
    */
   template <typename T>
   class has {
     template <class C> static char test_init(decltype(&C::m__init__));
     template <class C> static long test_init(...);
+    template <class C> static char test_dealloc(decltype(&C::m__dealloc__));
+    template <class C> static long test_dealloc(...);
     template <class C> static char test_buf(decltype(&C::m__get_buffer__));
     template <class C> static long test_buf(...);
     template <class C> static char test_gs(decltype(&C::Type::init_getsetters));
     template <class C> static long test_gs(...);
 
   public:
-    static constexpr bool _init_ = (sizeof(test_init<T>(nullptr)) == 1);
+    static constexpr bool _init_  = (sizeof(test_init<T>(nullptr)) == 1);
+    static constexpr bool dealloc = (sizeof(test_dealloc<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
     static constexpr bool getsets = (sizeof(test_gs<T>(nullptr)) == 1);
   };
@@ -168,6 +269,10 @@ namespace _impl {
   struct init<T, true> {
     static void _init_(PyTypeObject& type) {
       type.tp_init = _safe_init<T>;
+    }
+
+    static void dealloc(PyTypeObject& type) {
+      type.tp_dealloc = _safe_dealloc<T>;
     }
 
     static void buffers(PyTypeObject& type) {
@@ -215,9 +320,9 @@ void ExtType<T>::init(PyObject* module) {
 
   type.tp_alloc     = &PyType_GenericAlloc;
   type.tp_new       = &PyType_GenericNew;
-  type.tp_dealloc   = _impl::_safe_dealloc<T>;
 
   _impl::init<T, _impl::has<T>::_init_>::_init_(type);
+  _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
   _impl::init<T, _impl::has<T>::getsets>::getsets(type);
 
@@ -235,12 +340,24 @@ void ExtType<T>::init(PyObject* module) {
 
 
 template <class T>
-template <PyObj (T::*f)() const, void (T::*g)(PyObj)>
+template <PyObj (T::*f)() const>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),
     &_impl::_safe_getter<T, f>,
     nullptr,
+    const_cast<char*>(doc),
+    nullptr  // closure
+  });
+}
+
+template <class T>
+template <PyObj (T::*getter)() const, void (T::*setter)(PyObj)>
+void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
+  defs.push_back(PyGetSetDef {
+    const_cast<char*>(name),
+    &_impl::_safe_getter<T, getter>,
+    &_impl::_safe_setter<T, setter>,
     const_cast<char*>(doc),
     nullptr  // closure
   });
