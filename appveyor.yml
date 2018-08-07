@@ -33,7 +33,7 @@ skip_branch_with_pr: true
 
 environment:
   global:
-  GCC_PATH: mingw_64
+    GCC_PATH: mingw_64
   LLVM6: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
