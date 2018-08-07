@@ -25,7 +25,7 @@ class Frame : public PyObject {
   public:
     class Type : public py::ExtType<Frame> {
       public:
-        static py::NoArgs args__init__;
+        static py::NoArgs args___init__;
         static py::NoArgs args_bang;
         static const char* classname();
         static const char* classdoc();

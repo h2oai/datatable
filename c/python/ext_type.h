@@ -87,7 +87,7 @@ namespace py {
  *      This is the python-facing "constructor", the equivalent of pythonic
  *      `__init__(self, ...)`. Note that the argument to this function is a
  *      `py::Args` instance which must be declared as a static variable inside
- *      the `Type` class and named `args__init__`.
+ *      the `Type` class and named `args___init__`.
  *
  *   void m__dealloc__()
  *      This is the python-facing "destructor". Its job is to release any
@@ -133,6 +133,31 @@ namespace py {
  *
  * Methods
  * -------
+ * It is common for an extension object to define multiple methods that act
+ * on that object and return some results. Generally, such object have
+ * signatures `PyObj (T::*)(Args&)`, where the "Args" parameter encapsulates
+ * python-style positional and keyword arguments. All methods that you define
+ * must be declared in the static `Type::init_methods(Methods&)` procedure.
+ * For example:
+ *
+ *    class Please : public PyObject {
+ *    public:
+ *      PyObj say(py::NoArgs&);
+ *      ...
+ *      struct Type : py::ExtType<Please> {
+ *        static py::NoArgs args_say;
+ *        ...
+ *        static void init_methods(Methods& mm) {
+ *          mm.add<&Please::say, args_say>("say", "Say 'please'...");
+ *        }
+ *      };
+ *    };
+ *    py::NoArgs Please::Type::args_say;
+ *
+ * Note that for each method a dedicated static object of type `py::Args` must
+ * be provided. This object at minimum stores the name of the method (so that
+ * we can provide sensible error messages at runtime), but more generally the
+ * complete function signature. See "python/args.h" for more details.
  *
  */
 template <class T>
@@ -158,13 +183,20 @@ struct ExtType {
   class Methods {
     std::vector<PyMethodDef> defs;
     public:
-      template <typename A, PyObj (T::*F)(A&), A& ARGS>
-      void add(const char* name, const char* doc = nullptr);
-      template <PyObj (T::*F)(NoArgs&), NoArgs& ARGS>
+      template <PyObj (T::*F)(NoArgs&),        NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
       template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
+      template <void (T::*F)(NoArgs&),        NoArgs& ARGS>
+      void add(const char* name, const char* doc = nullptr);
+      template <void (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+      void add(const char* name, const char* doc = nullptr);
       PyMethodDef* finalize();
+    private:
+      template <typename A, PyObj (T::*F)(A&), A& ARGS>
+      void add(const char* name, const char* doc = nullptr);
+      template <typename A, void (T::*F)(A&), A& ARGS>
+      void add(const char* name, const char* doc = nullptr);
   };
 };
 
@@ -180,8 +212,8 @@ namespace _impl {
   template <typename T>
   int _safe_init(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
-      T::Type::args__init__.bind(args, kwds);
-      static_cast<T*>(self)->m__init__(T::Type::args__init__);
+      T::Type::args___init__.bind(args, kwds);
+      static_cast<T*>(self)->m__init__(T::Type::args___init__);
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -257,12 +289,25 @@ namespace _impl {
   }
 
   template <typename T, typename A, PyObj (T::*F)(A&), A& ARGS>
-  PyObject* _safe_method(PyObject* self, PyObject* args, PyObject* kwds) {
+  PyObject* _safe_method1(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
       T* tself = static_cast<T*>(self);
       ARGS.bind(args, kwds);
       PyObj res = (tself->*F)(ARGS);
       return res.release();
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return nullptr;
+    }
+  }
+
+  template <typename T, typename A, void (T::*F)(A&), A& ARGS>
+  PyObject* _safe_method2(PyObject* self, PyObject* args, PyObject* kwds) {
+    try {
+      T* tself = static_cast<T*>(self);
+      ARGS.bind(args, kwds);
+      (tself->*F)(ARGS);
+      Py_RETURN_NONE;
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -325,6 +370,7 @@ namespace _impl {
   template <typename T>
   struct init<T, true> {
     static void _init_(PyTypeObject& type) {
+      T::Type::args___init__.set_name("__init__");
       type.tp_init = _safe_init<T>;
     }
 
@@ -447,9 +493,22 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 template <class T>
 template <typename A, PyObj (T::*F)(A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  ARGS.set_name(name);
   defs.push_back(PyMethodDef {
     name,
-    reinterpret_cast<PyCFunction>(&_impl::_safe_method<T, A, F, ARGS>),
+    reinterpret_cast<PyCFunction>(&_impl::_safe_method1<T, A, F, ARGS>),
+    METH_VARARGS | METH_KEYWORDS,
+    doc
+  });
+}
+
+template <class T>
+template <typename A, void (T::*F)(A&), A& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  ARGS.set_name(name);
+  defs.push_back(PyMethodDef {
+    name,
+    reinterpret_cast<PyCFunction>(&_impl::_safe_method2<T, A, F, ARGS>),
     METH_VARARGS | METH_KEYWORDS,
     doc
   });
@@ -463,6 +522,18 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 
 template <class T>
 template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  add<PosAndKwdArgs, F, ARGS>(name, doc);
+}
+
+template <class T>
+template <void (T::*F)(NoArgs&), NoArgs& ARGS>
+void ExtType<T>::Methods::add(const char* name, const char* doc) {
+  add<NoArgs, F, ARGS>(name, doc);
+}
+
+template <class T>
+template <void (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<PosAndKwdArgs, F, ARGS>(name, doc);
 }

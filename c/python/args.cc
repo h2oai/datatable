@@ -21,6 +21,8 @@ Args::Args(const char* name) : fn_name(name) {}
 
 Args::~Args() {}
 
+void Args::set_name(const char* name) { fn_name = name; }
+
 bool Args::has(size_t) const { return false; }
 
 bool Args::has(const char*) const { return false; }

@@ -15,8 +15,8 @@ namespace dt {
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 
-py::NoArgs Frame::Type::args__init__("__init__");
-py::NoArgs Frame::Type::args_bang("bang");
+py::NoArgs Frame::Type::args___init__;
+py::NoArgs Frame::Type::args_bang;
 
 #pragma clang diagnostic pop
 

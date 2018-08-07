@@ -34,6 +34,7 @@ class Args {
     Args(const char* name);
     virtual ~Args();
 
+    void set_name(const char* name);
     virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
 
     virtual bool has(size_t i) const;
