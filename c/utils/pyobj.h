@@ -115,6 +115,7 @@ public:
    */
   PyObject* as_pyobject() const;
   PyObject* data() const { return obj; }
+  PyObject* release();
 
   DataTable* as_datatable() const;
   Column* as_column() const;

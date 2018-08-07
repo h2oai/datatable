@@ -11,6 +11,7 @@
 #include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/py_expr.h"
+#include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
 #include "py_columnset.h"
@@ -236,6 +237,13 @@ PyInit__datatable(void) {
     if (!pyrowindex::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
     init_jay();
+
+    try {
+      dt::Frame::Type::init(m);
+
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+    }
 
     return m;
 }

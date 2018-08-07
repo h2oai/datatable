@@ -202,6 +202,12 @@ PyObject* PyObj::as_pyobject() const {
   return obj;
 }
 
+PyObject* PyObj::release() {
+  PyObject* t = obj;
+  obj = nullptr;
+  return t;
+}
+
 
 DataTable* PyObj::as_datatable() const {
   DataTable* dt = nullptr;
