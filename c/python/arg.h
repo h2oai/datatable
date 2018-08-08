@@ -13,7 +13,20 @@ namespace py {
 
 
 class Arg {
+  private:
+    const char* name;
+    mutable PyObject* pyobj;
+    PyObject* deflt;
 
+  public:
+    Arg();
+
+    void set(PyObject* value);
+
+    bool is_present() const;
+    const Arg& get() const;
+
+    PyObject* obj() { return pyobj; }
 };
 
 

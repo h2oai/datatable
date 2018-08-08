@@ -214,6 +214,12 @@ static PyModuleDef datatablemodule = {
 };
 
 
+static PyObject* _get_slice(PyObject*, PyObject* arg) {
+  Py_INCREF(arg);
+  return arg;
+}
+static PyMappingMethods slice_mapping = {nullptr, _get_slice, nullptr};
+
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
 PyInit__datatable(void) {
@@ -244,6 +250,11 @@ PyInit__datatable(void) {
     } catch (const std::exception& e) {
       exception_to_python(e);
     }
+
+    PyTypeObject* slice_new_base = new PyTypeObject;
+    std::memcpy(slice_new_base, &PyType_Type, sizeof(PyTypeObject));
+    slice_new_base->tp_as_mapping = &slice_mapping;
+    Py_TYPE(&PySlice_Type) = slice_new_base;
 
     return m;
 }

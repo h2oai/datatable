@@ -27,6 +27,7 @@ class Frame : public PyObject {
       public:
         static py::NoArgs args___init__;
         static py::NoArgs args_bang;
+        static py::PosAndKwdArgs args_test;
         static const char* classname();
         static const char* classdoc();
 
@@ -43,6 +44,7 @@ class Frame : public PyObject {
     PyObj get_nrows() const;
 
     PyObj bang(py::NoArgs&);
+    void test(py::PosAndKwdArgs&);
 };
 
 

@@ -67,24 +67,30 @@ class NoArgs : public Args {
 
 class PosAndKwdArgs : public Args {
   private:
-    // All references are borrowed
     size_t n_posonly_args;
+    size_t n_pos_kwd_args;
     size_t n_kwdonly_args;
-    size_t n_total_args;
-    std::vector<const char*> kwd_names;
-    std::vector<PyObject*> defaults;
-    std::vector<PyObject*> bound_args;
+    size_t n_args;
+    bool   has_varargs;
+    bool   has_varkwds;
+    size_t : 48;
+    std::vector<const char*> arg_names;
+    std::vector<PyObject*>   arg_defaults;
+
+    // Runtime arguments
+    std::vector<Arg> bound_args;
     std::unordered_map<PyObject*, size_t> kwd_map;
 
   public:
-    PosAndKwdArgs(size_t npo, size_t nko, std::initializer_list<const char*>);
+    PosAndKwdArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
+                  std::initializer_list<const char*> _names,
+                  std::initializer_list<PyObject*>   _defaults);
+
     void bind(PyObject* _args, PyObject* _kws) override;
 
     //---- User API --------------------
-    virtual bool has(size_t i) const;
-    virtual bool has(const char* name) const;
-    virtual Arg get(size_t i) const;
-    virtual Arg get(const char* name) const;
+    bool has(size_t i) const;
+    const Arg& get(size_t i) const;
 
   private:
     size_t _find_kwd(PyObject* kwd);

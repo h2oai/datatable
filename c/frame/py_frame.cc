@@ -17,6 +17,8 @@ namespace dt {
 
 py::NoArgs Frame::Type::args___init__;
 py::NoArgs Frame::Type::args_bang;
+py::PosAndKwdArgs Frame::Type::args_test(1, 0, 3, false, false,
+                                         {"names", "stypes", "stype"}, {});
 
 #pragma clang diagnostic pop
 
@@ -44,6 +46,7 @@ void Frame::Type::init_getsetters(GetSetters& gs) {
 
 void Frame::Type::init_methods(Methods& mm) {
   mm.add<&Frame::bang, args_bang>("bang");
+  mm.add<&Frame::test, args_test>("test");
 }
 
 
@@ -72,6 +75,11 @@ PyObj Frame::get_nrows() const {
 PyObj Frame::bang(py::NoArgs&) {
   std::cout << "Yay, Frame::bang()!\n";
   return PyObj::none();
+}
+
+void Frame::test(py::PosAndKwdArgs& args) {
+  auto src = args.get(0);
+  PyObject_Print(src.obj(), stdout, 0);
 }
 
 }  // namespace dt

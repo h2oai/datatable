@@ -74,13 +74,20 @@ void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
 //------------------------------------------------------------------------------
 
 PosAndKwdArgs::PosAndKwdArgs(
-    size_t npo, size_t nko, std::initializer_list<const char*> ki
-  ) : kwd_names(ki)
+    size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
+    std::initializer_list<const char*> _names,
+    std::initializer_list<PyObject*>   _defaults
+  )
+  : n_posonly_args(npo),
+    n_pos_kwd_args(npk),
+    n_kwdonly_args(nko),
+    n_args(npo + npk + nko),
+    has_varargs(vargs),
+    has_varkwds(vkwds),
+    arg_names(_names),
+    arg_defaults(_defaults)
 {
-  n_posonly_args = npo;
-  n_kwdonly_args = nko;
-  n_total_args = npo + kwd_names.size();
-  bound_args.resize(n_total_args);
+  bound_args.resize(n_args);
 }
 
 
@@ -96,10 +103,10 @@ void PosAndKwdArgs::bind(PyObject* _args, PyObject* _kwds)
   }
   size_t i = 0;
   for (; i < nargs; ++i) {
-    bound_args[i] = PyTuple_GET_ITEM(_args, i);
+    bound_args[i].set(PyTuple_GET_ITEM(_args, i));
   }
-  for (; i < n_total_args; ++i) {
-    bound_args[i] = nullptr;
+  for (; i < n_args; ++i) {
+    bound_args[i].set(nullptr);
   }
 
   if (_kwds) {
@@ -111,14 +118,14 @@ void PosAndKwdArgs::bind(PyObject* _args, PyObject* _kwds)
         throw TypeError() << get_name() << " got multiple values for argument `"
             << PyUnicode_AsUTF8(key) << '`';
       }
-      bound_args[ikey] = value;
+      bound_args[ikey].set(value);
     }
   }
 
   // for (i = nargs; i < n_required_args; ++i) {
-  //   if (bound_args[i] == nullptr) {
+  //   if (!bound_args[i].is_present()) {
   //     throw TypeError() << get_name() << " missing a required keyword-only "
-  //         "argument `" << kwd_names[i] << "`";
+  //         "argument `" << arg_names[i] << "`";
   //   }
   // }
 }
@@ -129,7 +136,7 @@ size_t PosAndKwdArgs::_find_kwd(PyObject* kwd) {
     return kwd_map.at(kwd);
   } catch (const std::out_of_range&) {
     size_t i = 0;
-    for (const char* name : kwd_names) {
+    for (const char* name : arg_names) {
       if (PyUnicode_CompareWithASCIIString(kwd, name) == 0) {
         kwd_map[kwd] = i;
         return i;
@@ -143,14 +150,13 @@ size_t PosAndKwdArgs::_find_kwd(PyObject* kwd) {
 
 
 bool PosAndKwdArgs::has(size_t i) const {
-  return bound_args[i] != nullptr;
+  return bound_args[i].is_present();
 }
 
-bool PosAndKwdArgs::has(const char*) const { return false; }
+const Arg& PosAndKwdArgs::get(size_t i) const {
+  return bound_args[i].get();
+}
 
-Arg PosAndKwdArgs::get(size_t) const { throw AssertionError(); }
-
-Arg PosAndKwdArgs::get(const char*) const { throw AssertionError(); }
 
 
 }  // namespace py
