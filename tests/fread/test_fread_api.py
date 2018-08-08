@@ -52,7 +52,7 @@ def test_fread_from_cmd2():
     d0 = dt.fread(cmd="ls", header=False)
     d0.internal.check()
     assert d0.ncols == 1
-    assert d0.nrows >= 15
+    assert d0.nrows >= 12
     d1 = dt.fread(cmd="cat LICENSE", sep="\n")
     d1.internal.check()
     assert d1.nrows == 372
