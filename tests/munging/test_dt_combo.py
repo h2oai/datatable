@@ -26,3 +26,12 @@ def test_columns_rows():
     df3.internal.check()
     df4.internal.check()
     assert df3.topython() == [[162, 98, 50, 18, 2]]
+
+
+def test_issue1225():
+    f0 = dt.Frame(A=[1, 2, 3], B=[5, 6, 8])
+    f1 = f0[::-1, :][:, [dt.float64(f.A), f.B]]
+    assert f1.internal.isview
+    f1.materialize()
+    assert f1.stypes == (stype.float64, stype.int8)
+    assert f1.topython() == [[3.0, 2.0, 1.0], [8, 6, 5]]
