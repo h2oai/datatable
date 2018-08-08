@@ -17,7 +17,7 @@ namespace dt {
 
 py::NoArgs Frame::Type::args___init__;
 py::NoArgs Frame::Type::args_bang;
-py::PosAndKwdArgs Frame::Type::args_test(1, 0, 3, false, false,
+py::PKArgs Frame::Type::args_test(1, 0, 3, false, false,
                                          {"names", "stypes", "stype"}, {});
 
 #pragma clang diagnostic pop
@@ -77,7 +77,7 @@ PyObj Frame::bang(py::NoArgs&) {
   return PyObj::none();
 }
 
-void Frame::test(py::PosAndKwdArgs& args) {
+void Frame::test(py::PKArgs& args) {
   auto src = args.get(0);
   PyObject_Print(src.obj(), stdout, 0);
 }

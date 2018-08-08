@@ -185,11 +185,11 @@ struct ExtType {
     public:
       template <PyObj (T::*F)(NoArgs&),        NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+      template <PyObj (T::*F)(PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
       template <void (T::*F)(NoArgs&),        NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <void (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+      template <void (T::*F)(PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
       PyMethodDef* finalize();
     private:
@@ -524,9 +524,9 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <PyObj (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+template <PyObj (T::*F)(PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<PosAndKwdArgs, F, ARGS>(name, doc);
+  add<PKArgs, F, ARGS>(name, doc);
 }
 
 template <class T>
@@ -536,9 +536,9 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <void (T::*F)(PosAndKwdArgs&), PosAndKwdArgs& ARGS>
+template <void (T::*F)(PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<PosAndKwdArgs, F, ARGS>(name, doc);
+  add<PKArgs, F, ARGS>(name, doc);
 }
 
 template <class T>

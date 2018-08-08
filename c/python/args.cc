@@ -70,10 +70,10 @@ void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
 
 
 //------------------------------------------------------------------------------
-// PosAndKwdArgs
+// PKArgs
 //------------------------------------------------------------------------------
 
-PosAndKwdArgs::PosAndKwdArgs(
+PKArgs::PKArgs(
     size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
     std::initializer_list<const char*> _names,
     std::initializer_list<PyObject*>   _defaults
@@ -91,7 +91,7 @@ PosAndKwdArgs::PosAndKwdArgs(
 }
 
 
-void PosAndKwdArgs::bind(PyObject* _args, PyObject* _kwds)
+void PKArgs::bind(PyObject* _args, PyObject* _kwds)
 {
   size_t nargs = _args? static_cast<size_t>(Py_SIZE(_args)) : 0;
   // size_t nkwds = _kwds? static_cast<size_t>(PyDict_Size(_kwds)) : 0;
@@ -131,7 +131,7 @@ void PosAndKwdArgs::bind(PyObject* _args, PyObject* _kwds)
 }
 
 
-size_t PosAndKwdArgs::_find_kwd(PyObject* kwd) {
+size_t PKArgs::_find_kwd(PyObject* kwd) {
   try {
     return kwd_map.at(kwd);
   } catch (const std::out_of_range&) {
@@ -149,11 +149,11 @@ size_t PosAndKwdArgs::_find_kwd(PyObject* kwd) {
 }
 
 
-bool PosAndKwdArgs::has(size_t i) const {
+bool PKArgs::has(size_t i) const {
   return bound_args[i].is_present();
 }
 
-const Arg& PosAndKwdArgs::get(size_t i) const {
+const Arg& PKArgs::get(size_t i) const {
   return bound_args[i].get();
 }
 

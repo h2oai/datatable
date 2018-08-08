@@ -62,10 +62,10 @@ class NoArgs : public Args {
 
 
 //------------------------------------------------------------------------------
-// PosAndKwdArgs
+// PKArgs
 //------------------------------------------------------------------------------
 
-class PosAndKwdArgs : public Args {
+class PKArgs : public Args {
   private:
     size_t n_posonly_args;
     size_t n_pos_kwd_args;
@@ -82,9 +82,9 @@ class PosAndKwdArgs : public Args {
     std::unordered_map<PyObject*, size_t> kwd_map;
 
   public:
-    PosAndKwdArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-                  std::initializer_list<const char*> _names,
-                  std::initializer_list<PyObject*>   _defaults);
+    PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
+           std::initializer_list<const char*> _names,
+           std::initializer_list<PyObject*>   _defaults);
 
     void bind(PyObject* _args, PyObject* _kws) override;
 
