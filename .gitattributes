@@ -1,0 +1,3 @@
+c/lib/*                 linguist-vendored
+c/jay/jay_generated.h   linguist-generated
+*.h                     linguist-language=C++
