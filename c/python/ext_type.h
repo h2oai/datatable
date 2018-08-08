@@ -370,7 +370,8 @@ namespace _impl {
   template <typename T>
   struct init<T, true> {
     static void _init_(PyTypeObject& type) {
-      T::Type::args___init__.set_name("__init__");
+      T::Type::args___init__.set_class_name(T::Type::classname());
+      T::Type::args___init__.set_function_name("__init__");
       type.tp_init = _safe_init<T>;
     }
 
@@ -493,7 +494,8 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 template <class T>
 template <typename A, PyObj (T::*F)(A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  ARGS.set_name(name);
+  ARGS.set_class_name(T::Type::classname());
+  ARGS.set_function_name(name);
   defs.push_back(PyMethodDef {
     name,
     reinterpret_cast<PyCFunction>(&_impl::_safe_method1<T, A, F, ARGS>),
@@ -505,7 +507,8 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 template <class T>
 template <typename A, void (T::*F)(A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  ARGS.set_name(name);
+  ARGS.set_class_name(T::Type::classname());
+  ARGS.set_function_name(name);
   defs.push_back(PyMethodDef {
     name,
     reinterpret_cast<PyCFunction>(&_impl::_safe_method2<T, A, F, ARGS>),

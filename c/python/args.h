@@ -7,7 +7,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARGS_h
 #define dt_PYTHON_ARGS_h
-#include <vector>
+#include <unordered_map>   // std::unordered_map
+#include <vector>          // std::vector
 #include <Python.h>
 #include "python/arg.h"
 
@@ -26,21 +27,25 @@ namespace py {
  * convention.
  */
 class Args {
-  protected:
-    const char* fn_name;
+  private:
+    const char* cls_name;
+    const char* fun_name;
+    const char* full_name;
 
   public:
     Args();
-    Args(const char* name);
     virtual ~Args();
 
-    void set_name(const char* name);
+    //---- API for ExtType<T> ----------
+    void set_class_name(const char* name);
+    void set_function_name(const char* name);
     virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
 
-    virtual bool has(size_t i) const;
-    virtual bool has(const char* name) const;
-    virtual Arg get(size_t i) const;
-    virtual Arg get(const char* name) const;
+  protected:
+    // Each Args describes a certain function or method in a class.
+    // This will return the name of that function/method, in the
+    // form "foo()" or "Class.foo()".
+    const char* get_name();
 };
 
 
@@ -51,8 +56,6 @@ class Args {
 
 class NoArgs : public Args {
   public:
-    using Args::Args;
-
     void bind(PyObject* _args, PyObject* _kwds) override;
 };
 
@@ -67,15 +70,24 @@ class PosAndKwdArgs : public Args {
     // All references are borrowed
     size_t n_posonly_args;
     size_t n_kwdonly_args;
+    size_t n_total_args;
     std::vector<const char*> kwd_names;
     std::vector<PyObject*> defaults;
-    PyObject* args;
-    PyObject* kwds;
+    std::vector<PyObject*> bound_args;
+    std::unordered_map<PyObject*, size_t> kwd_map;
 
   public:
-    PosAndKwdArgs(const char*, size_t, std::initializer_list<const char*>);
-
+    PosAndKwdArgs(size_t npo, size_t nko, std::initializer_list<const char*>);
     void bind(PyObject* _args, PyObject* _kws) override;
+
+    //---- User API --------------------
+    virtual bool has(size_t i) const;
+    virtual bool has(const char* name) const;
+    virtual Arg get(size_t i) const;
+    virtual Arg get(const char* name) const;
+
+  private:
+    size_t _find_kwd(PyObject* kwd);
 };
 
 
