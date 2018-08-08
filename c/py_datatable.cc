@@ -563,15 +563,10 @@ PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Colum
 
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  if (dt->rowindex.isabsent()) {
-    PyErr_Format(PyExc_ValueError, "Only a view can be materialized");
-    return nullptr;
-  }
 
   Column** cols = dt::amalloc<Column*>(dt->ncols + 1);
   for (int64_t i = 0; i < dt->ncols; ++i) {
     cols[i] = dt->columns[i]->shallowcopy();
-    if (cols[i] == nullptr) return nullptr;
     cols[i]->reify();
   }
   cols[dt->ncols] = nullptr;
