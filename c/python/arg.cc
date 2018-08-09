@@ -11,6 +11,13 @@
 
 namespace py {
 
+std::string _nth(size_t i);
+
+
+
+//------------------------------------------------------------------------------
+// Construction / initialization
+//------------------------------------------------------------------------------
 
 Arg::Arg()
   : pos(0), parent(nullptr), pyobj(nullptr) {}
@@ -48,28 +55,32 @@ bool Arg::is_none() const {
   return (pyobj == Py_None);
 }
 
+bool Arg::is_ellipsis() const {
+  return (pyobj == Py_Ellipsis);
+}
+
 bool Arg::is_int() const {
-  return PyLong_Check(pyobj);
+  return pyobj && PyLong_Check(pyobj);
 }
 
 bool Arg::is_float() const {
-  return PyFloat_Check(pyobj);
+  return pyobj && PyFloat_Check(pyobj);
 }
 
 bool Arg::is_list() const {
-  return PyList_Check(pyobj);
+  return pyobj && PyList_Check(pyobj);
 }
 
 bool Arg::is_tuple() const {
-  return PyTuple_Check(pyobj);
+  return pyobj && PyTuple_Check(pyobj);
 }
 
 bool Arg::is_dict() const {
-  return PyDict_Check(pyobj);
+  return pyobj && PyDict_Check(pyobj);
 }
 
 bool Arg::is_string() const {
-  return PyUnicode_Check(pyobj);
+  return pyobj && PyUnicode_Check(pyobj);
 }
 
 
@@ -79,6 +90,7 @@ bool Arg::is_string() const {
 //------------------------------------------------------------------------------
 
 Arg::operator int32_t() const {
+  _check_missing();
   if (!PyLong_Check(pyobj)) {
     throw TypeError() << name() << " should be an integer";
   }
@@ -94,6 +106,7 @@ Arg::operator int32_t() const {
 
 Arg::operator int64_t() const {
   static_assert(sizeof(int64_t) == sizeof(long), "Unexpected size of long");
+  _check_missing();
   if (!PyLong_Check(pyobj)) {
     throw TypeError() << name() << " should be an integer";
   }
@@ -106,6 +119,34 @@ Arg::operator int64_t() const {
 }
 
 
+Arg::operator List() const {
+  _check_missing();
+  _check_list_or_tuple();
+  return List(pyobj);
+}
+
+
+std::vector<std::string> Arg::to_list_of_strs() const {
+  _check_missing();
+  _check_list_or_tuple();
+  auto size = static_cast<size_t>(Py_SIZE(pyobj));
+  std::vector<std::string> res(size);
+  for (size_t i = 0; i < size; ++i) {
+    PyObject* item = PyList_GET_ITEM(pyobj, i);  // works for tuples too
+    if (!PyUnicode_Check(item)) {
+      auto item_type = reinterpret_cast<PyObject*>(Py_TYPE(item));
+      throw TypeError() << name() << " should be a list of strings; but its "
+          << _nth(i + 1) << " element was " << item_type;
+    }
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(item, &str_size);
+    if (!str) throw PyError();
+    res[i] = std::string(str, static_cast<size_t>(str_size));
+  }
+  return res;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc
@@ -114,6 +155,25 @@ Arg::operator int64_t() const {
 void Arg::print() const {
   PyObject_Print(pyobj, stdout, Py_PRINT_RAW);
   std::printf("\n");
+}
+
+void Arg::_check_missing() const {
+  if (!pyobj) {
+    throw TypeError() << " is missing";
+  }
+}
+
+void Arg::_check_list_or_tuple() const {
+  if (!PyList_Check(pyobj) && !PyTuple_Check(pyobj)) {
+    throw TypeError() << name() << " should be a list";
+  }
+}
+
+std::string _nth(size_t i) {
+  return std::to_string(i) + ((i / 10) % 10 == 1 ? "th" :
+                              i % 10 == 1 ? "st" :
+                              i % 10 == 2 ? "nd" :
+                              i % 10 == 3 ? "rd" : "th");
 }
 
 

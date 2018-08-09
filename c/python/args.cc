@@ -99,11 +99,6 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
   size_t nargs = _args? static_cast<size_t>(Py_SIZE(_args)) : 0;
   // size_t nkwds = _kwds? static_cast<size_t>(PyDict_Size(_kwds)) : 0;
 
-  if (nargs < n_posonly_args) {
-    size_t nmiss = n_posonly_args - nargs;
-    throw TypeError() << get_name() << " is missing " << nmiss
-        << " required positional argument" << (nmiss > 1 ? "s" : "");
-  }
   size_t i = 0;
   for (; i < nargs; ++i) {
     bound_args[i].set(PyTuple_GET_ITEM(_args, i));
@@ -125,12 +120,6 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
     }
   }
 
-  // for (i = nargs; i < n_required_args; ++i) {
-  //   if (!bound_args[i].is_present()) {
-  //     throw TypeError() << get_name() << " missing a required keyword-only "
-  //         "argument `" << arg_names[i] << "`";
-  //   }
-  // }
 }
 
 
@@ -145,7 +134,7 @@ std::string PKArgs::make_arg_name(size_t i) const {
   } else {
     res = std::string("Argument `") + arg_names[i] + '`';
   }
-  res += std::string(" of ") + get_name();
+  res += std::string(" in ") + get_name();
   return res;
 }
 
@@ -157,6 +146,14 @@ size_t PKArgs::_find_kwd(PyObject* kwd) {
     size_t i = 0;
     for (const char* name : arg_names) {
       if (PyUnicode_CompareWithASCIIString(kwd, name) == 0) {
+        // We store the reference to `kwd` and increase its refcount, making
+        // `kwd` effectively immortal. Usually this shouldn't matter -- strings
+        // that are used as keyword are normally static in the program. However
+        // in the extremely rare cases when the keywords are dynamic, we don't
+        // want a PyObject* to be gc-ed, then re-created with the content of
+        // another string while `kwd_map` would still map it to the original
+        // index...
+        Py_INCREF(kwd);
         kwd_map[kwd] = i;
         return i;
       }

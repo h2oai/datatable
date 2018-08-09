@@ -68,14 +68,14 @@ class NoArgs : public Args {
 
 class PKArgs : public Args {
   private:
-    size_t n_posonly_args;
-    size_t n_pos_kwd_args;
-    size_t n_kwdonly_args;
-    size_t n_args;
-    bool   has_varargs;
-    bool   has_varkwds;
-    size_t : 48;
-    std::vector<const char*> arg_names;
+    const size_t n_posonly_args;
+    const size_t n_pos_kwd_args;
+    const size_t n_kwdonly_args;
+    const size_t n_args;
+    const bool   has_varargs;
+    const bool   has_varkwds;
+    const size_t : 48;
+    const std::vector<const char*> arg_names;
 
     // Runtime arguments
     std::vector<Arg> bound_args;
@@ -87,6 +87,16 @@ class PKArgs : public Args {
 
     void bind(PyObject* _args, PyObject* _kws) override;
 
+    /**
+     * Returns the name of argument `i`, which will usually be in one of the
+     * following forms (depending on whether the argument is positional or
+     * named):
+     *    "First argument in Class.method()"
+     *    "5th argument in Class.method()"
+     *    "Argument `foo` in Class.method()"
+     * This name can also be obtained as
+     *    args[i].name()
+     */
     std::string make_arg_name(size_t i) const;
 
     //---- User API --------------------
