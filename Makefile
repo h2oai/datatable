@@ -304,6 +304,9 @@ centos7_test_in_docker_impl:
 			make CI=$(CI) MODULE=datatable test_install && \
 			make test CI=$(CI)"
 
+centos7_test_py37_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py37-with-pandas centos7_test_in_docker_impl
+
 centos7_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
 
@@ -391,6 +394,9 @@ ubuntu_test_in_docker_impl:
 			python --version && \
 			make CI=$(CI) MODULE=datatable test_install && \
 			make CI=$(CI) test"
+
+ubuntu_test_py37_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py37-with-pandas ubuntu_test_in_docker_impl
 
 ubuntu_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl

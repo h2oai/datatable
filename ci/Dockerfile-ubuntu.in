@@ -24,6 +24,8 @@ RUN \
   add-apt-repository ppa:jonathonf/python-3.6 && \
   apt-get -q -y update && \
   apt-get -y --no-install-recommends  install \
+    python3.7 \
+    python3.7-dev \
     python3.6 \
     python3.6-dev \
     python3.6-venv \
@@ -64,6 +66,10 @@ RUN \
     deactivate && \
     virtualenv --python=python3.6 /envs/datatable-py36 && \
     . /envs/datatable-py36/bin/activate && \
+    deactivate && \
+    virtualenv --python=python3.7 /envs/datatable-py37-with-pandas && \
+    . /envs/datatable-py37-with-pandas/bin/activate && \
+    pip install --upgrade pandas numpy && \
     deactivate && \
     chmod -R a+w /envs
 

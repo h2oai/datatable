@@ -45,6 +45,11 @@ RUN pip install llvmlite==0.23.0 wheel virtualenv && \
     \
     conda create -n datatable-py36 python=3.6 && \
     \
+    conda create -n datatable-py37-with-pandas python=3.7 && \
+    . activate datatable-py37-with-pandas && \
+    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+    . deactivate && \
+    \
     chmod -R a+w /opt/h2oai/dai/python/envs
 
 RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
