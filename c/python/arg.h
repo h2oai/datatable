@@ -39,6 +39,7 @@ class Arg {
 
     // ?
     PyObject* obj() { return pyobj; }
+    void print() const;
 
     operator int32_t() const;
     operator int64_t() const;

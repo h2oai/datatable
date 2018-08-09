@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/args.h"
 #include <cstring>             // std::strrchr
-#include "utils/exceptions.h"
+#include "utils/assert.h"
 
 namespace py {
 
@@ -85,7 +85,12 @@ PKArgs::PKArgs(
     has_varkwds(vkwds),
     arg_names(_names)
 {
+  xassert(n_args == arg_names.size());
+  if (has_varargs) xassert(n_pos_kwd_args == 0);
   bound_args.resize(n_args);
+  for (size_t i = 0; i < n_args; ++i) {
+    bound_args[i].init(i, this);
+  }
 }
 
 
@@ -132,15 +137,15 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
 std::string PKArgs::make_arg_name(size_t i) const {
   std::string res;
   if (i < n_posonly_args) {
-    res = (i == 0)? "`1st`" :
-          (i == 1)? "`2nd`" :
-          (i == 2)? "`3rd`" :
-          "`" + std::to_string(i + 1) + "th`";
+    res = (i == 0)? "First" :
+          (i == 1)? "Second" :
+          (i == 2)? "Third" :
+          std::to_string(i + 1) + "th";
     res += " argument";
   } else {
     res = std::string("Argument `") + arg_names[i] + '`';
   }
-  res += std::string("` of ") + get_name();
+  res += std::string(" of ") + get_name();
   return res;
 }
 
@@ -168,21 +173,6 @@ const Arg& PKArgs::operator[](size_t i) const {
   return bound_args[i];
 }
 
-
-template <typename T>
-T PKArgs::get(size_t i) const {
-  if (bound_args[i].is_undefined()) {
-    throw TypeError() << "Argument `" << arg_names[i] << "` is missing";
-  }
-  return static_cast<T>(bound_args[i]);
-}
-
-template <typename T>
-T PKArgs::get(size_t i, T default_value) const {
-  return bound_args[i].is_undefined()
-          ? default_value
-          : static_cast<T>(bound_args[i]);
-}
 
 
 

@@ -25,7 +25,7 @@ class Frame : public PyObject {
   public:
     class Type : public py::ExtType<Frame> {
       public:
-        static py::NoArgs args___init__;
+        static py::PKArgs args___init__;
         static py::NoArgs args_bang;
         static py::PKArgs args_test;
         static const char* classname();
@@ -35,7 +35,7 @@ class Frame : public PyObject {
         static void init_methods(Methods& gs);
     };
 
-    void m__init__(py::Args&);
+    void m__init__(py::PKArgs&);
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
@@ -44,7 +44,6 @@ class Frame : public PyObject {
     PyObj get_nrows() const;
 
     PyObj bang(py::NoArgs&);
-    void test(py::PKArgs&);
 };
 
 

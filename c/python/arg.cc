@@ -86,8 +86,7 @@ Arg::operator int32_t() const {
   long value = PyLong_AsLongAndOverflow(pyobj, &overflow);
   int32_t res = static_cast<int32_t>(value);
   if (overflow || value != static_cast<long>(res)) {
-    throw TypeError() << name() << " is too large to fit in "
-        "an int32: " << pyobj;
+    throw TypeError() << name() << " is too large for an int32: " << pyobj;
   }
   return res;
 }
@@ -101,12 +100,21 @@ Arg::operator int64_t() const {
   int overflow;
   long value = PyLong_AsLongAndOverflow(pyobj, &overflow);
   if (overflow) {
-    throw TypeError() << name() << " is too large to fit in "
-        "an int64: " << pyobj;
+    throw TypeError() << name() << " is too large for an int64: " << pyobj;
   }
   return value;
 }
 
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+void Arg::print() const {
+  PyObject_Print(pyobj, stdout, Py_PRINT_RAW);
+  std::printf("\n");
+}
 
 
 }  // namespace py

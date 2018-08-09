@@ -15,10 +15,9 @@ namespace dt {
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 
-py::NoArgs Frame::Type::args___init__;
 py::NoArgs Frame::Type::args_bang;
-py::PKArgs Frame::Type::args_test(1, 0, 3, false, false,
-                                  {"names", "stypes", "stype"});
+py::PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
+                                      {"src", "names", "stypes", "stype"});
 
 #pragma clang diagnostic pop
 
@@ -46,12 +45,14 @@ void Frame::Type::init_getsetters(GetSetters& gs) {
 
 void Frame::Type::init_methods(Methods& mm) {
   mm.add<&Frame::bang, args_bang>("bang");
-  mm.add<&Frame::test, args_test>("test");
 }
 
 
-void Frame::m__init__(py::Args&) {
-  std::cout << "In Frame.__init__()\n";
+void Frame::m__init__(py::PKArgs& args) {
+  // const py::Arg& src = args[0];
+  // src.print();
+  int32_t x = args.get<int32_t>(0);
+  std::cout << "x = " << x << "\n";
 }
 
 void Frame::m__dealloc__() {
@@ -77,9 +78,5 @@ PyObj Frame::bang(py::NoArgs&) {
   return PyObj::none();
 }
 
-void Frame::test(py::PKArgs& args) {
-  auto src = args[0];
-  PyObject_Print(src.obj(), stdout, 0);
-}
 
 }  // namespace dt
