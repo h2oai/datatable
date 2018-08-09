@@ -39,8 +39,7 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 CREDS_ID = 'h2o-ops-personal-auth-token'
 GITCONFIG_CRED_ID = 'master-gitconfig'
 RSA_CRED_ID = 'master-id-rsa'
-DOCKER_IMAGE_TAG = '0.6.0-PR-1229.4'
-X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
+X86_64_CENTOS_DOCKER_IMAGE_NAME = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7"
 EXPECTED_SHAS = [
     files: [
         'ci/Dockerfile-centos7.in': '4ca4e09a511e0d8af723f2b2222fc818117e0c15',
@@ -127,8 +126,8 @@ ansiColor('xterm') {
                         }
 
                         stash includes: "CHANGELOG.md", name: 'CHANGELOG'
-
-                        docker.image(X86_64_CENTOS_DOCKER_IMAGE).inside {
+                        final String dockerImageTag = sh(script: 'make docker_image_tag', returnStdout: true).trim()
+                        docker.image("${X86_64_CENTOS_DOCKER_IMAGE_NAME}:${dockerImageTag}").inside {
                             def dockerfileSHAsString = ""
                             EXPECTED_SHAS.files.each { filename, sha ->
                                 dockerfileSHAsString += "${sha}\t${filename}\n"
