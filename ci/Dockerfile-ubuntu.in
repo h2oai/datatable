@@ -21,7 +21,7 @@ RUN \
     lcov \
     python-software-properties \
     software-properties-common && \
-  add-apt-repository ppa:jonathonf/python-3.6 && \
+  add-apt-repository ppa:deadsnakes/ppa && \
   apt-get -q -y update && \
   apt-get -y --no-install-recommends  install \
     python3.7 \
