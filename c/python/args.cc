@@ -31,7 +31,7 @@ void Args::set_function_name(const char* name) {
   fun_name = name;
 }
 
-const char* Args::get_name() {
+const char* Args::get_name() const {
   if (full_name) return full_name;
   size_t len1 = cls_name? std::strlen(cls_name) : 0;
   size_t len2 = fun_name? std::strlen(fun_name) : 0;
@@ -75,8 +75,7 @@ void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
 
 PKArgs::PKArgs(
     size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-    std::initializer_list<const char*> _names,
-    std::initializer_list<PyObject*>   _defaults
+    std::initializer_list<const char*> _names
   )
   : n_posonly_args(npo),
     n_pos_kwd_args(npk),
@@ -84,8 +83,7 @@ PKArgs::PKArgs(
     n_args(npo + npk + nko),
     has_varargs(vargs),
     has_varkwds(vkwds),
-    arg_names(_names),
-    arg_defaults(_defaults)
+    arg_names(_names)
 {
   bound_args.resize(n_args);
 }
@@ -131,6 +129,22 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
 }
 
 
+std::string PKArgs::make_arg_name(size_t i) const {
+  std::string res;
+  if (i < n_posonly_args) {
+    res = (i == 0)? "`1st`" :
+          (i == 1)? "`2nd`" :
+          (i == 2)? "`3rd`" :
+          "`" + std::to_string(i + 1) + "th`";
+    res += " argument";
+  } else {
+    res = std::string("Argument `") + arg_names[i] + '`';
+  }
+  res += std::string("` of ") + get_name();
+  return res;
+}
+
+
 size_t PKArgs::_find_kwd(PyObject* kwd) {
   try {
     return kwd_map.at(kwd);
@@ -149,12 +163,25 @@ size_t PKArgs::_find_kwd(PyObject* kwd) {
 }
 
 
-bool PKArgs::has(size_t i) const {
-  return bound_args[i].is_present();
+
+const Arg& PKArgs::operator[](size_t i) const {
+  return bound_args[i];
 }
 
-const Arg& PKArgs::get(size_t i) const {
-  return bound_args[i].get();
+
+template <typename T>
+T PKArgs::get(size_t i) const {
+  if (!bound_args[i].is_present()) {
+    throw TypeError() << "Argument `" << arg_names[i] << "` is missing";
+  }
+  return static_cast<T>(bound_args[i]);
+}
+
+template <typename T>
+T PKArgs::get(size_t i, T default_value) const {
+  return bound_args[i].is_present()
+          ? static_cast<T>(bound_args[i])
+          : default_value;
 }
 
 

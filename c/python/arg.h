@@ -7,19 +7,24 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARG_h
 #define dt_PYTHON_ARG_h
+#include <string>     // std::string
 #include <Python.h>
 
 namespace py {
 
+class PKArgs;
+
 
 class Arg {
   private:
-    const char* name;
-    mutable PyObject* pyobj;
-    PyObject* deflt;
+    size_t pos;
+    PKArgs* parent;
+    PyObject* pyobj;
+    mutable std::string cached_name;
 
   public:
     Arg();
+    void init(size_t i, PKArgs* args);
 
     void set(PyObject* value);
 
@@ -27,6 +32,12 @@ class Arg {
     const Arg& get() const;
 
     PyObject* obj() { return pyobj; }
+
+    operator int32_t() const;
+    operator int64_t() const;
+
+  private:
+    const std::string& name() const;
 };
 
 

@@ -30,7 +30,7 @@ class Args {
   private:
     const char* cls_name;
     const char* fun_name;
-    const char* full_name;
+    mutable const char* full_name;
 
   public:
     Args();
@@ -45,7 +45,7 @@ class Args {
     // Each Args describes a certain function or method in a class.
     // This will return the name of that function/method, in the
     // form "foo()" or "Class.foo()".
-    const char* get_name();
+    const char* get_name() const;
 };
 
 
@@ -75,7 +75,6 @@ class PKArgs : public Args {
     bool   has_varkwds;
     size_t : 48;
     std::vector<const char*> arg_names;
-    std::vector<PyObject*>   arg_defaults;
 
     // Runtime arguments
     std::vector<Arg> bound_args;
@@ -83,14 +82,17 @@ class PKArgs : public Args {
 
   public:
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-           std::initializer_list<const char*> _names,
-           std::initializer_list<PyObject*>   _defaults);
+           std::initializer_list<const char*> _names);
 
     void bind(PyObject* _args, PyObject* _kws) override;
 
+    std::string make_arg_name(size_t i) const;
+
     //---- User API --------------------
-    bool has(size_t i) const;
-    const Arg& get(size_t i) const;
+    const Arg& operator[](size_t i) const;
+
+    template <typename T> T get(size_t i) const;
+    template <typename T> T get(size_t i, T default_value) const;
 
   private:
     size_t _find_kwd(PyObject* kwd);
