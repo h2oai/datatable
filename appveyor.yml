@@ -71,6 +71,7 @@ test_script:
   - dir "C:\Program Files\LLVM\libexec\"
   - dir "C:\Program Files\LLVM\share\"
   - dir %PYTHON%\
+  - find %LLVM% -name "*.dll"
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
