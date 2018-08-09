@@ -84,11 +84,12 @@ MAKE_OPTS = "CI=1"
 //////////////
 properties([
     parameters([
-        booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
-        booleanParam(name: 'DISABLE_ALL_TESTS', defaultValue: false, description: '[BUILD] Disable all tests'),
-        booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests'),
-        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage'),
-        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR')
+        booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
+        booleanParam(name: 'DISABLE_ALL_TESTS', defaultValue: false, description: '[BUILD] Disable all tests.'),
+        booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
+        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage.'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR.'),
+        booleanParam(name: 'FORCE_S3_PUSH', defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -106,10 +107,13 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         def scmEnv = checkout scm
                         env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
-                        env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '_')
+                        env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
                         if (doPPC()) {
-                            manager.addBadge("success.gif", "PPC64LE build triggered!")
+                            manager.addBadge("success.gif", "PPC64LE build triggered.")
+                        }
+                        if(doPublish()) {
+                            manager.addBadge("package.gif", "Publish to S3.")
                         }
 
                         buildInfo(env.BRANCH_NAME, isRelease())
@@ -117,6 +121,9 @@ ansiColor('xterm') {
 
                         if (isRelease()) {
                             CI_VERSION_SUFFIX = ''
+                        }
+                        if (env.BRANCH_NAME != 'master' || !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
+                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
                         }
                         env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
 
@@ -706,7 +713,7 @@ def doTestPPC64LE() {
 }
 
 def doPublish() {
-    return env.BRANCH_NAME == 'master' || isRelease()
+    return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
 }
 
 def isRelease() {
