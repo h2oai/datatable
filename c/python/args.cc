@@ -171,7 +171,7 @@ const Arg& PKArgs::operator[](size_t i) const {
 
 template <typename T>
 T PKArgs::get(size_t i) const {
-  if (!bound_args[i].is_present()) {
+  if (bound_args[i].is_undefined()) {
     throw TypeError() << "Argument `" << arg_names[i] << "` is missing";
   }
   return static_cast<T>(bound_args[i]);
@@ -179,9 +179,9 @@ T PKArgs::get(size_t i) const {
 
 template <typename T>
 T PKArgs::get(size_t i, T default_value) const {
-  return bound_args[i].is_present()
-          ? static_cast<T>(bound_args[i])
-          : default_value;
+  return bound_args[i].is_undefined()
+          ? default_value
+          : static_cast<T>(bound_args[i]);
 }
 
 

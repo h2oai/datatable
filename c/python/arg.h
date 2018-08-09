@@ -25,12 +25,19 @@ class Arg {
   public:
     Arg();
     void init(size_t i, PKArgs* args);
-
     void set(PyObject* value);
 
-    bool is_present() const;
-    const Arg& get() const;
+    //---- Type checks -----------------
+    bool is_undefined() const;
+    bool is_none() const;
+    bool is_int() const;
+    bool is_float() const;
+    bool is_list() const;
+    bool is_tuple() const;
+    bool is_dict() const;
+    bool is_string() const;
 
+    // ?
     PyObject* obj() { return pyobj; }
 
     operator int32_t() const;

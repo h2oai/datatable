@@ -13,7 +13,7 @@ namespace py {
 
 
 Arg::Arg()
-  : pos(0), parent(nullptr), pyobj(nullptr), cached_name(nullptr) {}
+  : pos(0), parent(nullptr), pyobj(nullptr) {}
 
 
 void Arg::init(size_t i, PKArgs* args) {
@@ -27,16 +27,49 @@ void Arg::set(PyObject* value) {
 }
 
 
-bool Arg::is_present() const {
-  return (pyobj != nullptr);
-}
-
-
 const std::string& Arg::name() const {
   if (cached_name.empty()) {
     cached_name = parent->make_arg_name(pos);
   }
   return cached_name;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Type checks
+//------------------------------------------------------------------------------
+
+bool Arg::is_undefined() const {
+  return (pyobj == nullptr);
+}
+
+bool Arg::is_none() const {
+  return (pyobj == Py_None);
+}
+
+bool Arg::is_int() const {
+  return PyLong_Check(pyobj);
+}
+
+bool Arg::is_float() const {
+  return PyFloat_Check(pyobj);
+}
+
+bool Arg::is_list() const {
+  return PyList_Check(pyobj);
+}
+
+bool Arg::is_tuple() const {
+  return PyTuple_Check(pyobj);
+}
+
+bool Arg::is_dict() const {
+  return PyDict_Check(pyobj);
+}
+
+bool Arg::is_string() const {
+  return PyUnicode_Check(pyobj);
 }
 
 
