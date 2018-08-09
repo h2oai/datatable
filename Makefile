@@ -262,6 +262,9 @@ centos7_build_in_docker_impl:
 		-c ". activate $(BUILD_VENV) && \
 			make CI=$(CI) dist"
 
+centos7_build_py37_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py37-with-pandas centos7_build_in_docker_impl
+
 centos7_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
 
@@ -352,6 +355,9 @@ ubuntu_build_sdist_in_docker:
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
 			make CI=$(CI) sdist"
+
+ubuntu_build_py37_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py37-with-pandas ubuntu_build_in_docker_impl
 
 ubuntu_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
