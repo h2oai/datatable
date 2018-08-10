@@ -99,6 +99,8 @@ class _obj {
   private:
     template <int MODE>
     int32_t _to_int32(const error_manager& em) const;
+
+    friend oobj;
 };
 
 
@@ -115,7 +117,7 @@ class bobj : public _obj {
 class oobj : public _obj {
   public:
     oobj(PyObject* p);
-    oobj(const oobj&);
+    oobj(const _obj&);
     oobj(oobj&&);
     oobj& operator=(oobj&&);
     ~oobj();

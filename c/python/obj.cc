@@ -43,7 +43,7 @@ oobj::oobj(PyObject* p) {
   Py_INCREF(p);
 }
 
-oobj::oobj(const oobj& other) {
+oobj::oobj(const _obj& other) {
   obj = other.obj;
   Py_INCREF(obj);
 }
