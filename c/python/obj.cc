@@ -6,8 +6,11 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/obj.h"
-#include <cstdint>        // INT32_MAX
+#include <cstdint>         // INT32_MAX
+#include "py_datatable.h"
 #include "py_groupby.h"
+#include "py_rowindex.h"
+#include "python/list.h"
 
 namespace py {
 
@@ -45,6 +48,12 @@ oobj::oobj(const oobj& other) {
 oobj::oobj(oobj&& other) {
   obj = other.obj;
   other.obj = nullptr;
+}
+
+oobj oobj::from_new_reference(PyObject* p) {
+  oobj res;
+  res.obj = p;
+  return res;
 }
 
 oobj::~oobj() {
@@ -91,7 +100,6 @@ int8_t _obj::to_bool_force() const {
   }
   return static_cast<int8_t>(r);
 }
-
 
 
 template <int MODE>
@@ -171,12 +179,59 @@ PyObject* _obj::to_pyobject_newref() const {
 }
 
 
+py::list _obj::to_list(const error_manager& em) const {
+  if (!(is_list() || is_tuple())) {
+    throw em.error_not_list(obj);
+  }
+  return py::list(obj);
+}
+
+
 Groupby* _obj::to_groupby(const error_manager& em) const {
   if (obj == Py_None) return nullptr;
   if (!PyObject_TypeCheck(obj, &pygroupby::type)) {
     throw em.error_not_groupby(obj);
   }
   return static_cast<pygroupby::obj*>(obj)->ref;
+}
+
+
+RowIndex _obj::to_rowindex(const error_manager& em) const {
+  if (obj == Py_None) {
+    return RowIndex();
+  }
+  if (!PyObject_TypeCheck(obj, &pyrowindex::type)) {
+    throw em.error_not_rowindex(obj);
+  }
+  RowIndex* ref = static_cast<pyrowindex::obj*>(obj)->ref;
+  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
+}
+
+
+DataTable* _obj::to_frame(const error_manager& em) const {
+  if (obj == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(obj, &pydatatable::type)) {
+    throw em.error_not_frame(obj);
+  }
+  return static_cast<pydatatable::obj*>(obj)->ref;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+oobj _obj::get_attr(const char* attr) const {
+  PyObject* res = PyObject_GetAttrString(obj, attr);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+PyObject* oobj::release() {
+  PyObject* t = obj;
+  obj = nullptr;
+  return t;
 }
 
 
@@ -199,6 +254,19 @@ Error _obj::error_manager::error_not_string(PyObject* o) const {
 
 Error _obj::error_manager::error_not_groupby(PyObject* o) const {
   return TypeError() << "Expected a Groupby, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_rowindex(PyObject* o) const {
+  return TypeError() << "Expected a RowIndex, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_frame(PyObject* o) const {
+  return TypeError() << "Expected a Frame, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_list(PyObject* o) const {
+  return TypeError() << "Expected a list or tuple, instead got "
+      << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

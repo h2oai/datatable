@@ -168,7 +168,7 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
-  RowIndex newri = PyObj(arg1).as_rowindex();
+  RowIndex newri = py::bobj(arg1).to_rowindex();
 
   Column* col = self->ref;
   self->ref = col->shallowcopy(newri);

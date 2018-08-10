@@ -103,6 +103,13 @@ PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
 }
 
 
+PyyListEntry& PyyListEntry::operator=(py::oobj&& o) {
+  PyObject* item = o.release();
+  PyList_SET_ITEM(list, i, item);
+  return *this;
+}
+
+
 PyObject* PyyListEntry::get() const {
   xassert(list);
   return PyList_GET_ITEM(list, i);

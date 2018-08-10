@@ -11,9 +11,14 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
+class DataTable;
 class Groupby;
+class RowIndex;
 
 namespace py {
+class list;
+class bobj;
+class oobj;
 
 
 class _obj {
@@ -22,6 +27,8 @@ class _obj {
     struct error_manager;  // see below
 
   public:
+    oobj get_attr(const char* attr) const;
+
     bool is_none() const;
     bool is_ellipsis() const;
     bool is_true() const;
@@ -44,8 +51,11 @@ class _obj {
     CString to_cstring(const error_manager& = _em0) const;
     std::string to_string(const error_manager& = _em0) const;
     PyObject* to_pyobject_newref() const;
+    py::list   to_list       (const error_manager& = _em0) const;
 
-    Groupby* to_groupby(const error_manager& = _em0) const;
+    Groupby*   to_groupby    (const error_manager& = _em0) const;
+    RowIndex   to_rowindex   (const error_manager& = _em0) const;
+    DataTable* to_frame      (const error_manager& = _em0) const;
 
   protected:
     /**
@@ -59,6 +69,9 @@ class _obj {
       virtual Error error_not_integer(PyObject*) const;
       virtual Error error_not_string(PyObject*) const;
       virtual Error error_not_groupby(PyObject*) const;
+      virtual Error error_not_rowindex(PyObject*) const;
+      virtual Error error_not_frame(PyObject*) const;
+      virtual Error error_not_list(PyObject*) const;
       virtual Error error_int32_overflow(PyObject*) const;
       virtual Error error_int64_overflow(PyObject*) const;
     };
@@ -71,7 +84,6 @@ class _obj {
   private:
     template <int MODE>
     int32_t _to_int32(const error_manager& em) const;
-
 };
 
 
@@ -89,6 +101,12 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(oobj&&);
     ~oobj();
+
+    static oobj from_new_reference(PyObject* p);
+    PyObject* release();
+
+  private:
+    oobj() {}
 };
 
 

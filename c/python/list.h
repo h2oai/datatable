@@ -31,6 +31,7 @@ class PyyListEntry {
     operator PyyFloat() const;
     PyyListEntry& operator=(PyObject*);
     PyyListEntry& operator=(const PyObj&);
+    PyyListEntry& operator=(py::oobj&&);
 
     PyObject* as_new_ref() const;
 
