@@ -11,6 +11,7 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
+class Column;
 class DataTable;
 class Groupby;
 class RowIndex;
@@ -64,6 +65,7 @@ class _obj {
     PyyLong    to_pyint_force() const;
     PyyFloat   to_pyfloat    () const;
 
+    Column*    to_column     (const error_manager& = _em0) const;
     Groupby*   to_groupby    (const error_manager& = _em0) const;
     RowIndex   to_rowindex   (const error_manager& = _em0) const;
     DataTable* to_frame      (const error_manager& = _em0) const;
@@ -83,6 +85,7 @@ class _obj {
       virtual Error error_not_groupby(PyObject*) const;
       virtual Error error_not_rowindex(PyObject*) const;
       virtual Error error_not_frame(PyObject*) const;
+      virtual Error error_not_column(PyObject*) const;
       virtual Error error_not_list(PyObject*) const;
       virtual Error error_int32_overflow(PyObject*) const;
       virtual Error error_int64_overflow(PyObject*) const;

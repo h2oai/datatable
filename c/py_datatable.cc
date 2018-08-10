@@ -87,7 +87,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
-  std::string filename = PyObj(arg1).as_string();
+  std::string filename = py::bobj(arg1).to_string();
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
@@ -184,7 +184,7 @@ PyObject* get_nkeys(obj* self) {
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = PyObj(value).as_int64();
+  int64_t nk = py::bobj(value).to_int64_strict();
   self->ref->set_nkeys(nk);
   return 0;
 }

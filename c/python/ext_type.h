@@ -93,7 +93,7 @@ namespace py {
  *      This is the python-facing "destructor". Its job is to release any
  *      resources that the class is currently holding.
  *
- *   PyObj m__repr__()
+ *   oobj m__repr__()
  *      Return the stringified representation of the class. This is equivalent
  *      to pythonic `__repr__(self)` method.
  *
@@ -105,8 +105,8 @@ namespace py {
  *
  * Getters / setters
  * -----------------
- * A property getter has generic signature `PyObj (T::*)() const`, and a setter
- * has signature `void (T::*)(PyObj)`. These methods should be implemented in
+ * A property getter has generic signature `oobj (T::*)() const`, and a setter
+ * has signature `void (T::*)(bobj)`. These methods should be implemented in
  * your main class, and then declared in `Type::init_getsetters(GetSetters&)`.
  * Inside the `init_getsetters(gs)` you should call
  * `gs.add<getter, setter>(name, doc)` for each property in your class. Some
@@ -118,8 +118,8 @@ namespace py {
  *
  *    class Please : public PyObject {
  *    public:
- *      PyObj get_pretty() const;
- *      void set_pretty(PyObj);
+ *      oobj get_pretty() const;
+ *      void set_pretty(bobj);
  *      ...
  *      struct Type : py::ExtType<Please> {
  *        ...
@@ -135,14 +135,14 @@ namespace py {
  * -------
  * It is common for an extension object to define multiple methods that act
  * on that object and return some results. Generally, such object have
- * signatures `PyObj (T::*)(Args&)`, where the "Args" parameter encapsulates
+ * signatures `oobj (T::*)(Args&)`, where the "Args" parameter encapsulates
  * python-style positional and keyword arguments. All methods that you define
  * must be declared in the static `Type::init_methods(Methods&)` procedure.
  * For example:
  *
  *    class Please : public PyObject {
  *    public:
- *      PyObj say(py::NoArgs&);
+ *      oobj say(py::NoArgs&);
  *      ...
  *      struct Type : py::ExtType<Please> {
  *        static py::NoArgs args_say;

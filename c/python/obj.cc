@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include <cstdint>         // INT32_MAX
+#include "py_column.h"
 #include "py_datatable.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
@@ -241,6 +242,14 @@ DataTable* _obj::to_frame(const error_manager& em) const {
 }
 
 
+Column* _obj::to_column(const error_manager& em) const {
+  if (!PyObject_TypeCheck(obj, &pycolumn::type)) {
+    throw em.error_not_column(obj);
+  }
+  return reinterpret_cast<pycolumn::obj*>(obj)->ref;
+}
+
+
 PyyLong _obj::to_pyint() const {
   return PyyLong(obj);
 }
@@ -331,6 +340,10 @@ Error _obj::error_manager::error_not_rowindex(PyObject* o) const {
 
 Error _obj::error_manager::error_not_frame(PyObject* o) const {
   return TypeError() << "Expected a Frame, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_column(PyObject* o) const {
+  return TypeError() << "Expected a Column, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_not_list(PyObject* o) const {
