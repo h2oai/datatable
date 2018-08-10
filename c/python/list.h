@@ -14,6 +14,7 @@
 class PyyList;
 class PyyLong;
 class PyyFloat;
+namespace py { class list; }
 
 
 class PyyListEntry {
@@ -104,6 +105,7 @@ class PyyList {
     PyObject* release();
 
     friend void swap(PyyList& first, PyyList& second) noexcept;
+    friend py::list;
 };
 
 
@@ -115,11 +117,11 @@ class Arg;
 class list : public oobj {
   public:
     using oobj::oobj;
+    list(const PyyList&);  // temp
 
     size_t size() const;
+    bobj operator[](size_t i) const;
 
-  private:
-    list(PyObject* o);
     friend class Arg;
 };
 

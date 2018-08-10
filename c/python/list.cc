@@ -134,8 +134,14 @@ PyObject* PyyListEntry::as_new_ref() const {
 namespace py {
 
 
+list::list(const PyyList& src) : list(src.list) {}
+
 size_t list::size() const {
   return static_cast<size_t>(Py_SIZE(obj));
+}
+
+bobj list::operator[](size_t i) const {
+  return bobj(PyList_GET_ITEM(obj, i));
 }
 
 
