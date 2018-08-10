@@ -79,8 +79,8 @@ class PyyListEntry {
  *
  * operator[](i)
  *   Returns i-th element of the list as a PyyListEntry object. This entry acts
- *   as a reference: it can be both read (by casting into `PyObj`) and written
- *   by assigning a `PyObject*` / `PyObj` to it.
+ *   as a reference: it can be both read (by casting into `bobj`) and written
+ *   by assigning a `PyObject*` / `oobj` to it.
  *
  * release()
  *   Converts PyyList into the primitive `PyObject*` which can be used by
