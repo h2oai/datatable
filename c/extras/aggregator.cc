@@ -15,13 +15,14 @@
 #include "types.h"
 #include "utils/pyobj.h"
 
+
 PyObject* aggregate(PyObject*, PyObject* args) {
   int32_t n_bins, nx_bins, ny_bins, max_dimensions;
   unsigned int seed;
   PyObject* dt;
 
-  if (!PyArg_ParseTuple(args, "OiiiiI:aggregate",
-                        &dt, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
+  if (!PyArg_ParseTuple(args, "OiiiiI:aggregate", &dt, &n_bins, &nx_bins, &ny_bins,
+                        &max_dimensions, &seed)) return nullptr;
 
   DataTable* dt_in = PyObj(dt).as_datatable();
   DataTablePtr dt_members = nullptr;
@@ -34,7 +35,8 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 }
 
 
-Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in, int32_t max_dimensions_in, unsigned int seed_in) :
+Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in,
+                       int32_t max_dimensions_in, unsigned int seed_in) :
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
   ny_bins(ny_bins_in),
@@ -49,18 +51,19 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   DataTablePtr dt_double = nullptr;
   Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+  int32_t ncols = 0;
 
-  for (int32_t i = 0; i < dt->ncols; ++i) {
+  for (int64_t i = 0; i < dt->ncols; ++i) {
     LType ltype = info(dt->columns[i]->stype()).ltype();
     switch (ltype) {
       case LType::BOOL:
       case LType::INT:
-      case LType::REAL: cols_double[i] = dt->columns[i]->cast(SType::FLOAT64); break;
-      default:          cols_double[i] = dt->columns[i]->shallowcopy();
+      case LType::REAL: cols_double[ncols++] = dt->columns[i]->cast(SType::FLOAT64); break;
+      default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
     }
   }
 
-  cols_double[dt->ncols] = nullptr;
+  cols_double[ncols] = nullptr;
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
   dt_double = DataTablePtr(new DataTable(cols_double));
@@ -98,6 +101,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
   std::memset(d_counts, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
+  #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
     exemplar_indices[i] = ri_members_indices[offsets[i]];
     d_counts[i] = offsets[i+1] - offsets[i];
@@ -105,6 +109,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
 
   // Replacing group ids with the exemplar ids for 1D and 2D aggregations
   if (dt_exemplars->ncols < 3) {
+    #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < gb_members.ngroups(); ++i) {
       for (size_t j = 0; j < static_cast<size_t>(d_counts[i]); ++j) {
         size_t member_shift = static_cast<size_t>(offsets[i]) + j;
@@ -120,7 +125,9 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
   DataTable* dt[1];
   dt[0] = dt_counts;
   dt_exemplars->cbind(dt, 1);
-  for (int32_t i = 0; i < dt_exemplars->ncols-1; ++i) {
+
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt_exemplars->ncols-1; ++i) {
     dt_exemplars->columns[i]->get_stats()->reset();
   }
   delete dt_counts;
@@ -182,7 +189,8 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   double norm_factor, norm_shift;
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
-  for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     d_members[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
   }
@@ -201,7 +209,8 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   set_norm_coeffs(normx_factor, normx_shift, c0->min(), c0->max(), nx_bins);
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
-  for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
     d_groups[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
@@ -221,6 +230,7 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
@@ -247,6 +257,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
 
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
@@ -254,6 +265,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
     }
   }
 
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
@@ -279,6 +291,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
   double normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
 
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
     int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
@@ -341,6 +354,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
   delete[] pmatrix;
   delete[] member;
+  #pragma omp parallel for schedule(static)
   for (size_t i= 0; i < exemplars.size(); ++i) {
     delete[] exemplars[i];
   }
@@ -349,13 +363,12 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
 void Aggregator::adjust_radius(DataTablePtr& dt_exemplars, double& radius) {
   double diff = 0;
-  for (int i = 0; i < dt_exemplars->ncols; ++i) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt_exemplars->ncols; ++i) {
     Column* c = dt_exemplars->columns[i];
-    if (c->stype() == SType::FLOAT64) {
-      auto c_double = static_cast<RealColumn<double>*>(c);
-      if (!ISNA<double>(c_double->min())) {
-        diff += (c_double->max() - c_double->min()) * (c_double->max() - c_double->min());
-      }
+    auto c_double = static_cast<RealColumn<double>*>(c);
+    if (!ISNA<double>(c_double->min())) {
+      diff += (c_double->max() - c_double->min()) * (c_double->max() - c_double->min());
     }
   }
 
@@ -381,17 +394,15 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 
 
 void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
-  for (int32_t i = 0; i < dt->ncols; ++i) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
-    if (c->stype() == SType::FLOAT64) {
-      auto c_real = static_cast<RealColumn<double>*>(c);
-      const double* d_real = c_real->elements_r();
-      double norm_factor, norm_shift;
-      set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
-      r[i] =  norm_factor * d_real[row_id] + norm_shift;
-    } else {
-      r[i] = 0;
-    }
+    auto c_real = static_cast<RealColumn<double>*>(c);
+    const double* d_real = c_real->elements_r();
+    double norm_factor, norm_shift;
+
+    set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
+    r[i] =  norm_factor * d_real[row_id] + norm_shift;
   }
 }
 
@@ -409,7 +420,9 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   std::normal_distribution<double> distribution(0.0, 1.0);
 
   pmatrix = new double[(dt_exemplars->ncols) * max_dimensions];
-  for (int32_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
+
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -421,25 +434,24 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
   std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
   int32_t n = 0;
 
-  for (int32_t i = 0; i < dt_exemplars->ncols; ++i) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < dt_exemplars->ncols; ++i) {
     Column* c = dt_exemplars->columns[i];
-    if (c->stype() == SType::FLOAT64) {
-      auto c_real = static_cast<RealColumn<double>*> (c);
-      auto d_real = c_real->elements_r();
+    auto c_real = static_cast<RealColumn<double>*> (c);
+    auto d_real = c_real->elements_r();
 
-      if (!ISNA<double>(d_real[row_id])) {
-        double norm_factor, norm_shift;
-        set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
-        double norm_row = norm_factor * d_real[row_id] + norm_shift;
-        for (int32_t j = 0; j < max_dimensions; ++j) {
-          r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
-        }
-        ++n;
+    if (!ISNA<double>(d_real[row_id])) {
+      double norm_factor, norm_shift;
+      set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
+      double norm_row = norm_factor * d_real[row_id] + norm_shift;
+      for (int32_t j = 0; j < max_dimensions; ++j) {
+        r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
       }
-
+      ++n;
     }
   }
 
+  #pragma omp parallel for schedule(static)
   for (int32_t j = 0; j < max_dimensions; ++j) {
     r[j] /= n;
   }
