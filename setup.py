@@ -234,11 +234,16 @@ def get_extra_compile_flags():
     #       does not suffer from this drawback.
     #   -Wweak-template-vtables: this waning's purpose is unclear, and it
     #       is also unclear how to prevent it...
+    #   -Wglobal-constructors, -Wexit-time-destructors: having static global
+    #       objects is not only legal, but also unavoidable since this is the
+    #       only kind of object that can be passed to a template...
     flags += [
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
+        "-Wno-exit-time-destructors",
         "-Wno-float-equal",
+        "-Wno-global-constructors",
         "-Wno-switch-enum",
         "-Wno-weak-template-vtables",
     ]

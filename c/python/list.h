@@ -107,4 +107,27 @@ class PyyList {
 
 
 
+namespace py {
+class Arg;
+
+
+class List {
+  private:
+    PyObject* pyobj;  // owned ref
+
+  public:
+    List(const List&);
+    List(List&&);
+    ~List();
+
+    size_t size() const;
+
+  private:
+    List(PyObject* o);
+    friend class Arg;
+};
+
+
+}  // namespace py
+
 #endif

@@ -191,7 +191,7 @@ def main():
     sources, headers = get_files()
     realhdrs = build_headermap(headers)
     realsrcs = build_sourcemap(sources)
-    with open("ci/fast.mk", "wt") as out:
+    with open("ci/fast.mk", "wt", encoding="utf-8") as out:
         write_header(out)
         write_build_directories(realhdrs, realsrcs, out)
         write_headers_to_makefile(realhdrs, out)

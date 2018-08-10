@@ -125,3 +125,41 @@ PyObject* PyyListEntry::as_new_ref() const {
   Py_XINCREF(res);
   return res;
 }
+
+
+
+//------------------------------------------------------------------------------
+// py::List
+//------------------------------------------------------------------------------
+namespace py {
+
+
+// This constructor is private -- only used from friend class `Arg`
+List::List(PyObject* o) {
+  xassert(o && (PyList_Check(o) || PyTuple_Check(o)));
+  pyobj = o;
+  Py_INCREF(pyobj);
+}
+
+List::List(const List& other) {
+  pyobj = other.pyobj;
+  Py_INCREF(pyobj);
+}
+
+List::List(List&& other) {
+  pyobj = other.pyobj;
+  other.pyobj = nullptr;
+}
+
+List::~List() {
+  // pyobj can be nullptr if it was target of a move
+  Py_XDECREF(pyobj);
+}
+
+
+size_t List::size() const {
+  return static_cast<size_t>(Py_SIZE(pyobj));
+}
+
+
+}
