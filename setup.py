@@ -238,12 +238,14 @@ def get_extra_compile_flags():
     #       is also unclear how to prevent it...
     if sys.platform == "win32":
         flags += ["/W4"]
-        
+
     flags += [
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
+        "-Wno-exit-time-destructors",
         "-Wno-float-equal",
+        "-Wno-global-constructors",
         "-Wno-switch-enum",
         "-Wno-weak-template-vtables",
     ]

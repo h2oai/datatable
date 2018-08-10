@@ -10,7 +10,7 @@
 #include "python/ext_type.h"
 #include "datatable.h"
 
-namespace dt {
+namespace py {
 
 
 /**
@@ -23,10 +23,11 @@ class Frame : public PyObject {
     DataTable* dt;
 
   public:
-    class Type : public py::ExtType<Frame> {
+    class Type : public ExtType<Frame> {
       public:
-        static py::NoArgs args___init__;
-        static py::NoArgs args_bang;
+        static PKArgs args___init__;
+        static NoArgs args_bang;
+        static PKArgs args_test;
         static const char* classname();
         static const char* classdoc();
 
@@ -34,7 +35,7 @@ class Frame : public PyObject {
         static void init_methods(Methods& gs);
     };
 
-    void m__init__(py::Args&);
+    void m__init__(PKArgs&);
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
@@ -42,11 +43,11 @@ class Frame : public PyObject {
     PyObj get_ncols() const;
     PyObj get_nrows() const;
 
-    PyObj bang(py::NoArgs&);
+    PyObj bang(NoArgs&);
 };
 
 
 
-}  // namespace dt
+}  // namespace py
 
 #endif
