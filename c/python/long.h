@@ -8,7 +8,7 @@
 #ifndef dt_PYTHON_LONG_h
 #define dt_PYTHON_LONG_h
 #include <Python.h>
-#include "utils/pyobj.h"
+#include "python/obj.h"
 
 
 
@@ -50,8 +50,7 @@ class PyyLong {
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
 
-    operator PyObj() const &;
-    operator PyObj() &&;
+    operator py::oobj() &&;
     PyObject* release();
 
     static PyyLong fromAnyObject(PyObject*);

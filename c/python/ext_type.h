@@ -10,8 +10,8 @@
 #include <vector>
 #include <Python.h>
 #include "python/args.h"
+#include "python/obj.h"
 #include "utils/exceptions.h"
-#include "utils/pyobj.h"
 
 namespace py {
 
@@ -173,8 +173,8 @@ struct ExtType {
   class GetSetters {
     std::vector<PyGetSetDef> defs;
     public:
-      using getter = PyObj (T::*)() const;
-      using setter = void (T::*)(PyObj);
+      using getter = oobj (T::*)() const;
+      using setter = void (T::*)(bobj);
       template <getter fg>            void add(const char* name, const char* doc = nullptr);
       template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
       PyGetSetDef* finalize();
@@ -183,9 +183,9 @@ struct ExtType {
   class Methods {
     std::vector<PyMethodDef> defs;
     public:
-      template <PyObj (T::*F)(NoArgs&),        NoArgs& ARGS>
+      template <oobj (T::*F)(NoArgs&),        NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <PyObj (T::*F)(PKArgs&), PKArgs& ARGS>
+      template <oobj (T::*F)(PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
       template <void (T::*F)(NoArgs&),        NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
@@ -193,7 +193,7 @@ struct ExtType {
       void add(const char* name, const char* doc = nullptr);
       PyMethodDef* finalize();
     private:
-      template <typename A, PyObj (T::*F)(A&), A& ARGS>
+      template <typename A, oobj (T::*F)(A&), A& ARGS>
       void add(const char* name, const char* doc = nullptr);
       template <typename A, void (T::*F)(A&), A& ARGS>
       void add(const char* name, const char* doc = nullptr);
@@ -224,7 +224,7 @@ namespace _impl {
   template <typename T>
   PyObject* _safe_repr(PyObject* self) {
     try {
-      PyObj res = static_cast<T*>(self)->m__repr__();
+      oobj res = static_cast<T*>(self)->m__repr__();
       return res.release();
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -264,11 +264,11 @@ namespace _impl {
     }
   }
 
-  template <typename T, PyObj (T::*F)() const>
+  template <typename T, oobj (T::*F)() const>
   PyObject* _safe_getter(PyObject* self, void*) {
     try {
       T* t = static_cast<T*>(self);
-      PyObj res = (t->*F)();
+      oobj res = (t->*F)();
       return res.release();
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -276,11 +276,11 @@ namespace _impl {
     }
   }
 
-  template <typename T, void (T::*F)(PyObj)>
+  template <typename T, void (T::*F)(bobj)>
   int _safe_setter(PyObject* self, PyObject* value, void*) {
     try {
       T* t = static_cast<T*>(self);
-      (t->*F)(PyObj(value));
+      (t->*F)(bobj(value));
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -288,12 +288,12 @@ namespace _impl {
     }
   }
 
-  template <typename T, typename A, PyObj (T::*F)(A&), A& ARGS>
+  template <typename T, typename A, oobj (T::*F)(A&), A& ARGS>
   PyObject* _safe_method1(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
       T* tself = static_cast<T*>(self);
       ARGS.bind(args, kwds);
-      PyObj res = (tself->*F)(ARGS);
+      oobj res = (tself->*F)(ARGS);
       return res.release();
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -458,7 +458,7 @@ void ExtType<T>::init(PyObject* module) {
 //---- GetSetters ----
 
 template <class T>
-template <PyObj (T::*f)() const>
+template <oobj (T::*f)() const>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),
@@ -470,7 +470,7 @@ void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <PyObj (T::*getter)() const, void (T::*setter)(PyObj)>
+template <oobj (T::*getter)() const, void (T::*setter)(bobj)>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),
@@ -492,7 +492,7 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 //---- Methods ----
 
 template <class T>
-template <typename A, PyObj (T::*F)(A&), A& ARGS>
+template <typename A, oobj (T::*F)(A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   ARGS.set_class_name(T::Type::classname());
   ARGS.set_function_name(name);
@@ -518,13 +518,13 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <PyObj (T::*F)(NoArgs&), NoArgs& ARGS>
+template <oobj (T::*F)(NoArgs&), NoArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<NoArgs, F, ARGS>(name, doc);
 }
 
 template <class T>
-template <PyObj (T::*F)(PKArgs&), PKArgs& ARGS>
+template <oobj (T::*F)(PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<PKArgs, F, ARGS>(name, doc);
 }

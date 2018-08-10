@@ -9,7 +9,7 @@
 #define dt_PYTHON_STRING_h
 #include <Python.h>
 #include <string>
-#include "utils/pyobj.h"
+#include "python/obj.h"
 
 
 
@@ -30,8 +30,7 @@ class PyyString {
     PyyString(PyyString&&);
     ~PyyString();
 
-    operator PyObj() const &;
-    operator PyObj() &&;
+    operator py::oobj() &&;
     PyObject* release();
 
     friend void swap(PyyString& first, PyyString& second) noexcept;

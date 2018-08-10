@@ -58,17 +58,17 @@ void Frame::m__get_buffer__(Py_buffer* , int ) const {
 void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
-PyObj Frame::get_ncols() const {
-  return PyObj(PyyLong(11));
+oobj Frame::get_ncols() const {
+  return oobj(PyyLong(11));
 }
 
-PyObj Frame::get_nrows() const {
-  return PyObj(PyyLong(47));
+oobj Frame::get_nrows() const {
+  return oobj(PyyLong(47));
 }
 
-PyObj Frame::bang(NoArgs&) {
+oobj Frame::bang(NoArgs&) {
   std::cout << "Yay, Frame::bang()!\n";
-  return PyObj::none();
+  return oobj::none();
 }
 
 

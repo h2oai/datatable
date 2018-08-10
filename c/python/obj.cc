@@ -234,6 +234,10 @@ PyObject* oobj::release() {
   return t;
 }
 
+oobj _obj::none() {
+  return oobj(Py_None);
+}
+
 
 
 //------------------------------------------------------------------------------

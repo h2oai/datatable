@@ -69,14 +69,10 @@ void swap(PyyString& first, PyyString& second) noexcept {
 // Public API
 //------------------------------------------------------------------------------
 
-PyyString::operator PyObj() const & {
-  return PyObj(obj);
-}
-
-PyyString::operator PyObj() && {
+PyyString::operator py::oobj() && {
   PyObject* t = obj;
   obj = nullptr;
-  return PyObj(std::move(t));
+  return py::oobj::from_new_reference(t);
 }
 
 PyObject* PyyString::release() {

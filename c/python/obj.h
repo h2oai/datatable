@@ -27,6 +27,7 @@ class _obj {
     struct error_manager;  // see below
 
   public:
+    static oobj none();
     oobj get_attr(const char* attr) const;
 
     bool is_none() const;

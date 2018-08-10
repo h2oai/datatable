@@ -81,14 +81,10 @@ PyyLong PyyLong::fromAnyObject(PyObject* obj) {
 // Public API
 //------------------------------------------------------------------------------
 
-PyyLong::operator PyObj() const & {
-  return PyObj(obj);
-}
-
-PyyLong::operator PyObj() && {
+PyyLong::operator py::oobj() && {
   PyObject* t = obj;
   obj = nullptr;
-  return PyObj(std::move(t));
+  return py::oobj::from_new_reference(t);
 }
 
 PyObject* PyyLong::release() {
