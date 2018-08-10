@@ -11,6 +11,8 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
+class Groupby;
+
 namespace py {
 
 
@@ -22,6 +24,8 @@ class _obj {
   public:
     bool is_none() const;
     bool is_ellipsis() const;
+    bool is_true() const;
+    bool is_false() const;
     bool is_bool() const;
     bool is_int() const;
     bool is_float() const;
@@ -31,10 +35,17 @@ class _obj {
     bool is_tuple() const;
     bool is_dict() const;
 
-    int32_t to_int32(const error_manager& = _em0) const;
-    int64_t to_int64(const error_manager& = _em0) const;
+    int8_t  to_bool_strict(const error_manager& = _em0) const;
+    int8_t  to_bool_force() const;
+    int32_t to_int32_strict  (const error_manager& = _em0) const;
+    int32_t to_int32_truncate(const error_manager& = _em0) const;
+    int32_t to_int32_mask    (const error_manager& = _em0) const;
+    int64_t to_int64_strict  (const error_manager& = _em0) const;
     CString to_cstring(const error_manager& = _em0) const;
     std::string to_string(const error_manager& = _em0) const;
+    PyObject* to_pyobject_newref() const;
+
+    Groupby* to_groupby(const error_manager& = _em0) const;
 
   protected:
     /**
@@ -44,8 +55,10 @@ class _obj {
      */
     struct error_manager {
       virtual ~error_manager() {}
+      virtual Error error_not_boolean(PyObject*) const;
       virtual Error error_not_integer(PyObject*) const;
       virtual Error error_not_string(PyObject*) const;
+      virtual Error error_not_groupby(PyObject*) const;
       virtual Error error_int32_overflow(PyObject*) const;
       virtual Error error_int64_overflow(PyObject*) const;
     };
@@ -54,6 +67,11 @@ class _obj {
     // `_obj` class is not directly constructible: create either `bobj` or
     // `oobj` objects instead.
     _obj() = default;
+
+  private:
+    template <int MODE>
+    int32_t _to_int32(const error_manager& em) const;
+
 };
 
 

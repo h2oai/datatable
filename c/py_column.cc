@@ -119,12 +119,12 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
   PyObject* arg2 = nullptr;
   if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
     return nullptr;
-  PyObj pyfilename(arg1);
-  PyObj pystrategy(arg2);
+  py::bobj pyfilename(arg1);
+  py::bobj pystrategy(arg2);
 
   Column* col = self->ref;
-  const char* filename = pyfilename.as_cstring();
-  std::string strategy = pystrategy.as_string();
+  const char* filename = pyfilename.to_cstring().ch;
+  std::string strategy = pystrategy.to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
@@ -150,10 +150,10 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 {
   PyObject* arg1 = nullptr;
   if (!PyArg_ParseTuple(args, "O:ungroup", &arg1)) return nullptr;
-  PyObj pygby(arg1);
+  py::bobj pygby(arg1);
 
   Column* col = self->ref;
-  Groupby* groupby = pygby.as_groupby();
+  Groupby* groupby = pygby.to_groupby();
   if (static_cast<size_t>(col->nrows) != groupby->ngroups()) {
     throw ValueError() << "Cannot 'ungroup' a Column with " << col->nrows
       << " rows using a Groupby with " << groupby->ngroups() << " groups";

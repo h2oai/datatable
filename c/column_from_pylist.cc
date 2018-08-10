@@ -38,8 +38,9 @@ extern PyObject* Py_Zero;
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(PyyList& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_bool(PyyList& _list, MemoryRange& membuf, size_t& from)
 {
+  py::list list(_list);
   size_t nrows = list.size();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
@@ -48,12 +49,19 @@ static bool parse_as_bool(PyyList& list, MemoryRange& membuf, size_t& from)
   // in order to check whether a PyObject* is integer 0 or 1 it's enough to
   // check whether the objects are the same.
   for (size_t i = 0; i < nrows; ++i) {
-    PyObj item = list[i];
+    py::bobj item = list[i];
 
     if (item.is_none()) outdata[i] = GETNA<int8_t>();
     else if (item.is_true()) outdata[i] = 1;
     else if (item.is_false()) outdata[i] = 0;
     else {
+      if (item.is_int()) {
+        int32_t value = item.to_int32_truncate();
+        if (value == 0 || value == 1) {
+          outdata[i] = static_cast<int8_t>(value);
+          continue;
+        }
+      }
       from = i;
       return false;
     }
@@ -73,15 +81,16 @@ static bool parse_as_bool(PyyList& list, MemoryRange& membuf, size_t& from)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(PyyList& list, MemoryRange& membuf)
+static void force_as_bool(PyyList& _list, MemoryRange& membuf)
 {
+  py::list list(_list);
   size_t nrows = list.size();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    PyObj item = list[i];
-    outdata[i] = item.__bool__();
+    py::bobj item = list[i];
+    outdata[i] = item.to_bool_force();
   }
 }
 

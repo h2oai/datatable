@@ -6,6 +6,8 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/obj.h"
+#include <cstdint>        // INT32_MAX
+#include "py_groupby.h"
 
 namespace py {
 
@@ -13,6 +15,8 @@ namespace py {
 //------------------------------------------------------------------------------
 // Constructors/destructors
 //------------------------------------------------------------------------------
+_obj::error_manager _obj::_em0;
+
 
 bobj::bobj(PyObject* p) {
   obj = p;
@@ -55,7 +59,9 @@ oobj::~oobj() {
 
 bool _obj::is_none() const     { return (obj == Py_None); }
 bool _obj::is_ellipsis() const { return (obj == Py_Ellipsis); }
-bool _obj::is_bool() const     { return (obj == Py_True || obj == Py_False); }
+bool _obj::is_true() const     { return (obj == Py_True); }
+bool _obj::is_false() const    { return (obj == Py_False); }
+bool _obj::is_bool() const     { return is_true() || is_false(); }
 bool _obj::is_int() const      { return PyLong_Check(obj) && !is_bool(); }
 bool _obj::is_float() const    { return PyFloat_Check(obj); }
 bool _obj::is_numeric() const  { return is_float() || is_int(); }
@@ -70,21 +76,64 @@ bool _obj::is_dict() const     { return PyDict_Check(obj); }
 // Type conversions
 //------------------------------------------------------------------------------
 
-int32_t _obj::to_int32(const error_manager& em) const {
+int8_t _obj::to_bool_strict(const error_manager& em) const {
+  if (obj == Py_True) return 1;
+  if (obj == Py_False) return 0;
+  throw em.error_not_boolean(obj);
+}
+
+int8_t _obj::to_bool_force() const {
+  if (obj == Py_None) return GETNA<int8_t>();
+  int r = PyObject_IsTrue(obj);
+  if (r == -1) {
+    PyErr_Clear();
+    return GETNA<int8_t>();
+  }
+  return static_cast<int8_t>(r);
+}
+
+
+
+template <int MODE>
+int32_t _obj::_to_int32(const error_manager& em) const {
+  constexpr int32_t MAX = std::numeric_limits<int32_t>::max();
   if (!is_int()) {
     throw em.error_not_integer(obj);
+  }
+  if (MODE == 3) { // mask
+    unsigned long value = PyLong_AsUnsignedLongMask(obj);
+    return static_cast<int32_t>(value);
   }
   int overflow;
   long value = PyLong_AsLongAndOverflow(obj, &overflow);
   int32_t res = static_cast<int32_t>(value);
   if (overflow || value != static_cast<long>(res)) {
-    throw em.error_int32_overflow(obj);
+    if (MODE == 1)
+      throw em.error_int32_overflow(obj);
+    if (MODE == 2) {  // truncate
+      if (overflow == 1 || value > res) res = MAX;
+      else res = -MAX;
+    }
   }
   return res;
 }
 
 
-int64_t _obj::to_int64(const error_manager& em) const {
+int32_t _obj::to_int32_strict(const error_manager& em) const {
+  return _to_int32<1>(em);
+}
+
+int32_t _obj::to_int32_truncate(const error_manager& em) const {
+  return _to_int32<2>(em);
+}
+
+int32_t _obj::to_int32_mask(const error_manager& em) const {
+  return _to_int32<1>(em);
+}
+
+
+
+int64_t _obj::to_int64_strict(const error_manager& em) const {
   if (!is_int()) {
     throw em.error_not_integer(obj);
   }
@@ -116,10 +165,29 @@ std::string _obj::to_string(const error_manager& em) const {
 }
 
 
+PyObject* _obj::to_pyobject_newref() const {
+  Py_INCREF(obj);
+  return obj;
+}
+
+
+Groupby* _obj::to_groupby(const error_manager& em) const {
+  if (obj == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(obj, &pygroupby::type)) {
+    throw em.error_not_groupby(obj);
+  }
+  return static_cast<pygroupby::obj*>(obj)->ref;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Error messages
 //------------------------------------------------------------------------------
+
+Error _obj::error_manager::error_not_boolean(PyObject* o) const {
+  return TypeError() << "Expected a boolean, instead got " << Py_TYPE(o);
+}
 
 Error _obj::error_manager::error_not_integer(PyObject* o) const {
   return TypeError() << "Expected an integer, instead got " << Py_TYPE(o);
@@ -127,6 +195,10 @@ Error _obj::error_manager::error_not_integer(PyObject* o) const {
 
 Error _obj::error_manager::error_not_string(PyObject* o) const {
   return TypeError() << "Expected a string, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_groupby(PyObject* o) const {
+  return TypeError() << "Expected a Groupby, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {
