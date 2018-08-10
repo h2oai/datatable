@@ -353,8 +353,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
   PyyList cols(arg1);
-  RowIndex rows_ri = PyObj(arg2).as_rowindex();
-  DataTable* repl = PyObj(arg3).as_datatable();
+  RowIndex rows_ri = py::bobj(arg2).to_rowindex();
+  DataTable* repl = py::bobj(arg3).to_frame();
   int64_t rrows = repl->nrows;
   size_t rcols = static_cast<size_t>(repl->ncols);
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -372,8 +372,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
   int64_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::bobj item = cols[i];
+    int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
     if (j < -1 || j >= dt->ncols) {
       throw ValueError() << "Invalid index for a replacement column: " << j;
@@ -389,8 +389,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
   }
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::bobj item = cols[i];
+    int64_t j = item.to_int64_strict();
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
       dt->columns[j]->replace_values(rows_ri, replcol);

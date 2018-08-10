@@ -14,6 +14,8 @@
 class DataTable;
 class Groupby;
 class RowIndex;
+class PyyLong;   // TODO: remove
+class PyyFloat;  // TODO: remove
 
 namespace py {
 class list;
@@ -29,6 +31,9 @@ class _obj {
   public:
     static oobj none();
     oobj get_attr(const char* attr) const;
+    PyyFloat __float__() const;
+    oobj     __str__() const;
+    int8_t   __bool__() const;
 
     bool is_none() const;
     bool is_ellipsis() const;
@@ -42,6 +47,7 @@ class _obj {
     bool is_list() const;
     bool is_tuple() const;
     bool is_dict() const;
+    bool is_buffer() const;
 
     int8_t  to_bool_strict(const error_manager& = _em0) const;
     int8_t  to_bool_force() const;
@@ -49,10 +55,14 @@ class _obj {
     int32_t to_int32_truncate(const error_manager& = _em0) const;
     int32_t to_int32_mask    (const error_manager& = _em0) const;
     int64_t to_int64_strict  (const error_manager& = _em0) const;
+    double     to_double     (const error_manager& = _em0) const;
     CString to_cstring(const error_manager& = _em0) const;
     std::string to_string(const error_manager& = _em0) const;
     PyObject* to_pyobject_newref() const;
     py::list   to_list       (const error_manager& = _em0) const;
+    PyyLong    to_pyint      () const;
+    PyyLong    to_pyint_force() const;
+    PyyFloat   to_pyfloat    () const;
 
     Groupby*   to_groupby    (const error_manager& = _em0) const;
     RowIndex   to_rowindex   (const error_manager& = _em0) const;
@@ -68,6 +78,7 @@ class _obj {
       virtual ~error_manager() {}
       virtual Error error_not_boolean(PyObject*) const;
       virtual Error error_not_integer(PyObject*) const;
+      virtual Error error_not_double(PyObject*) const;
       virtual Error error_not_string(PyObject*) const;
       virtual Error error_not_groupby(PyObject*) const;
       virtual Error error_not_rowindex(PyObject*) const;
@@ -93,6 +104,8 @@ class bobj : public _obj {
     bobj(PyObject* p);
     bobj(const bobj&);
     bobj& operator=(const bobj&);
+
+    PyObject* to_borrowed_ref() const { return obj; }
 };
 
 
@@ -101,12 +114,13 @@ class oobj : public _obj {
     oobj(PyObject* p);
     oobj(const oobj&);
     oobj(oobj&&);
+    oobj& operator=(oobj&&);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
     PyObject* release();
 
-  private:
+  protected:
     oobj() {}
 };
 

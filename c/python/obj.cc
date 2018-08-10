@@ -11,6 +11,8 @@
 #include "py_groupby.h"
 #include "py_rowindex.h"
 #include "python/list.h"
+#include "python/long.h"
+#include "python/float.h"
 
 namespace py {
 
@@ -50,6 +52,13 @@ oobj::oobj(oobj&& other) {
   other.obj = nullptr;
 }
 
+oobj& oobj::operator=(oobj&& other) {
+  Py_XDECREF(obj);
+  obj = other.obj;
+  other.obj = nullptr;
+  return *this;
+}
+
 oobj oobj::from_new_reference(PyObject* p) {
   oobj res;
   res.obj = p;
@@ -78,6 +87,7 @@ bool _obj::is_string() const   { return PyUnicode_Check(obj); }
 bool _obj::is_list() const     { return PyList_Check(obj); }
 bool _obj::is_tuple() const    { return PyTuple_Check(obj); }
 bool _obj::is_dict() const     { return PyDict_Check(obj); }
+bool _obj::is_buffer() const   { return PyObject_CheckBuffer(obj); }
 
 
 
@@ -154,6 +164,19 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
+double _obj::to_double(const error_manager& em) const {
+  if (PyFloat_Check(obj)) return PyFloat_AsDouble(obj);
+  if (obj == Py_None) return GETNA<double>();
+  if (PyLong_Check(obj)) {
+    double res = PyLong_AsDouble(obj);
+    if (res == -1 && PyErr_Occurred()) throw PyError();
+    return res;
+  }
+  throw em.error_not_double(obj);
+}
+
+
+
 CString _obj::to_cstring(const error_manager& em) const {
   if (!is_string()) {
     throw em.error_not_string(obj);
@@ -180,6 +203,7 @@ PyObject* _obj::to_pyobject_newref() const {
 
 
 py::list _obj::to_list(const error_manager& em) const {
+  if (is_none()) return py::list();
   if (!(is_list() || is_tuple())) {
     throw em.error_not_list(obj);
   }
@@ -217,6 +241,23 @@ DataTable* _obj::to_frame(const error_manager& em) const {
 }
 
 
+PyyLong _obj::to_pyint() const {
+  return PyyLong(obj);
+}
+
+PyyLong _obj::to_pyint_force() const {
+  if (is_int()) {
+    return PyyLong(obj);
+  } else {
+    return PyyLong::fromAnyObject(obj);
+  }
+}
+
+PyyFloat _obj::to_pyfloat() const {
+  return PyyFloat(obj);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc
@@ -238,6 +279,26 @@ oobj _obj::none() {
   return oobj(Py_None);
 }
 
+oobj _obj::__str__() const {
+  return oobj::from_new_reference(PyObject_Str(obj));
+}
+
+PyyFloat _obj::__float__() const {
+  return PyyFloat::fromAnyObject(obj);
+}
+
+
+int8_t _obj::__bool__() const {
+  if (obj == Py_None) return GETNA<int8_t>();
+  int r = PyObject_IsTrue(obj);
+  if (r == -1) {
+    PyErr_Clear();
+    return GETNA<int8_t>();
+  }
+  return static_cast<int8_t>(r);
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -250,6 +311,10 @@ Error _obj::error_manager::error_not_boolean(PyObject* o) const {
 
 Error _obj::error_manager::error_not_integer(PyObject* o) const {
   return TypeError() << "Expected an integer, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_double(PyObject* o) const {
+  return TypeError() << "Expected a float, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_not_string(PyObject* o) const {

@@ -25,7 +25,8 @@ class PyyListEntry {
   public:
     PyyListEntry(PyObject* list, Py_ssize_t i);
 
-    operator PyObj() const;
+    operator py::oobj() const;
+    operator py::bobj() const;
     operator PyyList() const;
     operator PyyLong() const;
     operator PyyFloat() const;
@@ -118,8 +119,11 @@ class Arg;
 class list : public oobj {
   public:
     using oobj::oobj;
+    list();
     list(const PyyList&);  // temp
+    PyyList to_pyylist() const;
 
+    operator bool() const;
     size_t size() const;
     bobj operator[](size_t i) const;
 

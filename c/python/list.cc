@@ -116,12 +116,8 @@ PyObject* PyyListEntry::get() const {
 }
 
 
-PyyListEntry::operator PyObj() const {
-  // Variable `entry` cannot be inlined, otherwise PyObj constructor will
-  // assume that the reference to PyObject* can be stolen.
-  PyObject* entry = get();  // borrowed ref
-  return PyObj(entry);
-}
+PyyListEntry::operator py::oobj() const { return py::oobj(get()); }
+PyyListEntry::operator py::bobj() const { return py::bobj(get()); }
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
 PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
 PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }
@@ -141,7 +137,14 @@ PyObject* PyyListEntry::as_new_ref() const {
 namespace py {
 
 
-list::list(const PyyList& src) : list(src.list) {}
+list::list() { obj = nullptr; }
+
+list::list(const PyyList& src) : oobj(src.list) {}
+
+PyyList list::to_pyylist() const { return PyyList(obj); }
+
+
+list::operator bool() const { return obj != nullptr; }
 
 size_t list::size() const {
   return static_cast<size_t>(Py_SIZE(obj));

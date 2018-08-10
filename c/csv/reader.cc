@@ -770,8 +770,8 @@ void GenericReader::report_columns_to_python() {
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
-        PyObj elem = newTypesList[i];
-        columns[i].set_rtype(elem.as_int64());
+        py::bobj elem = newTypesList[i];
+        columns[i].set_rtype(elem.to_int64_strict());
       }
     }
   } else {
