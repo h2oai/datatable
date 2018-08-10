@@ -8,6 +8,7 @@
 #ifndef dt_PYTHON_LIST_h
 #define dt_PYTHON_LIST_h
 #include <Python.h>
+#include "python/obj.h"
 #include "utils/pyobj.h"
 
 class PyyList;
@@ -111,19 +112,14 @@ namespace py {
 class Arg;
 
 
-class List {
-  private:
-    PyObject* pyobj;  // owned ref
-
+class list : public oobj {
   public:
-    List(const List&);
-    List(List&&);
-    ~List();
+    using oobj::oobj;
 
     size_t size() const;
 
   private:
-    List(PyObject* o);
+    list(PyObject* o);
     friend class Arg;
 };
 

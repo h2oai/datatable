@@ -48,6 +48,7 @@ PyObject* column_from_list(PyObject*, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O|ii", &arg1, &stype, &ltype))
     return nullptr;
   PyyList list = PyObj(arg1);
+
   Column* col = Column::from_pylist(list, stype, ltype);
   return from_column(col, nullptr, 0);
 }
