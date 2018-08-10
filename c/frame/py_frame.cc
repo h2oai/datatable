@@ -9,16 +9,16 @@
 #include <iostream>
 #include "python/long.h"
 
-namespace dt {
+namespace py {
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wexit-time-destructors"
-#pragma clang diagnostic ignored "-Wglobal-constructors"
 
-py::NoArgs Frame::Type::args___init__;
-py::NoArgs Frame::Type::args_bang;
+//------------------------------------------------------------------------------
+// Declare Frame's API
+//------------------------------------------------------------------------------
 
-#pragma clang diagnostic pop
+NoArgs Frame::Type::args_bang;
+PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
+                                  {"src", "names", "stypes", "stype"});
 
 
 const char* Frame::Type::classname() {
@@ -47,9 +47,6 @@ void Frame::Type::init_methods(Methods& mm) {
 }
 
 
-void Frame::m__init__(py::Args&) {
-  std::cout << "In Frame.__init__()\n";
-}
 
 void Frame::m__dealloc__() {
   std::cout << "In Frame::dealloc (dt=" << dt << ")\n";
@@ -69,9 +66,10 @@ PyObj Frame::get_nrows() const {
   return PyObj(PyyLong(47));
 }
 
-PyObj Frame::bang(py::NoArgs&) {
+PyObj Frame::bang(NoArgs&) {
   std::cout << "Yay, Frame::bang()!\n";
   return PyObj::none();
 }
 
-}  // namespace dt
+
+}  // namespace py
