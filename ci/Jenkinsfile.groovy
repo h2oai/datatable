@@ -267,7 +267,7 @@ ansiColor('xterm') {
                                     try {
                                         sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
-                                        arch "/tmp/cores/*"
+                                        arch "/tmp/cores/*python*"
                                     }
                                     testReport "build/coverage-c", "x86_64_linux coverage report for C"
                                     testReport "build/coverage-py", "x86_64_linux coverage report for Python"
@@ -659,8 +659,11 @@ def testInDocker(final testTarget, final needsLargerTest) {
             make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
-        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true'
-        arch "build/cores/*.*"
+        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/*python* build/cores || true'
+        // Try to archive all core dumps, but skip error in case of failure
+        try {
+            arch "build/cores/*python*"
+        } catch (ex) { /* ignore */ }
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
