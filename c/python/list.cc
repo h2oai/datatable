@@ -96,13 +96,6 @@ PyyListEntry& PyyListEntry::operator=(PyObject* s) {
 }
 
 
-PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
-  PyObject* item = o.as_pyobject();
-  PyList_SetItem(list, i, item);
-  return *this;
-}
-
-
 PyyListEntry& PyyListEntry::operator=(py::oobj&& o) {
   PyObject* item = o.release();
   PyList_SET_ITEM(list, i, item);
