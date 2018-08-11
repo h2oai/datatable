@@ -313,11 +313,14 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   double* member = new double[ndims];
   double* pmatrix = nullptr;
   std::vector<double*> exemplars;
-  double delta, radius = .025 * (dt_exemplars->ncols), distance = 0.0;
+  double delta, distance = 0.0;
+//  double radius = .025 * (dt_exemplars->ncols);
+  double radius = .8 * atan(static_cast<double>(dt_exemplars->ncols) / max_dimensions);
   auto d_counts = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   if (dt_exemplars->ncols > max_dimensions) {
-    adjust_radius(dt_exemplars, radius);
+//    adjust_radius(dt_exemplars, radius);
+    radius = 0.3 / sqrt(static_cast<double>(dt_exemplars->ncols) / max_dimensions);
     pmatrix = generate_pmatrix(dt_exemplars);
     project_row(dt_exemplars, exemplar, 0, pmatrix);
   } else {
@@ -412,10 +415,10 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
-
   pmatrix = new double[(dt_exemplars->ncols) * max_dimensions];
 
-  #pragma omp parallel for schedule(static)
+//Can be enabled later when we don't care about exact reproducibility of the results
+//#pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
     pmatrix[i] = distribution(generator);
   }
@@ -428,7 +431,6 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
   std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
   int32_t n = 0;
 
-  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt_exemplars->ncols; ++i) {
     Column* c = dt_exemplars->columns[i];
     auto c_real = static_cast<RealColumn<double>*> (c);
