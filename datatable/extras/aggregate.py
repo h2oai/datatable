@@ -8,7 +8,7 @@ import datatable as dt
 from datatable import Frame
 from datatable.lib import core
 
-def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, max_dimensions=50, seed=0):
+def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, max_dimensions=25, seed=0):
     """
     Aggregate datatable in-place.
 
