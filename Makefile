@@ -21,7 +21,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug bi coverage dist fast ci/fast.mk
+		benchmark debug bi coverage dist fast
 
 ifeq ($(MAKECMDGOALS), fast)
 -include ci/fast.mk

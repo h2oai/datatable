@@ -329,21 +329,15 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   d_counts[0] = 0;
 
   for (int32_t i = 1; i < dt_exemplars->nrows; ++i) {
-    double min_distance = std::numeric_limits<double>::max();
     if (dt_exemplars->ncols > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
     else normalize_row(dt_exemplars, member, i);
 
-    for (size_t j = 0; j < exemplars.size(); ++j) {
-      distance = calculate_distance(member, exemplars[j], ndims, delta);
-
-      if (distance < min_distance) {
-        min_distance = distance;
-        exemplar_id = j;
-        if (min_distance < delta) break;
-      }
+    for (exemplar_id = 0; exemplar_id < exemplars.size(); ++exemplar_id) {
+      distance = calculate_distance(member, exemplars[exemplar_id], ndims, delta);
+      if (distance < delta) break;
     }
 
-    if (min_distance < delta) {
+    if (distance < delta) {
       d_counts[i] = static_cast<int32_t>(exemplar_id);
     } else {
       d_counts[i] = static_cast<int32_t>(exemplars.size());
