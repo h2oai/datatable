@@ -87,7 +87,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
-  std::string filename = py::bobj(arg1).to_string();
+  std::string filename = py::obj(arg1).to_string();
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
@@ -184,7 +184,7 @@ PyObject* get_nkeys(obj* self) {
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = py::bobj(value).to_int64_strict();
+  int64_t nk = py::obj(value).to_int64_strict();
   self->ref->set_nkeys(nk);
   return 0;
 }
@@ -298,7 +298,7 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
     return nullptr;
-  RowIndex newri = py::bobj(arg1).to_rowindex();
+  RowIndex newri = py::obj(arg1).to_rowindex();
 
   dt->replace_rowindex(newri);
   Py_RETURN_NONE;
@@ -312,8 +312,8 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
-  RowIndex rows_ri = py::bobj(arg4).to_rowindex();
-  DataTable* repl = py::bobj(arg5).to_frame();
+  RowIndex rows_ri = py::obj(arg4).to_rowindex();
+  DataTable* repl = py::obj(arg5).to_frame();
   int64_t rrows = repl->nrows;
   int64_t rcols = repl->ncols;
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -353,8 +353,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
   PyyList cols(arg1);
-  RowIndex rows_ri = py::bobj(arg2).to_rowindex();
-  DataTable* repl = py::bobj(arg3).to_frame();
+  RowIndex rows_ri = py::obj(arg2).to_rowindex();
+  DataTable* repl = py::obj(arg3).to_frame();
   int64_t rrows = repl->nrows;
   size_t rcols = static_cast<size_t>(repl->ncols);
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -372,7 +372,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
   int64_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
-    py::bobj item = cols[i];
+    py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
     if (j < -1 || j >= dt->ncols) {
@@ -389,7 +389,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
   }
   for (size_t i = 0; i < cols.size(); ++i) {
-    py::bobj item = cols[i];
+    py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
@@ -507,8 +507,8 @@ PyObject* join(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
 
   DataTable* dt = self->ref;
-  DataTable* jdt = py::bobj(arg2).to_frame();
-  RowIndex ri = py::bobj(arg1).to_rowindex();
+  DataTable* jdt = py::obj(arg2).to_frame();
+  RowIndex ri = py::obj(arg1).to_rowindex();
   PyyList cols(arg3);
 
   if (cols.size() != 1) {
@@ -600,9 +600,9 @@ PyObject* save_jay(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
     return nullptr;
 
-  auto filename = py::bobj(arg1).to_string();
-  auto colnames = py::bobj(arg2).to_stringlist();
-  auto strategy = py::bobj(arg3).to_string();
+  auto filename = py::obj(arg1).to_string();
+  auto colnames = py::obj(arg2).to_stringlist();
+  auto strategy = py::obj(arg3).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;

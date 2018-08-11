@@ -26,7 +26,7 @@
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
-GenericReader::GenericReader(const py::bobj& pyrdr)
+GenericReader::GenericReader(const py::obj& pyrdr)
 {
   sof = nullptr;
   eof = nullptr;
@@ -777,7 +777,7 @@ void GenericReader::report_columns_to_python() {
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
-        py::bobj elem = newTypesList[i];
+        py::obj elem = newTypesList[i];
         columns[i].set_rtype(elem.to_int64());
       }
     }

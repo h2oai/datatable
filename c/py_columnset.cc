@@ -59,8 +59,8 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
   if (!PyArg_ParseTuple(args, "OOLLL:columns_from_slice",
                         &arg1, &arg2, &start, &count, &step))
     return nullptr;
-  DataTable* dt = py::bobj(arg1).to_frame();
-  RowIndex rowindex = py::bobj(arg2).to_rowindex();
+  DataTable* dt = py::obj(arg1).to_frame();
+  RowIndex rowindex = py::obj(arg2).to_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
@@ -78,7 +78,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
                         &arg1, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
     return nullptr;
-  py::list pyspec = py::bobj(arg1).to_list();
+  py::list pyspec = py::obj(arg1).to_list();
 
   columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
   size_t ncols = pyspec.size();

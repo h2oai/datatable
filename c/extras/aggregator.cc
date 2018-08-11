@@ -22,7 +22,7 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OiiiiI:aggregate",
                         &arg1, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
-  DataTable* dt_in = py::bobj(arg1).to_frame();
+  DataTable* dt_in = py::obj(arg1).to_frame();
   DataTablePtr dt_members = nullptr;
 
 

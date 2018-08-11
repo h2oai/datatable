@@ -25,7 +25,7 @@ class PyyListEntry {
     PyyListEntry(PyObject* list, Py_ssize_t i);
 
     operator py::oobj() const;
-    operator py::bobj() const;
+    operator py::obj() const;
     operator PyyList() const;
     operator PyyLong() const;
     operator PyyFloat() const;
@@ -77,7 +77,7 @@ class PyyListEntry {
  *
  * operator[](i)
  *   Returns i-th element of the list as a PyyListEntry object. This entry acts
- *   as a reference: it can be both read (by casting into `bobj`) and written
+ *   as a reference: it can be both read (by casting into `obj`) and written
  *   by assigning a `PyObject*` / `oobj` to it.
  *
  * release()
@@ -123,7 +123,7 @@ class list : public oobj {
 
     operator bool() const;
     size_t size() const;
-    bobj operator[](size_t i) const;
+    obj operator[](size_t i) const;
 
     friend class Arg;
 };

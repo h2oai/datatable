@@ -106,7 +106,7 @@ namespace py {
  * Getters / setters
  * -----------------
  * A property getter has generic signature `oobj (T::*)() const`, and a setter
- * has signature `void (T::*)(bobj)`. These methods should be implemented in
+ * has signature `void (T::*)(obj)`. These methods should be implemented in
  * your main class, and then declared in `Type::init_getsetters(GetSetters&)`.
  * Inside the `init_getsetters(gs)` you should call
  * `gs.add<getter, setter>(name, doc)` for each property in your class. Some
@@ -119,7 +119,7 @@ namespace py {
  *    class Please : public PyObject {
  *    public:
  *      oobj get_pretty() const;
- *      void set_pretty(bobj);
+ *      void set_pretty(obj);
  *      ...
  *      struct Type : py::ExtType<Please> {
  *        ...
@@ -174,7 +174,7 @@ struct ExtType {
     std::vector<PyGetSetDef> defs;
     public:
       using getter = oobj (T::*)() const;
-      using setter = void (T::*)(bobj);
+      using setter = void (T::*)(obj);
       template <getter fg>            void add(const char* name, const char* doc = nullptr);
       template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
       PyGetSetDef* finalize();
@@ -276,11 +276,11 @@ namespace _impl {
     }
   }
 
-  template <typename T, void (T::*F)(bobj)>
+  template <typename T, void (T::*F)(obj)>
   int _safe_setter(PyObject* self, PyObject* value, void*) {
     try {
       T* t = static_cast<T*>(self);
-      (t->*F)(bobj(value));
+      (t->*F)(obj(value));
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -470,7 +470,7 @@ void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <oobj (T::*getter)() const, void (T::*setter)(bobj)>
+template <oobj (T::*getter)() const, void (T::*setter)(obj)>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),

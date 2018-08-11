@@ -48,7 +48,7 @@ static bool parse_as_bool(const py::list& list, MemoryRange& membuf, size_t& fro
   // in order to check whether a PyObject* is integer 0 or 1 it's enough to
   // check whether the objects are the same.
   for (size_t i = 0; i < nrows; ++i) {
-    py::bobj item = list[i];
+    py::obj item = list[i];
 
     if (item.is_none()) outdata[i] = GETNA<int8_t>();
     else if (item.is_true()) outdata[i] = 1;
@@ -87,7 +87,7 @@ static void force_as_bool(const py::list& list, MemoryRange& membuf)
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::bobj item = list[i];
+    py::obj item = list[i];
     outdata[i] = item.to_bool_force();
   }
 }
@@ -122,7 +122,7 @@ static bool parse_as_int(const py::list& list, MemoryRange& membuf, size_t& from
     size_t ito   = j ? from : nrows;
 
     for (size_t i = ifrom; i < ito; ++i) {
-      py::bobj item = list[i];
+      py::obj item = list[i];
 
       if (item.is_none()) {
         outdata[i] = GETNA<T>();
@@ -158,7 +158,7 @@ static void force_as_int(const py::list& list, MemoryRange& membuf)
   T* outdata = static_cast<T*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::bobj item = list[i];
+    py::obj item = list[i];
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
       continue;
@@ -190,7 +190,7 @@ static bool parse_as_double(const py::list& list, MemoryRange& membuf, size_t& f
     size_t ifrom = j ? 0 : from;
     size_t ito   = j ? from : nrows;
     for (size_t i = ifrom; i < ito; ++i) {
-      py::bobj item = list[i];
+      py::obj item = list[i];
 
       if (item.is_none()) {
         outdata[i] = GETNA<double>();
@@ -223,7 +223,7 @@ static void force_as_real(const py::list& list, MemoryRange& membuf)
 
   int overflow = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    py::bobj item = list[i];
+    py::obj item = list[i];
 
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
@@ -262,7 +262,7 @@ static bool parse_as_str(const py::list& list, MemoryRange& offbuf,
   T curr_offset = 0;
   size_t i = 0;
   for (i = 0; i < nrows; ++i) {
-    py::bobj item = list[i];
+    py::obj item = list[i];
 
     if (item.is_none()) {
       offsets[i] = curr_offset | GETNA<T>();

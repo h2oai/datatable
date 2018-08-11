@@ -98,8 +98,8 @@ PyObject* set_option(PyObject*, PyObject* args) {
   PyObject* arg1;
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
-  py::bobj arg_name(arg1);
-  py::bobj value(arg2);
+  py::obj arg_name(arg1);
+  py::obj value(arg2);
   std::string name = arg_name.to_string();
 
   if (name == "nthreads") {

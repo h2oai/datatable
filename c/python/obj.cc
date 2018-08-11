@@ -24,59 +24,59 @@ namespace py {
 _obj::error_manager _obj::_em0;
 
 
-bobj::bobj(PyObject* p) {
-  obj = p;
+obj::obj(PyObject* p) {
+  v = p;
 }
 
-bobj::bobj(const bobj& other) {
-  obj = other.obj;
+obj::obj(const obj& other) {
+  v = other.v;
 }
 
-bobj& bobj::operator=(const bobj& other) {
-  obj = other.obj;
+obj& obj::operator=(const obj& other) {
+  v = other.v;
   return *this;
 }
 
 
 oobj::oobj() {
-  obj = nullptr;
+  v = nullptr;
 }
 
 oobj::oobj(PyObject* p) {
-  obj = p;
+  v = p;
   Py_INCREF(p);
 }
 
-oobj::oobj(const oobj& other) : oobj(other.obj) {}
-oobj::oobj(const bobj& other) : oobj(other.obj) {}
+oobj::oobj(const oobj& other) : oobj(other.v) {}
+oobj::oobj(const obj& other) : oobj(other.v) {}
 
 oobj::oobj(oobj&& other) {
-  obj = other.obj;
-  other.obj = nullptr;
+  v = other.v;
+  other.v = nullptr;
 }
 
 oobj& oobj::operator=(const oobj& other) {
-  Py_XDECREF(obj);
-  obj = other.obj;
-  Py_XINCREF(obj);
+  Py_XDECREF(v);
+  v = other.v;
+  Py_XINCREF(v);
   return *this;
 }
 
 oobj& oobj::operator=(oobj&& other) {
-  Py_XDECREF(obj);
-  obj = other.obj;
-  other.obj = nullptr;
+  Py_XDECREF(v);
+  v = other.v;
+  other.v = nullptr;
   return *this;
 }
 
 oobj oobj::from_new_reference(PyObject* p) {
   oobj res;
-  res.obj = p;
+  res.v = p;
   return res;
 }
 
 oobj::~oobj() {
-  Py_XDECREF(obj);
+  Py_XDECREF(v);
 }
 
 
@@ -85,19 +85,19 @@ oobj::~oobj() {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool _obj::is_none() const     { return (obj == Py_None); }
-bool _obj::is_ellipsis() const { return (obj == Py_Ellipsis); }
-bool _obj::is_true() const     { return (obj == Py_True); }
-bool _obj::is_false() const    { return (obj == Py_False); }
+bool _obj::is_none() const     { return (v == Py_None); }
+bool _obj::is_ellipsis() const { return (v == Py_Ellipsis); }
+bool _obj::is_true() const     { return (v == Py_True); }
+bool _obj::is_false() const    { return (v == Py_False); }
 bool _obj::is_bool() const     { return is_true() || is_false(); }
-bool _obj::is_int() const      { return PyLong_Check(obj) && !is_bool(); }
-bool _obj::is_float() const    { return PyFloat_Check(obj); }
+bool _obj::is_int() const      { return PyLong_Check(v) && !is_bool(); }
+bool _obj::is_float() const    { return PyFloat_Check(v); }
 bool _obj::is_numeric() const  { return is_float() || is_int(); }
-bool _obj::is_string() const   { return PyUnicode_Check(obj); }
-bool _obj::is_list() const     { return PyList_Check(obj); }
-bool _obj::is_tuple() const    { return PyTuple_Check(obj); }
-bool _obj::is_dict() const     { return PyDict_Check(obj); }
-bool _obj::is_buffer() const   { return PyObject_CheckBuffer(obj); }
+bool _obj::is_string() const   { return PyUnicode_Check(v); }
+bool _obj::is_list() const     { return PyList_Check(v); }
+bool _obj::is_tuple() const    { return PyTuple_Check(v); }
+bool _obj::is_dict() const     { return PyDict_Check(v); }
+bool _obj::is_buffer() const   { return PyObject_CheckBuffer(v); }
 
 
 
@@ -106,21 +106,21 @@ bool _obj::is_buffer() const   { return PyObject_CheckBuffer(obj); }
 //------------------------------------------------------------------------------
 
 int8_t _obj::to_bool(const error_manager& em) const {
-  if (obj == Py_None) return GETNA<int8_t>();
-  if (obj == Py_True) return 1;
-  if (obj == Py_False) return 0;
-  throw em.error_not_boolean(obj);
+  if (v == Py_None) return GETNA<int8_t>();
+  if (v == Py_True) return 1;
+  if (v == Py_False) return 0;
+  throw em.error_not_boolean(v);
 }
 
 int8_t _obj::to_bool_strict(const error_manager& em) const {
-  if (obj == Py_True) return 1;
-  if (obj == Py_False) return 0;
-  throw em.error_not_boolean(obj);
+  if (v == Py_True) return 1;
+  if (v == Py_False) return 0;
+  throw em.error_not_boolean(v);
 }
 
 int8_t _obj::to_bool_force(const error_manager&) const {
-  if (obj == Py_None) return GETNA<int8_t>();
-  int r = PyObject_IsTrue(obj);
+  if (v == Py_None) return GETNA<int8_t>();
+  int r = PyObject_IsTrue(v);
   if (r == -1) {
     PyErr_Clear();
     return GETNA<int8_t>();
@@ -133,18 +133,18 @@ template <int MODE>
 int32_t _obj::_to_int32(const error_manager& em) const {
   constexpr int32_t MAX = std::numeric_limits<int32_t>::max();
   if (!is_int()) {
-    throw em.error_not_integer(obj);
+    throw em.error_not_integer(v);
   }
   if (MODE == 3) { // mask
-    unsigned long value = PyLong_AsUnsignedLongMask(obj);
+    unsigned long value = PyLong_AsUnsignedLongMask(v);
     return static_cast<int32_t>(value);
   }
   int overflow;
-  long value = PyLong_AsLongAndOverflow(obj, &overflow);
+  long value = PyLong_AsLongAndOverflow(v, &overflow);
   int32_t res = static_cast<int32_t>(value);
   if (overflow || value != static_cast<long>(res)) {
     if (MODE == 1)
-      throw em.error_int32_overflow(obj);
+      throw em.error_int32_overflow(v);
     if (MODE == 2) {  // truncate
       if (overflow == 1 || value > res) res = MAX;
       else res = -MAX;
@@ -178,26 +178,26 @@ int64_t _obj::to_int64(const error_manager& em) const {
 
 int64_t _obj::to_int64_strict(const error_manager& em) const {
   if (!is_int()) {
-    throw em.error_not_integer(obj);
+    throw em.error_not_integer(v);
   }
   int overflow;
-  long value = PyLong_AsLongAndOverflow(obj, &overflow);
+  long value = PyLong_AsLongAndOverflow(v, &overflow);
   if (overflow) {
-    throw em.error_int64_overflow(obj);
+    throw em.error_int64_overflow(v);
   }
   return value;
 }
 
 
 double _obj::to_double(const error_manager& em) const {
-  if (PyFloat_Check(obj)) return PyFloat_AsDouble(obj);
-  if (obj == Py_None) return GETNA<double>();
-  if (PyLong_Check(obj)) {
-    double res = PyLong_AsDouble(obj);
+  if (PyFloat_Check(v)) return PyFloat_AsDouble(v);
+  if (v == Py_None) return GETNA<double>();
+  if (PyLong_Check(v)) {
+    double res = PyLong_AsDouble(v);
     if (res == -1 && PyErr_Occurred()) throw PyError();
     return res;
   }
-  throw em.error_not_double(obj);
+  throw em.error_not_double(v);
 }
 
 
@@ -206,20 +206,20 @@ CString _obj::to_cstring(const error_manager& em) const {
   Py_ssize_t str_size;
   const char* str;
 
-  if (PyUnicode_Check(obj)) {
-    str = PyUnicode_AsUTF8AndSize(obj, &str_size);
+  if (PyUnicode_Check(v)) {
+    str = PyUnicode_AsUTF8AndSize(v, &str_size);
     if (!str) throw PyError();
   }
-  else if (PyBytes_Check(obj)) {
-    str_size = PyBytes_Size(obj);
-    str = PyBytes_AsString(obj);
+  else if (PyBytes_Check(v)) {
+    str_size = PyBytes_Size(v);
+    str = PyBytes_AsString(v);
   }
-  else if (obj == Py_None) {
+  else if (v == Py_None) {
     str_size = 0;
     str = nullptr;
   }
   else {
-    throw em.error_not_string(obj);
+    throw em.error_not_string(v);
   }
   return CString { str, static_cast<int64_t>(str_size) };
 }
@@ -233,84 +233,84 @@ std::string _obj::to_string(const error_manager& em) const {
 
 
 PyObject* _obj::to_pyobject_newref() const {
-  Py_INCREF(obj);
-  return obj;
+  Py_INCREF(v);
+  return v;
 }
 
 
 py::list _obj::to_list(const error_manager& em) const {
   if (is_none()) return py::list();
   if (!(is_list() || is_tuple())) {
-    throw em.error_not_list(obj);
+    throw em.error_not_list(v);
   }
-  return py::list(obj);
+  return py::list(v);
 }
 
 
 Groupby* _obj::to_groupby(const error_manager& em) const {
-  if (obj == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(obj, &pygroupby::type)) {
-    throw em.error_not_groupby(obj);
+  if (v == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(v, &pygroupby::type)) {
+    throw em.error_not_groupby(v);
   }
-  return static_cast<pygroupby::obj*>(obj)->ref;
+  return static_cast<pygroupby::obj*>(v)->ref;
 }
 
 
 RowIndex _obj::to_rowindex(const error_manager& em) const {
-  if (obj == Py_None) {
+  if (v == Py_None) {
     return RowIndex();
   }
-  if (!PyObject_TypeCheck(obj, &pyrowindex::type)) {
-    throw em.error_not_rowindex(obj);
+  if (!PyObject_TypeCheck(v, &pyrowindex::type)) {
+    throw em.error_not_rowindex(v);
   }
-  RowIndex* ref = static_cast<pyrowindex::obj*>(obj)->ref;
+  RowIndex* ref = static_cast<pyrowindex::obj*>(v)->ref;
   return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
 }
 
 
 DataTable* _obj::to_frame(const error_manager& em) const {
-  if (obj == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(obj, &pydatatable::type)) {
-    throw em.error_not_frame(obj);
+  if (v == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(v, &pydatatable::type)) {
+    throw em.error_not_frame(v);
   }
-  return static_cast<pydatatable::obj*>(obj)->ref;
+  return static_cast<pydatatable::obj*>(v)->ref;
 }
 
 
 Column* _obj::to_column(const error_manager& em) const {
-  if (!PyObject_TypeCheck(obj, &pycolumn::type)) {
-    throw em.error_not_column(obj);
+  if (!PyObject_TypeCheck(v, &pycolumn::type)) {
+    throw em.error_not_column(v);
   }
-  return reinterpret_cast<pycolumn::obj*>(obj)->ref;
+  return reinterpret_cast<pycolumn::obj*>(v)->ref;
 }
 
 
 PyyLong _obj::to_pyint() const {
-  return PyyLong(obj);
+  return PyyLong(v);
 }
 
 PyyLong _obj::to_pyint_force() const {
   if (is_int()) {
-    return PyyLong(obj);
+    return PyyLong(v);
   } else {
-    return PyyLong::fromAnyObject(obj);
+    return PyyLong::fromAnyObject(v);
   }
 }
 
 PyyFloat _obj::to_pyfloat() const {
-  return PyyFloat(obj);
+  return PyyFloat(v);
 }
 
 
 char** _obj::to_cstringlist() const {
-  if (obj == Py_None) {
+  if (v == Py_None) {
     return nullptr;
   }
-  if (PyList_Check(obj) || PyTuple_Check(obj)) {
-    Py_ssize_t count = Py_SIZE(obj);
-    PyObject** items = PyList_Check(obj)
-        ? reinterpret_cast<PyListObject*>(obj)->ob_item
-        : reinterpret_cast<PyTupleObject*>(obj)->ob_item;
+  if (PyList_Check(v) || PyTuple_Check(v)) {
+    Py_ssize_t count = Py_SIZE(v);
+    PyObject** items = PyList_Check(v)
+        ? reinterpret_cast<PyListObject*>(v)->ob_item
+        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
     char** res = nullptr;
     try {
       res = new char*[count + 1];
@@ -342,17 +342,17 @@ char** _obj::to_cstringlist() const {
       throw;
     }
   }
-  throw TypeError() << "A list of strings is expected, got " << obj;
+  throw TypeError() << "A list of strings is expected, got " << v;
 }
 
 
 strvec _obj::to_stringlist() const {
   strvec res;
-  if (PyList_Check(obj) || PyTuple_Check(obj)) {
-    PyObject** items = PyList_Check(obj)
-        ? reinterpret_cast<PyListObject*>(obj)->ob_item
-        : reinterpret_cast<PyTupleObject*>(obj)->ob_item;
-    Py_ssize_t count = Py_SIZE(obj);
+  if (PyList_Check(v) || PyTuple_Check(v)) {
+    PyObject** items = PyList_Check(v)
+        ? reinterpret_cast<PyListObject*>(v)->ob_item
+        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
+    Py_ssize_t count = Py_SIZE(v);
     res.reserve(static_cast<size_t>(count));
     for (Py_ssize_t i = 0; i < count; ++i) {
       PyObject* item = items[i];
@@ -369,8 +369,8 @@ strvec _obj::to_stringlist() const {
                           << item << " (" << PyObject_Type(item) << ")";
       }
     }
-  } else if (obj != Py_None) {
-    throw TypeError() << "A list of strings is expected, got " << obj;
+  } else if (v != Py_None) {
+    throw TypeError() << "A list of strings is expected, got " << v;
   }
   return res;
 }
@@ -382,7 +382,7 @@ strvec _obj::to_stringlist() const {
 //------------------------------------------------------------------------------
 
 oobj _obj::get_attr(const char* attr) const {
-  PyObject* res = PyObject_GetAttrString(obj, attr);
+  PyObject* res = PyObject_GetAttrString(v, attr);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
@@ -392,7 +392,7 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* args = nullptr;
   PyObject* res = nullptr;
   do {
-    callable = PyObject_GetAttrString(obj, fn);  // new ref
+    callable = PyObject_GetAttrString(v, fn);  // new ref
     if (!callable) break;
     va_list va;
     va_start(va, format);
@@ -409,8 +409,8 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 
 
 PyObject* oobj::release() {
-  PyObject* t = obj;
-  obj = nullptr;
+  PyObject* t = v;
+  v = nullptr;
   return t;
 }
 
@@ -419,17 +419,17 @@ oobj _obj::none() {
 }
 
 oobj _obj::__str__() const {
-  return oobj::from_new_reference(PyObject_Str(obj));
+  return oobj::from_new_reference(PyObject_Str(v));
 }
 
 PyyFloat _obj::__float__() const {
-  return PyyFloat::fromAnyObject(obj);
+  return PyyFloat::fromAnyObject(v);
 }
 
 
 int8_t _obj::__bool__() const {
-  if (obj == Py_None) return GETNA<int8_t>();
-  int r = PyObject_IsTrue(obj);
+  if (v == Py_None) return GETNA<int8_t>();
+  int r = PyObject_IsTrue(v);
   if (r == -1) {
     PyErr_Clear();
     return GETNA<int8_t>();

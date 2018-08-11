@@ -22,14 +22,14 @@ class PyyFloat;  // TODO: remove
 
 namespace py {
 class list;
-class bobj;
+class obj;
 class oobj;
 using strvec = std::vector<std::string>;
 
 
 class _obj {
   protected:
-    PyObject* obj;
+    PyObject* v;
     struct error_manager;  // see below
 
   public:
@@ -102,7 +102,7 @@ class _obj {
     };
     static error_manager _em0;
 
-    // `_obj` class is not directly constructible: create either `bobj` or
+    // `_obj` class is not directly constructible: create either `obj` or
     // `oobj` objects instead.
     _obj() = default;
 
@@ -114,13 +114,13 @@ class _obj {
 };
 
 
-class bobj : public _obj {
+class obj : public _obj {
   public:
-    bobj(PyObject* p);
-    bobj(const bobj&);
-    bobj& operator=(const bobj&);
+    obj(PyObject* p);
+    obj(const obj&);
+    obj& operator=(const obj&);
 
-    PyObject* to_borrowed_ref() const { return obj; }
+    PyObject* to_borrowed_ref() const { return v; }
 };
 
 
@@ -129,7 +129,7 @@ class oobj : public _obj {
     oobj();
     oobj(PyObject* p);
     oobj(const oobj&);
-    oobj(const bobj&);
+    oobj(const obj&);
     oobj(oobj&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
