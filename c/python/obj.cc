@@ -38,15 +38,17 @@ bobj& bobj::operator=(const bobj& other) {
 }
 
 
+oobj::oobj() {
+  obj = nullptr;
+}
+
 oobj::oobj(PyObject* p) {
   obj = p;
   Py_INCREF(p);
 }
 
-oobj::oobj(const _obj& other) {
-  obj = other.obj;
-  Py_INCREF(obj);
-}
+oobj::oobj(const oobj& other) : oobj(other.obj) {}
+oobj::oobj(const bobj& other) : oobj(other.obj) {}
 
 oobj::oobj(oobj&& other) {
   obj = other.obj;
@@ -96,13 +98,20 @@ bool _obj::is_buffer() const   { return PyObject_CheckBuffer(obj); }
 // Type conversions
 //------------------------------------------------------------------------------
 
+int8_t _obj::to_bool(const error_manager& em) const {
+  if (obj == Py_None) return GETNA<int8_t>();
+  if (obj == Py_True) return 1;
+  if (obj == Py_False) return 0;
+  throw em.error_not_boolean(obj);
+}
+
 int8_t _obj::to_bool_strict(const error_manager& em) const {
   if (obj == Py_True) return 1;
   if (obj == Py_False) return 0;
   throw em.error_not_boolean(obj);
 }
 
-int8_t _obj::to_bool_force() const {
+int8_t _obj::to_bool_force(const error_manager&) const {
   if (obj == Py_None) return GETNA<int8_t>();
   int r = PyObject_IsTrue(obj);
   if (r == -1) {
@@ -137,6 +146,10 @@ int32_t _obj::_to_int32(const error_manager& em) const {
   return res;
 }
 
+int32_t _obj::to_int32(const error_manager& em) const {
+  if (is_none()) return GETNA<int32_t>();
+  return _to_int32<1>(em);
+}
 
 int32_t _obj::to_int32_strict(const error_manager& em) const {
   return _to_int32<1>(em);
@@ -151,6 +164,10 @@ int32_t _obj::to_int32_mask(const error_manager& em) const {
 }
 
 
+int64_t _obj::to_int64(const error_manager& em) const {
+  if (is_none()) return GETNA<int64_t>();
+  return to_int64_strict(em);
+}
 
 int64_t _obj::to_int64_strict(const error_manager& em) const {
   if (!is_int()) {
@@ -179,6 +196,7 @@ double _obj::to_double(const error_manager& em) const {
 
 
 CString _obj::to_cstring(const error_manager& em) const {
+  if (is_none()) return CString { nullptr, 0 };
   if (!is_string()) {
     throw em.error_not_string(obj);
   }
@@ -193,7 +211,8 @@ CString _obj::to_cstring(const error_manager& em) const {
 
 std::string _obj::to_string(const error_manager& em) const {
   CString cs = to_cstring(em);
-  return std::string(cs.ch, static_cast<size_t>(cs.size));
+  return cs.ch? std::string(cs.ch, static_cast<size_t>(cs.size)) :
+                std::string();
 }
 
 
@@ -267,6 +286,50 @@ PyyFloat _obj::to_pyfloat() const {
 }
 
 
+char** _obj::to_cstringlist() const {
+  if (obj == Py_None) {
+    return nullptr;
+  }
+  if (PyList_Check(obj) || PyTuple_Check(obj)) {
+    Py_ssize_t count = Py_SIZE(obj);
+    PyObject** items = PyList_Check(obj)
+        ? reinterpret_cast<PyListObject*>(obj)->ob_item
+        : reinterpret_cast<PyTupleObject*>(obj)->ob_item;
+    char** res = nullptr;
+    try {
+      res = new char*[count + 1];
+      for (Py_ssize_t i = 0; i <= count; ++i) res[i] = nullptr;
+      for (Py_ssize_t i = 0; i < count; ++i) {
+        PyObject* item = items[i];
+        if (PyUnicode_Check(item)) {
+          PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
+          if (!y) throw PyError();
+          size_t len = static_cast<size_t>(PyBytes_Size(y));
+          res[i] = new char[len + 1];
+          memcpy(res[i], PyBytes_AsString(y), len + 1);
+          Py_DECREF(y);
+        } else
+        if (PyBytes_Check(item)) {
+          size_t len = static_cast<size_t>(PyBytes_Size(item));
+          res[i] = new char[len + 1];
+          memcpy(res[i], PyBytes_AsString(item), len + 1);
+        } else {
+          throw TypeError() << "Item " << i << " in the list is not a string: "
+                            << item << " (" << PyObject_Type(item) << ")";
+        }
+      }
+      return res;
+    } catch (...) {
+      // Clean-up `res` before re-throwing the exception
+      for (Py_ssize_t i = 0; i < count; ++i) delete[] res[i];
+      delete[] res;
+      throw;
+    }
+  }
+  throw TypeError() << "A list of strings is expected, got " << obj;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc
@@ -277,6 +340,27 @@ oobj _obj::get_attr(const char* attr) const {
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
+
+oobj _obj::invoke(const char* fn, const char* format, ...) const {
+  PyObject* callable = nullptr;
+  PyObject* args = nullptr;
+  PyObject* res = nullptr;
+  do {
+    callable = PyObject_GetAttrString(obj, fn);  // new ref
+    if (!callable) break;
+    va_list va;
+    va_start(va, format);
+    args = Py_VaBuildValue(format, va);          // new ref
+    va_end(va);
+    if (!args) break;
+    res = PyObject_CallObject(callable, args);   // new ref
+  } while (0);
+  Py_XDECREF(callable);
+  Py_XDECREF(args);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
 
 PyObject* oobj::release() {
   PyObject* t = obj;

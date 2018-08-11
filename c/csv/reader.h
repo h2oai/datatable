@@ -8,8 +8,9 @@
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr
-#include "read/columns.h"   // dt::read::Columns
 #include "memrange.h"       // MemoryRange
+#include "python/obj.h"     // py::bobj, py::oobj
+#include "read/columns.h"   // dt::read::Columns
 #include "utils/pyobj.h"    // PyObj
 
 class DataTable;
@@ -93,11 +94,11 @@ class GenericReader
 
   private:
     PyObj logger;
-    PyObj freader;
+    py::oobj freader;
     PyObj src_arg;
     PyObj file_arg;
     PyObj text_arg;
-    PyObj skipstring_arg;
+    py::oobj skipstring_arg;
     PyObj tempstr;
 
     // If `trace()` cannot display a message immediately (because it was not
@@ -138,7 +139,7 @@ class GenericReader
      */
     bool extra_byte_accessible() const;
 
-    const PyObj& pyreader() const { return freader; }
+    const py::oobj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;
