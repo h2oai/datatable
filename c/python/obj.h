@@ -33,7 +33,6 @@ class _obj {
     struct error_manager;  // see below
 
   public:
-    static oobj none();
     oobj get_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
 
@@ -139,6 +138,14 @@ class oobj : public _obj {
     PyObject* release();
 
 };
+
+
+/**
+ * Return python constants None, True, False wrapped as `oobj`s.
+ */
+oobj None();
+oobj True();
+oobj False();
 
 
 }  // namespace py

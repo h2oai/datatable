@@ -68,7 +68,7 @@ oobj Frame::get_nrows() const {
 
 oobj Frame::bang(NoArgs&) {
   std::cout << "Yay, Frame::bang()!\n";
-  return oobj::none();
+  return None();
 }
 
 

@@ -414,9 +414,6 @@ PyObject* oobj::release() {
   return t;
 }
 
-oobj _obj::none() {
-  return oobj(Py_None);
-}
 
 oobj _obj::__str__() const {
   return oobj::from_new_reference(PyObject_Str(v));
@@ -437,6 +434,10 @@ int8_t _obj::__bool__() const {
   return static_cast<int8_t>(r);
 }
 
+
+oobj None()  { return oobj(Py_None); }
+oobj True()  { return oobj(Py_True); }
+oobj False() { return oobj(Py_False); }
 
 
 

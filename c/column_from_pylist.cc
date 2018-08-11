@@ -275,7 +275,8 @@ static bool parse_as_str(const py::list& list, MemoryRange& offbuf,
         T next_offset = curr_offset + tlen;
         // Check that length or offset of the string doesn't overflow int32_t
         if (std::is_same<T, int32_t>::value &&
-            (static_cast<size_t>(tlen) != cstr.size || next_offset < curr_offset)) {
+              (static_cast<int64_t>(tlen) != cstr.size ||
+               next_offset < curr_offset)) {
           break;
         }
         // Resize the strbuf if necessary
@@ -352,7 +353,8 @@ static void force_as_str(const py::list& list, MemoryRange& offbuf,
         T tlen = static_cast<T>(cstr.size);
         T next_offset = curr_offset + tlen;
         if (std::is_same<T, int32_t>::value &&
-            (static_cast<size_t>(tlen) != cstr.size || next_offset < curr_offset)) {
+              (static_cast<int64_t>(tlen) != cstr.size ||
+               next_offset < curr_offset)) {
           offsets[i] = curr_offset | GETNA<T>();
           continue;
         }
@@ -390,7 +392,7 @@ static bool parse_as_pyobj(const py::list& list, MemoryRange& membuf)
   for (size_t i = 0; i < nrows; ++i) {
     py::oobj item = list[i];
     if (item.is_float() && std::isnan(item.to_double())) {
-      outdata[i] = py::oobj::none().release();
+      outdata[i] = py::None().release();
     } else {
       outdata[i] = item.release();
     }
