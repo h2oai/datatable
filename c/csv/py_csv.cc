@@ -85,7 +85,7 @@ PyObject* gread(PyObject*, PyObject* args)
 {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:gread", &arg1)) return nullptr;
-  PyObj pyreader(arg1);
+  py::bobj pyreader(arg1);
 
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read();

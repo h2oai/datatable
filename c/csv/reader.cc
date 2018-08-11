@@ -26,8 +26,7 @@
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
-GenericReader::GenericReader(const PyObj& pyrdr)
-  : freader(pyrdr.data())  // TODO: pass pyrdr as py::bobj directly
+GenericReader::GenericReader(const py::bobj& pyrdr)
 {
   sof = nullptr;
   eof = nullptr;
@@ -35,11 +34,12 @@ GenericReader::GenericReader(const PyObj& pyrdr)
   cr_is_newline = 0;
   printout_anonymize = config::fread_anonymize;
   printout_escape_unicode = false;
-  src_arg = pyrdr.attr("src");
-  file_arg = pyrdr.attr("file");
-  text_arg = pyrdr.attr("text");
-  fileno = pyrdr.attr("fileno").as_int32();
-  logger = pyrdr.attr("logger");
+  freader  = pyrdr;
+  src_arg  = pyrdr.get_attr("src");
+  file_arg = pyrdr.get_attr("file");
+  text_arg = pyrdr.get_attr("text");
+  fileno   = pyrdr.get_attr("fileno").to_int32();
+  logger   = pyrdr.get_attr("logger");
 
   init_verbose();
   init_nthreads();
@@ -302,8 +302,9 @@ std::unique_ptr<DataTable> GenericReader::read()
   if (!dt) detect_improper_files();
   if (!dt) dt = FreadReader(*this).read();
   // if (!dt) dt = ArffReader(*this).read();
-  if (!dt) throw RuntimeError() << "Unable to read input "
-                                << src_arg.as_cstring();
+  if (!dt) {
+    throw RuntimeError() << "Unable to read input " << src_arg.to_string();
+  }
   return dt;  // copy-elision
 }
 
@@ -501,12 +502,11 @@ const char* GenericReader::repr_binary(
 
 void GenericReader::open_input() {
   double t0 = wallclock();
-  size_t size = 0;
-  const void* text = nullptr;
+  CString text;
   const char* filename = nullptr;
   size_t extra_byte = 0;
   if (fileno > 0) {
-    const char* src = src_arg.as_cstring();
+    const char* src = src_arg.to_cstring().ch;
     input_mbuf = MemoryRange::overmap(src, /* extra = */ 1, fileno);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
@@ -516,12 +516,13 @@ void GenericReader::open_input() {
     }
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
 
-  } else if ((text = text_arg.as_cstring(&size))) {
-    input_mbuf = MemoryRange::external(text, size + 1);
+  } else if ((text = text_arg.to_cstring())) {
+    size_t size = static_cast<size_t>(text.size);
+    input_mbuf = MemoryRange::external(text.ch, size + 1);
     extra_byte = 1;
     input_is_string = true;
 
-  } else if ((filename = file_arg.as_cstring())) {
+  } else if ((filename = file_arg.to_cstring().ch)) {
     input_mbuf = MemoryRange::overmap(filename, /* extra = */ 1);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
@@ -726,13 +727,13 @@ void GenericReader::detect_improper_files() {
   // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (ch + 15 < eof && std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
-    throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
+    throw RuntimeError() << src_arg.to_string() << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
   }
   // --- detect Feather ---
   if (sof + 8 < eof && std::memcmp(sof, "FEA1", 4) == 0
                     && std::memcmp(eof - 4, "FEA1", 4) == 0) {
-    throw RuntimeError() << src_arg.as_cstring() << " is a feather file, it "
+    throw RuntimeError() << src_arg.to_string() << " is a feather file, it "
         "cannot be read with fread.";
   }
 }
@@ -745,8 +746,9 @@ void GenericReader::decode_utf16() {
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
-  tempstr = PyObj(PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
-  PyObject* t = tempstr.as_pyobject();  // new ref
+  tempstr = py::oobj::from_new_reference(
+              PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
+  PyObject* t = tempstr.to_pyobject_newref();
   // borrowed ref, belongs to PyObject `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
   input_mbuf = MemoryRange::external(

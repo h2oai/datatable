@@ -55,6 +55,13 @@ oobj::oobj(oobj&& other) {
   other.obj = nullptr;
 }
 
+oobj& oobj::operator=(const oobj& other) {
+  Py_XDECREF(obj);
+  obj = other.obj;
+  Py_XINCREF(obj);
+  return *this;
+}
+
 oobj& oobj::operator=(oobj&& other) {
   Py_XDECREF(obj);
   obj = other.obj;
@@ -196,14 +203,23 @@ double _obj::to_double(const error_manager& em) const {
 
 
 CString _obj::to_cstring(const error_manager& em) const {
-  if (is_none()) return CString { nullptr, 0 };
-  if (!is_string()) {
-    throw em.error_not_string(obj);
-  }
   Py_ssize_t str_size;
-  const char* str = PyUnicode_AsUTF8AndSize(obj, &str_size);
-  if (!str) {
-    throw PyError();
+  const char* str;
+
+  if (PyUnicode_Check(obj)) {
+    str = PyUnicode_AsUTF8AndSize(obj, &str_size);
+    if (!str) throw PyError();
+  }
+  else if (PyBytes_Check(obj)) {
+    str_size = PyBytes_Size(obj);
+    str = PyBytes_AsString(obj);
+  }
+  else if (obj == Py_None) {
+    str_size = 0;
+    str = nullptr;
+  }
+  else {
+    throw em.error_not_string(obj);
   }
   return CString { str, static_cast<int64_t>(str_size) };
 }

@@ -127,6 +127,7 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(const bobj&);
     oobj(oobj&&);
+    oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();
 
