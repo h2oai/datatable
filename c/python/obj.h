@@ -7,6 +7,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_OBJ_h
 #define dt_PYTHON_OBJ_h
+#include <string>
+#include <vector>
 #include <Python.h>
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
@@ -22,6 +24,7 @@ namespace py {
 class list;
 class bobj;
 class oobj;
+using strvec = std::vector<std::string>;
 
 
 class _obj {
@@ -70,6 +73,7 @@ class _obj {
     PyyLong     to_pyint_force() const;
     PyyFloat    to_pyfloat    () const;
     char**      to_cstringlist() const;
+    strvec      to_stringlist () const;
 
     Column*     to_column     (const error_manager& = _em0) const;
     Groupby*    to_groupby    (const error_manager& = _em0) const;

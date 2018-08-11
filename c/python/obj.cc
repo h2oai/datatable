@@ -346,6 +346,36 @@ char** _obj::to_cstringlist() const {
 }
 
 
+strvec _obj::to_stringlist() const {
+  strvec res;
+  if (PyList_Check(obj) || PyTuple_Check(obj)) {
+    PyObject** items = PyList_Check(obj)
+        ? reinterpret_cast<PyListObject*>(obj)->ob_item
+        : reinterpret_cast<PyTupleObject*>(obj)->ob_item;
+    Py_ssize_t count = Py_SIZE(obj);
+    res.reserve(static_cast<size_t>(count));
+    for (Py_ssize_t i = 0; i < count; ++i) {
+      PyObject* item = items[i];
+      if (PyUnicode_Check(item)) {
+        PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
+        if (!y) throw PyError();
+        res.push_back(PyBytes_AsString(y));
+        Py_DECREF(y);
+      } else
+      if (PyBytes_Check(item)) {
+        res.push_back(PyBytes_AsString(item));
+      } else {
+        throw TypeError() << "Item " << i << " in the list is not a string: "
+                          << item << " (" << PyObject_Type(item) << ")";
+      }
+    }
+  } else if (obj != Py_None) {
+    throw TypeError() << "A list of strings is expected, got " << obj;
+  }
+  return res;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc

@@ -23,29 +23,28 @@
 
 PyObject* write_csv(PyObject*, PyObject* args)
 {
-  PyObject* pywriter;
-  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter)) return nullptr;
-  PyObj pywr(pywriter);
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:write_csv", &arg1)) return nullptr;
+  py::bobj pywr(arg1);
 
-  DataTable* dt = pywr.attr("datatable").as_datatable();
-  std::string filename = pywr.attr("path").as_string();
-  std::string strategy = pywr.attr("_strategy").as_string();
+  DataTable* dt = pywr.get_attr("datatable").to_frame();
+  auto filename = pywr.get_attr("path").to_string();
+  auto strategy = pywr.get_attr("_strategy").to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
   CsvWriter cwriter(dt, filename);
-  cwriter.set_logger(pywriter);
-  cwriter.set_verbose(pywr.attr("verbose").as_bool());
-  cwriter.set_usehex(pywr.attr("hex").as_bool());
+  cwriter.set_logger(arg1);
+  cwriter.set_verbose(pywr.get_attr("verbose").to_bool());
+  cwriter.set_usehex(pywr.get_attr("hex").to_bool());
   cwriter.set_strategy(sstrategy);
 
-  std::vector<std::string>
-      colnames = pywr.attr("column_names").as_stringlist();
+  auto colnames = pywr.get_attr("column_names").to_stringlist();
   cwriter.set_column_names(colnames);  // move-assignment
 
-  int32_t nthreads = static_cast<int32_t>(pywr.attr("nthreads").as_int64());
+  int32_t nthreads = pywr.get_attr("nthreads").to_int32();
   if (ISNA<int32_t>(nthreads)) {
     nthreads = config::nthreads;
   } else {

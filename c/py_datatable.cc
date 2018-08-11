@@ -600,9 +600,9 @@ PyObject* save_jay(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
     return nullptr;
 
-  std::string filename = py::bobj(arg1).to_string();
-  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
-  std::string strategy = py::bobj(arg3).to_string();
+  auto filename = py::bobj(arg1).to_string();
+  auto colnames = py::bobj(arg2).to_stringlist();
+  auto strategy = py::bobj(arg3).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
