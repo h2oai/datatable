@@ -9,7 +9,6 @@
 #include "expr/py_expr.h"
 #include <Python.h>
 #include "python/obj.h"
-#include "utils/pyobj.h"
 #include "py_column.h"
 
 

@@ -14,7 +14,6 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "utils.h"
-#include "utils/pyobj.h"
 
 
 namespace pycolumnset

@@ -12,7 +12,6 @@
 #include "python/list.h"
 #include "python/long.h"
 #include "utils/exceptions.h"
-#include "utils/pyobj.h"
 
 
 /**

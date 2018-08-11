@@ -11,7 +11,6 @@
 #include "py_types.h"
 #include "writebuf.h"
 #include "python/list.h"
-#include "utils/pyobj.h"
 
 namespace pycolumn
 {

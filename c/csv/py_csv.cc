@@ -18,7 +18,6 @@
 #include "py_utils.h"
 #include "utils.h"
 #include "utils/omp.h"
-#include "utils/pyobj.h"
 
 
 PyObject* write_csv(PyObject*, PyObject* args)

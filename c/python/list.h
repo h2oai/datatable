@@ -9,7 +9,6 @@
 #define dt_PYTHON_LIST_h
 #include <Python.h>
 #include "python/obj.h"
-#include "utils/pyobj.h"
 
 class PyyList;
 class PyyLong;

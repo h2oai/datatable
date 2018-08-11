@@ -8,7 +8,6 @@
 #ifndef dt_PYTHON_FLOAT_h
 #define dt_PYTHON_FLOAT_h
 #include <Python.h>
-#include "utils/pyobj.h"
 
 
 
