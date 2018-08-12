@@ -321,6 +321,15 @@ def test_create_from_pandas_float16(pandas):
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
+def test_create_from_pandas_issue1235(pandas):
+    df = dt.fread("A\n" + "\U00010000" * 50).topandas()
+    table = dt.Frame(df)
+    table.internal.check()
+    assert table.shape == (1, 1)
+    assert table.scalar() == "\U00010000" * 50
+
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
