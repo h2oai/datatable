@@ -27,6 +27,21 @@ class oobj;
 using strvec = std::vector<std::string>;
 
 
+/**
+ * This class is a C++ wrapper around pythonic C struct `PyObject*`. Its main
+ * purpose is to provide type checks and conversions into native C++
+ * primitives / objects.
+ *
+ * `py::_obj` by itself is not usable: instead, one should use one of the two
+ * derived classes:
+ *   - `py::obj` contains a *borrowed PyObject reference*. This class is used
+ *     most commonly for objects that have a very small lifespan. DO NOT use
+ *     this class to store `PyObject*`s for an extended period of time.
+ *   - `py::oobj` contains an *owned PyObject reference*. The value that it
+ *     wraps will not be garbage-collected as long as the `py::oobj` object
+ *     remains alive. This class bears extra performance cost compared to
+ *     `py::obj` (however this extra cost is very small).
+ */
 class _obj {
   protected:
     PyObject* v;
@@ -87,17 +102,17 @@ class _obj {
      */
     struct error_manager {
       virtual ~error_manager() {}
-      virtual Error error_not_boolean(PyObject*) const;
-      virtual Error error_not_integer(PyObject*) const;
-      virtual Error error_not_double(PyObject*) const;
-      virtual Error error_not_string(PyObject*) const;
-      virtual Error error_not_groupby(PyObject*) const;
-      virtual Error error_not_rowindex(PyObject*) const;
-      virtual Error error_not_frame(PyObject*) const;
-      virtual Error error_not_column(PyObject*) const;
-      virtual Error error_not_list(PyObject*) const;
-      virtual Error error_int32_overflow(PyObject*) const;
-      virtual Error error_int64_overflow(PyObject*) const;
+      virtual Error error_not_boolean    (PyObject*) const;
+      virtual Error error_not_integer    (PyObject*) const;
+      virtual Error error_not_double     (PyObject*) const;
+      virtual Error error_not_string     (PyObject*) const;
+      virtual Error error_not_groupby    (PyObject*) const;
+      virtual Error error_not_rowindex   (PyObject*) const;
+      virtual Error error_not_frame      (PyObject*) const;
+      virtual Error error_not_column     (PyObject*) const;
+      virtual Error error_not_list       (PyObject*) const;
+      virtual Error error_int32_overflow (PyObject*) const;
+      virtual Error error_int64_overflow (PyObject*) const;
     };
     static error_manager _em0;
 
