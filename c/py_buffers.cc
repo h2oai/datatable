@@ -187,8 +187,8 @@ static Column* try_to_resolve_object_column(Column* col)
   size_t strbuf_size = static_cast<size_t>(total_length);
   MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   MemoryRange strbuf = MemoryRange::mem(strbuf_size);
-  uint32_t* offsets = static_cast<uint32_t*>(offbuf.wptr());
-  char* strs = static_cast<char*>(strbuf.wptr());
+  uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
+  char* strs = static_cast<char*>(strbuf.xptr());
 
   offsets[0] = 0;
   ++offsets;
@@ -201,9 +201,9 @@ static Column* try_to_resolve_object_column(Column* col)
       PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
       if (offset + sz > strbuf_size) {
-        strbuf_size = static_cast<size_t>(1.5 * strbuf_size);
+        strbuf_size = static_cast<size_t>(1.5 * strbuf_size + sz);
         strbuf.resize(strbuf_size);
-        strs = static_cast<char*>(strbuf.wptr()); // Location may have changed
+        strs = static_cast<char*>(strbuf.xptr()); // Location may have changed
       }
       std::memcpy(strs + offset, PyBytes_AsString(z), sz);
       Py_DECREF(z);
@@ -212,6 +212,7 @@ static Column* try_to_resolve_object_column(Column* col)
     }
   }
 
+  xassert(offset < strbuf.size());
   strbuf.resize(offset);
   delete col;
   return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
