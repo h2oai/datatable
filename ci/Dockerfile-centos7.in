@@ -23,7 +23,7 @@ ENV LLVM_CONFIG=$LLVM6/bin/llvm-config
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM6/bin:$PATH
-ENV PANDAS_VERSION=0.20.0
+ENV PANDAS_VERSION=0.23.4
 ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
 RUN pip install llvmlite==0.23.0 wheel virtualenv && \
@@ -44,6 +44,11 @@ RUN pip install llvmlite==0.23.0 wheel virtualenv && \
     . deactivate && \
     \
     conda create -n datatable-py36 python=3.6 && \
+    \
+    conda create -n datatable-py37-with-pandas python=3.7 && \
+    . activate datatable-py37-with-pandas && \
+    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+    . deactivate && \
     \
     chmod -R a+w /opt/h2oai/dai/python/envs
 
