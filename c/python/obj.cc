@@ -199,8 +199,25 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
-py::Int _obj::to_pyint(const error_manager&) const {
-  return py::Int(v);
+py::Int _obj::to_pyint(const error_manager& em) const {
+  if (PyLong_Check(v) || v == Py_None) {
+    return py::Int(v);
+  }
+  throw em.error_not_integer(v);
+}
+
+
+py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
+  if (PyLong_Check(v) || v == Py_None) {
+    return py::oInt(v);
+  }
+  PyObject* num = PyNumber_Long(v);  // new ref
+  if (!num) {
+    PyErr_Clear();
+    num = Py_None;
+    Py_INCREF(num);
+  }
+  return py::oInt::_from_pyobject_no_checks(num);
 }
 
 
@@ -299,14 +316,6 @@ Column* _obj::to_column(const error_manager& em) const {
   return reinterpret_cast<pycolumn::obj*>(v)->ref;
 }
 
-
-py::Int _obj::to_pyint_force() const {
-  if (is_int()) {
-    return py::Int(v);
-  } else {
-    return py::Int::fromAnyObject(v);
-  }
-}
 
 PyyFloat _obj::to_pyfloat() const {
   return PyyFloat(v);

@@ -59,11 +59,11 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
 oobj Frame::get_ncols() const {
-  return oobj(py::Int(11));
+  return oobj(py::oInt(11));
 }
 
 oobj Frame::get_nrows() const {
-  return oobj(py::Int(47));
+  return oobj(py::oInt(47));
 }
 
 oobj Frame::bang(NoArgs&) {

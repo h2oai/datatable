@@ -17,22 +17,6 @@ namespace py {
 
 Int::Int() : obj(nullptr) {}
 
-Int::Int(int32_t n) {
-  obj = PyLong_FromLong(n);
-}
-
-Int::Int(int64_t n) {
-  obj = PyLong_FromLongLong(n);
-}
-
-Int::Int(size_t n) {
-  obj = PyLong_FromSize_t(n);
-}
-
-Int::Int(double x) {
-  obj = PyLong_FromDouble(x);
-}
-
 Int::Int(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
@@ -42,38 +26,60 @@ Int::Int(PyObject* src) {
     if (!PyLong_Check(src)) {
       throw TypeError() << "Object " << src << " is not an integer";
     }
-    Py_INCREF(src);
   }
 }
 
 Int::Int(const Int& other) {
   obj = other.obj;
-  Py_INCREF(obj);
 }
 
-Int::Int(Int&& other) : Int() {
+
+oInt::oInt() {}
+
+oInt::oInt(int32_t n) {
+  obj = PyLong_FromLong(n);
+}
+
+oInt::oInt(int64_t n) {
+  static_assert(sizeof(long) == sizeof(int64_t), "Wrong size of long");
+  obj = PyLong_FromLong(n);
+}
+
+oInt::oInt(size_t n) {
+  obj = PyLong_FromSize_t(n);
+}
+
+oInt::oInt(double x) {
+  obj = PyLong_FromDouble(x);
+}
+
+oInt::oInt(PyObject* src) : Int(src) {
+  Py_XINCREF(src);
+}
+
+oInt::oInt(const oInt& other) {
+  obj = other.obj;
+  Py_XINCREF(obj);
+}
+
+oInt::oInt(oInt&& other) : oInt() {
   swap(*this, other);
 }
 
-Int::~Int() {
+oInt::~oInt() {
   Py_XDECREF(obj);
+}
+
+
+oInt oInt::_from_pyobject_no_checks(PyObject* v) {
+  oInt res;
+  res.obj = v;
+  return res;
 }
 
 
 void swap(Int& first, Int& second) noexcept {
   std::swap(first.obj, second.obj);
-}
-
-
-Int Int::fromAnyObject(PyObject* obj) {
-  Int res;
-  PyObject* num = PyNumber_Long(obj);  // new ref
-  if (num) {
-    res.obj = num;
-  } else {
-    PyErr_Clear();
-  }
-  return res;
 }
 
 

@@ -32,20 +32,14 @@ namespace py {
  *   truncate it using `static_cast<T>`.
  *
  */
-class Int {
-  private:
+class Int {  // capitalized, because lowercase `int` is a reserved word
+  protected:
     PyObject* obj;
 
   public:
     Int();
-    Int(int32_t n);
-    Int(int64_t n);
-    Int(size_t n);
-    Int(double x);
     Int(PyObject*);
     Int(const Int&);
-    Int(Int&&);
-    ~Int();
 
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
@@ -54,10 +48,25 @@ class Int {
     operator py::oobj() &&;
     PyObject* release();
 
-    static Int fromAnyObject(PyObject*);
     friend void swap(Int& first, Int& second) noexcept;
 };
 
+
+class oInt : public Int {
+  public:
+    oInt();
+    oInt(int32_t n);
+    oInt(int64_t n);
+    oInt(size_t n);
+    oInt(double x);
+    oInt(PyObject*);
+    oInt(const oInt&);
+    oInt(oInt&&);
+    oInt(oobj&&);
+    ~oInt();
+
+    static oInt _from_pyobject_no_checks(PyObject* v);
+};
 
 
 // Explicit specializations

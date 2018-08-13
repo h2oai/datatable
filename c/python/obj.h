@@ -21,6 +21,7 @@ class PyyFloat;  // TODO: remove
 
 namespace py {
 class Int;
+class oInt;
 class list;
 class obj;
 class oobj;
@@ -73,6 +74,16 @@ using strvec = std::vector<std::string>;
  *    All non-ints (including None, True and False) cause an exception. If the
  *    conversion causes an integer overflow, it also causes an exception.
  *
+ * to_pyint:
+ *    Convert into a py::Int instance, or raise an exception if the object is
+ *    not a python int or None. A `py::Int` object offers many additional ways
+ *    to convert the value into C++ primitives.
+ *
+ * to_pyint_force:  [noexcept]
+ *    Similar to `to_pyint`, but it will also attempt to convert its argument
+ *    into an int using python `int(x)` function. If this function raises an
+ *    error, the value will be converted into an NA.
+ *
  */
 class _obj {
   protected:
@@ -106,7 +117,7 @@ class _obj {
     int32_t     to_int32_strict(const error_manager& = _em0) const;
     int64_t     to_int64_strict(const error_manager& = _em0) const;
     py::Int     to_pyint       (const error_manager& = _em0) const;
-    py::Int     to_pyint_force () const;
+    py::oInt    to_pyint_force (const error_manager& = _em0) const noexcept;
 
     double      to_double      (const error_manager& = _em0) const;
     PyyFloat    __float__() const;
@@ -151,10 +162,9 @@ class _obj {
     // `oobj` objects instead.
     _obj() = default;
 
-  private:
-
     friend oobj;
 };
+
 
 
 class obj : public _obj {
@@ -165,6 +175,7 @@ class obj : public _obj {
 
     PyObject* to_borrowed_ref() const { return v; }
 };
+
 
 
 class oobj : public _obj {
