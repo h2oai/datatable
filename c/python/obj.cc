@@ -220,8 +220,7 @@ py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
-    num = Py_None;
-    Py_INCREF(num);
+    num = nullptr;
   }
   return py::oInt::_from_pyobject_no_checks(num);
 }
@@ -251,8 +250,16 @@ Float _obj::to_pyfloat(const error_manager&) const {
 }
 
 
-Float _obj::__float__(const error_manager&) const {
-  return Float::fromAnyObject(v);
+oFloat _obj::__float__(const error_manager&) const {
+  if (PyFloat_Check(v) || v == Py_None) {
+    return py::oFloat(v);
+  }
+  PyObject* num = PyNumber_Float(v);  // new ref
+  if (!num) {
+    PyErr_Clear();
+    num = nullptr;
+  }
+  return py::oFloat::_from_pyobject_no_checks(num);
 }
 
 

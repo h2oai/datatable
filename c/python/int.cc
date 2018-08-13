@@ -66,15 +66,14 @@ oInt::oInt(oInt&& other) : oInt() {
   swap(*this, other);
 }
 
-oInt::~oInt() {
-  Py_XDECREF(obj);
-}
-
-
 oInt oInt::_from_pyobject_no_checks(PyObject* v) {
   oInt res;
   res.obj = v;
   return res;
+}
+
+oInt::~oInt() {
+  Py_XDECREF(obj);
 }
 
 

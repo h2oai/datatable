@@ -8,27 +8,37 @@
 #ifndef dt_PYTHON_FLOAT_h
 #define dt_PYTHON_FLOAT_h
 #include <Python.h>
+#include "python/obj.h"
 
 namespace py {
 
 
 class Float {
-  private:
+  protected:
     PyObject* obj;
 
   public:
     Float();
-    Float(double x);
     Float(PyObject*);
     Float(const Float&);
-    Float(Float&&);
-    ~Float();
 
     template <typename T> T value() const;
 
-    static Float fromAnyObject(PyObject*);
     friend void swap(Float& first, Float& second) noexcept;
 };
+
+
+class oFloat : public Float {
+  public:
+    oFloat();
+    oFloat(double x);
+    oFloat(PyObject*);
+    oFloat(const oFloat&);
+    oFloat(oFloat&&);
+    static oFloat _from_pyobject_no_checks(PyObject* v);
+    ~oFloat();
+};
+
 
 
 // Explicit instantiation

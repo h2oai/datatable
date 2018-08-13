@@ -17,12 +17,6 @@ namespace py {
 
 Float::Float() : obj(nullptr) {}
 
-
-Float::Float(double v) {
-  obj = PyFloat_FromDouble(v);  // new ref
-}
-
-
 Float::Float(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
@@ -32,20 +26,41 @@ Float::Float(PyObject* src) {
     if (!PyFloat_Check(src)) {
       throw TypeError() << "Object " << src << " is not a float";
     }
-    Py_INCREF(src);
   }
 }
 
 Float::Float(const Float& other) {
   obj = other.obj;
-  Py_INCREF(obj);
 }
 
-Float::Float(Float&& other) : Float() {
+
+
+oFloat::oFloat() {}
+
+oFloat::oFloat(double v) {
+  obj = PyFloat_FromDouble(v);  // new ref
+}
+
+oFloat::oFloat(PyObject* src) : Float(src) {
+  Py_XINCREF(obj);
+}
+
+oFloat::oFloat(const oFloat& other) {
+  obj = other.obj;
+  Py_XINCREF(obj);
+}
+
+oFloat::oFloat(oFloat&& other) : oFloat() {
   swap(*this, other);
 }
 
-Float::~Float() {
+oFloat oFloat::_from_pyobject_no_checks(PyObject* v) {
+  oFloat res;
+  res.obj = v;
+  return res;
+}
+
+oFloat::~oFloat() {
   Py_XDECREF(obj);
 }
 
@@ -55,27 +70,15 @@ void swap(Float& first, Float& second) noexcept {
 }
 
 
-Float Float::fromAnyObject(PyObject* obj) {
-  Float res;
-  PyObject* num = PyNumber_Float(obj);  // new ref
-  if (num) {
-    res.obj = num;
-  } else {
-    PyErr_Clear();
-  }
-  return res;
-}
-
-
-
 
 //------------------------------------------------------------------------------
-// Value conversion
+// Value conversions
 //------------------------------------------------------------------------------
 
 template<typename T>
 T Float::value() const {
-  return obj? static_cast<T>(PyFloat_AS_DOUBLE(obj)) : GETNA<T>();
+  if (!obj) return GETNA<T>();
+  return static_cast<T>(PyFloat_AS_DOUBLE(obj));
 }
 
 
