@@ -55,6 +55,12 @@ oobj::oobj(oobj&& other) {
   other.v = nullptr;
 }
 
+oobj::oobj(oInt&& other) {
+  v = other.obj;
+  other.obj = nullptr;;
+}
+
+
 oobj& oobj::operator=(const oobj& other) {
   Py_XDECREF(v);
   v = other.v;

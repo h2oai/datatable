@@ -85,22 +85,8 @@ void swap(Int& first, Int& second) noexcept {
 
 
 //------------------------------------------------------------------------------
-// Public API
+// Value conversions
 //------------------------------------------------------------------------------
-
-Int::operator py::oobj() && {
-  PyObject* t = obj;
-  obj = nullptr;
-  return py::oobj::from_new_reference(t);
-}
-
-PyObject* Int::release() {
-  PyObject* t = obj;
-  obj = nullptr;
-  return t;
-}
-
-
 
 template<> long Int::value<long>(int* overflow) const {
   if (!obj) return GETNA<long>();

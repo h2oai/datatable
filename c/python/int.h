@@ -45,9 +45,6 @@ class Int {  // capitalized, because lowercase `int` is a reserved word
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
 
-    operator py::oobj() &&;
-    PyObject* release();
-
     friend void swap(Int& first, Int& second) noexcept;
 };
 
@@ -66,6 +63,7 @@ class oInt : public Int {
     ~oInt();
 
     static oInt _from_pyobject_no_checks(PyObject* v);
+    friend oobj::oobj(oInt&&);
 };
 
 
