@@ -248,12 +248,6 @@ std::string _obj::to_string(const error_manager& em) const {
 }
 
 
-PyObject* _obj::to_pyobject_newref() const {
-  Py_INCREF(v);
-  return v;
-}
-
-
 py::list _obj::to_list(const error_manager& em) const {
   if (is_none()) return py::list();
   if (!(is_list() || is_tuple())) {

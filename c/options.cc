@@ -124,7 +124,7 @@ PyObject* set_option(PyObject*, PyObject* args) {
     set_sort_nthreads(value.to_int32_strict());
 
   } else if (name == "core_logger") {
-    set_core_logger(value.to_pyobject_newref());
+    set_core_logger(py::oobj(value).release());
 
   } else if (name == "fread.anonymize") {
     set_fread_anonymize(value.to_bool_strict());

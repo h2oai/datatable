@@ -746,18 +746,16 @@ void GenericReader::decode_utf16() {
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
-  tempstr = py::oobj::from_new_reference(
-              PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
-  PyObject* t = tempstr.to_pyobject_newref();
-  // borrowed ref, belongs to PyObject `t`
+  PyObject* t = PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder);
+  tempstr = py::oobj::from_new_reference(t);
+
+  // `buf` is a borrowed ref, belongs to PyObject* `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
   input_mbuf = MemoryRange::external(
                   const_cast<void*>(static_cast<const void*>(buf)),
                   static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
   eof = sof + ssize + 1;
-  // the object `t` remains alive within `tempstr`
-  Py_DECREF(t);
 }
 
 
