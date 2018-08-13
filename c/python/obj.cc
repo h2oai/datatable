@@ -424,17 +424,6 @@ PyyFloat _obj::__float__() const {
 }
 
 
-int8_t _obj::__bool__() const {
-  if (v == Py_None) return GETNA<int8_t>();
-  int r = PyObject_IsTrue(v);
-  if (r == -1) {
-    PyErr_Clear();
-    return GETNA<int8_t>();
-  }
-  return static_cast<int8_t>(r);
-}
-
-
 oobj None()  { return oobj(Py_None); }
 oobj True()  { return oobj(Py_True); }
 oobj False() { return oobj(Py_False); }

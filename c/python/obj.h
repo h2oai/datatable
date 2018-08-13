@@ -32,7 +32,7 @@ using strvec = std::vector<std::string>;
  * purpose is to provide type checks and conversions into native C++
  * primitives / objects.
  *
- * `py::_obj` by itself is not usable: instead, one should use one of the two
+ * `py::_obj` by itself is not usable: instead, you should use one of the two
  * derived classes:
  *   - `py::obj` contains a *borrowed PyObject reference*. This class is used
  *     most commonly for objects that have a very small lifespan. DO NOT use
@@ -41,6 +41,7 @@ using strvec = std::vector<std::string>;
  *     wraps will not be garbage-collected as long as the `py::oobj` object
  *     remains alive. This class bears extra performance cost compared to
  *     `py::obj` (however this extra cost is very small).
+ *
  */
 class _obj {
   protected:
@@ -53,7 +54,6 @@ class _obj {
 
     PyyFloat __float__() const;
     oobj     __str__() const;
-    int8_t   __bool__() const;
 
     bool is_none() const;
     bool is_ellipsis() const;
@@ -69,30 +69,30 @@ class _obj {
     bool is_dict() const;
     bool is_buffer() const;
 
-    int8_t   to_bool          (const error_manager& = _em0) const;
-    int8_t   to_bool_strict   (const error_manager& = _em0) const;
-    int8_t   to_bool_force    (const error_manager& = _em0) const;
-    int32_t  to_int32         (const error_manager& = _em0) const;
-    int32_t  to_int32_strict  (const error_manager& = _em0) const;
-    int32_t  to_int32_truncate(const error_manager& = _em0) const;
-    int32_t  to_int32_mask    (const error_manager& = _em0) const;
-    int64_t  to_int64         (const error_manager& = _em0) const;
-    int64_t  to_int64_strict  (const error_manager& = _em0) const;
-    double   to_double        (const error_manager& = _em0) const;
-    CString     to_cstring    (const error_manager& = _em0) const;
-    std::string to_string     (const error_manager& = _em0) const;
+    int8_t      to_bool           (const error_manager& = _em0) const;
+    int8_t      to_bool_strict    (const error_manager& = _em0) const;
+    int8_t      to_bool_force     (const error_manager& = _em0) const;
+    int32_t     to_int32          (const error_manager& = _em0) const;
+    int32_t     to_int32_strict   (const error_manager& = _em0) const;
+    int32_t     to_int32_truncate (const error_manager& = _em0) const;
+    int32_t     to_int32_mask     (const error_manager& = _em0) const;
+    int64_t     to_int64          (const error_manager& = _em0) const;
+    int64_t     to_int64_strict   (const error_manager& = _em0) const;
+    double      to_double         (const error_manager& = _em0) const;
+    CString     to_cstring        (const error_manager& = _em0) const;
+    std::string to_string         (const error_manager& = _em0) const;
     PyObject*   to_pyobject_newref() const;
-    py::list    to_list       (const error_manager& = _em0) const;
-    PyyLong     to_pyint      () const;
-    PyyLong     to_pyint_force() const;
-    PyyFloat    to_pyfloat    () const;
-    char**      to_cstringlist() const;
-    strvec      to_stringlist () const;
+    py::list    to_list           (const error_manager& = _em0) const;
+    PyyLong     to_pyint          () const;
+    PyyLong     to_pyint_force    () const;
+    PyyFloat    to_pyfloat        () const;
+    char**      to_cstringlist    () const;
+    strvec      to_stringlist     () const;
 
-    Column*     to_column     (const error_manager& = _em0) const;
-    Groupby*    to_groupby    (const error_manager& = _em0) const;
-    RowIndex    to_rowindex   (const error_manager& = _em0) const;
-    DataTable*  to_frame      (const error_manager& = _em0) const;
+    Column*     to_column         (const error_manager& = _em0) const;
+    Groupby*    to_groupby        (const error_manager& = _em0) const;
+    RowIndex    to_rowindex       (const error_manager& = _em0) const;
+    DataTable*  to_frame          (const error_manager& = _em0) const;
 
   protected:
     /**
