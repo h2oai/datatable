@@ -55,8 +55,23 @@ using strvec = std::vector<std::string>;
  *
  * to_bool_force:  [noexcept]
  *    Converts None into NA, otherwise converts into true / false using the
- *    python `__bool__()` method (if the method raises an exception, then the
- *    value is treated as NA).
+ *    python `bool(value)` call (if it raises an exception, then the value
+ *    is converted into an NA).
+ *
+ *
+ * to_int32:
+ * to_int64:
+ *    Convert None into NA, or an integer value into either int32_t or int64_t
+ *    C++ primitive. True and False are treated as integers 1 and 0. All other
+ *    value types raise an exception. If the pythonic integer is too large
+ *    to fit into 32/64 bits, then it will be replaced with the largest 32/64
+ *    bit integer (taking the sign into account).
+ *
+ * to_int32_strict:
+ * to_int64_strict:
+ *    Convert a pythonic integer into either an int32_t or int64_t C++ value.
+ *    All non-ints (including None, True and False) cause an exception. If the
+ *    conversion causes an integer overflow, it also causes an exception.
  *
  */
 class _obj {
@@ -90,11 +105,10 @@ class _obj {
     int8_t      to_bool_force     (const error_manager& = _em0) const noexcept;
 
     int32_t     to_int32          (const error_manager& = _em0) const;
-    int32_t     to_int32_strict   (const error_manager& = _em0) const;
-    int32_t     to_int32_truncate (const error_manager& = _em0) const;
-    int32_t     to_int32_mask     (const error_manager& = _em0) const;
     int64_t     to_int64          (const error_manager& = _em0) const;
+    int32_t     to_int32_strict   (const error_manager& = _em0) const;
     int64_t     to_int64_strict   (const error_manager& = _em0) const;
+
     double      to_double         (const error_manager& = _em0) const;
     CString     to_cstring        (const error_manager& = _em0) const;
     std::string to_string         (const error_manager& = _em0) const;
@@ -138,8 +152,6 @@ class _obj {
     _obj() = default;
 
   private:
-    template <int MODE>
-    int32_t _to_int32(const error_manager& em) const;
 
     friend oobj;
 };

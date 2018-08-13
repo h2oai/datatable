@@ -44,9 +44,6 @@ static bool parse_as_bool(const py::list& list, MemoryRange& membuf, size_t& fro
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
-  // Use the fact that Python stores small integers as singletons, and thus
-  // in order to check whether a PyObject* is integer 0 or 1 it's enough to
-  // check whether the objects are the same.
   size_t i = 0;
   try {
     for (; i < nrows; ++i) {

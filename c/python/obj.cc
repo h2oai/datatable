@@ -137,58 +137,57 @@ int8_t _obj::to_bool_force(const error_manager&) const noexcept {
 
 
 //------------------------------------------------------------------------------
-// Type conversions
+// Integer conversions
 //------------------------------------------------------------------------------
 
-template <int MODE>
-int32_t _obj::_to_int32(const error_manager& em) const {
+int32_t _obj::to_int32(const error_manager& em) const {
   constexpr int32_t MAX = std::numeric_limits<int32_t>::max();
-  if (!is_int()) {
+  if (is_none()) return GETNA<int32_t>();
+  if (!PyLong_Check(v)) {
     throw em.error_not_integer(v);
-  }
-  if (MODE == 3) { // mask
-    unsigned long value = PyLong_AsUnsignedLongMask(v);
-    return static_cast<int32_t>(value);
   }
   int overflow;
   long value = PyLong_AsLongAndOverflow(v, &overflow);
   int32_t res = static_cast<int32_t>(value);
   if (overflow || value != static_cast<long>(res)) {
-    if (MODE == 1)
-      throw em.error_int32_overflow(v);
-    if (MODE == 2) {  // truncate
-      if (overflow == 1 || value > res) res = MAX;
-      else res = -MAX;
-    }
+    res = (overflow == 1 || value > res) ? MAX : -MAX;
   }
   return res;
 }
 
-int32_t _obj::to_int32(const error_manager& em) const {
-  if (is_none()) return GETNA<int32_t>();
-  return _to_int32<1>(em);
-}
 
 int32_t _obj::to_int32_strict(const error_manager& em) const {
-  return _to_int32<1>(em);
-}
-
-int32_t _obj::to_int32_truncate(const error_manager& em) const {
-  return _to_int32<2>(em);
-}
-
-int32_t _obj::to_int32_mask(const error_manager& em) const {
-  return _to_int32<1>(em);
+  if (!PyLong_Check(v) || is_bool()) {
+    throw em.error_not_integer(v);
+  }
+  int overflow;
+  long value = PyLong_AsLongAndOverflow(v, &overflow);
+  int32_t res = static_cast<int32_t>(value);
+  if (overflow || value != static_cast<long>(res)) {
+    throw em.error_int32_overflow(v);
+  }
+  return res;
 }
 
 
 int64_t _obj::to_int64(const error_manager& em) const {
+  constexpr int64_t MAX = std::numeric_limits<int64_t>::max();
   if (is_none()) return GETNA<int64_t>();
-  return to_int64_strict(em);
+  if (!PyLong_Check(v)) {
+    throw em.error_not_integer(v);
+  }
+  int overflow;
+  long value = PyLong_AsLongAndOverflow(v, &overflow);
+  int64_t res = static_cast<int64_t>(value);
+  if (overflow ) {
+    res = overflow == 1 ? MAX : -MAX;
+  }
+  return res;
 }
 
+
 int64_t _obj::to_int64_strict(const error_manager& em) const {
-  if (!is_int()) {
+  if (!PyLong_Check(v) || is_bool()) {
     throw em.error_not_integer(v);
   }
   int overflow;
@@ -199,6 +198,12 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
   return value;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Float conversions
+//------------------------------------------------------------------------------
 
 double _obj::to_double(const error_manager& em) const {
   if (PyFloat_Check(v)) return PyFloat_AsDouble(v);
