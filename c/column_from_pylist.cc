@@ -47,23 +47,16 @@ static bool parse_as_bool(const py::list& list, MemoryRange& membuf, size_t& fro
   // Use the fact that Python stores small integers as singletons, and thus
   // in order to check whether a PyObject* is integer 0 or 1 it's enough to
   // check whether the objects are the same.
-  for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list[i];
-
-    if (item.is_none()) outdata[i] = GETNA<int8_t>();
-    else if (item.is_true()) outdata[i] = 1;
-    else if (item.is_false()) outdata[i] = 0;
-    else {
-      if (item.is_int()) {
-        int32_t value = item.to_int32_truncate();
-        if (value == 0 || value == 1) {
-          outdata[i] = static_cast<int8_t>(value);
-          continue;
-        }
-      }
-      from = i;
-      return false;
+  size_t i = 0;
+  try {
+    for (; i < nrows; ++i) {
+      py::obj item = list[i];
+      // This will throw an exception if the value is not bool-like.
+      outdata[i] = item.to_bool();
     }
+  } catch (const std::exception&) {
+    from = i;
+    return false;
   }
   return true;
 }

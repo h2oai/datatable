@@ -102,13 +102,19 @@ bool _obj::is_buffer() const   { return PyObject_CheckBuffer(v); }
 
 
 //------------------------------------------------------------------------------
-// Type conversions
+// Bool conversions
 //------------------------------------------------------------------------------
 
 int8_t _obj::to_bool(const error_manager& em) const {
   if (v == Py_None) return GETNA<int8_t>();
   if (v == Py_True) return 1;
   if (v == Py_False) return 0;
+  if (PyLong_CheckExact(v)) {
+    int overflow;
+    long x = PyLong_AsLongAndOverflow(v, &overflow);
+    if (x == 0 || x == 1) return static_cast<int8_t>(x);
+    // In all other cases, including when an overflow occurs -- fall through
+  }
   throw em.error_not_boolean(v);
 }
 
@@ -118,7 +124,7 @@ int8_t _obj::to_bool_strict(const error_manager& em) const {
   throw em.error_not_boolean(v);
 }
 
-int8_t _obj::to_bool_force(const error_manager&) const {
+int8_t _obj::to_bool_force(const error_manager&) const noexcept {
   if (v == Py_None) return GETNA<int8_t>();
   int r = PyObject_IsTrue(v);
   if (r == -1) {
@@ -128,6 +134,11 @@ int8_t _obj::to_bool_force(const error_manager&) const {
   return static_cast<int8_t>(r);
 }
 
+
+
+//------------------------------------------------------------------------------
+// Type conversions
+//------------------------------------------------------------------------------
 
 template <int MODE>
 int32_t _obj::_to_int32(const error_manager& em) const {

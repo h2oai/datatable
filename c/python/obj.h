@@ -42,6 +42,22 @@ using strvec = std::vector<std::string>;
  *     remains alive. This class bears extra performance cost compared to
  *     `py::obj` (however this extra cost is very small).
  *
+ *
+ * Conversion methods
+ * ==================
+ *
+ * to_bool:
+ *    Converts None -> NA, True or 1 -> true, False or 0 -> false, or raises
+ *    an error otherwise.
+ *
+ * to_bool_strict:
+ *    Converts True -> true, False -> false, otherwise raises an error.
+ *
+ * to_bool_force:  [noexcept]
+ *    Converts None into NA, otherwise converts into true / false using the
+ *    python `__bool__()` method (if the method raises an exception, then the
+ *    value is treated as NA).
+ *
  */
 class _obj {
   protected:
@@ -71,7 +87,8 @@ class _obj {
 
     int8_t      to_bool           (const error_manager& = _em0) const;
     int8_t      to_bool_strict    (const error_manager& = _em0) const;
-    int8_t      to_bool_force     (const error_manager& = _em0) const;
+    int8_t      to_bool_force     (const error_manager& = _em0) const noexcept;
+
     int32_t     to_int32          (const error_manager& = _em0) const;
     int32_t     to_int32_strict   (const error_manager& = _em0) const;
     int32_t     to_int32_truncate (const error_manager& = _em0) const;
