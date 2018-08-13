@@ -17,10 +17,10 @@ class Column;
 class DataTable;
 class Groupby;
 class RowIndex;
-class PyyLong;   // TODO: remove
 class PyyFloat;  // TODO: remove
 
 namespace py {
+class Int;
 class list;
 class obj;
 class oobj;
@@ -83,9 +83,6 @@ class _obj {
     oobj get_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
 
-    PyyFloat __float__() const;
-    oobj     __str__() const;
-
     bool is_none() const;
     bool is_ellipsis() const;
     bool is_true() const;
@@ -108,14 +105,18 @@ class _obj {
     int64_t     to_int64       (const error_manager& = _em0) const;
     int32_t     to_int32_strict(const error_manager& = _em0) const;
     int64_t     to_int64_strict(const error_manager& = _em0) const;
+    py::Int     to_pyint       (const error_manager& = _em0) const;
+    py::Int     to_pyint_force () const;
 
     double      to_double      (const error_manager& = _em0) const;
+    PyyFloat    __float__() const;
+    PyyFloat    to_pyfloat     () const;
+
     CString     to_cstring     (const error_manager& = _em0) const;
     std::string to_string      (const error_manager& = _em0) const;
+    oobj        __str__() const;
+
     py::list    to_list        (const error_manager& = _em0) const;
-    PyyLong     to_pyint       () const;
-    PyyLong     to_pyint_force () const;
-    PyyFloat    to_pyfloat     () const;
     char**      to_cstringlist () const;
     strvec      to_stringlist  () const;
 

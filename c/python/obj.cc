@@ -12,7 +12,7 @@
 #include "py_groupby.h"
 #include "py_rowindex.h"
 #include "python/list.h"
-#include "python/long.h"
+#include "python/int.h"
 #include "python/float.h"
 
 namespace py {
@@ -199,6 +199,11 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
+py::Int _obj::to_pyint(const error_manager&) const {
+  return py::Int(v);
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -295,15 +300,11 @@ Column* _obj::to_column(const error_manager& em) const {
 }
 
 
-PyyLong _obj::to_pyint() const {
-  return PyyLong(v);
-}
-
-PyyLong _obj::to_pyint_force() const {
+py::Int _obj::to_pyint_force() const {
   if (is_int()) {
-    return PyyLong(v);
+    return py::Int(v);
   } else {
-    return PyyLong::fromAnyObject(v);
+    return py::Int::fromAnyObject(v);
   }
 }
 

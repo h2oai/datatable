@@ -10,7 +10,6 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "python/list.h"
-#include "python/long.h"
 #include "utils/exceptions.h"
 
 
@@ -52,8 +51,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
       py::list list = item.to_list();
       int stype = 0;
       if (types) {
-        PyyLong t = types[i].to_pyint();
-        stype = t.value<int32_t>();
+        stype = types[i].to_int32();
         if (ISNA<int32_t>(stype)) stype = 0;
       }
       cols[i] = Column::from_pylist(list.to_pyylist(), stype);

@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/list.h"
-#include "python/long.h"
+#include "python/int.h"
 #include "python/float.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
@@ -112,7 +112,7 @@ PyObject* PyyListEntry::get() const {
 PyyListEntry::operator py::oobj() const { return py::oobj(get()); }
 PyyListEntry::operator py::obj() const { return py::obj(get()); }
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
-PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
+// PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
 PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }
 
 

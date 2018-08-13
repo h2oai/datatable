@@ -11,7 +11,7 @@
 #include "python/obj.h"
 
 class PyyList;
-class PyyLong;
+// class PyyLong;
 class PyyFloat;
 namespace py { class list; }
 
@@ -27,7 +27,7 @@ class PyyListEntry {
     operator py::oobj() const;
     operator py::obj() const;
     operator PyyList() const;
-    operator PyyLong() const;
+    // operator PyyLong() const;
     operator PyyFloat() const;
     PyyListEntry& operator=(PyObject*);
     PyyListEntry& operator=(py::oobj&&);

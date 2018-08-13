@@ -18,7 +18,6 @@
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 #include "python/list.h"
-#include "python/long.h"
 #include "python/string.h"
 
 

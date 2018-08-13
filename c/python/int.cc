@@ -5,34 +5,35 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "python/long.h"
+#include "python/int.h"
 #include "utils/exceptions.h"
 
+namespace py {
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-PyyLong::PyyLong() : obj(nullptr) {}
+Int::Int() : obj(nullptr) {}
 
-PyyLong::PyyLong(int32_t n) {
+Int::Int(int32_t n) {
   obj = PyLong_FromLong(n);
 }
 
-PyyLong::PyyLong(int64_t n) {
+Int::Int(int64_t n) {
   obj = PyLong_FromLongLong(n);
 }
 
-PyyLong::PyyLong(size_t n) {
+Int::Int(size_t n) {
   obj = PyLong_FromSize_t(n);
 }
 
-PyyLong::PyyLong(double x) {
+Int::Int(double x) {
   obj = PyLong_FromDouble(x);
 }
 
-PyyLong::PyyLong(PyObject* src) {
+Int::Int(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
     obj = nullptr;
@@ -45,27 +46,27 @@ PyyLong::PyyLong(PyObject* src) {
   }
 }
 
-PyyLong::PyyLong(const PyyLong& other) {
+Int::Int(const Int& other) {
   obj = other.obj;
   Py_INCREF(obj);
 }
 
-PyyLong::PyyLong(PyyLong&& other) : PyyLong() {
+Int::Int(Int&& other) : Int() {
   swap(*this, other);
 }
 
-PyyLong::~PyyLong() {
+Int::~Int() {
   Py_XDECREF(obj);
 }
 
 
-void swap(PyyLong& first, PyyLong& second) noexcept {
+void swap(Int& first, Int& second) noexcept {
   std::swap(first.obj, second.obj);
 }
 
 
-PyyLong PyyLong::fromAnyObject(PyObject* obj) {
-  PyyLong res;
+Int Int::fromAnyObject(PyObject* obj) {
+  Int res;
   PyObject* num = PyNumber_Long(obj);  // new ref
   if (num) {
     res.obj = num;
@@ -81,13 +82,13 @@ PyyLong PyyLong::fromAnyObject(PyObject* obj) {
 // Public API
 //------------------------------------------------------------------------------
 
-PyyLong::operator py::oobj() && {
+Int::operator py::oobj() && {
   PyObject* t = obj;
   obj = nullptr;
   return py::oobj::from_new_reference(t);
 }
 
-PyObject* PyyLong::release() {
+PyObject* Int::release() {
   PyObject* t = obj;
   obj = nullptr;
   return t;
@@ -95,7 +96,7 @@ PyObject* PyyLong::release() {
 
 
 
-template<> long PyyLong::value<long>(int* overflow) const {
+template<> long Int::value<long>(int* overflow) const {
   if (!obj) return GETNA<long>();
   long value = PyLong_AsLongAndOverflow(obj, overflow);
   if (*overflow) {
@@ -106,7 +107,7 @@ template<> long PyyLong::value<long>(int* overflow) const {
 }
 
 
-template<> long long PyyLong::value<long long>(int* overflow) const {
+template<> long long Int::value<long long>(int* overflow) const {
   if (!obj) return GETNA<long long>();
   long long value = PyLong_AsLongLongAndOverflow(obj, overflow);
   if (*overflow) {
@@ -117,7 +118,7 @@ template<> long long PyyLong::value<long long>(int* overflow) const {
 }
 
 
-template<> double PyyLong::value<double>(int* overflow) const {
+template<> double Int::value<double>(int* overflow) const {
   if (!obj) return GETNA<double>();
   double value = PyLong_AsDouble(obj);
   if (value == -1 && PyErr_Occurred()) {
@@ -132,7 +133,7 @@ template<> double PyyLong::value<double>(int* overflow) const {
 }
 
 
-template<> float PyyLong::value<float>(int* overflow) const {
+template<> float Int::value<float>(int* overflow) const {
   if (!obj) return GETNA<float>();
   static constexpr double max_float =
     static_cast<double>(std::numeric_limits<float>::max());
@@ -150,7 +151,7 @@ template<> float PyyLong::value<float>(int* overflow) const {
 }
 
 
-template<typename T> T PyyLong::value(int* overflow) const {
+template<typename T> T Int::value(int* overflow) const {
   if (!obj) return GETNA<T>();
   constexpr T MAX = std::numeric_limits<T>::max();
   long x = value<long>(overflow);
@@ -166,7 +167,7 @@ template<typename T> T PyyLong::value(int* overflow) const {
 }
 
 
-template<typename T> T PyyLong::value() const {
+template<typename T> T Int::value() const {
   if (!obj) return GETNA<T>();
   int overflow;
   T res = value<T>(&overflow);
@@ -177,7 +178,7 @@ template<typename T> T PyyLong::value() const {
 }
 
 
-template<> long long int PyyLong::masked_value() const {
+template<> long long int Int::masked_value() const {
   if (!obj) return GETNA<long long int>();
   unsigned long long x = PyLong_AsUnsignedLongLongMask(obj);
   if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
@@ -188,7 +189,7 @@ template<> long long int PyyLong::masked_value() const {
 }
 
 
-template<typename T> T PyyLong::masked_value() const {
+template<typename T> T Int::masked_value() const {
   if (!obj) return GETNA<T>();
   unsigned long x = PyLong_AsUnsignedLongMask(obj);
   if (x == static_cast<unsigned long>(-1) && PyErr_Occurred()) {
@@ -204,18 +205,21 @@ template<typename T> T PyyLong::masked_value() const {
 // Explicit instantiations
 //------------------------------------------------------------------------------
 
-template int8_t  PyyLong::value() const;
-template int16_t PyyLong::value() const;
-template int32_t PyyLong::value() const;
-template int64_t PyyLong::value() const;
-template float   PyyLong::value() const;
-template double  PyyLong::value() const;
+template int8_t  Int::value() const;
+template int16_t Int::value() const;
+template int32_t Int::value() const;
+template int64_t Int::value() const;
+template float   Int::value() const;
+template double  Int::value() const;
 
-template signed char  PyyLong::value(int*) const;
-template short int    PyyLong::value(int*) const;
-template int          PyyLong::value(int*) const;
+template signed char  Int::value(int*) const;
+template short int    Int::value(int*) const;
+template int          Int::value(int*) const;
 
-template signed char   PyyLong::masked_value() const;
-template short int     PyyLong::masked_value() const;
-template int           PyyLong::masked_value() const;
-template long int      PyyLong::masked_value() const;
+template signed char   Int::masked_value() const;
+template short int     Int::masked_value() const;
+template int           Int::masked_value() const;
+template long int      Int::masked_value() const;
+
+
+}  // namespace py

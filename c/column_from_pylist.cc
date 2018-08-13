@@ -12,7 +12,7 @@
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
 #include "python/float.h" // PyyFloat
 #include "python/list.h"  // py::list
-#include "python/long.h"  // PyyLong
+#include "python/int.h"   // py::Int
 #include "utils.h"
 #include "utils/exceptions.h"
 
@@ -119,7 +119,7 @@ static bool parse_as_int(const py::list& list, MemoryRange& membuf, size_t& from
         continue;
       }
       if (item.is_int()) {
-        PyyLong litem = item.to_pyint();
+        py::Int litem = item.to_pyint();
         outdata[i] = litem.value<T>(&overflow);
         if (!overflow) continue;
       }
@@ -153,7 +153,7 @@ static void force_as_int(const py::list& list, MemoryRange& membuf)
       outdata[i] = GETNA<T>();
       continue;
     }
-    PyyLong litem = item.to_pyint_force();
+    py::Int litem = item.to_pyint_force();
     outdata[i] = litem.masked_value<T>();
   }
 }
@@ -187,7 +187,7 @@ static bool parse_as_double(const py::list& list, MemoryRange& membuf, size_t& f
         continue;
       }
       if (item.is_int()) {
-        PyyLong litem = item.to_pyint();
+        py::Int litem = item.to_pyint();
         outdata[i] = litem.value<double>(&overflow);
         continue;
       }
@@ -220,7 +220,7 @@ static void force_as_real(const py::list& list, MemoryRange& membuf)
       continue;
     }
     if (item.is_int()) {
-      PyyLong litem = item.to_pyint();
+      py::Int litem = item.to_pyint();
       outdata[i] = litem.value<T>(&overflow);
       continue;
     }

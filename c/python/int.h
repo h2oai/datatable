@@ -5,11 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_PYTHON_LONG_h
-#define dt_PYTHON_LONG_h
+#ifndef dt_PYTHON_INT_h
+#define dt_PYTHON_INT_h
 #include <Python.h>
 #include "python/obj.h"
 
+namespace py {
 
 
 /**
@@ -31,20 +32,20 @@
  *   truncate it using `static_cast<T>`.
  *
  */
-class PyyLong {
+class Int {
   private:
     PyObject* obj;
 
   public:
-    PyyLong();
-    PyyLong(int32_t n);
-    PyyLong(int64_t n);
-    PyyLong(size_t n);
-    PyyLong(double x);
-    PyyLong(PyObject*);
-    PyyLong(const PyyLong&);
-    PyyLong(PyyLong&&);
-    ~PyyLong();
+    Int();
+    Int(int32_t n);
+    Int(int64_t n);
+    Int(size_t n);
+    Int(double x);
+    Int(PyObject*);
+    Int(const Int&);
+    Int(Int&&);
+    ~Int();
 
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
@@ -53,35 +54,38 @@ class PyyLong {
     operator py::oobj() &&;
     PyObject* release();
 
-    static PyyLong fromAnyObject(PyObject*);
-    friend void swap(PyyLong& first, PyyLong& second) noexcept;
+    static Int fromAnyObject(PyObject*);
+    friend void swap(Int& first, Int& second) noexcept;
 };
 
 
 
 // Explicit specializations
-template<> float     PyyLong::value<float>(int*) const;
-template<> double    PyyLong::value<double>(int*) const;
-template<> long      PyyLong::value<long>(int*) const;
-template<> long long PyyLong::value<long long>(int*) const;
-template<> long long PyyLong::masked_value<long long>() const;
+template<> float     Int::value<float>(int*) const;
+template<> double    Int::value<double>(int*) const;
+template<> long      Int::value<long>(int*) const;
+template<> long long Int::value<long long>(int*) const;
+template<> long long Int::masked_value<long long>() const;
 
 // Forward-declare explicit instantiations
-extern template int8_t  PyyLong::value() const;
-extern template int16_t PyyLong::value() const;
-extern template int32_t PyyLong::value() const;
-extern template int64_t PyyLong::value() const;
-extern template float   PyyLong::value() const;
-extern template double  PyyLong::value() const;
+extern template int8_t  Int::value() const;
+extern template int16_t Int::value() const;
+extern template int32_t Int::value() const;
+extern template int64_t Int::value() const;
+extern template float   Int::value() const;
+extern template double  Int::value() const;
 
-extern template int8_t  PyyLong::value(int*) const;
-extern template int16_t PyyLong::value(int*) const;
-extern template int32_t PyyLong::value(int*) const;
-extern template int64_t PyyLong::value(int*) const;
+extern template int8_t  Int::value(int*) const;
+extern template int16_t Int::value(int*) const;
+extern template int32_t Int::value(int*) const;
+extern template int64_t Int::value(int*) const;
 
-extern template int8_t  PyyLong::masked_value() const;
-extern template int16_t PyyLong::masked_value() const;
-extern template int32_t PyyLong::masked_value() const;
-extern template int64_t PyyLong::masked_value() const;
+extern template int8_t  Int::masked_value() const;
+extern template int16_t Int::masked_value() const;
+extern template int32_t Int::masked_value() const;
+extern template int64_t Int::masked_value() const;
+
+
+}  // namespace py
 
 #endif

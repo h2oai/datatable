@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include <iostream>
-#include "python/long.h"
+#include "python/int.h"
 
 namespace py {
 
@@ -59,11 +59,11 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
 oobj Frame::get_ncols() const {
-  return oobj(PyyLong(11));
+  return oobj(py::Int(11));
 }
 
 oobj Frame::get_nrows() const {
-  return oobj(PyyLong(47));
+  return oobj(py::Int(47));
 }
 
 oobj Frame::bang(NoArgs&) {

@@ -18,7 +18,6 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "python/long.h"
 #include "python/string.h"
 
 
@@ -509,13 +508,12 @@ PyObject* join(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   DataTable* jdt = py::obj(arg2).to_frame();
   RowIndex ri = py::obj(arg1).to_rowindex();
-  PyyList cols(arg3);
+  py::list cols(arg3);
 
   if (cols.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
   }
-  PyyLong icol = cols[0];
-  int64_t i = icol.value<int64_t>();
+  int64_t i = cols[0].to_int64();
   if (i < 0 || i >= dt->ncols) {
     throw ValueError() << "Invalid index " << i << " for a Frame with "
         << dt->ncols << " columns";
