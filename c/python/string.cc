@@ -8,31 +8,33 @@
 #include "python/string.h"
 #include "utils/exceptions.h"
 
+namespace py {
+
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-PyyString::PyyString() : obj(nullptr) {}
+string::string() : obj(nullptr) {}
 
-PyyString::PyyString(const std::string& s) {
+string::string(const std::string& s) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(s.size());
   obj = PyUnicode_FromStringAndSize(s.data(), slen);
 }
 
-PyyString::PyyString(const char* str, size_t len) {
+string::string(const char* str, size_t len) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(len);
   obj = PyUnicode_FromStringAndSize(str, slen);
 }
 
-PyyString::PyyString(const char* str) {
+string::string(const char* str) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(std::strlen(str));
   obj = PyUnicode_FromStringAndSize(str, slen);
 }
 
 
-PyyString::PyyString(PyObject* src) {
+string::string(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
     obj = nullptr;
@@ -45,21 +47,21 @@ PyyString::PyyString(PyObject* src) {
   }
 }
 
-PyyString::PyyString(const PyyString& other) {
+string::string(const string& other) {
   obj = other.obj;
   Py_INCREF(obj);
 }
 
-PyyString::PyyString(PyyString&& other) : PyyString() {
+string::string(string&& other) : string() {
   swap(*this, other);
 }
 
-PyyString::~PyyString() {
+string::~string() {
   Py_XDECREF(obj);
 }
 
 
-void swap(PyyString& first, PyyString& second) noexcept {
+void swap(string& first, string& second) noexcept {
   std::swap(first.obj, second.obj);
 }
 
@@ -69,14 +71,17 @@ void swap(PyyString& first, PyyString& second) noexcept {
 // Public API
 //------------------------------------------------------------------------------
 
-PyyString::operator py::oobj() && {
+string::operator py::oobj() && {
   PyObject* t = obj;
   obj = nullptr;
   return py::oobj::from_new_reference(t);
 }
 
-PyObject* PyyString::release() {
+PyObject* string::release() {
   PyObject* t = obj;
   obj = nullptr;
   return t;
 }
+
+
+}  // namespace py

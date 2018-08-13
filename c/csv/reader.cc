@@ -781,7 +781,7 @@ void GenericReader::report_columns_to_python() {
   } else {
     PyyList colNamesList(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      colNamesList[i] = PyyString(columns[i].get_name());
+      colNamesList[i] = py::string(columns[i].get_name());
     }
     freader.invoke("_set_column_names", "(O)", colNamesList.release());
   }

@@ -11,31 +11,34 @@
 #include <string>
 #include "python/obj.h"
 
+namespace py {
 
 
 /**
  * C++ wrapper around PyUnicode_Object (python `str` object).
  */
-class PyyString {
+class string {
   private:
     PyObject* obj;
 
   public:
-    PyyString();
-    PyyString(const std::string& s);
-    PyyString(const char* str);
-    PyyString(const char* str, size_t len);
-    PyyString(PyObject*);
-    PyyString(const PyyString&);
-    PyyString(PyyString&&);
-    ~PyyString();
+    string();
+    string(const std::string& s);
+    string(const char* str);
+    string(const char* str, size_t len);
+    string(PyObject*);
+    string(const string&);
+    string(string&&);
+    ~string();
 
     operator py::oobj() &&;
     PyObject* release();
 
-    friend void swap(PyyString& first, PyyString& second) noexcept;
+    friend void swap(string& first, string& second) noexcept;
 };
 
 
+
+}  // namespace py
 
 #endif

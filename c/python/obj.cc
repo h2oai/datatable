@@ -299,7 +299,7 @@ std::string _obj::to_string(const error_manager& em) const {
 }
 
 
-oobj _obj::__str__() const {
+oobj _obj::__str__(const error_manager&) const {
   return oobj::from_new_reference(PyObject_Str(v));
 }
 
@@ -356,7 +356,7 @@ Column* _obj::to_column(const error_manager& em) const {
 }
 
 
-char** _obj::to_cstringlist() const {
+char** _obj::to_cstringlist(const error_manager&) const {
   if (v == Py_None) {
     return nullptr;
   }
@@ -400,7 +400,7 @@ char** _obj::to_cstringlist() const {
 }
 
 
-strvec _obj::to_stringlist() const {
+strvec _obj::to_stringlist(const error_manager&) const {
   strvec res;
   if (PyList_Check(v) || PyTuple_Check(v)) {
     PyObject** items = PyList_Check(v)

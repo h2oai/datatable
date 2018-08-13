@@ -94,7 +94,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
   PyyList collist(colnames.size());
   for (size_t i = 0; i < colnames.size(); ++i) {
-    collist[i] = PyyString(colnames[i]);
+    collist[i] = py::string(colnames[i]);
   }
   PyObject* pylist = collist.release();
 

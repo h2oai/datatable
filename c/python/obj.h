@@ -23,6 +23,7 @@ class Int;
 class oInt;
 class Float;
 class oFloat;
+class string;
 class list;
 class obj;
 class oobj;
@@ -135,11 +136,11 @@ class _obj {
 
     CString     to_cstring      (const error_manager& = _em0) const;
     std::string to_string       (const error_manager& = _em0) const;
-    oobj        __str__         () const;
+    oobj        __str__         (const error_manager& = _em0) const;
 
     py::list    to_list         (const error_manager& = _em0) const;
-    char**      to_cstringlist  () const;
-    strvec      to_stringlist   () const;
+    char**      to_cstringlist  (const error_manager& = _em0) const;
+    strvec      to_stringlist   (const error_manager& = _em0) const;
 
     Column*     to_column       (const error_manager& = _em0) const;
     Groupby*    to_groupby      (const error_manager& = _em0) const;
