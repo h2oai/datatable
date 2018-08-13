@@ -112,8 +112,7 @@ PyObject* PyyListEntry::get() const {
 PyyListEntry::operator py::oobj() const { return py::oobj(get()); }
 PyyListEntry::operator py::obj() const { return py::obj(get()); }
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
-// PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
-PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }
+PyyListEntry::operator py::Float() const { return py::Float(get()); }
 
 
 PyObject* PyyListEntry::as_new_ref() const {

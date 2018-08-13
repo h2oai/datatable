@@ -10,7 +10,7 @@
 #include <limits>         // std::numeric_limits
 #include <type_traits>    // std::is_same
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
-#include "python/float.h" // PyyFloat
+#include "python/float.h" // py::Float
 #include "python/list.h"  // py::list
 #include "python/int.h"   // py::Int
 #include "utils.h"
@@ -224,7 +224,7 @@ static void force_as_real(const py::list& list, MemoryRange& membuf)
       outdata[i] = litem.value<T>(&overflow);
       continue;
     }
-    PyyFloat fitem = item.is_float()? item.to_pyfloat() : item.__float__();
+    py::Float fitem = item.is_float()? item.to_pyfloat() : item.__float__();
     outdata[i] = fitem.value<T>();
   }
   PyErr_Clear();  // in case an overflow occurred

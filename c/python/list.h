@@ -12,8 +12,8 @@
 
 class PyyList;
 // class PyyLong;
-class PyyFloat;
-namespace py { class list; }
+// class PyyFloat;
+namespace py { class list; class Float; }
 
 
 class PyyListEntry {
@@ -28,7 +28,7 @@ class PyyListEntry {
     operator py::obj() const;
     operator PyyList() const;
     // operator PyyLong() const;
-    operator PyyFloat() const;
+    operator py::Float() const;
     PyyListEntry& operator=(PyObject*);
     PyyListEntry& operator=(py::oobj&&);
 

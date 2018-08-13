@@ -9,29 +9,33 @@
 #define dt_PYTHON_FLOAT_h
 #include <Python.h>
 
+namespace py {
 
 
-class PyyFloat {
+class Float {
   private:
     PyObject* obj;
 
   public:
-    PyyFloat();
-    PyyFloat(double x);
-    PyyFloat(PyObject*);
-    PyyFloat(const PyyFloat&);
-    PyyFloat(PyyFloat&&);
-    ~PyyFloat();
+    Float();
+    Float(double x);
+    Float(PyObject*);
+    Float(const Float&);
+    Float(Float&&);
+    ~Float();
 
     template <typename T> T value() const;
 
-    static PyyFloat fromAnyObject(PyObject*);
-    friend void swap(PyyFloat& first, PyyFloat& second) noexcept;
+    static Float fromAnyObject(PyObject*);
+    friend void swap(Float& first, Float& second) noexcept;
 };
 
 
 // Explicit instantiation
-extern template float  PyyFloat::value() const;
-extern template double PyyFloat::value() const;
+extern template float  Float::value() const;
+extern template double Float::value() const;
+
+
+}  // namespace py
 
 #endif

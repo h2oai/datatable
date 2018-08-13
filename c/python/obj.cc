@@ -228,7 +228,6 @@ py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
 
 
 
-
 //------------------------------------------------------------------------------
 // Float conversions
 //------------------------------------------------------------------------------
@@ -247,13 +246,13 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-PyyFloat _obj::to_pyfloat(const error_manager&) const {
-  return PyyFloat(v);
+Float _obj::to_pyfloat(const error_manager&) const {
+  return Float(v);
 }
 
 
-PyyFloat _obj::__float__(const error_manager&) const {
-  return PyyFloat::fromAnyObject(v);
+Float _obj::__float__(const error_manager&) const {
+  return Float::fromAnyObject(v);
 }
 
 

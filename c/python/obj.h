@@ -17,11 +17,11 @@ class Column;
 class DataTable;
 class Groupby;
 class RowIndex;
-class PyyFloat;  // TODO: remove
 
 namespace py {
 class Int;
 class oInt;
+class Float;
 class list;
 class obj;
 class oobj;
@@ -120,8 +120,8 @@ class _obj {
     py::oInt    to_pyint_force (const error_manager& = _em0) const noexcept;
 
     double      to_double      (const error_manager& = _em0) const;
-    PyyFloat    __float__      (const error_manager& = _em0) const;
-    PyyFloat    to_pyfloat     (const error_manager& = _em0) const;
+    Float       __float__      (const error_manager& = _em0) const;
+    Float       to_pyfloat     (const error_manager& = _em0) const;
 
     CString     to_cstring     (const error_manager& = _em0) const;
     std::string to_string      (const error_manager& = _em0) const;

@@ -8,21 +8,22 @@
 #include "python/float.h"
 #include "utils/exceptions.h"
 
+namespace py {
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-PyyFloat::PyyFloat() : obj(nullptr) {}
+Float::Float() : obj(nullptr) {}
 
 
-PyyFloat::PyyFloat(double v) {
+Float::Float(double v) {
   obj = PyFloat_FromDouble(v);  // new ref
 }
 
 
-PyyFloat::PyyFloat(PyObject* src) {
+Float::Float(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
     obj = nullptr;
@@ -35,27 +36,27 @@ PyyFloat::PyyFloat(PyObject* src) {
   }
 }
 
-PyyFloat::PyyFloat(const PyyFloat& other) {
+Float::Float(const Float& other) {
   obj = other.obj;
   Py_INCREF(obj);
 }
 
-PyyFloat::PyyFloat(PyyFloat&& other) : PyyFloat() {
+Float::Float(Float&& other) : Float() {
   swap(*this, other);
 }
 
-PyyFloat::~PyyFloat() {
+Float::~Float() {
   Py_XDECREF(obj);
 }
 
 
-void swap(PyyFloat& first, PyyFloat& second) noexcept {
+void swap(Float& first, Float& second) noexcept {
   std::swap(first.obj, second.obj);
 }
 
 
-PyyFloat PyyFloat::fromAnyObject(PyObject* obj) {
-  PyyFloat res;
+Float Float::fromAnyObject(PyObject* obj) {
+  Float res;
   PyObject* num = PyNumber_Float(obj);  // new ref
   if (num) {
     res.obj = num;
@@ -69,15 +70,17 @@ PyyFloat PyyFloat::fromAnyObject(PyObject* obj) {
 
 
 //------------------------------------------------------------------------------
-// Public API
+// Value conversion
 //------------------------------------------------------------------------------
 
 template<typename T>
-T PyyFloat::value() const {
+T Float::value() const {
   return obj? static_cast<T>(PyFloat_AS_DOUBLE(obj)) : GETNA<T>();
 }
 
 
 
-template float  PyyFloat::value() const;
-template double PyyFloat::value() const;
+template float  Float::value() const;
+template double Float::value() const;
+
+}  // namespace py
