@@ -238,13 +238,30 @@ double _obj::to_double(const error_manager& em) const {
   if (v == Py_None) return GETNA<double>();
   if (PyLong_Check(v)) {
     double res = PyLong_AsDouble(v);
-    if (res == -1 && PyErr_Occurred()) throw PyError();
+    if (res == -1 && PyErr_Occurred()) {
+      throw em.error_double_overflow(v);
+    }
     return res;
   }
   throw em.error_not_double(v);
 }
 
 
+PyyFloat _obj::to_pyfloat(const error_manager&) const {
+  return PyyFloat(v);
+}
+
+
+PyyFloat _obj::__float__(const error_manager&) const {
+  return PyyFloat::fromAnyObject(v);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// String conversions
+//------------------------------------------------------------------------------
 
 CString _obj::to_cstring(const error_manager& em) const {
   Py_ssize_t str_size;
@@ -320,11 +337,6 @@ Column* _obj::to_column(const error_manager& em) const {
     throw em.error_not_column(v);
   }
   return reinterpret_cast<pycolumn::obj*>(v)->ref;
-}
-
-
-PyyFloat _obj::to_pyfloat() const {
-  return PyyFloat(v);
 }
 
 
@@ -445,10 +457,6 @@ oobj _obj::__str__() const {
   return oobj::from_new_reference(PyObject_Str(v));
 }
 
-PyyFloat _obj::__float__() const {
-  return PyyFloat::fromAnyObject(v);
-}
-
 
 oobj None()  { return oobj(Py_None); }
 oobj True()  { return oobj(Py_True); }
@@ -503,6 +511,10 @@ Error _obj::error_manager::error_int32_overflow(PyObject* o) const {
 
 Error _obj::error_manager::error_int64_overflow(PyObject* o) const {
   return ValueError() << "Value is too large to fit in an int64: " << o;
+}
+
+Error _obj::error_manager::error_double_overflow(PyObject*) const {
+  return ValueError() << "Value is too large to convert to double";
 }
 
 

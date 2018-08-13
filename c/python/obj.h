@@ -120,8 +120,8 @@ class _obj {
     py::oInt    to_pyint_force (const error_manager& = _em0) const noexcept;
 
     double      to_double      (const error_manager& = _em0) const;
-    PyyFloat    __float__() const;
-    PyyFloat    to_pyfloat     () const;
+    PyyFloat    __float__      (const error_manager& = _em0) const;
+    PyyFloat    to_pyfloat     (const error_manager& = _em0) const;
 
     CString     to_cstring     (const error_manager& = _em0) const;
     std::string to_string      (const error_manager& = _em0) const;
@@ -155,6 +155,7 @@ class _obj {
       virtual Error error_not_list       (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
+      virtual Error error_double_overflow(PyObject*) const;
     };
     static error_manager _em0;
 
