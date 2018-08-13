@@ -243,9 +243,12 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.6.0-PR-1210.1
+DOCKER_IMAGE_TAG ?= 0.6.0-PR-1229.4
 CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
+
+docker_image_tag:
+	@echo $(DOCKER_IMAGE_TAG)
 
 centos7_build_in_docker_impl:
 	docker run \
@@ -261,6 +264,9 @@ centos7_build_in_docker_impl:
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
 			make CI=$(CI) dist"
+
+centos7_build_py37_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py37-with-pandas centos7_build_in_docker_impl
 
 centos7_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
@@ -303,6 +309,9 @@ centos7_test_in_docker_impl:
 			pip install --no-cache-dir --upgrade dist/*.whl && \
 			make CI=$(CI) MODULE=datatable test_install && \
 			make test CI=$(CI)"
+
+centos7_test_py37_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py37-with-pandas centos7_test_in_docker_impl
 
 centos7_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
@@ -350,6 +359,9 @@ ubuntu_build_sdist_in_docker:
 			python --version && \
 			make CI=$(CI) sdist"
 
+ubuntu_build_py37_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py37-with-pandas ubuntu_build_in_docker_impl
+
 ubuntu_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
 
@@ -391,6 +403,9 @@ ubuntu_test_in_docker_impl:
 			python --version && \
 			make CI=$(CI) MODULE=datatable test_install && \
 			make CI=$(CI) test"
+
+ubuntu_test_py37_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py37-with-pandas ubuntu_test_in_docker_impl
 
 ubuntu_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
