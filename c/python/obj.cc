@@ -60,6 +60,11 @@ oobj::oobj(oInt&& other) {
   other.obj = nullptr;;
 }
 
+oobj::oobj(oFloat&& other) {
+  v = other.obj;
+  other.obj = nullptr;;
+}
+
 
 oobj& oobj::operator=(const oobj& other) {
   Py_XDECREF(v);
@@ -294,6 +299,16 @@ std::string _obj::to_string(const error_manager& em) const {
 }
 
 
+oobj _obj::__str__() const {
+  return oobj::from_new_reference(PyObject_Str(v));
+}
+
+
+
+//------------------------------------------------------------------------------
+// List conversions
+//------------------------------------------------------------------------------
+
 py::list _obj::to_list(const error_manager& em) const {
   if (is_none()) return py::list();
   if (!(is_list() || is_tuple())) {
@@ -451,11 +466,6 @@ PyObject* oobj::release() {
   PyObject* t = v;
   v = nullptr;
   return t;
-}
-
-
-oobj _obj::__str__() const {
-  return oobj::from_new_reference(PyObject_Str(v));
 }
 
 

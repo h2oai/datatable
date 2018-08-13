@@ -197,6 +197,7 @@ class oobj : public _obj {
     oobj(const obj&);
     oobj(oobj&&);
     oobj(oInt&&);
+    oobj(oFloat&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();

@@ -36,6 +36,8 @@ class oFloat : public Float {
     oFloat(oFloat&&);
     static oFloat _from_pyobject_no_checks(PyObject* v);
     ~oFloat();
+
+    friend oobj::oobj(oFloat&&);
 };
 
 
