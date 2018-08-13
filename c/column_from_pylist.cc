@@ -224,7 +224,7 @@ static void force_as_real(const py::list& list, MemoryRange& membuf)
       outdata[i] = litem.value<T>(&overflow);
       continue;
     }
-    py::Float fitem = item.is_float()? item.to_pyfloat() : item.__float__();
+    py::oFloat fitem = item.to_pyfloat_force();
     outdata[i] = fitem.value<T>();
   }
   PyErr_Clear();  // in case an overflow occurred

@@ -61,16 +61,14 @@ using strvec = std::vector<std::string>;
  *    is converted into an NA).
  *
  *
- * to_int32:
- * to_int64:
+ * to_int32, to_int64:
  *    Convert None into NA, or an integer value into either int32_t or int64_t
  *    C++ primitive. True and False are treated as integers 1 and 0. All other
  *    value types raise an exception. If the pythonic integer is too large
  *    to fit into 32/64 bits, then it will be replaced with the largest 32/64
  *    bit integer (taking the sign into account).
  *
- * to_int32_strict:
- * to_int64_strict:
+ * to_int32_strict, to_int64_strict:
  *    Convert a pythonic integer into either an int32_t or int64_t C++ value.
  *    All non-ints (including None, True and False) cause an exception. If the
  *    conversion causes an integer overflow, it also causes an exception.
@@ -84,6 +82,18 @@ using strvec = std::vector<std::string>;
  *    Similar to `to_pyint`, but it will also attempt to convert its argument
  *    into an int using python `int(x)` function. If this function raises an
  *    error, the value will be converted into an NA.
+ *
+ *
+ * to_double:
+ *    Convert None into NA, or python float or int into a C++ double value. An
+ *    overflow may occur if the underlying value is a large integer (i.e.
+ *    10**500). If the object is neither python float nor int nor None, an
+ *    exception is raised.
+ *
+ * to_pyfloat_force:  [noexcept]
+ *    Convert into a py::oFloat instance, possibly applying pythonic `float(x)`
+ *    function. If the function raises an exception, the value will be
+ *    converted into NA.
  *
  */
 class _obj {
@@ -109,33 +119,32 @@ class _obj {
     bool is_dict() const;
     bool is_buffer() const;
 
-    int8_t      to_bool        (const error_manager& = _em0) const;
-    int8_t      to_bool_strict (const error_manager& = _em0) const;
-    int8_t      to_bool_force  (const error_manager& = _em0) const noexcept;
+    int8_t      to_bool         (const error_manager& = _em0) const;
+    int8_t      to_bool_strict  (const error_manager& = _em0) const;
+    int8_t      to_bool_force   (const error_manager& = _em0) const noexcept;
 
-    int32_t     to_int32       (const error_manager& = _em0) const;
-    int64_t     to_int64       (const error_manager& = _em0) const;
-    int32_t     to_int32_strict(const error_manager& = _em0) const;
-    int64_t     to_int64_strict(const error_manager& = _em0) const;
-    py::Int     to_pyint       (const error_manager& = _em0) const;
-    py::oInt    to_pyint_force (const error_manager& = _em0) const noexcept;
+    int32_t     to_int32        (const error_manager& = _em0) const;
+    int64_t     to_int64        (const error_manager& = _em0) const;
+    int32_t     to_int32_strict (const error_manager& = _em0) const;
+    int64_t     to_int64_strict (const error_manager& = _em0) const;
+    py::Int     to_pyint        (const error_manager& = _em0) const;
+    py::oInt    to_pyint_force  (const error_manager& = _em0) const noexcept;
 
-    double      to_double      (const error_manager& = _em0) const;
-    Float       to_pyfloat     (const error_manager& = _em0) const;
-    oFloat       __float__     (const error_manager& = _em0) const;
+    double      to_double       (const error_manager& = _em0) const;
+    oFloat      to_pyfloat_force(const error_manager& = _em0) const noexcept;
 
-    CString     to_cstring     (const error_manager& = _em0) const;
-    std::string to_string      (const error_manager& = _em0) const;
-    oobj        __str__() const;
+    CString     to_cstring      (const error_manager& = _em0) const;
+    std::string to_string       (const error_manager& = _em0) const;
+    oobj        __str__         () const;
 
-    py::list    to_list        (const error_manager& = _em0) const;
-    char**      to_cstringlist () const;
-    strvec      to_stringlist  () const;
+    py::list    to_list         (const error_manager& = _em0) const;
+    char**      to_cstringlist  () const;
+    strvec      to_stringlist   () const;
 
-    Column*     to_column      (const error_manager& = _em0) const;
-    Groupby*    to_groupby     (const error_manager& = _em0) const;
-    RowIndex    to_rowindex    (const error_manager& = _em0) const;
-    DataTable*  to_frame       (const error_manager& = _em0) const;
+    Column*     to_column       (const error_manager& = _em0) const;
+    Groupby*    to_groupby      (const error_manager& = _em0) const;
+    RowIndex    to_rowindex     (const error_manager& = _em0) const;
+    DataTable*  to_frame        (const error_manager& = _em0) const;
 
   protected:
     /**

@@ -245,12 +245,7 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-Float _obj::to_pyfloat(const error_manager&) const {
-  return Float(v);
-}
-
-
-oFloat _obj::__float__(const error_manager&) const {
+oFloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
     return py::oFloat(v);
   }

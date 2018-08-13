@@ -40,12 +40,11 @@ class Int {  // capitalized, because lowercase `int` is a reserved word
     Int();
     Int(PyObject*);
     Int(const Int&);
+    friend void swap(Int& first, Int& second) noexcept;
 
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
-
-    friend void swap(Int& first, Int& second) noexcept;
 };
 
 

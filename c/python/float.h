@@ -21,10 +21,9 @@ class Float {
     Float();
     Float(PyObject*);
     Float(const Float&);
+    friend void swap(Float& first, Float& second) noexcept;
 
     template <typename T> T value() const;
-
-    friend void swap(Float& first, Float& second) noexcept;
 };
 
 
