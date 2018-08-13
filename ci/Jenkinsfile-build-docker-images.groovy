@@ -32,7 +32,7 @@ buildSummary.get().addDetailsSummary(this, detailsSummary)
 buildSummary.get().addStagesSummary(this, new StagesSummary())
 
 try {
-    node('docker && mr-0x5') {
+    node('docker && !mr-0xc8') {
         buildSummary.stageWithSummary("Build images for x86_64") {
             dir('centos7') {
                 checkout scm
