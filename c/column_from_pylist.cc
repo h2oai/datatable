@@ -11,8 +11,9 @@
 #include <type_traits>    // std::is_same
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
 #include "python/float.h" // py::Float
-#include "python/list.h"  // py::list
 #include "python/int.h"   // py::Int
+#include "python/list.h"  // py::list
+#include "python/string.h"// py::string
 #include "utils.h"
 #include "utils/exceptions.h"
 
@@ -335,7 +336,7 @@ static void force_as_str(const py::list& list, MemoryRange& offbuf,
       continue;
     }
     if (!item.is_string()) {
-      item = item.__str__();
+      item = py::oobj(item.to_pystring_force());
     }
     if (item.is_string()) {
       CString cstr = item.to_cstring();

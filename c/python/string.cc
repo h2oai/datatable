@@ -18,22 +18,6 @@ namespace py {
 
 string::string() : obj(nullptr) {}
 
-string::string(const std::string& s) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(s.size());
-  obj = PyUnicode_FromStringAndSize(s.data(), slen);
-}
-
-string::string(const char* str, size_t len) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-  obj = PyUnicode_FromStringAndSize(str, slen);
-}
-
-string::string(const char* str) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(std::strlen(str));
-  obj = PyUnicode_FromStringAndSize(str, slen);
-}
-
-
 string::string(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
@@ -43,23 +27,12 @@ string::string(PyObject* src) {
     if (!PyUnicode_Check(src)) {
       throw TypeError() << "Object " << src << " is not a string";
     }
-    Py_INCREF(src);
   }
 }
 
 string::string(const string& other) {
   obj = other.obj;
-  Py_INCREF(obj);
 }
-
-string::string(string&& other) : string() {
-  swap(*this, other);
-}
-
-string::~string() {
-  Py_XDECREF(obj);
-}
-
 
 void swap(string& first, string& second) noexcept {
   std::swap(first.obj, second.obj);
@@ -67,20 +40,38 @@ void swap(string& first, string& second) noexcept {
 
 
 
-//------------------------------------------------------------------------------
-// Public API
-//------------------------------------------------------------------------------
+ostring::ostring() {}
 
-string::operator py::oobj() && {
-  PyObject* t = obj;
-  obj = nullptr;
-  return py::oobj::from_new_reference(t);
+ostring::ostring(const std::string& s) {
+  Py_ssize_t slen = static_cast<Py_ssize_t>(s.size());
+  obj = PyUnicode_FromStringAndSize(s.data(), slen);
 }
 
-PyObject* string::release() {
-  PyObject* t = obj;
-  obj = nullptr;
-  return t;
+ostring::ostring(const char* str, size_t len) {
+  Py_ssize_t slen = static_cast<Py_ssize_t>(len);
+  obj = PyUnicode_FromStringAndSize(str, slen);
+}
+
+ostring::ostring(const char* str) {
+  Py_ssize_t slen = static_cast<Py_ssize_t>(std::strlen(str));
+  obj = PyUnicode_FromStringAndSize(str, slen);
+}
+
+ostring::ostring(PyObject* src) : string(src) {
+  Py_XINCREF(src);
+}
+
+ostring::ostring(const ostring& other) {
+  obj = other.obj;
+  Py_XINCREF(obj);
+}
+
+ostring::ostring(ostring&& other) : ostring() {
+  swap(*this, other);
+}
+
+ostring::~ostring() {
+  Py_XDECREF(obj);
 }
 
 

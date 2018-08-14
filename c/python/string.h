@@ -18,25 +18,30 @@ namespace py {
  * C++ wrapper around PyUnicode_Object (python `str` object).
  */
 class string {
-  private:
+  protected:
     PyObject* obj;
 
   public:
     string();
-    string(const std::string& s);
-    string(const char* str);
-    string(const char* str, size_t len);
     string(PyObject*);
     string(const string&);
-    string(string&&);
-    ~string();
-
-    operator py::oobj() &&;
-    PyObject* release();
-
     friend void swap(string& first, string& second) noexcept;
 };
 
+
+
+class ostring : public string {
+  public:
+    ostring();
+    ostring(const std::string& s);
+    ostring(const char* str);
+    ostring(const char* str, size_t len);
+    ostring(PyObject*);
+    ostring(const ostring&);
+    ostring(ostring&&);
+    ~ostring();
+    friend oobj::oobj(ostring&&);
+};
 
 
 }  // namespace py

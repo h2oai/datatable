@@ -11,9 +11,10 @@
 #include "py_datatable.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
-#include "python/list.h"
 #include "python/int.h"
 #include "python/float.h"
+#include "python/list.h"
+#include "python/string.h"
 
 namespace py {
 
@@ -61,6 +62,11 @@ oobj::oobj(oInt&& other) {
 }
 
 oobj::oobj(oFloat&& other) {
+  v = other.obj;
+  other.obj = nullptr;;
+}
+
+oobj::oobj(ostring&& other) {
   v = other.obj;
   other.obj = nullptr;;
 }
@@ -299,8 +305,16 @@ std::string _obj::to_string(const error_manager& em) const {
 }
 
 
-oobj _obj::__str__(const error_manager&) const {
-  return oobj::from_new_reference(PyObject_Str(v));
+py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
+  if (PyUnicode_Check(v) || v == Py_None) {
+    return py::ostring(v);
+  }
+  PyObject* w = PyObject_Str(v);
+  if (!w) {
+    PyErr_Clear();
+    w = nullptr;
+  }
+  return py::ostring(w);
 }
 
 

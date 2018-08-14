@@ -24,6 +24,7 @@ class oInt;
 class Float;
 class oFloat;
 class string;
+class ostring;
 class list;
 class obj;
 class oobj;
@@ -120,32 +121,32 @@ class _obj {
     bool is_dict() const;
     bool is_buffer() const;
 
-    int8_t      to_bool         (const error_manager& = _em0) const;
-    int8_t      to_bool_strict  (const error_manager& = _em0) const;
-    int8_t      to_bool_force   (const error_manager& = _em0) const noexcept;
+    int8_t      to_bool          (const error_manager& = _em0) const;
+    int8_t      to_bool_strict   (const error_manager& = _em0) const;
+    int8_t      to_bool_force    (const error_manager& = _em0) const noexcept;
 
-    int32_t     to_int32        (const error_manager& = _em0) const;
-    int64_t     to_int64        (const error_manager& = _em0) const;
-    int32_t     to_int32_strict (const error_manager& = _em0) const;
-    int64_t     to_int64_strict (const error_manager& = _em0) const;
-    py::Int     to_pyint        (const error_manager& = _em0) const;
-    py::oInt    to_pyint_force  (const error_manager& = _em0) const noexcept;
+    int32_t     to_int32         (const error_manager& = _em0) const;
+    int64_t     to_int64         (const error_manager& = _em0) const;
+    int32_t     to_int32_strict  (const error_manager& = _em0) const;
+    int64_t     to_int64_strict  (const error_manager& = _em0) const;
+    py::Int     to_pyint         (const error_manager& = _em0) const;
+    py::oInt    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
-    double      to_double       (const error_manager& = _em0) const;
-    oFloat      to_pyfloat_force(const error_manager& = _em0) const noexcept;
+    double      to_double        (const error_manager& = _em0) const;
+    py::oFloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
 
-    CString     to_cstring      (const error_manager& = _em0) const;
-    std::string to_string       (const error_manager& = _em0) const;
-    oobj        __str__         (const error_manager& = _em0) const;
+    CString     to_cstring       (const error_manager& = _em0) const;
+    std::string to_string        (const error_manager& = _em0) const;
+    py::ostring to_pystring_force(const error_manager& = _em0) const noexcept;
 
-    py::list    to_list         (const error_manager& = _em0) const;
-    char**      to_cstringlist  (const error_manager& = _em0) const;
-    strvec      to_stringlist   (const error_manager& = _em0) const;
+    py::list    to_list          (const error_manager& = _em0) const;
+    char**      to_cstringlist   (const error_manager& = _em0) const;
+    strvec      to_stringlist    (const error_manager& = _em0) const;
 
-    Column*     to_column       (const error_manager& = _em0) const;
-    Groupby*    to_groupby      (const error_manager& = _em0) const;
-    RowIndex    to_rowindex     (const error_manager& = _em0) const;
-    DataTable*  to_frame        (const error_manager& = _em0) const;
+    Column*     to_column        (const error_manager& = _em0) const;
+    Groupby*    to_groupby       (const error_manager& = _em0) const;
+    RowIndex    to_rowindex      (const error_manager& = _em0) const;
+    DataTable*  to_frame         (const error_manager& = _em0) const;
 
   protected:
     /**
@@ -199,6 +200,7 @@ class oobj : public _obj {
     oobj(oobj&&);
     oobj(oInt&&);
     oobj(oFloat&&);
+    oobj(ostring&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();
