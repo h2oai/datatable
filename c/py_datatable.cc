@@ -42,6 +42,8 @@ PyObject* wrap(DataTable* dt)
   if (pydt) {
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
+    pypydt->ltypes = nullptr;
+    pypydt->stypes = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
@@ -127,27 +129,35 @@ PyObject* get_isview(obj* self) {
 
 
 PyObject* get_ltypes(obj* self) {
-  int64_t i = self->ref->ncols;
-  PyObject* list = PyTuple_New(i);
-  if (list == nullptr) return nullptr;
-  while (--i >= 0) {
-    SType st = self->ref->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, info(st).py_ltype());
+  if (!self->ltypes) {
+    int64_t i = self->ref->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      SType st = self->ref->columns[i]->stype();
+      PyTuple_SET_ITEM(list, i, info(st).py_ltype());
+    }
+    self->ltypes = list;
   }
-  return list;
+  Py_INCREF(self->ltypes);
+  return self->ltypes;
 }
 
 
 PyObject* get_stypes(obj* self) {
-  DataTable* dt = self->ref;
-  int64_t i = dt->ncols;
-  PyObject* list = PyTuple_New(i);
-  if (list == nullptr) return nullptr;
-  while (--i >= 0) {
-    SType st = dt->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, info(st).py_stype());
+  if (!self->stypes) {
+    DataTable* dt = self->ref;
+    int64_t i = dt->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      SType st = dt->columns[i]->stype();
+      PyTuple_SET_ITEM(list, i, info(st).py_stype());
+    }
+    self->stypes = list;
   }
-  return list;
+  Py_INCREF(self->stypes);
+  return self->stypes;
 }
 
 
@@ -342,6 +352,11 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
       dt->columns[j] = replcol->shallowcopy();
     }
   }
+  // Clear cached stypes/ltypes; No need to update names
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
   Py_RETURN_NONE;
 }
 
@@ -404,6 +419,11 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   }
   dt->columns[dt->ncols] = nullptr;
 
+  // Clear cached stypes/ltypes; No need to update names
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
   Py_RETURN_NONE;
 }
 
@@ -450,6 +470,12 @@ PyObject* rbind(obj* self, PyObject* args) {
   }
 
   dt->rbind(dts, cols_to_append, ndts, final_ncols);
+
+  // Clear cached stypes/ltypes
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
 
   dt::free(cols_to_append);
   dt::free(dts);
@@ -617,6 +643,8 @@ PyObject* save_jay(obj* self, PyObject* args) {
 
 static void dealloc(obj* self) {
   delete self->ref;
+  Py_XDECREF(self->ltypes);
+  Py_XDECREF(self->stypes);
   Py_TYPE(self)->tp_free(self);
 }
 

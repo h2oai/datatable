@@ -41,7 +41,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ("_ltypes", "_stypes", "_names", "_inames", "_dt")
+    __slots__ = ("_names", "_inames", "_dt")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "stype" in kwargs:
@@ -51,8 +51,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._ltypes = None  # type: Tuple[ltype]
-        self._stypes = None  # type: Tuple[stype]
         self._names = None   # type: Tuple[str]
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
@@ -93,16 +91,12 @@ class Frame(object):
     @property
     def ltypes(self):
         """Tuple of column types."""
-        if self._ltypes is None:
-            self._ltypes = self._dt.ltypes
-        return self._ltypes
+        return self._dt.ltypes
 
     @property
     def stypes(self):
         """Tuple of column storage types."""
-        if self._stypes is None:
-            self._stypes = self._dt.stypes
-        return self._stypes
+        return self._dt.stypes
 
     @property
     def internal(self):
@@ -253,9 +247,6 @@ class Frame(object):
 
     def _fill_from_dt(self, _dt, names=None):
         self._dt = _dt
-        # Clear the memorized values, in case they were already computed.
-        self._stypes = None
-        self._ltypes = None
         if names:
             if isinstance(names, str):
                 names = [names]
