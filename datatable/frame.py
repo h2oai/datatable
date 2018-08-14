@@ -41,9 +41,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    _id_counter_ = 0
-
-    __slots__ = ("_id", "_ncols", "_nrows", "_ltypes", "_stypes", "_names",
+    __slots__ = ("_ncols", "_nrows", "_ltypes", "_stypes", "_names",
                  "_inames", "_dt", "_nkeys")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
@@ -54,8 +52,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        Frame._id_counter_ += 1
-        self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
         self._nrows = 0      # type: int
         self._nkeys = 0      # type: int
@@ -166,7 +162,7 @@ class Frame(object):
     def __repr__(self):
         srows = plural(self._nrows, "row")
         scols = plural(self._ncols, "col")
-        return "<Frame #%d (%s x %s)>" % (self._id, srows, scols)
+        return "<Frame [%s x %s]>" % (srows, scols)
 
     def _display_in_terminal_(self):  # pragma: no cover
         # This method is called from the display hook set from .utils.terminal
