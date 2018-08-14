@@ -184,7 +184,7 @@ class LlvmEvaluationEngine(EvaluationEngine):
         return prefix + str(self._var_counter)
 
     def get_dtvar(self, dt):
-        varname = "dt" + str(getattr(dt, "_id"))
+        varname = "dt" + str(id(dt))
         if varname not in self._global_names:
             ptr = dt.internal.datatable_ptr
             self.add_global(varname, "void*", "(void*) %dL" % ptr)
