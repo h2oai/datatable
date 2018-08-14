@@ -355,11 +355,11 @@ if "MACOSX_DEPLOYMENT_TARGET" not in os.environ and sys.platform == "darwin":
 
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":
-    extra_libs = ["libomp.dylib"]
+    pass#extra_libs = ["libomp.dylib"]
 elif sys.platform == "win32":
     pass# extra_libs = ["libomp.dll", "libc++.dll", "libc++abi.dll"]
 else:
-    extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
+    pass#extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
 
 # Copy system libraries into the datatable/lib folder, so that they can be
 # packaged with the wheel
