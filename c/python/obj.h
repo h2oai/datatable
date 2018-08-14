@@ -97,6 +97,22 @@ using strvec = std::vector<std::string>;
  *    function. If the function raises an exception, the value will be
  *    converted into NA.
  *
+ *
+ * to_cstring:
+ *    Convert a string or bytes object into a `CString` struct. Python None is
+ *    converted into an NA string, which is encoded as {.size=0, .ch=nullptr}.
+ *    The pointer in the returned `CString` struct is borrowed: its lifespan is
+ *    controlled by the lifespan of the underlying PyObject.
+ *
+ * to_string:
+ *    Similar to `to_cstring`, only the string is copied into an `std::string`
+ *    object. If the value is NA, then an empty `std::string` is returned
+ *    (std::string has no concept of missing strings).
+ *
+ * to_pystring_force:  [noexcept]
+ *    Convert into a `py::ostring` object. If the object is not string/bytes,
+ *    then an attempt is made to stringify it, using pythonic `str()` call.
+ *    If `str()` raises an error, the object is converted into NA.
  */
 class _obj {
   protected:

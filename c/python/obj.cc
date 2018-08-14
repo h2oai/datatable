@@ -281,7 +281,7 @@ CString _obj::to_cstring(const error_manager& em) const {
 
   if (PyUnicode_Check(v)) {
     str = PyUnicode_AsUTF8AndSize(v, &str_size);
-    if (!str) throw PyError();
+    if (!str) throw PyError();  // e.g. MemoryError
   }
   else if (PyBytes_Check(v)) {
     str_size = PyBytes_Size(v);
