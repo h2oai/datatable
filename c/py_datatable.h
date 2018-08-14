@@ -35,6 +35,8 @@ namespace pydatatable
  */
 struct obj : public PyObject {
   DataTable* ref;
+  PyObject* ltypes;  // memoized tuples of ltypes / stypes
+  PyObject* stypes;
   SType use_stype_for_buffers;
   int64_t : 56;
 };
