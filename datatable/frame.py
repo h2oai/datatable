@@ -41,8 +41,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ("_ltypes", "_stypes", "_names",
-                 "_inames", "_dt", "_nkeys")
+    __slots__ = ("_ltypes", "_stypes", "_names", "_inames", "_dt")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "stype" in kwargs:
@@ -52,7 +51,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._nkeys = 0      # type: int
         self._ltypes = None  # type: Tuple[ltype]
         self._stypes = None  # type: Tuple[stype]
         self._names = None   # type: Tuple[str]
@@ -80,7 +78,7 @@ class Frame(object):
     def key(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
-        return self._names[:self._nkeys]
+        return self._names[:self._dt.nkeys]
 
     @property
     def shape(self):
@@ -123,7 +121,6 @@ class Frame(object):
     @key.setter
     def key(self, colnames):
         if colnames is None:
-            self._nkeys = 0
             self._dt.nkeys = 0
             return
         if isinstance(colnames, (int, str)):
@@ -141,7 +138,6 @@ class Frame(object):
         else:
             raise ValueError("Duplicate columns requested for the key: %r"
                              % [self._names[i] for i in colindices])
-        self._nkeys = nk
         self._dt.nkeys = nk
 
     @names.setter
@@ -173,7 +169,7 @@ class Frame(object):
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
         length = max(2, len(str(row1)))
-        nk = self._nkeys
+        nk = self._dt.nkeys
         return {
             "names": self._names[:nk] + self._names[col0 + nk:col1 + nk],
             "types": view.types,
@@ -183,7 +179,7 @@ class Frame(object):
         }
 
     def view(self, interactive=True):
-        widget = DataFrameWidget(self.nrows, self.ncols, self._nkeys,
+        widget = DataFrameWidget(self.nrows, self.ncols, self._dt.nkeys,
                                  self._data_viewer, interactive)
         widget.render()
 
@@ -257,7 +253,6 @@ class Frame(object):
 
     def _fill_from_dt(self, _dt, names=None):
         self._dt = _dt
-        self._nkeys = _dt.nkeys
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
