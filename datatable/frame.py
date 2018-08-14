@@ -41,7 +41,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ("_ncols", "_nrows", "_ltypes", "_stypes", "_names",
+    __slots__ = ("_ltypes", "_stypes", "_names",
                  "_inames", "_dt", "_nkeys")
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
@@ -52,8 +52,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._ncols = 0      # type: int
-        self._nrows = 0      # type: int
         self._nkeys = 0      # type: int
         self._ltypes = None  # type: Tuple[ltype]
         self._stypes = None  # type: Tuple[stype]
@@ -71,12 +69,12 @@ class Frame(object):
     @property
     def nrows(self):
         """Number of rows in the frame."""
-        return self._nrows
+        return self._dt.nrows
 
     @property
     def ncols(self):
         """Number of columns in the frame."""
-        return self._ncols
+        return self._dt.ncols
 
     @property
     def key(self):
@@ -87,7 +85,7 @@ class Frame(object):
     @property
     def shape(self):
         """Tuple (number of rows, number of columns)."""
-        return (self._nrows, self._ncols)
+        return (self._dt.nrows, self._dt.ncols)
 
     @property
     def names(self):
@@ -137,7 +135,7 @@ class Frame(object):
             # rearrange the columns
             pass
         elif len(set(colindices)) == nk:
-            allindices = colindices + [i for i in range(self._ncols)
+            allindices = colindices + [i for i in range(self.ncols)
                                        if i not in colindices]
             self.__init__(self[:, allindices])
         else:
@@ -160,8 +158,8 @@ class Frame(object):
     #---------------------------------------------------------------------------
 
     def __repr__(self):
-        srows = plural(self._nrows, "row")
-        scols = plural(self._ncols, "col")
+        srows = plural(self.nrows, "row")
+        scols = plural(self.ncols, "col")
         return "<Frame [%s x %s]>" % (srows, scols)
 
     def _display_in_terminal_(self):  # pragma: no cover
@@ -185,7 +183,7 @@ class Frame(object):
         }
 
     def view(self, interactive=True):
-        widget = DataFrameWidget(self._nrows, self._ncols, self._nkeys,
+        widget = DataFrameWidget(self.nrows, self.ncols, self._nkeys,
                                  self._data_viewer, interactive)
         widget.render()
 
@@ -259,8 +257,6 @@ class Frame(object):
 
     def _fill_from_dt(self, _dt, names=None):
         self._dt = _dt
-        self._ncols = _dt.ncols
-        self._nrows = _dt.nrows
         self._nkeys = _dt.nkeys
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
@@ -271,12 +267,12 @@ class Frame(object):
             if not isinstance(names, (tuple, list)):
                 raise TTypeError("The `names` parameter should be either a "
                                  "tuple or a list, not %r" % type(names))
-            if len(names) != self._ncols:
+            if len(names) != self.ncols:
                 raise TValueError("The length of the `names` parameter (%d) "
                                   "does not match the number of columns in the "
-                                  "Frame (%d)" % (len(names), self._ncols))
+                                  "Frame (%d)" % (len(names), self.ncols))
         else:
-            names = [None] * self._ncols
+            names = [None] * self.ncols
         self._names, self._inames = Frame._dedup_names(names)
 
 
@@ -587,8 +583,9 @@ class Frame(object):
         # `cols` must be a sorted list of positive integer indices
         if not cols:
             return
+        old_ncols = self.ncols
         self._dt.delete_columns(cols)
-        assert self._ncols - len(cols) == self._dt.ncols
+        assert self.ncols == old_ncols - len(cols)
         newnames = self.names[:cols[0]]
         for i in range(1, len(cols)):
             newnames += self.names[(cols[i - 1] + 1):cols[i]]
@@ -614,7 +611,7 @@ class Frame(object):
                 raise TValueError("Column `%s` does not exist in %r"
                                   % (name, self))
         else:
-            n = self._ncols
+            n = self.ncols
             if 0 <= name < n:
                 return name
             elif -n <= name < 0:
@@ -650,7 +647,7 @@ class Frame(object):
         """
         idx = self.colindex(by)
         ri = self._dt.sort(idx)[0]
-        cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
+        cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
 
@@ -661,7 +658,6 @@ class Frame(object):
         #   - tile existing values
         if nrows < 0:
             raise TValueError("Cannot resize to %d rows" % nrows)
-        self._nrows = nrows
         self._dt.resize_rows(nrows)
 
 
@@ -808,9 +804,9 @@ class Frame(object):
         """
         if isinstance(columns, (list, tuple)):
             names = columns
-            if len(names) != self._ncols:
+            if len(names) != self.ncols:
                 raise TValueError("Cannot rename columns to %r: expected %s"
-                                  % (names, plural(self._ncols, "name")))
+                                  % (names, plural(self.ncols, "name")))
         else:
             names = list(self._names)
             for oldname, newname in columns.items():
@@ -840,7 +836,7 @@ class Frame(object):
         if srcdt.isview:
             srcdt = srcdt.materialize()
         srccols = collections.OrderedDict()
-        for i in range(self._ncols):
+        for i in range(self.ncols):
             name = self._names[i]
             column = srcdt.column(i)
             dtype = self.stypes[i].dtype
