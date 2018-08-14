@@ -119,10 +119,10 @@ Arg::operator int64_t() const {
 }
 
 
-Arg::operator List() const {
+Arg::operator list() const {
   _check_missing();
   _check_list_or_tuple();
-  return List(pyobj);
+  return list(pyobj);
 }
 
 

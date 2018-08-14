@@ -14,6 +14,7 @@
 #include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
+#include "python/obj.h"
 #include "rowindex.h"
 #include "stats.h"
 #include "types.h"
@@ -87,7 +88,7 @@ public:
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
-  static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
+  static Column* from_pylist(const py::list& list, int stype0 = 0, int ltype0 = 0);
   static Column* from_buffer(PyObject* buffer);
 
   Column(const Column&) = delete;

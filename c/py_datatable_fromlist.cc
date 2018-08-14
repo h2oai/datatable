@@ -10,9 +10,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "python/list.h"
-#include "python/long.h"
 #include "utils/exceptions.h"
-#include "utils/pyobj.h"
 
 
 /**
@@ -31,8 +29,8 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "OO:from_list", &arg1, &arg2))
     return nullptr;
-  PyyList srcs = PyObj(arg1);
-  PyyList types = PyObj(arg2);
+  py::list srcs = py::obj(arg1).to_pylist();
+  py::list types = py::obj(arg2).to_pylist();
 
   if (srcs && types && srcs.size() != types.size()) {
     throw ValueError() << "The list of sources has size " << srcs.size()
@@ -46,18 +44,17 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   // Check validity of the data and construct the output columnset.
   int64_t nrows = 0;
   for (size_t i = 0; i < ncols; ++i) {
-    PyObj item = srcs[i];
+    py::obj item = srcs[i];
     if (item.is_buffer()) {
-      cols[i] = Column::from_buffer(item.data());
+      cols[i] = Column::from_buffer(item.to_borrowed_ref());
     } else if (item.is_list()) {
-      PyyList list = item;
+      py::list list = item.to_pylist();
       int stype = 0;
       if (types) {
-        PyyLong t = types[i];
-        stype = t.value<int32_t>();
+        stype = types[i].to_int32();
         if (ISNA<int32_t>(stype)) stype = 0;
       }
-      cols[i] = Column::from_pylist(list, stype);
+      cols[i] = Column::from_pylist(list.to_pyylist(), stype);
     } else {
       throw ValueError() << "Source list is not list-of-lists";
     }

@@ -31,8 +31,8 @@ SType PyObjectColumn::stype() const {
 }
 
 
-// "PyObj" columns cannot be properly saved. So if somehow they were, then when
-// opening, we'll just fill the column with NAs.
+// "PyObject" columns cannot be properly saved. So if somehow they were, then
+// when opening, we'll just fill the column with NAs.
 void PyObjectColumn::open_mmap(const std::string&, bool) {
   xassert(!ri);
   mbuf = MemoryRange::mem(static_cast<size_t>(nrows) * sizeof(PyObject*))

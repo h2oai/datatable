@@ -5,25 +5,24 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-
 #define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
-#include <stdlib.h>
-#include "utils/omp.h"
+#include <cstdlib>
 #include "py_utils.h"
+#include "python/obj.h"
 #include "rowindex.h"
 #include "types.h"
-#include "utils/pyobj.h"
+#include "utils/omp.h"
 
 PyObject* aggregate(PyObject*, PyObject* args) {
   int32_t n_bins, nx_bins, ny_bins, max_dimensions;
   unsigned int seed;
-  PyObject* dt;
+  PyObject* arg1;
 
   if (!PyArg_ParseTuple(args, "OiiiiI:aggregate",
-                        &dt, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
+                        &arg1, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
-  DataTable* dt_in = PyObj(dt).as_datatable();
+  DataTable* dt_in = py::obj(arg1).to_frame();
   DataTablePtr dt_members = nullptr;
 
 

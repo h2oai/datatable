@@ -8,11 +8,12 @@
 #ifndef dt_PYTHON_LIST_h
 #define dt_PYTHON_LIST_h
 #include <Python.h>
-#include "utils/pyobj.h"
+#include "python/obj.h"
 
 class PyyList;
-class PyyLong;
-class PyyFloat;
+// class PyyLong;
+// class PyyFloat;
+namespace py { class list; class Float; }
 
 
 class PyyListEntry {
@@ -23,12 +24,13 @@ class PyyListEntry {
   public:
     PyyListEntry(PyObject* list, Py_ssize_t i);
 
-    operator PyObj() const;
+    operator py::oobj() const;
+    operator py::obj() const;
     operator PyyList() const;
-    operator PyyLong() const;
-    operator PyyFloat() const;
+    // operator PyyLong() const;
+    operator py::Float() const;
     PyyListEntry& operator=(PyObject*);
-    PyyListEntry& operator=(const PyObj&);
+    PyyListEntry& operator=(py::oobj&&);
 
     PyObject* as_new_ref() const;
 
@@ -75,8 +77,8 @@ class PyyListEntry {
  *
  * operator[](i)
  *   Returns i-th element of the list as a PyyListEntry object. This entry acts
- *   as a reference: it can be both read (by casting into `PyObj`) and written
- *   by assigning a `PyObject*` / `PyObj` to it.
+ *   as a reference: it can be both read (by casting into `obj`) and written
+ *   by assigning a `PyObject*` / `oobj` to it.
  *
  * release()
  *   Converts PyyList into the primitive `PyObject*` which can be used by
@@ -103,6 +105,7 @@ class PyyList {
     PyObject* release();
 
     friend void swap(PyyList& first, PyyList& second) noexcept;
+    friend py::list;
 };
 
 
@@ -111,19 +114,17 @@ namespace py {
 class Arg;
 
 
-class List {
-  private:
-    PyObject* pyobj;  // owned ref
-
+class list : public oobj {
   public:
-    List(const List&);
-    List(List&&);
-    ~List();
+    using oobj::oobj;
+    list();
+    list(const PyyList&);  // temp
+    PyyList to_pyylist() const;
 
+    operator bool() const;
     size_t size() const;
+    obj operator[](size_t i) const;
 
-  private:
-    List(PyObject* o);
     friend class Arg;
 };
 
