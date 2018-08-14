@@ -149,8 +149,7 @@ def test_dt_properties(dt0):
     assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
             sys.getsizeof(dt0.names) +
             sum(sys.getsizeof(colname) for colname in dt0.names) +
-            sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._ltypes) +
-            sys.getsizeof(dt0._stypes))
+            sys.getsizeof(dt0._inames))
 
 
 @pytest.mark.run(order=2)

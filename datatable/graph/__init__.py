@@ -69,7 +69,6 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                     rowsnode.negate()
                     rowsnode.execute()
                     dt.internal.replace_rowindex(ee.rowindex)
-                    dt._nrows = dt.internal.nrows
                     return
                 else:
                     update_mode = True

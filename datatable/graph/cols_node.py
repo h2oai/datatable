@@ -90,9 +90,6 @@ class AllCSNode(ColumnSetNode):
         ri = self._engine.rowindex
         dt.internal.replace_column_slice(0, self.dt.ncols, 1,
                                          ri, replacement.internal)
-        # Clear cached stypes/ltypes; No need to update names
-        dt._stypes = None
-        dt._ltypes = None
 
 
     def get_list(self):
@@ -155,9 +152,6 @@ class SliceCSNode(ColumnSetNode):
         ri = self._engine.rowindex
         dt.internal.replace_column_slice(self._start, self._count, self._step,
                                          ri, replacement.internal)
-        # Clear cached stypes/ltypes; No need to update names
-        dt._stypes = None
-        dt._ltypes = None
 
 
     def get_list(self):
