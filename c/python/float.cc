@@ -8,21 +8,16 @@
 #include "python/float.h"
 #include "utils/exceptions.h"
 
+namespace py {
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-PyyFloat::PyyFloat() : obj(nullptr) {}
+Float::Float() : obj(nullptr) {}
 
-
-PyyFloat::PyyFloat(double v) {
-  obj = PyFloat_FromDouble(v);  // new ref
-}
-
-
-PyyFloat::PyyFloat(PyObject* src) {
+Float::Float(PyObject* src) {
   if (!src) throw PyError();
   if (src == Py_None) {
     obj = nullptr;
@@ -31,53 +26,64 @@ PyyFloat::PyyFloat(PyObject* src) {
     if (!PyFloat_Check(src)) {
       throw TypeError() << "Object " << src << " is not a float";
     }
-    Py_INCREF(src);
   }
 }
 
-PyyFloat::PyyFloat(const PyyFloat& other) {
+Float::Float(const Float& other) {
   obj = other.obj;
-  Py_INCREF(obj);
 }
 
-PyyFloat::PyyFloat(PyyFloat&& other) : PyyFloat() {
+
+
+oFloat::oFloat() {}
+
+oFloat::oFloat(double v) {
+  obj = PyFloat_FromDouble(v);  // new ref
+}
+
+oFloat::oFloat(PyObject* src) : Float(src) {
+  Py_XINCREF(obj);
+}
+
+oFloat::oFloat(const oFloat& other) {
+  obj = other.obj;
+  Py_XINCREF(obj);
+}
+
+oFloat::oFloat(oFloat&& other) : oFloat() {
   swap(*this, other);
 }
 
-PyyFloat::~PyyFloat() {
+oFloat oFloat::_from_pyobject_no_checks(PyObject* v) {
+  oFloat res;
+  res.obj = v;
+  return res;
+}
+
+oFloat::~oFloat() {
   Py_XDECREF(obj);
 }
 
 
-void swap(PyyFloat& first, PyyFloat& second) noexcept {
+void swap(Float& first, Float& second) noexcept {
   std::swap(first.obj, second.obj);
 }
 
 
-PyyFloat PyyFloat::fromAnyObject(PyObject* obj) {
-  PyyFloat res;
-  PyObject* num = PyNumber_Float(obj);  // new ref
-  if (num) {
-    res.obj = num;
-  } else {
-    PyErr_Clear();
-  }
-  return res;
-}
-
-
-
 
 //------------------------------------------------------------------------------
-// Public API
+// Value conversions
 //------------------------------------------------------------------------------
 
 template<typename T>
-T PyyFloat::value() const {
-  return obj? static_cast<T>(PyFloat_AS_DOUBLE(obj)) : GETNA<T>();
+T Float::value() const {
+  if (!obj) return GETNA<T>();
+  return static_cast<T>(PyFloat_AS_DOUBLE(obj));
 }
 
 
 
-template float  PyyFloat::value() const;
-template double PyyFloat::value() const;
+template float  Float::value() const;
+template double Float::value() const;
+
+}  // namespace py

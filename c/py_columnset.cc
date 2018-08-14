@@ -14,7 +14,6 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "utils.h"
-#include "utils/pyobj.h"
 
 
 namespace pycolumnset
@@ -60,8 +59,8 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
   if (!PyArg_ParseTuple(args, "OOLLL:columns_from_slice",
                         &arg1, &arg2, &start, &count, &step))
     return nullptr;
-  DataTable* dt = PyObj(arg1).as_datatable();
-  RowIndex rowindex = PyObj(arg2).as_rowindex();
+  DataTable* dt = py::obj(arg1).to_frame();
+  RowIndex rowindex = py::obj(arg2).to_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
@@ -71,27 +70,30 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 
 PyObject* columns_from_mixed(PyObject*, PyObject *args)
 {
-  PyObject* pyspec;
+  PyObject* arg1;
   DataTable* dt;
   long int nrows;
   long long rawptr;
-  if (!PyArg_ParseTuple(args, "O!O&lL:columns_from_mixed",
-                        &PyList_Type, &pyspec, &pydatatable::unwrap, &dt,
+  if (!PyArg_ParseTuple(args, "OO&lL:columns_from_mixed",
+                        &arg1, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
     return nullptr;
+  py::list pyspec = py::obj(arg1).to_pylist();
 
   columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
-  int64_t ncols = PyList_Size(pyspec);
+  size_t ncols = pyspec.size();
   int64_t* spec = dt::amalloc<int64_t>(ncols);
-  for (int64_t i = 0; i < ncols; i++) {
-    PyObject* elem = PyList_GET_ITEM(pyspec, i);
-    if (PyLong_CheckExact(elem)) {
-      spec[i] = PyLong_AsInt64(elem);
+  for (size_t i = 0; i < ncols; ++i) {
+    auto elem = pyspec[i];
+    if (elem.is_int()) {
+      spec[i] = elem.to_int64_strict();
+      xassert(spec[i] >= 0);
     } else {
-      spec[i] = -PyObj(elem, "itype").as_int64();
+      spec[i] = -elem.get_attr("itype").to_int64_strict();
     }
   }
-  return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr), ncols);
+  int64_t icols = static_cast<int64_t>(ncols);
+  return wrap(columns_from_mixed(spec, icols, nrows, dt, fnptr), icols);
 }
 
 

@@ -40,10 +40,10 @@ class Frame : public PyObject {
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
 
-    PyObj get_ncols() const;
-    PyObj get_nrows() const;
+    oobj get_ncols() const;
+    oobj get_nrows() const;
 
-    PyObj bang(NoArgs&);
+    oobj bang(NoArgs&);
 };
 
 

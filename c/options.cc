@@ -7,9 +7,8 @@
 //------------------------------------------------------------------------------
 #define dt_OPTIONS_cc
 #include "options.h"
-#include "utils/exceptions.h"
+#include "python/obj.h"
 #include "utils/omp.h"
-#include "utils/pyobj.h"
 
 
 namespace config
@@ -99,36 +98,36 @@ PyObject* set_option(PyObject*, PyObject* args) {
   PyObject* arg1;
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
-  PyObj arg_name(arg1);
-  PyObj value(arg2);
-  std::string name = arg_name.as_string();
+  py::obj arg_name(arg1);
+  py::obj value(arg2);
+  std::string name = arg_name.to_string();
 
   if (name == "nthreads") {
-    set_nthreads(value.as_int32());
+    set_nthreads(value.to_int32_strict());
 
   } else if (name == "sort.insert_method_threshold") {
-    set_sort_insert_method_threshold(value.as_int64());
+    set_sort_insert_method_threshold(value.to_int64_strict());
 
   } else if (name == "sort.thread_multiplier") {
-    set_sort_thread_multiplier(value.as_int64());
+    set_sort_thread_multiplier(value.to_int64_strict());
 
   } else if (name == "sort.max_chunk_length") {
-    set_sort_max_chunk_length(value.as_int64());
+    set_sort_max_chunk_length(value.to_int64_strict());
 
   } else if (name == "sort.max_radix_bits") {
-    set_sort_max_radix_bits(value.as_int64());
+    set_sort_max_radix_bits(value.to_int64_strict());
 
   } else if (name == "sort.over_radix_bits") {
-    set_sort_over_radix_bits(value.as_int64());
+    set_sort_over_radix_bits(value.to_int64_strict());
 
   } else if (name == "sort.nthreads") {
-    set_sort_nthreads(value.as_int32());
+    set_sort_nthreads(value.to_int32_strict());
 
   } else if (name == "core_logger") {
-    set_core_logger(value.as_pyobject());
+    set_core_logger(py::oobj(value).release());
 
   } else if (name == "fread.anonymize") {
-    set_fread_anonymize(value.as_bool());
+    set_fread_anonymize(value.to_bool_strict());
 
   } else {
     throw ValueError() << "Unknown option `" << name << "`";

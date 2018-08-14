@@ -9,7 +9,7 @@
 #define dt_READ_COLUMN_h
 #include <string>
 #include "memrange.h"     // MemoryRange
-#include "utils/pyobj.h"  // PyObj
+#include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
 
 // forward-declare
@@ -98,7 +98,7 @@ class Column {
 
     // Misc
     void convert_to_str64();
-    PyObj py_descriptor() const;
+    py::oobj py_descriptor() const;
     size_t memory_footprint() const;
 };
 

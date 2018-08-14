@@ -9,34 +9,41 @@
 #define dt_PYTHON_STRING_h
 #include <Python.h>
 #include <string>
-#include "utils/pyobj.h"
+#include "python/obj.h"
 
+namespace py {
 
 
 /**
  * C++ wrapper around PyUnicode_Object (python `str` object).
  */
-class PyyString {
-  private:
+class string {
+  protected:
     PyObject* obj;
 
   public:
-    PyyString();
-    PyyString(const std::string& s);
-    PyyString(const char* str);
-    PyyString(const char* str, size_t len);
-    PyyString(PyObject*);
-    PyyString(const PyyString&);
-    PyyString(PyyString&&);
-    ~PyyString();
-
-    operator PyObj() const &;
-    operator PyObj() &&;
-    PyObject* release();
-
-    friend void swap(PyyString& first, PyyString& second) noexcept;
+    string();
+    string(PyObject*);
+    string(const string&);
+    friend void swap(string& first, string& second) noexcept;
 };
 
 
+
+class ostring : public string {
+  public:
+    ostring();
+    ostring(const std::string& s);
+    ostring(const char* str);
+    ostring(const char* str, size_t len);
+    ostring(PyObject*);
+    ostring(const ostring&);
+    ostring(ostring&&);
+    ~ostring();
+    friend oobj::oobj(ostring&&);
+};
+
+
+}  // namespace py
 
 #endif

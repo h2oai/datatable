@@ -61,7 +61,7 @@ class Arg {
     /**
      * Convert argument to different list objects.
      */
-    operator List() const;
+    operator list() const;
     std::vector<std::string> to_list_of_strs() const;
 
     const std::string& name() const;

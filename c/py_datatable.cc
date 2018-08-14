@@ -18,7 +18,6 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "python/long.h"
 #include "python/string.h"
 
 
@@ -87,7 +86,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
-  std::string filename = PyObj(arg1).as_string();
+  std::string filename = py::obj(arg1).to_string();
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
@@ -95,7 +94,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
   PyyList collist(colnames.size());
   for (size_t i = 0; i < colnames.size(); ++i) {
-    collist[i] = PyyString(colnames[i]);
+    collist[i] = py::ostring(colnames[i]);
   }
   PyObject* pylist = collist.release();
 
@@ -184,7 +183,7 @@ PyObject* get_nkeys(obj* self) {
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = PyObj(value).as_int64();
+  int64_t nk = py::obj(value).to_int64_strict();
   self->ref->set_nkeys(nk);
   return 0;
 }
@@ -298,7 +297,7 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
     return nullptr;
-  RowIndex newri = PyObj(arg1).as_rowindex();
+  RowIndex newri = py::obj(arg1).to_rowindex();
 
   dt->replace_rowindex(newri);
   Py_RETURN_NONE;
@@ -312,8 +311,8 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
-  RowIndex rows_ri = PyObj(arg4).as_rowindex();
-  DataTable* repl = PyObj(arg5).as_datatable();
+  RowIndex rows_ri = py::obj(arg4).to_rowindex();
+  DataTable* repl = py::obj(arg5).to_frame();
   int64_t rrows = repl->nrows;
   int64_t rcols = repl->ncols;
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -353,8 +352,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
   PyyList cols(arg1);
-  RowIndex rows_ri = PyObj(arg2).as_rowindex();
-  DataTable* repl = PyObj(arg3).as_datatable();
+  RowIndex rows_ri = py::obj(arg2).to_rowindex();
+  DataTable* repl = py::obj(arg3).to_frame();
   int64_t rrows = repl->nrows;
   size_t rcols = static_cast<size_t>(repl->ncols);
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -372,8 +371,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
   int64_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::obj item = cols[i];
+    int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
     if (j < -1 || j >= dt->ncols) {
       throw ValueError() << "Invalid index for a replacement column: " << j;
@@ -389,8 +388,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
   }
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::obj item = cols[i];
+    int64_t j = item.to_int64_strict();
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
       dt->columns[j]->replace_values(rows_ri, replcol);
@@ -507,15 +506,14 @@ PyObject* join(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
 
   DataTable* dt = self->ref;
-  DataTable* jdt = PyObj(arg2).as_datatable();
-  RowIndex ri = PyObj(arg1).as_rowindex();
-  PyyList cols(arg3);
+  DataTable* jdt = py::obj(arg2).to_frame();
+  RowIndex ri = py::obj(arg1).to_rowindex();
+  py::list cols(arg3);
 
   if (cols.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
   }
-  PyyLong icol = cols[0];
-  int64_t i = icol.value<int64_t>();
+  int64_t i = cols[0].to_int64();
   if (i < 0 || i >= dt->ncols) {
     throw ValueError() << "Invalid index " << i << " for a Frame with "
         << dt->ncols << " columns";
@@ -600,9 +598,9 @@ PyObject* save_jay(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
     return nullptr;
 
-  std::string filename = PyObj(arg1).as_string();
-  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
-  std::string strategy = PyObj(arg3).as_string();
+  auto filename = py::obj(arg1).to_string();
+  auto colnames = py::obj(arg2).to_stringlist();
+  auto strategy = py::obj(arg3).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;

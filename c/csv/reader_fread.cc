@@ -21,7 +21,6 @@
 #include "py_utils.h"
 #include "utils/assert.h"
 #include "utils/file.h"
-#include "utils/pyobj.h"
 #include "utils.h"
 
 
