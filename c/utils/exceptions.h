@@ -50,6 +50,7 @@ public:
   Error& operator<<(SType);
   Error& operator<<(const CErrno&);
   Error& operator<<(PyObject*);
+  Error& operator<<(PyTypeObject*);
   #ifdef __APPLE__
     Error& operator<<(uint64_t);
     Error& operator<<(ssize_t);

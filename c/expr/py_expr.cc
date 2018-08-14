@@ -6,9 +6,9 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #define dt_EXPR_PY_EXPR_CC
-#include <Python.h>
 #include "expr/py_expr.h"
-#include "utils/pyobj.h"
+#include <Python.h>
+#include "python/obj.h"
 #include "py_column.h"
 
 
@@ -19,11 +19,11 @@ PyObject* expr_binaryop(PyObject*, PyObject* args)
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "iOO:expr_binaryop", &opcode, &arg1, &arg2))
     return nullptr;
-  PyObj py_lhs(arg1);
-  PyObj py_rhs(arg2);
+  py::obj py_lhs(arg1);
+  py::obj py_rhs(arg2);
 
-  Column* lhs = py_lhs.as_column();
-  Column* rhs = py_rhs.as_column();
+  Column* lhs = py_lhs.to_column();
+  Column* rhs = py_rhs.to_column();
   Column* res = expr::binaryop(opcode, lhs, rhs);
   return pycolumn::from_column(res, nullptr, 0);
 }
@@ -35,9 +35,9 @@ PyObject* expr_cast(PyObject*, PyObject* args)
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "Oi:expr_cast", &arg1, &stype))
     return nullptr;
-  PyObj pyarg(arg1);
+  py::obj pyarg(arg1);
 
-  Column* col = pyarg.as_column();
+  Column* col = pyarg.to_column();
   col->reify();
   Column* res = col->cast(static_cast<SType>(stype));
   return pycolumn::from_column(res, nullptr, 0);
@@ -50,10 +50,10 @@ PyObject* expr_column(PyObject*, PyObject* args)
   PyObject* arg1, *arg3;
   if (!PyArg_ParseTuple(args, "OlO:expr_column", &arg1, &index, &arg3))
     return nullptr;
-  PyObj pyarg1(arg1);
-  PyObj pyarg3(arg3);
-  DataTable* dt = pyarg1.as_datatable();
-  RowIndex ri = pyarg3.as_rowindex();
+  py::obj pyarg1(arg1);
+  py::obj pyarg3(arg3);
+  DataTable* dt = pyarg1.to_frame();
+  RowIndex ri = pyarg3.to_rowindex();
 
   if (index < 0 || index >= dt->ncols) {
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", index);
@@ -70,11 +70,11 @@ PyObject* expr_reduceop(PyObject*, PyObject* args)
   PyObject* arg1, *arg2;
   if (!PyArg_ParseTuple(args, "iOO:expr_reduceop", &opcode, &arg1, &arg2))
     return nullptr;
-  PyObj pyarg1(arg1);
-  PyObj pyarg2(arg2);
+  py::obj pyarg1(arg1);
+  py::obj pyarg2(arg2);
 
-  Column* col = pyarg1.as_column();
-  Groupby* grpby = pyarg2.as_groupby();
+  Column* col = pyarg1.to_column();
+  Groupby* grpby = pyarg2.to_groupby();
   Column* res = nullptr;
   if (grpby) {
     res = expr::reduceop(opcode, col, *grpby);
@@ -92,8 +92,8 @@ PyObject* expr_count(PyObject*, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO:expr_count", &arg1, &arg2))
     return nullptr;
 
-  DataTable* dt = PyObj(arg1).as_datatable();
-  Groupby* grpby = PyObj(arg2).as_groupby();
+  DataTable* dt = py::obj(arg1).to_frame();
+  Groupby* grpby = py::obj(arg2).to_groupby();
 
   Column* res = nullptr;
 
@@ -126,9 +126,9 @@ PyObject* expr_unaryop(PyObject*, PyObject* args)
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "iO:expr_isna", &opcode, &arg1))
     return nullptr;
-  PyObj pyarg1(arg1);
+  py::obj pyarg1(arg1);
 
-  Column* col = pyarg1.as_column();
+  Column* col = pyarg1.to_column();
   Column* res = expr::unaryop(opcode, col);
   return pycolumn::from_column(res, nullptr, 0);
 }

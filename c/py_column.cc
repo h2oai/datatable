@@ -11,7 +11,6 @@
 #include "py_types.h"
 #include "writebuf.h"
 #include "python/list.h"
-#include "utils/pyobj.h"
 
 namespace pycolumn
 {
@@ -47,7 +46,8 @@ PyObject* column_from_list(PyObject*, PyObject* args) {
   int stype = 0, ltype = 0;
   if (!PyArg_ParseTuple(args, "O|ii", &arg1, &stype, &ltype))
     return nullptr;
-  PyyList list = PyObj(arg1);
+  py::list list = py::obj(arg1).to_pylist();
+
   Column* col = Column::from_pylist(list, stype, ltype);
   return from_column(col, nullptr, 0);
 }
@@ -118,12 +118,12 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
   PyObject* arg2 = nullptr;
   if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
     return nullptr;
-  PyObj pyfilename(arg1);
-  PyObj pystrategy(arg2);
+  py::obj pyfilename(arg1);
+  py::obj pystrategy(arg2);
 
   Column* col = self->ref;
-  const char* filename = pyfilename.as_cstring();
-  std::string strategy = pystrategy.as_string();
+  const char* filename = pyfilename.to_cstring().ch;
+  std::string strategy = pystrategy.to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
@@ -149,10 +149,10 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 {
   PyObject* arg1 = nullptr;
   if (!PyArg_ParseTuple(args, "O:ungroup", &arg1)) return nullptr;
-  PyObj pygby(arg1);
+  py::obj pygby(arg1);
 
   Column* col = self->ref;
-  Groupby* groupby = pygby.as_groupby();
+  Groupby* groupby = pygby.to_groupby();
   if (static_cast<size_t>(col->nrows) != groupby->ngroups()) {
     throw ValueError() << "Cannot 'ungroup' a Column with " << col->nrows
       << " rows using a Groupby with " << groupby->ngroups() << " groups";
@@ -167,7 +167,7 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
-  RowIndex newri = PyObj(arg1).as_rowindex();
+  RowIndex newri = py::obj(arg1).to_rowindex();
 
   Column* col = self->ref;
   self->ref = col->shallowcopy(newri);

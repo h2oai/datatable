@@ -16,6 +16,8 @@
 struct CString {
   const char* ch;
   int64_t size;
+
+  operator bool() { return ch != nullptr; }
 };
 
 
