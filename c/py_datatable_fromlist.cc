@@ -29,8 +29,8 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "OO:from_list", &arg1, &arg2))
     return nullptr;
-  py::list srcs = py::obj(arg1).to_list();
-  py::list types = py::obj(arg2).to_list();
+  py::list srcs = py::obj(arg1).to_pylist();
+  py::list types = py::obj(arg2).to_pylist();
 
   if (srcs && types && srcs.size() != types.size()) {
     throw ValueError() << "The list of sources has size " << srcs.size()
@@ -48,7 +48,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
     if (item.is_buffer()) {
       cols[i] = Column::from_buffer(item.to_borrowed_ref());
     } else if (item.is_list()) {
-      py::list list = item.to_list();
+      py::list list = item.to_pylist();
       int stype = 0;
       if (types) {
         stype = types[i].to_int32();

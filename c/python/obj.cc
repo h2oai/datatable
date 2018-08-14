@@ -323,50 +323,12 @@ py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
 // List conversions
 //------------------------------------------------------------------------------
 
-py::list _obj::to_list(const error_manager& em) const {
+py::list _obj::to_pylist(const error_manager& em) const {
   if (is_none()) return py::list();
-  if (!(is_list() || is_tuple())) {
-    throw em.error_not_list(v);
+  if (is_list() || is_tuple()) {
+    return py::list(v);
   }
-  return py::list(v);
-}
-
-
-Groupby* _obj::to_groupby(const error_manager& em) const {
-  if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pygroupby::type)) {
-    throw em.error_not_groupby(v);
-  }
-  return static_cast<pygroupby::obj*>(v)->ref;
-}
-
-
-RowIndex _obj::to_rowindex(const error_manager& em) const {
-  if (v == Py_None) {
-    return RowIndex();
-  }
-  if (!PyObject_TypeCheck(v, &pyrowindex::type)) {
-    throw em.error_not_rowindex(v);
-  }
-  RowIndex* ref = static_cast<pyrowindex::obj*>(v)->ref;
-  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
-}
-
-
-DataTable* _obj::to_frame(const error_manager& em) const {
-  if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pydatatable::type)) {
-    throw em.error_not_frame(v);
-  }
-  return static_cast<pydatatable::obj*>(v)->ref;
-}
-
-
-Column* _obj::to_column(const error_manager& em) const {
-  if (!PyObject_TypeCheck(v, &pycolumn::type)) {
-    throw em.error_not_column(v);
-  }
-  return reinterpret_cast<pycolumn::obj*>(v)->ref;
+  throw em.error_not_list(v);
 }
 
 
@@ -441,6 +403,49 @@ strvec _obj::to_stringlist(const error_manager&) const {
     throw TypeError() << "A list of strings is expected, got " << v;
   }
   return res;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Object conversions
+//------------------------------------------------------------------------------
+
+Groupby* _obj::to_groupby(const error_manager& em) const {
+  if (v == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(v, &pygroupby::type)) {
+    throw em.error_not_groupby(v);
+  }
+  return static_cast<pygroupby::obj*>(v)->ref;
+}
+
+
+RowIndex _obj::to_rowindex(const error_manager& em) const {
+  if (v == Py_None) {
+    return RowIndex();
+  }
+  if (!PyObject_TypeCheck(v, &pyrowindex::type)) {
+    throw em.error_not_rowindex(v);
+  }
+  RowIndex* ref = static_cast<pyrowindex::obj*>(v)->ref;
+  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
+}
+
+
+DataTable* _obj::to_frame(const error_manager& em) const {
+  if (v == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(v, &pydatatable::type)) {
+    throw em.error_not_frame(v);
+  }
+  return static_cast<pydatatable::obj*>(v)->ref;
+}
+
+
+Column* _obj::to_column(const error_manager& em) const {
+  if (!PyObject_TypeCheck(v, &pycolumn::type)) {
+    throw em.error_not_column(v);
+  }
+  return reinterpret_cast<pycolumn::obj*>(v)->ref;
 }
 
 

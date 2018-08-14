@@ -770,7 +770,7 @@ void GenericReader::report_columns_to_python() {
 
     py::list newTypesList =
       freader.invoke("_override_columns0", "(O)",
-                     colDescriptorList.release()).to_list();
+                     colDescriptorList.release()).to_pylist();
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {

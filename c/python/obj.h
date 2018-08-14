@@ -139,9 +139,9 @@ class _obj {
     std::string to_string        (const error_manager& = _em0) const;
     py::ostring to_pystring_force(const error_manager& = _em0) const noexcept;
 
-    py::list    to_list          (const error_manager& = _em0) const;
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
+    py::list    to_pylist        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
