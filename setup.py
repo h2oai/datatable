@@ -241,6 +241,7 @@ def get_extra_compile_flags():
 
     flags += [
         "-Weverything",
+        "{'gcc': ['/Qstd=c99']}",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
         "-Wno-exit-time-destructors",
