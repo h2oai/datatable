@@ -34,18 +34,91 @@ dt_str = {("foo", "bbar", "baz"),
 #-------------------------------------------------------------------------------
 
 def test_f():
-    # Check that unbounded f-expressions can be stringified (see #1024). The
-    # exact representation may be modified in the future; however f-expressions
+    assert str(f) == "f"
+    assert repr(f) == "FrameProxy('f', None)"
+    with f.bind_datatable(dt.Frame()):
+        assert str(f) == "f"
+        assert repr(f) == "FrameProxy('f', <Frame [0 rows x 0 cols]>)"
+    assert repr(f) == "FrameProxy('f', None)"
+
+
+def test_f_col_selector_unbound():
+    # Check that unbounded col-selectors can be stringified. The precise
+    # representation may be modified in the future; however f-expressions
     # should not raise exceptions when printed.
-    x = f.a
-    assert repr(x) == "ColSelectorExpr(f_a)"
-    assert str(x) == "f_a"
-    y = f.C1 < f.C2
-    assert repr(y) == "RelationalOpExpr((f_C1 < f_C2))"
-    assert str(y) == "(f_C1 < f_C2)"
-    z = f[0]
-    assert str(z) == "f_0"
-    assert repr(z) == "ColSelectorExpr(f_0)"
+    # See issues #1024 and #1241
+    assert repr(f.a) == "ColSelectorExpr(f_a)"
+    assert str(f.a) == "f_a"
+    assert str(f.abcdefghijkl) == "f_abcdefghijkl"
+    assert str(f.abcdefghijklm) == "f__" + str(id("abcdefghijklm"))
+    assert str(f[0]) == "f_0"
+    assert str(f[1000]) == "f_1000"
+    assert str(f[-1]) == "f_1_"
+    assert str(f[-999]) == "f_999_"
+    assert str(f[""]) == "f__" + str(id(""))
+    assert str(f["0"]) == "f__" + str(id("0"))
+    assert str(f["A+B"]) == "f__" + str(id("A+B"))
+    assert str(f["_A"]) == "f__" + str(id("_A"))
+    assert str(f["_54"]) == "f__" + str(id("_54"))
+    assert str(f._3_) == "f__" + str(id("_3_"))
+    assert str(f.a_b_c) == "f__" + str(id("a_b_c"))
+    assert str(f[" y "]) == "f__" + str(id(" y "))
+    assert str(f["a b c"]) == str(f["a b c"])
+    assert str(f["a b c"]) != str(f[" ".join("abc")])
+
+
+def test_f_col_selector_bound1():
+    with f.bind_datatable(dt.Frame()):
+        assert str(f.a) == "f_a"
+        assert str(f.abcdefghijkl) == "f_abcdefghijkl"
+        assert str(f.abcdefghijklm) == "f__" + str(id("abcdefghijklm"))
+        assert str(f[0]) == "f_0"
+        assert str(f[1]) == "f_1"
+        assert str(f[-1]) == "f_1_"
+        assert str(f[1000000]) == "f_1000000"
+        assert str(f[""]) == "f__" + str(id(""))
+        assert str(f["0"]) == "f__" + str(id("0"))
+        assert str(f["A/B"]) == "f__" + str(id("A/B"))
+
+
+def test_f_col_selector_bound2():
+    dt0 = dt.Frame([[]] * 3, names=["a", "abcdefg", "abcdefghijklm"])
+    with f.bind_datatable(dt0):
+        assert str(f.a) == "f_a"
+        assert str(f.abcdefg) == "f_abcdefg"
+        assert str(f.abcdefghijkl) == "f_abcdefghijkl"
+        assert str(f.abcdefghijklm) == "f_2"
+        assert str(f[0]) == "f_a"
+        assert str(f[1]) == "f_abcdefg"
+        assert str(f[2]) == "f_2"  # "f_abcdefgijklm" is too long
+        assert str(f[3]) == "f_3"
+        assert str(f[-1]) == "f_2"
+        assert str(f[-2]) == "f_abcdefg"
+        assert str(f[-3]) == "f_a"
+        assert str(f[-4]) == "f_4_"
+        assert str(f.BBB) == "f_BBB"
+        assert str(f[""]) == "f__" + str(id(""))
+        assert str(f["0"]) == "f__" + str(id("0"))
+        assert str(f["The End."]) == "f__" + str(id("The End."))
+
+
+def test_f_col_selector_invalid():
+    with pytest.raises(TypeError) as e:
+        f[2.5]
+    assert str(e.value) == ("Column selector should be an integer or a string, "
+                            "not <class 'float'>")
+    # Note: at some point we may start supporting all the expressions below:
+    with pytest.raises(TypeError):
+        f[[7, 4]]
+    with pytest.raises(TypeError):
+        f[("A", "B", "C")]
+    with pytest.raises(TypeError):
+        f[:3]
+
+
+def test_f_expressions():
+    assert repr(f.C1 < f.C2) == "RelationalOpExpr((f_C1 < f_C2))"
+    assert str(f.C1 < f.C2) == "(f_C1 < f_C2)"
 
 
 
