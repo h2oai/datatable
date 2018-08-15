@@ -52,6 +52,7 @@ environment:
 before_build:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   - "ECHO %LLVM6%"
+  - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
 
 cache:
   - /ProgramData/chocolatey/bin -> appveyor.yml
