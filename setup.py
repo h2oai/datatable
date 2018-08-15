@@ -240,6 +240,7 @@ def get_extra_compile_flags():
         flags += ["/W4"]
 
     flags += [
+        "/W4",
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
