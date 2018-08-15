@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   compatible with Python 3.7.
 - rare crash when converting a string column from pandas DataFrame, when
   that the column contains many non-ASCII characters.
+- f-column-selectors should no longer throw errors and produce only unique
+  ids when stringified (#1241).
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
