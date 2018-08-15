@@ -8,7 +8,7 @@ import datatable as dt
 import pytest
 import random
 from tests import random_string
-from datatable import join, ltype, stype
+from datatable import join, ltype, stype, f, g, mean
 
 
 
@@ -105,3 +105,17 @@ def test_join_random(seed, lt):
     assert djoined.shape == (ndata, 2)
     assert djoined.names == ("KEY", "VAL")
     assert djoined.topython() == [main, res]
+
+
+
+def test_join_update():
+    d0 = dt.Frame([[1, 2, 3, 2, 3, 1, 3, 2, 2, 1], range(10)], names=("A", "B"))
+    d1 = d0[:, mean(f.B), f.A]
+    d1.key = "A"
+    d0[:, "AA", join(d1)] = g.V0
+    assert d0.names == ("A", "B", "AA")
+    a = 4.75
+    b = 14.0 / 3
+    assert d0.topython() == [[1, 2, 3, 2, 3, 1, 3, 2, 2, 1],
+                             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                             [b, a, 4, a, 4, b, 4, a, a, b]]

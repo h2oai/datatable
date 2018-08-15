@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Now a key column can be set on a Frame.
 - Key column(s) are saved when the frame is saved into a Jay file.
 - A Frame can now be naturally-joined with a keyed Frame.
+- Columns can now be updated within join expressions.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
