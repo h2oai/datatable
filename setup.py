@@ -226,6 +226,7 @@ def get_extra_compile_flags():
     #   -Wweak-template-vtables: this waning's purpose is unclear, and it
     #       is also unclear how to prevent it...
     flags += [
+        "/W4",
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
