@@ -52,7 +52,7 @@ environment:
 before_build:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   - "ECHO %LLVM6%"
-  - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
+  #- copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
 
 cache:
   - /ProgramData/chocolatey/bin -> appveyor.yml
@@ -64,9 +64,10 @@ test_script:
   # - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   # - dir C:\ProgramData\
   # - dir "C:\Program Files\"
-  - DIR /S "C:\tools\mingw64"
+  #- DIR /S "C:\tools\mingw64"
   # - dir %PYTHON%\
   # - /ProgramData/chocolatey/lib/make/tools/bin/make.exe test_install PYTHON=%PYTHON%/python.exe
+  - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
 
