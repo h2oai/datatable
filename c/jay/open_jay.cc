@@ -31,8 +31,10 @@ DataTable* DataTable::open_jay(const std::string& path,
   if (len < 24) {
     throw IOError() << "Invalid Jay file of size " << len;
   }
-  if (std::memcmp(ptr, "JAY1\0\0\0\0", 8) ||
-      std::memcmp(ptr + len - 8, "\0\0\0\0JAY1", 8)) {
+  if (std::memcmp(ptr, "JAY1\0\0\0\0", 8) != 0 ||
+      std::memcmp(ptr + len - 8, "\0\0\0\0" "1JAY", 8) *
+      std::memcmp(ptr + len - 8, "\0\0\0\0" "JAY1", 8))
+  {
     throw IOError() << "Invalid signature for a Jay file";
   }
 
