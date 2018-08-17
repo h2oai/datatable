@@ -63,6 +63,8 @@ class oInt : public Int {
 
     static oInt _from_pyobject_no_checks(PyObject* v);
     friend oobj::oobj(oInt&&);
+
+    PyObject* release();
 };
 
 

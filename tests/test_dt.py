@@ -146,10 +146,7 @@ def test_dt_properties(dt0):
     assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
                           stype.bool8, stype.bool8, stype.str32)
     assert dt0.internal.alloc_size > 500
-    assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
-            sys.getsizeof(dt0.names) +
-            sum(sys.getsizeof(colname) for colname in dt0.names) +
-            sys.getsizeof(dt0._inames))
+    assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
 
 
 @pytest.mark.run(order=2)
@@ -192,10 +189,12 @@ def test_dt_colindex(dt0):
     assert "Column `a` does not exist" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert "Column index `7` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `7` is invalid for a Frame with 7 columns"
+            in str(e.value))
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert "Column index `-8` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `-8` is invalid for a Frame with 7 columns"
+            in str(e.value))
 
 
 @pytest.mark.run(order=5)
