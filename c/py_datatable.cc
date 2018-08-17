@@ -250,6 +250,14 @@ PyObject* get_alloc_size(obj* self) {
 // PyDatatable methods
 //==============================================================================
 
+static void _clear_types(obj* self) {
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
+}
+
+
 PyObject* window(obj* self, PyObject* args) {
   int64_t row0, row1, col0, col1;
   if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
@@ -316,6 +324,7 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   }
   dt->delete_columns(cols_to_remove, ncols);
 
+  _clear_types(self);
   dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
@@ -383,11 +392,7 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
       dt->columns[j] = replcol->shallowcopy();
     }
   }
-  // Clear cached stypes/ltypes; No need to update names
-  Py_XDECREF(self->stypes);
-  Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
-  self->ltypes = nullptr;
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
@@ -451,10 +456,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   dt->columns[dt->ncols] = nullptr;
 
   // Clear cached stypes/ltypes; No need to update names
-  Py_XDECREF(self->stypes);
-  Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
-  self->ltypes = nullptr;
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
