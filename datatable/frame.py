@@ -134,9 +134,7 @@ class Frame(object):
         self._dt.nkeys = nk
 
     @names.setter
-    @typed()
-    def names(self, newnames: Union[List[Optional[str]],
-                                    Tuple[Optional[str], ...]]):
+    def names(self, newnames):
         """Rename the columns of the Frame."""
         self.rename(newnames)
 
@@ -926,8 +924,6 @@ class Frame(object):
         #   * The keys in `self._inames` are skipped, since they are the same
         #     objects as elements of `self.names`, the values are skipped
         #     because they are integers.
-        #   * The sys.getsizeof() automatically adds 24 to the final answer,
-        #     which is the size of the Frame object itself.
         size = 0
         size += self._dt.alloc_size
         size += sys.getsizeof(self._inames)
