@@ -307,20 +307,19 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
 // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
 // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
 void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
-  size_t exemplar_id = 0;
-  int64_t ndims = std::min(max_dimensions, static_cast<int32_t>(dt_exemplars->ncols));
+  auto d = static_cast<int32_t>(dt_exemplars->ncols);
+  int64_t ndims = std::min(max_dimensions, d);
   double* exemplar = new double[ndims];
   double* member = new double[ndims];
   double* pmatrix = nullptr;
   std::vector<double*> exemplars;
   double delta, distance = 0.0;
-//  double radius = .025 * (dt_exemplars->ncols);
-  double radius = .8 * atan(static_cast<double>(dt_exemplars->ncols) / max_dimensions);
   auto d_counts = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
+  double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
 
   if (dt_exemplars->ncols > max_dimensions) {
-//    adjust_radius(dt_exemplars, radius);
-    radius = 0.3 / sqrt(static_cast<double>(dt_exemplars->ncols) / max_dimensions);
+    radius /= 7.0;
     pmatrix = generate_pmatrix(dt_exemplars);
     project_row(dt_exemplars, exemplar, 0, pmatrix);
   } else {
@@ -335,14 +334,15 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
     if (dt_exemplars->ncols > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
     else normalize_row(dt_exemplars, member, i);
 
-    for (exemplar_id = 0; exemplar_id < exemplars.size(); ++exemplar_id) {
+    for (size_t exemplar_id = 0; exemplar_id < exemplars.size(); ++exemplar_id) {
       distance = calculate_distance(member, exemplars[exemplar_id], ndims, delta);
-      if (distance < delta) break;
+      if (distance < delta) {
+        d_counts[i] = static_cast<int32_t>(exemplar_id);
+        break;
+      }
     }
 
-    if (distance < delta) {
-      d_counts[i] = static_cast<int32_t>(exemplar_id);
-    } else {
+    if (distance >= delta) {
       d_counts[i] = static_cast<int32_t>(exemplars.size());
       exemplars.push_back(member);
       member = new double[ndims];
