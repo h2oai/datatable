@@ -220,7 +220,9 @@ def test_dt_getitem(dt0):
 
 # Not a fixture: create a new datatable each time this function is called
 def smalldt():
-    return dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
+    res = dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
+    assert res.ltypes == (ltype.bool, ltype.bool) + (ltype.int,) * 14
+    return res
 
 def test_del_0cols():
     d0 = smalldt()
@@ -236,6 +238,7 @@ def test_del_1col_str_1():
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(1, 16)]
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
+    assert len(d0.ltypes) == d0.ncols
 
 def test_del_1col_str_2():
     d0 = smalldt()
