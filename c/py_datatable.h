@@ -35,8 +35,9 @@ namespace pydatatable
  */
 struct obj : public PyObject {
   DataTable* ref;
-  PyObject* ltypes;  // memoized tuples of ltypes / stypes
-  PyObject* stypes;
+  PyObject* ltypes;  // memoized tuple of ltypes
+  PyObject* stypes;  // memoized tuple of stypes
+  PyObject* names;   // memoized tuple of column names
   SType use_stype_for_buffers;
   int64_t : 56;
 };
@@ -82,6 +83,10 @@ DECLARE_GETTER(
 DECLARE_GETTER(
   stypes,
   "List of \"storage\" types for all columns")
+
+DECLARE_GETTER(
+  names,
+  "Tuple of column names")
 
 DECLARE_GETTER(
   rowindex_type,
@@ -286,6 +291,12 @@ DECLARE_METHOD(
 DECLARE_METHOD(
    nmodal1,
    "Get the number of modal values in a single-column DataTable")
+
+DECLARE_METHOD(  // temporary
+  _set_names,
+  "Set column names")
+
+
 
 //---- Python API --------------------------------------------------------------
 

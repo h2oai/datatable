@@ -57,6 +57,7 @@ class DataTable {
     RowIndex rowindex;
     Groupby  groupby;
     Column** columns;
+    std::vector<std::string> names;
 
   public:
     DataTable(Column**);

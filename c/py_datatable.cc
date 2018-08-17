@@ -44,6 +44,7 @@ PyObject* wrap(DataTable* dt)
     pypydt->ref = dt;
     pypydt->ltypes = nullptr;
     pypydt->stypes = nullptr;
+    pypydt->names = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
@@ -161,6 +162,25 @@ PyObject* get_stypes(obj* self) {
 }
 
 
+PyObject* get_names(obj* self) {
+  if (!self->names) {
+    DataTable* dt = self->ref;
+    xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
+    int64_t i = dt->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      std::string& name = dt->names[static_cast<size_t>(i)];
+      PyObject* str = py::ostring(name).release();
+      PyTuple_SET_ITEM(list, i, str);
+    }
+    self->names = list;
+  }
+  Py_INCREF(self->names);
+  return self->names;
+}
+
+
 PyObject* get_rowindex_type(obj* self) {
   RowIndex& ri = self->ref->rowindex;
   return ri.isabsent()? none() :
@@ -205,12 +225,22 @@ PyObject* get_datatable_ptr(obj* self) {
 
 
 /**
- * Return size of the referenced DataTable, but without the
- * `sizeof(pydatatable::obj)`, which includes the size of the `self->ref`
- * pointer.
+ * Return size of the referenced DataTable, and the current `pydatatable::obj`.
  */
 PyObject* get_alloc_size(obj* self) {
-  return PyLong_FromSize_t(self->ref->memory_footprint());
+  DataTable* dt = self->ref;
+  size_t sz = dt->memory_footprint();
+  sz += sizeof(*self);
+  if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
+  if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
+  if (self->names) {
+    PyObject* names = self->names;
+    sz += _PySys_GetSizeOf(names);
+    for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
+      sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
+    }
+  }
+  return PyLong_FromSize_t(sz);
 }
 
 
@@ -596,6 +626,7 @@ PyObject* materialize(obj* self, PyObject*) {
   cols[dt->ncols] = nullptr;
 
   DataTable* newdt = new DataTable(cols);
+  newdt->names = dt->names;
   return wrap(newdt);
 }
 
@@ -637,6 +668,27 @@ PyObject* save_jay(obj* self, PyObject* args) {
   }
 
   dt->save_jay(filename, colnames, sstrategy);
+  Py_RETURN_NONE;
+}
+
+
+PyObject* _set_names(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O", &arg1)) return nullptr;
+
+  auto names = py::obj(arg1).to_stringlist();
+  if (names.size() != static_cast<size_t>(dt->ncols)) {
+    throw ValueError()
+      << "The list of column names has wrong length: " << names.size();
+  }
+  dt->names = std::move(names);
+
+  if (self->names) {  // Clear existing memoized names
+    Py_DECREF(self->names);
+    self->names = nullptr;
+  }
+
   Py_RETURN_NONE;
 }
 
@@ -692,6 +744,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
+  METHODv(_set_names),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 
@@ -700,6 +753,7 @@ static PyGetSetDef datatable_getseters[] = {
   GETTER(ncols),
   GETTER(ltypes),
   GETTER(stypes),
+  GETTER(names),
   GETTER(isview),
   GETTER(rowindex),
   GETSET(groupby),
