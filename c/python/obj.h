@@ -164,6 +164,8 @@ class _obj {
     RowIndex    to_rowindex      (const error_manager& = _em0) const;
     DataTable*  to_frame         (const error_manager& = _em0) const;
 
+    PyObject*   to_pyobject_newref() const noexcept;
+
   protected:
     /**
      * `error_manager` is a factory function for different error messages. It

@@ -18,6 +18,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "python/int.h"
 #include "python/string.h"
 
 
@@ -674,22 +675,68 @@ PyObject* save_jay(obj* self, PyObject* args) {
 
 PyObject* _set_names(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O", &arg1)) return nullptr;
+  PyObject* arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
+  auto pynames = py::obj(arg1);
+  auto pyinvnames = py::obj(arg2);
 
-  auto names = py::obj(arg1).to_stringlist();
+  auto names = pynames.to_stringlist();
   if (names.size() != static_cast<size_t>(dt->ncols)) {
     throw ValueError()
       << "The list of column names has wrong length: " << names.size();
   }
   dt->names = std::move(names);
 
-  if (self->names) {  // Clear existing memoized names
-    Py_DECREF(self->names);
-    self->names = nullptr;
+  // Clear existing memoized names
+  Py_XDECREF(self->names);
+  Py_XDECREF(self->inames);
+  self->names = nullptr;
+  self->inames = nullptr;
+
+  if (pynames.is_tuple()) {
+    self->names = pynames.to_pyobject_newref();
+  }
+  if (pyinvnames.is_dict()) {
+    self->inames = pyinvnames.to_pyobject_newref();
   }
 
   Py_RETURN_NONE;
+}
+
+
+PyObject* colindex(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:colindex", &arg1)) return nullptr;
+  py::obj col(arg1);
+
+  if (col.is_string()) {
+    xassert(self->inames);
+    PyObject* colname = col.to_borrowed_ref();
+    // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
+    // without setting an exception.
+    PyObject* index = PyDict_GetItem(self->inames, colname);  // borrowed ref
+    if (index) {
+      Py_INCREF(index);
+      return index;
+    }
+    throw ValueError()
+        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
+           "Frame";  // TODO: add frame repr here
+  }
+  if (col.is_int()) {
+    int64_t colidx = col.to_int64_strict();
+    if (colidx < 0 && colidx + dt->ncols >= 0) {
+      colidx += dt->ncols;
+    }
+    if (colidx >= 0 && colidx < dt->ncols) {
+      return py::oInt(colidx).release();
+    }
+    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
+        "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
+  }
+  throw TypeError() << "The argument to Frame.colindex() should be a string "
+      "or an integer, not " << Py_TYPE(col.to_borrowed_ref());
 }
 
 
@@ -745,6 +792,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
   METHODv(_set_names),
+  METHODv(colindex),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

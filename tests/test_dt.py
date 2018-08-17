@@ -189,10 +189,12 @@ def test_dt_colindex(dt0):
     assert "Column `a` does not exist" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert "Column index `7` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `7` is invalid for a Frame with 7 columns"
+            in str(e.value))
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert "Column index `-8` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `-8` is invalid for a Frame with 7 columns"
+            in str(e.value))
 
 
 @pytest.mark.run(order=5)

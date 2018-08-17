@@ -6,9 +6,8 @@
 #-------------------------------------------------------------------------------
 import collections
 import re
-import sys
 import time
-from typing import Tuple, Dict, List, Union, Optional
+from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
 import datatable
@@ -41,7 +40,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ("_inames", "_dt")
+    __slots__ = ["_dt"]
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "stype" in kwargs:
@@ -51,8 +50,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        # Mapping of column names to their indices
-        self._inames = None  # type: Dict[str, int]
         self._dt = None      # type: core.DataTable
         self._fill_from_source(src, names=names, stypes=stypes)
 
@@ -256,8 +253,8 @@ class Frame(object):
                                   "Frame (%d)" % (len(names), self.ncols))
         else:
             names = [None] * self.ncols
-        colnames, self._inames = Frame._dedup_names(names)
-        self._dt._set_names(colnames)
+        colnames, inames = Frame._dedup_names(names)
+        self._dt._set_names(colnames, inames)
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -577,7 +574,6 @@ class Frame(object):
         self._fill_from_dt(self._dt, names=newnames)
 
 
-    @typed(name=U(str, int))
     def colindex(self, name):
         """
         Return index of the column ``name``.
@@ -588,22 +584,7 @@ class Frame(object):
             positive.
         :raises ValueError: if the requested column does not exist.
         """
-        if isinstance(name, str):
-            if name in self._inames:
-                return self._inames[name]
-            else:
-                raise TValueError("Column `%s` does not exist in %r"
-                                  % (name, self))
-        else:
-            n = self.ncols
-            if 0 <= name < n:
-                return name
-            elif -n <= name < 0:
-                return name + n
-            else:
-                raise TValueError("Column index `%d` is invalid for a "
-                                  "datatable with %s"
-                                  % (name, plural(n, "column")))
+        return self._dt.colindex(name)
 
 
     # Methods defined externally
@@ -909,27 +890,7 @@ class Frame(object):
         This function is not intended for manual use. Instead, in order to get
         the size of a datatable `d`, call `sys.getsizeof(d)`.
         """
-        # This is somewhat tricky to get right, so here are general
-        # considerations:
-        #   * We want to add sizes of all internal fields, recursively if they
-        #     are containers.
-        #   * Integer fields are ignored, because they are usually heavily
-        #     shared with other objects in the system. Of course we could have
-        #     used `sys.getrefcount()` to check whether any particular field
-        #     is shared, but that creates an undesirable effect that the size
-        #     of the Frame apparently depends on external variables...
-        #   * The contents of `types` and `stypes` are not counted, because
-        #     these strings are shared globally within datatable module.
-        #   * Column names are added to the total sum.
-        #   * The keys in `self._inames` are skipped, since they are the same
-        #     objects as elements of `self.names`, the values are skipped
-        #     because they are integers.
-        size = 0
-        size += self._dt.alloc_size
-        size += sys.getsizeof(self._inames)
-        for n in self._inames.keys():
-            size += sys.getsizeof(n)
-        return size
+        return self._dt.alloc_size
 
 
 
