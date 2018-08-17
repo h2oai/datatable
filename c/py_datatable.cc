@@ -250,6 +250,14 @@ PyObject* get_alloc_size(obj* self) {
 // PyDatatable methods
 //==============================================================================
 
+static void _clear_types(obj* self) {
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
+}
+
+
 PyObject* window(obj* self, PyObject* args) {
   int64_t row0, row1, col0, col1;
   if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
@@ -281,7 +289,91 @@ PyObject* to_scalar(obj* self, PyObject*) {
 PyObject* check(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   dt->verify_integrity();
-  return none();
+
+  if (self->stypes) {
+    PyObject* stypes = self->stypes;
+    if (!PyTuple_Check(stypes)) {
+      throw AssertionError() << "Frame.stypes is not a tuple";
+    }
+    if (PyTuple_Size(stypes) != dt->ncols) {
+      throw AssertionError() << "len(Frame.stypes) is " << PyTuple_Size(stypes)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      SType st = dt->columns[i]->stype();
+      PyObject* elem = PyTuple_GET_ITEM(stypes, i);
+      PyObject* eexp = info(st).py_stype();
+      if (elem != eexp) {
+        throw AssertionError() << "Element " << i << " of Frame.stypes is "
+            << elem << ", but the column's type is " << eexp;
+      }
+    }
+  }
+  if (self->ltypes) {
+    PyObject* ltypes = self->ltypes;
+    if (!PyTuple_Check(ltypes)) {
+      throw AssertionError() << "Frame.ltypes is not a tuple";
+    }
+    if (PyTuple_Size(ltypes) != dt->ncols) {
+      throw AssertionError() << "len(Frame.ltypes) is " << PyTuple_Size(ltypes)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      SType st = dt->columns[i]->stype();
+      PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
+      PyObject* eexp = info(st).py_ltype();
+      if (elem != eexp) {
+        throw AssertionError() << "Element " << i << " of Frame.ltypes is "
+            << elem << ", for a column of type " << eexp;
+      }
+    }
+  }
+
+  PyObject* names = self->names;
+  PyObject* inames = self->inames;
+  if (names) {
+    if (!PyTuple_Check(names)) {
+      throw AssertionError() << "Frame.names is not a tuple";
+    }
+    if (inames && !PyDict_Check(inames)) {
+      throw AssertionError() << ".inames is not a dict: " << Py_TYPE(inames);
+    }
+    if (PyTuple_Size(names) != dt->ncols) {
+      throw AssertionError() << "len(Frame.names) is " << PyTuple_Size(names)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    if (inames && PyDict_Size(inames) != dt->ncols) {
+      throw AssertionError() << ".inames has " << PyDict_Size(inames)
+        << " elements, but the Frame has " << dt->ncols << " columns";
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      PyObject* elem = PyTuple_GET_ITEM(names, i);
+      if (!PyUnicode_Check(elem)) {
+        throw AssertionError() << "Element " << i << " of Frame.names is not "
+            "a string but " << Py_TYPE(elem);
+      }
+      std::string sname = std::string(PyUnicode_AsUTF8(elem));
+      std::string ename = dt->names[static_cast<size_t>(i)];
+      if (sname != ename) {
+        throw AssertionError() << "Element " << i << " of Frame.names is '"
+            << sname << "', but internal column's name is '" << ename << "'";
+      }
+      if (inames) {
+        PyObject* res = PyDict_GetItem(inames, elem);
+        if (!res) {
+          throw AssertionError() << "Column " << i << " '" << ename << "' is "
+              "absent from the .inames dictionary";
+        }
+        long v = PyLong_AsLong(res);
+        if (v != i) {
+          throw AssertionError() << "Column " << i << " '" << ename << "' maps "
+              "to " << v << " in the .inames dictionary";
+        }
+      }
+    }
+  }
+
+  Py_RETURN_NONE;
 }
 
 
@@ -316,6 +408,7 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   }
   dt->delete_columns(cols_to_remove, ncols);
 
+  _clear_types(self);
   dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
@@ -383,11 +476,7 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
       dt->columns[j] = replcol->shallowcopy();
     }
   }
-  // Clear cached stypes/ltypes; No need to update names
-  Py_XDECREF(self->stypes);
-  Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
-  self->ltypes = nullptr;
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
@@ -451,10 +540,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   dt->columns[dt->ncols] = nullptr;
 
   // Clear cached stypes/ltypes; No need to update names
-  Py_XDECREF(self->stypes);
-  Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
-  self->ltypes = nullptr;
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
