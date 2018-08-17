@@ -6,9 +6,8 @@
 #-------------------------------------------------------------------------------
 import collections
 import re
-import sys
 import time
-from typing import Tuple, Dict, List, Union, Optional
+from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
 import datatable
@@ -41,7 +40,7 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ("_names", "_inames", "_dt")
+    __slots__ = ["_dt"]
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "stype" in kwargs:
@@ -51,9 +50,6 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._names = None   # type: Tuple[str]
-        # Mapping of column names to their indices
-        self._inames = None  # type: Dict[str, int]
         self._dt = None      # type: core.DataTable
         self._fill_from_source(src, names=names, stypes=stypes)
 
@@ -76,7 +72,7 @@ class Frame(object):
     def key(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
-        return self._names[:self._dt.nkeys]
+        return self._dt.names[:self._dt.nkeys]
 
     @property
     def shape(self):
@@ -86,7 +82,7 @@ class Frame(object):
     @property
     def names(self):
         """Tuple of column names."""
-        return self._names
+        return self._dt.names
 
     @property
     def ltypes(self):
@@ -131,13 +127,11 @@ class Frame(object):
             self.__init__(self[:, allindices])
         else:
             raise ValueError("Duplicate columns requested for the key: %r"
-                             % [self._names[i] for i in colindices])
+                             % [self.names[i] for i in colindices])
         self._dt.nkeys = nk
 
     @names.setter
-    @typed()
-    def names(self, newnames: Union[List[Optional[str]],
-                                    Tuple[Optional[str], ...]]):
+    def names(self, newnames):
         """Rename the columns of the Frame."""
         self.rename(newnames)
 
@@ -165,7 +159,7 @@ class Frame(object):
         length = max(2, len(str(row1)))
         nk = self._dt.nkeys
         return {
-            "names": self._names[:nk] + self._names[col0 + nk:col1 + nk],
+            "names": self.names[:nk] + self.names[col0 + nk:col1 + nk],
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
@@ -259,7 +253,8 @@ class Frame(object):
                                   "Frame (%d)" % (len(names), self.ncols))
         else:
             names = [None] * self.ncols
-        self._names, self._inames = Frame._dedup_names(names)
+        colnames, inames = Frame._dedup_names(names)
+        self._dt._set_names(colnames, inames)
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -579,7 +574,6 @@ class Frame(object):
         self._fill_from_dt(self._dt, names=newnames)
 
 
-    @typed(name=U(str, int))
     def colindex(self, name):
         """
         Return index of the column ``name``.
@@ -590,22 +584,7 @@ class Frame(object):
             positive.
         :raises ValueError: if the requested column does not exist.
         """
-        if isinstance(name, str):
-            if name in self._inames:
-                return self._inames[name]
-            else:
-                raise TValueError("Column `%s` does not exist in %r"
-                                  % (name, self))
-        else:
-            n = self.ncols
-            if 0 <= name < n:
-                return name
-            elif -n <= name < 0:
-                return name + n
-            else:
-                raise TValueError("Column index `%d` is invalid for a "
-                                  "datatable with %s"
-                                  % (name, plural(n, "column")))
+        return self._dt.colindex(name)
 
 
     # Methods defined externally
@@ -794,7 +773,7 @@ class Frame(object):
                 raise TValueError("Cannot rename columns to %r: expected %s"
                                   % (names, plural(self.ncols, "name")))
         else:
-            names = list(self._names)
+            names = list(self.names)
             for oldname, newname in columns.items():
                 idx = self.colindex(oldname)
                 names[idx] = newname
@@ -823,7 +802,7 @@ class Frame(object):
             srcdt = srcdt.materialize()
         srccols = collections.OrderedDict()
         for i in range(self.ncols):
-            name = self._names[i]
+            name = self.names[i]
             column = srcdt.column(i)
             dtype = self.stypes[i].dtype
             if dtype == numpy.bool:
@@ -911,32 +890,7 @@ class Frame(object):
         This function is not intended for manual use. Instead, in order to get
         the size of a datatable `d`, call `sys.getsizeof(d)`.
         """
-        # This is somewhat tricky to get right, so here are general
-        # considerations:
-        #   * We want to add sizes of all internal fields, recursively if they
-        #     are containers.
-        #   * Integer fields are ignored, because they are usually heavily
-        #     shared with other objects in the system. Of course we could have
-        #     used `sys.getrefcount()` to check whether any particular field
-        #     is shared, but that creates an undesirable effect that the size
-        #     of the Frame apparently depends on external variables...
-        #   * The contents of `types` and `stypes` are not counted, because
-        #     these strings are shared globally within datatable module.
-        #   * Column names are added to the total sum.
-        #   * The keys in `self._inames` are skipped, since they are the same
-        #     objects as elements of `self._names`, the values are skipped
-        #     because they are integers.
-        #   * The sys.getsizeof() automatically adds 24 to the final answer,
-        #     which is the size of the Frame object itself.
-        size = 0
-        for s in self.__class__.__slots__:
-            attr = getattr(self, s)
-            if not isinstance(attr, int):
-                size += sys.getsizeof(attr)
-        for n in self._names:
-            size += sys.getsizeof(n)
-        size += self._dt.alloc_size
-        return size
+        return self._dt.alloc_size
 
 
 

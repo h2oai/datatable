@@ -23,10 +23,11 @@ class join:
         dt = ee.dt
         xcols = [None] * len(self.joinframe.key)
         for i, colname in enumerate(self.joinframe.key):
-            if colname not in dt._inames:
+            try:
+                xcols[i] = dt.colindex(colname)
+            except ValueError:
                 raise TValueError("Key column `%s` does not exist in the "
                                   "left Frame" % colname)
-            xcols[i] = dt._inames[colname]
             l_ltype = dt.ltypes[xcols[i]]
             r_ltype = self.joinframe.ltypes[i]
             if l_ltype != r_ltype:

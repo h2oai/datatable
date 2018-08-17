@@ -41,6 +41,8 @@ class ostring : public string {
     ostring(ostring&&);
     ~ostring();
     friend oobj::oobj(ostring&&);
+
+    PyObject* release();
 };
 
 
