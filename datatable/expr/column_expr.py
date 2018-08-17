@@ -73,9 +73,9 @@ class ColSelectorExpr(BaseExpr):
             else:
                 colname = colid
                 if not ColSelectorExpr._colname_ok(colname):
-                    if colname in dt._inames:
-                        colname = str(dt._inames[colname])
-                    else:
+                    try:
+                        colname = str(dt.colindex(colname))
+                    except ValueError:
                         colname = "_" + str(id(colname))
         else:
             if isinstance(colid, int):

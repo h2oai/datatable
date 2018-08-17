@@ -269,11 +269,20 @@ void DataTable::verify_integrity() const {
   // Check that the number of rows/columns in nonnegative
   if (nrows < 0) {
     throw AssertionError()
-        << "DataTable has a negative value for `nrows`: " << nrows;
+        << "Frame has a negative value for `nrows`: " << nrows;
   }
   if (ncols < 0) {
     throw AssertionError()
-        << "DataTable has a negative value for `ncols`: " << ncols;
+        << "Frame has a negative value for `ncols`: " << ncols;
+  }
+  if (nkeys < 0) {
+    throw AssertionError()
+        << "Frame has a negative number of keys: " << nkeys;
+  }
+  if (nkeys > ncols) {
+    throw AssertionError()
+        << "Number of keys " << nkeys << " is greater than the number of "
+           "columns in the Frame: " << ncols;
   }
 
   // Check the number of columns; the number of allocated columns should be
@@ -301,21 +310,14 @@ void DataTable::verify_integrity() const {
     std::string col_name = std::string("Column ") + std::to_string(i);
     Column* col = columns[i];
     if (col == nullptr) {
-      throw AssertionError() << col_name << " of DataTable is null";
+      throw AssertionError() << col_name << " of Frame is null";
     }
     // Make sure the column and the datatable have the same value for `nrows`
     if (nrows != col->nrows) {
       throw AssertionError()
           << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
-          << ", while the DataTable has nrows=" << nrows;
+          << ", while the Frame has nrows=" << nrows;
     }
-    // Make sure the column and the datatable point to the same rowindex object
-    // TODO: restore
-    // if (rowindex != col->rowindex()) {
-    //   throw AssertionError()
-    //       << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
-    //       << col->rowindex() << ", while DataTable.rowindex=" << (rowindex);
-    // }
     col->verify_integrity(col_name);
   }
 
@@ -327,6 +329,25 @@ void DataTable::verify_integrity() const {
     // unavoidable since if we skip the check and do `cols[ncols]` later on
     // then we will segfault anyways.
     throw AssertionError()
-        << "Last entry in the `columns` array of DataTable is not null";
+        << "Last entry in the `columns` array of Frame is not null";
+  }
+
+  if (names.size() != static_cast<size_t>(ncols)) {
+    throw AssertionError()
+        << "Number of column names, " << names.size() << ", is not equal "
+           "to the number of columns in the Frame: " << ncols;
+  }
+  for (size_t i = 0; i < names.size(); ++i) {
+    auto name = names[i];
+    auto data = name.data();
+    if (name.empty()) {
+      throw AssertionError() << "Column " << i << " has empty name";
+    }
+    for (size_t j = 0; j < name.size(); ++j) {
+      if (data[j] >= '\0' && data[j] < '\x20') {
+        throw AssertionError() << "Column " << i << "'s name contains "
+          "unprintable character " << data[j];
+      }
+    }
   }
 }

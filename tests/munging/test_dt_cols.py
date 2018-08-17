@@ -95,7 +95,7 @@ def test_cols_string(dt0, tbl0):
         assert dt1.names == (s, )
         assert not dt1.internal.isview
         assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
-    assert_valueerror(dt0, "Z", "Column `Z` does not exist in <Frame")
+    assert_valueerror(dt0, "Z", "Column `Z` does not exist in Frame")
 
 
 def test_cols_intslice(dt0, tbl0):

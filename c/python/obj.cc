@@ -449,6 +449,12 @@ Column* _obj::to_column(const error_manager& em) const {
 }
 
 
+PyObject* _obj::to_pyobject_newref() const noexcept {
+  Py_INCREF(v);
+  return v;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc
