@@ -163,25 +163,6 @@ PyObject* get_stypes(obj* self) {
 }
 
 
-PyObject* get_names(obj* self) {
-  if (!self->names) {
-    DataTable* dt = self->ref;
-    xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
-    int64_t i = dt->ncols;
-    PyObject* list = PyTuple_New(i);
-    if (list == nullptr) return nullptr;
-    while (--i >= 0) {
-      std::string& name = dt->names[static_cast<size_t>(i)];
-      PyObject* str = py::ostring(name).release();
-      PyTuple_SET_ITEM(list, i, str);
-    }
-    self->names = list;
-  }
-  Py_INCREF(self->names);
-  return self->names;
-}
-
-
 PyObject* get_rowindex_type(obj* self) {
   RowIndex& ri = self->ref->rowindex;
   return ri.isabsent()? none() :
@@ -759,6 +740,59 @@ PyObject* save_jay(obj* self, PyObject* args) {
 }
 
 
+//------------------------------------------------------------------------------
+// Handling of names
+//------------------------------------------------------------------------------
+
+// Clear existing memoized names
+static void _clear_names(obj* self) {
+  Py_XDECREF(self->names);
+  Py_XDECREF(self->inames);
+  self->names = nullptr;
+  self->inames = nullptr;
+}
+
+
+static void _init_names(obj* self) {
+  if (self->names) return;
+  DataTable* dt = self->ref;
+  xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
+  int64_t i = dt->ncols;
+  PyObject* list = PyTuple_New(i);
+  if (list == nullptr) throw PyError();
+  while (--i >= 0) {
+    std::string& name = dt->names[static_cast<size_t>(i)];
+    PyObject* str = py::ostring(name).release();
+    PyTuple_SET_ITEM(list, i, str);
+  }
+  self->names = list;
+}
+
+
+static void _init_inames(obj* self) {
+  if (self->inames) return;
+  _init_names(self);
+  DataTable* dt = self->ref;
+  xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
+  PyObject* dict = PyDict_New();
+  if (!dict) throw PyError();
+  for (int64_t i = 0; i < dt->ncols; ++i) {
+    PyObject* name = PyTuple_GET_ITEM(self->names, i);
+    PyObject* index = PyLong_FromLong(i);
+    PyDict_SetItem(dict, name, index);
+    Py_DECREF(index);
+  }
+  self->inames = dict;
+}
+
+
+PyObject* get_names(obj* self) {
+  if (!self->names) _init_names(self);
+  Py_INCREF(self->names);
+  return self->names;
+}
+
+
 PyObject* _set_names(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   PyObject* arg1, *arg2;
@@ -773,11 +807,7 @@ PyObject* _set_names(obj* self, PyObject* args) {
   }
   dt->names = std::move(names);
 
-  // Clear existing memoized names
-  Py_XDECREF(self->names);
-  Py_XDECREF(self->inames);
-  self->names = nullptr;
-  self->inames = nullptr;
+  _clear_names(self);
 
   if (pynames.is_tuple()) {
     self->names = pynames.to_pyobject_newref();
@@ -797,7 +827,7 @@ PyObject* colindex(obj* self, PyObject* args) {
   py::obj col(arg1);
 
   if (col.is_string()) {
-    xassert(self->inames);
+    if (!self->inames) _init_inames(self);
     PyObject* colname = col.to_borrowed_ref();
     // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
     // without setting an exception.
@@ -824,6 +854,13 @@ PyObject* colindex(obj* self, PyObject* args) {
   throw TypeError() << "The argument to Frame.colindex() should be a string "
       "or an integer, not " << Py_TYPE(col.to_borrowed_ref());
 }
+
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
 
 
 static void dealloc(obj* self) {
