@@ -122,7 +122,7 @@ ansiColor('xterm') {
                             CI_VERSION_SUFFIX = ''
                         }
                         if (env.BRANCH_NAME != 'master' || !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
+                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
                         }
                         env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
 
@@ -620,17 +620,19 @@ ansiColor('xterm') {
                                 }
                             }
 
-                            dir('ppc64le-centos7') {
-                                unstash 'ppc64le_centos7-py37-whl'
-                                unstash 'ppc64le_centos7-py36-whl'
-                                unstash 'ppc64le_centos7-py35-whl'
-                                s3upDocker {
-                                    localArtifact = 'dist/*.whl'
-                                    artifactId = 'pydatatable'
-                                    version = versionText
-                                    keepPrivate = false
-                                    platform = 'ppc64le-centos7'
-                                    isRelease = true
+                            if (doPPC()) {
+                                dir('ppc64le-centos7') {
+                                    unstash 'ppc64le_centos7-py37-whl'
+                                    unstash 'ppc64le_centos7-py36-whl'
+                                    unstash 'ppc64le_centos7-py35-whl'
+                                    s3upDocker {
+                                        localArtifact = 'dist/*.whl'
+                                        artifactId = 'pydatatable'
+                                        version = versionText
+                                        keepPrivate = false
+                                        platform = 'ppc64le-centos7'
+                                        isRelease = true
+                                    }
                                 }
                             }
 
