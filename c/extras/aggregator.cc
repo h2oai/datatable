@@ -20,7 +20,7 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   unsigned int seed;
   PyObject* arg1;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiI:aggregate", &dt, &n_bins, &nx_bins, &ny_bins,
+  if (!PyArg_ParseTuple(args, "OiiiiiI:aggregate", &arg1, &n_bins, &nx_bins, &ny_bins,
                         &nd_bins, &max_dimensions, &seed)) return nullptr;
 
   DataTable* dt_in = py::obj(arg1).to_frame();
