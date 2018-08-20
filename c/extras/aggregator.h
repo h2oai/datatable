@@ -13,10 +13,15 @@
 #include <random>
 #include "py_datatable.h"
 
+struct ex {
+  int64_t id;
+  double* coords;
+};
+
 
 class Aggregator {
   public:
-    Aggregator(int32_t, int32_t, int32_t, int32_t, unsigned int);
+    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, unsigned int);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
@@ -25,6 +30,7 @@ class Aggregator {
     int32_t n_bins;
     int32_t nx_bins;
     int32_t ny_bins;
+    int32_t nd_bins;
     int32_t max_dimensions;
     unsigned int seed;
 
@@ -38,9 +44,11 @@ class Aggregator {
     void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
-
+    size_t calculate_map(std::vector<int64_t>&, size_t);
+    void adjust_members(std::vector<int64_t>&, DataTablePtr&);
+    void adjust_delta(double&, std::vector<ex>&, std::vector<int64_t>&, int64_t);
     void normalize_row(DataTablePtr&, double*, int32_t);
-    double calculate_distance(double*, double*, int64_t, double);
+    double calculate_distance(double*, double*, int64_t, double, bool early_exit=true);
     void adjust_radius(DataTablePtr&, double&);
     double* generate_pmatrix(DataTablePtr&);
     void project_row(DataTablePtr&, double*, int32_t, double*);
@@ -49,5 +57,5 @@ class Aggregator {
 
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, max_dimensions=25, seed=0)\n\n",
+  "aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)
