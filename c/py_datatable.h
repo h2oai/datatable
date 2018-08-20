@@ -9,6 +9,7 @@
 #define dt_PY_DATATABLE_h
 #include <Python.h>
 #include "datatable.h"
+#include "options.h"
 #include "py_utils.h"
 
 

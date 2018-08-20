@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_OPTIONS_h
 #define dt_OPTIONS_h
+#include <string>
 #include <Python.h>
 #include "py_utils.h"
 
@@ -21,6 +22,8 @@ extern int8_t sort_max_radix_bits;
 extern int8_t sort_over_radix_bits;
 extern int32_t sort_nthreads;
 extern bool fread_anonymize;
+extern int64_t frame_names_auto_index;
+extern std::string frame_names_auto_prefix;
 
 int32_t normalize_nthreads(int32_t nth);
 void set_nthreads(int32_t n);

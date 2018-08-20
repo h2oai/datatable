@@ -228,32 +228,31 @@ def test_create_as_str64():
 #-------------------------------------------------------------------------------
 
 def test_create_names0():
-    d0 = dt.Frame(range(10), names="xyz")
     d1 = dt.Frame(range(10), names=["xyz"])
     d2 = dt.Frame(range(10), names=("xyz",))
-    assert d0.shape == d1.shape == d2.shape == (10, 1)
-    assert d0.names == d1.names == d2.names == ("xyz",)
+    assert d1.shape == d2.shape == (10, 1)
+    assert d1.names == d2.names == ("xyz",)
 
 
 def test_create_names_bad1():
     with pytest.raises(ValueError) as e:
         dt.Frame(range(10), names=["a", "b"])
-    assert ("The length of the `names` parameter (2) does not match the "
-            "number of columns in the Frame (1)" in str(e.value))
+    assert ("The `names` list has length 2, while the Frame has only 1 "
+            "column" == str(e.value))
 
 
 def test_create_names_bad2():
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert ("The length of the `names` parameter (1) does not match the "
-            "number of columns in the Frame (3)" in str(e.value))
+    assert ("The `names` argument must be a list or a tuple of column names, "
+            "got <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert ("The `names` parameter should be either a tuple or a list"
-            in str(e.value))
+    assert ("The `names` argument must be a list or a tuple of column names, "
+            "got <class 'dict'>" == str(e.value))
 
 
 def test_create_names_bad4():
@@ -517,7 +516,7 @@ def test_duplicate_names1():
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
         assert d.names == ("A", "A.1", "A.2")
     assert len(ws) == 1
-    assert "Duplicate column names found: ['A', 'A']" in ws[0].message.args[0]
+    assert "Duplicate column names found: 'A' and 'A'" in ws[0].message.args[0]
 
 
 def test_duplicate_names2():
