@@ -20,6 +20,8 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
         Number of x bins for 2D aggregation.
     ny_bins: int
         Number of y bins for 2D aggregation.
+    nd_bins: int
+        Maximum number of exemplars for ND aggregation.
     max_dimensions: int
         Number of columns at which start using the projection method.
     seed: int
