@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/list.h"
-#include "python/long.h"
+#include "python/int.h"
 #include "python/float.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
@@ -96,9 +96,9 @@ PyyListEntry& PyyListEntry::operator=(PyObject* s) {
 }
 
 
-PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
-  PyObject* item = o.as_pyobject();
-  PyList_SetItem(list, i, item);
+PyyListEntry& PyyListEntry::operator=(py::oobj&& o) {
+  PyObject* item = o.release();
+  PyList_SET_ITEM(list, i, item);
   return *this;
 }
 
@@ -109,15 +109,10 @@ PyObject* PyyListEntry::get() const {
 }
 
 
-PyyListEntry::operator PyObj() const {
-  // Variable `entry` cannot be inlined, otherwise PyObj constructor will
-  // assume that the reference to PyObject* can be stolen.
-  PyObject* entry = get();  // borrowed ref
-  return PyObj(entry);
-}
+PyyListEntry::operator py::oobj() const { return py::oobj(get()); }
+PyyListEntry::operator py::obj() const { return py::obj(get()); }
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
-PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
-PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }
+PyyListEntry::operator py::Float() const { return py::Float(get()); }
 
 
 PyObject* PyyListEntry::as_new_ref() const {
@@ -134,31 +129,21 @@ PyObject* PyyListEntry::as_new_ref() const {
 namespace py {
 
 
-// This constructor is private -- only used from friend class `Arg`
-List::List(PyObject* o) {
-  xassert(o && (PyList_Check(o) || PyTuple_Check(o)));
-  pyobj = o;
-  Py_INCREF(pyobj);
+list::list() { v = nullptr; }
+
+list::list(const PyyList& src) : oobj(src.list) {}
+
+PyyList list::to_pyylist() const { return PyyList(v); }
+
+
+list::operator bool() const { return v != nullptr; }
+
+size_t list::size() const {
+  return static_cast<size_t>(Py_SIZE(v));
 }
 
-List::List(const List& other) {
-  pyobj = other.pyobj;
-  Py_INCREF(pyobj);
-}
-
-List::List(List&& other) {
-  pyobj = other.pyobj;
-  other.pyobj = nullptr;
-}
-
-List::~List() {
-  // pyobj can be nullptr if it was target of a move
-  Py_XDECREF(pyobj);
-}
-
-
-size_t List::size() const {
-  return static_cast<size_t>(Py_SIZE(pyobj));
+obj list::operator[](size_t i) const {
+  return obj(PyList_GET_ITEM(v, i));
 }
 
 

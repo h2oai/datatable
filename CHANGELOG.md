@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Now a key column can be set on a Frame.
 - Key column(s) are saved when the frame is saved into a Jay file.
 - A Frame can now be naturally-joined with a keyed Frame.
+- Columns can now be updated within join expressions.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
@@ -42,6 +43,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   instead of a copy-by-reference.
 - upgraded dependency version for typesentry, the previous version was not
   compatible with Python 3.7.
+- rare crash when converting a string column from pandas DataFrame, when
+  that the column contains many non-ASCII characters.
+- f-column-selectors should no longer throw errors and produce only unique
+  ids when stringified (#1241).
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

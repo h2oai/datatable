@@ -12,6 +12,8 @@ from .groupby_node import make_groupby
 from .sort_node import make_sort
 from .join_node import join
 from .dtproxy import f, g
+from datatable.expr import BaseExpr
+from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("make_datatable",
@@ -69,7 +71,6 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                     rowsnode.negate()
                     rowsnode.execute()
                     dt.internal.replace_rowindex(ee.rowindex)
-                    dt._nrows = dt.internal.nrows
                     return
                 else:
                     update_mode = True
@@ -85,7 +86,13 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                     replacement = datatable.Frame([replacement])
                     if allrows:
                         replacement.resize(dt.nrows)
-                elif not isinstance(replacement, datatable.Frame):
+                elif isinstance(replacement, datatable.Frame):
+                    pass
+                elif isinstance(replacement, BaseExpr):
+                    _col = replacement.evaluate_eager(ee)
+                    _dt = core.columns_from_columns([_col]).to_datatable()
+                    replacement = datatable.Frame(_dt)
+                else:
                     replacement = datatable.Frame(replacement)
                 rowsnode.execute()
                 colsnode.execute_update(dt, replacement)

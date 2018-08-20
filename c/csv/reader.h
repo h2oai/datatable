@@ -8,9 +8,9 @@
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr
-#include "read/columns.h"   // dt::read::Columns
 #include "memrange.h"       // MemoryRange
-#include "utils/pyobj.h"    // PyObj
+#include "python/obj.h"     // py::obj, py::oobj
+#include "read/columns.h"   // dt::read::Columns
 
 class DataTable;
 
@@ -92,13 +92,13 @@ class GenericReader
     double t_open_input{ 0 };
 
   private:
-    PyObj logger;
-    PyObj freader;
-    PyObj src_arg;
-    PyObj file_arg;
-    PyObj text_arg;
-    PyObj skipstring_arg;
-    PyObj tempstr;
+    py::oobj logger;
+    py::oobj freader;
+    py::oobj src_arg;
+    py::oobj file_arg;
+    py::oobj text_arg;
+    py::oobj skipstring_arg;
+    py::oobj tempstr;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -109,7 +109,7 @@ class GenericReader
 
   //---- Public API ----
   public:
-    GenericReader(const PyObj& pyreader);
+    GenericReader(const py::obj& pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
@@ -138,7 +138,7 @@ class GenericReader
      */
     bool extra_byte_accessible() const;
 
-    const PyObj& pyreader() const { return freader; }
+    const py::oobj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;

@@ -132,6 +132,7 @@ def test_core_logger():
     dt.options.core_logger = ml
     assert dt.options.core_logger == ml
     f0 = dt.Frame([1, 2, 3])
+    assert f0.shape == (3, 1)
     f0.internal.check()
     assert "call DataTable.datatable_from_list(...)" in ml.messages
     assert "call DataTable.ncols" in ml.messages

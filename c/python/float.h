@@ -8,31 +8,45 @@
 #ifndef dt_PYTHON_FLOAT_h
 #define dt_PYTHON_FLOAT_h
 #include <Python.h>
-#include "utils/pyobj.h"
+#include "python/obj.h"
+
+namespace py {
 
 
-
-class PyyFloat {
-  private:
+class Float {
+  protected:
     PyObject* obj;
 
   public:
-    PyyFloat();
-    PyyFloat(double x);
-    PyyFloat(PyObject*);
-    PyyFloat(const PyyFloat&);
-    PyyFloat(PyyFloat&&);
-    ~PyyFloat();
+    Float();
+    Float(PyObject*);
+    Float(const Float&);
+    friend void swap(Float& first, Float& second) noexcept;
 
     template <typename T> T value() const;
-
-    static PyyFloat fromAnyObject(PyObject*);
-    friend void swap(PyyFloat& first, PyyFloat& second) noexcept;
 };
 
 
+class oFloat : public Float {
+  public:
+    oFloat();
+    oFloat(double x);
+    oFloat(PyObject*);
+    oFloat(const oFloat&);
+    oFloat(oFloat&&);
+    static oFloat _from_pyobject_no_checks(PyObject* v);
+    ~oFloat();
+
+    friend oobj::oobj(oFloat&&);
+};
+
+
+
 // Explicit instantiation
-extern template float  PyyFloat::value() const;
-extern template double PyyFloat::value() const;
+extern template float  Float::value() const;
+extern template double Float::value() const;
+
+
+}  // namespace py
 
 #endif

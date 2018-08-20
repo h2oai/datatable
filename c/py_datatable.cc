@@ -18,7 +18,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "python/long.h"
+#include "python/int.h"
 #include "python/string.h"
 
 
@@ -43,6 +43,9 @@ PyObject* wrap(DataTable* dt)
   if (pydt) {
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
+    pypydt->ltypes = nullptr;
+    pypydt->stypes = nullptr;
+    pypydt->names = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
@@ -87,7 +90,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
-  std::string filename = PyObj(arg1).as_string();
+  std::string filename = py::obj(arg1).to_string();
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
@@ -95,7 +98,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
   PyyList collist(colnames.size());
   for (size_t i = 0; i < colnames.size(); ++i) {
-    collist[i] = PyyString(colnames[i]);
+    collist[i] = py::ostring(colnames[i]);
   }
   PyObject* pylist = collist.release();
 
@@ -128,27 +131,54 @@ PyObject* get_isview(obj* self) {
 
 
 PyObject* get_ltypes(obj* self) {
-  int64_t i = self->ref->ncols;
-  PyObject* list = PyTuple_New(i);
-  if (list == nullptr) return nullptr;
-  while (--i >= 0) {
-    SType st = self->ref->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, info(st).py_ltype());
+  if (!self->ltypes) {
+    int64_t i = self->ref->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      SType st = self->ref->columns[i]->stype();
+      PyTuple_SET_ITEM(list, i, info(st).py_ltype());
+    }
+    self->ltypes = list;
   }
-  return list;
+  Py_INCREF(self->ltypes);
+  return self->ltypes;
 }
 
 
 PyObject* get_stypes(obj* self) {
-  DataTable* dt = self->ref;
-  int64_t i = dt->ncols;
-  PyObject* list = PyTuple_New(i);
-  if (list == nullptr) return nullptr;
-  while (--i >= 0) {
-    SType st = dt->columns[i]->stype();
-    PyTuple_SET_ITEM(list, i, info(st).py_stype());
+  if (!self->stypes) {
+    DataTable* dt = self->ref;
+    int64_t i = dt->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      SType st = dt->columns[i]->stype();
+      PyTuple_SET_ITEM(list, i, info(st).py_stype());
+    }
+    self->stypes = list;
   }
-  return list;
+  Py_INCREF(self->stypes);
+  return self->stypes;
+}
+
+
+PyObject* get_names(obj* self) {
+  if (!self->names) {
+    DataTable* dt = self->ref;
+    xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
+    int64_t i = dt->ncols;
+    PyObject* list = PyTuple_New(i);
+    if (list == nullptr) return nullptr;
+    while (--i >= 0) {
+      std::string& name = dt->names[static_cast<size_t>(i)];
+      PyObject* str = py::ostring(name).release();
+      PyTuple_SET_ITEM(list, i, str);
+    }
+    self->names = list;
+  }
+  Py_INCREF(self->names);
+  return self->names;
 }
 
 
@@ -184,7 +214,7 @@ PyObject* get_nkeys(obj* self) {
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = PyObj(value).as_int64();
+  int64_t nk = py::obj(value).to_int64_strict();
   self->ref->set_nkeys(nk);
   return 0;
 }
@@ -196,12 +226,22 @@ PyObject* get_datatable_ptr(obj* self) {
 
 
 /**
- * Return size of the referenced DataTable, but without the
- * `sizeof(pydatatable::obj)`, which includes the size of the `self->ref`
- * pointer.
+ * Return size of the referenced DataTable, and the current `pydatatable::obj`.
  */
 PyObject* get_alloc_size(obj* self) {
-  return PyLong_FromSize_t(self->ref->memory_footprint());
+  DataTable* dt = self->ref;
+  size_t sz = dt->memory_footprint();
+  sz += sizeof(*self);
+  if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
+  if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
+  if (self->names) {
+    PyObject* names = self->names;
+    sz += _PySys_GetSizeOf(names);
+    for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
+      sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
+    }
+  }
+  return PyLong_FromSize_t(sz);
 }
 
 
@@ -209,6 +249,14 @@ PyObject* get_alloc_size(obj* self) {
 //==============================================================================
 // PyDatatable methods
 //==============================================================================
+
+static void _clear_types(obj* self) {
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
+}
+
 
 PyObject* window(obj* self, PyObject* args) {
   int64_t row0, row1, col0, col1;
@@ -241,7 +289,91 @@ PyObject* to_scalar(obj* self, PyObject*) {
 PyObject* check(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   dt->verify_integrity();
-  return none();
+
+  if (self->stypes) {
+    PyObject* stypes = self->stypes;
+    if (!PyTuple_Check(stypes)) {
+      throw AssertionError() << "Frame.stypes is not a tuple";
+    }
+    if (PyTuple_Size(stypes) != dt->ncols) {
+      throw AssertionError() << "len(Frame.stypes) is " << PyTuple_Size(stypes)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      SType st = dt->columns[i]->stype();
+      PyObject* elem = PyTuple_GET_ITEM(stypes, i);
+      PyObject* eexp = info(st).py_stype();
+      if (elem != eexp) {
+        throw AssertionError() << "Element " << i << " of Frame.stypes is "
+            << elem << ", but the column's type is " << eexp;
+      }
+    }
+  }
+  if (self->ltypes) {
+    PyObject* ltypes = self->ltypes;
+    if (!PyTuple_Check(ltypes)) {
+      throw AssertionError() << "Frame.ltypes is not a tuple";
+    }
+    if (PyTuple_Size(ltypes) != dt->ncols) {
+      throw AssertionError() << "len(Frame.ltypes) is " << PyTuple_Size(ltypes)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      SType st = dt->columns[i]->stype();
+      PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
+      PyObject* eexp = info(st).py_ltype();
+      if (elem != eexp) {
+        throw AssertionError() << "Element " << i << " of Frame.ltypes is "
+            << elem << ", for a column of type " << eexp;
+      }
+    }
+  }
+
+  PyObject* names = self->names;
+  PyObject* inames = self->inames;
+  if (names) {
+    if (!PyTuple_Check(names)) {
+      throw AssertionError() << "Frame.names is not a tuple";
+    }
+    if (inames && !PyDict_Check(inames)) {
+      throw AssertionError() << ".inames is not a dict: " << Py_TYPE(inames);
+    }
+    if (PyTuple_Size(names) != dt->ncols) {
+      throw AssertionError() << "len(Frame.names) is " << PyTuple_Size(names)
+          << ", whereas .ncols = " << dt->ncols;
+    }
+    if (inames && PyDict_Size(inames) != dt->ncols) {
+      throw AssertionError() << ".inames has " << PyDict_Size(inames)
+        << " elements, but the Frame has " << dt->ncols << " columns";
+    }
+    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+      PyObject* elem = PyTuple_GET_ITEM(names, i);
+      if (!PyUnicode_Check(elem)) {
+        throw AssertionError() << "Element " << i << " of Frame.names is not "
+            "a string but " << Py_TYPE(elem);
+      }
+      std::string sname = std::string(PyUnicode_AsUTF8(elem));
+      std::string ename = dt->names[static_cast<size_t>(i)];
+      if (sname != ename) {
+        throw AssertionError() << "Element " << i << " of Frame.names is '"
+            << sname << "', but internal column's name is '" << ename << "'";
+      }
+      if (inames) {
+        PyObject* res = PyDict_GetItem(inames, elem);
+        if (!res) {
+          throw AssertionError() << "Column " << i << " '" << ename << "' is "
+              "absent from the .inames dictionary";
+        }
+        long v = PyLong_AsLong(res);
+        if (v != i) {
+          throw AssertionError() << "Column " << i << " '" << ename << "' maps "
+              "to " << v << " in the .inames dictionary";
+        }
+      }
+    }
+  }
+
+  Py_RETURN_NONE;
 }
 
 
@@ -276,6 +408,7 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   }
   dt->delete_columns(cols_to_remove, ncols);
 
+  _clear_types(self);
   dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
@@ -298,7 +431,7 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
     return nullptr;
-  RowIndex newri = PyObj(arg1).as_rowindex();
+  RowIndex newri = py::obj(arg1).to_rowindex();
 
   dt->replace_rowindex(newri);
   Py_RETURN_NONE;
@@ -312,8 +445,8 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
-  RowIndex rows_ri = PyObj(arg4).as_rowindex();
-  DataTable* repl = PyObj(arg5).as_datatable();
+  RowIndex rows_ri = py::obj(arg4).to_rowindex();
+  DataTable* repl = py::obj(arg5).to_frame();
   int64_t rrows = repl->nrows;
   int64_t rcols = repl->ncols;
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -343,6 +476,7 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
       dt->columns[j] = replcol->shallowcopy();
     }
   }
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
@@ -353,8 +487,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
   PyyList cols(arg1);
-  RowIndex rows_ri = PyObj(arg2).as_rowindex();
-  DataTable* repl = PyObj(arg3).as_datatable();
+  RowIndex rows_ri = py::obj(arg2).to_rowindex();
+  DataTable* repl = py::obj(arg3).to_frame();
   int64_t rrows = repl->nrows;
   size_t rcols = static_cast<size_t>(repl->ncols);
   int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -372,8 +506,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
   int64_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::obj item = cols[i];
+    int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
     if (j < -1 || j >= dt->ncols) {
       throw ValueError() << "Invalid index for a replacement column: " << j;
@@ -389,8 +523,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
   }
   for (size_t i = 0; i < cols.size(); ++i) {
-    PyObj item = cols[i];
-    int64_t j = item.as_int64();
+    py::obj item = cols[i];
+    int64_t j = item.to_int64_strict();
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
       dt->columns[j]->replace_values(rows_ri, replcol);
@@ -405,6 +539,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   }
   dt->columns[dt->ncols] = nullptr;
 
+  // Clear cached stypes/ltypes; No need to update names
+  _clear_types(self);
   Py_RETURN_NONE;
 }
 
@@ -451,6 +587,12 @@ PyObject* rbind(obj* self, PyObject* args) {
   }
 
   dt->rbind(dts, cols_to_append, ndts, final_ncols);
+
+  // Clear cached stypes/ltypes
+  Py_XDECREF(self->stypes);
+  Py_XDECREF(self->ltypes);
+  self->stypes = nullptr;
+  self->ltypes = nullptr;
 
   dt::free(cols_to_append);
   dt::free(dts);
@@ -507,15 +649,14 @@ PyObject* join(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
 
   DataTable* dt = self->ref;
-  DataTable* jdt = PyObj(arg2).as_datatable();
-  RowIndex ri = PyObj(arg1).as_rowindex();
-  PyyList cols(arg3);
+  DataTable* jdt = py::obj(arg2).to_frame();
+  RowIndex ri = py::obj(arg1).to_rowindex();
+  py::list cols(arg3);
 
   if (cols.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
   }
-  PyyLong icol = cols[0];
-  int64_t i = icol.value<int64_t>();
+  int64_t i = cols[0].to_int64();
   if (i < 0 || i >= dt->ncols) {
     throw ValueError() << "Invalid index " << i << " for a Frame with "
         << dt->ncols << " columns";
@@ -572,6 +713,7 @@ PyObject* materialize(obj* self, PyObject*) {
   cols[dt->ncols] = nullptr;
 
   DataTable* newdt = new DataTable(cols);
+  newdt->names = dt->names;
   return wrap(newdt);
 }
 
@@ -600,9 +742,9 @@ PyObject* save_jay(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
     return nullptr;
 
-  std::string filename = PyObj(arg1).as_string();
-  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
-  std::string strategy = PyObj(arg3).as_string();
+  auto filename = py::obj(arg1).to_string();
+  auto colnames = py::obj(arg2).to_stringlist();
+  auto strategy = py::obj(arg3).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
@@ -617,8 +759,77 @@ PyObject* save_jay(obj* self, PyObject* args) {
 }
 
 
+PyObject* _set_names(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
+  auto pynames = py::obj(arg1);
+  auto pyinvnames = py::obj(arg2);
+
+  auto names = pynames.to_stringlist();
+  if (names.size() != static_cast<size_t>(dt->ncols)) {
+    throw ValueError()
+      << "The list of column names has wrong length: " << names.size();
+  }
+  dt->names = std::move(names);
+
+  // Clear existing memoized names
+  Py_XDECREF(self->names);
+  Py_XDECREF(self->inames);
+  self->names = nullptr;
+  self->inames = nullptr;
+
+  if (pynames.is_tuple()) {
+    self->names = pynames.to_pyobject_newref();
+  }
+  if (pyinvnames.is_dict()) {
+    self->inames = pyinvnames.to_pyobject_newref();
+  }
+
+  Py_RETURN_NONE;
+}
+
+
+PyObject* colindex(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:colindex", &arg1)) return nullptr;
+  py::obj col(arg1);
+
+  if (col.is_string()) {
+    xassert(self->inames);
+    PyObject* colname = col.to_borrowed_ref();
+    // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
+    // without setting an exception.
+    PyObject* index = PyDict_GetItem(self->inames, colname);  // borrowed ref
+    if (index) {
+      Py_INCREF(index);
+      return index;
+    }
+    throw ValueError()
+        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
+           "Frame";  // TODO: add frame repr here
+  }
+  if (col.is_int()) {
+    int64_t colidx = col.to_int64_strict();
+    if (colidx < 0 && colidx + dt->ncols >= 0) {
+      colidx += dt->ncols;
+    }
+    if (colidx >= 0 && colidx < dt->ncols) {
+      return py::oInt(colidx).release();
+    }
+    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
+        "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
+  }
+  throw TypeError() << "The argument to Frame.colindex() should be a string "
+      "or an integer, not " << Py_TYPE(col.to_borrowed_ref());
+}
+
+
 static void dealloc(obj* self) {
   delete self->ref;
+  Py_XDECREF(self->ltypes);
+  Py_XDECREF(self->stypes);
   Py_TYPE(self)->tp_free(self);
 }
 
@@ -666,6 +877,8 @@ static PyMethodDef datatable_methods[] = {
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
+  METHODv(_set_names),
+  METHODv(colindex),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 
@@ -674,6 +887,7 @@ static PyGetSetDef datatable_getseters[] = {
   GETTER(ncols),
   GETTER(ltypes),
   GETTER(stypes),
+  GETTER(names),
   GETTER(isview),
   GETTER(rowindex),
   GETSET(groupby),

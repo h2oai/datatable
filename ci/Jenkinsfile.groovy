@@ -39,13 +39,12 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 CREDS_ID = 'h2o-ops-personal-auth-token'
 GITCONFIG_CRED_ID = 'master-gitconfig'
 RSA_CRED_ID = 'master-id-rsa'
-DOCKER_IMAGE_TAG = '0.6.0-PR-1210.1'
-X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
+X86_64_CENTOS_DOCKER_IMAGE_NAME = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7"
 EXPECTED_SHAS = [
-        files : [
-                'ci/Dockerfile-ubuntu.in' : 'd5b19e748c079d65964e6c1e458f525854aee0f3',
-                'ci/Dockerfile-centos7.in': '5d7dc9fc0033e00b00df8c81f1fd2371aa88cc74',
-        ]
+    files: [
+        'ci/Dockerfile-centos7.in': '4ca4e09a511e0d8af723f2b2222fc818117e0c15',
+        'ci/Dockerfile-ubuntu.in': '801cf7132572c9fea31ebcf7b01d86ad76d24873',
+    ]
 ]
 
 OSX_ENV = ["LLVM6=/usr/local/opt/llvm@6", "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"]
@@ -123,7 +122,7 @@ ansiColor('xterm') {
                             CI_VERSION_SUFFIX = ''
                         }
                         if (env.BRANCH_NAME != 'master' || !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
+                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
                         }
                         env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
 
@@ -134,8 +133,8 @@ ansiColor('xterm') {
                         }
 
                         stash includes: "CHANGELOG.md", name: 'CHANGELOG'
-
-                        docker.image(X86_64_CENTOS_DOCKER_IMAGE).inside {
+                        final String dockerImageTag = sh(script: 'make docker_image_tag', returnStdout: true).trim()
+                        docker.image("${X86_64_CENTOS_DOCKER_IMAGE_NAME}:${dockerImageTag}").inside {
                             def dockerfileSHAsString = ""
                             EXPECTED_SHAS.files.each { filename, sha ->
                                 dockerfileSHAsString += "${sha}\t${filename}\n"
@@ -179,6 +178,11 @@ ansiColor('xterm') {
                                 unstash 'datatable-sources'
                                 unstash 'VERSION'
                                 unstash 'GIT_HASH_FILE'
+                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
+                                stash name: 'x86_64_centos7-py37-whl', includes: "dist/*.whl"
+                                arch "dist/*.whl"
+                                unstash 'VERSION'
+                                unstash 'GIT_HASH_FILE'
                                 sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                 stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
@@ -199,9 +203,18 @@ ansiColor('xterm') {
 							dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                unstash 'VERSION'
-                                unstash 'GIT_HASH_FILE'
                                 withEnv(OSX_ENV) {
+                                    unstash 'VERSION'
+                                    unstash 'GIT_HASH_FILE'
+                                    sh """
+                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py37-with-pandas
+                                        make ${MAKE_OPTS} clean
+                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                    """
+                                    stash name: 'x86_64_osx-py37-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                    unstash 'VERSION'
+                                    unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -233,6 +246,11 @@ ansiColor('xterm') {
                                     dumpInfo()
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
+                                        unstash 'VERSION'
+                                        unstash 'GIT_HASH_FILE'
+                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
+                                        stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
                                         unstash 'VERSION'
                                         unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
@@ -301,6 +319,19 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
+                    namedStage('Test Py37 with Pandas on x86_64_linux', { stageName, stageDir ->
+                        node(NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py37-whl'
+                                    testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test Py36 with Pandas on x86_64_linux', { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -349,6 +380,19 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-py36-whl'
                                     testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test Py37 with Pandas on x86_64_centos7', { stageName, stageDir ->
+                        node(NODE_LABEL) {
+                            buildSummary.stageWithSummary('Test Py37 with Pandas on x86_64_centos7', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_centos7-py37-whl'
+                                    testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
                         }
@@ -405,6 +449,19 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test Py37 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
+                        node(PPC_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le_centos7-py37-whl'
+                                    testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test Py36 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName) {
@@ -453,6 +510,19 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le_centos7-py36-whl'
                                     testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test Py37 with Pandas on x86_64_osx', { stageName, stageDir ->
+                        node(OSX_NODE_LABEL) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64_osx-py37-whl'
+                                    testOSX('datatable-py37-with-pandas', needsLargerTest)
                                 }
                             }
                         }
@@ -537,6 +607,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
 
                             dir('x86_64-centos7') {
+                                unstash 'x86_64_centos7-py37-whl'
                                 unstash 'x86_64_centos7-py36-whl'
                                 unstash 'x86_64_centos7-py35-whl'
                                 s3upDocker {
@@ -549,20 +620,24 @@ ansiColor('xterm') {
                                 }
                             }
 
-                            dir('ppc64le-centos7') {
-                                unstash 'ppc64le_centos7-py36-whl'
-                                unstash 'ppc64le_centos7-py35-whl'
-                                s3upDocker {
-                                    localArtifact = 'dist/*.whl'
-                                    artifactId = 'pydatatable'
-                                    version = versionText
-                                    keepPrivate = false
-                                    platform = 'ppc64le-centos7'
-                                    isRelease = true
+                            if (doPPC()) {
+                                dir('ppc64le-centos7') {
+                                    unstash 'ppc64le_centos7-py37-whl'
+                                    unstash 'ppc64le_centos7-py36-whl'
+                                    unstash 'ppc64le_centos7-py35-whl'
+                                    s3upDocker {
+                                        localArtifact = 'dist/*.whl'
+                                        artifactId = 'pydatatable'
+                                        version = versionText
+                                        keepPrivate = false
+                                        platform = 'ppc64le-centos7'
+                                        isRelease = true
+                                    }
                                 }
                             }
 
                             dir('x86_64-osx') {
+                                unstash 'x86_64_osx-py37-whl'
                                 unstash 'x86_64_osx-py36-whl'
                                 unstash 'x86_64_osx-py35-whl'
                                 s3upDocker {
@@ -604,10 +679,12 @@ ansiColor('xterm') {
                             checkout scm
                             unstash 'CHANGELOG'
                             unstash 'VERSION'
+                            unstash 'x86_64_centos7-py37-whl'
                             unstash 'x86_64_centos7-py36-whl'
                             unstash 'x86_64_centos7-py35-whl'
                             unstash 'x86_64_osx-py36-whl'
                             unstash 'x86_64_osx-py35-whl'
+                            unstash 'ppc64le_centos7-py37-whl'
                             unstash 'ppc64le_centos7-py36-whl'
                             unstash 'ppc64le_centos7-py35-whl'
                             unstash 'sdist-tar'

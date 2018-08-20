@@ -33,8 +33,11 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
     with the number of members for each exemplar. The function returns
     a new one-column datatable that contains exemplar_ids for each of the original rows. 
     """
+
     dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed)
+
     names_exemplars = self.names + ("count",)
     names_members = ("exemplar_id")
+    dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, max_dimensions, seed)
     self.__init__(self.internal, names_exemplars)
     return Frame(dt_members, names_members)

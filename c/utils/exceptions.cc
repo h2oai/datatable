@@ -98,6 +98,10 @@ Error& Error::operator<<(PyObject* v) {
   return *this;
 }
 
+Error& Error::operator<<(PyTypeObject* v) {
+  return *this << reinterpret_cast<PyObject*>(v);
+}
+
 Error& Error::operator<<(const CErrno&) {
   error << "[errno " << errno << "] " << strerror(errno);
   return *this;

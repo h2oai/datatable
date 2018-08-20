@@ -8,7 +8,6 @@
 #define dt_PY_GROUPBY_cc
 #include "py_groupby.h"
 #include "python/list.h"
-#include "utils/pyobj.h"
 
 namespace pygroupby
 {

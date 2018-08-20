@@ -146,11 +146,7 @@ def test_dt_properties(dt0):
     assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
                           stype.bool8, stype.bool8, stype.str32)
     assert dt0.internal.alloc_size > 500
-    assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
-            sys.getsizeof(dt0.names) +
-            sum(sys.getsizeof(colname) for colname in dt0.names) +
-            sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._ltypes) +
-            sys.getsizeof(dt0._stypes))
+    assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
 
 
 @pytest.mark.run(order=2)
@@ -193,10 +189,12 @@ def test_dt_colindex(dt0):
     assert "Column `a` does not exist" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert "Column index `7` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `7` is invalid for a Frame with 7 columns"
+            in str(e.value))
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert "Column index `-8` is invalid for a datatable with" in str(e.value)
+    assert ("Column index `-8` is invalid for a Frame with 7 columns"
+            in str(e.value))
 
 
 @pytest.mark.run(order=5)
@@ -222,7 +220,9 @@ def test_dt_getitem(dt0):
 
 # Not a fixture: create a new datatable each time this function is called
 def smalldt():
-    return dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
+    res = dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
+    assert res.ltypes == (ltype.bool, ltype.bool) + (ltype.int,) * 14
+    return res
 
 def test_del_0cols():
     d0 = smalldt()
@@ -238,6 +238,7 @@ def test_del_1col_str_1():
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(1, 16)]
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
+    assert len(d0.ltypes) == d0.ncols
 
 def test_del_1col_str_2():
     d0 = smalldt()

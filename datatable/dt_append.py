@@ -76,14 +76,17 @@ def _rbind(self, *frames, force=False, bynames=True):
     # Append by column names, filling with NAs as necessary
     if bynames:
         # `inames` is a mapping of column_name => column_index.
-        inames = self._inames
+        inames = {}
+        for i, col in enumerate(final_names):
+            inames[col] = i
         for df in frames:
             _dt = df.internal
             if df.nrows == 0: continue
             if n == 0:
                 n = df.ncols
                 final_names = list(df.names)
-                inames = df._inames.copy()
+                for i, col in enumerate(df.names):
+                    inames[col] = i
             elif not (df.ncols == n or force):
                 raise TValueError(
                     "Cannot rbind frame with %s to a frame with %s. If"
