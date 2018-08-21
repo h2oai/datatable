@@ -23,6 +23,8 @@ int8_t sort_max_radix_bits = 16;
 int8_t sort_over_radix_bits = 16;
 int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
+int64_t frame_names_auto_index = 0;
+std::string frame_names_auto_prefix = "C";
 
 
 int32_t normalize_nthreads(int32_t nth) {
@@ -128,6 +130,12 @@ PyObject* set_option(PyObject*, PyObject* args) {
 
   } else if (name == "fread.anonymize") {
     set_fread_anonymize(value.to_bool_strict());
+
+  } else if (name == "frame.names_auto_index") {
+    frame_names_auto_index = value.to_int64_strict();
+
+  } else if (name == "frame.names_auto_prefix") {
+    frame_names_auto_prefix = value.to_string();
 
   } else {
     throw ValueError() << "Unknown option `" << name << "`";
