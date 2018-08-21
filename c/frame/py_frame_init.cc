@@ -21,9 +21,9 @@ static std::vector<std::string> _get_names(const Arg& arg) {
   if (arg.is_undefined() || arg.is_none()) {
     return std::vector<std::string>();
   }
-  if (arg.is_list() || arg.is_tuple()) {
-    return arg.to_list_of_strs();
-  }
+  // if (arg.is_list() || arg.is_tuple()) {
+  //   return arg.to_list_of_strs();
+  // }
   // TODO: also allow a single-column Frame of string type
   throw TypeError() << arg.name() << " must be a list/tuple of column names";
 }
@@ -36,21 +36,34 @@ static DataTable* _make_empty_frame() {
 }
 
 
+static DataTable* _make_frame_from_list(py::list list) {
+  if (list.size() == 0) {
+    return _make_empty_frame();
+  }
+  return nullptr;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Main constructor
 //------------------------------------------------------------------------------
 
 void Frame::m__init__(PKArgs& args) {
-  const Arg& src = args[0];
-  const Arg& names_arg = args[1];
+  const Arg& src        = args[0];
+  const Arg& names_arg  = args[1];
+  const Arg& stypes_arg = args[2];
 
   // bool names_defined = !names_arg.is_undefined();
   auto names = _get_names(names_arg);
 
-  if (src.is_undefined() || src.is_none()) {
+  if (src.is_list_or_tuple()) {
+    dt = _make_frame_from_list(src.to_pylist());
+  }
+  else if (src.is_undefined() || src.is_none()) {
     dt = _make_empty_frame();
-  } else {
+  }
+  else {
     std::cout << "Creating a frame from ";
     src.print();
   }

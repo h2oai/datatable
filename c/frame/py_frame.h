@@ -26,7 +26,6 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
-        static NoArgs args_bang;
         static PKArgs args_test;
         static const char* classname();
         static const char* classdoc();
@@ -43,7 +42,6 @@ class Frame : public PyObject {
     oobj get_ncols() const;
     oobj get_nrows() const;
 
-    oobj bang(NoArgs&);
 };
 
 

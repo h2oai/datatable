@@ -16,7 +16,6 @@ namespace py {
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
-NoArgs Frame::Type::args_bang;
 PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
                                   {"src", "names", "stypes", "stype"});
 
@@ -34,7 +33,7 @@ const char* Frame::Type::classdoc() {
     "Internally the data is stored as C primitives, and processed using\n"
     "multithreaded native C++ code.\n"
     "\n"
-    "This is a primary data structure for datatable module.\n";
+    "This is a primary data structure for the `datatable` module.\n";
 }
 
 void Frame::Type::init_getsetters(GetSetters& gs) {
@@ -42,8 +41,8 @@ void Frame::Type::init_getsetters(GetSetters& gs) {
   gs.add<&Frame::get_nrows>("nrows");
 }
 
-void Frame::Type::init_methods(Methods& mm) {
-  mm.add<&Frame::bang, args_bang>("bang");
+void Frame::Type::init_methods(Methods&) {
+  // mm.add<&Frame::bang, args_bang>("bang");
 }
 
 
@@ -66,10 +65,6 @@ oobj Frame::get_nrows() const {
   return oobj(py::oInt(47));
 }
 
-oobj Frame::bang(NoArgs&) {
-  std::cout << "Yay, Frame::bang()!\n";
-  return None();
-}
 
 
 }  // namespace py

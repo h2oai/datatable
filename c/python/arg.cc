@@ -19,9 +19,9 @@ std::string _nth(size_t i);
 // Construction / initialization
 //------------------------------------------------------------------------------
 
-Arg::Arg()
-  : pos(0), parent(nullptr), pyobj(nullptr) {}
+Arg::Arg() : pos(0), parent(nullptr), pyobj(nullptr) {}
 
+Arg::~Arg() {}
 
 void Arg::init(size_t i, PKArgs* args) {
   pos = i;
@@ -30,7 +30,7 @@ void Arg::init(size_t i, PKArgs* args) {
 
 
 void Arg::set(PyObject* value) {
-  pyobj = value;
+  pyobj = py::obj(value);
 }
 
 
@@ -47,41 +47,16 @@ const std::string& Arg::name() const {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool Arg::is_undefined() const {
-  return (pyobj == nullptr);
-}
-
-bool Arg::is_none() const {
-  return (pyobj == Py_None);
-}
-
-bool Arg::is_ellipsis() const {
-  return (pyobj == Py_Ellipsis);
-}
-
-bool Arg::is_int() const {
-  return pyobj && PyLong_Check(pyobj);
-}
-
-bool Arg::is_float() const {
-  return pyobj && PyFloat_Check(pyobj);
-}
-
-bool Arg::is_list() const {
-  return pyobj && PyList_Check(pyobj);
-}
-
-bool Arg::is_tuple() const {
-  return pyobj && PyTuple_Check(pyobj);
-}
-
-bool Arg::is_dict() const {
-  return pyobj && PyDict_Check(pyobj);
-}
-
-bool Arg::is_string() const {
-  return pyobj && PyUnicode_Check(pyobj);
-}
+bool Arg::is_undefined()     const { return pyobj.is_undefined(); }
+bool Arg::is_none()          const { return pyobj.is_none(); }
+bool Arg::is_ellipsis()      const { return pyobj.is_ellipsis(); }
+bool Arg::is_int()           const { return pyobj.is_int(); }
+bool Arg::is_float()         const { return pyobj.is_float(); }
+bool Arg::is_list()          const { return pyobj.is_list(); }
+bool Arg::is_tuple()         const { return pyobj.is_tuple(); }
+bool Arg::is_list_or_tuple() const { return pyobj.is_list_or_tuple(); }
+bool Arg::is_dict()          const { return pyobj.is_dict(); }
+bool Arg::is_string()        const { return pyobj.is_string(); }
 
 
 
@@ -89,6 +64,9 @@ bool Arg::is_string() const {
 // Type conversions
 //------------------------------------------------------------------------------
 
+py::list  Arg::to_pylist() const { return pyobj.to_pylist(*this); }
+
+/*
 Arg::operator int32_t() const {
   _check_missing();
   if (!PyLong_Check(pyobj)) {
@@ -145,6 +123,17 @@ std::vector<std::string> Arg::to_list_of_strs() const {
   }
   return res;
 }
+*/
+
+
+//------------------------------------------------------------------------------
+// Error messages
+//------------------------------------------------------------------------------
+
+Error Arg::error_not_list(PyObject* src) const {
+  return TypeError() << name() << " should be a list or tuple, instead got "
+      << Py_TYPE(src);
+}
 
 
 
@@ -153,18 +142,18 @@ std::vector<std::string> Arg::to_list_of_strs() const {
 //------------------------------------------------------------------------------
 
 void Arg::print() const {
-  PyObject_Print(pyobj, stdout, Py_PRINT_RAW);
+  PyObject_Print(pyobj.v, stdout, Py_PRINT_RAW);
   std::printf("\n");
 }
 
 void Arg::_check_missing() const {
-  if (!pyobj) {
+  if (pyobj.is_undefined()) {
     throw TypeError() << " is missing";
   }
 }
 
 void Arg::_check_list_or_tuple() const {
-  if (!PyList_Check(pyobj) && !PyTuple_Check(pyobj)) {
+  if (!(pyobj.is_list() || pyobj.is_tuple())) {
     throw TypeError() << name() << " should be a list";
   }
 }

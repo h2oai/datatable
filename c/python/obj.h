@@ -19,6 +19,7 @@ class Groupby;
 class RowIndex;
 
 namespace py {
+class Arg;
 class Int;
 class oInt;
 class Float;
@@ -124,6 +125,7 @@ class _obj {
     oobj invoke(const char* fn, const char* format, ...) const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
+    bool is_undefined() const;
     bool is_none() const;
     bool is_ellipsis() const;
     bool is_true() const;
@@ -135,6 +137,7 @@ class _obj {
     bool is_string() const;
     bool is_list() const;
     bool is_tuple() const;
+    bool is_list_or_tuple() const;
     bool is_dict() const;
     bool is_buffer() const;
 
@@ -174,6 +177,8 @@ class _obj {
      * instance.
      */
     struct error_manager {
+      error_manager() = default;
+      error_manager(const error_manager&) = default;
       virtual ~error_manager() {}
       virtual Error error_not_boolean    (PyObject*) const;
       virtual Error error_not_integer    (PyObject*) const;
@@ -195,6 +200,7 @@ class _obj {
     _obj() = default;
 
     friend oobj;
+    friend Arg;
 };
 
 

@@ -302,7 +302,7 @@ DECLARE_METHOD(
   colindex,
   "colindex(self, name)\n"
   "--\n\n"
-  "Return index of the column ``name``.\n"
+  "Return index of the column ``name``\n"
   "\n"
   ":param name: name of the column to find the index for. This can also\n"
   "    be an index of a column, in which case the index is checked that\n"
