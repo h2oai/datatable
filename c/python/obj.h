@@ -122,6 +122,7 @@ class _obj {
   public:
     oobj get_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
+    PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
     bool is_none() const;
     bool is_ellipsis() const;

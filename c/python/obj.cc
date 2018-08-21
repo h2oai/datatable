@@ -487,6 +487,11 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 }
 
 
+PyTypeObject* _obj::typeobj() const noexcept {
+  return Py_TYPE(v);
+}
+
+
 PyObject* oobj::release() {
   PyObject* t = v;
   v = nullptr;

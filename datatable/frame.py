@@ -189,12 +189,14 @@ class Frame(object):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()),
                                  stypes=stypes)
         elif isinstance(src, core.DataTable):
-            self._fill_from_dt(src, names=names)
+            src._set_names(names)
+            self._dt = src
         elif isinstance(src, str):
             srcdt = datatable.fread(src)
             if names is None:
                 names = srcdt.names
-            self._fill_from_dt(srcdt.internal, names=names)
+            self._dt = srcdt.internal
+            self._dt._set_names(names)
         elif src is None:
             self._fill_from_list([], names=None, stypes=None)
         elif is_type(src, Frame_t):
@@ -202,7 +204,8 @@ class Frame(object):
                 names = src.names
             _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
                       .to_datatable()
-            self._fill_from_dt(_dt, names=names)
+            _dt._set_names(names)
+            self._dt = _dt
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
@@ -236,25 +239,8 @@ class Frame(object):
                                   "the number of source columns (%d)"
                                   % (len(stypes), len(src)))
         _dt = core.datatable_from_list(src, types)
-        self._fill_from_dt(_dt, names=names)
-
-
-    def _fill_from_dt(self, _dt, names=None):
+        _dt._set_names(names)
         self._dt = _dt
-        if names:
-            if isinstance(names, str):
-                names = [names]
-            if not isinstance(names, (tuple, list)):
-                raise TTypeError("The `names` parameter should be either a "
-                                 "tuple or a list, not %r" % type(names))
-            if len(names) != self.ncols:
-                raise TValueError("The length of the `names` parameter (%d) "
-                                  "does not match the number of columns in the "
-                                  "Frame (%d)" % (len(names), self.ncols))
-        else:
-            names = [None] * self.ncols
-        colnames, inames = Frame._dedup_names(names)
-        self._dt._set_names(colnames, inames)
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -276,7 +262,8 @@ class Frame(object):
             if coldtype.char == 'e' and str(coldtype) == "float16":
                 colarrays[i] = colarrays[i].astype("float32")
         dt = core.datatable_from_list(colarrays, None)
-        self._fill_from_dt(dt, names=names)
+        dt._set_names(names)
+        self._dt = dt
 
 
     def _fill_from_numpy(self, arr, names):
@@ -301,64 +288,11 @@ class Frame(object):
                                              for i in range(ncols)], None)
             dt.apply_na_mask(mask)
         else:
-            dt = core.datatable_from_list([arr[:, i] for i in range(ncols)], None)
+            dt = core.datatable_from_list([arr[:, i]
+                                           for i in range(ncols)], None)
 
-        if names is None:
-            names = [None] * ncols
-        self._fill_from_dt(dt, names=names)
-
-
-    @staticmethod
-    def _dedup_names(names) -> Tuple[Tuple[str, ...], Dict[str, int]]:
-        if not names:
-            return tuple(), dict()
-        inames = {}
-        tnames = []
-        dupnames = []
-        min_c = options.frame.names_auto_index
-        prefix = options.frame.names_auto_prefix
-        fill_default_names = False
-        for i, name in enumerate(names):
-            if not name:
-                fill_default_names = True
-                tnames.append(None)  # Placeholder, filled in below
-                continue
-            if not isinstance(name, str):
-                raise TTypeError("Invalid `names` list: element %d is not a "
-                                 "string" % i)
-            if name[:len(prefix)] == prefix and name[len(prefix):].isdigit():
-                min_c = max(min_c, int(name[len(prefix):]) + 1)
-            else:
-                name = re.sub(_dedup_names_re0, ".", name)
-            if name in inames:
-                mm = re.match(_dedup_names_re1, name)
-                if mm:
-                    base = mm.group(1)
-                    count = int(mm.group(2)) + 1
-                else:
-                    base = name + "."
-                    count = 1
-                newname = name
-                while newname in inames:
-                    newname = "%s%d" % (base, count)
-                    count += 1
-                dupnames.append(name)
-            else:
-                newname = name
-            inames[newname] = i
-            tnames.append(newname)
-        if fill_default_names:
-            for i, name in enumerate(names):
-                if not name:
-                    newname = prefix + str(min_c)
-                    tnames[i] = newname
-                    inames[newname] = i
-                    min_c += 1
-        if dupnames:
-            dtwarn("Duplicate column names found: %r. They were assigned "
-                   "unique names." % dupnames)
-        assert len(inames) == len(tnames) == len(names)
-        return (tuple(tnames), inames)
+        dt._set_names(names)
+        self._dt = dt
 
 
 
@@ -571,7 +505,7 @@ class Frame(object):
         for i in range(1, len(cols)):
             newnames += self.names[(cols[i - 1] + 1):cols[i]]
         newnames += self.names[cols[-1] + 1:]
-        self._fill_from_dt(self._dt, names=newnames)
+        self._dt._set_names(newnames)
 
 
     def colindex(self, name):
@@ -777,7 +711,7 @@ class Frame(object):
             for oldname, newname in columns.items():
                 idx = self.colindex(oldname)
                 names[idx] = newname
-        self._fill_from_dt(self._dt, names=names)
+        self._dt._set_names(names)
 
 
 
@@ -969,7 +903,7 @@ options.register_option(
     "sort.nthreads", xtype=int, default=4, core=True)
 
 options.register_option(
-    "frame.names_auto_index", xtype=int, default=0, core=False,
+    "frame.names_auto_index", xtype=int, default=0, core=True,
     doc="When Frame needs to auto-name columns, they will be assigned "
         "names C0, C1, C2, ... by default. This option allows you to "
         "control the starting index in this sequence. For example, setting "
@@ -977,7 +911,7 @@ options.register_option(
         "named C1, C2, C3, ...")
 
 options.register_option(
-    "frame.names_auto_prefix", xtype=str, default="C", core=False,
+    "frame.names_auto_prefix", xtype=str, default="C", core=True,
     doc="When Frame needs to auto-name columns, they will be assigned "
         "names C0, C1, C2, ... by default. This option allows you to "
         "control the prefix used in this sequence. For example, setting "

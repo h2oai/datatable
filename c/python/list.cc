@@ -131,7 +131,11 @@ namespace py {
 
 list::list() { v = nullptr; }
 
-list::list(const PyyList& src) : oobj(src.list) {}
+list::list(PyObject* src) : oobj(src) {
+  is_list = PyList_Check(src);
+}
+
+list::list(const PyyList& src) : list(src.list) {}
 
 PyyList list::to_pyylist() const { return PyyList(v); }
 
@@ -143,7 +147,8 @@ size_t list::size() const {
 }
 
 obj list::operator[](size_t i) const {
-  return obj(PyList_GET_ITEM(v, i));
+  return obj(is_list? PyList_GET_ITEM(v, i)
+                    : PyTuple_GET_ITEM(v, i));
 }
 
 
