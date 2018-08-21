@@ -115,9 +115,14 @@ class Arg;
 
 
 class list : public oobj {
+  private:
+    bool is_list;
+    size_t : 56;
+
   public:
     using oobj::oobj;
     list();
+    list(PyObject*);
     list(const PyyList&);  // temp
     PyyList to_pyylist() const;
 
