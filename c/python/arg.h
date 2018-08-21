@@ -48,6 +48,7 @@ class Arg : public _obj::error_manager {
     bool is_list_or_tuple() const;
     bool is_dict() const;
     bool is_string() const;
+    bool is_range() const;
 
     //---- Type conversions ------------
     py::list    to_pylist        () const;

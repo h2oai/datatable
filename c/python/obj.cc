@@ -33,6 +33,10 @@ obj::obj(const obj& other) {
   v = other.v;
 }
 
+obj::obj(const oobj& other) {
+  v = other.v;
+}
+
 obj& obj::operator=(const obj& other) {
   v = other.v;
   return *this;
@@ -116,6 +120,7 @@ bool _obj::is_list() const     { return v && PyList_Check(v); }
 bool _obj::is_tuple() const    { return v && PyTuple_Check(v); }
 bool _obj::is_dict() const     { return v && PyDict_Check(v); }
 bool _obj::is_buffer() const   { return v && PyObject_CheckBuffer(v); }
+bool _obj::is_range() const    { return v && PyRange_Check(v); }
 bool _obj::is_list_or_tuple() const {
   return v && (PyList_Check(v) || PyTuple_Check(v));
 }

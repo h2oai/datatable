@@ -140,6 +140,7 @@ class _obj {
     bool is_list_or_tuple() const;
     bool is_dict() const;
     bool is_buffer() const;
+    bool is_range() const;
 
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;
@@ -199,6 +200,7 @@ class _obj {
     // `oobj` objects instead.
     _obj() = default;
 
+    friend obj;
     friend oobj;
     friend Arg;
 };
@@ -209,6 +211,7 @@ class obj : public _obj {
   public:
     obj(PyObject* p);
     obj(const obj&);
+    obj(const oobj&);
     obj& operator=(const obj&);
 
     PyObject* to_borrowed_ref() const { return v; }
@@ -232,7 +235,6 @@ class oobj : public _obj {
 
     static oobj from_new_reference(PyObject* p);
     PyObject* release();
-
 };
 
 

@@ -58,11 +58,11 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
 oobj Frame::get_ncols() const {
-  return oobj(py::oInt(11));
+  return py::oInt(dt->ncols);
 }
 
 oobj Frame::get_nrows() const {
-  return oobj(py::oInt(47));
+  return py::oInt(dt->nrows);
 }
 
 

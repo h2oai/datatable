@@ -57,6 +57,7 @@ bool Arg::is_tuple()         const { return pyobj.is_tuple(); }
 bool Arg::is_list_or_tuple() const { return pyobj.is_list_or_tuple(); }
 bool Arg::is_dict()          const { return pyobj.is_dict(); }
 bool Arg::is_string()        const { return pyobj.is_string(); }
+bool Arg::is_range()         const { return pyobj.is_range(); }
 
 
 
