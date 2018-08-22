@@ -14,6 +14,72 @@
 namespace py {
 
 
+//------------------------------------------------------------------------------
+// User-facing API
+//------------------------------------------------------------------------------
+
+oobj Frame::get_names() const {
+  if (names == nullptr) _init_names();
+  return oobj(names);
+}
+
+
+void Frame::set_names(obj pynames)
+{
+  _clear_names();
+  if (pynames.is_none()) {
+    _fill_default_names();
+  }
+  else if (pynames.is_list() || pynames.is_tuple()) {
+    py::list nameslist = pynames.to_pylist();
+    _dedup_and_save_names(nameslist);
+  }
+  else {
+    throw TypeError() << "Expected a list or a tuple of column names, got "
+        << pynames.typeobj();
+  }
+}
+
+
+oobj Frame::colindex(PKArgs& args)
+{
+  auto col = args[0];
+
+  if (col.is_string()) {
+    if (!inames) _init_inames();
+    PyObject* colname = col.to_borrowed_ref();
+    // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
+    // without setting an exception.
+    PyObject* index = PyDict_GetItem(inames, colname);  // borrowed ref
+    if (index) {
+      return oobj(index);
+    }
+    throw ValueError()
+        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
+           "Frame";  // TODO: add frame repr here
+  }
+  if (col.is_int()) {
+    int64_t colidx = col.to_int64_strict();
+    if (colidx < 0 && colidx + dt->ncols >= 0) {
+      colidx += dt->ncols;
+    }
+    if (colidx >= 0 && colidx < dt->ncols) {
+      return py::oInt(colidx);
+    }
+    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
+        "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
+  }
+  throw TypeError() << "The argument to Frame.colindex() should be a string "
+      "or an integer, not " << col.typeobj();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Private helper methods
+//------------------------------------------------------------------------------
+
 // Clear existing memoized names
 void Frame::_clear_names() {
   Py_XDECREF(names);
@@ -247,65 +313,7 @@ void Frame::_dedup_and_save_names(list nameslist) {
 
 
 
-//------------------------------------------------------------------------------
-// External API
-//------------------------------------------------------------------------------
 
-oobj Frame::get_names() const {
-  if (names == nullptr) _init_names();
-  return oobj(names);
-}
-
-
-void Frame::set_names(obj pynames)
-{
-  _clear_names();
-  if (pynames.is_none()) {
-    _fill_default_names();
-  }
-  else if (pynames.is_list() || pynames.is_tuple()) {
-    py::list nameslist = pynames.to_pylist();
-    _dedup_and_save_names(nameslist);
-  }
-  else {
-    throw TypeError() << "Expected a list or a tuple of column names, got "
-        << pynames.typeobj();
-  }
-}
-
-
-
-oobj Frame::colindex(PKArgs& args)
-{
-  auto col = args[0];
-
-  if (col.is_string()) {
-    if (!inames) _init_inames();
-    PyObject* colname = col.to_borrowed_ref();
-    // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
-    // without setting an exception.
-    PyObject* index = PyDict_GetItem(inames, colname);  // borrowed ref
-    if (index) {
-      return oobj(index);
-    }
-    throw ValueError()
-        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
-           "Frame";  // TODO: add frame repr here
-  }
-  if (col.is_int()) {
-    int64_t colidx = col.to_int64_strict();
-    if (colidx < 0 && colidx + dt->ncols >= 0) {
-      colidx += dt->ncols;
-    }
-    if (colidx >= 0 && colidx < dt->ncols) {
-      return py::oInt(colidx);
-    }
-    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
-        "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
-  }
-  throw TypeError() << "The argument to Frame.colindex() should be a string "
-      "or an integer, not " << col.typeobj();
-}
 
 
 } // namespace py
