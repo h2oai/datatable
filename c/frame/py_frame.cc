@@ -51,6 +51,8 @@ void Frame::Type::init_getsetters(GetSetters& gs)
     "Increasing the number of rows of a keyed Frame is not allowed.\n");
   gs.add<&Frame::get_shape>("shape",
     "Tuple with (nrows, ncols) dimensions of the Frame\n");
+  gs.add<&Frame::get_stypes>("stypes",
+    "The tuple of stypes (\"storage type\") for each column\n");
   gs.add<&Frame::get_key>("key");
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal, &Frame::set_internal>("_dt");
@@ -64,6 +66,7 @@ void Frame::Type::init_methods(Methods&) {
 
 void Frame::m__dealloc__() {
   Py_XDECREF(core_dt);
+  Py_XDECREF(stypes);
   // `dt` is already managed by `core_dt`.
   // delete dt;
   dt = nullptr;
@@ -109,6 +112,20 @@ oobj Frame::get_shape() const {
   return shape;
 }
 
+
+oobj Frame::get_stypes() const {
+  if (stypes == nullptr) {
+    py::otuple ostypes(dt->ncols);
+    for (size_t i = 0; i < ostypes.size(); ++i) {
+      SType st = dt->columns[i]->stype();
+      ostypes.set(i, info(st).py_stype());
+    }
+    stypes = ostypes.release();
+  }
+  return oobj(stypes);
+}
+
+
 oobj Frame::get_key() const {
   py::otuple key(dt->nkeys);
   // Fill in the keys...
@@ -123,6 +140,7 @@ void Frame::set_internal(obj _dt) {
   m__dealloc__();
   dt = _dt.to_frame();
   core_dt = static_cast<pydatatable::obj*>(_dt.to_pyobject_newref());
+  core_dt->_frame = this;
 }
 
 

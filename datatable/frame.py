@@ -74,11 +74,6 @@ class Frame(core.Frame):
         """Tuple of column types."""
         return self._dt.ltypes
 
-    @property
-    def stypes(self):
-        """Tuple of column storage types."""
-        return self._dt.stypes
-
 
     #---------------------------------------------------------------------------
     # Property setters

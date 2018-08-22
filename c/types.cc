@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "python/obj.h"
 #include "utils/assert.h"
 #include "types.h"
 #include "utils.h"
@@ -285,14 +286,10 @@ LType info::ltype() const {
   return stype_info[stype].ltype;
 }
 
-PyObject* info::py_ltype() const {
-  PyObject* res = py_ltype_objs[static_cast<uint8_t>(ltype())];
-  Py_INCREF(res);
-  return res;
+py::oobj info::py_ltype() const {
+  return py::oobj(py_ltype_objs[static_cast<uint8_t>(ltype())]);
 }
 
-PyObject* info::py_stype() const {
-  PyObject* res = py_stype_objs[stype];
-  Py_INCREF(res);
-  return res;
+py::oobj info::py_stype() const {
+  return py::oobj(py_stype_objs[stype]);
 }

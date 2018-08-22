@@ -11,7 +11,7 @@
 #include "datatable.h"
 #include "options.h"
 #include "py_utils.h"
-
+namespace py { class Frame; }
 
 #define BASECLS pydatatable::obj
 #define CLSNAME DataTable
@@ -37,9 +37,9 @@ namespace pydatatable
 struct obj : public PyObject {
   DataTable* ref;
   PyObject* ltypes;  // memoized tuple of ltypes
-  PyObject* stypes;  // memoized tuple of stypes
   PyObject* names;   // memoized tuple of column names
   PyObject* inames;  // memoized dict of {column name: index}
+  py::Frame* _frame;
   SType use_stype_for_buffers;
   int64_t : 56;
 };
@@ -73,10 +73,6 @@ DECLARE_GETTER(
 DECLARE_GETTER(
   ltypes,
   "List of logical types for all columns")
-
-DECLARE_GETTER(
-  stypes,
-  "List of \"storage\" types for all columns")
 
 DECLARE_GETTER(
   names,

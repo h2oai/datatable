@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include "datatable.h"
+#include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datawindow.h"
@@ -45,8 +46,8 @@ PyObject* wrap(DataTable* dt)
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
     pypydt->ltypes = nullptr;
-    pypydt->stypes = nullptr;
     pypydt->names = nullptr;
+    pypydt->_frame = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
@@ -130,29 +131,12 @@ PyObject* get_ltypes(obj* self) {
     if (list == nullptr) return nullptr;
     while (--i >= 0) {
       SType st = self->ref->columns[i]->stype();
-      PyTuple_SET_ITEM(list, i, info(st).py_ltype());
+      PyTuple_SET_ITEM(list, i, info(st).py_ltype().release());
     }
     self->ltypes = list;
   }
   Py_INCREF(self->ltypes);
   return self->ltypes;
-}
-
-
-PyObject* get_stypes(obj* self) {
-  if (!self->stypes) {
-    DataTable* dt = self->ref;
-    int64_t i = dt->ncols;
-    PyObject* list = PyTuple_New(i);
-    if (list == nullptr) return nullptr;
-    while (--i >= 0) {
-      SType st = dt->columns[i]->stype();
-      PyTuple_SET_ITEM(list, i, info(st).py_stype());
-    }
-    self->stypes = list;
-  }
-  Py_INCREF(self->stypes);
-  return self->stypes;
 }
 
 
@@ -207,7 +191,7 @@ PyObject* get_alloc_size(obj* self) {
   size_t sz = dt->memory_footprint();
   sz += sizeof(*self);
   if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
-  if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
+  // if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
   if (self->names) {
     PyObject* names = self->names;
     sz += _PySys_GetSizeOf(names);
@@ -224,11 +208,13 @@ PyObject* get_alloc_size(obj* self) {
 // PyDatatable methods
 //==============================================================================
 
-static void _clear_types(obj* self) {
-  Py_XDECREF(self->stypes);
+void _clear_types(obj* self) {
   Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
   self->ltypes = nullptr;
+  if (self->_frame) {
+    Py_XDECREF(self->_frame->stypes);
+    self->_frame->stypes = nullptr;
+  }
 }
 
 
@@ -264,8 +250,8 @@ PyObject* check(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   dt->verify_integrity();
 
-  if (self->stypes) {
-    PyObject* stypes = self->stypes;
+  if (self->_frame && self->_frame->stypes) {
+    PyObject* stypes = self->_frame->stypes;
     if (!PyTuple_Check(stypes)) {
       throw AssertionError() << "Frame.stypes is not a tuple";
     }
@@ -276,7 +262,7 @@ PyObject* check(obj* self, PyObject*) {
     for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(stypes, i);
-      PyObject* eexp = info(st).py_stype();
+      PyObject* eexp = info(st).py_stype().release();
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of Frame.stypes is "
             << elem << ", but the column's type is " << eexp;
@@ -295,7 +281,7 @@ PyObject* check(obj* self, PyObject*) {
     for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
-      PyObject* eexp = info(st).py_ltype();
+      PyObject* eexp = info(st).py_ltype().release();
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of Frame.ltypes is "
             << elem << ", for a column of type " << eexp;
@@ -563,10 +549,7 @@ PyObject* rbind(obj* self, PyObject* args) {
   dt->rbind(dts, cols_to_append, ndts, final_ncols);
 
   // Clear cached stypes/ltypes
-  Py_XDECREF(self->stypes);
-  Py_XDECREF(self->ltypes);
-  self->stypes = nullptr;
-  self->ltypes = nullptr;
+  _clear_types(self);
 
   dt::free(cols_to_append);
   dt::free(dts);
@@ -1051,7 +1034,6 @@ PyObject* colindex(obj* self, PyObject* args) {
 static void dealloc(obj* self) {
   delete self->ref;
   Py_XDECREF(self->ltypes);
-  Py_XDECREF(self->stypes);
   Py_TYPE(self)->tp_free(self);
 }
 
@@ -1106,7 +1088,6 @@ static PyMethodDef datatable_methods[] = {
 
 static PyGetSetDef datatable_getseters[] = {
   GETTER(ltypes),
-  GETTER(stypes),
   GETTER(names),
   GETTER(isview),
   GETTER(rowindex),

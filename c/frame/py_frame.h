@@ -11,6 +11,12 @@
 #include "datatable.h"
 #include "py_datatable.h"
 
+namespace pydatatable {  // temp
+  void _clear_types(obj*);
+  PyObject* check(obj*, PyObject*);
+}
+
+
 namespace py {
 
 
@@ -22,6 +28,7 @@ namespace py {
 class Frame : public PyObject {
   private:
     DataTable* dt;
+    mutable PyObject* stypes;  // memoized tuple of stypes
 
     pydatatable::obj* core_dt;  // TODO: remove
 
@@ -47,10 +54,13 @@ class Frame : public PyObject {
     oobj get_nrows() const;
     void set_nrows(obj);
     oobj get_shape() const;
+    oobj get_stypes() const;
     oobj get_key() const;
     oobj get_internal() const;
     void set_internal(obj _dt);
 
+    friend void pydatatable::_clear_types(pydatatable::obj*); // temp
+    friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
 };
 
 
