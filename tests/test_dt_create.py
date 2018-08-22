@@ -244,14 +244,14 @@ def test_create_names_bad1():
 def test_create_names_bad2():
     with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert ("The `names` argument must be a list or a tuple of column names, "
+    assert ("Expected a list or a tuple of column names, "
             "got <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert ("The `names` argument must be a list or a tuple of column names, "
+    assert ("Expected a list or a tuple of column names, "
             "got <class 'dict'>" == str(e.value))
 
 

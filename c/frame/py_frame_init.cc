@@ -137,6 +137,8 @@ void Frame::m__init__(PKArgs&) {
   core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
+  names = nullptr;
+  inames = nullptr;
 
   // bool names_defined = !names_arg.is_undefined();
   // auto names = _get_names(names_arg);

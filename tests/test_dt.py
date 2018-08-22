@@ -628,12 +628,12 @@ def test_rename_bad():
     assert "Column `xxx` does not exist" in str(e.value)
     with pytest.raises(ValueError) as e:
         d0.names = ['1', '2', '3', '5']
-    assert ("Cannot rename columns to ['1', '2', '3', '5']: "
-            "expected 3 names" in str(e.value))
+    assert ("The `names` list has length 4, while the Frame has only 3 columns"
+            in str(e.value))
     with pytest.raises(ValueError) as e:
         d0.names = ('k', )
-    assert ("Cannot rename columns to ('k',): "
-            "expected 3 names" in str(e.value))
+    assert ("The `names` list has length 1, while the Frame has 3 columns"
+            in str(e.value))
 
 
 @pytest.mark.run(order=8.2)

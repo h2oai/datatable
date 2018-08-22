@@ -62,17 +62,8 @@ class Frame(core.Frame):
     def key(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
-        return self._dt.names[:self._dt.nkeys]
+        return self.names[:self._dt.nkeys]
 
-    @property
-    def names(self):
-        """Tuple of column names."""
-        return self._dt.names
-
-
-    #---------------------------------------------------------------------------
-    # Property setters
-    #---------------------------------------------------------------------------
 
     @key.setter
     def key(self, colnames):
@@ -95,11 +86,6 @@ class Frame(core.Frame):
             raise ValueError("Duplicate columns requested for the key: %r"
                              % [self.names[i] for i in colindices])
         self._dt.nkeys = nk
-
-    @names.setter
-    def names(self, newnames):
-        """Rename the columns of the Frame."""
-        self.rename(newnames)
 
 
 
@@ -155,14 +141,14 @@ class Frame(core.Frame):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()),
                                  stypes=stypes)
         elif isinstance(src, core.DataTable):
-            src._set_names(names)
             self._dt = src
+            self.names = names
         elif isinstance(src, str):
             srcdt = datatable.fread(src)
             if names is None:
                 names = srcdt.names
             self._dt = srcdt.internal
-            self._dt._set_names(names)
+            self.names = names
         elif src is None:
             self._fill_from_list([], names=None, stypes=None)
         elif is_type(src, Frame_t):
@@ -170,8 +156,8 @@ class Frame(core.Frame):
                 names = src.names
             _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
                       .to_datatable()
-            _dt._set_names(names)
             self._dt = _dt
+            self.names = names
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
@@ -205,8 +191,8 @@ class Frame(core.Frame):
                                   "the number of source columns (%d)"
                                   % (len(stypes), len(src)))
         _dt = core.datatable_from_list(src, types)
-        _dt._set_names(names)
         self._dt = _dt
+        self.names = names
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -228,8 +214,8 @@ class Frame(core.Frame):
             if coldtype.char == 'e' and str(coldtype) == "float16":
                 colarrays[i] = colarrays[i].astype("float32")
         dt = core.datatable_from_list(colarrays, None)
-        dt._set_names(names)
         self._dt = dt
+        self.names = names
 
 
     def _fill_from_numpy(self, arr, names):
@@ -257,8 +243,8 @@ class Frame(core.Frame):
             dt = core.datatable_from_list([arr[:, i]
                                            for i in range(ncols)], None)
 
-        dt._set_names(names)
         self._dt = dt
+        self.names = names
 
 
 
@@ -471,20 +457,7 @@ class Frame(core.Frame):
         for i in range(1, len(cols)):
             newnames += self.names[(cols[i - 1] + 1):cols[i]]
         newnames += self.names[cols[-1] + 1:]
-        self._dt._set_names(newnames)
-
-
-    def colindex(self, name):
-        """
-        Return index of the column ``name``.
-
-        :param name: name of the column to find the index for. This can also
-            be an index of a column, in which case the index is checked that
-            it doesn't go out-of-bounds, and negative index is converted into
-            positive.
-        :raises ValueError: if the requested column does not exist.
-        """
-        return self._dt.colindex(name)
+        self.names = newnames
 
 
     # Methods defined externally
@@ -668,7 +641,7 @@ class Frame(core.Frame):
             for oldname, newname in columns.items():
                 idx = self.colindex(oldname)
                 names[idx] = newname
-        self._dt._set_names(names)
+        self.names = names
 
 
 
@@ -688,9 +661,8 @@ class Frame(core.Frame):
                stype.int16: -32768,
                stype.int32: -2147483648,
                stype.int64: -9223372036854775808}
+        self.materialize()
         srcdt = self._dt
-        if srcdt.isview:
-            srcdt = srcdt.materialize()
         srccols = collections.OrderedDict()
         for i in range(self.ncols):
             name = self.names[i]
@@ -756,8 +728,7 @@ class Frame(core.Frame):
 
     def materialize(self):
         if self._dt.isview:
-            self._dt = self._dt.materialize()
-        return self
+            self._dt.materialize()
 
 
     def __sizeof__(self):

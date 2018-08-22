@@ -36,8 +36,6 @@ namespace pydatatable
  */
 struct obj : public PyObject {
   DataTable* ref;
-  PyObject* names;   // memoized tuple of column names
-  PyObject* inames;  // memoized dict of {column name: index}
   py::Frame* _frame;
   SType use_stype_for_buffers;
   int64_t : 56;
@@ -68,10 +66,6 @@ DECLARE_DESTRUCTOR()
 DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
-
-DECLARE_GETTER(
-  names,
-  "Tuple of column names")
 
 DECLARE_GETTER(
   rowindex_type,
@@ -277,22 +271,6 @@ DECLARE_METHOD(
    nmodal1,
    "Get the number of modal values in a single-column DataTable")
 
-DECLARE_METHOD(  // temporary
-  _set_names,
-  "Set column names")
-
-DECLARE_METHOD(
-  colindex,
-  "colindex(self, name)\n"
-  "--\n\n"
-  "Return index of the column ``name``\n"
-  "\n"
-  ":param name: name of the column to find the index for. This can also\n"
-  "    be an index of a column, in which case the index is checked that\n"
-  "    it doesn't go out-of-bounds, and negative index is converted into\n"
-  "    positive.\n"
-  ":raises ValueError: if the requested column does not exist.\n"
-  )
 
 
 //---- Python API --------------------------------------------------------------

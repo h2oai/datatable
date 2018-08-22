@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/arg.h"
 #include "python/args.h"        // py::PKArgs
+#include "python/int.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -65,66 +66,10 @@ bool Arg::is_range()         const { return pyobj.is_range(); }
 // Type conversions
 //------------------------------------------------------------------------------
 
-py::list  Arg::to_pylist() const { return pyobj.to_pylist(*this); }
+int32_t  Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
+int64_t  Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
+py::list Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 
-/*
-Arg::operator int32_t() const {
-  _check_missing();
-  if (!PyLong_Check(pyobj)) {
-    throw TypeError() << name() << " should be an integer";
-  }
-  int overflow;
-  long value = PyLong_AsLongAndOverflow(pyobj, &overflow);
-  int32_t res = static_cast<int32_t>(value);
-  if (overflow || value != static_cast<long>(res)) {
-    throw TypeError() << name() << " is too large for an int32: " << pyobj;
-  }
-  return res;
-}
-
-
-Arg::operator int64_t() const {
-  static_assert(sizeof(int64_t) == sizeof(long), "Unexpected size of long");
-  _check_missing();
-  if (!PyLong_Check(pyobj)) {
-    throw TypeError() << name() << " should be an integer";
-  }
-  int overflow;
-  long value = PyLong_AsLongAndOverflow(pyobj, &overflow);
-  if (overflow) {
-    throw TypeError() << name() << " is too large for an int64: " << pyobj;
-  }
-  return value;
-}
-
-
-Arg::operator list() const {
-  _check_missing();
-  _check_list_or_tuple();
-  return list(pyobj);
-}
-
-
-std::vector<std::string> Arg::to_list_of_strs() const {
-  _check_missing();
-  _check_list_or_tuple();
-  auto size = static_cast<size_t>(Py_SIZE(pyobj));
-  std::vector<std::string> res(size);
-  for (size_t i = 0; i < size; ++i) {
-    PyObject* item = PyList_GET_ITEM(pyobj, i);  // works for tuples too
-    if (!PyUnicode_Check(item)) {
-      auto item_type = reinterpret_cast<PyObject*>(Py_TYPE(item));
-      throw TypeError() << name() << " should be a list of strings; but its "
-          << _nth(i + 1) << " element was " << item_type;
-    }
-    Py_ssize_t str_size;
-    const char* str = PyUnicode_AsUTF8AndSize(item, &str_size);
-    if (!str) throw PyError();
-    res[i] = std::string(str, static_cast<size_t>(str_size));
-  }
-  return res;
-}
-*/
 
 
 //------------------------------------------------------------------------------

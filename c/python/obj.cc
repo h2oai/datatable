@@ -344,16 +344,15 @@ char** _obj::to_cstringlist(const error_manager&) const {
     return nullptr;
   }
   if (PyList_Check(v) || PyTuple_Check(v)) {
+    bool islist = PyList_Check(v);
     Py_ssize_t count = Py_SIZE(v);
-    PyObject** items = PyList_Check(v)
-        ? reinterpret_cast<PyListObject*>(v)->ob_item
-        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
     char** res = nullptr;
     try {
       res = new char*[count + 1];
       for (Py_ssize_t i = 0; i <= count; ++i) res[i] = nullptr;
       for (Py_ssize_t i = 0; i < count; ++i) {
-        PyObject* item = items[i];
+        PyObject* item = islist? PyList_GET_ITEM(v, i)
+                               : PyTuple_GET_ITEM(v, i);
         if (PyUnicode_Check(item)) {
           PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
           if (!y) throw PyError();
@@ -386,13 +385,12 @@ char** _obj::to_cstringlist(const error_manager&) const {
 strvec _obj::to_stringlist(const error_manager&) const {
   strvec res;
   if (PyList_Check(v) || PyTuple_Check(v)) {
-    PyObject** items = PyList_Check(v)
-        ? reinterpret_cast<PyListObject*>(v)->ob_item
-        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
+    bool islist = PyList_Check(v);
     Py_ssize_t count = Py_SIZE(v);
     res.reserve(static_cast<size_t>(count));
     for (Py_ssize_t i = 0; i < count; ++i) {
-      PyObject* item = items[i];
+      PyObject* item = islist? PyList_GET_ITEM(v, i)
+                             : PyTuple_GET_ITEM(v, i);
       if (PyUnicode_Check(item)) {
         PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
         if (!y) throw PyError();
@@ -403,7 +401,7 @@ strvec _obj::to_stringlist(const error_manager&) const {
         res.push_back(PyBytes_AsString(item));
       } else {
         throw TypeError() << "Item " << i << " in the list is not a string: "
-                          << item << " (" << PyObject_Type(item) << ")";
+                          << item  << " (" << PyObject_Type(item) << ")";
       }
     }
   } else if (v != Py_None) {

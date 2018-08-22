@@ -45,7 +45,6 @@ PyObject* wrap(DataTable* dt)
   if (pydt) {
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
-    pypydt->names = nullptr;
     pypydt->_frame = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
   }
@@ -177,13 +176,13 @@ PyObject* get_alloc_size(obj* self) {
   sz += sizeof(*self);
   // if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
   // if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
-  if (self->names) {
-    PyObject* names = self->names;
-    sz += _PySys_GetSizeOf(names);
-    for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
-      sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
-    }
-  }
+  // if (self->names) {
+  //   PyObject* names = self->names;
+  //   sz += _PySys_GetSizeOf(names);
+  //   for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
+  //     sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
+  //   }
+  // }
   return PyLong_FromSize_t(sz);
 }
 
@@ -274,8 +273,9 @@ PyObject* check(obj* self, PyObject*) {
     }
   }
 
-  PyObject* names = self->names;
-  PyObject* inames = self->inames;
+  if (self->_frame) {
+  PyObject* names = self->_frame->names;
+  PyObject* inames = self->_frame->inames;
   if (names) {
     if (!PyTuple_Check(names)) {
       throw AssertionError() << "Frame.names is not a tuple";
@@ -316,6 +316,7 @@ PyObject* check(obj* self, PyObject*) {
         }
       }
     }
+  }
   }
 
   Py_RETURN_NONE;
@@ -647,16 +648,17 @@ PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Colum
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
 
-  Column** cols = dt::amalloc<Column*>(dt->ncols + 1);
   for (int64_t i = 0; i < dt->ncols; ++i) {
-    cols[i] = dt->columns[i]->shallowcopy();
-    cols[i]->reify();
+    Column* oldcol = dt->columns[i];
+    if (!oldcol->rowindex()) continue;
+    Column* newcol = oldcol->shallowcopy();
+    newcol->reify();
+    delete oldcol;
+    dt->columns[i] = newcol;
   }
-  cols[dt->ncols] = nullptr;
+  dt->rowindex.clear();
 
-  DataTable* newdt = new DataTable(cols);
-  newdt->names = dt->names;
-  return wrap(newdt);
+  Py_RETURN_NONE;
 }
 
 
@@ -698,314 +700,6 @@ PyObject* save_jay(obj* self, PyObject* args) {
 
   dt->save_jay(filename, colnames, sstrategy);
   Py_RETURN_NONE;
-}
-
-
-//------------------------------------------------------------------------------
-// Handling of names
-//------------------------------------------------------------------------------
-
-// Clear existing memoized names
-static void _clear_names(obj* self) {
-  Py_XDECREF(self->names);
-  Py_XDECREF(self->inames);
-  self->names = nullptr;
-  self->inames = nullptr;
-}
-
-
-static void _init_names(obj* self) {
-  if (self->names) return;
-  DataTable* dt = self->ref;
-  xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
-  int64_t i = dt->ncols;
-  PyObject* list = PyTuple_New(i);
-  if (list == nullptr) throw PyError();
-  while (--i >= 0) {
-    std::string& name = dt->names[static_cast<size_t>(i)];
-    PyObject* str = py::ostring(name).release();
-    PyTuple_SET_ITEM(list, i, str);
-  }
-  self->names = list;
-}
-
-
-static void _init_inames(obj* self) {
-  if (self->inames) return;
-  _init_names(self);
-  DataTable* dt = self->ref;
-  xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
-  PyObject* dict = PyDict_New();
-  if (!dict) throw PyError();
-  for (int64_t i = 0; i < dt->ncols; ++i) {
-    PyObject* name = PyTuple_GET_ITEM(self->names, i);
-    PyObject* index = PyLong_FromLong(i);
-    PyDict_SetItem(dict, name, index);
-    Py_DECREF(index);
-  }
-  self->inames = dict;
-}
-
-
-static void _fill_default_names(DataTable* dt)
-{
-  auto index0 = static_cast<size_t>(config::frame_names_auto_index);
-  auto prefix = config::frame_names_auto_prefix;
-  auto ncols  = static_cast<size_t>(dt->ncols);
-
-  dt->names.clear();
-  dt->names.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    dt->names.push_back(prefix + std::to_string(i + index0));
-  }
-}
-
-
-
-/**
- * This is a main method to assign column names to a Frame. It checks that the
- * names are valid, not duplicate, and if necessary modifies them to enforce
- * such constraints.
- */
-static void _dedup_and_save_names(obj* self, py::list names) {
-  auto dt = self->ref;
-  auto ncols = static_cast<size_t>(dt->ncols);
-  if (names.size() != ncols) {
-    throw ValueError() << "The `names` list has length " << names.size()
-        << ", while the Frame has "
-        << (ncols < names.size() && ncols? "only " : "")
-        << ncols << " column" << (ncols == 1? "" : "s");
-  }
-
-  // Prepare the containers for placing the new column names there
-  // TODO: use proxy classes py::otuple and py::odict
-  dt->names.clear();
-  dt->names.reserve(ncols);
-  PyObject* list = PyTuple_New(dt->ncols);
-  PyObject* dict = PyDict_New();
-  std::vector<std::string> duplicates;
-
-  // If any name is empty or None, it will be replaced with the default name
-  // in the end. The reason we don't replace immediately upon seeing an empty
-  // name is to ensure that the auto-generated names do not clash with the
-  // user-specified names somewhere later in the list.
-  bool fill_default_names = false;
-
-  for (size_t i = 0; i < ncols; ++i) {
-    py::obj name = names[i];
-    if (!name.is_string() && !name.is_none()) {
-      throw TypeError() << "Invalid `names` list: element " << i
-          << " is not a string";
-    }
-    // Convert to a C-style name object. Note that if `name` is python None,
-    // then the resulting `cname` will be `{nullptr, 0}`.
-    CString cname = name.to_cstring();
-    char* strname = const_cast<char*>(cname.ch);
-    size_t namelen = static_cast<size_t>(cname.size);
-    if (namelen == 0) {
-      fill_default_names = true;
-      dt->names.push_back(std::string());
-      continue;
-    }
-    // Ensure there are no invalid characters in the column's name. Invalid
-    // characters are considered those with ASCII codes \x00 - \x1F. If any
-    // such characters found, we perform substitution s/[\x00-\x1F]+/./g.
-    PyObject* pyname;
-    std::string resname;
-    for (size_t j = 0; j < namelen; ++j) {
-      if (static_cast<uint8_t>(strname[j]) < 0x20) {
-        resname = std::string(strname, j) + ".";
-        bool written_dot = true;
-        for (; j < namelen; ++j) {
-          char ch = strname[j];
-          if (static_cast<uint8_t>(ch) < 0x20) {
-            if (!written_dot) {
-              resname += ".";
-              written_dot = true;
-            }
-          } else {
-            resname += ch;
-            written_dot = false;
-          }
-        }
-      }
-    }
-    if (resname.empty()) {
-      pyname = name.to_pyobject_newref();
-      resname = std::string(strname, namelen);
-    } else {
-      pyname = py::ostring(resname).release();
-    }
-    // Check for name duplicates. If the name was already seen before, we
-    // replace it with a modified name (by incrementing the name's digital
-    // suffix if it has one, or otherwise by adding such a suffix).
-    if (PyDict_GetItem(dict, pyname)) {
-      duplicates.push_back(resname);
-      size_t j = namelen;
-      for (; j > 0; --j) {
-        char ch = strname[j - 1];
-        if (ch < '0' || ch > '9') break;
-      }
-      std::string basename(resname, 0, j);
-      int64_t count = 0;
-      if (j < namelen) {
-        for (; j < namelen; ++j) {
-          char ch = strname[j];
-          count = count * 10 + static_cast<int64_t>(ch - '0');
-        }
-      } else {
-        basename += ".";
-      }
-      while (PyDict_GetItem(dict, pyname)) {
-        count++;
-        resname = basename + std::to_string(count);
-        Py_DECREF(pyname);
-        pyname = py::ostring(resname).release();
-      }
-    }
-
-    // Store the name in all containers
-    dt->names.push_back(resname);
-    PyTuple_SET_ITEM(list, static_cast<Py_ssize_t>(i), pyname);
-    PyObject* index = PyLong_FromSize_t(i);
-    PyDict_SetItem(dict, pyname, index);
-    Py_DECREF(index);
-  }
-
-  // If during the processing we discovered any empty names, they must be
-  // replaced with auto-generated ones.
-  if (fill_default_names) {
-    // Config variables to be used for name auto-generation
-    int64_t index0 = config::frame_names_auto_index;
-    std::string prefix = config::frame_names_auto_prefix;
-    const char* prefixptr = prefix.data();
-    size_t prefixlen = prefix.size();
-
-    // Within the existing names, find ones with the pattern "{prefix}<num>".
-    // If such names exist, we'll start autonaming with 1 + max(<num>), where
-    // the maximum is taken among all such names.
-    for (size_t i = 0; i < ncols; ++i) {
-      size_t namelen = dt->names[i].size();
-      const char* nameptr = dt->names[i].data();
-      if (namelen <= prefixlen) continue;
-      if (std::strncmp(nameptr, prefixptr, prefixlen) != 0) continue;
-      int64_t value = 0;
-      for (size_t j = prefixlen; j < namelen; ++j) {
-        char ch = nameptr[j];
-        if (ch < '0' || ch > '9') goto next_name;
-        value = value * 10 + static_cast<int64_t>(ch - '0');
-      }
-      if (value >= index0) {
-        index0 = value + 1;
-      }
-      next_name:;
-    }
-
-    // Now actually fill the empty names
-    for (size_t i = 0; i < ncols; ++i) {
-      if (!dt->names[i].empty()) continue;
-      dt->names[i] = prefix + std::to_string(index0);
-      PyObject* pyname = py::ostring(dt->names[i]).release();
-      PyTuple_SET_ITEM(list, static_cast<Py_ssize_t>(i), pyname);
-      PyObject* pyindex = PyLong_FromSize_t(i);
-      PyDict_SetItem(dict, pyname, pyindex);
-      Py_DECREF(pyindex);
-      index0++;
-    }
-  }
-
-  // If there were any duplicate names, issue a warning
-  size_t ndup = duplicates.size();
-  if (ndup) {
-    Warning w;
-    if (ndup == 1) {
-      w << "Duplicate column name '" << duplicates[0] << "' found, and was "
-           "assigned a unique name";
-    } else {
-      w << "Duplicate column names found: ";
-      for (size_t i = 0; i < ndup; ++i) {
-        w << (i == 0? "'" :
-              i < ndup - 1? ", '" : " and '");
-        w << duplicates[i] << "'";
-      }
-      w << "; they were assigned unique names";
-    }
-    // as `w` goes out of scope, the warning is sent to Python
-  }
-
-  // Store the pythonic tuple / dict of names
-  self->names = list;
-  self->inames = dict;
-
-  xassert(ncols == dt->names.size());
-  xassert(ncols == static_cast<size_t>(PyTuple_Size(list)));
-  xassert(ncols == static_cast<size_t>(PyDict_Size(dict)));
-}
-
-
-PyObject* get_names(obj* self) {
-  if (!self->names) _init_names(self);
-  Py_INCREF(self->names);
-  return self->names;
-}
-
-
-PyObject* _set_names(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O", &arg1)) return nullptr;
-  py::obj pynames(arg1);
-
-  _clear_names(self);
-  if (pynames.is_none()) {
-    _fill_default_names(dt);
-  }
-  else if (pynames.is_list() || pynames.is_tuple()) {
-    py::list names = pynames.to_pylist();
-    _dedup_and_save_names(self, names);
-  }
-  else {
-    throw TypeError() << "The `names` argument must be a list or a tuple of "
-        "column names, got " << pynames.typeobj();
-  }
-
-  Py_RETURN_NONE;
-}
-
-
-PyObject* colindex(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:colindex", &arg1)) return nullptr;
-  py::obj col(arg1);
-
-  if (col.is_string()) {
-    if (!self->inames) _init_inames(self);
-    PyObject* colname = col.to_borrowed_ref();
-    // If key is not in the dict, PyDict_GetItem(dict, key) returns NULL
-    // without setting an exception.
-    PyObject* index = PyDict_GetItem(self->inames, colname);  // borrowed ref
-    if (index) {
-      Py_INCREF(index);
-      return index;
-    }
-    throw ValueError()
-        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
-           "Frame";  // TODO: add frame repr here
-  }
-  if (col.is_int()) {
-    int64_t colidx = col.to_int64_strict();
-    if (colidx < 0 && colidx + dt->ncols >= 0) {
-      colidx += dt->ncols;
-    }
-    if (colidx >= 0 && colidx < dt->ncols) {
-      return py::oInt(colidx).release();
-    }
-    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
-        "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
-  }
-  throw TypeError() << "The argument to Frame.colindex() should be a string "
-      "or an integer, not " << Py_TYPE(col.to_borrowed_ref());
 }
 
 
@@ -1065,13 +759,10 @@ static PyMethodDef datatable_methods[] = {
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
-  METHODv(_set_names),
-  METHODv(colindex),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 
 static PyGetSetDef datatable_getseters[] = {
-  GETTER(names),
   GETTER(isview),
   GETTER(rowindex),
   GETSET(groupby),
