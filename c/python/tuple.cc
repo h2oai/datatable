@@ -10,12 +10,12 @@
 namespace py {
 
 
-otuple::otuple(size_t n) {
-  v = PyTuple_New(static_cast<Py_ssize_t>(n));
-}
+otuple::otuple(int n) : otuple(static_cast<int64_t>(n)) {}
+
+otuple::otuple(size_t n) : otuple(static_cast<int64_t>(n)) {}
 
 otuple::otuple(int64_t n) {
-  v = PyTuple_New(static_cast<Py_ssize_t>(n));
+  v = PyTuple_New(n);
 }
 
 

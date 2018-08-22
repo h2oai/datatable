@@ -104,7 +104,7 @@ class RFNode:
 
         ri_final = ri_source
         if self._inverse:
-            ri_final = ri_final.inverse(_dt.nrows)
+            ri_final = ri_final.inverse(self._engine.dt.nrows)
         if ri_target:
             ri_final = ri_final.uplift(ri_target)
         return ri_final

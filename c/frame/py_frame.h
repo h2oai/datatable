@@ -45,6 +45,8 @@ class Frame : public PyObject {
 
     oobj get_ncols() const;
     oobj get_nrows() const;
+    void set_nrows(obj);
+    oobj get_shape() const;
     oobj get_key() const;
     oobj get_internal() const;
     void set_internal(obj _dt);

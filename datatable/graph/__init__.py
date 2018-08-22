@@ -104,9 +104,10 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
 
         colsnode.execute()
         res_dt = ee.columns.to_datatable()
+        res_dt = datatable.Frame(res_dt, names=colsnode.column_names)
         if grbynode and res_dt.nrows == dt.nrows:
-            res_dt.groupby = ee.groupby
-        return datatable.Frame(res_dt, names=colsnode.column_names)
+            res_dt.internal.groupby = ee.groupby
+        return res_dt
 
     raise RuntimeError("Unable to calculate the result")  # pragma: no cover
 

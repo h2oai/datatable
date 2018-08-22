@@ -59,25 +59,10 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     @property
-    def nrows(self):
-        """Number of rows in the frame."""
-        return self._dt.nrows
-
-    @property
-    def ncols(self):
-        """Number of columns in the frame."""
-        return self._dt.ncols
-
-    @property
     def key(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
         return self._dt.names[:self._dt.nkeys]
-
-    @property
-    def shape(self):
-        """Tuple (number of rows, number of columns)."""
-        return (self._dt.nrows, self._dt.ncols)
 
     @property
     def names(self):
@@ -94,19 +79,10 @@ class Frame(core.Frame):
         """Tuple of column storage types."""
         return self._dt.stypes
 
-    @property
-    def internal(self):
-        """Access to the internal C DataTable object."""
-        return self._dt
-
 
     #---------------------------------------------------------------------------
     # Property setters
     #---------------------------------------------------------------------------
-
-    @nrows.setter
-    def nrows(self, n):
-        self.resize(n)
 
     @key.setter
     def key(self, colnames):

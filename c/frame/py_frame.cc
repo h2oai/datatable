@@ -22,7 +22,7 @@ PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
 
 
 const char* Frame::Type::classname() {
-  return "datatable.Frame";
+  return "datatable.core.Frame";
 }
 
 const char* Frame::Type::classdoc() {
@@ -37,11 +37,22 @@ const char* Frame::Type::classdoc() {
     "This is a primary data structure for the `datatable` module.\n";
 }
 
-void Frame::Type::init_getsetters(GetSetters& gs) {
-  gs.add<&Frame::get_ncols>("ncols");
-  gs.add<&Frame::get_nrows>("nrows");
+void Frame::Type::init_getsetters(GetSetters& gs)
+{
+  gs.add<&Frame::get_ncols>("ncols",
+    "Number of columns in the Frame\n");
+  gs.add<&Frame::get_nrows, &Frame::set_nrows>("nrows",
+    "Number of rows in the Frame.\n"
+    "\n"
+    "Assigning to this property will change the height of the Frame,\n"
+    "either by truncating if the new number of rows is smaller than the\n"
+    "current, or filling with NAs if the new number of rows is greater.\n"
+    "\n"
+    "Increasing the number of rows of a keyed Frame is not allowed.\n");
+  gs.add<&Frame::get_shape>("shape",
+    "Tuple with (nrows, ncols) dimensions of the Frame\n");
   gs.add<&Frame::get_key>("key");
-  gs.add<&Frame::get_internal>("internal");
+  gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal, &Frame::set_internal>("_dt");
 }
 
@@ -73,8 +84,29 @@ oobj Frame::get_ncols() const {
   return py::oInt(dt->ncols);
 }
 
+
 oobj Frame::get_nrows() const {
   return py::oInt(dt->nrows);
+}
+
+void Frame::set_nrows(obj nr) {
+  if (!nr.is_int()) {
+    throw TypeError() << "Number of rows must be an integer, not "
+        << nr.typeobj();
+  }
+  int64_t new_nrows = nr.to_int64();
+  if (new_nrows < 0) {
+    throw ValueError() << "Number of rows cannot be negative: " << new_nrows;
+  }
+  dt->resize_rows(new_nrows);
+}
+
+
+oobj Frame::get_shape() const {
+  py::otuple shape(2);
+  shape.set(0, get_nrows());
+  shape.set(1, get_ncols());
+  return shape;
 }
 
 oobj Frame::get_key() const {

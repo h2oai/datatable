@@ -67,14 +67,6 @@ DECLARE_DESTRUCTOR()
 //---- Getters/setters ---------------------------------------------------------
 
 DECLARE_GETTER(
-  nrows,
-  "Number of rows in the datatable")
-
-DECLARE_GETTER(
-  ncols,
-  "Number of columns in the datatable")
-
-DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
 
