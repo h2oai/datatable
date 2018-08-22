@@ -52,7 +52,9 @@ void Frame::Type::init_getsetters(GetSetters& gs)
   gs.add<&Frame::get_shape>("shape",
     "Tuple with (nrows, ncols) dimensions of the Frame\n");
   gs.add<&Frame::get_stypes>("stypes",
-    "The tuple of stypes (\"storage type\") for each column\n");
+    "The tuple of each column's stypes (\"storage types\")\n");
+  gs.add<&Frame::get_ltypes>("ltypes",
+    "The tuple of each column's ltypes (\"logical types\")\n");
   gs.add<&Frame::get_key>("key");
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal, &Frame::set_internal>("_dt");
@@ -67,6 +69,7 @@ void Frame::Type::init_methods(Methods&) {
 void Frame::m__dealloc__() {
   Py_XDECREF(core_dt);
   Py_XDECREF(stypes);
+  Py_XDECREF(ltypes);
   // `dt` is already managed by `core_dt`.
   // delete dt;
   dt = nullptr;
@@ -123,6 +126,19 @@ oobj Frame::get_stypes() const {
     stypes = ostypes.release();
   }
   return oobj(stypes);
+}
+
+
+oobj Frame::get_ltypes() const {
+  if (ltypes == nullptr) {
+    py::otuple oltypes(dt->ncols);
+    for (size_t i = 0; i < oltypes.size(); ++i) {
+      SType st = dt->columns[i]->stype();
+      oltypes.set(i, info(st).py_ltype());
+    }
+    ltypes = oltypes.release();
+  }
+  return oobj(ltypes);
 }
 
 

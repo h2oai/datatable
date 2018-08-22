@@ -29,6 +29,7 @@ class Frame : public PyObject {
   private:
     DataTable* dt;
     mutable PyObject* stypes;  // memoized tuple of stypes
+    mutable PyObject* ltypes;  // memoized tuple of ltypes
 
     pydatatable::obj* core_dt;  // TODO: remove
 
@@ -52,11 +53,12 @@ class Frame : public PyObject {
 
     oobj get_ncols() const;
     oobj get_nrows() const;
-    void set_nrows(obj);
     oobj get_shape() const;
     oobj get_stypes() const;
+    oobj get_ltypes() const;
     oobj get_key() const;
     oobj get_internal() const;
+    void set_nrows(obj);
     void set_internal(obj _dt);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp

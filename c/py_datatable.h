@@ -36,7 +36,6 @@ namespace pydatatable
  */
 struct obj : public PyObject {
   DataTable* ref;
-  PyObject* ltypes;  // memoized tuple of ltypes
   PyObject* names;   // memoized tuple of column names
   PyObject* inames;  // memoized dict of {column name: index}
   py::Frame* _frame;
@@ -69,10 +68,6 @@ DECLARE_DESTRUCTOR()
 DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
-
-DECLARE_GETTER(
-  ltypes,
-  "List of logical types for all columns")
 
 DECLARE_GETTER(
   names,

@@ -45,7 +45,6 @@ PyObject* wrap(DataTable* dt)
   if (pydt) {
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
-    pypydt->ltypes = nullptr;
     pypydt->names = nullptr;
     pypydt->_frame = nullptr;
     pypydt->use_stype_for_buffers = SType::VOID;
@@ -124,20 +123,6 @@ PyObject* get_isview(obj* self) {
 }
 
 
-PyObject* get_ltypes(obj* self) {
-  if (!self->ltypes) {
-    int64_t i = self->ref->ncols;
-    PyObject* list = PyTuple_New(i);
-    if (list == nullptr) return nullptr;
-    while (--i >= 0) {
-      SType st = self->ref->columns[i]->stype();
-      PyTuple_SET_ITEM(list, i, info(st).py_ltype().release());
-    }
-    self->ltypes = list;
-  }
-  Py_INCREF(self->ltypes);
-  return self->ltypes;
-}
 
 
 PyObject* get_rowindex_type(obj* self) {
@@ -190,7 +175,7 @@ PyObject* get_alloc_size(obj* self) {
   DataTable* dt = self->ref;
   size_t sz = dt->memory_footprint();
   sz += sizeof(*self);
-  if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
+  // if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
   // if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
   if (self->names) {
     PyObject* names = self->names;
@@ -209,10 +194,10 @@ PyObject* get_alloc_size(obj* self) {
 //==============================================================================
 
 void _clear_types(obj* self) {
-  Py_XDECREF(self->ltypes);
-  self->ltypes = nullptr;
   if (self->_frame) {
+    Py_XDECREF(self->_frame->ltypes);
     Py_XDECREF(self->_frame->stypes);
+    self->_frame->ltypes = nullptr;
     self->_frame->stypes = nullptr;
   }
 }
@@ -269,8 +254,8 @@ PyObject* check(obj* self, PyObject*) {
       }
     }
   }
-  if (self->ltypes) {
-    PyObject* ltypes = self->ltypes;
+  if (self->_frame && self->_frame->ltypes) {
+    PyObject* ltypes = self->_frame->ltypes;
     if (!PyTuple_Check(ltypes)) {
       throw AssertionError() << "Frame.ltypes is not a tuple";
     }
@@ -1033,7 +1018,6 @@ PyObject* colindex(obj* self, PyObject* args) {
 
 static void dealloc(obj* self) {
   delete self->ref;
-  Py_XDECREF(self->ltypes);
   Py_TYPE(self)->tp_free(self);
 }
 
@@ -1087,7 +1071,6 @@ static PyMethodDef datatable_methods[] = {
 };
 
 static PyGetSetDef datatable_getseters[] = {
-  GETTER(ltypes),
   GETTER(names),
   GETTER(isview),
   GETTER(rowindex),
