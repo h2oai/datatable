@@ -188,7 +188,7 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   double norm_factor, norm_shift;
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
-  //#pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     d_members[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
@@ -208,7 +208,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
   set_norm_coeffs(normx_factor, normx_shift, c0->min(), c0->max(), nx_bins);
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
-  //#pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
@@ -229,7 +229,7 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
-  //#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
@@ -256,7 +256,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
 
-  //#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
@@ -264,7 +264,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
     }
   }
 
-  //#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
@@ -290,7 +290,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
   double normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
 
-  //#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
     int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
@@ -302,15 +302,12 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
 }
 
 
-#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define PBWIDTH 60
-
-void printProgress (double percentage)
+void Aggregator::printProgress(double percentage)
 {
-    int val = (int) (percentage * 100);
-    int lpad = (int) (percentage * PBWIDTH);
+    int val = static_cast<int> (percentage * 100);
+    int lpad = static_cast<int> (percentage * PBWIDTH);
     int rpad = PBWIDTH - lpad;
-    printf ("\rAggregating file: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
+    printf ("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
     fflush (stdout);
 }
 
@@ -346,7 +343,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   exemplars.push_back(e);
   ids.push_back(e.id);
   d_members[0] = static_cast<int32_t>(e.id);
-  int32_t i_5 = dt_exemplars->nrows / 20;
+  int64_t i_5 = dt_exemplars->nrows / 20;
 
   printProgress(0.0);
 
@@ -378,13 +375,13 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
     }
   }
 
-  printProgress(1.0);
+  printProgress(1.0); 
   printf("\n");
   adjust_members(ids, dt_members);
 
   delete[] pmatrix;
   delete[] member;
-  //#pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (size_t i= 0; i < exemplars.size(); ++i) {
     delete[] exemplars[i].coords;
   }
@@ -395,7 +392,7 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids, DataTablePtr& dt_memb
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   size_t* map = new size_t[ids.size()];
 
-  //#pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < ids.size(); ++i) {
     if (ids[i] == static_cast<int64_t>(i)) {
       map[i] = i;
@@ -404,7 +401,7 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids, DataTablePtr& dt_memb
     }
   }
 
-  //#pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt_members->nrows; ++i) {
     d_members[i] = static_cast<int32_t>(map[d_members[i]]);
   }
@@ -445,23 +442,6 @@ void Aggregator::adjust_delta(double& delta, std::vector<ex>& exemplars, std::ve
 }
 
 
-void Aggregator::adjust_radius(DataTablePtr& dt_exemplars, double& radius) {
-  double diff = 0;
-  //#pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt_exemplars->ncols; ++i) {
-    Column* c = dt_exemplars->columns[i];
-    auto c_double = static_cast<RealColumn<double>*>(c);
-    if (!ISNA<double>(c_double->min())) {
-      diff += (c_double->max() - c_double->min()) * (c_double->max() - c_double->min());
-    }
-  }
-
-  diff /= dt_exemplars->ncols;
-  radius = .05 * log(max_dimensions);
-  if (diff > 10000.0) radius *= .25;
-}
-
-
 double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, double delta, bool early_exit /*=true*/) {
   double sum = 0.0;
   int32_t n = 0;
@@ -478,7 +458,7 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 
 
 void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
-  //#pragma omp parallel for schedule(static)
+//  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
@@ -505,7 +485,7 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   pmatrix = new double[(dt_exemplars->ncols) * max_dimensions];
 
 //Can be enabled later when we don't care about exact reproducibility of the results
-////#pragma omp parallel for schedule(static)
+//  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
     pmatrix[i] = distribution(generator);
   }
@@ -534,7 +514,7 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
     }
   }
 
-  //#pragma omp parallel for schedule(static)
+//  #pragma omp parallel for schedule(static)
   for (int32_t j = 0; j < max_dimensions; ++j) {
     r[j] /= n;
   }

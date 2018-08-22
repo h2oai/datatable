@@ -18,6 +18,8 @@ struct ex {
   double* coords;
 };
 
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
 
 class Aggregator {
   public:
@@ -25,6 +27,7 @@ class Aggregator {
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
+    static void printProgress(double);
 
   private:
     int32_t n_bins;
@@ -49,7 +52,6 @@ class Aggregator {
     void adjust_delta(double&, std::vector<ex>&, std::vector<int64_t>&, int64_t);
     void normalize_row(DataTablePtr&, double*, int32_t);
     double calculate_distance(double*, double*, int64_t, double, bool early_exit=true);
-    void adjust_radius(DataTablePtr&, double&);
     double* generate_pmatrix(DataTablePtr&);
     void project_row(DataTablePtr&, double*, int32_t, double*);
 };
