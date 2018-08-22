@@ -19,6 +19,8 @@ class Groupby;
 class RowIndex;
 
 namespace py {
+
+// Forward declarations
 class Arg;
 class Int;
 class oInt;
@@ -125,22 +127,25 @@ class _obj {
     oobj invoke(const char* fn, const char* format, ...) const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
-    bool is_undefined() const;
-    bool is_none() const;
-    bool is_ellipsis() const;
-    bool is_true() const;
-    bool is_false() const;
-    bool is_bool() const;
-    bool is_int() const;
-    bool is_float() const;
-    bool is_numeric() const;
-    bool is_string() const;
-    bool is_list() const;
-    bool is_tuple() const;
-    bool is_list_or_tuple() const;
-    bool is_dict() const;
-    bool is_buffer() const;
-    bool is_range() const;
+    //--------------------------------------------------------------------------
+    // Type tests
+    //--------------------------------------------------------------------------
+    bool is_undefined()     const noexcept;
+    bool is_none()          const noexcept;
+    bool is_ellipsis()      const noexcept;
+    bool is_true()          const noexcept;
+    bool is_false()         const noexcept;
+    bool is_bool()          const noexcept;
+    bool is_int()           const noexcept;
+    bool is_float()         const noexcept;
+    bool is_numeric()       const noexcept;
+    bool is_string()        const noexcept;
+    bool is_list()          const noexcept;
+    bool is_tuple()         const noexcept;
+    bool is_list_or_tuple() const noexcept;
+    bool is_dict()          const noexcept;
+    bool is_buffer()        const noexcept;
+    bool is_range()         const noexcept;
 
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;

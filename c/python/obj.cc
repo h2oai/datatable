@@ -106,24 +106,22 @@ oobj::~oobj() {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool _obj::is_undefined() const{ return (v == nullptr);}
-bool _obj::is_none() const     { return (v == Py_None); }
-bool _obj::is_ellipsis() const { return (v == Py_Ellipsis); }
-bool _obj::is_true() const     { return (v == Py_True); }
-bool _obj::is_false() const    { return (v == Py_False); }
-bool _obj::is_bool() const     { return is_true() || is_false(); }
-bool _obj::is_int() const      { return v && PyLong_Check(v) && !is_bool(); }
-bool _obj::is_float() const    { return v && PyFloat_Check(v); }
-bool _obj::is_numeric() const  { return v && (is_float() || is_int()); }
-bool _obj::is_string() const   { return v && PyUnicode_Check(v); }
-bool _obj::is_list() const     { return v && PyList_Check(v); }
-bool _obj::is_tuple() const    { return v && PyTuple_Check(v); }
-bool _obj::is_dict() const     { return v && PyDict_Check(v); }
-bool _obj::is_buffer() const   { return v && PyObject_CheckBuffer(v); }
-bool _obj::is_range() const    { return v && PyRange_Check(v); }
-bool _obj::is_list_or_tuple() const {
-  return v && (PyList_Check(v) || PyTuple_Check(v));
-}
+bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
+bool _obj::is_none()          const noexcept { return (v == Py_None); }
+bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
+bool _obj::is_true()          const noexcept { return (v == Py_True); }
+bool _obj::is_false()         const noexcept { return (v == Py_False); }
+bool _obj::is_bool()          const noexcept { return is_true() || is_false(); }
+bool _obj::is_numeric()       const noexcept { return is_float() || is_int(); }
+bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
+bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
+bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
+bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
+bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
+bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
+bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
+bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
+bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
 
 
 
