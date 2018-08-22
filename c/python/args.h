@@ -65,13 +65,17 @@ class NoArgs : public Args {
 //------------------------------------------------------------------------------
 // PKArgs
 //------------------------------------------------------------------------------
+class VarArgsIterator;
+class VarArgsIterable;
+class VarKwdsIterator;
+class VarKwdsIterable;
+
 
 class PKArgs : public Args {
   private:
     const size_t n_posonly_args;
     const size_t n_pos_kwd_args;
-    const size_t n_kwdonly_args;
-    const size_t n_args;
+    const size_t n_all_args;
     const bool   has_varargs;
     const bool   has_varkwds;
     const size_t : 48;
@@ -80,10 +84,22 @@ class PKArgs : public Args {
     // Runtime arguments
     std::vector<Arg> bound_args;
     std::unordered_map<PyObject*, size_t> kwd_map;
+    size_t n_varargs;
+    size_t n_varkwds;
+    PyObject* args_tuple;  // for var-args iteration
+    PyObject* kwds_dict;   // for var-kwds iteration
 
   public:
+    /**
+     * npo:   number of positional-only arguments
+     * npk:   number of positional-or-keyword arguments
+     * nko:   number of keyword-only arguments
+     * vargs: positional var-args allowed? (`*args` in python)
+     * vkwds: var-keywords allowed? (`**kwds` in python)
+     * names: list of argument names
+     */
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-           std::initializer_list<const char*> _names);
+           std::initializer_list<const char*> names);
 
     void bind(PyObject* _args, PyObject* _kws) override;
 
@@ -102,11 +118,100 @@ class PKArgs : public Args {
     //---- User API --------------------
     const Arg& operator[](size_t i) const;
 
+    size_t num_vararg_args() const noexcept;
+    size_t num_varkwd_args() const noexcept;
+    VarKwdsIterable varkwds() const noexcept;
+    VarArgsIterable varargs() const noexcept;
+
     template <typename T> T get(size_t i) const;
     template <typename T> T get(size_t i, T default_value) const;
 
   private:
     size_t _find_kwd(PyObject* kwd);
+
+    friend class VarArgsIterable;
+    friend class VarArgsIterator;
+    friend class VarKwdsIterator;
+};
+
+
+
+//------------------------------------------------------------------------------
+// Helper iterator classes
+//------------------------------------------------------------------------------
+
+class VarKwdsIterator {
+  public:
+    using value_type = std::pair<std::string, py::obj>;
+    using category_type = std::input_iterator_tag;
+
+  private:
+    const PKArgs& parent;
+    Py_ssize_t pos;
+    value_type curr_value;
+
+  public:
+    VarKwdsIterator(const PKArgs&, Py_ssize_t i0);
+    VarKwdsIterator(const VarKwdsIterator&) = default;
+    VarKwdsIterator& operator=(const VarKwdsIterator&) = default;
+
+    VarKwdsIterator& operator++();
+    value_type operator*() const;
+    bool operator==(const VarKwdsIterator&) const;
+    bool operator!=(const VarKwdsIterator&) const;
+
+  private:
+    void advance();
+};
+
+
+class VarKwdsIterable {
+  private:
+    const PKArgs& parent;
+
+  public:
+    using iterator = VarKwdsIterator;
+
+    VarKwdsIterable(const PKArgs&);
+    iterator begin() const;
+    iterator end() const;
+};
+
+
+class VarArgsIterator {
+  public:
+    using value_type = py::obj;
+    using category_type = std::input_iterator_tag;
+
+  private:
+    const PKArgs& parent;
+    size_t pos;
+
+  public:
+    VarArgsIterator(const PKArgs&, size_t i0);
+    VarArgsIterator(const VarArgsIterator&) = default;
+    VarArgsIterator& operator=(const VarArgsIterator&) = default;
+
+    VarArgsIterator& operator++();
+    value_type operator*() const;
+    bool operator==(const VarArgsIterator&) const;
+    bool operator!=(const VarArgsIterator&) const;
+
+  private:
+    void advance();
+};
+
+
+class VarArgsIterable {
+  private:
+    const PKArgs& parent;
+
+  public:
+    using iterator = VarArgsIterator;
+
+    VarArgsIterable(const PKArgs&);
+    iterator begin() const;
+    iterator end() const;
 };
 
 

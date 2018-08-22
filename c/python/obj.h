@@ -19,6 +19,7 @@ class Groupby;
 class RowIndex;
 
 namespace py {
+class Arg;
 class Int;
 class oInt;
 class Float;
@@ -124,6 +125,7 @@ class _obj {
     oobj invoke(const char* fn, const char* format, ...) const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
+    bool is_undefined() const;
     bool is_none() const;
     bool is_ellipsis() const;
     bool is_true() const;
@@ -135,8 +137,10 @@ class _obj {
     bool is_string() const;
     bool is_list() const;
     bool is_tuple() const;
+    bool is_list_or_tuple() const;
     bool is_dict() const;
     bool is_buffer() const;
+    bool is_range() const;
 
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;
@@ -166,6 +170,7 @@ class _obj {
     DataTable*  to_frame         (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
+    PyObject*   to_borrowed_ref() const { return v; }
 
   protected:
     /**
@@ -174,6 +179,8 @@ class _obj {
      * instance.
      */
     struct error_manager {
+      error_manager() = default;
+      error_manager(const error_manager&) = default;
       virtual ~error_manager() {}
       virtual Error error_not_boolean    (PyObject*) const;
       virtual Error error_not_integer    (PyObject*) const;
@@ -194,7 +201,9 @@ class _obj {
     // `oobj` objects instead.
     _obj() = default;
 
+    friend obj;
     friend oobj;
+    friend Arg;
 };
 
 
@@ -203,9 +212,8 @@ class obj : public _obj {
   public:
     obj(PyObject* p);
     obj(const obj&);
+    obj(const oobj&);
     obj& operator=(const obj&);
-
-    PyObject* to_borrowed_ref() const { return v; }
 };
 
 
@@ -226,7 +234,6 @@ class oobj : public _obj {
 
     static oobj from_new_reference(PyObject* p);
     PyObject* release();
-
 };
 
 

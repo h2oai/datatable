@@ -113,14 +113,6 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 // PyDatatable getters/setters
 //==============================================================================
 
-PyObject* get_nrows(obj* self) {
-  return PyLong_FromLongLong(self->ref->nrows);
-}
-
-PyObject* get_ncols(obj* self) {
-  return PyLong_FromLongLong(self->ref->ncols);
-}
-
 PyObject* get_isview(obj* self) {
   DataTable* dt = self->ref;
   for (int64_t i = 0; i < dt->ncols; ++i) {
@@ -1113,8 +1105,6 @@ static PyMethodDef datatable_methods[] = {
 };
 
 static PyGetSetDef datatable_getseters[] = {
-  GETTER(nrows),
-  GETTER(ncols),
   GETTER(ltypes),
   GETTER(stypes),
   GETTER(names),

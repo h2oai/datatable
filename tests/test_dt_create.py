@@ -127,10 +127,10 @@ def test_create_from_frame():
     # Now check that d1 is a true copy of d0, rather than reference
     del d1["C"]
     d1.nrows = 10
-    assert d1.nrows == d1.internal.nrows == 10
-    assert d1.ncols == d1.internal.ncols == 2
-    assert d0.nrows == d0.internal.nrows == 3
-    assert d0.ncols == d0.internal.ncols == 3
+    assert d1.nrows == 10
+    assert d1.ncols == 2
+    assert d0.nrows == 3
+    assert d0.ncols == 3
 
 
 def test_create_from_string():
