@@ -29,7 +29,7 @@ __all__ = ("Frame", )
 
 
 
-class Frame(object):
+class Frame(core.Frame):
     """
     Two-dimensional column-oriented table of data. Each column has its own name
     and type. Types may vary across columns (unlike in a Numpy array) but cannot
@@ -40,9 +40,9 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ["_dt"]
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
+        super().__init__()
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
@@ -50,7 +50,7 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._dt = None      # type: core.DataTable
+        # self._dt = None      # type: core.DataTable
         self._fill_from_source(src, names=names, stypes=stypes)
 
 
@@ -59,25 +59,10 @@ class Frame(object):
     #---------------------------------------------------------------------------
 
     @property
-    def nrows(self):
-        """Number of rows in the frame."""
-        return self._dt.nrows
-
-    @property
-    def ncols(self):
-        """Number of columns in the frame."""
-        return self._dt.ncols
-
-    @property
     def key(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
         return self._dt.names[:self._dt.nkeys]
-
-    @property
-    def shape(self):
-        """Tuple (number of rows, number of columns)."""
-        return (self._dt.nrows, self._dt.ncols)
 
     @property
     def names(self):
@@ -94,19 +79,10 @@ class Frame(object):
         """Tuple of column storage types."""
         return self._dt.stypes
 
-    @property
-    def internal(self):
-        """Access to the internal C DataTable object."""
-        return self._dt
-
 
     #---------------------------------------------------------------------------
     # Property setters
     #---------------------------------------------------------------------------
-
-    @nrows.setter
-    def nrows(self, n):
-        self.resize(n)
 
     @key.setter
     def key(self, colnames):
@@ -549,15 +525,6 @@ class Frame(object):
         cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
-
-    @typed(nrows=int)
-    def resize(self, nrows):
-        # TODO: support multiple modes of resizing:
-        #   - fill with NAs
-        #   - tile existing values
-        if nrows < 0:
-            raise TValueError("Cannot resize to %d rows" % nrows)
-        self._dt.resize_rows(nrows)
 
 
     #---------------------------------------------------------------------------
