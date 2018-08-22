@@ -526,15 +526,6 @@ class Frame(core.Frame):
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
 
-    @typed(nrows=int)
-    def resize(self, nrows):
-        # TODO: support multiple modes of resizing:
-        #   - fill with NAs
-        #   - tile existing values
-        if nrows < 0:
-            raise TValueError("Cannot resize to %d rows" % nrows)
-        self._dt.resize_rows(nrows)
-
 
     #---------------------------------------------------------------------------
     # Stats

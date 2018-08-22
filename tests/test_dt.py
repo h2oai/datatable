@@ -464,7 +464,7 @@ def test_del_rows_from_view2():
 def test_resize_rows_api():
     f0 = dt.Frame([20])
     f0.nrows = 3
-    f0.resize(5)
+    f0.nrows = 5
     assert f0.topython() == [[20, 20, 20, None, None]]
 
 

@@ -85,7 +85,7 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                 if isinstance(replacement, (int, float, str, type(None))):
                     replacement = datatable.Frame([replacement])
                     if allrows:
-                        replacement.resize(dt.nrows)
+                        replacement.nrows = dt.nrows
                 elif isinstance(replacement, datatable.Frame):
                     pass
                 elif isinstance(replacement, BaseExpr):
