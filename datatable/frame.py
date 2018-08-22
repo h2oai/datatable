@@ -29,7 +29,7 @@ __all__ = ("Frame", )
 
 
 
-class Frame(object):
+class Frame(core.Frame):
     """
     Two-dimensional column-oriented table of data. Each column has its own name
     and type. Types may vary across columns (unlike in a Numpy array) but cannot
@@ -40,9 +40,9 @@ class Frame(object):
 
     This is a primary data structure for datatable module.
     """
-    __slots__ = ["_dt"]
 
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
+        super().__init__()
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
@@ -50,7 +50,7 @@ class Frame(object):
                 src = kwargs
             else:
                 dtwarn("Unknown options %r to Frame()" % kwargs)
-        self._dt = None      # type: core.DataTable
+        # self._dt = None      # type: core.DataTable
         self._fill_from_source(src, names=names, stypes=stypes)
 
 

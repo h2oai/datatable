@@ -8,6 +8,7 @@
 #include "frame/py_frame.h"
 #include <iostream>
 #include "python/int.h"
+#include "python/tuple.h"
 
 namespace py {
 
@@ -39,6 +40,9 @@ const char* Frame::Type::classdoc() {
 void Frame::Type::init_getsetters(GetSetters& gs) {
   gs.add<&Frame::get_ncols>("ncols");
   gs.add<&Frame::get_nrows>("nrows");
+  gs.add<&Frame::get_key>("key");
+  gs.add<&Frame::get_internal>("internal");
+  gs.add<&Frame::get_internal, &Frame::set_internal>("_dt");
 }
 
 void Frame::Type::init_methods(Methods&) {
@@ -48,7 +52,10 @@ void Frame::Type::init_methods(Methods&) {
 
 
 void Frame::m__dealloc__() {
-  std::cout << "In Frame::dealloc (dt=" << dt << ")\n";
+  Py_XDECREF(core_dt);
+  // `dt` is already managed by `core_dt`.
+  // delete dt;
+  dt = nullptr;
 }
 
 void Frame::m__get_buffer__(Py_buffer* , int ) const {
@@ -56,6 +63,11 @@ void Frame::m__get_buffer__(Py_buffer* , int ) const {
 
 void Frame::m__release_buffer__(Py_buffer*) const {
 }
+
+
+//------------------------------------------------------------------------------
+// Getters / setters
+//------------------------------------------------------------------------------
 
 oobj Frame::get_ncols() const {
   return py::oInt(dt->ncols);
@@ -65,6 +77,21 @@ oobj Frame::get_nrows() const {
   return py::oInt(dt->nrows);
 }
 
+oobj Frame::get_key() const {
+  py::otuple key(dt->nkeys);
+  // Fill in the keys...
+  return key;
+}
+
+oobj Frame::get_internal() const {
+  return oobj(core_dt);
+}
+
+void Frame::set_internal(obj _dt) {
+  m__dealloc__();
+  dt = _dt.to_frame();
+  core_dt = static_cast<pydatatable::obj*>(_dt.to_pyobject_newref());
+}
 
 
 }  // namespace py

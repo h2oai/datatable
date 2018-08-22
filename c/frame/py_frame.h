@@ -9,6 +9,7 @@
 #define dt_FRAME_PYFRAME_h
 #include "python/ext_type.h"
 #include "datatable.h"
+#include "py_datatable.h"
 
 namespace py {
 
@@ -22,6 +23,8 @@ class Frame : public PyObject {
   private:
     DataTable* dt;
 
+    pydatatable::obj* core_dt;  // TODO: remove
+
   public:
     class Type : public ExtType<Frame> {
       public:
@@ -29,6 +32,7 @@ class Frame : public PyObject {
         static PKArgs args_test;
         static const char* classname();
         static const char* classdoc();
+        static bool is_subclassable() { return true; }
 
         static void init_getsetters(GetSetters& gs);
         static void init_methods(Methods& gs);
@@ -41,6 +45,9 @@ class Frame : public PyObject {
 
     oobj get_ncols() const;
     oobj get_nrows() const;
+    oobj get_key() const;
+    oobj get_internal() const;
+    void set_internal(obj _dt);
 
 };
 

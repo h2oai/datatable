@@ -132,19 +132,22 @@ void Frame::m__init__(PKArgs& args) {
   const Arg& names_arg  = args[1];
   const Arg& stypes_arg = args[2];
 
-  // bool names_defined = !names_arg.is_undefined();
-  auto names = _get_names(names_arg);
+  dt = nullptr;
+  core_dt = nullptr;
 
-  if (src.is_list_or_tuple()) {
-    dt = _make_frame_from_list(src.to_pylist());
-  }
-  else if (src.is_undefined() || src.is_none()) {
-    dt = DTMaker().to_datatable();
-  }
-  else {
-    std::cout << "Creating a frame from ";
-    src.print();
-  }
+  // bool names_defined = !names_arg.is_undefined();
+  // auto names = _get_names(names_arg);
+
+  // if (src.is_list_or_tuple()) {
+  //   dt = _make_frame_from_list(src.to_pylist());
+  // }
+  // else if (src.is_undefined() || src.is_none()) {
+  //   dt = DTMaker().to_datatable();
+  // }
+  // else {
+  //   std::cout << "Creating a frame from ";
+  //   src.print();
+  // }
 }
 
 

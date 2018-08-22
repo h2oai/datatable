@@ -170,6 +170,7 @@ class _obj {
     DataTable*  to_frame         (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
+    PyObject*   to_borrowed_ref() const { return v; }
 
   protected:
     /**
@@ -213,8 +214,6 @@ class obj : public _obj {
     obj(const obj&);
     obj(const oobj&);
     obj& operator=(const obj&);
-
-    PyObject* to_borrowed_ref() const { return v; }
 };
 
 
