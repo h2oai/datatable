@@ -549,10 +549,19 @@ def test_resize_view_array():
 
 def test_resize_bad():
     f0 = dt.Frame(range(10))
-    with pytest.raises(ValueError):
+
+    with pytest.raises(ValueError) as e:
         f0.nrows = -3
-    with pytest.raises(TypeError):
+    assert "Number of rows cannot be negative" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        f0.nrows = 10**100
+    assert "Value is too large" in str(e.value)
+
+    with pytest.raises(TypeError) as e:
         f0.nrows = (10, 2)
+    assert ("Number of rows must be an integer, not <class 'tuple'>"
+            in str(e.value))
 
 
 

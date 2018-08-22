@@ -94,9 +94,9 @@ void Frame::set_nrows(obj nr) {
     throw TypeError() << "Number of rows must be an integer, not "
         << nr.typeobj();
   }
-  int64_t new_nrows = nr.to_int64();
+  int64_t new_nrows = nr.to_int64_strict();
   if (new_nrows < 0) {
-    throw ValueError() << "Number of rows cannot be negative: " << new_nrows;
+    throw ValueError() << "Number of rows cannot be negative";
   }
   dt->resize_rows(new_nrows);
 }
