@@ -336,7 +336,7 @@ static void force_as_str(const py::olist& list, MemoryRange& offbuf,
       continue;
     }
     if (!item.is_string()) {
-      item = py::oobj(item.to_pystring_force());
+      item = item.to_pystring_force();
     }
     if (item.is_string()) {
       CString cstr = item.to_cstring();
