@@ -151,5 +151,37 @@ obj list::operator[](size_t i) const {
                     : PyTuple_GET_ITEM(v, i));
 }
 
+void list::set(int64_t i, const _obj& value) {
+  if (is_list) {
+    PyList_SET_ITEM(v, i, value.to_pyobject_newref());
+  } else {
+    PyTuple_SET_ITEM(v, i, value.to_pyobject_newref());
+  }
+}
+
+void list::set(int64_t i, oobj&& value) {
+  if (is_list) {
+    PyList_SET_ITEM(v, i, value.release());
+  } else {
+    PyTuple_SET_ITEM(v, i, value.release());
+  }
+}
+
+void list::set(size_t i, const _obj& value) {
+  set(static_cast<int64_t>(i), value);
+}
+
+void list::set(size_t i, oobj&& value) {
+  set(static_cast<int64_t>(i), std::move(value));
+}
+
+void list::set(int i, const _obj& value) {
+  set(static_cast<int64_t>(i), value);
+}
+
+void list::set(int i, oobj&& value) {
+  set(static_cast<int64_t>(i), std::move(value));
+}
+
 
 }

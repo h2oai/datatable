@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <errno.h>
 #include <string.h>
+#include "python/obj.h"
+#include "python/string.h"
 
 
 // Singleton, used to write the current "errno" into the stream
@@ -83,6 +85,23 @@ Error& Error::operator<<(double v)             { error << v; return *this; }
   Error& Error::operator<<(uint64_t v)         { error << v; return *this; }
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
+
+Error& Error::operator<<(const py::_obj& o) {
+  return *this << o.to_borrowed_ref();
+}
+
+Error& Error::operator<<(const py::ostring& o) {
+  PyObject* ptr = o.to_borrowed_ref();
+  Py_ssize_t size;
+  const char* chardata = PyUnicode_AsUTF8AndSize(ptr, &size);
+  if (chardata) {
+    error << std::string(chardata, static_cast<size_t>(size));
+  } else {
+    error << "<unknown>";
+    PyErr_Clear();
+  }
+  return *this;
+}
 
 Error& Error::operator<<(PyObject* v) {
   PyObject* repr = PyObject_Repr(v);

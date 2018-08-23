@@ -130,6 +130,13 @@ class list : public oobj {
     size_t size() const;
     obj operator[](size_t i) const;
 
+    void set(size_t i,  const _obj& value);
+    void set(int64_t i, const _obj& value);
+    void set(int i,     const _obj& value);
+    void set(size_t i,  oobj&& value);
+    void set(int64_t i, oobj&& value);
+    void set(int i,     oobj&& value);
+
     friend class Arg;
 };
 

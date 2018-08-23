@@ -123,8 +123,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
 
     // Create and fill-in the `stypes` list
     info info_stype(col->stype());
-    PyList_SET_ITEM(ltypes, s, info_stype.py_ltype());
-    PyList_SET_ITEM(stypes, s, info_stype.py_stype());
+    PyList_SET_ITEM(ltypes, s, info_stype.py_ltype().release());
+    PyList_SET_ITEM(stypes, s, info_stype.py_stype().release());
   }
 
   self->row0 = row0;
@@ -216,8 +216,8 @@ static int _init_hexview(
   if (!stypes || !ltypes) goto fail;
   info itype(SType::STR32);
   for (int64_t i = 0; i < ncols; i++) {
-    PyList_SET_ITEM(ltypes, i, itype.py_ltype());
-    PyList_SET_ITEM(stypes, i, itype.py_stype());
+    PyList_SET_ITEM(ltypes, i, itype.py_ltype().release());
+    PyList_SET_ITEM(stypes, i, itype.py_stype().release());
   }
 
   self->row0 = row0;

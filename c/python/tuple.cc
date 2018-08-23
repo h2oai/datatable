@@ -23,7 +23,13 @@ size_t otuple::size() const {
   return static_cast<size_t>(Py_SIZE(v));
 }
 
+obj otuple::get(size_t i) const {
+  // PyTuple_GET_ITEM returns a borrowed reference
+  return obj(PyTuple_GET_ITEM(v, i));
+}
+
 void otuple::set(size_t i, const _obj& value) {
+  // PyTuple_SET_ITEM "steals" a reference to the last argument
   PyTuple_SET_ITEM(v, i, value.to_pyobject_newref());
 }
 

@@ -307,6 +307,7 @@ constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::OBJ) + 1;
 
 
 //==============================================================================
+namespace py { class oobj; }
 
 class info {
   private:
@@ -318,8 +319,8 @@ class info {
     size_t elemsize() const;
     bool is_varwidth() const;
     LType ltype() const;
-    PyObject* py_stype() const;  // new ref
-    PyObject* py_ltype() const;  // new ref
+    py::oobj py_stype() const;
+    py::oobj py_ltype() const;
 };
 
 
