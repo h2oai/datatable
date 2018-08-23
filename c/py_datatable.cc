@@ -89,16 +89,16 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
+  if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
   std::string filename = py::obj(arg1).to_string();
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
   PyObject* pydt = wrap(dt);
 
-  PyyList collist(colnames.size());
+  py::list collist(colnames.size());
   for (size_t i = 0; i < colnames.size(); ++i) {
-    collist[i] = py::ostring(colnames[i]);
+    collist.set(i, py::ostring(colnames[i]));
   }
   PyObject* pylist = collist.release();
 
@@ -432,7 +432,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   PyObject *arg1, *arg2, *arg3;
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
-  PyyList cols(arg1);
+  py::list cols = py::obj(arg1).to_pylist();
   RowIndex rows_ri = py::obj(arg2).to_rowindex();
   DataTable* repl = py::obj(arg3).to_frame();
   int64_t rrows = repl->nrows;

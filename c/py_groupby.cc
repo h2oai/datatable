@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #define dt_PY_GROUPBY_cc
 #include "py_groupby.h"
+#include "python/int.h"
 #include "python/list.h"
 
 namespace pygroupby
@@ -50,9 +51,9 @@ PyObject* get_group_sizes(obj* self) {
   Groupby* grpby = self->ref;
   size_t ng = grpby->ngroups();
   const int32_t* offsets = grpby->offsets_r();
-  PyyList res(ng);
+  py::list res(ng);
   for (size_t i = 0; i < ng; ++i) {
-    res[i] = PyLong_FromLongLong(offsets[i + 1] - offsets[i]);
+    res.set(i, py::oInt(offsets[i + 1] - offsets[i]));
   }
   return res.release();
 }
@@ -61,9 +62,9 @@ PyObject* get_group_offsets(obj* self) {
   Groupby* grpby = self->ref;
   size_t ng = grpby->ngroups();
   const int32_t* offsets = grpby->offsets_r();
-  PyyList res(ng + 1);
+  py::list res(ng + 1);
   for (size_t i = 0; i <= ng; ++i) {
-    res[i] = PyLong_FromLongLong(offsets[i]);
+    res.set(i, py::oInt(offsets[i]));
   }
   return res.release();
 }

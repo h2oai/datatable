@@ -81,7 +81,7 @@ static Column* _make_column_from_listlike(py::obj src) {
     return Column::from_buffer(src.to_borrowed_ref());
   }
   else if (src.is_list()) {
-    return Column::from_pylist(src.to_pylist().to_pyylist(), 0);
+    return Column::from_pylist(src.to_pylist(), 0);
   }
   else if (src.is_range()) {
     // return Column::from_range(src.to_range());

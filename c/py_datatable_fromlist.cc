@@ -54,7 +54,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
         stype = types[i].to_int32();
         if (ISNA<int32_t>(stype)) stype = 0;
       }
-      cols[i] = Column::from_pylist(list.to_pyylist(), stype);
+      cols[i] = Column::from_pylist(list, stype);
     } else {
       throw ValueError() << "Source list is not list-of-lists";
     }
