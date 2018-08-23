@@ -169,7 +169,7 @@ oobj Frame::get_stypes() const {
       SType st = dt->columns[i]->stype();
       ostypes.set(i, info(st).py_stype());
     }
-    stypes = ostypes.release();
+    stypes = std::move(ostypes).release();
   }
   return oobj(stypes);
 }
@@ -182,7 +182,7 @@ oobj Frame::get_ltypes() const {
       SType st = dt->columns[i]->stype();
       oltypes.set(i, info(st).py_ltype());
     }
-    ltypes = oltypes.release();
+    ltypes = std::move(oltypes).release();
   }
   return oobj(ltypes);
 }

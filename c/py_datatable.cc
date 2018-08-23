@@ -100,7 +100,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
   for (size_t i = 0; i < colnames.size(); ++i) {
     collist.set(i, py::ostring(colnames[i]));
   }
-  PyObject* pylist = collist.release();
+  PyObject* pylist = std::move(collist).release();
 
   return Py_BuildValue("OO", pydt, pylist);
 }

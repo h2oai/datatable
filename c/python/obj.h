@@ -238,7 +238,12 @@ class oobj : public _obj {
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
-    PyObject* release();
+
+    // Return the underlying PyObject*, as a new ref, but invalidating this
+    // object in the process. Use as:
+    //    std::move(x).release();
+    //
+    PyObject* release() &&;
 };
 
 

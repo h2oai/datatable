@@ -494,7 +494,7 @@ PyTypeObject* _obj::typeobj() const noexcept {
 }
 
 
-PyObject* oobj::release() {
+PyObject* oobj::release() && {
   PyObject* t = v;
   v = nullptr;
   return t;

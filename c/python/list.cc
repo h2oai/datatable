@@ -84,9 +84,9 @@ void olist::set(int64_t i, const _obj& value) {
 
 void olist::set(int64_t i, oobj&& value) {
   if (is_list) {
-    PyList_SET_ITEM(v, i, value.release());
+    PyList_SET_ITEM(v, i, std::move(value).release());
   } else {
-    PyTuple_SET_ITEM(v, i, value.release());
+    PyTuple_SET_ITEM(v, i, std::move(value).release());
   }
 }
 

@@ -385,7 +385,7 @@ static bool parse_as_pyobj(const py::olist& list, MemoryRange& membuf)
     if (item.is_float() && std::isnan(item.to_double())) {
       outdata[i] = py::None().release();
     } else {
-      outdata[i] = item.release();
+      outdata[i] = std::move(item).release();
     }
   }
   return true;

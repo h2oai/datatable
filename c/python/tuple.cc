@@ -72,7 +72,7 @@ void otuple::set(int64_t i, const _obj& value) {
 }
 
 void otuple::set(int64_t i, oobj&& value) {
-  PyTuple_SET_ITEM(v, i, value.release());
+  PyTuple_SET_ITEM(v, i, std::move(value).release());
 }
 
 void otuple::set(size_t i, const _obj& value) {

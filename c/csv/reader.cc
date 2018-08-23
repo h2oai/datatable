@@ -770,7 +770,7 @@ void GenericReader::report_columns_to_python() {
 
     py::olist newTypesList =
       freader.invoke("_override_columns0", "(O)",
-                     colDescriptorList.release()).to_pylist();
+                     std::move(colDescriptorList).release()).to_pylist();
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
@@ -783,7 +783,8 @@ void GenericReader::report_columns_to_python() {
     for (size_t i = 0; i < ncols; ++i) {
       colNamesList.set(i, py::ostring(columns[i].get_name()));
     }
-    freader.invoke("_set_column_names", "(O)", colNamesList.release());
+    freader.invoke("_set_column_names", "(O)",
+                   std::move(colNamesList).release());
   }
 }
 

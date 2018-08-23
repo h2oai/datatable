@@ -184,7 +184,7 @@ PyObject* topython(pycolumn::obj* self, PyObject*) {
 
   int itype = static_cast<int>(col->stype());
   auto formatter = py_stype_formatters[itype];
-  py::olist out(static_cast<size_t>(col->nrows));
+  py::olist out(col->nrows);
 
   col->rowindex().strided_loop2(0, col->nrows, 1,
     [&](int64_t i, int64_t j) {
@@ -192,7 +192,7 @@ PyObject* topython(pycolumn::obj* self, PyObject*) {
                         : py::oobj::from_new_reference(formatter(col, j)));
     });
 
-  return out.release();
+  return std::move(out).release();
 }
 
 

@@ -100,7 +100,7 @@ void Frame::_init_names() const {
   for (size_t i = 0; i < onames.size(); ++i) {
     onames.set(i, py::ostring(dt->names[i]));
   }
-  names = onames.release();
+  names = std::move(onames).release();
 }
 
 
@@ -298,8 +298,8 @@ void Frame::_dedup_and_save_names(py::olist nameslist) {
   }
 
   // Store the pythonic tuple / dict of names
-  names  = new_names.release();
-  inames = new_inames.release();
+  names  = std::move(new_names).release();
+  inames = std::move(new_inames).release();
 
   xassert(ncols == dt->names.size());
   xassert(ncols == static_cast<size_t>(PyTuple_Size(names)));

@@ -55,7 +55,7 @@ PyObject* get_group_sizes(obj* self) {
   for (size_t i = 0; i < ng; ++i) {
     res.set(i, py::oint(offsets[i + 1] - offsets[i]));
   }
-  return res.release();
+  return std::move(res).release();
 }
 
 PyObject* get_group_offsets(obj* self) {
@@ -66,7 +66,7 @@ PyObject* get_group_offsets(obj* self) {
   for (size_t i = 0; i <= ng; ++i) {
     res.set(i, py::oint(offsets[i]));
   }
-  return res.release();
+  return std::move(res).release();
 }
 
 
