@@ -61,11 +61,6 @@ oobj::oobj(oobj&& other) {
   other.v = nullptr;
 }
 
-oobj::oobj(oFloat&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
 
 
 oobj& oobj::operator=(const oobj& other) {
@@ -253,16 +248,16 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-oFloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
+ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
-    return py::oFloat(v);
+    return py::ofloat(v);
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oFloat::_from_pyobject_no_checks(num);
+  return py::ofloat::from_new_reference(num);
 }
 
 

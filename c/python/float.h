@@ -13,38 +13,32 @@
 namespace py {
 
 
-class Float {
-  protected:
-    PyObject* obj;
-
+/**
+ * Python float object.
+ */
+class ofloat : public oobj {
   public:
-    Float();
-    Float(PyObject*);
-    Float(const Float&);
-    friend void swap(Float& first, Float& second) noexcept;
+    ofloat();
+    ofloat(double x);
+
+    ofloat(const ofloat&);
+    ofloat(ofloat&&);
+    ofloat& operator=(const ofloat&);
+    ofloat& operator=(ofloat&&);
 
     template <typename T> T value() const;
-};
 
-
-class oFloat : public Float {
-  public:
-    oFloat();
-    oFloat(double x);
-    oFloat(PyObject*);
-    oFloat(const oFloat&);
-    oFloat(oFloat&&);
-    static oFloat _from_pyobject_no_checks(PyObject* v);
-    ~oFloat();
-
-    friend oobj::oobj(oFloat&&);
+  private:
+    ofloat(PyObject*);
+    static ofloat from_new_reference(PyObject*);
+    friend class _obj;
 };
 
 
 
 // Explicit instantiation
-extern template float  Float::value() const;
-extern template double Float::value() const;
+extern template float  ofloat::value() const;
+extern template double ofloat::value() const;
 
 
 }  // namespace py

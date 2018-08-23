@@ -24,7 +24,7 @@ namespace py {
 class Arg;
 class oint;
 class Float;
-class oFloat;
+class ofloat;
 class string;
 class odict;
 class olist;
@@ -96,7 +96,7 @@ using strvec = std::vector<std::string>;
  *    exception is raised.
  *
  * to_pyfloat_force:  [noexcept]
- *    Convert into a py::oFloat instance, possibly applying pythonic `float(x)`
+ *    Convert into a py::ofloat instance, possibly applying pythonic `float(x)`
  *    function. If the function raises an exception, the value will be
  *    converted into NA.
  *
@@ -160,7 +160,7 @@ class _obj {
     py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
     double      to_double        (const error_manager& = _em0) const;
-    py::oFloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
+    py::ofloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
 
     CString     to_cstring       (const error_manager& = _em0) const;
     std::string to_string        (const error_manager& = _em0) const;
@@ -233,7 +233,6 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(const obj&);
     oobj(oobj&&);
-    oobj(oFloat&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();
