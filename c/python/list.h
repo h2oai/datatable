@@ -35,6 +35,10 @@ class olist : public oobj {
 
   public:
     olist(size_t n);
+    olist(const olist&);
+    olist(olist&&);
+    olist& operator=(const olist&);
+    olist& operator=(olist&&);
 
     operator bool() const noexcept;
     size_t size() const noexcept;

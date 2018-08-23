@@ -16,18 +16,42 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-olist::olist(PyObject* src) : oobj(src) {
-  is_list = src && PyList_Check(src);
-}
-
 olist::olist(size_t n) {
   is_list = true;
   v = PyList_New(static_cast<Py_ssize_t>(n));
   if (!v) throw PyError();
 }
 
-olist::operator bool() const noexcept {
-  return v != nullptr;
+olist::olist(const olist& other) {
+  v = other.v;
+  is_list = other.is_list;
+  Py_XINCREF(v);
+}
+
+olist::olist(olist&& other) {
+  v = other.v;
+  is_list = other.is_list;
+  other.v = nullptr;
+}
+
+olist& olist::operator=(const olist& other) {
+  Py_XINCREF(other.v);
+  Py_XDECREF(v);
+  v = other.v;
+  is_list = other.is_list;
+  return *this;
+}
+
+olist& olist::operator=(olist&& other) {
+  Py_XDECREF(v);
+  v = other.v;
+  is_list = other.is_list;
+  other.v = nullptr;
+  return *this;
+}
+
+olist::olist(PyObject* src) : oobj(src) {
+  is_list = src && PyList_Check(src);
 }
 
 
@@ -35,11 +59,6 @@ olist::operator bool() const noexcept {
 //------------------------------------------------------------------------------
 // Element accessors
 //------------------------------------------------------------------------------
-
-size_t olist::size() const noexcept {
-  return static_cast<size_t>(Py_SIZE(v));
-}
-
 
 obj olist::operator[](int64_t i) const {
   return obj(is_list? PyList_GET_ITEM(v, i)
@@ -86,6 +105,21 @@ void olist::set(int i, const _obj& value) {
 void olist::set(int i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
+
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+olist::operator bool() const noexcept {
+  return v != nullptr;
+}
+
+size_t olist::size() const noexcept {
+  return static_cast<size_t>(Py_SIZE(v));
+}
+
 
 
 }
