@@ -78,9 +78,9 @@ oobj::oobj(ostring&& other) {
 
 
 oobj& oobj::operator=(const oobj& other) {
+  Py_XINCREF(other.v);
   Py_XDECREF(v);
   v = other.v;
-  Py_XINCREF(v);
   return *this;
 }
 
