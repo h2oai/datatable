@@ -14,19 +14,19 @@ namespace py {
 class Arg;
 
 
-class list : public oobj {
+class olist : public oobj {
   private:
     bool is_list;
     size_t : 56;
 
   public:
     using oobj::oobj;
-    list();
-    list(PyObject*);
-    list(size_t n);
+    olist();
+    olist(PyObject*);
+    olist(size_t n);
 
-    operator bool() const;
-    size_t size() const;
+    operator bool() const noexcept;
+    size_t size() const noexcept;
     obj operator[](size_t i) const;
 
     void set(size_t i,  const _obj& value);

@@ -139,7 +139,7 @@ void Frame::_fill_default_names() {
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void Frame::_dedup_and_save_names(py::list nameslist) {
+void Frame::_dedup_and_save_names(py::olist nameslist) {
   auto ncols = static_cast<size_t>(dt->ncols);
   if (nameslist.size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist.size()
@@ -314,7 +314,7 @@ void Frame::_replace_names_from_map(py::odict replacements)
   if (!inames) _init_inames();
 
   py::odict names_map(inames);
-  py::list  names_list(names);
+  py::olist names_list(names);
   _clear_names();
   for (auto kv : replacements) {
     obj key = kv.first;

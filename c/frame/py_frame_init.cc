@@ -90,7 +90,7 @@ static Column* _make_column_from_listlike(py::obj src) {
 }
 
 
-static DataTable* _make_frame_from_list_of_listlike(py::list list) {
+static DataTable* _make_frame_from_list_of_listlike(py::olist list) {
   DTMaker dtm;
   size_t ncols = list.size();
   for (size_t i = 0; i < ncols; ++i) {
@@ -101,7 +101,7 @@ static DataTable* _make_frame_from_list_of_listlike(py::list list) {
 }
 
 
-static DataTable* _make_frame_from_list(py::list list) {
+static DataTable* _make_frame_from_list(py::olist list) {
   if (list.size() == 0) {
     return DTMaker().to_datatable();
   }

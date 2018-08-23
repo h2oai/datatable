@@ -27,9 +27,9 @@ class oInt;
 class Float;
 class oFloat;
 class string;
-class ostring;
-class list;
 class odict;
+class olist;
+class ostring;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -169,7 +169,7 @@ class _obj {
 
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
-    py::list    to_pylist        (const error_manager& = _em0) const;
+    py::olist   to_pylist        (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;

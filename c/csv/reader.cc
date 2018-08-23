@@ -763,12 +763,12 @@ void GenericReader::report_columns_to_python() {
   size_t ncols = columns.size();
 
   if (override_column_types) {
-    py::list colDescriptorList(ncols);
+    py::olist colDescriptorList(ncols);
     for (size_t i = 0; i < ncols; i++) {
       colDescriptorList.set(i, columns[i].py_descriptor());
     }
 
-    py::list newTypesList =
+    py::olist newTypesList =
       freader.invoke("_override_columns0", "(O)",
                      colDescriptorList.release()).to_pylist();
 
@@ -779,7 +779,7 @@ void GenericReader::report_columns_to_python() {
       }
     }
   } else {
-    py::list colNamesList(ncols);
+    py::olist colNamesList(ncols);
     for (size_t i = 0; i < ncols; ++i) {
       colNamesList.set(i, py::ostring(columns[i].get_name()));
     }

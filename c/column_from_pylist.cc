@@ -12,8 +12,8 @@
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
 #include "python/float.h" // py::Float
 #include "python/int.h"   // py::Int
-#include "python/list.h"  // py::list
-#include "python/string.h"// py::string
+#include "python/list.h"  // py::olist
+#include "python/string.h"// py::ostring
 #include "utils.h"
 #include "utils/exceptions.h"
 
@@ -39,7 +39,7 @@ extern PyObject* Py_Zero;
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(const py::list& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_bool(const py::olist& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
   membuf.resize(nrows);
@@ -71,7 +71,7 @@ static bool parse_as_bool(const py::list& list, MemoryRange& membuf, size_t& fro
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const py::list& list, MemoryRange& membuf)
+static void force_as_bool(const py::olist& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
   membuf.resize(nrows);
@@ -101,7 +101,7 @@ static void force_as_bool(const py::list& list, MemoryRange& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const py::list& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_int(const py::olist& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
   membuf.resize(nrows * sizeof(T));
@@ -142,7 +142,7 @@ static bool parse_as_int(const py::list& list, MemoryRange& membuf, size_t& from
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const py::list& list, MemoryRange& membuf)
+static void force_as_int(const py::olist& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
   membuf.resize(nrows * sizeof(T));
@@ -170,7 +170,7 @@ static void force_as_int(const py::list& list, MemoryRange& membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(const py::list& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_double(const py::olist& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
   membuf.resize(nrows * sizeof(double));
@@ -206,7 +206,7 @@ static bool parse_as_double(const py::list& list, MemoryRange& membuf, size_t& f
 
 
 template <typename T>
-static void force_as_real(const py::list& list, MemoryRange& membuf)
+static void force_as_real(const py::olist& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
   membuf.resize(nrows * sizeof(T));
@@ -238,7 +238,7 @@ static void force_as_real(const py::list& list, MemoryRange& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const py::list& list, MemoryRange& offbuf,
+static bool parse_as_str(const py::olist& list, MemoryRange& offbuf,
                          MemoryRange& strbuf)
 {
   size_t nrows = list.size();
@@ -311,7 +311,7 @@ static bool parse_as_str(const py::list& list, MemoryRange& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const py::list& list, MemoryRange& offbuf,
+static void force_as_str(const py::olist& list, MemoryRange& offbuf,
                          MemoryRange& strbuf)
 {
   size_t nrows = list.size();
@@ -374,7 +374,7 @@ static void force_as_str(const py::list& list, MemoryRange& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const py::list& list, MemoryRange& membuf)
+static bool parse_as_pyobj(const py::olist& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
   membuf.resize(nrows * sizeof(PyObject*));
@@ -431,7 +431,7 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
 
 
 
-Column* Column::from_pylist(const py::list& list, int stype0, int ltype0)
+Column* Column::from_pylist(const py::olist& list, int stype0, int ltype0)
 {
   if (stype0 && ltype0) {
     throw ValueError() << "Cannot fix both stype and ltype";

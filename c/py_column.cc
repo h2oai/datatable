@@ -46,7 +46,7 @@ PyObject* column_from_list(PyObject*, PyObject* args) {
   int stype = 0, ltype = 0;
   if (!PyArg_ParseTuple(args, "O|ii", &arg1, &stype, &ltype))
     return nullptr;
-  py::list list = py::obj(arg1).to_pylist();
+  py::olist list = py::obj(arg1).to_pylist();
 
   Column* col = Column::from_pylist(list, stype, ltype);
   return from_column(col, nullptr, 0);
@@ -184,7 +184,7 @@ PyObject* topython(pycolumn::obj* self, PyObject*) {
 
   int itype = static_cast<int>(col->stype());
   auto formatter = py_stype_formatters[itype];
-  py::list out(static_cast<size_t>(col->nrows));
+  py::olist out(static_cast<size_t>(col->nrows));
 
   col->rowindex().strided_loop2(0, col->nrows, 1,
     [&](int64_t i, int64_t j) {
