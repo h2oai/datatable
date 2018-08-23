@@ -8,7 +8,7 @@ import datatable as dt
 from datatable import Frame
 from datatable.lib import core
 
-def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensions=50, seed=0):
+def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensions=50, seed=0, progress_fn=None):
     """
     Aggregate datatable in-place.
 
@@ -26,6 +26,8 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
         Number of columns at which start using the projection method.
     seed: int
         Seed to be used for the projection method.
+    progress_fn: object
+        Python function to be used for progress reporting. 
     
     Returns
     -------
@@ -34,7 +36,10 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
     a new one-column datatable that contains exemplar_ids for each of the original rows. 
     """
 
-    dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed)
+    if progress_fn is not None and not callable(progress_fn):
+      raise TTypeError("`progress_fn` argument should be a function")
+        
+    dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed, progress_fn)
 
     names_exemplars = self.names + ("count",)
     names_members = ("exemplar_id")

@@ -23,11 +23,11 @@ struct ex {
 
 class Aggregator {
   public:
-    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, unsigned int);
+    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, unsigned int, PyObject*);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
-    static void printProgress(double);
+    static void print_progress(double, int);
 
   private:
     int32_t n_bins;
@@ -36,6 +36,7 @@ class Aggregator {
     int32_t nd_bins;
     int32_t max_dimensions;
     unsigned int seed;
+    PyObject* progress_fn;
 
     void group_1d(DataTablePtr&, DataTablePtr&);
     void group_2d(DataTablePtr&, DataTablePtr&);
@@ -47,6 +48,7 @@ class Aggregator {
     void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
+    void progress(double, int status_code=0);
     size_t calculate_map(std::vector<int64_t>&, size_t);
     void adjust_members(std::vector<int64_t>&, DataTablePtr&);
     void adjust_delta(double&, std::vector<ex>&, std::vector<int64_t>&, int64_t);

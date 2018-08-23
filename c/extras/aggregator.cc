@@ -19,15 +19,15 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   int32_t n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
   unsigned int seed;
   PyObject* arg1;
+  PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiI:aggregate", &arg1, &n_bins, &nx_bins, &ny_bins,
-                        &nd_bins, &max_dimensions, &seed)) return nullptr;
+  if (!PyArg_ParseTuple(args, "OiiiiiIO:aggregate", &arg1, &n_bins, &nx_bins, &ny_bins,
+                        &nd_bins, &max_dimensions, &seed, &progress_fn)) return nullptr;
 
   DataTable* dt_in = py::obj(arg1).to_frame();
   DataTablePtr dt_members = nullptr;
 
-
-  Aggregator agg(n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed);
+  Aggregator agg(n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed, progress_fn);
   dt_members = agg.aggregate(dt_in);
 
   return pydatatable::wrap(dt_members.release());
@@ -35,18 +35,21 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 
 
 Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in,
-                       int32_t nd_bins_in, int32_t max_dimensions_in, unsigned int seed_in) :
+                       int32_t nd_bins_in, int32_t max_dimensions_in, unsigned int seed_in,
+                       PyObject* progress_fn_in) :
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
   ny_bins(ny_bins_in),
   nd_bins(nd_bins_in),
   max_dimensions(max_dimensions_in),
-  seed(seed_in)
+  seed(seed_in),
+  progress_fn(progress_fn_in)
 {
 }
 
 
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
+  progress(0.0);
   DataTablePtr dt_members = nullptr;
   DataTablePtr dt_double = nullptr;
   Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
@@ -76,6 +79,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   }
 
   aggregate_exemplars(dt, dt_members); // modify dt in place
+  progress(1.0, 1);
   return dt_members;
 }
 
@@ -302,15 +306,21 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
 }
 
 
-void Aggregator::printProgress(double percentage)
-{
-    int val = static_cast<int> (percentage * 100);
-    int lpad = static_cast<int> (percentage * PBWIDTH);
-    int rpad = PBWIDTH - lpad;
-    printf ("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
-    fflush (stdout);
+void Aggregator::print_progress(double progress, int status_code) {
+  int val = static_cast<int> (progress * 100);
+  int lpad = static_cast<int> (progress * PBWIDTH);
+  int rpad = PBWIDTH - lpad;
+  printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
+  if (status_code) printf("\n");
+  fflush (stdout);
 }
 
+
+void Aggregator::progress(double progress, int status_code /*= 0*/) {
+  if (PyCallable_Check(progress_fn)) {
+    PyObject_CallFunction(progress_fn,"di",progress,status_code);
+  } else print_progress(progress, status_code);
+}
 
 // N-dimensional aggregation, see [1-3] for more details
 // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
@@ -345,8 +355,6 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   d_members[0] = static_cast<int32_t>(e.id);
   int64_t i_5 = dt_exemplars->nrows / 20;
 
-  printProgress(0.0);
-
   for (int32_t i = 1; i < dt_exemplars->nrows; ++i) {
     if (dt_exemplars->ncols > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
     else normalize_row(dt_exemplars, member, i);
@@ -371,12 +379,10 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
     }
 
     if (i % i_5 == 0) {
-      printProgress(static_cast<double>(i+1)/dt_exemplars->nrows);
+      progress(static_cast<double>(i+1)/dt_exemplars->nrows);
     }
   }
 
-  printProgress(1.0); 
-  printf("\n");
   adjust_members(ids, dt_members);
 
   delete[] pmatrix;
