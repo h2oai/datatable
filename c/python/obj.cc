@@ -71,10 +71,6 @@ oobj::oobj(oFloat&& other) {
   other.obj = nullptr;;
 }
 
-oobj::oobj(ostring&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
 
 
 oobj& oobj::operator=(const oobj& other) {
