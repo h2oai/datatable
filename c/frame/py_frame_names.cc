@@ -314,7 +314,7 @@ void Frame::_replace_names_from_map(py::odict replacements)
   if (!inames) _init_inames();
 
   py::odict names_map(inames);
-  py::olist names_list(names);
+  py::olist names_list = py::obj(names).to_pylist();
   _clear_names();
   for (auto kv : replacements) {
     obj key = kv.first;

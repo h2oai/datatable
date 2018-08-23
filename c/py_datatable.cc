@@ -594,7 +594,7 @@ PyObject* join(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   DataTable* jdt = py::obj(arg2).to_frame();
   RowIndex ri = py::obj(arg1).to_rowindex();
-  py::olist cols(arg3);
+  py::olist cols = py::obj(arg3).to_pylist();
 
   if (cols.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";

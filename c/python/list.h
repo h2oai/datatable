@@ -21,8 +21,6 @@ class olist : public oobj {
 
   public:
     using oobj::oobj;
-    olist();
-    olist(PyObject*);
     olist(size_t n);
 
     operator bool() const noexcept;
@@ -36,6 +34,12 @@ class olist : public oobj {
     void set(int64_t i, oobj&& value);
     void set(int i,     oobj&& value);
 
+  private:
+    // Wrap an existing PyObject* into an `olist`. This constructor is private,
+    // use `py::org(src).to_pylist()` instead.
+    olist(PyObject* src);
+
+    friend class _obj;
     friend class Arg;
 };
 

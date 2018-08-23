@@ -15,10 +15,6 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-olist::olist() {
-  v = nullptr;
-}
-
 olist::olist(PyObject* src) : oobj(src) {
   is_list = PyList_Check(src);
 }
