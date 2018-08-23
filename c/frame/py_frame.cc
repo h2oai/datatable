@@ -63,7 +63,28 @@ void Frame::Type::init_getsetters(GetSetters& gs)
     "The tuple of each column's ltypes (\"logical types\")\n");
 
   gs.add<&Frame::get_names, &Frame::set_names>("names",
-    "Tuple of column names\n");
+    "Tuple of column names.\n"
+    "\n"
+    "You can rename the Frame's columns by assigning a new list/tuple of\n"
+    "names to this property. The length of the new list of names must be\n"
+    "the same as the number of columns in the Frame.\n"
+    "\n"
+    "It is also possible to rename just a few columns by assigning a\n"
+    "dictionary ``{oldname: newname, ...}``. Any column not listed in the\n"
+    "dictionary will retain its name.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    ">>> d0 = dt.Frame([[1], [2], [3]])\n"
+    ">>> d0.names = ['A', 'B', 'C']\n"
+    ">>> d0.names\n"
+    "('A', 'B', 'C')\n"
+    ">>> d0.names = {'B': 'middle'}\n"
+    ">>> d0.names\n"
+    "('A', 'middle', 'C')\n"
+    ">>> del d0.names\n"
+    ">>> d0.names\n"
+    "('C0', 'C1', 'C2')");
 
   gs.add<&Frame::get_key>("key");
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");

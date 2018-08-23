@@ -27,7 +27,7 @@ oobj Frame::get_names() const {
 
 void Frame::set_names(obj arg)
 {
-  if (arg.is_none()) {
+  if (arg.is_undefined() || arg.is_none()) {
     _fill_default_names();
   }
   else if (arg.is_list() || arg.is_tuple()) {

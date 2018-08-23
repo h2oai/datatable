@@ -636,6 +636,15 @@ def test_rename_bad5():
             "but got <class 'int'>" == str(e.value))
 
 
+@pytest.mark.run(order=8.2)
+def test_rename_default():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    del d0.names
+    assert d0.names == ("C0", "C1", "C2")
+    d0.names = None
+    assert d0.names == ("C0", "C1", "C2")
+
+
 
 #-------------------------------------------------------------------------------
 # Test conversions into Pandas / Numpy
