@@ -40,8 +40,10 @@ class ostring : public string {
     ostring(const ostring&);
     ostring(ostring&&);
     ~ostring();
+    static ostring from_new_reference(PyObject*);
     friend oobj::oobj(ostring&&);
 
+    PyObject* to_borrowed_ref() const { return obj; }
     PyObject* release();
 };
 

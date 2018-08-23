@@ -139,7 +139,7 @@ def _rbind(self, *frames, force=False, bynames=True):
     # Perform the append operation on C level
     _dt = self.internal
     _dt.rbind(len(final_names), spec)
-    _dt._set_names(final_names)
+    self.names = final_names
     return self
 
 
@@ -222,5 +222,5 @@ def _cbind(self, *frames, force=False, inplace=True):
 
     _dt = src.internal
     _dt.cbind(datatables)
-    _dt._set_names(column_names)
+    src.names = column_names
     return src

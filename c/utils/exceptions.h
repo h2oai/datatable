@@ -20,6 +20,11 @@ extern CErrno Errno;
 
 void exception_to_python(const std::exception&);
 
+namespace py {
+  class _obj;
+  class ostring;
+}
+
 
 //------------------------------------------------------------------------------
 
@@ -49,6 +54,8 @@ public:
   Error& operator<<(double);
   Error& operator<<(SType);
   Error& operator<<(const CErrno&);
+  Error& operator<<(const py::_obj&);
+  Error& operator<<(const py::ostring&);
   Error& operator<<(PyObject*);
   Error& operator<<(PyTypeObject*);
   #ifdef __APPLE__
