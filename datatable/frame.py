@@ -621,30 +621,6 @@ class Frame(core.Frame):
         return self._dt.nmodal1()
 
 
-
-    @typed()
-    def rename(self, columns: Union[Dict[str, str], Dict[int, str], List[str],
-                                    Tuple[str, ...]]):
-        """
-        Rename columns of the datatable.
-
-        :param columns: dictionary of the {old_name: new_name} entries.
-        :returns: None
-        """
-        if isinstance(columns, (list, tuple)):
-            names = columns
-            if len(names) != self.ncols:
-                raise TValueError("Cannot rename columns to %r: expected %s"
-                                  % (names, plural(self.ncols, "name")))
-        else:
-            names = list(self.names)
-            for oldname, newname in columns.items():
-                idx = self.colindex(oldname)
-                names[idx] = newname
-        self.names = names
-
-
-
     #---------------------------------------------------------------------------
     # Converters
     #---------------------------------------------------------------------------

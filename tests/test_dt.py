@@ -569,75 +569,8 @@ def test_resize_bad():
 # ...
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=7)
-@pytest.mark.skip()
-def test_column_hexview(dt0, patched_terminal, capsys):
-    assert dt0.internal.column(0).data_pointer
-    dt.options.display.interactive_hint = False
-    dt0.internal.column(-1).hexview()
-    out, err = capsys.readouterr()
-    assert (
-        "Column 6\n"
-        "Ltype: str, Stype: str32, Mtype: data\n"
-        "Bytes: 20\n"
-        "Meta: None\n"
-        "Refcnt: 1\n"
-        "     00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F  "
-        "                \n"
-        "---  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  "
-        "----------------\n"
-        "000  FF  FF  FF  FF  02  00  00  00  03  00  00  00  08  00  00  00  "
-        "ÿÿÿÿ............\n"
-        "010  0D  00  00  00                                                  "
-        "....            \n"
-        in out)
-
-    with pytest.raises(ValueError) as e:
-        dt0.internal.column(10).hexview()
-    assert "Invalid column index" in str(e.value)
-
-    dt0[::2].internal.column(1).hexview()
-    out, err = capsys.readouterr()
-    assert ("Column 1\n"
-            "Ltype: bool, Stype: bool8, Mtype: data\n"
-            "Bytes: 4\n"
-            "Meta: None\n"
-            "Refcnt: 2\n"
-            in out)
-
-
 @pytest.mark.run(order=8)
-def test_rename():
-    d0 = dt.Frame([[1], [2], ["hello"]])
-    assert d0.names == ("C0", "C1", "C2")
-    d0.rename({0: "x", -1: "z"})
-    d0.rename({"C1": "y"})
-    assert d0.names == ("x", "y", "z")
-    assert d0.colindex("x") == 0
-    assert d0.colindex("y") == 1
-    assert d0.colindex("z") == 2
-
-
-@pytest.mark.run(order=8.1)
-def test_rename_bad():
-    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
-    with pytest.raises(TypeError):
-        d0.rename({"a", "b"})
-    with pytest.raises(ValueError) as e:
-        d0.rename({"xxx": "yyy"})
-    assert "Column `xxx` does not exist" in str(e.value)
-    with pytest.raises(ValueError) as e:
-        d0.names = ['1', '2', '3', '5']
-    assert ("The `names` list has length 4, while the Frame has only 3 columns"
-            in str(e.value))
-    with pytest.raises(ValueError) as e:
-        d0.names = ('k', )
-    assert ("The `names` list has length 1, while the Frame has 3 columns"
-            in str(e.value))
-
-
-@pytest.mark.run(order=8.2)
-def test_rename_setter():
+def test_rename_list():
     d0 = dt.Frame([[7], [2], [5]])
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
@@ -648,12 +581,60 @@ def test_rename_setter():
     assert d0.colindex("e") == 2
 
 
-@pytest.mark.run(order=9)
-def test_internal_rowindex():
-    d0 = dt.Frame(range(100))
-    d1 = d0[:20, :]
-    assert d0.internal.rowindex is None
-    assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
+@pytest.mark.run(order=8.1)
+def test_rename_dict():
+    d0 = dt.Frame([[1], [2], ["hello"]])
+    assert d0.names == ("C0", "C1", "C2")
+    d0.names = {"C0": "x", "C2": "z"}
+    d0.names = {"C1": "y"}
+    d0.internal.check()
+    assert d0.names == ("x", "y", "z")
+    assert d0.colindex("x") == 0
+    assert d0.colindex("y") == 1
+    assert d0.colindex("z") == 2
+
+
+@pytest.mark.run(order=8.11)
+def test_rename_bad1():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    with pytest.raises(TypeError):
+        d0.names = {"a", "b"}
+
+
+@pytest.mark.run(order=8.12)
+def test_rename_bad2():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    with pytest.raises(ValueError) as e:
+        d0.names = {"xxx": "yyy"}
+    assert "Cannot find column `xxx` in the Frame" == str(e.value)
+
+
+@pytest.mark.run(order=8.13)
+def test_rename_bad3():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    with pytest.raises(ValueError) as e:
+        d0.names = ['1', '2', '3', '5']
+    assert ("The `names` list has length 4, while the Frame has only 3 columns"
+            in str(e.value))
+
+
+@pytest.mark.run(order=8.14)
+def test_rename_bad4():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    with pytest.raises(ValueError) as e:
+        d0.names = ('k', )
+    assert ("The `names` list has length 1, while the Frame has 3 columns"
+            in str(e.value))
+
+
+@pytest.mark.run(order=8.15)
+def test_rename_bad5():
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
+    with pytest.raises(TypeError) as e:
+        d0.names = {"a": 17}
+    assert ("The replacement name for column `a` should be a string, "
+            "but got <class 'int'>" == str(e.value))
+
 
 
 #-------------------------------------------------------------------------------
@@ -924,6 +905,14 @@ def test_keys_simple():
 #-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
+
+@pytest.mark.run(order=9)
+def test_internal_rowindex():
+    d0 = dt.Frame(range(100))
+    d1 = d0[:20, :]
+    assert d0.internal.rowindex is None
+    assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
+
 
 @pytest.mark.run(order=33)
 def test_issue898():

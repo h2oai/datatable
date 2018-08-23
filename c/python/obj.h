@@ -29,6 +29,7 @@ class oFloat;
 class string;
 class ostring;
 class list;
+class odict;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -125,6 +126,7 @@ class _obj {
   public:
     oobj get_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
+    ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
     //--------------------------------------------------------------------------
@@ -168,6 +170,7 @@ class _obj {
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::list    to_pylist        (const error_manager& = _em0) const;
+    py::odict   to_pydict        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
@@ -196,6 +199,7 @@ class _obj {
       virtual Error error_not_frame      (PyObject*) const;
       virtual Error error_not_column     (PyObject*) const;
       virtual Error error_not_list       (PyObject*) const;
+      virtual Error error_not_dict       (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;

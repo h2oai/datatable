@@ -73,6 +73,7 @@ class Frame : public PyObject {
     void _init_inames() const;
     void _fill_default_names();
     void _dedup_and_save_names(py::list);
+    void _replace_names_from_map(py::odict);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp

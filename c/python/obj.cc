@@ -11,6 +11,7 @@
 #include "py_datatable.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
+#include "python/dict.h"
 #include "python/int.h"
 #include "python/float.h"
 #include "python/list.h"
@@ -339,6 +340,13 @@ py::list _obj::to_pylist(const error_manager& em) const {
 }
 
 
+py::odict _obj::to_pydict(const error_manager& em) const {
+  if (is_none()) return py::odict();
+  if (is_dict()) return py::odict(v);
+  throw em.error_not_dict(v);
+}
+
+
 char** _obj::to_cstringlist(const error_manager&) const {
   if (v == Py_None) {
     return nullptr;
@@ -492,6 +500,11 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 }
 
 
+ostring _obj::str() const {
+  return ostring::from_new_reference(PyObject_Str(v));
+}
+
+
 PyTypeObject* _obj::typeobj() const noexcept {
   return Py_TYPE(v);
 }
@@ -549,6 +562,10 @@ Error _obj::error_manager::error_not_column(PyObject* o) const {
 Error _obj::error_manager::error_not_list(PyObject* o) const {
   return TypeError() << "Expected a list or tuple, instead got "
       << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_dict(PyObject* o) const {
+  return TypeError() << "Expected a dict, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

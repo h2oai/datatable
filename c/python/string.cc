@@ -70,6 +70,12 @@ ostring::ostring(ostring&& other) : ostring() {
   swap(*this, other);
 }
 
+ostring ostring::from_new_reference(PyObject* ref) {
+  ostring res;
+  res.obj = ref;
+  return res;
+}
+
 ostring::~ostring() {
   Py_XDECREF(obj);
 }

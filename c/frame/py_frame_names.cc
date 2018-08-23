@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
+#include "python/dict.h"
 #include "python/int.h"
 #include "python/string.h"
 #include "python/tuple.h"
@@ -24,19 +25,19 @@ oobj Frame::get_names() const {
 }
 
 
-void Frame::set_names(obj pynames)
+void Frame::set_names(obj arg)
 {
-  _clear_names();
-  if (pynames.is_none()) {
+  if (arg.is_none()) {
     _fill_default_names();
   }
-  else if (pynames.is_list() || pynames.is_tuple()) {
-    py::list nameslist = pynames.to_pylist();
-    _dedup_and_save_names(nameslist);
+  else if (arg.is_list() || arg.is_tuple()) {
+    _dedup_and_save_names(arg.to_pylist());
+  }
+  else if (arg.is_dict() && !dt->names.empty()) {
+    _replace_names_from_map(arg.to_pydict());
   }
   else {
-    throw TypeError() << "Expected a list or a tuple of column names, got "
-        << pynames.typeobj();
+    throw TypeError() << "Expected a list of strings, got " << arg.typeobj();
   }
 }
 
@@ -86,6 +87,8 @@ void Frame::_clear_names() {
   Py_XDECREF(inames);
   names = nullptr;
   inames = nullptr;
+  dt->names.clear();
+  dt->names.reserve(static_cast<size_t>(dt->ncols));
 }
 
 
@@ -124,8 +127,7 @@ void Frame::_fill_default_names() {
   auto prefix = config::frame_names_auto_prefix;
   auto ncols  = static_cast<size_t>(dt->ncols);
 
-  dt->names.clear();
-  dt->names.reserve(ncols);
+  _clear_names();
   for (size_t i = 0; i < ncols; ++i) {
     dt->names.push_back(prefix + std::to_string(i + index0));
   }
@@ -148,8 +150,7 @@ void Frame::_dedup_and_save_names(list nameslist) {
 
   // Prepare the containers for placing the new column names there
   // TODO: use proxy classes py::otuple and py::odict
-  dt->names.clear();
-  dt->names.reserve(ncols);
+  _clear_names();
   PyObject* list = PyTuple_New(dt->ncols);
   PyObject* dict = PyDict_New();
   std::vector<std::string> duplicates;
@@ -313,7 +314,31 @@ void Frame::_dedup_and_save_names(list nameslist) {
 
 
 
+void Frame::_replace_names_from_map(py::odict replacements)
+{
+  if (!names)  _init_names();
+  if (!inames) _init_inames();
 
+  py::odict names_map(inames);
+  py::list  names_list(names);
+  _clear_names();
+  for (auto kv : replacements) {
+    obj key = kv.first;
+    obj val = kv.second;
+    obj idx = names_map.get(key);
+    if (idx.is_undefined()) {
+      throw ValueError() << "Cannot find column `" << key.str()
+        << "` in the Frame";
+    }
+    if (!val.is_string()) {
+      throw TypeError() << "The replacement name for column `" << key.str()
+        << "` should be a string, but got " << val.typeobj();
+    }
+    int64_t i = idx.to_int64_strict();
+    names_list.set(i, val);
+  }
+  _dedup_and_save_names(names_list);
+}
 
 
 } // namespace py
