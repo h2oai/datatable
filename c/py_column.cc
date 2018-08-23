@@ -65,13 +65,13 @@ PyObject* get_mtype(pycolumn::obj* self) {
 
 PyObject* get_stype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return info(stype).py_stype();
+  return info(stype).py_stype().release();
 }
 
 
 PyObject* get_ltype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return info(stype).py_ltype();
+  return info(stype).py_ltype().release();
 }
 
 

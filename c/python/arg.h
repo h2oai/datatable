@@ -51,6 +51,8 @@ class Arg : public _obj::error_manager {
     bool is_range() const;
 
     //---- Type conversions ------------
+    int32_t     to_int32_strict  () const;
+    int64_t     to_int64_strict  () const;
     py::list    to_pylist        () const;
 
 
@@ -59,6 +61,8 @@ class Arg : public _obj::error_manager {
 
     // ?
     PyObject* obj() { return pyobj.to_pyobject_newref(); }
+    PyObject* to_borrowed_ref() { return pyobj.to_borrowed_ref(); }
+    PyTypeObject* typeobj() { return pyobj.typeobj(); }
     void print() const;
 
     /**
