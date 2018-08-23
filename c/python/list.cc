@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/list.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -16,7 +17,7 @@ namespace py {
 //------------------------------------------------------------------------------
 
 olist::olist(PyObject* src) : oobj(src) {
-  is_list = PyList_Check(src);
+  is_list = src && PyList_Check(src);
 }
 
 olist::olist(size_t n) {
@@ -39,10 +40,20 @@ size_t olist::size() const noexcept {
   return static_cast<size_t>(Py_SIZE(v));
 }
 
-obj olist::operator[](size_t i) const {
+
+obj olist::operator[](int64_t i) const {
   return obj(is_list? PyList_GET_ITEM(v, i)
                     : PyTuple_GET_ITEM(v, i));
 }
+
+obj olist::operator[](size_t i) const {
+  return this->operator[](static_cast<int64_t>(i));
+}
+
+obj olist::operator[](int i) const {
+  return this->operator[](static_cast<int64_t>(i));
+}
+
 
 void olist::set(int64_t i, const _obj& value) {
   if (is_list) {

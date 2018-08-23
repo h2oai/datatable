@@ -14,18 +14,34 @@ namespace py {
 class Arg;
 
 
+/**
+ * Python list of objects.
+ *
+ * There are 2 ways of instantiating this class: either by creating a new list
+ * of `n` elements via `olist(n)`, or by casting a `py::obj` into a list using
+ * `.to_pylist()` method. The former method is used when you want to create a
+ * new list and return it to Python, the latter when you're processing a list
+ * which came from Python.
+ *
+ * In most cases when some function/method accepts a pythonic list, it should
+ * work just as well when passed a tuple instead. Because of this, `olist`
+ * objects can actually wrap both `PyList` objects and `PyTuple` objects --
+ * transparently to the user.
+ */
 class olist : public oobj {
   private:
     bool is_list;
     size_t : 56;
 
   public:
-    using oobj::oobj;
     olist(size_t n);
 
     operator bool() const noexcept;
     size_t size() const noexcept;
+
     obj operator[](size_t i) const;
+    obj operator[](int64_t i) const;
+    obj operator[](int i) const;
 
     void set(size_t i,  const _obj& value);
     void set(int64_t i, const _obj& value);
