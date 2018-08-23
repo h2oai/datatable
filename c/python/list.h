@@ -11,7 +11,6 @@
 #include "python/obj.h"
 
 namespace py {
-class Arg;
 
 
 /**
@@ -60,7 +59,6 @@ class olist : public oobj {
     olist(PyObject* src);
 
     friend class _obj;
-    friend class Arg;
 };
 
 
