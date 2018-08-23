@@ -19,10 +19,21 @@ odict::odict() {
 }
 
 
+bool odict::has(obj key) const {
+  return PyDict_GetItem(v, key.to_borrowed_ref()) != nullptr;
+}
+
 obj odict::get(obj key) const {
   // PyDict_GetItem returns a borrowed ref; or NULL if key is not present
   return obj(PyDict_GetItem(v, key.to_borrowed_ref()));
 }
+
+void odict::set(_obj key, _obj val) {
+  // PyDict_SetItem INCREFs both key and value internally
+  int r = PyDict_SetItem(v, key.to_borrowed_ref(), val.to_borrowed_ref());
+  if (r) throw PyError();
+}
+
 
 dict_iterator odict::begin() const {
   return dict_iterator(v, 0);

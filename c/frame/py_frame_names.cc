@@ -139,7 +139,7 @@ void Frame::_fill_default_names() {
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void Frame::_dedup_and_save_names(list nameslist) {
+void Frame::_dedup_and_save_names(py::list nameslist) {
   auto ncols = static_cast<size_t>(dt->ncols);
   if (nameslist.size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist.size()
@@ -149,10 +149,9 @@ void Frame::_dedup_and_save_names(list nameslist) {
   }
 
   // Prepare the containers for placing the new column names there
-  // TODO: use proxy classes py::otuple and py::odict
   _clear_names();
-  PyObject* list = PyTuple_New(dt->ncols);
-  PyObject* dict = PyDict_New();
+  py::otuple new_names(dt->ncols);
+  py::odict  new_inames;
   std::vector<std::string> duplicates;
 
   // If any name is empty or None, it will be replaced with the default name
@@ -180,10 +179,11 @@ void Frame::_dedup_and_save_names(list nameslist) {
     // Ensure there are no invalid characters in the column's name. Invalid
     // characters are considered those with ASCII codes \x00 - \x1F. If any
     // such characters found, we perform substitution s/[\x00-\x1F]+/./g.
-    PyObject* pyname;
     std::string resname;
+    bool name_mangled = false;
     for (size_t j = 0; j < namelen; ++j) {
       if (static_cast<uint8_t>(strname[j]) < 0x20) {
+        name_mangled = true;
         resname = std::string(strname, j) + ".";
         bool written_dot = true;
         for (; j < namelen; ++j) {
@@ -200,16 +200,15 @@ void Frame::_dedup_and_save_names(list nameslist) {
         }
       }
     }
-    if (resname.empty()) {
-      pyname = name.to_pyobject_newref();
+    if (!name_mangled) {
       resname = std::string(strname, namelen);
-    } else {
-      pyname = py::ostring(resname).release();
     }
+    py::oobj newname = name_mangled? oobj(ostring(resname))
+                                   : oobj(name);
     // Check for name duplicates. If the name was already seen before, we
     // replace it with a modified name (by incrementing the name's digital
     // suffix if it has one, or otherwise by adding such a suffix).
-    if (PyDict_GetItem(dict, pyname)) {
+    if (new_inames.has(newname)) {
       duplicates.push_back(resname);
       size_t j = namelen;
       for (; j > 0; --j) {
@@ -226,20 +225,17 @@ void Frame::_dedup_and_save_names(list nameslist) {
       } else {
         basename += ".";
       }
-      while (PyDict_GetItem(dict, pyname)) {
+      while (new_inames.has(newname)) {
         count++;
         resname = basename + std::to_string(count);
-        Py_DECREF(pyname);
-        pyname = py::ostring(resname).release();
+        newname = py::ostring(resname);
       }
     }
 
     // Store the name in all containers
     dt->names.push_back(resname);
-    PyTuple_SET_ITEM(list, static_cast<Py_ssize_t>(i), pyname);
-    PyObject* index = PyLong_FromSize_t(i);
-    PyDict_SetItem(dict, pyname, index);
-    Py_DECREF(index);
+    new_inames.set(newname, oobj(oInt(i)));
+    new_names.set(i, std::move(newname));
   }
 
   // If during the processing we discovered any empty names, they must be
@@ -275,11 +271,9 @@ void Frame::_dedup_and_save_names(list nameslist) {
     for (size_t i = 0; i < ncols; ++i) {
       if (!dt->names[i].empty()) continue;
       dt->names[i] = prefix + std::to_string(index0);
-      PyObject* pyname = py::ostring(dt->names[i]).release();
-      PyTuple_SET_ITEM(list, static_cast<Py_ssize_t>(i), pyname);
-      PyObject* pyindex = PyLong_FromSize_t(i);
-      PyDict_SetItem(dict, pyname, pyindex);
-      Py_DECREF(pyindex);
+      oobj newname = py::ostring(dt->names[i]);
+      new_inames.set(newname, oobj(oInt(i)));
+      new_names.set(i, std::move(newname));
       index0++;
     }
   }
@@ -304,12 +298,12 @@ void Frame::_dedup_and_save_names(list nameslist) {
   }
 
   // Store the pythonic tuple / dict of names
-  names = list;
-  inames = dict;
+  names  = new_names.release();
+  inames = new_inames.release();
 
   xassert(ncols == dt->names.size());
-  xassert(ncols == static_cast<size_t>(PyTuple_Size(list)));
-  xassert(ncols == static_cast<size_t>(PyDict_Size(dict)));
+  xassert(ncols == static_cast<size_t>(PyTuple_Size(names)));
+  xassert(ncols == static_cast<size_t>(PyDict_Size(inames)));
 }
 
 

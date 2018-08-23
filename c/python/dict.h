@@ -20,7 +20,9 @@ class odict : public oobj {
     using iterator = dict_iterator;
     odict();
 
+    bool has(obj key) const;
     obj get(obj key) const;
+    void set(_obj key, _obj val);
 
     iterator begin() const;
     iterator end() const;
