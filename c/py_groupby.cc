@@ -53,7 +53,7 @@ PyObject* get_group_sizes(obj* self) {
   const int32_t* offsets = grpby->offsets_r();
   py::olist res(ng);
   for (size_t i = 0; i < ng; ++i) {
-    res.set(i, py::oInt(offsets[i + 1] - offsets[i]));
+    res.set(i, py::oint(offsets[i + 1] - offsets[i]));
   }
   return res.release();
 }
@@ -64,7 +64,7 @@ PyObject* get_group_offsets(obj* self) {
   const int32_t* offsets = grpby->offsets_r();
   py::olist res(ng + 1);
   for (size_t i = 0; i <= ng; ++i) {
-    res.set(i, py::oInt(offsets[i]));
+    res.set(i, py::oint(offsets[i]));
   }
   return res.release();
 }

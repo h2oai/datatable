@@ -61,11 +61,6 @@ oobj::oobj(oobj&& other) {
   other.v = nullptr;
 }
 
-oobj::oobj(oInt&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
 oobj::oobj(oFloat&& other) {
   v = other.obj;
   other.obj = nullptr;;
@@ -220,24 +215,22 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
-py::Int _obj::to_pyint(const error_manager& em) const {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::Int(v);
-  }
+py::oint _obj::to_pyint(const error_manager& em) const {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   throw em.error_not_integer(v);
 }
 
 
-py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::oInt(v);
-  }
+py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oInt::_from_pyobject_no_checks(num);
+  return py::oint::from_new_reference(num);
 }
 
 

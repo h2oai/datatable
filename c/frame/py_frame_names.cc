@@ -65,7 +65,7 @@ oobj Frame::colindex(PKArgs& args)
       colidx += dt->ncols;
     }
     if (colidx >= 0 && colidx < dt->ncols) {
-      return py::oInt(colidx);
+      return py::oint(colidx);
     }
     throw ValueError() << "Column index `" << colidx << "` is invalid for a "
         "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
@@ -234,7 +234,7 @@ void Frame::_dedup_and_save_names(py::olist nameslist) {
 
     // Store the name in all containers
     dt->names.push_back(resname);
-    new_inames.set(newname, oobj(oInt(i)));
+    new_inames.set(newname, oint(i));
     new_names.set(i, std::move(newname));
   }
 
@@ -272,7 +272,7 @@ void Frame::_dedup_and_save_names(py::olist nameslist) {
       if (!dt->names[i].empty()) continue;
       dt->names[i] = prefix + std::to_string(index0);
       oobj newname = py::ostring(dt->names[i]);
-      new_inames.set(newname, oobj(oInt(i)));
+      new_inames.set(newname, oint(i));
       new_names.set(i, std::move(newname));
       index0++;
     }

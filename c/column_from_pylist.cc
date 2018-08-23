@@ -11,7 +11,7 @@
 #include <type_traits>    // std::is_same
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
 #include "python/float.h" // py::Float
-#include "python/int.h"   // py::Int
+#include "python/int.h"   // py::oint
 #include "python/list.h"  // py::olist
 #include "python/string.h"// py::ostring
 #include "utils.h"
@@ -120,7 +120,7 @@ static bool parse_as_int(const py::olist& list, MemoryRange& membuf, size_t& fro
         continue;
       }
       if (item.is_int()) {
-        py::Int litem = item.to_pyint();
+        py::oint litem = item.to_pyint();
         outdata[i] = litem.value<T>(&overflow);
         if (!overflow) continue;
       }
@@ -154,7 +154,7 @@ static void force_as_int(const py::olist& list, MemoryRange& membuf)
       outdata[i] = GETNA<T>();
       continue;
     }
-    py::Int litem = item.to_pyint_force();
+    py::oint litem = item.to_pyint_force();
     outdata[i] = litem.masked_value<T>();
   }
 }
@@ -188,7 +188,7 @@ static bool parse_as_double(const py::olist& list, MemoryRange& membuf, size_t& 
         continue;
       }
       if (item.is_int()) {
-        py::Int litem = item.to_pyint();
+        py::oint litem = item.to_pyint();
         outdata[i] = litem.value<double>(&overflow);
         continue;
       }
@@ -221,7 +221,7 @@ static void force_as_real(const py::olist& list, MemoryRange& membuf)
       continue;
     }
     if (item.is_int()) {
-      py::Int litem = item.to_pyint();
+      py::oint litem = item.to_pyint();
       outdata[i] = litem.value<T>(&overflow);
       continue;
     }

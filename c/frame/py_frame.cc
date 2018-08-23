@@ -133,12 +133,12 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 //------------------------------------------------------------------------------
 
 oobj Frame::get_ncols() const {
-  return py::oInt(dt->ncols);
+  return py::oint(dt->ncols);
 }
 
 
 oobj Frame::get_nrows() const {
-  return py::oInt(dt->nrows);
+  return py::oint(dt->nrows);
 }
 
 void Frame::set_nrows(obj nr) {

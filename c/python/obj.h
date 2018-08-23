@@ -22,8 +22,7 @@ namespace py {
 
 // Forward declarations
 class Arg;
-class Int;
-class oInt;
+class oint;
 class Float;
 class oFloat;
 class string;
@@ -157,8 +156,8 @@ class _obj {
     int64_t     to_int64         (const error_manager& = _em0) const;
     int32_t     to_int32_strict  (const error_manager& = _em0) const;
     int64_t     to_int64_strict  (const error_manager& = _em0) const;
-    py::Int     to_pyint         (const error_manager& = _em0) const;
-    py::oInt    to_pyint_force   (const error_manager& = _em0) const noexcept;
+    py::oint    to_pyint         (const error_manager& = _em0) const;
+    py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
     double      to_double        (const error_manager& = _em0) const;
     py::oFloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
@@ -234,7 +233,6 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(const obj&);
     oobj(oobj&&);
-    oobj(oInt&&);
     oobj(oFloat&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
