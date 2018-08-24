@@ -54,6 +54,7 @@ class Arg : public _obj::error_manager {
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
     py::olist   to_pylist        () const;
+    std::string to_string        () const;
 
 
     //---- Error messages --------------

@@ -74,6 +74,8 @@ class Frame : public PyObject {
     void _fill_default_names();
     void _dedup_and_save_names(py::olist);
     void _replace_names_from_map(py::odict);
+    static int _dlevenshtein(const std::string&, const std::string&, int* tmp);
+    Error _name_not_found_error(const std::string& name);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp

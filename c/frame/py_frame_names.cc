@@ -55,9 +55,7 @@ oobj Frame::colindex(PKArgs& args)
     if (index) {
       return oobj(index);
     }
-    throw ValueError()
-        << "Column `" << PyUnicode_AsUTF8(colname) << "` does not exist in "
-           "Frame";  // TODO: add frame repr here
+    throw _name_not_found_error(col.to_string());
   }
   if (col.is_int()) {
     int64_t colidx = col.to_int64_strict();
@@ -327,6 +325,97 @@ void Frame::_replace_names_from_map(py::odict replacements)
     names_list.set(i, val);
   }
   _dedup_and_save_names(names_list);
+}
+
+
+/**
+ * Compute Levenshtein distance between two strings `a` and `b`, as described in
+ * https://en.wikipedia.org/wiki/Levenshtein_distance
+ *
+ * Use iterative algorithm, single-row version. The temporary storage required
+ * for the calculations is passed in array `v`, which must be allocated for at
+ * least `min(a.size(), b.size()) + 1` elements.
+ */
+int Frame::_dlevenshtein(const std::string& a, const std::string& b, int* v) {
+  const char* aa = a.data();
+  const char* bb = b.data();
+  int n = static_cast<int>(a.size());
+  int m = static_cast<int>(b.size());
+  if (n > m) {
+    std::swap(aa, bb);
+    std::swap(m, n);
+  }
+  // Remove common prefix from the strings
+  while (n && *aa == *bb) {
+    n--; m--;
+    aa++; bb++;
+  }
+  // Remove common suffix from the strings
+  while (n && aa[n - 1] == bb[m - 1]) {
+    n--; m--;
+  }
+  if (n == 0) return m;
+  xassert(0 < n && n <= m);
+  // Compute the Levenshtein distance
+  aa--;  // Shift pointers, so that we can use 1-based indexing below
+  bb--;
+  for (int j = 1; j <= n; ++j) v[j] = j;
+  for (int i = 1; i <= m; ++i) {
+    int w = i - 1;
+    v[0] = i;
+    for (int j = 1; j <= n; ++j) {
+      int del_cost = v[j] + 1;
+      int ins_cost = v[j - 1] + 1;
+      int sub_cost = w + (bb[i] != aa[j]);
+      w = v[j];
+      v[j] = std::min(del_cost, std::min(ins_cost, sub_cost));
+    }
+  }
+  return v[n];
+}
+
+
+Error Frame::_name_not_found_error(const std::string& name) {
+  auto tmp = std::unique_ptr<int[]>(new int[name.size() + 1]);
+  int maxdist = name.size() <= 3? 1 :
+                name.size() <= 6? 2 :
+                name.size() <= 9? 3 : 4;
+  struct scored_column {
+    size_t index;
+    int score;
+    int : 32;
+  };
+  auto col0 = scored_column { 0, 99 };
+  auto col1 = scored_column { 0, 99 };
+  auto col2 = scored_column { 0, 99 };
+  for (size_t i = 0; i < dt->names.size(); ++i) {
+    int dist = _dlevenshtein(name, dt->names[size_t(i)], tmp.get());
+    if (dist > maxdist) continue;
+    auto curr = scored_column { i, dist };
+    if (curr.score < col0.score) {
+      col2 = col1; col1 = col0; col0 = curr;
+    } else if (curr.score < col1.score) {
+      col2 = col1; col1 = curr;
+    } else if (curr.score < col2.score) {
+      col2 = curr;
+      if (curr.score == 1) break;
+    }
+  }
+
+  auto err = ValueError();
+  err << "Column `" << name << "` does not exist in the Frame";
+  if (col0.score < 99) {
+    err << "; did you mean `" << dt->names[col0.index] << "`";
+    if (col1.score < 99) {
+      err << (col2.score < 99? ", " : " or ");
+      err << "`" << dt->names[col1.index] << "`";
+      if (col2.score < 99) {
+        err << " or `" << dt->names[col2.index] << "`";
+      }
+    }
+    err << "?";
+  }
+  return err;
 }
 
 
