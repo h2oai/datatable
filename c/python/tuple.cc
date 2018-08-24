@@ -5,9 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "python/list.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "python/tuple.h"
 
 namespace py {
 
@@ -16,42 +14,36 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-olist::olist(size_t n) {
-  is_list = true;
-  v = PyList_New(static_cast<Py_ssize_t>(n));
-  if (!v) throw PyError();
+otuple::otuple(int n) : otuple(static_cast<int64_t>(n)) {}
+
+otuple::otuple(size_t n) : otuple(static_cast<int64_t>(n)) {}
+
+otuple::otuple(int64_t n) {
+  v = PyTuple_New(n);
 }
 
-olist::olist(const olist& other) {
+otuple::otuple(const otuple& other) {
   v = other.v;
-  is_list = other.is_list;
   Py_XINCREF(v);
 }
 
-olist::olist(olist&& other) {
+otuple::otuple(otuple&& other) {
   v = other.v;
-  is_list = other.is_list;
   other.v = nullptr;
 }
 
-olist& olist::operator=(const olist& other) {
+otuple& otuple::operator=(const otuple& other) {
   Py_XINCREF(other.v);
   Py_XDECREF(v);
   v = other.v;
-  is_list = other.is_list;
   return *this;
 }
 
-olist& olist::operator=(olist&& other) {
+otuple& otuple::operator=(otuple&& other) {
   Py_XDECREF(v);
   v = other.v;
-  is_list = other.is_list;
   other.v = nullptr;
   return *this;
-}
-
-olist::olist(PyObject* src) : oobj(src) {
-  is_list = src && PyList_Check(src);
 }
 
 
@@ -60,49 +52,42 @@ olist::olist(PyObject* src) : oobj(src) {
 // Element accessors
 //------------------------------------------------------------------------------
 
-obj olist::operator[](int64_t i) const {
-  return obj(is_list? PyList_GET_ITEM(v, i)
-                    : PyTuple_GET_ITEM(v, i));
+obj otuple::operator[](int64_t i) const {
+  // PyTuple_GET_ITEM returns a borrowed reference
+  return obj(PyTuple_GET_ITEM(v, i));
 }
 
-obj olist::operator[](size_t i) const {
+obj otuple::operator[](size_t i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
-obj olist::operator[](int i) const {
+obj otuple::operator[](int i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
 
-void olist::set(int64_t i, const _obj& value) {
-  if (is_list) {
-    PyList_SET_ITEM(v, i, value.to_pyobject_newref());
-  } else {
-    PyTuple_SET_ITEM(v, i, value.to_pyobject_newref());
-  }
+void otuple::set(int64_t i, const _obj& value) {
+  // PyTuple_SET_ITEM "steals" a reference to the last argument
+  PyTuple_SET_ITEM(v, i, value.to_pyobject_newref());
 }
 
-void olist::set(int64_t i, oobj&& value) {
-  if (is_list) {
-    PyList_SET_ITEM(v, i, std::move(value).release());
-  } else {
-    PyTuple_SET_ITEM(v, i, std::move(value).release());
-  }
+void otuple::set(int64_t i, oobj&& value) {
+  PyTuple_SET_ITEM(v, i, std::move(value).release());
 }
 
-void olist::set(size_t i, const _obj& value) {
+void otuple::set(size_t i, const _obj& value) {
   set(static_cast<int64_t>(i), value);
 }
 
-void olist::set(size_t i, oobj&& value) {
+void otuple::set(size_t i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
 
-void olist::set(int i, const _obj& value) {
+void otuple::set(int i, const _obj& value) {
   set(static_cast<int64_t>(i), value);
 }
 
-void olist::set(int i, oobj&& value) {
+void otuple::set(int i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
 
@@ -112,14 +97,9 @@ void olist::set(int i, oobj&& value) {
 // Misc
 //------------------------------------------------------------------------------
 
-olist::operator bool() const noexcept {
-  return v != nullptr;
-}
-
-size_t olist::size() const noexcept {
+size_t otuple::size() const noexcept {
   return static_cast<size_t>(Py_SIZE(v));
 }
 
 
-
-}
+}  // namespace py

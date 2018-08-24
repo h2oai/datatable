@@ -225,7 +225,7 @@ namespace _impl {
   PyObject* _safe_repr(PyObject* self) {
     try {
       oobj res = static_cast<T*>(self)->m__repr__();
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -269,7 +269,7 @@ namespace _impl {
     try {
       T* t = static_cast<T*>(self);
       oobj res = (t->*F)();
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -294,7 +294,7 @@ namespace _impl {
       T* tself = static_cast<T*>(self);
       ARGS.bind(args, kwds);
       oobj res = (tself->*F)(ARGS);
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -458,11 +458,11 @@ void ExtType<T>::init(PyObject* module) {
 //---- GetSetters ----
 
 template <class T>
-template <oobj (T::*f)() const>
+template <oobj (T::*gg)() const>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),
-    &_impl::_safe_getter<T, f>,
+    &_impl::_safe_getter<T, gg>,
     nullptr,
     const_cast<char*>(doc),
     nullptr  // closure
@@ -470,12 +470,12 @@ void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <oobj (T::*getter)() const, void (T::*setter)(obj)>
+template <oobj (T::*gg)() const, void (T::*ss)(obj)>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),
-    &_impl::_safe_getter<T, getter>,
-    &_impl::_safe_setter<T, setter>,
+    &_impl::_safe_getter<T, gg>,
+    &_impl::_safe_setter<T, ss>,
     const_cast<char*>(doc),
     nullptr  // closure
   });

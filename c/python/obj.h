@@ -19,13 +19,16 @@ class Groupby;
 class RowIndex;
 
 namespace py {
-class Int;
-class oInt;
+
+// Forward declarations
+class Arg;
+class oint;
 class Float;
-class oFloat;
+class ofloat;
 class string;
+class odict;
+class olist;
 class ostring;
-class list;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -93,7 +96,7 @@ using strvec = std::vector<std::string>;
  *    exception is raised.
  *
  * to_pyfloat_force:  [noexcept]
- *    Convert into a py::oFloat instance, possibly applying pythonic `float(x)`
+ *    Convert into a py::ofloat instance, possibly applying pythonic `float(x)`
  *    function. If the function raises an exception, the value will be
  *    converted into NA.
  *
@@ -122,20 +125,28 @@ class _obj {
   public:
     oobj get_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
+    ostring str() const;
+    PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
-    bool is_none() const;
-    bool is_ellipsis() const;
-    bool is_true() const;
-    bool is_false() const;
-    bool is_bool() const;
-    bool is_int() const;
-    bool is_float() const;
-    bool is_numeric() const;
-    bool is_string() const;
-    bool is_list() const;
-    bool is_tuple() const;
-    bool is_dict() const;
-    bool is_buffer() const;
+    //--------------------------------------------------------------------------
+    // Type tests
+    //--------------------------------------------------------------------------
+    bool is_undefined()     const noexcept;
+    bool is_none()          const noexcept;
+    bool is_ellipsis()      const noexcept;
+    bool is_true()          const noexcept;
+    bool is_false()         const noexcept;
+    bool is_bool()          const noexcept;
+    bool is_int()           const noexcept;
+    bool is_float()         const noexcept;
+    bool is_numeric()       const noexcept;
+    bool is_string()        const noexcept;
+    bool is_list()          const noexcept;
+    bool is_tuple()         const noexcept;
+    bool is_list_or_tuple() const noexcept;
+    bool is_dict()          const noexcept;
+    bool is_buffer()        const noexcept;
+    bool is_range()         const noexcept;
 
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;
@@ -145,11 +156,11 @@ class _obj {
     int64_t     to_int64         (const error_manager& = _em0) const;
     int32_t     to_int32_strict  (const error_manager& = _em0) const;
     int64_t     to_int64_strict  (const error_manager& = _em0) const;
-    py::Int     to_pyint         (const error_manager& = _em0) const;
-    py::oInt    to_pyint_force   (const error_manager& = _em0) const noexcept;
+    py::oint    to_pyint         (const error_manager& = _em0) const;
+    py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
     double      to_double        (const error_manager& = _em0) const;
-    py::oFloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
+    py::ofloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
 
     CString     to_cstring       (const error_manager& = _em0) const;
     std::string to_string        (const error_manager& = _em0) const;
@@ -157,7 +168,8 @@ class _obj {
 
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
-    py::list    to_pylist        (const error_manager& = _em0) const;
+    py::olist   to_pylist        (const error_manager& = _em0) const;
+    py::odict   to_pydict        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
@@ -165,6 +177,7 @@ class _obj {
     DataTable*  to_frame         (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
+    PyObject*   to_borrowed_ref() const { return v; }
 
   protected:
     /**
@@ -173,6 +186,8 @@ class _obj {
      * instance.
      */
     struct error_manager {
+      error_manager() = default;
+      error_manager(const error_manager&) = default;
       virtual ~error_manager() {}
       virtual Error error_not_boolean    (PyObject*) const;
       virtual Error error_not_integer    (PyObject*) const;
@@ -183,6 +198,7 @@ class _obj {
       virtual Error error_not_frame      (PyObject*) const;
       virtual Error error_not_column     (PyObject*) const;
       virtual Error error_not_list       (PyObject*) const;
+      virtual Error error_not_dict       (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
@@ -193,7 +209,9 @@ class _obj {
     // `oobj` objects instead.
     _obj() = default;
 
+    friend obj;
     friend oobj;
+    friend Arg;
 };
 
 
@@ -202,9 +220,8 @@ class obj : public _obj {
   public:
     obj(PyObject* p);
     obj(const obj&);
+    obj(const oobj&);
     obj& operator=(const obj&);
-
-    PyObject* to_borrowed_ref() const { return v; }
 };
 
 
@@ -216,16 +233,17 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(const obj&);
     oobj(oobj&&);
-    oobj(oInt&&);
-    oobj(oFloat&&);
-    oobj(ostring&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
-    PyObject* release();
 
+    // Return the underlying PyObject*, as a new ref, but invalidating this
+    // object in the process. Use as:
+    //    std::move(x).release();
+    //
+    PyObject* release() &&;
 };
 
 

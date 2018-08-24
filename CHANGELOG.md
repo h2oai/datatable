@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - A Frame can now be naturally-joined with a keyed Frame.
 - Columns can now be updated within join expressions.
 
+#### Changed
+- `names` argument in `Frame()` constructor can no longer be a string --
+  use a list or tuple of strings instead.
+- `Frame.resize()` was removed -- same functionality is available via
+  assigning to `Frame.nrows`.
+- `Frame.rename()` was removed -- .name setter can be used instead.
+
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
 - bug with applying a cast expression to a view column.

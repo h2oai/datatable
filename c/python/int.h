@@ -32,66 +32,55 @@ namespace py {
  *   truncate it using `static_cast<T>`.
  *
  */
-class Int {  // capitalized, because lowercase `int` is a reserved word
-  protected:
-    PyObject* obj;
-
+class oint : public oobj {
   public:
-    Int();
-    Int(PyObject*);
-    Int(const Int&);
-    friend void swap(Int& first, Int& second) noexcept;
+    oint();
+    oint(int32_t n);
+    oint(int64_t n);
+    oint(size_t n);
+    oint(double x);
+
+    oint(const oint&);
+    oint(oint&&);
+    oint& operator=(const oint&);
+    oint& operator=(oint&&);
 
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
+
+  private:
+    oint(PyObject*);
+    static oint from_new_reference(PyObject*);
+    friend class _obj;
 };
 
-
-class oInt : public Int {
-  public:
-    oInt();
-    oInt(int32_t n);
-    oInt(int64_t n);
-    oInt(size_t n);
-    oInt(double x);
-    oInt(PyObject*);
-    oInt(const oInt&);
-    oInt(oInt&&);
-    oInt(oobj&&);
-    ~oInt();
-
-    static oInt _from_pyobject_no_checks(PyObject* v);
-    friend oobj::oobj(oInt&&);
-
-    PyObject* release();
-};
 
 
 // Explicit specializations
-template<> float     Int::value<float>(int*) const;
-template<> double    Int::value<double>(int*) const;
-template<> long      Int::value<long>(int*) const;
-template<> long long Int::value<long long>(int*) const;
-template<> long long Int::masked_value<long long>() const;
+template<> float     oint::value<float>(int*) const;
+template<> double    oint::value<double>(int*) const;
+template<> long      oint::value<long>(int*) const;
+template<> long long oint::value<long long>(int*) const;
+template<> long long oint::masked_value<long long>() const;
 
 // Forward-declare explicit instantiations
-extern template int8_t  Int::value() const;
-extern template int16_t Int::value() const;
-extern template int32_t Int::value() const;
-extern template int64_t Int::value() const;
-extern template float   Int::value() const;
-extern template double  Int::value() const;
+extern template int8_t  oint::value() const;
+extern template int16_t oint::value() const;
+extern template int32_t oint::value() const;
+extern template int64_t oint::value() const;
+extern template float   oint::value() const;
+extern template double  oint::value() const;
 
-extern template int8_t  Int::value(int*) const;
-extern template int16_t Int::value(int*) const;
-extern template int32_t Int::value(int*) const;
-extern template int64_t Int::value(int*) const;
+extern template int8_t  oint::value(int*) const;
+extern template int16_t oint::value(int*) const;
+extern template int32_t oint::value(int*) const;
+extern template int64_t oint::value(int*) const;
 
-extern template int8_t  Int::masked_value() const;
-extern template int16_t Int::masked_value() const;
-extern template int32_t Int::masked_value() const;
-extern template int64_t Int::masked_value() const;
+extern template int8_t  oint::masked_value() const;
+extern template int16_t oint::masked_value() const;
+extern template int32_t oint::masked_value() const;
+extern template int64_t oint::masked_value() const;
 
 
 }  // namespace py

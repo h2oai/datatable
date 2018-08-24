@@ -10,6 +10,7 @@
 #include <string>     // std::string
 #include <vector>     // std::vector
 #include <Python.h>
+#include "python/obj.h"
 #include "python/list.h"
 
 namespace py {
@@ -22,15 +23,17 @@ class PKArgs;
  * a value for this argument in the function/method call. This state can be
  * checked with the `is_undefined()` method.
  */
-class Arg {
+class Arg : public _obj::error_manager {
   private:
     size_t pos;
     PKArgs* parent;
-    PyObject* pyobj;
+    py::obj pyobj;
     mutable std::string cached_name;
 
   public:
     Arg();
+    Arg(const Arg&) = default;
+    virtual ~Arg();
     void init(size_t i, PKArgs* args);
     void set(PyObject* value);
 
@@ -42,11 +45,24 @@ class Arg {
     bool is_float() const;
     bool is_list() const;
     bool is_tuple() const;
+    bool is_list_or_tuple() const;
     bool is_dict() const;
     bool is_string() const;
+    bool is_range() const;
+
+    //---- Type conversions ------------
+    int32_t     to_int32_strict  () const;
+    int64_t     to_int64_strict  () const;
+    py::olist   to_pylist        () const;
+
+
+    //---- Error messages --------------
+    virtual Error error_not_list       (PyObject*) const;
 
     // ?
-    PyObject* obj() { return pyobj; }
+    PyObject* obj() { return pyobj.to_pyobject_newref(); }
+    PyObject* to_borrowed_ref() { return pyobj.to_borrowed_ref(); }
+    PyTypeObject* typeobj() { return pyobj.typeobj(); }
     void print() const;
 
     /**
@@ -55,14 +71,14 @@ class Arg {
      * too large.
      * This method must not be called if the argument is undefined.
      */
-    operator int32_t() const;
-    operator int64_t() const;
+    // operator int32_t() const;
+    // operator int64_t() const;
 
     /**
      * Convert argument to different list objects.
      */
-    operator list() const;
-    std::vector<std::string> to_list_of_strs() const;
+    // operator list() const;
+    // std::vector<std::string> to_list_of_strs() const;
 
     const std::string& name() const;
 

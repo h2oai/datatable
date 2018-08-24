@@ -11,6 +11,7 @@
 #include "py_datatable.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
+#include "python/dict.h"
 #include "python/int.h"
 #include "python/float.h"
 #include "python/list.h"
@@ -33,6 +34,10 @@ obj::obj(const obj& other) {
   v = other.v;
 }
 
+obj::obj(const oobj& other) {
+  v = other.v;
+}
+
 obj& obj::operator=(const obj& other) {
   v = other.v;
   return *this;
@@ -45,7 +50,7 @@ oobj::oobj() {
 
 oobj::oobj(PyObject* p) {
   v = p;
-  Py_INCREF(p);
+  Py_XINCREF(p);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
@@ -56,26 +61,12 @@ oobj::oobj(oobj&& other) {
   other.v = nullptr;
 }
 
-oobj::oobj(oInt&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
-oobj::oobj(oFloat&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
-oobj::oobj(ostring&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
 
 
 oobj& oobj::operator=(const oobj& other) {
+  Py_XINCREF(other.v);
   Py_XDECREF(v);
   v = other.v;
-  Py_XINCREF(v);
   return *this;
 }
 
@@ -102,19 +93,22 @@ oobj::~oobj() {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool _obj::is_none() const     { return (v == Py_None); }
-bool _obj::is_ellipsis() const { return (v == Py_Ellipsis); }
-bool _obj::is_true() const     { return (v == Py_True); }
-bool _obj::is_false() const    { return (v == Py_False); }
-bool _obj::is_bool() const     { return is_true() || is_false(); }
-bool _obj::is_int() const      { return PyLong_Check(v) && !is_bool(); }
-bool _obj::is_float() const    { return PyFloat_Check(v); }
-bool _obj::is_numeric() const  { return is_float() || is_int(); }
-bool _obj::is_string() const   { return PyUnicode_Check(v); }
-bool _obj::is_list() const     { return PyList_Check(v); }
-bool _obj::is_tuple() const    { return PyTuple_Check(v); }
-bool _obj::is_dict() const     { return PyDict_Check(v); }
-bool _obj::is_buffer() const   { return PyObject_CheckBuffer(v); }
+bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
+bool _obj::is_none()          const noexcept { return (v == Py_None); }
+bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
+bool _obj::is_true()          const noexcept { return (v == Py_True); }
+bool _obj::is_false()         const noexcept { return (v == Py_False); }
+bool _obj::is_bool()          const noexcept { return is_true() || is_false(); }
+bool _obj::is_numeric()       const noexcept { return is_float() || is_int(); }
+bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
+bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
+bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
+bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
+bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
+bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
+bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
+bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
+bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
 
 
 
@@ -216,24 +210,22 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
-py::Int _obj::to_pyint(const error_manager& em) const {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::Int(v);
-  }
+py::oint _obj::to_pyint(const error_manager& em) const {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   throw em.error_not_integer(v);
 }
 
 
-py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::oInt(v);
-  }
+py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oInt::_from_pyobject_no_checks(num);
+  return py::oint::from_new_reference(num);
 }
 
 
@@ -256,16 +248,16 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-oFloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
+ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
-    return py::oFloat(v);
+    return py::ofloat(v);
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oFloat::_from_pyobject_no_checks(num);
+  return py::ofloat::from_new_reference(num);
 }
 
 
@@ -323,12 +315,19 @@ py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
 // List conversions
 //------------------------------------------------------------------------------
 
-py::list _obj::to_pylist(const error_manager& em) const {
-  if (is_none()) return py::list();
+py::olist _obj::to_pylist(const error_manager& em) const {
+  if (is_none()) return py::olist(nullptr);
   if (is_list() || is_tuple()) {
-    return py::list(v);
+    return py::olist(v);
   }
   throw em.error_not_list(v);
+}
+
+
+py::odict _obj::to_pydict(const error_manager& em) const {
+  if (is_none()) return py::odict();
+  if (is_dict()) return py::odict(v);
+  throw em.error_not_dict(v);
 }
 
 
@@ -337,16 +336,15 @@ char** _obj::to_cstringlist(const error_manager&) const {
     return nullptr;
   }
   if (PyList_Check(v) || PyTuple_Check(v)) {
+    bool islist = PyList_Check(v);
     Py_ssize_t count = Py_SIZE(v);
-    PyObject** items = PyList_Check(v)
-        ? reinterpret_cast<PyListObject*>(v)->ob_item
-        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
     char** res = nullptr;
     try {
       res = new char*[count + 1];
       for (Py_ssize_t i = 0; i <= count; ++i) res[i] = nullptr;
       for (Py_ssize_t i = 0; i < count; ++i) {
-        PyObject* item = items[i];
+        PyObject* item = islist? PyList_GET_ITEM(v, i)
+                               : PyTuple_GET_ITEM(v, i);
         if (PyUnicode_Check(item)) {
           PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
           if (!y) throw PyError();
@@ -379,13 +377,12 @@ char** _obj::to_cstringlist(const error_manager&) const {
 strvec _obj::to_stringlist(const error_manager&) const {
   strvec res;
   if (PyList_Check(v) || PyTuple_Check(v)) {
-    PyObject** items = PyList_Check(v)
-        ? reinterpret_cast<PyListObject*>(v)->ob_item
-        : reinterpret_cast<PyTupleObject*>(v)->ob_item;
+    bool islist = PyList_Check(v);
     Py_ssize_t count = Py_SIZE(v);
     res.reserve(static_cast<size_t>(count));
     for (Py_ssize_t i = 0; i < count; ++i) {
-      PyObject* item = items[i];
+      PyObject* item = islist? PyList_GET_ITEM(v, i)
+                             : PyTuple_GET_ITEM(v, i);
       if (PyUnicode_Check(item)) {
         PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
         if (!y) throw PyError();
@@ -396,7 +393,7 @@ strvec _obj::to_stringlist(const error_manager&) const {
         res.push_back(PyBytes_AsString(item));
       } else {
         throw TypeError() << "Item " << i << " in the list is not a string: "
-                          << item << " (" << PyObject_Type(item) << ")";
+                          << item  << " (" << PyObject_Type(item) << ")";
       }
     }
   } else if (v != Py_None) {
@@ -487,7 +484,17 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 }
 
 
-PyObject* oobj::release() {
+ostring _obj::str() const {
+  return ostring::from_new_reference(PyObject_Str(v));
+}
+
+
+PyTypeObject* _obj::typeobj() const noexcept {
+  return Py_TYPE(v);
+}
+
+
+PyObject* oobj::release() && {
   PyObject* t = v;
   v = nullptr;
   return t;
@@ -539,6 +546,10 @@ Error _obj::error_manager::error_not_column(PyObject* o) const {
 Error _obj::error_manager::error_not_list(PyObject* o) const {
   return TypeError() << "Expected a list or tuple, instead got "
       << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_dict(PyObject* o) const {
+  return TypeError() << "Expected a dict, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

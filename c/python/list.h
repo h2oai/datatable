@@ -10,122 +10,55 @@
 #include <Python.h>
 #include "python/obj.h"
 
-class PyyList;
-// class PyyLong;
-// class PyyFloat;
-namespace py { class list; class Float; }
-
-
-class PyyListEntry {
-  private:
-    PyObject* list;  // borrowed ref
-    Py_ssize_t i;
-
-  public:
-    PyyListEntry(PyObject* list, Py_ssize_t i);
-
-    operator py::oobj() const;
-    operator py::obj() const;
-    operator PyyList() const;
-    // operator PyyLong() const;
-    operator py::Float() const;
-    PyyListEntry& operator=(PyObject*);
-    PyyListEntry& operator=(py::oobj&&);
-
-    PyObject* as_new_ref() const;
-
-  private:
-    PyObject* get() const;  // returns a borrowed ref
-};
-
+namespace py {
 
 
 /**
- * PyyList: C++ wrapper around pythonic PyList class. The wrapper holds a
- * persistent reference to the underlying `list` (in the sense that it INCREFs
- * it upon acquiral and decrefs during destruction).
+ * Python list of objects.
  *
- * Construction
- * ------------
- * PyyList()
- *   Construct a void PyyList object (not backed by any PyObject*).
+ * There are 2 ways of instantiating this class: either by creating a new list
+ * of `n` elements via `olist(n)`, or by casting a `py::obj` into a list using
+ * `.to_pylist()` method. The former method is used when you want to create a
+ * new list and return it to Python, the latter when you're processing a list
+ * which came from Python.
  *
- * PyyList(size_t n)
- *   Creates a new Pythonic list of size `n` and returns it as PyyList object.
- *   Initially the list is filled with NULLs, the user must fill it with actual
- *   values before returning to Python.
- *
- * PyyList(PyObject* src)
- *   Construct PyyList from the provided PyObject (which must be an instance of
- *   PyList_Object, or Py_None). If `src` is NULL or not a PyList, an exception
- *   will be raised. If `src` was a "newref", the caller is still responsible
- *   for decrefing it.
- *
- * PyyList(const PyyList&)
- * PyyList(PyyList&&)
- *   Copy- and move- constructors.
- *
- *
- * Public API
- * ----------
- * size()
- *   Returns the number of elements in the list.
- *
- * operator bool()
- *   Returns true if the object is non-void (i.e. wraps a non-NULL PyObject).
- *   Note that this will return true even if the underlying list has 0 size.
- *
- * operator[](i)
- *   Returns i-th element of the list as a PyyListEntry object. This entry acts
- *   as a reference: it can be both read (by casting into `obj`) and written
- *   by assigning a `PyObject*` / `oobj` to it.
- *
- * release()
- *   Converts PyyList into the primitive `PyObject*` which can be used by
- *   Python. This method is destructive: the PyyList object becomes "void" after
- *   this method is called. Note that the returned value is a "new reference":
- *   the caller is responsible for dec-refing it eventually.
- *
+ * In most cases when some function/method accepts a pythonic list, it should
+ * work just as well when passed a tuple instead. Because of this, `olist`
+ * objects can actually wrap both `PyList` objects and `PyTuple` objects --
+ * transparently to the user.
  */
-class PyyList {
+class olist : public oobj {
   private:
-    PyObject* list;
+    bool is_list;
+    size_t : 56;
 
   public:
-    PyyList();
-    PyyList(size_t n);
-    PyyList(PyObject*);
-    PyyList(const PyyList&);
-    PyyList(PyyList&&);
-    ~PyyList();
+    olist(size_t n);
+    olist(const olist&);
+    olist(olist&&);
+    olist& operator=(const olist&);
+    olist& operator=(olist&&);
 
-    size_t size() const noexcept;
     operator bool() const noexcept;
-    PyyListEntry operator[](size_t i) const;
-    PyObject* release();
+    size_t size() const noexcept;
 
-    friend void swap(PyyList& first, PyyList& second) noexcept;
-    friend py::list;
-};
-
-
-
-namespace py {
-class Arg;
-
-
-class list : public oobj {
-  public:
-    using oobj::oobj;
-    list();
-    list(const PyyList&);  // temp
-    PyyList to_pyylist() const;
-
-    operator bool() const;
-    size_t size() const;
     obj operator[](size_t i) const;
+    obj operator[](int64_t i) const;
+    obj operator[](int i) const;
 
-    friend class Arg;
+    void set(size_t i,  const _obj& value);
+    void set(int64_t i, const _obj& value);
+    void set(int i,     const _obj& value);
+    void set(size_t i,  oobj&& value);
+    void set(int64_t i, oobj&& value);
+    void set(int i,     oobj&& value);
+
+  private:
+    // Wrap an existing PyObject* into an `olist`. This constructor is private,
+    // use `py::org(src).to_pylist()` instead.
+    olist(PyObject* src);
+
+    friend class _obj;
 };
 
 

@@ -28,12 +28,12 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
         Seed to be used for the projection method.
     progress_fn: object
         Python function to be used for progress reporting. 
-    
+
     Returns
     -------
-    The target datatable is aggregated in-place and gets an additional column `count` 
+    The target datatable is aggregated in-place and gets an additional column `count`
     with the number of members for each exemplar. The function returns
-    a new one-column datatable that contains exemplar_ids for each of the original rows. 
+    a new one-column datatable that contains exemplar_ids for each of the original rows.
     """
 
     if progress_fn is not None and not callable(progress_fn):
@@ -42,6 +42,7 @@ def aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins=500, max_dimensi
     dt_members = core.aggregate(self._dt, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed, progress_fn)
 
     names_exemplars = self.names + ("count",)
-    names_members = ("exemplar_id")
+    names_members = ("exemplar_id",)
+
     self.__init__(self.internal, names_exemplars)
-    return Frame(dt_members, names_members)
+    return Frame(dt_members, names=names_members)

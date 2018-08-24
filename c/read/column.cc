@@ -235,8 +235,8 @@ py::oobj Column::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = info(ParserLibrary::info(ptype).stype).py_stype();
-  PyObject* cname = py::oobj(py::ostring(name)).release();
+  PyObject* stype = info(ParserLibrary::info(ptype).stype).py_stype().release();
+  PyObject* cname = py::ostring(name).release();
   PyStructSequence_SetItem(nt_tuple, 0, cname);
   PyStructSequence_SetItem(nt_tuple, 1, stype);
   return py::oobj::from_new_reference(nt_tuple);

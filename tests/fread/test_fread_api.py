@@ -491,7 +491,8 @@ def test_fread_columns_set2():
     assert d0.names == ("A", "A.1")
     assert d0.topython() == [[1], [3]]
     assert len(ws) == 1
-    assert "Duplicate column names found: ['A']" in ws[0].message.args[0]
+    assert ("Duplicate column name 'A' found, and was assigned a unique name"
+            in ws[0].message.args[0])
 
 
 def test_fread_columns_set_bad():

@@ -15,58 +15,33 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-Float::Float() : obj(nullptr) {}
+ofloat::ofloat() : oobj() {}
 
-Float::Float(PyObject* src) {
-  if (!src) throw PyError();
-  if (src == Py_None) {
-    obj = nullptr;
-  } else {
-    obj = src;
-    if (!PyFloat_Check(src)) {
-      throw TypeError() << "Object " << src << " is not a float";
-    }
-  }
+ofloat::ofloat(PyObject* src) : oobj(src) {}
+
+ofloat::ofloat(const ofloat& other) : oobj(other) {}
+
+ofloat::ofloat(ofloat&& other) : oobj(std::move(other)) {}
+
+ofloat& ofloat::operator=(const ofloat& other) {
+  oobj::operator=(other);
+  return *this;
 }
 
-Float::Float(const Float& other) {
-  obj = other.obj;
+ofloat& ofloat::operator=(ofloat&& other) {
+  oobj::operator=(std::move(other));
+  return *this;
 }
 
-
-
-oFloat::oFloat() {}
-
-oFloat::oFloat(double v) {
-  obj = PyFloat_FromDouble(v);  // new ref
-}
-
-oFloat::oFloat(PyObject* src) : Float(src) {
-  Py_XINCREF(obj);
-}
-
-oFloat::oFloat(const oFloat& other) {
-  obj = other.obj;
-  Py_XINCREF(obj);
-}
-
-oFloat::oFloat(oFloat&& other) : oFloat() {
-  swap(*this, other);
-}
-
-oFloat oFloat::_from_pyobject_no_checks(PyObject* v) {
-  oFloat res;
-  res.obj = v;
+ofloat ofloat::from_new_reference(PyObject* ref) {
+  ofloat res;
+  res.v = ref;
   return res;
 }
 
-oFloat::~oFloat() {
-  Py_XDECREF(obj);
-}
 
-
-void swap(Float& first, Float& second) noexcept {
-  std::swap(first.obj, second.obj);
+ofloat::ofloat(double src) {
+  v = PyFloat_FromDouble(src);  // new ref
 }
 
 
@@ -76,14 +51,14 @@ void swap(Float& first, Float& second) noexcept {
 //------------------------------------------------------------------------------
 
 template<typename T>
-T Float::value() const {
-  if (!obj) return GETNA<T>();
-  return static_cast<T>(PyFloat_AS_DOUBLE(obj));
+T ofloat::value() const {
+  if (!v) return GETNA<T>();
+  return static_cast<T>(PyFloat_AS_DOUBLE(v));
 }
 
 
 
-template float  Float::value() const;
-template double Float::value() const;
+template float  ofloat::value() const;
+template double ofloat::value() const;
 
 }  // namespace py

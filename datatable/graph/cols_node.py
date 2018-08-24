@@ -211,7 +211,7 @@ class ArrayCSNode(ColumnSetNode):
             else:
                 new_names[j] = name
         dt.internal.replace_column_array(self._elems, ri, replacement.internal)
-        dt._fill_from_dt(dt.internal, names=new_names)
+        dt.names = new_names
         assert dt.ncols == n
 
 
