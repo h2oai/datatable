@@ -426,7 +426,6 @@ Error Frame::_name_not_found_error(const std::string& name) {
         col2 = col1; col1 = curr;
       } else if (curr.score < col2.score) {
         col2 = curr;
-        if (curr.score == 1) break;
       }
     }
   }
