@@ -151,11 +151,9 @@ def test_dt_properties(dt0):
 
 @pytest.mark.run(order=2)
 def test_dt_call(dt0, capsys):
-    # assert dt0.internal.column(0).refcount == 1
     dt1 = dt0(timeit=True)
     assert dt1.shape == dt0.shape
     assert not dt1.internal.isview
-    # assert dt0.internal.column(0).refcount == 2
     out, err = capsys.readouterr()
     assert err == ""
     assert "Time taken:" in out
@@ -177,26 +175,6 @@ def test_dt_view(dt0, patched_terminal, capsys):
             in out)
 
 
-@pytest.mark.run(order=4)
-def test_dt_colindex(dt0):
-    assert dt0.colindex(0) == 0
-    assert dt0.colindex(1) == 1
-    assert dt0.colindex(-1) == 6
-    for i, ch in enumerate("ABCDEFG"):
-        assert dt0.colindex(ch) == i
-    with pytest.raises(ValueError) as e:
-        dt0.colindex("a")
-    assert "Column `a` does not exist" in str(e.value)
-    with pytest.raises(ValueError) as e:
-        dt0.colindex(7)
-    assert ("Column index `7` is invalid for a Frame with 7 columns"
-            in str(e.value))
-    with pytest.raises(ValueError) as e:
-        dt0.colindex(-8)
-    assert ("Column index `-8` is invalid for a Frame with 7 columns"
-            in str(e.value))
-
-
 @pytest.mark.run(order=5)
 def test_dt_getitem(dt0):
     dt1 = dt0[0]
@@ -211,6 +189,58 @@ def test_dt_getitem(dt0):
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+
+
+
+#-------------------------------------------------------------------------------
+# Colindex
+#-------------------------------------------------------------------------------
+
+def test_dt_colindex(dt0):
+    assert dt0.colindex(0) == 0
+    assert dt0.colindex(1) == 1
+    assert dt0.colindex(-1) == 6
+    for i, ch in enumerate("ABCDEFG"):
+        assert dt0.colindex(ch) == i
+    with pytest.raises(ValueError) as e:
+        dt0.colindex("a")
+    assert "Column `a` does not exist in the Frame" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(7)
+    assert ("Column index `7` is invalid for a Frame with 7 columns"
+            in str(e.value))
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(-8)
+    assert ("Column index `-8` is invalid for a Frame with 7 columns"
+            in str(e.value))
+
+
+def test_dt_colindex_fuzzy_suggestions():
+    def check(DT, name, suggestions):
+        with pytest.raises(ValueError) as e:
+            DT.colindex(name)
+        assert str(e.value).endswith(suggestions)
+
+    d0 = dt.Frame([[0]] * 3, names=["foo", "bar", "baz"])
+    check(d0, "fo", "; did you mean `foo`?")
+    check(d0, "foe", "; did you mean `foo`?")
+    check(d0, "fooo", "; did you mean `foo`?")
+    check(d0, "ba", "; did you mean `bar` or `baz`?")
+    check(d0, "barb", "; did you mean `bar` or `baz`?")
+    check(d0, "bazb", "; did you mean `baz` or `bar`?")
+    check(d0, "ababa", "Frame")
+    d1 = dt.Frame([[0]] * 50)
+    check(d1, "A", "Frame")
+    check(d1, "C", "; did you mean `C0`, `C1` or `C2`?")
+    check(d1, "c1", "; did you mean `C1`, `C0` or `C2`?")
+    check(d1, "C 1", "; did you mean `C1`, `C11` or `C21`?")
+    check(d1, "V0", "; did you mean `C0`?")
+    check(d1, "Va", "Frame")
+    d2 = dt.Frame(varname=[1])
+    check(d2, "vraname", "; did you mean `varname`?")
+    check(d2, "VRANAME", "; did you mean `varname`?")
+    check(d2, "var_name", "; did you mean `varname`?")
+    check(d2, "variable", "; did you mean `varname`?")
 
 
 

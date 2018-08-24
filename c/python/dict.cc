@@ -16,6 +16,7 @@ namespace py {
 
 odict::odict() {
   v = PyDict_New();
+  if (!v) throw PyError();
 }
 
 odict::odict(PyObject* src) : oobj(src) {}
