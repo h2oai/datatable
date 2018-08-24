@@ -26,7 +26,8 @@ typedef std::unique_ptr<ex> ExPtr;
 
 class Aggregator {
   public:
-    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, unsigned int, PyObject*);
+    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t,
+               unsigned int, PyObject*);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
@@ -56,8 +57,10 @@ class Aggregator {
     DoublePtr generate_pmatrix(DataTablePtr&);
     void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
     void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
-    double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double, bool early_exit=true);
-    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&, int64_t);
+    double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double,
+                              bool early_exit=true);
+    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&,
+                      int64_t);
     void adjust_members(std::vector<int64_t>&, DataTablePtr&);
     size_t calculate_map(std::vector<int64_t>&, size_t);
     void progress(double, int status_code=0);
