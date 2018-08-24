@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Key column(s) are saved when the frame is saved into a Jay file.
 - A Frame can now be naturally-joined with a keyed Frame.
 - Columns can now be updated within join expressions.
+- The error message when selecting a column that does not exist in the Frame
+  now refers to similarly-named columns in that Frame, if there are any. At
+  most 3 possible columns are reported, and they are ordered from most likely
+  to least likely (#1253).
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
