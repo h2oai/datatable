@@ -14,7 +14,7 @@ namespace py {
 
 
 /**
- * Class representing a pythonic tuple of elements.
+ * Python tuple of elements.
  *
  * This can be either a tuple passed down from Python, or a new tuple object.
  * If `otuple` is created from an existing PyObject, its elements must not be
@@ -23,15 +23,26 @@ namespace py {
  */
 class otuple : public oobj {
   public:
-    using oobj::oobj;
     otuple(int n);
     otuple(size_t n);
     otuple(int64_t n);
+    otuple(const otuple&);
+    otuple(otuple&&);
+    otuple& operator=(const otuple&);
+    otuple& operator=(otuple&&);
 
-    size_t size() const;
-    obj  get(size_t i) const;
-    void set(size_t i, const _obj& value);
-    void set(size_t i, oobj&& value);
+    size_t size() const noexcept;
+
+    obj operator[](int64_t i) const;
+    obj operator[](size_t i) const;
+    obj operator[](int i) const;
+
+    void set(int64_t i, const _obj& value);
+    void set(size_t i,  const _obj& value);
+    void set(int i,     const _obj& value);
+    void set(int64_t i, oobj&& value);
+    void set(size_t i,  oobj&& value);
+    void set(int i,     oobj&& value);
 };
 
 

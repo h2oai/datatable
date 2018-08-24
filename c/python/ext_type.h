@@ -225,7 +225,7 @@ namespace _impl {
   PyObject* _safe_repr(PyObject* self) {
     try {
       oobj res = static_cast<T*>(self)->m__repr__();
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -269,7 +269,7 @@ namespace _impl {
     try {
       T* t = static_cast<T*>(self);
       oobj res = (t->*F)();
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;
@@ -294,7 +294,7 @@ namespace _impl {
       T* tself = static_cast<T*>(self);
       ARGS.bind(args, kwds);
       oobj res = (tself->*F)(ARGS);
-      return res.release();
+      return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
       return nullptr;

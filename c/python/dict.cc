@@ -11,26 +11,51 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// odict
+// Constructors
 //------------------------------------------------------------------------------
 
 odict::odict() {
   v = PyDict_New();
 }
 
+odict::odict(PyObject* src) : oobj(src) {}
 
-bool odict::has(obj key) const {
-  return PyDict_GetItem(v, key.to_borrowed_ref()) != nullptr;
+odict::odict(const odict& other) : oobj(other) {}
+
+odict::odict(odict&& other) : oobj(std::move(other)) {}
+
+odict& odict::operator=(const odict& other) {
+  oobj::operator=(other);
+  return *this;
 }
 
-obj odict::get(obj key) const {
+odict& odict::operator=(odict&& other) {
+  oobj::operator=(std::move(other));
+  return *this;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Element accessors
+//------------------------------------------------------------------------------
+
+bool odict::has(_obj key) const {
+  PyObject* _key = key.to_borrowed_ref();
+  return PyDict_GetItem(v, _key) != nullptr;
+}
+
+obj odict::get(_obj key) const {
   // PyDict_GetItem returns a borrowed ref; or NULL if key is not present
-  return obj(PyDict_GetItem(v, key.to_borrowed_ref()));
+  PyObject* _key = key.to_borrowed_ref();
+  return obj(PyDict_GetItem(v, _key));
 }
 
 void odict::set(_obj key, _obj val) {
   // PyDict_SetItem INCREFs both key and value internally
-  int r = PyDict_SetItem(v, key.to_borrowed_ref(), val.to_borrowed_ref());
+  PyObject* _key = key.to_borrowed_ref();
+  PyObject* _val = val.to_borrowed_ref();
+  int r = PyDict_SetItem(v, _key, _val);
   if (r) throw PyError();
 }
 

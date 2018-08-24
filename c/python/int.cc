@@ -15,70 +15,46 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-Int::Int() : obj(nullptr) {}
+oint::oint() : oobj() {}
 
-Int::Int(PyObject* src) {
-  if (!src) throw PyError();
-  if (src == Py_None) {
-    obj = nullptr;
-  } else {
-    obj = src;
-    if (!PyLong_Check(src)) {
-      throw TypeError() << "Object " << src << " is not an integer";
-    }
-  }
+oint::oint(PyObject* src) : oobj(src) {}
+
+oint::oint(const oint& other) : oobj(other) {}
+
+oint::oint(oint&& other) : oobj(std::move(other)) {}
+
+oint& oint::operator=(const oint& other) {
+  oobj::operator=(other);
+  return *this;
 }
 
-Int::Int(const Int& other) {
-  obj = other.obj;
+oint& oint::operator=(oint&& other) {
+  oobj::operator=(std::move(other));
+  return *this;
 }
 
-
-oInt::oInt() {}
-
-oInt::oInt(int32_t n) {
-  obj = PyLong_FromLong(n);
-}
-
-oInt::oInt(int64_t n) {
-  static_assert(sizeof(long) == sizeof(int64_t), "Wrong size of long");
-  obj = PyLong_FromLong(n);
-}
-
-oInt::oInt(size_t n) {
-  obj = PyLong_FromSize_t(n);
-}
-
-oInt::oInt(double x) {
-  obj = PyLong_FromDouble(x);
-}
-
-oInt::oInt(PyObject* src) : Int(src) {
-  Py_XINCREF(src);
-}
-
-oInt::oInt(const oInt& other) {
-  obj = other.obj;
-  Py_XINCREF(obj);
-}
-
-oInt::oInt(oInt&& other) : oInt() {
-  swap(*this, other);
-}
-
-oInt oInt::_from_pyobject_no_checks(PyObject* v) {
-  oInt res;
-  res.obj = v;
+oint oint::from_new_reference(PyObject* ref) {
+  oint res;
+  res.v = ref;
   return res;
 }
 
-oInt::~oInt() {
-  Py_XDECREF(obj);
+
+oint::oint(int32_t n) {
+  v = PyLong_FromLong(n);
 }
 
+oint::oint(int64_t n) {
+  static_assert(sizeof(long) == sizeof(int64_t), "Wrong size of long");
+  v = PyLong_FromLong(n);
+}
 
-void swap(Int& first, Int& second) noexcept {
-  std::swap(first.obj, second.obj);
+oint::oint(size_t n) {
+  v = PyLong_FromSize_t(n);
+}
+
+oint::oint(double x) {
+  v = PyLong_FromDouble(x);
 }
 
 
@@ -87,9 +63,9 @@ void swap(Int& first, Int& second) noexcept {
 // Value conversions
 //------------------------------------------------------------------------------
 
-template<> long Int::value<long>(int* overflow) const {
-  if (!obj) return GETNA<long>();
-  long value = PyLong_AsLongAndOverflow(obj, overflow);
+template<> long oint::value<long>(int* overflow) const {
+  if (!v) return GETNA<long>();
+  long value = PyLong_AsLongAndOverflow(v, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long>::max()
                           : -std::numeric_limits<long>::max();
@@ -98,9 +74,9 @@ template<> long Int::value<long>(int* overflow) const {
 }
 
 
-template<> long long Int::value<long long>(int* overflow) const {
-  if (!obj) return GETNA<long long>();
-  long long value = PyLong_AsLongLongAndOverflow(obj, overflow);
+template<> long long oint::value<long long>(int* overflow) const {
+  if (!v) return GETNA<long long>();
+  long long value = PyLong_AsLongLongAndOverflow(v, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long long>::max()
                           : -std::numeric_limits<long long>::max();
@@ -109,11 +85,11 @@ template<> long long Int::value<long long>(int* overflow) const {
 }
 
 
-template<> double Int::value<double>(int* overflow) const {
-  if (!obj) return GETNA<double>();
-  double value = PyLong_AsDouble(obj);
+template<> double oint::value<double>(int* overflow) const {
+  if (!v) return GETNA<double>();
+  double value = PyLong_AsDouble(v);
   if (value == -1 && PyErr_Occurred()) {
-    int sign = _PyLong_Sign(obj);
+    int sign = _PyLong_Sign(v);
     value = sign > 0 ? std::numeric_limits<double>::infinity()
                      : -std::numeric_limits<double>::infinity();
     *overflow = 1;
@@ -124,13 +100,13 @@ template<> double Int::value<double>(int* overflow) const {
 }
 
 
-template<> float Int::value<float>(int* overflow) const {
-  if (!obj) return GETNA<float>();
+template<> float oint::value<float>(int* overflow) const {
+  if (!v) return GETNA<float>();
   static constexpr double max_float =
     static_cast<double>(std::numeric_limits<float>::max());
-  double value = PyLong_AsDouble(obj);
+  double value = PyLong_AsDouble(v);
   if (value == -1 && PyErr_Occurred()) {
-    int sign = _PyLong_Sign(obj);
+    int sign = _PyLong_Sign(v);
     *overflow = 1;
     return sign > 0 ? std::numeric_limits<float>::infinity()
                     : -std::numeric_limits<float>::infinity();
@@ -142,8 +118,8 @@ template<> float Int::value<float>(int* overflow) const {
 }
 
 
-template<typename T> T Int::value(int* overflow) const {
-  if (!obj) return GETNA<T>();
+template<typename T> T oint::value(int* overflow) const {
+  if (!v) return GETNA<T>();
   constexpr T MAX = std::numeric_limits<T>::max();
   long x = value<long>(overflow);
   if (x > MAX) {
@@ -158,8 +134,8 @@ template<typename T> T Int::value(int* overflow) const {
 }
 
 
-template<typename T> T Int::value() const {
-  if (!obj) return GETNA<T>();
+template<typename T> T oint::value() const {
+  if (!v) return GETNA<T>();
   int overflow;
   T res = value<T>(&overflow);
   if (overflow) {
@@ -169,9 +145,9 @@ template<typename T> T Int::value() const {
 }
 
 
-template<> long long int Int::masked_value() const {
-  if (!obj) return GETNA<long long int>();
-  unsigned long long x = PyLong_AsUnsignedLongLongMask(obj);
+template<> long long int oint::masked_value() const {
+  if (!v) return GETNA<long long int>();
+  unsigned long long x = PyLong_AsUnsignedLongLongMask(v);
   if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
     return std::numeric_limits<long long>::min();  // NA
@@ -180,9 +156,9 @@ template<> long long int Int::masked_value() const {
 }
 
 
-template<typename T> T Int::masked_value() const {
-  if (!obj) return GETNA<T>();
-  unsigned long x = PyLong_AsUnsignedLongMask(obj);
+template<typename T> T oint::masked_value() const {
+  if (!v) return GETNA<T>();
+  unsigned long x = PyLong_AsUnsignedLongMask(v);
   if (x == static_cast<unsigned long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
     return GETNA<T>();
@@ -192,38 +168,26 @@ template<typename T> T Int::masked_value() const {
 
 
 
-//------------------------------------------------------------------------------
-// Other
-//------------------------------------------------------------------------------
-
-PyObject* oInt::release() {
-  PyObject* t = obj;
-  obj = nullptr;
-  return t;
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // Explicit instantiations
 //------------------------------------------------------------------------------
 
-template int8_t  Int::value() const;
-template int16_t Int::value() const;
-template int32_t Int::value() const;
-template int64_t Int::value() const;
-template float   Int::value() const;
-template double  Int::value() const;
+template int8_t  oint::value() const;
+template int16_t oint::value() const;
+template int32_t oint::value() const;
+template int64_t oint::value() const;
+template float   oint::value() const;
+template double  oint::value() const;
 
-template signed char  Int::value(int*) const;
-template short int    Int::value(int*) const;
-template int          Int::value(int*) const;
+template signed char  oint::value(int*) const;
+template short int    oint::value(int*) const;
+template int          oint::value(int*) const;
 
-template signed char   Int::masked_value() const;
-template short int     Int::masked_value() const;
-template int           Int::masked_value() const;
-template long int      Int::masked_value() const;
+template signed char   oint::masked_value() const;
+template short int     oint::masked_value() const;
+template int           oint::masked_value() const;
+template long int      oint::masked_value() const;
 
 
 }  // namespace py

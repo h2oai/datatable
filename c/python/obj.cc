@@ -50,7 +50,7 @@ oobj::oobj() {
 
 oobj::oobj(PyObject* p) {
   v = p;
-  Py_INCREF(p);
+  Py_XINCREF(p);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
@@ -61,26 +61,12 @@ oobj::oobj(oobj&& other) {
   other.v = nullptr;
 }
 
-oobj::oobj(oInt&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
-oobj::oobj(oFloat&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
-
-oobj::oobj(ostring&& other) {
-  v = other.obj;
-  other.obj = nullptr;;
-}
 
 
 oobj& oobj::operator=(const oobj& other) {
+  Py_XINCREF(other.v);
   Py_XDECREF(v);
   v = other.v;
-  Py_XINCREF(v);
   return *this;
 }
 
@@ -224,24 +210,22 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
 }
 
 
-py::Int _obj::to_pyint(const error_manager& em) const {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::Int(v);
-  }
+py::oint _obj::to_pyint(const error_manager& em) const {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   throw em.error_not_integer(v);
 }
 
 
-py::oInt _obj::to_pyint_force(const error_manager&) const noexcept {
-  if (PyLong_Check(v) || v == Py_None) {
-    return py::oInt(v);
-  }
+py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
+  if (v == Py_None) return py::oint();
+  if (PyLong_Check(v)) return py::oint(v);
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oInt::_from_pyobject_no_checks(num);
+  return py::oint::from_new_reference(num);
 }
 
 
@@ -264,16 +248,16 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-oFloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
+ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
-    return py::oFloat(v);
+    return py::ofloat(v);
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oFloat::_from_pyobject_no_checks(num);
+  return py::ofloat::from_new_reference(num);
 }
 
 
@@ -331,10 +315,10 @@ py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
 // List conversions
 //------------------------------------------------------------------------------
 
-py::list _obj::to_pylist(const error_manager& em) const {
-  if (is_none()) return py::list();
+py::olist _obj::to_pylist(const error_manager& em) const {
+  if (is_none()) return py::olist(nullptr);
   if (is_list() || is_tuple()) {
-    return py::list(v);
+    return py::olist(v);
   }
   throw em.error_not_list(v);
 }
@@ -510,7 +494,7 @@ PyTypeObject* _obj::typeobj() const noexcept {
 }
 
 
-PyObject* oobj::release() {
+PyObject* oobj::release() && {
   PyObject* t = v;
   v = nullptr;
   return t;
