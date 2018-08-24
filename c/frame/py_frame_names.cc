@@ -106,19 +106,14 @@ void Frame::_init_names() const {
 
 void Frame::_init_inames() const {
   if (inames) return;
-  xassert(dt->names.size() == static_cast<size_t>(dt->ncols));
   _init_names();
+  py::olist new_names = py::obj(names).to_pylist();
 
-  // TODO: use py::dict
-  PyObject* dict = PyDict_New();
-  if (!dict) throw PyError();
+  py::odict new_inames;
   for (int64_t i = 0; i < dt->ncols; ++i) {
-    PyObject* name = PyTuple_GET_ITEM(names, i);
-    PyObject* index = PyLong_FromLong(i);
-    PyDict_SetItem(dict, name, index);
-    Py_DECREF(index);
+    new_inames.set(new_names[i], py::oint(i));
   }
-  inames = dict;
+  inames = std::move(new_inames).release();
 }
 
 
