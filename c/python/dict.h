@@ -14,22 +14,38 @@ namespace py {
 class dict_iterator;
 
 
+/**
+ * Python dict wrapper.
+ *
+ * Keys / values are `py::obj`s. This class supports retrieving a value by
+ * its key, querying existence of a key, inserting new key/value pair, and
+ * iterating over all key/values.
+ */
 class odict : public oobj {
   public:
-    using oobj::oobj;
-    using iterator = dict_iterator;
     odict();
+    odict(const odict&);
+    odict(odict&&);
+    odict& operator=(const odict&);
+    odict& operator=(odict&&);
 
-    bool has(obj key) const;
-    obj get(obj key) const;
+    bool has(_obj key) const;
+    obj  get(_obj key) const;
     void set(_obj key, _obj val);
 
-    iterator begin() const;
-    iterator end() const;
+    dict_iterator begin() const;
+    dict_iterator end() const;
+
+  private:
+    odict(PyObject*);
+    friend class _obj;
 };
 
 
 
+/**
+ * Helper class for iterating over a `py::odict`.
+ */
 class dict_iterator {
   public:
     using value_type = std::pair<py::obj, py::obj>;

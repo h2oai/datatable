@@ -65,7 +65,7 @@ oobj Frame::colindex(PKArgs& args)
       colidx += dt->ncols;
     }
     if (colidx >= 0 && colidx < dt->ncols) {
-      return py::oInt(colidx);
+      return py::oint(colidx);
     }
     throw ValueError() << "Column index `" << colidx << "` is invalid for a "
         "Frame with " << dt->ncols << " column" << (dt->ncols==1? "" : "s");
@@ -100,7 +100,7 @@ void Frame::_init_names() const {
   for (size_t i = 0; i < onames.size(); ++i) {
     onames.set(i, py::ostring(dt->names[i]));
   }
-  names = onames.release();
+  names = std::move(onames).release();
 }
 
 
@@ -139,7 +139,7 @@ void Frame::_fill_default_names() {
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void Frame::_dedup_and_save_names(py::list nameslist) {
+void Frame::_dedup_and_save_names(py::olist nameslist) {
   auto ncols = static_cast<size_t>(dt->ncols);
   if (nameslist.size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist.size()
@@ -234,7 +234,7 @@ void Frame::_dedup_and_save_names(py::list nameslist) {
 
     // Store the name in all containers
     dt->names.push_back(resname);
-    new_inames.set(newname, oobj(oInt(i)));
+    new_inames.set(newname, oint(i));
     new_names.set(i, std::move(newname));
   }
 
@@ -272,7 +272,7 @@ void Frame::_dedup_and_save_names(py::list nameslist) {
       if (!dt->names[i].empty()) continue;
       dt->names[i] = prefix + std::to_string(index0);
       oobj newname = py::ostring(dt->names[i]);
-      new_inames.set(newname, oobj(oInt(i)));
+      new_inames.set(newname, oint(i));
       new_names.set(i, std::move(newname));
       index0++;
     }
@@ -298,8 +298,8 @@ void Frame::_dedup_and_save_names(py::list nameslist) {
   }
 
   // Store the pythonic tuple / dict of names
-  names  = new_names.release();
-  inames = new_inames.release();
+  names  = std::move(new_names).release();
+  inames = std::move(new_inames).release();
 
   xassert(ncols == dt->names.size());
   xassert(ncols == static_cast<size_t>(PyTuple_Size(names)));
@@ -313,8 +313,8 @@ void Frame::_replace_names_from_map(py::odict replacements)
   if (!names)  _init_names();
   if (!inames) _init_inames();
 
-  py::odict names_map(inames);
-  py::list  names_list(names);
+  py::odict names_map  = py::obj(inames).to_pydict();
+  py::olist names_list = py::obj(names).to_pylist();
   _clear_names();
   for (auto kv : replacements) {
     obj key = kv.first;

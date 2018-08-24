@@ -66,9 +66,9 @@ bool Arg::is_range()         const { return pyobj.is_range(); }
 // Type conversions
 //------------------------------------------------------------------------------
 
-int32_t  Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
-int64_t  Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
-py::list Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
+int32_t   Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
+int64_t   Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
+py::olist Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 
 
 

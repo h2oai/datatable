@@ -53,7 +53,7 @@ class Arg : public _obj::error_manager {
     //---- Type conversions ------------
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
-    py::list    to_pylist        () const;
+    py::olist   to_pylist        () const;
 
 
     //---- Error messages --------------

@@ -15,36 +15,23 @@ namespace py {
 
 
 /**
- * C++ wrapper around PyUnicode_Object (python `str` object).
+ * Wrapper around a Python string.
  */
-class string {
-  protected:
-    PyObject* obj;
-
-  public:
-    string();
-    string(PyObject*);
-    string(const string&);
-    friend void swap(string& first, string& second) noexcept;
-};
-
-
-
-class ostring : public string {
+class ostring : public oobj {
   public:
     ostring();
     ostring(const std::string& s);
     ostring(const char* str);
     ostring(const char* str, size_t len);
-    ostring(PyObject*);
     ostring(const ostring&);
     ostring(ostring&&);
-    ~ostring();
-    static ostring from_new_reference(PyObject*);
-    friend oobj::oobj(ostring&&);
+    ostring& operator=(const ostring&);
+    ostring& operator=(ostring&&);
 
-    PyObject* to_borrowed_ref() const { return obj; }
-    PyObject* release();
+  private:
+    ostring(PyObject*);
+    static ostring from_new_reference(PyObject*);
+    friend class _obj;
 };
 
 
