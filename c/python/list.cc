@@ -6,152 +6,75 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/list.h"
-#include "python/int.h"
-#include "python/float.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 
+namespace py {
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-PyyList::PyyList() : list(nullptr) {}
-
-PyyList::PyyList(size_t n) {
-  list = PyList_New(static_cast<Py_ssize_t>(n));
-  if (!list) throw PyError();
+olist::olist(size_t n) {
+  is_list = true;
+  v = PyList_New(static_cast<Py_ssize_t>(n));
+  if (!v) throw PyError();
 }
 
-PyyList::PyyList(PyObject* src) {
-  if (!src) throw PyError();
-  if (src == Py_None) {
-    list = nullptr;
-  } else {
-    list = src;
-    if (!PyList_Check(src)) {
-      throw TypeError() << "Object " << src << " is not a list";
-    }
-    Py_INCREF(list);
-  }
+olist::olist(const olist& other) {
+  v = other.v;
+  is_list = other.is_list;
+  Py_XINCREF(v);
 }
 
-PyyList::PyyList(const PyyList& other) : PyyList(other.list) {}
-
-PyyList::PyyList(PyyList&& other) : PyyList() {
-  swap(*this, other);
+olist::olist(olist&& other) {
+  v = other.v;
+  is_list = other.is_list;
+  other.v = nullptr;
 }
 
-PyyList::~PyyList() {
-  Py_XDECREF(list);
-}
-
-
-void swap(PyyList& first, PyyList& second) noexcept {
-  std::swap(first.list, second.list);
-}
-
-
-
-//------------------------------------------------------------------------------
-// PyyList API
-//------------------------------------------------------------------------------
-
-size_t PyyList::size() const noexcept {
-  return static_cast<size_t>(PyList_GET_SIZE(list));
-}
-
-
-PyyList::operator bool() const noexcept {
-  return (list != nullptr);
-}
-
-
-PyyListEntry PyyList::operator[](size_t i) const {
-  return PyyListEntry(list, static_cast<Py_ssize_t>(i));
-}
-
-
-PyObject* PyyList::release() {
-  PyObject* o = list;
-  list = nullptr;
-  return o;
-}
-
-
-
-//------------------------------------------------------------------------------
-// PyyListEntry API
-//------------------------------------------------------------------------------
-
-PyyListEntry::PyyListEntry(PyObject* pylist, Py_ssize_t index)
-  : list(pylist), i(index) {}
-
-
-PyyListEntry& PyyListEntry::operator=(PyObject* s) {
-  xassert(list);
-  PyList_SET_ITEM(list, i, s);
+olist& olist::operator=(const olist& other) {
+  Py_XINCREF(other.v);
+  Py_XDECREF(v);
+  v = other.v;
+  is_list = other.is_list;
   return *this;
 }
 
-
-PyyListEntry& PyyListEntry::operator=(py::oobj&& o) {
-  PyObject* item = o.release();
-  PyList_SET_ITEM(list, i, item);
+olist& olist::operator=(olist&& other) {
+  Py_XDECREF(v);
+  v = other.v;
+  is_list = other.is_list;
+  other.v = nullptr;
   return *this;
 }
 
-
-PyObject* PyyListEntry::get() const {
-  xassert(list);
-  return PyList_GET_ITEM(list, i);
-}
-
-
-PyyListEntry::operator py::oobj() const { return py::oobj(get()); }
-PyyListEntry::operator py::obj() const { return py::obj(get()); }
-PyyListEntry::operator PyyList() const { return PyyList(get()); }
-PyyListEntry::operator py::Float() const { return py::Float(get()); }
-
-
-PyObject* PyyListEntry::as_new_ref() const {
-  PyObject* res = PyList_GET_ITEM(list, i);
-  Py_XINCREF(res);
-  return res;
+olist::olist(PyObject* src) : oobj(src) {
+  is_list = src && PyList_Check(src);
 }
 
 
 
 //------------------------------------------------------------------------------
-// py::List
+// Element accessors
 //------------------------------------------------------------------------------
-namespace py {
 
-
-list::list() { v = nullptr; }
-
-list::list(PyObject* src) : oobj(src) {
-  is_list = PyList_Check(src);
-}
-
-list::list(const PyyList& src) : list(src.list) {}
-
-PyyList list::to_pyylist() const { return PyyList(v); }
-
-
-list::operator bool() const { return v != nullptr; }
-
-size_t list::size() const {
-  return static_cast<size_t>(Py_SIZE(v));
-}
-
-obj list::operator[](size_t i) const {
+obj olist::operator[](int64_t i) const {
   return obj(is_list? PyList_GET_ITEM(v, i)
                     : PyTuple_GET_ITEM(v, i));
 }
 
-void list::set(int64_t i, const _obj& value) {
+obj olist::operator[](size_t i) const {
+  return this->operator[](static_cast<int64_t>(i));
+}
+
+obj olist::operator[](int i) const {
+  return this->operator[](static_cast<int64_t>(i));
+}
+
+
+void olist::set(int64_t i, const _obj& value) {
   if (is_list) {
     PyList_SET_ITEM(v, i, value.to_pyobject_newref());
   } else {
@@ -159,29 +82,44 @@ void list::set(int64_t i, const _obj& value) {
   }
 }
 
-void list::set(int64_t i, oobj&& value) {
+void olist::set(int64_t i, oobj&& value) {
   if (is_list) {
-    PyList_SET_ITEM(v, i, value.release());
+    PyList_SET_ITEM(v, i, std::move(value).release());
   } else {
-    PyTuple_SET_ITEM(v, i, value.release());
+    PyTuple_SET_ITEM(v, i, std::move(value).release());
   }
 }
 
-void list::set(size_t i, const _obj& value) {
+void olist::set(size_t i, const _obj& value) {
   set(static_cast<int64_t>(i), value);
 }
 
-void list::set(size_t i, oobj&& value) {
+void olist::set(size_t i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
 
-void list::set(int i, const _obj& value) {
+void olist::set(int i, const _obj& value) {
   set(static_cast<int64_t>(i), value);
 }
 
-void list::set(int i, oobj&& value) {
+void olist::set(int i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
+
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+olist::operator bool() const noexcept {
+  return v != nullptr;
+}
+
+size_t olist::size() const noexcept {
+  return static_cast<size_t>(Py_SIZE(v));
+}
+
 
 
 }

@@ -78,7 +78,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
                         &arg1, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
     return nullptr;
-  py::list pyspec = py::obj(arg1).to_pylist();
+  py::olist pyspec = py::obj(arg1).to_pylist();
 
   columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
   size_t ncols = pyspec.size();

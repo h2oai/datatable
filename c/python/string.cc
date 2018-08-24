@@ -11,86 +11,51 @@
 namespace py {
 
 
-
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-string::string() : obj(nullptr) {}
+ostring::ostring() : oobj() {}
 
-string::string(PyObject* src) {
-  if (!src) throw PyError();
-  if (src == Py_None) {
-    obj = nullptr;
-  } else {
-    obj = src;
-    if (!PyUnicode_Check(src)) {
-      throw TypeError() << "Object " << src << " is not a string";
-    }
-  }
+ostring::ostring(PyObject* src) : oobj(src) {}
+
+ostring ostring::from_new_reference(PyObject* ref) {
+  ostring res;
+  res.v = ref;
+  return res;
 }
 
-string::string(const string& other) {
-  obj = other.obj;
-}
-
-void swap(string& first, string& second) noexcept {
-  std::swap(first.obj, second.obj);
-}
-
-
-
-ostring::ostring() {}
 
 ostring::ostring(const std::string& s) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(s.size());
-  obj = PyUnicode_FromStringAndSize(s.data(), slen);
+  v = PyUnicode_FromStringAndSize(s.data(), slen);
 }
 
 ostring::ostring(const char* str, size_t len) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-  obj = PyUnicode_FromStringAndSize(str, slen);
+  v = PyUnicode_FromStringAndSize(str, slen);
 }
 
 ostring::ostring(const char* str) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(std::strlen(str));
-  obj = PyUnicode_FromStringAndSize(str, slen);
-}
-
-ostring::ostring(PyObject* src) : string(src) {
-  Py_XINCREF(src);
-}
-
-ostring::ostring(const ostring& other) {
-  obj = other.obj;
-  Py_XINCREF(obj);
-}
-
-ostring::ostring(ostring&& other) : ostring() {
-  swap(*this, other);
-}
-
-ostring ostring::from_new_reference(PyObject* ref) {
-  ostring res;
-  res.obj = ref;
-  return res;
-}
-
-ostring::~ostring() {
-  Py_XDECREF(obj);
+  v = PyUnicode_FromStringAndSize(str, slen);
 }
 
 
+ostring::ostring(const ostring& other) : oobj(other) {}
 
-//------------------------------------------------------------------------------
-// Other
-//------------------------------------------------------------------------------
+ostring::ostring(ostring&& other) : oobj(std::move(other)) {}
 
-PyObject* ostring::release() {
-  PyObject* t = obj;
-  obj = nullptr;
-  return t;
+ostring& ostring::operator=(const ostring& other) {
+  oobj::operator=(other);
+  return *this;
 }
+
+ostring& ostring::operator=(ostring&& other) {
+  oobj::operator=(std::move(other));
+  return *this;
+}
+
 
 
 }  // namespace py

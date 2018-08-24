@@ -22,14 +22,13 @@ namespace py {
 
 // Forward declarations
 class Arg;
-class Int;
-class oInt;
+class oint;
 class Float;
-class oFloat;
+class ofloat;
 class string;
-class ostring;
-class list;
 class odict;
+class olist;
+class ostring;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -97,7 +96,7 @@ using strvec = std::vector<std::string>;
  *    exception is raised.
  *
  * to_pyfloat_force:  [noexcept]
- *    Convert into a py::oFloat instance, possibly applying pythonic `float(x)`
+ *    Convert into a py::ofloat instance, possibly applying pythonic `float(x)`
  *    function. If the function raises an exception, the value will be
  *    converted into NA.
  *
@@ -157,11 +156,11 @@ class _obj {
     int64_t     to_int64         (const error_manager& = _em0) const;
     int32_t     to_int32_strict  (const error_manager& = _em0) const;
     int64_t     to_int64_strict  (const error_manager& = _em0) const;
-    py::Int     to_pyint         (const error_manager& = _em0) const;
-    py::oInt    to_pyint_force   (const error_manager& = _em0) const noexcept;
+    py::oint    to_pyint         (const error_manager& = _em0) const;
+    py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
     double      to_double        (const error_manager& = _em0) const;
-    py::oFloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
+    py::ofloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
 
     CString     to_cstring       (const error_manager& = _em0) const;
     std::string to_string        (const error_manager& = _em0) const;
@@ -169,7 +168,7 @@ class _obj {
 
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
-    py::list    to_pylist        (const error_manager& = _em0) const;
+    py::olist   to_pylist        (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
@@ -234,15 +233,17 @@ class oobj : public _obj {
     oobj(const oobj&);
     oobj(const obj&);
     oobj(oobj&&);
-    oobj(oInt&&);
-    oobj(oFloat&&);
-    oobj(ostring&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
-    PyObject* release();
+
+    // Return the underlying PyObject*, as a new ref, but invalidating this
+    // object in the process. Use as:
+    //    std::move(x).release();
+    //
+    PyObject* release() &&;
 };
 
 
