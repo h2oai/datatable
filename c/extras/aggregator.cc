@@ -128,8 +128,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
     d_counts[i] = offsets[i+1] - offsets[i];
   }
 
-  // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations
-  // After re-mapping also need this for ND
+  // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
+  // this is also needed for ND due to re-mapping.
   //#pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
     for (size_t j = 0; j < static_cast<size_t>(d_counts[i]); ++j) {
@@ -320,7 +320,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars,
 
 /*
 *  Do 2D grouping for one continuous and one categorical column,
-*  i.e. 1D binning for the continuous columns and a `group by`
+*  i.e. 1D binning for the continuous column and a `group by`
 *  operation for the categorical one.
 */
 void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
@@ -375,7 +375,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
-  // This is to ensure that the first row is save as an exemplar
+  // This is to ensure that the first row is saved as an exemplar
   double distance = std::numeric_limits<double>::max();
   // Radius calculations
   double delta;
@@ -450,8 +450,8 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
 
 
 /*
-*  Based on the merging info adjusting the members information,
-*  i.e. which exemplar they belong to.
+*  Based on the merging info adjust the members information,
+*  i.e. set which exemplar they belong to.
 */
 void Aggregator::adjust_members(std::vector<int64_t>& ids,
                                 DataTablePtr& dt_members) {
@@ -607,7 +607,7 @@ void Aggregator::set_norm_coeffs(double& norm_factor, double& norm_shift,
 
 
 /*
-*  Helper function to print the aggregation process
+*  Helper function to report on the aggregation process, clear when finished.
 */
 void Aggregator::print_progress(double progress, int status_code) {
   int val = static_cast<int> (progress * 100);
