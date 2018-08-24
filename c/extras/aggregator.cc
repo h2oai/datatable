@@ -586,7 +586,7 @@ void Aggregator::print_progress(double progress, int status_code) {
   int lpad = static_cast<int> (progress * PBWIDTH);
   int rpad = PBWIDTH - lpad;
   printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
-  if (status_code) printf("\n");
+  if (status_code) printf("\33[2K\r");
   fflush (stdout);
 }
 
