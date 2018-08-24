@@ -221,7 +221,7 @@ def test_dt_colindex_fuzzy_suggestions():
             DT.colindex(name)
         assert str(e.value).endswith(suggestions)
 
-    d0 = dt.Frame(foo=[2], bar=[3], baz=[4])
+    d0 = dt.Frame([[0]] * 3, names=["foo", "bar", "baz"])
     check(d0, "fo", "; did you mean `foo`?")
     check(d0, "foe", "; did you mean `foo`?")
     check(d0, "fooo", "; did you mean `foo`?")
