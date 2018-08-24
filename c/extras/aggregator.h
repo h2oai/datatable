@@ -13,13 +13,16 @@
 #include <random>
 #include "py_datatable.h"
 
+typedef std::unique_ptr<double[]> DoublePtr;
 struct ex {
   int64_t id;
-  double* coords;
+  DoublePtr coords;
 };
+typedef std::unique_ptr<ex> ExPtr;
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
+#define PBSTEPS 20
 
 class Aggregator {
   public:
@@ -38,6 +41,7 @@ class Aggregator {
     unsigned int seed;
     PyObject* progress_fn;
 
+    // Grouping and aggregating functions
     void group_1d(DataTablePtr&, DataTablePtr&);
     void group_2d(DataTablePtr&, DataTablePtr&);
     void group_nd(DataTablePtr&, DataTablePtr&);
@@ -48,14 +52,15 @@ class Aggregator {
     void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
-    void progress(double, int status_code=0);
-    size_t calculate_map(std::vector<int64_t>&, size_t);
+    // Helper functions
+    DoublePtr generate_pmatrix(DataTablePtr&);
+    void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
+    void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
+    double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double, bool early_exit=true);
+    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&, int64_t);
     void adjust_members(std::vector<int64_t>&, DataTablePtr&);
-    void adjust_delta(double&, std::vector<ex>&, std::vector<int64_t>&, int64_t);
-    void normalize_row(DataTablePtr&, double*, int32_t);
-    double calculate_distance(double*, double*, int64_t, double, bool early_exit=true);
-    double* generate_pmatrix(DataTablePtr&);
-    void project_row(DataTablePtr&, double*, int32_t, double*);
+    size_t calculate_map(std::vector<int64_t>&, size_t);
+    void progress(double, int status_code=0);
 };
 
 

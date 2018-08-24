@@ -15,6 +15,9 @@
 #include "utils/omp.h"
 
 
+/*
+*  Reading data from Python and passing it to the C++ aggregator.
+*/
 PyObject* aggregate(PyObject*, PyObject* args) {
   int32_t n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
   unsigned int seed;
@@ -34,6 +37,9 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 }
 
 
+/*
+*  Setting up aggregation parameters.
+*/
 Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in,
                        int32_t nd_bins_in, int32_t max_dimensions_in, unsigned int seed_in,
                        PyObject* progress_fn_in) :
@@ -48,6 +54,9 @@ Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in
 }
 
 
+/*
+*  Convert all the numeric values to double, do grouping and aggregation.
+*/
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
   progress(0.0);
   DataTablePtr dt_members = nullptr;
@@ -83,6 +92,10 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   return dt_members;
 }
 
+
+/*
+*  Do the actual calculation of counts for each exemplar and set correct exemplar id's for members.
+*/
 void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
   cols[0] = 0;
@@ -137,6 +150,9 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars, DataTablePtr& dt_m
 }
 
 
+/*
+*  Call an appropriate function for 1D grouping.
+*/
 void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   LType ltype = info(dt_exemplars->columns[0]->stype()).ltype();
 
@@ -150,6 +166,9 @@ void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 }
 
 
+/*
+*  Call an appropriate function for 2D grouping.
+*/
 void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   LType ltype0 = info(dt_exemplars->columns[0]->stype()).ltype();
   LType ltype1 = info(dt_exemplars->columns[1]->stype()).ltype();
@@ -184,6 +203,9 @@ void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 }
 
 
+/*
+*  Do 1D grouping for a continuous column, i.e. 1D binning.
+*/
 void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
   const double* d_c0 = c0->elements_r();
@@ -200,6 +222,9 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
 }
 
 
+/*
+*  Do 2D grouping for two continuous columns, i.e. 2D binning.
+*/
 void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
   auto c1 = static_cast<RealColumn<double>*>(dt_exemplars->columns[1]);
@@ -222,6 +247,9 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars, DataTablePtr& d
 }
 
 
+/*
+*  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
+*/
 void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
@@ -243,6 +271,10 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
 }
 
 
+/*
+*  Do 2D grouping for two categorical columns, i.e. two `group by` operations,
+*  and combine their results.
+*/
 void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
@@ -278,6 +310,10 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars, DataTablePtr& 
 }
 
 
+/*
+*  Do 2D grouping for one continuous and one categorical column,
+*  i.e. 1D binning for the continuous columns and a `group by` operation for the categorical one.
+*/
 void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   arr32_t cols(1);
 
@@ -306,94 +342,98 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars, Dat
 }
 
 
-void Aggregator::print_progress(double progress, int status_code) {
-  int val = static_cast<int> (progress * 100);
-  int lpad = static_cast<int> (progress * PBWIDTH);
-  int rpad = PBWIDTH - lpad;
-  printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
-  if (status_code) printf("\n");
-  fflush (stdout);
-}
-
-
-void Aggregator::progress(double progress, int status_code /*= 0*/) {
-  if (PyCallable_Check(progress_fn)) {
-    PyObject_CallFunction(progress_fn,"di",progress,status_code);
-  } else print_progress(progress, status_code);
-}
-
-// N-dimensional aggregation, see [1-3] for more details
-// [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
-// [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
-// [3] https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-euclidean-space?answertab=active#tab-top
+/*
+*  Do ND grouping in the general case. The initial `radius` for this is calculated as (see `Develop` branch)
+*  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
+*  based on the estimates given at
+*  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-euclidean-space?answertab=active#tab-top
+*  If the `radius` starts getting more exemplars than set by `nd_bins` do the following:
+*  - find the closest exemplar for the first one
+*  - adjust `radius` according to this distance
+*  - merge all the exemplars that are within this distance
+*  - store the merging info and use it in `adjust_members(...)`
+*/
 void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto d = static_cast<int32_t>(dt_exemplars->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  double* exemplar = new double[ndims];
-  double* member = new double[ndims];
-  double* pmatrix = nullptr;
-  std::vector<ex> exemplars;
+  int64_t i_step = dt_exemplars->nrows / PBSTEPS;
+  DoublePtr member = DoublePtr(new double[ndims]);
+  DoublePtr pmatrix = nullptr;
+  std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
-  double delta, distance = 0.0;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+
+  // Radius calculations
+  double distance = std::numeric_limits<double>::max(); // This is to ensure that the first row is save as an exemplar
+  double delta;
   double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
   double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
-
-  if (dt_exemplars->ncols > max_dimensions) {
+  if (d > max_dimensions) {
     radius /= 7.0;
     pmatrix = generate_pmatrix(dt_exemplars);
-    project_row(dt_exemplars, exemplar, 0, pmatrix);
-  } else {
-    normalize_row(dt_exemplars, exemplar, 0);
   }
-
   delta = radius * radius;
 
-  ex e = {0, exemplar};
-  exemplars.push_back(e);
-  ids.push_back(e.id);
-  d_members[0] = static_cast<int32_t>(e.id);
-  int64_t i_5 = dt_exemplars->nrows / 20;
-
-  for (int32_t i = 1; i < dt_exemplars->nrows; ++i) {
-    if (dt_exemplars->ncols > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
+  // Main loop
+  for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
+    if (d > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
     else normalize_row(dt_exemplars, member, i);
-
     for (size_t j = 0; j < exemplars.size(); ++j) {
-      distance = calculate_distance(member, exemplars[j].coords, ndims, delta);
+      distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
       if (distance < delta) {
-        d_members[i] = static_cast<int32_t>(exemplars[j].id);
+        d_members[i] = static_cast<int32_t>(exemplars[j]->id);
         break;
       }
     }
-
     if (distance >= delta) {
-      e = (ex) {static_cast<int64_t>(ids.size()), member};
-      exemplars.push_back(e);
-      ids.push_back(e.id);
-      d_members[i] = static_cast<int32_t>(e.id);
-      member = new double[ndims];
+      ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
+      member = DoublePtr(new double[ndims]);
+      ids.push_back(e->id);
+      d_members[i] = static_cast<int32_t>(e->id);
+      exemplars.push_back(std::move(e));
       if (exemplars.size() > static_cast<size_t>(nd_bins)) {
         adjust_delta(delta, exemplars, ids, ndims);
       }
     }
-
-    if (i % i_5 == 0) {
+    if (i % i_step == 0) {
       progress(static_cast<double>(i+1)/dt_exemplars->nrows);
     }
   }
-
   adjust_members(ids, dt_members);
+}
 
-  delete[] pmatrix;
-  delete[] member;
-  #pragma omp parallel for schedule(static)
-  for (size_t i= 0; i < exemplars.size(); ++i) {
-    delete[] exemplars[i].coords;
+
+/*
+*  Adjust `delta` (i.e. `radius^2`) based on the closest exemplar to the first one
+*  and merge all the exemplars within that distance.
+*/
+void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars, std::vector<int64_t>& ids, int64_t ndims) {
+  double min_distance = std::numeric_limits<double>::max();
+
+  for (auto it1 = exemplars.begin(); it1 < exemplars.end() - 1; ++it1) {
+    std::vector<ExPtr>::iterator min_it = exemplars.end();
+    for (auto it2 = it1 + 1; it2 < exemplars.end(); ++it2) {
+      double distance = calculate_distance((*it1)->coords, (*it2)->coords, ndims, delta, it1 != exemplars.begin());
+      if (distance < min_distance ) {
+        if (it1 == exemplars.begin()){
+          min_distance = distance;
+          delta += min_distance;
+        }
+        min_it = it2;
+      }
+    }
+
+    if (min_it != exemplars.end()) {
+      ids[static_cast<size_t>((*min_it)->id)] = (*it1)->id;
+      exemplars.erase(min_it);
+    }
   }
 }
 
 
+/*
+*  Based on the merging info adjusting the members information, i.e. which exemplar they belong to.
+*/
 void Aggregator::adjust_members(std::vector<int64_t>& ids, DataTablePtr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   size_t* map = new size_t[ids.size()];
@@ -414,6 +454,9 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids, DataTablePtr& dt_memb
 }
 
 
+/*
+*  For each exemplar find the one it was merged to.
+*/
 size_t Aggregator::calculate_map(std::vector<int64_t>& ids, size_t id) {
   if (id == static_cast<size_t>(ids[id])){
     return id;
@@ -423,36 +466,15 @@ size_t Aggregator::calculate_map(std::vector<int64_t>& ids, size_t id) {
 }
 
 
-void Aggregator::adjust_delta(double& delta, std::vector<ex>& exemplars, std::vector<int64_t>& ids, int64_t ndims) {
-  double min_distance = std::numeric_limits<double>::max();
-
-  for (auto it1 = exemplars.begin(); it1 < exemplars.end() - 1; ++it1) {
-    std::vector<ex>::iterator min_it = exemplars.end();
-    for (auto it2 = it1 + 1; it2 < exemplars.end(); ++it2) {
-      double distance = calculate_distance((*it1).coords, (*it2).coords, ndims, delta, it1 != exemplars.begin());
-      if (distance < min_distance ) {
-        if (it1 == exemplars.begin()){
-          min_distance = distance;
-          delta += min_distance;
-        }
-        min_it = it2;
-      }
-    }
-
-    if (min_it != exemplars.end()) {
-      ids[static_cast<size_t>((*min_it).id)] = (*it1).id;
-      delete[] (*min_it).coords;
-      exemplars.erase(min_it);
-    }
-  }
-}
-
-
-double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, double delta, bool early_exit /*=true*/) {
+/*
+*  Calculate distance between two vectors. If `early_exit` is set to `true`, stop when the distance
+*  reaches `delta`.
+*/
+double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2, int64_t ndims, double delta, bool early_exit /*=true*/) {
   double sum = 0.0;
   int32_t n = 0;
 
-  for (int i = 0; i < ndims; ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(ndims); ++i) {
     if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) continue;
     ++n;
     sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
@@ -463,7 +485,10 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 }
 
 
-void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
+/*
+*  Normalize the row elements to [0,1).
+*/
+void Aggregator::normalize_row(DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
 //  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
@@ -472,14 +497,17 @@ void Aggregator::normalize_row(DataTablePtr& dt, double* r, int32_t row_id) {
     double norm_factor, norm_shift;
 
     set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
-    r[i] =  norm_factor * d_real[row_id] + norm_shift;
+    r[static_cast<size_t>(i)] =  norm_factor * d_real[row_id] + norm_shift;
   }
 }
 
 
-double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
+/*
+*  Generate projection matrix.
+*/
+DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   std::default_random_engine generator;
-  double* pmatrix;
+  DoublePtr pmatrix = DoublePtr(new double[(dt_exemplars->ncols) * max_dimensions]);
 
   if (!seed) {
     std::random_device rd;
@@ -488,11 +516,10 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
-  pmatrix = new double[(dt_exemplars->ncols) * max_dimensions];
 
-//Can be enabled later when we don't care about exact reproducibility of the results
-//  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < (dt_exemplars->ncols) * max_dimensions; ++i) {
+  //Can be enabled later when we don't care about exact reproducibility of the results
+  //#pragma omp parallel for schedule(static)
+  for (size_t i = 0; i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -500,11 +527,13 @@ double* Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 }
 
 
-void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_id, double* pmatrix) {
-  std::memset(r, 0, static_cast<size_t>(max_dimensions) * sizeof(double));
+/*
+*  Project a particular row on a subspace by using the projection matrix.
+*/
+void Aggregator::project_row(DataTablePtr& dt_exemplars, DoublePtr& r, int32_t row_id, DoublePtr& pmatrix) {
+  std::memset(r.get(), 0, static_cast<size_t>(max_dimensions) * sizeof(double));
   int32_t n = 0;
-
-  for (int64_t i = 0; i < dt_exemplars->ncols; ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(dt_exemplars->ncols); ++i) {
     Column* c = dt_exemplars->columns[i];
     auto c_real = static_cast<RealColumn<double>*> (c);
     auto d_real = c_real->elements_r();
@@ -513,15 +542,14 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, double* r, int32_t row_
       double norm_factor, norm_shift;
       set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
       double norm_row = norm_factor * d_real[row_id] + norm_shift;
-      for (int32_t j = 0; j < max_dimensions; ++j) {
-        r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
+      for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
+        r[j] +=  pmatrix[i * static_cast<size_t>(max_dimensions) + j] * norm_row;
       }
       ++n;
     }
   }
-
-//  #pragma omp parallel for schedule(static)
-  for (int32_t j = 0; j < max_dimensions; ++j) {
+  //#pragma omp parallel for schedule(static)
+  for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
     r[j] /= n;
   }
 }
@@ -547,4 +575,28 @@ void Aggregator::set_norm_coeffs(double& norm_factor, double& norm_shift, double
     norm_factor = 0.0;
     norm_shift =  0.5 * c_bins;
   }
+}
+
+
+/*
+*  Helper function to print the aggregation process
+*/
+void Aggregator::print_progress(double progress, int status_code) {
+  int val = static_cast<int> (progress * 100);
+  int lpad = static_cast<int> (progress * PBWIDTH);
+  int rpad = PBWIDTH - lpad;
+  printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
+  if (status_code) printf("\n");
+  fflush (stdout);
+}
+
+
+/*
+*  Helper function to invoke the Python progress function if supplied,
+*  otherwise just print the progress bar.
+*/
+void Aggregator::progress(double progress, int status_code /*= 0*/) {
+  if (PyCallable_Check(progress_fn)) {
+    PyObject_CallFunction(progress_fn,"di",progress,status_code);
+  } else print_progress(progress, status_code);
 }
