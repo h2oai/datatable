@@ -125,30 +125,30 @@ std::unique_ptr<DataTable> FreadReader::read()
 
     if (firstTime) {
       fo.t_data_read = fo.t_data_reread = wallclock();
-      size_t ncols = columns.size();
-      size_t ncols_to_reread = columns.nColumnsToReread();
-      if (ncols_to_reread) {
-        fo.n_cols_reread += ncols_to_reread;
-        size_t n_type_bump_cols = 0;
-        for (size_t j = 0; j < ncols; j++) {
-          dt::read::Column& col = columns[j];
-          if (!col.is_in_output()) continue;
-          bool bumped = col.is_type_bumped();
-          col.reset_type_bumped();
-          col.set_in_buffer(bumped);
-          n_type_bump_cols += bumped;
-        }
-        firstTime = false;
-        if (verbose) {
-          trace(n_type_bump_cols == 1
-                ? "%zu column needs to be re-read because its type has changed"
-                : "%zu columns need to be re-read because their types have changed",
-                n_type_bump_cols);
-        }
-        goto read;
-      }
     } else {
       fo.t_data_reread = wallclock();
+    }
+    size_t ncols = columns.size();
+    size_t ncols_to_reread = columns.nColumnsToReread();
+    if (ncols_to_reread) {
+      fo.n_cols_reread += ncols_to_reread;
+      size_t n_type_bump_cols = 0;
+      for (size_t j = 0; j < ncols; j++) {
+        dt::read::Column& col = columns[j];
+        if (!col.is_in_output()) continue;
+        bool bumped = col.is_type_bumped();
+        col.reset_type_bumped();
+        col.set_in_buffer(bumped);
+        n_type_bump_cols += bumped;
+      }
+      firstTime = false;
+      if (verbose) {
+        trace(n_type_bump_cols == 1
+              ? "%zu column needs to be re-read because its type has changed"
+              : "%zu columns need to be re-read because their types have changed",
+              n_type_bump_cols);
+      }
+      goto read;
     }
 
     fo.n_rows_read = columns.get_nrows();

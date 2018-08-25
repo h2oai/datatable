@@ -569,7 +569,7 @@ void FreadReader::detect_column_types()
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
-  std::unique_ptr<PT[]> saved_types(new PT[ncols]);
+  auto saved_types = std::unique_ptr<PT[]>(new PT[ncols]);
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
@@ -617,6 +617,10 @@ void FreadReader::detect_column_types()
   }
 
   detect_header();
+
+  if (verbose) {
+    trace("Type codes (final): %s", columns.printTypes());
+  }
 
   size_t estnrow = 1;
   allocnrow = 1;
@@ -715,8 +719,10 @@ void FreadReader::detect_header() {
 
   bool all_strings = true;
   for (size_t j = 0; j < ncols; ++j) {
-    if (!ParserLibrary::info(header_types[j]).isstring())
+    if (!ParserLibrary::info(header_types[j]).isstring()) {
       all_strings = false;
+      break;
+    }
   }
   if (all_strings) {
     header = true;
@@ -730,6 +736,10 @@ void FreadReader::detect_header() {
     // Accurate count of sample lines is needed so that we can allocate
     // the correct amount of rows for the output Frame.
     n_sample_lines++;
+    // Since the first row is not header, re-parse it again in order to
+    // know the column types more precisely.
+    tch = sof;
+    parse_single_line(fctx);
   }
 }
 
