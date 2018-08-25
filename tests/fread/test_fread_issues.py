@@ -481,3 +481,11 @@ def test_issue1030():
     src = "".join(lines)
     with pytest.raises(RuntimeError):
         dt.fread(src, verbose=True)
+
+
+def test_issue1233():
+    # The problem with this example is because the type hierarchy is not
+    # strictly linear, we end up type-bumping the column more than once,
+    # which means the re-read has to happen more than once too...
+    d0 = dt.fread("NaN\n2\n")
+    assert d0.topython() == [[None, 2.0]]
