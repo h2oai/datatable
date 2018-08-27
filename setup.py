@@ -159,7 +159,7 @@ def get_rpath():
 @memoize()
 def get_cc(with_isystem=False):
     cc = os.path.join(get_llvm(), "bin", "clang++")
-    if sys.platform == "win32":
+    if sys.platform == "win64":
         cc += ".exe"
     if not os.path.exists(cc):
         raise SystemExit("Cannot find Clang compiler at `%s`" % cc)
@@ -240,7 +240,7 @@ def get_extra_compile_flags():
     #       objects is not only legal, but also unavoidable since this is the
     #       only kind of object that can be passed to a template...
 
-    if sys.platform == "win32":
+    if sys.platform == "win64":
         flags += ["/W4"]
     else:
         flags += [
@@ -349,11 +349,11 @@ includes = os.path.join(llvmx, "include")
 llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
                 ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
                 ">=0.23.0        " if llvmver == "LLVM6" else None)
-if sys.platform == "win32":
+if sys.platform == "win64":
     clang += ".exe"
 
 for ff in [llvm_config, clang, libsdir, includes]:
-    if ff == llvm_config and sys.platform == "win32":
+    if ff == llvm_config and sys.platform == "win64":
         # There is no llvm-config on Windows:
         # https://github.com/ihnorton/Clang.jl/issues/183
         continue
@@ -377,7 +377,7 @@ if "MACOSX_DEPLOYMENT_TARGET" not in os.environ and sys.platform == "darwin":
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":
     extra_libs = ["libomp.dylib"]
-elif sys.platform == "win32":
+elif sys.platform == "win64":
     extra_libs = ["libgomp-1.dll"]
 else:
     extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
