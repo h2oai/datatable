@@ -131,8 +131,6 @@ class Frame(core.Frame):
                 names = srcdt.names
             self._dt = srcdt.internal
             self.names = names
-        elif src is None:
-            self._fill_from_list([], names=None, stypes=None)
         elif is_type(src, Frame_t):
             if names is None:
                 names = src.names

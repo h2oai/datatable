@@ -151,14 +151,14 @@ void Frame::m__init__(PKArgs& args) {
   // if (src.is_list_or_tuple()) {
   //   dt = _make_frame_from_list(src.to_pylist());
   // }
-  // else if (src.is_undefined() || src.is_none()) {
-  //   dt = DTMaker().to_datatable();
-  // }
-  // else {
-  //   std::cout << "Creating a frame from ";
-  //   src.print();
-  // }
-  {
+  // else
+  if ((src.is_undefined() || src.is_none()) && args.num_varkwd_args() == 0) {
+    dt = DTMaker().to_datatable();
+  }
+
+  if (dt) {
+    core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
+  } else {
     py::oobj osrc(src.to_borrowed_ref());
     py::oobj ostypes(stypes_arg.to_borrowed_ref());
     if (stype_arg) {
