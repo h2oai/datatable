@@ -254,7 +254,7 @@ def get_extra_compile_flags():
             "-Wno-switch-enum",
             "-Wno-weak-template-vtables",
         ]
-        return flags
+return flags
 
 
 @memoize()
