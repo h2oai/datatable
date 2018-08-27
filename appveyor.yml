@@ -31,8 +31,6 @@ install:
   #ps: Bootstrap
 
 skip_branch_with_pr: true
-platform:
-  - x64
 
 environment:
   global:
@@ -42,12 +40,14 @@ environment:
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
   matrix:
-    - PYTHON: "C:\\Python35"
+    - platform: x64
+      PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
-    - PYTHON: "C:\\Python36"
+    - platform: x64
+      PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
