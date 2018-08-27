@@ -225,9 +225,6 @@ def get_extra_compile_flags():
     if "-O0" in flags:
         flags += ["-DDTDEBUG"]
 
-    if sys.platform == "win32":
-        flags += ["/W4"]
-
     # Ignored warnings:
     #   -Wc++98-compat-pedantic:
     #   -Wc99-extensions: since we're targeting C++11, there is no need to
