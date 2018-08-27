@@ -38,9 +38,7 @@ environment:
   LLVM6: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
-platform:
-  - x64
-  - Any CPU
+
   matrix:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
@@ -51,6 +49,9 @@ platform:
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
+platform:
+    - x64
+    - Any CPU
 
 before_build:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
