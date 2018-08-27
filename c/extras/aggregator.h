@@ -26,7 +26,7 @@ typedef std::unique_ptr<ex> ExPtr;
 
 class Aggregator {
   public:
-    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t,
+    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
                unsigned int, PyObject*);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
@@ -34,6 +34,8 @@ class Aggregator {
     static void print_progress(double, int);
 
   private:
+
+    int32_t min_rows;
     int32_t n_bins;
     int32_t nx_bins;
     int32_t ny_bins;

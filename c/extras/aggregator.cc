@@ -19,21 +19,22 @@
 *  Reading data from Python and passing it to the C++ aggregator.
 */
 PyObject* aggregate(PyObject*, PyObject* args) {
-  int32_t n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
+
+  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
   unsigned int seed;
   PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiIO:aggregate", &arg1, &n_bins, &nx_bins,
-                        &ny_bins, &nd_bins, &max_dimensions, &seed,
+  if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
+                        &nx_bins, &ny_bins, &nd_bins, &max_dimensions, &seed,
                         &progress_fn)) return nullptr;
 
   DataTable* dt_in = py::obj(arg1).to_frame();
   DataTablePtr dt_members = nullptr;
 
-  Aggregator agg(n_bins, nx_bins, ny_bins, nd_bins, max_dimensions, seed, progress_fn);
+  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions,
+                 seed, progress_fn);
   dt_members = agg.aggregate(dt_in);
-
   return pydatatable::wrap(dt_members.release());
 }
 
@@ -41,9 +42,10 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 /*
 *  Setting up aggregation parameters.
 */
-Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in,
-                       int32_t nd_bins_in, int32_t max_dimensions_in,
+Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_in,
+                       int32_t ny_bins_in, int32_t nd_bins_in, int32_t max_dimensions_in,
                        unsigned int seed_in, PyObject* progress_fn_in) :
+  min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
   ny_bins(ny_bins_in),
@@ -61,31 +63,37 @@ Aggregator::Aggregator(int32_t n_bins_in, int32_t nx_bins_in, int32_t ny_bins_in
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
   progress(0.0);
   DataTablePtr dt_members = nullptr;
-  DataTablePtr dt_double = nullptr;
-  Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
-  int32_t ncols = 0;
-
-  for (int64_t i = 0; i < dt->ncols; ++i) {
-    LType ltype = info(dt->columns[i]->stype()).ltype();
-    switch (ltype) {
-      case LType::BOOL:
-      case LType::INT:
-      case LType::REAL: cols_double[ncols++] = dt->columns[i]->cast(SType::FLOAT64); break;
-      default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
-    }
-  }
-
-  cols_double[ncols] = nullptr;
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
-  dt_double = DataTablePtr(new DataTable(cols_double));
   dt_members = DataTablePtr(new DataTable(cols_members));
 
-  switch (dt_double->ncols) {
-    case 1:  group_1d(dt_double, dt_members); break;
-    case 2:  group_2d(dt_double, dt_members); break;
-    default: group_nd(dt_double, dt_members);
+  if (dt->nrows > min_rows) {
+    DataTablePtr dt_double = nullptr;
+    Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
+    int32_t ncols = 0;
+
+    for (int64_t i = 0; i < dt->ncols; ++i) {
+      LType ltype = info(dt->columns[i]->stype()).ltype();
+      switch (ltype) {
+        case LType::BOOL:
+        case LType::INT:
+        case LType::REAL: cols_double[ncols++] = dt->columns[i]->cast(SType::FLOAT64); break;
+        default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
+      }
+    }
+
+    cols_double[ncols] = nullptr;
+    dt_double = DataTablePtr(new DataTable(cols_double));
+
+    switch (dt_double->ncols) {
+      case 1:  group_1d(dt_double, dt_members); break;
+      case 2:  group_2d(dt_double, dt_members); break;
+      default: group_nd(dt_double, dt_members);
+    }
+  } else { // Do no aggregation, all rows become exemplars.
+    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+    for (int32_t i = 0; i < dt->nrows; ++i ) d_members[i] = i;
   }
 
   aggregate_exemplars(dt, dt_members); // modify dt in place
