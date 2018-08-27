@@ -33,7 +33,9 @@ class olist : public oobj {
     size_t : 56;
 
   public:
+    olist(int n);
     olist(size_t n);
+    olist(int64_t n);
     olist(const olist&);
     olist(olist&&);
     olist& operator=(const olist&);

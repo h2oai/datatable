@@ -47,6 +47,8 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
     py::obj item = srcs[i];
     if (item.is_buffer()) {
       cols[i] = Column::from_buffer(item.to_borrowed_ref());
+    } else if (item.is_range()) {
+
     } else if (item.is_list()) {
       py::olist list = item.to_pylist();
       int stype = 0;

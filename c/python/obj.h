@@ -22,13 +22,12 @@ namespace py {
 
 // Forward declarations
 class Arg;
-class oint;
-class Float;
-class ofloat;
-class string;
 class odict;
+class ofloat;
+class oint;
 class olist;
 class ostring;
+class orange;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -171,6 +170,7 @@ class _obj {
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::olist   to_pylist        (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
+    py::orange  to_pyrange       (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
@@ -200,6 +200,7 @@ class _obj {
       virtual Error error_not_column     (PyObject*) const;
       virtual Error error_not_list       (PyObject*) const;
       virtual Error error_not_dict       (PyObject*) const;
+      virtual Error error_not_range      (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
