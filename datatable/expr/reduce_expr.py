@@ -36,7 +36,6 @@ def first(iterable):
         for x in iterable:
             return x
 
-
 class CountExpr(BaseExpr):
     def is_reduce_expr(self, ee):
         return True

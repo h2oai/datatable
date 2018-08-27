@@ -18,16 +18,16 @@ def test_count_array_integer():
     assert a_reduce == 10
 
 
-def test_count_dt_integer():
+def test_count_dt_integer():    
     df_in = dt.Frame([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     df_reduce = df_in[:,[count(f.C0),count()]]
     df_reduce.internal.check()
     assert df_reduce.shape == (1, 2)
     assert df_reduce.ltypes == (ltype.int,ltype.int,)
-    assert df_reduce.topython() == [[10], [13]]
+    assert df_reduce.topython() == [[10], [13]]    
 
 
-def test_count_dt_groupby_integer():
+def test_count_dt_groupby_integer():    
     df_in = dt.Frame([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     df_reduce = df_in[:, [count(f.C0),count()], "C0"]
     df_reduce.internal.check()
@@ -43,8 +43,8 @@ def test_count_2d_array_integer():
          [0, 1, 0, 5, 3, 8, 1, 0, 2, 5, None, 8, 1]]
     a_reduce = count(a_in)
     assert a_reduce == 2
-
-
+    
+        
 def test_count_2d_dt_integer():
     df_in = dt.Frame([[9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1],
                    [0, 1, 0, 5, 3, 8, 1, 0, 2, 5, None, 8, 1]])
@@ -53,7 +53,7 @@ def test_count_2d_dt_integer():
     assert df_reduce.shape == (1, 3)
     assert df_reduce.ltypes == (ltype.int,ltype.int,ltype.int,)
     assert df_reduce.topython() == [[10],[12],[13]]
-
+    
 
 def test_count_2d_dt_groupby_integer():
     df_in = dt.Frame([[9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1],
@@ -69,35 +69,35 @@ def test_count_2d_dt_groupby_integer():
 
 
 def test_count_array_string():
-    a_in = [None, "blue", "green", "indico", None, None, "orange", "red",
+    a_in = [None, "blue", "green", "indico", None, None, "orange", "red", 
          "violet", "yellow", "green", None, "blue"]
     a_reduce = count(a_in)
     assert a_reduce == 9
 
 
-def test_count_dt_string():
-    df_in = dt.Frame([None, "blue", "green", "indico", None, None, "orange",
+def test_count_dt_string():    
+    df_in = dt.Frame([None, "blue", "green", "indico", None, None, "orange", 
                    "red", "violet", "yellow", "green", None, "blue"])
     df_reduce = df_in[:, [count(f.C0),count()]]
     df_reduce.internal.check()
     assert df_reduce.shape == (1, 2)
     assert df_reduce.ltypes == (ltype.int,ltype.int,)
     assert df_reduce.topython() == [[9], [13]]
-
-
-def test_count_dt_groupby_string():
-    df_in = dt.Frame([None, "blue", "green", "indico", None, None, "orange",
+    
+        
+def test_count_dt_groupby_string():    
+    df_in = dt.Frame([None, "blue", "green", "indico", None, None, "orange", 
                    "red", "violet", "yellow", "green", None, "blue"])
     df_reduce = df_in[:, [count(f.C0),count()], "C0"]
     df_reduce.internal.check()
     assert df_reduce.shape == (8, 3)
     assert df_reduce.ltypes == (ltype.str,ltype.int,ltype.int,)
-    assert df_reduce.topython() == [[None, "blue", "green", "indico", "orange",
+    assert df_reduce.topython() == [[None, "blue", "green", "indico", "orange", 
                                "red", "violet", "yellow"],
                               [0, 2, 2, 1, 1, 1, 1, 1],
                               [4, 2, 2, 1, 1, 1, 1, 1]]
-
-
+        
+    
 def test_count_dt_integer_large(numpy):
     n = 12345678
     a_in = numpy.random.randint(2**20, size=n, dtype=numpy.int32)
@@ -106,8 +106,6 @@ def test_count_dt_integer_large(numpy):
     assert df_reduce.shape == (1, 1)
     assert df_reduce.ltypes == (ltype.int,)
     assert df_reduce.topython() == [[n]]
-
-
 
 #-------------------------------------------------------------------------------
 # First
@@ -127,7 +125,6 @@ def test_first_dt():
     assert df_reduce.ltypes == (ltype.int,)
     assert df_reduce.topython() == [[9]]
 
-
 def test_first_dt_range():
     df_in = dt.Frame(A=range(10))[3::3, :]
     df_reduce = df_in[:,first(f.A)]
@@ -145,7 +142,6 @@ def test_first_dt_groupby():
     assert df_reduce.ltypes == (ltype.int,ltype.int,)
     assert df_reduce.topython() == [[None, 0, 1, 2, 3, 5, 8, 9],
                               [None, 0, 1, 2, 3, 5, 8, 9]]
-
 
 def test_first_dt_integer_large(numpy):
     n = 12345678
