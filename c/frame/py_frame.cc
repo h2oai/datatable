@@ -17,7 +17,7 @@ namespace py {
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
-PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
+PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
                                   {"src", "names", "stypes", "stype"});
 PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
 

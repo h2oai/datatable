@@ -131,6 +131,7 @@ class _obj {
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
+    operator bool() const noexcept;  // opposite of is_undefined()
     bool is_undefined()     const noexcept;
     bool is_none()          const noexcept;
     bool is_ellipsis()      const noexcept;

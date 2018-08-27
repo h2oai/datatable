@@ -9,6 +9,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "python/dict.h"
+#include "python/list.h"
+#include "python/string.h"
 #include "utils/alloc.h"
 
 namespace py {
@@ -24,6 +27,7 @@ class DTMaker {
     std::vector<Column*> cols;
 
   public:
+    DTMaker() = default;
     ~DTMaker() {
       for (auto col : cols) dt::free(col);
     }
@@ -128,10 +132,11 @@ static DataTable* _make_frame_from_list(py::olist list) {
 // Main constructor
 //------------------------------------------------------------------------------
 
-void Frame::m__init__(PKArgs&) {
-  // const Arg& src        = args[0];
-  // const Arg& names_arg  = args[1];
-  // const Arg& stypes_arg = args[2];
+void Frame::m__init__(PKArgs& args) {
+  const Arg& src        = args[0];
+  const Arg& names_arg  = args[1];
+  const Arg& stypes_arg = args[2];
+  const Arg& stype_arg  = args[3];
 
   dt = nullptr;
   core_dt = nullptr;
@@ -153,6 +158,32 @@ void Frame::m__init__(PKArgs&) {
   //   std::cout << "Creating a frame from ";
   //   src.print();
   // }
+  {
+    py::oobj osrc(src.to_borrowed_ref());
+    py::oobj ostypes(stypes_arg.to_borrowed_ref());
+    if (stype_arg) {
+      py::olist stypes_list(1);
+      stypes_list.set(0, stype_arg.to_borrowed_ref());
+      ostypes = stypes_list;
+    }
+    if (args.num_varkwd_args()) {
+      if (src) {
+        throw TypeError() << "Unknown keyword arguments in Frame.__init__()";
+      }
+      py::odict kvdict;
+      for (auto kv : args.varkwds()) {
+        kvdict.set(ostring(kv.first), kv.second);
+      }
+      osrc = std::move(kvdict);
+    }
+    PyObject* arg1 = osrc.to_borrowed_ref();
+    PyObject* arg2 = names_arg.to_borrowed_ref();
+    PyObject* arg3 = ostypes.to_borrowed_ref();
+    if (!arg1) arg1 = py::None().release();
+    if (!arg2) arg2 = py::None().release();
+    if (!arg3) arg3 = py::None().release();
+    py::obj(this).invoke("_fill_from_source", "OOO", arg1, arg2, arg3);
+  }
 }
 
 

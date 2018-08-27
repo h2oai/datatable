@@ -7,7 +7,6 @@
 import collections
 import re
 import time
-from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
 import datatable
@@ -18,7 +17,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t, dtwarn,
+    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t,
     typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
@@ -40,23 +39,6 @@ class Frame(core.Frame):
 
     This is a primary data structure for datatable module.
     """
-
-    def __init__(self, src=None, names=None, stypes=None, **kwargs):
-        super().__init__()
-        if "stype" in kwargs:
-            stypes = [kwargs.pop("stype")]
-        if kwargs:
-            if src is None:
-                src = kwargs
-            else:
-                dtwarn("Unknown options %r to Frame()" % kwargs)
-        # self._dt = None      # type: core.DataTable
-        self._fill_from_source(src, names=names, stypes=stypes)
-
-
-    #---------------------------------------------------------------------------
-    # Basic properties
-    #---------------------------------------------------------------------------
 
     @property
     def key(self):

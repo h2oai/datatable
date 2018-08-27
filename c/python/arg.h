@@ -61,8 +61,9 @@ class Arg : public _obj::error_manager {
     virtual Error error_not_list       (PyObject*) const;
 
     // ?
+    operator bool() const noexcept { return pyobj.operator bool(); }
     PyObject* obj() { return pyobj.to_pyobject_newref(); }
-    PyObject* to_borrowed_ref() { return pyobj.to_borrowed_ref(); }
+    PyObject* to_borrowed_ref() const { return pyobj.to_borrowed_ref(); }
     PyTypeObject* typeobj() { return pyobj.typeobj(); }
     void print() const;
 

@@ -93,6 +93,8 @@ oobj::~oobj() {
 // Type checks
 //------------------------------------------------------------------------------
 
+_obj::operator bool() const noexcept { return (v != nullptr); }
+
 bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
 bool _obj::is_none()          const noexcept { return (v == Py_None); }
 bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
