@@ -240,10 +240,9 @@ def get_extra_compile_flags():
     #       objects is not only legal, but also unavoidable since this is the
     #       only kind of object that can be passed to a template...
 
-    if sys.platform == "win32":
-        flags += ["/W4"]
-      
     flags += [
+        if sys.platform == "win32":
+            flags += ["/W4"]
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
