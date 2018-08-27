@@ -214,9 +214,6 @@ def get_extra_compile_flags():
     if "-O0" in flags:
         flags += ["-DDTDEBUG"]
 
-    if sys.platform == "win32":
-        flags += ["/W4"]
-
     # Ignored warnings:
     #   -Wc++98-compat-pedantic:
     #   -Wc99-extensions: since we're targeting C++11, there is no need to
@@ -228,6 +225,9 @@ def get_extra_compile_flags():
     #       does not suffer from this drawback.
     #   -Wweak-template-vtables: this waning's purpose is unclear, and it
     #       is also unclear how to prevent it...
+    if sys.platform == "win32":
+        flags += ["/W4"]
+        
     flags += [
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
