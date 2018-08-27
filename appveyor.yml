@@ -38,7 +38,7 @@ environment:
   LLVM6: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
-  platform:
+platform:
   - x64
   - Any CPU
   matrix:
