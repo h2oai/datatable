@@ -1,7 +1,6 @@
 image: Visual Studio 2017
 
 build: false
-  verbosity: normal
 
 install:
   - choco install mingw
