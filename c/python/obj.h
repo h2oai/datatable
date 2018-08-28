@@ -144,6 +144,7 @@ class _obj {
     bool is_list()          const noexcept;
     bool is_tuple()         const noexcept;
     bool is_list_or_tuple() const noexcept;
+    bool is_iterable()      const noexcept;
     bool is_dict()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
@@ -176,6 +177,7 @@ class _obj {
     Groupby*    to_groupby       (const error_manager& = _em0) const;
     RowIndex    to_rowindex      (const error_manager& = _em0) const;
     DataTable*  to_frame         (const error_manager& = _em0) const;
+    SType       to_stype         (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }

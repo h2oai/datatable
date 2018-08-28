@@ -78,6 +78,7 @@ class Frame : public PyObject {
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
+    friend class FrameInitializationManager;
 };
 
 

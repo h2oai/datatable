@@ -399,7 +399,7 @@ void init_types(void);
 void init_py_stype_objs(PyObject* stype_enum);
 void init_py_ltype_objs(PyObject* ltype_enum);
 
-
+SType stype_from_pyobject(PyObject* s);
 SType stype_from_string(const std::string&);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 

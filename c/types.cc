@@ -12,6 +12,7 @@
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 static PyObject* py_stype_objs[DT_STYPES_COUNT];
+static PyObject* py_stype;
 
 
 
@@ -235,12 +236,21 @@ SType stype_from_string(const std::string& str)
 }
 
 
+SType stype_from_pyobject(PyObject* s) {
+  PyObject* res = PyObject_CallFunction(py_stype, "O", s);
+  if (res == nullptr) throw PyError();
+  int32_t value = py::obj(res).get_attr("value").to_int32();
+  return static_cast<SType>(value);
+}
+
+
 SType common_stype_for_buffer(SType stype1, SType stype2) {
   return stype_upcast_map[int(stype1)][int(stype2)];
 }
 
 
 void init_py_stype_objs(PyObject* stype_enum) {
+  py_stype = stype_enum;
   for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);

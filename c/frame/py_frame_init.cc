@@ -11,6 +11,7 @@
 #include <vector>
 #include "python/dict.h"
 #include "python/list.h"
+#include "python/orange.h"
 #include "python/string.h"
 #include "utils/alloc.h"
 
@@ -71,9 +72,9 @@ static std::vector<std::string> _get_names(const Arg& arg) {
   if (arg.is_undefined() || arg.is_none()) {
     return std::vector<std::string>();
   }
-  // if (arg.is_list() || arg.is_tuple()) {
-  //   return arg.to_list_of_strs();
-  // }
+  if (arg.is_list() || arg.is_tuple()) {
+    return arg.to_stringlist();
+  }
   // TODO: also allow a single-column Frame of string type
   throw TypeError() << arg.name() << " must be a list/tuple of column names";
 }
@@ -88,7 +89,8 @@ static Column* _make_column_from_listlike(py::obj src) {
     return Column::from_pylist(src.to_pylist(), 0);
   }
   else if (src.is_range()) {
-    // return Column::from_range(src.to_range());
+    auto r = src.to_pyrange();
+    return Column::from_range(r.start(), r.stop(), r.step(), SType::VOID);
   }
   return nullptr;
 }
@@ -110,7 +112,7 @@ static DataTable* _make_frame_from_list(py::olist list) {
     return DTMaker().to_datatable();
   }
   py::obj item0 = list[0];
-  if (item0.is_list() || item0.is_range()) {
+  if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
     return _make_frame_from_list_of_listlike(list);
   }
   // else if (item0.is_dict()) {
@@ -125,6 +127,118 @@ static DataTable* _make_frame_from_list(py::olist list) {
     return dtm.to_datatable();
   }
 }
+
+
+
+//------------------------------------------------------------------------------
+// Frame construction manager
+//------------------------------------------------------------------------------
+
+class FrameInitializationManager {
+  private:
+    PKArgs& all_args;
+    const Arg& src;
+    const Arg& names_arg;
+    const Arg& stypes_arg;
+    const Arg& stype_arg;
+    Frame* frame;
+
+  public:
+    FrameInitializationManager(PKArgs& args, Frame* f)
+      : all_args(args),
+        src(args[0]),
+        names_arg(args[1]),
+        stypes_arg(args[2]),
+        stype_arg(args[3]),
+        frame(f) {}
+
+    void run()
+    {
+      if (all_args.num_varkwd_args()) {
+        if (src) {
+          throw _error_unknown_kwargs();
+        }
+        _init_from_varkwd_dict();
+      }
+      if (src.is_list_or_tuple()) {
+        py::olist collist = src.to_pylist();
+        if (collist.size() == 0) {
+          // _init_empty_frame();
+        }
+        else {
+          py::obj item0 = collist[0];
+          if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
+            _init_from_list_of_lists();
+          }
+          else if (item0.is_dict()) {
+            _init_from_list_of_dicts();
+          }
+          else if (item0.is_tuple()) {
+            _init_from_list_of_tuples();
+          }
+          else {
+            _init_from_list_of_primitives();
+          }
+        }
+      }
+      else if (src.is_dict()) {
+        _init_from_dict();
+      }
+    }
+
+
+  private:
+    void _init_empty_frame() {
+      frame->dt = DTMaker().to_datatable();
+      // check for 0 names
+      // check for 0 stypes
+    }
+
+    void _init_from_list_of_lists() {
+      py::olist collist = src.to_pylist();
+      // check for collist.size() names & stypes
+      for (size_t i = 0; i < collist.size(); ++i) {
+        py::obj item = collist[i];
+        // get stype for index `i`
+        // add column built from `item`
+      }
+    }
+
+    void _init_from_list_of_dicts() {
+      // TODO
+    }
+
+    void _init_from_list_of_tuples() {
+      // TODO
+    }
+
+    void _init_from_list_of_primitives() {
+      py::olist colsrc = src.to_pylist();
+      // check for 1 name
+      // check for 1 stype
+      // get stype (0)
+      // add column made from `colsrc`
+    }
+
+    void _init_from_dict() {
+      // check for 0 names
+      py::odict coldict = src.to_pydict();
+      // check for coldict.size() stypes
+      for (auto kv : coldict) {
+        // add name kv.first
+        // get stype by name(kv.first)
+        // add column from kv.second
+      }
+    }
+
+    void _init_from_varkwd_dict() {
+      // TODO
+    }
+
+    Error _error_unknown_kwargs() {
+      return TypeError() << "Uknown keyword arguments";
+    }
+};
 
 
 
@@ -145,11 +259,12 @@ void Frame::m__init__(PKArgs& args) {
   names = nullptr;
   inames = nullptr;
 
-  // bool names_defined = !names_arg.is_undefined();
-  // auto names = _get_names(names_arg);
+  FrameInitializationManager fim(args, this);
+  fim.run();
 
   // if (src.is_list_or_tuple()) {
   //   dt = _make_frame_from_list(src.to_pylist());
+  //   set_names(names_arg.to_pyobj());
   // }
   // else
   if ((src.is_undefined() || src.is_none()) && args.num_varkwd_args() == 0) {

@@ -7,7 +7,9 @@
 //------------------------------------------------------------------------------
 #include "python/arg.h"
 #include "python/args.h"        // py::PKArgs
+#include "python/dict.h"
 #include "python/int.h"
+#include "python/list.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -69,7 +71,9 @@ bool Arg::is_range()         const { return pyobj.is_range(); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
+py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
+strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 
 
 

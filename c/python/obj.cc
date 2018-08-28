@@ -110,6 +110,7 @@ bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
+bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
 
@@ -439,6 +440,11 @@ Column* _obj::to_column(const error_manager& em) const {
     throw em.error_not_column(v);
   }
   return reinterpret_cast<pycolumn::obj*>(v)->ref;
+}
+
+
+SType _obj::to_stype(const error_manager& em) const {
+  return stype_from_pyobject(v);
 }
 
 
