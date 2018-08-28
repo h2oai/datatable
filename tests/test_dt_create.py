@@ -222,6 +222,17 @@ def test_create_as_str64():
     assert d0.topython() == [[str(n) for n in range(10)]]
 
 
+@pytest.mark.parametrize("st", [stype.int8, stype.int16, stype.int64,
+                                stype.float32, stype.float64, stype.str32])
+def test_create_range_as_stype(st):
+    d0 = dt.Frame(range(10), stype=st)
+    assert d0.stypes == (st,)
+    if st == stype.str32:
+        assert d0.topython()[0] == [str(x) for x in range(10)]
+    else:
+        assert d0.topython()[0] == list(range(10))
+
+
 
 #-------------------------------------------------------------------------------
 # Create with names
@@ -470,8 +481,8 @@ def test_create_from_mixed_sources(numpy):
     df.internal.check()
     assert df.shape == (5, 4)
     assert same_iterables(df.names, ("A", "B", "C", "D"))
-    assert same_iterables(df.stypes,
-                          (stype.float64, stype.int8, stype.str32, stype.int32))
+    assert same_iterables(df.stypes, (stype.float64, stype.int32, stype.str32,
+                                      stype.int32))
 
 
 

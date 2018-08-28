@@ -14,7 +14,8 @@ from datatable import join, ltype, stype, f, g, mean
 
 def test_join_simple():
     d0 = dt.Frame([[1, 3, 2, 1, 1, 2, 0], list("abcdefg")], names=("A", "B"))
-    d1 = dt.Frame([range(4), ["zero", "one", "two", "three"]], names=("A", "V"))
+    d1 = dt.Frame([range(4), ["zero", "one", "two", "three"]], names=("A", "V"),
+                  stypes=d0.stypes)
     d1.key = "A"
     res = d0[:, :, join(d1)]
     res.internal.check()

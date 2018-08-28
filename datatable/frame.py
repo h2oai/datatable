@@ -149,16 +149,9 @@ class Frame(core.Frame):
 
 
     def _fill_from_list(self, src, names, stypes):
-        for i in range(len(src)):
-            e = src[i]
-            if isinstance(e, range):
-                src[i] = list(e)
-            elif isinstance(e, list) or is_type(e, NumpyArray_t):
-                pass
-            else:
-                if i == 0:
-                    src = [src]
-                break
+        if not (isinstance(src[0], (range, list)) or
+                is_type(src[0], NumpyArray_t)):
+            src = [src]
         types = None
         if stypes:
             if len(stypes) == 1:
