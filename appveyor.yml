@@ -1,5 +1,3 @@
-image: Visual Studio 2017
-
 build: false
 
 install:
@@ -29,12 +27,14 @@ environment:
 
   matrix:
     - platform: x64
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
     - platform: x64
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
