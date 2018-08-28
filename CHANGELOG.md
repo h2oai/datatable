@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.resize()` was removed -- same functionality is available via
   assigning to `Frame.nrows`.
 - `Frame.rename()` was removed -- .name setter can be used instead.
+- `Frame([])` now creates a 0x0 Frame instead of 0x1.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.

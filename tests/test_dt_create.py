@@ -17,6 +17,38 @@ from tests import same_iterables, list_equals, assert_equals
 
 
 #-------------------------------------------------------------------------------
+# Create empty Frame
+#-------------------------------------------------------------------------------
+
+def test_create_from_nothing():
+    d0 = dt.Frame()
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+    d0.internal.check()
+
+
+def test_create_from_none():
+    d0 = dt.Frame(None)
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+    d0.internal.check()
+
+
+def test_create_from_empty_list():
+    d0 = dt.Frame([])
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+    d0.internal.check()
+
+
+
+#-------------------------------------------------------------------------------
 # Create from primitives
 #-------------------------------------------------------------------------------
 
@@ -62,24 +94,6 @@ def test_create_from_list_of_ranges():
     d0.internal.check()
     assert d0.shape == (6, 2)
     assert d0.topython() == [list(range(6)), list(range(0, 12, 2))]
-
-
-def test_create_from_nothing():
-    d4 = dt.Frame()
-    assert d4.shape == (0, 0)
-    assert d4.names == tuple()
-    assert d4.ltypes == tuple()
-    assert d4.stypes == tuple()
-    d4.internal.check()
-
-
-def test_create_from_empty_list():
-    d5 = dt.Frame([])
-    assert d5.shape == (0, 1)
-    assert d5.names == ("C0", )
-    assert d5.ltypes == (ltype.bool, )
-    assert d5.stypes == (stype.bool8, )
-    d5.internal.check()
 
 
 def test_create_from_empty_list_of_lists():

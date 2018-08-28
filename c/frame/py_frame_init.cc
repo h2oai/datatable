@@ -101,7 +101,7 @@ class FrameInitializationManager {
       else if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
         if (collist.size() == 0) {
-          // _init_empty_frame();
+          _init_empty_frame();
         }
         else {
           py::obj item0 = collist[0];
