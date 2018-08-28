@@ -67,68 +67,6 @@ class DTMaker {
 };
 
 
-/*
-static std::vector<std::string> _get_names(const Arg& arg) {
-  if (arg.is_undefined() || arg.is_none()) {
-    return std::vector<std::string>();
-  }
-  if (arg.is_list() || arg.is_tuple()) {
-    return arg.to_stringlist();
-  }
-  // TODO: also allow a single-column Frame of string type
-  throw TypeError() << arg.name() << " must be a list/tuple of column names";
-}
-*/
-
-
-static Column* _make_column_from_listlike(py::obj src) {
-  if (src.is_buffer()) {
-    return Column::from_buffer(src.to_borrowed_ref());
-  }
-  else if (src.is_list()) {
-    return Column::from_pylist(src.to_pylist(), 0);
-  }
-  else if (src.is_range()) {
-    auto r = src.to_pyrange();
-    return Column::from_range(r.start(), r.stop(), r.step(), SType::VOID);
-  }
-  return nullptr;
-}
-
-
-static DataTable* _make_frame_from_list_of_listlike(py::olist list) {
-  DTMaker dtm;
-  size_t ncols = list.size();
-  for (size_t i = 0; i < ncols; ++i) {
-    Column* col = _make_column_from_listlike(list[i]);
-    dtm.push_back(col);
-  }
-  return dtm.to_datatable();
-}
-
-
-static DataTable* _make_frame_from_list(py::olist list) {
-  if (list.size() == 0) {
-    return DTMaker().to_datatable();
-  }
-  py::obj item0 = list[0];
-  if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
-    return _make_frame_from_list_of_listlike(list);
-  }
-  // else if (item0.is_dict()) {
-  //   return _make_frame_from_list_of_dicts(list);
-  // }
-  // else if (item0.is_tuple()) {
-  //   return _make_frame_from_list_of_tuples(list);
-  // }
-  else {
-    DTMaker dtm;
-    dtm.push_back(_make_column_from_listlike(list));
-    return dtm.to_datatable();
-  }
-}
-
-
 
 //------------------------------------------------------------------------------
 // Frame construction manager
@@ -160,7 +98,7 @@ class FrameInitializationManager {
         }
         _init_from_varkwd_dict();
       }
-      if (src.is_list_or_tuple()) {
+      else if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
         if (collist.size() == 0) {
           // _init_empty_frame();
@@ -184,6 +122,9 @@ class FrameInitializationManager {
       else if (src.is_dict()) {
         _init_from_dict();
       }
+      else if (src.is_undefined() || src.is_none()) {
+        _init_empty_frame();
+      }
     }
 
 
@@ -202,6 +143,13 @@ class FrameInitializationManager {
         // get stype for index `i`
         // add column built from `item`
       }
+      // DTMaker dtm;
+      // size_t ncols = list.size();
+      // for (size_t i = 0; i < ncols; ++i) {
+      //   Column* col = _make_column_from_listlike(list[i]);
+      //   dtm.push_back(col);
+      // }
+      // return dtm.to_datatable();
     }
 
     void _init_from_list_of_dicts() {
@@ -238,6 +186,22 @@ class FrameInitializationManager {
     Error _error_unknown_kwargs() {
       return TypeError() << "Uknown keyword arguments";
     }
+
+    /*
+    Column* _make_column_from_listlike(py::obj src) {
+      if (src.is_buffer()) {
+        return Column::from_buffer(src.to_borrowed_ref());
+      }
+      else if (src.is_list()) {
+        return Column::from_pylist(src.to_pylist(), 0);
+      }
+      else if (src.is_range()) {
+        auto r = src.to_pyrange();
+        return Column::from_range(r.start(), r.stop(), r.step(), SType::VOID);
+      }
+      return nullptr;
+    }
+    */
 };
 
 
@@ -261,15 +225,6 @@ void Frame::m__init__(PKArgs& args) {
 
   FrameInitializationManager fim(args, this);
   fim.run();
-
-  // if (src.is_list_or_tuple()) {
-  //   dt = _make_frame_from_list(src.to_pylist());
-  //   set_names(names_arg.to_pyobj());
-  // }
-  // else
-  if ((src.is_undefined() || src.is_none()) && args.num_varkwd_args() == 0) {
-    dt = DTMaker().to_datatable();
-  }
 
   if (dt) {
     core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
