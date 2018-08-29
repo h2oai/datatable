@@ -62,6 +62,13 @@ def test_unknown_args():
             "'A', 'B', ..., 'E'" == str(e.value))
 
 
+def test_stypes_dict():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1, 2, 3], stypes={"A": float})
+    assert ("When parameter `stypes` is a dictionary, column `names` must "
+            "be explicitly specified" == str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create empty Frame

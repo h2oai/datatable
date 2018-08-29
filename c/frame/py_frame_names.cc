@@ -16,6 +16,77 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
+// "Names provider" helper classes
+//------------------------------------------------------------------------------
+
+class Frame::NameProvider {
+  public:
+    virtual ~NameProvider();
+    virtual size_t size() const = 0;
+    virtual CString item_as_cstring(size_t i) = 0;
+    virtual py::oobj item_as_pyoobj(size_t i) = 0;
+};
+
+class pylistNP : public Frame::NameProvider {
+  private:
+    py::olist names;
+
+  public:
+    pylistNP(py::obj arg) : names(arg.to_pylist()) {}
+    size_t size() const override;
+    virtual CString item_as_cstring(size_t i) override;
+    virtual py::oobj item_as_pyoobj(size_t i) override;
+};
+
+class strvecNP : public Frame::NameProvider {
+  private:
+    const std::vector<std::string>& names;
+
+  public:
+    strvecNP(const std::vector<std::string>& arg) : names(arg) {}
+    size_t size() const override;
+    virtual CString item_as_cstring(size_t i) override;
+    virtual py::oobj item_as_pyoobj(size_t i) override;
+};
+
+
+//------------------------------------------------------------------------------
+
+Frame::NameProvider::~NameProvider() {}
+
+size_t pylistNP::size() const {
+  return names.size();
+}
+
+CString pylistNP::item_as_cstring(size_t i) {
+  py::obj name = names[i];
+  if (!name.is_string() && !name.is_none()) {
+    throw TypeError() << "Invalid `names` list: element " << i
+        << " is not a string";
+  }
+  return name.to_cstring();
+}
+
+py::oobj pylistNP::item_as_pyoobj(size_t i) {
+  return py::oobj(names[i]);
+}
+
+size_t strvecNP::size() const {
+  return names.size();
+}
+
+CString strvecNP::item_as_cstring(size_t i) {
+  auto name = names[i];
+  return CString { name.data(), static_cast<int64_t>(name.size()) };
+}
+
+py::oobj strvecNP::item_as_pyoobj(size_t i) {
+  return py::ostring(names[i]);
+}
+
+
+
+//------------------------------------------------------------------------------
 // User-facing API
 //------------------------------------------------------------------------------
 
@@ -31,7 +102,8 @@ void Frame::set_names(obj arg)
     _fill_default_names();
   }
   else if (arg.is_list() || arg.is_tuple()) {
-    _dedup_and_save_names(arg.to_pylist());
+    pylistNP np(arg);
+    _dedup_and_save_names(&np);
   }
   else if (arg.is_dict() && !dt->names.empty()) {
     _replace_names_from_map(arg.to_pydict());
@@ -39,6 +111,12 @@ void Frame::set_names(obj arg)
   else {
     throw TypeError() << "Expected a list of strings, got " << arg.typeobj();
   }
+}
+
+
+void Frame::set_names(const std::vector<std::string>& arg) {
+  strvecNP np(arg);
+  _dedup_and_save_names(&np);
 }
 
 
@@ -71,7 +149,6 @@ oobj Frame::colindex(PKArgs& args)
   throw TypeError() << "The argument to Frame.colindex() should be a string "
       "or an integer, not " << col.typeobj();
 }
-
 
 
 
@@ -132,12 +209,12 @@ void Frame::_fill_default_names() {
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void Frame::_dedup_and_save_names(py::olist nameslist) {
+void Frame::_dedup_and_save_names(NameProvider* nameslist) {
   auto ncols = static_cast<size_t>(dt->ncols);
-  if (nameslist.size() != ncols) {
-    throw ValueError() << "The `names` list has length " << nameslist.size()
+  if (nameslist->size() != ncols) {
+    throw ValueError() << "The `names` list has length " << nameslist->size()
         << ", while the Frame has "
-        << (ncols < nameslist.size() && ncols? "only " : "")
+        << (ncols < nameslist->size() && ncols? "only " : "")
         << ncols << " column" << (ncols == 1? "" : "s");
   }
 
@@ -154,14 +231,9 @@ void Frame::_dedup_and_save_names(py::olist nameslist) {
   bool fill_default_names = false;
 
   for (size_t i = 0; i < ncols; ++i) {
-    py::obj name = nameslist[i];
-    if (!name.is_string() && !name.is_none()) {
-      throw TypeError() << "Invalid `names` list: element " << i
-          << " is not a string";
-    }
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
-    CString cname = name.to_cstring();
+    CString cname = nameslist->item_as_cstring(i);
     char* strname = const_cast<char*>(cname.ch);
     size_t namelen = static_cast<size_t>(cname.size);
     if (namelen == 0) {
@@ -197,7 +269,7 @@ void Frame::_dedup_and_save_names(py::olist nameslist) {
       resname = std::string(strname, namelen);
     }
     py::oobj newname = name_mangled? oobj(ostring(resname))
-                                   : oobj(name);
+                                   : nameslist->item_as_pyoobj(i);
     // Check for name duplicates. If the name was already seen before, we
     // replace it with a modified name (by incrementing the name's digital
     // suffix if it has one, or otherwise by adding such a suffix).
@@ -324,7 +396,8 @@ void Frame::_replace_names_from_map(py::odict replacements)
     int64_t i = idx.to_int64_strict();
     names_list.set(i, val);
   }
-  _dedup_and_save_names(names_list);
+  pylistNP np(names_list);
+  _dedup_and_save_names(&np);
 }
 
 

@@ -76,7 +76,9 @@ class FrameInitializationManager {
     void run()
     {
       if (all_args.num_varkwd_args()) {
-        _init_from_varkwd_dict();
+        // Already checked in the constructor that `src` is undefined
+        // in this case.
+        init_from_varkwds();
       }
       else if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
@@ -117,9 +119,9 @@ class FrameInitializationManager {
   private:
     /**
      * Check that the number of names in `names_arg` corresponds to the number
-     * of columns created (`ncols`).
+     * of columns being created (`ncols`).
      */
-    void _check_names(size_t ncols) {
+    void check_names_count(size_t ncols) {
       if (!defined_names) return;
       size_t nnames = 0;
       if (names_arg.is_list_or_tuple()) {
@@ -139,11 +141,14 @@ class FrameInitializationManager {
     }
 
 
-    void _check_stypes(size_t ncols) {
+    void check_stypes_count(size_t ncols) {
       if (!defined_stypes) return;
       size_t nstypes = 0;
       if (stypes_arg.is_list_or_tuple()) {
         nstypes = stypes_arg.to_pylist().size();
+      }
+      else if (stypes_arg.is_dict()) {
+        return;
       }
       else {
         throw TypeError() << stypes_arg.name() << " should be a list of "
@@ -159,29 +164,48 @@ class FrameInitializationManager {
     }
 
 
-    SType _get_stype(size_t i) {
-      if (defined_stype) return stype0;
+    /**
+     * Retrieve the requested SType for column `i`. If the column's name is
+     * known to the caller, it should be passed as the second parameter,
+     * otherwise it will be retrieved from `names_arg` if necessary.
+     *
+     * If no SType is specified for the given column, this method returns
+     * `SType::VOID`.
+     *
+     */
+    SType get_stype_for_column(size_t i, const std::string* name = nullptr) {
+      if (defined_stype) {
+        return stype0;
+      }
       if (defined_stypes) {
-        py::olist stypes = stypes_arg.to_pylist();
-        return stypes[i].to_stype();
+        if (stypes_arg.is_list_or_tuple()) {
+          py::olist stypes = stypes_arg.to_pylist();
+          return stypes[i].to_stype();
+        }
+        else {
+          py::obj oname(nullptr);
+          if (name == nullptr) {
+            if (!defined_names) {
+              throw TypeError() << "When parameter `stypes` is a dictionary, "
+                  "column `names` must be explicitly specified";
+            }
+            py::olist names = names_arg.to_pylist();
+            oname = names[i];
+          } else {
+            oname = py::ostring(*name);
+          }
+          py::odict stypes = stypes_arg.to_pydict();
+          py::obj res = stypes.get(oname);
+          if (res) {
+            return res.to_stype();
+          } else {
+            return SType::VOID;
+          }
+        }
       }
       return SType::VOID;
     }
 
-
-    void _add_col(Column* col) {
-      cols.push_back(col);
-      if (cols.size() > 1) {
-        int64_t nrows0 = cols.front()->nrows;
-        int64_t nrows1 = cols.back()->nrows;
-        if (nrows0 != nrows1) {
-          throw ValueError()
-            << "Column " << cols.size() - 1 << " has different number of "
-            << "rows (" << nrows1 << ") than the preceding columns ("
-            << nrows0 << ")";
-        }
-      }
-    }
 
     DataTable* _make_datatable() {
       size_t ncols = cols.size();
@@ -207,18 +231,18 @@ class FrameInitializationManager {
   //----------------------------------------------------------------------------
   private:
     void _init_empty_frame() {
-      _check_names(0);
-      _check_stypes(0);
+      check_names_count(0);
+      check_stypes_count(0);
       frame->dt = _make_datatable();
     }
 
     void _init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
-      _check_names(collist.size());
-      _check_stypes(collist.size());
+      check_names_count(collist.size());
+      check_stypes_count(collist.size());
       for (size_t i = 0; i < collist.size(); ++i) {
         py::obj item = collist[i];
-        SType s = _get_stype(i);
+        SType s = get_stype_for_column(i);
         _make_column(item, s);
       }
       frame->dt = _make_datatable();
@@ -234,9 +258,9 @@ class FrameInitializationManager {
     }
 
     void _init_from_list_of_primitives() {
-      _check_names(1);
-      _check_stypes(1);
-      SType s = _get_stype(0);
+      check_names_count(1);
+      check_stypes_count(1);
+      SType s = get_stype_for_column(0);
       _make_column(src.to_pyobj(), s);
       frame->dt = _make_datatable();
       frame->set_names(names_arg.to_pyobj());
@@ -245,7 +269,7 @@ class FrameInitializationManager {
     void _init_from_dict() {
       // check for 0 names
       py::odict coldict = src.to_pydict();
-      _check_stypes(coldict.size());
+      check_stypes_count(coldict.size());
       std::vector<std::string> newnames;
       newnames.reserve(coldict.size());
       for (auto kv : coldict) {
@@ -255,8 +279,24 @@ class FrameInitializationManager {
       }
     }
 
-    void _init_from_varkwd_dict() {
-      // TODO
+    void init_from_varkwds() {
+      if (defined_names) {
+        throw TypeError() << "Parameter `names` cannot be used when "
+            "constructing a Frame from varkwd arguments";
+      }
+      size_t ncols = all_args.num_varkwd_args();
+      check_stypes_count(ncols);
+      strvec newnames;
+      newnames.reserve(ncols);
+      for (auto kv: all_args.varkwds()) {
+        auto name = kv.first;
+        auto i = newnames.size();
+        auto s = get_stype_for_column(i, &name);
+        newnames.push_back(name);
+        _make_column(kv.second, s);
+      }
+      frame->dt = _make_datatable();
+      frame->set_names(newnames);
     }
 
     Error _error_unknown_kwargs() {
@@ -298,7 +338,17 @@ class FrameInitializationManager {
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
       }
-      _add_col(col);
+      cols.push_back(col);
+      if (cols.size() > 1) {
+        int64_t nrows0 = cols.front()->nrows;
+        int64_t nrows1 = cols.back()->nrows;
+        if (nrows0 != nrows1) {
+          throw ValueError()
+            << "Column " << cols.size() - 1 << " has different number of "
+            << "rows (" << nrows1 << ") than the preceding columns ("
+            << nrows0 << ")";
+        }
+      }
     }
 };
 

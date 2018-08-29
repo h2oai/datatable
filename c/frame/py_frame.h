@@ -63,22 +63,26 @@ class Frame : public PyObject {
     oobj get_internal() const;
     void set_nrows(obj);
     void set_names(obj);
+    void set_names(const std::vector<std::string>&);
     void set_internal(obj);
 
     oobj colindex(PKArgs&);
 
   private:
+    class NameProvider;
     void _clear_names();
     void _init_names() const;
     void _init_inames() const;
     void _fill_default_names();
-    void _dedup_and_save_names(py::olist);
+    void _dedup_and_save_names(NameProvider*);
     void _replace_names_from_map(py::odict);
     Error _name_not_found_error(const std::string& name);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
     friend class FrameInitializationManager;
+    friend class pylistNP;
+    friend class strvecNP;
 };
 
 
