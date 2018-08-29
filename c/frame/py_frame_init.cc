@@ -19,56 +19,6 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// Helpers
-//------------------------------------------------------------------------------
-
-// TODO: this functionality should really be rolled into the DataTable class.
-class DTMaker {
-  private:
-    std::vector<Column*> cols;
-
-  public:
-    DTMaker() = default;
-    ~DTMaker() {
-      for (auto col : cols) dt::free(col);
-    }
-
-    void push_back(Column* col) {
-      cols.push_back(col);
-      if (cols.size() > 1) {
-        int64_t nrows0 = cols.front()->nrows;
-        int64_t nrows1 = cols.back()->nrows;
-        if (nrows0 != nrows1) {
-          throw ValueError()
-            << "Column " << cols.size() - 1 << " has different number of "
-            << "rows (" << nrows1 << ") than the preceding columns ("
-            << nrows0 << ")";
-        }
-      }
-    }
-
-    DataTable* to_datatable() {
-      size_t ncols = cols.size();
-      size_t allocsize = sizeof(Column*) * (ncols + 1);
-      Column** newcols = dt::malloc<Column*>(allocsize);
-      if (ncols) {
-        std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
-      }
-      newcols[ncols] = nullptr;
-      try {
-        DataTable* res = new DataTable(newcols);
-        cols.clear();
-        return res;
-      } catch (const std::exception&) {
-        dt::free(newcols);
-        throw;
-      }
-    }
-};
-
-
-
-//------------------------------------------------------------------------------
 // Frame construction manager
 //------------------------------------------------------------------------------
 
@@ -80,7 +30,12 @@ class FrameInitializationManager {
     const Arg& stypes_arg;
     const Arg& stype_arg;
     Frame* frame;
+    std::vector<Column*> cols;
 
+
+  //----------------------------------------------------------------------------
+  // External API
+  //----------------------------------------------------------------------------
   public:
     FrameInitializationManager(PKArgs& args, Frame* f)
       : all_args(args),
@@ -89,6 +44,11 @@ class FrameInitializationManager {
         stypes_arg(args[2]),
         stype_arg(args[3]),
         frame(f) {}
+
+    ~FrameInitializationManager() {
+      for (auto col : cols) dt::free(col);
+    }
+
 
     void run()
     {
@@ -128,11 +88,103 @@ class FrameInitializationManager {
     }
 
 
+  //----------------------------------------------------------------------------
+  // Helpers
+  //----------------------------------------------------------------------------
+  private:
+    /**
+     * Check that the number of names in `names_arg` corresponds to the number
+     * of columns created (`ncols`).
+     */
+    void _check_names(size_t ncols) {
+      if (names_arg.is_undefined() || names_arg.is_none()) {
+        return;
+      }
+      size_t nnames = 0;
+      if (names_arg.is_list_or_tuple()) {
+        nnames = names_arg.to_pylist().size();
+      }
+      else {
+        throw TypeError() << names_arg.name() << " should be a list of "
+            "strings, instead received " << names_arg.typeobj();
+      }
+      if (nnames != ncols) {
+        throw ValueError()
+            << "`names` argument contains " << nnames
+            << " element" << (nnames==1? "" : "s") << ", which is "
+            << (nnames < ncols? "less" : "more") << " than the number of "
+               "columns being created (" << ncols << ")";
+      }
+    }
+
+
+    void _check_stypes(size_t ncols) {
+      if (stypes_arg.is_undefined() || stypes_arg.is_none()) {
+        return;
+      }
+      if (!(stype_arg.is_undefined() || stype_arg.is_none())) {
+        throw TypeError() << "Parameters `stypes` and `stype` cannot be "
+            "passed to Frame() simultaneously";
+      }
+      size_t nstypes = 0;
+      if (stypes_arg.is_list_or_tuple()) {
+        nstypes = stypes_arg.to_pylist().size();
+      }
+      else {
+        throw TypeError() << stypes_arg.name() << " should be a list of "
+            "stypes, instead received " << stypes_arg.typeobj();
+      }
+      if (nstypes != ncols) {
+        throw ValueError()
+            << "`stypes` argument contains " << nstypes
+            << " element" << (nstypes==1? "" : "s") << ", which is "
+            << (nstypes < ncols? "less" : "more") << " than the number of "
+               "columns being created (" << ncols << ")";
+      }
+    }
+
+
+    void _add_col(Column* col) {
+      cols.push_back(col);
+      if (cols.size() > 1) {
+        int64_t nrows0 = cols.front()->nrows;
+        int64_t nrows1 = cols.back()->nrows;
+        if (nrows0 != nrows1) {
+          throw ValueError()
+            << "Column " << cols.size() - 1 << " has different number of "
+            << "rows (" << nrows1 << ") than the preceding columns ("
+            << nrows0 << ")";
+        }
+      }
+    }
+
+    DataTable* _make_datatable() {
+      size_t ncols = cols.size();
+      size_t allocsize = sizeof(Column*) * (ncols + 1);
+      Column** newcols = dt::malloc<Column*>(allocsize);
+      if (ncols) {
+        std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
+      }
+      newcols[ncols] = nullptr;
+      try {
+        DataTable* res = new DataTable(newcols);
+        cols.clear();
+        return res;
+      } catch (const std::exception&) {
+        dt::free(newcols);
+        throw;
+      }
+    }
+
+
+  //----------------------------------------------------------------------------
+  // Frame creation methods
+  //----------------------------------------------------------------------------
   private:
     void _init_empty_frame() {
-      frame->dt = DTMaker().to_datatable();
-      // check for 0 names
-      // check for 0 stypes
+      _check_names(0);
+      _check_stypes(0);
+      frame->dt = _make_datatable();
     }
 
     void _init_from_list_of_lists() {
@@ -207,7 +259,7 @@ class FrameInitializationManager {
 
 
 //------------------------------------------------------------------------------
-// Main constructor
+// Main Frame constructor
 //------------------------------------------------------------------------------
 
 void Frame::m__init__(PKArgs& args) {

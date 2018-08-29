@@ -47,6 +47,30 @@ def test_create_from_empty_list():
     d0.internal.check()
 
 
+def test_create_from_empty_list_with_params():
+    d0 = dt.Frame([], names=[], stypes=[])
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+    d1 = dt.Frame([], stype=stype.int64)
+    d1.internal.check()
+    assert d1.shape == (0, 0)
+
+
+def test_create_from_empty_list_bad():
+    with pytest.raises(ValueError) as e:
+        dt.Frame([], names=["A"])
+    assert ("`names` argument contains 1 element, which is more than the "
+            "number of columns being created (0)" in str(e.value))
+    with pytest.raises(ValueError) as e:
+        dt.Frame([], stypes=["int32", "str32"])
+    assert ("`stypes` argument contains 2 elements, which is more than the "
+            "number of columns being created (0)" in str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([], stypes=[], stype="float32")
+    assert ("Parameters `stypes` and `stype` cannot be passed to Frame() "
+            "simultaneously" in str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create from primitives

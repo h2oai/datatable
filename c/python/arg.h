@@ -65,9 +65,9 @@ class Arg : public _obj::error_manager {
 
     // ?
     operator bool() const noexcept { return pyobj.operator bool(); }
-    PyObject* obj() { return pyobj.to_pyobject_newref(); }
+    PyObject* obj() const { return pyobj.to_pyobject_newref(); }
     PyObject* to_borrowed_ref() const { return pyobj.to_borrowed_ref(); }
-    PyTypeObject* typeobj() { return pyobj.typeobj(); }
+    PyTypeObject* typeobj() const { return pyobj.typeobj(); }
     void print() const;
 
     /**
