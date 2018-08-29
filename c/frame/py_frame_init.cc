@@ -29,6 +29,11 @@ class FrameInitializationManager {
     const Arg& names_arg;
     const Arg& stypes_arg;
     const Arg& stype_arg;
+    bool defined_names;
+    bool defined_stypes;
+    bool defined_stype;
+    SType stype0;
+    int : 32;
     Frame* frame;
     std::vector<Column*> cols;
 
@@ -43,7 +48,19 @@ class FrameInitializationManager {
         names_arg(args[1]),
         stypes_arg(args[2]),
         stype_arg(args[3]),
-        frame(f) {}
+        frame(f)
+    {
+      defined_names  = !(names_arg.is_undefined() || names_arg.is_none());
+      defined_stypes = !(stypes_arg.is_undefined() || stypes_arg.is_none());
+      defined_stype  = !(stype_arg.is_undefined() || stype_arg.is_none());
+      if (defined_stype && defined_stypes) {
+        throw TypeError() << "Parameters `stypes` and `stype` cannot be "
+            "passed to Frame() simultaneously";
+      }
+      if (defined_stype) {
+        stype0 = stype_arg.to_stype();
+      }
+    }
 
     ~FrameInitializationManager() {
       for (auto col : cols) dt::free(col);
@@ -97,9 +114,7 @@ class FrameInitializationManager {
      * of columns created (`ncols`).
      */
     void _check_names(size_t ncols) {
-      if (names_arg.is_undefined() || names_arg.is_none()) {
-        return;
-      }
+      if (!defined_names) return;
       size_t nnames = 0;
       if (names_arg.is_list_or_tuple()) {
         nnames = names_arg.to_pylist().size();
@@ -119,13 +134,7 @@ class FrameInitializationManager {
 
 
     void _check_stypes(size_t ncols) {
-      if (stypes_arg.is_undefined() || stypes_arg.is_none()) {
-        return;
-      }
-      if (!(stype_arg.is_undefined() || stype_arg.is_none())) {
-        throw TypeError() << "Parameters `stypes` and `stype` cannot be "
-            "passed to Frame() simultaneously";
-      }
+      if (!defined_stypes) return;
       size_t nstypes = 0;
       if (stypes_arg.is_list_or_tuple()) {
         nstypes = stypes_arg.to_pylist().size();
@@ -141,6 +150,16 @@ class FrameInitializationManager {
             << (nstypes < ncols? "less" : "more") << " than the number of "
                "columns being created (" << ncols << ")";
       }
+    }
+
+
+    SType _get_stype(size_t i) {
+      if (defined_stype) return stype0;
+      if (defined_stypes) {
+        py::olist stypes = stypes_arg.to_pylist();
+        return stypes[i].to_stype();
+      }
+      return SType::VOID;
     }
 
 
@@ -195,7 +214,6 @@ class FrameInitializationManager {
         // get stype for index `i`
         // add column built from `item`
       }
-      // DTMaker dtm;
       // size_t ncols = list.size();
       // for (size_t i = 0; i < ncols; ++i) {
       //   Column* col = _make_column_from_listlike(list[i]);
@@ -213,11 +231,12 @@ class FrameInitializationManager {
     }
 
     void _init_from_list_of_primitives() {
-      py::olist colsrc = src.to_pylist();
-      // check for 1 name
-      // check for 1 stype
-      // get stype (0)
-      // add column made from `colsrc`
+      _check_names(1);
+      _check_stypes(1);
+      SType s = _get_stype(0);
+      _make_column(src.to_pyobj(), s);
+      frame->dt = _make_datatable();
+      frame->set_names(names_arg.to_pyobj());
     }
 
     void _init_from_dict() {
@@ -239,21 +258,23 @@ class FrameInitializationManager {
       return TypeError() << "Uknown keyword arguments";
     }
 
-    /*
-    Column* _make_column_from_listlike(py::obj src) {
-      if (src.is_buffer()) {
-        return Column::from_buffer(src.to_borrowed_ref());
+    void _make_column(py::obj colsrc, SType s) {
+      Column* col = nullptr;
+      if (colsrc.is_buffer()) {
+        col = Column::from_buffer(colsrc.to_borrowed_ref());
       }
-      else if (src.is_list()) {
-        return Column::from_pylist(src.to_pylist(), 0);
+      else if (colsrc.is_list_or_tuple()) {
+        col = Column::from_pylist(colsrc.to_pylist(), int(s));
       }
-      else if (src.is_range()) {
-        auto r = src.to_pyrange();
-        return Column::from_range(r.start(), r.stop(), r.step(), SType::VOID);
+      else if (colsrc.is_range()) {
+        auto r = colsrc.to_pyrange();
+        col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
-      return nullptr;
+      else {
+        throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
+      }
+      _add_col(col);
     }
-    */
 };
 
 

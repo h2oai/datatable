@@ -74,6 +74,7 @@ py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
+SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
 
 
 
@@ -84,6 +85,10 @@ strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 Error Arg::error_not_list(PyObject* src) const {
   return TypeError() << name() << " should be a list or tuple, instead got "
       << Py_TYPE(src);
+}
+
+Error Arg::error_not_stype(PyObject* src) const {
+  return TypeError() << name() << " cannot be converted into an stype: " << src;
 }
 
 

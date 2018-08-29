@@ -236,11 +236,14 @@ SType stype_from_string(const std::string& str)
 }
 
 
-SType stype_from_pyobject(PyObject* s) {
+int stype_from_pyobject(PyObject* s) {
   PyObject* res = PyObject_CallFunction(py_stype, "O", s);
-  if (res == nullptr) throw PyError();
+  if (res == nullptr) {
+    PyErr_Clear();
+    return -1;
+  }
   int32_t value = py::obj(res).get_attr("value").to_int32();
-  return static_cast<SType>(value);
+  return value;
 }
 
 

@@ -203,6 +203,7 @@ class _obj {
       virtual Error error_not_list       (PyObject*) const;
       virtual Error error_not_dict       (PyObject*) const;
       virtual Error error_not_range      (PyObject*) const;
+      virtual Error error_not_stype      (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;

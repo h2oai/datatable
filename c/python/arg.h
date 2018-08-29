@@ -57,11 +57,13 @@ class Arg : public _obj::error_manager {
     py::odict   to_pydict        () const;
     std::string to_string        () const;
     strvec      to_stringlist    () const;
+    SType       to_stype         () const;
     py::obj     to_pyobj         () const { return pyobj; }
 
 
     //---- Error messages --------------
     virtual Error error_not_list       (PyObject*) const;
+    virtual Error error_not_stype      (PyObject*) const;
 
     // ?
     operator bool() const noexcept { return pyobj.operator bool(); }

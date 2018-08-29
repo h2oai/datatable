@@ -444,7 +444,11 @@ Column* _obj::to_column(const error_manager& em) const {
 
 
 SType _obj::to_stype(const error_manager& em) const {
-  return stype_from_pyobject(v);
+  int s = stype_from_pyobject(v);
+  if (s == -1) {
+    throw em.error_not_stype(v);
+  }
+  return static_cast<SType>(s);
 }
 
 
@@ -571,6 +575,10 @@ Error _obj::error_manager::error_not_dict(PyObject* o) const {
 
 Error _obj::error_manager::error_not_range(PyObject* o) const {
   return TypeError() << "Expected a range, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_stype(PyObject* o) const {
+  return TypeError() << "Expected an stype, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {
