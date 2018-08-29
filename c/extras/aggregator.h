@@ -34,7 +34,6 @@ class Aggregator {
     static void print_progress(double, int);
 
   private:
-
     int32_t min_rows;
     int32_t n_bins;
     int32_t nx_bins;
@@ -68,8 +67,7 @@ class Aggregator {
     void progress(double, int status_code=0);
 };
 
-
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0)\n\n",
+  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)

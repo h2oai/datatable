@@ -386,14 +386,15 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   // This is to ensure that the first row is saved as an exemplar
   double distance = std::numeric_limits<double>::max();
   // Radius calculations
-  double delta;
-  double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
-  double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
-  if (d > max_dimensions) {
-    radius /= 7.0;
-    pmatrix = generate_pmatrix(dt_exemplars);
-  }
-  delta = radius * radius;
+  double delta = epsilon;
+  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
+
+  // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
+  // double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
+  // if (d > max_dimensions) {
+  //   radius /= 7.0;
+  // }
+  // delta = radius * radius;
 
   // Main loop
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
