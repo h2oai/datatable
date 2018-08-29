@@ -111,9 +111,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, (set, range)):
-            self._fill_from_list([list(src)], names=names, stypes=stypes)
-        elif isinstance(src, dict):
+        if isinstance(src, dict):
             if isinstance(stypes, dict):
                 stypes = [stypes.get(n, None) for n in src.keys()]
             self._fill_from_list(list(src.values()), names=tuple(src.keys()),
@@ -141,7 +139,7 @@ class Frame(core.Frame):
         elif src is Ellipsis:
             self._fill_from_list([42], "?", None)
         else:
-            raise TTypeError("Cannot create Frame from %r" % src)
+            raise TTypeError("Cannot create Frame from %r" % type(src))
 
 
     def _fill_from_list(self, src, names, stypes):

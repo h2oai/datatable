@@ -99,6 +99,9 @@ class FrameInitializationManager {
       else if (src.is_dict()) {
         _init_from_dict();
       }
+      else if (src.is_range()) {
+        _init_from_list_of_primitives();
+      }
       else if (src.is_undefined() || src.is_none()) {
         _init_empty_frame();
       }
@@ -125,7 +128,7 @@ class FrameInitializationManager {
       }
       if (nnames != ncols) {
         throw ValueError()
-            << "`names` argument contains " << nnames
+            << "The `names` argument contains " << nnames
             << " element" << (nnames==1? "" : "s") << ", which is "
             << (nnames < ncols? "less" : "more") << " than the number of "
                "columns being created (" << ncols << ")";
@@ -145,7 +148,7 @@ class FrameInitializationManager {
       }
       if (nstypes != ncols) {
         throw ValueError()
-            << "`stypes` argument contains " << nstypes
+            << "The `stypes` argument contains " << nstypes
             << " element" << (nstypes==1? "" : "s") << ", which is "
             << (nstypes < ncols? "less" : "more") << " than the number of "
                "columns being created (" << ncols << ")";

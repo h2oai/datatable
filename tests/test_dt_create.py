@@ -59,11 +59,11 @@ def test_create_from_empty_list_with_params():
 def test_create_from_empty_list_bad():
     with pytest.raises(ValueError) as e:
         dt.Frame([], names=["A"])
-    assert ("`names` argument contains 1 element, which is more than the "
+    assert ("The `names` argument contains 1 element, which is more than the "
             "number of columns being created (0)" in str(e.value))
     with pytest.raises(ValueError) as e:
         dt.Frame([], stypes=["int32", "str32"])
-    assert ("`stypes` argument contains 2 elements, which is more than the "
+    assert ("The `stypes` argument contains 2 elements, which is more than the "
             "number of columns being created (0)" in str(e.value))
     with pytest.raises(TypeError) as e:
         dt.Frame([], stypes=[], stype="float32")
@@ -100,10 +100,9 @@ def test_create_from_tuple():
 
 
 def test_create_from_set():
-    d3 = dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
-    assert d3.shape == (7, 1)
-    assert d3.ltypes == (ltype.int, )
-    d3.internal.check()
+    with pytest.raises(TypeError) as e:
+        dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
+    assert ("Cannot create Frame from <class 'set'>" == str(e.value))
 
 
 def test_create_from_range():
@@ -286,8 +285,8 @@ def test_create_names0():
 def test_create_names_bad1():
     with pytest.raises(ValueError) as e:
         dt.Frame(range(10), names=["a", "b"])
-    assert ("The `names` list has length 2, while the Frame has only 1 "
-            "column" == str(e.value))
+    assert ("The `names` argument contains 2 elements, which is more than the "
+            "number of columns being created (1)" == str(e.value))
 
 
 def test_create_names_bad2():
@@ -300,7 +299,8 @@ def test_create_names_bad2():
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert "Expected a list of strings, got <class 'dict'>" == str(e.value)
+    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
+            "instead received <class 'dict'>" == str(e.value))
 
 
 def test_create_names_bad4():
@@ -532,10 +532,10 @@ def test_create_from_mixed_sources(numpy):
 def test_bad():
     with pytest.raises(TypeError) as e:
         dt.Frame(1)
-    assert "Cannot create Frame from 1" in str(e.value)
+    assert "Cannot create Frame from <class 'int'>" == str(e.value)
     with pytest.raises(TypeError) as e:
         dt.Frame(dt)
-    assert "Cannot create Frame from <module 'datatable'" in str(e.value)
+    assert "Cannot create Frame from <class 'module'>" == str(e.value)
 
 
 def test_issue_42():
