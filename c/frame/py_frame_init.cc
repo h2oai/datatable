@@ -208,18 +208,15 @@ class FrameInitializationManager {
 
     void _init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
-      // check for collist.size() names & stypes
+      _check_names(collist.size());
+      _check_stypes(collist.size());
       for (size_t i = 0; i < collist.size(); ++i) {
         py::obj item = collist[i];
-        // get stype for index `i`
-        // add column built from `item`
+        SType s = _get_stype(i);
+        _make_column(item, s);
       }
-      // size_t ncols = list.size();
-      // for (size_t i = 0; i < ncols; ++i) {
-      //   Column* col = _make_column_from_listlike(list[i]);
-      //   dtm.push_back(col);
-      // }
-      // return dtm.to_datatable();
+      frame->dt = _make_datatable();
+      frame->set_names(names_arg.to_pyobj());
     }
 
     void _init_from_list_of_dicts() {
@@ -301,6 +298,7 @@ void Frame::m__init__(PKArgs& args) {
 
   if (dt) {
     core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
+    core_dt->_frame = this;
   } else {
     py::oobj osrc(src.to_borrowed_ref());
     py::oobj ostypes(stypes_arg.to_borrowed_ref());

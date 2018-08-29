@@ -111,11 +111,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, list):
-            if len(src) == 0:
-                src = [src]
-            self._fill_from_list(src, names=names, stypes=stypes)
-        elif isinstance(src, (tuple, set, range)):
+        if isinstance(src, (set, range)):
             self._fill_from_list([list(src)], names=names, stypes=stypes)
         elif isinstance(src, dict):
             if isinstance(stypes, dict):
@@ -149,9 +145,6 @@ class Frame(core.Frame):
 
 
     def _fill_from_list(self, src, names, stypes):
-        if not (isinstance(src[0], (range, list)) or
-                is_type(src[0], NumpyArray_t)):
-            src = [src]
         types = None
         if stypes:
             if len(stypes) == 1:

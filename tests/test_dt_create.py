@@ -293,7 +293,8 @@ def test_create_names_bad1():
 def test_create_names_bad2():
     with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert "Expected a list of strings, got <class 'str'>" == str(e.value)
+    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
+            "instead received <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
