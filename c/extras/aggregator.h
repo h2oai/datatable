@@ -22,7 +22,7 @@ typedef std::unique_ptr<ex> ExPtr;
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
-#define PBSTEPS 20
+#define PBSTEPS 100
 
 class Aggregator {
   public:
