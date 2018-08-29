@@ -58,6 +58,7 @@ class Arg : public _obj::error_manager {
     std::string to_string        () const;
     strvec      to_stringlist    () const;
     SType       to_stype         () const;
+    SType       to_stype         (const error_manager&) const;
     py::obj     to_pyobj         () const { return pyobj; }
 
 

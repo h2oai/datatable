@@ -15,6 +15,53 @@ from datatable import ltype, stype, DatatableWarning
 from tests import same_iterables, list_equals, assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Test wrong parameters
+#-------------------------------------------------------------------------------
+
+def test_stypes_stype():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(stypes=[], stype="float32")
+    assert ("You can pass either parameter `stypes` or `stype` to Frame() "
+            "constructor, but not both at the same time" == str(e.value))
+
+
+def test_bad_stype():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(stype=-1)
+    assert ("Invalid value for `stype` parameter in Frame() constructor" ==
+            str(e.value))
+
+
+def test_unknown_arg():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], dtype="int32")
+    assert ("Frame() constructor got an unexpected keyword argument 'dtype'" ==
+            str(e.value))
+
+
+@pytest.mark.usefixtures("py36")
+def test_unknown_args():
+    # Under py35 the order of kw parameters will be random, which will affect
+    # the error message
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2)
+    assert ("Frame() constructor got 2 unexpected keyword arguments: "
+            "'A' and 'B'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3)
+    assert ("Frame() constructor got 3 unexpected keyword arguments: "
+            "'A', 'B' and 'C'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3, D=4)
+    assert ("Frame() constructor got 4 unexpected keyword arguments: "
+            "'A', 'B', ..., 'D'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3, D=4, E=5)
+    assert ("Frame() constructor got 5 unexpected keyword arguments: "
+            "'A', 'B', ..., 'E'" == str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create empty Frame
@@ -65,10 +112,6 @@ def test_create_from_empty_list_bad():
         dt.Frame([], stypes=["int32", "str32"])
     assert ("The `stypes` argument contains 2 elements, which is more than the "
             "number of columns being created (0)" in str(e.value))
-    with pytest.raises(TypeError) as e:
-        dt.Frame([], stypes=[], stype="float32")
-    assert ("Parameters `stypes` and `stype` cannot be passed to Frame() "
-            "simultaneously" in str(e.value))
 
 
 

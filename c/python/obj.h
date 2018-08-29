@@ -119,7 +119,6 @@ using strvec = std::vector<std::string>;
 class _obj {
   protected:
     PyObject* v;
-    struct error_manager;  // see below
 
   public:
     oobj get_attr(const char* attr) const;
@@ -149,6 +148,7 @@ class _obj {
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
 
+    struct error_manager;  // see below
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;
     int8_t      to_bool_force    (const error_manager& = _em0) const noexcept;
@@ -182,7 +182,6 @@ class _obj {
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }
 
-  protected:
     /**
      * `error_manager` is a factory function for different error messages. It
      * is used to customize error messages when they are thrown from an `Arg`
@@ -208,6 +207,8 @@ class _obj {
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
     };
+
+  protected:
     static error_manager _em0;
 
     // `_obj` class is not directly constructible: create either `obj` or

@@ -75,6 +75,7 @@ py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
+SType       Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
 
 
 

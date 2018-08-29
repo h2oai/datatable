@@ -37,6 +37,9 @@ class FrameInitializationManager {
     Frame* frame;
     std::vector<Column*> cols;
 
+    class em : public py::_obj::error_manager {
+      Error error_not_stype(PyObject*) const override;
+    };
 
   //----------------------------------------------------------------------------
   // External API
@@ -54,11 +57,14 @@ class FrameInitializationManager {
       defined_stypes = !(stypes_arg.is_undefined() || stypes_arg.is_none());
       defined_stype  = !(stype_arg.is_undefined() || stype_arg.is_none());
       if (defined_stype && defined_stypes) {
-        throw TypeError() << "Parameters `stypes` and `stype` cannot be "
-            "passed to Frame() simultaneously";
+        throw TypeError() << "You can pass either parameter `stypes` or "
+            "`stype` to Frame() constructor, but not both at the same time";
       }
       if (defined_stype) {
-        stype0 = stype_arg.to_stype();
+        stype0 = stype_arg.to_stype(em());
+      }
+      if (src && all_args.num_varkwd_args() > 0) {
+        throw _error_unknown_kwargs();
       }
     }
 
@@ -70,9 +76,6 @@ class FrameInitializationManager {
     void run()
     {
       if (all_args.num_varkwd_args()) {
-        if (src) {
-          throw _error_unknown_kwargs();
-        }
         _init_from_varkwd_dict();
       }
       else if (src.is_list_or_tuple()) {
@@ -242,9 +245,11 @@ class FrameInitializationManager {
     void _init_from_dict() {
       // check for 0 names
       py::odict coldict = src.to_pydict();
-      // check for coldict.size() stypes
+      _check_stypes(coldict.size());
+      std::vector<std::string> newnames;
+      newnames.reserve(coldict.size());
       for (auto kv : coldict) {
-        // add name kv.first
+        newnames.push_back(kv.first.to_string());
         // get stype by name(kv.first)
         // add column from kv.second
       }
@@ -255,7 +260,27 @@ class FrameInitializationManager {
     }
 
     Error _error_unknown_kwargs() {
-      return TypeError() << "Uknown keyword arguments";
+      size_t n = all_args.num_varkwd_args();
+      auto err = TypeError() << "Frame() constructor got ";
+      if (n == 1) {
+        err << "an unexpected keyword argument ";
+        for (auto kv: all_args.varkwds()) {
+          err << '\'' << kv.first << '\'';
+        }
+      } else {
+        err << n << " unexpected keyword arguments: ";
+        size_t i = 0;
+        for (auto kv: all_args.varkwds()) {
+          ++i;
+          if (i <= 2 || i == n) {
+            err << '\'' << kv.first << '\'';
+            err << (i == n ? "" :
+                    i == n - 1 ? " and " :
+                    i == 1 ? ", " : ", ..., ");
+          }
+        }
+      }
+      return err;
     }
 
     void _make_column(py::obj colsrc, SType s) {
@@ -277,6 +302,16 @@ class FrameInitializationManager {
     }
 };
 
+
+
+//------------------------------------------------------------------------------
+// Custom error messages
+//------------------------------------------------------------------------------
+
+Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
+  return TypeError() << "Invalid value for `stype` parameter in Frame() "
+                        "constructor";
+}
 
 
 //------------------------------------------------------------------------------
