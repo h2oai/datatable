@@ -111,12 +111,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, dict):
-            if isinstance(stypes, dict):
-                stypes = [stypes.get(n, None) for n in src.keys()]
-            self._fill_from_list(list(src.values()), names=tuple(src.keys()),
-                                 stypes=stypes)
-        elif isinstance(src, core.DataTable):
+        if isinstance(src, core.DataTable):
             self._dt = src
             self.names = names
         elif isinstance(src, str):
@@ -136,27 +131,8 @@ class Frame(core.Frame):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
-        elif src is Ellipsis:
-            self._fill_from_list([42], "?", None)
         else:
             raise TTypeError("Cannot create Frame from %r" % type(src))
-
-
-    def _fill_from_list(self, src, names, stypes):
-        types = None
-        if stypes:
-            if len(stypes) == 1:
-                types = [stype(stypes[0]).value] * len(src)
-            elif len(stypes) == len(src):
-                types = [0 if s is None else stype(s).value
-                         for s in stypes]
-            else:
-                raise TValueError("Number of stypes (%d) is different from "
-                                  "the number of source columns (%d)"
-                                  % (len(stypes), len(src)))
-        _dt = core.datatable_from_list(src, types)
-        self._dt = _dt
-        self.names = names
 
 
     def _fill_from_pandas(self, pddf, names=None):

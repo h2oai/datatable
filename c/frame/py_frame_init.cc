@@ -83,32 +83,36 @@ class FrameInitializationManager {
       else if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
         if (collist.size() == 0) {
-          _init_empty_frame();
+          init_empty_frame();
         }
         else {
           py::obj item0 = collist[0];
           if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
-            _init_from_list_of_lists();
+            init_from_list_of_lists();
           }
           else if (item0.is_dict()) {
-            _init_from_list_of_dicts();
+            init_from_list_of_dicts();
           }
           else if (item0.is_tuple()) {
-            _init_from_list_of_tuples();
+            init_from_list_of_tuples();
           }
           else {
-            _init_from_list_of_primitives();
+            init_from_list_of_primitives();
           }
         }
       }
       else if (src.is_dict()) {
-        _init_from_dict();
+        init_from_dict();
       }
       else if (src.is_range()) {
-        _init_from_list_of_primitives();
+        init_from_list_of_primitives();
       }
       else if (src.is_undefined() || src.is_none()) {
-        _init_empty_frame();
+        init_empty_frame();
+      }
+      else if (src.is_ellipsis() &&
+               !defined_names && !defined_stypes && !defined_stype) {
+        init_mystery_frame();
       }
     }
 
@@ -207,7 +211,7 @@ class FrameInitializationManager {
     }
 
 
-    DataTable* _make_datatable() {
+    DataTable* make_datatable() {
       size_t ncols = cols.size();
       size_t allocsize = sizeof(Column*) * (ncols + 1);
       Column** newcols = dt::malloc<Column*>(allocsize);
@@ -230,13 +234,13 @@ class FrameInitializationManager {
   // Frame creation methods
   //----------------------------------------------------------------------------
   private:
-    void _init_empty_frame() {
+    void init_empty_frame() {
       check_names_count(0);
       check_stypes_count(0);
-      frame->dt = _make_datatable();
+      frame->dt = make_datatable();
     }
 
-    void _init_from_list_of_lists() {
+    void init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
       check_names_count(collist.size());
       check_stypes_count(collist.size());
@@ -245,38 +249,46 @@ class FrameInitializationManager {
         SType s = get_stype_for_column(i);
         _make_column(item, s);
       }
-      frame->dt = _make_datatable();
+      frame->dt = make_datatable();
       frame->set_names(names_arg.to_pyobj());
     }
 
-    void _init_from_list_of_dicts() {
+    void init_from_list_of_dicts() {
       // TODO
     }
 
-    void _init_from_list_of_tuples() {
+    void init_from_list_of_tuples() {
       // TODO
     }
 
-    void _init_from_list_of_primitives() {
+    void init_from_list_of_primitives() {
       check_names_count(1);
       check_stypes_count(1);
       SType s = get_stype_for_column(0);
       _make_column(src.to_pyobj(), s);
-      frame->dt = _make_datatable();
+      frame->dt = make_datatable();
       frame->set_names(names_arg.to_pyobj());
     }
 
-    void _init_from_dict() {
-      // check for 0 names
-      py::odict coldict = src.to_pydict();
-      check_stypes_count(coldict.size());
-      std::vector<std::string> newnames;
-      newnames.reserve(coldict.size());
-      for (auto kv : coldict) {
-        newnames.push_back(kv.first.to_string());
-        // get stype by name(kv.first)
-        // add column from kv.second
+    void init_from_dict() {
+      if (defined_names) {
+        throw TypeError() << "Parameter `names` cannot be used when "
+            "constructing a Frame from a dictionary";
       }
+      py::odict coldict = src.to_pydict();
+      size_t ncols = coldict.size();
+      check_stypes_count(ncols);
+      strvec newnames;
+      newnames.reserve(ncols);
+      for (auto kv : coldict) {
+        auto i = newnames.size();
+        auto name = kv.first.to_string();
+        auto stype = get_stype_for_column(i, &name);
+        newnames.push_back(name);
+        _make_column(kv.second, stype);
+      }
+      frame->dt = make_datatable();
+      frame->set_names(newnames);
     }
 
     void init_from_varkwds() {
@@ -289,14 +301,20 @@ class FrameInitializationManager {
       strvec newnames;
       newnames.reserve(ncols);
       for (auto kv: all_args.varkwds()) {
-        auto name = kv.first;
         auto i = newnames.size();
-        auto s = get_stype_for_column(i, &name);
+        auto name = kv.first;
+        auto stype = get_stype_for_column(i, &name);
         newnames.push_back(name);
-        _make_column(kv.second, s);
+        _make_column(kv.second, stype);
       }
-      frame->dt = _make_datatable();
+      frame->dt = make_datatable();
       frame->set_names(newnames);
+    }
+
+    void init_mystery_frame() {
+      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
+      frame->dt = make_datatable();
+      frame->set_names(strvec { "?" });
     }
 
     Error _error_unknown_kwargs() {
