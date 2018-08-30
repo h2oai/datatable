@@ -17,8 +17,38 @@
 #include "utils.h"
 #include "utils/exceptions.h"
 
-extern PyObject* Py_One;
-extern PyObject* Py_Zero;
+//------------------------------------------------------------------------------
+// Helper iterator classes
+//------------------------------------------------------------------------------
+
+class iterable {
+  public:
+    virtual ~iterable();
+    virtual size_t size() const = 0;
+    virtual py::obj item(size_t i) const = 0;
+};
+
+
+class ilist : public iterable {
+  private:
+    const py::olist& list;
+
+  public:
+    ilist(const py::olist&);
+    size_t size() const override;
+    py::obj item(size_t i) const override;
+};
+
+
+//------------------------------------------------------------------------------
+
+iterable::~iterable() {}
+
+ilist::ilist(const py::olist& l) : list(l) {}
+
+size_t ilist::size() const { return list.size(); }
+
+py::obj ilist::item(size_t i) const { return list[i]; }
 
 
 
@@ -39,16 +69,16 @@ extern PyObject* Py_Zero;
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(const py::olist& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_bool(const ilist* list, MemoryRange& membuf, size_t& from)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   size_t i = 0;
   try {
     for (; i < nrows; ++i) {
-      py::obj item = list[i];
+      py::obj item = list->item(i);
       // This will throw an exception if the value is not bool-like.
       outdata[i] = item.to_bool();
     }
@@ -71,14 +101,14 @@ static bool parse_as_bool(const py::olist& list, MemoryRange& membuf, size_t& fr
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const py::olist& list, MemoryRange& membuf)
+static void force_as_bool(const ilist* list, MemoryRange& membuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list[i];
+    py::obj item = list->item(i);
     outdata[i] = item.to_bool_force();
   }
 }
@@ -101,9 +131,9 @@ static void force_as_bool(const py::olist& list, MemoryRange& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const py::olist& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_int(const ilist* list, MemoryRange& membuf, size_t& from)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
@@ -113,7 +143,7 @@ static bool parse_as_int(const py::olist& list, MemoryRange& membuf, size_t& fro
     size_t ito   = j ? from : nrows;
 
     for (size_t i = ifrom; i < ito; ++i) {
-      py::obj item = list[i];
+      py::obj item = list->item(i);
 
       if (item.is_none()) {
         outdata[i] = GETNA<T>();
@@ -142,14 +172,14 @@ static bool parse_as_int(const py::olist& list, MemoryRange& membuf, size_t& fro
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const py::olist& list, MemoryRange& membuf)
+static void force_as_int(const ilist* list, MemoryRange& membuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list[i];
+    py::obj item = list->item(i);
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
       continue;
@@ -170,9 +200,9 @@ static void force_as_int(const py::olist& list, MemoryRange& membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(const py::olist& list, MemoryRange& membuf, size_t& from)
+static bool parse_as_double(const ilist* list, MemoryRange& membuf, size_t& from)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows * sizeof(double));
   double* outdata = static_cast<double*>(membuf.wptr());
 
@@ -181,7 +211,7 @@ static bool parse_as_double(const py::olist& list, MemoryRange& membuf, size_t& 
     size_t ifrom = j ? 0 : from;
     size_t ito   = j ? from : nrows;
     for (size_t i = ifrom; i < ito; ++i) {
-      py::obj item = list[i];
+      py::obj item = list->item(i);
 
       if (item.is_none()) {
         outdata[i] = GETNA<double>();
@@ -206,15 +236,15 @@ static bool parse_as_double(const py::olist& list, MemoryRange& membuf, size_t& 
 
 
 template <typename T>
-static void force_as_real(const py::olist& list, MemoryRange& membuf)
+static void force_as_real(const ilist* list, MemoryRange& membuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list[i];
+    py::obj item = list->item(i);
 
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
@@ -238,10 +268,10 @@ static void force_as_real(const py::olist& list, MemoryRange& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const py::olist& list, MemoryRange& offbuf,
+static bool parse_as_str(const ilist* list, MemoryRange& offbuf,
                          MemoryRange& strbuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   offbuf.resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = 0;
@@ -253,7 +283,7 @@ static bool parse_as_str(const py::olist& list, MemoryRange& offbuf,
   T curr_offset = 0;
   size_t i = 0;
   for (i = 0; i < nrows; ++i) {
-    py::obj item = list[i];
+    py::obj item = list->item(i);
 
     if (item.is_none()) {
       offsets[i] = curr_offset | GETNA<T>();
@@ -311,10 +341,10 @@ static bool parse_as_str(const py::olist& list, MemoryRange& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const py::olist& list, MemoryRange& offbuf,
+static void force_as_str(const ilist* list, MemoryRange& offbuf,
                          MemoryRange& strbuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
       << "Cannot store " << nrows << " elements in a str32 column";
@@ -329,7 +359,7 @@ static void force_as_str(const py::olist& list, MemoryRange& offbuf,
 
   T curr_offset = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    py::oobj item = list[i];
+    py::oobj item = list->item(i);
 
     if (item.is_none()) {
       offsets[i] = curr_offset | GETNA<T>();
@@ -374,14 +404,14 @@ static void force_as_str(const py::olist& list, MemoryRange& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const py::olist& list, MemoryRange& membuf)
+static bool parse_as_pyobj(const ilist* list, MemoryRange& membuf)
 {
-  size_t nrows = list.size();
+  size_t nrows = list->size();
   membuf.resize(nrows * sizeof(PyObject*));
   PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::oobj item = list[i];
+    py::oobj item = list->item(i);
     if (item.is_float() && std::isnan(item.to_double())) {
       outdata[i] = py::None().release();
     } else {
@@ -436,6 +466,7 @@ Column* Column::from_pylist(const py::olist& list, int stype0, int ltype0)
   if (stype0 && ltype0) {
     throw ValueError() << "Cannot fix both stype and ltype";
   }
+  ilist il(list);
 
   MemoryRange membuf;
   MemoryRange strbuf;
@@ -446,16 +477,16 @@ Column* Column::from_pylist(const py::olist& list, int stype0, int ltype0)
     int next_stype = find_next_stype(stype, stype0, ltype0);
     if (stype == next_stype) {
       switch (static_cast<SType>(stype)) {
-        case SType::BOOL:    force_as_bool(list, membuf); break;
-        case SType::INT8:    force_as_int<int8_t>(list, membuf); break;
-        case SType::INT16:   force_as_int<int16_t>(list, membuf); break;
-        case SType::INT32:   force_as_int<int32_t>(list, membuf); break;
-        case SType::INT64:   force_as_int<int64_t>(list, membuf); break;
-        case SType::FLOAT32: force_as_real<float>(list, membuf); break;
-        case SType::FLOAT64: force_as_real<double>(list, membuf); break;
-        case SType::STR32:   force_as_str<uint32_t>(list, membuf, strbuf); break;
-        case SType::STR64:   force_as_str<uint64_t>(list, membuf, strbuf); break;
-        case SType::OBJ:     parse_as_pyobj(list, membuf); break;
+        case SType::BOOL:    force_as_bool(&il, membuf); break;
+        case SType::INT8:    force_as_int<int8_t>(&il, membuf); break;
+        case SType::INT16:   force_as_int<int16_t>(&il, membuf); break;
+        case SType::INT32:   force_as_int<int32_t>(&il, membuf); break;
+        case SType::INT64:   force_as_int<int64_t>(&il, membuf); break;
+        case SType::FLOAT32: force_as_real<float>(&il, membuf); break;
+        case SType::FLOAT64: force_as_real<double>(&il, membuf); break;
+        case SType::STR32:   force_as_str<uint32_t>(&il, membuf, strbuf); break;
+        case SType::STR64:   force_as_str<uint64_t>(&il, membuf, strbuf); break;
+        case SType::OBJ:     parse_as_pyobj(&il, membuf); break;
         default:
           throw RuntimeError()
             << "Unable to create Column of type " << stype << " from list";
@@ -464,15 +495,15 @@ Column* Column::from_pylist(const py::olist& list, int stype0, int ltype0)
     } else {
       bool ret = false;
       switch (static_cast<SType>(stype)) {
-        case SType::BOOL:    ret = parse_as_bool(list, membuf, i); break;
-        case SType::INT8:    ret = parse_as_int<int8_t>(list, membuf, i); break;
-        case SType::INT16:   ret = parse_as_int<int16_t>(list, membuf, i); break;
-        case SType::INT32:   ret = parse_as_int<int32_t>(list, membuf, i); break;
-        case SType::INT64:   ret = parse_as_int<int64_t>(list, membuf, i); break;
-        case SType::FLOAT64: ret = parse_as_double(list, membuf, i); break;
-        case SType::STR32:   ret = parse_as_str<uint32_t>(list, membuf, strbuf); break;
-        case SType::STR64:   ret = parse_as_str<uint64_t>(list, membuf, strbuf); break;
-        case SType::OBJ:     ret = parse_as_pyobj(list, membuf); break;
+        case SType::BOOL:    ret = parse_as_bool(&il, membuf, i); break;
+        case SType::INT8:    ret = parse_as_int<int8_t>(&il, membuf, i); break;
+        case SType::INT16:   ret = parse_as_int<int16_t>(&il, membuf, i); break;
+        case SType::INT32:   ret = parse_as_int<int32_t>(&il, membuf, i); break;
+        case SType::INT64:   ret = parse_as_int<int64_t>(&il, membuf, i); break;
+        case SType::FLOAT64: ret = parse_as_double(&il, membuf, i); break;
+        case SType::STR32:   ret = parse_as_str<uint32_t>(&il, membuf, strbuf); break;
+        case SType::STR64:   ret = parse_as_str<uint64_t>(&il, membuf, strbuf); break;
+        case SType::OBJ:     ret = parse_as_pyobj(&il, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (ret) break;

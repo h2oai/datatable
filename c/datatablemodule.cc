@@ -29,10 +29,7 @@ extern void init_jay();
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
-extern PyObject* Py_One, *Py_Zero;
 
-PyObject* Py_One;
-PyObject* Py_Zero;
 
 #define HOMEFLAG dt_DATATABLEMODULE_cc
 
@@ -220,9 +217,6 @@ PyMODINIT_FUNC
 PyInit__datatable(void) {
     init_csvwrite_constants();
     init_exceptions();
-
-    Py_One = PyLong_FromLong(1);
-    Py_Zero = PyLong_FromLong(0);
 
     // Instantiate module object
     PyObject* m = PyModule_Create(&datatablemodule);

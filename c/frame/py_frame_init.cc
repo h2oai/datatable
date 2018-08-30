@@ -75,44 +75,39 @@ class FrameInitializationManager {
 
     void run()
     {
-      if (all_args.num_varkwd_args()) {
-        // Already checked in the constructor that `src` is undefined
-        // in this case.
-        init_from_varkwds();
-      }
-      else if (src.is_list_or_tuple()) {
+      if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
         if (collist.size() == 0) {
-          init_empty_frame();
+          return init_empty_frame();
         }
-        else {
-          py::obj item0 = collist[0];
-          if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
-            init_from_list_of_lists();
-          }
-          else if (item0.is_dict()) {
-            init_from_list_of_dicts();
-          }
-          else if (item0.is_tuple()) {
-            init_from_list_of_tuples();
-          }
-          else {
-            init_from_list_of_primitives();
-          }
+        py::obj item0 = collist[0];
+        if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
+          return init_from_list_of_lists();
         }
+        if (item0.is_dict()) {
+          return init_from_list_of_dicts();
+        }
+        if (item0.is_tuple()) {
+          return init_from_list_of_tuples();
+        }
+        return init_from_list_of_primitives();
       }
-      else if (src.is_dict()) {
-        init_from_dict();
+      if (src.is_dict()) {
+        return init_from_dict();
       }
-      else if (src.is_range()) {
-        init_from_list_of_primitives();
+      if (src.is_range()) {
+        return init_from_list_of_primitives();
       }
-      else if (src.is_undefined() || src.is_none()) {
-        init_empty_frame();
+      if (all_args.num_varkwd_args()) {
+        // Already checked in the constructor that `src` is undefined.
+        return init_from_varkwds();
       }
-      else if (src.is_ellipsis() &&
+      if (src.is_undefined() || src.is_none()) {
+        return init_empty_frame();
+      }
+      if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
-        init_mystery_frame();
+        return init_mystery_frame();
       }
     }
 
