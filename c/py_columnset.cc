@@ -8,6 +8,7 @@
 #define dt_PY_COLUMNSET_cc
 #include "py_columnset.h"
 #include "columnset.h"
+#include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_rowindex.h"
@@ -127,10 +128,17 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
 // Methods
 //==============================================================================
 
-PyObject* to_datatable(obj* self, PyObject*) {
+PyObject* to_frame(obj* self, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:to_frame", &arg1)) return nullptr;
+  py::obj names(arg1);
+
   Column** columns = self->columns;
   self->columns = nullptr;
-  return pydatatable::wrap(new DataTable(columns));
+  DataTable* dt = new DataTable(columns);
+  auto frame = py::Frame::from_datatable(dt);
+  frame->set_names(names);
+  return frame;
 }
 
 
@@ -192,7 +200,7 @@ static PyObject* repr(obj* self)
 //==============================================================================
 
 static PyMethodDef methods[] = {
-  METHOD0(to_datatable),
+  METHODv(to_frame),
   METHODv(append_columns),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };

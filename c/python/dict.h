@@ -29,6 +29,7 @@ class odict : public oobj {
     odict& operator=(const odict&);
     odict& operator=(odict&&);
 
+    size_t size() const;
     bool has(_obj key) const;
     obj  get(_obj key) const;
     void set(_obj key, _obj val);

@@ -123,10 +123,10 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
     bound_args[i].set(nullptr);
   }
 
+  n_varkwds = 0;
   if (_kwds) {
     PyObject* key, *value;
     Py_ssize_t pos = 0;
-    n_varkwds = 0;
     while (PyDict_Next(_kwds, &pos, &key, &value)) {
       size_t ikey = _find_kwd(key);
       if (ikey == size_t(-1)) {
@@ -245,7 +245,11 @@ VarArgsIterator VarArgsIterable::end() const {
 VarKwdsIterator::VarKwdsIterator(const PKArgs& args, Py_ssize_t i0)
     : parent(args), pos(i0), curr_value(std::string(), py::obj(nullptr))
 {
-  advance();
+  if (parent.kwds_dict) {
+    advance();
+  } else {
+    pos = -1;
+  }
 }
 
 VarKwdsIterator& VarKwdsIterator::operator++() {

@@ -120,9 +120,12 @@ def random_string(n):
 def find_file(*nameparts):
     root_var = "DT_LARGE_TESTS_ROOT"
     d = os.environ.get(root_var, "").strip()
+    filename = os.path.join(d, *nameparts)
     if not d:
         pytest.skip("%s is not defined" % root_var)
     elif not os.path.isdir(d):
         pytest.fail("Directory '%s' does not exist" % d)
+    elif not os.path.isfile(filename):
+        pytest.skip("File %s not found" % filename)
     else:
-        return os.path.join(d, *nameparts)
+        return filename

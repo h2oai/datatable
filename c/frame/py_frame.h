@@ -48,6 +48,10 @@ class Frame : public PyObject {
         static void init_methods(Methods& gs);
     };
 
+    // Internal "constructor" of Frame objects. We do not use real constructors
+    // because Frame objects must be allocated/initialized by Python.
+    static Frame* from_datatable(DataTable* dt);
+
     void m__init__(PKArgs&);
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
@@ -63,24 +67,30 @@ class Frame : public PyObject {
     oobj get_internal() const;
     void set_nrows(obj);
     void set_names(obj);
+    void set_names(const std::vector<std::string>&);
     void set_internal(obj);
 
     oobj colindex(PKArgs&);
 
   private:
+    static bool internal_construction;
+    class NameProvider;
     void _clear_names();
     void _init_names() const;
     void _init_inames() const;
     void _fill_default_names();
-    void _dedup_and_save_names(py::olist);
+    void _dedup_and_save_names(NameProvider*);
     void _replace_names_from_map(py::odict);
     Error _name_not_found_error(const std::string& name);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
+    friend class FrameInitializationManager;
+    friend class pylistNP;
+    friend class strvecNP;
 };
 
-
+extern PyObject* Frame_Type;
 
 }  // namespace py
 

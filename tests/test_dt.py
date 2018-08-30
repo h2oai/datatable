@@ -151,7 +151,10 @@ def test_dt_properties(dt0):
 
 @pytest.mark.run(order=2)
 def test_dt_call(dt0, capsys):
+    print("before computing dt1")
     dt1 = dt0(timeit=True)
+    print("dt1 computed")
+    dt1.internal.check()
     assert dt1.shape == dt0.shape
     assert not dt1.internal.isview
     out, err = capsys.readouterr()
@@ -222,6 +225,7 @@ def test_dt_colindex_fuzzy_suggestions():
         assert str(e.value).endswith(suggestions)
 
     d0 = dt.Frame([[0]] * 3, names=["foo", "bar", "baz"])
+    d0.internal.check()
     check(d0, "fo", "; did you mean `foo`?")
     check(d0, "foe", "; did you mean `foo`?")
     check(d0, "fooo", "; did you mean `foo`?")
@@ -230,6 +234,7 @@ def test_dt_colindex_fuzzy_suggestions():
     check(d0, "bazb", "; did you mean `baz` or `bar`?")
     check(d0, "ababa", "Frame")
     d1 = dt.Frame([[0]] * 50)
+    d1.internal.check()
     check(d1, "A", "Frame")
     check(d1, "C", "; did you mean `C0`, `C1` or `C2`?")
     check(d1, "c1", "; did you mean `C1`, `C0` or `C2`?")
@@ -237,6 +242,7 @@ def test_dt_colindex_fuzzy_suggestions():
     check(d1, "V0", "; did you mean `C0`?")
     check(d1, "Va", "Frame")
     d2 = dt.Frame(varname=[1])
+    d2.internal.check()
     check(d2, "vraname", "; did you mean `varname`?")
     check(d2, "VRANAME", "; did you mean `varname`?")
     check(d2, "var_name", "; did you mean `varname`?")
