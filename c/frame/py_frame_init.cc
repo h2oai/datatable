@@ -13,6 +13,7 @@
 #include "python/list.h"
 #include "python/orange.h"
 #include "python/string.h"
+#include "python/tuple.h"
 #include "utils/alloc.h"
 
 namespace py {
@@ -253,7 +254,33 @@ class FrameInitializationManager {
     }
 
     void init_from_list_of_tuples() {
-      // TODO
+      py::olist srclist = src.to_pylist();
+      py::rtuple item0 = py::rtuple(srclist[0]);
+      size_t nrows = srclist.size();
+      size_t ncols = item0.size();
+      // Check that all entries are proper tuples
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_tuple()) {
+          throw TypeError() << "The source is not a list of tuples: element "
+              << i << " is a " << item.typeobj();
+        }
+        size_t this_ncols = rtuple(item).size();
+        if (this_ncols != ncols) {
+          throw ValueError() << "Misshaped rows in the Frame() constructor: "
+              "row " << i << " contains " << this_ncols << " column"
+              << (this_ncols == 1? "" : "s") << ", while "
+              << (i == 1? "the previous row" : "previous rows")
+              << " contained " << ncols << " column" << (ncols == 1? "" : "s");
+        }
+      }
+      // Create the columns
+      for (size_t j = 0; j < ncols; ++j) {
+        SType s = get_stype_for_column(j);
+        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+      }
+      frame->dt = make_datatable();
+      frame->set_names(names_arg.to_pyobj());
     }
 
     void init_from_list_of_primitives() {
