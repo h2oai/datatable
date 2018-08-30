@@ -615,17 +615,17 @@ PyObject* join(obj* self, PyObject* args) {
 
 
 
-PyObject* get_min    (obj* self, PyObject*) { return wrap(self->ref->min_datatable()); }
-PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatable()); }
-PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
-PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datatable()); }
-PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
-PyObject* get_skew   (obj* self, PyObject*) { return wrap(self->ref->skew_datatable()); }
-PyObject* get_kurt   (obj* self, PyObject*) { return wrap(self->ref->kurt_datatable()); }
-PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
-PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
-PyObject* get_nunique(obj* self, PyObject*) { return wrap(self->ref->nunique_datatable()); }
-PyObject* get_nmodal (obj* self, PyObject*) { return wrap(self->ref->nmodal_datatable()); }
+PyObject* get_min    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->min_datatable()); }
+PyObject* get_max    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->max_datatable()); }
+PyObject* get_mode   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->mode_datatable()); }
+PyObject* get_mean   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->mean_datatable()); }
+PyObject* get_sd     (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->sd_datatable()); }
+PyObject* get_skew   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->skew_datatable()); }
+PyObject* get_kurt   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->kurt_datatable()); }
+PyObject* get_sum    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->sum_datatable()); }
+PyObject* get_countna(obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->countna_datatable()); }
+PyObject* get_nunique(obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->nunique_datatable()); }
+PyObject* get_nmodal (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->nmodal_datatable()); }
 
 typedef PyObject* (Column::*scalarstatfn)() const;
 static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {

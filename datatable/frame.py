@@ -112,7 +112,6 @@ class Frame(core.Frame):
 
     def _fill_from_source(self, src, names, stypes):
         if isinstance(src, core.DataTable):
-            # assert False
             self._dt = src
             self.names = names
         elif isinstance(src, str):
@@ -443,7 +442,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed minimum
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_min(), names=self.names)
+        return self._dt.get_min()
 
     def max(self):
         """
@@ -454,7 +453,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed maximum
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_max(), names=self.names)
+        return self._dt.get_max()
 
     def mode(self):
         """
@@ -465,7 +464,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed count of
         most frequent values for each column.
         """
-        return Frame(self._dt.get_mode(), names=self.names)
+        return self._dt.get_mode()
 
     def sum(self):
         """
@@ -476,7 +475,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed sums
         for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_sum(), names=self.names)
+        return self._dt.get_sum()
 
     def mean(self):
         """
@@ -487,7 +486,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed mean
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_mean(), names=self.names)
+        return self._dt.get_mean()
 
     def sd(self):
         """
@@ -498,7 +497,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed standard
         deviation values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_sd(), names=self.names)
+        return self._dt.get_sd()
 
     def countna(self):
         """
@@ -509,7 +508,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of NA
         values in each column.
         """
-        return Frame(self._dt.get_countna(), names=self.names)
+        return self._dt.get_countna()
 
     def nunique(self):
         """
@@ -520,7 +519,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of
         unique values in each column.
         """
-        return Frame(self._dt.get_nunique(), names=self.names)
+        return self._dt.get_nunique()
 
     def nmodal(self):
         """
@@ -531,7 +530,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of
         most frequent values in each column.
         """
-        return Frame(self._dt.get_nmodal(), names=self.names)
+        return self._dt.get_nmodal()
 
     def min1(self):
         return self._dt.min1()

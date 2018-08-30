@@ -715,16 +715,12 @@ class GenericReader(object):
                     self._txt = txt
                     self._colnames = None
                     try:
-                        _dt = core.gread(self)
-                        dt = Frame(_dt, names=self._colnames)
-                        res[src] = dt
+                        res[src] = core.gread(self)
                     except Exception as e:
                         res[src] = e
                 return res
             else:
-                _dt = core.gread(self)
-                dt = Frame(_dt, names=self._colnames)
-                return dt
+                return core.gread(self)
         finally:
             self._clear_temporary_files()
 

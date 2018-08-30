@@ -243,7 +243,9 @@ DataTable* DataTable::_statdt(colmakerfn f) const {
     out_cols[i] = (columns[i]->*f)();
   }
   out_cols[ncols] = nullptr;
-  return new DataTable(out_cols);
+  DataTable* res = new DataTable(out_cols);
+  res->names = names;
+  return res;
 }
 
 DataTable* DataTable::countna_datatable() const { return _statdt(&Column::countna_column); }
