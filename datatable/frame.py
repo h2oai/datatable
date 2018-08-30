@@ -112,6 +112,7 @@ class Frame(core.Frame):
 
     def _fill_from_source(self, src, names, stypes):
         if isinstance(src, core.DataTable):
+            # assert False
             self._dt = src
             self.names = names
         elif isinstance(src, str):
@@ -124,7 +125,7 @@ class Frame(core.Frame):
             if names is None:
                 names = src.names
             _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
-                      .to_datatable()
+                      .to_frame(None).internal
             self._dt = _dt
             self.names = names
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
@@ -426,8 +427,7 @@ class Frame(core.Frame):
         idx = self.colindex(by)
         ri = self._dt.sort(idx)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
-        _dt = cs.to_datatable()
-        return Frame(_dt, names=self.names)
+        return cs.to_frame(self.names)
 
 
     #---------------------------------------------------------------------------
@@ -709,6 +709,7 @@ core.register_function(1, column_hexview)
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(6, DatatableWarning)
+core.register_function(7, Frame)
 core.install_buffer_hooks(Frame())
 
 

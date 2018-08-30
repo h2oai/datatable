@@ -90,8 +90,8 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                     pass
                 elif isinstance(replacement, BaseExpr):
                     _col = replacement.evaluate_eager(ee)
-                    _dt = core.columns_from_columns([_col]).to_datatable()
-                    replacement = datatable.Frame(_dt)
+                    _colset = core.columns_from_columns([_col])
+                    replacement = _colset.to_frame(None)
                 else:
                     replacement = datatable.Frame(replacement)
                 rowsnode.execute()
@@ -103,8 +103,7 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
             grbynode.execute()
 
         colsnode.execute()
-        res_dt = ee.columns.to_datatable()
-        res_dt = datatable.Frame(res_dt, names=colsnode.column_names)
+        res_dt = ee.columns.to_frame(colsnode.column_names)
         if grbynode and res_dt.nrows == dt.nrows:
             res_dt.internal.groupby = ee.groupby
         return res_dt

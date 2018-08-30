@@ -419,7 +419,7 @@ class GenericReader(object):
                                            -stype.str32.value)
                      for i in range(ws.ncols)]
             colset = core.columns_from_columns(cols0)
-            res = Frame(colset.to_datatable(), names=colnames)
+            res = colset.to_frame(colnames)
             self._result[ws.name] = res
         if len(self._result) == 0:
             self._result = None

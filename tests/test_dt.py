@@ -151,7 +151,10 @@ def test_dt_properties(dt0):
 
 @pytest.mark.run(order=2)
 def test_dt_call(dt0, capsys):
+    print("before computing dt1")
     dt1 = dt0(timeit=True)
+    print("dt1 computed")
+    dt1.internal.check()
     assert dt1.shape == dt0.shape
     assert not dt1.internal.isview
     out, err = capsys.readouterr()
