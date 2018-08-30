@@ -236,6 +236,7 @@ class FrameInitializationManager {
       frame->dt = make_datatable();
     }
 
+
     void init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
       check_names_count(collist.size());
@@ -249,15 +250,19 @@ class FrameInitializationManager {
       frame->set_names(names_arg.to_pyobj());
     }
 
+
     void init_from_list_of_dicts() {
       // TODO
     }
+
 
     void init_from_list_of_tuples() {
       py::olist srclist = src.to_pylist();
       py::rtuple item0 = py::rtuple(srclist[0]);
       size_t nrows = srclist.size();
       size_t ncols = item0.size();
+      check_names_count(ncols);
+      check_stypes_count(ncols);
       // Check that all entries are proper tuples
       for (size_t i = 0; i < nrows; ++i) {
         py::obj item = srclist[i];
@@ -267,11 +272,11 @@ class FrameInitializationManager {
         }
         size_t this_ncols = rtuple(item).size();
         if (this_ncols != ncols) {
-          throw ValueError() << "Misshaped rows in the Frame() constructor: "
-              "row " << i << " contains " << this_ncols << " column"
+          throw ValueError() << "Misshaped rows in Frame() constructor: "
+              "row " << i << " contains " << this_ncols << " element"
               << (this_ncols == 1? "" : "s") << ", while "
               << (i == 1? "the previous row" : "previous rows")
-              << " contained " << ncols << " column" << (ncols == 1? "" : "s");
+              << " had " << ncols << " element" << (ncols == 1? "" : "s");
         }
       }
       // Create the columns
@@ -280,8 +285,13 @@ class FrameInitializationManager {
         cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
       }
       frame->dt = make_datatable();
-      frame->set_names(names_arg.to_pyobj());
+      if (names_arg || !item0.has_attr("_fields")) {
+        frame->set_names(names_arg.to_pyobj());
+      } else {
+        frame->set_names(item0.get_attr("_fields"));
+      }
     }
+
 
     void init_from_list_of_primitives() {
       check_names_count(1);
@@ -291,6 +301,7 @@ class FrameInitializationManager {
       frame->dt = make_datatable();
       frame->set_names(names_arg.to_pyobj());
     }
+
 
     void init_from_dict() {
       if (defined_names) {
@@ -313,6 +324,7 @@ class FrameInitializationManager {
       frame->set_names(newnames);
     }
 
+
     void init_from_varkwds() {
       if (defined_names) {
         throw TypeError() << "Parameter `names` cannot be used when "
@@ -333,11 +345,13 @@ class FrameInitializationManager {
       frame->set_names(newnames);
     }
 
+
     void init_mystery_frame() {
       cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
       frame->dt = make_datatable();
       frame->set_names(strvec { "?" });
     }
+
 
     Error _error_unknown_kwargs() {
       size_t n = all_args.num_varkwd_args();
@@ -362,6 +376,7 @@ class FrameInitializationManager {
       }
       return err;
     }
+
 
     void _make_column(py::obj colsrc, SType s) {
       Column* col = nullptr;
