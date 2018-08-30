@@ -15,6 +15,7 @@
 #include "python/int.h"
 #include "python/float.h"
 #include "python/list.h"
+#include "python/orange.h"
 #include "python/string.h"
 
 namespace py {
@@ -93,6 +94,8 @@ oobj::~oobj() {
 // Type checks
 //------------------------------------------------------------------------------
 
+_obj::operator bool() const noexcept { return (v != nullptr); }
+
 bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
 bool _obj::is_none()          const noexcept { return (v == Py_None); }
 bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
@@ -107,6 +110,7 @@ bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
+bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
 
@@ -324,13 +328,6 @@ py::olist _obj::to_pylist(const error_manager& em) const {
 }
 
 
-py::odict _obj::to_pydict(const error_manager& em) const {
-  if (is_none()) return py::odict();
-  if (is_dict()) return py::odict(v);
-  throw em.error_not_dict(v);
-}
-
-
 char** _obj::to_cstringlist(const error_manager&) const {
   if (v == Py_None) {
     return nullptr;
@@ -446,10 +443,34 @@ Column* _obj::to_column(const error_manager& em) const {
 }
 
 
+SType _obj::to_stype(const error_manager& em) const {
+  int s = stype_from_pyobject(v);
+  if (s == -1) {
+    throw em.error_not_stype(v);
+  }
+  return static_cast<SType>(s);
+}
+
+
 PyObject* _obj::to_pyobject_newref() const noexcept {
   Py_INCREF(v);
   return v;
 }
+
+
+py::odict _obj::to_pydict(const error_manager& em) const {
+  if (is_none()) return py::odict();
+  if (is_dict()) return py::odict(v);
+  throw em.error_not_dict(v);
+}
+
+
+py::orange _obj::to_pyrange(const error_manager& em) const {
+  if (is_none()) return py::orange(nullptr);
+  if (is_range()) return py::orange(v);
+  throw em.error_not_range(v);
+}
+
 
 
 
@@ -550,6 +571,14 @@ Error _obj::error_manager::error_not_list(PyObject* o) const {
 
 Error _obj::error_manager::error_not_dict(PyObject* o) const {
   return TypeError() << "Expected a dict, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_range(PyObject* o) const {
+  return TypeError() << "Expected a range, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_stype(PyObject* o) const {
+  return TypeError() << "Expected an stype, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

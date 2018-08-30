@@ -12,12 +12,14 @@
 
 namespace py {
 
+PyObject* Frame_Type = nullptr;
+
 
 //------------------------------------------------------------------------------
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
-PKArgs Frame::Type::args___init__(1, 0, 3, false, false,
+PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
                                   {"src", "names", "stypes", "stype"});
 PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
 
@@ -110,6 +112,26 @@ void Frame::Type::init_methods(Methods& mm) {
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
+bool Frame::internal_construction = false;
+
+
+Frame* Frame::from_datatable(DataTable* dt) {
+  // PyObject* pytype = reinterpret_cast<PyObject*>(&Frame::Type::type);
+  Frame::internal_construction = true;
+  PyObject* res = PyObject_CallObject(Frame_Type, nullptr);
+  Frame::internal_construction = false;
+  if (!res) throw PyError();
+
+  PyObject* _dt = pydatatable::wrap(dt);
+  if (!_dt) throw PyError();
+
+  Frame* frame = reinterpret_cast<Frame*>(res);
+  frame->dt = dt;
+  frame->core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
+  frame->core_dt->_frame = frame;
+  return frame;
+}
+
 
 void Frame::m__dealloc__() {
   Py_XDECREF(core_dt);

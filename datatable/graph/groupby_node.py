@@ -22,7 +22,7 @@ class SimpleGroupbyNode:
         col = self._col
         if ee.rowindex:
             cf = core.columns_from_slice(df, ee.rowindex, col, 1, 1)
-            df = cf.to_datatable()
+            df = cf.to_frame(None).internal
             col = 0
         rowindex, groupby = df.sort(col, True)
         f.set_rowindex(rowindex)

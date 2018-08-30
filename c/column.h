@@ -90,6 +90,7 @@ public:
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0, int ltype0 = 0);
   static Column* from_buffer(PyObject* buffer);
+  static Column* from_range(int64_t start, int64_t stop, int64_t step, SType s);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;

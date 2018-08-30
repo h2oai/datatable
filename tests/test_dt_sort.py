@@ -348,7 +348,7 @@ def test_int64_small():
 
 def test_int64_small_stable():
     d0 = dt.Frame([[0, None, -1000, 11**11] * 3, range(12)])
-    assert d0.stypes == (stype.int64, stype.int8)
+    assert d0.stypes == (stype.int64, stype.int32)
     d1 = d0(sort=0, select=1)
     d1.internal.check()
     assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]

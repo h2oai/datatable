@@ -54,16 +54,23 @@ class Arg : public _obj::error_manager {
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
     py::olist   to_pylist        () const;
+    py::odict   to_pydict        () const;
     std::string to_string        () const;
+    strvec      to_stringlist    () const;
+    SType       to_stype         () const;
+    SType       to_stype         (const error_manager&) const;
+    py::obj     to_pyobj         () const { return pyobj; }
 
 
     //---- Error messages --------------
     virtual Error error_not_list       (PyObject*) const;
+    virtual Error error_not_stype      (PyObject*) const;
 
     // ?
-    PyObject* obj() { return pyobj.to_pyobject_newref(); }
-    PyObject* to_borrowed_ref() { return pyobj.to_borrowed_ref(); }
-    PyTypeObject* typeobj() { return pyobj.typeobj(); }
+    operator bool() const noexcept { return pyobj.operator bool(); }
+    PyObject* obj() const { return pyobj.to_pyobject_newref(); }
+    PyObject* to_borrowed_ref() const { return pyobj.to_borrowed_ref(); }
+    PyTypeObject* typeobj() const { return pyobj.typeobj(); }
     void print() const;
 
     /**

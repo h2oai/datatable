@@ -41,6 +41,7 @@ class Aggregator {
     int32_t nd_bins;
     int32_t max_dimensions;
     unsigned int seed;
+    int : 32;
     PyObject* progress_fn;
 
     // Grouping and aggregating functions

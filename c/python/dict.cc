@@ -41,6 +41,10 @@ odict& odict::operator=(odict&& other) {
 // Element accessors
 //------------------------------------------------------------------------------
 
+size_t odict::size() const {
+  return static_cast<size_t>(PyDict_Size(v));
+}
+
 bool odict::has(_obj key) const {
   PyObject* _key = key.to_borrowed_ref();
   return PyDict_GetItem(v, _key) != nullptr;

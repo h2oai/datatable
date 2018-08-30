@@ -15,6 +15,112 @@ from datatable import ltype, stype, DatatableWarning
 from tests import same_iterables, list_equals, assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Test wrong parameters
+#-------------------------------------------------------------------------------
+
+def test_stypes_stype():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(stypes=[], stype="float32")
+    assert ("You can pass either parameter `stypes` or `stype` to Frame() "
+            "constructor, but not both at the same time" == str(e.value))
+
+
+def test_bad_stype():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(stype=-1)
+    assert ("Invalid value for `stype` parameter in Frame() constructor" ==
+            str(e.value))
+
+
+def test_unknown_arg():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], dtype="int32")
+    assert ("Frame() constructor got an unexpected keyword argument 'dtype'" ==
+            str(e.value))
+
+
+@pytest.mark.usefixtures("py36")
+def test_unknown_args():
+    # Under py35 the order of kw parameters will be random, which will affect
+    # the error message
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2)
+    assert ("Frame() constructor got 2 unexpected keyword arguments: "
+            "'A' and 'B'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3)
+    assert ("Frame() constructor got 3 unexpected keyword arguments: "
+            "'A', 'B' and 'C'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3, D=4)
+    assert ("Frame() constructor got 4 unexpected keyword arguments: "
+            "'A', 'B', ..., 'D'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1], A=1, B=2, C=3, D=4, E=5)
+    assert ("Frame() constructor got 5 unexpected keyword arguments: "
+            "'A', 'B', ..., 'E'" == str(e.value))
+
+
+def test_stypes_dict():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([1, 2, 3], stypes={"A": float})
+    assert ("When parameter `stypes` is a dictionary, column `names` must "
+            "be explicitly specified" == str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Create empty Frame
+#-------------------------------------------------------------------------------
+
+def test_create_from_nothing():
+    d0 = dt.Frame()
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+
+
+def test_create_from_none():
+    d0 = dt.Frame(None)
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+
+
+def test_create_from_empty_list():
+    d0 = dt.Frame([])
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+    assert d0.names == tuple()
+    assert d0.ltypes == tuple()
+    assert d0.stypes == tuple()
+
+
+def test_create_from_empty_list_with_params():
+    d0 = dt.Frame([], names=[], stypes=[])
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+    d1 = dt.Frame([], stype=stype.int64)
+    d1.internal.check()
+    assert d1.shape == (0, 0)
+
+
+def test_create_from_empty_list_bad():
+    with pytest.raises(ValueError) as e:
+        dt.Frame([], names=["A"])
+    assert ("The `names` argument contains 1 element, which is more than the "
+            "number of columns being created (0)" in str(e.value))
+    with pytest.raises(ValueError) as e:
+        dt.Frame([], stypes=["int32", "str32"])
+    assert ("The `stypes` argument contains 2 elements, which is more than the "
+            "number of columns being created (0)" in str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create from primitives
@@ -22,32 +128,31 @@ from tests import same_iterables, list_equals, assert_equals
 
 def test_create_from_list():
     d0 = dt.Frame([1, 2, 3])
+    d0.internal.check()
     assert d0.shape == (3, 1)
     assert d0.names == ("C0", )
     assert d0.ltypes == (ltype.int, )
-    d0.internal.check()
 
 
 def test_create_from_list_of_lists():
     d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names=list("ABC"))
+    d1.internal.check()
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
-    d1.internal.check()
 
 
 def test_create_from_tuple():
     d2 = dt.Frame((3, 5, 6, 0))
+    d2.internal.check()
     assert d2.shape == (4, 1)
     assert d2.ltypes == (ltype.int, )
-    d2.internal.check()
 
 
 def test_create_from_set():
-    d3 = dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
-    assert d3.shape == (7, 1)
-    assert d3.ltypes == (ltype.int, )
-    d3.internal.check()
+    with pytest.raises(TypeError) as e:
+        dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
+    assert ("Cannot create Frame from <class 'set'>" == str(e.value))
 
 
 def test_create_from_range():
@@ -64,30 +169,12 @@ def test_create_from_list_of_ranges():
     assert d0.topython() == [list(range(6)), list(range(0, 12, 2))]
 
 
-def test_create_from_nothing():
-    d4 = dt.Frame()
-    assert d4.shape == (0, 0)
-    assert d4.names == tuple()
-    assert d4.ltypes == tuple()
-    assert d4.stypes == tuple()
-    d4.internal.check()
-
-
-def test_create_from_empty_list():
-    d5 = dt.Frame([])
-    assert d5.shape == (0, 1)
-    assert d5.names == ("C0", )
-    assert d5.ltypes == (ltype.bool, )
-    assert d5.stypes == (stype.bool8, )
-    d5.internal.check()
-
-
 def test_create_from_empty_list_of_lists():
     d6 = dt.Frame([[]])
+    d6.internal.check()
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
     assert d6.ltypes == (ltype.bool, )
-    d6.internal.check()
 
 
 def test_create_from_dict():
@@ -100,7 +187,14 @@ def test_create_from_dict():
     d7.internal.check()
 
 
-def test_create_from_kwargs():
+def test_create_from_kwargs0():
+    d0 = dt.Frame(varname=[1])
+    d0.internal.check()
+    assert d0.names == ("varname",)
+    assert d0.topython() == [[1]]
+
+
+def test_create_from_kwargs1():
     d0 = dt.Frame(A=[1, 2, 3], B=[True, None, False], C=["a", "b", "c"])
     d0.internal.check()
     assert same_iterables(d0.names, ("A", "B", "C"))
@@ -122,7 +216,9 @@ def test_create_from_frame():
     d0 = dt.Frame(A=[1, 4, 3],
                   B=[False, True, False],
                   C=["str1", "str2", "str3"])
+    d0.internal.check()
     d1 = dt.Frame(d0)
+    d1.internal.check()
     assert_equals(d0, d1)
     # Now check that d1 is a true copy of d0, rather than reference
     del d1["C"]
@@ -222,6 +318,18 @@ def test_create_as_str64():
     assert d0.topython() == [[str(n) for n in range(10)]]
 
 
+@pytest.mark.parametrize("st", [stype.int8, stype.int16, stype.int64,
+                                stype.float32, stype.float64, stype.str32])
+def test_create_range_as_stype(st):
+    d0 = dt.Frame(range(10), stype=st)
+    d0.internal.check()
+    assert d0.stypes == (st,)
+    if st == stype.str32:
+        assert d0.topython()[0] == [str(x) for x in range(10)]
+    else:
+        assert d0.topython()[0] == list(range(10))
+
+
 
 #-------------------------------------------------------------------------------
 # Create with names
@@ -230,6 +338,8 @@ def test_create_as_str64():
 def test_create_names0():
     d1 = dt.Frame(range(10), names=["xyz"])
     d2 = dt.Frame(range(10), names=("xyz",))
+    d1.internal.check()
+    d2.internal.check()
     assert d1.shape == d2.shape == (10, 1)
     assert d1.names == d2.names == ("xyz",)
 
@@ -237,20 +347,22 @@ def test_create_names0():
 def test_create_names_bad1():
     with pytest.raises(ValueError) as e:
         dt.Frame(range(10), names=["a", "b"])
-    assert ("The `names` list has length 2, while the Frame has only 1 "
-            "column" == str(e.value))
+    assert ("The `names` argument contains 2 elements, which is more than the "
+            "number of columns being created (1)" == str(e.value))
 
 
 def test_create_names_bad2():
     with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert "Expected a list of strings, got <class 'str'>" == str(e.value)
+    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
+            "instead received <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert "Expected a list of strings, got <class 'dict'>" == str(e.value)
+    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
+            "instead received <class 'dict'>" == str(e.value))
 
 
 def test_create_names_bad4():
@@ -268,33 +380,33 @@ def test_create_names_bad4():
 def test_create_from_pandas(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.Frame(p)
+    d.internal.check()
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("A", "B"))
-    d.internal.check()
 
 
 def test_create_from_pandas2(pandas, numpy):
     p = pandas.DataFrame(numpy.ones((3, 5)))
     d = dt.Frame(p)
+    d.internal.check()
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")
-    d.internal.check()
 
 
 def test_create_from_pandas_series(pandas):
     p = pandas.Series([1, 5, 9, -12])
     d = dt.Frame(p)
-    assert d.shape == (4, 1)
     d.internal.check()
+    assert d.shape == (4, 1)
     assert d.topython() == [[1, 5, 9, -12]]
 
 
 def test_create_from_pandas_with_names(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.Frame(p, names=["miniature", "miniscule"])
+    d.internal.check()
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("miniature", "miniscule"))
-    d.internal.check()
 
 
 def test_create_from_pandas_series_with_names(pandas):
@@ -335,27 +447,27 @@ def test_create_from_pandas_issue1235(pandas):
 def test_create_from_0d_numpy_array(numpy):
     a = numpy.array(100)
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == (1, 1)
     assert d.names == ("C0", )
-    d.internal.check()
     assert d.topython() == [[100]]
 
 
 def test_create_from_1d_numpy_array(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("C0", )
-    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
 def test_create_from_2d_numpy_array(numpy):
     a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == a.shape
     assert d.names == ("C0", "C1", "C2", "C3", "C4")
-    d.internal.check()
     assert d.topython() == a.T.tolist()
 
 
@@ -380,9 +492,9 @@ def test_create_from_masked_numpy_array1(numpy):
     m = numpy.array([False, True, False, False, True])
     arr = numpy.ma.array(a, mask=m)
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (5, 1)
     assert d.stypes == (stype.bool8, )
-    d.internal.check()
     assert d.topython() == [[True, None, True, False, None]]
 
 
@@ -392,9 +504,9 @@ def test_create_from_masked_numpy_array2(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="int16")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int16, )
-    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -404,9 +516,9 @@ def test_create_from_masked_numpy_array3(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="int32")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int32, )
-    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -416,18 +528,18 @@ def test_create_from_masked_numpy_array4(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="float64")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.float64, )
-    d.internal.check()
     assert list_equals(d.topython(), [arr.tolist()])
 
 
 def test_create_from_numpy_array_with_names(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.Frame(a, names=["gargantuan"])
+    d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("gargantuan", )
-    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
@@ -470,8 +582,8 @@ def test_create_from_mixed_sources(numpy):
     df.internal.check()
     assert df.shape == (5, 4)
     assert same_iterables(df.names, ("A", "B", "C", "D"))
-    assert same_iterables(df.stypes,
-                          (stype.float64, stype.int8, stype.str32, stype.int32))
+    assert same_iterables(df.stypes, (stype.float64, stype.int32, stype.str32,
+                                      stype.int32))
 
 
 
@@ -482,21 +594,21 @@ def test_create_from_mixed_sources(numpy):
 def test_bad():
     with pytest.raises(TypeError) as e:
         dt.Frame(1)
-    assert "Cannot create Frame from 1" in str(e.value)
+    assert "Cannot create Frame from <class 'int'>" == str(e.value)
     with pytest.raises(TypeError) as e:
         dt.Frame(dt)
-    assert "Cannot create Frame from <module 'datatable'" in str(e.value)
+    assert "Cannot create Frame from <class 'module'>" == str(e.value)
 
 
 def test_issue_42():
     d = dt.Frame([-1])
+    d.internal.check()
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    d.internal.check()
     d = dt.Frame([-1, 2, 5, "hooray"])
+    d.internal.check()
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )
-    d.internal.check()
 
 
 def test_issue_409():
@@ -512,6 +624,7 @@ def test_issue_409():
 def test_duplicate_names1():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
+        d.internal.check()
         assert d.names == ("A", "A.1", "A.2")
     assert len(ws) == 1
     assert "Duplicate column names found: 'A' and 'A'" in ws[0].message.args[0]
@@ -520,6 +633,7 @@ def test_duplicate_names1():
 def test_duplicate_names2():
     with pytest.warns(DatatableWarning):
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
+        d.internal.check()
         assert d.names == ("A", "A.1", "A.2", "A.3")
 
 
@@ -529,6 +643,7 @@ def test_special_characters_in_names():
                         "help\nneeded",
                         "foo\t\tbar\t \tbaz",
                         "A\n\rB\n\rC\n\rD\n\r"))
+    d.internal.check()
     assert d.names == (".", "help.needed", "foo.bar. .baz", "A.B.C.D.")
 
 
@@ -540,6 +655,6 @@ def test_special_characters_in_names():
 def test_create_datatable():
     """DataTable is old symbol for Frame."""
     d = dt.DataTable([1, 2, 3])
-    assert d.__class__.__name__ == "Frame"
     d.internal.check()
+    assert d.__class__.__name__ == "Frame"
     assert d.topython() == [[1, 2, 3]]

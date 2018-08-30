@@ -5,9 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import collections
-import re
 import time
-from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
 import datatable
@@ -18,7 +16,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t, dtwarn,
+    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t,
     typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
@@ -40,23 +38,6 @@ class Frame(core.Frame):
 
     This is a primary data structure for datatable module.
     """
-
-    def __init__(self, src=None, names=None, stypes=None, **kwargs):
-        super().__init__()
-        if "stype" in kwargs:
-            stypes = [kwargs.pop("stype")]
-        if kwargs:
-            if src is None:
-                src = kwargs
-            else:
-                dtwarn("Unknown options %r to Frame()" % kwargs)
-        # self._dt = None      # type: core.DataTable
-        self._fill_from_source(src, names=names, stypes=stypes)
-
-
-    #---------------------------------------------------------------------------
-    # Basic properties
-    #---------------------------------------------------------------------------
 
     @property
     def key(self):
@@ -129,18 +110,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, list):
-            if len(src) == 0:
-                src = [src]
-            self._fill_from_list(src, names=names, stypes=stypes)
-        elif isinstance(src, (tuple, set, range)):
-            self._fill_from_list([list(src)], names=names, stypes=stypes)
-        elif isinstance(src, dict):
-            if isinstance(stypes, dict):
-                stypes = [stypes.get(n, None) for n in src.keys()]
-            self._fill_from_list(list(src.values()), names=tuple(src.keys()),
-                                 stypes=stypes)
-        elif isinstance(src, core.DataTable):
+        if isinstance(src, core.DataTable):
             self._dt = src
             self.names = names
         elif isinstance(src, str):
@@ -149,50 +119,19 @@ class Frame(core.Frame):
                 names = srcdt.names
             self._dt = srcdt.internal
             self.names = names
-        elif src is None:
-            self._fill_from_list([], names=None, stypes=None)
         elif is_type(src, Frame_t):
             if names is None:
                 names = src.names
             _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
-                      .to_datatable()
+                      .to_frame(None).internal
             self._dt = _dt
             self.names = names
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
-        elif src is Ellipsis:
-            self._fill_from_list([42], "?", None)
         else:
-            raise TTypeError("Cannot create Frame from %r" % src)
-
-
-    def _fill_from_list(self, src, names, stypes):
-        for i in range(len(src)):
-            e = src[i]
-            if isinstance(e, range):
-                src[i] = list(e)
-            elif isinstance(e, list) or is_type(e, NumpyArray_t):
-                pass
-            else:
-                if i == 0:
-                    src = [src]
-                break
-        types = None
-        if stypes:
-            if len(stypes) == 1:
-                types = [stype(stypes[0]).value] * len(src)
-            elif len(stypes) == len(src):
-                types = [0 if s is None else stype(s).value
-                         for s in stypes]
-            else:
-                raise TValueError("Number of stypes (%d) is different from "
-                                  "the number of source columns (%d)"
-                                  % (len(stypes), len(src)))
-        _dt = core.datatable_from_list(src, types)
-        self._dt = _dt
-        self.names = names
+            raise TTypeError("Cannot create Frame from %r" % type(src))
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -486,8 +425,7 @@ class Frame(core.Frame):
         idx = self.colindex(by)
         ri = self._dt.sort(idx)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
-        _dt = cs.to_datatable()
-        return Frame(_dt, names=self.names)
+        return cs.to_frame(self.names)
 
 
     #---------------------------------------------------------------------------
@@ -503,7 +441,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed minimum
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_min(), names=self.names)
+        return self._dt.get_min()
 
     def max(self):
         """
@@ -514,7 +452,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed maximum
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_max(), names=self.names)
+        return self._dt.get_max()
 
     def mode(self):
         """
@@ -525,7 +463,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed count of
         most frequent values for each column.
         """
-        return Frame(self._dt.get_mode(), names=self.names)
+        return self._dt.get_mode()
 
     def sum(self):
         """
@@ -536,7 +474,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed sums
         for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_sum(), names=self.names)
+        return self._dt.get_sum()
 
     def mean(self):
         """
@@ -547,7 +485,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed mean
         values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_mean(), names=self.names)
+        return self._dt.get_mean()
 
     def sd(self):
         """
@@ -558,7 +496,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the computed standard
         deviation values for each column (or NA if not applicable).
         """
-        return Frame(self._dt.get_sd(), names=self.names)
+        return self._dt.get_sd()
 
     def countna(self):
         """
@@ -569,7 +507,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of NA
         values in each column.
         """
-        return Frame(self._dt.get_countna(), names=self.names)
+        return self._dt.get_countna()
 
     def nunique(self):
         """
@@ -580,7 +518,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of
         unique values in each column.
         """
-        return Frame(self._dt.get_nunique(), names=self.names)
+        return self._dt.get_nunique()
 
     def nmodal(self):
         """
@@ -591,7 +529,7 @@ class Frame(core.Frame):
         A new datatable of shape (1, ncols) containing the counted number of
         most frequent values in each column.
         """
-        return Frame(self._dt.get_nmodal(), names=self.names)
+        return self._dt.get_nmodal()
 
     def min1(self):
         return self._dt.min1()
@@ -732,9 +670,6 @@ class Frame(core.Frame):
 
 
 
-_dedup_names_re0 = re.compile(r"[\x00-\x1F]+")
-_dedup_names_re1 = re.compile(r"^(.*)(\d+)$")
-
 
 
 #-------------------------------------------------------------------------------
@@ -769,6 +704,7 @@ core.register_function(1, column_hexview)
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(6, DatatableWarning)
+core.register_function(7, Frame)
 core.install_buffer_hooks(Frame())
 
 
