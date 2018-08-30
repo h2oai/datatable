@@ -284,7 +284,7 @@ class FrameInitializationManager {
         auto i = newnames.size();
         auto name = kv.first.to_string();
         auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(name);
+        newnames.push_back(std::move(name));
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();
@@ -304,7 +304,7 @@ class FrameInitializationManager {
         auto i = newnames.size();
         auto name = kv.first;
         auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(name);
+        newnames.push_back(std::move(name));
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();

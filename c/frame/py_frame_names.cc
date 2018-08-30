@@ -76,7 +76,7 @@ size_t strvecNP::size() const {
 }
 
 CString strvecNP::item_as_cstring(size_t i) {
-  auto name = names[i];
+  const std::string& name = names[i];
   return CString { name.data(), static_cast<int64_t>(name.size()) };
 }
 

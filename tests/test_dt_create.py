@@ -76,29 +76,29 @@ def test_stypes_dict():
 
 def test_create_from_nothing():
     d0 = dt.Frame()
+    d0.internal.check()
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
     assert d0.ltypes == tuple()
     assert d0.stypes == tuple()
-    d0.internal.check()
 
 
 def test_create_from_none():
     d0 = dt.Frame(None)
+    d0.internal.check()
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
     assert d0.ltypes == tuple()
     assert d0.stypes == tuple()
-    d0.internal.check()
 
 
 def test_create_from_empty_list():
     d0 = dt.Frame([])
+    d0.internal.check()
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
     assert d0.ltypes == tuple()
     assert d0.stypes == tuple()
-    d0.internal.check()
 
 
 def test_create_from_empty_list_with_params():
@@ -128,25 +128,25 @@ def test_create_from_empty_list_bad():
 
 def test_create_from_list():
     d0 = dt.Frame([1, 2, 3])
+    d0.internal.check()
     assert d0.shape == (3, 1)
     assert d0.names == ("C0", )
     assert d0.ltypes == (ltype.int, )
-    d0.internal.check()
 
 
 def test_create_from_list_of_lists():
     d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names=list("ABC"))
+    d1.internal.check()
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
-    d1.internal.check()
 
 
 def test_create_from_tuple():
     d2 = dt.Frame((3, 5, 6, 0))
+    d2.internal.check()
     assert d2.shape == (4, 1)
     assert d2.ltypes == (ltype.int, )
-    d2.internal.check()
 
 
 def test_create_from_set():
@@ -171,10 +171,10 @@ def test_create_from_list_of_ranges():
 
 def test_create_from_empty_list_of_lists():
     d6 = dt.Frame([[]])
+    d6.internal.check()
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
     assert d6.ltypes == (ltype.bool, )
-    d6.internal.check()
 
 
 def test_create_from_dict():
@@ -187,7 +187,14 @@ def test_create_from_dict():
     d7.internal.check()
 
 
-def test_create_from_kwargs():
+def test_create_from_kwargs0():
+    d0 = dt.Frame(varname=[1])
+    d0.internal.check()
+    assert d0.names == ("varname",)
+    assert d0.topython() == [[1]]
+
+
+def test_create_from_kwargs1():
     d0 = dt.Frame(A=[1, 2, 3], B=[True, None, False], C=["a", "b", "c"])
     d0.internal.check()
     assert same_iterables(d0.names, ("A", "B", "C"))
@@ -209,7 +216,9 @@ def test_create_from_frame():
     d0 = dt.Frame(A=[1, 4, 3],
                   B=[False, True, False],
                   C=["str1", "str2", "str3"])
+    d0.internal.check()
     d1 = dt.Frame(d0)
+    d1.internal.check()
     assert_equals(d0, d1)
     # Now check that d1 is a true copy of d0, rather than reference
     del d1["C"]
@@ -313,6 +322,7 @@ def test_create_as_str64():
                                 stype.float32, stype.float64, stype.str32])
 def test_create_range_as_stype(st):
     d0 = dt.Frame(range(10), stype=st)
+    d0.internal.check()
     assert d0.stypes == (st,)
     if st == stype.str32:
         assert d0.topython()[0] == [str(x) for x in range(10)]
@@ -328,6 +338,8 @@ def test_create_range_as_stype(st):
 def test_create_names0():
     d1 = dt.Frame(range(10), names=["xyz"])
     d2 = dt.Frame(range(10), names=("xyz",))
+    d1.internal.check()
+    d2.internal.check()
     assert d1.shape == d2.shape == (10, 1)
     assert d1.names == d2.names == ("xyz",)
 
@@ -368,33 +380,33 @@ def test_create_names_bad4():
 def test_create_from_pandas(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.Frame(p)
+    d.internal.check()
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("A", "B"))
-    d.internal.check()
 
 
 def test_create_from_pandas2(pandas, numpy):
     p = pandas.DataFrame(numpy.ones((3, 5)))
     d = dt.Frame(p)
+    d.internal.check()
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")
-    d.internal.check()
 
 
 def test_create_from_pandas_series(pandas):
     p = pandas.Series([1, 5, 9, -12])
     d = dt.Frame(p)
-    assert d.shape == (4, 1)
     d.internal.check()
+    assert d.shape == (4, 1)
     assert d.topython() == [[1, 5, 9, -12]]
 
 
 def test_create_from_pandas_with_names(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.Frame(p, names=["miniature", "miniscule"])
+    d.internal.check()
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("miniature", "miniscule"))
-    d.internal.check()
 
 
 def test_create_from_pandas_series_with_names(pandas):
@@ -435,27 +447,27 @@ def test_create_from_pandas_issue1235(pandas):
 def test_create_from_0d_numpy_array(numpy):
     a = numpy.array(100)
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == (1, 1)
     assert d.names == ("C0", )
-    d.internal.check()
     assert d.topython() == [[100]]
 
 
 def test_create_from_1d_numpy_array(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("C0", )
-    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
 def test_create_from_2d_numpy_array(numpy):
     a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
     d = dt.Frame(a)
+    d.internal.check()
     assert d.shape == a.shape
     assert d.names == ("C0", "C1", "C2", "C3", "C4")
-    d.internal.check()
     assert d.topython() == a.T.tolist()
 
 
@@ -480,9 +492,9 @@ def test_create_from_masked_numpy_array1(numpy):
     m = numpy.array([False, True, False, False, True])
     arr = numpy.ma.array(a, mask=m)
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (5, 1)
     assert d.stypes == (stype.bool8, )
-    d.internal.check()
     assert d.topython() == [[True, None, True, False, None]]
 
 
@@ -492,9 +504,9 @@ def test_create_from_masked_numpy_array2(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="int16")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int16, )
-    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -504,9 +516,9 @@ def test_create_from_masked_numpy_array3(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="int32")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int32, )
-    d.internal.check()
     assert d.topython() == [arr.tolist()]
 
 
@@ -516,18 +528,18 @@ def test_create_from_masked_numpy_array4(numpy):
     m = numpy.random.randn(n) > 1
     arr = numpy.ma.array(a, mask=m, dtype="float64")
     d = dt.Frame(arr)
+    d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.float64, )
-    d.internal.check()
     assert list_equals(d.topython(), [arr.tolist()])
 
 
 def test_create_from_numpy_array_with_names(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.Frame(a, names=["gargantuan"])
+    d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("gargantuan", )
-    d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
 
@@ -590,13 +602,13 @@ def test_bad():
 
 def test_issue_42():
     d = dt.Frame([-1])
+    d.internal.check()
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    d.internal.check()
     d = dt.Frame([-1, 2, 5, "hooray"])
+    d.internal.check()
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )
-    d.internal.check()
 
 
 def test_issue_409():
@@ -612,6 +624,7 @@ def test_issue_409():
 def test_duplicate_names1():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
+        d.internal.check()
         assert d.names == ("A", "A.1", "A.2")
     assert len(ws) == 1
     assert "Duplicate column names found: 'A' and 'A'" in ws[0].message.args[0]
@@ -620,6 +633,7 @@ def test_duplicate_names1():
 def test_duplicate_names2():
     with pytest.warns(DatatableWarning):
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
+        d.internal.check()
         assert d.names == ("A", "A.1", "A.2", "A.3")
 
 
@@ -629,6 +643,7 @@ def test_special_characters_in_names():
                         "help\nneeded",
                         "foo\t\tbar\t \tbaz",
                         "A\n\rB\n\rC\n\rD\n\r"))
+    d.internal.check()
     assert d.names == (".", "help.needed", "foo.bar. .baz", "A.B.C.D.")
 
 
@@ -640,6 +655,6 @@ def test_special_characters_in_names():
 def test_create_datatable():
     """DataTable is old symbol for Frame."""
     d = dt.DataTable([1, 2, 3])
-    assert d.__class__.__name__ == "Frame"
     d.internal.check()
+    assert d.__class__.__name__ == "Frame"
     assert d.topython() == [[1, 2, 3]]
