@@ -419,7 +419,7 @@ class GenericReader(object):
                                            -stype.str32.value)
                      for i in range(ws.ncols)]
             colset = core.columns_from_columns(cols0)
-            res = Frame(colset.to_datatable(), names=colnames)
+            res = colset.to_frame(colnames)
             self._result[ws.name] = res
         if len(self._result) == 0:
             self._result = None
@@ -715,16 +715,12 @@ class GenericReader(object):
                     self._txt = txt
                     self._colnames = None
                     try:
-                        _dt = core.gread(self)
-                        dt = Frame(_dt, names=self._colnames)
-                        res[src] = dt
+                        res[src] = core.gread(self)
                     except Exception as e:
                         res[src] = e
                 return res
             else:
-                _dt = core.gread(self)
-                dt = Frame(_dt, names=self._colnames)
-                return dt
+                return core.gread(self)
         finally:
             self._clear_temporary_files()
 

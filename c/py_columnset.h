@@ -41,8 +41,10 @@ DECLARE_DESTRUCTOR()
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  to_datatable,
-  "Convert this ColumnSet into a DataTable.")
+  to_frame,
+  "to_frame(self, names)\n"
+  "--\n\n"
+  "Convert this ColumnSet into a Frame, with the provided names.")
 
 DECLARE_METHOD(
   append_columns,

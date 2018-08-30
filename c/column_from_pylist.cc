@@ -492,3 +492,46 @@ Column* Column::from_pylist(const py::olist& list, int stype0, int ltype0)
   }
   return col;
 }
+
+
+
+//------------------------------------------------------------------------------
+// Create from range
+//------------------------------------------------------------------------------
+
+template <typename T>
+static Column* _make_range_column(
+    int64_t start, int64_t length, int64_t step, SType stype)
+{
+  Column* col = Column::new_data_column(stype, length);
+  T* elems = static_cast<T*>(col->data_w());
+  for (int64_t i = 0, j = start; i < length; ++i) {
+    elems[i] = static_cast<T>(j);
+    j += step;
+  }
+  return col;
+}
+
+
+Column* Column::from_range(
+    int64_t start, int64_t stop, int64_t step, SType stype)
+{
+  int64_t length = (stop - start - (step > 0 ? 1 : -1)) / step + 1;
+  if (length < 0) length = 0;
+  if (stype == SType::VOID) {
+    stype = (start == static_cast<int32_t>(start) &&
+             stop == static_cast<int32_t>(stop)) ? SType::INT32 : SType::INT64;
+  }
+  switch (stype) {
+    case SType::INT8:  return _make_range_column<int8_t> (start, length, step, stype);
+    case SType::INT16: return _make_range_column<int16_t>(start, length, step, stype);
+    case SType::INT32: return _make_range_column<int32_t>(start, length, step, stype);
+    case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
+    default: {
+      Column* col = _make_range_column<int64_t>(start, length, step, SType::INT64);
+      Column* res = col->cast(stype);
+      delete col;
+      return res;
+    }
+  }
+}

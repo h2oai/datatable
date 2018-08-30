@@ -13,6 +13,7 @@
 #include <vector>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "frame/py_frame.h"
 #include "options.h"
 #include "py_datatable.h"
 #include "py_utils.h"
@@ -87,7 +88,9 @@ PyObject* gread(PyObject*, PyObject* args)
 
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read();
-  return pydatatable::wrap(dtptr.release());
+  py::Frame* res = py::Frame::from_datatable(dtptr.release());
+  res->set_names(pyreader.get_attr("_colnames"));
+  return res;
 }
 
 

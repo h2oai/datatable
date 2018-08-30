@@ -22,6 +22,11 @@ olist::olist(size_t n) {
   if (!v) throw PyError();
 }
 
+olist::olist(int n) : olist(static_cast<size_t>(n)) {}
+
+olist::olist(int64_t n) : olist(static_cast<size_t>(n)) {}
+
+
 olist::olist(const olist& other) {
   v = other.v;
   is_list = other.is_list;

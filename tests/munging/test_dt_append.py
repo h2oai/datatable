@@ -217,8 +217,9 @@ def test_rbind_views0():
     dt0 = dt0[3:7, :]
     dt1 = dt.Frame({"d": [-1, -2], "s": ["the", "end"]})
     dt0.rbind(dt1)
-    dtr = dt.Frame({"d": [3, 4, 5, 6, -1, -2],
-                    "s": ["d", "e", "f", "g", "the", "end"]})
+    dtr = dt.Frame([[3, 4, 5, 6, -1, -2],
+                    ["d", "e", "f", "g", "the", "end"]],
+                   names=["d", "s"], stypes=[stype.int32, stype.str32])
     assert_equals(dt0, dtr)
 
 

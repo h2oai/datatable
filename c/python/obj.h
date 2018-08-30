@@ -22,13 +22,12 @@ namespace py {
 
 // Forward declarations
 class Arg;
-class oint;
-class Float;
-class ofloat;
-class string;
 class odict;
+class ofloat;
+class oint;
 class olist;
 class ostring;
+class orange;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -120,7 +119,6 @@ using strvec = std::vector<std::string>;
 class _obj {
   protected:
     PyObject* v;
-    struct error_manager;  // see below
 
   public:
     oobj get_attr(const char* attr) const;
@@ -131,6 +129,7 @@ class _obj {
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
+    operator bool() const noexcept;  // opposite of is_undefined()
     bool is_undefined()     const noexcept;
     bool is_none()          const noexcept;
     bool is_ellipsis()      const noexcept;
@@ -144,10 +143,12 @@ class _obj {
     bool is_list()          const noexcept;
     bool is_tuple()         const noexcept;
     bool is_list_or_tuple() const noexcept;
+    bool is_iterable()      const noexcept;
     bool is_dict()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
 
+    struct error_manager;  // see below
     int8_t      to_bool          (const error_manager& = _em0) const;
     int8_t      to_bool_strict   (const error_manager& = _em0) const;
     int8_t      to_bool_force    (const error_manager& = _em0) const noexcept;
@@ -170,16 +171,17 @@ class _obj {
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::olist   to_pylist        (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
+    py::orange  to_pyrange       (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
     RowIndex    to_rowindex      (const error_manager& = _em0) const;
     DataTable*  to_frame         (const error_manager& = _em0) const;
+    SType       to_stype         (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }
 
-  protected:
     /**
      * `error_manager` is a factory function for different error messages. It
      * is used to customize error messages when they are thrown from an `Arg`
@@ -199,10 +201,14 @@ class _obj {
       virtual Error error_not_column     (PyObject*) const;
       virtual Error error_not_list       (PyObject*) const;
       virtual Error error_not_dict       (PyObject*) const;
+      virtual Error error_not_range      (PyObject*) const;
+      virtual Error error_not_stype      (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
     };
+
+  protected:
     static error_manager _em0;
 
     // `_obj` class is not directly constructible: create either `obj` or

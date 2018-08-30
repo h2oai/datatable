@@ -10,6 +10,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "python/list.h"
+#include "python/orange.h"
 #include "utils/exceptions.h"
 
 
@@ -45,15 +46,19 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   int64_t nrows = 0;
   for (size_t i = 0; i < ncols; ++i) {
     py::obj item = srcs[i];
+    int stype = 0;
+    if (types) {
+      stype = types[i].to_int32();
+      if (ISNA<int32_t>(stype)) stype = 0;
+    }
     if (item.is_buffer()) {
       cols[i] = Column::from_buffer(item.to_borrowed_ref());
+    } else if (item.is_range()) {
+      py::orange r = item.to_pyrange();
+      cols[i] = Column::from_range(r.start(), r.stop(), r.step(),
+                                   static_cast<SType>(stype));
     } else if (item.is_list()) {
       py::olist list = item.to_pylist();
-      int stype = 0;
-      if (types) {
-        stype = types[i].to_int32();
-        if (ISNA<int32_t>(stype)) stype = 0;
-      }
       cols[i] = Column::from_pylist(list, stype);
     } else {
       throw ValueError() << "Source list is not list-of-lists";
