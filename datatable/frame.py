@@ -5,7 +5,6 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import collections
-import re
 import time
 
 from datatable.lib import core
@@ -670,9 +669,6 @@ class Frame(core.Frame):
         return self._dt.alloc_size
 
 
-
-_dedup_names_re0 = re.compile(r"[\x00-\x1F]+")
-_dedup_names_re1 = re.compile(r"^(.*)(\d+)$")
 
 
 
