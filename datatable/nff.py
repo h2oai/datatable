@@ -123,7 +123,7 @@ def open(path):
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
     f1 = f0(select=["filename", "stype"])
     colnames = f0["colname"].topython()[0]
-    _dt = core.datatable_load(f1.internal, nrows, path, nff_version < 2)
-    df = dt.Frame(_dt, names=colnames)
+    df = core.datatable_load(f1.internal, nrows, path, nff_version < 2,
+                             colnames)
     assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
     return df
