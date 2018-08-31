@@ -32,6 +32,7 @@ def test_aggregate_1d_continuous_integer_equal():
     assert d_in.topython() == [[0],
                                [10]]
 
+
 def test_aggregate_1d_continuous_integer_sorted():
     n_bins = 3
     d_in = dt.Frame([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])

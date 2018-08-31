@@ -113,7 +113,6 @@ class Frame(core.Frame):
         if isinstance(src, core.DataTable):
             self._dt = src
             self.names = names
-            # assert False
         elif isinstance(src, str):
             srcdt = datatable.fread(src)
             if names is None:

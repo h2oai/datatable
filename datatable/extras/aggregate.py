@@ -5,7 +5,6 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import Frame
 from datatable.lib import core
 
 
@@ -48,7 +47,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     names_members = ("exemplar_id",)
 
     dt_members = core.aggregate(self._dt, min_rows, n_bins, nx_bins, ny_bins,
-                                nd_bins, max_dimensions, seed, progress_fn)
+                                nd_bins, max_dimensions, seed, progress_fn,
+                                names_members)
     self.names = names_exemplars
-
-    return Frame(dt_members, names=names_members)
+    return dt_members
