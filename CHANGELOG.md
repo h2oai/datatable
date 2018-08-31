@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   when creating the frame.
 - Frame() can now be constructed from a list of named tuples, which will
   be treated as rows and field names will be used as column names.
+- frame.copy() can now be used to create a copy of the Frame.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
