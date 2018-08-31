@@ -437,7 +437,7 @@ def test_fread_columns_list_of_types():
 def test_fread_columns_list_bad1():
     with pytest.raises(ValueError) as e:
         dt.fread(text="C1,C2\n1,2\n3,4\n", columns=["C2"])
-    assert ("Input file contains 2 columns, whereas `columns` parameter "
+    assert ("Input contains 2 columns, whereas `columns` parameter "
             "specifies only 1 column" in str(e.value))
 
 
@@ -464,7 +464,7 @@ def test_fread_columns_list_bad4():
            in str(e)
     with pytest.raises(ValueError) as e:
         dt.fread(src, columns=[str, str])
-    assert ("Input file contains 3 columns, whereas `columns` parameter "
+    assert ("Input contains 3 columns, whereas `columns` parameter "
             "specifies only 2 columns" in str(e.value))
 
 

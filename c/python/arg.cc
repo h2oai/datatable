@@ -61,6 +61,7 @@ bool Arg::is_list_or_tuple() const { return pyobj.is_list_or_tuple(); }
 bool Arg::is_dict()          const { return pyobj.is_dict(); }
 bool Arg::is_string()        const { return pyobj.is_string(); }
 bool Arg::is_range()         const { return pyobj.is_range(); }
+bool Arg::is_frame()         const { return pyobj.is_frame(); }
 
 
 
@@ -76,6 +77,7 @@ std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
 SType       Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
+DataTable*  Arg::to_frame()        const { return pyobj.to_frame(*this); }
 
 
 

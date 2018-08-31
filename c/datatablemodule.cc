@@ -27,6 +27,10 @@
 
 extern void init_jay();
 
+namespace py {
+  PyObject* fread_fn = nullptr;
+}
+
 
 PyMODINIT_FUNC PyInit__datatable(void);
 
@@ -94,6 +98,7 @@ PyObject* register_function(PyObject*, PyObject *args) {
   else if (n == 5) replace_valueError(fnref);
   else if (n == 6) replace_dtWarning(fnref);
   else if (n == 7) py::Frame_Type = fnref;
+  else if (n == 8) py::fread_fn = fnref;
   else {
     throw ValueError() << "Incorrect function index: " << n;
   }

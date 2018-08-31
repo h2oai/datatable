@@ -85,8 +85,7 @@ def open(path):
         raise ValueError(msg)
 
     if not os.path.isdir(path):
-        _dt, colnames = core.open_jay(path)
-        return dt.Frame(_dt, names=colnames)
+        return core.open_jay(path)
 
     nff_version = None
     nrows = 0
@@ -123,7 +122,7 @@ def open(path):
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
     f1 = f0(select=["filename", "stype"])
     colnames = f0["colname"].topython()[0]
-    _dt = core.datatable_load(f1.internal, nrows, path, nff_version < 2)
-    df = dt.Frame(_dt, names=colnames)
+    df = core.datatable_load(f1.internal, nrows, path, nff_version < 2,
+                             colnames)
     assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
     return df

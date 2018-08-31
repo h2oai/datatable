@@ -22,6 +22,7 @@ PyObject* Frame_Type = nullptr;
 PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
                                   {"src", "names", "stypes", "stype"});
 PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
+NoArgs Frame::Type::args_copy;
 
 
 const char* Frame::Type::classname() {
@@ -105,6 +106,17 @@ void Frame::Type::init_methods(Methods& mm) {
     "    it doesn't go out-of-bounds, and negative index is converted into\n"
     "    positive.\n"
     ":raises ValueError: if the requested column does not exist.\n");
+
+  mm.add<&Frame::copy, args_copy>("copy",
+    "copy(self)\n"
+    "--\n\n"
+    "Make a copy of this Frame.\n"
+    "\n"
+    "This method creates a shallow copy of the current Frame: only references\n"
+    "are copied, not the data itself. However, due to copy-on-write semantics\n"
+    "any changes made to one of the Frames will not propagate to the other.\n"
+    "Thus, for all inents and purposes the copied Frame will behave as if\n"
+    "it was deep-copied.\n");
 }
 
 
@@ -146,6 +158,24 @@ void Frame::m__get_buffer__(Py_buffer* , int ) const {
 }
 
 void Frame::m__release_buffer__(Py_buffer*) const {
+}
+
+
+oobj Frame::copy(NoArgs&) {
+  Column** cols = new Column*[dt->ncols + 1];
+  for (int64_t i = 0; i < dt->ncols; ++i) {
+    cols[i] = dt->columns[i]->shallowcopy();
+  }
+  cols[dt->ncols] = nullptr;
+
+  DataTable* newdt = new DataTable(cols);
+  newdt->names = dt->names;
+  Frame* newframe = Frame::from_datatable(newdt);
+  newframe->stypes = stypes;  Py_XINCREF(stypes);
+  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  newframe->names  = names;   Py_XINCREF(names);
+  newframe->inames = inames;  Py_XINCREF(inames);
+  return py::oobj::from_new_reference(newframe);
 }
 
 

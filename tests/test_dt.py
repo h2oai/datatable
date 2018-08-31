@@ -602,7 +602,7 @@ def test_resize_bad():
 
 
 #-------------------------------------------------------------------------------
-# ...
+# Renaming columns
 #-------------------------------------------------------------------------------
 
 @pytest.mark.run(order=8)
@@ -948,10 +948,32 @@ def test_keys_simple():
 
 
 #-------------------------------------------------------------------------------
+# Frame copy
+#-------------------------------------------------------------------------------
+
+def test_copy_frame():
+    d0 = dt.Frame(A=range(5),
+                  B=["dew", None, "strab", "g", None],
+                  C=[1.0 - i * 0.2 for i in range(5)],
+                  D=[True, False, None, False, True])
+    assert sorted(d0.names) == list("ABCD")
+    d1 = d0.copy()
+    d0.internal.check()
+    d1.internal.check()
+    assert d0.names == d1.names
+    assert d0.stypes == d1.stypes
+    assert d0.topython() == d1.topython()
+    d0[1, "A"] = 100
+    assert d0.topython() != d1.topython()
+    d0.names = ("w", "x", "y", "z")
+    assert d1.names != d0.names
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=9)
 def test_internal_rowindex():
     d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
@@ -959,7 +981,6 @@ def test_internal_rowindex():
     assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
 
 
-@pytest.mark.run(order=33)
 def test_issue898():
     """
     Test that reification of obj column views does not lead to any disastrous
