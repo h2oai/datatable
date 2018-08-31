@@ -85,8 +85,7 @@ def open(path):
         raise ValueError(msg)
 
     if not os.path.isdir(path):
-        _dt, colnames = core.open_jay(path)
-        return dt.Frame(_dt, names=colnames)
+        return core.open_jay(path)
 
     nff_version = None
     nrows = 0
