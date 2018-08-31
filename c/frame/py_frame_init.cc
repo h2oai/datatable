@@ -450,6 +450,7 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 //------------------------------------------------------------------------------
 
 void Frame::m__init__(PKArgs& args) {
+  if (dt) m__dealloc__();
   dt = nullptr;
   core_dt = nullptr;
   stypes = nullptr;
