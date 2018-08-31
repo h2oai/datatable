@@ -8,6 +8,7 @@
 #define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
 #include <cstdlib>
+#include "frame/py_frame.h"
 #include "py_utils.h"
 #include "python/obj.h"
 #include "rowindex.h"
@@ -22,20 +23,21 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 
   int32_t min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
   unsigned int seed;
-  PyObject* arg1;
+  PyObject* arg1, *arg_names;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
+  if (!PyArg_ParseTuple(args, "OiiiiiiIOO:aggregate", &arg1, &min_rows, &n_bins,
                         &nx_bins, &ny_bins, &nd_bins, &max_dimensions, &seed,
-                        &progress_fn)) return nullptr;
-
+                        &progress_fn, &arg_names)) return nullptr;
   DataTable* dt_in = py::obj(arg1).to_frame();
-  DataTablePtr dt_members = nullptr;
 
   Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions,
                  seed, progress_fn);
-  dt_members = agg.aggregate(dt_in);
-  return pydatatable::wrap(dt_members.release());
+  DataTable* dt_out = agg.aggregate(dt_in).release();
+  py::Frame* frame = py::Frame::from_datatable(dt_out);
+  frame->set_names(py::obj(arg_names));
+
+  return frame;
 }
 
 

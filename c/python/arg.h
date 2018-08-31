@@ -49,6 +49,7 @@ class Arg : public _obj::error_manager {
     bool is_dict() const;
     bool is_string() const;
     bool is_range() const;
+    bool is_frame() const;
 
     //---- Type conversions ------------
     int32_t     to_int32_strict  () const;
@@ -60,6 +61,7 @@ class Arg : public _obj::error_manager {
     SType       to_stype         () const;
     SType       to_stype         (const error_manager&) const;
     py::obj     to_pyobj         () const { return pyobj; }
+    DataTable*  to_frame         () const;
 
 
     //---- Error messages --------------

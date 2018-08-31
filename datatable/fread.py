@@ -12,7 +12,7 @@ import re
 import shutil
 import tempfile
 import warnings
-from typing import List, Union, Callable, Optional, Tuple, Dict, Set
+from typing import List, Union, Optional
 
 from datatable.lib import core
 from datatable.frame import Frame
@@ -948,7 +948,7 @@ class GenericReader(object):
         n = len(colsdesc)
         nn = len(collist)
         if n != nn:
-            raise TValueError("Input file contains %s, whereas `columns` "
+            raise TValueError("Input contains %s, whereas `columns` "
                               "parameter specifies only %s"
                               % (plural(n, "column"), plural(nn, "column")))
         colnames = []
@@ -1071,6 +1071,8 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 options.register_option(
     "fread.anonymize", xtype=bool, default=False, core=True)
 
+core.register_function(8, fread)
+
 
 
 #-------------------------------------------------------------------------------
@@ -1093,6 +1095,7 @@ class rtype(enum.Enum):
 
 _rtypes_map = {
     None:          rtype.rdrop,
+    ...:           rtype.rauto,
     bool:          rtype.rbool,
     int:           rtype.rint,
     float:         rtype.rfloat,

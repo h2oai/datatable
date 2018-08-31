@@ -80,10 +80,15 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   int64_t nrows;
   const char* path;
   int recode;
-  if (!PyArg_ParseTuple(args, "O&nsi:datatable_load",
-                        &unwrap, &colspec, &nrows, &path, &recode))
+  PyObject* names;
+  if (!PyArg_ParseTuple(args, "O&nsiO:datatable_load",
+                        &unwrap, &colspec, &nrows, &path, &recode, &names))
     return nullptr;
-  return wrap(DataTable::load(colspec, nrows, path, recode));
+
+  DataTable* dt = DataTable::load(colspec, nrows, path, recode);
+  py::Frame* frame = py::Frame::from_datatable(dt);
+  frame->set_names(py::obj(names));
+  return frame;
 }
 
 
@@ -94,15 +99,9 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
   std::vector<std::string> colnames;
   DataTable* dt = DataTable::open_jay(filename, colnames);
-  PyObject* pydt = wrap(dt);
-
-  py::olist collist(colnames.size());
-  for (size_t i = 0; i < colnames.size(); ++i) {
-    collist.set(i, py::ostring(colnames[i]));
-  }
-  PyObject* pylist = std::move(collist).release();
-
-  return Py_BuildValue("OO", pydt, pylist);
+  py::Frame* frame = py::Frame::from_datatable(dt);
+  frame->set_names(colnames);
+  return frame;
 }
 
 

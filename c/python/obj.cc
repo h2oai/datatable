@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include <cstdint>         // INT32_MAX
+#include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_groupby.h"
@@ -16,6 +17,7 @@
 #include "python/float.h"
 #include "python/list.h"
 #include "python/orange.h"
+#include "python/tuple.h"
 #include "python/string.h"
 
 namespace py {
@@ -113,6 +115,14 @@ bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
 bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
+
+bool _obj::is_frame() const noexcept {
+  if (!v) return false;
+  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
+  int ret = PyObject_IsInstance(v, typeptr);
+  if (ret == -1) PyErr_Clear();
+  return (ret == 1);
+}
 
 
 
@@ -428,10 +438,13 @@ RowIndex _obj::to_rowindex(const error_manager& em) const {
 
 DataTable* _obj::to_frame(const error_manager& em) const {
   if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pydatatable::type)) {
-    throw em.error_not_frame(v);
+  if (is_frame()) {
+    return static_cast<py::Frame*>(v)->get_datatable();
   }
-  return static_cast<pydatatable::obj*>(v)->ref;
+  if (PyObject_TypeCheck(v, &pydatatable::type)) {
+    return static_cast<pydatatable::obj*>(v)->ref;
+  }
+  throw em.error_not_frame(v);
 }
 
 
@@ -506,6 +519,21 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
   } while (0);
   Py_XDECREF(callable);
   Py_XDECREF(args);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::call(otuple args) const {
+  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(), nullptr);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::call(otuple args, odict kws) const {
+  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(),
+                                kws.to_borrowed_ref());
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
