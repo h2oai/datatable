@@ -110,10 +110,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, core.DataTable):
-            self._dt = src
-            self.names = names
-        elif isinstance(src, str):
+        if isinstance(src, str):
             srcdt = datatable.fread(src)
             if names is None:
                 names = srcdt.names
@@ -193,7 +190,6 @@ class Frame(core.Frame):
 
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
                  groupby=None, join=None, sort=None, engine=None
-                 #update=None, limit=None
                  ):
         """
         Perform computation on a datatable, and return the result.
