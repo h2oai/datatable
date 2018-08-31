@@ -8,12 +8,10 @@
 # Test aggregating different types of data
 #
 #-------------------------------------------------------------------------------
-import math
-import pytest
 import datatable as dt
-from datatable import ltype, stype, DatatableWarning
+from datatable import ltype
 from datatable.extras.aggregate import aggregate
-from datatable import stype
+
 
 
 #-------------------------------------------------------------------------------
@@ -23,7 +21,7 @@ from datatable import stype
 def test_aggregate_1d_continuous_integer_equal():
     n_bins = 3
     d_in = dt.Frame([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    d_members = aggregate(d_in, min_rows = 1, n_bins = n_bins)
+    d_members = aggregate(d_in, min_rows=1, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -37,7 +35,7 @@ def test_aggregate_1d_continuous_integer_equal():
 def test_aggregate_1d_continuous_integer_sorted():
     n_bins = 3
     d_in = dt.Frame([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    d_members = aggregate(d_in, min_rows = 1, n_bins = n_bins)
+    d_members = aggregate(d_in, min_rows=1, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -52,7 +50,7 @@ def test_aggregate_1d_continuous_integer_sorted():
 def test_aggregate_1d_continuous_integer_random():
     n_bins = 3
     d_in = dt.Frame([9, 8, 2, 3, 3, 0, 5, 5, 8, 1])
-    d_members = aggregate(d_in, min_rows = 1, n_bins = n_bins)
+    d_members = aggregate(d_in, min_rows=1, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -67,7 +65,7 @@ def test_aggregate_1d_continuous_integer_random():
 def test_aggregate_1d_continuous_real_sorted():
     n_bins = 3
     d_in = dt.Frame([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
-    d_members = aggregate(d_in, min_rows = 1, n_bins = n_bins)
+    d_members = aggregate(d_in, min_rows=1, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -82,7 +80,7 @@ def test_aggregate_1d_continuous_real_sorted():
 def test_aggregate_1d_continuous_real_random():
     n_bins = 3
     d_in = dt.Frame([0.7, 0.7, 0.5, 0.1, 0.0, 0.9, 0.1, 0.3, 0.4, 0.2])
-    d_members = aggregate(d_in, min_rows = 1, n_bins = n_bins)
+    d_members = aggregate(d_in, min_rows=1, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -102,8 +100,8 @@ def test_aggregate_2d_continuous_integer_sorted():
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins, ny_bins = ny_bins)
+                     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins, ny_bins=ny_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -120,8 +118,8 @@ def test_aggregate_2d_continuous_integer_random():
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([[9, 8, 2, 3, 3, 0, 5, 5, 8, 1],
-                   [3, 5, 8, 1, 4, 4, 8, 7, 6, 1]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins, ny_bins = ny_bins)
+                     [3, 5, 8, 1, 4, 4, 8, 7, 6, 1]])
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins, ny_bins=ny_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -138,8 +136,8 @@ def test_aggregate_2d_continuous_real_sorted():
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-                   [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins, ny_bins = ny_bins)
+                     [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]])
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins, ny_bins=ny_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -156,8 +154,8 @@ def test_aggregate_2d_continuous_real_random():
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([[0.9, 0.8, 0.2, 0.3, 0.3, 0.0, 0.5, 0.5, 0.8, 0.1],
-                   [0.3, 0.5, 0.8, 0.1, 0.4, 0.4, 0.8, 0.7, 0.6, 0.1]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins, ny_bins = ny_bins)
+                     [0.3, 0.5, 0.8, 0.1, 0.4, 0.4, 0.8, 0.7, 0.6, 0.1]])
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins, ny_bins=ny_bins)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -171,41 +169,41 @@ def test_aggregate_2d_continuous_real_random():
 
 
 def test_aggregate_1d_categorical_sorted():
-    d_in = dt.Frame(["blue", "green", "indigo", "orange", "red", "violet", 
+    d_in = dt.Frame(["blue", "green", "indigo", "orange", "red", "violet",
                      "yellow"])
-    d_members = aggregate(d_in, min_rows = 1)
+    d_members = aggregate(d_in, min_rows=1)
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.topython() == [[0, 1, 2, 3, 4, 5, 6]]
     d_in.internal.check()
     assert d_in.shape == (7, 2)
     assert d_in.ltypes == (ltype.str, ltype.int)
-    assert d_in.topython() == [["blue", "green", "indigo", "orange", "red", 
+    assert d_in.topython() == [["blue", "green", "indigo", "orange", "red",
                                 "violet", "yellow"],
                                [1, 1, 1, 1, 1, 1, 1]]
 
 
 def test_aggregate_1d_categorical_random():
-    d_in = dt.Frame(["blue", "orange", "yellow", "green", "blue", "indigo", 
+    d_in = dt.Frame(["blue", "orange", "yellow", "green", "blue", "indigo",
                      "violet"])
-    d_members = aggregate(d_in, min_rows = 1)
+    d_members = aggregate(d_in, min_rows=1)
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.topython() == [[0, 3, 5, 1, 0, 2, 4]]
     d_in.internal.check()
     assert d_in.shape == (6, 2)
     assert d_in.ltypes == (ltype.str, ltype.int)
-    assert d_in.topython() == [["blue", "green", "indigo", "orange", "violet", 
+    assert d_in.topython() == [["blue", "green", "indigo", "orange", "violet",
                                 "yellow"],
                                [2, 1, 1, 1, 1, 1]]
 
 
 def test_aggregate_2d_categorical_sorted():
-    d_in = dt.Frame([["blue", "green", "indigo", "orange", "red", "violet", 
+    d_in = dt.Frame([["blue", "green", "indigo", "orange", "red", "violet",
                       "yellow"],
-                     ["Friday", "Monday", "Saturday", "Sunday", "Thursday", 
+                     ["Friday", "Monday", "Saturday", "Sunday", "Thursday",
                       "Tuesday", "Wednesday"]])
-    d_members = aggregate(d_in, min_rows = 1)
+    d_members = aggregate(d_in, min_rows=1)
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -213,20 +211,20 @@ def test_aggregate_2d_categorical_sorted():
     d_in.internal.check()
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
-    assert d_in.topython() == [["blue", "green", "indigo", "orange", "red", 
+    assert d_in.topython() == [["blue", "green", "indigo", "orange", "red",
                                 "violet", "yellow"],
-                               ["Friday", "Monday", "Saturday", "Sunday", 
+                               ["Friday", "Monday", "Saturday", "Sunday",
                                 "Thursday", "Tuesday", "Wednesday"],
                                [1, 1, 1, 1, 1, 1, 1]]
 
 
 def test_aggregate_2d_categorical_random():
-    d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet", 
+    d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet",
                       "red"],
-                     ["Monday", "Monday", "Wednesday", "Saturday", "Thursday", 
+                     ["Monday", "Monday", "Wednesday", "Saturday", "Thursday",
                       "Friday", "Wednesday"]])
 
-    d_members = aggregate(d_in, min_rows = 1)
+    d_members = aggregate(d_in, min_rows=1)
     d_members.internal.check()
     d_in.internal.check()
     assert d_members.shape == (7, 1)
@@ -235,9 +233,9 @@ def test_aggregate_2d_categorical_random():
     d_in.internal.check()
     assert d_in.shape == (6, 3)
     assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
-    assert d_in.topython() == [['violet', 'blue', 'indigo', 'violet', 'yellow', 
+    assert d_in.topython() == [['violet', 'blue', 'indigo', 'violet', 'yellow',
                                 'red'],
-                               ['Friday', 'Monday', 'Monday', 'Saturday', 
+                               ['Friday', 'Monday', 'Monday', 'Saturday',
                                 'Thursday', 'Wednesday'],
                                [1, 1, 1, 1, 1, 2]]
 
@@ -245,9 +243,9 @@ def test_aggregate_2d_categorical_random():
 def test_aggregate_2d_mixed_sorted():
     nx_bins = 7
     d_in = dt.Frame([[0, 1, 2, 3, 4, 5, 6],
-                     ["blue", "green", "indigo", "orange", "red", "violet", 
+                     ["blue", "green", "indigo", "orange", "red", "violet",
                       "yellow"]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins)
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins)
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -256,7 +254,7 @@ def test_aggregate_2d_mixed_sorted():
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.int, ltype.str, ltype.int)
     assert d_in.topython() == [[0, 1, 2, 3, 4, 5, 6],
-                               ["blue", "green", "indigo", "orange", "red", 
+                               ["blue", "green", "indigo", "orange", "red",
                                 "violet", "yellow"],
                                [1, 1, 1, 1, 1, 1, 1]]
 
@@ -264,9 +262,9 @@ def test_aggregate_2d_mixed_sorted():
 def test_aggregate_2d_mixed_random():
     nx_bins = 6
     d_in = dt.Frame([[3, 0, 6, 6, 1, 2, 4],
-                     ["blue", "indigo", "red", "violet", "yellow", "violet", 
+                     ["blue", "indigo", "red", "violet", "yellow", "violet",
                       "red"]])
-    d_members = aggregate(d_in, min_rows = 1, nx_bins = nx_bins)
+    d_members = aggregate(d_in, min_rows=1, nx_bins=nx_bins)
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -275,7 +273,6 @@ def test_aggregate_2d_mixed_random():
     assert d_in.shape == (7, 3)
     assert d_in.ltypes == (ltype.int, ltype.str, ltype.int)
     assert d_in.topython() == [[3, 0, 4, 6, 2, 6, 1],
-                               ['blue', 'indigo', 'red', 'red', 'violet', 
+                               ['blue', 'indigo', 'red', 'red', 'violet',
                                 'violet', 'yellow'],
                                [1, 1, 1, 1, 1, 1, 1]]
-
