@@ -49,6 +49,8 @@ class rdict : public obj {
     size_t size() const;
     obj get(_obj key) const;
     obj get_or_none(_obj key) const;
+    dict_iterator begin() const;
+    dict_iterator end() const;
 };
 
 

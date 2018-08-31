@@ -89,6 +89,14 @@ dict_iterator odict::end() const {
   return dict_iterator(v, -1);
 }
 
+dict_iterator rdict::begin() const {
+  return dict_iterator(v, 0);
+}
+
+dict_iterator rdict::end() const {
+  return dict_iterator(v, -1);
+}
+
 
 
 //------------------------------------------------------------------------------

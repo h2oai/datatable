@@ -313,6 +313,32 @@ def test_create_from_list_of_namedtuples_names_override():
     assert d0.topython() == [[5, 3], [6, 2], [7, 1]]
 
 
+@pytest.mark.usefixtures("py36")
+def test_create_from_list_of_dicts1():
+    d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
+                   {"a": 99},
+                   {"a": -4, "c": "Yay", "d": 2.17},
+                   {"d": 1e10}, {}])
+    d0.internal.check()
+    assert d0.shape == (5, 4)
+    assert d0.names == ("a", "b", "c", "d")
+    assert d0.ltypes == (ltype.int, ltype.int, ltype.str, ltype.real)
+    assert d0.topython() == [[5, 99, -4, None, None],
+                             [7, None, None, None, None],
+                             ["Hey", None, "Yay", None, None],
+                             [None, None, 2.17, 1e10, None]]
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_list_of_dicts2():
+    d0 = dt.Frame([{"foo": 11, "bar": 34}, {"argh": 17, "foo": 4}, {"_": 0}])
+    d0.internal.check()
+    assert d0.shape == (3, 4)
+    assert d0.names == ("foo", "bar", "argh", "_")
+    assert d0.topython() == [[11, 4, None], [34, None, None],
+                             [None, 17, None], [None, None, 0]]
+
+
 def test_create_from_list_of_dicts_with_names1():
     d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
                    {"a": 99},
@@ -335,11 +361,32 @@ def test_create_from_list_of_dicts_with_names2():
     assert d0.shape == (0, 0)
 
 
-def test_create_from_list_of_dicts_with_names_bad():
+def test_create_from_list_of_dicts_bad1():
     with pytest.raises(TypeError) as e:
         dt.Frame([{"a": 5}, {"b": 6}, None, {"c": 11}], names=[])
     assert ("The source is not a list of dicts: element 2 is a "
             "<class 'NoneType'>" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 5}, {"b": 6}, None, {"c": 11}])
+    assert ("The source is not a list of dicts: element 2 is a "
+            "<class 'NoneType'>" == str(e.value))
+
+
+def test_create_from_list_of_dicts_bad2():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 11}, {1: 4}])
+    assert ("Invalid data in Frame() constructor: row 1 dictionary contains "
+            "a key of type <class 'int'>, only string keys are allowed" ==
+            str(e.value))
+
+
+def test_create_from_list_of_dicts_bad3():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 11}, {"b": 4}], stypes=[int, int])
+    assert ("If the Frame() source is a list of dicts, then either the `names` "
+            "list has to be provided explicitly, or `stypes` parameter has "
+            "to be a dictionary (or missing)" == str(e.value))
+
 
 
 

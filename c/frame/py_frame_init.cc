@@ -12,6 +12,7 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "python/orange.h"
+#include "python/oset.h"
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/alloc.h"
@@ -274,6 +275,48 @@ class FrameInitializationManager {
               << i << " is a " << item.typeobj();
         }
       }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_auto_keys() {
+      xassert(!names_arg);
+      if (stypes_arg && !stypes_arg.is_dict()) {
+        throw TypeError() << "If the Frame() source is a list of dicts, then "
+            "either the `names` list has to be provided explicitly, or "
+            "`stypes` parameter has to be a dictionary (or missing)";
+      }
+      py::olist srclist = src.to_pylist();
+      py::olist nameslist(0);
+      py::oset  namesset;
+      size_t nrows = srclist.size();
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_dict()) {
+          throw TypeError() << "The source is not a list of dicts: element "
+              << i << " is a " << item.typeobj();
+        }
+        py::rdict row(item);
+        for (auto kv : row) {
+          py::obj& name = kv.first;
+          if (!namesset.has(name)) {
+            if (!name.is_string()) {
+              throw TypeError() << "Invalid data in Frame() constructor: row "
+                  << i << " dictionary contains a key of type "
+                  << name.typeobj() << ", only string keys are allowed";
+            }
+            nameslist.append(name);
+            namesset.add(name);
+          }
+        }
+      }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_with_keys(py::olist& nameslist) {
+      py::olist srclist = src.to_pylist();
+      size_t ncols = nameslist.size();
       for (size_t j = 0; j < ncols; ++j) {
         py::obj name = nameslist[j];
         SType s = get_stype_for_column(j, &name);
@@ -281,12 +324,7 @@ class FrameInitializationManager {
         cols.push_back(col);
       }
       frame->dt = make_datatable();
-      frame->set_names(names_arg.to_pyobj());
-    }
-
-
-    void init_from_list_of_dicts_auto_keys() {
-      xassert(!names_arg);
+      frame->set_names(nameslist);
     }
 
 
