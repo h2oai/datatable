@@ -148,6 +148,7 @@ class _obj {
     bool is_dict()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
+    bool is_frame()         const noexcept;
 
     struct error_manager;  // see below
     int8_t      to_bool          (const error_manager& = _em0) const;

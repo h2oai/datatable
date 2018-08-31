@@ -40,10 +40,10 @@ class Frame : public PyObject {
       public:
         static PKArgs args___init__;
         static PKArgs args_colindex;
+        static NoArgs args_copy;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
-
         static void init_getsetters(GetSetters& gs);
         static void init_methods(Methods& gs);
     };
@@ -51,6 +51,7 @@ class Frame : public PyObject {
     // Internal "constructor" of Frame objects. We do not use real constructors
     // because Frame objects must be allocated/initialized by Python.
     static Frame* from_datatable(DataTable* dt);
+    DataTable* get_datatable() const { return dt; }
 
     void m__init__(PKArgs&);
     void m__dealloc__();
@@ -71,6 +72,7 @@ class Frame : public PyObject {
     void set_internal(obj);
 
     oobj colindex(PKArgs&);
+    oobj copy(NoArgs&);
 
   private:
     static bool internal_construction;

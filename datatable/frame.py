@@ -116,13 +116,6 @@ class Frame(core.Frame):
                 names = srcdt.names
             self._dt = srcdt.internal
             self.names = names
-        elif is_type(src, Frame_t):
-            if names is None:
-                names = src.names
-            _dt = core.columns_from_slice(src.internal, None, 0, src.ncols, 1) \
-                      .to_frame(None).internal
-            self._dt = _dt
-            self.names = names
         elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):

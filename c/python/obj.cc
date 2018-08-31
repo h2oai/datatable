@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include <cstdint>         // INT32_MAX
+#include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_groupby.h"
@@ -113,6 +114,14 @@ bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
 bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
+
+bool _obj::is_frame() const noexcept {
+  if (!v) return false;
+  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
+  int ret = PyObject_IsInstance(v, typeptr);
+  if (ret == -1) PyErr_Clear();
+  return (ret == 1);
+}
 
 
 
@@ -428,10 +437,13 @@ RowIndex _obj::to_rowindex(const error_manager& em) const {
 
 DataTable* _obj::to_frame(const error_manager& em) const {
   if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pydatatable::type)) {
-    throw em.error_not_frame(v);
+  if (is_frame()) {
+    return static_cast<py::Frame*>(v)->get_datatable();
   }
-  return static_cast<pydatatable::obj*>(v)->ref;
+  if (PyObject_TypeCheck(v, &pydatatable::type)) {
+    return static_cast<pydatatable::obj*>(v)->ref;
+  }
+  throw em.error_not_frame(v);
 }
 
 

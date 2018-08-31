@@ -103,6 +103,9 @@ class FrameInitializationManager {
         // Already checked in the constructor that `src` is undefined.
         return init_from_varkwds();
       }
+      if (src.is_frame()) {
+        return init_from_frame();
+      }
       if (src.is_undefined() || src.is_none()) {
         return init_empty_frame();
       }
@@ -353,6 +356,29 @@ class FrameInitializationManager {
     }
 
 
+    void init_from_frame() {
+      DataTable* srcdt = src.to_frame();
+      size_t ncols = static_cast<size_t>(srcdt->ncols);
+      check_names_count(ncols);
+      if (stypes_arg || stype_arg) {
+        // TODO: allow this use case
+        throw TypeError() << "Parameter `stypes` is not allowed when making "
+            "a copy of a Frame";
+      }
+      for (size_t i = 0; i < ncols; ++i) {
+        cols.push_back(srcdt->columns[i]->shallowcopy());
+      }
+      frame->dt = make_datatable();
+      if (names_arg) {
+        frame->set_names(names_arg.to_pyobj());
+      } else {
+        // Copy names without checking for validity, since we know they were
+        // already verified in `srcdt`.
+        frame->dt->names = srcdt->names;
+      }
+    }
+
+
     Error _error_unknown_kwargs() {
       size_t n = all_args.num_varkwd_args();
       auto err = TypeError() << "Frame() constructor got ";
@@ -424,17 +450,13 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 //------------------------------------------------------------------------------
 
 void Frame::m__init__(PKArgs& args) {
-  const Arg& src        = args[0];
-  const Arg& names_arg  = args[1];
-  const Arg& stypes_arg = args[2];
-  const Arg& stype_arg  = args[3];
-
   dt = nullptr;
   core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
   names = nullptr;
   inames = nullptr;
+  if (Frame::internal_construction) return;
 
   FrameInitializationManager fim(args, this);
   fim.run();
@@ -443,6 +465,11 @@ void Frame::m__init__(PKArgs& args) {
     core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
     core_dt->_frame = this;
   } else {
+    const Arg& src        = args[0];
+    const Arg& names_arg  = args[1];
+    const Arg& stypes_arg = args[2];
+    const Arg& stype_arg  = args[3];
+
     py::oobj osrc(src.to_borrowed_ref());
     py::oobj ostypes(stypes_arg.to_borrowed_ref());
     if (stype_arg) {
