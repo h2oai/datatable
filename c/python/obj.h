@@ -122,6 +122,7 @@ class _obj {
 
   public:
     oobj get_attr(const char* attr) const;
+    bool has_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref

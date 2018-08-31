@@ -27,6 +27,7 @@ class Frame::NameProvider {
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
 };
 
+
 class pylistNP : public Frame::NameProvider {
   private:
     py::olist names;
@@ -37,6 +38,7 @@ class pylistNP : public Frame::NameProvider {
     virtual CString item_as_cstring(size_t i) override;
     virtual py::oobj item_as_pyoobj(size_t i) override;
 };
+
 
 class strvecNP : public Frame::NameProvider {
   private:
@@ -70,6 +72,7 @@ CString pylistNP::item_as_cstring(size_t i) {
 py::oobj pylistNP::item_as_pyoobj(size_t i) {
   return py::oobj(names[i]);
 }
+
 
 size_t strvecNP::size() const {
   return names.size();

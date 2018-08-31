@@ -43,12 +43,11 @@ int unwrap(PyObject* object, Column** address) {
 
 PyObject* column_from_list(PyObject*, PyObject* args) {
   PyObject* arg1;
-  int stype = 0, ltype = 0;
-  if (!PyArg_ParseTuple(args, "O|ii", &arg1, &stype, &ltype))
-    return nullptr;
+  int stype = 0;
+  if (!PyArg_ParseTuple(args, "O|i", &arg1, &stype)) return nullptr;
   py::olist list = py::obj(arg1).to_pylist();
 
-  Column* col = Column::from_pylist(list, stype, ltype);
+  Column* col = Column::from_pylist(list, stype);
   return from_column(col, nullptr, 0);
 }
 

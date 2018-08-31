@@ -13,6 +13,7 @@
 #include "python/list.h"
 #include "python/orange.h"
 #include "python/string.h"
+#include "python/tuple.h"
 #include "utils/alloc.h"
 
 namespace py {
@@ -75,44 +76,39 @@ class FrameInitializationManager {
 
     void run()
     {
-      if (all_args.num_varkwd_args()) {
-        // Already checked in the constructor that `src` is undefined
-        // in this case.
-        init_from_varkwds();
-      }
-      else if (src.is_list_or_tuple()) {
+      if (src.is_list_or_tuple()) {
         py::olist collist = src.to_pylist();
         if (collist.size() == 0) {
-          init_empty_frame();
+          return init_empty_frame();
         }
-        else {
-          py::obj item0 = collist[0];
-          if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
-            init_from_list_of_lists();
-          }
-          else if (item0.is_dict()) {
-            init_from_list_of_dicts();
-          }
-          else if (item0.is_tuple()) {
-            init_from_list_of_tuples();
-          }
-          else {
-            init_from_list_of_primitives();
-          }
+        py::obj item0 = collist[0];
+        if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
+          return init_from_list_of_lists();
         }
+        if (item0.is_dict()) {
+          return init_from_list_of_dicts();
+        }
+        if (item0.is_tuple()) {
+          return init_from_list_of_tuples();
+        }
+        return init_from_list_of_primitives();
       }
-      else if (src.is_dict()) {
-        init_from_dict();
+      if (src.is_dict()) {
+        return init_from_dict();
       }
-      else if (src.is_range()) {
-        init_from_list_of_primitives();
+      if (src.is_range()) {
+        return init_from_list_of_primitives();
       }
-      else if (src.is_undefined() || src.is_none()) {
-        init_empty_frame();
+      if (all_args.num_varkwd_args()) {
+        // Already checked in the constructor that `src` is undefined.
+        return init_from_varkwds();
       }
-      else if (src.is_ellipsis() &&
+      if (src.is_undefined() || src.is_none()) {
+        return init_empty_frame();
+      }
+      if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
-        init_mystery_frame();
+        return init_mystery_frame();
       }
     }
 
@@ -240,6 +236,7 @@ class FrameInitializationManager {
       frame->dt = make_datatable();
     }
 
+
     void init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
       check_names_count(collist.size());
@@ -253,13 +250,48 @@ class FrameInitializationManager {
       frame->set_names(names_arg.to_pyobj());
     }
 
+
     void init_from_list_of_dicts() {
       // TODO
     }
 
+
     void init_from_list_of_tuples() {
-      // TODO
+      py::olist srclist = src.to_pylist();
+      py::rtuple item0 = py::rtuple(srclist[0]);
+      size_t nrows = srclist.size();
+      size_t ncols = item0.size();
+      check_names_count(ncols);
+      check_stypes_count(ncols);
+      // Check that all entries are proper tuples
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_tuple()) {
+          throw TypeError() << "The source is not a list of tuples: element "
+              << i << " is a " << item.typeobj();
+        }
+        size_t this_ncols = rtuple(item).size();
+        if (this_ncols != ncols) {
+          throw ValueError() << "Misshaped rows in Frame() constructor: "
+              "row " << i << " contains " << this_ncols << " element"
+              << (this_ncols == 1? "" : "s") << ", while "
+              << (i == 1? "the previous row" : "previous rows")
+              << " had " << ncols << " element" << (ncols == 1? "" : "s");
+        }
+      }
+      // Create the columns
+      for (size_t j = 0; j < ncols; ++j) {
+        SType s = get_stype_for_column(j);
+        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+      }
+      frame->dt = make_datatable();
+      if (names_arg || !item0.has_attr("_fields")) {
+        frame->set_names(names_arg.to_pyobj());
+      } else {
+        frame->set_names(item0.get_attr("_fields"));
+      }
     }
+
 
     void init_from_list_of_primitives() {
       check_names_count(1);
@@ -269,6 +301,7 @@ class FrameInitializationManager {
       frame->dt = make_datatable();
       frame->set_names(names_arg.to_pyobj());
     }
+
 
     void init_from_dict() {
       if (defined_names) {
@@ -291,6 +324,7 @@ class FrameInitializationManager {
       frame->set_names(newnames);
     }
 
+
     void init_from_varkwds() {
       if (defined_names) {
         throw TypeError() << "Parameter `names` cannot be used when "
@@ -311,11 +345,13 @@ class FrameInitializationManager {
       frame->set_names(newnames);
     }
 
+
     void init_mystery_frame() {
       cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
       frame->dt = make_datatable();
       frame->set_names(strvec { "?" });
     }
+
 
     Error _error_unknown_kwargs() {
       size_t n = all_args.num_varkwd_args();
@@ -340,6 +376,7 @@ class FrameInitializationManager {
       }
       return err;
     }
+
 
     void _make_column(py::obj colsrc, SType s) {
       Column* col = nullptr;

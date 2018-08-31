@@ -23,6 +23,7 @@ class DataTable;
 class BoolColumn;
 class PyObjectColumn;
 class FreadReader;  // used as a friend
+class iterable;     // helper for Column::from_py_iterable
 template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
@@ -88,7 +89,8 @@ public:
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
-  static Column* from_pylist(const py::olist& list, int stype0 = 0, int ltype0 = 0);
+  static Column* from_pylist(const py::olist& list, int stype0 = 0);
+  static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_buffer(PyObject* buffer);
   static Column* from_range(int64_t start, int64_t stop, int64_t step, SType s);
 
@@ -314,6 +316,7 @@ protected:
 
 private:
   static Column* new_column(SType);
+  static Column* from_py_iterable(const iterable*, int stype0);
 
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
