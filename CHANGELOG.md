@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   now refers to similarly-named columns in that Frame, if there are any. At
   most 3 possible columns are reported, and they are ordered from most likely
   to least likely (#1253).
+- Frame() constructor now accepts a list of tuples, which it treats as rows
+  when creating the frame.
+- Frame() can now be constructed from a list of named tuples, which will
+  be treated as rows and field names will be used as column names.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --

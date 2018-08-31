@@ -244,6 +244,76 @@ def test_create_from_string():
                              [3, None, 1000], ["boo", "bar", ""]]
 
 
+def test_create_from_list_of_tuples1():
+    d0 = dt.Frame([(1, 2.0, "foo"),
+                   (3, 1.5, "zee"),
+                   (9, 0.1, "xyx"),
+                   (0, -10, None)])
+    d0.internal.check()
+    assert d0.shape == (4, 3)
+    assert d0.ltypes == (ltype.int, ltype.real, ltype.str)
+    assert d0.topython() == [[1, 3, 9, 0],
+                             [2.0, 1.5, 0.1, -10.0],
+                             ["foo", "zee", "xyx", None]]
+
+
+def test_create_from_list_of_tuples2():
+    d0 = dt.Frame([(1, 3, 5)], names=["a", "b", "c"], stypes=[int, float, str])
+    d0.internal.check()
+    assert d0.shape == (1, 3)
+    assert d0.ltypes == (ltype.int, ltype.real, ltype.str)
+    assert d0.names == ("a", "b", "c")
+    assert d0.topython() == [[1], [3.0], ["5"]]
+
+
+def test_create_from_list_of_tuples_bad():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([(1, 2, 3), (3, 4, 5), "4, 5, 6"])
+    assert ("The source is not a list of tuples: element 2 is a "
+            "<class 'str'>" == str(e.value))
+
+    with pytest.raises(ValueError) as e:
+        dt.Frame([(1, 2, 3), (4, 5), (5, 6, 7)])
+    assert ("Misshaped rows in Frame() constructor: row 1 contains 2 elements, "
+            "while the previous row had 3 elements" == str(e.value))
+
+    with pytest.raises(ValueError) as e:
+        dt.Frame([(1, 2, 3)], names=["a", "b"])
+    assert ("The `names` argument contains 2 elements, which is less than "
+            "the number of columns being created (3)" == str(e.value))
+
+    with pytest.raises(ValueError) as e:
+        dt.Frame([(1, 2, 3)], stypes=(stype.float32,) * 10)
+    assert ("The `stypes` argument contains 10 elements, which is more than "
+            "the number of columns being created (3)" == str(e.value))
+
+
+def test_create_from_list_of_namedtuples():
+    from collections import namedtuple
+    Person = namedtuple("Person", ["name", "age", "sex"])
+    d0 = dt.Frame([Person("Grogg", 21, "M"),
+                   Person("Alexx", 14, "M"),
+                   Person("Fiona", 24, "F")])
+    d0.internal.check()
+    assert d0.shape == (3, 3)
+    assert d0.names == ("name", "age", "sex")
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.str)
+    assert d0.topython() == [["Grogg", "Alexx", "Fiona"],
+                             [21, 14, 24], ["M", "M", "F"]]
+
+
+def test_create_from_list_of_namedtuples_names_override():
+    from collections import namedtuple
+    abc = namedtuple("ABC", ["a", "b", "c"])
+    d0 = dt.Frame([abc(5, 6, 7), abc(3, 2, 1)], names=["x", "y", "z"])
+    d0.internal.check()
+    assert d0.shape == (2, 3)
+    assert d0.names == ("x", "y", "z")
+    assert d0.ltypes == (ltype.int,) * 3
+    assert d0.topython() == [[5, 3], [6, 2], [7, 1]]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Create specific stypes

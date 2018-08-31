@@ -65,6 +65,10 @@ obj otuple::operator[](int i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
+obj rtuple::operator[](size_t i) const {
+  return obj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
+}
+
 
 void otuple::set(int64_t i, const _obj& value) {
   // PyTuple_SET_ITEM "steals" a reference to the last argument
@@ -98,6 +102,10 @@ void otuple::set(int i, oobj&& value) {
 //------------------------------------------------------------------------------
 
 size_t otuple::size() const noexcept {
+  return static_cast<size_t>(Py_SIZE(v));
+}
+
+size_t rtuple::size() const noexcept {
   return static_cast<size_t>(Py_SIZE(v));
 }
 

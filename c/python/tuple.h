@@ -46,6 +46,20 @@ class otuple : public oobj {
 };
 
 
+/**
+ * Same as `otuple`, only the object is owned by reference.
+ * The constructor will not check whether the object is created from PyTuple
+ * or not -- the caller is expected to do that himself. Thus, this class
+ * should be used judiciously.
+ */
+class rtuple : public obj {
+  public:
+    using obj::obj;
+    size_t size() const noexcept;
+    obj operator[](size_t i) const;
+};
+
+
 }  // namespace py
 
 #endif

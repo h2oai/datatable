@@ -484,6 +484,12 @@ oobj _obj::get_attr(const char* attr) const {
   return oobj::from_new_reference(res);
 }
 
+
+bool _obj::has_attr(const char* attr) const {
+  return PyObject_HasAttrString(v, attr);
+}
+
+
 oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* callable = nullptr;
   PyObject* args = nullptr;
