@@ -93,6 +93,7 @@ class Frame : public PyObject {
 };
 
 extern PyObject* Frame_Type;
+extern PyObject* fread_fn;
 
 }  // namespace py
 

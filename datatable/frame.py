@@ -16,7 +16,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, is_type, Frame_t,
+    TTypeError, TValueError, DatatableWarning, U, is_type,
     typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
@@ -110,13 +110,7 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if isinstance(src, str):
-            srcdt = datatable.fread(src)
-            if names is None:
-                names = srcdt.names
-            self._dt = srcdt.internal
-            self.names = names
-        elif is_type(src, PandasDataFrame_t, PandasSeries_t):
+        if is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)

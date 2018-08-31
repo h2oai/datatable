@@ -28,6 +28,7 @@ class oint;
 class olist;
 class ostring;
 class orange;
+class otuple;
 class obj;
 class oobj;
 using strvec = std::vector<std::string>;
@@ -124,6 +125,8 @@ class _obj {
     oobj get_attr(const char* attr) const;
     bool has_attr(const char* attr) const;
     oobj invoke(const char* fn, const char* format, ...) const;
+    oobj call(otuple args) const;
+    oobj call(otuple args, odict kws) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 

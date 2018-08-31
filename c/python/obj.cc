@@ -17,6 +17,7 @@
 #include "python/float.h"
 #include "python/list.h"
 #include "python/orange.h"
+#include "python/tuple.h"
 #include "python/string.h"
 
 namespace py {
@@ -518,6 +519,21 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
   } while (0);
   Py_XDECREF(callable);
   Py_XDECREF(args);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::call(otuple args) const {
+  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(), nullptr);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::call(otuple args, odict kws) const {
+  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(),
+                                kws.to_borrowed_ref());
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }

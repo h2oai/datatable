@@ -106,6 +106,9 @@ class FrameInitializationManager {
       if (src.is_frame()) {
         return init_from_frame();
       }
+      if (src.is_string()) {
+        return init_from_string();
+      }
       if (src.is_undefined() || src.is_none()) {
         return init_empty_frame();
       }
@@ -375,6 +378,26 @@ class FrameInitializationManager {
         // Copy names without checking for validity, since we know they were
         // already verified in `srcdt`.
         frame->dt->names = srcdt->names;
+      }
+    }
+
+
+    void init_from_string() {
+      py::otuple call_args(1);
+      call_args.set(0, src.to_pyobj());
+
+      py::oobj res = py::obj(py::fread_fn).call(call_args);
+      if (res.is_frame()) {
+        Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
+        std::swap(frame->dt,      resframe->dt);
+        std::swap(frame->names,   resframe->names);
+        std::swap(frame->inames,  resframe->inames);
+        std::swap(frame->stypes,  resframe->stypes);
+        std::swap(frame->ltypes,  resframe->ltypes);
+        std::swap(frame->core_dt, resframe->core_dt);
+        frame->core_dt->_frame = frame;
+      } else {
+        throw RuntimeError() << "fread produced an object of " << res.typeobj();
       }
     }
 
