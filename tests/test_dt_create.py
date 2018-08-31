@@ -313,6 +313,34 @@ def test_create_from_list_of_namedtuples_names_override():
     assert d0.topython() == [[5, 3], [6, 2], [7, 1]]
 
 
+def test_create_from_list_of_dicts_with_names1():
+    d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
+                   {"a": 99},
+                   {"a": -4, "c": "Yay", "d": 2.17},
+                   {"d": 1e10}, {}],
+                  names=["c", "a", "d", "e"])
+    d0.internal.check()
+    assert d0.shape == (5, 4)
+    assert d0.names == ("c", "a", "d", "e")
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
+    assert d0.topython() == [["Hey", None, "Yay", None, None],
+                             [5, 99, -4, None, None],
+                             [None, None, 2.17, 1e10, None],
+                             [None, None, None, None, None]]
+
+
+def test_create_from_list_of_dicts_with_names2():
+    d0 = dt.Frame([{"a": 5}, {"b": 6}, {"c": 11}, {}], names=[])
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+
+
+def test_create_from_list_of_dicts_with_names_bad():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 5}, {"b": 6}, None, {"c": 11}], names=[])
+    assert ("The source is not a list of dicts: element 2 is a "
+            "<class 'NoneType'>" == str(e.value))
+
 
 
 #-------------------------------------------------------------------------------

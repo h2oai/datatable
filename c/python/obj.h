@@ -233,6 +233,7 @@ class obj : public _obj {
     obj(const obj&);
     obj(const oobj&);
     obj& operator=(const obj&);
+    obj& operator=(const _obj&);
 };
 
 
@@ -264,6 +265,7 @@ class oobj : public _obj {
 oobj None();
 oobj True();
 oobj False();
+obj rnone();
 
 
 }  // namespace py

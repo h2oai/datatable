@@ -45,6 +45,10 @@ size_t odict::size() const {
   return static_cast<size_t>(PyDict_Size(v));
 }
 
+size_t rdict::size() const {
+  return static_cast<size_t>(PyDict_Size(v));
+}
+
 bool odict::has(_obj key) const {
   PyObject* _key = key.to_borrowed_ref();
   return PyDict_GetItem(v, _key) != nullptr;
@@ -54,6 +58,18 @@ obj odict::get(_obj key) const {
   // PyDict_GetItem returns a borrowed ref; or NULL if key is not present
   PyObject* _key = key.to_borrowed_ref();
   return obj(PyDict_GetItem(v, _key));
+}
+
+obj rdict::get(_obj key) const {
+  PyObject* _key = key.to_borrowed_ref();
+  return obj(PyDict_GetItem(v, _key));
+}
+
+obj rdict::get_or_none(_obj key) const {
+  PyObject* _key = key.to_borrowed_ref();
+  PyObject* res = PyDict_GetItem(v, _key);
+  if (!res) res = Py_None;
+  return obj(res);
 }
 
 void odict::set(_obj key, _obj val) {
