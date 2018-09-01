@@ -10,7 +10,8 @@
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
 #include "py_types.h"      // PyLong_AsInt64AndOverflow
-#include "python/float.h"  // py::Float
+#include "python/dict.h"   // py::rdict
+#include "python/float.h"  // py::float
 #include "python/int.h"    // py::oint
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
@@ -53,6 +54,18 @@ class ituplist : public iterable {
 };
 
 
+class idictlist : public iterable {
+  private:
+    const py::olist& dict_list;
+    const py::obj key;
+
+  public:
+    idictlist(const py::olist& src, py::obj name);
+    size_t size() const override;
+    py::obj item(size_t i) const override;
+  };
+
+
 //------------------------------------------------------------------------------
 
 iterable::~iterable() {}
@@ -72,6 +85,16 @@ size_t ituplist::size() const { return tuple_list.size(); }
 
 py::obj ituplist::item(size_t i) const {
   return py::rtuple(tuple_list[i])[j];
+}
+
+
+idictlist::idictlist(const py::olist& src, py::obj name)
+    : dict_list(src), key(name) {}
+
+size_t idictlist::size() const { return dict_list.size(); }
+
+py::obj idictlist::item(size_t i) const {
+  return py::rdict(dict_list[i]).get_or_none(key);
 }
 
 
@@ -541,6 +564,15 @@ Column* Column::from_pylist_of_tuples(
   ituplist il(list, index);
   return from_py_iterable(&il, stype0);
 }
+
+
+Column* Column::from_pylist_of_dicts(
+    const py::olist& list, py::obj name, int stype0)
+{
+  idictlist il(list, name);
+  return from_py_iterable(&il, stype0);
+}
+
 
 
 

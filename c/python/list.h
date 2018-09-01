@@ -55,6 +55,8 @@ class olist : public oobj {
     void set(int64_t i, oobj&& value);
     void set(int i,     oobj&& value);
 
+    void append(const _obj& value);
+
   private:
     // Wrap an existing PyObject* into an `olist`. This constructor is private,
     // use `py::org(src).to_pylist()` instead.

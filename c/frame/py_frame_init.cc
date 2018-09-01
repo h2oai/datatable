@@ -12,6 +12,7 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "python/orange.h"
+#include "python/oset.h"
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/alloc.h"
@@ -86,7 +87,10 @@ class FrameInitializationManager {
           return init_from_list_of_lists();
         }
         if (item0.is_dict()) {
-          return init_from_list_of_dicts();
+          if (names_arg)
+            return init_from_list_of_dicts_fixed_keys();
+          else
+            return init_from_list_of_dicts_auto_keys();
         }
         if (item0.is_tuple()) {
           return init_from_list_of_tuples();
@@ -179,7 +183,7 @@ class FrameInitializationManager {
      * `SType::VOID`.
      *
      */
-    SType get_stype_for_column(size_t i, const std::string* name = nullptr) {
+    SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
       if (defined_stype) {
         return stype0;
       }
@@ -198,7 +202,7 @@ class FrameInitializationManager {
             py::olist names = names_arg.to_pylist();
             oname = names[i];
           } else {
-            oname = py::ostring(*name);
+            oname = *name;
           }
           py::odict stypes = stypes_arg.to_pydict();
           py::obj res = stypes.get(oname);
@@ -257,8 +261,70 @@ class FrameInitializationManager {
     }
 
 
-    void init_from_list_of_dicts() {
-      // TODO
+    void init_from_list_of_dicts_fixed_keys() {
+      xassert(names_arg);
+      py::olist srclist = src.to_pylist();
+      py::olist nameslist = names_arg.to_pylist();
+      size_t nrows = srclist.size();
+      size_t ncols = nameslist.size();
+      check_stypes_count(ncols);
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_dict()) {
+          throw TypeError() << "The source is not a list of dicts: element "
+              << i << " is a " << item.typeobj();
+        }
+      }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_auto_keys() {
+      xassert(!names_arg);
+      if (stypes_arg && !stypes_arg.is_dict()) {
+        throw TypeError() << "If the Frame() source is a list of dicts, then "
+            "either the `names` list has to be provided explicitly, or "
+            "`stypes` parameter has to be a dictionary (or missing)";
+      }
+      py::olist srclist = src.to_pylist();
+      py::olist nameslist(0);
+      py::oset  namesset;
+      size_t nrows = srclist.size();
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_dict()) {
+          throw TypeError() << "The source is not a list of dicts: element "
+              << i << " is a " << item.typeobj();
+        }
+        py::rdict row(item);
+        for (auto kv : row) {
+          py::obj& name = kv.first;
+          if (!namesset.has(name)) {
+            if (!name.is_string()) {
+              throw TypeError() << "Invalid data in Frame() constructor: row "
+                  << i << " dictionary contains a key of type "
+                  << name.typeobj() << ", only string keys are allowed";
+            }
+            nameslist.append(name);
+            namesset.add(name);
+          }
+        }
+      }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_with_keys(py::olist& nameslist) {
+      py::olist srclist = src.to_pylist();
+      size_t ncols = nameslist.size();
+      for (size_t j = 0; j < ncols; ++j) {
+        py::obj name = nameslist[j];
+        SType s = get_stype_for_column(j, &name);
+        Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
+        cols.push_back(col);
+      }
+      frame->dt = make_datatable();
+      frame->set_names(nameslist);
     }
 
 
@@ -320,10 +386,10 @@ class FrameInitializationManager {
       strvec newnames;
       newnames.reserve(ncols);
       for (auto kv : coldict) {
-        auto i = newnames.size();
-        auto name = kv.first.to_string();
-        auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(std::move(name));
+        size_t i = newnames.size();
+        py::obj name = kv.first;
+        SType stype = get_stype_for_column(i, &name);
+        newnames.push_back(name.to_string());
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();
@@ -341,10 +407,10 @@ class FrameInitializationManager {
       strvec newnames;
       newnames.reserve(ncols);
       for (auto kv: all_args.varkwds()) {
-        auto i = newnames.size();
-        auto name = kv.first;
-        auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(std::move(name));
+        size_t i = newnames.size();
+        const py::ostring oname(kv.first);
+        SType stype = get_stype_for_column(i, &oname);
+        newnames.push_back(std::move(kv.first));
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();

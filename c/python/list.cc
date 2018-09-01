@@ -111,6 +111,11 @@ void olist::set(int i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
 
+void olist::append(const _obj& value) {
+  int ret = PyList_Append(v, value.to_borrowed_ref());
+  if (ret == -1) throw PyError();
+}
+
 
 
 //------------------------------------------------------------------------------
