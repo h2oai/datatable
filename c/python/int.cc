@@ -75,7 +75,7 @@ template<> long oint::value<long>(int* overflow) const {
 
 
 template<> long long oint::value<long long>(int* overflow) const {
-  if (!v) return GETNA<long long>();
+  if (!v) return GETNA<int64_t>();
   long long value = PyLong_AsLongLongAndOverflow(v, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long long>::max()

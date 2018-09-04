@@ -206,6 +206,7 @@ def get_extra_compile_flags():
 
     if "DTDEBUG" in os.environ:
         flags += ["-g", "-ggdb", "-O0"]
+        flags += ["-DDTTEST"]
     elif "DTASAN" in os.environ:
         flags += ["-g", "-ggdb", "-O0",
                   "-fsanitize=address",

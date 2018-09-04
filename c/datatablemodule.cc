@@ -242,13 +242,14 @@ PyInit__datatable(void) {
     try {
       py::Frame::Type::init(m);
 
+      #ifdef DTTEST
+        dttest::run_tests();
+      #endif
+
     } catch (const std::exception& e) {
       exception_to_python(e);
+      return nullptr;
     }
-
-    #ifdef DTTEST
-      dttest::run_tests();
-    #endif
 
     return m;
 }

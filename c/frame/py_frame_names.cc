@@ -529,7 +529,7 @@ Error Frame::_name_not_found_error(const std::string& name) {
     pylistNP* t1 = new pylistNP(py::rnone());
     delete t1;
 
-    strvecNP* t2 = new strvecNP({"\xFF"});
+    strvecNP* t2 = new strvecNP({"\xFF__", "foo"});
     bool test_ok = false;
     try {
       // This should throw, since the name is not valid UTF8
