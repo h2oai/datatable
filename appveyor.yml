@@ -1,3 +1,4 @@
+image: Visual Studio 2017
 build: false
 
 install:
@@ -45,7 +46,6 @@ before_build:
   - "ECHO %LLVM6%"
 
 
-
 cache:
   - /ProgramData/chocolatey/bin -> appveyor.yml
   - /ProgramData/chocolatey/lib -> appveyor.yml
@@ -56,7 +56,6 @@ test_script:
   # - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   # - dir "C:\Program Files\"
   #- DIR /S "C:\tools\mingw64"
-  - "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
   - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
