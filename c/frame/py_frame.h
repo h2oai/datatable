@@ -95,6 +95,12 @@ class Frame : public PyObject {
 extern PyObject* Frame_Type;
 extern PyObject* fread_fn;
 
+
+#ifdef DTTEST
+void cover_py_FrameInitializationManager_em();
+void cover_py_FrameNameProviders();
+#endif
+
 }  // namespace py
 
 #endif

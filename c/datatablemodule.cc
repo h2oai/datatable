@@ -11,6 +11,7 @@
 #include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/py_expr.h"
+#include "extras/aggregator.h"
 #include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
@@ -23,7 +24,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 #include "utils/assert.h"
-#include "extras/aggregator.h"
+#include "ztest.h"
 
 extern void init_jay();
 
@@ -244,6 +245,10 @@ PyInit__datatable(void) {
     } catch (const std::exception& e) {
       exception_to_python(e);
     }
+
+    #ifdef DTTEST
+      dttest::run_tests();
+    #endif
 
     return m;
 }

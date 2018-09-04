@@ -214,6 +214,7 @@ def get_extra_compile_flags():
                   "-shared-libasan"]
     elif "DTCOVERAGE" in os.environ:
         flags += ["-g", "--coverage", "-O0"]
+        flags += ["-DDTTEST"]
     else:
         flags += ["-O3"]
 
