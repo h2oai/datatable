@@ -56,6 +56,8 @@ test_script:
   # - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   # - dir "C:\Program Files\"
   #- DIR /S "C:\tools\mingw64"
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+  - "ECHO %LLVM6%"
   - SET
   - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
