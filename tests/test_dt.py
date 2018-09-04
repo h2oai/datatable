@@ -205,17 +205,25 @@ def test_dt_colindex(dt0):
     assert dt0.colindex(-1) == 6
     for i, ch in enumerate("ABCDEFG"):
         assert dt0.colindex(ch) == i
+
+
+def test_dt_colindex_bad(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex("a")
     assert "Column `a` does not exist in the Frame" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert ("Column index `7` is invalid for a Frame with 7 columns"
-            in str(e.value))
+    assert ("Column index `7` is invalid for a Frame with 7 columns" ==
+            str(e.value))
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert ("Column index `-8` is invalid for a Frame with 7 columns"
-            in str(e.value))
+    assert ("Column index `-8` is invalid for a Frame with 7 columns" ==
+            str(e.value))
+    for x in [False, None, 1.99, [1, 2, 3]]:
+        with pytest.raises(TypeError) as e:
+            dt0.colindex(x)
+        assert ("The argument to Frame.colindex() should be a string or an "
+                "integer, not %s" % type(x) == str(e.value))
 
 
 def test_dt_colindex_fuzzy_suggestions():

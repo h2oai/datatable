@@ -75,7 +75,7 @@ template<> long oint::value<long>(int* overflow) const {
 
 
 template<> long long oint::value<long long>(int* overflow) const {
-  if (!v) return GETNA<long long>();
+  if (!v) return GETNA<int64_t>();
   long long value = PyLong_AsLongLongAndOverflow(v, overflow);
   if (*overflow) {
     value = *overflow > 0 ? std::numeric_limits<long long>::max()
@@ -146,7 +146,7 @@ template<typename T> T oint::value() const {
 
 
 template<> long long int oint::masked_value() const {
-  if (!v) return GETNA<long long int>();
+  if (!v) return GETNA<int64_t>();
   unsigned long long x = PyLong_AsUnsignedLongLongMask(v);
   if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
