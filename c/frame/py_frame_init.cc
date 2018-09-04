@@ -225,15 +225,10 @@ class FrameInitializationManager {
         std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
       }
       newcols[ncols] = nullptr;
-      try {
-        DataTable* res = new DataTable(newcols);
-        cols.clear();
-        return res;
-      } catch (const std::exception&) {
-        dt::free(newcols);
-        throw;
-      }
-    }
+      cols.clear();
+      return new DataTable(newcols);
+    }  // LCOV_EXCL_LINE
+
 
 
   //----------------------------------------------------------------------------
@@ -463,7 +458,16 @@ class FrameInitializationManager {
         std::swap(frame->core_dt, resframe->core_dt);
         frame->core_dt->_frame = frame;
       } else {
-        throw RuntimeError() << "fread produced an object of " << res.typeobj();
+        xassert(res.is_dict());
+        auto err = ValueError();
+        err << "Frame cannot be initialized from multiple source files: ";
+        size_t i = 0;
+        for (auto kv : res.to_pydict()) {
+          if (i == 1) err << ", ";
+          if (i == 2) { err << ", ..."; break; }
+          err << '\'' << kv.first << '\'';
+        }
+        throw err;
       }
     }
 
@@ -520,6 +524,11 @@ class FrameInitializationManager {
         }
       }
     }
+
+
+    #ifdef DTTEST
+      friend void cover_py_FrameInitializationManager_em();
+    #endif
 };
 
 
@@ -531,7 +540,8 @@ class FrameInitializationManager {
 Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
   return TypeError() << "Invalid value for `stype` parameter in Frame() "
                         "constructor";
-}
+} // LCOV_EXCL_LINE
+
 
 
 //------------------------------------------------------------------------------
@@ -567,16 +577,7 @@ void Frame::m__init__(PKArgs& args) {
       stypes_list.set(0, stype_arg.to_borrowed_ref());
       ostypes = stypes_list;
     }
-    if (args.num_varkwd_args()) {
-      if (src) {
-        throw TypeError() << "Unknown keyword arguments in Frame.__init__()";
-      }
-      py::odict kvdict;
-      for (auto kv : args.varkwds()) {
-        kvdict.set(ostring(kv.first), kv.second);
-      }
-      osrc = std::move(kvdict);
-    }
+    xassert(args.num_varkwd_args() == 0);
     PyObject* arg1 = osrc.to_borrowed_ref();
     PyObject* arg2 = names_arg.to_borrowed_ref();
     PyObject* arg3 = ostypes.to_borrowed_ref();
@@ -587,5 +588,20 @@ void Frame::m__init__(PKArgs& args) {
   }
 }
 
+
+
+// This test ensures coverage for `_ZN2py26FrameInitializationManager2emD0Ev`
+// symbol. See https://stackoverflow.com/questions/46447674 for details.
+#ifdef DTTEST
+  void cover_py_FrameInitializationManager_em() {
+    auto t = new FrameInitializationManager::em;
+    delete t;
+  }
+#endif
+
+// Two lines in the file are marked as LCOV_EXCL_LINE: these lines are related
+// to auto-generated exception-handling code, and they are not covered because
+// those exceptions are almost impossible to trigger.
+// See https://stackoverflow.com/questions/46367192
 
 }  // namespace py

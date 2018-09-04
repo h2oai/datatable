@@ -21,7 +21,7 @@ namespace py {
 
 class Frame::NameProvider {
   public:
-    virtual ~NameProvider();
+    virtual ~NameProvider();  // LCOV_EXCL_LINE
     virtual size_t size() const = 0;
     virtual CString item_as_cstring(size_t i) = 0;
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
@@ -34,7 +34,7 @@ class pylistNP : public Frame::NameProvider {
 
   public:
     pylistNP(py::obj arg) : names(arg.to_pylist()) {}
-    size_t size() const override;
+    virtual size_t size() const override;
     virtual CString item_as_cstring(size_t i) override;
     virtual py::oobj item_as_pyoobj(size_t i) override;
 };
@@ -46,7 +46,7 @@ class strvecNP : public Frame::NameProvider {
 
   public:
     strvecNP(const std::vector<std::string>& arg) : names(arg) {}
-    size_t size() const override;
+    virtual size_t size() const override;
     virtual CString item_as_cstring(size_t i) override;
     virtual py::oobj item_as_pyoobj(size_t i) override;
 };
@@ -522,5 +522,25 @@ Error Frame::_name_not_found_error(const std::string& name) {
   return err;
 }
 
+
+
+#ifdef DTTEST
+  void cover_py_FrameNameProviders() {
+    pylistNP* t1 = new pylistNP(py::rnone());
+    delete t1;
+
+    strvec src2 = {"\xFF__", "foo"};
+    strvecNP* t2 = new strvecNP(src2);
+    bool test_ok = false;
+    try {
+      // This should throw, since the name is not valid UTF8
+      auto r = t2->item_as_pyoobj(0);
+    } catch (const std::exception&) {
+      test_ok = true;
+    }
+    xassert(test_ok);
+    delete t2;
+  }
+#endif
 
 } // namespace py
