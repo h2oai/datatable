@@ -9,7 +9,7 @@ from datatable.lib import core
 
 
 def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-              nd_bins=500, max_dimensions=50, seed=0, progress_fn=None):
+              nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None):
     """
     Aggregate datatable in-place.
 
@@ -23,7 +23,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
         Number of x bins for 2D aggregation.
     ny_bins: int
         Number of y bins for 2D aggregation.
-    nd_bins: int
+    nd_max_bins: int
         Maximum number of exemplars for ND aggregation.
     max_dimensions: int
         Number of columns at which start using the projection method.
@@ -43,11 +43,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     if progress_fn is not None and not callable(progress_fn):
         raise dt.TypeError("`progress_fn` argument should be a function")
 
-    names_exemplars = self.names + ("count",)
-    names_members = ("exemplar_id",)
+    dt_members = core.aggregate(self, min_rows, n_bins, nx_bins, ny_bins,
+                                nd_max_bins, max_dimensions, seed, progress_fn)
 
-    dt_members = core.aggregate(self._dt, min_rows, n_bins, nx_bins, ny_bins,
-                                nd_bins, max_dimensions, seed, progress_fn,
-                                names_members)
-    self.names = names_exemplars
     return dt_members

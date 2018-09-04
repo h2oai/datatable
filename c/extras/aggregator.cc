@@ -21,23 +21,32 @@
 */
 PyObject* aggregate(PyObject*, PyObject* args) {
 
-  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
+  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
   unsigned int seed;
-  PyObject* arg1, *arg_names;
+  PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIOO:aggregate", &arg1, &min_rows, &n_bins,
-                        &nx_bins, &ny_bins, &nd_bins, &max_dimensions, &seed,
-                        &progress_fn, &arg_names)) return nullptr;
-  DataTable* dt_in = py::obj(arg1).to_frame();
+  if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
+                        &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
+                        &progress_fn)) return nullptr;
+  DataTable* dt_exemplars = py::obj(arg1).to_frame();
 
-  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions,
+  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
                  seed, progress_fn);
-  DataTable* dt_out = agg.aggregate(dt_in).release();
-  py::Frame* frame = py::Frame::from_datatable(dt_out);
-  frame->set_names(py::obj(arg_names));
 
-  return frame;
+  // dt_exemplars changes in-place with a new column added to the end of it
+  DataTable* dt_members = agg.aggregate(dt_exemplars).release();
+
+  std::vector<std::string> colnames = {"exemplar_id"};
+  py::Frame* frame_members = py::Frame::from_datatable(dt_members);
+  frame_members->set_names(colnames);
+
+  colnames = dt_exemplars->names;
+  auto frame_exemplars = static_cast<py::Frame*>(arg1);
+  colnames.push_back("members_count");
+  frame_exemplars->set_names(colnames);
+
+  return frame_members;
 }
 
 
@@ -45,13 +54,13 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 *  Setting up aggregation parameters.
 */
 Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_in,
-                       int32_t ny_bins_in, int32_t nd_bins_in, int32_t max_dimensions_in,
+                       int32_t ny_bins_in, int32_t nd_max_bins_in, int32_t max_dimensions_in,
                        unsigned int seed_in, PyObject* progress_fn_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
   ny_bins(ny_bins_in),
-  nd_bins(nd_bins_in),
+  nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
   seed(seed_in),
   progress_fn(progress_fn_in)
@@ -66,6 +75,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
   dt_members = DataTablePtr(new DataTable(cols_members));
@@ -118,7 +128,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
   arr32_t exemplar_indices(gb_members.ngroups());
-  const int32_t* ri_members_indices = ri_members.indices32();
+  const arr32_t ri_members_indices = ri_members.extract_as_array32();
+
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   // Setting up a table for counts
@@ -134,7 +145,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   // Setting up exemplar indices and counts
   //#pragma omp parallel for schedule(static)
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
-    exemplar_indices[i] = ri_members_indices[offsets[i]];
+    exemplar_indices[i] = ri_members_indices[static_cast<size_t>(offsets[i])];
     d_counts[i] = offsets[i+1] - offsets[i];
   }
 
@@ -378,25 +389,24 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto d = static_cast<int32_t>(dt_exemplars->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  int64_t i_step = dt_exemplars->nrows / PBSTEPS;
+  int64_t i_step = (dt_exemplars->nrows > PBSTEPS)? dt_exemplars->nrows / PBSTEPS : 1;
   DoublePtr member = DoublePtr(new double[ndims]);
   DoublePtr pmatrix = nullptr;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
 
   // This is to ensure that the first row is saved as an exemplar
   double distance = std::numeric_limits<double>::max();
   // Radius calculations
-  double delta = epsilon;
-  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
-
-  // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
-  // double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
-  // if (d > max_dimensions) {
-  //   radius /= 7.0;
-  // }
-  // delta = radius * radius;
+  double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
+  double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
+  if (d > max_dimensions) {
+    radius /= 7.0;
+  }
+  double delta = radius * radius;
+//  double delta = epsilon;
 
   // Main loop
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
@@ -415,7 +425,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
       ids.push_back(e->id);
       d_members[i] = static_cast<int32_t>(e->id);
       exemplars.push_back(std::move(e));
-      if (exemplars.size() > static_cast<size_t>(nd_bins)) {
+      if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
         adjust_delta(delta, exemplars, ids, ndims);
       }
     }
@@ -434,7 +444,6 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                               std::vector<int64_t>& ids, int64_t ndims) {
   double min_distance = std::numeric_limits<double>::max();
-
   for (auto it1 = exemplars.begin(); it1 < exemplars.end() - 1; ++it1) {
     std::vector<ExPtr>::iterator min_it = exemplars.end();
     for (auto it2 = it1 + 1; it2 < exemplars.end(); ++it2) {

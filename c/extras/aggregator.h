@@ -38,7 +38,7 @@ class Aggregator {
     int32_t n_bins;
     int32_t nx_bins;
     int32_t ny_bins;
-    int32_t nd_bins;
+    int32_t nd_max_bins;
     int32_t max_dimensions;
     unsigned int seed;
     int : 32;
