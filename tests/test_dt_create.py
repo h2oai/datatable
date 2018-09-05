@@ -9,6 +9,7 @@
 #
 #-------------------------------------------------------------------------------
 import math
+import os
 import pytest
 import datatable as dt
 from datatable import ltype, stype, DatatableWarning
@@ -31,6 +32,13 @@ def test_bad_stype():
         dt.Frame(stype=-1)
     assert ("Invalid value for `stype` parameter in Frame() constructor" ==
             str(e.value))
+
+
+def test_bad_stypes():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([], stypes=2.5)
+    assert ("Argument `stypes` in Frame.__init__() should be a list of stypes, "
+            "instead received <class 'float'>" == str(e.value))
 
 
 def test_unknown_arg():
@@ -67,6 +75,25 @@ def test_stypes_dict():
         dt.Frame([1, 2, 3], stypes={"A": float})
     assert ("When parameter `stypes` is a dictionary, column `names` must "
             "be explicitly specified" == str(e.value))
+
+
+def test_create_from_set():
+    with pytest.raises(TypeError) as e:
+        dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
+    assert ("Cannot create Frame from <class 'set'>" == str(e.value))
+
+
+def test_wrong_source():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(A=[1], B=2)
+    assert ("Cannot create a column from <class 'int'>" == str(e.value))
+
+
+def test_different_column_lengths():
+    with pytest.raises(ValueError) as e:
+        dt.Frame([range(10), [3, 4, 6]])
+    assert ("Column 1 has different number of rows (3) than the preceding "
+            "columns (10)" == str(e.value))
 
 
 
@@ -123,7 +150,7 @@ def test_create_from_empty_list_bad():
 
 
 #-------------------------------------------------------------------------------
-# Create from primitives
+# Create from a primitive list
 #-------------------------------------------------------------------------------
 
 def test_create_from_list():
@@ -134,6 +161,25 @@ def test_create_from_list():
     assert d0.ltypes == (ltype.int, )
 
 
+def test_create_from_tuple():
+    d2 = dt.Frame((3, 5, 6, 0))
+    d2.internal.check()
+    assert d2.shape == (4, 1)
+    assert d2.ltypes == (ltype.int, )
+
+
+def test_create_from_range():
+    d0 = dt.Frame(range(8))
+    d0.internal.check()
+    assert d0.shape == (8, 1)
+    assert d0.topython() == [list(range(8))]
+
+
+
+#-------------------------------------------------------------------------------
+# Create from a list of lists
+#-------------------------------------------------------------------------------
+
 def test_create_from_list_of_lists():
     d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names=list("ABC"))
     d1.internal.check()
@@ -142,24 +188,19 @@ def test_create_from_list_of_lists():
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
 
 
-def test_create_from_tuple():
-    d2 = dt.Frame((3, 5, 6, 0))
-    d2.internal.check()
-    assert d2.shape == (4, 1)
-    assert d2.ltypes == (ltype.int, )
-
-
-def test_create_from_set():
-    with pytest.raises(TypeError) as e:
-        dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
-    assert ("Cannot create Frame from <class 'set'>" == str(e.value))
-
-
-def test_create_from_range():
-    d0 = dt.Frame(range(8))
+def test_create_from_list_of_lists_with_stypes_dict():
+    d0 = dt.Frame([[4], [9], [3]], names=("a", "b", "c"), stypes={"c": float})
     d0.internal.check()
-    assert d0.shape == (8, 1)
-    assert d0.topython() == [list(range(8))]
+    d0.names == ("a", "b", "c")
+    d0.ltypes == (ltype.int, ltype.int, ltype.real)
+    d0.topython() == [[4], [9], [3.0]]
+
+
+def test_create_from_list_of_lists_with_stypes_dict_bad():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([[4], [9], [3]], stypes={"c": float})
+    assert ("When parameter `stypes` is a dictionary, column `names` must be "
+            "explicitly specified" == str(e.value))
 
 
 def test_create_from_list_of_ranges():
@@ -177,6 +218,11 @@ def test_create_from_empty_list_of_lists():
     assert d6.ltypes == (ltype.bool, )
 
 
+
+#-------------------------------------------------------------------------------
+# Create from a dict
+#-------------------------------------------------------------------------------
+
 def test_create_from_dict():
     d7 = dt.Frame({"A": [1, 5, 10],
                    "B": [True, False, None],
@@ -186,6 +232,18 @@ def test_create_from_dict():
     assert same_iterables(d7.ltypes, (ltype.int, ltype.bool, ltype.str))
     d7.internal.check()
 
+
+def test_create_from_dict_error():
+    with pytest.raises(TypeError) as e:
+        dt.Frame({"A": range(3), "B": list('abc')}, names=("x", "y"))
+    assert ("Parameter `names` cannot be used when constructing a Frame from "
+            "a dictionary" == str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Create from keyword arguments
+#-------------------------------------------------------------------------------
 
 def test_create_from_kwargs0():
     d0 = dt.Frame(varname=[1])
@@ -212,6 +270,19 @@ def test_create_from_kwargs2():
     assert same_iterables(d0.topython(), [[0, 1, 2, 3], [1, 3, 8, 0]])
 
 
+def test_create_from_kwargs_error():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(A=range(3), B=list('abc'), names=("x", "y"))
+    assert ("Parameter `names` cannot be used when constructing a Frame from "
+            "varkwd arguments" == str(e.value))
+
+
+
+
+#-------------------------------------------------------------------------------
+# Create from a Frame (copy)
+#-------------------------------------------------------------------------------
+
 def test_create_from_frame():
     d0 = dt.Frame(A=[1, 4, 3],
                   B=[False, True, False],
@@ -229,6 +300,33 @@ def test_create_from_frame():
     assert d0.ncols == 3
 
 
+def test_create_from_frame2():
+    d0 = dt.Frame([range(5), [7] * 5, list("owbke")])
+    d1 = dt.Frame(d0, names=["A", "B", "C"])
+    d1.internal.check()
+    assert d1.topython() == d0.topython()
+    assert d1.stypes == d0.stypes
+    assert d1.names != d0.names
+    assert d1.names == ("A", "B", "C")
+
+
+def test_create_from_frame_error():
+    d0 = dt.Frame([[3], [5.78], ["af"]], names=("A", "B", "C"))
+    d0.internal.check()
+    with pytest.raises(TypeError) as e1:
+        dt.Frame(d0, stypes=[stype.int64, stype.float64, stype.str64])
+    assert ("Parameter `stypes` is not allowed when making a copy of a "
+            "Frame" == str(e1.value))
+    with pytest.raises(TypeError) as e2:
+        dt.Frame(d0, stypes=[stype.str32])
+    assert str(e1.value) == str(e2.value)
+
+
+
+#-------------------------------------------------------------------------------
+# Create from a string (fread)
+#-------------------------------------------------------------------------------
+
 def test_create_from_string():
     d0 = dt.Frame("""
         A,B,C,D
@@ -243,6 +341,33 @@ def test_create_from_string():
     assert d0.topython() == [[True, False, None], [2.0, 5.5, None],
                              [3, None, 1000], ["boo", "bar", ""]]
 
+
+def test_cannot_create_from_multiple_files(tempfile):
+    file1 = tempfile + ".1.csv"
+    file2 = tempfile + ".2.csv"
+    file3 = tempfile + ".3.csv"
+    try:
+        with open(file1, "w") as o1, open(file2, "w") as o2, \
+                open(file3, "w") as o3:
+            o1.write("A,B\nfoo,2\n")
+            o2.write("3\n4\n5\n6\n")
+            o3.write("qw\n1\n2\n5\n")
+        ff = dt.fread(tempfile + ".*.csv")
+        assert isinstance(ff, dict)
+        assert len(ff) == 3
+        with pytest.raises(ValueError) as e:
+            dt.Frame(tempfile + ".*.csv")
+        assert ("Frame cannot be initialized from multiple source files"
+                in str(e.value))
+    finally:
+        os.remove(file1)
+        os.remove(file2)
+
+
+
+#-------------------------------------------------------------------------------
+# Create from a list of tuples (as rows)
+#-------------------------------------------------------------------------------
 
 def test_create_from_list_of_tuples1():
     d0 = dt.Frame([(1, 2.0, "foo"),
@@ -311,6 +436,86 @@ def test_create_from_list_of_namedtuples_names_override():
     assert d0.names == ("x", "y", "z")
     assert d0.ltypes == (ltype.int,) * 3
     assert d0.topython() == [[5, 3], [6, 2], [7, 1]]
+
+
+
+#-------------------------------------------------------------------------------
+# Create from a list of dictionaries (as rows)
+#-------------------------------------------------------------------------------
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_list_of_dicts1():
+    d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
+                   {"a": 99},
+                   {"a": -4, "c": "Yay", "d": 2.17},
+                   {"d": 1e10}, {}])
+    d0.internal.check()
+    assert d0.shape == (5, 4)
+    assert d0.names == ("a", "b", "c", "d")
+    assert d0.ltypes == (ltype.int, ltype.int, ltype.str, ltype.real)
+    assert d0.topython() == [[5, 99, -4, None, None],
+                             [7, None, None, None, None],
+                             ["Hey", None, "Yay", None, None],
+                             [None, None, 2.17, 1e10, None]]
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_list_of_dicts2():
+    d0 = dt.Frame([{"foo": 11, "bar": 34}, {"argh": 17, "foo": 4}, {"_": 0}])
+    d0.internal.check()
+    assert d0.shape == (3, 4)
+    assert d0.names == ("foo", "bar", "argh", "_")
+    assert d0.topython() == [[11, 4, None], [34, None, None],
+                             [None, 17, None], [None, None, 0]]
+
+
+def test_create_from_list_of_dicts_with_names1():
+    d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
+                   {"a": 99},
+                   {"a": -4, "c": "Yay", "d": 2.17},
+                   {"d": 1e10}, {}],
+                  names=["c", "a", "d", "e"])
+    d0.internal.check()
+    assert d0.shape == (5, 4)
+    assert d0.names == ("c", "a", "d", "e")
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
+    assert d0.topython() == [["Hey", None, "Yay", None, None],
+                             [5, 99, -4, None, None],
+                             [None, None, 2.17, 1e10, None],
+                             [None, None, None, None, None]]
+
+
+def test_create_from_list_of_dicts_with_names2():
+    d0 = dt.Frame([{"a": 5}, {"b": 6}, {"c": 11}, {}], names=[])
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+
+
+def test_create_from_list_of_dicts_bad1():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 5}, {"b": 6}, None, {"c": 11}], names=[])
+    assert ("The source is not a list of dicts: element 2 is a "
+            "<class 'NoneType'>" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 5}, {"b": 6}, None, {"c": 11}])
+    assert ("The source is not a list of dicts: element 2 is a "
+            "<class 'NoneType'>" == str(e.value))
+
+
+def test_create_from_list_of_dicts_bad2():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 11}, {1: 4}])
+    assert ("Invalid data in Frame() constructor: row 1 dictionary contains "
+            "a key of type <class 'int'>, only string keys are allowed" ==
+            str(e.value))
+
+
+def test_create_from_list_of_dicts_bad3():
+    with pytest.raises(TypeError) as e:
+        dt.Frame([{"a": 11}, {"b": 4}], stypes=[int, int])
+    assert ("If the Frame() source is a list of dicts, then either the `names` "
+            "list has to be provided explicitly, or `stypes` parameter has "
+            "to be a dictionary (or missing)" == str(e.value))
 
 
 
@@ -668,6 +873,19 @@ def test_bad():
     with pytest.raises(TypeError) as e:
         dt.Frame(dt)
     assert "Cannot create Frame from <class 'module'>" == str(e.value)
+
+
+def test_ellipsis():
+    d0 = dt.Frame(...)
+    assert d0.names == ("?",)
+    assert d0.shape == (1, 1)
+    assert d0.scalar() == 42
+    with pytest.raises(TypeError):
+        dt.Frame(..., stype=float)
+    with pytest.raises(TypeError):
+        dt.Frame(..., stypes=[stype.str32])
+    with pytest.raises(TypeError):
+        dt.Frame(..., names=["?"])
 
 
 def test_issue_42():

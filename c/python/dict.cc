@@ -19,6 +19,8 @@ odict::odict() {
   if (!v) throw PyError();
 }
 
+odict::odict(std::nullptr_t) : oobj(nullptr) {}
+
 odict::odict(PyObject* src) : oobj(src) {}
 
 odict::odict(const odict& other) : oobj(other) {}
@@ -45,6 +47,10 @@ size_t odict::size() const {
   return static_cast<size_t>(PyDict_Size(v));
 }
 
+size_t rdict::size() const {
+  return static_cast<size_t>(PyDict_Size(v));
+}
+
 bool odict::has(_obj key) const {
   PyObject* _key = key.to_borrowed_ref();
   return PyDict_GetItem(v, _key) != nullptr;
@@ -56,11 +62,29 @@ obj odict::get(_obj key) const {
   return obj(PyDict_GetItem(v, _key));
 }
 
+obj rdict::get(_obj key) const {
+  PyObject* _key = key.to_borrowed_ref();
+  return obj(PyDict_GetItem(v, _key));
+}
+
+obj rdict::get_or_none(_obj key) const {
+  PyObject* _key = key.to_borrowed_ref();
+  PyObject* res = PyDict_GetItem(v, _key);
+  if (!res) res = Py_None;
+  return obj(res);
+}
+
 void odict::set(_obj key, _obj val) {
   // PyDict_SetItem INCREFs both key and value internally
   PyObject* _key = key.to_borrowed_ref();
   PyObject* _val = val.to_borrowed_ref();
   int r = PyDict_SetItem(v, _key, _val);
+  if (r) throw PyError();
+}
+
+void odict::del(_obj key) {
+  PyObject* _key = key.to_borrowed_ref();
+  int r = PyDict_DelItem(v, _key);
   if (r) throw PyError();
 }
 
@@ -70,6 +94,14 @@ dict_iterator odict::begin() const {
 }
 
 dict_iterator odict::end() const {
+  return dict_iterator(v, -1);
+}
+
+dict_iterator rdict::begin() const {
+  return dict_iterator(v, 0);
+}
+
+dict_iterator rdict::end() const {
   return dict_iterator(v, -1);
 }
 

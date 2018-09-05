@@ -18,41 +18,46 @@
  */
 DataTable* DataTable::cbind(DataTable **dts, int64_t ndts)
 {
-    int64_t t_ncols = ncols;
-    int64_t t_nrows = nrows;
-    for (int64_t i = 0; i < ndts; ++i) {
-        t_ncols += dts[i]->ncols;
-        if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
+  int64_t t_ncols = ncols;
+  int64_t t_nrows = nrows;
+  for (int64_t i = 0; i < ndts; ++i) {
+    t_ncols += dts[i]->ncols;
+    if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
+  }
+
+  // First, materialize the "main" datatable if it is a view
+  reify();
+
+  // Fix up the main datatable if it has too few rows
+  if (nrows < t_nrows) {
+    for (int64_t i = 0; i < ncols; ++i) {
+      columns[i]->resize_and_fill(t_nrows);
     }
+    nrows = t_nrows;
+  }
 
-    // First, materialize the "main" datatable if it is a view
-    reify();
-
-    // Fix up the main datatable if it has too few rows
-    if (nrows < t_nrows) {
-        for (int64_t i = 0; i < ncols; ++i) {
-            columns[i]->resize_and_fill(t_nrows);
-        }
-        nrows = t_nrows;
+  // Append columns from `dts` into the "main" datatable
+  std::vector<std::string> newnames = names;
+  columns = dt::arealloc(columns, t_ncols + 1);
+  columns[t_ncols] = nullptr;
+  int64_t j = ncols;
+  for (int64_t i = 0; i < ndts; ++i) {
+    int64_t ncolsi = dts[i]->ncols;
+    int64_t nrowsi = dts[i]->nrows;
+    for (int64_t ii = 0; ii < ncolsi; ++ii) {
+      Column *c = dts[i]->columns[ii]->shallowcopy();
+      c->reify();
+      if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
+      columns[j++] = c;
     }
+    const auto& namesi = dts[i]->names;
+    xassert(namesi.size() == static_cast<size_t>(ncolsi));
+    newnames.insert(newnames.end(), namesi.begin(), namesi.end());
+  }
+  xassert(j == t_ncols);
 
-    // Append columns from `dts` into the "main" datatable
-    columns = dt::arealloc(columns, t_ncols + 1);
-    columns[t_ncols] = nullptr;
-    int64_t j = ncols;
-    for (int64_t i = 0; i < ndts; ++i) {
-        int64_t ncolsi = dts[i]->ncols;
-        int64_t nrowsi = dts[i]->nrows;
-        for (int64_t ii = 0; ii < ncolsi; ++ii) {
-            Column *c = dts[i]->columns[ii]->shallowcopy();
-            c->reify();
-            if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
-            columns[j++] = c;
-        }
-    }
-    xassert(j == t_ncols);
-
-    // Done.
-    ncols = t_ncols;
-    return this;
+  // Done.
+  ncols = t_ncols;
+  set_names(newnames);
+  return this;
 }

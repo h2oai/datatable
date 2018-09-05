@@ -12,9 +12,11 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "python/orange.h"
+#include "python/oset.h"
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/alloc.h"
+#include "ztest.h"
 
 namespace py {
 
@@ -41,6 +43,7 @@ class FrameInitializationManager {
     class em : public py::_obj::error_manager {
       Error error_not_stype(PyObject*) const override;
     };
+
 
   //----------------------------------------------------------------------------
   // External API
@@ -86,7 +89,10 @@ class FrameInitializationManager {
           return init_from_list_of_lists();
         }
         if (item0.is_dict()) {
-          return init_from_list_of_dicts();
+          if (names_arg)
+            return init_from_list_of_dicts_fixed_keys();
+          else
+            return init_from_list_of_dicts_auto_keys();
         }
         if (item0.is_tuple()) {
           return init_from_list_of_tuples();
@@ -117,6 +123,237 @@ class FrameInitializationManager {
         return init_mystery_frame();
       }
     }
+
+
+
+  //----------------------------------------------------------------------------
+  // Frame creation methods
+  //----------------------------------------------------------------------------
+  private:
+    void init_empty_frame() {
+      check_names_count(0);
+      check_stypes_count(0);
+      make_datatable(nullptr);
+    }
+
+
+    void init_from_list_of_lists() {
+      py::olist collist = src.to_pylist();
+      check_names_count(collist.size());
+      check_stypes_count(collist.size());
+      for (size_t i = 0; i < collist.size(); ++i) {
+        py::obj item = collist[i];
+        SType s = get_stype_for_column(i);
+        _make_column(item, s);
+      }
+      make_datatable(names_arg);
+    }
+
+
+    void init_from_list_of_dicts_fixed_keys() {
+      xassert(names_arg);
+      py::olist srclist = src.to_pylist();
+      py::olist nameslist = names_arg.to_pylist();
+      size_t nrows = srclist.size();
+      size_t ncols = nameslist.size();
+      check_stypes_count(ncols);
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_dict()) {
+          throw TypeError() << "The source is not a list of dicts: element "
+              << i << " is a " << item.typeobj();
+        }
+      }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_auto_keys() {
+      xassert(!names_arg);
+      if (stypes_arg && !stypes_arg.is_dict()) {
+        throw TypeError() << "If the Frame() source is a list of dicts, then "
+            "either the `names` list has to be provided explicitly, or "
+            "`stypes` parameter has to be a dictionary (or missing)";
+      }
+      py::olist srclist = src.to_pylist();
+      py::olist nameslist(0);
+      py::oset  namesset;
+      size_t nrows = srclist.size();
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_dict()) {
+          throw TypeError() << "The source is not a list of dicts: element "
+              << i << " is a " << item.typeobj();
+        }
+        py::rdict row(item);
+        for (auto kv : row) {
+          py::obj& name = kv.first;
+          if (!namesset.has(name)) {
+            if (!name.is_string()) {
+              throw TypeError() << "Invalid data in Frame() constructor: row "
+                  << i << " dictionary contains a key of type "
+                  << name.typeobj() << ", only string keys are allowed";
+            }
+            nameslist.append(name);
+            namesset.add(name);
+          }
+        }
+      }
+      init_from_list_of_dicts_with_keys(nameslist);
+    }
+
+
+    void init_from_list_of_dicts_with_keys(const py::olist& nameslist) {
+      py::olist srclist = src.to_pylist();
+      size_t ncols = nameslist.size();
+      for (size_t j = 0; j < ncols; ++j) {
+        py::obj name = nameslist[j];
+        SType s = get_stype_for_column(j, &name);
+        Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
+        cols.push_back(col);
+      }
+      make_datatable(nameslist);
+    }
+
+
+    void init_from_list_of_tuples() {
+      py::olist srclist = src.to_pylist();
+      py::rtuple item0 = py::rtuple(srclist[0]);
+      size_t nrows = srclist.size();
+      size_t ncols = item0.size();
+      check_names_count(ncols);
+      check_stypes_count(ncols);
+      // Check that all entries are proper tuples
+      for (size_t i = 0; i < nrows; ++i) {
+        py::obj item = srclist[i];
+        if (!item.is_tuple()) {
+          throw TypeError() << "The source is not a list of tuples: element "
+              << i << " is a " << item.typeobj();
+        }
+        size_t this_ncols = rtuple(item).size();
+        if (this_ncols != ncols) {
+          throw ValueError() << "Misshaped rows in Frame() constructor: "
+              "row " << i << " contains " << this_ncols << " element"
+              << (this_ncols == 1? "" : "s") << ", while "
+              << (i == 1? "the previous row" : "previous rows")
+              << " had " << ncols << " element" << (ncols == 1? "" : "s");
+        }
+      }
+      // Create the columns
+      for (size_t j = 0; j < ncols; ++j) {
+        SType s = get_stype_for_column(j);
+        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+      }
+      if (names_arg || !item0.has_attr("_fields")) {
+        make_datatable(names_arg);
+      } else {
+        make_datatable(item0.get_attr("_fields").to_pylist());
+      }
+    }
+
+
+    void init_from_list_of_primitives() {
+      check_names_count(1);
+      check_stypes_count(1);
+      SType s = get_stype_for_column(0);
+      _make_column(src.to_pyobj(), s);
+      make_datatable(names_arg);
+    }
+
+
+    void init_from_dict() {
+      if (defined_names) {
+        throw TypeError() << "Parameter `names` cannot be used when "
+            "constructing a Frame from a dictionary";
+      }
+      py::odict coldict = src.to_pydict();
+      size_t ncols = coldict.size();
+      check_stypes_count(ncols);
+      strvec newnames;
+      newnames.reserve(ncols);
+      for (auto kv : coldict) {
+        size_t i = newnames.size();
+        py::obj name = kv.first;
+        SType stype = get_stype_for_column(i, &name);
+        newnames.push_back(name.to_string());
+        _make_column(kv.second, stype);
+      }
+      make_datatable(newnames);
+    }
+
+
+    void init_from_varkwds() {
+      if (defined_names) {
+        throw TypeError() << "Parameter `names` cannot be used when "
+            "constructing a Frame from varkwd arguments";
+      }
+      size_t ncols = all_args.num_varkwd_args();
+      check_stypes_count(ncols);
+      strvec newnames;
+      newnames.reserve(ncols);
+      for (auto kv: all_args.varkwds()) {
+        size_t i = newnames.size();
+        const py::ostring oname(kv.first);
+        SType stype = get_stype_for_column(i, &oname);
+        newnames.push_back(std::move(kv.first));
+        _make_column(kv.second, stype);
+      }
+      make_datatable(newnames);
+    }
+
+
+    void init_mystery_frame() {
+      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
+      make_datatable(strvec { "?" });
+    }
+
+
+    void init_from_frame() {
+      DataTable* srcdt = src.to_frame();
+      size_t ncols = static_cast<size_t>(srcdt->ncols);
+      check_names_count(ncols);
+      if (stypes_arg || stype_arg) {
+        // TODO: allow this use case
+        throw TypeError() << "Parameter `stypes` is not allowed when making "
+            "a copy of a Frame";
+      }
+      for (size_t i = 0; i < ncols; ++i) {
+        cols.push_back(srcdt->columns[i]->shallowcopy());
+      }
+      if (names_arg) {
+        make_datatable(names_arg.to_pylist());
+      } else {
+        make_datatable(srcdt);
+      }
+    }
+
+
+    void init_from_string() {
+      py::otuple call_args(1);
+      call_args.set(0, src.to_pyobj());
+
+      py::oobj res = py::obj(py::fread_fn).call(call_args);
+      if (res.is_frame()) {
+        Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
+        std::swap(frame->dt,      resframe->dt);
+        std::swap(frame->stypes,  resframe->stypes);
+        std::swap(frame->ltypes,  resframe->ltypes);
+        std::swap(frame->core_dt, resframe->core_dt);
+        frame->core_dt->_frame = frame;
+      } else {
+        xassert(res.is_dict());
+        auto err = ValueError();
+        err << "Frame cannot be initialized from multiple source files: ";
+        size_t i = 0;
+        for (auto kv : res.to_pydict()) {
+          if (i == 1) err << ", ";
+          if (i == 2) { err << ", ..."; break; }
+          err << '\'' << kv.first << '\'';
+        }
+        throw err;
+      }
+    }
+
 
 
   //----------------------------------------------------------------------------
@@ -179,7 +416,7 @@ class FrameInitializationManager {
      * `SType::VOID`.
      *
      */
-    SType get_stype_for_column(size_t i, const std::string* name = nullptr) {
+    SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
       if (defined_stype) {
         return stype0;
       }
@@ -198,7 +435,7 @@ class FrameInitializationManager {
             py::olist names = names_arg.to_pylist();
             oname = names[i];
           } else {
-            oname = py::ostring(*name);
+            oname = *name;
           }
           py::odict stypes = stypes_arg.to_pydict();
           py::obj res = stypes.get(oname);
@@ -210,195 +447,6 @@ class FrameInitializationManager {
         }
       }
       return SType::VOID;
-    }
-
-
-    DataTable* make_datatable() {
-      size_t ncols = cols.size();
-      size_t allocsize = sizeof(Column*) * (ncols + 1);
-      Column** newcols = dt::malloc<Column*>(allocsize);
-      if (ncols) {
-        std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
-      }
-      newcols[ncols] = nullptr;
-      try {
-        DataTable* res = new DataTable(newcols);
-        cols.clear();
-        return res;
-      } catch (const std::exception&) {
-        dt::free(newcols);
-        throw;
-      }
-    }
-
-
-  //----------------------------------------------------------------------------
-  // Frame creation methods
-  //----------------------------------------------------------------------------
-  private:
-    void init_empty_frame() {
-      check_names_count(0);
-      check_stypes_count(0);
-      frame->dt = make_datatable();
-    }
-
-
-    void init_from_list_of_lists() {
-      py::olist collist = src.to_pylist();
-      check_names_count(collist.size());
-      check_stypes_count(collist.size());
-      for (size_t i = 0; i < collist.size(); ++i) {
-        py::obj item = collist[i];
-        SType s = get_stype_for_column(i);
-        _make_column(item, s);
-      }
-      frame->dt = make_datatable();
-      frame->set_names(names_arg.to_pyobj());
-    }
-
-
-    void init_from_list_of_dicts() {
-      // TODO
-    }
-
-
-    void init_from_list_of_tuples() {
-      py::olist srclist = src.to_pylist();
-      py::rtuple item0 = py::rtuple(srclist[0]);
-      size_t nrows = srclist.size();
-      size_t ncols = item0.size();
-      check_names_count(ncols);
-      check_stypes_count(ncols);
-      // Check that all entries are proper tuples
-      for (size_t i = 0; i < nrows; ++i) {
-        py::obj item = srclist[i];
-        if (!item.is_tuple()) {
-          throw TypeError() << "The source is not a list of tuples: element "
-              << i << " is a " << item.typeobj();
-        }
-        size_t this_ncols = rtuple(item).size();
-        if (this_ncols != ncols) {
-          throw ValueError() << "Misshaped rows in Frame() constructor: "
-              "row " << i << " contains " << this_ncols << " element"
-              << (this_ncols == 1? "" : "s") << ", while "
-              << (i == 1? "the previous row" : "previous rows")
-              << " had " << ncols << " element" << (ncols == 1? "" : "s");
-        }
-      }
-      // Create the columns
-      for (size_t j = 0; j < ncols; ++j) {
-        SType s = get_stype_for_column(j);
-        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
-      }
-      frame->dt = make_datatable();
-      if (names_arg || !item0.has_attr("_fields")) {
-        frame->set_names(names_arg.to_pyobj());
-      } else {
-        frame->set_names(item0.get_attr("_fields"));
-      }
-    }
-
-
-    void init_from_list_of_primitives() {
-      check_names_count(1);
-      check_stypes_count(1);
-      SType s = get_stype_for_column(0);
-      _make_column(src.to_pyobj(), s);
-      frame->dt = make_datatable();
-      frame->set_names(names_arg.to_pyobj());
-    }
-
-
-    void init_from_dict() {
-      if (defined_names) {
-        throw TypeError() << "Parameter `names` cannot be used when "
-            "constructing a Frame from a dictionary";
-      }
-      py::odict coldict = src.to_pydict();
-      size_t ncols = coldict.size();
-      check_stypes_count(ncols);
-      strvec newnames;
-      newnames.reserve(ncols);
-      for (auto kv : coldict) {
-        auto i = newnames.size();
-        auto name = kv.first.to_string();
-        auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(std::move(name));
-        _make_column(kv.second, stype);
-      }
-      frame->dt = make_datatable();
-      frame->set_names(newnames);
-    }
-
-
-    void init_from_varkwds() {
-      if (defined_names) {
-        throw TypeError() << "Parameter `names` cannot be used when "
-            "constructing a Frame from varkwd arguments";
-      }
-      size_t ncols = all_args.num_varkwd_args();
-      check_stypes_count(ncols);
-      strvec newnames;
-      newnames.reserve(ncols);
-      for (auto kv: all_args.varkwds()) {
-        auto i = newnames.size();
-        auto name = kv.first;
-        auto stype = get_stype_for_column(i, &name);
-        newnames.push_back(std::move(name));
-        _make_column(kv.second, stype);
-      }
-      frame->dt = make_datatable();
-      frame->set_names(newnames);
-    }
-
-
-    void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
-      frame->dt = make_datatable();
-      frame->set_names(strvec { "?" });
-    }
-
-
-    void init_from_frame() {
-      DataTable* srcdt = src.to_frame();
-      size_t ncols = static_cast<size_t>(srcdt->ncols);
-      check_names_count(ncols);
-      if (stypes_arg || stype_arg) {
-        // TODO: allow this use case
-        throw TypeError() << "Parameter `stypes` is not allowed when making "
-            "a copy of a Frame";
-      }
-      for (size_t i = 0; i < ncols; ++i) {
-        cols.push_back(srcdt->columns[i]->shallowcopy());
-      }
-      frame->dt = make_datatable();
-      if (names_arg) {
-        frame->set_names(names_arg.to_pyobj());
-      } else {
-        // Copy names without checking for validity, since we know they were
-        // already verified in `srcdt`.
-        frame->dt->names = srcdt->names;
-      }
-    }
-
-
-    void init_from_string() {
-      py::otuple call_args(1);
-      call_args.set(0, src.to_pyobj());
-
-      py::oobj res = py::obj(py::fread_fn).call(call_args);
-      if (res.is_frame()) {
-        Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
-        std::swap(frame->dt,      resframe->dt);
-        std::swap(frame->names,   resframe->names);
-        std::swap(frame->inames,  resframe->inames);
-        std::swap(frame->stypes,  resframe->stypes);
-        std::swap(frame->ltypes,  resframe->ltypes);
-        std::swap(frame->core_dt, resframe->core_dt);
-        frame->core_dt->_frame = frame;
-      } else {
-        throw RuntimeError() << "fread produced an object of " << res.typeobj();
-      }
     }
 
 
@@ -454,6 +502,48 @@ class FrameInitializationManager {
         }
       }
     }
+
+
+    Column** prepare_columns() {
+      size_t ncols = cols.size();
+      size_t allocsize = sizeof(Column*) * (ncols + 1);
+      Column** newcols = dt::malloc<Column*>(allocsize);
+      if (ncols) {
+        std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
+      }
+      newcols[ncols] = nullptr;
+      cols.clear();
+      return newcols;
+    }
+
+    void make_datatable(nullptr_t) {
+      frame->dt = new DataTable(prepare_columns(), nullptr);
+    }
+
+    void make_datatable(const Arg& names) {
+      if (names) {
+        frame->dt = new DataTable(prepare_columns(), names.to_pylist());
+      } else {
+        frame->dt = new DataTable(prepare_columns(), nullptr);
+      }
+    }
+
+    void make_datatable(const py::olist& names) {
+      frame->dt = new DataTable(prepare_columns(), names);
+    }
+
+    void make_datatable(const std::vector<std::string>& names) {
+      frame->dt = new DataTable(prepare_columns(), names);
+    }
+
+    void make_datatable(const DataTable* names_src) {
+      frame->dt = new DataTable(prepare_columns(), names_src);
+    }
+
+
+    #ifdef DTTEST
+      friend void dttest::cover_init_FrameInitializationManager_em();
+    #endif
 };
 
 
@@ -465,7 +555,8 @@ class FrameInitializationManager {
 Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
   return TypeError() << "Invalid value for `stype` parameter in Frame() "
                         "constructor";
-}
+} // LCOV_EXCL_LINE
+
 
 
 //------------------------------------------------------------------------------
@@ -478,8 +569,6 @@ void Frame::m__init__(PKArgs& args) {
   core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
-  names = nullptr;
-  inames = nullptr;
   if (Frame::internal_construction) return;
 
   FrameInitializationManager fim(args, this);
@@ -501,16 +590,7 @@ void Frame::m__init__(PKArgs& args) {
       stypes_list.set(0, stype_arg.to_borrowed_ref());
       ostypes = stypes_list;
     }
-    if (args.num_varkwd_args()) {
-      if (src) {
-        throw TypeError() << "Unknown keyword arguments in Frame.__init__()";
-      }
-      py::odict kvdict;
-      for (auto kv : args.varkwds()) {
-        kvdict.set(ostring(kv.first), kv.second);
-      }
-      osrc = std::move(kvdict);
-    }
+    xassert(args.num_varkwd_args() == 0);
     PyObject* arg1 = osrc.to_borrowed_ref();
     PyObject* arg2 = names_arg.to_borrowed_ref();
     PyObject* arg3 = ostypes.to_borrowed_ref();
@@ -523,3 +603,22 @@ void Frame::m__init__(PKArgs& args) {
 
 
 }  // namespace py
+
+
+// This test ensures coverage for `_ZN2py26FrameInitializationManager2emD0Ev`
+// symbol. See https://stackoverflow.com/questions/46447674 for details.
+#ifdef DTTEST
+namespace dttest {
+
+  void cover_init_FrameInitializationManager_em() {
+    auto t = new py::FrameInitializationManager::em;
+    delete t;
+  }
+
+}
+#endif
+
+// Two lines in the file are marked as LCOV_EXCL_LINE: these lines are related
+// to auto-generated exception-handling code, and they are not covered because
+// those exceptions are almost impossible to trigger.
+// See https://stackoverflow.com/questions/46367192

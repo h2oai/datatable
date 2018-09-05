@@ -46,6 +46,11 @@ obj& obj::operator=(const obj& other) {
   return *this;
 }
 
+obj& obj::operator=(const _obj& other) {
+  v = other.v;
+  return *this;
+}
+
 
 oobj::oobj() {
   v = nullptr;
@@ -559,7 +564,7 @@ PyObject* oobj::release() && {
 oobj None()  { return oobj(Py_None); }
 oobj True()  { return oobj(Py_True); }
 oobj False() { return oobj(Py_False); }
-
+obj rnone() { return obj(Py_None); }
 
 
 //------------------------------------------------------------------------------

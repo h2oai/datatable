@@ -23,6 +23,7 @@ namespace py {
  */
 class otuple : public oobj {
   public:
+    otuple();
     otuple(int n);
     otuple(size_t n);
     otuple(int64_t n);

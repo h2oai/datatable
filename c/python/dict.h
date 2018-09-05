@@ -24,6 +24,7 @@ class dict_iterator;
 class odict : public oobj {
   public:
     odict();
+    odict(std::nullptr_t);
     odict(const odict&);
     odict(odict&&);
     odict& operator=(const odict&);
@@ -33,6 +34,7 @@ class odict : public oobj {
     bool has(_obj key) const;
     obj  get(_obj key) const;
     void set(_obj key, _obj val);
+    void del(_obj key);
 
     dict_iterator begin() const;
     dict_iterator end() const;
@@ -42,6 +44,16 @@ class odict : public oobj {
     friend class _obj;
 };
 
+
+class rdict : public obj {
+  public:
+    using obj::obj;
+    size_t size() const;
+    obj get(_obj key) const;
+    obj get_or_none(_obj key) const;
+    dict_iterator begin() const;
+    dict_iterator end() const;
+};
 
 
 /**
