@@ -34,9 +34,8 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions,
                  seed, progress_fn);
   DataTable* dt_out = agg.aggregate(dt_in).release();
+  dt_out->set_names(py::obj(arg_names).to_pylist());
   py::Frame* frame = py::Frame::from_datatable(dt_out);
-  frame->set_names(py::obj(arg_names));
-
   return frame;
 }
 
@@ -68,7 +67,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
-  dt_members = DataTablePtr(new DataTable(cols_members));
+  dt_members = DataTablePtr(new DataTable(cols_members, nullptr));
 
   if (dt->nrows > min_rows) {
     DataTablePtr dt_double = nullptr;
@@ -86,7 +85,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     }
 
     cols_double[ncols] = nullptr;
-    dt_double = DataTablePtr(new DataTable(cols_double));
+    dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
 
     switch (dt_double->ncols) {
       case 1:  group_1d(dt_double, dt_members); break;
@@ -127,7 +126,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   cols_counts[0] = Column::new_data_column(SType::INT32,
                                            static_cast<int64_t>(gb_members.ngroups()));
   cols_counts[1] = nullptr;
-  dt_counts = new DataTable(cols_counts);
+  dt_counts = new DataTable(cols_counts, {"counts"});
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
   std::memset(d_counts, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
 

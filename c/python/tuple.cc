@@ -14,6 +14,8 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
+otuple::otuple() : oobj(nullptr) {}
+
 otuple::otuple(int n) : otuple(static_cast<int64_t>(n)) {}
 
 otuple::otuple(size_t n) : otuple(static_cast<int64_t>(n)) {}

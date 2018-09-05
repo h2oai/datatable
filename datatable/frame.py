@@ -136,9 +136,8 @@ class Frame(core.Frame):
                 assert coldtype.isnative
             if coldtype.char == 'e' and str(coldtype) == "float16":
                 colarrays[i] = colarrays[i].astype("float32")
-        dt = core.datatable_from_list(colarrays, None)
+        dt = core.datatable_from_list(colarrays, None, names)
         self._dt = dt
-        self.names = names
 
 
     def _fill_from_numpy(self, arr, names):
@@ -158,16 +157,14 @@ class Frame(core.Frame):
         ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
             dt = core.datatable_from_list([arr.data[:, i]
-                                           for i in range(ncols)], None)
+                                           for i in range(ncols)], None, names)
             mask = core.datatable_from_list([arr.mask[:, i]
-                                             for i in range(ncols)], None)
+                                             for i in range(ncols)], None, None)
             dt.apply_na_mask(mask)
         else:
             dt = core.datatable_from_list([arr[:, i]
-                                           for i in range(ncols)], None)
-
+                                           for i in range(ncols)], None, names)
         self._dt = dt
-        self.names = names
 
 
 

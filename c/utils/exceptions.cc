@@ -188,6 +188,14 @@ bool PyError::is_keyboard_interrupt() const {
   return exc_type == PyExc_KeyboardInterrupt;
 }
 
+bool PyError::is_assertion_error() const {
+  return exc_type == PyExc_AssertionError;
+}
+
+std::string PyError::message() const {
+  return py::obj(exc_value).to_pystring_force().to_string();
+}
+
 
 
 //==============================================================================

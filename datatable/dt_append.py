@@ -191,7 +191,6 @@ def _cbind(self, *frames, force=False, inplace=True):
     containing all Frames concatenated, if `inplace` is False.
     """
     datatables = []
-    column_names = list(self.names)
 
     # Which Frame to operate upon. If not `inplace` then we will create
     # a blank Frame and merge everything to it.
@@ -218,9 +217,7 @@ def _cbind(self, *frames, force=False, inplace=True):
                     "anyways, then use option `force=True`"
                     % (plural(nn, "row"), plural(nrows, "row")))
         datatables.append(df.internal)
-        column_names.extend(list(df.names))
 
     _dt = src.internal
     _dt.cbind(datatables)
-    src.names = column_names
     return src
