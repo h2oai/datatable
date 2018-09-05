@@ -13,6 +13,8 @@
 #include "python/tuple.h"
 #include "utils/assert.h"
 
+static double _dlevenshtein(
+    const std::string& a, const std::string& b, double* v);
 
 
 //------------------------------------------------------------------------------
@@ -89,8 +91,9 @@ py::oobj strvecNP::item_as_pyoobj(size_t i) {
 
 
 
+
 //------------------------------------------------------------------------------
-// Frame API
+// Frame names API
 //------------------------------------------------------------------------------
 namespace py {
 
@@ -145,85 +148,6 @@ oobj Frame::colindex(PKArgs& args)
 }
 
 
-
-//------------------------------------------------------------------------------
-// Private helper methods
-//------------------------------------------------------------------------------
-
-/**
- * Compute Levenshtein distance between two strings `a` and `b`, as described in
- * https://en.wikipedia.org/wiki/Levenshtein_distance
- *
- * Use iterative algorithm, single-row version. The temporary storage required
- * for the calculations is passed in array `v`, which must be allocated for at
- * least `min(a.size(), b.size()) + 1` elements.
- */
-static double _dlevenshtein(
-    const std::string& a, const std::string& b, double* v)
-{
-  const char* aa = a.data();
-  const char* bb = b.data();
-  int n = static_cast<int>(a.size());
-  int m = static_cast<int>(b.size());
-  if (n > m) {
-    std::swap(aa, bb);
-    std::swap(m, n);
-  }
-  // Remove common prefix from the strings
-  while (n && *aa == *bb) {
-    n--; m--;
-    aa++; bb++;
-  }
-  // Remove common suffix from the strings
-  while (n && aa[n - 1] == bb[m - 1]) {
-    n--; m--;
-  }
-  if (n == 0) return m;
-  xassert(0 < n && n <= m);
-  // Compute the Levenshtein distance
-  aa--;  // Shift pointers, so that we can use 1-based indexing below
-  bb--;
-  for (int j = 1; j <= n; ++j) v[j] = j;
-  for (int i = 1; i <= m; ++i) {
-    double w = i - 1;
-    v[0] = i;
-    for (int j = 1; j <= n; ++j) {
-      char ach = aa[j];
-      char bch = bb[i];
-      double c = 0.0;
-      if (ach != bch) {
-        // Use non-trivial cost function to compare character substitution:
-        //   * the cost is lowest when 2 characters differ by case only,
-        //     or if both are "space-like" (i.e. ' ', '_' or '.')
-        //   * medium cost for substituting letters with letters, or digits
-        //     with digits
-        //   * highest cost for all other substitutions.
-        //
-        bool a_lower = 'a' <= ach && ach <= 'z';
-        bool a_upper = 'A' <= ach && ach <= 'Z';
-        bool a_digit = '0' <= ach && ach <= '9';
-        bool a_space = ach == ' ' || ach == '_' || ach == '.';
-        bool b_lower = 'a' <= bch && bch <= 'z';
-        bool b_upper = 'A' <= bch && bch <= 'Z';
-        bool b_digit = '0' <= bch && bch <= '9';
-        bool b_space = bch == ' ' || bch == '_' || bch == '.';
-        c = (a_lower && ach == bch + ('a'-'A'))? 0.2 :
-            (a_upper && bch == ach + ('a'-'A'))? 0.2 :
-            (a_space && b_space)? 0.2 :
-            (a_digit && b_digit)? 0.75 :
-            ((a_lower|a_upper) && (b_lower|b_upper))? 0.75 : 1.0;
-      }
-      double del_cost = v[j] + 1;
-      double ins_cost = v[j - 1] + 1;
-      double sub_cost = w + c;
-      w = v[j];
-      v[j] = std::min(del_cost, std::min(ins_cost, sub_cost));
-    }
-  }
-  return v[n];
-}
-
-
 Error Frame::_name_not_found_error(const std::string& name) {
   const std::vector<std::string>& names = dt->get_names();
   auto tmp = std::unique_ptr<double[]>(new double[name.size() + 1]);
@@ -270,32 +194,13 @@ Error Frame::_name_not_found_error(const std::string& name) {
 }
 
 
-
-#ifdef DTTEST
-  void cover_py_FrameNameProviders() {
-    pylistNP* t1 = new pylistNP(py::olist(0));
-    delete t1;
-
-    strvec src2 = {"\xFF__", "foo"};
-    strvecNP* t2 = new strvecNP(src2);
-    bool test_ok = false;
-    try {
-      // This should throw, since the name is not valid UTF8
-      auto r = t2->item_as_pyoobj(0);
-    } catch (const std::exception&) {
-      test_ok = true;
-    }
-    xassert(test_ok);
-    delete t2;
-  }
-#endif
-
 } // namespace py
 
 
 
+
 //------------------------------------------------------------------------------
-// DataTable methods
+// DataTable names API
 //------------------------------------------------------------------------------
 
 /**
@@ -389,8 +294,6 @@ void DataTable::replace_names(py::odict replacements) {
   }
   set_names(newnames);
 }
-
-
 
 
 
@@ -648,3 +551,99 @@ void DataTable::_integrity_check_pynames() const {
     }
   }
 }
+
+
+
+/**
+ * Compute Levenshtein distance between two strings `a` and `b`, as described in
+ * https://en.wikipedia.org/wiki/Levenshtein_distance
+ *
+ * Use iterative algorithm, single-row version. The temporary storage required
+ * for the calculations is passed in array `v`, which must be allocated for at
+ * least `min(a.size(), b.size()) + 1` elements.
+ */
+static double _dlevenshtein(
+    const std::string& a, const std::string& b, double* v)
+{
+  const char* aa = a.data();
+  const char* bb = b.data();
+  int n = static_cast<int>(a.size());
+  int m = static_cast<int>(b.size());
+  if (n > m) {
+    std::swap(aa, bb);
+    std::swap(m, n);
+  }
+  // Remove common prefix from the strings
+  while (n && *aa == *bb) {
+    n--; m--;
+    aa++; bb++;
+  }
+  // Remove common suffix from the strings
+  while (n && aa[n - 1] == bb[m - 1]) {
+    n--; m--;
+  }
+  if (n == 0) return m;
+  xassert(0 < n && n <= m);
+  // Compute the Levenshtein distance
+  aa--;  // Shift pointers, so that we can use 1-based indexing below
+  bb--;
+  for (int j = 1; j <= n; ++j) v[j] = j;
+  for (int i = 1; i <= m; ++i) {
+    double w = i - 1;
+    v[0] = i;
+    for (int j = 1; j <= n; ++j) {
+      char ach = aa[j];
+      char bch = bb[i];
+      double c = 0.0;
+      if (ach != bch) {
+        // Use non-trivial cost function to compare character substitution:
+        //   * the cost is lowest when 2 characters differ by case only,
+        //     or if both are "space-like" (i.e. ' ', '_' or '.')
+        //   * medium cost for substituting letters with letters, or digits
+        //     with digits
+        //   * highest cost for all other substitutions.
+        //
+        bool a_lower = 'a' <= ach && ach <= 'z';
+        bool a_upper = 'A' <= ach && ach <= 'Z';
+        bool a_digit = '0' <= ach && ach <= '9';
+        bool a_space = ach == ' ' || ach == '_' || ach == '.';
+        bool b_lower = 'a' <= bch && bch <= 'z';
+        bool b_upper = 'A' <= bch && bch <= 'Z';
+        bool b_digit = '0' <= bch && bch <= '9';
+        bool b_space = bch == ' ' || bch == '_' || bch == '.';
+        c = (a_lower && ach == bch + ('a'-'A'))? 0.2 :
+            (a_upper && bch == ach + ('a'-'A'))? 0.2 :
+            (a_space && b_space)? 0.2 :
+            (a_digit && b_digit)? 0.75 :
+            ((a_lower|a_upper) && (b_lower|b_upper))? 0.75 : 1.0;
+      }
+      double del_cost = v[j] + 1;
+      double ins_cost = v[j - 1] + 1;
+      double sub_cost = w + c;
+      w = v[j];
+      v[j] = std::min(del_cost, std::min(ins_cost, sub_cost));
+    }
+  }
+  return v[n];
+}
+
+
+
+#ifdef DTTEST
+  void cover_py_FrameNameProviders() {
+    pylistNP* t1 = new pylistNP(py::olist(0));
+    delete t1;
+
+    std::vector<std::string> src2 = {"\xFF__", "foo"};
+    strvecNP* t2 = new strvecNP(src2);
+    bool test_ok = false;
+    try {
+      // This should throw, since the name is not valid UTF8
+      auto r = t2->item_as_pyoobj(0);
+    } catch (const std::exception&) {
+      test_ok = true;
+    }
+    xassert(test_ok);
+    delete t2;
+  }
+#endif

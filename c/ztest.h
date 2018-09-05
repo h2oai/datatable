@@ -17,8 +17,8 @@ void run_tests();
 
 
 void run_tests() {
-  py::cover_py_FrameInitializationManager_em();
-  py::cover_py_FrameNameProviders();
+  cover_py_FrameInitializationManager_em();
+  cover_py_FrameNameProviders();
 }
 
 

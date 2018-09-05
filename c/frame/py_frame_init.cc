@@ -523,7 +523,7 @@ class FrameInitializationManager {
 
 
     #ifdef DTTEST
-      friend void cover_py_FrameInitializationManager_em();
+      friend void ::cover_py_FrameInitializationManager_em();
     #endif
 };
 
@@ -583,12 +583,14 @@ void Frame::m__init__(PKArgs& args) {
 }
 
 
+}  // namespace py
+
 
 // This test ensures coverage for `_ZN2py26FrameInitializationManager2emD0Ev`
 // symbol. See https://stackoverflow.com/questions/46447674 for details.
 #ifdef DTTEST
   void cover_py_FrameInitializationManager_em() {
-    auto t = new FrameInitializationManager::em;
+    auto t = new py::FrameInitializationManager::em;
     delete t;
   }
 #endif
@@ -597,5 +599,3 @@ void Frame::m__init__(PKArgs& args) {
 // to auto-generated exception-handling code, and they are not covered because
 // those exceptions are almost impossible to trigger.
 // See https://stackoverflow.com/questions/46367192
-
-}  // namespace py
