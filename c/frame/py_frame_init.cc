@@ -518,7 +518,7 @@ class FrameInitializationManager {
 
     void make_datatable(nullptr_t) {
       frame->dt = new DataTable(prepare_columns(), nullptr);
-    }  // L/COV_EXCL_LINE
+    }
 
     void make_datatable(const Arg& names) {
       if (names) {
@@ -526,19 +526,19 @@ class FrameInitializationManager {
       } else {
         frame->dt = new DataTable(prepare_columns(), nullptr);
       }
-    }  // L/COV_EXCL_LINE
+    }
 
     void make_datatable(const py::olist& names) {
       frame->dt = new DataTable(prepare_columns(), names);
-    }  // L/COV_EXCL_LINE
+    }
 
     void make_datatable(const std::vector<std::string>& names) {
       frame->dt = new DataTable(prepare_columns(), names);
-    }  // L/COV_EXCL_LINE
+    }
 
     void make_datatable(const DataTable* names_src) {
       frame->dt = new DataTable(prepare_columns(), names_src);
-    }  // L/COV_EXCL_LINE
+    }
 
 
     #ifdef DTTEST
