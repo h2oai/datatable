@@ -95,10 +95,4 @@ extern PyObject* fread_fn;
 
 }  // namespace py
 
-
-#ifdef DTTEST
-void cover_py_FrameInitializationManager_em();
-void cover_py_FrameNameProviders();
-#endif
-
 #endif

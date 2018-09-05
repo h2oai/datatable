@@ -12,6 +12,7 @@
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
+#include "ztest.h"
 
 static double _dlevenshtein(
     const std::string& a, const std::string& b, double* v);
@@ -500,7 +501,7 @@ void DataTable::_integrity_check_names() const {
     for (size_t j = 0; j < len; ++j) {
       if (static_cast<uint8_t>(ch[j]) < 0x20) {
         throw AssertionError() << "Invalid character '" << ch[j] << "' in "
-          "the name of column " << i;
+          "column " << i << "'s name";
       }
     }
   }
@@ -525,14 +526,14 @@ void DataTable::_integrity_check_pynames() const {
         << ", whereas .ncols = " << zcols;
   }
   if (py_inames.size() != zcols) {
-    throw AssertionError() << ".inames has " << py_inames.size()
+    throw AssertionError() << ".py_inames has " << py_inames.size()
       << " elements, while the Frame has " << zcols << " columns";
   }
   for (size_t i = 0; i < zcols; ++i) {
     py::obj elem = py_names[i];
     if (!elem.is_string()) {
-      throw AssertionError() << "Element " << i << " of .py_names is not "
-          "a string but " << elem.typeobj();
+      throw AssertionError() << "Element " << i << " of .py_names is a "
+          << elem.typeobj();
     }
     std::string sname = elem.to_string();
     if (sname != names[i]) {
@@ -630,7 +631,9 @@ static double _dlevenshtein(
 
 
 #ifdef DTTEST
-  void cover_py_FrameNameProviders() {
+namespace dttest {
+
+  void cover_names_FrameNameProviders() {
     pylistNP* t1 = new pylistNP(py::olist(0));
     delete t1;
 
@@ -646,4 +649,56 @@ static double _dlevenshtein(
     xassert(test_ok);
     delete t2;
   }
+
+
+  void cover_names_integrity_checks() {
+    Column** cols = dt::malloc<Column*>(3 * sizeof(Column*));
+    cols[0] = Column::new_data_column(SType::INT32, 1);
+    cols[1] = Column::new_data_column(SType::FLOAT64, 1);
+    cols[2] = nullptr;
+    DataTable* dt = new DataTable(cols);
+
+    auto check1 = [dt]() { dt->_integrity_check_names(); };
+    test_assert(check1, "DataTable.names has size 0, however there are 2 "
+                        "columns in the Frame");
+    dt->names = { "foo", "foo" };
+    test_assert(check1, "Duplicate name 'foo' for column 1");
+    dt->names = { "foo", "f\x0A\x0D" };
+    test_assert(check1, "Invalid character '\\x0a' in column 1's name");
+    dt->names = { "one", "two" };
+
+    auto check2 = [dt]() { dt->_integrity_check_pynames(); };
+    py::oobj q = py::None();
+    dt->py_names = *reinterpret_cast<const py::otuple*>(&q);
+    test_assert(check2, "One of DataTable.py_names or DataTable.py_inames"
+                        " is not properly computed");
+    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
+    test_assert(check2, "DataTable.py_names is not a tuple");
+    dt->py_names = py::otuple(1);
+    test_assert(check2, "DataTable.py_inames is not a dict");
+    dt->py_inames = py::odict();
+    test_assert(check2, "len(.py_names) is 1, whereas .ncols = 2");
+    dt->py_names = py::otuple(2);
+    test_assert(check2, ".py_inames has 0 elements, while the Frame has "
+                        "2 columns");
+    dt->py_inames.set(py::ostring("one"), py::oint(0));
+    dt->py_inames.set(py::ostring("TWO"), py::oint(2));
+    dt->py_names.set(0, py::oint(1));
+    dt->py_names.set(1, py::ostring("two"));
+    test_assert(check2, "Element 0 of .py_names is a <class 'int'>");
+    dt->py_names.set(0, py::ostring("1"));
+    test_assert(check2, "Element 0 of .py_names is '1', but the actual "
+                        "column name is 'one'");
+    dt->py_names.set(0, py::ostring("one"));
+    test_assert(check2, "Column 1 'two' is absent from the .py_inames "
+                        "dictionary");
+    dt->py_inames.del(py::ostring("TWO"));
+    dt->py_inames.set(py::ostring("two"), py::oint(2));
+    test_assert(check2, "Column 1 'two' maps to 2 in the .py_inames "
+                        "dictionary");
+    dt->py_inames.set(py::ostring("two"), py::oint(1));
+    dt->verify_integrity();
+  }
+
+}
 #endif

@@ -5,23 +5,24 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-//
-// This file should only be included from `datatablemodule.cc`
-//
+#ifndef dt_ZTEST_h
+#define dt_ZTEST_h
 #ifdef DTTEST
-#include "frame/py_frame.h"
+#include <functional>
+#include <string>
 
 namespace dttest {
 
+
 void run_tests();
+void test_assert(const std::function<void(void)>&, const std::string&);
 
-
-void run_tests() {
-  cover_py_FrameInitializationManager_em();
-  cover_py_FrameNameProviders();
-}
+void cover_init_FrameInitializationManager_em();
+void cover_names_FrameNameProviders();
+void cover_names_integrity_checks();
 
 
 }  // namespace dttest
 
+#endif
 #endif

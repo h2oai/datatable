@@ -82,6 +82,12 @@ void odict::set(_obj key, _obj val) {
   if (r) throw PyError();
 }
 
+void odict::del(_obj key) {
+  PyObject* _key = key.to_borrowed_ref();
+  int r = PyDict_DelItem(v, _key);
+  if (r) throw PyError();
+}
+
 
 dict_iterator odict::begin() const {
   return dict_iterator(v, 0);

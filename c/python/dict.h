@@ -34,6 +34,7 @@ class odict : public oobj {
     bool has(_obj key) const;
     obj  get(_obj key) const;
     void set(_obj key, _obj val);
+    void del(_obj key);
 
     dict_iterator begin() const;
     dict_iterator end() const;

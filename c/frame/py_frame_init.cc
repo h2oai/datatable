@@ -16,6 +16,7 @@
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/alloc.h"
+#include "ztest.h"
 
 namespace py {
 
@@ -523,7 +524,7 @@ class FrameInitializationManager {
 
 
     #ifdef DTTEST
-      friend void ::cover_py_FrameInitializationManager_em();
+      friend void dttest::cover_init_FrameInitializationManager_em();
     #endif
 };
 
@@ -589,10 +590,14 @@ void Frame::m__init__(PKArgs& args) {
 // This test ensures coverage for `_ZN2py26FrameInitializationManager2emD0Ev`
 // symbol. See https://stackoverflow.com/questions/46447674 for details.
 #ifdef DTTEST
-  void cover_py_FrameInitializationManager_em() {
+namespace dttest {
+
+  void cover_init_FrameInitializationManager_em() {
     auto t = new py::FrameInitializationManager::em;
     delete t;
   }
+
+}
 #endif
 
 // Two lines in the file are marked as LCOV_EXCL_LINE: these lines are related

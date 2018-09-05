@@ -14,6 +14,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
+#include "ztest.h"
 
 // avoid circular dependency between .h files
 class Column;
@@ -131,6 +132,8 @@ class DataTable {
     void _integrity_check_pynames() const;
 
     DataTable* _statdt(colmakerfn f) const;
+
+    friend void dttest::cover_names_integrity_checks();
 };
 
 
