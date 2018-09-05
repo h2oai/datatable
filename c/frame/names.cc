@@ -88,7 +88,7 @@ CString strvecNP::item_as_cstring(size_t i) {
 
 py::oobj strvecNP::item_as_pyoobj(size_t i) {
   return py::ostring(names[i]);
-}
+}  // LCOV_EXCL_LINE
 
 
 
@@ -101,7 +101,7 @@ namespace py {
 
 oobj Frame::get_names() const {
   return dt->get_pynames();
-}
+}  // LCOV_EXCL_LINE
 
 
 void Frame::set_names(obj arg)
