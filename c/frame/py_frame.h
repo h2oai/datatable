@@ -30,8 +30,6 @@ class Frame : public PyObject {
     DataTable* dt;
     mutable PyObject* stypes;  // memoized tuple of stypes
     mutable PyObject* ltypes;  // memoized tuple of ltypes
-    mutable PyObject* names;   // memoized tuple of column names
-    mutable PyObject* inames;  // memoized dict of {column name: index}
 
     pydatatable::obj* core_dt;  // TODO: remove
 
@@ -68,7 +66,6 @@ class Frame : public PyObject {
     oobj get_internal() const;
     void set_nrows(obj);
     void set_names(obj);
-    void set_names(const std::vector<std::string>&);
     void set_internal(obj);
 
     oobj colindex(PKArgs&);

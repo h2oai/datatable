@@ -388,7 +388,7 @@ class FrameInitializationManager {
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();
-      frame->set_names(newnames);
+      frame->dt->set_names(newnames);
     }
 
 
@@ -409,14 +409,14 @@ class FrameInitializationManager {
         _make_column(kv.second, stype);
       }
       frame->dt = make_datatable();
-      frame->set_names(newnames);
+      frame->dt->set_names(newnames);
     }
 
 
     void init_mystery_frame() {
       cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
       frame->dt = make_datatable();
-      frame->set_names(strvec { "?" });
+      frame->dt->set_names(strvec { "?" });
     }
 
 
@@ -434,11 +434,9 @@ class FrameInitializationManager {
       }
       frame->dt = make_datatable();
       if (names_arg) {
-        frame->set_names(names_arg.to_pyobj());
+        frame->dt->set_names(names_arg.to_pylist());
       } else {
-        // Copy names without checking for validity, since we know they were
-        // already verified in `srcdt`.
-        frame->dt->names = srcdt->names;
+        frame->dt->copy_names_from(srcdt);
       }
     }
 
@@ -451,8 +449,6 @@ class FrameInitializationManager {
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);
-        std::swap(frame->names,   resframe->names);
-        std::swap(frame->inames,  resframe->inames);
         std::swap(frame->stypes,  resframe->stypes);
         std::swap(frame->ltypes,  resframe->ltypes);
         std::swap(frame->core_dt, resframe->core_dt);
@@ -554,8 +550,6 @@ void Frame::m__init__(PKArgs& args) {
   core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
-  names = nullptr;
-  inames = nullptr;
   if (Frame::internal_construction) return;
 
   FrameInitializationManager fim(args, this);

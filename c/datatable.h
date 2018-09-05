@@ -9,6 +9,8 @@
 #define dt_DATATABLE_h
 #include <vector>
 #include <string>
+#include "python/dict.h"
+#include "python/tuple.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
@@ -17,6 +19,7 @@
 class Column;
 class Stats;
 class DataTable;
+class NameProvider;
 
 typedef std::unique_ptr<DataTable> DataTablePtr;
 typedef Column* (Column::*colmakerfn)(void) const;
@@ -57,7 +60,11 @@ class DataTable {
     RowIndex rowindex;
     Groupby  groupby;
     Column** columns;
+
+  private:
     std::vector<std::string> names;
+    mutable py::otuple py_names;   // memoized tuple of column names
+    mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
     DataTable(Column**);
@@ -70,6 +77,7 @@ class DataTable {
     void reify();
     void rbind(DataTable**, int**, int64_t, int64_t);
     DataTable* cbind(DataTable**, int64_t);
+    DataTable* copy() const;
     size_t memory_footprint();
 
     /**
@@ -82,6 +90,15 @@ class DataTable {
      * information will be computed and stored with the RowIndex.
      */
     RowIndex sortby(const arr32_t& colindices, Groupby* out_grps) const;
+
+    const std::vector<std::string>& get_names() const;
+    py::otuple get_pynames() const;
+    int64_t colindex(const py::_obj& pyname) const;
+    void copy_names_from(const DataTable* other);
+    void set_names_to_default();
+    void set_names(py::olist names_list);
+    void set_names(const std::vector<std::string>& names_list);
+    void replace_names(py::odict replacements);
 
     void set_nkeys(int64_t nk);
 
@@ -105,10 +122,13 @@ class DataTable {
     void save_jay(const std::string& path,
                   const std::vector<std::string>& colnames,
                   WritableBuffer::Strategy wstrategy);
-    static DataTable* open_jay(const std::string& path,
-                               std::vector<std::string>& colnames);
+    static DataTable* open_jay(const std::string& path);
 
   private:
+    void _init_pynames() const;
+    void _set_names_impl(NameProvider*);
+    void _integrity_check_names() const;
+
     DataTable* _statdt(colmakerfn f) const;
 };
 

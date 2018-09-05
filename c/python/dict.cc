@@ -19,6 +19,8 @@ odict::odict() {
   if (!v) throw PyError();
 }
 
+odict::odict(std::nullptr_t) : oobj(nullptr) {}
+
 odict::odict(PyObject* src) : oobj(src) {}
 
 odict::odict(const odict& other) : oobj(other) {}

@@ -24,6 +24,7 @@ class dict_iterator;
 class odict : public oobj {
   public:
     odict();
+    odict(std::nullptr_t);
     odict(const odict&);
     odict(odict&&);
     odict& operator=(const odict&);

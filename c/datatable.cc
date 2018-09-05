@@ -21,7 +21,8 @@ DataTable::DataTable(Column** cols)
   : nrows(0),
     ncols(0),
     nkeys(0),
-    columns(cols)
+    columns(cols),
+    py_inames(nullptr)
 {
   if (cols == nullptr) {
     throw ValueError() << "Column array cannot be null";
@@ -46,6 +47,35 @@ DataTable::DataTable(Column** cols)
   if (need_to_materialize) {
     reify();
   }
+}
+
+
+/**
+ * Free memory occupied by the :class:`DataTable` object. This function should
+ * be called from `pydatatable::obj`s deallocator only.
+ */
+DataTable::~DataTable()
+{
+  for (int64_t i = 0; i < ncols; ++i) {
+    delete columns[i];
+  }
+  delete columns;
+}
+
+
+/**
+ * Make a shallow copy of the current DataTable.
+ */
+DataTable* DataTable::copy() const {
+  Column** cols = new Column*[ncols + 1];
+  for (int64_t i = 0; i < ncols; ++i) {
+    cols[i] = columns[i]->shallowcopy();
+  }
+  cols[ncols] = nullptr;
+
+  DataTable* newdt = new DataTable(cols);
+  newdt->copy_names_from(this);
+  return newdt;
 }
 
 
@@ -148,19 +178,6 @@ void DataTable::set_nkeys(int64_t nk) {
   reify();
 
   nkeys = nk;
-}
-
-
-/**
- * Free memory occupied by the :class:`DataTable` object. This function should
- * be called from `pydatatable::obj`s deallocator only.
- */
-DataTable::~DataTable()
-{
-  for (int64_t i = 0; i < ncols; ++i) {
-    delete columns[i];
-  }
-  delete columns;
 }
 
 
@@ -286,6 +303,8 @@ void DataTable::verify_integrity() const {
         << "Number of keys " << nkeys << " is greater than the number of "
            "columns in the Frame: " << ncols;
   }
+
+  _integrity_check_names();
 
   // Check the number of columns; the number of allocated columns should be
   // equal to `ncols + 1` (with extra column being NULL). Sometimes the

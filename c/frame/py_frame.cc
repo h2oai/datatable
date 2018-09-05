@@ -149,8 +149,6 @@ void Frame::m__dealloc__() {
   Py_XDECREF(core_dt);
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
-  Py_XDECREF(names);
-  Py_XDECREF(inames);
   dt = nullptr;  // `dt` is already managed by `core_dt`
 }
 
@@ -162,19 +160,9 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 
 
 oobj Frame::copy(NoArgs&) {
-  Column** cols = new Column*[dt->ncols + 1];
-  for (int64_t i = 0; i < dt->ncols; ++i) {
-    cols[i] = dt->columns[i]->shallowcopy();
-  }
-  cols[dt->ncols] = nullptr;
-
-  DataTable* newdt = new DataTable(cols);
-  newdt->names = dt->names;
-  Frame* newframe = Frame::from_datatable(newdt);
+  Frame* newframe = Frame::from_datatable(dt->copy());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
-  newframe->names  = names;   Py_XINCREF(names);
-  newframe->inames = inames;  Py_XINCREF(inames);
   return py::oobj::from_new_reference(newframe);
 }
 
