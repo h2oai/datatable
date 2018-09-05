@@ -260,7 +260,8 @@ void DataTable::set_names_to_default() {
 }
 
 
-void DataTable::set_names(py::olist names_list) {
+void DataTable::set_names(const py::olist& names_list) {
+  if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
   _set_names_impl(&np);
 }

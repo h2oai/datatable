@@ -131,14 +131,12 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
 PyObject* to_frame(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:to_frame", &arg1)) return nullptr;
-  py::obj names(arg1);
+  py::olist names = py::obj(arg1).to_pylist();
 
   Column** columns = self->columns;
   self->columns = nullptr;
-  DataTable* dt = new DataTable(columns);
-  auto frame = py::Frame::from_datatable(dt);
-  frame->set_names(names);
-  return frame;
+  DataTable* dt = new DataTable(columns, names);
+  return py::Frame::from_datatable(dt);
 }
 
 

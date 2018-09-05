@@ -16,6 +16,34 @@
 static int _compare_ints(const void *a, const void *b);
 
 
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
+
+DataTable::DataTable(Column** cols, std::nullptr_t)
+  : DataTable(cols)
+{
+  set_names_to_default();
+}
+
+DataTable::DataTable(Column** cols, const py::olist& namessrc)
+  : DataTable(cols)
+{
+  set_names(namessrc);
+}
+
+DataTable::DataTable(Column** cols, const std::vector<std::string>& namessrc)
+  : DataTable(cols)
+{
+  set_names(namessrc);
+}
+
+DataTable::DataTable(Column** cols, const DataTable* namessrc)
+  : DataTable(cols)
+{
+  copy_names_from(namessrc);
+}
+
 
 DataTable::DataTable(Column** cols)
   : nrows(0),
@@ -62,6 +90,11 @@ DataTable::~DataTable()
   delete columns;
 }
 
+
+
+//------------------------------------------------------------------------------
+// Public API
+//------------------------------------------------------------------------------
 
 /**
  * Make a shallow copy of the current DataTable.

@@ -68,7 +68,10 @@ class DataTable {
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
-    DataTable(Column**);
+    DataTable(Column** cols, std::nullptr_t);
+    DataTable(Column** cols, const py::olist& namessrc);
+    DataTable(Column** cols, const std::vector<std::string>& namessrc);
+    DataTable(Column** cols, const DataTable* namessrc);
     ~DataTable();
     DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
@@ -97,7 +100,7 @@ class DataTable {
     int64_t colindex(const py::_obj& pyname) const;
     void copy_names_from(const DataTable* other);
     void set_names_to_default();
-    void set_names(py::olist names_list);
+    void set_names(const py::olist& names_list);
     void set_names(const std::vector<std::string>& names_list);
     void replace_names(py::odict replacements);
 
@@ -126,6 +129,7 @@ class DataTable {
     static DataTable* open_jay(const std::string& path);
 
   private:
+    DataTable(Column**);
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;
@@ -133,7 +137,9 @@ class DataTable {
 
     DataTable* _statdt(colmakerfn f) const;
 
-    friend void dttest::cover_names_integrity_checks();
+    #ifdef DTTEST
+      friend void dttest::cover_names_integrity_checks();
+    #endif
 };
 
 
