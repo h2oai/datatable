@@ -128,6 +128,7 @@ class DataTable {
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;
+    void _integrity_check_pynames() const;
 
     DataTable* _statdt(colmakerfn f) const;
 };

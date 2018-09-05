@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
+#include <unordered_set>
 #include "python/dict.h"
 #include "python/int.h"
 #include "python/string.h"
@@ -579,6 +580,31 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
 
 
 void DataTable::_integrity_check_names() const {
+  size_t zcols = static_cast<size_t>(ncols);
+  if (names.size() != zcols) {
+    throw AssertionError() << "DataTable.names has size " << names.size()
+      << ", however there are " << zcols << " columns in the Frame";
+  }
+  std::unordered_set<std::string> seen_names;
+  for (size_t i = 0; i < names.size(); ++i) {
+    if (seen_names.count(names[i]) > 0) {
+      throw AssertionError() << "Duplicate name '" << names[i] << "' for "
+          "column " << i;
+    }
+    seen_names.insert(names[i]);
+    const char* ch = names[i].data();
+    size_t len = names[i].size();
+    for (size_t j = 0; j < len; ++j) {
+      if (static_cast<uint8_t>(ch[j]) < 0x20) {
+        throw AssertionError() << "Invalid character '" << ch[j] << "' in "
+          "the name of column " << i;
+      }
+    }
+  }
+}
+
+
+void DataTable::_integrity_check_pynames() const {
   if (!py_names && !py_inames) return;
   if (!py_names || !py_inames) {
     throw AssertionError() << "One of DataTable.py_names or DataTable.py_inames"

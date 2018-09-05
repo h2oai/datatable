@@ -305,6 +305,7 @@ void DataTable::verify_integrity() const {
   }
 
   _integrity_check_names();
+  _integrity_check_pynames();
 
   // Check the number of columns; the number of allocated columns should be
   // equal to `ncols + 1` (with extra column being NULL). Sometimes the
