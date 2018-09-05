@@ -638,6 +638,21 @@ def test_rename_dict():
     assert d0.colindex("z") == 2
 
 
+def test_rename_frame_copy():
+    # Check that when copying a frame, the changes to memoized .py_names and
+    # .py_inames do not get propagated to the original Frame.
+    d0 = dt.Frame([[1], [2], [3]])
+    assert d0.names == ("C0", "C1", "C2")
+    d1 = d0.copy()
+    assert d1.names == ("C0", "C1", "C2")
+    d1.names = {"C1": "ha!"}
+    assert d1.names == ("C0", "ha!", "C2")
+    assert d0.names == ("C0", "C1", "C2")
+    assert d1.colindex("ha!") == 1
+    with pytest.raises(ValueError):
+        d0.colindex("ha!")
+
+
 @pytest.mark.run(order=8.11)
 def test_rename_bad1():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))

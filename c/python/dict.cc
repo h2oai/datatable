@@ -19,6 +19,8 @@ odict::odict() {
   if (!v) throw PyError();
 }
 
+odict::odict(std::nullptr_t) : oobj(nullptr) {}
+
 odict::odict(PyObject* src) : oobj(src) {}
 
 odict::odict(const odict& other) : oobj(other) {}
@@ -77,6 +79,12 @@ void odict::set(_obj key, _obj val) {
   PyObject* _key = key.to_borrowed_ref();
   PyObject* _val = val.to_borrowed_ref();
   int r = PyDict_SetItem(v, _key, _val);
+  if (r) throw PyError();
+}
+
+void odict::del(_obj key) {
+  PyObject* _key = key.to_borrowed_ref();
+  int r = PyDict_DelItem(v, _key);
   if (r) throw PyError();
 }
 

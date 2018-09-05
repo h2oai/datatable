@@ -20,10 +20,9 @@ static Column* column_from_jay(const jay::Column* jaycol, MemoryRange& jaybuf);
 // Open DataTable
 //------------------------------------------------------------------------------
 
-DataTable* DataTable::open_jay(const std::string& path,
-                               std::vector<std::string>& colnames)
+DataTable* DataTable::open_jay(const std::string& path)
 {
-  xassert(colnames.empty());
+  std::vector<std::string> colnames;
   MemoryRange mbuf = MemoryRange::mmap(path);
 
   const uint8_t* ptr = static_cast<const uint8_t*>(mbuf.rptr());
@@ -70,6 +69,7 @@ DataTable* DataTable::open_jay(const std::string& path,
 
   auto dt = new DataTable(columns);
   dt->nkeys = frame->nkeys();
+  dt->set_names(colnames);
   return dt;
 }
 

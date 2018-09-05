@@ -86,6 +86,8 @@ public:
 
   void topython() const override;
   bool is_keyboard_interrupt() const;
+  bool is_assertion_error() const;
+  std::string message() const;
 };
 
 

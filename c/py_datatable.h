@@ -277,7 +277,8 @@ DECLARE_METHOD(
 
 DECLARE_FUNCTION(
   datatable_from_list,
-  "datatable_from_list(list, types)\n\n"
+  "datatable_from_list(list, types, names)\n\n"
+  "[DEPRECATED]\n"
   "Create a DataTable from a list of Python objects (each will be converted\n"
   "into a column). Optional `types` list may be provided to force a\n"
   "particular stype for each column. The lengths of `types` list must be the\n"

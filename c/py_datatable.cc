@@ -97,10 +97,8 @@ PyObject* open_jay(PyObject*, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
   std::string filename = py::obj(arg1).to_string();
 
-  std::vector<std::string> colnames;
-  DataTable* dt = DataTable::open_jay(filename, colnames);
+  DataTable* dt = DataTable::open_jay(filename);
   py::Frame* frame = py::Frame::from_datatable(dt);
-  frame->set_names(colnames);
   return frame;
 }
 
@@ -270,52 +268,6 @@ PyObject* check(obj* self, PyObject*) {
             << elem << ", for a column of type " << eexp;
       }
     }
-  }
-
-  if (self->_frame) {
-  PyObject* names = self->_frame->names;
-  PyObject* inames = self->_frame->inames;
-  if (names) {
-    if (!PyTuple_Check(names)) {
-      throw AssertionError() << "Frame.names is not a tuple";
-    }
-    if (inames && !PyDict_Check(inames)) {
-      throw AssertionError() << ".inames is not a dict: " << Py_TYPE(inames);
-    }
-    if (PyTuple_Size(names) != dt->ncols) {
-      throw AssertionError() << "len(Frame.names) is " << PyTuple_Size(names)
-          << ", whereas .ncols = " << dt->ncols;
-    }
-    if (inames && PyDict_Size(inames) != dt->ncols) {
-      throw AssertionError() << ".inames has " << PyDict_Size(inames)
-        << " elements, but the Frame has " << dt->ncols << " columns";
-    }
-    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
-      PyObject* elem = PyTuple_GET_ITEM(names, i);
-      if (!PyUnicode_Check(elem)) {
-        throw AssertionError() << "Element " << i << " of Frame.names is not "
-            "a string but " << Py_TYPE(elem);
-      }
-      std::string sname = std::string(PyUnicode_AsUTF8(elem));
-      std::string ename = dt->names[static_cast<size_t>(i)];
-      if (sname != ename) {
-        throw AssertionError() << "Element " << i << " of Frame.names is '"
-            << sname << "', but internal column's name is '" << ename << "'";
-      }
-      if (inames) {
-        PyObject* res = PyDict_GetItem(inames, elem);
-        if (!res) {
-          throw AssertionError() << "Column " << i << " '" << ename << "' is "
-              "absent from the .inames dictionary";
-        }
-        long v = PyLong_AsLong(res);
-        if (v != i) {
-          throw AssertionError() << "Column " << i << " '" << ename << "' maps "
-              "to " << v << " in the .inames dictionary";
-        }
-      }
-    }
-  }
   }
 
   Py_RETURN_NONE;

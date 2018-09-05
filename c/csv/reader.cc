@@ -710,7 +710,7 @@ std::unique_ptr<DataTable> GenericReader::read_empty_input() {
     trace("Input is empty, returning a (0 x 0) DataTable");
     Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
     cols[0] = nullptr;
-    return std::unique_ptr<DataTable>(new DataTable(cols));
+    return std::unique_ptr<DataTable>(new DataTable(cols, nullptr));
   }
   return nullptr;
 }
@@ -805,5 +805,6 @@ DataTablePtr GenericReader::makeDatatable() {
                                        std::move(strbuf));
     j++;
   }
-  return DataTablePtr(new DataTable(ccols));
+  py::olist names = freader.get_attr("_colnames").to_pylist();
+  return DataTablePtr(new DataTable(ccols, names));
 }
