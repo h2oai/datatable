@@ -134,8 +134,8 @@ coverage:
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
 	chmod +x ci/llvm-gcov.sh
-	lcov --gcov-tool ci/llvm-gcov.sh --capture --directory . --output-file build/coverage.info
-	genhtml build/coverage.info --output-directory build/coverage-c
+	lcov --gcov-tool ci/llvm-gcov.sh --capture --directory . --no-external --output-file build/coverage.info
+	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 
 dist: build
