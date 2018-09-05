@@ -1,4 +1,4 @@
-image: Visual Studio 2017
+image: Visual Studio 2015
 build: false
 
 init: call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 & call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
@@ -30,14 +30,14 @@ environment:
 
   matrix:
     - platform: x64
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
     - platform: x64
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
@@ -57,7 +57,7 @@ test_script:
   # Apparently, 'dir' does not understand forward-slash paths...
   # - dir C:\ProgramData\chocolatey\lib\make\tools\bin\
   # - dir "C:\Program Files\"
-  #- DIR /S "C:\tools\mingw64"
+  - DIR /S "C:\Program Files"
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   - "ECHO %LLVM6%"
   - SET
