@@ -1,6 +1,8 @@
 image: Visual Studio 2017
 build: false
 
+init:   call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+
 install:
   - choco install mingw
   - choco install llvm
