@@ -124,10 +124,6 @@ DECLARE_METHOD(
   "Remove the specified list of columns from the datatable")
 
 DECLARE_METHOD(
-  resize_rows,
-  "Change the number of rows in the Frame.")
-
-DECLARE_METHOD(
   replace_rowindex,
   "replace_rowindex(rowindex)\n\n"
   "Replace the current rowindex on the datatable with the new one.")
@@ -172,10 +168,6 @@ DECLARE_METHOD(
   materialize,
   "materialize()\n\n"
   "Convert DataTable from 'view' into 'data' representation.\n")
-
-DECLARE_METHOD(
-  apply_na_mask,
-  "apply_na_mask(mask)\n\n")
 
 DECLARE_METHOD(
   use_stype_for_buffers,
@@ -274,16 +266,6 @@ DECLARE_METHOD(
 
 
 //---- Python API --------------------------------------------------------------
-
-DECLARE_FUNCTION(
-  datatable_from_list,
-  "datatable_from_list(list, types, names)\n\n"
-  "[DEPRECATED]\n"
-  "Create a DataTable from a list of Python objects (each will be converted\n"
-  "into a column). Optional `types` list may be provided to force a\n"
-  "particular stype for each column. The lengths of `types` list must be the\n"
-  "same as the number of entries in the source list.",
-  HOMEFLAG)
 
 DECLARE_FUNCTION(
   datatable_load,

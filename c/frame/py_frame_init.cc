@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 #include "python/dict.h"
+#include "python/int.h"
 #include "python/list.h"
+#include "python/oiter.h"
 #include "python/orange.h"
 #include "python/oset.h"
 #include "python/string.h"
@@ -118,10 +120,17 @@ class FrameInitializationManager {
       if (src.is_undefined() || src.is_none()) {
         return init_empty_frame();
       }
+      if (src.is_pandas_frame() || src.is_pandas_series()) {
+        return init_from_pandas();
+      }
+      if (src.is_numpy_array()) {
+        return init_from_numpy();
+      }
       if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
         return init_mystery_frame();
       }
+      throw TypeError() << "Cannot create Frame from " << src.typeobj();
     }
 
 
@@ -144,7 +153,7 @@ class FrameInitializationManager {
       for (size_t i = 0; i < collist.size(); ++i) {
         py::obj item = collist[i];
         SType s = get_stype_for_column(i);
-        _make_column(item, s);
+        make_column(item, s);
       }
       make_datatable(names_arg);
     }
@@ -256,7 +265,7 @@ class FrameInitializationManager {
       check_names_count(1);
       check_stypes_count(1);
       SType s = get_stype_for_column(0);
-      _make_column(src.to_pyobj(), s);
+      make_column(src.to_pyobj(), s);
       make_datatable(names_arg);
     }
 
@@ -276,7 +285,7 @@ class FrameInitializationManager {
         py::obj name = kv.first;
         SType stype = get_stype_for_column(i, &name);
         newnames.push_back(name.to_string());
-        _make_column(kv.second, stype);
+        make_column(kv.second, stype);
       }
       make_datatable(newnames);
     }
@@ -296,7 +305,7 @@ class FrameInitializationManager {
         const py::ostring oname(kv.first);
         SType stype = get_stype_for_column(i, &oname);
         newnames.push_back(std::move(kv.first));
-        _make_column(kv.second, stype);
+        make_column(kv.second, stype);
       }
       make_datatable(newnames);
     }
@@ -352,6 +361,82 @@ class FrameInitializationManager {
         }
         throw err;
       }
+    }
+
+
+    void init_from_pandas() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from pandas DataFrame";
+      }
+      py::obj pdsrc = src.to_pyobj();
+      py::olist colnames(0);
+      if (src.is_pandas_frame()) {
+        py::oiter pdcols = pdsrc.get_attr("columns").to_pyiter();
+        size_t ncols = pdcols.size();
+        if (ncols != size_t(-1)) {
+          check_names_count(ncols);
+        }
+        for (auto col : pdcols) {
+          if (!names_arg) colnames.append(col.to_pystring_force());
+          py::oobj colsrc = pdsrc.get_item(col).get_attr("values");
+          make_column(colsrc, SType::VOID);
+        }
+      } else {
+        xassert(src.is_pandas_series());
+        check_names_count(1);
+        py::oobj colsrc = pdsrc.get_attr("values");
+        make_column(colsrc, SType::VOID);
+      }
+      if (colnames.size() > 0) {
+        make_datatable(colnames);
+      } else {
+        make_datatable(names_arg);
+      }
+    }
+
+
+    void init_from_numpy() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from a numpy array";
+      }
+      py::oobj npsrc = src.to_pyobj();
+      size_t ndims = npsrc.get_attr("shape").to_pylist().size();
+      if (ndims > 2) {
+        throw ValueError() << "Cannot create Frame from a " << ndims << "-D "
+            "numpy array " << npsrc;
+      }
+      if (ndims <= 1) {
+        // This is equivalent to python `npsrc = npsrc.reshape(-1, 1)`
+        // It changes the shape of the array, without altering the data
+        npsrc = npsrc.invoke("reshape", "(ii)", -1, 1);
+      }
+      // Equivalent of python `npsrc.shape[1]`
+      size_t ncols = npsrc.get_attr("shape").to_pylist()[1].to_size_t();
+      check_names_count(ncols);
+
+      py::otuple col_key(2);
+      col_key.set(0, py::Ellipsis());
+      if (npsrc.is_numpy_marray()) {
+        for (size_t i = 0; i < ncols; ++i) {
+          col_key.replace(1, py::oint(i));
+          auto colsrc  = npsrc.get_attr("data").get_item(col_key);
+          auto masksrc = npsrc.get_attr("mask").get_item(col_key);
+          make_column(colsrc, SType::VOID);
+          Column* maskcol = Column::from_buffer(masksrc.to_borrowed_ref());
+          xassert(maskcol->stype() == SType::BOOL);
+          cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
+          delete maskcol;
+        }
+      } else {
+        for (size_t i = 0; i < ncols; ++i) {
+          col_key.replace(1, py::oint(i));
+          auto colsrc = npsrc.get_item(col_key);  // npsrc[:, i]
+          make_column(colsrc, SType::VOID);
+        }
+      }
+      make_datatable(names_arg);
     }
 
 
@@ -475,7 +560,7 @@ class FrameInitializationManager {
     }
 
 
-    void _make_column(py::obj colsrc, SType s) {
+    void make_column(py::obj colsrc, SType s) {
       Column* col = nullptr;
       if (colsrc.is_buffer()) {
         col = Column::from_buffer(colsrc.to_borrowed_ref());
@@ -574,31 +659,8 @@ void Frame::m__init__(PKArgs& args) {
   FrameInitializationManager fim(args, this);
   fim.run();
 
-  if (dt) {
-    core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
-    core_dt->_frame = this;
-  } else {
-    const Arg& src        = args[0];
-    const Arg& names_arg  = args[1];
-    const Arg& stypes_arg = args[2];
-    const Arg& stype_arg  = args[3];
-
-    py::oobj osrc(src.to_borrowed_ref());
-    py::oobj ostypes(stypes_arg.to_borrowed_ref());
-    if (stype_arg) {
-      py::olist stypes_list(1);
-      stypes_list.set(0, stype_arg.to_borrowed_ref());
-      ostypes = stypes_list;
-    }
-    xassert(args.num_varkwd_args() == 0);
-    PyObject* arg1 = osrc.to_borrowed_ref();
-    PyObject* arg2 = names_arg.to_borrowed_ref();
-    PyObject* arg3 = ostypes.to_borrowed_ref();
-    if (!arg1) arg1 = py::None().release();
-    if (!arg2) arg2 = py::None().release();
-    if (!arg3) arg3 = py::None().release();
-    py::obj(this).invoke("_fill_from_source", "OOO", arg1, arg2, arg3);
-  }
+  core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
+  core_dt->_frame = this;
 }
 
 

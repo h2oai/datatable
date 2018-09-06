@@ -16,11 +16,18 @@
 #include "python/int.h"
 #include "python/float.h"
 #include "python/list.h"
+#include "python/oiter.h"
 #include "python/orange.h"
 #include "python/tuple.h"
 #include "python/string.h"
 
 namespace py {
+static PyObject* pandas_DataFrame_type = nullptr;
+static PyObject* pandas_Series_type = nullptr;
+static PyObject* numpy_Array_type = nullptr;
+static PyObject* numpy_MaskedArray_type = nullptr;
+static void init_pandas();
+static void init_numpy();
 
 
 //------------------------------------------------------------------------------
@@ -72,16 +79,18 @@ oobj::oobj(oobj&& other) {
 
 
 oobj& oobj::operator=(const oobj& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
+  PyObject* t = v;
   v = other.v;
+  Py_XINCREF(other.v);
+  Py_XDECREF(t);
   return *this;
 }
 
 oobj& oobj::operator=(oobj&& other) {
-  Py_XDECREF(v);
+  PyObject* t = v;
   v = other.v;
   other.v = nullptr;
+  Py_XDECREF(t);
   return *this;
 }
 
@@ -102,6 +111,8 @@ oobj::~oobj() {
 //------------------------------------------------------------------------------
 
 _obj::operator bool() const noexcept { return (v != nullptr); }
+bool _obj::operator==(const _obj& other) const noexcept { return v == other.v; }
+bool _obj::operator!=(const _obj& other) const noexcept { return v != other.v; }
 
 bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
 bool _obj::is_none()          const noexcept { return (v == Py_None); }
@@ -117,9 +128,12 @@ bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
-bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
+
+bool _obj::is_iterable() const noexcept {
+  return v && (v->ob_type->tp_iter || PySequence_Check(v));
+}
 
 bool _obj::is_frame() const noexcept {
   if (!v) return false;
@@ -127,6 +141,30 @@ bool _obj::is_frame() const noexcept {
   int ret = PyObject_IsInstance(v, typeptr);
   if (ret == -1) PyErr_Clear();
   return (ret == 1);
+}
+
+bool _obj::is_pandas_frame() const noexcept {
+  if (!pandas_DataFrame_type) init_pandas();
+  if (!v || !pandas_DataFrame_type) return false;
+  return PyObject_IsInstance(v, pandas_DataFrame_type);
+}
+
+bool _obj::is_pandas_series() const noexcept {
+  if (!pandas_Series_type) init_pandas();
+  if (!v || !pandas_Series_type) return false;
+  return PyObject_IsInstance(v, pandas_Series_type);
+}
+
+bool _obj::is_numpy_array() const noexcept {
+  if (!numpy_Array_type) init_numpy();
+  if (!v || !numpy_Array_type) return false;
+  return PyObject_IsInstance(v, numpy_Array_type);
+}
+
+bool _obj::is_numpy_marray() const noexcept {
+  if (!numpy_MaskedArray_type) init_numpy();
+  if (!v || !numpy_MaskedArray_type) return false;
+  return PyObject_IsInstance(v, numpy_MaskedArray_type);
 }
 
 
@@ -226,6 +264,15 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
     throw em.error_int64_overflow(v);
   }
   return value;
+}
+
+
+size_t _obj::to_size_t(const error_manager& em) const {
+  int64_t res = to_int64_strict(em);
+  if (res < 0) {
+    throw em.error_int_negative(v);
+  }
+  return static_cast<size_t>(res);
 }
 
 
@@ -490,6 +537,12 @@ py::orange _obj::to_pyrange(const error_manager& em) const {
 }
 
 
+py::oiter _obj::to_pyiter(const error_manager& em) const {
+  if (is_none()) return py::oiter();
+  if (is_iterable()) return py::oiter(v);
+  throw em.error_not_iterable(v);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -505,6 +558,14 @@ oobj _obj::get_attr(const char* attr) const {
 
 bool _obj::has_attr(const char* attr) const {
   return PyObject_HasAttrString(v, attr);
+}
+
+
+oobj _obj::get_item(const py::_obj& key) const {
+  // PyObject_GetItem returns a new reference, or NULL on failure
+  PyObject* res = PyObject_GetItem(v, key.v);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
 }
 
 
@@ -561,10 +622,59 @@ PyObject* oobj::release() && {
 }
 
 
-oobj None()  { return oobj(Py_None); }
-oobj True()  { return oobj(Py_True); }
-oobj False() { return oobj(Py_False); }
+oobj get_module(const char* modname) {
+  py::ostring pyname(modname);
+  #if PY_VERSION_HEX >= 0x03070000
+    PyObject* res = PyImport_GetModule(pyname.v);
+    if (!res && PyErr_Occurred()) PyErr_Clear();
+    return oobj::from_new_reference(res);
+
+  #else
+    // PyImport_GetModuleDict() returns a borrowed ref
+    oobj sys_modules(PyImport_GetModuleDict());
+    if (sys_modules.v == nullptr) {
+      PyErr_Clear();
+      return oobj(nullptr);
+    }
+    if (PyDict_CheckExact(sys_modules.v)) {
+      // PyDict_GetItem() returns a borowed ref, or NULL if the key is not
+      // present (without setting an exception)
+      return oobj(PyDict_GetItem(sys_modules.v, pyname.v));
+    } else {
+      // PyObject_GetItem() returns a new reference
+      PyObject* res = PyObject_GetItem(sys_modules.v, pyname.v);
+      if (!res) PyErr_Clear();
+      return oobj::from_new_reference(res);
+    }
+
+  #endif
+}
+
+
+static void init_pandas() {
+  py::oobj pd = get_module("pandas");
+  if (pd) {
+    pandas_DataFrame_type = pd.get_attr("DataFrame").release();
+    pandas_Series_type    = pd.get_attr("Series").release();
+  }
+}
+
+static void init_numpy() {
+  py::oobj np = get_module("numpy");
+  if (np) {
+    numpy_Array_type = np.get_attr("ndarray").release();
+    numpy_MaskedArray_type
+      = np.get_attr("ma").get_attr("MaskedArray").release();
+  }
+}
+
+
+oobj None()     { return oobj(Py_None); }
+oobj True()     { return oobj(Py_True); }
+oobj False()    { return oobj(Py_False); }
+oobj Ellipsis() { return oobj(Py_Ellipsis); }
 obj rnone() { return obj(Py_None); }
+
 
 
 //------------------------------------------------------------------------------
@@ -630,6 +740,14 @@ Error _obj::error_manager::error_int64_overflow(PyObject* o) const {
 
 Error _obj::error_manager::error_double_overflow(PyObject*) const {
   return ValueError() << "Value is too large to convert to double";
+}
+
+Error _obj::error_manager::error_not_iterable(PyObject* o) const {
+  return TypeError() << "Expected an iterable, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_int_negative(PyObject*) const {
+  return ValueError() << "Integer value is negative";
 }
 
 

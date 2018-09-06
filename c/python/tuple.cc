@@ -24,27 +24,17 @@ otuple::otuple(int64_t n) {
   v = PyTuple_New(n);
 }
 
-otuple::otuple(const otuple& other) {
-  v = other.v;
-  Py_XINCREF(v);
-}
+otuple::otuple(const otuple& other) : oobj(other) {}
 
-otuple::otuple(otuple&& other) {
-  v = other.v;
-  other.v = nullptr;
-}
+otuple::otuple(otuple&& other) : oobj(std::move(other)) {}
 
 otuple& otuple::operator=(const otuple& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
-  v = other.v;
+  oobj::operator=(other);
   return *this;
 }
 
 otuple& otuple::operator=(otuple&& other) {
-  Py_XDECREF(v);
-  v = other.v;
-  other.v = nullptr;
+  oobj::operator=(std::move(other));
   return *this;
 }
 
@@ -94,6 +84,32 @@ void otuple::set(int i, const _obj& value) {
 }
 
 void otuple::set(int i, oobj&& value) {
+  set(static_cast<int64_t>(i), std::move(value));
+}
+
+
+void otuple::replace(int64_t i, const _obj& value) {
+  // PyTuple_SetItem "steals" a reference to the last argument
+  PyTuple_SetItem(v, i, value.to_pyobject_newref());
+}
+
+void otuple::replace(int64_t i, oobj&& value) {
+  PyTuple_SetItem(v, i, std::move(value).release());
+}
+
+void otuple::replace(size_t i, const _obj& value) {
+  set(static_cast<int64_t>(i), value);
+}
+
+void otuple::replace(size_t i, oobj&& value) {
+  set(static_cast<int64_t>(i), std::move(value));
+}
+
+void otuple::replace(int i, const _obj& value) {
+  set(static_cast<int64_t>(i), value);
+}
+
+void otuple::replace(int i, oobj&& value) {
   set(static_cast<int64_t>(i), std::move(value));
 }
 

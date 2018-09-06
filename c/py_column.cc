@@ -132,18 +132,6 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
 }
 
 
-PyObject* hexview(pycolumn::obj* self, PyObject*)
-{
-  if (!fn_hexview) {
-    throw RuntimeError() << "Function column_hexview() was not linked";
-  }
-  PyObject* v = Py_BuildValue("(OOi)", self, self->pydt, self->colidx);
-  PyObject* ret = PyObject_CallObject(fn_hexview, v);
-  Py_XDECREF(v);
-  return ret;
-}
-
-
 PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 {
   PyObject* arg1 = nullptr;
@@ -224,7 +212,6 @@ static PyGetSetDef column_getseters[] = {
 
 static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
-  METHOD0(hexview),
   METHODv(ungroup),
   METHODv(replace_rowindex),
   METHOD0(topython),

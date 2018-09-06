@@ -693,7 +693,7 @@ def test_create_from_pandas_series_with_names(pandas):
     assert d.topython() == [[10000, 5, 19, -12]]
 
 
-def test_create_from_pandas_float16(pandas):
+def test_create_from_pandas_float16_series(pandas):
     src = [1.5, 2.6, 7.8]
     p = pandas.Series(src, dtype="float16")
     d = dt.Frame(p)
@@ -705,6 +705,14 @@ def test_create_from_pandas_float16(pandas):
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
+def test_create_from_pandas_float16_dataframe(pandas):
+    p = pandas.DataFrame([[1, 3, 5], [7, 8, 9]], dtype="float16")
+    d = dt.Frame(p)
+    d.internal.check()
+    assert d.stypes == (stype.float32,) * 3
+    assert d.shape == (2, 3)
+
+
 def test_create_from_pandas_issue1235(pandas):
     df = dt.fread("A\n" + "\U00010000" * 50).topandas()
     table = dt.Frame(df)
@@ -712,6 +720,21 @@ def test_create_from_pandas_issue1235(pandas):
     assert table.shape == (1, 1)
     assert table.scalar() == "\U00010000" * 50
 
+
+def test_create_from_pandas_with_stypes(pandas):
+    with pytest.raises(TypeError) as e:
+        p = pandas.DataFrame([[1, 2, 3]])
+        dt.Frame(p, stype=str)
+    assert ("Argument `stypes` is not supported in Frame() constructor "
+            "when creating a Frame from pandas DataFrame" == str(e.value))
+
+
+def test_create_from_pandas_with_bad_names(pandas):
+    with pytest.raises(ValueError) as e:
+        p = pandas.DataFrame([[1, 2, 3]])
+        dt.Frame(p, names=["A", "Z"])
+    assert ("The `names` argument contains 2 elements, which is less than the "
+            "number of columns being created (3)" == str(e.value))
 
 
 

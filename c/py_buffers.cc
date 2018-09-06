@@ -17,6 +17,7 @@
 #include "py_datatable.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "python/obj.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 
@@ -66,7 +67,7 @@ static char strB[] = "B";
 Column* Column::from_buffer(PyObject* buffer)
 {
   Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
-  if (!view) throw MemoryError();
+  if (!view) throw PyError();
 
   // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
   // the `view->format` field should be filled; and PyBUF_ND will fill the
@@ -81,6 +82,13 @@ Column* Column::from_buffer(PyObject* buffer)
   if (view->ndim != 1) {
     throw NotImplError() << "Source buffer has ndim=" << view->ndim
       << ", however only 1-D buffers are supported";
+  }
+
+  // If buffer is in float16 format, convert it to float32
+  if (view->itemsize == 2 && std::strcmp(view->format, "e") == 0) {
+    PyBuffer_Release(view);
+    py::oobj res = py::obj(buffer).invoke("astype", "(s)", "float32");
+    return Column::from_buffer(res.to_borrowed_ref());
   }
 
   SType stype = stype_from_format(view->format, view->itemsize);

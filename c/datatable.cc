@@ -222,33 +222,6 @@ static inline int _compare_ints(const void *a, const void *b) {
 }
 
 
-/**
- * Modify datatable replacing values that are given by the mask with NAs.
- * The target datatable must have the same shape as the mask, and neither can
- * be a view.
- */
-void DataTable::apply_na_mask(DataTable* maskdt)
-{
-  if (!maskdt) {
-    throw ValueError() << "Mask cannot be NULL";
-  }
-  if (ncols != maskdt->ncols || nrows != maskdt->nrows) {
-    throw ValueError() << "Target datatable and mask have different shapes";
-  }
-  if (!(rowindex.isabsent() || maskdt->rowindex.isabsent())) {
-    throw ValueError() << "Neither target DataTable nor the mask can be views";
-  }
-
-  for (int64_t i = 0; i < ncols; ++i){
-    BoolColumn *maskcol = dynamic_cast<BoolColumn*>(maskdt->columns[i]);
-    if (!maskcol) {
-      throw ValueError() << "Column " << i
-                         << " in mask is not of a boolean type";
-    }
-    Column *col = columns[i];
-    col->apply_na_mask(maskcol);
-  }
-}
 
 /**
  * Convert a DataTable view into an actual DataTable. This is done in-place.

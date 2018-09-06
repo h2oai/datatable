@@ -38,12 +38,29 @@ class otuple : public oobj {
     obj operator[](size_t i) const;
     obj operator[](int i) const;
 
+    /**
+     * `set(...)` methods should only be used to fill-in a new tuple object.
+     * They do not perform any bounds checks; and cannot properly overwrite
+     * an existing value.
+     */
     void set(int64_t i, const _obj& value);
     void set(size_t i,  const _obj& value);
     void set(int i,     const _obj& value);
     void set(int64_t i, oobj&& value);
     void set(size_t i,  oobj&& value);
     void set(int i,     oobj&& value);
+
+    /**
+     * `replace(...)` methods are safer alternatives to `set(...)`: they
+     * perform proper bounds checks, and if an element already exists in the
+     * tuple at index `i`, it will be properly disposed of.
+     */
+    void replace(int64_t i, const _obj& value);
+    void replace(size_t i,  const _obj& value);
+    void replace(int i,     const _obj& value);
+    void replace(int64_t i, oobj&& value);
+    void replace(size_t i,  oobj&& value);
+    void replace(int i,     oobj&& value);
 };
 
 
