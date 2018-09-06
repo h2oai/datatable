@@ -27,31 +27,23 @@ olist::olist(int n) : olist(static_cast<size_t>(n)) {}
 olist::olist(int64_t n) : olist(static_cast<size_t>(n)) {}
 
 
-olist::olist(const olist& other) {
-  v = other.v;
+olist::olist(const olist& other) : oobj(other) {
   is_list = other.is_list;
-  Py_XINCREF(v);
 }
 
-olist::olist(olist&& other) {
-  v = other.v;
+olist::olist(olist&& other) : oobj(std::move(other)) {
   is_list = other.is_list;
-  other.v = nullptr;
 }
 
 olist& olist::operator=(const olist& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
-  v = other.v;
+  oobj::operator=(other);
   is_list = other.is_list;
   return *this;
 }
 
 olist& olist::operator=(olist&& other) {
-  Py_XDECREF(v);
-  v = other.v;
+  oobj::operator=(std::move(other));
   is_list = other.is_list;
-  other.v = nullptr;
   return *this;
 }
 

@@ -19,27 +19,17 @@ oset::oset() {
   if (!v) throw PyError();
 }
 
-oset::oset(const oset& other) {
-  v = other.v;
-  Py_XINCREF(v);
-}
+oset::oset(const oset& other) : oobj(other) {}
 
-oset::oset(oset&& other) {
-  v = other.v;
-  other.v = nullptr;
-}
+oset::oset(oset&& other) : oobj(std::move(other)) {}
 
 oset& oset::operator=(const oset& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
-  v = other.v;
+  oobj::operator=(other);
   return *this;
 }
 
 oset& oset::operator=(oset&& other) {
-  Py_XDECREF(v);
-  v = other.v;
-  other.v = nullptr;
+  oobj::operator=(std::move(other));
   return *this;
 }
 

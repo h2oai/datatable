@@ -96,11 +96,6 @@ DECLARE_METHOD(
   "writing strategy.\n")
 
 DECLARE_METHOD(
-  hexview,
-  "hexview()\n\n"
-  "View column's internal data as hex bytes.\n")
-
-DECLARE_METHOD(
   ungroup,
   "ungroup(groupby)\n\n"
   "Return this Column expanded with each row repeated as many times as there\n"

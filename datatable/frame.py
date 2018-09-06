@@ -16,8 +16,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, is_type,
-    typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
+    TTypeError, TValueError, DatatableWarning, U, typed)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.options import options
@@ -103,69 +102,6 @@ class Frame(core.Frame):
         widget = DataFrameWidget(self.nrows, self.ncols, self._dt.nkeys,
                                  self._data_viewer, interactive)
         widget.render()
-
-
-    #---------------------------------------------------------------------------
-    # Initialization helpers
-    #---------------------------------------------------------------------------
-
-    def _fill_from_source(self, src, names, stypes):
-        if is_type(src, PandasDataFrame_t, PandasSeries_t):
-            self._fill_from_pandas(src, names)
-        elif is_type(src, NumpyArray_t):
-            self._fill_from_numpy(src, names=names)
-        else:
-            raise TTypeError("Cannot create Frame from %r" % type(src))
-
-
-    def _fill_from_pandas(self, pddf, names=None):
-        if is_type(pddf, PandasDataFrame_t):
-            if names is None:
-                names = [str(c) for c in pddf.columns]
-            colarrays = [pddf[c].values for c in pddf.columns]
-        elif is_type(pddf, PandasSeries_t):
-            colarrays = [pddf.values]
-        else:
-            raise TTypeError("Unexpected type of parameter %r" % pddf)
-        for i in range(len(colarrays)):
-            coldtype = colarrays[i].dtype
-            if not coldtype.isnative:
-                # Array has wrong endianness -- coerce into native byte-order
-                colarrays[i] = colarrays[i].byteswap().newbyteorder()
-                coldtype = colarrays[i].dtype
-                assert coldtype.isnative
-            if coldtype.char == 'e' and str(coldtype) == "float16":
-                colarrays[i] = colarrays[i].astype("float32")
-        dt = core.datatable_from_list(colarrays, None, names)
-        self._dt = dt
-
-
-    def _fill_from_numpy(self, arr, names):
-        dim = len(arr.shape)
-        if dim > 2:
-            raise TValueError("Cannot create Frame from a %d-D numpy "
-                              "array %r" % (dim, arr))
-        if dim == 0:
-            arr = arr.reshape((1, 1))
-        if dim == 1:
-            arr = arr.reshape((len(arr), 1))
-        if not arr.dtype.isnative:
-            arr = arr.byteswap().newbyteorder()
-        if str(arr.dtype) == "float16":
-            arr = arr.astype("float32")
-
-        ncols = arr.shape[1]
-        if is_type(arr, NumpyMaskedArray_t):
-            dt = core.datatable_from_list([arr.data[:, i]
-                                           for i in range(ncols)], None, names)
-            mask = core.datatable_from_list([arr.mask[:, i]
-                                             for i in range(ncols)], None, None)
-            dt.apply_na_mask(mask)
-        else:
-            dt = core.datatable_from_list([arr[:, i]
-                                           for i in range(ncols)], None, names)
-        self._dt = dt
-
 
 
     #---------------------------------------------------------------------------
@@ -656,31 +592,6 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-def column_hexview(col, dt, colidx):
-    hexdigits = ["%02X" % i for i in range(16)] + [""]
-
-    def data_viewer(row0, row1, col0, col1):
-        view = core.DataWindow(dt, row0, row1, col0, col1, colidx)
-        l = len(hex(row1))
-        return {
-            "names": hexdigits[col0:col1],
-            "types": view.types,
-            "stypes": view.stypes,
-            "columns": view.data,
-            "rownumbers": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
-        }
-
-    print("Column %d" % colidx)
-    print("Ltype: %s, Stype: %s, Mtype: %s"
-          % (col.ltype.name, col.stype.name, col.mtype))
-    datasize = col.data_size
-    print("Bytes: %d" % datasize)
-    print("Refcnt: %d" % col.refcount)
-    widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
-    widget.render()
-
-
-core.register_function(1, column_hexview)
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(6, DatatableWarning)

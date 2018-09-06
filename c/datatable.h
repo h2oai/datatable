@@ -75,7 +75,6 @@ class DataTable {
     ~DataTable();
     DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
-    void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();

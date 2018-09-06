@@ -178,7 +178,6 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pyrowindex::rowindex_from_array),
     METHODv(pyrowindex::rowindex_from_column),
     METHODv(pyrowindex::rowindex_from_filterfn),
-    METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::open_jay),
     METHODv(pydatatable::install_buffer_hooks),

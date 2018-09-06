@@ -19,14 +19,6 @@
 namespace pydatawindow
 {
 
-// Forward declarations
-static int _init_hexview(obj* self, DataTable* dt, int64_t column,
-  int64_t row0, int64_t row1, int64_t col0, int64_t col1);
-
-static PyObject* hexcodes[257];
-
-
-
 /**
  * DataWindow object constructor. This constructor takes a datatable, and
  * coordinates of a data window, and extracts the data from the datatable
@@ -56,22 +48,18 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   DataTable *dt;
   PyObject *stypes = nullptr, *ltypes = nullptr, *view = nullptr;
   int64_t row0, row1, col0, col1;
-  int64_t column = -1;
 
   // Parse arguments and check their validity
   static const char* kwlist[] =
-    {"dt", "row0", "row1", "col0", "col1", "column", nullptr};
+    {"dt", "row0", "row1", "col0", "col1", nullptr};
   int ret = PyArg_ParseTupleAndKeywords(
     args, kwds, "O!nnnn|n:DataWindow.__init__", const_cast<char **>(kwlist),
-    &pydatatable::type, &pydt, &row0, &row1, &col0, &col1, &column
+    &pydatatable::type, &pydt, &row0, &row1, &col0, &col1
   );
   if (!ret) return -1;
 
   try {
   dt = pydt == nullptr? nullptr : pydt->ref;
-  if (column >= 0) {
-    return _init_hexview(self, dt, column, row0, row1, col0, col1);
-  }
 
   if (col0 < 0 || col1 < col0 || col1 > dt->ncols ||
     row0 < 0 || row1 < row0 || row1 > dt->nrows) {
@@ -144,99 +132,6 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
   Py_XDECREF(view);
-  return -1;
-}
-
-
-
-static int _init_hexview(
-  obj* self, DataTable* dt, int64_t colidx,
-  int64_t row0, int64_t row1, int64_t col0, int64_t col1)
-{
-  PyObject *viewdata = nullptr;
-  PyObject *ltypes = nullptr;
-  PyObject *stypes = nullptr;
-
-  try {
-  if (colidx < 0 || colidx >= dt->ncols) {
-    PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
-    return -1;
-  }
-  Column *column = dt->columns[colidx];
-
-  int64_t maxrows = (static_cast<int64_t>(column->alloc_size()) + 15) >> 4;
-  if (col0 < 0 || col1 < col0 || col1 > 17 ||
-    row0 < 0 || row1 < row0 || row1 > maxrows) {
-    PyErr_Format(PyExc_ValueError,
-      "Invalid data window bounds: [%ld..%ld x %ld..%ld] "
-      "for a column with allocation size %zd",
-      row0, row1, col0, col1, column->alloc_size());
-    return -1;
-  }
-  // Window dimensions
-  int64_t ncols = col1 - col0;
-  int64_t nrows = row1 - row0;
-
-  const uint8_t* ptr0 = static_cast<const uint8_t*>(column->data());
-  const uint8_t* coldata = ptr0 + 16 * row0;
-  const uint8_t* coldata_end = ptr0 + column->alloc_size();
-  viewdata = PyList_New(ncols);
-  if (!viewdata) goto fail;
-  for (int i = 0; i < ncols; i++) {
-    PyObject *py_coldata = PyList_New(nrows);
-    if (!py_coldata) goto fail;
-    PyList_SET_ITEM(viewdata, i, py_coldata);
-
-    if (i < 16) {
-      for (int j = 0; j < nrows; j++) {
-        const uint8_t* ch = coldata + i + (j * 16);
-        PyList_SET_ITEM(py_coldata, j,
-          incref(ch < coldata_end? hexcodes[*ch] : hexcodes[256]));
-      }
-    }
-    if (i == 16) {
-      for (int j = 0; j < nrows; j++) {
-        char buf[16];
-        for (int k = 0; k < 16; k++) {
-          const uint8_t* ch = coldata + k + (j * 16);
-          buf[k] = ch >= coldata_end? ' ' :
-               (*ch < 0x20 || (*ch >= 0x7F && *ch < 0xA0))? '.' :
-               static_cast<char>(*ch);
-        }
-        PyObject *str = PyUnicode_Decode(buf, 16, "Latin1", "strict");
-        if (!str) goto fail;
-        PyList_SET_ITEM(py_coldata, j, str);
-      }
-    }
-  }
-
-  // Create and fill-in the `stypes`/`ltypes` lists
-  stypes = PyList_New(ncols);
-  ltypes = PyList_New(ncols);
-  if (!stypes || !ltypes) goto fail;
-  info itype(SType::STR32);
-  for (int64_t i = 0; i < ncols; i++) {
-    PyList_SET_ITEM(ltypes, i, itype.py_ltype().release());
-    PyList_SET_ITEM(stypes, i, itype.py_stype().release());
-  }
-
-  self->row0 = row0;
-  self->row1 = row1;
-  self->col0 = col0;
-  self->col1 = col1;
-  self->data = reinterpret_cast<PyListObject*>(viewdata);
-  self->types = reinterpret_cast<PyListObject*>(ltypes);
-  self->stypes = reinterpret_cast<PyListObject*>(stypes);
-  return 0;
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    // fall-through into 'fail'
-  }
-
-  fail:
-  Py_XDECREF(viewdata);
-  Py_XDECREF(stypes);
-  Py_XDECREF(ltypes);
   return -1;
 }
 
@@ -368,16 +263,6 @@ int static_init(PyObject* module) {
   PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
   Py_INCREF(typeobj);
   PyModule_AddObject(module, "DataWindow", typeobj);
-
-  for (int i = 0; i < 256; i++) {
-    int8_t d0 = i & 0x0F;
-    int8_t d1 = (i >> 4) & 0x0F;
-    char buf[2];
-    buf[0] = d1 < 10? ('0' + d1) : ('A' + (d1 - 10));
-    buf[1] = d0 < 10? ('0' + d0) : ('A' + (d0 - 10));
-    hexcodes[i] = PyUnicode_FromStringAndSize(buf, 2);
-  }
-  hexcodes[256] = PyUnicode_FromStringAndSize("  ", 2);
   return 1;
 }
 
