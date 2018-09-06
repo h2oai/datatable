@@ -625,7 +625,7 @@ PyObject* oobj::release() && {
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
   #if PY_VERSION_HEX >= 0x03070000
-    PyObject* res = PyImport_GetModule(modname.v);
+    PyObject* res = PyImport_GetModule(pyname.v);
     if (!res && PyErr_Occurred()) PyErr_Clear();
     return oobj::from_new_reference(res);
 
