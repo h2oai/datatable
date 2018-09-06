@@ -64,8 +64,9 @@ static char strB[] = "B";
 // Construct a DataTable from a list of objects implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column* Column::from_buffer(PyObject* buffer)
+Column* Column::from_buffer(const py::obj& obuffer)
 {
+  PyObject* buffer = obuffer.to_borrowed_ref();
   Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
   if (!view) throw PyError();
 
@@ -76,6 +77,15 @@ Column* Column::from_buffer(PyObject* buffer)
   int ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_ND);
   if (ret != 0) {
     PyErr_Clear();  // otherwise system functions may fail later on
+
+    // Check if this is a datetime64 column, in which case it must be converted
+    if (obuffer.is_numpy_array()) {
+      auto kind = obuffer.get_attr("dtype").get_attr("kind").to_string();
+      if (kind == "M" || kind == "m") {
+        return Column::from_buffer(obuffer.invoke("astype", "(s)", "str"));
+      }
+    }
+
     ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_STRIDES);
     if (ret != 0) throw PyError();
   }
@@ -87,8 +97,8 @@ Column* Column::from_buffer(PyObject* buffer)
   // If buffer is in float16 format, convert it to float32
   if (view->itemsize == 2 && std::strcmp(view->format, "e") == 0) {
     PyBuffer_Release(view);
-    py::oobj res = py::obj(buffer).invoke("astype", "(s)", "float32");
-    return Column::from_buffer(res.to_borrowed_ref());
+    py::oobj newbuf = py::obj(buffer).invoke("astype", "(s)", "float32");
+    return Column::from_buffer(newbuf);
   }
 
   SType stype = stype_from_format(view->format, view->itemsize);
