@@ -52,6 +52,7 @@ class Arg : public _obj::error_manager {
     bool is_frame() const;
     bool is_pandas_frame() const;
     bool is_pandas_series() const;
+    bool is_numpy_array() const;
 
     //---- Type conversions ------------
     int32_t     to_int32_strict  () const;
@@ -71,7 +72,7 @@ class Arg : public _obj::error_manager {
     virtual Error error_not_stype      (PyObject*) const;
 
     // ?
-    operator bool() const noexcept { return pyobj.operator bool(); }
+    explicit operator bool() const noexcept { return pyobj.operator bool(); }
     PyObject* obj() const { return pyobj.to_pyobject_newref(); }
     PyObject* to_borrowed_ref() const { return pyobj.to_borrowed_ref(); }
     PyTypeObject* typeobj() const { return pyobj.typeobj(); }

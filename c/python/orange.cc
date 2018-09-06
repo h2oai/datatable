@@ -26,27 +26,17 @@ orange::orange(int64_t start, int64_t stop, int64_t step) {
   if (!v) throw PyError();
 }
 
-orange::orange(const orange& other) {
-  v = other.v;
-  Py_XINCREF(v);
-}
+orange::orange(const orange& other) : oobj(other) {}
 
-orange::orange(orange&& other) {
-  v = other.v;
-  other.v = nullptr;
-}
+orange::orange(orange&& other) : oobj(std::move(other)) {}
 
 orange& orange::operator=(const orange& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
-  v = other.v;
+  oobj::operator=(other);
   return *this;
 }
 
 orange& orange::operator=(orange&& other) {
-  Py_XDECREF(v);
-  v = other.v;
-  other.v = nullptr;
+  oobj::operator=(std::move(other));
   return *this;
 }
 

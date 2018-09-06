@@ -116,31 +116,21 @@ class Frame(core.Frame):
             raise TTypeError("Cannot create Frame from %r" % type(src))
 
 
-    def _fill_from_numpy(self, arr, names):
-        dim = len(arr.shape)
-        if dim > 2:
-            raise TValueError("Cannot create Frame from a %d-D numpy "
-                              "array %r" % (dim, arr))
-        if dim == 0:
-            arr = arr.reshape((1, 1))
-        if dim == 1:
-            arr = arr.reshape((len(arr), 1))
-        if not arr.dtype.isnative:
-            arr = arr.byteswap().newbyteorder()
-        if str(arr.dtype) == "float16":
-            arr = arr.astype("float32")
+    # def _fill_from_numpy(self, arr, names):
+    #     dim = len(arr.shape)
+    #     if dim <= 1:
+    #         arr = arr.reshape(-1, 1)
 
-        ncols = arr.shape[1]
-        if is_type(arr, NumpyMaskedArray_t):
-            dt = core.datatable_from_list([arr.data[:, i]
-                                           for i in range(ncols)], None, names)
-            mask = core.datatable_from_list([arr.mask[:, i]
-                                             for i in range(ncols)], None, None)
-            dt.apply_na_mask(mask)
-        else:
-            dt = core.datatable_from_list([arr[:, i]
-                                           for i in range(ncols)], None, names)
-        self._dt = dt
+    #     ncols = arr.shape[1]
+    #     if is_type(arr, NumpyMaskedArray_t):
+    #         dt = core.datatable_from_list([arr.data[:, i]
+    #                                        for i in range(ncols)], None, names)
+    #         mask = core.datatable_from_list([arr.mask[:, i]
+    #                                          for i in range(ncols)], None, None)
+    #         dt.apply_na_mask(mask)
+    #     else:
+    #         assert False
+    #     self._dt = dt
 
 
 

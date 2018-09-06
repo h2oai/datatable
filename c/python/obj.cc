@@ -22,9 +22,12 @@
 #include "python/string.h"
 
 namespace py {
-static PyTypeObject* pandas_DataFrame_type = nullptr;
-static PyTypeObject* pandas_Series_type = nullptr;
+static PyObject* pandas_DataFrame_type = nullptr;
+static PyObject* pandas_Series_type = nullptr;
+static PyObject* numpy_Array_type = nullptr;
+static PyObject* numpy_MaskedArray_type = nullptr;
 static void init_pandas();
+static void init_numpy();
 
 
 //------------------------------------------------------------------------------
@@ -76,16 +79,18 @@ oobj::oobj(oobj&& other) {
 
 
 oobj& oobj::operator=(const oobj& other) {
-  Py_XINCREF(other.v);
-  Py_XDECREF(v);
+  PyObject* t = v;
   v = other.v;
+  Py_XINCREF(other.v);
+  Py_XDECREF(t);
   return *this;
 }
 
 oobj& oobj::operator=(oobj&& other) {
-  Py_XDECREF(v);
+  PyObject* t = v;
   v = other.v;
   other.v = nullptr;
+  Py_XDECREF(t);
   return *this;
 }
 
@@ -139,21 +144,27 @@ bool _obj::is_frame() const noexcept {
 }
 
 bool _obj::is_pandas_frame() const noexcept {
-  if (!v) return false;
-  if (!pandas_DataFrame_type) {
-    if (std::strcmp(v->ob_type->tp_name, "DataFrame") != 0) return false;
-    init_pandas();
-  }
-  return v->ob_type == pandas_DataFrame_type;
+  if (!pandas_DataFrame_type) init_pandas();
+  if (!v || !pandas_DataFrame_type) return false;
+  return PyObject_IsInstance(v, pandas_DataFrame_type);
 }
 
 bool _obj::is_pandas_series() const noexcept {
-  if (!v) return false;
-  if (!pandas_Series_type) {
-    if (std::strcmp(v->ob_type->tp_name, "Series") != 0) return false;
-    init_pandas();
-  }
-  return v->ob_type == pandas_Series_type;
+  if (!pandas_Series_type) init_pandas();
+  if (!v || !pandas_Series_type) return false;
+  return PyObject_IsInstance(v, pandas_Series_type);
+}
+
+bool _obj::is_numpy_array() const noexcept {
+  if (!numpy_Array_type) init_numpy();
+  if (!v || !numpy_Array_type) return false;
+  return PyObject_IsInstance(v, numpy_Array_type);
+}
+
+bool _obj::is_numpy_marray() const noexcept {
+  if (!numpy_MaskedArray_type) init_numpy();
+  if (!v || !numpy_MaskedArray_type) return false;
+  return PyObject_IsInstance(v, numpy_MaskedArray_type);
 }
 
 
@@ -253,6 +264,15 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
     throw em.error_int64_overflow(v);
   }
   return value;
+}
+
+
+size_t _obj::to_size_t(const error_manager& em) const {
+  int64_t res = to_int64_strict(em);
+  if (res < 0) {
+    throw em.error_int_negative(v);
+  }
+  return static_cast<size_t>(res);
 }
 
 
@@ -633,17 +653,26 @@ oobj get_module(const char* modname) {
 
 static void init_pandas() {
   py::oobj pd = get_module("pandas");
-  if (!pd) return;
-  PyObject* DF = pd.get_attr("DataFrame").release();
-  PyObject* Se = pd.get_attr("Series").release();
-  pandas_DataFrame_type = reinterpret_cast<PyTypeObject*>(DF);
-  pandas_Series_type = reinterpret_cast<PyTypeObject*>(Se);
+  if (pd) {
+    pandas_DataFrame_type = pd.get_attr("DataFrame").release();
+    pandas_Series_type    = pd.get_attr("Series").release();
+  }
+}
+
+static void init_numpy() {
+  py::oobj np = get_module("numpy");
+  if (np) {
+    numpy_Array_type = np.get_attr("ndarray").release();
+    numpy_MaskedArray_type
+      = np.get_attr("ma").get_attr("MaskedArray").release();
+  }
 }
 
 
-oobj None()  { return oobj(Py_None); }
-oobj True()  { return oobj(Py_True); }
-oobj False() { return oobj(Py_False); }
+oobj None()     { return oobj(Py_None); }
+oobj True()     { return oobj(Py_True); }
+oobj False()    { return oobj(Py_False); }
+oobj Ellipsis() { return oobj(Py_Ellipsis); }
 obj rnone() { return obj(Py_None); }
 
 
@@ -715,6 +744,10 @@ Error _obj::error_manager::error_double_overflow(PyObject*) const {
 
 Error _obj::error_manager::error_not_iterable(PyObject* o) const {
   return TypeError() << "Expected an iterable, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_int_negative(PyObject*) const {
+  return ValueError() << "Integer value is negative";
 }
 
 

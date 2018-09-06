@@ -64,6 +64,7 @@ bool Arg::is_range()         const { return pyobj.is_range(); }
 bool Arg::is_frame()         const { return pyobj.is_frame(); }
 bool Arg::is_pandas_frame()  const { return pyobj.is_pandas_frame(); }
 bool Arg::is_pandas_series() const { return pyobj.is_pandas_series(); }
+bool Arg::is_numpy_array()   const { return pyobj.is_numpy_array(); }
 
 
 

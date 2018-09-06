@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "python/dict.h"
+#include "python/int.h"
 #include "python/list.h"
 #include "python/oiter.h"
 #include "python/orange.h"
@@ -116,11 +117,14 @@ class FrameInitializationManager {
       if (src.is_string()) {
         return init_from_string();
       }
+      if (src.is_undefined() || src.is_none()) {
+        return init_empty_frame();
+      }
       if (src.is_pandas_frame() || src.is_pandas_series()) {
         return init_from_pandas();
       }
-      if (src.is_undefined() || src.is_none()) {
-        return init_empty_frame();
+      if (src.is_numpy_array()) {
+        return init_from_numpy();
       }
       if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
@@ -388,6 +392,50 @@ class FrameInitializationManager {
       } else {
         make_datatable(names_arg);
       }
+    }
+
+
+    void init_from_numpy() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from a numpy array";
+      }
+      py::oobj npsrc = src.to_pyobj();
+      size_t ndims = npsrc.get_attr("shape").to_pylist().size();
+      if (ndims > 2) {
+        throw ValueError() << "Cannot create Frame from a " << ndims << "-D "
+            "numpy array " << npsrc;
+      }
+      if (ndims <= 1) {
+        // This is equivalent to python `npsrc = npsrc.reshape(-1, 1)`
+        // It changes the shape of the array, without altering the data
+        npsrc = npsrc.invoke("reshape", "(ii)", -1, 1);
+      }
+      // Equivalent of python `npsrc.shape[1]`
+      size_t ncols = npsrc.get_attr("shape").to_pylist()[1].to_size_t();
+      check_names_count(ncols);
+
+      py::otuple col_key(2);
+      col_key.set(0, py::Ellipsis());
+      if (npsrc.is_numpy_marray()) {
+        for (size_t i = 0; i < ncols; ++i) {
+          col_key.replace(1, py::oint(i));
+          auto colsrc  = npsrc.get_attr("data").get_item(col_key);
+          auto masksrc = npsrc.get_attr("mask").get_item(col_key);
+          make_column(colsrc, SType::VOID);
+          Column* maskcol = Column::from_buffer(masksrc.to_borrowed_ref());
+          xassert(maskcol->stype() == SType::BOOL);
+          cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
+          delete maskcol;
+        }
+      } else {
+        for (size_t i = 0; i < ncols; ++i) {
+          col_key.replace(1, py::oint(i));
+          auto colsrc = npsrc.get_item(col_key);  // npsrc[:, i]
+          make_column(colsrc, SType::VOID);
+        }
+      }
+      make_datatable(names_arg);
     }
 
 

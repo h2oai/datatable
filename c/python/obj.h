@@ -132,7 +132,7 @@ class _obj {
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
-    operator bool() const noexcept;  // opposite of is_undefined()
+    explicit operator bool() const noexcept;  // opposite of is_undefined()
     bool operator==(const _obj& other) const noexcept;
     bool operator!=(const _obj& other) const noexcept;
 
@@ -159,6 +159,8 @@ class _obj {
     bool is_frame()         const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
+    bool is_numpy_array()   const noexcept;
+    bool is_numpy_marray()  const noexcept;
 
     struct error_manager;  // see below
     int8_t      to_bool          (const error_manager& = _em0) const;
@@ -169,6 +171,7 @@ class _obj {
     int64_t     to_int64         (const error_manager& = _em0) const;
     int32_t     to_int32_strict  (const error_manager& = _em0) const;
     int64_t     to_int64_strict  (const error_manager& = _em0) const;
+    size_t      to_size_t        (const error_manager& = _em0) const;
     py::oint    to_pyint         (const error_manager& = _em0) const;
     py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
 
@@ -220,6 +223,7 @@ class _obj {
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
+      virtual Error error_int_negative   (PyObject*) const;
     };
 
   protected:
@@ -275,6 +279,7 @@ class oobj : public _obj {
 oobj None();
 oobj True();
 oobj False();
+oobj Ellipsis();
 obj rnone();
 
 
