@@ -1,7 +1,7 @@
-image: Visual Studio 2015
+image: Visual Studio 2017
 build: false
 
-init: call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 & call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
+init: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 
 install:
   - choco install mingw
@@ -30,14 +30,14 @@ environment:
 
   matrix:
     - platform: x64
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       DISTRIBUTIONS: "sdist bdist_wheel"
 
     - platform: x64
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
@@ -62,7 +62,7 @@ test_script:
   #- "ECHO %LLVM6%"
   #- SET
   - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe PYTHON=%PYTHON%/python.exe
 
