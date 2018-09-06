@@ -9,7 +9,7 @@ from datatable.lib import core
 
 
 def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-              nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None):
+              nd_max_bins=250, max_dimensions=50, seed=0, progress_fn=None):
     """
     Aggregate datatable in-place.
 
@@ -24,7 +24,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     ny_bins: int
         Number of y bins for 2D aggregation.
     nd_max_bins: int
-        Maximum number of exemplars for ND aggregation.
+        Maximum number of exemplars for ND aggregation, not a hard limit.
     max_dimensions: int
         Number of columns at which start using the projection method.
     seed: int

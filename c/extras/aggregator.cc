@@ -14,6 +14,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils/omp.h"
+#include <map>
 
 
 /*
@@ -72,7 +73,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   cols_members[1] = nullptr;
   dt_members = DataTablePtr(new DataTable(cols_members, {"exemplar_id"}));
 
-  if (dt->nrows > min_rows) {
+  if (dt->nrows >= min_rows) {
     DataTablePtr dt_double = nullptr;
     Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
     int32_t ncols = 0;
@@ -373,8 +374,8 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 *  coverage-of-balls-on-random-points-in-euclidean-space?answertab=active#tab-top
 *  If the `radius` starts getting more exemplars than set by `nd_bins`
 *  do the following:
-*  - find the closest exemplar for the first one
-*  - adjust `radius` according to this distance
+*  - find the mean distance between all the gathered exemplars
+*  - adjust `delta` according to this distance
 *  - merge all the exemplars that are within this distance
 *  - store the merging info and use it in `adjust_members(...)`
 */
@@ -398,7 +399,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
     radius /= 7.0;
   }
   double delta = radius * radius;
-//  double delta = epsilon;
+//  delta = epsilon;
 
   // Main loop
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
@@ -430,34 +431,49 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
 
 /*
-*  Adjust `delta` (i.e. `radius^2`) based on the closest exemplar to the first one
-*  and merge all the exemplars within that distance.
+*  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
+*  the gathered exemplars and merge all the exemplars within that distance.
 */
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                               std::vector<int64_t>& ids, int64_t ndims) {
-  double min_distance = std::numeric_limits<double>::max();
-  for (auto it1 = exemplars.begin(); it1 < exemplars.end() - 1; ++it1) {
-    std::vector<ExPtr>::iterator min_it = exemplars.end();
-    for (auto it2 = it1 + 1; it2 < exemplars.end(); ++it2) {
-      double distance = calculate_distance((*it1)->coords,
-                                           (*it2)->coords,
-                                           ndims,
-                                           delta,
-                                           it1 != exemplars.begin());
-      if (distance < min_distance ) {
-        if (it1 == exemplars.begin()){
-          min_distance = distance;
-          delta += min_distance;
-        }
-        min_it = it2;
-      }
-    }
+  using namespace std;
 
-    if (min_it != exemplars.end()) {
-      ids[static_cast<size_t>((*min_it)->id)] = (*it1)->id;
-      exemplars.erase(min_it);
+  size_t n = exemplars.size();
+  size_t n_distances = (n * n - n) / 2;
+  double total_distance = 0.0;
+
+  map<pair<size_t, size_t>, double> deltas;
+
+  for (size_t i = 0; i < n - 1; ++i) {
+    for (size_t j = i + 1; j < n; ++j) {
+      double d = calculate_distance(exemplars[i]->coords,
+                                     exemplars[j]->coords,
+                                     ndims,
+                                     delta,
+                                     0);
+      deltas.insert(make_pair(make_pair(exemplars[i]->id,exemplars[j]->id), d));
+      total_distance += sqrt(d);
     }
   }
+
+  double delta_new = pow(0.5 * total_distance / n_distances, 2);
+
+  auto it1 = exemplars.begin();
+  while (it1 != exemplars.end()) {
+    auto it2 = it1 + 1;
+    while (it2 != exemplars.end()) {
+      if (deltas.find(make_pair((*it1)->id, (*it2)->id))->second < delta_new ) {
+        ids[static_cast<size_t>((*it2)->id)] = (*it1)->id;
+        it2 = exemplars.erase(it2);
+      } else {
+        ++it2;
+      }
+    }
+    ++it1;
+  }
+
+  // Update delta, taking into account size of the initial bubble
+  delta += delta_new + 2 * sqrt(delta * delta_new);
 }
 
 

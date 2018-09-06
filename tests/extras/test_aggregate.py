@@ -13,7 +13,6 @@ from datatable import ltype
 from datatable.extras.aggregate import aggregate
 
 
-
 #-------------------------------------------------------------------------------
 # Aggregate 1D
 #-------------------------------------------------------------------------------
@@ -277,3 +276,20 @@ def test_aggregate_2d_mixed_random():
                                ['blue', 'indigo', 'red', 'red', 'violet',
                                 'violet', 'yellow'],
                                [1, 1, 1, 1, 1, 1, 1]]
+    
+def test_aggregate_3d():
+    d_in = dt.Frame([[0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
+                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
+                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1]])
+    d_members = aggregate(d_in, min_rows=1, nd_max_bins=3)
+    d_members.internal.check()
+    assert d_members.shape == (10, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [[0, 1, 1, 2, 0, 1, 0, 1, 0, 0]]
+    d_in.internal.check()
+    assert d_in.shape == (3, 4)
+    assert d_in.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
+    assert d_in.topython() == [[0.9, 0.5, 0.0],
+                               [0.9, 0.5, 0.0],
+                               [0.9, 0.5, 0.0],
+                               [5, 4, 1]]
