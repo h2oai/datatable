@@ -16,11 +16,15 @@
 #include "python/int.h"
 #include "python/float.h"
 #include "python/list.h"
+#include "python/oiter.h"
 #include "python/orange.h"
 #include "python/tuple.h"
 #include "python/string.h"
 
 namespace py {
+static PyTypeObject* pandas_DataFrame_type = nullptr;
+static PyTypeObject* pandas_Series_type = nullptr;
+static void init_pandas();
 
 
 //------------------------------------------------------------------------------
@@ -102,6 +106,8 @@ oobj::~oobj() {
 //------------------------------------------------------------------------------
 
 _obj::operator bool() const noexcept { return (v != nullptr); }
+bool _obj::operator==(const _obj& other) const noexcept { return v == other.v; }
+bool _obj::operator!=(const _obj& other) const noexcept { return v != other.v; }
 
 bool _obj::is_undefined()     const noexcept { return (v == nullptr);}
 bool _obj::is_none()          const noexcept { return (v == Py_None); }
@@ -117,9 +123,12 @@ bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
-bool _obj::is_iterable()      const noexcept { return v && PyIter_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
+
+bool _obj::is_iterable() const noexcept {
+  return v && (v->ob_type->tp_iter || PySequence_Check(v));
+}
 
 bool _obj::is_frame() const noexcept {
   if (!v) return false;
@@ -127,6 +136,24 @@ bool _obj::is_frame() const noexcept {
   int ret = PyObject_IsInstance(v, typeptr);
   if (ret == -1) PyErr_Clear();
   return (ret == 1);
+}
+
+bool _obj::is_pandas_frame() const noexcept {
+  if (!v) return false;
+  if (!pandas_DataFrame_type) {
+    if (std::strcmp(v->ob_type->tp_name, "DataFrame") != 0) return false;
+    init_pandas();
+  }
+  return v->ob_type == pandas_DataFrame_type;
+}
+
+bool _obj::is_pandas_series() const noexcept {
+  if (!v) return false;
+  if (!pandas_Series_type) {
+    if (std::strcmp(v->ob_type->tp_name, "Series") != 0) return false;
+    init_pandas();
+  }
+  return v->ob_type == pandas_Series_type;
 }
 
 
@@ -490,6 +517,12 @@ py::orange _obj::to_pyrange(const error_manager& em) const {
 }
 
 
+py::oiter _obj::to_pyiter(const error_manager& em) const {
+  if (is_none()) return py::oiter();
+  if (is_iterable()) return py::oiter(v);
+  throw em.error_not_iterable(v);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -505,6 +538,14 @@ oobj _obj::get_attr(const char* attr) const {
 
 bool _obj::has_attr(const char* attr) const {
   return PyObject_HasAttrString(v, attr);
+}
+
+
+oobj _obj::get_item(const py::_obj& key) const {
+  // PyObject_GetItem returns a new reference, or NULL on failure
+  PyObject* res = PyObject_GetItem(v, key.v);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
 }
 
 
@@ -561,10 +602,50 @@ PyObject* oobj::release() && {
 }
 
 
+oobj get_module(const char* modname) {
+  py::ostring pyname(modname);
+  #if PY_VERSION_HEX >= 0x03070000
+    PyObject* res = PyImport_GetModule(modname.v);
+    if (!res && PyErr_Occurred()) PyErr_Clear();
+    return oobj::from_new_reference(res);
+
+  #else
+    // PyImport_GetModuleDict() returns a borrowed ref
+    oobj sys_modules(PyImport_GetModuleDict());
+    if (sys_modules.v == nullptr) {
+      PyErr_Clear();
+      return oobj(nullptr);
+    }
+    if (PyDict_CheckExact(sys_modules.v)) {
+      // PyDict_GetItem() returns a borowed ref, or NULL if the key is not
+      // present (without setting an exception)
+      return oobj(PyDict_GetItem(sys_modules.v, pyname.v));
+    } else {
+      // PyObject_GetItem() returns a new reference
+      PyObject* res = PyObject_GetItem(sys_modules.v, pyname.v);
+      if (!res) PyErr_Clear();
+      return oobj::from_new_reference(res);
+    }
+
+  #endif
+}
+
+
+static void init_pandas() {
+  py::oobj pd = get_module("pandas");
+  if (!pd) return;
+  PyObject* DF = pd.get_attr("DataFrame").release();
+  PyObject* Se = pd.get_attr("Series").release();
+  pandas_DataFrame_type = reinterpret_cast<PyTypeObject*>(DF);
+  pandas_Series_type = reinterpret_cast<PyTypeObject*>(Se);
+}
+
+
 oobj None()  { return oobj(Py_None); }
 oobj True()  { return oobj(Py_True); }
 oobj False() { return oobj(Py_False); }
 obj rnone() { return obj(Py_None); }
+
 
 
 //------------------------------------------------------------------------------
@@ -630,6 +711,10 @@ Error _obj::error_manager::error_int64_overflow(PyObject* o) const {
 
 Error _obj::error_manager::error_double_overflow(PyObject*) const {
   return ValueError() << "Value is too large to convert to double";
+}
+
+Error _obj::error_manager::error_not_iterable(PyObject* o) const {
+  return TypeError() << "Expected an iterable, instead got " << Py_TYPE(o);
 }
 
 

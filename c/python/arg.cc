@@ -62,6 +62,8 @@ bool Arg::is_dict()          const { return pyobj.is_dict(); }
 bool Arg::is_string()        const { return pyobj.is_string(); }
 bool Arg::is_range()         const { return pyobj.is_range(); }
 bool Arg::is_frame()         const { return pyobj.is_frame(); }
+bool Arg::is_pandas_frame()  const { return pyobj.is_pandas_frame(); }
+bool Arg::is_pandas_series() const { return pyobj.is_pandas_series(); }
 
 
 

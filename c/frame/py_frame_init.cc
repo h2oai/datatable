@@ -11,6 +11,7 @@
 #include <vector>
 #include "python/dict.h"
 #include "python/list.h"
+#include "python/oiter.h"
 #include "python/orange.h"
 #include "python/oset.h"
 #include "python/string.h"
@@ -115,6 +116,9 @@ class FrameInitializationManager {
       if (src.is_string()) {
         return init_from_string();
       }
+      if (src.is_pandas_frame() || src.is_pandas_series()) {
+        return init_from_pandas();
+      }
       if (src.is_undefined() || src.is_none()) {
         return init_empty_frame();
       }
@@ -144,7 +148,7 @@ class FrameInitializationManager {
       for (size_t i = 0; i < collist.size(); ++i) {
         py::obj item = collist[i];
         SType s = get_stype_for_column(i);
-        _make_column(item, s);
+        make_column(item, s);
       }
       make_datatable(names_arg);
     }
@@ -256,7 +260,7 @@ class FrameInitializationManager {
       check_names_count(1);
       check_stypes_count(1);
       SType s = get_stype_for_column(0);
-      _make_column(src.to_pyobj(), s);
+      make_column(src.to_pyobj(), s);
       make_datatable(names_arg);
     }
 
@@ -276,7 +280,7 @@ class FrameInitializationManager {
         py::obj name = kv.first;
         SType stype = get_stype_for_column(i, &name);
         newnames.push_back(name.to_string());
-        _make_column(kv.second, stype);
+        make_column(kv.second, stype);
       }
       make_datatable(newnames);
     }
@@ -296,7 +300,7 @@ class FrameInitializationManager {
         const py::ostring oname(kv.first);
         SType stype = get_stype_for_column(i, &oname);
         newnames.push_back(std::move(kv.first));
-        _make_column(kv.second, stype);
+        make_column(kv.second, stype);
       }
       make_datatable(newnames);
     }
@@ -351,6 +355,38 @@ class FrameInitializationManager {
           err << '\'' << kv.first << '\'';
         }
         throw err;
+      }
+    }
+
+
+    void init_from_pandas() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported when "
+            "creating a Frame from pandas DataFrame";
+      }
+      py::obj pdsrc = src.to_pyobj();
+      py::olist colnames(0);
+      if (src.is_pandas_frame()) {
+        py::oiter pdcols = pdsrc.get_attr("columns").to_pyiter();
+        size_t ncols = pdcols.size();
+        if (ncols != size_t(-1)) {
+          check_names_count(ncols);
+        }
+        for (auto col : pdcols) {
+          if (!names_arg) colnames.append(col.to_pystring_force());
+          py::oobj colsrc = pdsrc.get_item(col).get_attr("values");
+          make_column(colsrc, SType::VOID);
+        }
+      } else {
+        xassert(src.is_pandas_series());
+        check_names_count(1);
+        py::oobj colsrc = pdsrc.get_attr("values");
+        make_column(colsrc, SType::VOID);
+      }
+      if (colnames.size() > 0) {
+        make_datatable(colnames);
+      } else {
+        make_datatable(names_arg);
       }
     }
 
@@ -475,7 +511,7 @@ class FrameInitializationManager {
     }
 
 
-    void _make_column(py::obj colsrc, SType s) {
+    void make_column(py::obj colsrc, SType s) {
       Column* col = nullptr;
       if (colsrc.is_buffer()) {
         col = Column::from_buffer(colsrc.to_borrowed_ref());

@@ -25,6 +25,7 @@ class Arg;
 class odict;
 class ofloat;
 class oint;
+class oiter;
 class olist;
 class ostring;
 class orange;
@@ -124,16 +125,20 @@ class _obj {
   public:
     oobj get_attr(const char* attr) const;
     bool has_attr(const char* attr) const;
+    oobj get_item(const py::_obj& key) const;
     oobj invoke(const char* fn, const char* format, ...) const;
     oobj call(otuple args) const;
     oobj call(otuple args, odict kws) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
 
+    operator bool() const noexcept;  // opposite of is_undefined()
+    bool operator==(const _obj& other) const noexcept;
+    bool operator!=(const _obj& other) const noexcept;
+
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
-    operator bool() const noexcept;  // opposite of is_undefined()
     bool is_undefined()     const noexcept;
     bool is_none()          const noexcept;
     bool is_ellipsis()      const noexcept;
@@ -152,6 +157,8 @@ class _obj {
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
     bool is_frame()         const noexcept;
+    bool is_pandas_frame()  const noexcept;
+    bool is_pandas_series() const noexcept;
 
     struct error_manager;  // see below
     int8_t      to_bool          (const error_manager& = _em0) const;
@@ -177,6 +184,7 @@ class _obj {
     py::olist   to_pylist        (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
+    py::oiter   to_pyiter        (const error_manager& = _em0) const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;
@@ -208,6 +216,7 @@ class _obj {
       virtual Error error_not_dict       (PyObject*) const;
       virtual Error error_not_range      (PyObject*) const;
       virtual Error error_not_stype      (PyObject*) const;
+      virtual Error error_not_iterable   (PyObject*) const;
       virtual Error error_int32_overflow (PyObject*) const;
       virtual Error error_int64_overflow (PyObject*) const;
       virtual Error error_double_overflow(PyObject*) const;
@@ -223,6 +232,7 @@ class _obj {
     friend obj;
     friend oobj;
     friend Arg;
+    friend oobj get_module(const char* name);
 };
 
 

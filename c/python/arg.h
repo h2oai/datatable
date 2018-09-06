@@ -50,6 +50,8 @@ class Arg : public _obj::error_manager {
     bool is_string() const;
     bool is_range() const;
     bool is_frame() const;
+    bool is_pandas_frame() const;
+    bool is_pandas_series() const;
 
     //---- Type conversions ------------
     int32_t     to_int32_strict  () const;

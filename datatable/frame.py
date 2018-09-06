@@ -110,34 +110,10 @@ class Frame(core.Frame):
     #---------------------------------------------------------------------------
 
     def _fill_from_source(self, src, names, stypes):
-        if is_type(src, PandasDataFrame_t, PandasSeries_t):
-            self._fill_from_pandas(src, names)
-        elif is_type(src, NumpyArray_t):
+        if is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
         else:
             raise TTypeError("Cannot create Frame from %r" % type(src))
-
-
-    def _fill_from_pandas(self, pddf, names=None):
-        if is_type(pddf, PandasDataFrame_t):
-            if names is None:
-                names = [str(c) for c in pddf.columns]
-            colarrays = [pddf[c].values for c in pddf.columns]
-        elif is_type(pddf, PandasSeries_t):
-            colarrays = [pddf.values]
-        else:
-            raise TTypeError("Unexpected type of parameter %r" % pddf)
-        for i in range(len(colarrays)):
-            coldtype = colarrays[i].dtype
-            if not coldtype.isnative:
-                # Array has wrong endianness -- coerce into native byte-order
-                colarrays[i] = colarrays[i].byteswap().newbyteorder()
-                coldtype = colarrays[i].dtype
-                assert coldtype.isnative
-            if coldtype.char == 'e' and str(coldtype) == "float16":
-                colarrays[i] = colarrays[i].astype("float32")
-        dt = core.datatable_from_list(colarrays, None, names)
-        self._dt = dt
 
 
     def _fill_from_numpy(self, arr, names):
