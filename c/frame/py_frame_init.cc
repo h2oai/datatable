@@ -361,8 +361,8 @@ class FrameInitializationManager {
 
     void init_from_pandas() {
       if (stypes_arg || stype_arg) {
-        throw TypeError() << "Argument `stypes` is not supported when "
-            "creating a Frame from pandas DataFrame";
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from pandas DataFrame";
       }
       py::obj pdsrc = src.to_pyobj();
       py::olist colnames(0);

@@ -721,6 +721,21 @@ def test_create_from_pandas_issue1235(pandas):
     assert table.scalar() == "\U00010000" * 50
 
 
+def test_create_from_pandas_with_stypes(pandas):
+    with pytest.raises(TypeError) as e:
+        p = pandas.DataFrame([[1, 2, 3]])
+        dt.Frame(p, stype=str)
+    assert ("Argument `stypes` is not supported in Frame() constructor "
+            "when creating a Frame from pandas DataFrame" == str(e.value))
+
+
+def test_create_from_pandas_with_bad_names(pandas):
+    with pytest.raises(ValueError) as e:
+        p = pandas.DataFrame([[1, 2, 3]])
+        dt.Frame(p, names=["A", "Z"])
+    assert ("The `names` argument contains 2 elements, which is less than the "
+            "number of columns being created (3)" == str(e.value))
+
 
 
 #-------------------------------------------------------------------------------
