@@ -16,8 +16,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, is_type,
-    typed, PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
+    TTypeError, TValueError, DatatableWarning, U, typed)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.options import options
@@ -103,35 +102,6 @@ class Frame(core.Frame):
         widget = DataFrameWidget(self.nrows, self.ncols, self._dt.nkeys,
                                  self._data_viewer, interactive)
         widget.render()
-
-
-    #---------------------------------------------------------------------------
-    # Initialization helpers
-    #---------------------------------------------------------------------------
-
-    def _fill_from_source(self, src, names, stypes):
-        if is_type(src, NumpyArray_t):
-            self._fill_from_numpy(src, names=names)
-        else:
-            raise TTypeError("Cannot create Frame from %r" % type(src))
-
-
-    # def _fill_from_numpy(self, arr, names):
-    #     dim = len(arr.shape)
-    #     if dim <= 1:
-    #         arr = arr.reshape(-1, 1)
-
-    #     ncols = arr.shape[1]
-    #     if is_type(arr, NumpyMaskedArray_t):
-    #         dt = core.datatable_from_list([arr.data[:, i]
-    #                                        for i in range(ncols)], None, names)
-    #         mask = core.datatable_from_list([arr.mask[:, i]
-    #                                          for i in range(ncols)], None, None)
-    #         dt.apply_na_mask(mask)
-    #     else:
-    #         assert False
-    #     self._dt = dt
-
 
 
     #---------------------------------------------------------------------------
@@ -622,31 +592,6 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-def column_hexview(col, dt, colidx):
-    hexdigits = ["%02X" % i for i in range(16)] + [""]
-
-    def data_viewer(row0, row1, col0, col1):
-        view = core.DataWindow(dt, row0, row1, col0, col1, colidx)
-        l = len(hex(row1))
-        return {
-            "names": hexdigits[col0:col1],
-            "types": view.types,
-            "stypes": view.stypes,
-            "columns": view.data,
-            "rownumbers": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
-        }
-
-    print("Column %d" % colidx)
-    print("Ltype: %s, Stype: %s, Mtype: %s"
-          % (col.ltype.name, col.stype.name, col.mtype))
-    datasize = col.data_size
-    print("Bytes: %d" % datasize)
-    print("Refcnt: %d" % col.refcount)
-    widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
-    widget.render()
-
-
-core.register_function(1, column_hexview)
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(6, DatatableWarning)

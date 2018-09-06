@@ -130,6 +130,7 @@ class FrameInitializationManager {
                !defined_names && !defined_stypes && !defined_stype) {
         return init_mystery_frame();
       }
+      throw TypeError() << "Cannot create Frame from " << src.typeobj();
     }
 
 
@@ -658,31 +659,8 @@ void Frame::m__init__(PKArgs& args) {
   FrameInitializationManager fim(args, this);
   fim.run();
 
-  if (dt) {
-    core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
-    core_dt->_frame = this;
-  } else {
-    const Arg& src        = args[0];
-    const Arg& names_arg  = args[1];
-    const Arg& stypes_arg = args[2];
-    const Arg& stype_arg  = args[3];
-
-    py::oobj osrc(src.to_borrowed_ref());
-    py::oobj ostypes(stypes_arg.to_borrowed_ref());
-    if (stype_arg) {
-      py::olist stypes_list(1);
-      stypes_list.set(0, stype_arg.to_borrowed_ref());
-      ostypes = stypes_list;
-    }
-    xassert(args.num_varkwd_args() == 0);
-    PyObject* arg1 = osrc.to_borrowed_ref();
-    PyObject* arg2 = names_arg.to_borrowed_ref();
-    PyObject* arg3 = ostypes.to_borrowed_ref();
-    if (!arg1) arg1 = py::None().release();
-    if (!arg2) arg2 = py::None().release();
-    if (!arg3) arg3 = py::None().release();
-    py::obj(this).invoke("_fill_from_source", "OOO", arg1, arg2, arg3);
-  }
+  core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
+  core_dt->_frame = this;
 }
 
 

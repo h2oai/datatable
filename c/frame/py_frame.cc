@@ -91,7 +91,7 @@ void Frame::Type::init_getsetters(GetSetters& gs)
 
   gs.add<&Frame::get_key>("key");
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
-  gs.add<&Frame::get_internal, &Frame::set_internal>("_dt");
+  gs.add<&Frame::get_internal>("_dt");
 }
 
 
@@ -238,15 +238,6 @@ oobj Frame::get_internal() const {
   return oobj(core_dt);
 }
 
-void Frame::set_internal(obj _dt) {
-  oobj tmp(_dt);  // In case the new _dt is same as, or related to the current
-                  // Frame, we do no want it to be deleted. By creating a new
-                  // reference to `_dt` we ensure it can't get deleted.
-  m__dealloc__();
-  dt = _dt.to_frame();
-  core_dt = static_cast<pydatatable::obj*>(_dt.to_pyobject_newref());
-  core_dt->_frame = this;
-}
 
 
 }  // namespace py

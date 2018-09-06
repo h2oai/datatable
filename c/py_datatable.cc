@@ -312,16 +312,6 @@ PyObject* delete_columns(obj* self, PyObject* args) {
 
 
 
-PyObject* resize_rows(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  int64_t new_nrows;
-  if (!PyArg_ParseTuple(args, "l:resize_rows", &new_nrows)) return nullptr;
-
-  dt->resize_rows(new_nrows);
-  Py_RETURN_NONE;
-}
-
-
 
 PyObject* replace_rowindex(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
@@ -613,16 +603,6 @@ PyObject* materialize(obj* self, PyObject*) {
 }
 
 
-PyObject* apply_na_mask(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  DataTable* mask = nullptr;
-  if (!PyArg_ParseTuple(args, "O&", &unwrap, &mask)) return nullptr;
-
-  dt->apply_na_mask(mask);
-  Py_RETURN_NONE;
-}
-
-
 PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   int st = 0;
   if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st))
@@ -678,7 +658,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
   METHODv(delete_columns),
-  METHODv(resize_rows),
   METHODv(replace_rowindex),
   METHODv(replace_column_slice),
   METHODv(replace_column_array),
@@ -707,7 +686,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(mean1),
   METHOD0(sd1),
   METHOD0(materialize),
-  METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
