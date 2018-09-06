@@ -92,7 +92,7 @@ public:
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::obj name, int stype0);
-  static Column* from_buffer(PyObject* buffer);
+  static Column* from_buffer(const py::obj& buffer);
   static Column* from_range(int64_t start, int64_t stop, int64_t step, SType s);
 
   Column(const Column&) = delete;

@@ -884,6 +884,15 @@ def test_create_from_mixed_sources(numpy):
                                       stype.int32))
 
 
+def test_create_from_datetime_array(numpy):
+    a = numpy.zeros(dtype="<M8[s]", shape=(10,))
+    df = dt.Frame(a)
+    df.internal.check()
+    assert df.shape == (10, 1)
+    assert df.stypes == (stype.str32,)
+    assert df.topython() == [["1970-01-01T00:00:00"] * 10]
+
+
 
 #-------------------------------------------------------------------------------
 # Issues
