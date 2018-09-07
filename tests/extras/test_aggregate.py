@@ -11,8 +11,19 @@
 import datatable as dt
 from datatable import ltype
 from datatable.extras.aggregate import aggregate
+import inspect
 
+#-------------------------------------------------------------------------------
+# Get default arguments of a function
+#-------------------------------------------------------------------------------
 
+def get_default_args(func):
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
 #-------------------------------------------------------------------------------
 # Aggregate 1D
@@ -277,3 +288,56 @@ def test_aggregate_2d_mixed_random():
                                ['blue', 'indigo', 'red', 'red', 'violet',
                                 'violet', 'yellow'],
                                [1, 1, 1, 1, 1, 1, 1]]
+
+
+#-------------------------------------------------------------------------------
+# Aggregate ND
+#-------------------------------------------------------------------------------
+
+def test_aggregate_3d():
+    d_in = dt.Frame([[0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
+                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
+                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1]])
+    d_members = aggregate(d_in, min_rows=1, nd_max_bins=3)
+    d_members.internal.check()
+    assert d_members.shape == (10, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [[0, 1, 1, 2, 0, 1, 0, 1, 0, 0]]
+    d_in.internal.check()
+    assert d_in.shape == (3, 4)
+    assert d_in.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
+    assert d_in.topython() == [[0.9, 0.5, 0.0],
+                               [0.9, 0.5, 0.0],
+                               [0.9, 0.5, 0.0],
+                               [5, 4, 1]]
+
+
+def test_aggregate_nd_direct():
+    args = get_default_args(aggregate)
+    aggregate_nd(args["max_dimensions"]//2)
+
+
+def test_aggregate_nd_projection():
+    args = get_default_args(aggregate)
+    aggregate_nd(args["max_dimensions"]*2)
+
+
+def aggregate_nd(nd):
+    nrows = 1000
+    div = 50
+    column = [i%div for i in range(nrows)]
+    matrix = [column for i in range(nd)]
+    out_types = [ltype.int]*nd + [ltype.int]
+    out_value = [[i for i in range(div)]]*nd + [[nrows//div for i in range(div)]]
+
+    d_in = dt.Frame(matrix)
+    d_members = aggregate(d_in, min_rows=0, nd_max_bins=div)
+
+    d_members.internal.check()
+    assert d_members.shape == (nrows, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [column]
+    d_in.internal.check()
+    assert d_in.shape == (div, nd+1)
+    assert d_in.ltypes == tuple(out_types)
+    assert d_in.topython() == out_value

@@ -14,6 +14,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils/omp.h"
+#include <map>
 
 
 /*
@@ -21,22 +22,24 @@
 */
 PyObject* aggregate(PyObject*, PyObject* args) {
 
-  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions;
+  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
   unsigned int seed;
-  PyObject* arg1, *arg_names;
+  PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIOO:aggregate", &arg1, &min_rows, &n_bins,
-                        &nx_bins, &ny_bins, &nd_bins, &max_dimensions, &seed,
-                        &progress_fn, &arg_names)) return nullptr;
-  DataTable* dt_in = py::obj(arg1).to_frame();
+  if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
+                        &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
+                        &progress_fn)) return nullptr;
+  DataTable* dt_exemplars = py::obj(arg1).to_frame();
 
-  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_bins, max_dimensions,
+  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
                  seed, progress_fn);
-  DataTable* dt_out = agg.aggregate(dt_in).release();
-  dt_out->set_names(py::obj(arg_names).to_pylist());
-  py::Frame* frame = py::Frame::from_datatable(dt_out);
-  return frame;
+
+  // dt_exemplars changes in-place with a new column added to the end of it
+  DataTable* dt_members = agg.aggregate(dt_exemplars).release();
+  py::Frame* frame_members = py::Frame::from_datatable(dt_members);
+
+  return frame_members;
 }
 
 
@@ -44,13 +47,13 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 *  Setting up aggregation parameters.
 */
 Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_in,
-                       int32_t ny_bins_in, int32_t nd_bins_in, int32_t max_dimensions_in,
+                       int32_t ny_bins_in, int32_t nd_max_bins_in, int32_t max_dimensions_in,
                        unsigned int seed_in, PyObject* progress_fn_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
   ny_bins(ny_bins_in),
-  nd_bins(nd_bins_in),
+  nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
   seed(seed_in),
   progress_fn(progress_fn_in)
@@ -65,11 +68,12 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
-  dt_members = DataTablePtr(new DataTable(cols_members, nullptr));
+  dt_members = DataTablePtr(new DataTable(cols_members, {"exemplar_id"}));
 
-  if (dt->nrows > min_rows) {
+  if (dt->nrows >= min_rows) {
     DataTablePtr dt_double = nullptr;
     Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
     int32_t ncols = 0;
@@ -117,7 +121,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
   arr32_t exemplar_indices(gb_members.ngroups());
-  const int32_t* ri_members_indices = ri_members.indices32();
+  const arr32_t ri_members_indices = ri_members.extract_as_array32();
+
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   // Setting up a table for counts
@@ -126,14 +131,14 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   cols_counts[0] = Column::new_data_column(SType::INT32,
                                            static_cast<int64_t>(gb_members.ngroups()));
   cols_counts[1] = nullptr;
-  dt_counts = new DataTable(cols_counts, {"counts"});
+  dt_counts = new DataTable(cols_counts, {"members_count"});
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
   std::memset(d_counts, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
   //#pragma omp parallel for schedule(static)
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
-    exemplar_indices[i] = ri_members_indices[offsets[i]];
+    exemplar_indices[i] = ri_members_indices[static_cast<size_t>(offsets[i])];
     d_counts[i] = offsets[i+1] - offsets[i];
   }
 
@@ -369,33 +374,33 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 *  coverage-of-balls-on-random-points-in-euclidean-space?answertab=active#tab-top
 *  If the `radius` starts getting more exemplars than set by `nd_bins`
 *  do the following:
-*  - find the closest exemplar for the first one
-*  - adjust `radius` according to this distance
+*  - find the mean distance between all the gathered exemplars
+*  - adjust `delta` according to this distance
 *  - merge all the exemplars that are within this distance
 *  - store the merging info and use it in `adjust_members(...)`
 */
 void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto d = static_cast<int32_t>(dt_exemplars->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  int64_t i_step = dt_exemplars->nrows / PBSTEPS;
+  int64_t i_step = (dt_exemplars->nrows > PBSTEPS)? dt_exemplars->nrows / PBSTEPS : 1;
   DoublePtr member = DoublePtr(new double[ndims]);
   DoublePtr pmatrix = nullptr;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
 
   // This is to ensure that the first row is saved as an exemplar
   double distance = std::numeric_limits<double>::max();
-  // Radius calculations
-  double delta = epsilon;
-  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
 
+  // Radius calculations
   // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
   // double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
   // if (d > max_dimensions) {
   //   radius /= 7.0;
   // }
-  // delta = radius * radius;
+  // double delta = radius * radius;
+  double delta = epsilon;
 
   // Main loop
   for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
@@ -414,7 +419,7 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
       ids.push_back(e->id);
       d_members[i] = static_cast<int32_t>(e->id);
       exemplars.push_back(std::move(e));
-      if (exemplars.size() > static_cast<size_t>(nd_bins)) {
+      if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
         adjust_delta(delta, exemplars, ids, ndims);
       }
     }
@@ -427,35 +432,49 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 
 
 /*
-*  Adjust `delta` (i.e. `radius^2`) based on the closest exemplar to the first one
-*  and merge all the exemplars within that distance.
+*  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
+*  the gathered exemplars and merge all the exemplars within that distance.
 */
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                               std::vector<int64_t>& ids, int64_t ndims) {
-  double min_distance = std::numeric_limits<double>::max();
+  using namespace std;
 
-  for (auto it1 = exemplars.begin(); it1 < exemplars.end() - 1; ++it1) {
-    std::vector<ExPtr>::iterator min_it = exemplars.end();
-    for (auto it2 = it1 + 1; it2 < exemplars.end(); ++it2) {
-      double distance = calculate_distance((*it1)->coords,
-                                           (*it2)->coords,
-                                           ndims,
-                                           delta,
-                                           it1 != exemplars.begin());
-      if (distance < min_distance ) {
-        if (it1 == exemplars.begin()){
-          min_distance = distance;
-          delta += min_distance;
-        }
-        min_it = it2;
-      }
-    }
+  size_t n = exemplars.size();
+  size_t n_distances = (n * n - n) / 2;
+  double total_distance = 0.0;
 
-    if (min_it != exemplars.end()) {
-      ids[static_cast<size_t>((*min_it)->id)] = (*it1)->id;
-      exemplars.erase(min_it);
+  map<pair<size_t, size_t>, double> deltas;
+
+  for (size_t i = 0; i < n - 1; ++i) {
+    for (size_t j = i + 1; j < n; ++j) {
+      double d = calculate_distance(exemplars[i]->coords,
+                                     exemplars[j]->coords,
+                                     ndims,
+                                     delta,
+                                     0);
+      deltas.insert(make_pair(make_pair(exemplars[i]->id,exemplars[j]->id), d));
+      total_distance += sqrt(d);
     }
   }
+
+  double delta_new = pow(0.5 * total_distance / n_distances, 2);
+
+  auto it1 = exemplars.begin();
+  while (it1 != exemplars.end()) {
+    auto it2 = it1 + 1;
+    while (it2 != exemplars.end()) {
+      if (deltas.find(make_pair((*it1)->id, (*it2)->id))->second < delta_new ) {
+        ids[static_cast<size_t>((*it2)->id)] = (*it1)->id;
+        it2 = exemplars.erase(it2);
+      } else {
+        ++it2;
+      }
+    }
+    ++it1;
+  }
+
+  // Update delta, taking into account size of the initial bubble
+  delta += delta_new + 2 * sqrt(delta * delta_new);
 }
 
 
