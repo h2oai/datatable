@@ -121,7 +121,16 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
   arr32_t exemplar_indices(gb_members.ngroups());
-  const arr32_t ri_members_indices = ri_members.extract_as_array32();
+
+  const int32_t* ri_members_indices = nullptr;
+  arr32_t temp;
+
+  if (ri_members.isarr32()) {
+    ri_members_indices = ri_members.indices32();
+  } else {
+    temp = ri_members.extract_as_array32();
+    ri_members_indices = temp.data();
+  }
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
@@ -447,13 +456,13 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
 
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
-      double d = calculate_distance(exemplars[i]->coords,
+      double distance = calculate_distance(exemplars[i]->coords,
                                      exemplars[j]->coords,
                                      ndims,
                                      delta,
                                      0);
-      deltas.insert(make_pair(make_pair(exemplars[i]->id,exemplars[j]->id), d));
-      total_distance += sqrt(d);
+      deltas.insert(make_pair(make_pair(exemplars[i]->id,exemplars[j]->id), distance));
+      total_distance += sqrt(distance);
     }
   }
 
