@@ -311,6 +311,7 @@ void CsvWriter::write()
   create_column_writers(ncols);
   size_t nstrcols32 = strcolumns32.size();
   size_t nstrcols64 = strcolumns64.size();
+  if (nthreads > nchunks) nthreads = nchunks;
 
   OmpExceptionManager oem;
 
@@ -386,9 +387,8 @@ void CsvWriter::write()
             }
             thch[-1] = '\n';
           });
-        // for (int64_t row = row0; row < row1; row++) {
-        // }
         th_write_size = static_cast<size_t>(thch - thbuf);
+        xassert(th_write_size <= thbufsize);
       } catch (...) {
         oem.capture_exception();
       }
@@ -464,6 +464,7 @@ size_t CsvWriter::estimate_output_size()
   size_t ncols = static_cast<size_t>(dt->ncols);
   size_t total_string_size = 0;
   size_t total_columns_size = 0;
+  fixed_size_per_row = ncols;  // 1 byte per separator
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
     if (auto scol32 = dynamic_cast<StringColumn<uint32_t>*>(col)) {

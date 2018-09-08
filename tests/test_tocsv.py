@@ -331,3 +331,10 @@ def test_save_str64():
         "baar,q\n"
         "ba,\n"
         ",bvqpoeqnperoin;dj\n")
+
+
+def test_issue_1278():
+    f0 = dt.Frame([[True, False] * 10] * 1000)
+    a = f0.to_csv()
+    # Header + \n + 2 byte per value (0/1 + sep)
+    assert len(a) == len(",".join(f0.names)) + 1 + f0.ncols * f0.nrows * 2
