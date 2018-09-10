@@ -45,7 +45,7 @@ def test_aggregate_1d_empty():
     
 def test_aggregate_1d_continuous_integer_tiny():
     n_bins = 1
-    d_in = dt.Frame([0])
+    d_in = dt.Frame([5])
     d_members = aggregate(d_in, min_rows=0, n_bins=n_bins)
     d_members.internal.check()
     assert d_members.shape == (1, 1)
@@ -53,8 +53,8 @@ def test_aggregate_1d_continuous_integer_tiny():
     assert d_members.topython() == [[0]]
     d_in.internal.check()
     assert d_in.shape == (1, 2)
-    assert d_in.ltypes == (ltype.bool, ltype.int)
-    assert d_in.topython() == [[0],
+    assert d_in.ltypes == (ltype.int, ltype.int)
+    assert d_in.topython() == [[5],
                                [1]]
     
     
