@@ -10,6 +10,7 @@
 #include <limits>     // std::numeric_limits<?>::max, ::infinity
 #include <type_traits>
 #include "types.h"
+#include "utils/omp.h"
 
 namespace expr
 {
@@ -317,6 +318,8 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
 
   int32_t _grps[2] = {0, static_cast<int32_t>(arg->nrows)};
   const int32_t* grps = ngrps == 1? _grps : groupby.offsets_r();
+
+  #pragma omp parallel for schedule(static)
   for (int32_t g = 0; g < ngrps; ++g) {
     (*fn)(grps, g, params);
   }
