@@ -461,7 +461,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   // i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
   // j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
   // and mapping from `(i,j)` to `k`:
-  // k = (2 * n - i) * (i - 1) / 2 + j
+  // k = (2 * n - i - 1 ) * i / 2 + j
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       double distance = calculate_distance(exemplars[i]->coords,
