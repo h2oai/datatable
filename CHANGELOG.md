@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame() can now be constructed from a list of dictionaries, where each
   item in the list represents a single row.
 - Frame() can now be created from a datetime64 numpy array (#1274).
+- Groupby calculations are now parallel.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
