@@ -311,7 +311,7 @@ void CsvWriter::write()
   create_column_writers(ncols);
   size_t nstrcols32 = strcolumns32.size();
   size_t nstrcols64 = strcolumns64.size();
-  if (nthreads > nchunks) nthreads = nchunks;
+  if (nthreads > nchunks) nthreads = static_cast<int>(nchunks);
 
   OmpExceptionManager oem;
 
