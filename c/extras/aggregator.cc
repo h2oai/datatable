@@ -121,7 +121,18 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
   arr32_t exemplar_indices(gb_members.ngroups());
-  const arr32_t ri_members_indices = ri_members.extract_as_array32();
+
+  const int32_t* ri_members_indices = nullptr;
+  arr32_t temp;
+
+  if (ri_members.isarr32()) {
+    ri_members_indices = ri_members.indices32();
+  } else if (ri_members.isslice()) {
+    temp = ri_members.extract_as_array32();
+    ri_members_indices = temp.data();
+  } else if (ri_members.isarr64()){
+    throw ValueError() << "RI_ARR64 is not supported for the moment";
+  }
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
@@ -441,37 +452,45 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
 
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
+  size_t k = 0;
+  DoublePtr deltas(new double[n_distances]);
   double total_distance = 0.0;
 
-  map<pair<size_t, size_t>, double> deltas;
-
+  // Here we will just use an additional index `k` to map triangular matrix
+  // into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
+  // i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
+  // j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
+  // and mapping from `(i,j)` to `k`:
+  // k = (2 * n - i - 1 ) * i / 2 + j
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
-      double d = calculate_distance(exemplars[i]->coords,
+      double distance = calculate_distance(exemplars[i]->coords,
                                      exemplars[j]->coords,
                                      ndims,
                                      delta,
                                      0);
-      deltas.insert(make_pair(make_pair(exemplars[i]->id,exemplars[j]->id), d));
-      total_distance += sqrt(d);
+      total_distance += sqrt(distance);
+      deltas[k++] = distance;
     }
   }
 
+  // Set exemplars that have to be merged to `nullptr`.
   double delta_new = pow(0.5 * total_distance / n_distances, 2);
-
-  auto it1 = exemplars.begin();
-  while (it1 != exemplars.end()) {
-    auto it2 = it1 + 1;
-    while (it2 != exemplars.end()) {
-      if (deltas.find(make_pair((*it1)->id, (*it2)->id))->second < delta_new ) {
-        ids[static_cast<size_t>((*it2)->id)] = (*it1)->id;
-        it2 = exemplars.erase(it2);
-      } else {
-        ++it2;
+  k = 0;
+  for (size_t i = 0; i < n - 1; ++i) {
+    for (size_t j = i + 1; j < n; ++j) {
+      if (deltas[k++] < delta_new && exemplars[i] != nullptr && exemplars[j] != nullptr) {
+        ids[static_cast<size_t>(exemplars[j]->id)] = exemplars[i]->id;
+        exemplars[j] = nullptr;
       }
     }
-    ++it1;
   }
+
+  // Remove all the `nullptr` exemplars from the vector.
+  exemplars.erase(remove(begin(exemplars),
+                  end(exemplars),
+                  nullptr),
+                  end(exemplars));
 
   // Update delta, taking into account size of the initial bubble
   delta += delta_new + 2 * sqrt(delta * delta_new);
