@@ -68,8 +68,8 @@ class Frame : public PyObject {
     void set_names(obj);
     void set_internal(obj);
 
-    oobj colindex(PKArgs&);
-    oobj copy(NoArgs&);
+    oobj colindex(const PKArgs&);
+    oobj copy(const NoArgs&);
 
   private:
     static bool internal_construction;

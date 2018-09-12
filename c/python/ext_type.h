@@ -154,6 +154,13 @@ namespace py {
  *    };
  *    py::NoArgs Please::Type::args_say;
  *
+ * The following method signatures are supported:
+ *
+ *    oobj meth1(NoArgs&);
+ *    oobj meth2(PKArgs&);
+ *    void meth3(NoArgs&);
+ *    void meth4(PKArgs&);
+ *
  * Note that for each method a dedicated static object of type `py::Args` must
  * be provided. This object at minimum stores the name of the method (so that
  * we can provide sensible error messages at runtime), but more generally the
@@ -183,19 +190,19 @@ struct ExtType {
   class Methods {
     std::vector<PyMethodDef> defs;
     public:
-      template <oobj (T::*F)(NoArgs&),        NoArgs& ARGS>
+      template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <oobj (T::*F)(PKArgs&), PKArgs& ARGS>
+      template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <void (T::*F)(NoArgs&),        NoArgs& ARGS>
+      template <void (T::*F)(const NoArgs&), NoArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <void (T::*F)(PKArgs&), PKArgs& ARGS>
+      template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
       PyMethodDef* finalize();
     private:
-      template <typename A, oobj (T::*F)(A&), A& ARGS>
+      template <typename A, oobj (T::*F)(const A&), A& ARGS>
       void add(const char* name, const char* doc = nullptr);
-      template <typename A, void (T::*F)(A&), A& ARGS>
+      template <typename A, void (T::*F)(const A&), A& ARGS>
       void add(const char* name, const char* doc = nullptr);
   };
 };
@@ -288,7 +295,7 @@ namespace _impl {
     }
   }
 
-  template <typename T, typename A, oobj (T::*F)(A&), A& ARGS>
+  template <typename T, typename A, oobj (T::*F)(const A&), A& ARGS>
   PyObject* _safe_method1(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
       T* tself = static_cast<T*>(self);
@@ -301,7 +308,7 @@ namespace _impl {
     }
   }
 
-  template <typename T, typename A, void (T::*F)(A&), A& ARGS>
+  template <typename T, typename A, void (T::*F)(const A&), A& ARGS>
   PyObject* _safe_method2(PyObject* self, PyObject* args, PyObject* kwds) {
     try {
       T* tself = static_cast<T*>(self);
@@ -492,7 +499,7 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 //---- Methods ----
 
 template <class T>
-template <typename A, oobj (T::*F)(A&), A& ARGS>
+template <typename A, oobj (T::*F)(const A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   ARGS.set_class_name(T::Type::classname());
   ARGS.set_function_name(name);
@@ -505,7 +512,7 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <typename A, void (T::*F)(A&), A& ARGS>
+template <typename A, void (T::*F)(const A&), A& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   ARGS.set_class_name(T::Type::classname());
   ARGS.set_function_name(name);
@@ -518,25 +525,25 @@ void ExtType<T>::Methods::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <oobj (T::*F)(NoArgs&), NoArgs& ARGS>
+template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<NoArgs, F, ARGS>(name, doc);
 }
 
 template <class T>
-template <oobj (T::*F)(PKArgs&), PKArgs& ARGS>
+template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<PKArgs, F, ARGS>(name, doc);
 }
 
 template <class T>
-template <void (T::*F)(NoArgs&), NoArgs& ARGS>
+template <void (T::*F)(const NoArgs&), NoArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<NoArgs, F, ARGS>(name, doc);
 }
 
 template <class T>
-template <void (T::*F)(PKArgs&), PKArgs& ARGS>
+template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<PKArgs, F, ARGS>(name, doc);
 }

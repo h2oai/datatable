@@ -159,7 +159,7 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
 
-oobj Frame::copy(NoArgs&) {
+oobj Frame::copy(const NoArgs&) {
   Frame* newframe = Frame::from_datatable(dt->copy());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);

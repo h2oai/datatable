@@ -121,7 +121,7 @@ void Frame::set_names(obj arg)
 }
 
 
-oobj Frame::colindex(PKArgs& args)
+oobj Frame::colindex(const PKArgs& args)
 {
   auto col = args[0];
 
