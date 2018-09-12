@@ -72,6 +72,7 @@ bool Arg::is_numpy_array()   const { return pyobj.is_numpy_array(); }
 // Type conversions
 //------------------------------------------------------------------------------
 
+bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }

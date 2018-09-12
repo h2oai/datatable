@@ -55,6 +55,7 @@ class Arg : public _obj::error_manager {
     bool is_numpy_array() const;
 
     //---- Type conversions ------------
+    bool        to_bool_strict   () const;
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
     py::olist   to_pylist        () const;

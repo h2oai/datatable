@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   item in the list represents a single row.
 - Frame() can now be created from a datetime64 numpy array (#1274).
 - Groupby calculations are now parallel.
+- `Frame.cbind()` now accepts a list of frames as the argument.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
@@ -43,6 +44,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   assigning to `Frame.nrows`.
 - `Frame.rename()` was removed -- .name setter can be used instead.
 - `Frame([])` now creates a 0x0 Frame instead of 0x1.
+- Parameter `inplace` in `Frame.cbind()` was removed (was deprecated).
+  Instead of `inplace=False` use `dt.cbind(...)`.
+- `Frame.cbind()` no longer returns anything (previously it returned self,
+  but this was confusing w.r.t whether it modifies the target, or returns
+  a modified copy).
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
@@ -69,6 +75,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - f-column-selectors should no longer throw errors and produce only unique
   ids when stringified (#1241).
 - crash when saving a frame with many boolean columns into CSV (#1278).
+- incorrect .stypes/.ltypes property after calling cbind().
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

@@ -11,7 +11,7 @@ from datatable.lib import core
 import datatable
 from .widget import DataFrameWidget
 
-from datatable.dt_append import _rbind, _cbind
+from datatable.dt_append import _rbind
 from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
@@ -318,7 +318,6 @@ class Frame(core.Frame):
     # Methods defined externally
     append = _rbind
     rbind = _rbind
-    cbind = _cbind
     to_csv = write_csv
     save = dt_save
 
