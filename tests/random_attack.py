@@ -11,6 +11,8 @@ import sys
 import time
 import warnings
 
+exhaustive_checks = False
+
 
 #-------------------------------------------------------------------------------
 # Attacker
@@ -34,7 +36,8 @@ class Attacker:
         print("Launching an attack for %d rounds" % rounds)
         for i in range(rounds):
             self.attack_frame(frame)
-            # frame.check()
+            if exhaustive_checks:
+                frame.check()
         print("Attack end, checking the outcome")
         frame.check()
         t1 = time.time()
@@ -193,9 +196,9 @@ class Frame0:
 
 
     def random_name(self, alphabet="abcdefghijklmnopqrstuvwxyz"):
-        l = int(random.expovariate(0.2) + 1.5)
+        n = int(random.expovariate(0.2) + 1.5)
         while True:
-            name = "".join(random.choice(alphabet) for _ in range(l))
+            name = "".join(random.choice(alphabet) for _ in range(n))
             if not(name.isdigit() or name.isspace()):
                 return name
 
@@ -310,15 +313,15 @@ class Frame0:
         curr_nrows = self.nrows
         self.df.nrows = nrows
         if curr_nrows == 1:
-            for elem in self.data:
-                elem *= nrows
+            for i, elem in enumerate(self.data):
+                self.data[i] = elem * nrows
         elif curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
-            for elem in self.data:
-                elem += append
+            for i, elem in enumerate(self.data):
+                self.data[i] = elem + append
         elif curr_nrows > nrows:
-            for i in range(len(self.data)):
-                self.data[i] = self.data[i][:nrows]
+            for i, elem in enumerate(self.data):
+                self.data[i] = elem[:nrows]
 
     def slice_rows(self, s):
         self.df = self.df[s, :]
@@ -394,7 +397,11 @@ if __name__ == "__main__":
                     "a particular seed value, otherwise run `random_driver.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
+    parser.add_argument("-x", "--exhaustive", action="store_true",
+                        help="Run exhaustive checks, i.e. check for validity "
+                             "after every step.")
     args = parser.parse_args()
+    exhaustive_checks = args.exhaustive
 
     ra = Attacker(args.seed)
     ra.attack()
