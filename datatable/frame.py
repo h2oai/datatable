@@ -318,7 +318,6 @@ class Frame(core.Frame):
     # Methods defined externally
     append = _rbind
     rbind = _rbind
-    cbind = _cbind
     to_csv = write_csv
     save = dt_save
 

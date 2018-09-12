@@ -42,8 +42,9 @@ class Frame : public PyObject {
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
-        static void init_getsetters(GetSetters& gs);
-        static void init_methods(Methods& gs);
+        static void init_methods_and_getsets(Methods&, GetSetters&);
+      private:
+        static void _init_names(Methods&, GetSetters&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -68,6 +69,7 @@ class Frame : public PyObject {
     void set_names(obj);
     void set_internal(obj);
 
+    void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const NoArgs&);
 

@@ -154,10 +154,6 @@ DECLARE_METHOD(
   "Append rows of other datatables to the current")
 
 DECLARE_METHOD(
-  cbind,
-  "Append columns of other datatables to the current")
-
-DECLARE_METHOD(
   sort,
   "sort(col, makegroups=False)\n\n"
   "Sort datatable by the specified column and return the RowIndex object\n"

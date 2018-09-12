@@ -184,6 +184,7 @@ struct ExtType {
       using setter = void (T::*)(obj);
       template <getter fg>            void add(const char* name, const char* doc = nullptr);
       template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
+      explicit operator bool() const;
       PyGetSetDef* finalize();
   };
 
@@ -198,6 +199,7 @@ struct ExtType {
       void add(const char* name, const char* doc = nullptr);
       template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
       void add(const char* name, const char* doc = nullptr);
+      explicit operator bool() const;
       PyMethodDef* finalize();
     private:
       template <typename A, oobj (T::*F)(const A&), A& ARGS>
@@ -329,8 +331,7 @@ namespace _impl {
    *   has<T>::_init_   returns true if T has method `m__init__`
    *   has<T>::_repr_   returns true if T has method `m__repr__`
    *   has<T>::dealloc  returns true if T has method `m__dealloc__`
-   *   has<T>::getsets  returns true if T::Type has `init_getsettes`
-   *   has<T>::meth     returns true if T::Type has `init_methods`
+   *   has<T>::mgs      returns true if T::Type has `init_methods_and_getsets`
    */
   template <typename T>
   class has {
@@ -342,18 +343,15 @@ namespace _impl {
     template <class C> static long test_dealloc(...);
     template <class C> static char test_buf(decltype(&C::m__get_buffer__));
     template <class C> static long test_buf(...);
-    template <class C> static char test_gs(decltype(&C::Type::init_getsetters));
-    template <class C> static long test_gs(...);
-    template <class C> static char test_meth(decltype(&C::Type::init_methods));
-    template <class C> static long test_meth(...);
+    template <class C> static char test_mgs(decltype(&C::Type::init_methods_and_getsets));
+    template <class C> static long test_mgs(...);
 
   public:
     static constexpr bool _init_  = (sizeof(test_init<T>(nullptr)) == 1);
     static constexpr bool _repr_  = (sizeof(test_repr<T>(nullptr)) == 1);
     static constexpr bool dealloc = (sizeof(test_dealloc<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
-    static constexpr bool getsets = (sizeof(test_gs<T>(nullptr)) == 1);
-    static constexpr bool methods = (sizeof(test_meth<T>(nullptr)) == 1);
+    static constexpr bool mthgtst = (sizeof(test_mgs<T>(nullptr)) == 1);
   };
 
   /**
@@ -370,8 +368,7 @@ namespace _impl {
     static void _init_(PyTypeObject&) {}
     static void _repr_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
-    static void getsets(PyTypeObject&) {}
-    static void methods(PyTypeObject&) {}
+    static void methods_and_getsets(PyTypeObject&) {}
   };
 
   template <typename T>
@@ -397,16 +394,12 @@ namespace _impl {
       type.tp_as_buffer = bufs;
     }
 
-    static void getsets(PyTypeObject& type) {
+    static void methods_and_getsets(PyTypeObject& type) {
       typename T::Type::GetSetters gs;
-      T::Type::init_getsetters(gs);
-      type.tp_getset = gs.finalize();
-    }
-
-    static void methods(PyTypeObject& type) {
       typename T::Type::Methods mm;
-      T::Type::init_methods(mm);
-      type.tp_methods = mm.finalize();
+      T::Type::init_methods_and_getsets(mm, gs);
+      if (mm) type.tp_methods = mm.finalize();
+      if (gs) type.tp_getset = gs.finalize();
     }
   };
 
@@ -446,8 +439,7 @@ void ExtType<T>::init(PyObject* module) {
   _impl::init<T, _impl::has<T>::_repr_>::_repr_(type);
   _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
-  _impl::init<T, _impl::has<T>::getsets>::getsets(type);
-  _impl::init<T, _impl::has<T>::methods>::methods(type);
+  _impl::init<T, _impl::has<T>::mthgtst>::methods_and_getsets(type);
 
   // Finish type initialization
   int r = PyType_Ready(&type);
@@ -486,6 +478,11 @@ void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
     const_cast<char*>(doc),
     nullptr  // closure
   });
+}
+
+template <class T>
+ExtType<T>::GetSetters::operator bool() const {
+  return !defs.empty();
 }
 
 template <class T>
@@ -546,6 +543,11 @@ template <class T>
 template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add(const char* name, const char* doc) {
   add<PKArgs, F, ARGS>(name, doc);
+}
+
+template <class T>
+ExtType<T>::Methods::operator bool() const {
+  return !defs.empty();
 }
 
 template <class T>

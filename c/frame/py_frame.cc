@@ -21,7 +21,6 @@ PyObject* Frame_Type = nullptr;
 
 PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
                                   {"src", "names", "stypes", "stype"});
-PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
 NoArgs Frame::Type::args_copy;
 
 
@@ -42,8 +41,10 @@ const char* Frame::Type::classdoc() {
 }
 
 
-void Frame::Type::init_getsetters(GetSetters& gs)
+void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
+  _init_names(mm, gs);
+
   gs.add<&Frame::get_ncols>("ncols",
     "Number of columns in the Frame\n");
 
@@ -65,47 +66,9 @@ void Frame::Type::init_getsetters(GetSetters& gs)
   gs.add<&Frame::get_ltypes>("ltypes",
     "The tuple of each column's ltypes (\"logical types\")\n");
 
-  gs.add<&Frame::get_names, &Frame::set_names>("names",
-    "Tuple of column names.\n"
-    "\n"
-    "You can rename the Frame's columns by assigning a new list/tuple of\n"
-    "names to this property. The length of the new list of names must be\n"
-    "the same as the number of columns in the Frame.\n"
-    "\n"
-    "It is also possible to rename just a few columns by assigning a\n"
-    "dictionary ``{oldname: newname, ...}``. Any column not listed in the\n"
-    "dictionary will retain its name.\n"
-    "\n"
-    "Examples\n"
-    "--------\n"
-    ">>> d0 = dt.Frame([[1], [2], [3]])\n"
-    ">>> d0.names = ['A', 'B', 'C']\n"
-    ">>> d0.names\n"
-    "('A', 'B', 'C')\n"
-    ">>> d0.names = {'B': 'middle'}\n"
-    ">>> d0.names\n"
-    "('A', 'middle', 'C')\n"
-    ">>> del d0.names\n"
-    ">>> d0.names\n"
-    "('C0', 'C1', 'C2')");
-
   gs.add<&Frame::get_key>("key");
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
-}
-
-
-void Frame::Type::init_methods(Methods& mm) {
-  mm.add<&Frame::colindex, args_colindex>("colindex",
-    "colindex(self, name)\n"
-    "--\n\n"
-    "Return index of the column ``name``.\n"
-    "\n"
-    ":param name: name of the column to find the index for. This can also\n"
-    "    be an index of a column, in which case the index is checked that\n"
-    "    it doesn't go out-of-bounds, and negative index is converted into\n"
-    "    positive.\n"
-    ":raises ValueError: if the requested column does not exist.\n");
 
   mm.add<&Frame::copy, args_copy>("copy",
     "copy(self)\n"
