@@ -32,7 +32,7 @@ class oiter : public oobj {
     iter_iterator end() const;
 
   private:
-    // Wrap an existing PyObject* into an `oset`.
+    // Wrap an existing PyObject* into an `oiter`.
     oiter(PyObject* src);
 
     friend class _obj;

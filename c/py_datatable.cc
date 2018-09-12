@@ -190,12 +190,7 @@ PyObject* get_alloc_size(obj* self) {
 //==============================================================================
 
 void _clear_types(obj* self) {
-  if (self->_frame) {
-    Py_XDECREF(self->_frame->ltypes);
-    Py_XDECREF(self->_frame->stypes);
-    self->_frame->ltypes = nullptr;
-    self->_frame->stypes = nullptr;
-  }
+  if (self->_frame) self->_frame->_clear_types();
 }
 
 
@@ -484,31 +479,6 @@ PyObject* rbind(obj* self, PyObject* args) {
 }
 
 
-PyObject* cbind(obj* self, PyObject* args) {
-  PyObject* pydts;
-  if (!PyArg_ParseTuple(args, "O!:cbind",
-                        &PyList_Type, &pydts)) return nullptr;
-
-  DataTable* dt = self->ref;
-  int64_t ndts = static_cast<int64_t>(PyList_Size(pydts));
-  DataTable** dts = dt::amalloc<DataTable*>(ndts);
-  for (int64_t i = 0; i < ndts; i++) {
-    PyObject* elem = PyList_GET_ITEM(pydts, i);
-    if (!PyObject_TypeCheck(elem, &type)) {
-      PyErr_Format(PyExc_ValueError,
-          "Element %d of the array is not a DataTable object", i);
-      return nullptr;
-    }
-    dts[i] = static_cast<pydatatable::obj*>(elem)->ref;
-  }
-  DataTable* ret = dt->cbind( dts, ndts);
-  if (ret == nullptr) return nullptr;
-
-  dt::free(dts);
-  Py_RETURN_NONE;
-}
-
-
 
 PyObject* sort(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
@@ -662,7 +632,6 @@ static PyMethodDef datatable_methods[] = {
   METHODv(replace_column_slice),
   METHODv(replace_column_array),
   METHODv(rbind),
-  METHODv(cbind),
   METHODv(sort),
   METHODv(join),
   METHOD0(get_min),
