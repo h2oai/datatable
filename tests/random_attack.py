@@ -8,9 +8,15 @@ import datatable as dt
 import itertools
 import random
 import sys
+import time
+import warnings
 
 
-class RandomAttacker:
+#-------------------------------------------------------------------------------
+# Attacker
+#-------------------------------------------------------------------------------
+
+class Attacker:
 
     def __init__(self, seed=None):
         if seed is None:
@@ -19,14 +25,20 @@ class RandomAttacker:
         random.seed(seed)
 
     def attack(self, frame=None, rounds=None):
+        t0 = time.time()
         if rounds is None:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
         if frame is None:
             frame = Frame0()
+        print("Launching an attack for %d rounds" % rounds)
         for i in range(rounds):
             self.attack_frame(frame)
+            # frame.check()
+        print("Attack end, checking the outcome")
         frame.check()
+        t1 = time.time()
+        print("Time taken = %.3fs" % (t1 - t0))
 
     def attack_frame(self, frame):
         action = random.choices(population=self.ATTACK_METHODS,
@@ -42,32 +54,70 @@ class RandomAttacker:
         t = random.random()
         curr_nrows = frame.nrows
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
-        print("Setting nrows to %d" % new_nrows)
+        print("[01] Setting nrows to %d" % (new_nrows, ))
         frame.resize_rows(new_nrows)
 
     def slice_rows(self, frame):
-        t = random.random()
-        s = random.random()
-        nrows = frame.nrows
-        row0 = int(nrows * t * 0.2) if t > 0.5 else None
-        row1 = int(nrows * (s * 0.2 + 0.8)) if s > 0.5 else None
-        if row0 is not None and row1 is not None and row1 < row0:
-            row0, row1 = row1, row0
-        step = random.choice([-2, -1, -1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 7])
-        if step < 0:
-            row0, row1 = row1, row0
-        if len(range(*slice(row0, row1, step).indices(nrows))) == 0:
-            return
-        print("Applying row slice (%r, %r, %r)" % (row0, row1, step))
-        frame.slice_rows(row0, row1, step)
+        s = self.random_slice(frame.nrows)
+        new_ncols = len(range(*s.indices(frame.nrows)))
+        print("[02] Applying row slice (%r, %r, %r) -> nrows = %d"
+              % (s.start, s.stop, s.step, new_ncols))
+        frame.slice_rows(s)
+
+    def slice_cols(self, frame):
+        s = self.random_slice(frame.ncols)
+        new_ncols = len(range(*s.indices(frame.ncols)))
+        print("[03] Applying column slice (%r, %r, %r) -> ncols = %d"
+              % (s.start, s.stop, s.step, new_ncols))
+        frame.slice_cols(s)
+
+    def cbind_self(self, frame):
+        if frame.ncols > 1000:
+            return self.slice_cols(frame)
+        t = random.randint(1, min(5, 100 // frame.ncols) + 1)
+        print("[04] Cbinding frame with itself %d times -> ncols = %d"
+              % (t, frame.ncols * (t + 1)))
+        frame.cbind([frame] * t)
+
+    def rbind_self(self, frame):
+        t = random.randint(1, min(5, 1000 // frame.nrows) + 1)
+        print("[05] Rbinding frame with itself %d times -> nrows = %d"
+              % (t, frame.nrows * (t + 1)))
+        frame.rbind([frame] * t)
+
+
+    #---------------------------------------------------------------------------
+    # Helpers
+    #---------------------------------------------------------------------------
+
+    def random_slice(self, n):
+        while True:
+            t = random.random()
+            s = random.random()
+            i0 = int(n * t * 0.2) if t > 0.5 else None
+            i1 = int(n * (s * 0.2 + 0.8)) if s > 0.5 else None
+            if i0 is not None and i1 is not None and i1 < i0:
+                i0, i1 = i1, i0
+            step = random.choice([-2, -1, -1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 7] +
+                                 [None] * 3)
+            if step is not None and step < 0:
+                i0, i1 = i1, i0
+            res = slice(i0, i1, step)
+            newn = len(range(*res.indices(n)))
+            if newn > 0:
+                return res
 
 
     ATTACK_METHODS = {
         resize_rows: 1,
         slice_rows: 3,
+        slice_cols: 0.5,
+        cbind_self: 1,
+        rbind_self: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
+
 
 
 
@@ -101,12 +151,19 @@ class Frame0:
         assert isinstance(types, list) and len(types) == ncols
         assert isinstance(names, list) and len(names) == ncols
         assert isinstance(missing_fraction, float)
-        assert all(t in [bool, int, float, str] for t in types)
+        tt = {bool: 0, int: 0, float: 0, str: 0}
+        for t in types:
+            tt[t] += 1
+        assert len(tt) == 4
+        print("Making a frame with nrows=%d, ncols=%d" % (nrows, ncols))
+        print("  types: bool=%d, int=%d, float=%d, str=%d"
+              % (tt[bool], tt[int], tt[float], tt[str]))
+        print("  missing values: %.3f" % missing_fraction)
         data = [self.random_column(nrows, types[i], missing_fraction)
                 for i in range(ncols)]
         self.data = data
-        self.names = tuple(names)
-        self.types = tuple(types)
+        self.names = names
+        self.types = types
         self.df = dt.Frame(data, names=names, stypes=types)
 
 
@@ -226,11 +283,19 @@ class Frame0:
     #---------------------------------------------------------------------------
 
     def check(self):
-        assert self.df.nrows == len(self.data[0]) if self.data else 0
+        self.df.internal.check()
+        self.check_shape()
         assert self.df.ncols == len(self.data)
-        assert self.df.names == self.names
+        assert self.df.names == tuple(self.names)
         self.check_types()
         assert self.df.topython() == self.data
+
+    def check_shape(self):
+        df_nrows = self.df.nrows
+        py_nrows = len(self.data[0]) if self.data else 0
+        if df_nrows != py_nrows:
+            print("ERROR: df.nrows=%r != py.nrows=%r" % (df_nrows, py_nrows))
+            sys.exit(1)
 
     def check_types(self):
         df_ltypes = self.df.ltypes
@@ -255,16 +320,81 @@ class Frame0:
             for i in range(len(self.data)):
                 self.data[i] = self.data[i][:nrows]
 
-    def slice_rows(self, start, stop, step):
-        self.df = self.df[start:stop:step, :]
+    def slice_rows(self, s):
+        self.df = self.df[s, :]
         for i in range(self.ncols):
-            self.data[i] = self.data[i][start:stop:step]
+            self.data[i] = self.data[i][s]
+
+    def slice_cols(self, s):
+        self.df = self.df[:, s]
+        self.data = self.data[s]
+        self.names = self.names[s]
+        self.types = self.types[s]
+
+    def cbind(self, frames):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", dt.DatatableWarning)
+            self.df.cbind(*[iframe.df for iframe in frames])
+        newdata = self.data.copy()
+        newnames = self.names.copy()
+        newtypes = self.types.copy()
+        for iframe in frames:
+            newdata += iframe.data
+            newnames += iframe.names
+            newtypes += iframe.types
+        self.data = newdata
+        self.names = newnames
+        self.types = newtypes
+        self.dedup_names()
+
+    def rbind(self, frames):
+        self.df.rbind(*[iframe.df for iframe in frames])
+        newdata = [col.copy() for col in self.data]
+        for iframe in frames:
+            assert iframe.ncols == self.ncols
+            for j in range(self.ncols):
+                assert self.types[j] == iframe.types[j]
+                assert self.names[j] == iframe.names[j]
+                newdata[j] += iframe.data[j]
+        self.data = newdata
+
+
+    #---------------------------------------------------------------------------
+    # Helpers
+    #---------------------------------------------------------------------------
+
+    def dedup_names(self):
+        seen_names = set()
+        for i, name in enumerate(self.names):
+            if name in seen_names:
+                base = name
+                while base[-1].isdigit():
+                    base = base[:-1]
+                if base == name:
+                    base += "."
+                    num = 0
+                else:
+                    num = int(name[len(base):])
+                while name in seen_names:
+                    num += 1
+                    name = base + str(num)
+                self.names[i] = name
+            seen_names.add(name)
+
+
 
 
 
 if __name__ == "__main__":
-    seed = sys.argv[1]
-    assert seed, "seed is missing"
-    assert seed.isdigit(), "seed is not a number: %s" % seed
-    ra = RandomAttacker(seed)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Perform single batch of randomized testing. The SEED "
+                    "argument is required. Use this script for troubleshooting "
+                    "a particular seed value, otherwise run `random_driver.py`."
+    )
+    parser.add_argument("seed", type=int, metavar="SEED")
+    args = parser.parse_args()
+
+    ra = Attacker(args.seed)
     ra.attack()
