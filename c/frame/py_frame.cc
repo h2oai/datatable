@@ -44,6 +44,7 @@ const char* Frame::Type::classdoc() {
 void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
   _init_names(mm, gs);
+  _init_cbind(mm, gs);
 
   gs.add<&Frame::get_ncols>("ncols",
     "Number of columns in the Frame\n");
@@ -127,6 +128,13 @@ oobj Frame::copy(const NoArgs&) {
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
   return py::oobj::from_new_reference(newframe);
+}
+
+void Frame::_clear_types() const {
+  Py_XDECREF(stypes);
+  Py_XDECREF(ltypes);
+  stypes = nullptr;
+  ltypes = nullptr;
 }
 
 

@@ -37,6 +37,7 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
+        static PKArgs args_cbind;
         static PKArgs args_colindex;
         static NoArgs args_copy;
         static const char* classname();
@@ -45,6 +46,7 @@ class Frame : public PyObject {
         static void init_methods_and_getsets(Methods&, GetSetters&);
       private:
         static void _init_names(Methods&, GetSetters&);
+        static void _init_cbind(Methods&, GetSetters&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -76,6 +78,7 @@ class Frame : public PyObject {
   private:
     static bool internal_construction;
     class NameProvider;
+    void _clear_types() const;
     void _clear_names();
     void _init_names() const;
     void _init_inames() const;

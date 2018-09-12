@@ -135,7 +135,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
         throw TypeError() << get_name() << " got an unexpected keyword "
           "argument `" << PyUnicode_AsUTF8(key) << '`';
       }
-      if (ikey < nargs) {
+      if (ikey < n_bound_args) {
         throw TypeError() << get_name() << " got multiple values for argument `"
             << PyUnicode_AsUTF8(key) << '`';
       }

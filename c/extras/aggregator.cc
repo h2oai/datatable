@@ -167,9 +167,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   // Applying exemplars row index and binding exemplars with the counts
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
   dt_exemplars->replace_rowindex(ri_exemplars);
-  DataTable* dt[1];
-  dt[0] = dt_counts;
-  dt_exemplars->cbind(dt, 1);
+  std::vector<DataTable*> dts = { dt_counts };
+  dt_exemplars->cbind(dts);
 
   //#pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt_exemplars->ncols-1; ++i) {

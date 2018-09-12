@@ -190,12 +190,7 @@ PyObject* get_alloc_size(obj* self) {
 //==============================================================================
 
 void _clear_types(obj* self) {
-  if (self->_frame) {
-    Py_XDECREF(self->_frame->ltypes);
-    Py_XDECREF(self->_frame->stypes);
-    self->_frame->ltypes = nullptr;
-    self->_frame->stypes = nullptr;
-  }
+  if (self->_frame) self->_frame->_clear_types();
 }
 
 
