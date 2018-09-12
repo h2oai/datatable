@@ -4,6 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import copy
 import datatable as dt
 import itertools
 import random
@@ -338,11 +339,11 @@ class Frame0:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", dt.DatatableWarning)
             self.df.cbind(*[iframe.df for iframe in frames])
-        newdata = self.data.copy()
+        newdata = copy.deepcopy(self.data)
         newnames = self.names.copy()
         newtypes = self.types.copy()
         for iframe in frames:
-            newdata += iframe.data
+            newdata += copy.deepcopy(iframe.data)
             newnames += iframe.names
             newtypes += iframe.types
         self.data = newdata
