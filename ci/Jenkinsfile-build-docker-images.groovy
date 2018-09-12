@@ -5,7 +5,7 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 
-@Library('test-shared-library@mr/ita/190-build-summary-emailer') _
+@Library('test-shared-library@1.9') _
 
 import ai.h2o.ci.buildsummary.StagesSummary
 import ai.h2o.ci.buildsummary.DetailsSummary
