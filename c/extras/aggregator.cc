@@ -390,14 +390,14 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 *  - merge all the exemplars that are within this distance
 *  - store the merging info and use it in `adjust_members(...)`
 */
-void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
-  auto d = static_cast<int32_t>(dt_exemplars->ncols);
+void Aggregator::group_nd(DataTablePtr& dt_in, DataTablePtr& dt_members) {
+  auto d = static_cast<int32_t>(dt_in->ncols);
   int64_t ndims = std::min(max_dimensions, d);
   DoublePtr pmatrix = nullptr;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
+  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_in);
 
   // Radius calculations
   // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
@@ -408,28 +408,33 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   // double delta = radius * radius;
   double delta = epsilon;
 
+  int64_t nrows = dt_in->nrows;
 
-  #pragma omp parallel
+  int nth = config::nthreads;
+  if (nth > nrows) nth = nrows;
+
+  printf(" Threads: %d", nth);
+  #pragma omp parallel num_threads(nth)
   {
     auto ithread = omp_get_thread_num();
     auto nthreads = omp_get_num_threads();
-    auto nrows = dt_exemplars->nrows;
     auto chunk_size = nrows / nthreads;
-    auto from = ithread * chunk_size;
-    auto to = (ithread+1 == nthreads)? nrows : (ithread + 1) * chunk_size;
-    int64_t i_step = ((to - from) > PBSTEPS)? (to - from) / PBSTEPS : 1;
+    auto from_row = ithread * chunk_size;
+    auto to_row = (ithread+1 == nthreads)? nrows : (ithread + 1) * chunk_size;
+    int64_t i_step = ((to_row - from_row) > PBSTEPS)? (to_row - from_row) / PBSTEPS : 1;
 
- //   printf("total: %d; id: %d\n", nthreads, ithread);
-    printf("thread: %d; from: %d; to: %d\n", ithread, from, to);
     // This is to ensure that the first row is saved as an exemplar
     double distance = std::numeric_limits<double>::max();
     DoublePtr member = DoublePtr(new double[ndims]);
 
     // Main loop
-    for (int32_t i = from; i < to; ++i) {
-//      printf("row: %d\n", i);
-      if (d > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
-      else normalize_row(dt_exemplars, member, i);
+    for (int32_t i = ithread; i < nrows; i += nthreads) {
+//    for (int32_t i = from_row; i < to_row; ++i) {
+//      printf("thread=%d; i=%d\n", ithread, i);
+      if (d > max_dimensions) project_row(dt_in, member, i, pmatrix);
+      else normalize_row(dt_in, member, i);
+
+      gototarget:;
       {
         dt::shared_lock lock(shmutex);
         for (size_t j = 0; j < exemplars.size(); ++j) {
@@ -442,21 +447,19 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
       }
 
       if (distance >= delta) {
-//        printf("write: %d\n", omp_get_thread_num());
-        dt::shared_lock lock(shmutex, true);
+        dt::shared_lock lock(shmutex, true);  // exclusive
+
         ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
         member = DoublePtr(new double[ndims]);
         ids.push_back(e->id);
         d_members[i] = static_cast<int32_t>(e->id);
         exemplars.push_back(std::move(e));
         if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
-          printf("delta: %f; exemplars: %d;\n", delta, exemplars.size());
           adjust_delta(delta, exemplars, ids, ndims);
-          printf("delta: %f; exemplars: %d;\n", delta, exemplars.size());
         }
       }
-      if (i % i_step == 0) {
-        progress(static_cast<double>(i+1 - from) / (to - from));
+      if (omp_get_thread_num() == 0 && i % i_step == 0) {
+        progress(static_cast<double>(i+1) / nrows);
       }
     }
   }
@@ -477,6 +480,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   size_t k = 0;
   DoublePtr deltas(new double[n_distances]);
   double total_distance = 0.0;
+  bool merge_only = false;
 
   // Here we will just use an additional index `k` to map triangular matrix
   // into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
@@ -493,11 +497,16 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                                      0);
       total_distance += sqrt(distance);
       deltas[k++] = distance;
+      // This check is required in the case one thread had already modified `delta`,
+      // but others used the old value and produced unnecessary exemplars.
+      // In this case we only merge exemplars but don't change `delta`.
+      if (distance < delta) merge_only = true;
     }
   }
 
   // Set exemplars that have to be merged to `nullptr`.
-  double delta_new = pow(0.5 * total_distance / n_distances, 2);
+
+  double delta_new = (merge_only)? delta : pow(0.5 * total_distance / n_distances, 2);
   k = 0;
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
@@ -515,7 +524,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                   end(exemplars));
 
   // Update delta, taking into account size of the initial bubble
-  delta += delta_new + 2 * sqrt(delta * delta_new);
+  if (!merge_only) delta += delta_new + 2 * sqrt(delta * delta_new);
 }
 
 
