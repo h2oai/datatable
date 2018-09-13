@@ -14,7 +14,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils/omp.h"
-#include <map>
+#include "utils/shared_mutex.h"
 
 
 /*
@@ -393,16 +393,11 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
   auto d = static_cast<int32_t>(dt_exemplars->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  int64_t i_step = (dt_exemplars->nrows > PBSTEPS)? dt_exemplars->nrows / PBSTEPS : 1;
-  DoublePtr member = DoublePtr(new double[ndims]);
   DoublePtr pmatrix = nullptr;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   if (d > max_dimensions) pmatrix = generate_pmatrix(dt_exemplars);
-
-  // This is to ensure that the first row is saved as an exemplar
-  double distance = std::numeric_limits<double>::max();
 
   // Radius calculations
   // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
@@ -413,29 +408,56 @@ void Aggregator::group_nd(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
   // double delta = radius * radius;
   double delta = epsilon;
 
-  // Main loop
-  for (int32_t i = 0; i < dt_exemplars->nrows; ++i) {
-    if (d > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
-    else normalize_row(dt_exemplars, member, i);
-    for (size_t j = 0; j < exemplars.size(); ++j) {
-      distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
-      if (distance < delta) {
-        d_members[i] = static_cast<int32_t>(exemplars[j]->id);
-        break;
+
+  #pragma omp parallel
+  {
+    auto ithread = omp_get_thread_num();
+    auto nthreads = omp_get_num_threads();
+    auto nrows = dt_exemplars->nrows;
+    auto chunk_size = nrows / nthreads;
+    auto from = ithread * chunk_size;
+    auto to = (ithread+1 == nthreads)? nrows : (ithread + 1) * chunk_size;
+    int64_t i_step = ((to - from) > PBSTEPS)? (to - from) / PBSTEPS : 1;
+
+ //   printf("total: %d; id: %d\n", nthreads, ithread);
+    printf("thread: %d; from: %d; to: %d\n", ithread, from, to);
+    // This is to ensure that the first row is saved as an exemplar
+    double distance = std::numeric_limits<double>::max();
+    DoublePtr member = DoublePtr(new double[ndims]);
+
+    // Main loop
+    for (int32_t i = from; i < to; ++i) {
+//      printf("row: %d\n", i);
+      if (d > max_dimensions) project_row(dt_exemplars, member, i, pmatrix);
+      else normalize_row(dt_exemplars, member, i);
+      {
+        dt::shared_lock lock(shmutex);
+        for (size_t j = 0; j < exemplars.size(); ++j) {
+          distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
+          if (distance < delta) {
+            d_members[i] = static_cast<int32_t>(exemplars[j]->id);
+            break;
+          }
+        }
       }
-    }
-    if (distance >= delta) {
-      ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
-      member = DoublePtr(new double[ndims]);
-      ids.push_back(e->id);
-      d_members[i] = static_cast<int32_t>(e->id);
-      exemplars.push_back(std::move(e));
-      if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
-        adjust_delta(delta, exemplars, ids, ndims);
+
+      if (distance >= delta) {
+//        printf("write: %d\n", omp_get_thread_num());
+        dt::shared_lock lock(shmutex, true);
+        ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
+        member = DoublePtr(new double[ndims]);
+        ids.push_back(e->id);
+        d_members[i] = static_cast<int32_t>(e->id);
+        exemplars.push_back(std::move(e));
+        if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
+          printf("delta: %f; exemplars: %d;\n", delta, exemplars.size());
+          adjust_delta(delta, exemplars, ids, ndims);
+          printf("delta: %f; exemplars: %d;\n", delta, exemplars.size());
+        }
       }
-    }
-    if (i % i_step == 0) {
-      progress(static_cast<double>(i+1)/dt_exemplars->nrows);
+      if (i % i_step == 0) {
+        progress(static_cast<double>(i+1 - from) / (to - from));
+      }
     }
   }
   adjust_members(ids, dt_members);
@@ -590,7 +612,7 @@ DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   std::normal_distribution<double> distribution(0.0, 1.0);
 
   // Can be enabled later when we don't care about exact reproducibility.
-  //#pragma omp parallel for schedule(static)
+//  #pragma omp parallel for schedule(static)
   for (size_t i = 0;
       i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
     pmatrix[i] = distribution(generator);
