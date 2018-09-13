@@ -509,24 +509,29 @@ def test_resize_rows_api():
     f0 = dt.Frame([20])
     f0.nrows = 3
     f0.nrows = 5
+    f0.internal.check()
     assert f0.topython() == [[20, 20, 20, None, None]]
 
 
 def test_resize_rows0():
     f0 = dt.Frame(range(10), stype=dt.int32)
     f0.nrows = 6
+    f0.internal.check()
     assert f0.shape == (6, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.topython() == [[0, 1, 2, 3, 4, 5]]
     f0.nrows = 12
+    f0.internal.check()
     assert f0.shape == (12, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.topython() == [[0, 1, 2, 3, 4, 5] + [None] * 6]
     f0.nrows = 1
+    f0.internal.check()
     assert f0.shape == (1, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.scalar() == 0
     f0.nrows = 20
+    f0.internal.check()
     assert f0.shape == (20, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.topython() == [[0] * 20]
@@ -536,17 +541,21 @@ def test_resize_rows1():
     srcs = [[True], [5], [14.3], ["fooga"], ["zoom"]]
     stypes = (dt.bool8, dt.int64, dt.float64, dt.str32, dt.str64)
     f0 = dt.Frame(srcs, stypes=stypes)
+    f0.internal.check()
     assert f0.shape == (1, 5)
     assert f0.stypes == stypes
     f0.nrows = 7
+    f0.internal.check()
     assert f0.shape == (7, 5)
     assert f0.stypes == stypes
     assert f0.topython() == [src * 7 for src in srcs]
     f0.nrows = 20
+    f0.internal.check()
     assert f0.shape == (20, 5)
     assert f0.stypes == stypes
     assert f0.topython() == [src * 7 + [None] * 13 for src in srcs]
     f0.nrows = 0
+    f0.internal.check()
     assert f0.shape == (0, 5)
     assert f0.stypes == stypes
     assert f0.topython() == [[]] * 5
@@ -557,19 +566,23 @@ def test_resize_rows_nastrs():
     f0.nrows = 3
     assert f0.topython() == [["foo", None, None]]
     f0.nrows = 10
+    f0.internal.check()
     assert f0.topython() == [["foo"] + [None] * 9]
 
 
 def test_resize_view_slice():
     f0 = dt.Frame(range(100))
     f1 = f0[8::2, :]
+    f1.internal.check()
     assert f1.shape == (46, 1)
     assert f1.internal.isview
     f1.nrows = 10
+    f1.internal.check()
     assert f1.shape == (10, 1)
     assert f1.internal.isview
     assert f1.topython()[0] == list(range(8, 28, 2))
     f1.nrows = 15
+    f1.internal.check()
     assert f1.shape == (15, 1)
     assert not f1.internal.isview
     assert f1.topython()[0] == list(range(8, 28, 2)) + [None] * 5
@@ -578,14 +591,17 @@ def test_resize_view_slice():
 def test_resize_view_array():
     f0 = dt.Frame(range(100))
     f1 = f0[[1, 1, 2, 3, 5, 8, 13, 0], :]
+    f1.internal.check()
     assert f1.shape == (8, 1)
     assert f1.internal.isview
     assert f1.topython() == [[1, 1, 2, 3, 5, 8, 13, 0]]
     f1.nrows = 4
+    f1.internal.check()
     assert f1.shape == (4, 1)
     assert f1.internal.isview
     assert f1.topython() == [[1, 1, 2, 3]]
     f1.nrows = 5
+    f1.internal.check()
     assert f1.shape == (5, 1)
     assert not f1.internal.isview
     assert f1.topython() == [[1, 1, 2, 3, None]]
