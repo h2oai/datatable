@@ -70,6 +70,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
   private:
     arr32_t ind32;
     arr64_t ind64;
+    bool is_sorted;
+    int64_t : 56;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
@@ -94,7 +96,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     // Helper function that computes and sets proper `min` / `max` fields for
     // this RowIndex. The `sorted` flag is a hint whether the indices are
     // sorted (if they are, computing min/max is much simpler).
-    template <typename T> void set_min_max(const dt::array<T>&, bool sorted);
+    template <typename T> void set_min_max(const dt::array<T>&);
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
     void init_from_boolean_column(BoolColumn* col);
