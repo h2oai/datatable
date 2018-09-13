@@ -741,7 +741,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
         try {
             arch "build/cores/*python*"
         } catch (ex) { /* ignore */ }
-        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+        junit testResults: "build/test-reports/TEST-*.xml", arch "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 
@@ -758,7 +758,7 @@ def testOSX(final environment, final needsLargerTest) {
             """
         }
     } finally {
-        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+        junit testResults: "build/test-reports/TEST-*.xml", arch "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 

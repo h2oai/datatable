@@ -96,7 +96,7 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
     } finally {
         // Archive core dump log
         arch "/tmp/cores/*"
-        junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+        junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", arch "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 
@@ -175,4 +175,3 @@ def getReleaseDownloadLinksText(final folder, final s3PathPrefix) {
 }
 
 return this
-
