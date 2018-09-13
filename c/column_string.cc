@@ -398,7 +398,8 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
-  xassert(mbuf.is_writable() && strbuf.is_writable());
+  xassert(mbuf.is_writable() || new_mbuf_size == 0);
+  xassert(strbuf.is_writable() || new_strbuf_size == 0);
   nrows = new_nrows;
   T* offs = offsets_w();
 
@@ -428,10 +429,13 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
         T off = col_offsets[j];
         *offs++ = off + curr_offset;
       }
-      const MemoryRange& col_strbuf = static_cast<const StringColumn<T>*>(col)->strbuf;
-      void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
-      std::memcpy(target, col_strbuf.rptr(), col_strbuf.size());
-      curr_offset += col_strbuf.size();
+      auto strcol = static_cast<const StringColumn<T>*>(col);
+      size_t sz = strcol->strbuf.size();
+      if (sz) {
+        void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
+        std::memcpy(target, strcol->strbuf.rptr(), sz);
+        curr_offset += sz;
+      }
     }
     delete col;
   }
