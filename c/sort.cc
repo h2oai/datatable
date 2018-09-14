@@ -227,6 +227,8 @@ class SortContext {
   private:
     arr32_t order;
     arr32_t groups;
+    MemoryRange mr_x;
+    MemoryRange mr_xx;
 
     void* x;
     void* next_x;
@@ -253,6 +255,7 @@ class SortContext {
 
   public:
   SortContext(const Column* col, bool make_groups) {
+    x = nullptr;
     next_x = nullptr;
     next_o = nullptr;
     histogram = nullptr;
@@ -293,8 +296,6 @@ class SortContext {
   SortContext& operator=(const SortContext&) = delete;
 
   ~SortContext() {
-    std::free(x);
-    std::free(next_x);
     std::free(histogram);
     // Note: `o` is not owned by this class, see `initialize()`
     delete[] next_o;
@@ -330,6 +331,21 @@ class SortContext {
   // Data preparation
   //============================================================================
 
+  void _allocate_x(size_t nbytes) {
+    if (mr_x.size() < nbytes) {
+      mr_x.resize(nbytes, /* keep_data = */ false);
+    }
+    x = mr_x.xptr();
+  }
+
+  void _allocate_next_x(size_t nbytes) {
+    if (mr_xx.size() < nbytes) {
+      mr_xx.resize(nbytes, /* keep_data = */ false);
+    }
+    next_x = mr_xx.xptr();
+  }
+
+
   /**
    * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
    * `(x + 0xBF) >> 6` converts these to 0, 2 and 3 respectively, provided that
@@ -343,10 +359,10 @@ class SortContext {
    */
   void _initB(const Column* col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
-    uint8_t* xo = new uint8_t[n];
-    x = static_cast<void*>(xo);
     elemsize = 1;
     nsigbits = 2;
+    _allocate_x(n * sizeof(uint8_t));
+    uint8_t* xo = static_cast<uint8_t*>(x);
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -390,9 +406,9 @@ class SortContext {
     TI una = static_cast<TI>(GETNA<T>());
     TI umin = static_cast<TI>(min);
     const TI* xi = static_cast<const TI*>(col->data());
-    TO* xo = new TO[n];
-    x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
+    _allocate_x(n * sizeof(TO));
+    TO* xo = static_cast<TO*>(x);
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -442,10 +458,10 @@ class SortContext {
   template <typename TO>
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
-    TO* xo = new TO[n];
-    x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
+    _allocate_x(n * sizeof(TO));
+    TO* xo = static_cast<TO*>(x);
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -491,10 +507,10 @@ class SortContext {
     stroffs = static_cast<const void*>(offs);
     strtype = sizeof(T) / 4;
     strstart = 0;
-    uint8_t* xo = new uint8_t[n];
-    x = static_cast<void*>(xo);
     elemsize = 1;
     nsigbits = 8;
+    _allocate_x(n * sizeof(uint8_t));
+    uint8_t* xo = static_cast<uint8_t*>(x);
 
     T maxlen = 0;
     #pragma omp parallel for schedule(static) num_threads(nth) \
@@ -637,9 +653,7 @@ class SortContext {
    */
   void reorder_data() {
     if (!next_x && next_elemsize) {
-      size_t sz = static_cast<size_t>(next_elemsize);
-      // Allocate as `int64_t` to ensure 8-byte alignment
-      next_x = new int64_t[(n * sz + 7) / 8];
+      _allocate_next_x(n * static_cast<size_t>(next_elemsize));
     }
     if (!next_o) {
       next_o = new int32_t[n];
@@ -1043,9 +1057,6 @@ class SortContext {
  */
 RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
 {
-  if (colindices.size() != 1) {
-    throw NotImplError() << "Sorting by multiple columns is not supported yet";
-  }
   if (nrows > INT32_MAX) {
     throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
   }
