@@ -24,7 +24,7 @@
 //      http://stereopsis.com/radix.html
 //      /microbench/sort
 //
-// Based on Radix sort implementation in (R)data.table:
+// Based on the parallel radix sort algorithm by Matt Dowle in (R)data.table:
 //      https://github.com/Rdatatable/data.table/src/forder.c
 //      https://github.com/Rdatatable/data.table/src/fsort.c
 //
@@ -229,13 +229,13 @@ class SortContext {
     arr32_t groups;
     MemoryRange mr_x;
     MemoryRange mr_xx;
+    GroupGatherer gg;
 
     void* x;
     void* next_x;
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
-    GroupGatherer gg;
     const uint8_t* strdata;
     const void* stroffs;
     size_t strstart;
@@ -1066,6 +1066,12 @@ RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
                             "datatable with >2**31 rows";
   }
   Column* col0 = columns[colindices[0]];
+  // TODO: fix for the multi-rowindex case (#1188)
+  // A frame can be sorted by columns col1, ..., colN if and only if all these
+  // columns have the same rowindex. The resulting RowIndex can be applied to
+  // to all columns in the frame iff one of the following holds: (1) all
+  // columns in the frame has the same rowindex; or (2) the sortby columns
+  // do not have any rowindex.
   return col0->sort(out_grps);
 }
 
