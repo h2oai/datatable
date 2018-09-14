@@ -409,7 +409,6 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   dt::shared_mutex shmutex;
   auto d = static_cast<int32_t>(dt->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  int64_t rstep = (dt->nrows > PBSTEPS)? dt->nrows / PBSTEPS : 1;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -422,6 +421,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   {
     auto ith = omp_get_thread_num();
     auto nth = omp_get_num_threads();
+    int64_t rstep = (dt->nrows > PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
 
     // This is to ensure that the first row is always saved as an exemplar
     double distance = std::numeric_limits<double>::max();
@@ -461,7 +461,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
         }
 
         #pragma omp master
-        if (i % rstep == 0) {
+        if ((i / nth) % rstep == 0) {
           progress(static_cast<double>(i+1) / dt->nrows);
         }
       } // End main loop over all the rows
