@@ -30,13 +30,13 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
                         &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
                         &progress_fn)) return nullptr;
-  DataTable* dt_exemplars = py::obj(arg1).to_frame();
+  DataTable* dt = py::obj(arg1).to_frame();
 
   Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
                  seed, progress_fn);
 
   // dt_exemplars changes in-place with a new column added to the end of it
-  DataTable* dt_members = agg.aggregate(dt_exemplars).release();
+  DataTable* dt_members = agg.aggregate(dt).release();
   py::Frame* frame_members = py::Frame::from_datatable(dt_members);
 
   return frame_members;
@@ -111,7 +111,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 *  Do the actual calculation of counts for each exemplar
 *  and set correct exemplar id's for members.
 */
-void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
+void Aggregator::aggregate_exemplars(DataTable* dt,
                                      DataTablePtr& dt_members) {
   arr32_t cols(1);
   cols[0] = 0;
@@ -166,14 +166,14 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
 
   // Applying exemplars row index and binding exemplars with the counts
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
-  dt_exemplars->replace_rowindex(ri_exemplars);
-  DataTable* dt[1];
-  dt[0] = dt_counts;
-  dt_exemplars->cbind(dt, 1);
+  dt->replace_rowindex(ri_exemplars);
+  DataTable* dt_temp[1];
+  dt_temp[0] = dt_counts;
+  dt->cbind(dt_temp, 1);
 
   //#pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt_exemplars->ncols-1; ++i) {
-    dt_exemplars->columns[i]->get_stats()->reset();
+  for (int64_t i = 0; i < dt->ncols-1; ++i) {
+    dt->columns[i]->get_stats()->reset();
   }
   delete dt_counts;
 }
@@ -198,9 +198,9 @@ void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 /*
 *  Call an appropriate function for 2D grouping.
 */
-void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
-  LType ltype0 = info(dt_exemplars->columns[0]->stype()).ltype();
-  LType ltype1 = info(dt_exemplars->columns[1]->stype()).ltype();
+void Aggregator::group_2d(DataTablePtr& dt, DataTablePtr& dt_members) {
+  LType ltype0 = info(dt->columns[0]->stype()).ltype();
+  LType ltype1 = info(dt->columns[1]->stype()).ltype();
 
   switch (ltype0) {
     case LType::BOOL:
@@ -209,8 +209,8 @@ void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
                            switch (ltype1) {
                              case LType::BOOL:
                              case LType::INT:
-                             case LType::REAL:   group_2d_continuous(dt_exemplars, dt_members); break;
-                             case LType::STRING: group_2d_mixed(0, dt_exemplars, dt_members); break;
+                             case LType::REAL:   group_2d_continuous(dt, dt_members); break;
+                             case LType::STRING: group_2d_mixed(0, dt, dt_members); break;
                              default:            throw ValueError() << "Datatype is not supported";
                            }
                         }
@@ -220,8 +220,8 @@ void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
                            switch (ltype1) {
                              case LType::BOOL:
                              case LType::INT:
-                             case LType::REAL:   group_2d_mixed(1, dt_exemplars, dt_members); break;
-                             case LType::STRING: group_2d_categorical(dt_exemplars, dt_members); break;
+                             case LType::REAL:   group_2d_mixed(1, dt, dt_members); break;
+                             case LType::STRING: group_2d_categorical(dt, dt_members); break;
                              default:            throw ValueError() << "Datatype is not supported";
                            }
                         }
@@ -235,9 +235,9 @@ void Aggregator::group_2d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 /*
 *  Do 1D grouping for a continuous column, i.e. 1D binning.
 */
-void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars,
+void Aggregator::group_1d_continuous(DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
+  auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
   const double* d_c0 = c0->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
@@ -245,7 +245,7 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars,
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
+  for (int64_t i = 0; i < dt->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     d_members[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
   }
@@ -255,10 +255,10 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt_exemplars,
 /*
 *  Do 2D grouping for two continuous columns, i.e. 2D binning.
 */
-void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars,
+void Aggregator::group_2d_continuous(DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  auto c0 = static_cast<RealColumn<double>*>(dt_exemplars->columns[0]);
-  auto c1 = static_cast<RealColumn<double>*>(dt_exemplars->columns[1]);
+  auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
+  auto c1 = static_cast<RealColumn<double>*>(dt->columns[1]);
   double* d_c0 = c0->elements_w();
   double* d_c1 = c1->elements_w();
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -269,7 +269,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars,
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt_exemplars->nrows; ++i) {
+  for (int64_t i = 0; i < dt->nrows; ++i) {
     double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
     double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
     d_groups[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
@@ -281,13 +281,13 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt_exemplars,
 /*
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
-void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars,
+void Aggregator::group_1d_categorical(DataTablePtr& dt,
                                       DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = 0;
   Groupby grpby0;
-  RowIndex ri0 = dt_exemplars->sortby(cols, &grpby0);
+  RowIndex ri0 = dt->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -307,18 +307,18 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt_exemplars,
 *  Do 2D grouping for two categorical columns, i.e. two `group by` operations,
 *  and combine their results.
 */
-void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars,
+void Aggregator::group_2d_categorical(DataTablePtr& dt,
                                       DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = 0;
   Groupby grpby0;
-  RowIndex ri0 = dt_exemplars->sortby(cols, &grpby0);
+  RowIndex ri0 = dt->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
   cols[0] = 1;
   Groupby grpby1;
-  RowIndex ri1 = dt_exemplars->sortby(cols, &grpby1);
+  RowIndex ri1 = dt->sortby(cols, &grpby1);
   const int32_t* group_indices_1 = ri1.indices32();
 
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -348,16 +348,16 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt_exemplars,
 *  i.e. 1D binning for the continuous column and a `group by`
 *  operation for the categorical one.
 */
-void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
+void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
                                 DataTablePtr& dt_members) {
   arr32_t cols(1);
 
   cols[0] = !cont_index;
   Groupby grpby;
-  RowIndex ri_cat = dt_exemplars->sortby(cols, &grpby);
+  RowIndex ri_cat = dt->sortby(cols, &grpby);
   const int32_t* gi_cat = ri_cat.indices32();
 
-  auto c_cont = static_cast<RealColumn<double>*>(dt_exemplars->columns[cont_index]);
+  auto c_cont = static_cast<RealColumn<double>*>(dt->columns[cont_index]);
   auto d_cont = c_cont->elements_r();
   auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets_cat = grpby.offsets_r();
@@ -378,91 +378,98 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt_exemplars,
 
 
 /*
-*  Do ND grouping in the general case. The initial `radius` for this is
-*  calculated as (see `Develop` branch) https://github.com/h2oai/
-*  vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
-*  based on the estimates given at https://mathoverflow.net/questions/308018/
-*  coverage-of-balls-on-random-points-in-euclidean-space?answertab=active#tab-top
-*  If the `radius` starts getting more exemplars than set by `nd_bins`
+*  Do ND grouping in the general case. The initial `delta` (`delta = radius^2`)
+*  is set to machine precision, so that we are gathering some initial exemplars.
+*  When this `delta` starts getting us more exemplars than is set by `nd_max_bins`
 *  do the following:
 *  - find the mean distance between all the gathered exemplars
-*  - adjust `delta` according to this distance
-*  - merge all the exemplars that are within this distance
+*  - merge all the exemplars that are within half of this distance
+*  - adjust `delta` taking into account initial size of bubbles
 *  - store the merging info and use it in `adjust_members(...)`
+*
+*  Another approach is to have a constant `delta` see `Develop` branch
+*  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/
+*  h2o/data/Aggregator.java based on the estimates given at
+*  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-
+*  euclidean-space?answertab=active#tab-top
+*  I.e.
+*
+*  double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
+*  double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
+*  if (d > max_dimensions) {
+*    radius /= 7.0;
+*  }
+*  double delta = radius * radius;
+*
+*  However, for some datasets this `delta` results in too many (thousands) or
+*  too few (just one) exemplars.
 */
-void Aggregator::group_nd(DataTablePtr& dt_in, DataTablePtr& dt_members) {
-  auto d = static_cast<int32_t>(dt_in->ncols);
+void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
+  OmpExceptionManager oem;
+  dt::shared_mutex shmutex;
+  auto d = static_cast<int32_t>(dt->ncols);
   int64_t ndims = std::min(max_dimensions, d);
-  DoublePtr pmatrix = nullptr;
+  int64_t rstep = (dt->nrows > PBSTEPS)? dt->nrows / PBSTEPS : 1;
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  if (d > max_dimensions) pmatrix = generate_pmatrix(dt_in);
+  DoublePtr pmatrix = nullptr;
+  if (d > max_dimensions) pmatrix = generate_pmatrix(dt);
 
-  // Radius calculations
-  // double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
-  // double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
-  // if (d > max_dimensions) {
-  //   radius /= 7.0;
-  // }
-  // double delta = radius * radius;
+  // Start with a very small `delta`
   double delta = epsilon;
-
-  int64_t nrows = dt_in->nrows;
-
-  int nth = config::nthreads;
-  if (nth > nrows) nth = nrows;
-
-  printf(" Threads: %d", nth);
-  #pragma omp parallel num_threads(nth)
+  #pragma omp parallel
   {
-    auto ithread = omp_get_thread_num();
-    auto nthreads = omp_get_num_threads();
-    auto chunk_size = nrows / nthreads;
-    auto from_row = ithread * chunk_size;
-    auto to_row = (ithread+1 == nthreads)? nrows : (ithread + 1) * chunk_size;
-    int64_t i_step = ((to_row - from_row) > PBSTEPS)? (to_row - from_row) / PBSTEPS : 1;
+    auto ith = omp_get_thread_num();
+    auto nth = omp_get_num_threads();
 
-    // This is to ensure that the first row is saved as an exemplar
+    // This is to ensure that the first row is always saved as an exemplar
     double distance = std::numeric_limits<double>::max();
     DoublePtr member = DoublePtr(new double[ndims]);
 
-    // Main loop
-    for (int32_t i = ithread; i < nrows; i += nthreads) {
-//    for (int32_t i = from_row; i < to_row; ++i) {
-//      printf("thread=%d; i=%d\n", ithread, i);
-      if (d > max_dimensions) project_row(dt_in, member, i, pmatrix);
-      else normalize_row(dt_in, member, i);
+    try {
+      // Main loop over all the rows
+      for (int32_t i = ith; i < dt->nrows; i += nth) {
+        if (d > max_dimensions) {
+          project_row(dt, member, i, pmatrix);
+        } else {
+          normalize_row(dt, member, i);
+        }
 
-      gototarget:;
-      {
-        dt::shared_lock lock(shmutex);
-        for (size_t j = 0; j < exemplars.size(); ++j) {
-          distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
-          if (distance < delta) {
-            d_members[i] = static_cast<int32_t>(exemplars[j]->id);
-            break;
+        {
+          dt::shared_lock lock(shmutex);
+          for (size_t j = 0; j < exemplars.size(); ++j) {
+            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
+            if (distance < delta) {
+              d_members[i] = static_cast<int32_t>(exemplars[j]->id);
+              break;
+            }
           }
         }
-      }
 
-      if (distance >= delta) {
-        dt::shared_lock lock(shmutex, true);  // exclusive
+        if (distance >= delta) {
+          dt::shared_lock lock(shmutex, /* exclusive = */ true);
 
-        ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
-        member = DoublePtr(new double[ndims]);
-        ids.push_back(e->id);
-        d_members[i] = static_cast<int32_t>(e->id);
-        exemplars.push_back(std::move(e));
-        if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
-          adjust_delta(delta, exemplars, ids, ndims);
+          ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
+          member = DoublePtr(new double[ndims]);
+          ids.push_back(e->id);
+          d_members[i] = static_cast<int32_t>(e->id);
+          exemplars.push_back(std::move(e));
+          if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
+            adjust_delta(delta, exemplars, ids, ndims);
+          }
         }
-      }
-      if (omp_get_thread_num() == 0 && i % i_step == 0) {
-        progress(static_cast<double>(i+1) / nrows);
-      }
+
+        #pragma omp master
+        if (i % rstep == 0) {
+          progress(static_cast<double>(i+1) / dt->nrows);
+        }
+      } // End main loop over all the rows
+    } catch (...) {
+      oem.capture_exception();
     }
   }
+  oem.rethrow_exception_if_any();
   adjust_members(ids, dt_members);
 }
 
@@ -470,11 +477,15 @@ void Aggregator::group_nd(DataTablePtr& dt_in, DataTablePtr& dt_members) {
 /*
 *  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
 *  the gathered exemplars and merge all the exemplars within that distance.
+*  Here we will just use an additional index `k` to map triangular matrix
+*  into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
+*  i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
+*  j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
+*  and mapping from `(i,j)` to `k`:
+*  k = (2 * n - i - 1 ) * i / 2 + j
 */
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                               std::vector<int64_t>& ids, int64_t ndims) {
-  using namespace std;
-
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
@@ -482,12 +493,6 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   double total_distance = 0.0;
   bool merge_only = false;
 
-  // Here we will just use an additional index `k` to map triangular matrix
-  // into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
-  // i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
-  // j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
-  // and mapping from `(i,j)` to `k`:
-  // k = (2 * n - i - 1 ) * i / 2 + j
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       double distance = calculate_distance(exemplars[i]->coords,
@@ -504,13 +509,20 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
     }
   }
 
-  // Set exemplars that have to be merged to `nullptr`.
+  double delta_merge;
+  if (merge_only) {
+    delta_merge = delta;
+  } else {
+    delta_merge = pow(0.5 * total_distance / n_distances, 2);
+    // Update delta, taking into account size of the initial bubble
+    delta += delta_merge + 2 * sqrt(delta * delta_merge);
+  }
 
-  double delta_new = (merge_only)? delta : pow(0.5 * total_distance / n_distances, 2);
+  // Set exemplars that have to be merged to `nullptr`.
   k = 0;
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
-      if (deltas[k++] < delta_new && exemplars[i] != nullptr && exemplars[j] != nullptr) {
+      if (deltas[k++] < delta_merge && exemplars[i] != nullptr && exemplars[j] != nullptr) {
         ids[static_cast<size_t>(exemplars[j]->id)] = exemplars[i]->id;
         exemplars[j] = nullptr;
       }
@@ -522,9 +534,6 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                   end(exemplars),
                   nullptr),
                   end(exemplars));
-
-  // Update delta, taking into account size of the initial bubble
-  if (!merge_only) delta += delta_new + 2 * sqrt(delta * delta_new);
 }
 
 

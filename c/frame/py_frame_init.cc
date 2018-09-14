@@ -601,7 +601,7 @@ class FrameInitializationManager {
       return newcols;
     }
 
-    void make_datatable(nullptr_t) {
+    void make_datatable(std::nullptr_t) {
       frame->dt = new DataTable(prepare_columns(), nullptr);
     }
 

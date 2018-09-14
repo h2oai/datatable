@@ -43,7 +43,6 @@ class Aggregator {
     unsigned int seed;
     int : 32;
     PyObject* progress_fn;
-    dt::shared_mutex shmutex;
 
     // Grouping and aggregating functions
     void group_1d(DataTablePtr&, DataTablePtr&);
