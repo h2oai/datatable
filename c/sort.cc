@@ -334,6 +334,12 @@ class SortContext {
    * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
    * `(x + 0xBF) >> 6` converts these to 0, 2 and 3 respectively, provided that
    * the addition is done as addition of unsigned bytes (i.e. modulo 256).
+   *
+   * transform      | -128  0   1
+   * (x + 191) >> 6 |   0   2   3   NA first, ASC
+   * (x + 63) >> 6  |   2   0   1   NA last,  ASC
+   * (64 - x) >> 6  |   3   1   0   NA first, DESC
+   * (128 - x) >> 6 |   0   2   1   NA last,  DESC
    */
   void _initB(const Column* col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
@@ -767,12 +773,13 @@ class SortContext {
     if (elemsize) {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
-      if (groups) {
-        _radix_recurse<true>();
-      } else {
-        _radix_recurse<false>();
-      }
-    } else if (groups) {
+      dt::array<radix_range> rrmap(nradixes);
+      radix_range* rrmap_ptr = rrmap.data();
+      _fill_rrmap_from_histogram(rrmap_ptr);
+      if (groups) _radix_recurse<true>(rrmap_ptr);
+      else        _radix_recurse<false>(rrmap_ptr);
+    }
+    else if (groups) {
       // Otherwise groups can be computed directly from the histogram
       gg.from_histogram(histogram, nchunks, nradixes);
     }
@@ -782,6 +789,21 @@ class SortContext {
       std::memcpy(ores, o, n * sizeof(int32_t));
       next_o = o;
       o = ores;
+    }
+  }
+
+  void _fill_rrmap_from_histogram(radix_range* rrmap) {
+    // First, determine the sizes of ranges corresponding to each radix that
+    // remain to be sorted. The previous step left us with the `histogram`
+    // array containing cumulative sizes of these ranges, so all we need is
+    // to diff that array.
+    size_t* rrendoffsets = histogram + (nchunks - 1) * nradixes;
+    for (size_t i = 0; i < nradixes; i++) {
+      size_t start = i? rrendoffsets[i-1] : 0;
+      size_t end = rrendoffsets[i];
+      xassert(start <= end);
+      rrmap[i].size   = end - start;
+      rrmap[i].offset = start;
     }
   }
 
@@ -802,7 +824,7 @@ class SortContext {
    * radix range, our job will be complete.
    */
   template <bool make_groups>
-  void _radix_recurse() {
+  void _radix_recurse(radix_range* rrmap) {
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;
@@ -817,20 +839,6 @@ class SortContext {
     int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
     int32_t* ggdata0   = make_groups? gg.data() : nullptr;
     size_t   zelemsize = static_cast<size_t>(elemsize);
-
-    // First, determine the sizes of ranges corresponding to each radix that
-    // remain to be sorted. The previous step left us with the `histogram`
-    // array containing cumulative sizes of these ranges, so all we need is
-    // to diff that array.
-    size_t* rrendoffsets = histogram + (nchunks - 1) * nradixes;
-    radix_range* rrmap = new radix_range[nradixes];
-    for (size_t i = 0; i < nradixes; i++) {
-      size_t start = i? rrendoffsets[i-1] : 0;
-      size_t end = rrendoffsets[i];
-      xassert(start <= end);
-      rrmap[i].size   = end - start;
-      rrmap[i].offset = start;
-    }
 
     // At this point the distribution of radix range sizes may or may not
     // be uniform. If the distribution is uniform (i.e. roughly same number
@@ -957,7 +965,6 @@ class SortContext {
       gg.from_chunks(rrmap, _nradixes);
     }
 
-    delete[] rrmap;
     if (own_tmp) delete[] tmp;
   }
 
