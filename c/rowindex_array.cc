@@ -24,19 +24,21 @@
 ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted)
     : ind32(std::move(array)), ind64()
 {
+  is_sorted = sorted;
   type = RowIndexType::RI_ARR32;
   length = static_cast<int64_t>(ind32.size());
   xassert(length <= std::numeric_limits<int32_t>::max());
-  set_min_max<int32_t>(ind32, sorted);
+  set_min_max<int32_t>(ind32);
 }
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted)
     : ind32(), ind64(std::move(array))
 {
+  is_sorted = sorted;
   type = RowIndexType::RI_ARR64;
   length = static_cast<int64_t>(ind64.size());
-  set_min_max<int64_t>(ind64, sorted);
+  set_min_max<int64_t>(ind64);
 }
 
 
@@ -46,6 +48,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 {
   size_t n = starts.size();
   xassert(n == counts.size() && n == steps.size());
+  is_sorted = false;
 
   // Compute the total number of elements, and the largest index that needs
   // to be stored. Also check for potential overflows / invalid values.
@@ -102,6 +105,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
+  is_sorted = false;
   switch (col->stype()) {
     case SType::BOOL:
       init_from_boolean_column(static_cast<BoolColumn*>(col));
@@ -120,6 +124,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   xassert(n <= std::numeric_limits<int32_t>::max());
+  is_sorted = sorted;
 
   // Output buffer, where we will write the indices of selected rows. This
   // buffer is preallocated to the length of the original dataset, and it will
@@ -199,11 +204,12 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   ind32.resize(out_length);
   length = static_cast<int64_t>(out_length);
   type = RowIndexType::RI_ARR32;
-  set_min_max(ind32, sorted);
+  set_min_max(ind32);
 }
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
+  is_sorted = sorted;
   size_t out_length = 0;
   int64_t rows_per_chunk = 65536;
   int64_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
@@ -241,16 +247,16 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
   ind64.resize(out_length);
   length = static_cast<int64_t>(out_length);
   type = RowIndexType::RI_ARR64;
-  set_min_max(ind64, sorted);
+  set_min_max(ind64);
 }
 
 
 template <typename T>
-void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr, bool sorted) {
+void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
   const T* data = arr.data();
   if (length <= 1) {
     min = max = (length == 0) ? 0 : static_cast<T>(data[0]);
-  } else if (sorted) {
+  } else if (is_sorted) {
     min = static_cast<T>(data[0]);
     max = static_cast<T>(data[length - 1]);
     if (min > max) std::swap(min, max);
@@ -289,7 +295,8 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
         if (data[i] == 1)
           ind32[k++] = static_cast<int32_t>(i);
       });
-    set_min_max(ind32, true);
+    is_sorted = true;
+    set_min_max(ind32);
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zlen);
@@ -299,7 +306,8 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
         if (data[i] == 1)
           ind64[k++] = i;
       });
-    set_min_max(ind64, true);
+    is_sorted = true;
+    set_min_max(ind64);
   }
 }
 
@@ -359,7 +367,8 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
         rowsres[i] = start + ind64[i] * step;
       }
     }
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), false);
+    bool res_sorted = is_sorted && step >= 0;
+    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
     res->compactify();
     return res;
   }
@@ -371,7 +380,8 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     for (size_t i = 0; i < zlen; ++i) {
       rowsres[i] = rows_ab[rows_bc[i]];
     }
-    return new ArrayRowIndexImpl(std::move(rowsres), false);
+    bool res_sorted = is_sorted && arii->is_sorted;
+    return new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
   }
   if (uptype == RowIndexType::RI_ARR32 || uptype == RowIndexType::RI_ARR64) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
@@ -397,7 +407,8 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), false);
+    bool res_sorted = is_sorted && arii->is_sorted;
+    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
     res->compactify();
     return res;
   }
@@ -472,12 +483,14 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
 
 void ArrayRowIndexImpl::shrink(int64_t n) {
   xassert(n < length);
+  length = n;
   if (type == RowIndexType::RI_ARR32) {
     ind32.resize(static_cast<size_t>(n));
+    set_min_max(ind32);
   } else {
     ind64.resize(static_cast<size_t>(n));
+    set_min_max(ind64);
   }
-  length = n;
 }
 
 RowIndexImpl* ArrayRowIndexImpl::shrunk(int64_t n) {
@@ -486,11 +499,11 @@ RowIndexImpl* ArrayRowIndexImpl::shrunk(int64_t n) {
   if (type == RowIndexType::RI_ARR32) {
     arr32_t new_ind32(zn);
     memcpy(new_ind32.data(), ind32.data(), zn * sizeof(int32_t));
-    return new ArrayRowIndexImpl(std::move(new_ind32), false);
+    return new ArrayRowIndexImpl(std::move(new_ind32), is_sorted);
   } else {
     arr64_t new_ind64(zn);
     memcpy(new_ind64.data(), ind64.data(), zn * sizeof(int64_t));
-    return new ArrayRowIndexImpl(std::move(new_ind64), false);
+    return new ArrayRowIndexImpl(std::move(new_ind64), is_sorted);
   }
 }
 
@@ -509,7 +522,7 @@ size_t ArrayRowIndexImpl::memory_footprint() const {
 
 template <typename T>
 static void verify_integrity_helper(
-    const dt::array<T>& ind, int64_t len, int64_t min, int64_t max
+    const dt::array<T>& ind, int64_t len, int64_t min, int64_t max, bool sorted
 ) {
   size_t zlen = static_cast<size_t>(len);
   if (ind.size() != zlen) {
@@ -518,6 +531,7 @@ static void verify_integrity_helper(
   }
   T tmin = std::numeric_limits<T>::max();
   T tmax = 0;
+  bool check_sorted = sorted;
   for (size_t i = 0; i < zlen; ++i) {
     T x = ind[i];
     if (ISNA<T>(x)) {
@@ -530,6 +544,7 @@ static void verify_integrity_helper(
     }
     if (x < tmin) tmin = x;
     if (x > tmax) tmax = x;
+    if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
   if (!zlen) tmin = 0;
   if (tmin != min || tmax != max) {
@@ -538,15 +553,19 @@ static void verify_integrity_helper(
         << "/max=" << max << " compared to the computed min=" << tmin
         << "/max=" << tmax;
   }
+  if (check_sorted != sorted) {
+    throw AssertionError()
+        << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
+  }
 }
 
 void ArrayRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
   if (type == RowIndexType::RI_ARR32) {
-    verify_integrity_helper<int32_t>(ind32, length, min, max);
+    verify_integrity_helper<int32_t>(ind32, length, min, max, is_sorted);
   } else if (type == RowIndexType::RI_ARR64) {
-    verify_integrity_helper<int64_t>(ind64, length, min, max);
+    verify_integrity_helper<int64_t>(ind64, length, min, max, is_sorted);
   } else {
     throw AssertionError() << "Invalid type = " << type << " in ArrayRowIndex";
   }

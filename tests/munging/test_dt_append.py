@@ -363,3 +363,12 @@ def test_rbind_modulefn():
     f3 = dt.rbind(f0, f1)
     f3.internal.check()
     assert f3.topython()[0] == f0.topython()[0] + f1.topython()[0]
+
+
+def test_issue1292():
+    f0 = dt.Frame([None, None, None, "foo"])
+    f0.nrows = 2
+    f0.rbind(f0)
+    f0.internal.check()
+    assert f0.topython() == [[None] * 4]
+    assert f0.stypes == (stype.str32,)

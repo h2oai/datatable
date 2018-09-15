@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
-#include <cstdlib>
 #include "frame/py_frame.h"
 #include "py_utils.h"
 #include "python/obj.h"
@@ -172,9 +171,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   // Applying exemplars row index and binding exemplars with the counts
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
   dt->replace_rowindex(ri_exemplars);
-  DataTable* dt_temp[1];
-  dt_temp[0] = dt_counts;
-  dt->cbind(dt_temp, 1);
+  std::vector<DataTable*> dts = { dt_counts };
+  dt->cbind(dts);
 
   for (int64_t i = 0; i < dt->ncols-1; ++i) {
     dt->columns[i]->get_stats()->reset();

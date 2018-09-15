@@ -12,7 +12,9 @@ def rbind(*frames, force=False, bynames=True):
     return _rbind(dt.Frame(), *frames, force=force, bynames=bynames)
 
 def cbind(*frames, force=False):
-    return _cbind(dt.Frame(), *frames, force=force)
+    r = dt.Frame()
+    r.cbind(*frames, force=force)
+    return r
 
 
 @typed(frames=Frame_t, force=bool, bynames=bool)
@@ -141,83 +143,3 @@ def _rbind(self, *frames, force=False, bynames=True):
     _dt.rbind(len(final_names), spec)
     self.names = final_names
     return self
-
-
-
-@typed(frames=Frame_t, force=bool, inplace=bool)
-def _cbind(self, *frames, force=False, inplace=True):
-    """
-    Append columns of Frames `frames` to the current Frame.
-
-    This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
-    by columns, i.e. cbinding a Frame of shape [n x m] to a Frame of
-    shape [n x k] produces a Frame of shape [n x (m + k)].
-
-    As a special case, if you cbind a single-row Frame, then that row will
-    be replicated as many times as there are rows in the current Frame. This
-    makes it easy to create constant columns, or to append reduction results
-    (such as min/max/mean/etc) to the current Frame.
-
-    If Frame(s) being appended have different number of rows (with the
-    exception of Frames having 1 row), then the operation will fail by
-    default. You can force cbinding these Frames anyways by providing option
-    `force=True`: this will fill all "short" Frames with NAs. Thus there is
-    a difference in how Frames with 1 row are treated compared to Frames
-    with any other number of rows.
-
-    Parameters
-    ----------
-    frames: sequence or list of Frames
-        One or more Frame to append. They should have the same number of
-        rows (unless option `force` is also used).
-
-    force: boolean, default False
-        If True, allows Frames to be appended even if they have unequal
-        number of rows. The resulting Frame will have number of rows equal
-        to the largest among all Frames. Those Frames which have less
-        than the largest number of rows, will be padded with NAs (with the
-        exception of Frames having just 1 row, which will be replicated
-        instead of filling with NAs).
-
-    inplace: boolean, default True [DEPRECATED]
-        If True, then the data is appended to the current Frame in-place,
-        causing it to be modified. If False, then a new Frame will be
-        constructed and returned instead (and no existing Frames will be
-        modified).
-
-    Returns
-    -------
-    The current Frame, modified, if `inplace` is True; or a new Frame
-    containing all Frames concatenated, if `inplace` is False.
-    """
-    datatables = []
-
-    # Which Frame to operate upon. If not `inplace` then we will create
-    # a blank Frame and merge everything to it.
-    src = self
-    if not inplace:
-        src = dt.Frame()
-        datatables.append(self.internal)
-
-    # Check that all Frames have compatible number of rows, and compose the
-    # list of _DataTables to be passed down into the C level.
-    nrows = src.nrows or -1
-    for df in frames:
-        if df.ncols == 0: continue
-        nn = df.nrows
-        if nrows == -1:
-            nrows = nn
-        if not(nn == nrows or nn == 1 or force):
-            if nrows <= 1:
-                nrows = nn
-            else:
-                raise TValueError(
-                    "Cannot merge Frame with %s to a Frame with %s. If "
-                    "you want to disregard this warning and merge Frames "
-                    "anyways, then use option `force=True`"
-                    % (plural(nn, "row"), plural(nrows, "row")))
-        datatables.append(df.internal)
-
-    _dt = src.internal
-    _dt.cbind(datatables)
-    return src
