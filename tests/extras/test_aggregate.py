@@ -9,7 +9,7 @@
 #
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import ltype, f 
+from datatable import ltype
 from datatable.extras.aggregate import aggregate
 import inspect
 from collections import Counter
