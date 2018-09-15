@@ -9,9 +9,10 @@
 #
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import ltype
+from datatable import ltype, f 
 from datatable.extras.aggregate import aggregate
 import inspect
+from collections import Counter
 
 #-------------------------------------------------------------------------------
 # Get default arguments of a function
@@ -343,9 +344,9 @@ def test_aggregate_3d():
     assert d_in.shape == (3, 4)
     assert d_in.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
     assert d.topython() == [[0.0, 0.5, 0.9],
-                            [0.0, 0.5, 0.9],
-                            [0.0, 0.5, 0.9],
-                            [1, 4, 5]]
+                               [0.0, 0.5, 0.9],
+                               [0.0, 0.5, 0.9],
+                               [1, 4, 5]]
 
 
 def test_aggregate_nd_direct():

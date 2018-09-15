@@ -83,9 +83,16 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
       switch (ltype) {
         case LType::BOOL:
         case LType::INT:
-        case LType::REAL: cols_double[ncols++] = dt->columns[i]->cast(SType::FLOAT64); break;
+        case LType::REAL: {
+                            cols_double[ncols] = dt->columns[i]->cast(SType::FLOAT64);
+                            auto c = static_cast<RealColumn<double>*>(cols_double[ncols]);
+                            c->min(); // Pre-generating stats
+                            ncols++;
+                            break;
+                          }
         default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
       }
+      progress(static_cast<double>(i) / dt->ncols, 0);
     }
 
     cols_double[ncols] = nullptr;
