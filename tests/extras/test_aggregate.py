@@ -320,25 +320,32 @@ def test_aggregate_2d_mixed_random():
 
 
 #-------------------------------------------------------------------------------
-# Aggregate ND
+# Aggregate ND, take into account ND is parallelized with OpenMP
 #-------------------------------------------------------------------------------    
     
 def test_aggregate_3d():
-    d_in = dt.Frame([[0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
-                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1],
-                     [0.9, 0.5, 0.45, 0.0, 0.95, 0.55, 1.0, 0.5, 0.9, 1.1]])
+    d_in = dt.Frame([[0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0],
+                     [0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0],
+                     [0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0]])
     d_members = aggregate(d_in, min_rows=0, nd_max_bins=3)
+    a_members = d_members.topython()[0]
+    d = d_in.sort("C0")
+    ri = d.internal.rowindex.tolist()    
+    for i, member in enumerate(a_members):
+        a_members[i] = ri.index(member)
+    
     d_members.internal.check()
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 1, 1, 2, 0, 1, 0, 1, 0, 0]]
+    assert a_members == [2, 1, 1, 0, 2, 1, 2, 1, 2, 2]
+    
     d_in.internal.check()
     assert d_in.shape == (3, 4)
     assert d_in.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
-    assert d_in.topython() == [[0.9, 0.5, 0.0],
-                               [0.9, 0.5, 0.0],
-                               [0.9, 0.5, 0.0],
-                               [5, 4, 1]]
+    assert d.topython() == [[0.0, 0.5, 0.9],
+                            [0.0, 0.5, 0.9],
+                            [0.0, 0.5, 0.9],
+                            [1, 4, 5]]
 
 
 def test_aggregate_nd_direct():
@@ -353,20 +360,26 @@ def test_aggregate_nd_projection():
 
 def aggregate_nd(nd):
     nrows = 1000  
-    div = 50 
+    div = 50
     column = [i%div for i in range(nrows)]
     matrix = [column for i in range(nd)] 
     out_types = [ltype.int]*nd + [ltype.int]
     out_value = [[i for i in range(div)]]*nd + [[nrows//div for i in range(div)]]
-       
+        
     d_in = dt.Frame(matrix)
     d_members = aggregate(d_in, min_rows=0, nd_max_bins=div, seed=1)
+
+    a_members = d_members.topython()[0]
+    d = d_in.sort("C0")
+    ri = d.internal.rowindex.tolist()    
+    for i, member in enumerate(a_members):
+        a_members[i] = ri.index(member)
 
     d_members.internal.check()
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [column]
+    assert a_members == column
     d_in.internal.check()
     assert d_in.shape == (div, nd+1)
     assert d_in.ltypes == tuple(out_types)
-    assert d_in.topython() == out_value
+    assert d.topython() == out_value

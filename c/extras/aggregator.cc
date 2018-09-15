@@ -421,15 +421,15 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   {
     auto ith = omp_get_thread_num();
     auto nth = omp_get_num_threads();
-    int64_t rstep = (dt->nrows > PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
+    int64_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
 
-    // This is to ensure that the first row is always saved as an exemplar
-    double distance = std::numeric_limits<double>::max();
+    double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
 
     try {
       // Main loop over all the rows
       for (int32_t i = ith; i < dt->nrows; i += nth) {
+        bool is_exemplar = true;
         if (d > max_dimensions) {
           project_row(dt, member, i, pmatrix);
         } else {
@@ -439,15 +439,18 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
         {
           dt::shared_lock lock(shmutex);
           for (size_t j = 0; j < exemplars.size(); ++j) {
+            // Note, this distance will depend on delta, because
+            // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
             if (distance < delta) {
               d_members[i] = static_cast<int32_t>(exemplars[j]->id);
+              is_exemplar = false;
               break;
             }
           }
         }
 
-        if (distance >= delta) {
+        if (is_exemplar) {
           dt::shared_lock lock(shmutex, /* exclusive = */ true);
 
           ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
@@ -601,7 +604,6 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 *  Normalize the row elements to [0,1).
 */
 void Aggregator::normalize_row(DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
-//  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
@@ -630,9 +632,9 @@ DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   std::normal_distribution<double> distribution(0.0, 1.0);
 
   // Can be enabled later when we don't care about exact reproducibility.
-//  #pragma omp parallel for schedule(static)
+  // #pragma omp parallel for schedule(static)
   for (size_t i = 0;
-      i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
+    i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -663,7 +665,6 @@ void Aggregator::project_row(DataTablePtr& dt_exemplars, DoublePtr& r,
       ++n;
     }
   }
-  //#pragma omp parallel for schedule(static)
   for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
     r[j] /= n;
   }
