@@ -254,18 +254,17 @@ class SortContext {
     int : 16;
 
   public:
-  SortContext(const Column* col, bool make_groups) {
+  SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
     x = nullptr;
     next_x = nullptr;
     next_o = nullptr;
     histogram = nullptr;
     strdata = nullptr;
     histogram_size = 0;
-    strtype = 0;
 
     nth = static_cast<size_t>(config::sort_nthreads);
-    n = static_cast<size_t>(col->nrows);
-    order = (col->rowindex()).extract_as_array32();
+    n = nrows;
+    order = rowindex.extract_as_array32();
     use_order = static_cast<bool>(order);
     if (!use_order) order.resize(n);
     o = order.data();
@@ -273,22 +272,6 @@ class SortContext {
       groups.resize(n + 1);
       groups[0] = 0;
       gg.init(groups.data() + 1, 0);
-    }
-    // These will initialize `x`, `elemsize` and `nsigbits`, and also
-    // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col->stype();
-    switch (stype) {
-      case SType::BOOL:    _initB(col); break;
-      case SType::INT8:    _initI<int8_t,  uint8_t>(col); break;
-      case SType::INT16:   _initI<int16_t, uint16_t>(col); break;
-      case SType::INT32:   _initI<int32_t, uint32_t>(col); break;
-      case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
-      case SType::FLOAT32: _initF<uint32_t>(col); break;
-      case SType::FLOAT64: _initF<uint64_t>(col); break;
-      case SType::STR32:   _initS<uint32_t>(col); break;
-      case SType::STR64:   _initS<uint64_t>(col); break;
-      default:
-        throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
   }
 
@@ -302,7 +285,8 @@ class SortContext {
   }
 
 
-  void do_sort() {
+  void start_sort(const Column* col) {
+    _prepare_data_for_column(col);
     if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
@@ -315,10 +299,29 @@ class SortContext {
   }
 
 
+  void continue_sort(const Column* col, bool make_groups) {
+    nradixes = static_cast<size_t>(gg.size());
+    use_order = true;
+    xassert(nradixes > 0);
+    xassert(o == order.data());
+    _prepare_data_for_column(col);
+    dt::array<radix_range> rrmap(nradixes);
+    radix_range* rrmap_ptr = rrmap.data();
+    _fill_rrmap_from_groups(rrmap_ptr);
+    if (make_groups) {
+      gg.init(groups.data() + 1, 0);
+      _radix_recurse<true>(rrmap_ptr);
+    } else {
+      _radix_recurse<false>(rrmap_ptr);
+    }
+  }
+
+
   RowIndex get_result(Groupby* out_grps) {
     RowIndex res = RowIndex::from_array32(std::move(order));
     if (out_grps) {
       size_t ngrps = static_cast<size_t>(gg.size());
+      xassert(groups.size() > ngrps);
       groups.resize(ngrps + 1);
       *out_grps = Groupby(ngrps, groups.to_memoryrange());
     }
@@ -343,6 +346,26 @@ class SortContext {
       mr_xx.resize(nbytes, /* keep_data = */ false);
     }
     next_x = mr_xx.xptr();
+  }
+
+  void _prepare_data_for_column(const Column* col) {
+    strtype = 0;
+    // These will initialize `x`, `elemsize` and `nsigbits`, and also
+    // `strdata`, `stroffs`, `strstart` for string columns
+    SType stype = col->stype();
+    switch (stype) {
+      case SType::BOOL:    _initB(col); break;
+      case SType::INT8:    _initI<int8_t,  uint8_t>(col); break;
+      case SType::INT16:   _initI<int16_t, uint16_t>(col); break;
+      case SType::INT32:   _initI<int32_t, uint32_t>(col); break;
+      case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
+      case SType::FLOAT32: _initF<uint32_t>(col); break;
+      case SType::FLOAT64: _initF<uint64_t>(col); break;
+      case SType::STR32:   _initS<uint32_t>(col); break;
+      case SType::STR64:   _initS<uint64_t>(col); break;
+      default:
+        throw NotImplError() << "Unable to sort Column of stype " << stype;
+    }
   }
 
 
@@ -821,6 +844,14 @@ class SortContext {
     }
   }
 
+  void _fill_rrmap_from_groups(radix_range* rrmap) {
+    size_t ng = static_cast<size_t>(gg.size());
+    for (size_t i = 0; i < ng; ++i) {
+      rrmap[i].offset = static_cast<size_t>(groups[i]);
+      rrmap[i].size   = static_cast<size_t>(groups[i + 1] - groups[i]);
+    }
+  }
+
   /**
    * Helper for radix sorting function.
    *
@@ -1057,6 +1088,7 @@ class SortContext {
  */
 RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
 {
+  size_t nsortcols = colindices.size();
   if (nrows > INT32_MAX) {
     throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
   }
@@ -1065,14 +1097,38 @@ RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
     throw NotImplError() << "Cannot sort a datatable which is based on a "
                             "datatable with >2**31 rows";
   }
-  Column* col0 = columns[colindices[0]];
   // TODO: fix for the multi-rowindex case (#1188)
   // A frame can be sorted by columns col1, ..., colN if and only if all these
   // columns have the same rowindex. The resulting RowIndex can be applied to
   // to all columns in the frame iff one of the following holds: (1) all
   // columns in the frame has the same rowindex; or (2) the sortby columns
   // do not have any rowindex.
-  return col0->sort(out_grps);
+  Column* col0 = columns[colindices[0]];
+  for (size_t i = 1; i < nsortcols; ++i) {
+    if (columns[colindices[i]]->rowindex() != col0->rowindex()) {
+      for (size_t j = 0; j < nsortcols; ++j) {
+        columns[colindices[j]]->reify();
+      }
+      break;
+    }
+  }
+
+  if (nrows <= 1) {
+    int64_t i = col0->rowindex().nth(0);
+    if (out_grps) {
+      *out_grps = Groupby::single_group(col0->nrows);
+    }
+    return RowIndex::from_slice(i, col0->nrows, 1);
+  }
+  size_t zrows = static_cast<size_t>(nrows);
+  SortContext sc(zrows, col0->rowindex(),
+                 (out_grps != nullptr) || (nsortcols > 1));
+  sc.start_sort(col0);
+  for (size_t j = 1; j < nsortcols; ++j) {
+    sc.continue_sort(columns[colindices[j]],
+                     (out_grps != nullptr) || (j < nsortcols - 1));
+  }
+  return sc.get_result(out_grps);
 }
 
 
@@ -1089,7 +1145,8 @@ RowIndex Column::sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
-  SortContext sc(this, (out_grps != nullptr));
-  sc.do_sort();
+  size_t zrows = static_cast<size_t>(nrows);
+  SortContext sc(zrows, rowindex(), (out_grps != nullptr));
+  sc.start_sort(this);
   return sc.get_result(out_grps);
 }

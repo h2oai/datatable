@@ -24,6 +24,15 @@ def test_sort_len0():
     assert d1.shape == (0, 1)
 
 
+def test_sort_len0_multi():
+    d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
+    assert d0.shape == (0, 3)
+    d1 = d0.sort(0, 2, 1)
+    d1.internal.check()
+    assert d1.shape == (0, 3)
+    assert d1.names == d0.names
+
+
 def test_sort_len1():
     d0 = dt.Frame([10**6])
     assert d0.shape == (1, 1)
@@ -32,14 +41,27 @@ def test_sort_len1():
     assert d1.topython() == [[10**6]]
 
 
+def test_sort_len1_multi():
+    d0 = dt.Frame([[17], [2.99], ["foo"]], names=["Q", "u", "a"])
+    assert d0.shape == (1, 3)
+    d1 = d0.sort(0, 1, 2)
+    d1.internal.check()
+    assert d1.shape == (1, 3)
+    assert d1.names == d0.names
+    assert d1.topython() == d0.topython()
+
+
 def test_sort_len1_view():
-    d0 = dt.Frame(range(10))
-    d1 = d0[5, :].sort(0)
-    assert d1.scalar() == 5
+    d0 = dt.Frame([range(10), range(10, 0, -1)])
+    d1 = d0[6, :].sort(0)
+    assert d1.topython() == [[6], [4]]
     d2 = d0[[7], :].sort(0)
-    assert d2.scalar() == 7
-    d2 = d0[2:3, :].sort(0)
-    assert d2.scalar() == 2
+    assert d2.topython() == [[7], [3]]
+    d3 = d0[2:3, :].sort(0)
+    assert d3.topython() == [[2], [8]]
+    d4 = d0[4::2, :].sort(1, 0)
+    assert d4.shape == (3, 2)
+    assert d4.topython() == [[8, 6, 4], [2, 4, 6]]
 
 
 def test_sort_len2():
@@ -103,6 +125,24 @@ def test_int32_small_stable():
         [None, None, None, 3, 3, 5, 5, 1000000],
         [20, 100, 500, 5, 200, 1, 10, 50],
     ]
+
+
+def test_int32_small_multi():
+    src = [
+        [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
+        [5, 1, 9, 4, 1, 0, 3, 2, 7, 5, 8, 1]
+    ]
+    d0 = dt.Frame(src, names=["A", "B"], stype=dt.stype.int32)
+    # d0.view()
+    d1 = d0.sort("A", "B")
+    order = sorted(range(len(src[0])), key=lambda i: (src[0][i], src[1][i]))
+    d1.internal.check()
+    # d1.view()
+    assert d1.names == d0.names
+    assert d1.topython() == [[src[0][i] for i in order],
+                             [src[1][i] for i in order]]
+
+
 
 
 def test_int32_large():

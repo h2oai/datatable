@@ -322,23 +322,22 @@ class Frame(core.Frame):
     save = dt_save
 
 
-    @typed(by=U(str, int))
-    def sort(self, by):
+    def sort(self, *cols):
         """
         Sort datatable by the specified column.
 
         Parameters
         ----------
-        by: str or int
-            Name or index of the column to sort by.
+        cols: str or int
+            Name or index of the columns to sort by.
 
         Returns
         -------
-        New datatable sorted by the provided column. The target datatable
+        New datatable sorted by the provided column(s). The target datatable
         remains unmodified.
         """
-        idx = self.colindex(by)
-        ri = self._dt.sort(idx)[0]
+        indexes = [self.colindex(col) for col in cols]
+        ri = self._dt.sort(*indexes)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
         return cs.to_frame(self.names)
 

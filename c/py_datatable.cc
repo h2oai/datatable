@@ -482,13 +482,15 @@ PyObject* rbind(obj* self, PyObject* args) {
 
 PyObject* sort(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int idx = 0;
-  int make_groups = 0;
-  if (!PyArg_ParseTuple(args, "i|i:sort", &idx, &make_groups))
-    return nullptr;
+  py::olist arglist = py::obj(args).to_pylist();
+  size_t nargs = arglist.size();
+  bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
+  bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
 
-  arr32_t cols(1);
-  cols[0] = idx;
+  arr32_t cols(nargs - last_arg_bool);
+  for (size_t i = 0; i < cols.size(); ++i) {
+    cols[i] = arglist[i].to_int32_strict();
+  }
   Groupby grpby;
   RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
   // return pyrowindex::wrap(ri);
