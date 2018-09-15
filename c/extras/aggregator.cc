@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
+#include <cstdlib>
 #include "frame/py_frame.h"
 #include "py_utils.h"
 #include "python/obj.h"
