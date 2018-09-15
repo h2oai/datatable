@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
-#include <cstdlib>
 #include "frame/py_frame.h"
 #include "py_utils.h"
 #include "python/obj.h"
@@ -92,7 +91,6 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
                           }
         default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
       }
-      progress(static_cast<double>(i) / dt->ncols, 0);
     }
 
     cols_double[ncols] = nullptr;
@@ -116,7 +114,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 
 /*
 *  Do the actual calculation of counts for each exemplar
-*  and set correct exemplar id's for members.
+*  and set correct `exemplar_id`s for members.
 */
 void Aggregator::aggregate_exemplars(DataTable* dt,
                                      DataTablePtr& dt_members) {
@@ -162,7 +160,6 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
   // this is also needed for ND due to re-mapping.
-  //#pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < gb_members.ngroups(); ++i) {
     for (size_t j = 0; j < static_cast<size_t>(d_counts[i]); ++j) {
       size_t member_shift = static_cast<size_t>(offsets[i]) + j;
@@ -178,7 +175,6 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   dt_temp[0] = dt_counts;
   dt->cbind(dt_temp, 1);
 
-  //#pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->ncols-1; ++i) {
     dt->columns[i]->get_stats()->reset();
   }
@@ -389,17 +385,16 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 *  is set to machine precision, so that we are gathering some initial exemplars.
 *  When this `delta` starts getting us more exemplars than is set by `nd_max_bins`
 *  do the following:
-*  - find the mean distance between all the gathered exemplars
-*  - merge all the exemplars that are within half of this distance
-*  - adjust `delta` taking into account initial size of bubbles
-*  - store the merging info and use it in `adjust_members(...)`
+*  - find the mean distance between all the gathered exemplars;
+*  - merge all the exemplars that are within half of this distance;
+*  - adjust `delta` taking into account initial size of bubbles;
+*  - store the merging info and use it in `adjust_members(...)`.
 *
 *  Another approach is to have a constant `delta` see `Develop` branch
 *  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/
 *  h2o/data/Aggregator.java based on the estimates given at
 *  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-
-*  euclidean-space?answertab=active#tab-top
-*  I.e.
+*  euclidean-space?answertab=active#tab-top i.e.
 *
 *  double radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
 *  double radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
@@ -408,8 +403,8 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 *  }
 *  double delta = radius * radius;
 *
-*  However, for some datasets this `delta` results in too many (thousands) or
-*  too few (just one) exemplars.
+*  However, for some datasets this `delta` results in too many (e.g. thousands) or
+*  too few (e.g. just one) exemplars.
 */
 void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   OmpExceptionManager oem;
@@ -422,14 +417,13 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   DoublePtr pmatrix = nullptr;
   if (d > max_dimensions) pmatrix = generate_pmatrix(dt);
 
-  // Start with a very small `delta`
+  // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
   #pragma omp parallel
   {
     auto ith = omp_get_thread_num();
     auto nth = omp_get_num_threads();
     int64_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
-
     double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
 
