@@ -715,6 +715,35 @@ def test_int32_small_multi():
                              [src[1][i] for i in order]]
 
 
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_bool8_2cols_multi(seed):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 200)
+    data = [[random.choice([True, False]) for _ in range(n)] for j in range(2)]
+    n0 = sum(data[0])
+    n10 = sum(data[1][i] for i in range(n) if data[0][i] is False)
+    n11 = sum(data[1][i] for i in range(n) if data[0][i] is True)
+    d0 = dt.Frame(data)
+    d1 = d0.sort(0, 1)
+    assert d1.topython() == [[False] * (n - n0) + [True] * n0,
+                             [False] * (n - n0 - n10) + [True] * n10 +
+                             [False] * (n0 - n11) + [True] * n11]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_bool8_manycols_multi(seed):
+    random.seed(seed)
+    nrows = int(random.expovariate(0.005) + 100)
+    ncols = int(random.expovariate(0.01) + 2)
+    data = [[random.choice([True, False]) for _ in range(nrows)]
+            for j in range(ncols)]
+    d0 = dt.Frame(data)
+    d1 = d0.sort(*list(range(ncols)))
+    d0_sorted = sorted(d0.to_csv().split("\n")[1:-1])
+    d1_sorted = d1.to_csv().split("\n")[1:-1]
+    assert d0_sorted == d1_sorted
+
+
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
 @pytest.mark.skip()
 def test_sort_random_multi(seed):

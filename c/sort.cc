@@ -397,7 +397,8 @@ class SortContext {
         vinsert_sort();
       }
     } else {
-      radix_psort();
+      if (groups) radix_psort<true>();
+      else        radix_psort<false>();
     }
   }
 
@@ -893,6 +894,7 @@ class SortContext {
    * Array `o` will be modified in-place. If `o` is nullptr, then it will be
    * allocated and filled with values of `range(n)`.
    */
+  template <bool make_groups>
   void radix_psort() {
     int32_t* ores = o;
     determine_sorting_parameters();
@@ -907,11 +909,10 @@ class SortContext {
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      if (groups) _radix_recurse<true>(rrmap_ptr);
-      else        _radix_recurse<false>(rrmap_ptr);
+      _radix_recurse<make_groups>(rrmap_ptr);
       nsigbits = _nsigbits;
     }
-    else if (groups) {
+    else if (make_groups) {
       // Otherwise groups can be computed directly from the histogram
       gg.from_histogram(histogram, nchunks, nradixes);
     }
@@ -1016,10 +1017,10 @@ class SortContext {
         next_o = _next_o + off;
         if (make_groups) {
           gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
-        }
-        radix_psort();
-        if (make_groups) {
+          radix_psort<true>();
           rrmap[rri].size = gg.size() | GROUPED;
+        } else {
+          radix_psort<false>();
         }
       } else {
         nsmallgroups += (sz > 1);
