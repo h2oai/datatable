@@ -108,6 +108,10 @@ template <typename T> class array
       x = dt::arealloc<T>(x, newn);
       n = newn;
     }
+
+    void ensuresize(size_t newn) {
+      if (newn > n) resize(newn);
+    }
 };
 
 

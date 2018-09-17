@@ -24,31 +24,12 @@ def test_sort_len0():
     assert d1.shape == (0, 1)
 
 
-def test_sort_len0_multi():
-    d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
-    assert d0.shape == (0, 3)
-    d1 = d0.sort(0, 2, 1)
-    d1.internal.check()
-    assert d1.shape == (0, 3)
-    assert d1.names == d0.names
-
-
 def test_sort_len1():
     d0 = dt.Frame([10**6])
     assert d0.shape == (1, 1)
     d1 = d0.sort(0)
     d1.internal.check()
     assert d1.topython() == [[10**6]]
-
-
-def test_sort_len1_multi():
-    d0 = dt.Frame([[17], [2.99], ["foo"]], names=["Q", "u", "a"])
-    assert d0.shape == (1, 3)
-    d1 = d0.sort(0, 1, 2)
-    d1.internal.check()
-    assert d1.shape == (1, 3)
-    assert d1.names == d0.names
-    assert d1.topython() == d0.topython()
 
 
 def test_sort_len1_view():
@@ -103,6 +84,8 @@ def test_nonfirst_column():
 
 
 #-------------------------------------------------------------------------------
+# Int32
+#-------------------------------------------------------------------------------
 
 def test_int32_small():
     d0 = dt.Frame([17, 2, 96, 245, 847569, 34, -45, None, 1])
@@ -125,24 +108,6 @@ def test_int32_small_stable():
         [None, None, None, 3, 3, 5, 5, 1000000],
         [20, 100, 500, 5, 200, 1, 10, 50],
     ]
-
-
-def test_int32_small_multi():
-    src = [
-        [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
-        [5, 1, 9, 4, 1, 0, 3, 2, 7, 5, 8, 1]
-    ]
-    d0 = dt.Frame(src, names=["A", "B"], stype=dt.stype.int32)
-    # d0.view()
-    d1 = d0.sort("A", "B")
-    order = sorted(range(len(src[0])), key=lambda i: (src[0][i], src[1][i]))
-    d1.internal.check()
-    # d1.view()
-    assert d1.names == d0.names
-    assert d1.topython() == [[src[0][i] for i in order],
-                             [src[1][i] for i in order]]
-
-
 
 
 def test_int32_large():
@@ -508,6 +473,8 @@ def test_float64_random(numpy, n):
 
 
 #-------------------------------------------------------------------------------
+# Sort views
+#-------------------------------------------------------------------------------
 
 def test_sort_view1():
     d0 = dt.Frame([5, 10])
@@ -708,3 +675,75 @@ def test_strXX_large6(st):
     dt1 = dt0(sort=0)
     dt1.internal.check()
     assert dt1.topython()[0] == sorted(words)
+
+
+
+#-------------------------------------------------------------------------------
+# Sort by multiple columns
+#-------------------------------------------------------------------------------
+
+def test_sort_len0_multi():
+    d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
+    assert d0.shape == (0, 3)
+    d1 = d0.sort(0, 2, 1)
+    d1.internal.check()
+    assert d1.shape == (0, 3)
+    assert d1.names == d0.names
+
+
+def test_sort_len1_multi():
+    d0 = dt.Frame([[17], [2.99], ["foo"]], names=["Q", "u", "a"])
+    assert d0.shape == (1, 3)
+    d1 = d0.sort(0, 1, 2)
+    d1.internal.check()
+    assert d1.shape == (1, 3)
+    assert d1.names == d0.names
+    assert d1.topython() == d0.topython()
+
+
+def test_int32_small_multi():
+    src = [
+        [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
+        [5, 1, 9, 4, 1, 0, 3, 2, 7, 5, 8, 1]
+    ]
+    d0 = dt.Frame(src, names=["A", "B"], stype=dt.stype.int32)
+    d1 = d0.sort("A", "B")
+    order = sorted(range(len(src[0])), key=lambda i: (src[0][i], src[1][i]))
+    d1.internal.check()
+    assert d1.names == d0.names
+    assert d1.topython() == [[src[0][i] for i in order],
+                             [src[1][i] for i in order]]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+@pytest.mark.skip()
+def test_sort_random_multi(seed):
+    def random_bool():
+        return random.choice([True, False])
+
+    def random_int():
+        return random.randint(-10, 10)
+
+    def random_real():
+        return random.choice([-1.95, 0.1, 0.3, 1.1, 7.3, -2.99, 9.13, 4.555])
+
+    def random_str():
+        return random.choice(["", "foo", "enlkq", "n1-48", "fooba", "enkyi",
+                              "zweb", "z", "vn;e", "skdjhfb", "amruye", "f"])
+
+    random.seed(seed)
+    n = int(random.expovariate(0.01) + 2)
+    data = []
+    for _ in range(5):
+        fn = random.choice([random_bool, random_int, random_real, random_str])
+        data.append([fn() for _ in range(n)])
+    data.append([random.random() for _ in range(n)])
+    order = sorted(list(range(n)),
+                   key=lambda x: (data[1][x], data[2][x], data[3][x], x))
+    sorted_data = [[col[j] for j in order] for col in data]
+    d0 = dt.Frame(data, names=list("ABCDEF"))
+    d0.internal.check()
+    # d0.save("multi.jay", format="jay")
+    # dt.Frame(sorted_data).save("test.jay", format="jay")
+    d1 = d0.sort("B", "C", "D")
+    assert d1.topython() == sorted_data

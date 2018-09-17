@@ -12,9 +12,9 @@ namespace dttest {
 
 
 void run_tests() {
-  cover_init_FrameInitializationManager_em();
-  cover_names_FrameNameProviders();
-  cover_names_integrity_checks();
+  // cover_init_FrameInitializationManager_em();
+  // cover_names_FrameNameProviders();
+  // cover_names_integrity_checks();
 }
 
 

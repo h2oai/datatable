@@ -229,6 +229,7 @@ class SortContext {
     arr32_t groups;
     MemoryRange mr_x;
     MemoryRange mr_xx;
+    dt::array<size_t> arr_hist;
     GroupGatherer gg;
 
     void* x;
@@ -244,7 +245,6 @@ class SortContext {
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
-    size_t histogram_size;
     int8_t elemsize;
     int8_t next_elemsize;
     int8_t nsigbits;
@@ -258,9 +258,7 @@ class SortContext {
     x = nullptr;
     next_x = nullptr;
     next_o = nullptr;
-    histogram = nullptr;
     strdata = nullptr;
-    histogram_size = 0;
 
     nth = static_cast<size_t>(config::sort_nthreads);
     n = nrows;
@@ -279,14 +277,13 @@ class SortContext {
   SortContext& operator=(const SortContext&) = delete;
 
   ~SortContext() {
-    std::free(histogram);
     // Note: `o` is not owned by this class, see `initialize()`
     delete[] next_o;
   }
 
 
   void start_sort(const Column* col) {
-    _prepare_data_for_column(col);
+    _prepare_data_for_column(col, true);
     if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
@@ -304,7 +301,7 @@ class SortContext {
     use_order = true;
     xassert(nradixes > 0);
     xassert(o == order.data());
-    _prepare_data_for_column(col);
+    _prepare_data_for_column(col, false);
     dt::array<radix_range> rrmap(nradixes);
     radix_range* rrmap_ptr = rrmap.data();
     _fill_rrmap_from_groups(rrmap_ptr);
@@ -334,11 +331,15 @@ class SortContext {
   // Data preparation
   //============================================================================
 
-  void _allocate_x(size_t nbytes) {
+  template <typename T>
+  T* _allocate_and_get_x() {
+    size_t nbytes = n * sizeof(T);
     if (mr_x.size() < nbytes) {
       mr_x.resize(nbytes, /* keep_data = */ false);
     }
+    elemsize = sizeof(T);
     x = mr_x.xptr();
+    return static_cast<T*>(x);
   }
 
   void _allocate_next_x(size_t nbytes) {
@@ -348,7 +349,7 @@ class SortContext {
     next_x = mr_xx.xptr();
   }
 
-  void _prepare_data_for_column(const Column* col) {
+  void _prepare_data_for_column(const Column* col, bool firstcol) {
     strtype = 0;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
@@ -361,8 +362,15 @@ class SortContext {
       case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
       case SType::FLOAT32: _initF<uint32_t>(col); break;
       case SType::FLOAT64: _initF<uint64_t>(col); break;
-      case SType::STR32:   _initS<uint32_t>(col); break;
-      case SType::STR64:   _initS<uint64_t>(col); break;
+      case SType::STR32:
+      case SType::STR64: {
+        if (stype == SType::STR32) _initS<uint32_t>(col);
+        else                       _initS<uint64_t>(col);
+        // if (!firstcol) {
+        //   strstart = size_t(-1);
+        // }
+        break;
+      }
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -382,10 +390,8 @@ class SortContext {
    */
   void _initB(const Column* col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
-    elemsize = 1;
+    uint8_t* xo = _allocate_and_get_x<uint8_t>();
     nsigbits = 2;
-    _allocate_x(n * sizeof(uint8_t));
-    uint8_t* xo = static_cast<uint8_t*>(x);
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -429,9 +435,7 @@ class SortContext {
     TI una = static_cast<TI>(GETNA<T>());
     TI umin = static_cast<TI>(min);
     const TI* xi = static_cast<const TI*>(col->data());
-    elemsize = sizeof(TO);
-    _allocate_x(n * sizeof(TO));
-    TO* xo = static_cast<TO*>(x);
+    TO* xo = _allocate_and_get_x<TO>();
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -481,10 +485,8 @@ class SortContext {
   template <typename TO>
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
-    elemsize = sizeof(TO);
+    TO* xo = _allocate_and_get_x<TO>();
     nsigbits = elemsize * 8;
-    _allocate_x(n * sizeof(TO));
-    TO* xo = static_cast<TO*>(x);
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -528,12 +530,10 @@ class SortContext {
     strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
     const T* offs = scol->offsets();
     stroffs = static_cast<const void*>(offs);
+    uint8_t* xo = _allocate_and_get_x<uint8_t>();
     strtype = sizeof(T) / 4;
     strstart = 0;
-    elemsize = 1;
     nsigbits = 8;
-    _allocate_x(n * sizeof(uint8_t));
-    uint8_t* xo = static_cast<uint8_t*>(x);
 
     T maxlen = 0;
     #pragma omp parallel for schedule(static) num_threads(nth) \
@@ -615,10 +615,8 @@ class SortContext {
    */
   void build_histogram() {
     size_t counts_size = nchunks * nradixes;
-    if (histogram_size < counts_size) {
-      histogram = dt::arealloc<size_t>(histogram, counts_size);
-      histogram_size = counts_size;
-    }
+    arr_hist.ensuresize(counts_size);
+    histogram = arr_hist.data();
     std::memset(histogram, 0, counts_size * sizeof(size_t));
     switch (elemsize) {
       case 1: _histogram_gather<uint8_t>();  break;
@@ -785,21 +783,6 @@ class SortContext {
    * Sort array `o` of length `n` by values `x`, using MSB Radix sort algorithm.
    * Array `o` will be modified in-place. If `o` is nullptr, then it will be
    * allocated and filled with values of `range(n)`.
-   *
-   * SortContext inputs:
-   *   x:      buffer of size `elemsize * n`
-   *   next_x: nullptr, or buffer of size `next_elemsize * n`
-   *   o:      nullptr, or array of `int32_t`s of length `n`
-   *   next_o: nullptr, or array of `int32_t`s of length `n`
-   *   elemsize
-   *   next_elemsize: (may be zero)
-   *   nsigbits
-   *
-   * SortContext outputs:
-   *   o: If nullptr, this array will be allocated; otherwise its contents
-   *      will be modified in-place.
-   *   x, next_x, next_o, histogram: These arrays may be allocated, or their
-   *      contents may be altered arbitrarily.
    */
   void radix_psort() {
     int32_t* ores = o;
@@ -810,11 +793,14 @@ class SortContext {
     if (elemsize) {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
+      int8_t _nsigbits = nsigbits;
+      nsigbits = strdata? 8 : shift;
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
       _fill_rrmap_from_histogram(rrmap_ptr);
       if (groups) _radix_recurse<true>(rrmap_ptr);
       else        _radix_recurse<false>(rrmap_ptr);
+      nsigbits = _nsigbits;
     }
     else if (groups) {
       // Otherwise groups can be computed directly from the histogram
@@ -878,7 +864,6 @@ class SortContext {
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
     int8_t   _elemsize = elemsize;
-    int8_t   _nsigbits = nsigbits;
     size_t   _nradixes = nradixes;
     size_t   _strstart = strstart;
     int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
@@ -910,7 +895,6 @@ class SortContext {
     xassert(GROUPED > rrlarge);
 
     strstart = _strstart + 1;
-    nsigbits = strdata? 8 : shift;
 
     for (size_t rri = 0; rri < _nradixes; ++rri) {
       size_t sz = rrmap[rri].size;
@@ -943,7 +927,6 @@ class SortContext {
     next_o = _next_o;
     strstart = _strstart;
     gg.init(ggdata0, ggoff0);
-    nsigbits = _nsigbits;
 
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
