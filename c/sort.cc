@@ -377,7 +377,7 @@ class SortContext {
 
 
   void continue_sort(const Column* col, bool make_groups) {
-    nradixes = static_cast<size_t>(gg.size());
+    nradixes = gg.size();
     use_order = true;
     xassert(nradixes > 0);
     xassert(o == order.data());
@@ -397,7 +397,7 @@ class SortContext {
   RowIndex get_result(Groupby* out_grps) {
     RowIndex res = RowIndex::from_array32(std::move(order));
     if (out_grps) {
-      size_t ngrps = static_cast<size_t>(gg.size());
+      size_t ngrps = gg.size();
       xassert(groups.size() > ngrps);
       groups.resize(ngrps + 1);
       *out_grps = Groupby(ngrps, groups.to_memoryrange());
@@ -911,7 +911,7 @@ class SortContext {
   }
 
   void _fill_rrmap_from_groups(radix_range* rrmap) {
-    size_t ng = static_cast<size_t>(gg.size());
+    size_t ng = gg.size();
     for (size_t i = 0; i < ng; ++i) {
       rrmap[i].offset = static_cast<size_t>(groups[i]);
       rrmap[i].size   = static_cast<size_t>(groups[i + 1] - groups[i]);
@@ -991,7 +991,7 @@ class SortContext {
         }
         radix_psort();
         if (make_groups) {
-          rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
+          rrmap[rri].size = gg.size() | GROUPED;
         }
       } else {
         nsmallgroups += (sz > 1);
