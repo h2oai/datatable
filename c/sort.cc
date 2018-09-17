@@ -409,9 +409,16 @@ class SortContext {
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
     _prepare_data_for_column(col, false);
+    // Make sure that `xx` has enough storage capacity. Previous column may
+    // have had smaller `elemsize` than this, in which case `xx` will need
+    // to be expanded.
+    next_elemsize = elemsize;
+    allocate_xx();
+
     dt::array<radix_range> rrmap(nradixes);
     radix_range* rrmap_ptr = rrmap.data();
     _fill_rrmap_from_groups(rrmap_ptr);
+
     if (make_groups) {
       gg.init(groups.data() + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
@@ -455,7 +462,7 @@ class SortContext {
     next_o = static_cast<int*>(container_oo.ptr);
   }
 
-  void _prepare_data_for_column(const Column* col, bool /*firstcol*/) {
+  void _prepare_data_for_column(const Column* col, bool firstcol) {
     strtype = 0;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
@@ -468,17 +475,13 @@ class SortContext {
       case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
       case SType::FLOAT32: _initF<uint32_t>(col); break;
       case SType::FLOAT64: _initF<uint64_t>(col); break;
-      case SType::STR32:
-      case SType::STR64: {
-        if (stype == SType::STR32) _initS<uint32_t>(col);
-        else                       _initS<uint64_t>(col);
-        // if (!firstcol) {
-        //   strstart = size_t(-1);
-        // }
-        break;
-      }
+      case SType::STR32:   _initS<uint32_t>(col); break;
+      case SType::STR64:   _initS<uint64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
+    }
+    if (strtype && !firstcol) {
+      strstart--;
     }
   }
 

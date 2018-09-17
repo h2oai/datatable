@@ -744,6 +744,22 @@ def test_bool8_manycols_multi(seed):
     assert d0_sorted == d1_sorted
 
 
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_multisort_bool_real(seed):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 200)
+    col0 = [random.choice([True, False]) for _ in range(n)]
+    col1 = [random.randint(1, 10) / 97 for _ in range(n)]
+    d0 = dt.Frame([col0, col1])
+    d1 = d0.sort(0, 1)
+    d1.internal.check()
+    n0 = sum(col0)
+    assert d1.topython() == [
+        [False] * (n - n0) + [True] * n0,
+        sorted([col1[i] for i in range(n) if col0[i] is False]) +
+        sorted([col1[i] for i in range(n) if col0[i] is True])]
+
+
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
 @pytest.mark.skip()
 def test_sort_random_multi(seed):
