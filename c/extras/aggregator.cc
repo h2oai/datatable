@@ -419,7 +419,8 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
 
-  int32_t nth = static_cast<int32_t>(dt->nrows / ROWSPERTHREAD) + 1;
+  int32_t nth = static_cast<int32_t>(dt->nrows * dt->ncols / ELSPERTHREAD) + 1;
+  if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
   if (nth > config::nthreads) nth = config::nthreads;
 
   #pragma omp parallel num_threads(nth)
