@@ -325,8 +325,8 @@ class SortContext {
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
-    int8_t elemsize;
-    int8_t next_elemsize;
+    uint8_t elemsize;
+    uint8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
     int8_t strtype;
@@ -429,7 +429,7 @@ class SortContext {
     next_x = mr_xx.xptr();
   }
 
-  void _prepare_data_for_column(const Column* col, bool firstcol) {
+  void _prepare_data_for_column(const Column* col, bool /*firstcol*/) {
     strtype = 0;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
@@ -566,7 +566,7 @@ class SortContext {
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
     TO* xo = _allocate_and_get_x<TO>();
-    nsigbits = elemsize * 8;
+    nsigbits = static_cast<int8_t>(elemsize * 8);
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -754,7 +754,7 @@ class SortContext {
    */
   void reorder_data() {
     if (!next_x && next_elemsize) {
-      _allocate_next_x(n * static_cast<size_t>(next_elemsize));
+      _allocate_next_x(n * next_elemsize);
     }
     if (!next_o) {
       next_o = new int32_t[n];
@@ -849,7 +849,7 @@ class SortContext {
         next_o[k] = w;
       }
     }
-    next_elemsize = maxlen > 0;
+    next_elemsize = (maxlen > 0);
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
@@ -943,12 +943,11 @@ class SortContext {
     void*    _next_x   = next_x;
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
-    int8_t   _elemsize = elemsize;
+    uint8_t  _elemsize = elemsize;
     size_t   _nradixes = nradixes;
     size_t   _strstart = strstart;
     int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
     int32_t* ggdata0   = make_groups? gg.data() : nullptr;
-    size_t   zelemsize = static_cast<size_t>(elemsize);
 
     // At this point the distribution of radix range sizes may or may not
     // be uniform. If the distribution is uniform (i.e. roughly same number
@@ -980,13 +979,13 @@ class SortContext {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
+        elemsize = _elemsize;
         n = sz;
-        x = static_cast<void*>(static_cast<char*>(_x) + off * zelemsize);
+        x = static_cast<void*>(static_cast<char*>(_x) + off * elemsize);
         o = _o + off;
         next_x = static_cast<void*>(
-                    static_cast<char*>(_next_x) + off * zelemsize);
+                    static_cast<char*>(_next_x) + off * elemsize);
         next_o = _next_o + off;
-        elemsize = _elemsize;
         if (make_groups) {
           gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
         }
@@ -1006,6 +1005,7 @@ class SortContext {
     next_x = _next_x;
     next_o = _next_o;
     strstart = _strstart;
+    elemsize = _elemsize;
     gg.init(ggdata0, ggoff0);
 
     // Finally iterate over all remaining radix ranges, in-parallel, and
@@ -1037,13 +1037,13 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          void*    tx = static_cast<char*>(_x) + off * zelemsize;
+          void*    tx = static_cast<char*>(_x) + off * elemsize;
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
           if (strtype == 0) {
-            switch (_elemsize) {
+            switch (elemsize) {
               case 1: insert_sort_keys<>(static_cast<uint8_t*>(tx), to, oo, tn, tgg); break;
               case 2: insert_sort_keys<>(static_cast<uint16_t*>(tx), to, oo, tn, tgg); break;
               case 4: insert_sort_keys<>(static_cast<uint32_t*>(tx), to, oo, tn, tgg); break;
