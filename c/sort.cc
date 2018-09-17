@@ -124,6 +124,86 @@
 #include "utils/assert.h"
 #include "utils/omp.h"
 
+//------------------------------------------------------------------------------
+// Helper classes for managing memory
+//------------------------------------------------------------------------------
+
+class omem {
+  private:
+    void* ptr;
+    size_t size;
+  public:
+    omem();
+    ~omem();
+    void ensure_size(size_t n);
+    friend class rmem;
+};
+
+class rmem {
+  private:
+    void* ptr;
+    size_t size;
+  public:
+    rmem();
+    rmem(const rmem&);
+    rmem(const rmem&, size_t offset, size_t n);
+    rmem& operator=(const rmem&) = default;
+    rmem& operator=(const omem&);
+    explicit operator bool() const noexcept;
+    template <typename T> T* data() const noexcept;
+    friend void swap(rmem& left, rmem& right) noexcept;
+};
+
+
+//------------------------------------------------------------------------------
+
+omem::omem() : ptr(nullptr), size(0) {}
+
+omem::~omem() {
+  dt::free(ptr);
+}
+
+void omem::ensure_size(size_t n) {
+  if (n <= size) return;
+  ptr = dt::realloc(ptr, n);  // throws an exception if cannot allocate
+  size = n;
+}
+
+rmem::rmem() : ptr(nullptr), size(0) {}
+
+
+rmem::rmem(const rmem& o) : ptr(o.ptr), size(o.size) {}
+
+rmem::rmem(const rmem& o, size_t offset, size_t n)
+    : ptr(static_cast<char*>(o.ptr) + offset), size(n)
+{
+  xassert(o.size <= offset + n);
+}
+
+rmem& rmem::operator=(const omem& o) {
+  ptr = o.ptr;
+  size = o.size;
+  return *this;
+}
+
+rmem::operator bool() const noexcept {
+  return (ptr != nullptr);
+}
+
+template <typename T> T* rmem::data() const noexcept {
+  return static_cast<T*>(ptr);
+}
+
+void swap(rmem& left, rmem& right) noexcept {
+  std::swap(left.ptr, right.ptr);
+  std::swap(left.size, right.size);
+}
+
+
+
+//------------------------------------------------------------------------------
+// SortContext
+//------------------------------------------------------------------------------
 
 /**
  * Data structure that holds all the variables needed to perform radix sort.
