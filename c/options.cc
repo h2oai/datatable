@@ -19,8 +19,8 @@ int32_t nthreads = 1;
 size_t sort_insert_method_threshold = 64;
 size_t sort_thread_multiplier = 2;
 size_t sort_max_chunk_length = 1 << 20;
-int8_t sort_max_radix_bits = 16;
-int8_t sort_over_radix_bits = 16;
+uint8_t sort_max_radix_bits = 16;
+uint8_t sort_over_radix_bits = 16;
 int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
 int64_t frame_names_auto_index = 0;
@@ -75,13 +75,13 @@ void set_sort_max_chunk_length(int64_t n) {
 }
 
 void set_sort_max_radix_bits(int64_t n) {
-  sort_max_radix_bits = static_cast<int8_t>(n);
+  sort_max_radix_bits = static_cast<uint8_t>(n);
   if (sort_max_radix_bits <= 0)
     throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
 }
 
 void set_sort_over_radix_bits(int64_t n) {
-  sort_over_radix_bits = static_cast<int8_t>(n);
+  sort_over_radix_bits = static_cast<uint8_t>(n);
   if (sort_over_radix_bits <= 0)
     throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
 }

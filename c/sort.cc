@@ -327,9 +327,9 @@ class SortContext {
     size_t nradixes;
     uint8_t elemsize;
     uint8_t next_elemsize;
-    int8_t nsigbits;
-    int8_t shift;
-    int8_t strtype;
+    uint8_t nsigbits;
+    uint8_t shift;
+    uint8_t strtype;
     bool use_order;
     int : 16;
 
@@ -566,7 +566,7 @@ class SortContext {
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
     TO* xo = _allocate_and_get_x<TO>();
-    nsigbits = static_cast<int8_t>(elemsize * 8);
+    nsigbits = elemsize * 8;
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -665,8 +665,8 @@ class SortContext {
                         config::sort_max_chunk_length);
     nchunks = (n - 1)/chunklen + 1;
 
-    int8_t nradixbits = nsigbits < config::sort_max_radix_bits
-                        ? nsigbits : config::sort_over_radix_bits;
+    uint8_t nradixbits = nsigbits < config::sort_max_radix_bits
+                         ? nsigbits : config::sort_over_radix_bits;
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 
@@ -873,7 +873,7 @@ class SortContext {
     if (elemsize) {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
-      int8_t _nsigbits = nsigbits;
+      uint8_t _nsigbits = nsigbits;
       nsigbits = strdata? 8 : shift;
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
