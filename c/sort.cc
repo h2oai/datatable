@@ -144,7 +144,9 @@ class rmem {
   private:
   public:
     void* ptr;
-    size_t size;
+    #ifdef DTDEBUG
+      size_t size;
+    #endif
   public:
     rmem();
     rmem(const rmem&);
@@ -171,20 +173,35 @@ void omem::ensure_size(size_t n) {
   size = n;
 }
 
-rmem::rmem() : ptr(nullptr), size(0) {}
 
+rmem::rmem() {
+  ptr = nullptr;
+  #ifdef DTDEBUG
+    size = 0;
+  #endif
+}
 
-rmem::rmem(const rmem& o) : ptr(o.ptr), size(o.size) {}
+rmem::rmem(const rmem& o) {
+  ptr = o.ptr;
+  #ifdef DTDEBUG
+    size = o.size;
+  #endif
+}
 
-rmem::rmem(const rmem& o, size_t offset, size_t n)
-    : ptr(static_cast<char*>(o.ptr) + offset), size(n)
-{
-  xassert(offset + n <= o.size);
+rmem::rmem(const rmem& o, size_t offset, size_t n) {
+  ptr = static_cast<char*>(o.ptr) + offset;
+  (void)n;
+  #ifdef DTDEBUG
+    size = n;
+    xassert(offset + n <= o.size);
+  #endif
 }
 
 rmem& rmem::operator=(const omem& o) {
   ptr = o.ptr;
-  size = o.size;
+  #ifdef DTDEBUG
+    size = o.size;
+  #endif
   return *this;
 }
 
@@ -198,7 +215,9 @@ template <typename T> T* rmem::data() const noexcept {
 
 void swap(rmem& left, rmem& right) noexcept {
   std::swap(left.ptr, right.ptr);
-  std::swap(left.size, right.size);
+  #ifdef DTDEBUG
+    std::swap(left.size, right.size);
+  #endif
 }
 
 
