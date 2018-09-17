@@ -130,6 +130,7 @@
 
 class omem {
   private:
+  public:
     void* ptr;
     size_t size;
   public:
@@ -288,12 +289,12 @@ void swap(rmem& left, rmem& right) noexcept {
  *       histogram[i,k] = #{elements in chunks 0..i with radix = k} +
  *                        #{elements in all chunks with radix < k}
  *
- * next_x
+ * xx
  *   When `shift > 0`, a single pass of the `radix_psort()` function will sort
  *   the data array only partially, and 1 or more extra passes will be needed to
- *   finish sorting. In this case the array `next_x` (of length `n`) will hold
+ *   finish sorting. In this case the array `xx` (of length `n`) will hold
  *   pre-sorted and potentially modified values of the original data array `x`.
- *   The array `next_x` is filled in the "reorder_data" step. If it was nullptr,
+ *   The array `xx` is filled in the "reorder_data" step. If it was nullptr,
  *   the array will be allocated, otherwise its contents will be overwritten.
  *
  * next_o
@@ -301,20 +302,20 @@ void swap(rmem& left, rmem& right) noexcept {
  *   returned as the final ordering in the end.
  *
  * next_elemsize
- *   Size in bytes of each element in `next_x`. This cannot be greater than
+ *   Size in bytes of each element in `xx`. This cannot be greater than
  *   `elemsize`, however `next_elemsize` can be 0.
  */
 class SortContext {
   private:
     arr32_t order;
     arr32_t groups;
-    MemoryRange mr_xx;
     omem omem_x;
+    omem omem_xx;
     dt::array<size_t> arr_hist;
     GroupGatherer gg;
 
     rmem x;
-    void* next_x;
+    rmem xx;
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
@@ -336,7 +337,6 @@ class SortContext {
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
-    next_x = nullptr;
     next_o = nullptr;
     strdata = nullptr;
 
@@ -416,11 +416,9 @@ class SortContext {
     x = omem_x;
   }
 
-  void _allocate_next_x(size_t nbytes) {
-    if (mr_xx.size() < nbytes) {
-      mr_xx.resize(nbytes, /* keep_data = */ false);
-    }
-    next_x = mr_xx.xptr();
+  void allocate_xx() {
+    omem_xx.ensure_size(n * next_elemsize);
+    xx = omem_xx;
   }
 
   void _prepare_data_for_column(const Column* col, bool /*firstcol*/) {
@@ -741,10 +739,10 @@ class SortContext {
   //============================================================================
 
   /**
-   * Perform the main radix shuffle, filling in arrays `next_o` and `next_x`.
+   * Perform the main radix shuffle, filling in arrays `next_o` and `xx`.
    * The array `next_o` will contain the original row numbers of the values in
    * `x` such that `x[next_o]` is sorted with respect to the most significant
-   * bits. The `next_x` array will contain the sorted elements of `x`, with MSB
+   * bits. The `xx` array will contain the sorted elements of `x`, with MSB
    * bits already removed -- we need it mostly for page-efficiency at later
    * stages of the algorithm.
    *
@@ -755,14 +753,14 @@ class SortContext {
    * to each radix value.
    */
   void reorder_data() {
-    if (!next_x && next_elemsize) {
-      _allocate_next_x(n * next_elemsize);
+    if (!xx && next_elemsize) {
+      allocate_xx();
     }
     if (!next_o) {
       next_o = new int32_t[n];
     }
     if (strtype) {
-      if (next_x) {
+      if (xx) {
         if (strtype == 1) _reorder_str<uint32_t>();
         else              _reorder_str<uint64_t>();
       } else _reorder_impl<uint8_t, char, false>();
@@ -789,7 +787,7 @@ class SortContext {
           break;
       }
     }
-    std::swap(x.ptr, next_x);
+    swap(x, xx);
     std::swap(o, next_o);
     std::swap(elemsize, next_elemsize);
     use_order = true;
@@ -800,7 +798,7 @@ class SortContext {
     TO* xo;
     TI mask;
     if (OUT) {
-      xo = static_cast<TO*>(next_x);
+      xo = xx.data<TO>();
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
@@ -822,7 +820,7 @@ class SortContext {
 
   template <typename T> void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
-    uint8_t* xo = static_cast<uint8_t*>(next_x);
+    uint8_t* xo = xx.data<uint8_t>();
     const T sstart = static_cast<T>(strstart) + 1;
     const T* soffs = static_cast<const T*>(stroffs);
 
@@ -942,7 +940,7 @@ class SortContext {
     // in order to perform the recursion.
     size_t   _n        = n;
     rmem     _x        = x;
-    void*    _next_x   = next_x;
+    rmem     _xx       = xx;
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
     uint8_t  _elemsize = elemsize;
@@ -983,11 +981,9 @@ class SortContext {
         size_t off = rrmap[rri].offset;
         elemsize = _elemsize;
         n = sz;
-        // x.ptr = static_cast<void*>(_x.data<char>() + off * elemsize);
-        x = rmem(_x, off * elemsize, x.size);
+        x = rmem(_x, off * elemsize, _x.size);
+        xx = rmem(_xx, off * elemsize, _xx.size);
         o = _o + off;
-        next_x = static_cast<void*>(
-                    static_cast<char*>(_next_x) + off * elemsize);
         next_o = _next_o + off;
         if (make_groups) {
           gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
@@ -1005,7 +1001,7 @@ class SortContext {
     n = _n;
     x = _x;
     o = _o;
-    next_x = _next_x;
+    xx = _xx;
     next_o = _next_o;
     strstart = _strstart;
     elemsize = _elemsize;
@@ -1040,17 +1036,17 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          void*    tx = static_cast<char*>(_x.ptr) + off * elemsize;
+          rmem     tx = rmem(_x, off * elemsize, _x.size);
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
           if (strtype == 0) {
             switch (elemsize) {
-              case 1: insert_sort_keys<>(static_cast<uint8_t*>(tx), to, oo, tn, tgg); break;
-              case 2: insert_sort_keys<>(static_cast<uint16_t*>(tx), to, oo, tn, tgg); break;
-              case 4: insert_sort_keys<>(static_cast<uint32_t*>(tx), to, oo, tn, tgg); break;
-              case 8: insert_sort_keys<>(static_cast<uint64_t*>(tx), to, oo, tn, tgg); break;
+              case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
+              case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
+              case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
+              case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
             }
           } else if (strtype == 1) {
             const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
