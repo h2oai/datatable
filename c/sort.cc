@@ -179,7 +179,7 @@ rmem::rmem(const rmem& o) : ptr(o.ptr), size(o.size) {}
 rmem::rmem(const rmem& o, size_t offset, size_t n)
     : ptr(static_cast<char*>(o.ptr) + offset), size(n)
 {
-  xassert(o.size <= offset + n);
+  xassert(offset + n <= o.size);
 }
 
 rmem& rmem::operator=(const omem& o) {
@@ -981,8 +981,8 @@ class SortContext {
         size_t off = rrmap[rri].offset;
         elemsize = _elemsize;
         n = sz;
-        x = rmem(_x, off * elemsize, _x.size);
-        xx = rmem(_xx, off * elemsize, _xx.size);
+        x = rmem(_x, off * elemsize, n * elemsize);
+        xx = rmem(_xx, off * elemsize, n * elemsize);
         o = _o + off;
         next_o = _next_o + off;
         if (make_groups) {
@@ -1036,7 +1036,7 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          rmem     tx = rmem(_x, off * elemsize, _x.size);
+          rmem     tx = rmem(_x, off * elemsize, zn * elemsize);
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
