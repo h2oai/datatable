@@ -128,7 +128,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt_exemplars,
   if (ri_members.isarr32()) {
     ri_members_indices = ri_members.indices32();
   } else if (ri_members.isslice()) {
-    temp = ri_members.extract_as_array32();
+    temp.resize(static_cast<size_t>(dt_members->nrows));
+    ri_members.extract_into(temp);
     ri_members_indices = temp.data();
   } else if (ri_members.isarr64()){
     throw ValueError() << "RI_ARR64 is not supported for the moment";

@@ -105,15 +105,14 @@ void RowIndex::shrink(int64_t nrows, int64_t ncols) {
 }
 
 
-arr32_t RowIndex::extract_as_array32() const
+void RowIndex::extract_into(arr32_t& target) const
 {
-  arr32_t res;
-  if (!impl) return res;
+  if (!impl) return;
   size_t szlen = static_cast<size_t>(length());
-  res.resize(szlen);
+  xassert(target.size() >= szlen);
   switch (impl->type) {
     case RI_ARR32: {
-      std::memcpy(res.data(), indices32(), szlen * sizeof(int32_t));
+      std::memcpy(target.data(), indices32(), szlen * sizeof(int32_t));
       break;
     }
     case RI_SLICE: {
@@ -122,7 +121,7 @@ arr32_t RowIndex::extract_as_array32() const
         int32_t step = static_cast<int32_t>(slice_step());
         #pragma omp parallel for schedule(static)
         for (size_t i = 0; i < szlen; ++i) {
-          res[i] = start + static_cast<int32_t>(i) * step;
+          target[i] = start + static_cast<int32_t>(i) * step;
         }
       }
       break;
@@ -130,7 +129,6 @@ arr32_t RowIndex::extract_as_array32() const
     default:
       break;
   }
-  return res;
 }
 
 

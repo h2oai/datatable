@@ -137,6 +137,7 @@ class omem {
     omem();
     ~omem();
     void ensure_size(size_t n);
+    void* release();
     friend class rmem;
 };
 
@@ -149,10 +150,10 @@ class rmem {
     #endif
   public:
     rmem();
+    rmem(const omem&);
     rmem(const rmem&);
     rmem(const rmem&, size_t offset, size_t n);
     rmem& operator=(const rmem&) = default;
-    rmem& operator=(const omem&);
     explicit operator bool() const noexcept;
     template <typename T> T* data() const noexcept;
     friend void swap(rmem& left, rmem& right) noexcept;
@@ -173,11 +174,24 @@ void omem::ensure_size(size_t n) {
   size = n;
 }
 
+void* omem::release() {
+  void* p = ptr;
+  ptr = nullptr;
+  return p;
+}
+
 
 rmem::rmem() {
   ptr = nullptr;
   #ifdef DTDEBUG
     size = 0;
+  #endif
+}
+
+rmem::rmem(const omem& o) {
+  ptr = o.ptr;
+  #ifdef DTDEBUG
+    size = o.size;
   #endif
 }
 
@@ -195,14 +209,6 @@ rmem::rmem(const rmem& o, size_t offset, size_t n) {
     size = n;
     xassert(offset + n <= o.size);
   #endif
-}
-
-rmem& rmem::operator=(const omem& o) {
-  ptr = o.ptr;
-  #ifdef DTDEBUG
-    size = o.size;
-  #endif
-  return *this;
 }
 
 rmem::operator bool() const noexcept {
@@ -326,10 +332,11 @@ void swap(rmem& left, rmem& right) noexcept {
  */
 class SortContext {
   private:
-    arr32_t order;
     arr32_t groups;
-    omem omem_x;
-    omem omem_xx;
+    omem container_x;
+    omem container_xx;
+    omem container_o;
+    omem container_oo;
     dt::array<size_t> arr_hist;
     GroupGatherer gg;
 
@@ -356,15 +363,20 @@ class SortContext {
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
+    o = nullptr;
     next_o = nullptr;
     strdata = nullptr;
+    use_order = false;
 
     nth = static_cast<size_t>(config::sort_nthreads);
     n = nrows;
-    order = rowindex.extract_as_array32();
-    use_order = static_cast<bool>(order);
-    if (!use_order) order.resize(n);
-    o = order.data();
+    container_o.ensure_size(n * sizeof(int32_t));
+    o = static_cast<int32_t*>(container_o.ptr);
+    if (rowindex) {
+      arr32_t co(n, o);
+      rowindex.extract_into(co);
+      use_order = true;
+    }
     if (make_groups) {
       groups.resize(n + 1);
       groups[0] = 0;
@@ -373,12 +385,7 @@ class SortContext {
   }
 
   SortContext(const SortContext&) = delete;
-  SortContext& operator=(const SortContext&) = delete;
-
-  ~SortContext() {
-    // Note: `o` is not owned by this class, see `initialize()`
-    delete[] next_o;
-  }
+  SortContext(SortContext&&) = delete;
 
 
   void start_sort(const Column* col) {
@@ -399,7 +406,7 @@ class SortContext {
     nradixes = gg.size();
     use_order = true;
     xassert(nradixes > 0);
-    xassert(o == order.data());
+    xassert(o == container_o.ptr);
     _prepare_data_for_column(col, false);
     dt::array<radix_range> rrmap(nradixes);
     radix_range* rrmap_ptr = rrmap.data();
@@ -414,7 +421,9 @@ class SortContext {
 
 
   RowIndex get_result(Groupby* out_grps) {
-    RowIndex res = RowIndex::from_array32(std::move(order));
+    RowIndex res = RowIndex::from_array32(
+        arr32_t(n, static_cast<int32_t*>(container_o.release()), true)
+    );
     if (out_grps) {
       size_t ngrps = gg.size();
       xassert(groups.size() > ngrps);
@@ -431,13 +440,18 @@ class SortContext {
   //============================================================================
 
   void allocate_x() {
-    omem_x.ensure_size(n * elemsize);
-    x = omem_x;
+    container_x.ensure_size(n * elemsize);
+    x = rmem(container_x);
   }
 
   void allocate_xx() {
-    omem_xx.ensure_size(n * next_elemsize);
-    xx = omem_xx;
+    container_xx.ensure_size(n * next_elemsize);
+    xx = rmem(container_xx);
+  }
+
+  void allocate_oo() {
+    container_oo.ensure_size(n * 4);
+    next_o = static_cast<int*>(container_oo.ptr);
   }
 
   void _prepare_data_for_column(const Column* col, bool /*firstcol*/) {
@@ -772,12 +786,8 @@ class SortContext {
    * to each radix value.
    */
   void reorder_data() {
-    if (!xx && next_elemsize) {
-      allocate_xx();
-    }
-    if (!next_o) {
-      next_o = new int32_t[n];
-    }
+    if (!xx && next_elemsize) allocate_xx();
+    if (!next_o) allocate_oo();
     if (strtype) {
       if (xx) {
         if (strtype == 1) _reorder_str<uint32_t>();
