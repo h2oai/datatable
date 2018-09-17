@@ -418,10 +418,13 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
-  #pragma omp parallel
+
+  int32_t nth = static_cast<int32_t>(dt->nrows / ROWSPERTHREAD) + 1;
+  if (nth > config::nthreads) nth = config::nthreads;
+
+  #pragma omp parallel num_threads(nth)
   {
     auto ith = omp_get_thread_num();
-    auto nth = omp_get_num_threads();
     int64_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
     double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
