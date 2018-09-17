@@ -141,6 +141,7 @@ class omem {
 
 class rmem {
   private:
+  public:
     void* ptr;
     size_t size;
   public:
@@ -307,12 +308,12 @@ class SortContext {
   private:
     arr32_t order;
     arr32_t groups;
-    MemoryRange mr_x;
     MemoryRange mr_xx;
+    omem omem_x;
     dt::array<size_t> arr_hist;
     GroupGatherer gg;
 
-    void* x;
+    rmem x;
     void* next_x;
     int32_t* o;
     int32_t* next_o;
@@ -335,7 +336,6 @@ class SortContext {
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
-    x = nullptr;
     next_x = nullptr;
     next_o = nullptr;
     strdata = nullptr;
@@ -411,15 +411,9 @@ class SortContext {
   // Data preparation
   //============================================================================
 
-  template <typename T>
-  T* _allocate_and_get_x() {
-    size_t nbytes = n * sizeof(T);
-    if (mr_x.size() < nbytes) {
-      mr_x.resize(nbytes, /* keep_data = */ false);
-    }
-    elemsize = sizeof(T);
-    x = mr_x.xptr();
-    return static_cast<T*>(x);
+  void allocate_x() {
+    omem_x.ensure_size(n * elemsize);
+    x = omem_x;
   }
 
   void _allocate_next_x(size_t nbytes) {
@@ -470,8 +464,10 @@ class SortContext {
    */
   void _initB(const Column* col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
-    uint8_t* xo = _allocate_and_get_x<uint8_t>();
+    elemsize = 1;
     nsigbits = 2;
+    allocate_x();
+    uint8_t* xo = x.data<uint8_t>();
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -515,7 +511,9 @@ class SortContext {
     TI una = static_cast<TI>(GETNA<T>());
     TI umin = static_cast<TI>(min);
     const TI* xi = static_cast<const TI*>(col->data());
-    TO* xo = _allocate_and_get_x<TO>();
+    elemsize = sizeof(TO);
+    allocate_x();
+    TO* xo = x.data<TO>();
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -565,8 +563,10 @@ class SortContext {
   template <typename TO>
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
-    TO* xo = _allocate_and_get_x<TO>();
+    elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
+    allocate_x();
+    TO* xo = x.data<TO>();
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -610,10 +610,12 @@ class SortContext {
     strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
     const T* offs = scol->offsets();
     stroffs = static_cast<const void*>(offs);
-    uint8_t* xo = _allocate_and_get_x<uint8_t>();
     strtype = sizeof(T) / 4;
     strstart = 0;
     nsigbits = 8;
+    elemsize = 1;
+    allocate_x();
+    uint8_t* xo = x.data<uint8_t>();
 
     T maxlen = 0;
     #pragma omp parallel for schedule(static) num_threads(nth) \
@@ -708,7 +710,7 @@ class SortContext {
   }
 
   template<typename T> void _histogram_gather() {
-    T* tx = static_cast<T*>(x);
+    T* tx = x.data<T>();
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; ++i) {
       size_t* cnts = histogram + (nradixes * i);
@@ -787,14 +789,14 @@ class SortContext {
           break;
       }
     }
-    std::swap(x, next_x);
+    std::swap(x.ptr, next_x);
     std::swap(o, next_o);
     std::swap(elemsize, next_elemsize);
     use_order = true;
   }
 
   template<typename TI, typename TO, bool OUT> void _reorder_impl() {
-    TI* xi = static_cast<TI*>(x);
+    TI* xi = x.data<TI>();
     TO* xo;
     TI mask;
     if (OUT) {
@@ -819,7 +821,7 @@ class SortContext {
   }
 
   template <typename T> void _reorder_str() {
-    uint8_t* xi = static_cast<uint8_t*>(x);
+    uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = static_cast<uint8_t*>(next_x);
     const T sstart = static_cast<T>(strstart) + 1;
     const T* soffs = static_cast<const T*>(stroffs);
@@ -939,7 +941,7 @@ class SortContext {
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;
-    void*    _x        = x;
+    rmem     _x        = x;
     void*    _next_x   = next_x;
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
@@ -981,7 +983,8 @@ class SortContext {
         size_t off = rrmap[rri].offset;
         elemsize = _elemsize;
         n = sz;
-        x = static_cast<void*>(static_cast<char*>(_x) + off * elemsize);
+        // x.ptr = static_cast<void*>(_x.data<char>() + off * elemsize);
+        x = rmem(_x, off * elemsize, x.size);
         o = _o + off;
         next_x = static_cast<void*>(
                     static_cast<char*>(_next_x) + off * elemsize);
@@ -1037,7 +1040,7 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          void*    tx = static_cast<char*>(_x) + off * elemsize;
+          void*    tx = static_cast<char*>(_x.ptr) + off * elemsize;
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
@@ -1122,13 +1125,13 @@ class SortContext {
   }
 
   template <typename T> void _insert_sort_keys(int32_t* tmp) {
-    T* xt = static_cast<T*>(x);
+    T* xt = x.data<T>();
     int32_t nn = static_cast<int32_t>(n);
     insert_sort_keys(xt, o, tmp, nn, gg);
   }
 
   template <typename T> void _insert_sort_values() {
-    T* xt = static_cast<T*>(x);
+    T* xt = x.data<T>();
     int32_t nn = static_cast<int32_t>(n);
     insert_sort_values(xt, o, nn, gg);
   }
