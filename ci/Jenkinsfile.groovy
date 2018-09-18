@@ -695,6 +695,9 @@ ansiColor('xterm') {
                                     sh """
                                         s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
                                         s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
+                                        rename  's/${versionText}/latest/' *
+                                        s3cmd put -P release/dist/*.whl s3://h2o-release/datatable/stable/latest/
+                                        s3cmd put -P release/dist/*.tar.gz s3://h2o-release/datatable/stable/latest/
                                     """
                                 }
                             }
