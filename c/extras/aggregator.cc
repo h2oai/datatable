@@ -635,8 +635,7 @@ DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
 
-  // Can be enabled later when we don't care about exact reproducibility.
-  // #pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static)
   for (size_t i = 0;
     i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
     pmatrix[i] = distribution(generator);
