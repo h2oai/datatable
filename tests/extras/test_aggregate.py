@@ -325,9 +325,9 @@ def test_aggregate_2d_mixed_random():
 #-------------------------------------------------------------------------------    
     
 def test_aggregate_3d():
-    d_in = dt.Frame([[0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0],
-                     [0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0],
-                     [0.9, 0.5, 0.5, 0.0, 0.9, 0.5, 1.0, 0.5, 0.9, 1.0]])
+    d_in = dt.Frame([[0.9, 0.5, 0.5, 0.2, 0.9, 0.5, 0.9, 0.5, 0.9, 0.9],
+                     [0.8, 0.4, 0.4, 0.1, 0.8, 0.4, 0.8, 0.4, 0.8, 0.8],
+                     [0.7, 0.3, 0.3, 0.0, 0.7, 0.5, 0.7, 0.3, 0.7, 0.7]])
     d_members = aggregate(d_in, min_rows=0, nd_max_bins=3)
     a_members = d_members.topython()[0]
     d = d_in.sort("C0")
@@ -343,10 +343,10 @@ def test_aggregate_3d():
     d_in.internal.check()
     assert d_in.shape == (3, 4)
     assert d_in.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
-    assert d.topython() == [[0.0, 0.5, 0.9],
-                               [0.0, 0.5, 0.9],
-                               [0.0, 0.5, 0.9],
-                               [1, 4, 5]]
+    assert d.topython() == [[0.2, 0.5, 0.9],
+                            [0.1, 0.4, 0.8],
+                            [0.0, 0.3, 0.7],
+                            [1, 4, 5]]
 
 
 def test_aggregate_nd_direct():
