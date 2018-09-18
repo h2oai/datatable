@@ -707,13 +707,12 @@ class SortContext {
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 
-    if (!strdata) {
-      // The remaining number of sig.bits is `shift`. Thus, this value will
-      // determine the `next_elemsize`.
-      next_elemsize = shift > 32? 8 :
-                      shift > 16? 4 :
-                      shift > 0? 2 : 0;
-    }
+    // The remaining number of sig.bits is `shift`. Thus, this value will
+    // determine the `next_elemsize`.
+    next_elemsize = strtype? 1 :
+                    shift > 32? 8 :
+                    shift > 16? 4 :
+                    shift > 0? 2 : 0;
   }
 
 
