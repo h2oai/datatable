@@ -761,7 +761,6 @@ def test_multisort_bool_real(seed):
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
-@pytest.mark.skip()
 def test_sort_random_multi(seed):
     def random_bool():
         return random.choice([True, False])
