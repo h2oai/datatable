@@ -232,7 +232,7 @@ class RowIndex {
     int64_t slice_start() const { return impl_asslice()->start; }
     int64_t slice_step() const { return impl_asslice()->step; }
 
-    arr32_t extract_as_array32() const;
+    void extract_into(arr32_t&) const;
     RowIndex inverse(int64_t nrows) const;
 
     /**

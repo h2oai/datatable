@@ -133,7 +133,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   if (ri_members.isarr32()) {
     ri_members_indices = ri_members.indices32();
   } else if (ri_members.isslice()) {
-    temp = ri_members.extract_as_array32();
+    temp.resize(static_cast<size_t>(dt_members->nrows));
+    ri_members.extract_into(temp);
     ri_members_indices = temp.data();
   } else if (ri_members.isarr64()){
     throw ValueError() << "RI_ARR64 is not supported for the moment";
@@ -408,18 +409,18 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   OmpExceptionManager oem;
   dt::shared_mutex shmutex;
-  auto d = static_cast<int32_t>(dt->ncols);
-  int64_t ndims = std::min(max_dimensions, d);
+  auto ncols = static_cast<int32_t>(dt->ncols);
+  int64_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   DoublePtr pmatrix = nullptr;
-  if (d > max_dimensions) pmatrix = generate_pmatrix(dt);
+  if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
 
-  int32_t nth = static_cast<int32_t>(dt->nrows * dt->ncols / ELSPERTHREAD) + 1;
+  int32_t nth = static_cast<int32_t>(dt->nrows * ncols / ELSPERTHREAD) + 1;
   if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
   if (nth > config::nthreads) nth = config::nthreads;
 
@@ -434,7 +435,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
       // Main loop over all the rows
       for (int32_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
-        if (d > max_dimensions) {
+        if (ncols > max_dimensions) {
           project_row(dt, member, i, pmatrix);
         } else {
           normalize_row(dt, member, i);

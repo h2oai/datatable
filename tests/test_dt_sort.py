@@ -33,13 +33,16 @@ def test_sort_len1():
 
 
 def test_sort_len1_view():
-    d0 = dt.Frame(range(10))
-    d1 = d0[5, :].sort(0)
-    assert d1.scalar() == 5
+    d0 = dt.Frame([range(10), range(10, 0, -1)])
+    d1 = d0[6, :].sort(0)
+    assert d1.topython() == [[6], [4]]
     d2 = d0[[7], :].sort(0)
-    assert d2.scalar() == 7
-    d2 = d0[2:3, :].sort(0)
-    assert d2.scalar() == 2
+    assert d2.topython() == [[7], [3]]
+    d3 = d0[2:3, :].sort(0)
+    assert d3.topython() == [[2], [8]]
+    d4 = d0[4::2, :].sort(1, 0)
+    assert d4.shape == (3, 2)
+    assert d4.topython() == [[8, 6, 4], [2, 4, 6]]
 
 
 def test_sort_len2():
@@ -80,6 +83,8 @@ def test_nonfirst_column():
 
 
 
+#-------------------------------------------------------------------------------
+# Int32
 #-------------------------------------------------------------------------------
 
 def test_int32_small():
@@ -468,6 +473,8 @@ def test_float64_random(numpy, n):
 
 
 #-------------------------------------------------------------------------------
+# Sort views
+#-------------------------------------------------------------------------------
 
 def test_sort_view1():
     d0 = dt.Frame([5, 10])
@@ -668,3 +675,119 @@ def test_strXX_large6(st):
     dt1 = dt0(sort=0)
     dt1.internal.check()
     assert dt1.topython()[0] == sorted(words)
+
+
+
+#-------------------------------------------------------------------------------
+# Sort by multiple columns
+#-------------------------------------------------------------------------------
+
+def test_sort_len0_multi():
+    d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
+    assert d0.shape == (0, 3)
+    d1 = d0.sort(0, 2, 1)
+    d1.internal.check()
+    assert d1.shape == (0, 3)
+    assert d1.names == d0.names
+
+
+def test_sort_len1_multi():
+    d0 = dt.Frame([[17], [2.99], ["foo"]], names=["Q", "u", "a"])
+    assert d0.shape == (1, 3)
+    d1 = d0.sort(0, 1, 2)
+    d1.internal.check()
+    assert d1.shape == (1, 3)
+    assert d1.names == d0.names
+    assert d1.topython() == d0.topython()
+
+
+def test_int32_small_multi():
+    src = [
+        [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
+        [5, 1, 9, 4, 1, 0, 3, 2, 7, 5, 8, 1]
+    ]
+    d0 = dt.Frame(src, names=["A", "B"], stype=dt.stype.int32)
+    d1 = d0.sort("A", "B")
+    order = sorted(range(len(src[0])), key=lambda i: (src[0][i], src[1][i]))
+    d1.internal.check()
+    assert d1.names == d0.names
+    assert d1.topython() == [[src[0][i] for i in order],
+                             [src[1][i] for i in order]]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_bool8_2cols_multi(seed):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 200)
+    data = [[random.choice([True, False]) for _ in range(n)] for j in range(2)]
+    n0 = sum(data[0])
+    n10 = sum(data[1][i] for i in range(n) if data[0][i] is False)
+    n11 = sum(data[1][i] for i in range(n) if data[0][i] is True)
+    d0 = dt.Frame(data)
+    d1 = d0.sort(0, 1)
+    assert d1.topython() == [[False] * (n - n0) + [True] * n0,
+                             [False] * (n - n0 - n10) + [True] * n10 +
+                             [False] * (n0 - n11) + [True] * n11]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_bool8_manycols_multi(seed):
+    random.seed(seed)
+    nrows = int(random.expovariate(0.005) + 100)
+    ncols = int(random.expovariate(0.01) + 2)
+    data = [[random.choice([True, False]) for _ in range(nrows)]
+            for j in range(ncols)]
+    d0 = dt.Frame(data)
+    d1 = d0.sort(*list(range(ncols)))
+    d0_sorted = sorted(d0.to_csv().split("\n")[1:-1])
+    d1_sorted = d1.to_csv().split("\n")[1:-1]
+    assert d0_sorted == d1_sorted
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_multisort_bool_real(seed):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 200)
+    col0 = [random.choice([True, False]) for _ in range(n)]
+    col1 = [random.randint(1, 10) / 97 for _ in range(n)]
+    d0 = dt.Frame([col0, col1])
+    d1 = d0.sort(0, 1)
+    d1.internal.check()
+    n0 = sum(col0)
+    assert d1.topython() == [
+        [False] * (n - n0) + [True] * n0,
+        sorted([col1[i] for i in range(n) if col0[i] is False]) +
+        sorted([col1[i] for i in range(n) if col0[i] is True])]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+def test_sort_random_multi(seed):
+    def random_bool():
+        return random.choice([True, False])
+
+    def random_int():
+        return random.randint(-10, 10)
+
+    def random_real():
+        return random.choice([-1.95, 0.1, 0.3, 1.1, 7.3, -2.99, 9.13, 4.555])
+
+    def random_str():
+        return random.choice(["", "foo", "enlkq", "n1-48", "fooba", "enkyi",
+                              "zweb", "z", "vn;e", "skdjhfb", "amruye", "f"])
+
+    random.seed(seed)
+    n = int(random.expovariate(0.01) + 2)
+    data = []
+    for _ in range(5):
+        fn = random.choice([random_bool, random_int, random_real, random_str])
+        data.append([fn() for _ in range(n)])
+    data.append([random.random() for _ in range(n)])
+    order = sorted(list(range(n)),
+                   key=lambda x: (data[1][x], data[2][x], data[3][x], x))
+    sorted_data = [[col[j] for j in order] for col in data]
+    d0 = dt.Frame(data, names=list("ABCDEF"))
+    d0.internal.check()
+    # d0.save("multi.jay", format="jay")
+    # dt.Frame(sorted_data).save("test.jay", format="jay")
+    d1 = d0.sort("B", "C", "D")
+    assert d1.topython() == sorted_data

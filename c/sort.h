@@ -81,7 +81,7 @@ class GroupGatherer {
     void init(int32_t* data, int32_t cumsize0);
 
     int32_t* data() const { return groups; }
-    int32_t  size() const { return count; }
+    size_t   size() const { return static_cast<size_t>(count); }
     int32_t  cumulative_size() const { return cumsize; }
     operator bool() const { return !!groups; }
 
