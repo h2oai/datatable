@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame() can now be created from a datetime64 numpy array (#1274).
 - Groupby calculations are now parallel.
 - `Frame.cbind()` now accepts a list of frames as the argument.
+- Frame can now be sorted by multiple columns.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
