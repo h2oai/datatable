@@ -597,7 +597,7 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
     if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) continue;
     ++n;
     sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
-    if (early_exit && sum > delta) return sum;
+    if (early_exit && sum > delta) return sum; // i/n normalization here?
   }
 
   return sum * ndims / n;
