@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "str/py_str.h"
 #include <unordered_map>
 #include <vector>
 #include "datatable.h"
@@ -43,6 +44,7 @@ static void tokenize_string(
           continue;
         }
         // fall-through
+        ch = ch0;
       }
       // Regular non-quoted token, parse until the next sep
       while (ch < strend && *ch != sep) {
@@ -144,8 +146,8 @@ DataTable* split_into_nhot(Column* col, char sep) {
         }
       }
     } catch (...) {
-      oem.capture_exception();
-    }
+      oem.capture_exception();  // LCOV_EXCL_LINE
+    }                           // LCOV_EXCL_LINE
   }  // end of #pragma omp parallel
 
   oem.rethrow_exception_if_any();

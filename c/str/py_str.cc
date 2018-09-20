@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "py_str.h"
+#include "str/py_str.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "types.h"
