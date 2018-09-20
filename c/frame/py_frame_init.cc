@@ -589,40 +589,28 @@ class FrameInitializationManager {
     }
 
 
-    Column** prepare_columns() {
-      size_t ncols = cols.size();
-      size_t allocsize = sizeof(Column*) * (ncols + 1);
-      Column** newcols = dt::malloc<Column*>(allocsize);
-      if (ncols) {
-        std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
-      }
-      newcols[ncols] = nullptr;
-      cols.clear();
-      return newcols;
-    }
-
     void make_datatable(nullptr_t) {
-      frame->dt = new DataTable(prepare_columns(), nullptr);
+      frame->dt = new DataTable(std::move(cols), nullptr);
     }
 
     void make_datatable(const Arg& names) {
       if (names) {
-        frame->dt = new DataTable(prepare_columns(), names.to_pylist());
+        frame->dt = new DataTable(std::move(cols), names.to_pylist());
       } else {
-        frame->dt = new DataTable(prepare_columns(), nullptr);
+        frame->dt = new DataTable(std::move(cols), nullptr);
       }
     }
 
     void make_datatable(const py::olist& names) {
-      frame->dt = new DataTable(prepare_columns(), names);
+      frame->dt = new DataTable(std::move(cols), names);
     }
 
     void make_datatable(const std::vector<std::string>& names) {
-      frame->dt = new DataTable(prepare_columns(), names);
+      frame->dt = new DataTable(std::move(cols), names);
     }
 
     void make_datatable(const DataTable* names_src) {
-      frame->dt = new DataTable(prepare_columns(), names_src);
+      frame->dt = new DataTable(std::move(cols), names_src);
     }
 
 

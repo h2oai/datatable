@@ -72,6 +72,10 @@ class DataTable {
     DataTable(Column** cols, const py::olist& namessrc);
     DataTable(Column** cols, const std::vector<std::string>& namessrc);
     DataTable(Column** cols, const DataTable* namessrc);
+    DataTable(std::vector<Column*>&& cols, std::nullptr_t);
+    DataTable(std::vector<Column*>&& cols, const py::olist&);
+    DataTable(std::vector<Column*>&& cols, const std::vector<std::string>&);
+    DataTable(std::vector<Column*>&& cols, const DataTable*);
     ~DataTable();
     DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);

@@ -71,15 +71,14 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 
 PyObject* columns_from_mixed(PyObject*, PyObject *args)
 {
-  PyObject* arg1;
-  DataTable* dt;
+  PyObject* arg1, *arg2;
   long int nrows;
   long long rawptr;
-  if (!PyArg_ParseTuple(args, "OO&lL:columns_from_mixed",
-                        &arg1, &pydatatable::unwrap, &dt,
-                        &nrows, &rawptr))
+  if (!PyArg_ParseTuple(args, "OOlL:columns_from_mixed",
+                        &arg1, &arg2, &nrows, &rawptr))
     return nullptr;
   py::olist pyspec = py::obj(arg1).to_pylist();
+  DataTable* dt = py::obj(arg2).to_frame();
 
   columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
   size_t ncols = pyspec.size();
