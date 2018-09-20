@@ -17,6 +17,7 @@ from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 from .utils.typechecks import DatatableWarning
+from .str import split_into_nhot
 try:
     from .__git__ import __git_revision__
 except:
@@ -31,7 +32,8 @@ __all__ = ("__version__", "__git_revision__",
            "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64",
-           "cbind", "rbind")
+           "cbind", "rbind",
+           "split_into_nhot")
 
 bool8 = stype.bool8
 int8 = stype.int8

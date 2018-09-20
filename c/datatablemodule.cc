@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #define dt_DATATABLEMODULE_cc
+#include "datatablemodule.h"
 #include <Python.h>
 #include "capi.h"
 #include "csv/py_csv.h"
@@ -14,7 +15,6 @@
 #include "extras/aggregator.h"
 #include "frame/py_frame.h"
 #include "options.h"
-#include "python/ext_module.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -169,21 +169,6 @@ PyObject* has_omp_support(PyObject*, PyObject*) {
 // Module definition
 //------------------------------------------------------------------------------
 
-class DatatableModule : public py::ExtModule<DatatableModule> {
-  public:
-    const char* name() const { return "_datatable"; }
-    const char* doc() const;
-    void init_methods();
-};
-
-static DatatableModule dtmod;
-
-
-const char* DatatableModule::doc() const {
-  return "module doc...";
-}
-
-
 void DatatableModule::init_methods() {
   add(METHODv(pycolumnset::columns_from_mixed));
   add(METHODv(pycolumnset::columns_from_slice));
@@ -213,6 +198,7 @@ void DatatableModule::init_methods() {
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
   add(METHODv(aggregate));
+  init_methods_str();
 }
 
 
@@ -223,6 +209,7 @@ PyInit__datatable()
   init_csvwrite_constants();
   init_exceptions();
 
+  static DatatableModule dtmod;
   PyObject* m = dtmod.init();
 
   // Initialize submodules

@@ -17,6 +17,9 @@
 #define dt_PYTHON_EXT_MODULE_h
 #include <vector>
 #include <Python.h>
+#include "python/args.h"
+#include "python/obj.h"
+#include "utils/exceptions.h"
 
 namespace py {
 
@@ -35,6 +38,11 @@ class ExtModule {
     PyObject* init();
 
     void init_methods() {}
+
+    template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>
+    void add(const char* name, const char* doc);
+    template <void (*F)(const PKArgs&), PKArgs& ARGS>
+    void add(const char* name, const char* doc);
     void add(PyMethodDef);
 
   private:
@@ -42,10 +50,62 @@ class ExtModule {
 };
 
 
+template <typename A, void (*F)(const A&), A& ARGS>
+PyObject* _safe_function0(PyObject*, PyObject* args, PyObject* kwds) {
+  try {
+    ARGS.bind(args, kwds);
+    (*F)(ARGS);
+    Py_RETURN_NONE;
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+template <typename A, oobj (*F)(const A&), A& ARGS>
+PyObject* _safe_function1(PyObject*, PyObject* args, PyObject* kwds) {
+  try {
+    ARGS.bind(args, kwds);
+    oobj res = (*F)(ARGS);
+    return std::move(res).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
 template <class T>
 void ExtModule<T>::add(PyMethodDef def) {
   methods.push_back(def);
 }
+
+template <class T>
+template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>
+void ExtModule<T>::add(const char* name, const char* doc) {
+  ARGS.set_class_name(static_cast<T*>(this)->name());
+  ARGS.set_function_name(name);
+  methods.push_back(PyMethodDef {
+    name,
+    reinterpret_cast<PyCFunction>(&_safe_function1<PKArgs, F, ARGS>),
+    METH_VARARGS | METH_KEYWORDS,
+    doc
+  });
+}
+
+template <class T>
+template <void (*F)(const PKArgs&), PKArgs& ARGS>
+void ExtModule<T>::add(const char* name, const char* doc) {
+  ARGS.set_class_name(static_cast<T*>(this)->name());
+  ARGS.set_function_name(name);
+  methods.push_back(PyMethodDef {
+    name,
+    reinterpret_cast<PyCFunction>(&_safe_function0<PKArgs, F, ARGS>),
+    METH_VARARGS | METH_KEYWORDS,
+    doc
+  });
+}
+
 
 template <class T>
 PyMethodDef* ExtModule<T>::get_methods() {
