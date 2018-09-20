@@ -13,12 +13,26 @@
 #include "types.h"
 
 // Forward declarations
+using colvec = std::vector<Column*>;
+static Column** prepare_columns(colvec&);
 static int _compare_ints(const void *a, const void *b);
 
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
+
+DataTable::DataTable(colvec&& cols, std::nullptr_t)
+  : DataTable(prepare_columns(cols), nullptr) {}
+
+DataTable::DataTable(colvec&& cols, const py::olist& nn)
+  : DataTable(prepare_columns(cols), nn) {}
+
+DataTable::DataTable(colvec&& cols, const std::vector<std::string>& nn)
+  : DataTable(prepare_columns(cols), nn) {}
+
+DataTable::DataTable(colvec&& cols, const DataTable* nn)
+  : DataTable(prepare_columns(cols), nn) {}
 
 DataTable::DataTable(Column** cols, std::nullptr_t)
   : DataTable(cols)
@@ -88,6 +102,18 @@ DataTable::~DataTable()
     delete columns[i];
   }
   delete columns;
+}
+
+static Column** prepare_columns(colvec& cols) {
+  size_t ncols = cols.size();
+  size_t allocsize = sizeof(Column*) * (ncols + 1);
+  Column** newcols = dt::malloc<Column*>(allocsize);
+  if (ncols) {
+    std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
+  }
+  newcols[ncols] = nullptr;
+  cols.clear();
+  return newcols;
 }
 
 
