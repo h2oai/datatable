@@ -9,7 +9,8 @@ from datatable.lib import core
 
 
 def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-              nd_max_bins=250, max_dimensions=50, seed=0, progress_fn=None):
+              nd_max_bins=250, max_dimensions=50, seed=0, progress_fn=None,
+              nthreads=0):
     """
     Aggregate datatable in-place.
 
@@ -31,6 +32,9 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
         Seed to be used for the projection method.
     progress_fn: object
         Python function to be used for progress reporting.
+    nthreads: int
+        Number of OpenMP threads ND aggregator will use. Default is 0,
+        i.e. automatically figure out the optimal number.
 
     Returns
     -------
@@ -44,6 +48,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
         raise dt.TypeError("`progress_fn` argument should be a function")
 
     dt_members = core.aggregate(self, min_rows, n_bins, nx_bins, ny_bins,
-                                nd_max_bins, max_dimensions, seed, progress_fn)
+                                nd_max_bins, max_dimensions, seed, progress_fn,
+                                nthreads)
 
     return dt_members

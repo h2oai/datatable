@@ -23,13 +23,14 @@ typedef std::unique_ptr<ex> ExPtr;
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 #define PBSTEPS 100
-#define ELSPERTHREAD 500000
 
 class Aggregator {
   public:
     Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
-               unsigned int, PyObject*);
+               unsigned int, PyObject*, unsigned int);
     DataTablePtr aggregate(DataTable*);
+    static constexpr int omp_elements_project =   500000;
+    static constexpr int omp_elements_direct = 500000000;
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
     static void print_progress(double, int);
@@ -42,7 +43,7 @@ class Aggregator {
     int32_t nd_max_bins;
     int32_t max_dimensions;
     unsigned int seed;
-    int : 32;
+    unsigned int nthreads;
     PyObject* progress_fn;
 
     // Grouping and aggregating functions
@@ -57,6 +58,7 @@ class Aggregator {
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
     // Helper functions
+    int32_t calculate_num_nd_threads(DataTablePtr&);
     DoublePtr generate_pmatrix(DataTablePtr&);
     void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
     void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
@@ -71,5 +73,5 @@ class Aggregator {
 
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0)\n\n",
+  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0, progress)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)

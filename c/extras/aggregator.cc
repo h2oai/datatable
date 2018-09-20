@@ -22,17 +22,17 @@
 PyObject* aggregate(PyObject*, PyObject* args) {
 
   int32_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
-  unsigned int seed;
+  unsigned int seed, nthreads;
   PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIO:aggregate", &arg1, &min_rows, &n_bins,
+  if (!PyArg_ParseTuple(args, "OiiiiiiIOI:aggregate", &arg1, &min_rows, &n_bins,
                         &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
-                        &progress_fn)) return nullptr;
+                        &progress_fn, &nthreads)) return nullptr;
   DataTable* dt = py::obj(arg1).to_frame();
 
   Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
-                 seed, progress_fn);
+                 seed, progress_fn, nthreads);
 
   // dt_exemplars changes in-place with a new column added to the end of it
   DataTable* dt_members = agg.aggregate(dt).release();
@@ -47,7 +47,7 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 */
 Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_in,
                        int32_t ny_bins_in, int32_t nd_max_bins_in, int32_t max_dimensions_in,
-                       unsigned int seed_in, PyObject* progress_fn_in) :
+                       unsigned int seed_in, PyObject* progress_fn_in, unsigned int nthreads_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
@@ -55,6 +55,7 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
   seed(seed_in),
+  nthreads(nthreads_in),
   progress_fn(progress_fn_in)
 {
 }
@@ -417,12 +418,11 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   DoublePtr pmatrix = nullptr;
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
 
+  // Figuring out how many threads to use.
+  int32_t nth = calculate_num_nd_threads(dt);
+
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
-
-  int32_t nth = static_cast<int32_t>(dt->nrows * ncols / ELSPERTHREAD) + 1;
-  if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
-  if (nth > config::nthreads) nth = config::nthreads;
 
   #pragma omp parallel num_threads(nth)
   {
@@ -481,6 +481,21 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   adjust_members(ids, dt_members);
 }
 
+/*
+ *  Figure out how many threads we need to run ND groupping.
+ */
+int32_t Aggregator::calculate_num_nd_threads(DataTablePtr& dt) {
+  int32_t nth;
+  if (nthreads) {
+    nth = static_cast<int32_t>(nthreads);
+  } else {
+    int chunk_size = (dt->ncols > max_dimensions)? omp_elements_project : omp_elements_direct;
+    nth = static_cast<int32_t>(dt->nrows * dt->ncols / chunk_size) + 1;
+    if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
+    if (nth > config::nthreads) nth = config::nthreads;
+  }
+  return nth;
+}
 
 /*
 *  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
