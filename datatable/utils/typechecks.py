@@ -12,6 +12,7 @@ import warnings
 import sys
 from typesentry import U
 from datatable.utils.terminal import term
+from datatable.lib import core
 
 _tc = typesentry.Config()
 typed = _tc.typed
@@ -89,6 +90,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
 _default_warnings_hoook = warnings.showwarning
 warnings.showwarning = _showwarning
 
+core.register_function(6, DatatableWarning)
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",

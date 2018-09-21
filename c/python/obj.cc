@@ -36,8 +36,8 @@ static void init_numpy();
 _obj::error_manager _obj::_em0;
 
 
-obj::obj(PyObject* p) {
-  v = p;
+obj::obj(const PyObject* p) {
+  v = const_cast<PyObject*>(p);
 }
 
 obj::obj(const obj& other) {

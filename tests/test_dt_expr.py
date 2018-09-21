@@ -12,21 +12,24 @@ from tests import list_equals
 
 
 # Sets of tuples containing test columns of each type
-dt_bool = {(False, True, False, False, True),
-           (True, None, None, True, False)}
+dt_bool = [[False, True, False, False, True],
+           [True, None, None, True, False]]
 
-dt_int = {(5, -3, 6, 3, 0),
-          (None, -1, 0, 26, -3),
+dt_int = [[5, -3, 6, 3, 0],
+          [None, -1, 0, 26, -3],
           # TODO: currently ~ operation fails on v = 2**31 - 1. Should we
           #       promote the resulting column to int64 in such case?
-          (2**31 - 2, -(2**31 - 1), 0, -1, 1)}
+          [2**31 - 2, -(2**31 - 1), 0, -1, 1]]
 
-dt_float = {(9.5, 0.2, 5.4857301, -3.14159265338979),
-            (1.1, 2.3e12, -.5, None, float("inf"), 0.0)}
+dt_float = [[9.5, 0.2, 5.4857301, -3.14159265338979],
+            [1.1, 2.3e12, -.5, None, float("inf"), 0.0]]
 
-dt_str = {("foo", "bbar", "baz"),
-          (None, "", " ", "  ", None, "\0"),
-          tuple("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-=")}
+dt_str = [["foo", "bbar", "baz"],
+          [None, "", " ", "  ", None, "\0"],
+          list("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-=")]
+
+dt_obj = [[dt, pytest, random, f, dt_int, None],
+          ["one", None, 3, 9.99, stype.int32, object, isinstance]]
 
 
 #-------------------------------------------------------------------------------
@@ -132,7 +135,7 @@ def inv(t):
     return ~t
 
 
-@pytest.mark.parametrize("src", dt_bool | dt_int)
+@pytest.mark.parametrize("src", dt_bool + dt_int)
 def test_dt_invert(src):
     dt0 = dt.Frame(src)
     df1 = dt0(select=~f[0], engine="llvm")
@@ -165,7 +168,7 @@ def neg(t):
     return -t
 
 
-@pytest.mark.parametrize("src", dt_int | dt_float)
+@pytest.mark.parametrize("src", dt_int + dt_float)
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: -f[0])
@@ -188,7 +191,7 @@ def test_dt_neg_invalid(src):
 # Unary plus (__pos__)
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("src", dt_int | dt_float)
+@pytest.mark.parametrize("src", dt_int + dt_float)
 def test_dt_pos(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: +f[0])
@@ -211,7 +214,7 @@ def test_dt_pos_invalid(src):
 # isna()
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float | dt_str)
+@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_str)
 def test_dt_isna(src):
     dt0 = dt.Frame(src)
     dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
@@ -229,7 +232,7 @@ def test_dt_isna(src):
 # type-cast
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
+@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float)
 def test_cast_to_float32(src):
     dt0 = dt.Frame(src)
     dt1 = dt0[:, [dt.float32(f[i]) for i in range(dt0.ncols)]]
@@ -252,7 +255,7 @@ def test_cast_int_to_str(stype0):
     assert dt1.topython()[0] == ans
 
 
-@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
+@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_obj)
 def test_cast_to_str(src):
     def to_str(x):
         if x is None: return None
