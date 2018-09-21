@@ -31,6 +31,9 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
     evaluating various transformations when they are applied to a target
     Frame.
     """
+    if isinstance(groupby, datatable.join):
+        join = groupby
+        groupby = None
     update_mode = mode == "update"
     delete_mode = mode == "delete"
     jframe = join.joinframe if join else None

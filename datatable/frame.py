@@ -263,20 +263,6 @@ class Frame(core.Frame):
         return res
 
 
-    def __getitem__(self, item):
-        """
-        Simpler version than __call__, but allows slice literals.
-
-        Example:
-            df[5]        # 6-th column
-            df[5, :]     # 6-th row
-            df[:10, -1]  # first 10 rows of the last column
-            df[::-1, :]  # all rows of the Frame in reverse order
-        etc.
-        """
-        return make_datatable(self, *resolve_selector(item))
-
-
     def __setitem__(self, item, value):
         """
         Update values in Frame, in-place.
@@ -592,6 +578,7 @@ class Frame(core.Frame):
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(7, Frame)
+core.register_function(9, make_datatable)
 core.install_buffer_hooks(Frame())
 
 
