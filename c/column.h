@@ -589,8 +589,8 @@ protected:
   // void cast_into(RealColumn<float>*) const override;
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<uint32_t>*) const;
-  // void cast_into(StringColumn<uint64_t>*) const;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,

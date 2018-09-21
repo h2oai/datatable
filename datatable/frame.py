@@ -15,8 +15,7 @@ from datatable.dt_append import _rbind
 from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
-from datatable.utils.typechecks import (
-    TTypeError, TValueError, DatatableWarning, U, typed)
+from datatable.utils.typechecks import (TTypeError, TValueError)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.options import options
@@ -592,7 +591,6 @@ class Frame(core.Frame):
 
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
-core.register_function(6, DatatableWarning)
 core.register_function(7, Frame)
 core.install_buffer_hooks(Frame())
 
