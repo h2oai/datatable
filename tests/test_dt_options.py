@@ -8,7 +8,6 @@ import pytest
 import datatable as dt
 
 
-@pytest.mark.run(order=1001)
 def test_options_all():
     # Update this test every time a new option is added
     assert repr(dt.options).startswith("<datatable.options.DtConfig:")
@@ -23,7 +22,6 @@ def test_options_all():
     assert set(dir(dt.options.fread)) == {"anonymize"}
 
 
-@pytest.mark.run(order=1002)
 def test_option_api():
     dt.options.register_option("fooo", int, 13, "a dozen")
     assert "fooo" in dir(dt.options)
@@ -40,7 +38,6 @@ def test_option_api():
     assert dt.options.fooo == 13
 
 
-@pytest.mark.run(order=1003)
 def test_option_bad():
     with pytest.raises(AttributeError):
         dt.options.gooo
@@ -70,7 +67,6 @@ def test_option_bad():
             "registered as an option" in str(e.value))
 
 
-@pytest.mark.run(order=1004)
 def test_options_many():
     dt.options.register_option("tmp1.alpha", int, 1, "A")
     dt.options.register_option("tmp1.beta",  int, 2, "B")
@@ -94,7 +90,6 @@ def test_options_many():
         del dt.options.tmp1
 
 
-@pytest.mark.run(order=1004)
 def test_options_many_bad():
     dt.options.register_option("tmp2.foo.x", int, 4, "")
     dt.options.register_option("tmp2.foo.y", int, 5, "")
@@ -111,7 +106,6 @@ def test_options_many_bad():
 # Individual options
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=1010)
 def test_nthreads():
     assert dt.options.nthreads == 0
     dt.options.nthreads = 1
@@ -119,7 +113,6 @@ def test_nthreads():
     del dt.options.nthreads
     assert dt.options.nthreads == 0
 
-@pytest.mark.run(order=1011)
 def test_core_logger():
     class MyLogger:
         def __init__(self):
@@ -143,7 +136,6 @@ def test_core_logger():
     assert dt.options.core_logger is None
 
 
-@pytest.mark.run(order=1012)
 def test_frame_names_auto_index():
     assert dt.options.frame.names_auto_index == 0
     dt.options.frame.names_auto_index = 1
@@ -159,7 +151,6 @@ def test_frame_names_auto_index():
         dt.options.frame.names_auto_index = "C"
 
 
-@pytest.mark.run(order=1013)
 def test_frame_names_auto_prefix():
     assert dt.options.frame.names_auto_prefix == "C"
     dt.options.frame.names_auto_prefix = "foo"
