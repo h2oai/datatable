@@ -66,7 +66,8 @@ class Frame : public PyObject {
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
-    oobj m__getitem__(const obj item) const;
+    oobj m__getitem__(obj item);
+    void m__setitem__(obj item, obj value);
 
     oobj get_ncols() const;
     oobj get_nrows() const;
@@ -95,6 +96,7 @@ class Frame : public PyObject {
     void _dedup_and_save_names(NameProvider*);
     void _replace_names_from_map(py::odict);
     Error _name_not_found_error(const std::string& name);
+    oobj _getset(obj item, obj value);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp

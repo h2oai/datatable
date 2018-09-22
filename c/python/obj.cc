@@ -682,8 +682,7 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
-obj rnone() { return obj(Py_None); }
-
+obj rnone()     { return obj(Py_None); }
 
 
 //------------------------------------------------------------------------------

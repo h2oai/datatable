@@ -14,13 +14,29 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
+#include "python/dict.h"
 #include "python/tuple.h"
+#include "python/string.h"
 
 namespace py {
 
+// Sentinel value for __getitem__() mode
+static obj GETITEM(reinterpret_cast<PyObject*>(-1));
 
-oobj Frame::m__getitem__(const obj item) const {
 
+
+
+oobj Frame::m__getitem__(obj item) {
+  return _getset(item, GETITEM);
+}
+
+void Frame::m__setitem__(obj item, obj value) {
+  _getset(item, value);
+}
+
+
+oobj Frame::_getset(obj item, obj value) {
+  odict kwargs;
   otuple args(5);
   args.set(0, py::obj(this));
   if (item.is_tuple()) {
@@ -45,9 +61,15 @@ oobj Frame::m__getitem__(const obj item) const {
   }
   if (!args[3]) args.set(3, py::None());
   if (!args[4]) args.set(4, py::None());
-  return obj(py::fallback_makedatatable).call(args);
+  if (value == GETITEM) {}
+  else if (value) {
+    kwargs.set(ostring("mode"), ostring("update"));
+    kwargs.set(ostring("replacement"), value);
+  } else {
+    kwargs.set(ostring("mode"), ostring("delete"));
+  }
+  return obj(py::fallback_makedatatable).call(args, kwargs);
 }
-
 
 
 }  // namespace py

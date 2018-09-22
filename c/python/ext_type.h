@@ -262,7 +262,7 @@ namespace _impl {
   template <typename T>
   PyObject* _safe_getitem(PyObject* self, PyObject* key) {
     try {
-      const T* tself = static_cast<const T*>(self);
+      T* tself = static_cast<T*>(self);
       py::oobj res = tself->m__getitem__(py::obj(key));
       return std::move(res).release();
     } catch (const std::exception& e) {
@@ -272,14 +272,14 @@ namespace _impl {
   }
 
   template <typename T>
-  PyObject* _safe_setitem(PyObject* self, PyObject* key, PyObject* val) {
+  int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) {
     try {
       T* tself = static_cast<T*>(self);
       tself->m__setitem__(py::obj(key), py::obj(val));
-      Py_RETURN_NONE;
+      return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
-      return nullptr;
+      return -1;
     }
   }
 

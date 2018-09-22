@@ -16,7 +16,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (TTypeError, TValueError)
-from datatable.graph import make_datatable, resolve_selector
+from datatable.graph import make_datatable
 from datatable.csv import write_csv
 from datatable.options import options
 from datatable.types import stype
@@ -261,29 +261,6 @@ class Frame(core.Frame):
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
-
-
-    def __setitem__(self, item, value):
-        """
-        Update values in Frame, in-place.
-        """
-        return make_datatable(self, *resolve_selector(item),
-                              mode="update", replacement=value)
-
-
-    def __delitem__(self, item):
-        """
-        Delete columns / rows from the Frame.
-
-        Example:
-            del df["colA"]
-            del df[:, ["A", "B"]]
-            del df[::2]
-            del df["col5":"col9"]
-            del df[(i for i in range(df.ncols) if i % 3 <= 1)]
-        """
-        return make_datatable(self, *resolve_selector(item),
-                              mode="delete")
 
 
     def _delete_columns(self, cols):

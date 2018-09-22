@@ -16,8 +16,7 @@ from datatable.expr import BaseExpr
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
-__all__ = ("make_datatable",
-           "resolve_selector",
+__all__ = ("make_datatable", "f", "g", "join",
            "SliceCSNode")
 
 
@@ -112,27 +111,3 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
         return res_dt
 
     raise RuntimeError("Unable to calculate the result")  # pragma: no cover
-
-
-
-
-def resolve_selector(item):
-    rows = None
-    grby = None
-    jointo = None
-    if isinstance(item, tuple):
-        if len(item) == 1:
-            cols = item[0]
-        elif len(item) == 2:
-            rows, cols = item
-        elif len(item) == 3:
-            rows, cols, x = item
-            if isinstance(x, join):
-                jointo = x
-            else:
-                grby = x
-        else:
-            raise TValueError("Selector %r is not supported" % (item, ))
-    else:
-        cols = item
-    return (rows, cols, grby, jointo)
