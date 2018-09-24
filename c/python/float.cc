@@ -44,6 +44,10 @@ ofloat::ofloat(double src) {
   v = PyFloat_FromDouble(src);  // new ref
 }
 
+ofloat::ofloat(float src) {
+  v = PyFloat_FromDouble(static_cast<double>(src));  // new ref
+}
+
 
 
 //------------------------------------------------------------------------------

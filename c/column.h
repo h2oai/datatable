@@ -211,6 +211,8 @@ public:
    */
   virtual void reify() = 0;
 
+  virtual py::oobj get_value_at_index(int64_t i) const = 0;
+
   virtual RowIndex join(const Column* keycol) const = 0;
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
@@ -401,6 +403,8 @@ public:
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
 
+  py::oobj get_value_at_index(int64_t i) const override;
+
   protected:
   BooleanStats* get_stats() const override;
 
@@ -458,6 +462,8 @@ public:
   PyObject* sd_pyscalar() const override;
   PyObject* skew_pyscalar() const override;
   PyObject* kurt_pyscalar() const override;
+
+  py::oobj get_value_at_index(int64_t i) const override;
 
 protected:
   IntegerStats<T>* get_stats() const override;
@@ -523,6 +529,8 @@ public:
   PyObject* skew_pyscalar() const override;
   PyObject* kurt_pyscalar() const override;
 
+  py::oobj get_value_at_index(int64_t i) const override;
+
 protected:
   RealStats<T>* get_stats() const override;
 
@@ -574,6 +582,8 @@ public:
   PyObjectColumn(int64_t nrows);
   PyObjectColumn(int64_t nrows, MemoryRange&&);
   virtual SType stype() const override;
+
+  py::oobj get_value_at_index(int64_t i) const override;
 
 protected:
   PyObjectColumn();
@@ -645,6 +655,8 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
+  py::oobj get_value_at_index(int64_t i) const override;
+
 protected:
   StringColumn();
   void init_data() override;
@@ -700,6 +712,7 @@ class VoidColumn : public Column {
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
+    py::oobj get_value_at_index(int64_t i) const override;
   protected:
     VoidColumn();
     void init_data() override;

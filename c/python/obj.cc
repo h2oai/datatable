@@ -390,6 +390,15 @@ py::olist _obj::to_pylist(const error_manager& em) const {
 }
 
 
+py::otuple _obj::to_pytuple(const error_manager& em) const {
+  if (is_none()) return py::otuple(nullptr);
+  if (is_tuple()) {
+    return py::otuple(v);
+  }
+  throw em.error_not_list(v);
+}
+
+
 char** _obj::to_cstringlist(const error_manager&) const {
   if (v == Py_None) {
     return nullptr;
@@ -673,8 +682,7 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
-obj rnone() { return obj(Py_None); }
-
+obj rnone()     { return obj(Py_None); }
 
 
 //------------------------------------------------------------------------------

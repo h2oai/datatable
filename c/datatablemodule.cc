@@ -31,6 +31,7 @@ extern void init_jay();
 
 namespace py {
   PyObject* fread_fn = nullptr;
+  PyObject* fallback_makedatatable = nullptr;
 }
 
 
@@ -101,6 +102,7 @@ PyObject* register_function(PyObject*, PyObject *args) {
   else if (n == 6) replace_dtWarning(fnref);
   else if (n == 7) py::Frame_Type = fnref;
   else if (n == 8) py::fread_fn = fnref;
+  else if (n == 9) py::fallback_makedatatable = fnref;
   else {
     throw ValueError() << "Incorrect function index: " << n;
   }

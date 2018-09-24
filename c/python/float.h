@@ -20,6 +20,7 @@ class ofloat : public oobj {
   public:
     ofloat();
     ofloat(double x);
+    ofloat(float x);
 
     ofloat(const ofloat&);
     ofloat(ofloat&&);

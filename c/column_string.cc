@@ -8,9 +8,10 @@
 #include "column.h"
 #include <cmath>  // abs
 #include <limits> // numeric_limits::max()
+#include "encodings.h"
+#include "python/string.h"
 #include "py_utils.h"
 #include "utils.h"
-#include "encodings.h"
 #include "utils/assert.h"
 
 // Returns the expected path of the string data file given
@@ -160,6 +161,18 @@ SType StringColumn<T>::stype() const {
   return sizeof(T) == 4? SType::STR32 :
          sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
+
+template <typename T>
+py::oobj StringColumn<T>::get_value_at_index(int64_t i) const {
+  int64_t j = (this->ri).nth(i);
+  const T* offs = this->offsets();
+  T off_end = offs[j];
+  if (ISNA<T>(off_end)) return py::None();
+  T off_beg = offs[j - 1] & ~GETNA<T>();
+  return py::ostring(this->strdata() + off_beg,
+                     static_cast<size_t>(off_end - off_beg));
+}
+
 
 template <typename T>
 size_t StringColumn<T>::elemsize() const {

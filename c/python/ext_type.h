@@ -260,6 +260,30 @@ namespace _impl {
   }
 
   template <typename T>
+  PyObject* _safe_getitem(PyObject* self, PyObject* key) {
+    try {
+      T* tself = static_cast<T*>(self);
+      py::oobj res = tself->m__getitem__(py::obj(key));
+      return std::move(res).release();
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return nullptr;
+    }
+  }
+
+  template <typename T>
+  int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) {
+    try {
+      T* tself = static_cast<T*>(self);
+      tself->m__setitem__(py::obj(key), py::obj(val));
+      return 0;
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      return -1;
+    }
+  }
+
+  template <typename T>
   int _safe_getbuffer(PyObject* self, Py_buffer* buf, int flags) {
     try {
       T* tself = static_cast<T*>(self);
@@ -339,7 +363,9 @@ namespace _impl {
    *   has<T>::_init_   returns true if T has method `m__init__`
    *   has<T>::_repr_   returns true if T has method `m__repr__`
    *   has<T>::dealloc  returns true if T has method `m__dealloc__`
-   *   has<T>::mgs      returns true if T::Type has `init_methods_and_getsets`
+   *   has<T>::mthgtst  returns true if T::Type has `init_methods_and_getsets`
+   *   has<T>::getitem  returns true if T has method `m__getitem__`
+   *   has<T>::setitem  returns true if T has method `m__setitem__`
    */
   template <typename T>
   class has {
@@ -353,6 +379,10 @@ namespace _impl {
     template <class C> static long test_buf(...);
     template <class C> static char test_mgs(decltype(&C::Type::init_methods_and_getsets));
     template <class C> static long test_mgs(...);
+    template <class C> static char test_getitem(decltype(&C::m__getitem__));
+    template <class C> static long test_getitem(...);
+    template <class C> static char test_setitem(decltype(&C::m__setitem__));
+    template <class C> static long test_setitem(...);
 
   public:
     static constexpr bool _init_  = (sizeof(test_init<T>(nullptr)) == 1);
@@ -360,6 +390,8 @@ namespace _impl {
     static constexpr bool dealloc = (sizeof(test_dealloc<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
     static constexpr bool mthgtst = (sizeof(test_mgs<T>(nullptr)) == 1);
+    static constexpr bool getitem = (sizeof(test_getitem<T>(nullptr)) == 1);
+    static constexpr bool setitem = (sizeof(test_setitem<T>(nullptr)) == 1);
   };
 
   /**
@@ -377,6 +409,8 @@ namespace _impl {
     static void _repr_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
     static void methods_and_getsets(PyTypeObject&) {}
+    static void getitem(PyTypeObject&) {}
+    static void setitem(PyTypeObject&) {}
   };
 
   template <typename T>
@@ -409,6 +443,25 @@ namespace _impl {
       if (mm) type.tp_methods = mm.finalize();
       if (gs) type.tp_getset = gs.finalize();
     }
+
+    static void getitem(PyTypeObject& type) {
+      init_tp_as_mapping(type);
+      type.tp_as_mapping->mp_subscript = _safe_getitem<T>;
+    }
+
+    static void setitem(PyTypeObject& type) {
+      init_tp_as_mapping(type);
+      type.tp_as_mapping->mp_ass_subscript = _safe_setitem<T>;
+    }
+
+    private:
+      static void init_tp_as_mapping(PyTypeObject& type) {
+        if (type.tp_as_mapping) return;
+        type.tp_as_mapping = new PyMappingMethods;
+        type.tp_as_mapping->mp_length = nullptr;
+        type.tp_as_mapping->mp_subscript = nullptr;
+        type.tp_as_mapping->mp_ass_subscript = nullptr;
+      }
   };
 
 }  // namespace _impl
@@ -443,11 +496,13 @@ void ExtType<T>::init(PyObject* module) {
   type.tp_alloc     = &PyType_GenericAlloc;
   type.tp_new       = &PyType_GenericNew;
 
-  _impl::init<T, _impl::has<T>::_init_>::_init_(type);
-  _impl::init<T, _impl::has<T>::_repr_>::_repr_(type);
+  _impl::init<T, _impl::has<T>::_init_ >::_init_(type);
+  _impl::init<T, _impl::has<T>::_repr_ >::_repr_(type);
   _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
   _impl::init<T, _impl::has<T>::mthgtst>::methods_and_getsets(type);
+  _impl::init<T, _impl::has<T>::getitem>::getitem(type);
+  _impl::init<T, _impl::has<T>::setitem>::setitem(type);
 
   // Finish type initialization
   int r = PyType_Ready(&type);

@@ -186,6 +186,7 @@ class _obj {
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::olist   to_pylist        (const error_manager& = _em0) const;
+    py::otuple  to_pytuple       (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
     py::oiter   to_pyiter        (const error_manager& = _em0) const;

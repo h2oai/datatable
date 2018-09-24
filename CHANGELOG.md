@@ -53,6 +53,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.cbind()` no longer returns anything (previously it returned self,
   but this was confusing w.r.t whether it modifies the target, or returns
   a modified copy).
+- `DT[i, j]` now returns a python scalar value if `i` is integer, and `j`
+  is integer/string. This is referred to as "explicit element selection".
+  In the unlikely scenario when a single element needs to be returned as
+  a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
+- The performance of explicit element selection improved by a factor of 200x.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
