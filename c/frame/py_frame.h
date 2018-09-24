@@ -96,7 +96,11 @@ class Frame : public PyObject {
     void _dedup_and_save_names(NameProvider*);
     void _replace_names_from_map(py::odict);
     Error _name_not_found_error(const std::string& name);
-    oobj _getset(obj item, obj value);
+
+    // getitem / setitem support
+    oobj _fast_getset(obj item, obj value);
+    oobj _main_getset(obj item, obj value);
+    oobj _fallback_getset(obj item, obj value);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp

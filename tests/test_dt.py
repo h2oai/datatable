@@ -178,9 +178,8 @@ def test_dt_getitem(dt0):
     dt1 = dt0[(4,)]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("E", )
-    dt2 = dt0[0, 1]
-    assert dt2.shape == (1, 1)
-    assert dt2.names == ("B", )
+    elem2 = dt0[0, 1]
+    assert elem2 is True
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
@@ -912,11 +911,62 @@ def test_scalar_bad():
 
 
 def test_scalar_on_view(dt0):
-    assert dt0[1, 0].scalar() == 7
-    assert dt0[3, 3].scalar() == 4.4
-    assert dt0[2, 6].scalar() == "hello"
+    assert dt0[1, 0] == 7
+    assert dt0[3, 3] == 4.4
+    assert dt0[2, 6] == "hello"
     assert dt0[2::5, 3::7].scalar() == -4
     assert dt0[[3], "G"].scalar() == "world"
+
+
+
+#-------------------------------------------------------------------------------
+# Explicit element selection
+#-------------------------------------------------------------------------------
+
+def test_single_element_extraction(dt0):
+    assert dt0[0, 1] is True
+    assert dt0[1, 1] is False
+    assert dt0[2, "G"] == "hello"
+
+
+def test_single_element_extraction_from_view(dt0):
+    dt1 = dt0[[2, 3, 0], :]
+    assert dt1[0, 0] == 0
+    assert dt1[2, 2] == 1
+    assert dt1[0, "D"] == -4.0
+    assert dt1[1, "G"] == "world"
+
+
+@pytest.mark.parametrize('st', list(dt.stype))
+def test_single_element_all_stypes(st):
+    pt = (bool if st == dt.stype.bool8 else
+          int if st.ltype == dt.ltype.int else
+          float if st.ltype == dt.ltype.real else
+          str if st.ltype == dt.ltype.str else
+          object)
+    src = [True, False, True, None] if pt is bool else \
+          [1, 7, -99, 214, None, 3333] if pt is int else \
+          [2.5, 3.4e15, -7.909, None] if pt is float else \
+          ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
+          [dt, st, list, None, {3, 2, 1}]
+    df = dt.Frame(A=src, stype=st)
+    df.internal.check()
+    assert df.names == ("A", )
+    assert df.stypes == (st, )
+    for i in range(len(src)):
+        x = df[i, 0]
+        y = df[i, "A"]
+        assert x == y
+        if src[i] is None:
+            assert x is None
+        else:
+            assert isinstance(x, pt)
+            if st == dt.stype.int8:
+                assert (x - src[i]) % 256 == 0
+            elif st == dt.stype.float32:
+                assert abs(1 - src[i] / x) < 1e-7
+            else:
+                assert x == src[i]
 
 
 

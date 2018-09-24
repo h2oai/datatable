@@ -27,15 +27,69 @@ static obj GETITEM(reinterpret_cast<PyObject*>(-1));
 
 
 oobj Frame::m__getitem__(obj item) {
-  return _getset(item, GETITEM);
+  return _fast_getset(item, GETITEM);
 }
 
 void Frame::m__setitem__(obj item, obj value) {
-  _getset(item, value);
+  _fast_getset(item, value);
 }
 
 
-oobj Frame::_getset(obj item, obj value) {
+/**
+ * "Fast" get/set only handles the case of the form `DT[i, j]` where
+ * `i` is integer, and `j` is either an integer or a string. These cases
+ * are special in that they return a scalar python value, instead of a
+ * Frame object.
+ * This case should also be handled first, to ensure that it has maximum
+ * performance.
+ */
+oobj Frame::_fast_getset(obj item, obj value) {
+  if (item.is_tuple()) {
+    rtuple targs(item);
+    if (targs.size() == 2 && value == GETITEM) {
+      obj arg0 = targs[0], arg1 = targs[1];
+      bool a0int = arg0.is_int();
+      bool a1int = arg1.is_int();
+      if (a0int && (a1int || arg1.is_string())) {
+        int64_t irow = arg0.to_int64_strict();
+        if (irow < 0) irow += dt->nrows;
+        if (irow < 0 || irow >= dt->nrows) {
+          if (irow < 0) irow -= dt->nrows;
+          throw ValueError() << "Row `" << irow << "` is invalid for a frame "
+              "with " << dt->nrows << " row" << (dt->nrows == 1? "" : "s");
+        }
+        int64_t icol;
+        if (a1int) {
+          icol = arg1.to_int64_strict();
+          if (icol < 0) icol += dt->ncols;
+          if (icol < 0 || icol >= dt->ncols) {
+            if (icol < 0) icol -= dt->ncols;
+            throw ValueError() << "Column index `" << icol << "` is invalud "
+                "for a frame with " << dt->ncols << " column" <<
+                (dt->ncols == 1? "" : "s");
+          }
+        } else {
+          icol = dt->colindex(arg1);
+          if (icol == -1) {
+            throw ValueError() << "Column `" << arg1 << "` does not exist in "
+                "the frame";
+          }
+        }
+        Column* col = dt->columns[icol];
+        return col->get_value_at_index(irow);
+      }
+    }
+  }
+  return _main_getset(item, value);
+}
+
+
+oobj Frame::_main_getset(obj item, obj value) {
+  return _fallback_getset(item, value);
+}
+
+
+oobj Frame::_fallback_getset(obj item, obj value) {
   odict kwargs;
   otuple args(5);
   args.set(0, py::obj(this));

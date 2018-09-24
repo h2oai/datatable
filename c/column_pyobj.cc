@@ -32,6 +32,12 @@ SType PyObjectColumn::stype() const {
   return SType::OBJ;
 }
 
+py::oobj PyObjectColumn::get_value_at_index(int64_t i) const {
+  int64_t j = (this->ri).nth(i);
+  PyObject* x = this->elements_r()[j];
+  return py::oobj(x);
+}
+
 
 // "PyObject" columns cannot be properly saved. So if somehow they were, then
 // when opening, we'll just fill the column with NAs.
