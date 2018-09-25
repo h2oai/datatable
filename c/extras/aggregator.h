@@ -30,6 +30,7 @@ class shared_mutex {
       size_t state_old;
 
       while (true) {
+        if (state & EXCLMASK) continue;
         #pragma omp atomic capture
         {state_old = state; ++state;}
         if (state_old & EXCLMASK) {
@@ -44,7 +45,7 @@ class shared_mutex {
       --state;
     }
 
-    void lock_exclusive() {
+    void lock() {
       size_t state_old;
       bool exclusive_request = false;
 
@@ -58,9 +59,52 @@ class shared_mutex {
       }
     }
 
-    void unlock_exclusive() {
+    void unlock() {
       #pragma omp atomic update
       state &= ~EXCLMASK;
+    }
+};
+
+
+class shared_lock {
+  private:
+    shared_mutex& mutex;
+    bool exclusive;
+    uint64_t : 56;
+
+  public:
+    shared_lock(shared_mutex& m, bool excl = false)
+      : mutex(m), exclusive(excl)
+    {
+      if (exclusive) {
+        mutex.lock();
+      } else {
+        mutex.lock_shared();
+      }
+    }
+
+    ~shared_lock() {
+      if (exclusive) {
+        mutex.unlock();
+      } else {
+        mutex.unlock_shared();
+      }
+    }
+
+    void exclusive_start() {
+      if (!exclusive) {
+        mutex.unlock_shared();
+        mutex.lock();
+        exclusive = true;
+      }
+    }
+
+    void exclusive_end() {
+      if (exclusive) {
+        mutex.unlock();
+        mutex.lock_shared();
+        exclusive = false;
+      }
     }
 };
 

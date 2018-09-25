@@ -438,21 +438,22 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
         if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
         else normalize_row(dt, member, i);
 
-        shmutex.lock_shared();
-        for (size_t j = 0; j < exemplars.size(); ++j) {
-          // Note, this distance will depend on delta, because
-          // `early_exit = true` by default
-          distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
-          if (distance < delta) {
-            d_members[i] = static_cast<int32_t>(exemplars[j]->id);
-            is_exemplar = false;
-            break;
+        {
+          shared_lock lock(shmutex, /*exclusive = */ false);
+          for (size_t j = 0; j < exemplars.size(); ++j) {
+            // Note, this distance will depend on delta, because
+            // `early_exit = true` by default
+            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
+            if (distance < delta) {
+              d_members[i] = static_cast<int32_t>(exemplars[j]->id);
+              is_exemplar = false;
+              break;
+            }
           }
         }
-        shmutex.unlock_shared();
 
         if (is_exemplar) {
-          shmutex.lock_exclusive();
+          shared_lock lock(shmutex, /*exclusive = */ true);
           ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
           member = DoublePtr(new double[ndims]);
           ids.push_back(e->id);
@@ -462,7 +463,6 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
           if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
             adjust_delta(delta, exemplars, ids, ndims);
           }
-          shmutex.unlock_exclusive();
         }
 
         #pragma omp master
