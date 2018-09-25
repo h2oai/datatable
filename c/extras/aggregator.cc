@@ -13,7 +13,6 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils/omp.h"
-#include "utils/shared_mutex.h"
 
 
 /*
@@ -409,7 +408,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 */
 void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   OmpExceptionManager oem;
-  dt::shared_mutex shmutex;
+  shared_mutex shmutex;
   auto ncols = static_cast<int32_t>(dt->ncols);
   int64_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
@@ -426,7 +425,8 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
 
   #pragma omp parallel num_threads(nth)
   {
-    auto ith = omp_get_thread_num();
+    int32_t ith = omp_get_thread_num();
+    nth = omp_get_num_threads();
     int64_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
     double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
@@ -435,44 +435,40 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
       // Main loop over all the rows
       for (int32_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
-        if (ncols > max_dimensions) {
-          project_row(dt, member, i, pmatrix);
-        } else {
-          normalize_row(dt, member, i);
-        }
+        if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
+        else normalize_row(dt, member, i);
 
-        {
-          dt::shared_lock lock(shmutex);
-          for (size_t j = 0; j < exemplars.size(); ++j) {
-            // Note, this distance will depend on delta, because
-            // `early_exit = true` by default
-            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
-            if (distance < delta) {
-              d_members[i] = static_cast<int32_t>(exemplars[j]->id);
-              is_exemplar = false;
-              break;
-            }
+        shmutex.lock_shared();
+        for (size_t j = 0; j < exemplars.size(); ++j) {
+          // Note, this distance will depend on delta, because
+          // `early_exit = true` by default
+          distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
+          if (distance < delta) {
+            d_members[i] = static_cast<int32_t>(exemplars[j]->id);
+            is_exemplar = false;
+            break;
           }
         }
+        shmutex.unlock_shared();
 
         if (is_exemplar) {
-          dt::shared_lock lock(shmutex, /* exclusive = */ true);
-
+          shmutex.lock_exclusive();
           ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
           member = DoublePtr(new double[ndims]);
           ids.push_back(e->id);
           d_members[i] = static_cast<int32_t>(e->id);
           exemplars.push_back(std::move(e));
+
           if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
             adjust_delta(delta, exemplars, ids, ndims);
           }
+          shmutex.unlock_exclusive();
         }
 
         #pragma omp master
-        if ((i / nth) % rstep == 0) {
-          progress(static_cast<double>(i+1) / dt->nrows);
-        }
+        if ((i / nth) % rstep == 0) progress(static_cast<double>(i+1) / dt->nrows);
       } // End main loop over all the rows
+
     } catch (...) {
       oem.capture_exception();
     }
@@ -480,6 +476,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   oem.rethrow_exception_if_any();
   adjust_members(ids, dt_members);
 }
+
 
 /*
  *  Figure out how many threads we need to run ND groupping.
@@ -489,10 +486,8 @@ int32_t Aggregator::calculate_num_nd_threads(DataTablePtr& dt) {
   if (nthreads) {
     nth = static_cast<int32_t>(nthreads);
   } else {
-    int chunk_size = (dt->ncols > max_dimensions)? omp_elements_project : omp_elements_direct;
-    nth = static_cast<int32_t>(dt->nrows * dt->ncols / chunk_size) + 1;
+    nth = config::nthreads;
     if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
-    if (nth > config::nthreads) nth = config::nthreads;
   }
   return nth;
 }

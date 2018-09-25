@@ -12,6 +12,59 @@
 #include "datatable.h"
 #include <random>
 #include "py_datatable.h"
+#include "utils.h"
+
+
+/**
+ * Shared mutex implementation with `while` loops insted of `std::mutex`.
+ */
+class shared_mutex {
+  private:
+    size_t state;
+    static constexpr size_t EXCLMASK = 1ULL << (sizeof(size_t) * 8 - 1);
+
+  public:
+    shared_mutex() : state(0) {}
+
+    void lock_shared() {
+      size_t state_old;
+
+      while (true) {
+        if (state & EXCLMASK) continue;
+        #pragma omp atomic capture
+        {state_old = state; ++state;}
+        if (state_old & EXCLMASK) {
+          #pragma omp atomic update
+          --state;
+        } else break;
+      }
+    }
+
+    void unlock_shared() {
+      #pragma omp atomic update
+      --state;
+    }
+
+    void lock_exclusive() {
+      size_t state_old;
+      bool exclusive_request = false;
+
+      while (true) {
+        #pragma omp atomic capture
+        {state_old = state; state |= EXCLMASK;}
+
+        if ((state_old & EXCLMASK) && !exclusive_request) continue;
+        if (state_old == EXCLMASK) break;
+        exclusive_request = true;
+      }
+    }
+
+    void unlock_exclusive() {
+      #pragma omp atomic write
+      state = 0;
+    }
+};
+
 
 typedef std::unique_ptr<double[]> DoublePtr;
 struct ex {
@@ -29,8 +82,6 @@ class Aggregator {
     Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
                unsigned int, PyObject*, unsigned int);
     DataTablePtr aggregate(DataTable*);
-    static constexpr int omp_elements_project =   500000;
-    static constexpr int omp_elements_direct = 500000000;
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
     static void print_progress(double, int);
@@ -50,6 +101,7 @@ class Aggregator {
     void group_1d(DataTablePtr&, DataTablePtr&);
     void group_2d(DataTablePtr&, DataTablePtr&);
     void group_nd(DataTablePtr&, DataTablePtr&);
+    void test(DataTablePtr&, DataTablePtr&);
     void group_1d_continuous(DataTablePtr&, DataTablePtr&);
     void group_2d_continuous(DataTablePtr&, DataTablePtr&);
     void group_1d_categorical(DataTablePtr&, DataTablePtr&);
@@ -70,6 +122,7 @@ class Aggregator {
     size_t calculate_map(std::vector<int64_t>&, size_t);
     void progress(double, int status_code=0);
 };
+
 
 DECLARE_FUNCTION(
   aggregate,
