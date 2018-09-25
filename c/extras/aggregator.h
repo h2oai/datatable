@@ -30,7 +30,6 @@ class shared_mutex {
       size_t state_old;
 
       while (true) {
-        if (state & EXCLMASK) continue;
         #pragma omp atomic capture
         {state_old = state; ++state;}
         if (state_old & EXCLMASK) {
