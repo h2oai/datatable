@@ -16,7 +16,7 @@
 
 
 /**
- * Shared mutex implementation with `while` loops instead of `std::mutex`.
+ * Shared mutex implementation with busy `while` loops instead of `std::mutex`.
  */
 class shared_mutex {
   private:
@@ -30,9 +30,17 @@ class shared_mutex {
       size_t state_old;
 
       while (true) {
-        if (state & EXCLMASK) continue;
+        #pragma omp atomic read
+        state_old = state;
+        // This check is required to prevent deadlocks, so that exclusive `lock()`
+        // takes priority over the `lock_shared()` when competing. Note, that
+        // the `state` should be "omp atomic read", otherwise behavior is unpredictable
+        // on some systems.
+        if (state_old & EXCLMASK) continue;
+
         #pragma omp atomic capture
         {state_old = state; ++state;}
+
         if (state_old & EXCLMASK) {
           #pragma omp atomic update
           --state;
@@ -153,7 +161,7 @@ class Aggregator {
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
     // Helper functions
-    int32_t calculate_num_nd_threads(DataTablePtr&);
+    int32_t get_nthreads(DataTablePtr&);
     DoublePtr generate_pmatrix(DataTablePtr&);
     void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
     void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);

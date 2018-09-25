@@ -418,7 +418,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
 
   // Figuring out how many threads to use.
-  int32_t nth = calculate_num_nd_threads(dt);
+  int32_t nth = get_nthreads(dt);
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
@@ -481,7 +481,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
 /*
  *  Figure out how many threads we need to run ND groupping.
  */
-int32_t Aggregator::calculate_num_nd_threads(DataTablePtr& dt) {
+int32_t Aggregator::get_nthreads(DataTablePtr& dt) {
   int32_t nth;
   if (nthreads) {
     nth = static_cast<int32_t>(nthreads);
