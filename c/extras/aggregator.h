@@ -16,7 +16,7 @@
 
 
 /**
- * Shared mutex implementation with `while` loops insted of `std::mutex`.
+ * Shared mutex implementation with `while` loops instead of `std::mutex`.
  */
 class shared_mutex {
   private:
@@ -60,8 +60,8 @@ class shared_mutex {
     }
 
     void unlock_exclusive() {
-      #pragma omp atomic write
-      state = 0;
+      #pragma omp atomic update
+      state &= ~EXCLMASK;
     }
 };
 
