@@ -18,12 +18,13 @@
 #include "python/oiter.h"
 #include "utils/assert.h"
 
+namespace py {
+
 
 //------------------------------------------------------------------------------
 // Frame::cbind
 //------------------------------------------------------------------------------
 
-namespace py {
 
 // Forward-declare
 static void check_nrows(DataTable* dt, int64_t* nrows);
@@ -31,13 +32,10 @@ static Error item_error(const py::_obj&);
 
 
 
-PKArgs Frame::Type::args_cbind(0, 0, 1, true, false, {"force"});
+PKArgs Frame::Type::args_cbind(0, 0, 1, true, false, {"force"}, "cbind",
+R"(cbind(self, *frames, force=False)
+--
 
-void Frame::Type::_init_cbind(Methods& mm, GetSetters&)
-{
-  mm.add<&Frame::cbind, args_cbind>("cbind",
-    "cbind(self, *frames, force=False)\n"
-    "--\n\n" R"(
 Append columns of Frames `frames` to the current Frame.
 
 This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
@@ -70,7 +68,7 @@ force: boolean
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
 )");
-}
+
 
 
 void Frame::cbind(const PKArgs& args) {

@@ -37,8 +37,8 @@ def test_bad_stype():
 def test_bad_stypes():
     with pytest.raises(TypeError) as e:
         dt.Frame([], stypes=2.5)
-    assert ("Argument `stypes` in Frame.__init__() should be a list of stypes, "
-            "instead received <class 'float'>" == str(e.value))
+    assert ("Argument `stypes` in Frame() constructor should be a list of "
+            "stypes, instead received <class 'float'>" == str(e.value))
 
 
 def test_unknown_arg():
@@ -629,15 +629,15 @@ def test_create_names_bad1():
 def test_create_names_bad2():
     with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
-            "instead received <class 'str'>" == str(e.value))
+    assert ("Argument `names` in Frame() constructor should be a list of "
+            "strings, instead received <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
-            "instead received <class 'dict'>" == str(e.value))
+    assert ("Argument `names` in Frame() constructor should be a list of "
+            "strings, instead received <class 'dict'>" == str(e.value))
 
 
 def test_create_names_bad4():

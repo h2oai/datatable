@@ -39,10 +39,8 @@ class ExtModule {
 
     void init_methods() {}
 
-    template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>
-    void add(const char* name, const char* doc);
-    template <void (*F)(const PKArgs&), PKArgs& ARGS>
-    void add(const char* name, const char* doc);
+    template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS> void add();
+    template <void (*F)(const PKArgs&), PKArgs& ARGS> void add();
     void add(PyMethodDef);
 
   private:
@@ -82,27 +80,25 @@ void ExtModule<T>::add(PyMethodDef def) {
 
 template <class T>
 template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>
-void ExtModule<T>::add(const char* name, const char* doc) {
+void ExtModule<T>::add() {
   ARGS.set_class_name(static_cast<T*>(this)->name());
-  ARGS.set_function_name(name);
   methods.push_back(PyMethodDef {
-    name,
+    ARGS.get_short_name(),
     reinterpret_cast<PyCFunction>(&_safe_function1<PKArgs, F, ARGS>),
     METH_VARARGS | METH_KEYWORDS,
-    doc
+    ARGS.get_docstring()
   });
 }
 
 template <class T>
 template <void (*F)(const PKArgs&), PKArgs& ARGS>
-void ExtModule<T>::add(const char* name, const char* doc) {
+void ExtModule<T>::add() {
   ARGS.set_class_name(static_cast<T*>(this)->name());
-  ARGS.set_function_name(name);
   methods.push_back(PyMethodDef {
-    name,
+    ARGS.get_short_name(),
     reinterpret_cast<PyCFunction>(&_safe_function0<PKArgs, F, ARGS>),
     METH_VARARGS | METH_KEYWORDS,
-    doc
+    ARGS.get_docstring()
   });
 }
 

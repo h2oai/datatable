@@ -28,8 +28,18 @@ PyObject* Frame_Type = nullptr;
 //------------------------------------------------------------------------------
 
 PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
-                                  {"src", "names", "stypes", "stype"});
-NoArgs Frame::Type::args_copy;
+                                  {"src", "names", "stypes", "stype"},
+                                  "__init__", nullptr);
+NoArgs Frame::Type::args_copy("copy",
+"copy(self)\n"
+"--\n\n"
+"Make a copy of this Frame.\n"
+"\n"
+"This method creates a shallow copy of the current Frame: only references\n"
+"are copied, not the data itself. However, due to copy-on-write semantics\n"
+"any changes made to one of the Frames will not propagate to the other.\n"
+"Thus, for all inents and purposes the copied Frame will behave as if\n"
+"it was deep-copied.\n");
 
 
 const char* Frame::Type::classname() {
@@ -52,7 +62,6 @@ const char* Frame::Type::classdoc() {
 void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
   _init_names(mm, gs);
-  _init_cbind(mm, gs);
 
   gs.add<&Frame::get_ncols>("ncols",
     "Number of columns in the Frame\n");
@@ -79,16 +88,8 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
 
-  mm.add<&Frame::copy, args_copy>("copy",
-    "copy(self)\n"
-    "--\n\n"
-    "Make a copy of this Frame.\n"
-    "\n"
-    "This method creates a shallow copy of the current Frame: only references\n"
-    "are copied, not the data itself. However, due to copy-on-write semantics\n"
-    "any changes made to one of the Frames will not propagate to the other.\n"
-    "Thus, for all inents and purposes the copied Frame will behave as if\n"
-    "it was deep-copied.\n");
+  mm.add<&Frame::cbind, args_cbind>();
+  mm.add<&Frame::copy, args_copy>();
 }
 
 

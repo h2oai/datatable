@@ -199,21 +199,15 @@ struct ExtType {
   class Methods {
     std::vector<PyMethodDef> defs;
     public:
-      template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS>
-      void add(const char* name, const char* doc = nullptr);
-      template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS>
-      void add(const char* name, const char* doc = nullptr);
-      template <void (T::*F)(const NoArgs&), NoArgs& ARGS>
-      void add(const char* name, const char* doc = nullptr);
-      template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
-      void add(const char* name, const char* doc = nullptr);
+      template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS> void add();
+      template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
+      template <void (T::*F)(const NoArgs&), NoArgs& ARGS> void add();
+      template <void (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
       explicit operator bool() const;
       PyMethodDef* finalize();
     private:
-      template <typename A, oobj (T::*F)(const A&), A& ARGS>
-      void add(const char* name, const char* doc = nullptr);
-      template <typename A, void (T::*F)(const A&), A& ARGS>
-      void add(const char* name, const char* doc = nullptr);
+      template <typename A, oobj (T::*F)(const A&), A& ARGS> void add();
+      template <typename A, void (T::*F)(const A&), A& ARGS> void add();
   };
 };
 
@@ -417,7 +411,6 @@ namespace _impl {
   struct init<T, true> {
     static void _init_(PyTypeObject& type) {
       T::Type::args___init__.set_class_name(T::Type::classname());
-      T::Type::args___init__.set_function_name("__init__");
       type.tp_init = _safe_init<T>;
     }
 
@@ -560,52 +553,50 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 
 template <class T>
 template <typename A, oobj (T::*F)(const A&), A& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
+void ExtType<T>::Methods::add() {
   ARGS.set_class_name(T::Type::classname());
-  ARGS.set_function_name(name);
   defs.push_back(PyMethodDef {
-    name,
+    ARGS.get_short_name(),
     reinterpret_cast<PyCFunction>(&_impl::_safe_method1<T, A, F, ARGS>),
     METH_VARARGS | METH_KEYWORDS,
-    doc
+    ARGS.get_docstring()
   });
 }
 
 template <class T>
 template <typename A, void (T::*F)(const A&), A& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
+void ExtType<T>::Methods::add() {
   ARGS.set_class_name(T::Type::classname());
-  ARGS.set_function_name(name);
   defs.push_back(PyMethodDef {
-    name,
+    ARGS.get_short_name(),
     reinterpret_cast<PyCFunction>(&_impl::_safe_method2<T, A, F, ARGS>),
     METH_VARARGS | METH_KEYWORDS,
-    doc
+    ARGS.get_docstring()
   });
 }
 
 template <class T>
 template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<NoArgs, F, ARGS>(name, doc);
+void ExtType<T>::Methods::add() {
+  add<NoArgs, F, ARGS>();
 }
 
 template <class T>
 template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<PKArgs, F, ARGS>(name, doc);
+void ExtType<T>::Methods::add() {
+  add<PKArgs, F, ARGS>();
 }
 
 template <class T>
 template <void (T::*F)(const NoArgs&), NoArgs& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<NoArgs, F, ARGS>(name, doc);
+void ExtType<T>::Methods::add() {
+  add<NoArgs, F, ARGS>();
 }
 
 template <class T>
 template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
-void ExtType<T>::Methods::add(const char* name, const char* doc) {
-  add<PKArgs, F, ARGS>(name, doc);
+void ExtType<T>::Methods::add() {
+  add<PKArgs, F, ARGS>();
 }
 
 template <class T>
