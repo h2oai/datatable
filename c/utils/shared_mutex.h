@@ -80,8 +80,8 @@ class shared_mutex {
 
 
 /**
- * Alternative shared mutex implementation with busy `while` loops
- * instead of `std::mutex`. Useful when there are frequent, but short
+ * Shared "busy" mutex implementation with `while` loops
+ * instead of `std::mutex`. Could be useful when there are frequent, but short
  * read operations.
  */
 class shared_bmutex {
@@ -98,9 +98,12 @@ class shared_bmutex {
     //--------------------------------------------------------------------------
     void lock() {
       size_t state_old;
+      // Needed for the case when there are multiple threads waiting for the
+      // exclusive access.
       bool exclusive_request = false;
 
       while (true) {
+
         #pragma omp atomic capture
         {state_old = state; state |= WRITE_ENTERED;}
 
@@ -110,10 +113,16 @@ class shared_bmutex {
       }
     }
 
+
     void unlock() {
+      // Clear the writer bit. Note, one can not simply set `state` to `0`,
+      // because there may be some readers waiting in the `shared_lock()`.
+      // These readers increment and decrement the `state`, so setting
+      // it to `0` may result in the incorrect mutex behavior.
       #pragma omp atomic update
       state &= ~WRITE_ENTERED;
     }
+
 
     //--------------------------------------------------------------------------
     // Shared access
@@ -124,6 +133,7 @@ class shared_bmutex {
       while (true) {
         #pragma omp atomic read
         state_old = state;
+
         // This check is required to prevent deadlocks, so that exclusive `lock()`
         // takes priority over the `lock_shared()` when competing. Note, that
         // the `state` should be "omp atomic read", otherwise behavior is unpredictable
@@ -139,6 +149,7 @@ class shared_bmutex {
         } else break;
       }
     }
+
 
     void unlock_shared() {
       #pragma omp atomic update
