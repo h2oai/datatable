@@ -119,7 +119,7 @@ DataTable* split_into_nhot(Column* col, char sep) {
 
         tokenize_string(chunks, strstart, strend, sep);
 
-        dt::shared_lock lock(shmutex);
+        dt::shared_lock<dt::shared_mutex> lock(shmutex);
         for (const std::string& s : chunks) {
           if (colsmap.count(s)) {
             size_t j = colsmap[s];

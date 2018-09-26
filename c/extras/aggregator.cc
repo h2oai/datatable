@@ -13,6 +13,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils/omp.h"
+#include "utils/shared_mutex.h"
 
 
 /*
@@ -407,8 +408,9 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 *  too few (e.g. just one) exemplars.
 */
 void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
+  using namespace dt;
   OmpExceptionManager oem;
-  shared_mutex shmutex;
+  shared_bmutex shmutex;
   auto ncols = static_cast<int32_t>(dt->ncols);
   int64_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
@@ -439,7 +441,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
         else normalize_row(dt, member, i);
 
         {
-          shared_lock lock(shmutex, /*exclusive = */ false);
+          shared_lock<shared_bmutex> lock(shmutex, /* exclusive = */ false);
           for (size_t j = 0; j < exemplars.size(); ++j) {
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
@@ -453,7 +455,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
         }
 
         if (is_exemplar) {
-          shared_lock lock(shmutex, /*exclusive = */ true);
+          shared_lock<shared_bmutex> lock(shmutex, /* exclusive = */ true);
           ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
           member = DoublePtr(new double[ndims]);
           ids.push_back(e->id);

@@ -135,7 +135,7 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*) {
   size_t nbw = pos + n;
 
   if (nbw > allocsize) {
-    dt::shared_lock lock(shmutex, /* exclusive = */ true);
+    dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
     size_t newsize = nbw * 2;
     this->realloc(newsize);
     xassert(allocsize >= newsize);
@@ -152,14 +152,14 @@ void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
       "length " << n << ", however the buffer is allocated for " << allocsize
       << " bytes only";
   }
-  dt::shared_lock lock(shmutex, /* exclusive = */ false);
+  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ false);
   char* target = static_cast<char*>(buffer) + pos;
   std::memcpy(target, src, n);
 }
 
 
 void ThreadsafeWritableBuffer::finalize() {
-  dt::shared_lock lock(shmutex, /* exclusive = */ true);
+  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
   this->realloc(bytes_written);
 }
 
