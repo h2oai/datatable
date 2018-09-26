@@ -79,14 +79,94 @@ class shared_mutex {
 };
 
 
-class shared_lock {
+/**
+ * Shared "busy" mutex implementation with `while` loops
+ * instead of `std::mutex`. Could be useful when there are frequent, but short
+ * read operations.
+ */
+class shared_bmutex {
   private:
-    shared_mutex& mutex;
+    size_t state; // reader count + writer flag
+    static constexpr size_t WRITE_ENTERED = 1ULL << (sizeof(size_t) * 8 - 1);
+
+  public:
+    shared_bmutex() : state(0) {}
+
+
+    //--------------------------------------------------------------------------
+    // Exclusive access
+    //--------------------------------------------------------------------------
+    void lock() {
+      size_t state_old;
+      // Needed for the case when there are multiple threads waiting for the
+      // exclusive access.
+      bool exclusive_request = false;
+
+      while (true) {
+
+        #pragma omp atomic capture
+        {state_old = state; state |= WRITE_ENTERED;}
+
+        if ((state_old & WRITE_ENTERED) && !exclusive_request) continue;
+        if (state_old == WRITE_ENTERED) break;
+        exclusive_request = true;
+      }
+    }
+
+
+    void unlock() {
+      // Clear the writer bit. Note, one can not simply set `state` to `0`,
+      // because there may be some readers waiting in the `shared_lock()`.
+      // These readers increment and decrement the `state`, so setting
+      // it to `0` may result in the incorrect mutex behavior.
+      #pragma omp atomic update
+      state &= ~WRITE_ENTERED;
+    }
+
+
+    //--------------------------------------------------------------------------
+    // Shared access
+    //--------------------------------------------------------------------------
+    void lock_shared() {
+      size_t state_old;
+
+      while (true) {
+        #pragma omp atomic read
+        state_old = state;
+
+        // This check is required to prevent deadlocks, so that exclusive `lock()`
+        // takes priority over the `lock_shared()` when competing. Note, that
+        // the `state` should be "omp atomic read", otherwise behavior is unpredictable
+        // on some systems.
+        if (state_old & WRITE_ENTERED) continue;
+
+        #pragma omp atomic capture
+        {state_old = state; ++state;}
+
+        if (state_old & WRITE_ENTERED) {
+          #pragma omp atomic update
+          --state;
+        } else break;
+      }
+    }
+
+
+    void unlock_shared() {
+      #pragma omp atomic update
+      --state;
+    }
+
+};
+
+
+template<class T> class shared_lock {
+  private:
+    T& mutex;
     bool exclusive;
     uint64_t : 56;
 
   public:
-    shared_lock(shared_mutex& m, bool excl = false)
+    shared_lock(T& m, bool excl = false)
       : mutex(m), exclusive(excl)
     {
       if (exclusive) {

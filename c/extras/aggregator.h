@@ -12,6 +12,8 @@
 #include "datatable.h"
 #include <random>
 #include "py_datatable.h"
+#include "utils.h"
+
 
 typedef std::unique_ptr<double[]> DoublePtr;
 struct ex {
@@ -27,7 +29,7 @@ typedef std::unique_ptr<ex> ExPtr;
 class Aggregator {
   public:
     Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
-               unsigned int, PyObject*);
+               unsigned int, PyObject*, unsigned int);
     DataTablePtr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
@@ -41,13 +43,14 @@ class Aggregator {
     int32_t nd_max_bins;
     int32_t max_dimensions;
     unsigned int seed;
-    int : 32;
+    unsigned int nthreads;
     PyObject* progress_fn;
 
     // Grouping and aggregating functions
     void group_1d(DataTablePtr&, DataTablePtr&);
     void group_2d(DataTablePtr&, DataTablePtr&);
     void group_nd(DataTablePtr&, DataTablePtr&);
+    void test(DataTablePtr&, DataTablePtr&);
     void group_1d_continuous(DataTablePtr&, DataTablePtr&);
     void group_2d_continuous(DataTablePtr&, DataTablePtr&);
     void group_1d_categorical(DataTablePtr&, DataTablePtr&);
@@ -56,6 +59,7 @@ class Aggregator {
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
     // Helper functions
+    int32_t get_nthreads(DataTablePtr&);
     DoublePtr generate_pmatrix(DataTablePtr&);
     void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
     void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
@@ -68,7 +72,8 @@ class Aggregator {
     void progress(double, int status_code=0);
 };
 
+
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=25, seed=0)\n\n",
+  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)

@@ -308,7 +308,7 @@ void FreadThreadContext::orderBuffer() {
       strinfo[j].write_at = write_at;
 
       if (col.get_ptype() == PT::Str32 && write_at + sz > 0x80000000) {
-        dt::shared_lock lock(shmutex, /* exclusive = */ true);
+        dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
         col.convert_to_str64();
         types[i] = PT::Str64;
         if (verbose) {
@@ -324,7 +324,7 @@ void FreadThreadContext::orderBuffer() {
 void FreadThreadContext::push_buffers() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
-  dt::shared_lock lock(shmutex);
+  dt::shared_lock<dt::shared_mutex> lock(shmutex);
 
   double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
