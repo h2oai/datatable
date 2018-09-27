@@ -47,6 +47,7 @@ class Frame : public PyObject {
         static PKArgs args___init__;
         static PKArgs args_cbind;
         static PKArgs args_colindex;
+        static PKArgs args_replace;
         static NoArgs args_copy;
         static const char* classname();
         static const char* classdoc();

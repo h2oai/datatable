@@ -111,6 +111,7 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
+  if (ri) reify();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -138,7 +139,7 @@ void FwColumn<T>::set_elem(int64_t i, T value) {
 template <typename T>
 void FwColumn<T>::reify() {
   // If the rowindex is absent, then the column is already materialized.
-  if (ri.isabsent()) return;
+  if (!ri) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
   bool ascending    = ri.isslice() && ri.slice_step() > 0;
 

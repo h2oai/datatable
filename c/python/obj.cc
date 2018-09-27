@@ -40,6 +40,10 @@ obj::obj(const PyObject* p) {
   v = const_cast<PyObject*>(p);
 }
 
+obj::obj(const Arg& arg) {
+  v = arg.to_borrowed_ref();
+}
+
 obj::obj(const obj& other) {
   v = other.v;
 }
