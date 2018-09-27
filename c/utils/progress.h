@@ -15,15 +15,16 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_PROGRESS_h
 #define dt_UTILS_PROGRESS_h
-#include <memory>   // std::unique_ptr
+#include <functional>   // std::function
+#include <memory>       // std::unique_ptr
 
 namespace dt {
 
 
 /**
- * Execute function `f` in parallel, across the range `[0 .. nrows - 1]`.
- * The signature of function `f` is that of a "range" function:
- * `(start, end, step)`. The function `f` is then expected to run a loop for
+ * Execute function `run` in parallel, across the range `[0 .. nrows - 1]`.
+ * The signature of function `run` is that of a "range" function:
+ * `(start, end, step)`. The function `run` is then expected to run a loop for
  * the indices in this range.
  *
  * Each thread will thus run on a set of rows that are at a constant distance
@@ -31,7 +32,8 @@ namespace dt {
  *   - The amount of work per row is relatively small;
  *   - The rows can be processed in any order.
  */
-void run_interleaved(size_t nrows, void (*f)(size_t, size_t, size_t));
+void run_interleaved(size_t nrows,
+                     std::function<void(size_t&, size_t, size_t)> run);
 
 
 class OrderedJobContext {
