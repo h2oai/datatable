@@ -92,8 +92,11 @@ class ReplaceAgent {
     int64_t xmin_int, xmax_int;
     double xmin_real, xmax_real;
 
+    bool columns_cast;
+    size_t : 56;
+
   public:
-    ReplaceAgent(DataTable* _dt) : dt(_dt) {}
+    ReplaceAgent(DataTable* _dt) : dt(_dt), columns_cast(false) {}
     void parse_x_y(const Arg& x, const Arg& y);
     void split_x_y_by_type();
     template <typename T> void process_int_column(size_t i);
@@ -101,6 +104,7 @@ class ReplaceAgent {
     template <typename T> void process_str_column(size_t i);
     template <typename T>
     void replace_in_data(size_t n, T* x, T* y, size_t nrows, T* data);
+    bool types_changed() const { return columns_cast; }
 
   private:
     void split_x_y_bool();
@@ -131,6 +135,7 @@ void Frame::replace(const PKArgs& args) {
       default: break;
     }
   }
+  if (ra.types_changed()) _clear_types();
 }
 
 
@@ -380,6 +385,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     Column* newcol = col->cast(new_stype);
     dt->columns[colidx] = newcol;
     delete col;
+    columns_cast = true;
     if (new_stype == SType::INT64) {
       process_int_column<int64_t>(colidx);
     } else {
@@ -392,6 +398,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     T* coldata = col->elements_w();
     replace_in_data<T>(n, xfilt.data(), yfilt.data(),
                        nrows, coldata);
+    col->get_stats()->reset();
   }
 }
 

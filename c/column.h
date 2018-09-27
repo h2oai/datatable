@@ -402,11 +402,11 @@ public:
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
+  BooleanStats* get_stats() const override;
 
   py::oobj get_value_at_index(int64_t i) const override;
 
   protected:
-  BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
@@ -462,12 +462,11 @@ public:
   PyObject* sd_pyscalar() const override;
   PyObject* skew_pyscalar() const override;
   PyObject* kurt_pyscalar() const override;
+  IntegerStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(int64_t i) const override;
 
 protected:
-  IntegerStats<T>* get_stats() const override;
-
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
   void cast_into(IntColumn<int16_t>*) const override;
@@ -528,12 +527,11 @@ public:
   PyObject* sd_pyscalar() const override;
   PyObject* skew_pyscalar() const override;
   PyObject* kurt_pyscalar() const override;
+  RealStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(int64_t i) const override;
 
 protected:
-  RealStats<T>* get_stats() const override;
-
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
   void cast_into(IntColumn<int16_t>*) const override;
@@ -582,13 +580,13 @@ public:
   PyObjectColumn(int64_t nrows);
   PyObjectColumn(int64_t nrows, MemoryRange&&);
   virtual SType stype() const override;
+  PyObjectStats* get_stats() const override;
 
   py::oobj get_value_at_index(int64_t i) const override;
 
 protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
-  PyObjectStats* get_stats() const override;
   void open_mmap(const std::string& filename, bool) override;
 
   // void cast_into(BoolColumn*) const override;
@@ -652,6 +650,7 @@ public:
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;
+  StringStats<T>* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -666,8 +665,6 @@ protected:
 
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
-
-  StringStats<T>* get_stats() const override;
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -712,6 +709,7 @@ class VoidColumn : public Column {
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
+    Stats* get_stats() const override;
     py::oobj get_value_at_index(int64_t i) const override;
   protected:
     VoidColumn();
@@ -719,7 +717,6 @@ class VoidColumn : public Column {
     void init_mmap(const std::string&) override;
     void open_mmap(const std::string&, bool) override;
     void init_xbuf(Py_buffer*) override;
-    Stats* get_stats() const override;
     void fill_na() override;
 
     friend Column;
