@@ -22,6 +22,7 @@ struct CString {
   CString(const CString&) = default;
   CString& operator=(const CString&) = default;
   operator bool() { return ch != nullptr; }
+  bool isna() const { return ch == nullptr; }
 };
 
 

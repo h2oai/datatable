@@ -74,7 +74,7 @@ void run_interleaved(size_t nrows,
 // Ordered
 //------------------------------------------------------------------------------
 
-void run_ordered(size_t nrows, ojcptr (*prepare)(int, int))
+void run_ordered(size_t nrows, std::function<ojcptr(int, int)> prepare)
 {
   constexpr size_t min_nrows_per_thread = 100;
   size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
@@ -98,7 +98,7 @@ void run_ordered(size_t nrows, ojcptr (*prepare)(int, int))
       ojcptr ctx;
 
       try {
-        ctx = (*prepare)(ith, nth);
+        ctx = prepare(ith, nth);
       } catch (...) {
         oem.capture_exception();
         stop_iteration = true;

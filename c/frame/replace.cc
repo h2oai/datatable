@@ -108,6 +108,9 @@ class ReplaceAgent {
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
+    template <typename T> void replace_str(size_t n, CString* x, CString* y,
+                                           size_t nrows, T* offsets, const char* strdata,
+                                           WritableBuffer* wb);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -133,10 +136,10 @@ void Frame::replace(const PKArgs& args) {
   for (size_t i = 0; i < ncols; ++i) {
     Column* col = dt->columns[i];
     switch (col->stype()) {
-      case SType::INT8:  ra.process_int_column<int8_t>(i); break;
-      case SType::INT16: ra.process_int_column<int16_t>(i); break;
-      case SType::INT32: ra.process_int_column<int32_t>(i); break;
-      case SType::INT64: ra.process_int_column<int64_t>(i); break;
+      case SType::INT8:    ra.process_int_column<int8_t>(i); break;
+      case SType::INT16:   ra.process_int_column<int16_t>(i); break;
+      case SType::INT32:   ra.process_int_column<int32_t>(i); break;
+      case SType::INT64:   ra.process_int_column<int64_t>(i); break;
       case SType::FLOAT32: ra.process_real_column<float>(i); break;
       case SType::FLOAT64: ra.process_real_column<double>(i); break;
       default: break;
@@ -150,8 +153,8 @@ void Frame::replace(const PKArgs& args) {
 //------------------------------------------------------------------------------
 // Step 1: parse input arguments
 //
-// There are multiple different calling conventions for the `Frame.replace()`
-// method; here we handle them, creating a unified representation in the form
+// There are multiple different calling signatures for the `Frame.replace()`
+// method. Here we handle them, creating a unified representation in the form
 // of two vectors `vx`, `vy` of values that need to be replaced and their
 // replacements respectively.
 //------------------------------------------------------------------------------
@@ -180,7 +183,7 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
     if (y.is_list_or_tuple()) {
       olist yl = y.to_pylist();
       if (vx.size() == 1 && vx[0].is_none()) {
-        for (size_t i = 0; i < yl.size(); ++i) {
+        for (size_t i = 1; i < yl.size(); ++i) {
           vx.push_back(vx[0]);
         }
       }
@@ -282,7 +285,7 @@ void ReplaceAgent::split_x_y_int() {
   int64_t na_repl = GETNA<int64_t>();
   size_t n = vx.size();
   xmin_int = std::numeric_limits<int64_t>::max();
-  xmax_int = std::numeric_limits<int64_t>::min();
+  xmax_int = -xmin_int;
   for (size_t i = 0; i < n; ++i) {
     py::obj xelem = vx[i];
     py::obj yelem = vy[i];
@@ -405,7 +408,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   int64_t col_max = col->max();
   bool col_has_nas = (col->countna() > 0);
   // xmax_int will be NA iff the replacement list has just one element: NA
-  if (ISNA<int64_t>(xmax_int)) {
+  if (xmin_int == std::numeric_limits<int64_t>::max()) {
     if (!col_has_nas) return;
   } else {
     if (col_min > xmax_int || col_max < xmin_int) return;
@@ -463,7 +466,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
   double col_max = static_cast<double>(col->max());
   bool col_has_nas = (col->countna() > 0);
   // xmax_real will be NA iff the replacement list has just one element: NA
-  if (ISNA(xmax_real)) {
+  if (xmin_real == std::numeric_limits<double>::max()) {
     if (!col_has_nas) return;
   } else {
     if (col_min > xmax_real || col_max < xmin_real) return;
@@ -484,7 +487,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     double y = y_real[i];
     if (ISNA(y)) {
       yfilt.push_back(GETNA<T>());
-    } else if (std::is_same<T, float>::value && std::abs(y) <= MAX_FLOAT) {
+    } else if (std::is_same<T, double>::value || std::abs(y) <= MAX_FLOAT) {
       yfilt.push_back(static_cast<T>(y));
     } else {
       maxy = std::abs(y);
@@ -504,6 +507,27 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     replace_fw<T>(xfilt.data(), yfilt.data(), nrows, coldata, n);
     col->get_stats()->reset();
   }
+}
+
+
+template <typename T>
+void ReplaceAgent::process_str_column(size_t colidx) {
+  if (x_str.empty()) return;
+  auto col = static_cast<StringColumn<T>*>(dt->columns[colidx]);
+  if (x_str.size() == 1 && x_str[0].isna()) {
+    if (col->countna() == 0) return;
+  }
+  size_t n = x_str.size();
+  size_t nrows = static_cast<size_t>(col->nrows);
+  T* offdata = col->offsets_w();
+  const char* strdata = col->strdata();
+  auto wb = std::unique_ptr<MemoryWritableBuffer>(
+                new MemoryWritableBuffer(col->datasize()));
+  replace_str<T>(n, x_str.data(), y_str.data(),
+                 nrows, offdata, strdata, wb.get());
+  wb->finalize();
+  col->replace_buffer(col->databuf(), wb->get_mbuf());
+  col->get_stats()->reset();
 }
 
 
@@ -620,6 +644,26 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
     );
   }
 }
+
+
+class ReplaceStringOJC : public dt::OrderedJobContext {
+  public:
+    ReplaceStringOJC();
+    virtual ~ReplaceStringOJC() override;
+    virtual void run(size_t istart, size_t iend) override;
+    virtual void commit() override;
+};
+
+template <typename T>
+void ReplaceAgent::replace_str(
+    size_t n, CString* x, CString* y,
+    size_t nrows, T* offsets, const char* strdata, WritableBuffer* wb)
+{
+  dt::run_ordered(nrows, [=](int, int) {
+    return std::unique_ptr<dt::OrderedJobContext>(new ReplaceStringOJC());
+  });
+}
+
 
 
 #pragma clang diagnostic pop

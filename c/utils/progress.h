@@ -60,7 +60,8 @@ using ojcptr = std::unique_ptr<OrderedJobContext>;
  * This function is best suited for those cases when the processing has to run
  * as-if sequentially. For example, writing or modifying a string column.
  */
-void run_ordered(size_t nrows, ojcptr (*prepare)(int, int));
+void run_ordered(size_t nrows,
+                 std::function<ojcptr(int, int)> prepare);
 
 
 }
