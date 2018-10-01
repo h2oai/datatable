@@ -246,6 +246,7 @@ class _obj {
 class obj : public _obj {
   public:
     obj(const PyObject* p);
+    obj(const Arg&);
     obj(const obj&);
     obj(const oobj&);
     obj& operator=(const obj&);

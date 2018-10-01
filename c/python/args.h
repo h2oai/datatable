@@ -23,7 +23,7 @@ namespace py {
 
 /**
  * Helper class for ExtType: it encapsulates arguments passed to a function
- * and helps to verify / parse them. This is the base class for a family of
+ * and helps verify / parse them. This is the base class for a family of
  * args-related functions, each designed to handle different calling
  * convention.
  */
@@ -31,22 +31,24 @@ class Args {
   private:
     const char* cls_name;
     const char* fun_name;
+    const char* fun_doc;
     mutable const char* full_name;
 
   public:
-    Args();
+    Args(const char* name, const char* doc);
     virtual ~Args();
 
     //---- API for ExtType<T> ----------
     void set_class_name(const char* name);
-    void set_function_name(const char* name);
     virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
 
-  protected:
-    // Each Args describes a certain function or method in a class.
-    // This will return the name of that function/method, in the
-    // form "foo()" or "Class.foo()".
-    const char* get_name() const;
+    // Each `Args` object describes a certain function or method in a class.
+    // This will return the name of that function/method, in the form "foo()"
+    // or "Class.foo()".
+    const char* get_long_name() const;
+
+    const char* get_short_name() const;
+    const char* get_docstring() const;
 };
 
 
@@ -57,6 +59,7 @@ class Args {
 
 class NoArgs : public Args {
   public:
+    using Args::Args;
     void bind(PyObject* _args, PyObject* _kwds) override;
 };
 
@@ -97,9 +100,12 @@ class PKArgs : public Args {
      * vargs: positional var-args allowed? (`*args` in python)
      * vkwds: var-keywords allowed? (`**kwds` in python)
      * names: list of argument names
+     * name:  function name
+     * doc:   doc-string
      */
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-           std::initializer_list<const char*> names);
+           std::initializer_list<const char*> names,
+           const char* name = nullptr, const char* doc = nullptr);
 
     void bind(PyObject* _args, PyObject* _kws) override;
 

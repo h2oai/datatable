@@ -16,7 +16,12 @@ namespace py {
 // Args
 //------------------------------------------------------------------------------
 
-Args::Args() : cls_name(nullptr), fun_name(nullptr), full_name(nullptr) {}
+Args::Args(const char* name, const char* doc) {
+  cls_name = nullptr;
+  fun_name = name;
+  fun_doc = doc;
+  full_name = nullptr;
+}
 
 Args::~Args() {
   delete[] full_name;
@@ -27,31 +32,46 @@ void Args::set_class_name(const char* name) {
   cls_name = p? p + 1 : name;
 }
 
-void Args::set_function_name(const char* name) {
-  fun_name = name;
+const char* Args::get_short_name() const {
+  return fun_name;
 }
 
-const char* Args::get_name() const {
+const char* Args::get_docstring() const {
+  return fun_doc;
+}
+
+
+const char* Args::get_long_name() const {
   if (full_name) return full_name;
   size_t len1 = cls_name? std::strlen(cls_name) : 0;
   size_t len2 = fun_name? std::strlen(fun_name) : 0;
   size_t len_total = (len1? len1 + 1 : 0) + (len2? len2 : 1) + 2 + 1;
-  char* ptr = new char[len_total];
-  full_name = ptr;
-  if (len1) {
+
+  if (len1 && std::strcmp(fun_name, "__init__") == 0) {
+    char* ptr = new char[len1 + 15];
+    full_name = ptr;
     std::strncpy(ptr, cls_name, len1);
-    ptr += len1;
-    *ptr++ = '.';
+    std::strncpy(ptr + len1, "() constructor", 14);
+    ptr[len1 + 14] = '\0';
   }
-  if (len2) {
-    std::strncpy(ptr, fun_name, len2);
-    ptr += len2;
-  } else {
-    *ptr++ = '?';
+  else {
+    char* ptr = new char[len_total];
+    full_name = ptr;
+    if (len1) {
+      std::strncpy(ptr, cls_name, len1);
+      ptr += len1;
+      *ptr++ = '.';
+    }
+    if (len2) {
+      std::strncpy(ptr, fun_name, len2);
+      ptr += len2;
+    } else {
+      *ptr++ = '?';
+    }
+    *ptr++ = '(';
+    *ptr++ = ')';
+    *ptr = '\0';
   }
-  *ptr++ = '(';
-  *ptr++ = ')';
-  *ptr = '\0';
   return full_name;
 }
 
@@ -63,7 +83,7 @@ const char* Args::get_name() const {
 
 void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
   if ((_args && Py_SIZE(_args)) || (_kwds && PyDict_Size(_kwds))) {
-    throw TypeError() << get_name() << " accepts no arguments";
+    throw TypeError() << get_long_name() << " accepts no arguments";
   }
 }
 
@@ -75,9 +95,11 @@ void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
 
 PKArgs::PKArgs(
     size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-    std::initializer_list<const char*> _names
+    std::initializer_list<const char*> _names,
+    const char* name, const char* doc
   )
-  : n_posonly_args(npo),
+  : Args(name, doc),
+    n_posonly_args(npo),
     n_pos_kwd_args(npk),
     n_all_args(npo + npk + nko),
     has_varargs(vargs),
@@ -103,7 +125,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
   size_t n_bound_args = std::min(nargs, max_pos_args);
   n_varargs = nargs - n_bound_args;
   if (n_varargs && !has_varargs) {
-    auto err = TypeError() << get_name();
+    auto err = TypeError() << get_long_name();
     if (max_pos_args == 0) {
       err << " takes no positional arguments";
     } else if (max_pos_args == 1) {
@@ -132,12 +154,12 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
       if (ikey == size_t(-1)) {
         n_varkwds++;
         if (has_varkwds) continue;
-        throw TypeError() << get_name() << " got an unexpected keyword "
+        throw TypeError() << get_long_name() << " got an unexpected keyword "
           "argument `" << PyUnicode_AsUTF8(key) << '`';
       }
       if (ikey < n_bound_args) {
-        throw TypeError() << get_name() << " got multiple values for argument `"
-            << PyUnicode_AsUTF8(key) << '`';
+        throw TypeError() << get_long_name() << " got multiple values for "
+          "argument `" << PyUnicode_AsUTF8(key) << '`';
       }
       bound_args[ikey].set(value);
     }
@@ -158,7 +180,7 @@ std::string PKArgs::make_arg_name(size_t i) const {
   } else {
     res = std::string("Argument `") + arg_names[i] + '`';
   }
-  res += std::string(" in ") + get_name();
+  res += std::string(" in ") + get_long_name();
   return res;
 }
 

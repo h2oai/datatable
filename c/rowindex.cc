@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
+#include "utils/progress.h"
 
 
 //==============================================================================
@@ -119,10 +120,12 @@ void RowIndex::extract_into(arr32_t& target) const
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
         int32_t start = static_cast<int32_t>(slice_start());
         int32_t step = static_cast<int32_t>(slice_step());
-        #pragma omp parallel for schedule(static)
-        for (size_t i = 0; i < szlen; ++i) {
-          target[i] = start + static_cast<int32_t>(i) * step;
-        }
+        dt::run_interleaved(szlen,
+          [&](size_t& i, size_t i1, size_t di) {
+            for (; i < i1; i += di) {
+              target[i] = start + static_cast<int32_t>(i) * step;
+            }
+          });
       }
       break;
     }

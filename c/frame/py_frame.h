@@ -47,6 +47,7 @@ class Frame : public PyObject {
         static PKArgs args___init__;
         static PKArgs args_cbind;
         static PKArgs args_colindex;
+        static PKArgs args_replace;
         static NoArgs args_copy;
         static const char* classname();
         static const char* classdoc();
@@ -54,7 +55,6 @@ class Frame : public PyObject {
         static void init_methods_and_getsets(Methods&, GetSetters&);
       private:
         static void _init_names(Methods&, GetSetters&);
-        static void _init_cbind(Methods&, GetSetters&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -84,6 +84,7 @@ class Frame : public PyObject {
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const NoArgs&);
+    void replace(const PKArgs&);
 
   private:
     static bool internal_construction;

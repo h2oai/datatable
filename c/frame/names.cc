@@ -106,20 +106,21 @@ py::oobj strvecNP::item_as_pyoobj(size_t i) {
 //------------------------------------------------------------------------------
 namespace py {
 
-PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
+PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"},
+                                  "colindex",
+"colindex(self, name)\n"
+"--\n\n"
+"Return index of the column ``name``.\n"
+"\n"
+":param name: name of the column to find the index for. This can also\n"
+"    be an index of a column, in which case the index is checked that\n"
+"    it doesn't go out-of-bounds, and negative index is converted into\n"
+"    positive.\n"
+":raises ValueError: if the requested column does not exist.\n");
 
 void Frame::Type::_init_names(Methods& mm, GetSetters& gs)
 {
-  mm.add<&Frame::colindex, args_colindex>("colindex",
-    "colindex(self, name)\n"
-    "--\n\n"
-    "Return index of the column ``name``.\n"
-    "\n"
-    ":param name: name of the column to find the index for. This can also\n"
-    "    be an index of a column, in which case the index is checked that\n"
-    "    it doesn't go out-of-bounds, and negative index is converted into\n"
-    "    positive.\n"
-    ":raises ValueError: if the requested column does not exist.\n");
+  mm.add<&Frame::colindex, args_colindex>();
 
   gs.add<&Frame::get_names, &Frame::set_names>("names",
     "Tuple of column names.\n"

@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - new function `split_into_nhot()` to split a string column into fragments
   and then convert them into a set of indicator variables ("n-hot encode").
 - ability to convert object columns into strings.
+- implemented `Frame.replace()` function.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
