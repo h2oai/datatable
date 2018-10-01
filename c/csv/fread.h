@@ -10,7 +10,7 @@
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
 #include "utils.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "memrange.h"
 #include "csv/reader.h"
 #include "read/field64.h"

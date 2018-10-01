@@ -18,7 +18,7 @@
 #include <vector>
 #include "datatable.h"
 #include "utils/exceptions.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "utils/shared_mutex.h"
 
 namespace dt {

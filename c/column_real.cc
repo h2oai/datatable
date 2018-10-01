@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/toa.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "python/float.h"
 #include "py_utils.h"
 

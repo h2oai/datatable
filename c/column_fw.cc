@@ -9,7 +9,7 @@
 #include "column.h"
 #include "utils.h"
 #include "utils/assert.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 

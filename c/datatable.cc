@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include "datatable.h"
 #include <stdlib.h>
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
