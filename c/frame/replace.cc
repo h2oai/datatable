@@ -295,8 +295,8 @@ void ReplaceAgent::split_x_y_int() {
     }
     else if (xelem.is_int()) {
       if (!(yelem.is_none() || yelem.is_int())) {
-        throw TypeError() << "Cannot replace integer value " << xelem
-          << " with a value of type " << yelem.typeobj();
+        throw TypeError() << "Cannot replace integer value `" << xelem
+          << "` with a value of type " << yelem.typeobj();
       }
       int64_t xval = xelem.to_int64();
       int64_t yval = yelem.to_int64();
@@ -380,7 +380,7 @@ void ReplaceAgent::split_x_y_str() {
 template <typename T>
 void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
   std::unordered_set<T> check;
-  for (const auto& x : data) {
+  for (const T& x : data) {
     if (check.count(x)) {
       throw ValueError() << "Replacement target `" << x << "` was specified "
         "more than once in Frame.replace()";
@@ -407,7 +407,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   int64_t col_min = col->min();
   int64_t col_max = col->max();
   bool col_has_nas = (col->countna() > 0);
-  // xmax_int will be NA iff the replacement list has just one element: NA
+  // xmax_int will be -MAXINT iff the replacement list has just one element: NA
   if (xmin_int == std::numeric_limits<int64_t>::max()) {
     if (!col_has_nas) return;
   } else {
@@ -593,7 +593,8 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
           else if (ISNA<T>(v)) data[i] = y1;
         }
       }
-    );  } else {
+    );
+  } else {
     dt::run_interleaved(nrows,
       [=](size_t& i, size_t iend, size_t di) {
         for (; i < iend; i += di) {
