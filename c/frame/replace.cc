@@ -215,20 +215,12 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
 //------------------------------------------------------------------------------
 
 void ReplaceAgent::split_x_y_by_type() {
-  bool done_bool = false,
-       done_int = false,
-       done_real = false,
-       done_str = false;
+  bool done_int = false,
+       done_real = false;
   size_t ncols = static_cast<size_t>(dt->ncols);
   for (size_t i = 0; i < ncols; ++i) {
     SType s = dt->columns[i]->stype();
     switch (s) {
-      case SType::BOOL: {
-        if (done_bool) continue;
-        split_x_y_bool();
-        done_bool = true;
-        break;
-      }
       case SType::INT8:
       case SType::INT16:
       case SType::INT32:
@@ -245,40 +237,11 @@ void ReplaceAgent::split_x_y_by_type() {
         done_real = true;
         break;
       }
-      case SType::STR32:
-      case SType::STR64: {
-        if (done_str) continue;
-        split_x_y_str();
-        done_str = true;
-        break;
-      }
       default: break;
     }
   }
 }
 
-
-void ReplaceAgent::split_x_y_bool() {
-  size_t n = vx.size();
-  for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
-    if (xelem.is_none()) {
-      if (yelem.is_none()) continue;
-      if (!yelem.is_bool()) continue;
-      x_bool.push_back(GETNA<int8_t>());
-      y_bool.push_back(yelem.to_bool());
-    }
-    else if (xelem.is_bool()) {
-      if (!(yelem.is_none() || yelem.is_bool())) {
-        throw TypeError() << "Cannot replace boolean value " << xelem
-          << " with a value of type " << yelem.typeobj();
-      }
-      x_bool.push_back(xelem.to_bool());
-      y_bool.push_back(yelem.to_bool());
-    }
-  }
-}
 
 
 void ReplaceAgent::split_x_y_int() {
@@ -348,32 +311,6 @@ void ReplaceAgent::split_x_y_real() {
     y_real.push_back(na_repl);
   }
   check_uniqueness<double>(x_real);
-}
-
-
-void ReplaceAgent::split_x_y_str() {
-  size_t n = vx.size();
-  CString na_repl;
-  for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
-    if (xelem.is_none()) {
-      if (yelem.is_none() || !yelem.is_string()) continue;
-      na_repl = yelem.to_cstring();
-    }
-    else if (xelem.is_string()) {
-      if (!(yelem.is_none() || yelem.is_string())) {
-        throw TypeError() << "Cannot replace string value `" << xelem
-          << "` with a value of type " << yelem.typeobj();
-      }
-      x_str.push_back(xelem.to_cstring());
-      y_str.push_back(yelem.to_cstring());
-    }
-  }
-  if (na_repl) {
-    x_str.push_back(CString());
-    y_str.push_back(na_repl);
-  }
 }
 
 
@@ -510,27 +447,6 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 }
 
 
-template <typename T>
-void ReplaceAgent::process_str_column(size_t colidx) {
-  if (x_str.empty()) return;
-  auto col = static_cast<StringColumn<T>*>(dt->columns[colidx]);
-  if (x_str.size() == 1 && x_str[0].isna()) {
-    if (col->countna() == 0) return;
-  }
-  size_t n = x_str.size();
-  size_t nrows = static_cast<size_t>(col->nrows);
-  T* offdata = col->offsets_w();
-  const char* strdata = col->strdata();
-  auto wb = std::unique_ptr<MemoryWritableBuffer>(
-                new MemoryWritableBuffer(col->datasize()));
-  replace_str<T>(n, x_str.data(), y_str.data(),
-                 nrows, offdata, strdata, wb.get());
-  wb->finalize();
-  col->replace_buffer(col->databuf(), wb->get_mbuf());
-  col->get_stats()->reset();
-}
-
-
 
 //------------------------------------------------------------------------------
 // Step 4: perform actual data replacement
@@ -644,25 +560,6 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
       }
     );
   }
-}
-
-
-class ReplaceStringOJC : public dt::OrderedJobContext {
-  public:
-    ReplaceStringOJC();
-    virtual ~ReplaceStringOJC() override;
-    virtual void run(size_t istart, size_t iend) override;
-    virtual void commit() override;
-};
-
-template <typename T>
-void ReplaceAgent::replace_str(
-    size_t n, CString* x, CString* y,
-    size_t nrows, T* offsets, const char* strdata, WritableBuffer* wb)
-{
-  dt::run_ordered(nrows, [=](int, int) {
-    return std::unique_ptr<dt::OrderedJobContext>(new ReplaceStringOJC());
-  });
 }
 
 
