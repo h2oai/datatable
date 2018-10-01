@@ -101,6 +101,7 @@ class ReplaceAgent {
     ReplaceAgent(DataTable* _dt) : dt(_dt), columns_cast(false) {}
     void parse_x_y(const Arg& x, const Arg& y);
     void split_x_y_by_type();
+    void process_bool_column(size_t i);
     template <typename T> void process_int_column(size_t i);
     template <typename T> void process_real_column(size_t i);
     template <typename T> void process_str_column(size_t i);
@@ -136,6 +137,7 @@ void Frame::replace(const PKArgs& args) {
   for (size_t i = 0; i < ncols; ++i) {
     Column* col = dt->columns[i];
     switch (col->stype()) {
+      case SType::BOOL:    ra.process_bool_column(i); break;
       case SType::INT8:    ra.process_int_column<int8_t>(i); break;
       case SType::INT16:   ra.process_int_column<int16_t>(i); break;
       case SType::INT32:   ra.process_int_column<int32_t>(i); break;
@@ -216,11 +218,18 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
 
 void ReplaceAgent::split_x_y_by_type() {
   bool done_int = false,
-       done_real = false;
+       done_real = false,
+       done_bool = false;
   size_t ncols = static_cast<size_t>(dt->ncols);
   for (size_t i = 0; i < ncols; ++i) {
     SType s = dt->columns[i]->stype();
     switch (s) {
+      case SType::BOOL: {
+        if (done_bool) continue;
+        split_x_y_bool();
+        done_bool = true;
+        break;
+      }
       case SType::INT8:
       case SType::INT16:
       case SType::INT32:
@@ -242,6 +251,29 @@ void ReplaceAgent::split_x_y_by_type() {
   }
 }
 
+
+void ReplaceAgent::split_x_y_bool() {
+  size_t n = vx.size();
+  for (size_t i = 0; i < n; ++i) {
+    py::obj xelem = vx[i];
+    py::obj yelem = vy[i];
+    if (xelem.is_none()) {
+      if (yelem.is_none()) continue;
+      if (!yelem.is_bool()) continue;
+      x_bool.push_back(GETNA<int8_t>());
+      y_bool.push_back(yelem.to_bool());
+    }
+    else if (xelem.is_bool()) {
+      if (!(yelem.is_none() || yelem.is_bool())) {
+        throw TypeError() << "Cannot replace boolean value `" << xelem
+          << "` with a value of type " << yelem.typeobj();
+      }
+      x_bool.push_back(xelem.to_bool());
+      y_bool.push_back(yelem.to_bool());
+    }
+  }
+  check_uniqueness<int8_t>(x_bool);
+}
 
 
 void ReplaceAgent::split_x_y_int() {
@@ -336,6 +368,17 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 // may be upcast to a higher stype, if we detect that the replacement value is
 // too large to fit into the current stype.
 //------------------------------------------------------------------------------
+
+void ReplaceAgent::process_bool_column(size_t colidx) {
+  if (x_bool.empty()) return;
+  auto col = static_cast<BoolColumn*>(dt->columns[colidx]);
+  size_t nrows = static_cast<size_t>(col->nrows);
+  int8_t* coldata = col->elements_w();
+  size_t n = x_bool.size();
+  xassert(n == y_bool.size());
+  replace_fw<int8_t>(x_bool.data(), y_bool.data(), nrows, coldata, n);
+}
+
 
 template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {

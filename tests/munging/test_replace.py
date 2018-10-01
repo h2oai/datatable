@@ -22,6 +22,63 @@ from tests import list_equals
 
 
 #-------------------------------------------------------------------------------
+# Frame.replace() signature
+#-------------------------------------------------------------------------------
+
+def test_replace_scalar_scalar():
+    df = dt.Frame([1, 2, 3])
+    df.replace(1, 5)
+    assert df.topython() == [[5, 2, 3]]
+
+
+def test_replace_list_scalar():
+    df = dt.Frame([1, 2, 3])
+    df.replace([1, 2, 7], 5)
+    assert df.topython() == [[5, 5, 3]]
+
+
+def test_replace_list_list():
+    df = dt.Frame([1, 2, 3])
+    df.replace([1, 2, 7], [6, 2, 5])
+    assert df.topython() == [[6, 2, 3]]
+
+
+def test_replace_emptylist():
+    df = dt.Frame([1, 2, 3])
+    df.replace([], 0)
+    assert df.topython() == [[1, 2, 3]]
+
+
+def test_replace_dict():
+    df = dt.Frame([1, 2, 3])
+    df.replace({3: 1, 1: 3})
+    assert df.topython() == [[3, 2, 1]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Replacing in bool columns
+#-------------------------------------------------------------------------------
+
+def test_replace_bool_simple():
+    df = dt.Frame([[True, False, None], [True] * 3, [False] * 3])
+    df.replace({True: False, False: True})
+    df.internal.check()
+    assert df.stypes == (dt.bool8,) * 3
+    assert df.topython() == [[False, True, None], [False] * 3, [True] * 3]
+
+
+def test_replace_bool_na():
+    df = dt.Frame([True, False, None])
+    df.replace(None, False)
+    df.internal.check()
+    assert df.topython() == [[True, False, False]]
+
+
+
+
+#-------------------------------------------------------------------------------
 # Replacing in int columns
 #-------------------------------------------------------------------------------
 
@@ -82,6 +139,7 @@ def test_replace_large(seed):
 
 
 
+
 #-------------------------------------------------------------------------------
 # Replacing in float columns
 #-------------------------------------------------------------------------------
@@ -122,23 +180,62 @@ def test_replace_float_with_upcast():
 
 
 
+
 #-------------------------------------------------------------------------------
-# Mixed column types
+# Misc
 #-------------------------------------------------------------------------------
+
+def test_replace_nothing():
+    df = dt.Frame(range(5))
+    df.replace([], [])
+    df.replace({})
+    assert df.topython() == [list(range(5))]
+
 
 def test_replace_nas():
-    df = dt.Frame([[1, None, 5, 10], [2.7, nan, None, 1e5]])
-    df.replace(None, [77, 9.999])
+    df = dt.Frame([[1, None, 5, 10],
+                   [2.7, nan, None, 1e5],
+                   [True, False, None, None]])
+    df.replace(None, [77, 9.999, True])
     df.internal.check()
-    assert df.topython() == [[1, 77, 5, 10], [2.7, 9.999, 9.999, 1e5]]
+    assert df.topython() == [[1, 77, 5, 10],
+                             [2.7, 9.999, 9.999, 1e5],
+                             [True, False, True, True]]
 
 
-def test_replace_nas2():
+@pytest.mark.parametrize("st", [dt.float32, dt.float64])
+def test_replace_nas2(st):
     # Check that `nan` can be used as a replacement target too
-    df = dt.Frame([1.0, None, 2.2, nan, -nan])
+    df = dt.Frame([1.0, None, 2.5, nan, -nan], stype=st)
+    assert df.stypes == (st,)
     df.replace(nan, 0.0)
     df.internal.check()
-    assert df.topython() == [[1.0, 0.0, 2.2, 0.0, 0.0]]
+    assert df.stypes == (st,)
+    assert df.topython() == [[1.0, 0.0, 2.5, 0.0, 0.0]]
+
+
+@pytest.mark.parametrize("nn", [0, 1, 2, 3, 5, 8])
+@pytest.mark.parametrize("st", dt.ltype.int.stypes + dt.ltype.real.stypes)
+def test_replace_multiple(nn, st):
+    src = list(range(100)) + [None]
+    df = dt.Frame(src, stype=st)
+    assert df.stypes == (st,)
+    replacements = {i: i * 2 for i in range(1, nn + 1)}
+    res = src
+    for i in range(1, nn + 1):
+        res[i] = i * 2
+    if nn == 0:
+        replacements[None] = -1
+        res[-1] = -1
+    if st.ltype == dt.ltype.real:
+        res = [float(x) for x in res[:-1]] + [None]
+        if nn != 0:
+            replacements = {float(k): float(v) for k, v in replacements.items()}
+    df.replace(replacements)
+    df.internal.check()
+    assert df.stypes == (st,)
+    assert df.topython()[0] == res
+
 
 
 
@@ -175,6 +272,14 @@ def test_replace_bad4():
         df0 = dt.Frame(B=[0.1] * 10)
         df0.replace({inf: 0})
     assert ("Cannot replace float value `inf` with a value of type "
+            "<class 'int'>" == str(e.value))
+
+
+def test_replace_bad5():
+    with pytest.raises(TypeError) as e:
+        df0 = dt.Frame([True, False])
+        df0.replace({False: 0})
+    assert ("Cannot replace boolean value `False` with a value of type "
             "<class 'int'>" == str(e.value))
 
 
