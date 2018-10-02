@@ -19,7 +19,7 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
-#include "utils/progress.h"
+#include "utils/parallel.h"
 
 namespace py {
 

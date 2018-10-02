@@ -16,7 +16,6 @@
 #include "utils/parallel.h"
 #include "options.h"
 #include "utils/exceptions.h"
-#include "utils/progress.h"
 
 namespace dt {
 
@@ -30,7 +29,7 @@ void run_interleaved(rangefn run, size_t nrows)
   // `min_nrows_per_thread`: avoid processing less than this many rows in each
   // thread, reduce the number of threads if necessary.
   // `min_nrows_per_batch`: the minimum number of rows to process within each
-  // thread before sending a progress report signal, and checking for
+  // thread before sending a progress report signal and checking for
   // interrupts.
   //
   constexpr size_t min_nrows_per_thread = 100;
@@ -73,60 +72,67 @@ void run_interleaved(rangefn run, size_t nrows)
 
 
 //------------------------------------------------------------------------------
-// Ordered
+// ordered_job
 //------------------------------------------------------------------------------
 
-void run_ordered(size_t nrows, std::function<ojcptr(int, int)> prepare)
+ordered_job::ordered_job(size_t n) : nrows(n) {}
+
+ordered_job::~ordered_job() {}
+
+
+void ordered_job::execute()
 {
   constexpr size_t min_nrows_per_thread = 100;
   size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
                          nrows / min_nrows_per_thread);
 
   if (nth0 <= 1) {
-    ojcptr ctx = prepare(0, 1);
-    ctx->run(0, nrows);
-    ctx->commit();
+    ojcptr ctx = make_thread_context();
+    run(ctx, 0, nrows);
+    order(ctx);
     // progress.report(nrows);
   }
   else {
     OmpExceptionManager oem;
-    bool stop_iteration = false;
     #pragma omp parallel num_threads(nth0)
     {
-      int ith = omp_get_thread_num();
-      int nth = omp_get_num_threads();
+      // int ith = omp_get_thread_num();
+      // int nth = omp_get_num_threads();
       size_t nchunks = 1 + (nrows - 1)/1000;
       size_t chunksize = 1 + (nrows - 1)/nchunks;
       ojcptr ctx;
 
       try {
-        ctx = prepare(ith, nth);
+        ctx = make_thread_context();
       } catch (...) {
         oem.capture_exception();
-        stop_iteration = true;
       }
 
       #pragma omp for ordered schedule(dynamic)
       for (size_t j = 0; j < nchunks; ++j) {
-        if (stop_iteration) continue;
+        if (oem.stop_requested()) continue;
         size_t i0 = j * chunksize;
         size_t i1 = std::min(i0 + chunksize, nrows);
         try {
-          ctx->run(i0, i1);
+          run(ctx, i0, i1);
           // if (ith == 0) progress.report(i1);
         } catch (...) {
           oem.capture_exception();
-          stop_iteration = true;
         }
         #pragma omp ordered
         {
           try {
-            ctx->commit();
+            order(ctx);
           } catch (...) {
             oem.capture_exception();
-            stop_iteration = true;
           }
         }
+      }
+
+      try {
+        run(ctx, nrows, nrows);
+      } catch (...) {
+        oem.capture_exception();
       }
     }
     oem.rethrow_exception_if_any();

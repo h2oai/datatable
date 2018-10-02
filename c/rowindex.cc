@@ -10,7 +10,6 @@
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/parallel.h"
-#include "utils/progress.h"
 
 
 //==============================================================================
