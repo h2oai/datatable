@@ -4,15 +4,8 @@ about: Suggest an idea for new datatable functionality
 
 ---
 
-- Is there something datatable can't do just yet, but you think it'd be nice if it did?
-  Tell us what it is.
-
-- Is it related to some problem you're trying to solve?
-  We might be able to suggest a workaround until your feature is implemented.
-
-- What do you think the API for your feature should be?
-  Should this be a function / method / special syntax / etc? If this is a function, what arguments
-  it might take, and what their types should be. Provide as much or as little details as you like.
-
-- Tag your request with {improve} label.
-  Thanks for contributing, we appreciate your input!
+- Describe what feature would you like to see implemented;
+- If possible, give an example of how the code might look like, and what result it is expected to produce.
+- Click "Preview" to check that there are no formatting problems, and to give it a final check before submitting.
+- Is your request stated clearly, and not overbroad in scope? Great, it will help us implement the solution much faster.
+- Thanks for contributing, we appreciate your input!
