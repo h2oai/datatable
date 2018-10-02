@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "wstringcol.h"
 #include <cstring>        // std::memcpy
+#include "column.h"
 
 namespace dt {
 
@@ -25,7 +26,15 @@ namespace dt {
 
 fixed_height_string_col::fixed_height_string_col(size_t nrows)
   : strdata(new MemoryWritableBuffer(nrows)),
-    offdata(MemoryRange::mem(nrows * sizeof(int32_t))) {}
+    offdata(MemoryRange::mem(nrows * sizeof(uint32_t))),
+    n(nrows) {}
+
+
+Column* fixed_height_string_col::to_column() && {
+  offdata.set_element<uint32_t>(0, 0);
+  return new StringColumn<uint32_t>(static_cast<int64_t>(n),
+                                    std::move(offdata), strdata->get_mbuf());
+}
 
 
 fixed_height_string_col::buffer::buffer(fixed_height_string_col& s)
@@ -72,7 +81,7 @@ void fixed_height_string_col::buffer::commit_and_start_new_chunk(size_t i0) {
   for (uint32_t* p = offptr0; p < offptr; ++p) {
     *p += strbuf_write_pos;
   }
-  offptr = static_cast<uint32_t*>(col.offdata.xptr()) + i0;
+  offptr = static_cast<uint32_t*>(col.offdata.xptr()) + i0 + 1;
   offptr0 = offptr;
   strbuf_used = 0;
 }

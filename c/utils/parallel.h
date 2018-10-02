@@ -54,7 +54,6 @@ void run_interleaved(rangefn run, size_t nrows);
 
 
 
-
 class ojcontext {};
 using ojcptr = std::unique_ptr<ojcontext>;
 
@@ -87,26 +86,31 @@ class ordered_job {
 };
 
 
+using fhbuf = fixed_height_string_col::buffer;
 
-template <void (*F)(size_t, fixed_height_string_col::buffer&)>
+template <void (*F)(size_t, fhbuf&)>
 class map_fw2str : private ordered_job {
   private:
-    fixed_height_string_col col;
+    fixed_height_string_col outcol;
 
     struct thcontext : private ojcontext {
-      fixed_height_string_col::buffer sb;
+      fhbuf sb;
       thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
     };
 
   public:
-    map_fw2str(size_t nrows) : ordered_job(nrows), col(nrows) {
-      execute();
+    map_fw2str(size_t nrows) : ordered_job(nrows), outcol(nrows) {
     }
     ~map_fw2str() = default;
 
+    Column* result() {
+      execute();
+      return std::move(outcol)->to_column();
+    }
+
   private:
     ojcptr make_thread_context() override {
-      return ojcptr(new thcontext(col));
+      return ojcptr(new thcontext(outcol));
     }
 
     void run(ojcptr& ctx, size_t i0, size_t i1) override {
@@ -114,6 +118,62 @@ class map_fw2str : private ordered_job {
       sb.commit_and_start_new_chunk(i0);
       for (size_t i = i0; i < i1; ++i) {
         F(i, sb);
+      }
+    }
+
+    void order(ojcptr& ctx) override {
+      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
+      sb.order();
+    }
+};
+
+
+
+template <typename T, void (*F)(size_t, CString&, fhbuf&)>
+class map_str2str : private ordered_job {
+  private:
+    StringColumn<T>* inpcol;
+    fixed_height_string_col outcol;
+
+    struct thcontext : private ojcontext {
+      fhbuf sb;
+      thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
+    };
+
+  public:
+    map_str2str(StringColumn<T>* col)
+      : ordered_job(static_cast<size_t>(col->nrows)),
+        inpcol(col),
+        outcol(static_cast<size_t>(col->nrows)) {}
+    ~map_str2str() = default;
+
+    Column* result() {
+      execute();
+      return std::move(outcol)->to_column();
+    }
+
+  private:
+    ojcptr make_thread_context() override {
+      return ojcptr(new thcontext(outcol));
+    }
+
+    void run(ojcptr& ctx, size_t i0, size_t i1) override {
+      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
+      sb.commit_and_start_new_chunk(i0);
+      CString curr_str;
+      const T* offsets = inpcol->offsets();
+      const char* strdata = inpcol->strdata();
+      T offstart = offsets[i0 - 1] & ~GETNA<T>();
+      for (size_t i = i0; i < i1; ++i) {
+        T offend = offsets[i];
+        if (ISNA<T>(offend)) {
+          curr_str.ch = nullptr;
+        } else {
+          curr_str.ch = strdata + offstart;
+          curr_str.size = offend - offstart;
+          offstart = offend;
+        }
+        F(i, curr_str, sb);
       }
     }
 

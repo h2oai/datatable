@@ -21,6 +21,9 @@
 #include "utils/array.h"    // dt::array
 #include "writebuf.h"       // WritableBuffer
 
+class Column;
+template <typename T> class StringColumn;
+
 namespace dt {
 
 
@@ -35,12 +38,13 @@ namespace dt {
  */
 class fixed_height_string_col {
   private:
-    std::unique_ptr<WritableBuffer> strdata;
+    std::unique_ptr<MemoryWritableBuffer> strdata;
     MemoryRange offdata;
+    size_t n;
 
   public:
     fixed_height_string_col(size_t nrows);
-
+    Column* to_column() &&;
 
     class buffer {
       private:
