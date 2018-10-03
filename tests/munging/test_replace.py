@@ -203,6 +203,23 @@ def test_replace_str_none():
     assert df.topython() == [[None, "BC", "??", "DEF", "??", "G"]]
 
 
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_replace_str_large(seed):
+    random.seed(seed)
+    nums = ["one", "two", "three", "four", "five"]
+    src = [random.choice(nums) for _ in range(10000)]
+    df = dt.Frame(src)
+    df.replace(["two", "five"], ["2", "1+1+1+1+1"])
+    df.internal.check()
+    for i in range(len(src)):
+        if src[i] == "two":
+            src[i] = "2"
+        elif src[i] == "five":
+            src[i] = "1+1+1+1+1"
+    assert df.topython() == [src]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
