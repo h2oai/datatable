@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 
 from datatable.graph.dtproxy import f
+from .abs_expr import abs
 from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .cast_expr import CastExpr
@@ -20,6 +21,7 @@ from .sd_expr import StdevReducer, sd
 from .unary_expr import UnaryOpExpr
 
 __all__ = (
+    "abs",
     "max",
     "mean",
     "min",

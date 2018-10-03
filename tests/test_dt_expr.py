@@ -229,6 +229,41 @@ def test_dt_isna(src):
 
 
 #-------------------------------------------------------------------------------
+# abs()
+#-------------------------------------------------------------------------------
+
+def test_abs():
+    from datatable import abs
+    assert abs(1) == 1
+    assert abs(-5) == 5
+    assert abs(-2.5e12) == 2.5e12
+    assert abs(None) is None
+
+
+@pytest.mark.parametrize("src", dt_int + dt_float)
+def test_abs_srcs(src):
+    dt0 = dt.Frame(src)
+    dt1 = dt.abs(dt0)
+    dt1.internal.check()
+    assert dt0.stypes == dt1.stypes
+    pyans = [None if x is None else abs(x) for x in src]
+    assert dt1.topython()[0] == pyans
+
+
+def test_abs_all_stypes():
+    from datatable import abs
+    src = [[-127, -5, -1, 0, 2, 127],
+           [-32767, -299, -7, 32767, 12, -543],
+           [-2147483647, -1000, 3, -589, 2147483647, 0],
+           [-2**63 + 1, 2**63 - 1, 0, -2**32, 2**32, -793]]
+    dt0 = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
+    dt1 = dt0[:, [abs(f[i]) for i in range(4)]]
+    dt1.internal.check()
+    assert dt1.topython() == [[abs(x) for x in col] for col in src]
+
+
+
+#-------------------------------------------------------------------------------
 # type-cast
 #-------------------------------------------------------------------------------
 
