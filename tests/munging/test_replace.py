@@ -37,6 +37,12 @@ def test_replace_list_scalar():
     assert df.topython() == [[5, 5, 3]]
 
 
+def test_replace_none_list():
+    df = dt.Frame([1, 2, 3, None])
+    df.replace(None, [0, 0.0, ""])
+    assert df.topython() == [[1, 2, 3, 0]]
+
+
 def test_replace_list_list():
     df = dt.Frame([1, 2, 3])
     df.replace([1, 2, 7], [6, 2, 5])
@@ -182,6 +188,18 @@ def test_replace_float_with_upcast():
 
 
 #-------------------------------------------------------------------------------
+# Replacing in string columns
+#-------------------------------------------------------------------------------
+
+def test_replace_str_simple():
+    df = dt.Frame(["foo", "bar", "buzz"])
+    df.replace("bar", "oomph")
+    assert df.topython() == [["foo", "oomph", "buzz"]]
+
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
@@ -235,6 +253,14 @@ def test_replace_multiple(nn, st):
     df.internal.check()
     assert df.stypes == (st,)
     assert df.topython()[0] == res
+
+
+def test_replace_in_copy():
+    df1 = dt.Frame([[1, 2, 3], [5.5, 6.6, 7.7], ["A", "B", "C"]])
+    df2 = df1.copy()
+    df2.replace({3: 9, 5.5: 0.0, "B": "-"})
+    assert df1.topython() == [[1, 2, 3], [5.5, 6.6, 7.7], ["A", "B", "C"]]
+    assert df2.topython() == [[1, 2, 9], [0.0, 6.6, 7.7], ["A", "-", "C"]]
 
 
 

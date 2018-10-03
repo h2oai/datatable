@@ -110,8 +110,10 @@ class ReplaceAgent {
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T>
-    Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_str1(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_str2(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -656,11 +658,31 @@ template <typename T>
 Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
                                   StringColumn<T>* col)
 {
+  if (n == 1) {
+    return replace_str1(x, y, col);
+  } else {
+    return replace_strN(x, y, col, n);
+  }
+}
+
+template <typename T>
+Column* ReplaceAgent::replace_str1(
+    CString* x, CString* y, StringColumn<T>* col)
+{
+  return dt::map_str2str(col,
+    [=](size_t, CString& value, dt::fhbuf& sb) {
+      sb.write(value == *x? *y : value);
+    });
+}
+
+
+template <typename T>
+Column* ReplaceAgent::replace_strN(CString* x, CString* y,
+                                   StringColumn<T>* col, size_t n)
+{
   return dt::map_str2str(col, [=](size_t, CString& value, dt::fhbuf& sb) {
       for (size_t j = 0; j < n; ++j) {
-        if (value.size != x[j].size) continue;
-        if (std::strncmp(value.ch, x[j].ch,
-                         static_cast<size_t>(value.size)) == 0) {
+        if (value == x[j]) {
           sb.write(y[j]);
           return;
         }
