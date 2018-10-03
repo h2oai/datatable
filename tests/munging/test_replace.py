@@ -197,6 +197,11 @@ def test_replace_str_simple():
     assert df.topython() == [["foo", "oomph", "buzz"]]
 
 
+def test_replace_str_none():
+    df = dt.Frame(["A", "BC", None, "DEF", None, "G"])
+    df.replace(["A", None], [None, "??"])
+    assert df.topython() == [[None, "BC", "??", "DEF", "??", "G"]]
+
 
 
 #-------------------------------------------------------------------------------

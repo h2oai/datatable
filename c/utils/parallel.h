@@ -170,6 +170,7 @@ class mapper_str2str : private ordered_job {
         T offend = offsets[i];
         if (ISNA<T>(offend)) {
           curr_str.ch = nullptr;
+          curr_str.size = 0;
         } else {
           curr_str.ch = strdata + offstart;
           curr_str.size = static_cast<int64_t>(offend - offstart);
