@@ -93,7 +93,7 @@ class map_fw2str : private ordered_job {
   private:
     fixed_height_string_col outcol;
 
-    struct thcontext : private ojcontext {
+    struct thcontext : public ojcontext {
       fhbuf sb;
       thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
     };
@@ -101,7 +101,7 @@ class map_fw2str : private ordered_job {
   public:
     map_fw2str(size_t nrows) : ordered_job(nrows), outcol(nrows) {
     }
-    ~map_fw2str() = default;
+    ~map_fw2str() override = default;
 
     Column* result() {
       execute();
@@ -129,27 +129,29 @@ class map_fw2str : private ordered_job {
 
 
 
-template <typename T, void (*F)(size_t, CString&, fhbuf&)>
-class map_str2str : private ordered_job {
+template <typename T, typename F>
+class mapper_str2str : private ordered_job {
   private:
     StringColumn<T>* inpcol;
     fixed_height_string_col outcol;
+    F f;
 
-    struct thcontext : private ojcontext {
+    struct thcontext : public ojcontext {
       fhbuf sb;
       thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
     };
 
   public:
-    map_str2str(StringColumn<T>* col)
+    mapper_str2str(StringColumn<T>* col, F _f)
       : ordered_job(static_cast<size_t>(col->nrows)),
         inpcol(col),
-        outcol(static_cast<size_t>(col->nrows)) {}
-    ~map_str2str() = default;
+        outcol(static_cast<size_t>(col->nrows)),
+        f(_f) {}
+    ~mapper_str2str() override = default;
 
     Column* result() {
       execute();
-      return std::move(outcol)->to_column();
+      return std::move(outcol).to_column();
     }
 
   private:
@@ -170,10 +172,10 @@ class map_str2str : private ordered_job {
           curr_str.ch = nullptr;
         } else {
           curr_str.ch = strdata + offstart;
-          curr_str.size = offend - offstart;
+          curr_str.size = static_cast<int64_t>(offend - offstart);
           offstart = offend;
         }
-        F(i, curr_str, sb);
+        f(i, curr_str, sb);
       }
     }
 
@@ -183,6 +185,11 @@ class map_str2str : private ordered_job {
     }
 };
 
+
+template <typename T, typename F>
+Column* map_str2str(StringColumn<T>* col, F f) {
+  return mapper_str2str<T, F>(col, f).result();
+}
 
 }  // namespace dt
 #endif

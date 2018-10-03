@@ -26,11 +26,12 @@ namespace dt {
 
 fixed_height_string_col::fixed_height_string_col(size_t nrows)
   : strdata(new MemoryWritableBuffer(nrows)),
-    offdata(MemoryRange::mem(nrows * sizeof(uint32_t))),
+    offdata(MemoryRange::mem((nrows + 1) * sizeof(uint32_t))),
     n(nrows) {}
 
 
 Column* fixed_height_string_col::to_column() && {
+  strdata->finalize();
   offdata.set_element<uint32_t>(0, 0);
   return new StringColumn<uint32_t>(static_cast<int64_t>(n),
                                     std::move(offdata), strdata->get_mbuf());

@@ -39,8 +39,8 @@ appropriate for that value. For example, if `replace_what` is a list
 columns only, `math.inf` only in real columns, `None` in columns of all types,
 and finally `"??"` only in string columns.
 
-The replacement value must match the type of the value being replaced,
-otherwise an exception will be thrown. That is, a bool must be replace with a
+The replacement value must match the type of the target being replaced,
+otherwise an exception will be thrown. That is, a bool must be replaced with a
 bool, an int with an int, a float with a float, and a string with a string.
 The `None` value (representing NA) matches any column type, and therefore can
 be used as either replacement target, or replace value for any column. In
@@ -48,10 +48,11 @@ particular, the following is valid: `DT.replace(None, [-1, -1.0, ""])`. This
 will replace NA values in int columns with `-1`, in real columns with `-1.0`,
 and in string columns with an empty string.
 
-However, may cause a column to change
-its stype, provided that ltype remains unmodified. For example, replacing
-`0` with `-999` within an `int8` column will cause that column to be converted
-into the `int16` stype.
+The replace operation never causes a column to change its logical type. Thus,
+an integer column will remain integer, string column remain string, etc.
+However, replacing may cause a column to change its stype, provided that
+ltype remains constant. For example, replacing `0` with `-999` within an `int8`
+column will cause that column to be converted into the `int32` stype.
 
 Parameters
 ----------
@@ -109,9 +110,8 @@ class ReplaceAgent {
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> void replace_str(size_t n, CString* x, CString* y,
-                                           size_t nrows, T* offsets, const char* strdata,
-                                           WritableBuffer* wb);
+    template <typename T>
+    Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -144,6 +144,8 @@ void Frame::replace(const PKArgs& args) {
       case SType::INT64:   ra.process_int_column<int64_t>(i); break;
       case SType::FLOAT32: ra.process_real_column<float>(i); break;
       case SType::FLOAT64: ra.process_real_column<double>(i); break;
+      case SType::STR32:   ra.process_str_column<uint32_t>(i); break;
+      case SType::STR64:   ra.process_str_column<uint64_t>(i); break;
       default: break;
     }
   }
@@ -219,7 +221,8 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
 void ReplaceAgent::split_x_y_by_type() {
   bool done_int = false,
        done_real = false,
-       done_bool = false;
+       done_bool = false,
+       done_str = false;
   size_t ncols = static_cast<size_t>(dt->ncols);
   for (size_t i = 0; i < ncols; ++i) {
     SType s = dt->columns[i]->stype();
@@ -244,6 +247,13 @@ void ReplaceAgent::split_x_y_by_type() {
         if (done_real) continue;
         split_x_y_real();
         done_real = true;
+        break;
+      }
+      case SType::STR32:
+      case SType::STR64: {
+        if (done_str) continue;
+        split_x_y_str();
+        done_str = true;
         break;
       }
       default: break;
@@ -343,6 +353,32 @@ void ReplaceAgent::split_x_y_real() {
     y_real.push_back(na_repl);
   }
   check_uniqueness<double>(x_real);
+}
+
+
+void ReplaceAgent::split_x_y_str() {
+  size_t n = vx.size();
+  CString na_repl;
+  for (size_t i = 0; i < n; ++i) {
+    py::obj xelem = vx[i];
+    py::obj yelem = vy[i];
+    if (xelem.is_none()) {
+      if (yelem.is_none() || !yelem.is_string()) continue;
+      na_repl = yelem.to_cstring();
+    }
+    else if (xelem.is_string()) {
+      if (!(yelem.is_none() || yelem.is_string())) {
+        throw TypeError() << "Cannot replace string value `" << xelem
+          << "` with a value of type " << yelem.typeobj();
+      }
+      x_str.push_back(xelem.to_cstring());
+      y_str.push_back(yelem.to_cstring());
+    }
+  }
+  if (na_repl) {
+    x_str.push_back(CString());
+    y_str.push_back(na_repl);
+  }
 }
 
 
@@ -491,6 +527,22 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 
 
 
+template <typename T>
+void ReplaceAgent::process_str_column(size_t colidx) {
+  if (x_str.empty()) return;
+  auto col = static_cast<StringColumn<T>*>(dt->columns[colidx]);
+  if (x_str.size() == 1 && x_str[0].isna()) {
+    if (col->countna() == 0) return;
+  }
+  Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
+                                  col);
+  dt->columns[colidx] = newcol;
+  delete col;
+}
+
+
+
+
 //------------------------------------------------------------------------------
 // Step 4: perform actual data replacement
 //------------------------------------------------------------------------------
@@ -597,6 +649,24 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
         }
       }, nrows);
   }
+}
+
+
+template <typename T>
+Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
+                                  StringColumn<T>* col)
+{
+  return dt::map_str2str(col, [=](size_t, CString& value, dt::fhbuf& sb) {
+      for (size_t j = 0; j < n; ++j) {
+        if (value.size != x[j].size) continue;
+        if (std::strncmp(value.ch, x[j].ch,
+                         static_cast<size_t>(value.size)) == 0) {
+          sb.write(y[j]);
+          return;
+        }
+      }
+      sb.write(value);
+    });
 }
 
 

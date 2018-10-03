@@ -90,6 +90,7 @@ void ordered_job::execute()
     ojcptr ctx = make_thread_context();
     run(ctx, 0, nrows);
     order(ctx);
+    run(ctx, nrows, nrows);
     // progress.report(nrows);
   }
   else {
