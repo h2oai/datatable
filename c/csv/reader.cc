@@ -16,7 +16,7 @@
 #include "encodings.h"
 #include "options.h"
 #include "utils/exceptions.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "python/list.h"
 #include "python/string.h"
 

@@ -10,7 +10,7 @@
 #include "python/int.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 

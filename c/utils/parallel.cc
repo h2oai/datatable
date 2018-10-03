@@ -13,10 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "utils/progress.h"
+#include "utils/parallel.h"
 #include "options.h"
 #include "utils/exceptions.h"
-#include "utils/omp.h"
 
 namespace dt {
 
@@ -25,41 +24,43 @@ namespace dt {
 // Interleaved
 //------------------------------------------------------------------------------
 
-void run_interleaved(size_t nrows,
-                     std::function<void(size_t&, size_t, size_t)> run)
+void run_interleaved(rangefn run, size_t nrows)
 {
-  // If the number of rows is too small, then we want to reduce the number of
-  // processing threads, or even fall back to single-threaded execution.
+  // `min_nrows_per_thread`: avoid processing less than this many rows in each
+  // thread, reduce the number of threads if necessary.
+  // `min_nrows_per_batch`: the minimum number of rows to process within each
+  // thread before sending a progress report signal and checking for
+  // interrupts.
+  //
   constexpr size_t min_nrows_per_thread = 100;
-  size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
-                         nrows / min_nrows_per_thread);
+  constexpr size_t min_nrows_per_batch = 10000;
 
-  if (nth0 <= 1) {
-    size_t i = 0;
-    run(i, nrows, 1);
+  if (nrows < min_nrows_per_thread) {
+    run(0, nrows, 1);
     // progress.report(nrows);
   }
   else {
+    // If the number of rows is too small, then we want to reduce the number of
+    // processing threads.
+    int nth0 = config::nthreads;
+    if (nrows < min_nrows_per_thread * static_cast<size_t>(nth0)) {
+      nth0 = static_cast<int>(nrows / min_nrows_per_thread);
+    }
     OmpExceptionManager oem;
     #pragma omp parallel num_threads(nth0)
     {
+      size_t ith = static_cast<size_t>(omp_get_thread_num());
+      size_t nth = static_cast<size_t>(omp_get_num_threads());
+      size_t batchsize = min_nrows_per_batch * nth;
       try {
-        size_t ith = static_cast<size_t>(omp_get_thread_num());
-        size_t nth = static_cast<size_t>(omp_get_num_threads());
-        if (ith == 0) {
-          size_t chunksize = 100000;  // std::max(progress.total_effort()/100, 100000);
-          size_t i = ith;
-          size_t iend = std::min(nrows, chunksize);
-          do {
-            run(i, iend, nth);
-            // progress.report(iend);
-            iend += chunksize;
-            if (iend > nrows) iend = nrows;
-          } while (i < nrows);
-        }
-        else {
-          run(ith, nrows, nth);
-        }
+        size_t i = ith;
+        do {
+          size_t iend = i + batchsize;
+          if (iend > nrows) iend = nrows;
+          run(i, iend, nth);
+          i = iend;
+          // if (ith == 0) progress.report(iend);
+        } while (i < nrows && !oem.stop_requested());
       } catch (...) {
         oem.capture_exception();
       }
@@ -71,60 +72,68 @@ void run_interleaved(size_t nrows,
 
 
 //------------------------------------------------------------------------------
-// Ordered
+// ordered_job
 //------------------------------------------------------------------------------
 
-void run_ordered(size_t nrows, std::function<ojcptr(int, int)> prepare)
+ordered_job::ordered_job(size_t n) : nrows(n) {}
+
+ordered_job::~ordered_job() {}
+
+
+void ordered_job::execute()
 {
   constexpr size_t min_nrows_per_thread = 100;
   size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
                          nrows / min_nrows_per_thread);
 
   if (nth0 <= 1) {
-    ojcptr ctx = prepare(0, 1);
-    ctx->run(0, nrows);
-    ctx->commit();
+    ojcptr ctx = make_thread_context();
+    run(ctx, 0, nrows);
+    order(ctx);
+    run(ctx, nrows, nrows);
     // progress.report(nrows);
   }
   else {
     OmpExceptionManager oem;
-    bool stop_iteration = false;
     #pragma omp parallel num_threads(nth0)
     {
-      int ith = omp_get_thread_num();
-      int nth = omp_get_num_threads();
+      // int ith = omp_get_thread_num();
+      // int nth = omp_get_num_threads();
       size_t nchunks = 1 + (nrows - 1)/1000;
       size_t chunksize = 1 + (nrows - 1)/nchunks;
       ojcptr ctx;
 
       try {
-        ctx = prepare(ith, nth);
+        ctx = make_thread_context();
       } catch (...) {
         oem.capture_exception();
-        stop_iteration = true;
       }
 
       #pragma omp for ordered schedule(dynamic)
       for (size_t j = 0; j < nchunks; ++j) {
-        if (stop_iteration) continue;
+        if (oem.stop_requested()) continue;
         size_t i0 = j * chunksize;
         size_t i1 = std::min(i0 + chunksize, nrows);
         try {
-          ctx->run(i0, i1);
+          run(ctx, i0, i1);
           // if (ith == 0) progress.report(i1);
         } catch (...) {
           oem.capture_exception();
-          stop_iteration = true;
         }
         #pragma omp ordered
         {
           try {
-            ctx->commit();
+            order(ctx);
           } catch (...) {
             oem.capture_exception();
-            stop_iteration = true;
           }
         }
+      }
+
+      try {
+        run(ctx, nrows, nrows);
+      } catch (...) {
+        oem.capture_exception();
       }
     }
     oem.rethrow_exception_if_any();

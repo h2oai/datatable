@@ -9,6 +9,7 @@
 #include <algorithm>           // std::max
 #include "csv/reader.h"
 #include "utils/assert.h"
+#include "utils/parallel.h"
 
 extern double wallclock();
 

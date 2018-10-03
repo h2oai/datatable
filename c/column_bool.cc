@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <Python.h>
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 

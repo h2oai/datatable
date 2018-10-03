@@ -10,7 +10,7 @@
 #include <limits>     // std::numeric_limits<?>::max, ::infinity
 #include <type_traits>
 #include "types.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 namespace expr
 {

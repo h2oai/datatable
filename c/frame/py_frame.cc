@@ -38,7 +38,7 @@ NoArgs Frame::Type::args_copy("copy",
 "This method creates a shallow copy of the current Frame: only references\n"
 "are copied, not the data itself. However, due to copy-on-write semantics\n"
 "any changes made to one of the Frames will not propagate to the other.\n"
-"Thus, for all inents and purposes the copied Frame will behave as if\n"
+"Thus, for all intents and purposes the copied Frame will behave as if\n"
 "it was deep-copied.\n");
 
 

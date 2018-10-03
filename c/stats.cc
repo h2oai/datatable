@@ -12,7 +12,7 @@
 #include "column.h"
 #include "rowindex.h"
 #include "utils.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 template<typename T>

@@ -18,7 +18,7 @@
 #include "py_datatable.h"
 #include "py_utils.h"
 #include "utils.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 PyObject* write_csv(PyObject*, PyObject* args)
