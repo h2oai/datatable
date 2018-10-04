@@ -82,7 +82,7 @@ On all other platforms a source distribution will be needed. For more informatio
 
 * [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions)
 * [Changelog](https://github.com/h2oai/datatable/blob/master/CHANGELOG.md)
-* [Documentation](https://readthedocs.org/projects/datatable/badge/?version=latest)
+* [Documentation](https://datatable.readthedocs.io/en/latest/?badge=latest)
 
 
   [pandas]: https://github.com/pandas-dev/pandas
