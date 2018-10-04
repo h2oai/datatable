@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   and then convert them into a set of indicator variables ("n-hot encode").
 - ability to convert object columns into strings.
 - implemented `Frame.replace()` function.
+- function `abs()` to find the absolute value of elements in the frame.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --

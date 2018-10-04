@@ -21,7 +21,7 @@ class UnaryOpExpr(BaseExpr):
         self._arg = arg
 
     def is_reduce_expr(self, ee):
-        return self._arg.is_reduce_expr(arg)
+        return self._arg.is_reduce_expr(ee)
 
     def resolve(self):
         self._arg.resolve()
