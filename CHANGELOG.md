@@ -42,6 +42,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ability to convert object columns into strings.
 - implemented `Frame.replace()` function.
 - function `abs()` to find the absolute value of elements in the frame.
+- improved handling of Excel files by fread:
+  * sheet name can now be used as a path component in the file name,
+    causing only that particular sheet to be parsed;
+  * further, a cell range can be specified as a path component after the
+    sheet name, forcing fread to consider only the provided cell range;
+  * fread can now handle the situation when a spreadsheet has multiple
+    separate tables in the same sheet. They will now be detected automatically
+    and returned to the user as separate Frame objects (the name of each
+    frame will contain the sheet name and cell range from where the data was
+    extracted).
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --

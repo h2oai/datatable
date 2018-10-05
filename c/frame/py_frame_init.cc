@@ -148,9 +148,20 @@ class FrameInitializationManager {
   //----------------------------------------------------------------------------
   private:
     void init_empty_frame() {
-      check_names_count(0);
-      check_stypes_count(0);
-      make_datatable(nullptr);
+      if (defined_names) {
+        if (!names_arg.is_list_or_tuple()) check_names_count(0);
+        size_t ncols = names_arg.to_pylist().size();
+        check_stypes_count(ncols);
+        py::olist empty_list(0);
+        for (size_t i = 0; i < ncols; ++i) {
+          SType s = get_stype_for_column(i);
+          make_column(empty_list, s);
+        }
+        make_datatable(names_arg);
+      } else {
+        check_stypes_count(0);
+        make_datatable(nullptr);
+      }
     }
 
 
