@@ -24,6 +24,7 @@ from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
 from datatable.types import stype, ltype
+from datatable.xls import read_xls_workbook
 
 
 _log_color = term.bright_black
@@ -392,39 +393,11 @@ class GenericReader(object):
                 self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xlsx" or ext == ".xls":
-            self._process_excel_file(filename)
+            self._result = read_xls_workbook(filename, subpath)
 
         else:
             self._file = filename
 
-
-    def _process_excel_file(self, filename):
-        try:
-            import xlrd
-        except ImportError:
-            raise TValueError("Module `xlrd` is required in order to read "
-                              "Excel file '%s'. You can install this module "
-                              "by running `pip install xlrd` in the command "
-                              "line." % filename)
-        if self._result is None:
-            self._result = {}
-        wb = xlrd.open_workbook(filename)
-        for ws in wb.sheets():
-            # If the worksheet is empty, skip it
-            if ws.ncols == 0:
-                continue
-            # Assume first row contains headers
-            colnames = ws.row_values(0)
-            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
-                                           -stype.str32.value)
-                     for i in range(ws.ncols)]
-            colset = core.columns_from_columns(cols0)
-            res = colset.to_frame(colnames)
-            self._result[ws.name] = res
-        if len(self._result) == 0:
-            self._result = None
-        if len(self._result) == 1:
-            self._result = [*self._result.values()][0]
 
 
     #---------------------------------------------------------------------------

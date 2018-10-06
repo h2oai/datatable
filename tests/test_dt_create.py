@@ -137,11 +137,14 @@ def test_create_from_empty_list_with_params():
     assert d1.shape == (0, 0)
 
 
+def test_create_from_nothing_with_names():
+    d0 = dt.Frame(names=["A", "B"])
+    d0.internal.check()
+    assert d0.shape == (0, 2)
+    assert d0.names == ("A", "B")
+
+
 def test_create_from_empty_list_bad():
-    with pytest.raises(ValueError) as e:
-        dt.Frame([], names=["A"])
-    assert ("The `names` argument contains 1 element, which is more than the "
-            "number of columns being created (0)" in str(e.value))
     with pytest.raises(ValueError) as e:
         dt.Frame([], stypes=["int32", "str32"])
     assert ("The `stypes` argument contains 2 elements, which is more than the "
