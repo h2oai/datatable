@@ -4,8 +4,7 @@ about: Suggest an idea for new datatable functionality
 
 ---
 
-- Describe what feature would you like to see implemented;
-- If possible, give an example of how the code might look like, and what result it is expected to produce.
-- Click "Preview" to check that there are no formatting problems, and to give it a final check before submitting.
-- Is your request stated clearly, and not overbroad in scope? Great, it will help us implement the solution much faster.
+- Describe what feature you would like to see implemented.
+- If possible, give an example of how it may look in the code, and what result will be produced.
+- Click "Preview" to check that there are no formatting problems, that the request is stated clearly, and is not overbroad in scope.
 - Thanks for contributing, we appreciate your input!
