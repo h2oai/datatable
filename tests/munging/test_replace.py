@@ -285,6 +285,22 @@ def test_replace_in_copy():
     assert df2.topython() == [[1, 2, 9], [0.0, 6.6, 7.7], ["A", "-", "C"]]
 
 
+def test_replace_do_nothing():
+    # Check that the case when there is nothing to replace works too
+    df1 = dt.Frame([[1, 2], [3, 4], [5.0, 6.6], [-inf, inf]])
+    df1.replace([-99, -inf, inf], None)
+    df1.internal.check()
+    assert df1.topython() == [[1, 2], [3, 4], [5.0, 6.6], [None, None]]
+
+
+def test_replace_do_nothing2(numpy):
+    np = numpy
+    a = numpy.array([[1, 2, 3, np.inf], [1, -np.inf, 4, 5]])
+    df = dt.Frame(a)
+    df.replace([-np.inf, np.inf], [np.nan, np.nan])
+    df.internal.check()
+    assert df.topython() == [[1., 1.], [2., None], [3., 4.], [None, 5.]]
+
 
 
 #-------------------------------------------------------------------------------
