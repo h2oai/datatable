@@ -96,15 +96,14 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 
     cols_double[ncols] = nullptr;
     dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
-
     switch (dt_double->ncols) {
+      case 0:  group_0d(dt, dt_members); break; // Do no aggregation, all rows become exemplars.
       case 1:  group_1d(dt_double, dt_members); break;
       case 2:  group_2d(dt_double, dt_members); break;
       default: group_nd(dt_double, dt_members);
     }
   } else { // Do no aggregation, all rows become exemplars.
-    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-    for (int32_t i = 0; i < dt->nrows; ++i ) d_members[i] = i;
+    group_0d(dt, dt_members);
   }
 
   aggregate_exemplars(dt, dt_members); // modify dt in place
@@ -180,6 +179,15 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
     dt->columns[i]->get_stats()->reset();
   }
   delete dt_counts;
+}
+
+
+/*
+*  Do no groupping, i.e. all rows become exemplars.
+*/
+void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  for (int32_t i = 0; i < dt->nrows; ++i ) d_members[i] = i;
 }
 
 

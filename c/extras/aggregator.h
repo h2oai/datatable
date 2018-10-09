@@ -47,6 +47,7 @@ class Aggregator {
     PyObject* progress_fn;
 
     // Grouping and aggregating functions
+    void group_0d(const DataTable*, DataTablePtr&);
     void group_1d(DataTablePtr&, DataTablePtr&);
     void group_2d(DataTablePtr&, DataTablePtr&);
     void group_nd(DataTablePtr&, DataTablePtr&);
