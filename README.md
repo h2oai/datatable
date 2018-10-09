@@ -9,6 +9,7 @@
 [![PyPi version](https://img.shields.io/pypi/v/datatable.svg)](https://pypi.org/project/datatable/)
 [![License](https://img.shields.io/pypi/l/datatable.svg)](https://github.com/h2oai/datatable/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=master)](https://travis-ci.org/h2oai/datatable)
+[![Documentation Status](https://readthedocs.org/projects/datatable/badge/?version=latest)](https://datatable.readthedocs.io/en/latest/?badge=latest)
 
 This is a Python package for manipulating 2-dimensional tabular data structures
 (aka data frames). It is close in spirit to [pandas] or [SFrame]; however we
@@ -81,6 +82,7 @@ On all other platforms a source distribution will be needed. For more informatio
 
 * [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions)
 * [Changelog](https://github.com/h2oai/datatable/blob/master/CHANGELOG.md)
+* [Documentation](https://datatable.readthedocs.io/en/latest/?badge=latest)
 
 
   [pandas]: https://github.com/pandas-dev/pandas

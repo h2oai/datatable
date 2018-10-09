@@ -7,9 +7,10 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/toa.h"
+#include "python/int.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 
@@ -19,6 +20,13 @@ SType IntColumn<T>::stype() const {
          sizeof(T) == 2? SType::INT16 :
          sizeof(T) == 4? SType::INT32 :
          sizeof(T) == 8? SType::INT64 : SType::VOID;
+}
+
+template <typename T>
+py::oobj IntColumn<T>::get_value_at_index(int64_t i) const {
+  int64_t j = (this->ri).nth(i);
+  T x = this->elements_r()[j];
+  return ISNA<T>(x)? py::None() : py::oint(x);
 }
 
 

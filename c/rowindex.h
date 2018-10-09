@@ -226,7 +226,7 @@ class RowIndex {
     size_t zlength() const { return static_cast<size_t>(length()); }
     int64_t min() const { return impl? impl->min : 0; }
     int64_t max() const { return impl? impl->max : 0; }
-    int64_t nth(int64_t i) const { return impl? impl->nth(i) : 0; }
+    int64_t nth(int64_t i) const { return impl? impl->nth(i) : i; }
     const int32_t* indices32() const { return impl_asarray()->indices32(); }
     const int64_t* indices64() const { return impl_asarray()->indices64(); }
     int64_t slice_start() const { return impl_asslice()->start; }

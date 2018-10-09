@@ -7,7 +7,8 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/toa.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
+#include "python/float.h"
 #include "py_utils.h"
 
 
@@ -16,6 +17,13 @@ template <typename T>
 SType RealColumn<T>::stype() const {
   return sizeof(T) == 4? SType::FLOAT32 :
          sizeof(T) == 8? SType::FLOAT64 : SType::VOID;
+}
+
+template <typename T>
+py::oobj RealColumn<T>::get_value_at_index(int64_t i) const {
+  int64_t j = (this->ri).nth(i);
+  T x = this->elements_r()[j];
+  return ISNA<T>(x)? py::None() : py::ofloat(x);
 }
 
 

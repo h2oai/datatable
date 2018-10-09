@@ -105,11 +105,12 @@ using strvec = std::vector<std::string>;
  * to_cstring:
  *    Convert a string or bytes object into a `CString` struct. Python None is
  *    converted into an NA string, which is encoded as {.size=0, .ch=nullptr}.
+ *    All other objects cause an exception to be thrown.
  *    The pointer in the returned `CString` struct is borrowed: its lifespan is
  *    controlled by the lifespan of the underlying PyObject.
  *
  * to_string:
- *    Similar to `to_cstring`, only the string is copied into an `std::string`
+ *    Similar to `to_cstring`, but the string is copied into an `std::string`
  *    object. If the value is NA, then an empty `std::string` is returned
  *    (std::string has no concept of missing strings).
  *
@@ -185,6 +186,7 @@ class _obj {
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::olist   to_pylist        (const error_manager& = _em0) const;
+    py::otuple  to_pytuple       (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
     py::oiter   to_pyiter        (const error_manager& = _em0) const;
@@ -243,7 +245,8 @@ class _obj {
 
 class obj : public _obj {
   public:
-    obj(PyObject* p);
+    obj(const PyObject* p);
+    obj(const Arg&);
     obj(const obj&);
     obj(const oobj&);
     obj& operator=(const obj&);

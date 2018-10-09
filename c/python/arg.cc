@@ -53,6 +53,7 @@ const std::string& Arg::name() const {
 bool Arg::is_undefined()     const { return pyobj.is_undefined(); }
 bool Arg::is_none()          const { return pyobj.is_none(); }
 bool Arg::is_ellipsis()      const { return pyobj.is_ellipsis(); }
+bool Arg::is_bool()          const { return pyobj.is_bool(); }
 bool Arg::is_int()           const { return pyobj.is_int(); }
 bool Arg::is_float()         const { return pyobj.is_float(); }
 bool Arg::is_list()          const { return pyobj.is_list(); }

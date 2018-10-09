@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #-------------------------------------------------------------------------------
 # Copyright 2018 H2O.ai
 #
@@ -92,7 +93,7 @@ def test_split_into_nhot_bad():
     with pytest.raises(TypeError) as e:
         dt.split_into_nhot(f0[:, 0])
     assert ("Function split_into_nhot() may only be applied to a single-column "
-            "Frame of type string; received a column of type r8" ==
+            "Frame of type string; received a column of type float64" ==
             str(e.value))
 
     with pytest.raises(ValueError) as e:

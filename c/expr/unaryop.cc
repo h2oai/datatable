@@ -16,6 +16,7 @@ enum OpCode {
   Minus  = 2,
   Plus   = 3,
   Invert = 4,
+  Abs    = 5,
 };
 
 
@@ -60,6 +61,16 @@ inline static int8_t op_isna(T x) {
   return ISNA<T>(x);
 }
 
+template <typename T>
+inline static T op_abs(T x) {
+  // If T is floating point and x is NA, then (x < 0) will evaluate to false;
+  // If T is integer and x is NA, then (x < 0) will be true, but -x will be
+  // equal to x.
+  // Thus, in all cases we'll have `abs(NA) == NA`.
+  return (x < 0) ? -x : x;
+}
+
+
 template<typename T>
 struct Inverse {
   inline static T impl(T x) {
@@ -92,6 +103,7 @@ static mapperfn resolve1(int opcode) {
   switch (opcode) {
     case IsNa:    return map_n<IT, int8_t, op_isna<IT>>;
     case Minus:   return map_n<IT, IT, op_minus<IT>>;
+    case Abs:     return map_n<IT, IT, op_abs<IT>>;
     case Invert:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;

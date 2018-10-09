@@ -37,8 +37,8 @@ def test_bad_stype():
 def test_bad_stypes():
     with pytest.raises(TypeError) as e:
         dt.Frame([], stypes=2.5)
-    assert ("Argument `stypes` in Frame.__init__() should be a list of stypes, "
-            "instead received <class 'float'>" == str(e.value))
+    assert ("Argument `stypes` in Frame() constructor should be a list of "
+            "stypes, instead received <class 'float'>" == str(e.value))
 
 
 def test_unknown_arg():
@@ -137,11 +137,14 @@ def test_create_from_empty_list_with_params():
     assert d1.shape == (0, 0)
 
 
+def test_create_from_nothing_with_names():
+    d0 = dt.Frame(names=["A", "B"])
+    d0.internal.check()
+    assert d0.shape == (0, 2)
+    assert d0.names == ("A", "B")
+
+
 def test_create_from_empty_list_bad():
-    with pytest.raises(ValueError) as e:
-        dt.Frame([], names=["A"])
-    assert ("The `names` argument contains 1 element, which is more than the "
-            "number of columns being created (0)" in str(e.value))
     with pytest.raises(ValueError) as e:
         dt.Frame([], stypes=["int32", "str32"])
     assert ("The `stypes` argument contains 2 elements, which is more than the "
@@ -629,15 +632,15 @@ def test_create_names_bad1():
 def test_create_names_bad2():
     with pytest.raises(TypeError) as e:
         dt.Frame([[1], [2], [3]], names="xyz")
-    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
-            "instead received <class 'str'>" == str(e.value))
+    assert ("Argument `names` in Frame() constructor should be a list of "
+            "strings, instead received <class 'str'>" == str(e.value))
 
 
 def test_create_names_bad3():
     with pytest.raises(TypeError) as e:
         dt.Frame(range(5), names={"x": 1})
-    assert ("Argument `names` in Frame.__init__() should be a list of strings, "
-            "instead received <class 'dict'>" == str(e.value))
+    assert ("Argument `names` in Frame() constructor should be a list of "
+            "strings, instead received <class 'dict'>" == str(e.value))
 
 
 def test_create_names_bad4():

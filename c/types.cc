@@ -79,6 +79,7 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 struct STypeInfo {
   size_t      elemsize;
   const void *na;
+  const char* name;
   char        code[4];
   char        code2[3];
   LType       ltype;
@@ -92,30 +93,30 @@ static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
-  #define STI(T, code, code2, csize, vw, ltype, na) \
-      stype_info[int(T)] = STypeInfo{csize, na, code, code2, ltype, vw}
-  STI(SType::VOID,    "---", "--", 0, 0, LType::MU,       nullptr);
-  STI(SType::BOOL,    "i1b", "b1", 1, 0, LType::BOOL,     &NA_I1);
-  STI(SType::INT8,    "i1i", "i1", 1, 0, LType::INT,      &NA_I1);
-  STI(SType::INT16,   "i2i", "i2", 2, 0, LType::INT,      &NA_I2);
-  STI(SType::INT32,   "i4i", "i4", 4, 0, LType::INT,      &NA_I4);
-  STI(SType::INT64,   "i8i", "i8", 8, 0, LType::INT,      &NA_I8);
-  STI(SType::FLOAT32, "f4r", "r4", 4, 0, LType::REAL,     &NA_F4);
-  STI(SType::FLOAT64, "f8r", "r8", 8, 0, LType::REAL,     &NA_F8);
-  STI(SType::DEC16,   "i2r", "d2", 2, 0, LType::REAL,     &NA_I2);
-  STI(SType::DEC32,   "i4r", "d4", 4, 0, LType::REAL,     &NA_I4);
-  STI(SType::DEC64,   "i8r", "d8", 8, 0, LType::REAL,     &NA_I8);
-  STI(SType::STR32,   "i4s", "s4", 4, 1, LType::STRING,   nullptr);
-  STI(SType::STR64,   "i8s", "s8", 8, 1, LType::STRING,   nullptr);
-  STI(SType::FSTR,    "c#s", "sx", 0, 0, LType::STRING,   nullptr);
-  STI(SType::CAT8,    "u1e", "e1", 1, 1, LType::STRING,   &NA_U1);
-  STI(SType::CAT16,   "u2e", "e2", 2, 1, LType::STRING,   &NA_U2);
-  STI(SType::CAT32,   "u4e", "e4", 4, 1, LType::STRING,   &NA_U4);
-  STI(SType::DATE64,  "i8d", "t8", 8, 0, LType::DATETIME, &NA_I8);
-  STI(SType::TIME32,  "i4t", "T4", 4, 0, LType::DATETIME, &NA_I4);
-  STI(SType::DATE32,  "i4d", "t4", 4, 0, LType::DATETIME, &NA_I4);
-  STI(SType::DATE16,  "i2d", "t2", 2, 0, LType::DATETIME, &NA_I2);
-  STI(SType::OBJ,     "p8p", "o8", 8, 0, LType::OBJECT,   nullptr);
+  #define STI(T, code, code2, name, csize, vw, ltype, na) \
+      stype_info[int(T)] = STypeInfo{csize, na, name, code, code2, ltype, vw}
+  STI(SType::VOID,    "---", "--", "void",    0, 0, LType::MU,       nullptr);
+  STI(SType::BOOL,    "i1b", "b1", "bool8",   1, 0, LType::BOOL,     &NA_I1);
+  STI(SType::INT8,    "i1i", "i1", "int8",    1, 0, LType::INT,      &NA_I1);
+  STI(SType::INT16,   "i2i", "i2", "int16",   2, 0, LType::INT,      &NA_I2);
+  STI(SType::INT32,   "i4i", "i4", "int32",   4, 0, LType::INT,      &NA_I4);
+  STI(SType::INT64,   "i8i", "i8", "int64",   8, 0, LType::INT,      &NA_I8);
+  STI(SType::FLOAT32, "f4r", "r4", "float32", 4, 0, LType::REAL,     &NA_F4);
+  STI(SType::FLOAT64, "f8r", "r8", "float64", 8, 0, LType::REAL,     &NA_F8);
+  STI(SType::DEC16,   "i2r", "d2", "dec16",   2, 0, LType::REAL,     &NA_I2);
+  STI(SType::DEC32,   "i4r", "d4", "dec32",   4, 0, LType::REAL,     &NA_I4);
+  STI(SType::DEC64,   "i8r", "d8", "dec64",   8, 0, LType::REAL,     &NA_I8);
+  STI(SType::STR32,   "i4s", "s4", "str32",   4, 1, LType::STRING,   nullptr);
+  STI(SType::STR64,   "i8s", "s8", "str64",   8, 1, LType::STRING,   nullptr);
+  STI(SType::FSTR,    "c#s", "sx", "strfix",  0, 0, LType::STRING,   nullptr);
+  STI(SType::CAT8,    "u1e", "e1", "cat8",    1, 1, LType::STRING,   &NA_U1);
+  STI(SType::CAT16,   "u2e", "e2", "cat16",   2, 1, LType::STRING,   &NA_U2);
+  STI(SType::CAT32,   "u4e", "e4", "cat32",   4, 1, LType::STRING,   &NA_U4);
+  STI(SType::DATE64,  "i8d", "t8", "date64",  8, 0, LType::DATETIME, &NA_I8);
+  STI(SType::TIME32,  "i4t", "T4", "time32",  4, 0, LType::DATETIME, &NA_I4);
+  STI(SType::DATE32,  "i4d", "t4", "date32",  4, 0, LType::DATETIME, &NA_I4);
+  STI(SType::DATE16,  "i2d", "t2", "date16",  2, 0, LType::DATETIME, &NA_I2);
+  STI(SType::OBJ,     "p8p", "o8", "obj64",   8, 0, LType::OBJECT,   nullptr);
   #undef STI
 
   #define UPCAST(stype1, stype2, stypeR)         \
@@ -284,7 +285,7 @@ info::info(SType s) {
 }
 
 const char* info::name() const {
-  return stype_info[stype].code2;
+  return stype_info[stype].name;
 }
 
 size_t info::elemsize() const {

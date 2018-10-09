@@ -12,7 +12,7 @@
 #include "python/obj.h"
 #include "rowindex.h"
 #include "types.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "utils/shared_mutex.h"
 
 

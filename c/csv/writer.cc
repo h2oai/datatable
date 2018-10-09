@@ -15,7 +15,7 @@
 #include "csv/toa.h"
 #include "datatable.h"
 #include "memrange.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "types.h"
 #include "utils.h"
 

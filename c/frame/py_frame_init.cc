@@ -1,9 +1,17 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include <iostream>
@@ -140,9 +148,20 @@ class FrameInitializationManager {
   //----------------------------------------------------------------------------
   private:
     void init_empty_frame() {
-      check_names_count(0);
-      check_stypes_count(0);
-      make_datatable(nullptr);
+      if (defined_names) {
+        if (!names_arg.is_list_or_tuple()) check_names_count(0);
+        size_t ncols = names_arg.to_pylist().size();
+        check_stypes_count(ncols);
+        py::olist empty_list(0);
+        for (size_t i = 0; i < ncols; ++i) {
+          SType s = get_stype_for_column(i);
+          make_column(empty_list, s);
+        }
+        make_datatable(names_arg);
+      } else {
+        check_stypes_count(0);
+        make_datatable(nullptr);
+      }
     }
 
 

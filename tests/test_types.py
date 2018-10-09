@@ -55,14 +55,16 @@ def c_stypes():
     mm = re.findall(r"STI\(SType::(\w+),\s*"
                     r'"(...)",\s*'
                     r'"(..)",\s*'
+                    r'"(.*)",\s*'
                     r"(\d+),\s*"
                     r"(\d),\s*"
                     r"LType::(\w+),\s*"
                     r"&?(\w+)\)",
                     txt2)
-    for name, code3, code2, elemsize, varwidth, ltype, na in mm:
+    for name, code3, code2, fullname, elemsize, varwidth, ltype, na in mm:
         stypes[name]["stype"] = code3
         stypes[name]["code2"] = code2
+        stypes[name]["name"] = fullname
         stypes[name]["elemsize"] = int(elemsize)
         stypes[name]["varwidth"] = bool(int(varwidth))
         stypes[name]["ltype"] = ltype

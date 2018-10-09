@@ -8,7 +8,7 @@
 #define dt_OPTIONS_cc
 #include "options.h"
 #include "python/obj.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 namespace config

@@ -13,7 +13,7 @@
 #include "memrange.h"          // MemoryRange
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 

@@ -1,21 +1,30 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #include "datatable.h"
 #include "frame/py_frame.h"
 #include "python/oiter.h"
 #include "utils/assert.h"
 
+namespace py {
+
 
 //------------------------------------------------------------------------------
 // Frame::cbind
 //------------------------------------------------------------------------------
 
-namespace py {
 
 // Forward-declare
 static void check_nrows(DataTable* dt, int64_t* nrows);
@@ -23,13 +32,10 @@ static Error item_error(const py::_obj&);
 
 
 
-PKArgs Frame::Type::args_cbind(0, 0, 1, true, false, {"force"});
+PKArgs Frame::Type::args_cbind(0, 0, 1, true, false, {"force"}, "cbind",
+R"(cbind(self, *frames, force=False)
+--
 
-void Frame::Type::_init_cbind(Methods& mm, GetSetters&)
-{
-  mm.add<&Frame::cbind, args_cbind>("cbind",
-    "cbind(self, *frames, force=False)\n"
-    "--\n\n" R"(
 Append columns of Frames `frames` to the current Frame.
 
 This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
@@ -62,7 +68,7 @@ force: boolean
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
 )");
-}
+
 
 
 void Frame::cbind(const PKArgs& args) {

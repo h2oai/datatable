@@ -17,7 +17,18 @@ struct CString {
   const char* ch;
   int64_t size;
 
+  CString() : ch(nullptr), size(0) {}
+  CString(const char* ptr, int64_t sz) : ch(ptr), size(sz) {}
+  CString(const CString&) = default;
+  CString& operator=(const CString&) = default;
   operator bool() { return ch != nullptr; }
+  bool isna() const { return ch == nullptr; }
+
+  bool operator==(const CString& other) {
+    return (size == other.size) &&
+           ((ch == other.ch) ||  // This ensures NAs are properly handled too
+            (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
+  }
 };
 
 

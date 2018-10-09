@@ -61,6 +61,10 @@ class otuple : public oobj {
     void replace(int64_t i, oobj&& value);
     void replace(size_t i,  oobj&& value);
     void replace(int i,     oobj&& value);
+
+  private:
+    otuple(PyObject*);
+    friend class _obj;
 };
 
 

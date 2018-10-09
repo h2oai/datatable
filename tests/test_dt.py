@@ -51,7 +51,6 @@ def assert_valueerror(datatable, rows, error_message):
 # Run the tests
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=0.0)
 def test_platform():
     # This test performs only minimal checks, and also outputs diagnostic
     # information about the platform being run.
@@ -70,7 +69,6 @@ def test_platform():
 
 
 
-@pytest.mark.run(order=0.8)
 @pytest.mark.skipif(sys.platform != "darwin",
                     reason="This test behaves unpredictably on Linux")
 def test_dt_loadtime(nocov):
@@ -107,7 +105,6 @@ def test_dt_loadtime(nocov):
     assert ratio < 4
 
 
-@pytest.mark.run(order=0.9)
 def test_dt_dependencies():
     # This test checks how many dependencies `datatable` needs to load at
     # startup. At the time of writing this test, the count was 168.
@@ -124,7 +121,6 @@ def test_dt_dependencies():
     assert int(n) < 200
 
 
-@pytest.mark.run(order=0.91)
 def test_dt_version():
     assert dt.__version__
     assert isinstance(dt.__version__, str)
@@ -133,7 +129,6 @@ def test_dt_version():
     assert len(dt.__git_revision__) == 40
 
 
-@pytest.mark.run(order=1)
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
     dt0.internal.check()
@@ -149,7 +144,6 @@ def test_dt_properties(dt0):
     assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
 
 
-@pytest.mark.run(order=2)
 def test_dt_call(dt0, capsys):
     print("before computing dt1")
     dt1 = dt0(timeit=True)
@@ -162,7 +156,6 @@ def test_dt_call(dt0, capsys):
     assert "Time taken:" in out
 
 
-@pytest.mark.run(order=3)
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()
@@ -178,7 +171,6 @@ def test_dt_view(dt0, patched_terminal, capsys):
             in out)
 
 
-@pytest.mark.run(order=5)
 def test_dt_getitem(dt0):
     dt1 = dt0[0]
     assert dt1.shape == (4, 1)
@@ -186,9 +178,8 @@ def test_dt_getitem(dt0):
     dt1 = dt0[(4,)]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("E", )
-    dt2 = dt0[0, 1]
-    assert dt2.shape == (1, 1)
-    assert dt2.names == ("B", )
+    elem2 = dt0[0, 1]
+    assert elem2 is True
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
@@ -629,7 +620,6 @@ def test_resize_bad():
 # Renaming columns
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=8)
 def test_rename_list():
     d0 = dt.Frame([[7], [2], [5]])
     d0.names = ("A", "B", "E")
@@ -641,7 +631,6 @@ def test_rename_list():
     assert d0.colindex("e") == 2
 
 
-@pytest.mark.run(order=8.1)
 def test_rename_dict():
     d0 = dt.Frame([[1], [2], ["hello"]])
     assert d0.names == ("C0", "C1", "C2")
@@ -669,14 +658,12 @@ def test_rename_frame_copy():
         d0.colindex("ha!")
 
 
-@pytest.mark.run(order=8.11)
 def test_rename_bad1():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError):
         d0.names = {"a", "b"}
 
 
-@pytest.mark.run(order=8.12)
 def test_rename_bad2():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(ValueError) as e:
@@ -684,7 +671,6 @@ def test_rename_bad2():
     assert "Cannot find column `xxx` in the Frame" == str(e.value)
 
 
-@pytest.mark.run(order=8.13)
 def test_rename_bad3():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(ValueError) as e:
@@ -693,7 +679,6 @@ def test_rename_bad3():
             in str(e.value))
 
 
-@pytest.mark.run(order=8.14)
 def test_rename_bad4():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(ValueError) as e:
@@ -702,7 +687,6 @@ def test_rename_bad4():
             in str(e.value))
 
 
-@pytest.mark.run(order=8.15)
 def test_rename_bad5():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError) as e:
@@ -711,7 +695,6 @@ def test_rename_bad5():
             "but got <class 'int'>" == str(e.value))
 
 
-@pytest.mark.run(order=8.2)
 def test_rename_default():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     del d0.names
@@ -725,7 +708,6 @@ def test_rename_default():
 # Test conversions into Pandas / Numpy
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=10)
 @pytest.mark.usefixtures("pandas")
 def test_topandas():
     d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
@@ -737,7 +719,6 @@ def test_topandas():
     assert p0["C"].values.tolist() == [True, False]
 
 
-@pytest.mark.run(order=11)
 @pytest.mark.usefixtures("pandas")
 def test_topandas_view():
     d0 = dt.Frame([[1, 5, 2, 0, 199, -12],
@@ -750,7 +731,6 @@ def test_topandas_view():
     assert p1.values.T.tolist() == d1.topython()
 
 
-@pytest.mark.run(order=11.1)
 @pytest.mark.usefixtures("pandas")
 def test_topandas_nas():
     d0 = dt.Frame([[True, None, None, None, False],
@@ -766,7 +746,6 @@ def test_topandas_nas():
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
 
 
-@pytest.mark.run(order=12)
 def test_topython():
     src = [[-1, 0, 1, 3],
            ["cat", "dog", "mouse", "elephant"],
@@ -781,7 +760,6 @@ def test_topython():
     assert all(b is None or isinstance(b, bool) for b in a0[2])
 
 
-@pytest.mark.run(order=13)
 def test_topython2():
     src = [[1.0, None, float("nan"), 3.3]]
     d0 = dt.Frame(src)
@@ -790,7 +768,6 @@ def test_topython2():
     assert a0 == [1.0, None, None, 3.3]
 
 
-@pytest.mark.run(order=14)
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stypes == (stype.int8, )
@@ -802,7 +779,6 @@ def test_tonumpy0(numpy):
     assert (a0 == a1).all()
 
 
-@pytest.mark.run(order=15)
 def test_tonumpy1(numpy):
     d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
                    "C": [True, False], "D": [3.4, None]})
@@ -814,7 +790,6 @@ def test_tonumpy1(numpy):
     assert (a0 == a1).all()
 
 
-@pytest.mark.run(order=16)
 def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.Frame(tbl)
@@ -827,7 +802,6 @@ def test_numpy_constructor_simple(numpy):
     assert n0.T.tolist() == tbl
 
 
-@pytest.mark.run(order=17)
 def test_numpy_constructor_empty(numpy):
     d0 = dt.Frame()
     assert d0.shape == (0, 0)
@@ -836,7 +810,6 @@ def test_numpy_constructor_empty(numpy):
     assert n0.tolist() == []
 
 
-@pytest.mark.run(order=18)
 def test_numpy_constructor_multi_types(numpy):
     # Test that multi-types datatable will be promoted into a common type
     tbl = [[1, 5, 10],
@@ -854,7 +827,6 @@ def test_numpy_constructor_multi_types(numpy):
     assert (d0.tonumpy() == n0).all()
 
 
-@pytest.mark.run(order=19)
 def test_numpy_constructor_view(numpy):
     d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
     d1 = d0[::-2, :]
@@ -866,7 +838,6 @@ def test_numpy_constructor_view(numpy):
     assert (d1.tonumpy() == n1).all()
 
 
-@pytest.mark.run(order=20)
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.Frame([1, 1, 3, 5, 8, 13, 21, 34, 55])
     assert d0.stypes == (stype.int8, )
@@ -876,7 +847,6 @@ def test_numpy_constructor_single_col(numpy):
     assert (n0 == d0.tonumpy()).all()
 
 
-@pytest.mark.run(order=21)
 def test_numpy_constructor_single_string_col(numpy):
     d = dt.Frame(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
@@ -888,7 +858,6 @@ def test_numpy_constructor_single_string_col(numpy):
     assert (a == d.tonumpy()).all()
 
 
-@pytest.mark.run(order=22)
 def test_numpy_constructor_view_1col(numpy):
     d0 = dt.Frame({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
     d2 = d0[::2, "B"]
@@ -897,7 +866,6 @@ def test_numpy_constructor_view_1col(numpy):
     assert (a == numpy.array(d2)).all()
 
 
-@pytest.mark.run(order=23)
 def test_tonumpy_with_stype(numpy):
     """
     Test using dt.tonumpy() with explicit `stype` argument.
@@ -921,7 +889,6 @@ def test_tonumpy_with_stype(numpy):
 # .scalar()
 #-------------------------------------------------------------------------------
 
-@pytest.mark.run(order=30)
 def test_scalar1():
     d0 = dt.Frame([False])
     assert d0.scalar() is False
@@ -935,7 +902,6 @@ def test_scalar1():
     assert d4.scalar() is None
 
 
-@pytest.mark.run(order=31)
 def test_scalar_bad():
     d0 = dt.Frame([100, 200])
     with pytest.raises(ValueError) as e:
@@ -944,13 +910,63 @@ def test_scalar_bad():
             "`[2 x 1]`" in str(e.value))
 
 
-@pytest.mark.run(order=32)
 def test_scalar_on_view(dt0):
-    assert dt0[1, 0].scalar() == 7
-    assert dt0[3, 3].scalar() == 4.4
-    assert dt0[2, 6].scalar() == "hello"
+    assert dt0[1, 0] == 7
+    assert dt0[3, 3] == 4.4
+    assert dt0[2, 6] == "hello"
     assert dt0[2::5, 3::7].scalar() == -4
     assert dt0[[3], "G"].scalar() == "world"
+
+
+
+#-------------------------------------------------------------------------------
+# Explicit element selection
+#-------------------------------------------------------------------------------
+
+def test_single_element_extraction(dt0):
+    assert dt0[0, 1] is True
+    assert dt0[1, 1] is False
+    assert dt0[2, "G"] == "hello"
+
+
+def test_single_element_extraction_from_view(dt0):
+    dt1 = dt0[[2, 3, 0], :]
+    assert dt1[0, 0] == 0
+    assert dt1[2, 2] == 1
+    assert dt1[0, "D"] == -4.0
+    assert dt1[1, "G"] == "world"
+
+
+@pytest.mark.parametrize('st', list(dt.stype))
+def test_single_element_all_stypes(st):
+    pt = (bool if st == dt.stype.bool8 else
+          int if st.ltype == dt.ltype.int else
+          float if st.ltype == dt.ltype.real else
+          str if st.ltype == dt.ltype.str else
+          object)
+    src = [True, False, True, None] if pt is bool else \
+          [1, 7, -99, 214, None, 3333] if pt is int else \
+          [2.5, 3.4e15, -7.909, None] if pt is float else \
+          ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
+          [dt, st, list, None, {3, 2, 1}]
+    df = dt.Frame(A=src, stype=st)
+    df.internal.check()
+    assert df.names == ("A", )
+    assert df.stypes == (st, )
+    for i in range(len(src)):
+        x = df[i, 0]
+        y = df[i, "A"]
+        assert x == y
+        if src[i] is None:
+            assert x is None
+        else:
+            assert isinstance(x, pt)
+            if st == dt.stype.int8:
+                assert (x - src[i]) % 256 == 0
+            elif st == dt.stype.float32:
+                assert abs(1 - src[i] / x) < 1e-7
+            else:
+                assert x == src[i]
 
 
 

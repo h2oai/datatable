@@ -13,7 +13,7 @@
 #include "memrange.h"
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
-#include "utils/omp.h"
+#include "utils/parallel.h"
 #include "utils.h"
 
 

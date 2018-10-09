@@ -6,6 +6,8 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
+#include "python/obj.h"
+#include "python/string.h"
 #include "utils/assert.h"
 
 
@@ -28,6 +30,12 @@ PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryRange&& mb)
 
 SType PyObjectColumn::stype() const {
   return SType::OBJ;
+}
+
+py::oobj PyObjectColumn::get_value_at_index(int64_t i) const {
+  int64_t j = (this->ri).nth(i);
+  PyObject* x = this->elements_r()[j];
+  return py::oobj(x);
 }
 
 
@@ -136,6 +144,34 @@ void PyObjectColumn::rbind_impl(
 
 
 //----- Type casts -------------------------------------------------------------
+using MWBPtr = std::unique_ptr<MemoryWritableBuffer>;
+
+template<typename OT>
+inline static MemoryRange cast_str_helper(
+  int64_t nrows, const PyObject* const* src, OT* toffsets)
+{
+  // Warning: Do not attempt to parallelize this: creating new PyObjects
+  // is not thread-safe! In addition `to_pystring_force()` may invoke
+  // arbitrary python code when stringifying a value...
+  size_t exp_size = static_cast<size_t>(nrows) * sizeof(PyObject*);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  OT offset = 0;
+  toffsets[-1] = 0;
+  for (int64_t i = 0; i < nrows; ++i) {
+    py::ostring xstr = py::obj(src[i]).to_pystring_force();
+    CString xcstr = xstr.to_cstring();
+    if (xcstr.ch) {
+      wb->write(static_cast<size_t>(xcstr.size), xcstr.ch);
+      offset += static_cast<OT>(xcstr.size);
+      toffsets[i] = offset;
+    } else {
+      toffsets[i] = offset | GETNA<OT>();
+    }
+  }
+  wb->finalize();
+  return wb->get_mbuf();
+}
+
 
 void PyObjectColumn::cast_into(PyObjectColumn* target) const {
   PyObject* const* src_data = this->elements_r();
@@ -145,6 +181,22 @@ void PyObjectColumn::cast_into(PyObjectColumn* target) const {
     Py_DECREF(dest_data[i]);
     dest_data[i] = src_data[i];
   }
+}
+
+
+void PyObjectColumn::cast_into(StringColumn<uint32_t>* target) const {
+  const PyObject* const* data = elements_r();
+  uint32_t* offsets = target->offsets_w();
+  MemoryRange strbuf = cast_str_helper<uint32_t>(nrows, data, offsets);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
+}
+
+
+void PyObjectColumn::cast_into(StringColumn<uint64_t>* target) const {
+  const PyObject* const* data = elements_r();
+  uint64_t* offsets = target->offsets_w();
+  MemoryRange strbuf = cast_str_helper<uint64_t>(nrows, data, offsets);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 

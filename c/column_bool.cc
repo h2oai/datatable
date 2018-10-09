@@ -7,13 +7,19 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <Python.h>
-#include "utils/omp.h"
+#include "utils/parallel.h"
 
 
 
 
 SType BoolColumn::stype() const {
   return SType::BOOL;
+}
+
+py::oobj BoolColumn::get_value_at_index(int64_t i) const {
+  int64_t j = ri.nth(i);
+  int8_t x = elements_r()[j];
+  return ISNA(x)? py::None() : x? py::True() : py::False();
 }
 
 

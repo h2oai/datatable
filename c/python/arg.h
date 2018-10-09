@@ -41,6 +41,7 @@ class Arg : public _obj::error_manager {
     bool is_undefined() const;
     bool is_none() const;
     bool is_ellipsis() const;
+    bool is_bool() const;
     bool is_int() const;
     bool is_float() const;
     bool is_list() const;

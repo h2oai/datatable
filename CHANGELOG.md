@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame can now be sorted by multiple columns.
 - new function `split_into_nhot()` to split a string column into fragments
   and then convert them into a set of indicator variables ("n-hot encode").
+- ability to convert object columns into strings.
+- implemented `Frame.replace()` function.
+- function `abs()` to find the absolute value of elements in the frame.
+- improved handling of Excel files by fread:
+  * sheet name can now be used as a path component in the file name,
+    causing only that particular sheet to be parsed;
+  * further, a cell range can be specified as a path component after the
+    sheet name, forcing fread to consider only the provided cell range;
+  * fread can now handle the situation when a spreadsheet has multiple
+    separate tables in the same sheet. They will now be detected automatically
+    and returned to the user as separate Frame objects (the name of each
+    frame will contain the sheet name and cell range from where the data was
+    extracted).
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
@@ -52,6 +65,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.cbind()` no longer returns anything (previously it returned self,
   but this was confusing w.r.t whether it modifies the target, or returns
   a modified copy).
+- `DT[i, j]` now returns a python scalar value if `i` is integer, and `j`
+  is integer/string. This is referred to as "explicit element selection".
+  In the unlikely scenario when a single element needs to be returned as
+  a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
+- The performance of explicit element selection improved by a factor of 200x.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.

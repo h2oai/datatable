@@ -1,9 +1,17 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include <unordered_set>
@@ -98,20 +106,21 @@ py::oobj strvecNP::item_as_pyoobj(size_t i) {
 //------------------------------------------------------------------------------
 namespace py {
 
-PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"});
+PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"},
+                                  "colindex",
+"colindex(self, name)\n"
+"--\n\n"
+"Return index of the column ``name``.\n"
+"\n"
+":param name: name of the column to find the index for. This can also\n"
+"    be an index of a column, in which case the index is checked that\n"
+"    it doesn't go out-of-bounds, and negative index is converted into\n"
+"    positive.\n"
+":raises ValueError: if the requested column does not exist.\n");
 
 void Frame::Type::_init_names(Methods& mm, GetSetters& gs)
 {
-  mm.add<&Frame::colindex, args_colindex>("colindex",
-    "colindex(self, name)\n"
-    "--\n\n"
-    "Return index of the column ``name``.\n"
-    "\n"
-    ":param name: name of the column to find the index for. This can also\n"
-    "    be an index of a column, in which case the index is checked that\n"
-    "    it doesn't go out-of-bounds, and negative index is converted into\n"
-    "    positive.\n"
-    ":raises ValueError: if the requested column does not exist.\n");
+  mm.add<&Frame::colindex, args_colindex>();
 
   gs.add<&Frame::get_names, &Frame::set_names>("names",
     "Tuple of column names.\n"
