@@ -326,7 +326,7 @@ def test_aggregate_2d_mixed_random():
     
 def test_aggregate_3d_categorical():
     args = get_default_args(aggregate)
-    rows = 2 # * args["min_rows"] 
+    rows = 2 * args["min_rows"] 
     a_in = [["blue"] * rows, ["orange"] * rows, ["yellow"] * rows]
     members_count = [[1] * rows]
     exemplar_id = [i for i in range(rows)]
