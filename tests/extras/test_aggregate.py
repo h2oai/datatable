@@ -324,7 +324,25 @@ def test_aggregate_2d_mixed_random():
 # Aggregate ND, take into account ND is parallelized with OpenMP
 #-------------------------------------------------------------------------------    
     
-def test_aggregate_3d():
+def test_aggregate_3d_categorical():
+    args = get_default_args(aggregate)
+    rows = 2 # * args["min_rows"] 
+    a_in = [["blue"] * rows, ["orange"] * rows, ["yellow"] * rows]
+    members_count = [[1] * rows]
+    exemplar_id = [i for i in range(rows)]
+    d_in = dt.Frame(a_in)
+                    
+    d_members = aggregate(d_in)
+    assert d_members.shape == (rows, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [exemplar_id]
+    d_in.internal.check()
+    assert d_in.shape == (rows, 4)
+    assert d_in.ltypes == (ltype.str, ltype.str, ltype.str, ltype.int)
+    assert d_in.topython() == a_in + members_count
+    
+    
+def test_aggregate_3d_real():
     d_in = dt.Frame([[0.95, 0.50, 0.55, 0.10, 0.90, 0.50, 0.90, 0.50, 0.90, 1.00],
                      [1.00, 0.55, 0.45, 0.05, 0.95, 0.45, 0.90, 0.40, 1.00, 0.90],
                      [0.90, 0.50, 0.55, 0.00, 1.00, 0.50, 0.95, 0.45, 0.95, 0.95]])
