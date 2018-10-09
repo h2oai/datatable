@@ -73,6 +73,7 @@ def read_xls_worksheet(ws, subrange=None):
     if subrange is None:
         ranges2d = _combine_ranges([_parse_row(values[i], types[i])
                                     for i in range(len(values))])
+        _process_merged_cells(ranges2d, ws.merged_cells)
         ranges2d.sort(key=lambda x: -(x[1] - x[0]) * (x[3] - x[2]))
     else:
         ranges2d = [subrange]
@@ -162,9 +163,9 @@ def _combine_ranges(ranges):
     ranges2d = []
     for irow, rowranges in enumerate(ranges):
         ja = 0
-        jc = 0
-        while jc < len(rowranges):
-            ccol0, ccol1 = rowranges[jc]
+        jb = 0
+        while jb < len(rowranges):
+            bcol0, bcol1 = rowranges[jb]
             if ja < len(ranges2d):
                 arow0, arow1, acol0, acol1 = ranges2d[ja]
                 if arow1 < irow:
@@ -174,40 +175,68 @@ def _combine_ranges(ranges):
             else:
                 acol0 = acol1 = 1000000000
 
-            if ccol0 == acol0 and ccol1 == acol1:
+            if bcol0 == acol0 and bcol1 == acol1:
                 ranges2d[ja][1] = irow + 1
                 ja += 1
-                jc += 1
-            elif ccol1 <= acol0:
-                ranges2d.insert(ja, [irow, irow + 1, ccol0, ccol1])
+                jb += 1
+            elif bcol1 <= acol0:
+                ranges2d.insert(ja, [irow, irow + 1, bcol0, bcol1])
                 ja += 1
-                jc += 1
-            elif ccol0 >= acol1:
+                jb += 1
+            elif bcol0 >= acol1:
                 ja += 1
             else:
                 assert ja < len(ranges2d)
                 ranges2d[ja][1] = irow + 1
-                if ccol0 < acol0:
-                    ranges2d[ja][2] = ccol0
-                if ccol1 > acol1:
-                    ranges2d[ja][3] = acol1 = ccol1
-                    jn = 0
-                    while jn < len(ranges2d):
-                        if jn == ja:
-                            jn += 1
-                            continue
-                        nrow0, nrow1, ncol0, ncol1 = ranges2d[jn]
-                        if ncol0 <= acol1 and nrow1 >= arow0 and \
-                                not(ncol0 == acol1 and nrow1 == arow0):
-                            ranges2d[ja][0] = arow0 = min(arow0, nrow0)
-                            ranges2d[ja][3] = acol1 = max(acol1, ncol1)
-                            del ranges2d[jn]
-                            if jn < ja:
-                                ja -= 1
-                        else:
-                            jn += 1
-                jc += 1
+                if bcol0 < acol0:
+                    ranges2d[ja][2] = bcol0
+                if bcol1 > acol1:
+                    ranges2d[ja][3] = acol1 = bcol1
+                    ja = _collapse_ranges(ranges2d, ja)
+                jb += 1
     return ranges2d
+
+
+def _collapse_ranges(ranges, ja):
+    """
+    Within the `ranges` list find those 2d-ranges that overlap with `ranges[ja]`
+    and merge them into `ranges[ja]`. Finally, return the new index of the
+    ja-th range within the `ranges` list.
+    """
+    arow0, arow1, acol0, acol1 = ranges[ja]
+    jb = 0
+    while jb < len(ranges):
+        if jb == ja:
+            jb += 1
+            continue
+        brow0, brow1, bcol0, bcol1 = ranges[jb]
+        if bcol0 <= acol1 and brow1 >= arow0 and \
+                not(bcol0 == acol1 and brow1 == arow0):
+            ranges[ja][0] = arow0 = min(arow0, brow0)
+            ranges[ja][3] = acol1 = max(acol1, bcol1)
+            del ranges[jb]
+            if jb < ja:
+                ja -= 1
+        else:
+            jb += 1
+    return ja
+
+
+def _process_merged_cells(ranges, merged_cells):
+    for mc in merged_cells:
+        mrow0, mrow1, mcol0, mcol1 = mc
+        for j in range(len(ranges)):
+            jrow0, jrow1, jcol0, jcol1 = ranges[j]
+            if mrow0 > jrow1 or mrow1 < jrow0: continue
+            if mcol0 > jcol1 or mcol1 < jcol0: continue
+            if mrow0 >= jrow0 and mrow1 <= jrow1 and \
+               mcol0 >= jcol0 and mcol1 <= jcol1: continue
+            if mrow0 < jrow0: ranges[j][0] = mrow0
+            if mrow1 > jrow1: ranges[j][1] = mrow1
+            if mcol0 < jcol0: ranges[j][2] = mcol0
+            if mcol1 > jcol1: ranges[j][3] = mcol1
+            _collapse_ranges(ranges, j)
+            break
 
 
 def _range2d_to_excel_coords(range2d):
