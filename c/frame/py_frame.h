@@ -45,6 +45,7 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
+        static NoArgs args__repr_html_;
         static PKArgs args_cbind;
         static PKArgs args_colindex;
         static PKArgs args_replace;
@@ -69,6 +70,7 @@ class Frame : public PyObject {
     oobj m__getitem__(obj item);
     void m__setitem__(obj item, obj value);
 
+    oobj _repr_html_(const NoArgs&);
     oobj get_ncols() const;
     oobj get_nrows() const;
     oobj get_shape() const;

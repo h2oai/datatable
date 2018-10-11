@@ -83,7 +83,8 @@ def _new_displayhook(value):
 
 
 _original_displayhook = sys.displayhook
-sys.displayhook = _new_displayhook
+if not term.jupyter:
+    sys.displayhook = _new_displayhook
 
 
 
