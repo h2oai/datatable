@@ -258,8 +258,11 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt,
 
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
-    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
-    d_members[i] = static_cast<int32_t>(norm_factor * v0 + norm_shift);
+    if (ISNA<double>(d_c0[i])) {
+      d_members[i] = NA_I4;
+    } else {
+      d_members[i] = static_cast<int32_t>(norm_factor * d_c0[i] + norm_shift);
+    }
   }
 }
 
@@ -273,7 +276,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt,
   auto c1 = static_cast<RealColumn<double>*>(dt->columns[1]);
   double* d_c0 = c0->elements_w();
   double* d_c1 = c1->elements_w();
-  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   double normx_factor, normx_shift;
   double normy_factor, normy_shift;
@@ -282,10 +285,12 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt,
 
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
-    double v0 = ISNA<double>(d_c0[i])? 0 : d_c0[i];
-    double v1 = ISNA<double>(d_c1[i])? 0 : d_c1[i];
-    d_groups[i] = static_cast<int32_t>(normy_factor * v1 + normy_shift) * nx_bins +
-                  static_cast<int32_t>(normx_factor * v0 + normx_shift);
+    if (ISNA<double>(d_c0[i]) || ISNA<double>(d_c1[i])) {
+      d_members[i] = NA_I4;
+    } else {
+      d_members[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
+                     static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
+    }
   }
 }
 
@@ -371,7 +376,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 
   auto c_cont = static_cast<RealColumn<double>*>(dt->columns[cont_index]);
   auto d_cont = c_cont->elements_r();
-  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets_cat = grpby.offsets_r();
 
   double normx_factor, normx_shift;
@@ -381,9 +386,12 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
     int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
-      double v_cont = ISNA<double>(d_cont[gi_cat[j]])? 0 : d_cont[gi_cat[j]];
-      d_groups[gi_cat[j]] = group_cat_id +
-                            static_cast<int32_t>(normx_factor * v_cont + normx_shift);
+      if (ISNA<double>(d_cont[gi_cat[j]])) {
+        d_members[gi_cat[j]] = NA_I4;
+      } else {
+        d_members[gi_cat[j]] = group_cat_id +
+                               static_cast<int32_t>(normx_factor * d_cont[gi_cat[j]] + normx_shift);
+      }
     }
   }
 }
