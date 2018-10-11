@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     and returned to the user as separate Frame objects (the name of each
     frame will contain the sheet name and cell range from where the data was
     extracted).
+- HTML rendering of Frames inside a Jupyter notebook.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --

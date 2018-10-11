@@ -15,6 +15,7 @@ from datatable.dt_append import _rbind
 from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
+from datatable.utils.terminal import term
 from datatable.utils.typechecks import (TTypeError, TValueError)
 from datatable.graph import make_datatable
 from datatable.csv import write_csv
@@ -83,7 +84,8 @@ class Frame(core.Frame):
 
     def _repr_pretty_(self, p, cycle):
         # Called by IPython terminal when displaying the datatable
-        self.view()
+        if not term.jupyter:
+            self.view()
 
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
