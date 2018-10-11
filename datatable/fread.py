@@ -495,7 +495,7 @@ class GenericReader(object):
         return self._sep
 
     @sep.setter
-    @typed(sep=U(str, bytes, None))
+    @typed(sep=U(str, None))
     def sep(self, sep):
         if sep == "":
             self._sep = "\n"
@@ -505,9 +505,9 @@ class GenericReader(object):
             if len(sep) > 1:
                 raise TValueError("Multi-character separator %r not supported"
                                   % sep)
-            # if ord(sep) > 127:
-            #     raise TValueError("The separator should be an ASCII character, "
-            #                       "got %r" % sep)
+            if ord(sep) > 127:
+                raise TValueError("The separator should be an ASCII character, "
+                                  "got %r" % sep)
             self._sep = sep
 
 
