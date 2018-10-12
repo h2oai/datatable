@@ -30,8 +30,8 @@ class HtmlWidget {
 
   public:
     HtmlWidget(DataTable* dt_) {
-      const size_t maxcols = 30;  // TODO: make configurable
-      const size_t maxrows = 45;
+      const size_t maxcols = 15;  // TODO: make configurable
+      const size_t maxrows = 15;
       dt = dt_;
       ncols = static_cast<size_t>(dt->ncols);
       nrows = static_cast<size_t>(dt->nrows);
@@ -51,19 +51,20 @@ class HtmlWidget {
   private:
     void render_all() {
       render_styles();
-      html << "<div class=datatable>";
-      html << "<table>";
+      html << "<div class=datatable>\n";
+      html << "  <table class=frame>\n";
       render_table_header();
       render_table_body();
-      html << "</table>";
+      html << "  </table>\n";
       render_frame_dimensions();
-      html << "</div>";
+      html << "</div>\n";
     }
 
     void render_table_header() {
       const std::vector<std::string>& colnames = dt->get_names();
-      html << "<thead><tr>";
-      html <<   "<td class=row_index></td>";
+      html << "  <thead>\n"
+              "    <tr>";
+      html << "<td class=row_index></td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
@@ -73,11 +74,12 @@ class HtmlWidget {
         render_escaped_string(colnames[j].data(), colnames[j].size());
         html << "</th>";
       }
-      html << "</tr></thead>";
+      html << "</tr>\n"
+              "  </thead>\n";
     }
 
     void render_table_body() {
-      html << "<tbody>";
+      html << "  <tbody>\n";
       for (size_t i = 0; i < nrows; ++i) {
         if (i == rows0) {
           i = nrows - rows1;
@@ -85,11 +87,11 @@ class HtmlWidget {
         }
         render_data_row(i);
       }
-      html << "</tbody>";
+      html << "  </tbody>\n";
     }
 
     void render_ellipsis_row() {
-      html << "<tr>";
+      html << "    <tr>";
       html << "<td class=hellipsis>&middot;&middot;&middot;</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
@@ -98,11 +100,11 @@ class HtmlWidget {
         }
         html << "<td class=hellipsis>&middot;&middot;&middot;</td>";
       }
-      html << "</tr>";
+      html << "</tr>\n";
     }
 
     void render_data_row(size_t i) {
-      html << "<tr>";
+      html << "    <tr>";
       html << "<td class=row_index>" << i << "</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
@@ -126,16 +128,16 @@ class HtmlWidget {
         }
         html << "</td>";
       }
-      html << "</tr>";
+      html << "</tr>\n";
     }
 
     void render_frame_dimensions() {
-      html << "<div class=frame_dimensions>";
+      html << "  <div class=frame_dimensions>";
       render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
       render_comma_separated(ncols);
       html << " column" << (ncols == 1? "" : "s");
-      html << "</div>";
+      html << "  </div>\n";
     }
 
 
@@ -186,13 +188,13 @@ class HtmlWidget {
 
     void render_styles() {
       if (styles_emitted) return;
-      html << "<style type='text/css'>"
+      html << "<style type='text/css'>\n"
               ".datatable .row_index {"
               "  color: #CDE;"
               "  background: rgba(255,255,255,0.75);"
               "  font-size: 80%;"
               "  border-right: 1px solid #CCE6FF;"
-              "}"
+              "}\n"
               ".datatable .hellipsis { "
               "  background: linear-gradient(to bottom, "
               "    rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 7%, "
@@ -200,16 +202,16 @@ class HtmlWidget {
               "    rgba(0,0,0,0.3) 100%);"
               "  padding: 0.1em 0.5em;"
               "  color: #DDD;"
-              "}"
+              "}\n"
               ".datatable .vellipsis {"
               "  background: #FFF;"
               "  color: #DDD;"
               "  padding: 0.5em 1em;"
               "  border: 1px solid #EEE;"
               "  border-style: none solid;"
-              "}"
-              ".datatable th.vellipsis { border: none; }"
-              ".datatable .na { color: #DDD; font-size: 80%; }"
+              "}\n"
+              ".datatable th.vellipsis { border: none; }\n"
+              ".datatable .na { color: #DDD; font-size: 80%; }\n"
               ".datatable .frame_dimensions {"
               "  background: #FAFAFA;"
               "  display: inline-block;"
@@ -218,8 +220,8 @@ class HtmlWidget {
               "  border: 1px solid #EEE;"
               "  padding: 0.1em .5em;"
               "  margin-left: 2em;"
-              "}"
-              "</style>";
+              "}\n"
+              "</style>\n";
       styles_emitted = true;
     }
 

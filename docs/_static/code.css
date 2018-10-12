@@ -61,7 +61,7 @@ div.document div.output-cell:before {
     text-align: right;
 }
 
-.datatable table {
+.datatable table.frame {
     border: none;
     border-collapse: collapse;
     border-spacing: 0;
@@ -69,11 +69,13 @@ div.document div.output-cell:before {
     font-size: 12px;
     margin: 0 0 0 0;
 }
-.datatable thead {
+.datatable .frame thead {
     border-bottom: 1px solid #BDBDBD;
     vertical-align: bottom;
 }
-.datatable td, .datatable th, .datatable tr {
+.datatable .frame td,
+.datatable .frame th,
+.datatable .frame tr {
     border: none;
     max-width: none;
     padding: 0.5em 0.5em;
@@ -81,13 +83,13 @@ div.document div.output-cell:before {
     vertical-align: middle;
 }
 
-.datatable .row_index {
+.datatable .frame .row_index {
   color: #CDE;
   background: rgba(255,255,255,0.75);
   font-size: 80%;
   border-right: 1px solid #CCE6FF;
 }
-.datatable .hellipsis {
+.datatable .frame .hellipsis {
   background: linear-gradient(to bottom,
     rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 7%,
     rgba(0,0,0,0.0) 15%, rgba(0,0,0,0.0) 95%,
@@ -95,15 +97,15 @@ div.document div.output-cell:before {
   padding: 0.1em 0.5em;
   color: #DDD;
 }
-.datatable .vellipsis {
+.datatable .frame .vellipsis {
   background: #FFF;
   color: #DDD;
   padding: 0.5em 1em;
   border: 1px solid #EEE;
   border-style: none solid;
 }
-.datatable th.vellipsis { border: none; }
-.datatable .na { color: #DDD; font-size: 80%; }
+.datatable .frame th.vellipsis { border: none; }
+.datatable .frame .na { color: #DDD; font-size: 80%; }
 .datatable .frame_dimensions {
   background: #FAFAFA;
   display: inline-block;

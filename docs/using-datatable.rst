@@ -10,41 +10,39 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 
 ::
 
-  import datatable as dt
-  import numpy as np
-  np.random.seed(1)
-  dt.Frame(np.random.randn(1000000))
+import datatable as dt
+import numpy as np
+np.random.seed(1)
+dt.Frame(np.random.randn(1000000))
 
 .. raw:: html
 
-  <div class=output-cell>
-   <div class=datatable>
-    <table>
-      <thead>
-        <tr><td class=row_index></td><th>C0</th></tr>
-      </thead>
-      <tbody>
-        <tr><td class=row_index>0</td><td>1.62435</td></tr>
-        <tr><td class=row_index>1</td><td>&minus;0.611756</td></tr>
-        <tr><td class=row_index>2</td><td>&minus;0.528172</td></tr>
-        <tr><td class=row_index>3</td><td>&minus;1.07297</td></tr>
-        <tr><td class=row_index>4</td><td>0.865408</td></tr>
-        <tr><td class=row_index>5</td><td>&minus;2.30154</td></tr>
-        <tr><td class=row_index>6</td><td>1.74481</td></tr>
-        <tr><td class=row_index>7</td><td>&minus;0.761207</td></tr>
-        <tr><td class=row_index>8</td><td>0.319039</td></tr>
-        <tr><td class=row_index>9</td><td>&minus;0.24937</td></tr>
-        <tr><td class=hellipsis>&middot;&middot;&middot;</td><td class=hellipsis>&middot;&middot;&middot;</td></tr>
-        <tr><td class=row_index>999995</td><td>0.0595784</td></tr>
-        <tr><td class=row_index>999996</td><td>0.140349</td></tr>
-        <tr><td class=row_index>999997</td><td>&minus;0.596161</td></tr>
-        <tr><td class=row_index>999998</td><td>1.18604</td></tr>
-        <tr><td class=row_index>999999</td><td>0.313398</td></tr>
-      </tbody>
+  <div class=output-cell><div class=datatable>
+    <table class=frame>
+    <thead>
+      <tr><td class=row_index></td><th>C0</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class=row_index>0</td><td>1.62435</td></tr>
+      <tr><td class=row_index>1</td><td>&minus;0.611756</td></tr>
+      <tr><td class=row_index>2</td><td>&minus;0.528172</td></tr>
+      <tr><td class=row_index>3</td><td>&minus;1.07297</td></tr>
+      <tr><td class=row_index>4</td><td>0.865408</td></tr>
+      <tr><td class=row_index>5</td><td>&minus;2.30154</td></tr>
+      <tr><td class=row_index>6</td><td>1.74481</td></tr>
+      <tr><td class=row_index>7</td><td>&minus;0.761207</td></tr>
+      <tr><td class=row_index>8</td><td>0.319039</td></tr>
+      <tr><td class=row_index>9</td><td>&minus;0.24937</td></tr>
+      <tr><td class=hellipsis>&middot;&middot;&middot;</td><td class=hellipsis>&middot;&middot;&middot;</td></tr>
+      <tr><td class=row_index>999995</td><td>0.0595784</td></tr>
+      <tr><td class=row_index>999996</td><td>0.140349</td></tr>
+      <tr><td class=row_index>999997</td><td>&minus;0.596161</td></tr>
+      <tr><td class=row_index>999998</td><td>1.18604</td></tr>
+      <tr><td class=row_index>999999</td><td>0.313398</td></tr>
+    </tbody>
     </table>
     <div class=frame_dimensions>1,000,000 rows &times; 1 column</div>
-   </div>
-  </div>
+  </div></div>
 
 ::
 
@@ -53,35 +51,33 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 
 .. raw:: html
 
-  <div class=output-cell>
-    <div class=datatable>
-      <table>
-        <thead>
-          <tr><td class=row_index></td><th>A</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class=row_index>0</td><td>0</td></tr>
-          <tr><td class=row_index>1</td><td>1</td></tr>
-          <tr><td class=row_index>2</td><td>2</td></tr>
-          <tr><td class=row_index>3</td><td>3</td></tr>
-          <tr><td class=row_index>4</td><td>4</td></tr>
-          <tr><td class=row_index>5</td><td>5</td></tr>
-          <tr><td class=row_index>6</td><td>6</td></tr>
-          <tr><td class=row_index>7</td><td>7</td></tr>
-          <tr><td class=row_index>8</td><td>8</td></tr>
-          <tr><td class=row_index>9</td><td>9</td></tr>
-          <tr><td class=row_index>10</td><td>10</td></tr>
-          <tr><td class=hellipsis>&middot;&middot;&middot;</td><td class=hellipsis>&middot;&middot;&middot;</td></tr>
-          <tr><td class=row_index>995</td><td>995</td></tr>
-          <tr><td class=row_index>996</td><td>996</td></tr>
-          <tr><td class=row_index>997</td><td>997</td></tr>
-          <tr><td class=row_index>998</td><td>998</td></tr>
-          <tr><td class=row_index>999</td><td>999</td></tr>
-        </tbody>
-      </table>
-      <div class=frame_dimensions>1,000 rows &times; 1 column</div>
-    </div>
-  </div>
+  <div class=output-cell><div class=datatable>
+    <table class=frame>
+    <thead>
+      <tr><td class=row_index></td><th>A</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class=row_index>0</td><td>0</td></tr>
+      <tr><td class=row_index>1</td><td>1</td></tr>
+      <tr><td class=row_index>2</td><td>2</td></tr>
+      <tr><td class=row_index>3</td><td>3</td></tr>
+      <tr><td class=row_index>4</td><td>4</td></tr>
+      <tr><td class=row_index>5</td><td>5</td></tr>
+      <tr><td class=row_index>6</td><td>6</td></tr>
+      <tr><td class=row_index>7</td><td>7</td></tr>
+      <tr><td class=row_index>8</td><td>8</td></tr>
+      <tr><td class=row_index>9</td><td>9</td></tr>
+      <tr><td class=row_index>10</td><td>10</td></tr>
+      <tr><td class=hellipsis>&middot;&middot;&middot;</td><td class=hellipsis>&middot;&middot;&middot;</td></tr>
+      <tr><td class=row_index>995</td><td>995</td></tr>
+      <tr><td class=row_index>996</td><td>996</td></tr>
+      <tr><td class=row_index>997</td><td>997</td></tr>
+      <tr><td class=row_index>998</td><td>998</td></tr>
+      <tr><td class=row_index>999</td><td>999</td></tr>
+    </tbody>
+    </table>
+    <div class=frame_dimensions>1,000 rows &times; 1 column</div>
+  </div></div>
 
 ::
 
@@ -89,20 +85,18 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 
 .. raw:: html
 
-  <div class=output-cell>
-    <div class=datatable>
-      <table>
-        <thead>
-          <tr><td class=row_index></td><th>n</th><th>s</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class=row_index>0</td><td>1</td><td>foo</td></tr>
-          <tr><td class=row_index>1</td><td>3</td><td>bar</td></tr>
-        </tbody>
-      </table>
-      <div class=frame_dimensions>2 rows &times; 2 columns</div>
-    </div>
-  </div>
+  <div class=output-cell><div class=datatable>
+    <table class=frame>
+    <thead>
+      <tr><td class=row_index></td><th>n</th><th>s</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class=row_index>0</td><td>1</td><td>foo</td></tr>
+      <tr><td class=row_index>1</td><td>3</td><td>bar</td></tr>
+    </tbody>
+    </table>
+    <div class=frame_dimensions>2 rows &times; 2 columns</div>
+  </div></div>
 
 
 
