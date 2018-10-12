@@ -194,14 +194,14 @@ void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
 /*
 *  Call an appropriate function for 1D grouping.
 */
-void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) {
-  LType ltype = info(dt_exemplars->columns[0]->stype()).ltype();
+void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
+  LType ltype = info(dt->columns[0]->stype()).ltype();
 
   switch (ltype) {
     case LType::BOOL:
     case LType::INT:
-    case LType::REAL:   group_1d_continuous(dt_exemplars, dt_members); break;
-    case LType::STRING: group_1d_categorical(dt_exemplars, dt_members); break;
+    case LType::REAL:   group_1d_continuous(dt, dt_members); break;
+    case LType::STRING: group_1d_categorical(dt, dt_members); break;
     default:            throw ValueError() << "Datatype is not supported";
   }
 }
@@ -210,36 +210,32 @@ void Aggregator::group_1d(DataTablePtr& dt_exemplars, DataTablePtr& dt_members) 
 /*
 *  Call an appropriate function for 2D grouping.
 */
-void Aggregator::group_2d(DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
   LType ltype0 = info(dt->columns[0]->stype()).ltype();
   LType ltype1 = info(dt->columns[1]->stype()).ltype();
 
   switch (ltype0) {
     case LType::BOOL:
     case LType::INT:
-    case LType::REAL:   {
-                           switch (ltype1) {
-                             case LType::BOOL:
-                             case LType::INT:
-                             case LType::REAL:   group_2d_continuous(dt, dt_members); break;
-                             case LType::STRING: group_2d_mixed(0, dt, dt_members); break;
-                             default:            throw ValueError() << "Datatype is not supported";
-                           }
-                        }
-                        break;
+    case LType::REAL:    switch (ltype1) {
+                           case LType::BOOL:
+                           case LType::INT:
+                           case LType::REAL:   group_2d_continuous(dt, dt_members); break;
+                           case LType::STRING: group_2d_mixed(0, dt, dt_members); break;
+                           default:            throw ValueError() << "Datatype is not supported";
+                         }
+                         break;
 
-    case LType::STRING: {
-                           switch (ltype1) {
-                             case LType::BOOL:
-                             case LType::INT:
-                             case LType::REAL:   group_2d_mixed(1, dt, dt_members); break;
-                             case LType::STRING: group_2d_categorical(dt, dt_members); break;
-                             default:            throw ValueError() << "Datatype is not supported";
-                           }
-                        }
-                        break;
+    case LType::STRING:  switch (ltype1) {
+                           case LType::BOOL:
+                           case LType::INT:
+                           case LType::REAL:   group_2d_mixed(1, dt, dt_members); break;
+                           case LType::STRING: group_2d_categorical(dt, dt_members); break;
+                           default:            throw ValueError() << "Datatype is not supported";
+                         }
+                         break;
 
-    default:            throw ValueError() << "Datatype is not supported";
+    default:             throw ValueError() << "Datatype is not supported";
   }
 }
 
@@ -247,9 +243,9 @@ void Aggregator::group_2d(DataTablePtr& dt, DataTablePtr& dt_members) {
 /*
 *  Do 1D grouping for a continuous column, i.e. 1D binning.
 */
-void Aggregator::group_1d_continuous(DataTablePtr& dt,
+void Aggregator::group_1d_continuous(const DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
+  const auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
   const double* d_c0 = c0->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
@@ -259,7 +255,7 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt,
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
     if (ISNA<double>(d_c0[i])) {
-      d_members[i] = NA_I4;
+      d_members[i] = GETNA<int32_t>();
     } else {
       d_members[i] = static_cast<int32_t>(norm_factor * d_c0[i] + norm_shift);
     }
@@ -270,12 +266,12 @@ void Aggregator::group_1d_continuous(DataTablePtr& dt,
 /*
 *  Do 2D grouping for two continuous columns, i.e. 2D binning.
 */
-void Aggregator::group_2d_continuous(DataTablePtr& dt,
+void Aggregator::group_2d_continuous(const DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
-  auto c1 = static_cast<RealColumn<double>*>(dt->columns[1]);
-  double* d_c0 = c0->elements_w();
-  double* d_c1 = c1->elements_w();
+  const auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
+  const auto c1 = static_cast<RealColumn<double>*>(dt->columns[1]);
+  const double* d_c0 = c0->elements_r();
+  const double* d_c1 = c1->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   double normx_factor, normx_shift;
@@ -286,7 +282,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt,
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
     if (ISNA<double>(d_c0[i]) || ISNA<double>(d_c1[i])) {
-      d_members[i] = NA_I4;
+      d_members[i] = GETNA<int32_t>();
     } else {
       d_members[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
                      static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
@@ -298,7 +294,7 @@ void Aggregator::group_2d_continuous(DataTablePtr& dt,
 /*
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
-void Aggregator::group_1d_categorical(DataTablePtr& dt,
+void Aggregator::group_1d_categorical(const DataTablePtr& dt,
                                       DataTablePtr& dt_members) {
   arr32_t cols(1);
 
@@ -307,15 +303,41 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt,
   RowIndex ri0 = dt->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
-  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_groups[group_indices_0[j]] = group_id;
+      d_members[group_indices_0[j]] = group_id;
     }
+  }
+}
+
+
+/*
+*  Detect string types for both categorical columns and do a corresponding call
+*  to `group_2d_mixed_str`.
+*/
+void Aggregator::group_2d_categorical (const DataTablePtr& dt,
+                                       DataTablePtr& dt_members) {
+  switch (dt->columns[0]->stype()) {
+    case SType::STR32:  switch (dt->columns[1]->stype()) {
+                          case SType::STR32:  group_2d_categorical_str<uint32_t, uint32_t>(dt, dt_members); break;
+                          case SType::STR64:  group_2d_categorical_str<uint32_t, uint64_t>(dt, dt_members); break;
+                          default:            throw ValueError() << "Column types must be either STR32 or STR64";
+                        }
+                        break;
+
+    case SType::STR64:  switch (dt->columns[1]->stype()) {
+                          case SType::STR32:  group_2d_categorical_str<uint64_t, uint32_t>(dt, dt_members); break;
+                          case SType::STR64:  group_2d_categorical_str<uint64_t, uint64_t>(dt, dt_members); break;
+                          default:            throw ValueError() << "Column types must be either STR32 or STR64";
+                        }
+                        break;
+
+    default:            throw ValueError() << "Column types in must be either STR32 or STR64";
   }
 }
 
@@ -324,10 +346,15 @@ void Aggregator::group_1d_categorical(DataTablePtr& dt,
 *  Do 2D grouping for two categorical columns, i.e. two `group by` operations,
 *  and combine their results.
 */
-void Aggregator::group_2d_categorical(DataTablePtr& dt,
-                                      DataTablePtr& dt_members) {
-  arr32_t cols(1);
+template<typename T0, typename T1>
+void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
+                                          DataTablePtr& dt_members) {
+  const auto c0 = static_cast<StringColumn<T0>*>(dt->columns[0]);
+  const auto c1 = static_cast<StringColumn<T1>*>(dt->columns[1]);
+  const T0* d_c0 = c0->offsets();
+  const T1* d_c1 = c1->offsets();
 
+  arr32_t cols(1);
   cols[0] = 0;
   Groupby grpby0;
   RowIndex ri0 = dt->sortby(cols, &grpby0);
@@ -338,7 +365,7 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt,
   RowIndex ri1 = dt->sortby(cols, &grpby1);
   const int32_t* group_indices_1 = ri1.indices32();
 
-  auto d_groups = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
 
@@ -346,7 +373,12 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt,
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_groups[group_indices_0[j]] = group_id;
+      int32_t gi = group_indices_0[j];
+      if (ISNA<T0>(d_c0[gi])) {
+        d_members[gi] = GETNA<int32_t>();
+      } else {
+        d_members[gi] = group_id;
+      }
     }
   }
 
@@ -354,21 +386,43 @@ void Aggregator::group_2d_categorical(DataTablePtr& dt,
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
-      d_groups[group_indices_1[j]] += group_id;
+      int32_t gi = group_indices_1[j];
+      if (ISNA<T1>(d_c1[gi]) || ISNA<int32_t>(d_members[gi])) {
+        d_members[gi] = GETNA<int32_t>();
+      } else {
+        d_members[gi] += group_id;
+      }
     }
   }
 }
 
 
 /*
-*  Do 2D grouping for one continuous and one categorical column,
+*  Detect string type for a categorical column and do a corresponding call
+*  to `group_2d_mixed_str`.
+*/
+void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
+                                 DataTablePtr& dt_members) {
+  switch (dt->columns[!cont_index]->stype()) {
+    case SType::STR32:  group_2d_mixed_str<uint32_t>(cont_index, dt, dt_members); break;
+    case SType::STR64:  group_2d_mixed_str<uint64_t>(cont_index, dt, dt_members); break;
+    default:            throw ValueError() << "Column type must be either STR32 or STR64";
+  }
+}
+
+
+/*
+*  Do 2D grouping for one continuous and one categorical string column,
 *  i.e. 1D binning for the continuous column and a `group by`
 *  operation for the categorical one.
 */
-void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
-                                DataTablePtr& dt_members) {
-  arr32_t cols(1);
+template<typename T>
+void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
+                                     DataTablePtr& dt_members) {
+  const auto c_cat = static_cast<StringColumn<T>*>(dt->columns[!cont_index]);
+  const T* d_cat = c_cat->offsets();
 
+  arr32_t cols(1);
   cols[0] = !cont_index;
   Groupby grpby;
   RowIndex ri_cat = dt->sortby(cols, &grpby);
@@ -379,6 +433,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets_cat = grpby.offsets_r();
 
+
   double normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
 
@@ -386,11 +441,12 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
     int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
-      if (ISNA<double>(d_cont[gi_cat[j]])) {
-        d_members[gi_cat[j]] = NA_I4;
+      int32_t gi = gi_cat[j];
+      if (ISNA<double>(d_cont[gi]) || ISNA<T>(d_cat[gi])) {
+        d_members[gi] = GETNA<int32_t>();
       } else {
-        d_members[gi_cat[j]] = group_cat_id +
-                               static_cast<int32_t>(normx_factor * d_cont[gi_cat[j]] + normx_shift);
+        d_members[gi] = group_cat_id +
+                        static_cast<int32_t>(normx_factor * d_cont[gi] + normx_shift);
       }
     }
   }
@@ -423,7 +479,7 @@ void Aggregator::group_2d_mixed(bool cont_index, DataTablePtr& dt,
 *  However, for some datasets this `delta` results in too many (e.g. thousands) or
 *  too few (e.g. just one) exemplars.
 */
-void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members) {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   auto ncols = static_cast<int32_t>(dt->ncols);
@@ -498,7 +554,7 @@ void Aggregator::group_nd(DataTablePtr& dt, DataTablePtr& dt_members) {
 /*
  *  Figure out how many threads we need to run ND groupping.
  */
-int32_t Aggregator::get_nthreads(DataTablePtr& dt) {
+int32_t Aggregator::get_nthreads(const DataTablePtr& dt) {
   int32_t nth;
   if (nthreads) {
     nth = static_cast<int32_t>(nthreads);
@@ -635,7 +691,7 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 /*
 *  Normalize the row elements to [0,1).
 */
-void Aggregator::normalize_row(DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
+void Aggregator::normalize_row(const DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
   for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
@@ -651,7 +707,7 @@ void Aggregator::normalize_row(DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
 /*
 *  Generate projection matrix.
 */
-DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
+DoublePtr Aggregator::generate_pmatrix(const DataTablePtr& dt_exemplars) {
   std::default_random_engine generator;
   DoublePtr pmatrix = DoublePtr(new double[(dt_exemplars->ncols) * max_dimensions]);
 
@@ -676,7 +732,7 @@ DoublePtr Aggregator::generate_pmatrix(DataTablePtr& dt_exemplars) {
 /*
 *  Project a particular row on a subspace by using the projection matrix.
 */
-void Aggregator::project_row(DataTablePtr& dt_exemplars, DoublePtr& r,
+void Aggregator::project_row(const DataTablePtr& dt_exemplars, DoublePtr& r,
                              int32_t row_id, DoublePtr& pmatrix) {
 
   std::memset(r.get(), 0, static_cast<size_t>(max_dimensions) * sizeof(double));
