@@ -245,7 +245,7 @@ void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 */
 void Aggregator::group_1d_continuous(const DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  const auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
+  auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
   const double* d_c0 = c0->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
@@ -268,8 +268,8 @@ void Aggregator::group_1d_continuous(const DataTablePtr& dt,
 */
 void Aggregator::group_2d_continuous(const DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  const auto c0 = static_cast<RealColumn<double>*>(dt->columns[0]);
-  const auto c1 = static_cast<RealColumn<double>*>(dt->columns[1]);
+  auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
+  auto c1 = static_cast<const RealColumn<double>*>(dt->columns[1]);
   const double* d_c0 = c0->elements_r();
   const double* d_c1 = c1->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -349,8 +349,8 @@ void Aggregator::group_2d_categorical (const DataTablePtr& dt,
 template<typename T0, typename T1>
 void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
                                           DataTablePtr& dt_members) {
-  const auto c0 = static_cast<StringColumn<T0>*>(dt->columns[0]);
-  const auto c1 = static_cast<StringColumn<T1>*>(dt->columns[1]);
+  auto c0 = static_cast<const StringColumn<T0>*>(dt->columns[0]);
+  auto c1 = static_cast<const StringColumn<T1>*>(dt->columns[1]);
   const T0* d_c0 = c0->offsets();
   const T1* d_c1 = c1->offsets();
 
@@ -419,7 +419,7 @@ void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
 template<typename T>
 void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
                                      DataTablePtr& dt_members) {
-  const auto c_cat = static_cast<StringColumn<T>*>(dt->columns[!cont_index]);
+  auto c_cat = static_cast<const StringColumn<T>*>(dt->columns[!cont_index]);
   const T* d_cat = c_cat->offsets();
 
   arr32_t cols(1);
