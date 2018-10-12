@@ -40,7 +40,7 @@ the following:
   but promotion into object discouraged.
 * All types should support null values, with as little overhead as possible.
 * Data should be stored on disk in the same format as in memory. This will allow
-  us to memory-map data on disk and work ob out-of-memory datasets transparently.
+  us to memory-map data on disk and work on out-of-memory datasets transparently.
 * Work with memory-mapped datasets to avoid loading into memory more data than
   necessary for each particular operation.
 * Fast data reading from CSV and other formats.
