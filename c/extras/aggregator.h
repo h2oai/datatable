@@ -46,24 +46,27 @@ class Aggregator {
     unsigned int nthreads;
     PyObject* progress_fn;
 
-    // Grouping and aggregating functions
+    // Grouping and aggregating methods
     void group_0d(const DataTable*, DataTablePtr&);
-    void group_1d(DataTablePtr&, DataTablePtr&);
-    void group_2d(DataTablePtr&, DataTablePtr&);
-    void group_nd(DataTablePtr&, DataTablePtr&);
-    void test(DataTablePtr&, DataTablePtr&);
-    void group_1d_continuous(DataTablePtr&, DataTablePtr&);
-    void group_2d_continuous(DataTablePtr&, DataTablePtr&);
-    void group_1d_categorical(DataTablePtr&, DataTablePtr&);
-    void group_2d_categorical(DataTablePtr&, DataTablePtr&);
-    void group_2d_mixed(bool, DataTablePtr&, DataTablePtr&);
+    void group_1d(const DataTablePtr&, DataTablePtr&);
+    void group_2d(const DataTablePtr&, DataTablePtr&);
+    void group_nd(const DataTablePtr&, DataTablePtr&);
+    void group_1d_continuous(const DataTablePtr&, DataTablePtr&);
+    void group_2d_continuous(const DataTablePtr&, DataTablePtr&);
+    void group_1d_categorical(const DataTablePtr&, DataTablePtr&);
+    void group_2d_categorical(const DataTablePtr&, DataTablePtr&);
+    template<typename T1, typename T2>
+    void group_2d_categorical_str(const DataTablePtr&, DataTablePtr&);
+    void group_2d_mixed(bool, const DataTablePtr&, DataTablePtr&);
+    template<typename T>
+    void group_2d_mixed_str(bool, const DataTablePtr&, DataTablePtr&);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
-    // Helper functions
-    int32_t get_nthreads(DataTablePtr&);
-    DoublePtr generate_pmatrix(DataTablePtr&);
-    void normalize_row(DataTablePtr&, DoublePtr&, int32_t);
-    void project_row(DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
+    // Helper methods
+    int32_t get_nthreads(const DataTablePtr&);
+    DoublePtr generate_pmatrix(const DataTablePtr&);
+    void normalize_row(const DataTablePtr&, DoublePtr&, int32_t);
+    void project_row(const DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
     double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double,
                               bool early_exit=true);
     void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&,

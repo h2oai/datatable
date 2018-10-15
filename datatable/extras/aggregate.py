@@ -31,7 +31,9 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     seed: int
         Seed to be used for the projection method.
     progress_fn: object
-        Python function to be used for progress reporting.
+        Python function for progress reporting accepting two arguments:
+        - `progress`, that is a value from 0 to 1;
+        - `status_code`, 0 – in progress, 1 – completed.
     nthreads: int
         Number of OpenMP threads ND aggregator will use. Default is 0,
         i.e. automatically figure out the optimal number.
