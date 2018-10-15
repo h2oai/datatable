@@ -184,7 +184,6 @@ void DatatableModule::init_methods() {
   add(METHODv(pydatatable::datatable_load));
   add(METHODv(pydatatable::open_jay));
   add(METHODv(pydatatable::install_buffer_hooks));
-  add(METHODv(config::set_option));
   add(METHODv(gread));
   add(METHODv(write_csv));
   add(METHODv(exec_function));
@@ -201,6 +200,7 @@ void DatatableModule::init_methods() {
   add(METHOD0(has_omp_support));
   add(METHODv(aggregate));
   init_methods_str();
+  init_methods_options();
 }
 
 

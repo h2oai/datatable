@@ -1042,7 +1042,7 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
 options.register_option(
-    "fread.anonymize", xtype=bool, default=False, core=True)
+    "fread.anonymize", xtype=bool, default=False)
 
 core.register_function(8, fread)
 

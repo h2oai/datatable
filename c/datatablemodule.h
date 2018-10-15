@@ -28,7 +28,8 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
     }
 
     void init_methods();
-    void init_methods_str();  // defined in str/py_str.cc
+    void init_methods_str();      // str/py_str.cc
+    void init_methods_options();  // options.cc
 };
 
 
