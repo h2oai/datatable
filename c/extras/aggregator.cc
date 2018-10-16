@@ -111,8 +111,8 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
                max_bins = nd_max_bins;
     }
   } else {
-    max_bins = min_rows;
     group_0d(dt, dt_members);
+    max_bins = min_rows;
   }
 
   bool was_sampled = random_sampling(dt_members, max_bins);
@@ -123,8 +123,8 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 
 
 /*
-*  Check how many exemplars we have got, if there is too many (e.g. too many
-*  distinct categorical values) do random sampling.
+*  Check how many exemplars we have got, if there is more than `max_bins+1`
+*  (e.g. too many distinct categorical values) do random sampling.
 */
 bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
   bool was_sampled = false;
