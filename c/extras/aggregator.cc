@@ -121,40 +121,41 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 */
 bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
   bool was_sampled = false;
-  // Sorting `dt_members` to calculate number of exemplars
+  // Sorting `dt_members` to calculate total number of exemplars.
   arr32_t cols(1);
   cols[0] = 0;
   Groupby gb_members;
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
 
-  // Do random sampling if there is too many exemplars
+  // Do random sampling if there is too many exemplars. `+1` accounts for a
+  // special `N/A` bin where all the `N/A` values will go.
   if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + 1) {
     const int32_t* offsets = gb_members.offsets_r();
     const int32_t* ri_members_indices = ri_members.indices32();
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
+    // First, set all `exemplar_id`s to `N/A`.
+    for (int32_t i = 0; i < dt_members->nrows; ++i) {
+      d_members[i] = GETNA<int32_t>();
+    }
+
+    // Second, randomly select `max_bins` groups.
     if (!seed) {
       std::random_device rd;
       seed = rd();
     }
     srand(seed);
-
-    // First, set all `exemplar_id`s to N/A.
-    for (int32_t i = 0; i < dt_members->nrows; ++i) {
-      d_members[i] = GETNA<int32_t>();
-    }
-
-    // Second, randomly set some of the groups.
     int32_t k = 0;
     while (k < max_bins) {
       int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
       if (ISNA<int32_t>(d_members[ri_members_indices[offsets[i]]])) {
         for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
-          d_members[ri_members_indices[j]] = i;
+          d_members[ri_members_indices[j]] = k;
         }
         k++;
       }
     }
+    dt_members->columns[0]->get_stats()->reset();
     was_sampled = true;
   }
 
@@ -173,10 +174,9 @@ bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
 void Aggregator::aggregate_exemplars(DataTable* dt,
                                      DataTablePtr& dt_members,
                                      bool was_sampled) {
+  // Setting up offsets and members row index.
   arr32_t cols(1);
   cols[0] = 0;
-
-  // Setting up offsets and members row index.
   Groupby gb_members;
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
@@ -206,6 +206,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   std::memset(d_counts, 0, static_cast<size_t>(n_exemplars) * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     exemplar_indices[i - was_sampled] = ri_members_indices[static_cast<size_t>(offsets[i])];
     d_counts[i - was_sampled] = offsets[i+1] - offsets[i];
@@ -213,7 +214,6 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
   // this is also needed for ND due to re-mapping.
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     for (size_t j = 0; j < static_cast<size_t>(d_counts[i - was_sampled]); ++j) {
       size_t member_shift = static_cast<size_t>(offsets[i]) + j;
@@ -222,7 +222,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   }
   dt_members->columns[0]->get_stats()->reset();
 
-  // Applying exemplars row index and binding exemplars with the counts
+  // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
   dt->replace_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts };
