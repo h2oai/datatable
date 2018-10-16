@@ -98,12 +98,19 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     cols_double[ncols] = nullptr;
     dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
     switch (dt_double->ncols) {
-      case 0:  group_0d(dt, dt_members); max_bins = nd_max_bins; break; // Do no aggregation, all rows become exemplars.
-      case 1:  group_1d(dt_double, dt_members); max_bins = n_bins; break;
-      case 2:  group_2d(dt_double, dt_members); max_bins = nx_bins * ny_bins; break;
-      default: group_nd(dt_double, dt_members); max_bins = nd_max_bins;
+      case 0:  group_0d(dt, dt_members);
+               max_bins = nd_max_bins;
+               break;
+      case 1:  group_1d(dt_double, dt_members);
+               max_bins = n_bins;
+               break;
+      case 2:  group_2d(dt_double, dt_members);
+               max_bins = nx_bins * ny_bins;
+               break;
+      default: group_nd(dt_double, dt_members);
+               max_bins = nd_max_bins;
     }
-  } else { // Do no aggregation, all rows become exemplars.
+  } else {
     max_bins = min_rows;
     group_0d(dt, dt_members);
   }
