@@ -65,6 +65,7 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
+  int32_t max_bins;
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
@@ -97,18 +98,61 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     cols_double[ncols] = nullptr;
     dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
     switch (dt_double->ncols) {
-      case 0:  group_0d(dt, dt_members); break; // Do no aggregation, all rows become exemplars.
-      case 1:  group_1d(dt_double, dt_members); break;
-      case 2:  group_2d(dt_double, dt_members); break;
-      default: group_nd(dt_double, dt_members);
+      case 0:  group_0d(dt, dt_members); max_bins = nd_max_bins; break; // Do no aggregation, all rows become exemplars.
+      case 1:  group_1d(dt_double, dt_members); max_bins = n_bins; break;
+      case 2:  group_2d(dt_double, dt_members); max_bins = nx_bins * ny_bins; break;
+      default: group_nd(dt_double, dt_members); max_bins = nd_max_bins;
     }
   } else { // Do no aggregation, all rows become exemplars.
+    max_bins = min_rows;
     group_0d(dt, dt_members);
   }
 
+  random_sampling(dt_members, max_bins);
   aggregate_exemplars(dt, dt_members); // modify dt in place
   progress(1.0, 1);
   return dt_members;
+}
+
+
+/*
+*  Do random samping if there is too many exemplars.
+*/
+void Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
+  // Sorting `dt_members` to calculate number of exemplars
+  arr32_t cols(1);
+  cols[0] = 0;
+  Groupby gb_members;
+  RowIndex ri_members = dt_members->sortby(cols, &gb_members);
+  // Do random sampling if there is too many exemplars
+  if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + 1) {
+    const int32_t* offsets = gb_members.offsets_r();
+    const int32_t* ri_members_indices = ri_members.indices32();
+    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+
+    if (!seed) {
+      std::random_device rd;
+      seed = rd();
+    }
+    srand(seed);
+
+    // First, set all `exemplar_id`s to N/A
+    for (int32_t i = 0; i < dt_members->nrows; ++i) {
+      d_members[i] = GETNA<int32_t>();
+    }
+
+    // Second, randomly set some of the groups
+    int32_t k = 0;
+    while (k < max_bins) {
+      int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
+      if (ISNA<int32_t>(d_members[ri_members_indices[offsets[i]]])) {
+        for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
+          d_members[ri_members_indices[j]] = i;
+        }
+        k++;
+      }
+    }
+  }
 }
 
 
@@ -182,12 +226,15 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 }
 
 
+
 /*
 *  Do no groupping, i.e. all rows become exemplars.
 */
 void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  for (int32_t i = 0; i < dt->nrows; ++i ) d_members[i] = i;
+  for (int32_t i = 0; i < dt->nrows; ++i) {
+    d_members[i] = i;
+  }
 }
 
 
@@ -308,9 +355,8 @@ void Aggregator::group_1d_categorical(const DataTablePtr& dt,
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_members[group_indices_0[j]] = group_id;
+      d_members[group_indices_0[j]] = static_cast<int32_t>(i);
     }
   }
 }
@@ -337,7 +383,7 @@ void Aggregator::group_2d_categorical (const DataTablePtr& dt,
                         }
                         break;
 
-    default:            throw ValueError() << "Column types in must be either STR32 or STR64";
+    default:            throw ValueError() << "Column types must be either STR32 or STR64";
   }
 }
 

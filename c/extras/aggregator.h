@@ -60,6 +60,7 @@ class Aggregator {
     void group_2d_mixed(bool, const DataTablePtr&, DataTablePtr&);
     template<typename T>
     void group_2d_mixed_str(bool, const DataTablePtr&, DataTablePtr&);
+    void random_sampling(DataTablePtr&, int32_t);
     void aggregate_exemplars(DataTable*, DataTablePtr&);
 
     // Helper methods
