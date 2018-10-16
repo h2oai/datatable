@@ -4,7 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-from datatable.lib import core as _datatable
+from datatable.lib import core
 from datatable.utils.typechecks import (is_type, name_type, TTypeError,
                                         TValueError)
 
@@ -14,29 +14,80 @@ __all__ = ("options", )
 class DtAttributeError(AttributeError):
     _handle_ = TTypeError._handle_
 
+class _bool(int):
+    def __str__(self):
+        if self == 1:
+            return "True"
+        if self == 0:
+            return "False"
 
+class _function:
+    def __init__(self, v):
+        self._obj = v
+
+    def __call__(self):
+        self._obj()
+
+    def __repr__(self):
+        return repr(self._obj)
+
+    def __str__(self):
+        return str(self._obj)
+
+    def __eq__(self, other):
+        return self._obj.__eq__(other)
+
+    def __bool__(self):
+        return bool(self._obj)
+
+
+
+#-------------------------------------------------------------------------------
+# DtOption
+#-------------------------------------------------------------------------------
 
 class DtOption:
-    __slots__ = ["_name", "_value", "xtype", "default", "doc", "_core"]
+    """
+    This is a 'lead node' class in the DtConfig tree of options. However, the
+    objects of this class are not directly returned to the user. Instead, the
+    DtConfig class invokes the following API:
 
-    def __init__(self, name, xtype, default, doc=None, core=None):
+        dt.options.some_option      ->  return some_option.get()
+        dt.options.some_option = v  ->  some_option.set(v)
+        del dt.options.some_option  ->  some_option.reset()
+
+    The reasons why we don't return `some_option` directly to the user are:
+      - the return value must be derived from the appropriate base class,
+        such as `int`, `float`, `str`, so that the user may use the value
+        directly as if it was int / float / string;
+      - at the same time the option must be mutable (i.e. it should be
+        possible to change its value via assignment or a method), and base
+        classes listed above are immutable.
+
+    The value returned by `some_option.get()` is not the base value either: it
+    is additionally equipped with custom docstring.
+    """
+    __slots__ = ["_name", "_default", "_klass"]
+
+    def __init__(self, name, xtype, default, doc=None):
+        if xtype == bool:
+            xtype = _bool
+        if xtype == callable:
+            xtype = _function
         self._name = name
-        self._core = core
-        self._value = None
-        self.xtype = xtype
-        self.default = default
-        self.doc = doc
-        self.value = default  # Set value, possibly reporting to core too
+        self._default = default
+        self._klass = type(xtype.__name__, (xtype,), dict(__doc__=doc))
+        self.set(default)
 
-    @property
-    def value(self):
-        return self._value
+    def get(self):
+        v = core.get_option(self._name)
+        return self._klass(v)
 
-    @value.setter
-    def value(self, v):
-        self._value = v
-        if self._core:
-            _datatable.set_option(self._name, v)
+    def set(self, v):
+        core.set_option(self._name, v)
+
+    def reset(self):
+        self.set(self._default)
 
 
 
@@ -57,14 +108,14 @@ class DtConfig:
         if key:
             opt = self._get_opt(key)
             if isinstance(opt, DtOption):
-                return opt.value
+                return opt.get()
             else:
                 return opt
         else:
             res = {}
             for k, v in self._keyvals.items():
                 if isinstance(v, DtOption):
-                    res[self._prefix + k] = v.value
+                    res[self._prefix + k] = v.get()
                 else:
                     res.update(v.__getattr__(""))
             return res
@@ -73,15 +124,7 @@ class DtConfig:
     def __setattr__(self, key, val):
         opt = self._get_opt(key)
         if isinstance(opt, DtOption):
-            if is_type(val, opt.xtype):
-                opt.value = val
-            else:
-                fullkey = self._prefix + key
-                exptype = name_type(opt.xtype)
-                acttype = name_type(type(val))
-                raise TTypeError("Invalid value for option `%s`: expected "
-                                 "type %s, got %s instead"
-                                 % (fullkey, exptype, acttype))
+            opt.set(val)
         else:
             raise DtAttributeError("Cannot modify group of options `%s`"
                                    % (self._prefix + key))
@@ -92,13 +135,13 @@ class DtConfig:
         if key:
             opt = self._get_opt(key)
             if isinstance(opt, DtOption):
-                opt.value = opt.default
+                opt.reset()
             else:
                 opt.__delattr__("")
         else:
             for o in self._keyvals.values():
                 if isinstance(o, DtOption):
-                    o.value = o.default
+                    o.reset()
                 else:
                     o.__delattr__("")
 
@@ -108,9 +151,22 @@ class DtConfig:
 
     def __repr__(self):
         return ("<datatable.options.DtConfig: %s>"
-                % ", ".join("%s=%s" % (k, repr(v.value)
+                % ", ".join("%s=%s" % (k, repr(v.get())
                                        if isinstance(v, DtOption) else "...")
                             for k, v in self._keyvals.items()))
+
+    def _repr_pretty_(self, p, cycle):
+        with p.indent(4):
+            p.text("dt.options." + self._prefix)
+            p.break_()
+            for k, v in self._keyvals.items():
+                p.text(k)
+                p.text(" = ")
+                if isinstance(v, DtOption):
+                    p.pretty(v.get())
+                else:
+                    p.text("[...]")
+                p.break_()
 
 
     def get(self, key=""):
@@ -123,7 +179,7 @@ class DtConfig:
         self.__delattr__(key)
 
 
-    def register_option(self, key, xtype, default, doc=None, core=False):
+    def register_option(self, key, xtype, default, doc=None):
         assert isinstance(key, str)
         idot = key.find(".")
         if idot == 0:
@@ -136,7 +192,7 @@ class DtConfig:
                 self._keyvals[prekey] = preval
             if isinstance(preval, DtConfig):
                 subkey = key[idot + 1:]
-                preval.register_option(subkey, xtype, default, doc, core)
+                preval.register_option(subkey, xtype, default, doc)
             else:
                 fullkey = self._prefix + key
                 fullprekey = self._prefix + prekey
@@ -146,11 +202,11 @@ class DtConfig:
         elif key in self._keyvals:
             fullkey = self._prefix + key
             raise TValueError("Option `%s` already registered" % fullkey)
-        elif not is_type(default, xtype):
+        elif not (xtype is callable or is_type(default, xtype)):
             raise TValueError("Default value `%s` is not of type %s"
                               % (default, name_type(xtype)))
         else:
-            opt = DtOption(xtype=xtype, default=default, doc=doc, core=core,
+            opt = DtOption(xtype=xtype, default=default, doc=doc,
                            name=self._prefix + key)
             self._keyvals[key] = opt
 
@@ -172,3 +228,23 @@ class DtConfig:
 
 # Global options store
 options = DtConfig()
+
+
+options.register_option(
+    "nthreads", int, default=0,
+    doc="The number of OMP threads used by datatable.\n\n"
+        "Many calculations in `datatable` module are parallelized using the\n"
+        "OpenMP library. This setting controls how many threads will be used\n"
+        "during such calculations.\n\n"
+        "Initially, this option is set to the value returned by the call\n"
+        "`omp_get_max_threads()`. This is usually equal to the number of\n"
+        "available processors, but can be altered via environment variables\n"
+        "`OMP_NUM_THREADS` or `OMP_THREAD_LIMIT`.\n\n"
+        "You can set `nthreads` to a value greater or smaller than the\n"
+        "initial setting. For example, setting `nthreads = 1` will force the\n"
+        "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
+        "restore the initial `omp_get_max_threads()` value. Setting\n"
+        "`nthreads` to a value less than 0 is equivalent to requesting that\n"
+        "fewer threads than the maximum.\n\n"
+        "Note that requesting **too many** threads may exhaust your system\n"
+        "resources and cause the Python process to crash.\n")
