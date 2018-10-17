@@ -65,6 +65,8 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
+  int32_t max_bins;
+  bool was_sampled = false;
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
@@ -97,39 +99,99 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     cols_double[ncols] = nullptr;
     dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
     switch (dt_double->ncols) {
-      case 0:  group_0d(dt, dt_members); break; // Do no aggregation, all rows become exemplars.
-      case 1:  group_1d(dt_double, dt_members); break;
-      case 2:  group_2d(dt_double, dt_members); break;
+      case 0:  group_0d(dt, dt_members);
+               max_bins = nd_max_bins;
+               break;
+      case 1:  group_1d(dt_double, dt_members);
+               max_bins = n_bins;
+               break;
+      case 2:  group_2d(dt_double, dt_members);
+               max_bins = nx_bins * ny_bins;
+               break;
       default: group_nd(dt_double, dt_members);
+               max_bins = nd_max_bins;
     }
-  } else { // Do no aggregation, all rows become exemplars.
+    was_sampled = random_sampling(dt_members, max_bins);
+  } else {
     group_0d(dt, dt_members);
   }
 
-  aggregate_exemplars(dt, dt_members); // modify dt in place
+  aggregate_exemplars(dt, dt_members, was_sampled); // modify dt in place
   progress(1.0, 1);
   return dt_members;
 }
 
 
 /*
-*  Do the actual calculation of counts for each exemplar
-*  and set correct `exemplar_id`s for members.
+*  Check how many exemplars we have got, if there is more than `max_bins+1`
+*  (e.g. too many distinct categorical values) do random sampling.
 */
-void Aggregator::aggregate_exemplars(DataTable* dt,
-                                     DataTablePtr& dt_members) {
+bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
+  bool was_sampled = false;
+  // Sorting `dt_members` to calculate total number of exemplars.
   arr32_t cols(1);
   cols[0] = 0;
+  Groupby gb_members;
+  RowIndex ri_members = dt_members->sortby(cols, &gb_members);
 
-  // Setting up offsets and members row index
+  // Do random sampling if there is too many exemplars. `+1` accounts for a
+  // special `N/A` bin where all the `N/A` values will go.
+  if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + 1) {
+    const int32_t* offsets = gb_members.offsets_r();
+    const int32_t* ri_members_indices = ri_members.indices32();
+    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+
+    // First, set all `exemplar_id`s to `N/A`.
+    for (int32_t i = 0; i < dt_members->nrows; ++i) {
+      d_members[i] = GETNA<int32_t>();
+    }
+
+    // Second, randomly select `max_bins` groups.
+    if (!seed) {
+      std::random_device rd;
+      seed = rd();
+    }
+    srand(seed);
+    int32_t k = 0;
+    while (k < max_bins) {
+      int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
+      if (ISNA<int32_t>(d_members[ri_members_indices[offsets[i]]])) {
+        for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
+          d_members[ri_members_indices[j]] = k;
+        }
+        k++;
+      }
+    }
+    dt_members->columns[0]->get_stats()->reset();
+    was_sampled = true;
+  }
+
+  return was_sampled;
+}
+
+
+/*
+*  Sort/group the members frame and set up the first member
+*  in each group as an exemplar with the corresponding `members_count`,
+*  that is essentially a number of members within the group.
+*  If members were randomly sampled, those who got `exemplar_id = NA`
+*  are ending up in the zero group, that is ignored and not included
+*  in the aggregated frame.
+*/
+void Aggregator::aggregate_exemplars(DataTable* dt,
+                                     DataTablePtr& dt_members,
+                                     bool was_sampled) {
+  // Setting up offsets and members row index.
+  arr32_t cols(1);
+  cols[0] = 0;
   Groupby gb_members;
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
-  arr32_t exemplar_indices(gb_members.ngroups());
+  size_t n_exemplars = gb_members.ngroups() - was_sampled;
+  arr32_t exemplar_indices(n_exemplars);
 
   const int32_t* ri_members_indices = nullptr;
   arr32_t temp;
-
   if (ri_members.isarr32()) {
     ri_members_indices = ri_members.indices32();
   } else if (ri_members.isslice()) {
@@ -140,36 +202,34 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
     throw ValueError() << "RI_ARR64 is not supported for the moment";
   }
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-
   // Setting up a table for counts
   DataTable* dt_counts;
   Column** cols_counts = dt::amalloc<Column*>(static_cast<int64_t>(2));
   cols_counts[0] = Column::new_data_column(SType::INT32,
-                                           static_cast<int64_t>(gb_members.ngroups()));
+                                           static_cast<int64_t>(n_exemplars));
   cols_counts[1] = nullptr;
   dt_counts = new DataTable(cols_counts, {"members_count"});
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
-  std::memset(d_counts, 0, static_cast<size_t>(gb_members.ngroups()) * sizeof(int32_t));
+  std::memset(d_counts, 0, static_cast<size_t>(n_exemplars) * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
-  //#pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < gb_members.ngroups(); ++i) {
-    exemplar_indices[i] = ri_members_indices[static_cast<size_t>(offsets[i])];
-    d_counts[i] = offsets[i+1] - offsets[i];
+  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
+    exemplar_indices[i - was_sampled] = ri_members_indices[static_cast<size_t>(offsets[i])];
+    d_counts[i - was_sampled] = offsets[i+1] - offsets[i];
   }
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
   // this is also needed for ND due to re-mapping.
-  for (size_t i = 0; i < gb_members.ngroups(); ++i) {
-    for (size_t j = 0; j < static_cast<size_t>(d_counts[i]); ++j) {
+  for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
+    for (size_t j = 0; j < static_cast<size_t>(d_counts[i - was_sampled]); ++j) {
       size_t member_shift = static_cast<size_t>(offsets[i]) + j;
-      d_members[ri_members_indices[member_shift]] = static_cast<int32_t>(i);
+      d_members[ri_members_indices[member_shift]] = static_cast<int32_t>(i - was_sampled);
     }
   }
   dt_members->columns[0]->get_stats()->reset();
 
-  // Applying exemplars row index and binding exemplars with the counts
+  // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
   dt->replace_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts };
@@ -182,12 +242,15 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 }
 
 
+
 /*
 *  Do no groupping, i.e. all rows become exemplars.
 */
 void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  for (int32_t i = 0; i < dt->nrows; ++i ) d_members[i] = i;
+  for (int32_t i = 0; i < dt->nrows; ++i) {
+    d_members[i] = i;
+  }
 }
 
 
@@ -308,9 +371,8 @@ void Aggregator::group_1d_categorical(const DataTablePtr& dt,
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    auto group_id = static_cast<int32_t>(i);
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_members[group_indices_0[j]] = group_id;
+      d_members[group_indices_0[j]] = static_cast<int32_t>(i);
     }
   }
 }
@@ -337,7 +399,7 @@ void Aggregator::group_2d_categorical (const DataTablePtr& dt,
                         }
                         break;
 
-    default:            throw ValueError() << "Column types in must be either STR32 or STR64";
+    default:            throw ValueError() << "Column types must be either STR32 or STR64";
   }
 }
 

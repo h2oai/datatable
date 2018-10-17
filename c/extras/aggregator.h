@@ -60,7 +60,8 @@ class Aggregator {
     void group_2d_mixed(bool, const DataTablePtr&, DataTablePtr&);
     template<typename T>
     void group_2d_mixed_str(bool, const DataTablePtr&, DataTablePtr&);
-    void aggregate_exemplars(DataTable*, DataTablePtr&);
+    bool random_sampling(DataTablePtr&, int32_t);
+    void aggregate_exemplars(DataTable*, DataTablePtr&, bool);
 
     // Helper methods
     int32_t get_nthreads(const DataTablePtr&);
@@ -79,5 +80,5 @@ class Aggregator {
 
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_bins = 500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
+  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)

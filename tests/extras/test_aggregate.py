@@ -141,6 +141,55 @@ def test_aggregate_1d_continuous_real_random():
     assert d_in.ltypes == (ltype.real, ltype.int)
     assert d_in.topython() == [[None, 0.1, 0.5, 0.7],
                                [3, 5, 2, 3]]
+    
+    
+def test_aggregate_1d_categorical_sorted():
+    d_in = dt.Frame([None, "blue", "green", "indigo", "orange", "red", "violet",
+                     "yellow"])
+    d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
+    d_members.internal.check()
+    assert d_members.shape == (8, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [[0, 1, 2, 3, 4, 5, 6, 7]]
+    d_in.internal.check()
+    assert d_in.shape == (8, 2)
+    assert d_in.ltypes == (ltype.str, ltype.int)
+    assert d_in.topython() == [[None, "blue", "green", "indigo", "orange", "red",
+                                "violet", "yellow"],
+                               [1, 1, 1, 1, 1, 1, 1, 1]]
+
+
+def test_aggregate_1d_categorical_unsorted():
+    d_in = dt.Frame(["blue", "orange", "yellow", None, "green", "blue", "indigo",
+                     None, "violet"])
+    d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
+    d_members.internal.check()
+    assert d_members.shape == (9, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [[1, 4, 6, 0, 2, 1, 3, 0, 5]]
+    d_in.internal.check()
+    assert d_in.shape == (7, 2)
+    assert d_in.ltypes == (ltype.str, ltype.int)
+    assert d_in.topython() == [[None, "blue", "green", "indigo", "orange", "violet",
+                                "yellow"],
+                               [2, 2, 1, 1, 1, 1, 1]]
+    
+    
+# Disable some of the checks for the moment, as even with the same seed 
+# random generator may behave differently on different platforms.
+def test_aggregate_1d_categorical_sampling():
+    d_in = dt.Frame(["blue", "orange", "yellow", None, "green", "blue", "indigo",
+                     None, "violet"])
+    d_members = aggregate(d_in, n_bins=4, min_rows=0, progress_fn=report_progress, seed=1)
+    d_members.internal.check()
+    assert d_members.shape == (9, 1)
+    assert d_members.ltypes == (ltype.int,)
+#     assert d_members.topython() == [[3, None, 2, 0, 1, 3, None, 0, None]]
+    d_in.internal.check()
+    assert d_in.shape == (4, 2)
+    assert d_in.ltypes == (ltype.str, ltype.int)
+#     assert d_in.topython() == [[None, 'green', 'yellow', 'blue'],
+#                                [2, 1, 1, 2]]
 
 
 #-------------------------------------------------------------------------------
@@ -223,36 +272,6 @@ def test_aggregate_2d_continuous_real_random():
                                [2, 2, 1, 2, 1, 1, 2, 1]]
 
 
-def test_aggregate_1d_categorical_sorted():
-    d_in = dt.Frame([None, "blue", "green", "indigo", "orange", "red", "violet",
-                     "yellow"])
-    d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    assert d_members.shape == (8, 1)
-    assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[0, 1, 2, 3, 4, 5, 6, 7]]
-    d_in.internal.check()
-    assert d_in.shape == (8, 2)
-    assert d_in.ltypes == (ltype.str, ltype.int)
-    assert d_in.topython() == [[None, "blue", "green", "indigo", "orange", "red",
-                                "violet", "yellow"],
-                               [1, 1, 1, 1, 1, 1, 1, 1]]
-
-
-def test_aggregate_1d_categorical_random():
-    d_in = dt.Frame(["blue", "orange", "yellow", None, "green", "blue", "indigo",
-                     None, "violet"])
-    d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    assert d_members.shape == (9, 1)
-    assert d_members.ltypes == (ltype.int,)
-    assert d_members.topython() == [[1, 4, 6, 0, 2, 1, 3, 0, 5]]
-    d_in.internal.check()
-    assert d_in.shape == (7, 2)
-    assert d_in.ltypes == (ltype.str, ltype.int)
-    assert d_in.topython() == [[None, "blue", "green", "indigo", "orange", "violet",
-                                "yellow"],
-                               [2, 2, 1, 1, 1, 1, 1]]
-
-
 def test_aggregate_2d_categorical_sorted():
     d_in = dt.Frame([[None, None, "abc", "blue", "green", "indigo", "orange", "red", "violet",
                       "yellow"],
@@ -273,7 +292,7 @@ def test_aggregate_2d_categorical_sorted():
                                [3, 1, 1, 1, 1, 1, 1, 1]]
 
 
-def test_aggregate_2d_categorical_random():
+def test_aggregate_2d_categorical_unsorted():
     d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet",
                       "red"],
                      ["Monday", "Monday", "Wednesday", "Saturday", "Thursday",
@@ -281,7 +300,6 @@ def test_aggregate_2d_categorical_random():
 
     d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
     d_members.internal.check()
-    d_in.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.topython() == [[1, 2, 5, 3, 4, 0, 5]]
@@ -293,13 +311,35 @@ def test_aggregate_2d_categorical_random():
                                ['Friday', 'Monday', 'Monday', 'Saturday',
                                 'Thursday', 'Wednesday'],
                                [1, 1, 1, 1, 1, 2]]
+    
+    
+# Disable some of the checks for the moment, as even with the same seed 
+# random generator may behave differently on different platforms.
+def test_aggregate_2d_categorical_sampling():
+    d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet",
+                      "red"],
+                     ["Monday", "Monday", "Wednesday", "Saturday", "Thursday",
+                      "Friday", "Wednesday"]])
+
+    d_members = aggregate(d_in, nx_bins=2, ny_bins=2, min_rows=0, 
+                          progress_fn=report_progress, seed=1)
+    d_members.internal.check()
+    assert d_members.shape == (7, 1)
+    assert d_members.ltypes == (ltype.int,)
+#     assert d_members.topython() == [[0, 2, 1, None, 3, None, 1]]
+    d_in.internal.check()
+    assert d_in.shape == (4, 3)
+    assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
+#     assert d_in.topython() == [['blue', 'red', 'indigo', 'yellow'],
+#                                ['Monday', 'Wednesday', 'Monday', 'Thursday'],
+#                                [1, 2, 1, 1]]
 
 
 def test_aggregate_2d_mixed_sorted():
     nx_bins = 7
     d_in = dt.Frame([[None, None, 0, 0, 1, 2, 3, 4, 5, 6],
-                     [None, "a", None, "blue", "green", "indigo", "orange", "red", "violet",
-                      "yellow"]])
+                     [None, "a", None, "blue", "green", "indigo", "orange", "red", 
+                      "violet", "yellow"]])
     d_members = aggregate(d_in, min_rows=0, nx_bins=nx_bins, progress_fn=report_progress)
     d_members.internal.check()
     assert d_members.shape == (10, 1)
@@ -339,7 +379,7 @@ def test_aggregate_2d_mixed_random():
     
 def test_aggregate_3d_categorical():
     args = get_default_args(aggregate)
-    rows = 2 * args["min_rows"] 
+    rows = args["min_rows"] + 1
     a_in = [["blue"] * rows, ["orange"] * rows, ["yellow"] * rows]
     members_count = [[1] * rows]
     exemplar_id = [i for i in range(rows)]
