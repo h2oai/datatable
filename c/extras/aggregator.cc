@@ -66,6 +66,7 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 */
 DataTablePtr Aggregator::aggregate(DataTable* dt) {
   int32_t max_bins;
+  bool was_sampled = false;
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
@@ -110,12 +111,11 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
       default: group_nd(dt_double, dt_members);
                max_bins = nd_max_bins;
     }
+    was_sampled = random_sampling(dt_members, max_bins);
   } else {
     group_0d(dt, dt_members);
-    max_bins = min_rows;
   }
 
-  bool was_sampled = random_sampling(dt_members, max_bins);
   aggregate_exemplars(dt, dt_members, was_sampled); // modify dt in place
   progress(1.0, 1);
   return dt_members;
