@@ -7,8 +7,8 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum
-
+from datatable import f, mean, min, max, sum, by
+from tests import same_iterables
 
 
 def test_groups_internal0():
@@ -218,3 +218,44 @@ def test_groupby_large_random_integers(seed):
     assert f0.nunique1() == nuniques
     f1 = dt.rbind(*([f0] * random.randint(2, 20)))
     assert f1.nunique1() == nuniques
+
+
+
+#-------------------------------------------------------------------------------
+# Groupby on multiple columns
+#-------------------------------------------------------------------------------
+
+def test_groupby_multi():
+    DT = dt.Frame(A=[1, 2, 3] * 3, B=[1, 2] * 4 + [1], C=range(9))
+    res = DT[:, sum(f.C), by("A", "B")]
+    assert res.topython() == [[1, 1, 2, 2, 3, 3],
+                              [1, 2, 1, 2, 1, 2],
+                              [6, 3, 4, 8, 10, 5]]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_groupby_multi_large(seed):
+    random.seed(seed)
+    letters = "abcdefghijklmn"
+    n = 100 + int(random.expovariate(0.0001))
+    col0 = [random.choice([True, False]) for _ in range(n)]
+    col1 = [random.randint(-10, 10) for _ in range(n)]
+    col2 = [random.choice(letters) for _ in range(n)]
+    col3 = [random.random() for _ in range(n)]
+    rows = [(col0[i], col1[i], col2[i], col3[i]) for i in range(n)]
+    rows.sort()
+    grouped = []
+    lastkey = rows[0][:3]
+    sumval = 0
+    for i in range(n):
+        ikey = rows[i][:3]
+        if ikey != lastkey:
+            grouped.append(lastkey + (sumval,))
+            lastkey = ikey
+            sumval = 0
+        sumval += rows[i][3]
+    grouped.append(lastkey + (sumval,))
+    DT0 = dt.Frame([col0, col1, col2, col3], names=["A", "B", "C", "D"])
+    DT1 = DT0[:, sum(f.D), by(f.A, f.B, f.C)]
+    DT2 = dt.Frame(grouped)
+    assert same_iterables(DT1.topython(), DT2.topython())
