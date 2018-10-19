@@ -133,6 +133,7 @@ for st in stype_int | stype_float:
     unary_ops_rules[("-", st)] = st
     unary_ops_rules[("+", st)] = st
     unary_ops_rules[("abs", st)] = st
+    unary_ops_rules[("exp", st)] = stype.float64
 
 # Synchronize with OpCode in c/expr/unaryop.cc
 unary_op_codes = {
@@ -142,6 +143,7 @@ unary_op_codes = {
     "~": 4,
     "!": 4,  # same as '~'
     "abs": 5,
+    "exp": 6,
 }
 
 
