@@ -12,6 +12,7 @@ import sysconfig
 import tempfile
 
 __all__ = (
+    "find_linked_dynamic_libraries",
     "get_compiler",
     "get_datatable_version",
     "get_default_compile_flags",
@@ -47,7 +48,7 @@ class TaskContext:
 
     def __init__(self, head):
         if colored:
-            self._msgs = "\n\x1B[38;5;111m" + head + "\x1B[0m\n"
+            self._msgs = "\x1B[38;5;111m" + head + "\x1B[0m\n"
         else:
             self._msgs = head + "\n"
 
@@ -71,7 +72,7 @@ class TaskContext:
 
     def emit(self):
         if verbose:
-            print(self._msgs, end="")
+            print(self._msgs)
         self._msgs = ""
 
     def fatal(self, msg):

@@ -17,7 +17,7 @@ import sys
 from setuptools import setup, find_packages, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_llvm, get_compiler, get_extra_compile_flags,
-                            get_extra_link_args, required_link_libraries,
+                            get_extra_link_args, find_linked_dynamic_libraries,
                             TaskContext, islinux, ismacos, iswindows)
 
 
@@ -77,6 +77,7 @@ def get_test_dependencies():
 #-------------------------------------------------------------------------------
 # Prepare the environment
 #-------------------------------------------------------------------------------
+print()
 
 with TaskContext("Prepare the environment") as log:
     # Check whether the environment is sane...
@@ -112,7 +113,7 @@ if sys.argv[1] in ("build", "fast", "dist", "sdist"):
 with TaskContext("Copy dynamic libraries") as log:
     # Copy system libraries into the datatable/lib folder, so that they can be
     # packaged with the wheel
-    libs = required_link_libraries()
+    libs = find_linked_dynamic_libraries()
     if ismacos() or iswindows():
         libs = libs[:1]
     for libpath in libs:
@@ -128,7 +129,6 @@ with TaskContext("Copy dynamic libraries") as log:
 #-------------------------------------------------------------------------------
 # Main setup
 #-------------------------------------------------------------------------------
-print()
 setup(
     name="datatable",
     version=get_datatable_version(),
