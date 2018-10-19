@@ -519,6 +519,7 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   if (lhs_nrows == 0 || rhs_nrows == 0) {
     lhs_nrows = rhs_nrows = 0;
   }
+  int64_t nrows = std::max(lhs_nrows, rhs_nrows);
   SType lhs_type = lhs->stype();
   SType rhs_type = rhs->stype();
   void* params[3];
@@ -527,7 +528,7 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   params[2] = nullptr;
 
   mapperfn mapfn = nullptr;
-  mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows,
+  mapfn = resolve0(lhs_type, rhs_type, opcode, params, nrows,
                    lhs_nrows == rhs_nrows? OpMode::N_to_N :
                    rhs_nrows == 1? OpMode::N_to_One :
                    lhs_nrows == 1? OpMode::One_to_N : OpMode::Error);
@@ -537,8 +538,6 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
       << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
       << ", nrows=" << rhs->nrows << ")";
   }
-
-  int64_t nrows = std::max(lhs_nrows, rhs_nrows);
   (*mapfn)(0, nrows, params);
 
   return static_cast<Column*>(params[2]);
