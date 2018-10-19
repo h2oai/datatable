@@ -273,7 +273,7 @@ def test_exp():
     assert exp(0) == cmath.exp(0)
     assert exp(1) == cmath.exp(1)
     assert exp(-2.5e12) == cmath.exp(-2.5e12)
-    assert exp(12345678) == float("inf")
+    assert exp(12345678) == math.inf
     assert exp(None) is None
 
 
