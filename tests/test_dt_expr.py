@@ -264,6 +264,65 @@ def test_abs_all_stypes():
 
 
 #-------------------------------------------------------------------------------
+# exp()
+#-------------------------------------------------------------------------------
+
+def test_exp():
+    from datatable import exp
+    import cmath
+    assert exp(0) == cmath.exp(0)
+    assert exp(1) == cmath.exp(1)
+    assert exp(-2.5e12) == cmath.exp(-2.5e12)
+    assert exp(12345678) == float("inf")
+    assert exp(None) is None
+
+
+@pytest.mark.parametrize("src", dt_int + dt_float)
+def test_exp_srcs(src):
+    from cmath import exp
+    dt0 = dt.Frame(src)
+    dt1 = dt.exp(dt0)
+    dt1.internal.check()
+    assert all([st == stype.float64 for st in dt1.stypes])
+    pyans = []
+    for x in src:
+        if x is None:
+            pyans.append(None)
+        else:
+            try:
+                pyans.append(exp(x))
+            except OverflowError:
+                pyans.append(float("inf"))
+    assert dt1.topython()[0] == pyans
+
+
+def test_exp_all_stypes():
+    from datatable import exp
+    import cmath
+    src = [[-127, -5, -1, 0, 2, 127],
+           [-32767, -299, -7, 32767, 12, -543],
+           [-2147483647, -1000, 3, -589, 2147483647, 0],
+           [-2 ** 63 + 1, 2 ** 63 - 1, 0, -2 ** 32, 2 ** 32, -793]]
+    dt0 = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
+    dt1 = dt0[:, [exp(f[i]) for i in range(4)]]
+    dt1.internal.check()
+    pyans = []
+    for col in src:
+        l = []
+        for x in col:
+            if x is None:
+                l.append(None)
+            else:
+                try:
+                    l.append(cmath.exp(x))
+                except OverflowError:
+                    l.append(float("inf"))
+        pyans.append(l)
+    assert dt1.topython() == pyans
+
+
+
+#-------------------------------------------------------------------------------
 # type-cast
 #-------------------------------------------------------------------------------
 
