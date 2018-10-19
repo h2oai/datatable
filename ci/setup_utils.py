@@ -543,7 +543,7 @@ if __name__ == "__main__":
             flags = [get_default_link_flags()] + get_extra_link_args()
             print(" ".join(flags))
         elif cmd == "version":
-            make_git_version_file()
+            make_git_version_file(True)
             print(get_datatable_version())
         else:
             print("Unknown command: %s" % cmd)
