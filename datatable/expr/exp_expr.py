@@ -18,7 +18,7 @@ from .base_expr import BaseExpr
 from .unary_expr import UnaryOpExpr
 from datatable.graph.dtproxy import f
 from datatable.lib import core
-from cmath import exp
+from math import exp, inf
 
 __all__ = ("exp",)
 
@@ -35,4 +35,4 @@ def exp(x):
     try:
         return _builtin_exp(x)
     except OverflowError:
-        return float("inf")
+        return inf

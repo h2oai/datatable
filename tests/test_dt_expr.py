@@ -269,17 +269,17 @@ def test_abs_all_stypes():
 
 def test_exp():
     from datatable import exp
-    import cmath
-    assert exp(0) == cmath.exp(0)
-    assert exp(1) == cmath.exp(1)
-    assert exp(-2.5e12) == cmath.exp(-2.5e12)
+    import math
+    assert exp(0) == math.exp(0)
+    assert exp(1) == math.exp(1)
+    assert exp(-2.5e12) == math.exp(-2.5e12)
     assert exp(12345678) == math.inf
     assert exp(None) is None
 
 
 @pytest.mark.parametrize("src", dt_int + dt_float)
 def test_exp_srcs(src):
-    from cmath import exp
+    from math import exp, inf
     dt0 = dt.Frame(src)
     dt1 = dt.exp(dt0)
     dt1.internal.check()
@@ -292,13 +292,13 @@ def test_exp_srcs(src):
             try:
                 pyans.append(exp(x))
             except OverflowError:
-                pyans.append(float("inf"))
+                pyans.append(inf)
     assert dt1.topython()[0] == pyans
 
 
 def test_exp_all_stypes():
     from datatable import exp
-    import cmath
+    import math
     src = [[-127, -5, -1, 0, 2, 127],
            [-32767, -299, -7, 32767, 12, -543],
            [-2147483647, -1000, 3, -589, 2147483647, 0],
@@ -314,9 +314,9 @@ def test_exp_all_stypes():
                 l.append(None)
             else:
                 try:
-                    l.append(cmath.exp(x))
+                    l.append(math.exp(x))
                 except OverflowError:
-                    l.append(float("inf"))
+                    l.append(math.inf)
         pyans.append(l)
     assert dt1.topython() == pyans
 
