@@ -99,6 +99,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - crash when saving a frame with many boolean columns into CSV (#1278).
 - incorrect .stypes/.ltypes property after calling cbind().
 - calculation of min/max values in internal rowindex upon row resizing.
+- frame.sort() with no arguments no longer produces an error.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

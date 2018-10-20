@@ -791,3 +791,22 @@ def test_sort_random_multi(seed):
     # dt.Frame(sorted_data).save("test.jay", format="jay")
     d1 = d0.sort("B", "C", "D")
     assert d1.topython() == sorted_data
+
+
+
+
+#-------------------------------------------------------------------------------
+# Misc issues
+#-------------------------------------------------------------------------------
+
+def sort_api():
+    df = dt.Frame([[1, 2, 1, 2], [3.3, 2.7, 0.1, 4.5]], names=["A", "B"])
+    df1 = df.sort("A")
+    df2 = df.sort("B")
+    df3 = df.sort("A", "B")
+    df4 = df.sort(["A", "B"])
+    df5 = df.sort()  # issue 1354
+    assert df1.topython() == [[1, 1, 2, 2], [0.1, 3.3, 2.7, 4.5]]
+    assert df2.topython() == [[1, 2, 1, 2], [0.1, 2.7, 3.3, 4.5]]
+    assert df3.topython() == [[1, 1, 2, 2], [0.1, 2.7, 3.3, 4.5]]
+    assert df4.topython() == df5.topython() == df3.topython()
