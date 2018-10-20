@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   In the unlikely scenario when a single element needs to be returned as
   a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
 - The performance of explicit element selection improved by a factor of 200x.
+- Building no longer requires an LLVM distribution.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.

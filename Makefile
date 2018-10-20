@@ -145,7 +145,7 @@ sdist:
 	$(PYTHON) setup.py sdist
 
 version:
-	@$(PYTHON) setup.py --version
+	@$(PYTHON) ci/setup_utils.py version
 
 nothing:
 	@echo Nothing
