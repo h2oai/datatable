@@ -10,6 +10,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from functools import lru_cache as memoize
 
 __all__ = (
     "find_linked_dynamic_libraries",
@@ -212,6 +213,7 @@ def get_rpath():
 
 
 
+@memoize()
 def get_compiler(openmp_required=True):
     with TaskContext("Determine the compiler") as log:
         for envvar in ["CXX", "CC"]:
@@ -286,6 +288,7 @@ def get_compiler(openmp_required=True):
 # Determine compiler settings
 #-------------------------------------------------------------------------------
 
+@memoize()
 def get_compile_includes():
     includes = set()
     with TaskContext("Find compile include directories") as log:
@@ -337,6 +340,7 @@ def get_default_compile_flags():
     return flags
 
 
+@memoize()
 def get_extra_compile_flags():
     flags = []
     with TaskContext("Determine the extra compiler flags") as log:
@@ -423,6 +427,7 @@ def get_default_link_flags():
     return flags
 
 
+@memoize()
 def get_extra_link_args():
     flags = []
     with TaskContext("Determine the extra linker flags") as log:
@@ -467,6 +472,7 @@ def required_link_libraries():
     return []
 
 
+@memoize()
 def find_linked_dynamic_libraries():
     """
     This function attempts to locate the required link libraries, and returns
