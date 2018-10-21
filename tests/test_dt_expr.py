@@ -8,7 +8,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, stype, ltype
-from tests import list_equals
+from tests import list_equals, has_llvm
 
 
 # Sets of tuples containing test columns of each type
@@ -25,7 +25,7 @@ dt_float = [[9.5, 0.2, 5.4857301, -3.14159265338979],
             [1.1, 2.3e12, -.5, None, float("inf"), 0.0]]
 
 dt_str = [["foo", "bbar", "baz"],
-          [None, "", " ", "  ", None, "\0"],
+          [None, "", " ", "  ", None, "\x00"],
           list("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-=")]
 
 dt_obj = [[dt, pytest, random, f, dt_int, None],
@@ -138,20 +138,23 @@ def inv(t):
 @pytest.mark.parametrize("src", dt_bool + dt_int)
 def test_dt_invert(src):
     dt0 = dt.Frame(src)
-    df1 = dt0(select=~f[0], engine="llvm")
     df2 = dt0(select=~f[0], engine="eager")
-    df1.internal.check()
     df2.internal.check()
-    assert df1.stypes == dt0.stypes
     assert df2.stypes == dt0.stypes
-    assert df1.topython() == [[inv(x) for x in src]]
     assert df2.topython() == [[inv(x) for x in src]]
+    if has_llvm():
+        df1 = dt0(select=~f[0], engine="llvm")
+        df1.internal.check()
+        assert df1.stypes == dt0.stypes
+        assert df1.topython() == [[inv(x) for x in src]]
 
 
 @pytest.mark.parametrize("src", dt_float)
 def test_dt_invert_invalid(src):
     dt0 = dt.Frame(src)
     for engine in ["llvm", "eager"]:
+        if engine == "llvm" and not has_llvm():
+            continue
         with pytest.raises(TypeError) as e:
             dt0(select=~f[0], engine=engine)
         assert str(e.value) == ("Operator `~` cannot be applied to a `%s` "
@@ -218,13 +221,15 @@ def test_dt_pos_invalid(src):
 def test_dt_isna(src):
     dt0 = dt.Frame(src)
     dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
-    dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.stypes == dt2.stypes == (stype.bool8,)
+    assert dt1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
     assert dt1.topython()[0] == pyans
-    assert dt2.topython()[0] == pyans
+    if has_llvm():
+        dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
+        dt2.internal.check()
+        assert dt2.stypes == (stype.bool8,)
+        assert dt2.topython()[0] == pyans
 
 
 

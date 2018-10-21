@@ -7,7 +7,7 @@
 import pytest
 import datatable as dt
 from datatable import stype, ltype, f
-from tests import same_iterables
+from tests import same_iterables, has_llvm
 
 
 #-------------------------------------------------------------------------------
@@ -472,113 +472,138 @@ def _fixture2():
 
 def test_rows_equal(df1):
     dt1 = df1(f.A == f.B, engine="eager")
-    dt2 = df1(f.A == f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[3, 4, None, 9],
-                                                [3, 4, None, 9]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[3, 4, None, 9], [3, 4, None, 9]]
+    if has_llvm():
+        dt2 = df1(f.A == f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_not_equal(df1):
     dt1 = df1(f.A != f.B, engine="eager")
-    dt2 = df1(f.A != f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[0, 1, 2, 5, 6, 7, None],
-                                                [3, 2, 1, 0, 2, None, 8]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[0, 1, 2, 5, 6, 7, None],
+                              [3, 2, 1, 0, 2, None, 8]]
+    if has_llvm():
+        dt2 = df1(f.A != f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_less_than(df1):
     dt1 = df1(f.A < f.B, engine="eager")
-    dt2 = df1(f.A < f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[0, 1],
-                                                [3, 2]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[0, 1], [3, 2]]
+    if has_llvm():
+        dt2 = df1(f.A < f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_greater_than(df1):
     dt1 = df1(f.A > f.B, engine="eager")
-    dt2 = df1(f.A > f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[2, 5, 6],
-                                                [1, 0, 2]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[2, 5, 6], [1, 0, 2]]
+    if has_llvm():
+        dt2 = df1(f.A > f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_less_than_or_equal(df1):
     dt1 = df1(f.A <= f.B, engine="eager")
-    dt2 = df1(f.A <= f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[0, 1, 3, 4, None, 9],
-                                                [3, 2, 3, 4, None, 9]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[0, 1, 3, 4, None, 9], [3, 2, 3, 4, None, 9]]
+    if has_llvm():
+        dt2 = df1(f.A <= f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_greater_than_or_equal(df1):
     dt1 = df1(f.A >= f.B, engine="eager")
-    dt2 = df1(f.A >= f.B, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[2, 3, 4, 5, 6, None, 9],
-                                                [1, 3, 4, 0, 2, None, 9]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[2, 3, 4, 5, 6, None, 9],
+                              [1, 3, 4, 0, 2, None, 9]]
+    if has_llvm():
+        dt2 = df1(f.A >= f.B, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
+
 
 def test_rows_compare_to_scalar_gt(df1):
     dt1 = df1(f.A > 3, engine="eager")
-    dt2 = df1(f.A > 3, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
-                                                [4, 0, 2, None, 9]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
+    if has_llvm():
+        dt2 = df1(f.A > 3, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_compare_to_scalar_lt(df1):
     dt1 = df1(f.A < 3, engine="eager")
-    dt2 = df1(f.A < 3, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[0, 1, 2],
-                                                [3, 2, 1]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[0, 1, 2], [3, 2, 1]]
+    if has_llvm():
+        dt2 = df1(f.A < 3, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 # noinspection PyComparisonWithNone
 def test_rows_compare_to_scalar_eq(df1):
     dt1 = df1(f.A == None, engine="eager")
-    dt2 = df1(f.A == None, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[None, None],
-                                                [None, 8]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[None, None], [None, 8]]
+    if has_llvm():
+        dt2 = df1(f.A == None, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_unary_minus(df1):
     dt1 = df1(-f.A < -3, engine="eager")
-    dt2 = df1(-f.A < -3, engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
-                                                [4, 0, 2, None, 9]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
+    if has_llvm():
+        dt2 = df1(-f.A < -3, engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_isna(df1):
     from datatable import isna
     dt1 = df1(isna(f.A), engine="eager")
-    dt2 = df1(isna(f.A), engine="llvm")
     dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.names == dt2.names == df1.names
-    assert dt1.topython() == dt2.topython() == [[None, None],
-                                                [None, 8]]
+    assert dt1.names == df1.names
+    assert dt1.topython() == [[None, None], [None, 8]]
+    if has_llvm():
+        dt2 = df1(isna(f.A), engine="llvm")
+        dt2.internal.check()
+        assert dt1.names == dt2.names
+        assert dt1.topython() == dt2.topython()
 
 
 def test_rows_mean():
@@ -653,11 +678,12 @@ def test_filter_on_view3():
     df0 = dt.Frame({"A": range(20)})
     df1 = df0[::5, :]
     df2 = df1(f.A <= 10, engine="eager")
-    df3 = df1(f.A <= 10, engine="llvm")
     df2.internal.check()
-    df3.internal.check()
     assert df2.topython() == [[0, 5, 10]]
-    assert df3.topython() == [[0, 5, 10]]
+    if has_llvm():
+        df3 = df1(f.A <= 10, engine="llvm")
+        df3.internal.check()
+        assert df3.topython() == [[0, 5, 10]]
 
 
 def test_chained_slice(dt0):

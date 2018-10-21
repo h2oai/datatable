@@ -185,8 +185,8 @@ def get_llvm(with_version=False):
         with TaskContext("Find an LLVM installation") as log:
             g_llvmdir = None
             g_llvmver = None
-            for LLVMX in ["LLVM4", "LLVM5", "LLVM6"]:
-                g_llvmdir = os.environ.get(LLVMX, None)
+            for LLVMX in ["LLVM", "LLVM7", "LLVM6", "LLVM5", "LLVM4"]:
+                g_llvmdir = os.environ.get(LLVMX)
                 if g_llvmdir:
                     log.info("Environment variable %s = %s"
                              % (LLVMX, g_llvmdir))
@@ -195,9 +195,32 @@ def get_llvm(with_version=False):
                                   "valid directory" % (LLVMX, g_llvmdir))
                     g_llvmver = LLVMX
                     break
+                else:
+                    log.info("Environment variable %s is not set" % LLVMX)
             if not g_llvmdir:
-                log.info("Environment variables LLVM4, LLVM5, LLVM6 not found")
-                log.warn("The build will proceed with LLVM disabled")
+                candidate_dirs = ["/usr/local/opt/llvm"]
+                for cdir in candidate_dirs:
+                    if os.path.isdir(cdir):
+                        log.info("Directory `%s` found" % cdir)
+                        g_llvmdir = cdir
+                        break
+                    else:
+                        log.info("Candidate directory `%s` not found" % cdir)
+            if g_llvmdir:
+                if not g_llvmver or g_llvmver == "LLVM":
+                    try:
+                        llc = os.path.join(g_llvmdir, "bin/llvm-config")
+                        if os.path.exists(llc):
+                            out = subprocess.check_output([llc, "--version"])
+                            version = out.decode().strip()
+                            g_llvmver = "LLVM" + version.split('.')[0]
+                    except Exception as e:
+                        log.info("%s when running llvm-config" % str(e))
+                        g_llvmver = "LLVM"
+                log.info("Llvm directory: %s" % g_llvmdir)
+                log.info("Version: %s" % g_llvmver.lower())
+            else:
+                log.info("The build will proceed without Llvm support")
     if with_version:
         return g_llvmdir, g_llvmver
     else:

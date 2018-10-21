@@ -1057,7 +1057,7 @@ def test_under_allocation(capsys):
     src = "A,B\n" + "\n".join(lines)
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
-    mm = re.search("Initial alloc = (\d+) rows", out)
+    mm = re.search("Initial alloc = (\\d+) rows", out)
     assert mm
     assert int(mm.group(1)) < n, "Under-allocation didn't happen"
     assert "Too few rows allocated" in out

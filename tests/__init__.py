@@ -129,3 +129,8 @@ def find_file(*nameparts):
         pytest.skip("File %s not found" % filename)
     else:
         return filename
+
+
+def has_llvm():
+    import datatable as dt
+    return dt.graph.llvm.llvm.available
