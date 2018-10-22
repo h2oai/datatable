@@ -237,7 +237,7 @@ def get_rpath():
 
 
 @memoize()
-def get_compiler(openmp_required=True):
+def get_compiler():
     with TaskContext("Determine the compiler") as log:
         for envvar in ["CXX", "CC"]:
             cc = os.environ.get(envvar, None)
@@ -279,8 +279,7 @@ def get_compiler(openmp_required=True):
             for cc in candidate_compilers:
                 try:
                     cmd = [cc, "-c", fname, "-o", outname]
-                    if openmp_required:
-                        cmd += ["-fopenmp"]
+                    cmd += ["-fopenmp"]
                     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
                     stdout, stderr = proc.communicate()
@@ -365,9 +364,14 @@ def get_default_compile_flags():
 
 @memoize()
 def get_extra_compile_flags():
+    compiler = get_compiler()
+    is_gcc = "gcc" in compiler
+    is_clang = "clang" in compiler
     flags = []
     with TaskContext("Determine the extra compiler flags") as log:
-        flags += ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
+        flags += ["-std=c++11"]
+        if is_clang:
+            flags += ["-stdlib=libc++"]
 
         # Path to source files / Python include files
         flags += ["-Ic"]
@@ -396,30 +400,34 @@ def get_extra_compile_flags():
         if "-O0" in flags:
             flags += ["-DDTDEBUG"]
 
-        # Ignored warnings:
-        #   -Wc++98-compat-pedantic:
-        #   -Wc99-extensions: since we're targeting C++11, there is no need to
-        #       worry about compatibility with earlier C++ versions.
-        #   -Wfloat-equal: this warning is just plain wrong...
-        #       Comparing x == 0 or x == 1 is always safe.
-        #   -Wswitch-enum: generates spurious warnings about missing
-        #       cases even if `default` clause is present. -Wswitch
-        #       does not suffer from this drawback.
-        #   -Wweak-template-vtables: this waning's purpose is unclear, and it
-        #       is also unclear how to prevent it...
-        #   -Wglobal-constructors, -Wexit-time-destructors: having static global
-        #       objects is not only legal, but also unavoidable since this is
-        #       the only kind of object that can be passed to a template...
-        flags += [
-            "-Weverything",
-            "-Wno-c++98-compat-pedantic",
-            "-Wno-c99-extensions",
-            "-Wno-exit-time-destructors",
-            "-Wno-float-equal",
-            "-Wno-global-constructors",
-            "-Wno-switch-enum",
-            "-Wno-weak-template-vtables",
-        ]
+        if is_clang:
+            # Ignored warnings:
+            #   -Wc++98-compat-pedantic:
+            #   -Wc99-extensions: since we're targeting C++11, there is no need
+            #       to worry about compatibility with earlier C++ versions.
+            #   -Wfloat-equal: this warning is just plain wrong...
+            #       Comparing x == 0 or x == 1 is always safe.
+            #   -Wswitch-enum: generates spurious warnings about missing
+            #       cases even if `default` clause is present. -Wswitch
+            #       does not suffer from this drawback.
+            #   -Wweak-template-vtables: this waning's purpose is unclear, and
+            #       it is also unclear how to prevent it...
+            #   -Wglobal-constructors, -Wexit-time-destructors: having static
+            #       global objects is not only legal, but also unavoidable since
+            #       this is the only kind of object that can be passed to a
+            #       template...
+            flags += [
+                "-Weverything",
+                "-Wno-c++98-compat-pedantic",
+                "-Wno-c99-extensions",
+                "-Wno-exit-time-destructors",
+                "-Wno-float-equal",
+                "-Wno-global-constructors",
+                "-Wno-switch-enum",
+                "-Wno-weak-template-vtables",
+            ]
+        if is_gcc:
+            flags += ["-Wall"]
 
         for d in get_compile_includes():
             flags += ["-I" + d]
@@ -486,6 +494,9 @@ def get_extra_link_args():
 
 
 def required_link_libraries():
+    compiler = get_compiler()
+    if "gcc" in compiler:
+        return []
     if ismacos():
         return ["libomp.dylib", "libc++.dylib", "libc++abi.dylib"]
     if islinux():
