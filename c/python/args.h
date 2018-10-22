@@ -81,7 +81,7 @@ class PKArgs : public Args {
     const size_t n_all_args;
     const bool   has_varargs;
     const bool   has_varkwds;
-    const size_t : 48;
+    size_t : 48;
     const std::vector<const char*> arg_names;
 
     // Runtime arguments

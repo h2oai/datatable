@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables
+from tests import same_iterables, has_llvm
 from datatable import ltype, f
 
 
@@ -264,14 +264,16 @@ def test_cols_expression2():
     selector = OrderedDict([("foo", f.A), ("bar", -f.A)])
     f0 = dt.Frame({"A": range(10)})
     f1 = f0(select=selector, engine="eager")
-    f2 = f0(select=selector, engine="llvm")
     f1.internal.check()
-    f2.internal.check()
-    assert f1.names == f2.names == ("foo", "bar")
-    assert f1.stypes == f2.stypes == f0.stypes * 2
-    assert f1.topython() == f2.topython() == [list(range(10)),
-                                              list(range(0, -10, -1))]
-
+    assert f1.names == ("foo", "bar")
+    assert f1.stypes == f0.stypes * 2
+    assert f1.topython() == [list(range(10)), list(range(0, -10, -1))]
+    if has_llvm():
+        f2 = f0(select=selector, engine="llvm")
+        f2.internal.check()
+        assert f2.stypes == f1.stypes
+        assert f2.names == f1.names
+        assert f2.topython() == f1.topython()
 
 
 def test_cols_bad_arguments(dt0):

@@ -180,7 +180,7 @@ oobj Frame::get_shape() const {
   py::otuple shape(2);
   shape.set(0, get_nrows());
   shape.set(1, get_ncols());
-  return shape;
+  return std::move(shape);
 }
 
 
@@ -213,7 +213,7 @@ oobj Frame::get_ltypes() const {
 oobj Frame::get_key() const {
   py::otuple key(dt->nkeys);
   // Fill in the keys...
-  return key;
+  return std::move(key);
 }
 
 oobj Frame::get_internal() const {
