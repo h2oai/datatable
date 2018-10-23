@@ -99,10 +99,11 @@ void set_fread_anonymize(int8_t v) {
 
 
 
-static py::PKArgs set_option_args(
-    2, 0, 0, false, false, {"name", "value"}, "set_option", "");
+static py::PKArgs args_set_option(
+    2, 0, 0, false, false,
+    {"name", "value"}, "set_option", "",
 
-static py::oobj set_option(const py::PKArgs& args) {
+[](const py::PKArgs& args) -> py::oobj {
   std::string name = args[0].to_string();
   py::obj value = args[1];
 
@@ -146,11 +147,15 @@ static py::oobj set_option(const py::PKArgs& args) {
     // throw ValueError() << "Unknown option `" << name << "`";
   }
   return py::None();
-}
+});
 
 
 
-static py::oobj get_option(const py::PKArgs& args) {
+static py::PKArgs args_get_option(
+    1, 0, 0, false, false,
+    {"name"}, "get_option", "",
+
+[](const py::PKArgs& args) -> py::oobj {
   std::string name = args[0].to_string();
 
   if (name == "nthreads") {
@@ -192,13 +197,7 @@ static py::oobj get_option(const py::PKArgs& args) {
   } else {
     throw ValueError() << "Unknown option `" << name << "`";
   }
-}
-
-static py::PKArgs args_get_option(
-    1, 0, 0, false, false,
-    {"name"}, "get_option", "",
-    &get_option
-);
+});
 
 
 
@@ -207,7 +206,7 @@ static py::PKArgs args_get_option(
 
 void DatatableModule::init_methods_options() {
   ADDFN(config::args_get_option);
-  add<&config::set_option, config::set_option_args>();
+  ADDFN(config::args_set_option);
 }
 
 
