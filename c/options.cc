@@ -99,8 +99,8 @@ void set_fread_anonymize(int8_t v) {
 
 
 
-static py::PKArgs set_option_args(2, 0, 0, false, false, {"name", "value"},
-                                  "set_option", "");
+static py::PKArgs set_option_args(
+    2, 0, 0, false, false, {"name", "value"}, "set_option", "");
 
 static py::oobj set_option(const py::PKArgs& args) {
   std::string name = args[0].to_string();
@@ -150,9 +150,6 @@ static py::oobj set_option(const py::PKArgs& args) {
 
 
 
-static py::PKArgs get_option_args(1, 0, 0, false, false, {"name"},
-                                  "get_option", "");
-
 static py::oobj get_option(const py::PKArgs& args) {
   std::string name = args[0].to_string();
 
@@ -197,12 +194,19 @@ static py::oobj get_option(const py::PKArgs& args) {
   }
 }
 
+static py::PKArgs args_get_option(
+    1, 0, 0, false, false,
+    {"name"}, "get_option", "",
+    &get_option
+);
+
+
 
 }; // namespace config
 
 
 void DatatableModule::init_methods_options() {
-  add<&config::get_option, config::get_option_args>();
+  ADDFN(config::args_get_option);
   add<&config::set_option, config::set_option_args>();
 }
 

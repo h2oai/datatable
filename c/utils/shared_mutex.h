@@ -140,7 +140,7 @@ class shared_bmutex {
         if (state_old & WRITE_ENTERED) continue;
 
         #pragma omp atomic capture
-        {state_old = state; ++state;}
+        state_old = state++;
 
         if (state_old & WRITE_ENTERED) {
           #pragma omp atomic update

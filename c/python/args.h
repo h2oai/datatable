@@ -91,6 +91,8 @@ class PKArgs : public Args {
     size_t n_varkwds;
     PyObject* args_tuple;  // for var-args iteration
     PyObject* kwds_dict;   // for var-kwds iteration
+    void (*fn0)(const PKArgs&);
+    py::oobj (*fn1)(const PKArgs&);
 
   public:
     /**
@@ -105,9 +107,12 @@ class PKArgs : public Args {
      */
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
            std::initializer_list<const char*> names,
-           const char* name = nullptr, const char* doc = nullptr);
+           const char* name = nullptr, const char* doc = nullptr,
+           py::oobj (*f)(const PKArgs&) = nullptr);
 
     void bind(PyObject* _args, PyObject* _kws) override;
+
+    PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
 
     /**
      * Returns the name of argument `i`, which will usually be in one of the
