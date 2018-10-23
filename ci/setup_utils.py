@@ -99,6 +99,9 @@ def ismacos():
 def iswindows():
     return sys.platform == "win32"
 
+def omp_enabled():
+    return not os.environ.get("DTNOOMP")
+
 
 
 def get_datatable_version():
@@ -279,7 +282,8 @@ def get_compiler():
             for cc in candidate_compilers:
                 try:
                     cmd = [cc, "-c", fname, "-o", outname]
-                    cmd += ["-fopenmp"]
+                    if omp_enabled():
+                        cmd += ["-fopenmp"]
                     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
                     stdout, stderr = proc.communicate()
@@ -288,7 +292,7 @@ def get_compiler():
                     if proc.returncode == 0:
                         log.info("Compiler `%s` will be used" % cc)
                         return cc
-                    elif "-fopenmp" in stderr:
+                    elif omp_enabled() and "-fopenmp" in stderr:
                         log.info("Compiler `%s` does not support OpenMP" % cc)
                     else:
                         log.info("Compiler `%s` returned an error when "
@@ -383,7 +387,8 @@ def get_extra_compile_flags():
         flags += ["-Ic"]
 
         # Enable OpenMP support
-        flags.insert(0, "-fopenmp")
+        if omp_enabled():
+            flags.insert(0, "-fopenmp")
 
         if "DTDEBUG" in os.environ:
             flags += ["-g", "-ggdb", "-O0"]
@@ -477,7 +482,9 @@ def get_extra_link_args():
     flags = []
     with TaskContext("Determine the extra linker flags") as log:
         flags += ["-Wl,-rpath,%s" % get_rpath()]
-        flags += ["-fopenmp"]
+
+        if omp_enabled():
+            flags += ["-fopenmp"]
 
         # Omit all symbol information from the output
         # ld warns that this option is obsolete and is ignored. However with
