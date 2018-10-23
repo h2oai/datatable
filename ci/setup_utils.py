@@ -398,6 +398,10 @@ def get_extra_compile_flags():
         if omp_enabled():
             flags.insert(0, "-fopenmp")
 
+        # Generate 'Position-independent code'. This is required for any
+        # dynamically-linked library.
+        flags += ["-fPIC"]
+
         if "DTDEBUG" in os.environ:
             flags += ["-g", "-ggdb", "-O0"]
             flags += ["-DDTTEST"]
