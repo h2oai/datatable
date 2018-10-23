@@ -122,8 +122,6 @@ if cmd in ("build", "bdist_wheel", "build_ext", "install"):
         # Copy system libraries into the datatable/lib folder, so that they can
         # be packaged with the wheel
         libs = find_linked_dynamic_libraries()
-        if ismacos() or iswindows():
-            libs = libs[:1]
         for libpath in libs:
             trgfile = os.path.join("datatable", "lib",
                                    os.path.basename(libpath))

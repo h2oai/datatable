@@ -253,6 +253,8 @@ def get_compiler():
         llvm = get_llvm()
         if llvm:
             cc = os.path.join(llvm, "bin", "clang++")
+            if iswindows():
+                cc += ".exe"
             if os.path.isfile(cc):
                 log.info("Found Clang compiler %s" % cc)
                 return cc
@@ -280,6 +282,8 @@ def get_compiler():
             except Exception as e:
                 log.info(str(e))
             for cc in candidate_compilers:
+                if iswindows() and not cc.endswith(".exe"):
+                    cc += ".exe"
                 try:
                     cmd = [cc, "-c", fname, "-o", outname]
                     if omp_enabled():
@@ -415,7 +419,9 @@ def get_extra_compile_flags():
         if "-O0" in flags:
             flags += ["-DDTDEBUG"]
 
-        if is_clang():
+        if iswindows():
+            flags += ["/W4"]
+        elif is_clang():
             # Ignored warnings:
             #   -Wc++98-compat-pedantic:
             #   -Wc99-extensions: since we're targeting C++11, there is no need
@@ -441,7 +447,7 @@ def get_extra_compile_flags():
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
             ]
-        if is_gcc():
+        elif is_gcc():
             # Ignored warnings:
             #   -Wunused-value: generates spurious warnings for OMP code.
             #   -Wunknown-pragmas: do not warn about clang-specific macros,
@@ -521,14 +527,35 @@ def get_extra_link_args():
 
 
 def required_link_libraries():
+    # GCC on Ubuntu18.04 links to the following libraries (`ldd`):
+    #   linux-vdso.so.1
+    #   /lib64/ld-linux-x86-64.so.2
+    #   libstdc++.so.6  => /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+    #   libgomp.so.1    => /usr/lib/x86_64-linux-gnu/libgomp.so.1
+    #   libgcc_s.so.1   => /lib/x86_64-linux-gnu/libgcc_s.so.1
+    #   libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0
+    #   libc.so.6       => /lib/x86_64-linux-gnu/libc.so.6
+    #   libm.so.6       => /lib/x86_64-linux-gnu/libm.so.6
+    #   libdl.so.2      => /lib/x86_64-linux-gnu/libdl.so.2
+    # These are all standard system libraries, so there is no need to bundle
+    # them.
     if is_gcc():
         return []
-    if ismacos():
-        return ["libomp.dylib", "libc++.dylib", "libc++abi.dylib"]
-    if islinux():
-        return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
-    if iswindows():
-        return ["libomp.dll", "libc++.dll", "libc++abi.dll"]
+
+    # Clang on MacOS links to the following libraries (`otool -L`):
+    #   @rpath/libomp.dylib
+    #   @rpath/libc++.1.dylib
+    #   /usr/lib/libSystem.B.dylib
+    # In addition, `libc++abi.1.dylib` is referenced from `libc++.1.dylib`
+    # The @rpath- libraries have to be bundled into the datatable package.
+    #
+    if is_clang():
+        if ismacos():
+            return ["libomp.dylib", "libc++.1.dylib", "libc++abi.1.dylib"]
+        if islinux():
+            return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
+        if iswindows():
+            return ["libomp.dll"]
     return []
 
 
