@@ -427,7 +427,9 @@ def get_extra_compile_flags():
                 "-Wno-weak-template-vtables",
             ]
         if is_gcc:
-            flags += ["-Wall"]
+            # Ignored warnings:
+            #   -Wunused-value: generates spurious warnings for OMP code.
+            flags += ["-Wall", "-Wno-unused-value"]
 
         for d in get_compile_includes():
             flags += ["-I" + d]
