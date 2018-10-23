@@ -827,7 +827,7 @@ class SortContext {
 
   template<typename TI, typename TO, bool OUT> void _reorder_impl() {
     TI* xi = x.data<TI>();
-    TO* xo;
+    TO* xo = nullptr;
     TI mask = 0;
     if (OUT) {
       xo = xx.data<TO>();

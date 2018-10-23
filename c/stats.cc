@@ -39,6 +39,7 @@ static const char* stat_name(Stat s) {
     case Stat::NModal:  return "NModal";
     case Stat::NUnique: return "NUnique";
   }
+  throw RuntimeError() << "Unknown stat " << int(s);
 }
 
 
