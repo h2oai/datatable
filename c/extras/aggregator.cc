@@ -79,6 +79,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     DataTablePtr dt_double = nullptr;
     Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
     int32_t ncols = 0;
+    int32_t n_na_bins = 0;
 
     for (int64_t i = 0; i < dt->ncols; ++i) {
       LType ltype = info(dt->columns[i]->stype()).ltype();
@@ -104,14 +105,16 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
                break;
       case 1:  group_1d(dt_double, dt_members);
                max_bins = n_bins;
+               n_na_bins = 1;
                break;
       case 2:  group_2d(dt_double, dt_members);
                max_bins = nx_bins * ny_bins;
+               n_na_bins = 3;
                break;
       default: group_nd(dt_double, dt_members);
                max_bins = nd_max_bins;
     }
-    was_sampled = random_sampling(dt_members, max_bins);
+    was_sampled = random_sampling(dt_members, max_bins, n_na_bins);
   } else {
     group_0d(dt, dt_members);
   }
@@ -126,7 +129,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 *  Check how many exemplars we have got, if there is more than `max_bins+1`
 *  (e.g. too many distinct categorical values) do random sampling.
 */
-bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
+bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins, int32_t n_na_bins) {
   bool was_sampled = false;
   // Sorting `dt_members` to calculate total number of exemplars.
   arr32_t cols(1);
@@ -134,9 +137,9 @@ bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins) {
   Groupby gb_members;
   RowIndex ri_members = dt_members->sortby(cols, &gb_members);
 
-  // Do random sampling if there is too many exemplars. `+1` accounts for a
-  // special `N/A` bin where all the `N/A` values will go.
-  if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + 1) {
+  // Do random sampling if there is too many exemplars, `n_na_bins` accounts
+  // for the additional N/A bins that may appear during grouping.
+  if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
     const int32_t* ri_members_indices = ri_members.indices32();
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -272,6 +275,15 @@ void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 
 /*
 *  Call an appropriate function for 2D grouping.
+*  Dealing with NA's:
+*    - (value, NA) goes to bin -1;
+*    - (NA, value) goes to bin -2;
+*    - (NA, NA)    goes to bin -3.
+*  Rows having no NA's end up in the corresponding positive bins,
+*  so that we are not mixing NA and not NA members. After calling
+*  `aggregate_exemplars(...)` bins will be renumbered starting from 0,
+*  with NA bins (if ones exist) being gathered at the very beginning
+*  of the exemplar data frame.
 */
 void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
   LType ltype0 = info(dt->columns[0]->stype()).ltype();
@@ -344,8 +356,9 @@ void Aggregator::group_2d_continuous(const DataTablePtr& dt,
 
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
-    if (ISNA<double>(d_c0[i]) || ISNA<double>(d_c1[i])) {
-      d_members[i] = GETNA<int32_t>();
+    int32_t na_case = ISNA<double>(d_c0[i]) + 2 * ISNA<double>(d_c1[i]);
+    if (na_case) {
+      d_members[i] = -na_case;
     } else {
       d_members[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
                      static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
@@ -360,7 +373,6 @@ void Aggregator::group_2d_continuous(const DataTablePtr& dt,
 void Aggregator::group_1d_categorical(const DataTablePtr& dt,
                                       DataTablePtr& dt_members) {
   arr32_t cols(1);
-
   cols[0] = 0;
   Groupby grpby0;
   RowIndex ri0 = dt->sortby(cols, &grpby0);
@@ -449,8 +461,9 @@ void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
     auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
       int32_t gi = group_indices_1[j];
-      if (ISNA<T1>(d_c1[gi]) || ISNA<int32_t>(d_members[gi])) {
-        d_members[gi] = GETNA<int32_t>();
+      int32_t na_case = ISNA<int32_t>(d_members[gi]) + 2 * ISNA<T1>(d_c1[gi]);
+      if (na_case) {
+        d_members[gi] = -na_case;
       } else {
         d_members[gi] += group_id;
       }
@@ -504,8 +517,9 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
     int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
       int32_t gi = gi_cat[j];
-      if (ISNA<double>(d_cont[gi]) || ISNA<T>(d_cat[gi])) {
-        d_members[gi] = GETNA<int32_t>();
+      int32_t na_case = ISNA<double>(d_cont[gi]) + 2 * ISNA<T>(d_cat[gi]);
+      if (na_case) {
+        d_members[gi] = -na_case;
       } else {
         d_members[gi] = group_cat_id +
                         static_cast<int32_t>(normx_factor * d_cont[gi] + normx_shift);
