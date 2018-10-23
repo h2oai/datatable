@@ -375,6 +375,9 @@ def get_default_compile_flags():
     flags = re.sub(r"\s*-DNDEBUG\s*", " ", flags)
     # remove '=format-security' because this is not even a real flag...
     flags = re.sub(r"=format-security", "", flags)
+    # Clear additional flags not recognized by Clang
+    flags = re.sub(r"-fuse-linker-plugin", "", flags)
+    flags = re.sub(r"-ffat-lto-objects", "", flags)
     # Add the python include dir as '-isystem' to prevent warnings in Python.h
     if sysconfig.get_config_var("CONFINCLUDEPY"):
         flags += " -isystem %s" % sysconfig.get_config_var("CONFINCLUDEPY")
