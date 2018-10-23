@@ -86,7 +86,7 @@ def get_test_dependencies():
 # Prepare the environment
 #-------------------------------------------------------------------------------
 
-if cmd in ("build", "bdist_wheel", "build_ext"):
+if cmd in ("build", "bdist_wheel", "build_ext", "install"):
     with TaskContext("Prepare the environment") as log:
         # Check whether the environment is sane...
         if not(islinux() or ismacos() or iswindows()):
@@ -113,7 +113,7 @@ if cmd in ("build", "bdist_wheel", "build_ext"):
 
 
 # Create the git version file
-if cmd in ("build", "sdist", "bdist_wheel"):
+if cmd in ("build", "sdist", "bdist_wheel", "install"):
     make_git_version_file(True)
 
 
