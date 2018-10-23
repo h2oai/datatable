@@ -489,6 +489,8 @@ def get_extra_link_args():
             # On linux we need to pass -shared flag to clang linker which
             # is not used for some reason at linux
             flags += ["-lc++", "-shared"]
+        if is_gcc():
+            flags += ["-lstdc++"]
 
         if "DTASAN" in os.environ:
             flags += ["-fsanitize=address", "-shared-libasan"]
