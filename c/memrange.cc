@@ -736,9 +736,7 @@
     // threads called this method at the same time, then only one will proceed,
     // while all others will wait until the lock is released, and then exit
     // because flag `mapped` will now be true.
-    #ifdef __clang__
-      #pragma clang diagnostic ignored "-Wexit-time-destructors"
-    #endif
+    #pragma clang diagnostic ignored "-Wexit-time-destructors"
     static std::mutex mmp_mutex;
     std::lock_guard<std::mutex> lock(mmp_mutex);
     if (mapped) return;

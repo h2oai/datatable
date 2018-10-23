@@ -435,7 +435,13 @@ def get_extra_compile_flags():
         if is_gcc():
             # Ignored warnings:
             #   -Wunused-value: generates spurious warnings for OMP code.
-            flags += ["-Wall", "-Wno-unused-value"]
+            #   -Wunknown-pragmas: do not warn about clang-specific macros,
+            #       ignoring them is just fine...
+            flags += [
+                "-Wall",
+                "-Wno-unused-value",
+                "-Wno-unknown-pragmas"
+            ]
 
         for d in get_compile_includes():
             flags += ["-I" + d]
