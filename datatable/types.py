@@ -9,7 +9,6 @@ import enum
 import datatable
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
-from struct import unpack
 
 __all__ = ("stype", "ltype")
 
