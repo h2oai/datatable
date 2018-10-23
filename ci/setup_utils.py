@@ -403,7 +403,7 @@ def get_extra_compile_flags():
             flags += ["-g", "--coverage", "-O0"]
             flags += ["-DDTTEST"]
         else:
-            flags += ["-O3"]
+            flags += ["-O3", "-g0"]
 
         if "CI_EXTRA_COMPILE_ARGS" in os.environ:
             flags += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
@@ -491,6 +491,7 @@ def get_extra_link_args():
         # this option the size of the executable is ~25% smaller...
         if "DTDEBUG" not in os.environ:
             flags += ["-s"]
+            flags += ["-g0"]
 
         if islinux() and is_clang():
             # On linux we need to pass -shared flag to clang linker which

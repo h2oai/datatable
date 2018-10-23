@@ -85,6 +85,9 @@ def get_test_dependencies():
 #-------------------------------------------------------------------------------
 # Prepare the environment
 #-------------------------------------------------------------------------------
+cpp_files = []
+extra_compile_args = []
+extra_link_args = []
 
 if cmd in ("build", "bdist_wheel", "build_ext", "install"):
     with TaskContext("Prepare the environment") as log:
@@ -111,13 +114,10 @@ if cmd in ("build", "bdist_wheel", "build_ext", "install"):
                   "MACOSX_DEPLOYMENT_TARGET"]:
             log.info("%s = %s" % (n, os.environ.get(n, "")))
 
+    extra_compile_args = get_extra_compile_flags()
+    extra_link_args = get_extra_link_args()
+    cpp_files = get_c_sources("c")
 
-# Create the git version file
-if cmd in ("build", "sdist", "bdist_wheel", "install"):
-    make_git_version_file(True)
-
-
-if cmd == "bdist_wheel":
     with TaskContext("Copy dynamic libraries") as log:
         # Copy system libraries into the datatable/lib folder, so that they can
         # be packaged with the wheel
@@ -132,6 +132,11 @@ if cmd == "bdist_wheel":
             else:
                 log.info("Copying %s to %s" % (libpath, trgfile))
                 shutil.copy(libpath, trgfile)
+
+
+# Create the git version file
+if cmd in ("build", "sdist", "bdist_wheel", "install"):
+    make_git_version_file(True)
 
 
 
@@ -195,9 +200,9 @@ setup(
         Extension(
             "datatable/lib/_datatable",
             include_dirs=["c"],
-            sources=get_c_sources("c"),
-            extra_compile_args=get_extra_compile_flags(),
-            extra_link_args=get_extra_link_args(),
+            sources=cpp_files,
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,
             language="c++",
         ),
     ],
