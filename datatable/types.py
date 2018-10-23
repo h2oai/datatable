@@ -253,7 +253,7 @@ _stype_extrema = {
     stype.int32: (-2147483647, 2147483647),
     stype.int64: (-9223372036854775807, 9223372036854775807),
     stype.float32: (float.fromhex("-0x1.fffffep+127"), float.fromhex("0x1.fffffep+127")),
-    stype.float64: (unpack(">d", b'\xff\xef\xff\xff\xff\xff\xff\xff')[0], unpack(">d", b'\x7f\xef\xff\xff\xff\xff\xff\xff')[0]),
+    stype.float64: (float.fromhex("-0x1.fffffffffffffp+1023"), float.fromhex("0x1.fffffffffffffp+1023")),
 }
 
 _numpy_init_attempted = False
