@@ -369,9 +369,13 @@ def get_default_compile_flags():
     flags = re.sub(r"\s*-O\d\s*", " ", flags)
     # remove -DNDEBUG so that the program can use asserts if needed
     flags = re.sub(r"\s*-DNDEBUG\s*", " ", flags)
+    # remove '=format-security' because this is not even a real flag...
+    flags = re.sub(r"=format-security", "", flags)
     # Add the python include dir as '-isystem' to prevent warnings in Python.h
     if sysconfig.get_config_var("CONFINCLUDEPY"):
         flags += " -isystem %s" % sysconfig.get_config_var("CONFINCLUDEPY")
+    # Squash spaces
+    flags = re.sub(r"\s+", " ", flags)
     return flags
 
 
@@ -491,7 +495,6 @@ def get_extra_link_args():
         # this option the size of the executable is ~25% smaller...
         if "DTDEBUG" not in os.environ:
             flags += ["-s"]
-            flags += ["-g0"]
 
         if islinux() and is_clang():
             # On linux we need to pass -shared flag to clang linker which
