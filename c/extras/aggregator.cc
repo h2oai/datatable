@@ -79,6 +79,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
     DataTablePtr dt_double = nullptr;
     Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
     int32_t ncols = 0;
+    // Number of possible `N/A` bins for a particular aggregator.
     int32_t n_na_bins = 0;
 
     for (int64_t i = 0; i < dt->ncols; ++i) {
