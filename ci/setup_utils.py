@@ -305,6 +305,15 @@ def get_compiler():
                   "variable.")
 
 
+@memoize()
+def is_gcc():
+    return "gcc" in get_compiler()
+
+@memoize()
+def is_clang():
+    return "clang" in get_compiler()
+
+
 
 #-------------------------------------------------------------------------------
 # Determine compiler settings
@@ -364,13 +373,10 @@ def get_default_compile_flags():
 
 @memoize()
 def get_extra_compile_flags():
-    compiler = get_compiler()
-    is_gcc = "gcc" in compiler
-    is_clang = "clang" in compiler
     flags = []
     with TaskContext("Determine the extra compiler flags") as log:
         flags += ["-std=c++11"]
-        if is_clang:
+        if is_clang():
             flags += ["-stdlib=libc++"]
 
         # Path to source files / Python include files
@@ -400,7 +406,7 @@ def get_extra_compile_flags():
         if "-O0" in flags:
             flags += ["-DDTDEBUG"]
 
-        if is_clang:
+        if is_clang():
             # Ignored warnings:
             #   -Wc++98-compat-pedantic:
             #   -Wc99-extensions: since we're targeting C++11, there is no need
@@ -426,7 +432,7 @@ def get_extra_compile_flags():
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
             ]
-        if is_gcc:
+        if is_gcc():
             # Ignored warnings:
             #   -Wunused-value: generates spurious warnings for OMP code.
             flags += ["-Wall", "-Wno-unused-value"]
@@ -473,7 +479,7 @@ def get_extra_link_args():
         if "DTDEBUG" not in os.environ:
             flags += ["-s"]
 
-        if islinux():
+        if islinux() and is_clang():
             # On linux we need to pass -shared flag to clang linker which
             # is not used for some reason at linux
             flags += ["-lc++", "-shared"]
@@ -496,8 +502,7 @@ def get_extra_link_args():
 
 
 def required_link_libraries():
-    compiler = get_compiler()
-    if "gcc" in compiler:
+    if is_gcc():
         return []
     if ismacos():
         return ["libomp.dylib", "libc++.dylib", "libc++abi.dylib"]
