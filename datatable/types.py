@@ -9,6 +9,7 @@ import enum
 import datatable
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
+from struct import unpack
 
 __all__ = ("stype", "ltype")
 
@@ -120,6 +121,20 @@ class stype(enum.Enum):
         """
         return _stype_2_struct[self]
 
+    @property
+    def min(self):
+        """
+        The smallest finite value that this stype can represent.
+        """
+        return _stype_extrema.get(self, (None, None))[0]
+
+    @property
+    def max(self):
+        """
+        The largest finite value that this stype can represent.
+        """
+        return _stype_extrema.get(self, (None, None))[1]
+
 
 
 #-------------------------------------------------------------------------------
@@ -229,6 +244,16 @@ _stype_2_ctype = {
     stype.str32: ctypes.c_int32,
     stype.str64: ctypes.c_int64,
     stype.obj64: ctypes.py_object,
+}
+
+_stype_extrema = {
+    stype.bool8: (0, 1),
+    stype.int8: (-255, 255),
+    stype.int16: (-65536, 65536),
+    stype.int32: (-4294967296, 4294967296),
+    stype.int64: (-18446744073709551616, 18446744073709551616),
+    stype.float32: (unpack(">f", b'\xff\x7f\xff\xff')[0], unpack(">f", b'\x7f\x7f\xff\xff')[0]),
+    stype.float64: (unpack(">d", b'\xff\xef\xff\xff\xff\xff\xff\xff')[0], unpack(">d", b'\x7f\xef\xff\xff\xff\xff\xff\xff')[0]),
 }
 
 _numpy_init_attempted = False
