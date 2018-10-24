@@ -61,7 +61,8 @@ test_script:
   #- "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   #- "ECHO %LLVM6%"
   #- SET
-  - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
+  #- copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
+  - copy "C:\Program Files\LLVM\bin\libomp.dll" "C:\Program Files\LLVM\lib\"
   #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - dir %PYTHON%
   - "%PYTHON%/python.exe setup.py build --no-cache-dir"
