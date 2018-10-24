@@ -155,6 +155,8 @@ def test_h2o3_bigdata(f):
         os.path.join("mnist", "t10k-labels-idx1-ubyte.gz"),
         os.path.join("mnist", "train-images-idx3-ubyte.gz"),
         os.path.join("mnist", "train-labels-idx1-ubyte.gz"),
+        # ARFF files
+        os.path.join("parser", "anARFFFile.txt"),
         # zip files having more than 1 file inside
         os.path.join("flights-nyc", "delays14.csv.zip"),
         os.path.join("flights-nyc", "flights14.csv.zip"),

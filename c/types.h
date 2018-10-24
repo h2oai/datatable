@@ -7,9 +7,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
-#include <string>
+#include <cstring>   // std::strncmp
 #include <cmath>     // isnan
 #include <limits>    // std::numeric_limits
+#include <string>    // std::string
 #include <Python.h>
 
 

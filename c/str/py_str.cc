@@ -22,10 +22,11 @@
 namespace py {
 
 
-static PKArgs split_into_nhot_args(1, 0, 1, false, false, {"col", "sep"},
-                                   "split_into_nhot", "");
+static PKArgs split_into_nhot_args(
+    1, 0, 1, false, false,
+    {"col", "sep"}, "split_into_nhot", "",
 
-static py::oobj split_into_nhot(const PKArgs& args) {
+[](const py::PKArgs& args) -> py::oobj {
   DataTable* dt = args[0].to_frame();
   std::string sep = args[1]? args[1].to_string() : ",";
 
@@ -48,12 +49,12 @@ static py::oobj split_into_nhot(const PKArgs& args) {
 
   DataTable* res = dt::split_into_nhot(col0, sep[0]);
   return py::Frame::from_datatable(res);
-}
+});
 
-}
+
+} // namespace py
+
 
 void DatatableModule::init_methods_str() {
-  add<&py::split_into_nhot, py::split_into_nhot_args>();
+  ADDFN(py::split_into_nhot_args);
 }
-
-

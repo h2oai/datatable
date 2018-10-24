@@ -20,6 +20,14 @@ from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_extra_link_args, find_linked_dynamic_libraries,
                             TaskContext, islinux, ismacos, iswindows)
 
+print()
+cmd = ""
+with TaskContext("Start setup.py") as log:
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1]
+    log.info("command = `%s`" % cmd)
+
+
 
 #-------------------------------------------------------------------------------
 # Generic helpers
@@ -77,52 +85,56 @@ def get_test_dependencies():
 #-------------------------------------------------------------------------------
 # Prepare the environment
 #-------------------------------------------------------------------------------
-print()
+cpp_files = []
+extra_compile_args = []
+extra_link_args = []
 
-with TaskContext("Prepare the environment") as log:
-    # Check whether the environment is sane...
-    if not(islinux() or ismacos() or iswindows()):
-        log.warn("Unknown platform=%s os=%s" % (sys.platform, os.name))
+if cmd in ("build", "bdist_wheel", "build_ext", "install"):
+    with TaskContext("Prepare the environment") as log:
+        # Check whether the environment is sane...
+        if not(islinux() or ismacos() or iswindows()):
+            log.warn("Unknown platform=%s os=%s" % (sys.platform, os.name))
 
-    # Compiler
-    os.environ["CC"] = os.environ["CXX"] = get_compiler()
+        # Compiler
+        os.environ["CC"] = os.environ["CXX"] = get_compiler()
 
-    # Linker
-    # On linux we need to pass proper flag to clang linker which
-    # is not used for some reason at linux
-    if islinux() and os.environ.get("DTCOVERAGE"):
-        os.environ["LDSHARED"] = os.environ["CC"]
+        # Linker
+        # On linux we need to pass proper flag to clang linker which
+        # is not used for some reason at linux
+        if islinux() and os.environ.get("DTCOVERAGE"):
+            os.environ["LDSHARED"] = os.environ["CC"]
 
-    if ismacos() and not os.environ.get("MACOSX_DEPLOYMENT_TARGET"):
-        os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
+        if ismacos() and not os.environ.get("MACOSX_DEPLOYMENT_TARGET"):
+            os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
 
-    # Force to build for a 64-bit platform only
-    os.environ["ARCHFLAGS"] = "-m64"
+        # Force to build for a 64-bit platform only
+        os.environ["ARCHFLAGS"] = "-m64"
 
-    for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG",
-              "MACOSX_DEPLOYMENT_TARGET"]:
-        log.info("%s = %s" % (n, os.environ.get(n, "")))
+        for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG",
+                  "MACOSX_DEPLOYMENT_TARGET"]:
+            log.info("%s = %s" % (n, os.environ.get(n, "")))
+
+    extra_compile_args = get_extra_compile_flags()
+    extra_link_args = get_extra_link_args()
+    cpp_files = get_c_sources("c")
+
+    with TaskContext("Copy dynamic libraries") as log:
+        # Copy system libraries into the datatable/lib folder, so that they can
+        # be packaged with the wheel
+        libs = find_linked_dynamic_libraries()
+        for libpath in libs:
+            trgfile = os.path.join("datatable", "lib",
+                                   os.path.basename(libpath))
+            if os.path.exists(trgfile):
+                log.info("File %s already exists, skipped" % trgfile)
+            else:
+                log.info("Copying %s to %s" % (libpath, trgfile))
+                shutil.copy(libpath, trgfile)
 
 
 # Create the git version file
-if sys.argv[1] in ("build", "fast", "dist", "sdist"):
-    force = sys.argv[1] in ("dist", "sdist")
-    make_git_version_file(force)
-
-
-with TaskContext("Copy dynamic libraries") as log:
-    # Copy system libraries into the datatable/lib folder, so that they can be
-    # packaged with the wheel
-    libs = find_linked_dynamic_libraries()
-    if ismacos() or iswindows():
-        libs = libs[:1]
-    for libpath in libs:
-        trgfile = os.path.join("datatable", "lib", os.path.basename(libpath))
-        if os.path.exists(trgfile):
-            log.info("File %s already exists, skipped" % trgfile)
-        else:
-            log.info("Copying %s to %s" % (libpath, trgfile))
-            shutil.copy(libpath, trgfile)
+if cmd in ("build", "sdist", "bdist_wheel", "install"):
+    make_git_version_file(True)
 
 
 
@@ -186,9 +198,9 @@ setup(
         Extension(
             "datatable/lib/_datatable",
             include_dirs=["c"],
-            sources=get_c_sources("c"),
-            extra_compile_args=get_extra_compile_flags(),
-            extra_link_args=get_extra_link_args(),
+            sources=cpp_files,
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,
             language="c++",
         ),
     ],

@@ -427,11 +427,9 @@ const char* GenericReader::repr_binary(
   char* ptr = buf + pos;
   char* out = ptr;
   char* end = ptr + limit;
-  char* saved = ptr;
   bool stopped_at_newline = false;
   while (out < end) {
     stopped_at_newline = true;
-    saved = out;
     if (ch == endch) break;
     uint8_t c = static_cast<uint8_t>(*ch++);
 

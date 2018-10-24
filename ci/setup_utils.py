@@ -99,6 +99,9 @@ def ismacos():
 def iswindows():
     return sys.platform == "win32"
 
+def omp_enabled():
+    return not os.environ.get("DTNOOMP")
+
 
 
 def get_datatable_version():
@@ -237,7 +240,7 @@ def get_rpath():
 
 
 @memoize()
-def get_compiler(openmp_required=True):
+def get_compiler():
     with TaskContext("Determine the compiler") as log:
         for envvar in ["CXX", "CC"]:
             cc = os.environ.get(envvar, None)
@@ -250,6 +253,8 @@ def get_compiler(openmp_required=True):
         llvm = get_llvm()
         if llvm:
             cc = os.path.join(llvm, "bin", "clang++")
+            if iswindows():
+                cc += ".exe"
             if os.path.isfile(cc):
                 log.info("Found Clang compiler %s" % cc)
                 return cc
@@ -277,9 +282,11 @@ def get_compiler(openmp_required=True):
             except Exception as e:
                 log.info(str(e))
             for cc in candidate_compilers:
+                if iswindows() and not cc.endswith(".exe"):
+                    cc += ".exe"
                 try:
                     cmd = [cc, "-c", fname, "-o", outname]
-                    if openmp_required:
+                    if omp_enabled():
                         cmd += ["-fopenmp"]
                     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
@@ -289,7 +296,7 @@ def get_compiler(openmp_required=True):
                     if proc.returncode == 0:
                         log.info("Compiler `%s` will be used" % cc)
                         return cc
-                    elif "-fopenmp" in stderr:
+                    elif omp_enabled() and "-fopenmp" in stderr:
                         log.info("Compiler `%s` does not support OpenMP" % cc)
                     else:
                         log.info("Compiler `%s` returned an error when "
@@ -304,6 +311,15 @@ def get_compiler(openmp_required=True):
         log.fatal("Suitable C++ compiler cannot be determined. Please "
                   "specify a compiler executable in the `CXX` environment "
                   "variable.")
+
+
+@memoize()
+def is_gcc():
+    return "gcc" in get_compiler()
+
+@memoize()
+def is_clang():
+    return "clang" in get_compiler()
 
 
 
@@ -357,9 +373,16 @@ def get_default_compile_flags():
     flags = re.sub(r"\s*-O\d\s*", " ", flags)
     # remove -DNDEBUG so that the program can use asserts if needed
     flags = re.sub(r"\s*-DNDEBUG\s*", " ", flags)
+    # remove '=format-security' because this is not even a real flag...
+    flags = re.sub(r"=format-security", "", flags)
+    # Clear additional flags not recognized by Clang
+    flags = re.sub(r"-fuse-linker-plugin", "", flags)
+    flags = re.sub(r"-ffat-lto-objects", "", flags)
     # Add the python include dir as '-isystem' to prevent warnings in Python.h
     if sysconfig.get_config_var("CONFINCLUDEPY"):
         flags += " -isystem %s" % sysconfig.get_config_var("CONFINCLUDEPY")
+    # Squash spaces
+    flags = re.sub(r"\s+", " ", flags)
     return flags
 
 
@@ -367,13 +390,20 @@ def get_default_compile_flags():
 def get_extra_compile_flags():
     flags = []
     with TaskContext("Determine the extra compiler flags") as log:
-        flags += ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
+        flags += ["-std=c++11"]
+        if is_clang():
+            flags += ["-stdlib=libc++"]
 
         # Path to source files / Python include files
         flags += ["-Ic"]
 
         # Enable OpenMP support
-        flags.insert(0, "-fopenmp")
+        if omp_enabled():
+            flags.insert(0, "-fopenmp")
+
+        # Generate 'Position-independent code'. This is required for any
+        # dynamically-linked library.
+        flags += ["-fPIC"]
 
         if "DTDEBUG" in os.environ:
             flags += ["-g", "-ggdb", "-O0"]
@@ -388,7 +418,7 @@ def get_extra_compile_flags():
             flags += ["-g", "--coverage", "-O0"]
             flags += ["-DDTTEST"]
         else:
-            flags += ["-O3"]
+            flags += ["-O3", "-g0"]
 
         if "CI_EXTRA_COMPILE_ARGS" in os.environ:
             flags += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
@@ -396,30 +426,44 @@ def get_extra_compile_flags():
         if "-O0" in flags:
             flags += ["-DDTDEBUG"]
 
-        # Ignored warnings:
-        #   -Wc++98-compat-pedantic:
-        #   -Wc99-extensions: since we're targeting C++11, there is no need to
-        #       worry about compatibility with earlier C++ versions.
-        #   -Wfloat-equal: this warning is just plain wrong...
-        #       Comparing x == 0 or x == 1 is always safe.
-        #   -Wswitch-enum: generates spurious warnings about missing
-        #       cases even if `default` clause is present. -Wswitch
-        #       does not suffer from this drawback.
-        #   -Wweak-template-vtables: this waning's purpose is unclear, and it
-        #       is also unclear how to prevent it...
-        #   -Wglobal-constructors, -Wexit-time-destructors: having static global
-        #       objects is not only legal, but also unavoidable since this is
-        #       the only kind of object that can be passed to a template...
-        flags += [
-            "-Weverything",
-            "-Wno-c++98-compat-pedantic",
-            "-Wno-c99-extensions",
-            "-Wno-exit-time-destructors",
-            "-Wno-float-equal",
-            "-Wno-global-constructors",
-            "-Wno-switch-enum",
-            "-Wno-weak-template-vtables",
-        ]
+        if iswindows():
+            flags += ["/W4"]
+        elif is_clang():
+            # Ignored warnings:
+            #   -Wc++98-compat-pedantic:
+            #   -Wc99-extensions: since we're targeting C++11, there is no need
+            #       to worry about compatibility with earlier C++ versions.
+            #   -Wfloat-equal: this warning is just plain wrong...
+            #       Comparing x == 0 or x == 1 is always safe.
+            #   -Wswitch-enum: generates spurious warnings about missing
+            #       cases even if `default` clause is present. -Wswitch
+            #       does not suffer from this drawback.
+            #   -Wweak-template-vtables: this waning's purpose is unclear, and
+            #       it is also unclear how to prevent it...
+            #   -Wglobal-constructors, -Wexit-time-destructors: having static
+            #       global objects is not only legal, but also unavoidable since
+            #       this is the only kind of object that can be passed to a
+            #       template...
+            flags += [
+                "-Weverything",
+                "-Wno-c++98-compat-pedantic",
+                "-Wno-c99-extensions",
+                "-Wno-exit-time-destructors",
+                "-Wno-float-equal",
+                "-Wno-global-constructors",
+                "-Wno-switch-enum",
+                "-Wno-weak-template-vtables",
+            ]
+        elif is_gcc():
+            # Ignored warnings:
+            #   -Wunused-value: generates spurious warnings for OMP code.
+            #   -Wunknown-pragmas: do not warn about clang-specific macros,
+            #       ignoring them is just fine...
+            flags += [
+                "-Wall",
+                "-Wno-unused-value",
+                "-Wno-unknown-pragmas"
+            ]
 
         for d in get_compile_includes():
             flags += ["-I" + d]
@@ -455,7 +499,9 @@ def get_extra_link_args():
     flags = []
     with TaskContext("Determine the extra linker flags") as log:
         flags += ["-Wl,-rpath,%s" % get_rpath()]
-        flags += ["-fopenmp"]
+
+        if omp_enabled():
+            flags += ["-fopenmp"]
 
         # Omit all symbol information from the output
         # ld warns that this option is obsolete and is ignored. However with
@@ -463,10 +509,12 @@ def get_extra_link_args():
         if "DTDEBUG" not in os.environ:
             flags += ["-s"]
 
-        if islinux():
+        if islinux() and is_clang():
             # On linux we need to pass -shared flag to clang linker which
             # is not used for some reason at linux
             flags += ["-lc++", "-shared"]
+        if is_gcc():
+            flags += ["-lstdc++"]
 
         if "DTASAN" in os.environ:
             flags += ["-fsanitize=address", "-shared-libasan"]
@@ -486,12 +534,35 @@ def get_extra_link_args():
 
 
 def required_link_libraries():
-    if ismacos():
-        return ["libomp.dylib", "libc++.dylib", "libc++abi.dylib"]
-    if islinux():
-        return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
-    if iswindows():
-        return ["libomp.dll", "libc++.dll", "libc++abi.dll"]
+    # GCC on Ubuntu18.04 links to the following libraries (`ldd`):
+    #   linux-vdso.so.1
+    #   /lib64/ld-linux-x86-64.so.2
+    #   libstdc++.so.6  => /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+    #   libgomp.so.1    => /usr/lib/x86_64-linux-gnu/libgomp.so.1
+    #   libgcc_s.so.1   => /lib/x86_64-linux-gnu/libgcc_s.so.1
+    #   libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0
+    #   libc.so.6       => /lib/x86_64-linux-gnu/libc.so.6
+    #   libm.so.6       => /lib/x86_64-linux-gnu/libm.so.6
+    #   libdl.so.2      => /lib/x86_64-linux-gnu/libdl.so.2
+    # These are all standard system libraries, so there is no need to bundle
+    # them.
+    if is_gcc():
+        return []
+
+    # Clang on MacOS links to the following libraries (`otool -L`):
+    #   @rpath/libomp.dylib
+    #   @rpath/libc++.1.dylib
+    #   /usr/lib/libSystem.B.dylib
+    # In addition, `libc++abi.1.dylib` is referenced from `libc++.1.dylib`
+    # The @rpath- libraries have to be bundled into the datatable package.
+    #
+    if is_clang():
+        if ismacos():
+            return ["libomp.dylib", "libc++.1.dylib", "libc++abi.1.dylib"]
+        if islinux():
+            return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
+        if iswindows():
+            return ["libomp.dll"]
     return []
 
 

@@ -96,7 +96,7 @@ void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
 PKArgs::PKArgs(
     size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
     std::initializer_list<const char*> _names,
-    const char* name, const char* doc
+    const char* name, const char* doc, py::oobj (*f)(const PKArgs&)
   )
   : Args(name, doc),
     n_posonly_args(npo),
@@ -105,7 +105,8 @@ PKArgs::PKArgs(
     has_varargs(vargs),
     has_varkwds(vkwds),
     arg_names(_names),
-    n_varkwds(0)
+    n_varkwds(0),
+    fn0(nullptr), fn1(f)
 {
   xassert(n_all_args == arg_names.size());
   if (has_varargs) xassert(n_pos_kwd_args == 0);
@@ -166,6 +167,25 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
   }
   kwds_dict = _kwds;
   args_tuple = _args;
+}
+
+
+PyObject* PKArgs::exec(PyObject* args, PyObject* kwds) noexcept {
+  try {
+    bind(args, kwds);
+    if (fn1) {
+      oobj res = (*fn1)(*this);
+      return std::move(res).release();
+    }
+    if (fn0) {
+      (*fn0)(*this);
+      Py_RETURN_NONE;
+    }
+    throw RuntimeError() << "Function not bound";
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
 }
 
 

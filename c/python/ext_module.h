@@ -42,10 +42,18 @@ class ExtModule {
     template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS> void add();
     template <void (*F)(const PKArgs&), PKArgs& ARGS> void add();
     void add(PyMethodDef);
+    void add(PKArgs&, PyObject* (*)(PyObject*, PyObject*, PyObject*));
 
   private:
     PyMethodDef* get_methods();
 };
+
+
+#define ADDFN(ARGS)                                                           \
+  add(ARGS, [](PyObject*, PyObject* args, PyObject* kwds) -> PyObject* {      \
+              return ARGS.exec(args, kwds);                                   \
+            });
+
 
 
 template <typename A, void (*F)(const A&), A& ARGS>
@@ -77,6 +85,19 @@ template <class T>
 void ExtModule<T>::add(PyMethodDef def) {
   methods.push_back(def);
 }
+
+template <class T>
+void ExtModule<T>::add(PKArgs& args,
+                       PyObject* (*F)(PyObject*, PyObject*, PyObject*))
+{
+  methods.push_back(PyMethodDef {
+    args.get_short_name(),
+    reinterpret_cast<PyCFunction>(F),
+    METH_VARARGS | METH_KEYWORDS,
+    args.get_docstring()
+  });
+}
+
 
 template <class T>
 template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>

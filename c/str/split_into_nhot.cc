@@ -74,10 +74,9 @@ static void tokenize_string(
 
 DataTable* split_into_nhot(Column* col, char sep) {
   bool is32 = (col->stype() == SType::STR32);
-  bool is64 = (col->stype() == SType::STR64);
-  xassert(is32 || is64);
-  const uint32_t* offsets32;
-  const uint64_t* offsets64;
+  xassert(is32 || (col->stype() == SType::STR64));
+  const uint32_t* offsets32 = nullptr;
+  const uint64_t* offsets64 = nullptr;
   const char* strdata;
   if (is32) {
     auto scol = static_cast<StringColumn<uint32_t>*>(col);
