@@ -8,14 +8,20 @@ import datatable as dt
 from datatable.lib import core
 
 
-def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-              nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
-              nthreads=0, col_min=[], col_max=[]):
+def aggregate(self, col_min=[], col_max=[], min_rows=500, n_bins=500, nx_bins=50,
+              ny_bins=50, nd_max_bins=500, max_dimensions=50, seed=0,
+              progress_fn=None, nthreads=0):
     """
     Aggregate datatable in-place.
 
     Parameters
     ----------
+    col_min: list
+        List of minimums for each numerical column in a frame. If not 
+        provided, minimums will be calculated by aggregator.
+    col_max: list
+        List of maximums for each numerical column in a frame. If not 
+        provided, maximums will be calculated by aggregator.
     min_rows: int
         Minimum number of rows in a dataset to perform an aggregation on.
     n_bins: int

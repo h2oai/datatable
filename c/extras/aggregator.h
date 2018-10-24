@@ -89,5 +89,5 @@ class Aggregator {
 
 DECLARE_FUNCTION(
   aggregate,
-  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
+  "aggregate(self, col_min=[], col_max=[], min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
   dt_EXTRAS_AGGREGATOR_cc)
