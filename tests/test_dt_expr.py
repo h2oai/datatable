@@ -50,59 +50,58 @@ def test_f_col_selector_unbound():
     # representation may be modified in the future; however f-expressions
     # should not raise exceptions when printed.
     # See issues #1024 and #1241
-    assert repr(f.a) == "ColSelectorExpr(f_a)"
-    assert str(f.a) == "f_a"
-    assert str(f.abcdefghijkl) == "f_abcdefghijkl"
-    assert str(f.abcdefghijklm) == "f__" + str(id("abcdefghijklm"))
-    assert str(f[0]) == "f_0"
-    assert str(f[1000]) == "f_1000"
-    assert str(f[-1]) == "f_1_"
-    assert str(f[-999]) == "f_999_"
-    assert str(f[""]) == "f__" + str(id(""))
-    assert str(f["0"]) == "f__" + str(id("0"))
-    assert str(f["A+B"]) == "f__" + str(id("A+B"))
-    assert str(f["_A"]) == "f__" + str(id("_A"))
-    assert str(f["_54"]) == "f__" + str(id("_54"))
-    assert str(f._3_) == "f__" + str(id("_3_"))
-    assert str(f.a_b_c) == "f__" + str(id("a_b_c"))
-    assert str(f[" y "]) == "f__" + str(id(" y "))
-    assert str(f["a b c"]) == str(f["a b c"])
-    assert str(f["a b c"]) != str(f[" ".join("abc")])
+    assert repr(f.a) == "ColSelectorExpr(f.a)"
+    assert str(f.a) == "f.a"
+    assert str(f.abcdefghijkl) == "f.abcdefghijkl"
+    assert str(f.abcdefghijklm) == "f['abcdefghijklm']"
+    assert str(f[0]) == "f[0]"
+    assert str(f[1000]) == "f[1000]"
+    assert str(f[-1]) == "f[-1]"
+    assert str(f[-999]) == "f[-999]"
+    assert str(f[""]) == "f['']"
+    assert str(f["0"]) == "f['0']"
+    assert str(f["A+B"]) == "f['A+B']"
+    assert str(f["_A"]) == "f['_A']"
+    assert str(f["_54"]) == "f['_54']"
+    assert str(f._3_) == "f['_3_']"
+    assert str(f.a_b_c) == "f['a_b_c']"
+    assert str(f[" y "]) == "f[' y ']"
+    assert str(f["a b c"]) == "f['a b c']"
 
 
 def test_f_col_selector_bound1():
     with f.bind_datatable(dt.Frame()):
-        assert str(f.a) == "f_a"
-        assert str(f.abcdefghijkl) == "f_abcdefghijkl"
-        assert str(f.abcdefghijklm) == "f__" + str(id("abcdefghijklm"))
-        assert str(f[0]) == "f_0"
-        assert str(f[1]) == "f_1"
-        assert str(f[-1]) == "f_1_"
-        assert str(f[1000000]) == "f_1000000"
-        assert str(f[""]) == "f__" + str(id(""))
-        assert str(f["0"]) == "f__" + str(id("0"))
-        assert str(f["A/B"]) == "f__" + str(id("A/B"))
+        assert f.a.safe_name() == "f_a"
+        assert f.abcdefghijkl.safe_name() == "f_abcdefghijkl"
+        assert f.abcdefghijklm.safe_name() == "f__" + str(id("abcdefghijklm"))
+        assert f[0].safe_name() == "f_0"
+        assert f[1].safe_name() == "f_1"
+        assert f[-1].safe_name() == "f_1_"
+        assert f[1000000].safe_name() == "f_1000000"
+        assert f[""].safe_name() == "f__" + str(id(""))
+        assert f["0"].safe_name() == "f__" + str(id("0"))
+        assert f["A/B"].safe_name() == "f__" + str(id("A/B"))
 
 
 def test_f_col_selector_bound2():
     dt0 = dt.Frame([[]] * 3, names=["a", "abcdefg", "abcdefghijklm"])
     with f.bind_datatable(dt0):
-        assert str(f.a) == "f_a"
-        assert str(f.abcdefg) == "f_abcdefg"
-        assert str(f.abcdefghijkl) == "f_abcdefghijkl"
-        assert str(f.abcdefghijklm) == "f_2"
-        assert str(f[0]) == "f_a"
-        assert str(f[1]) == "f_abcdefg"
-        assert str(f[2]) == "f_2"  # "f_abcdefgijklm" is too long
-        assert str(f[3]) == "f_3"
-        assert str(f[-1]) == "f_2"
-        assert str(f[-2]) == "f_abcdefg"
-        assert str(f[-3]) == "f_a"
-        assert str(f[-4]) == "f_4_"
-        assert str(f.BBB) == "f_BBB"
-        assert str(f[""]) == "f__" + str(id(""))
-        assert str(f["0"]) == "f__" + str(id("0"))
-        assert str(f["The End."]) == "f__" + str(id("The End."))
+        assert (f.a).safe_name() == "f_a"
+        assert (f.abcdefg).safe_name() == "f_abcdefg"
+        assert (f.abcdefghijkl).safe_name() == "f_abcdefghijkl"
+        assert (f.abcdefghijklm).safe_name() == "f_2"
+        assert (f[0]).safe_name() == "f_a"
+        assert (f[1]).safe_name() == "f_abcdefg"
+        assert (f[2]).safe_name() == "f_2"  # "f_abcdefgijklm" is too long
+        assert (f[3]).safe_name() == "f_3"
+        assert (f[-1]).safe_name() == "f_2"
+        assert (f[-2]).safe_name() == "f_abcdefg"
+        assert (f[-3]).safe_name() == "f_a"
+        assert (f[-4]).safe_name() == "f_4_"
+        assert (f.BBB).safe_name() == "f_BBB"
+        assert (f[""]).safe_name() == "f__" + str(id(""))
+        assert (f["0"]).safe_name() == "f__" + str(id("0"))
+        assert (f["The End."]).safe_name() == "f__" + str(id("The End."))
 
 
 def test_f_col_selector_invalid():
@@ -120,8 +119,8 @@ def test_f_col_selector_invalid():
 
 
 def test_f_expressions():
-    assert repr(f.C1 < f.C2) == "RelationalOpExpr((f_C1 < f_C2))"
-    assert str(f.C1 < f.C2) == "(f_C1 < f_C2)"
+    assert repr(f.C1 < f.C2) == "RelationalOpExpr((f.C1 < f.C2))"
+    assert str(f.C1 < f.C2) == "(f.C1 < f.C2)"
 
 
 
@@ -457,3 +456,26 @@ def test_div_mod(seed):
         [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
         [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)]
     ]
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+def test_expr_reuse():
+    # Check that an expression can later be used in another selector
+    # In particular, we first apply `expr` to `df0` (where A is the second
+    # column). If `expr` were to memorize that "A" maps to the second column,
+    # it would produce an error when applied to the second Frame which has
+    # only 1 column. See #1366.
+    expr = f.A < 1
+    df0 = dt.Frame([range(5), range(5)], names=["B", "A"])
+    df1 = df0[:, {"A": expr}]
+    df1.internal.check()
+    assert df1.names == ("A", )
+    assert df1.stypes == (stype.bool8, )
+    assert df1.topython() == [[True, False, False, False, False]]
+    df2 = df1[:, expr]
+    df2.internal.check()
+    assert df2.topython() == [[False, True, True, True, True]]
