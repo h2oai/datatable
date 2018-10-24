@@ -21,21 +21,21 @@ class ColSelectorExpr(BaseExpr):
         f[3]
         f["any name"]
     """
-    __slots__ = ["_dtexpr", "_colid"]
+    __slots__ = ["_dtexpr", "_colexpr", "_colid"]
 
     def __init__(self, dtexpr, selector):
         super().__init__()
         self._dtexpr = dtexpr
-        self._colid = selector
+        self._colexpr = selector
+        self._colid = None
         if not isinstance(selector, (int, str)):
             raise TTypeError("Column selector should be an integer or "
                              "a string, not %r" % type(selector))
 
     def resolve(self):
-        if not self._stype:
-            dt = self._dtexpr.get_datatable()
-            self._colid = dt.colindex(self._colid)
-            self._stype = self._dtexpr.stypes[self._colid]
+        dt = self._dtexpr.get_datatable()
+        self._colid = dt.colindex(self._colexpr)
+        self._stype = self._dtexpr.stypes[self._colid]
 
     def is_reduce_expr(self, ee):
         return self._colid in ee.groupby_cols
@@ -45,49 +45,46 @@ class ColSelectorExpr(BaseExpr):
         return self._colid
 
     def __str__(self):
-        # This will be used both as a key for node memoization, and the name of
-        # the variable that contains the value of the column (for `i`-th row).
-        # The name will look as follows:
+        strf = str(self._dtexpr)
+        name = self._colexpr
+        if isinstance(name, str) and ColSelectorExpr._colname_ok(name):
+            return "%s.%s" % (strf, name)
+        else:
+            return "%s[%r]" % (strf, name)
+
+    def safe_name(self):
+        # This will be used as the name of the variable that contains the value
+        # of the column (for `i`-th row). The name will look as follows:
         #     f_salary    or    f_17
         # where "f" is the id of the datatable, and "salary" / "17" is the
         # column name/ index.
         # The only reason we don't always use the latter form is to improve
         # code readability during debugging.
         #
-        # self._colid can be either a column name, or a column id. We must be
+        # self._colexpr can be either a column name, or a column id. We must be
         # careful to ensure that this method never throws an error, even if the
         # _dtexpr is unbound, or if the referenced column does not exist.
         #
         dt = self._dtexpr.get_datatable()
-        colid = self._colid
-        if dt:
-            if isinstance(colid, int):
-                if colid >= dt.ncols:
-                    colname = str(colid)
-                elif colid < -dt.ncols:
-                    colname = str(-colid) + "_"
-                else:
-                    colname = dt.names[colid]
-                    if not ColSelectorExpr._colname_ok(colname):
-                        colname = str(colid % dt.ncols)
+        if not dt:
+            return str(self)
+        colid = self._colexpr
+        if isinstance(colid, int):
+            if colid >= dt.ncols:
+                colname = str(colid)
+            elif colid < -dt.ncols:
+                colname = str(-colid) + "_"
             else:
-                colname = colid
+                colname = dt.names[colid]
                 if not ColSelectorExpr._colname_ok(colname):
-                    try:
-                        colname = str(dt.colindex(colname))
-                    except ValueError:
-                        colname = "_" + str(id(colname))
+                    colname = str(colid % dt.ncols)
         else:
-            if isinstance(colid, int):
-                if colid >= 0:
-                    colname = str(colid)
-                else:
-                    colname = str(-colid) + "_"
-            else:
-                if ColSelectorExpr._colname_ok(colid):
-                    colname = colid
-                else:
-                    colname = "_" + str(id(colid))
+            colname = colid
+            if not ColSelectorExpr._colname_ok(colname):
+                try:
+                    colname = str(dt.colindex(colname))
+                except ValueError:
+                    colname = "_" + str(id(colname))
         return str(self._dtexpr) + "_" + colname
 
     @staticmethod
@@ -95,6 +92,7 @@ class ColSelectorExpr(BaseExpr):
         return (0 < len(name) < 13 and
                 name.isalnum() and  # '_' are not considered alphanumeric
                 not name.isdigit())
+
 
 
     #---------------------------------------------------------------------------
@@ -122,7 +120,7 @@ class ColSelectorExpr(BaseExpr):
     def _isna(self, key, inode):
         self.resolve()
         # TODO: use rollup stats to determine if some variable is never NA
-        v = inode.make_keyvar(key, str(self) + "_isna", exact=True)
+        v = inode.make_keyvar(key, self.safe_name() + "_isna", exact=True)
         if self.stype == stype.str32:
             inode.addto_mainloop("int {var} = ({value} < 0);"
                                  .format(var=v, value=self.value(inode)))
