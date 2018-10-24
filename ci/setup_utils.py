@@ -358,7 +358,7 @@ def get_compile_includes():
             if not os.path.isdir(d):
                 includes[i] = None
                 log.info("Directory `%s` not found, ignoring" % d)
-    return sorted(includes)
+    return sorted(i for i in includes if i is not None)
 
 
 
