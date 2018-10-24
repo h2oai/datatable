@@ -562,7 +562,7 @@ def required_link_libraries():
         if islinux():
             return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
         if iswindows():
-            return ["libomp.dll"]
+            return ["libgomp-1.dll"]
     return []
 
 
