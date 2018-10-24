@@ -65,7 +65,7 @@ test_script:
   - copy "C:\Program Files\LLVM\bin\libomp.dll" "C:\Program Files\LLVM\lib\"
   #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - dir %PYTHON%
-  - "%PYTHON%/python.exe setup.py build --no-cache-dir"
+  - "%PYTHON%/python.exe setup.py build"
   - copy build/lib.*/datatable/lib/_datatable.* datatable/lib/
 
 artifacts:
