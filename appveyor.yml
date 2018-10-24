@@ -24,7 +24,7 @@ skip_branch_with_pr: true
 environment:
   global:
     GCC_PATH: mingw_64
-  LLVM6: C:\\Program Files\\LLVM
+  LLVM7: C:\\Program Files\\LLVM
   PATH: "%LLVM6%/bin;%PATH%"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
@@ -45,7 +45,7 @@ environment:
 
 before_build:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
-  - "ECHO %LLVM6%"
+  - "ECHO %LLVM7%"
 
 
 cache:
@@ -63,8 +63,8 @@ test_script:
   #- SET
   - copy "C:\tools\mingw64\x86_64-w64-mingw32\lib\libgomp-1.dll" "C:\Program Files\LLVM\lib\"
   #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  -
   #- "%PYTHON%/python.exe -m pip install .[testing] --no-cache-dir"
+  - make build
   - /ProgramData/chocolatey/lib/make/tools/bin/make.exe build
 
 artifacts:
