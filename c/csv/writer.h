@@ -74,8 +74,11 @@ private:
 
 void init_csvwrite_constants();
 
-__attribute__((format(printf, 2, 3)))
-void log_message(void *logger, const char *format, ...);
-
+#ifdef _WIN32
+  void log_message(void *logger, const char *format, ...);
+#else
+  __attribute__((format(printf, 2, 3)))
+  void log_message(void *logger, const char *format, ...);
+#endif
 
 #endif
