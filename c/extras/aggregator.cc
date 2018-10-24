@@ -26,16 +26,26 @@ PyObject* aggregate(PyObject*, PyObject* args) {
   PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIOI:aggregate", &arg1, &min_rows, &n_bins,
+  PyObject* col_min;
+  PyObject* col_max;
+
+  if (!PyArg_ParseTuple(args, "OiiiiiiIOIO!O!:aggregate", &arg1, &min_rows, &n_bins,
                         &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
-                        &progress_fn, &nthreads)) return nullptr;
+                        &progress_fn, &nthreads, &PyList_Type, &col_min, &PyList_Type, &col_max)) return nullptr;
+
+  size_t ncols_min = static_cast<size_t>(PyList_Size(col_min));
+  size_t ncols_max = static_cast<size_t>(PyList_Size(col_max));
+
   DataTable* dt = py::obj(arg1).to_frame();
+  if (ncols_min != ncols_max || ncols_min > static_cast<size_t>(dt->ncols)) {
+    throw ValueError() << "Size of min and max lists should be consistent with the data";
+  }
 
   Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
                  seed, progress_fn, nthreads);
 
-  // dt_exemplars changes in-place with a new column added to the end of it
-  DataTable* dt_members = agg.aggregate(dt).release();
+  // `dt` is aggregated in place getting an additional column `members_count`
+  DataTable* dt_members = agg.aggregate(dt, col_min, col_max).release();
   py::Frame* frame_members = py::Frame::from_datatable(dt_members);
 
   return frame_members;
@@ -64,12 +74,15 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 /*
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
-DataTablePtr Aggregator::aggregate(DataTable* dt) {
+DataTablePtr Aggregator::aggregate(DataTable* dt, PyObject* col_min, PyObject* col_max) {
   int32_t max_bins;
   bool was_sampled = false;
   progress(0.0);
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+  std::vector<double> min_double;
+  std::vector<double> max_double;
+  size_t ncols_stats = static_cast<size_t>(PyList_Size(col_min));
 
   cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
   cols_members[1] = nullptr;
@@ -78,11 +91,11 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   if (dt->nrows >= min_rows) {
     DataTablePtr dt_double = nullptr;
     Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
-    int32_t ncols = 0;
+    size_t ncols = 0;
     // Number of possible `N/A` bins for a particular aggregator.
     int32_t n_na_bins = 0;
 
-    for (int64_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(dt->ncols); ++i) {
       LType ltype = info(dt->columns[i]->stype()).ltype();
       switch (ltype) {
         case LType::BOOL:
@@ -90,7 +103,15 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
         case LType::REAL: {
                             cols_double[ncols] = dt->columns[i]->cast(SType::FLOAT64);
                             auto c = static_cast<RealColumn<double>*>(cols_double[ncols]);
-                            c->min(); // Pre-generating stats
+                            if (ncols < ncols_stats) {
+                              PyObject* item = PyList_GET_ITEM(col_min, ncols);
+                              min_double.push_back(PyFloat_AsDouble(item));
+                              item = PyList_GET_ITEM(col_max, ncols);
+                              max_double.push_back(PyFloat_AsDouble(item));
+                            } else {
+                              min_double.push_back(c->min());
+                              max_double.push_back(c->max());
+                            }
                             ncols++;
                             break;
                           }
@@ -104,19 +125,19 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;
                break;
-      case 1:  group_1d(dt_double, dt_members);
+      case 1:  group_1d(dt_double, dt_members, min_double, max_double);
                max_bins = n_bins;
                n_na_bins = 1;
                break;
-      case 2:  group_2d(dt_double, dt_members);
+      case 2:  group_2d(dt_double, dt_members, min_double, max_double);
                max_bins = nx_bins * ny_bins;
                n_na_bins = 3;
                break;
-      default: group_nd(dt_double, dt_members);
+      default: group_nd(dt_double, dt_members, min_double, max_double);
                max_bins = nd_max_bins;
     }
     was_sampled = random_sampling(dt_members, max_bins, n_na_bins);
-  } else {
+  } else { // Do no aggregation, too few rows
     group_0d(dt, dt_members);
   }
 
@@ -261,13 +282,15 @@ void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
 /*
 *  Call an appropriate function for 1D grouping.
 */
-void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members,
+                          std::vector<double> min,
+                          std::vector<double> max) {
   LType ltype = info(dt->columns[0]->stype()).ltype();
 
   switch (ltype) {
     case LType::BOOL:
     case LType::INT:
-    case LType::REAL:   group_1d_continuous(dt, dt_members); break;
+    case LType::REAL:   group_1d_continuous(dt, dt_members, min, max); break;
     case LType::STRING: group_1d_categorical(dt, dt_members); break;
     default:            throw ValueError() << "Datatype is not supported";
   }
@@ -286,7 +309,9 @@ void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 *  with NA bins (if ones exist) being gathered at the very beginning
 *  of the exemplar data frame.
 */
-void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members,
+                          std::vector<double> min,
+                          std::vector<double> max) {
   LType ltype0 = info(dt->columns[0]->stype()).ltype();
   LType ltype1 = info(dt->columns[1]->stype()).ltype();
 
@@ -296,8 +321,8 @@ void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
     case LType::REAL:    switch (ltype1) {
                            case LType::BOOL:
                            case LType::INT:
-                           case LType::REAL:   group_2d_continuous(dt, dt_members); break;
-                           case LType::STRING: group_2d_mixed(0, dt, dt_members); break;
+                           case LType::REAL:   group_2d_continuous(dt, dt_members, min, max); break;
+                           case LType::STRING: group_2d_mixed(0, dt, dt_members, min, max); break;
                            default:            throw ValueError() << "Datatype is not supported";
                          }
                          break;
@@ -305,7 +330,7 @@ void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
     case LType::STRING:  switch (ltype1) {
                            case LType::BOOL:
                            case LType::INT:
-                           case LType::REAL:   group_2d_mixed(1, dt, dt_members); break;
+                           case LType::REAL:   group_2d_mixed(1, dt, dt_members, min, max); break;
                            case LType::STRING: group_2d_categorical(dt, dt_members); break;
                            default:            throw ValueError() << "Datatype is not supported";
                          }
@@ -320,13 +345,15 @@ void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 *  Do 1D grouping for a continuous column, i.e. 1D binning.
 */
 void Aggregator::group_1d_continuous(const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+                                     DataTablePtr& dt_members,
+                                     std::vector<double> min,
+                                     std::vector<double> max) {
   auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
   const double* d_c0 = c0->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   double norm_factor, norm_shift;
-  set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
+  set_norm_coeffs(norm_factor, norm_shift, min[0], max[0], n_bins);
 
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
@@ -343,7 +370,10 @@ void Aggregator::group_1d_continuous(const DataTablePtr& dt,
 *  Do 2D grouping for two continuous columns, i.e. 2D binning.
 */
 void Aggregator::group_2d_continuous(const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+                                     DataTablePtr& dt_members,
+                                     std::vector<double> min,
+                                     std::vector<double> max
+                                     ) {
   auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
   auto c1 = static_cast<const RealColumn<double>*>(dt->columns[1]);
   const double* d_c0 = c0->elements_r();
@@ -352,8 +382,8 @@ void Aggregator::group_2d_continuous(const DataTablePtr& dt,
 
   double normx_factor, normx_shift;
   double normy_factor, normy_shift;
-  set_norm_coeffs(normx_factor, normx_shift, c0->min(), c0->max(), nx_bins);
-  set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
+  set_norm_coeffs(normx_factor, normx_shift, min[0], max[0], nx_bins);
+  set_norm_coeffs(normy_factor, normy_shift, min[1], max[1], ny_bins);
 
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < dt->nrows; ++i) {
@@ -478,10 +508,12 @@ void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
 *  to `group_2d_mixed_str`.
 */
 void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
-                                 DataTablePtr& dt_members) {
+                                 DataTablePtr& dt_members,
+                                 std::vector<double> min,
+                                 std::vector<double> max) {
   switch (dt->columns[!cont_index]->stype()) {
-    case SType::STR32:  group_2d_mixed_str<uint32_t>(cont_index, dt, dt_members); break;
-    case SType::STR64:  group_2d_mixed_str<uint64_t>(cont_index, dt, dt_members); break;
+    case SType::STR32:  group_2d_mixed_str<uint32_t>(cont_index, dt, dt_members, min, max); break;
+    case SType::STR64:  group_2d_mixed_str<uint64_t>(cont_index, dt, dt_members, min, max); break;
     default:            throw ValueError() << "Column type must be either STR32 or STR64";
   }
 }
@@ -494,7 +526,10 @@ void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
 */
 template<typename T>
 void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+                                     DataTablePtr& dt_members,
+                                     std::vector<double> min,
+                                     std::vector<double> max
+                                     ) {
   auto c_cat = static_cast<const StringColumn<T>*>(dt->columns[!cont_index]);
   const T* d_cat = c_cat->offsets();
 
@@ -511,7 +546,7 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
 
 
   double normx_factor, normx_shift;
-  set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
+  set_norm_coeffs(normx_factor, normx_shift, min[0], max[0], nx_bins);
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
@@ -556,7 +591,9 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
 *  However, for some datasets this `delta` results in too many (e.g. thousands) or
 *  too few (e.g. just one) exemplars.
 */
-void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members,
+                          std::vector<double> min,
+                          std::vector<double> max) {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   auto ncols = static_cast<int32_t>(dt->ncols);
@@ -585,8 +622,8 @@ void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members) {
       // Main loop over all the rows
       for (int32_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
-        if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
-        else normalize_row(dt, member, i);
+        if (ncols > max_dimensions) project_row(dt, member, i, pmatrix, min, max);
+        else normalize_row(dt, member, i, min, max);
 
         {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -768,14 +805,16 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 /*
 *  Normalize the row elements to [0,1).
 */
-void Aggregator::normalize_row(const DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+void Aggregator::normalize_row(const DataTablePtr& dt, DoublePtr& r, int32_t row_id,
+                               std::vector<double> min,
+                               std::vector<double> max) {
+  for (size_t i = 0; i < static_cast<size_t>(dt->ncols); ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
     const double* d_real = c_real->elements_r();
     double norm_factor, norm_shift;
 
-    set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
+    set_norm_coeffs(norm_factor, norm_shift, min[i], max[i], 1);
     r[static_cast<size_t>(i)] =  norm_factor * d_real[row_id] + norm_shift;
   }
 }
@@ -796,9 +835,9 @@ DoublePtr Aggregator::generate_pmatrix(const DataTablePtr& dt_exemplars) {
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
 
-  #pragma omp parallel for schedule(static)
+//  #pragma omp parallel for schedule(static)
   for (size_t i = 0;
-    i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
+    i < static_cast<size_t>(dt_exemplars->ncols * max_dimensions); ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -809,19 +848,21 @@ DoublePtr Aggregator::generate_pmatrix(const DataTablePtr& dt_exemplars) {
 /*
 *  Project a particular row on a subspace by using the projection matrix.
 */
-void Aggregator::project_row(const DataTablePtr& dt_exemplars, DoublePtr& r,
-                             int32_t row_id, DoublePtr& pmatrix) {
+void Aggregator::project_row(const DataTablePtr& dt, DoublePtr& r,
+                             int32_t row_id, DoublePtr& pmatrix,
+                             std::vector<double> min,
+                             std::vector<double> max) {
 
   std::memset(r.get(), 0, static_cast<size_t>(max_dimensions) * sizeof(double));
   int32_t n = 0;
-  for (size_t i = 0; i < static_cast<size_t>(dt_exemplars->ncols); ++i) {
-    Column* c = dt_exemplars->columns[i];
+  for (size_t i = 0; i < static_cast<size_t>(dt->ncols); ++i) {
+    Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*> (c);
     auto d_real = c_real->elements_r();
 
     if (!ISNA<double>(d_real[row_id])) {
       double norm_factor, norm_shift;
-      set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
+      set_norm_coeffs(norm_factor, norm_shift, min[i], max[i], 1);
       double norm_row = norm_factor * d_real[row_id] + norm_shift;
       for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
         r[j] +=  pmatrix[i * static_cast<size_t>(max_dimensions) + j] * norm_row;

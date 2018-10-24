@@ -128,10 +128,21 @@ def test_aggregate_1d_continuous_real_sorted():
                                [1, 4, 3, 3]]
 
 
-def test_aggregate_1d_continuous_real_random():
+def test_aggregate_1d_continuous_real_random_py_min_max():
+    min = [0.0]
+    max = [0.9]
+    aggregate_1d_continuous_real_random(min, max)
+    
+
+def test_aggregate_1d_continuous_real_random_dt_min_max():
+    aggregate_1d_continuous_real_random()
+    
+    
+def aggregate_1d_continuous_real_random(min=[], max=[]):
     n_bins = 3
     d_in = dt.Frame([0.7, 0.7, 0.5, 0.1, 0.0, 0.9, 0.1, 0.3, 0.4, 0.2, None, None, None])
-    d_members = aggregate(d_in, min_rows=0, n_bins=n_bins, progress_fn=report_progress)
+    d_members = aggregate(d_in, min_rows=0, n_bins=n_bins, progress_fn=report_progress,
+                          col_min=min, col_max=max)
     d_members.internal.check()
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -141,7 +152,7 @@ def test_aggregate_1d_continuous_real_random():
     assert d_in.ltypes == (ltype.real, ltype.int)
     assert d_in.topython() == [[None, 0.1, 0.5, 0.7],
                                [3, 5, 2, 3]]
-    
+
     
 def test_aggregate_1d_categorical_sorted():
     d_in = dt.Frame([None, "blue", "green", "indigo", "orange", "red", "violet",
@@ -215,13 +226,23 @@ def test_aggregate_2d_continuous_integer_sorted():
                                [1, 1, 4, 3, 3]]
 
 
-def test_aggregate_2d_continuous_integer_random():
+def test_aggregate_2d_continuous_integer_random_py_min_max():
+    min = [0, 1]
+    max = [9, 8]
+    aggregate_2d_continuous_integer_random(min, max)
+    
+
+def test_aggregate_2d_continuous_integer_random_dt_min_max():
+    aggregate_2d_continuous_integer_random()
+    
+
+def aggregate_2d_continuous_integer_random(min=[], max=[]):
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([[9, None, 8, 2, 3, 3, 0, 5, 5, 8, 1],
                      [3, None, 5, 8, 1, 4, 4, 8, 7, 6, 1]])
     d_members = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins,
-                          progress_fn=report_progress)
+                          progress_fn=report_progress, col_min=min, col_max=max)
     d_members.internal.check()
     assert d_members.shape == (11, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -354,12 +375,23 @@ def test_aggregate_2d_mixed_sorted():
                                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
 
-def test_aggregate_2d_mixed_random():
+def test_aggregate_2d_mixed_random_py_min_max():
+    min = [0]
+    max = [6]
+    aggregate_2d_mixed_random(min, max)
+    
+
+def test_aggregate_2d_mixed_random_dt_min_max():
+    aggregate_2d_mixed_random()
+    
+    
+def aggregate_2d_mixed_random(min=[], max=[]):
     nx_bins = 6
     d_in = dt.Frame([[1, 3, 0, None, None, 6, 6, None, 1, 2, 4],
                      [None, "blue", "indigo", "abc", "def", "red", "violet", "ghi", "yellow", 
                       "violet", "red"]])
-    d_members = aggregate(d_in, min_rows=0, nx_bins=nx_bins, progress_fn=report_progress)
+    d_members = aggregate(d_in, min_rows=0, nx_bins=nx_bins, progress_fn=report_progress,
+                          col_min=min, col_max=max)
     d_members.internal.check()
     assert d_members.shape == (11, 1)
     assert d_members.ltypes == (ltype.int,)
@@ -396,11 +428,23 @@ def test_aggregate_3d_categorical():
     assert d_in.topython() == a_in + members_count
     
     
-def test_aggregate_3d_real():
+    
+def test_aggregate_3d_real_py_min_max():
+    min = [0.1, 0.4, 0.0]
+    max = [1.0, 1.0, 1.0]
+    aggregate_3d_real(min, max)
+    
+
+def test_aggregate_3d_real_dt_min_max():
+    aggregate_3d_real()
+    
+    
+def aggregate_3d_real(min=[], max=[]):
     d_in = dt.Frame([[0.95, 0.50, 0.55, 0.10, 0.90, 0.50, 0.90, 0.50, 0.90, 1.00],
                      [1.00, 0.55, 0.45, 0.05, 0.95, 0.45, 0.90, 0.40, 1.00, 0.90],
                      [0.90, 0.50, 0.55, 0.00, 1.00, 0.50, 0.95, 0.45, 0.95, 0.95]])
-    d_members = aggregate(d_in, min_rows=0, nd_max_bins=3, progress_fn=report_progress)
+    d_members = aggregate(d_in, min_rows=0, nd_max_bins=3, progress_fn=report_progress,
+                          col_min=min, col_max=max)
     a_members = d_members.topython()[0]
     d = d_in.sort("C0")
     ri = d.internal.rowindex.tolist()    
