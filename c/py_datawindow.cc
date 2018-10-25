@@ -99,12 +99,15 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
 
     int n_init_rows = 0;
     for (int64_t j = row0; j < row1; ++j) {
+      // Note: `irow` could be NA, indicating that the value does not
+      // exist and therefore should be treated as NA.
       int64_t irow = no_rindex? j :
                rindex_is_arr32? rindexarr32[j] :
                rindex_is_arr64? rindexarr64[j] :
                       rindexstart + rindexstep * j;
       int itype = static_cast<int>(col->stype());
-      PyObject *value = py_stype_formatters[itype](col, irow);
+      PyObject *value = irow >= 0? py_stype_formatters[itype](col, irow)
+                                 : py::None().release();
       if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }
