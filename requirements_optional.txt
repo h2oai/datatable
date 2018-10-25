@@ -1,0 +1,7 @@
+blessed
+llvmlight
+numpy
+pandas
+psutil
+typesentry
+xlrd
