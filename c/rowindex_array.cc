@@ -254,11 +254,24 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
 template <typename T>
 void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
   const T* data = arr.data();
-  if (length <= 1) {
-    min = max = (length == 0) ? 0 : static_cast<T>(data[0]);
-  } else if (is_sorted) {
-    min = static_cast<T>(data[0]);
-    max = static_cast<T>(data[length - 1]);
+  if (length == 0) {
+    min = max = 0;
+  } else if (is_sorted || length == 1) {
+    constexpr int64_t NA = static_cast<int64_t>(GETNA<T>());
+    min = static_cast<int64_t>(data[0]);
+    max = static_cast<int64_t>(data[length - 1]);
+    if (min == NA || max == NA) {
+      if (min == NA && max == NA) min = max = 0;
+      else if (min == NA) {
+        int64_t j = 1;
+        while (j < length && ISNA<T>(data[j])) ++j;
+        min = static_cast<int64_t>(data[j]);
+      } else {
+        int64_t j = length - 2;
+        while (j >= 0 && ISNA<T>(data[j])) --j;
+        max = static_cast<int64_t>(data[j]);
+      }
+    }
     if (min > max) std::swap(min, max);
   } else {
     T tmin = std::numeric_limits<T>::max();
@@ -267,12 +280,14 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
         reduction(min:tmin) reduction(max:tmax)
     for (int64_t j = 0; j < length; ++j) {
       T t = data[j];
+      if (ISNA<T>(t)) continue;
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
     min = tmin;
     max = tmax;
   }
+  xassert(min >= 0 && max >= min);
 }
 
 
@@ -534,10 +549,7 @@ static void verify_integrity_helper(
   bool check_sorted = sorted;
   for (size_t i = 0; i < zlen; ++i) {
     T x = ind[i];
-    if (ISNA<T>(x)) {
-      throw AssertionError()
-          << "Element " << i << " in the ArrayRowIndex is NA";
-    }
+    if (ISNA<T>(x)) continue;
     if (x < 0) {
       throw AssertionError()
           << "Element " << i << " in the ArrayRowIndex is negative: " << x;

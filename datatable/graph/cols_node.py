@@ -459,7 +459,7 @@ def process_column(col, df, new_cols_allowed=False):
         else:
             raise TValueError("%r is not integer-valued" % col)
 
-    if isinstance(col, ColSelectorExpr):
+    if isinstance(col, ColSelectorExpr) and col._dtexpr.get_datatable() == df:
         col.resolve()
         return col.col_index
 
