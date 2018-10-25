@@ -73,7 +73,7 @@ inline static T op_abs(T x) {
 
 template <typename T>
 inline static double op_exp(T x) {
-  return ISNA<T>(x) ? GETNA<double>() : exp(x);
+  return ISNA<T>(x) ? GETNA<double>() : exp(static_cast<double>(x));
 }
 
 

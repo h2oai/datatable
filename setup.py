@@ -42,7 +42,11 @@ def get_c_sources(folder, include_headers=False):
     for root, dirs, files in os.walk(folder):
         for name in files:
             ext = os.path.splitext(name)[1]
-            if ext in allowed_extensions:
+            if name == "types.cc":
+                # Make sure `types.cc` is compiled first, as it has multiple
+                # useful static assertions.
+                sources.insert(0, os.path.join(root, name))
+            elif ext in allowed_extensions:
                 sources.append(os.path.join(root, name))
     return sources
 

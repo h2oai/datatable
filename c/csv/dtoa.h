@@ -170,9 +170,10 @@
 #define dt_csv_DTOA_H
 #include <stdint.h>
 
-typedef union { double d; uint64_t u; }  _dbl_u64;
-typedef union { float f;  uint32_t u; }  _flt_u32;
-typedef unsigned __int128  uint128_t;
+#ifndef _WIN32
+  using uint128_t = unsigned __int128;
+  #define INT128_SUPPORTED
+#endif
 
 #define F64_SIGN_MASK  0x8000000000000000u
 #define F64_INFINITY   0x7FF0000000000000u
@@ -836,7 +837,11 @@ static const uint32_t Atable32[256] = {
 inline void dtoa(char **pch, double dvalue)
 {
   char *ch = *pch;
-  uint64_t value = (_dbl_u64{ .d = dvalue }).u;
+  // This is the only safe way to convert double to uint64_t, see
+  // https://en.cppreference.com/w/cpp/language/reinterpret_cast
+  // at the bottom of the page.
+  uint64_t value;
+  std::memcpy(&value, &dvalue, 8);
 
   if (value & F64_SIGN_MASK) {
     *ch++ = '-';
@@ -863,9 +868,22 @@ inline void dtoa(char **pch, double dvalue)
   int E = ((201 + eb*1233) >> 12) - 308;
   uint64_t G = (value << 11) | F64_SIGN_MASK;
   uint64_t A = Atable64[eb];
-  uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
-  uint64_t ph = static_cast<uint64_t>(p >> 64);
-  uint64_t pl = static_cast<uint64_t>(p);
+  #ifdef INT128_SUPPORTED
+    uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
+    uint64_t ph = static_cast<uint64_t>(p >> 64);
+    uint64_t pl = static_cast<uint64_t>(p);
+  #else
+    uint64_t Gh = G >> 32;
+    uint64_t Gl = G & 0xFFFFFFFFu;
+    uint64_t Ah = A >> 32;
+    uint64_t Al = A & 0xFFFFFFFFu;
+    // p = (Gh * 1p32 + Gl) * (Ah * 1p32 + Al)
+    //   = (Gh*Ah) * 1p64 + (Gh*Al + Gl*Ah) * 1p32 + (Gl*Al);
+    uint64_t t1 = Gh * Al;  // note: t1+t2 could overflow
+    uint64_t t2 = Gl * Ah;
+    uint64_t ph = Gh * Ah + (t1 >> 32) + (t2 >> 32);
+    uint64_t pl = Gl * Al + (t1 << 32) + (t2 << 32);
+  #endif
   int64_t D = static_cast<int64_t>(ph + (pl >> 63));
   int eps = static_cast<int>((A + (1ull << 53)) >> 54);
 
@@ -974,7 +992,8 @@ inline void dtoa(char **pch, double dvalue)
 inline void ftoa(char **pch, float fvalue)
 {
   char *ch = *pch;
-  uint32_t value = (_flt_u32{ .f = fvalue }).u;
+  uint32_t value;
+  std::memcpy(&value, &fvalue, 4);
 
   if (value & F32_SIGN_MASK) {
     *ch++ = '-';

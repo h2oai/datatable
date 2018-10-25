@@ -103,7 +103,7 @@ PyObject* get_refcount(pycolumn::obj*) {
 
 PyObject* get_nrows(pycolumn::obj* self) {
   Column*& col = self->ref;
-  return PyLong_FromLong(col->nrows);
+  return PyLong_FromInt64(col->nrows);
 }
 
 

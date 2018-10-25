@@ -10,6 +10,11 @@
 #include <sys/stat.h>  // fstat
 #include <string>      // std::string
 
+#ifdef _WIN32
+  // mode_t is not defined on Windows
+  typedef int mode_t;
+#endif
+
 
 class File
 {

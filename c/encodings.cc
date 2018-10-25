@@ -39,8 +39,7 @@ extern const uint8_t hexdigits[256];  // defined in c/csv/freadLookups.h
  *     sequences.
  */
 int decode_sbcs(
-    const unsigned char *__restrict__ src, int len,
-    unsigned char *__restrict__ dest, uint32_t *map
+    const uint8_t* src, int len, uint8_t* dest, uint32_t *map
 ) {
   const unsigned char* end = src + len;
   unsigned char* d = dest;
