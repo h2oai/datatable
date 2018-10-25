@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <limits>                // std::numeric_limits
 #include "csv/reader_parsers.h"
 #include "csv/fread.h"    // FreadTokenizer
 #include "utils/assert.h"
@@ -99,38 +100,52 @@ void parse_bool8_uppercase(FreadTokenizer& ctx) {
 
 
 //------------------------------------------------------------------------------
-// Int32
+// Int32 / Int64
 //------------------------------------------------------------------------------
 
-// Note: the input buffer must not end with a digit (otherwise buffer overrun
-// would occur)!
-// See microbench/fread/int32.cpp for performance tests
+// See (?)microbench/fread/int32.cpp for performance tests
 //
-void parse_int32_simple(FreadTokenizer& ctx) {
+template <typename T, bool allow_leading_zeroes>
+void parse_int_simple(FreadTokenizer& ctx) {
+  constexpr int MAX_DIGITS = sizeof(T) == 4? 10 : 19;
+  constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
+  constexpr T NA_VALUE = std::numeric_limits<T>::min();
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
-  const char* start = ch;  // to check if at least one digit is present
-  uint_fast64_t acc = 0;   // value accumulator
-  uint8_t  digit;          // current digit being read
-  int sf = 0;              // number of significant digits (without initial 0s)
+  const char* start = ch;     // to check if at least one digit is present
+  uint64_t value = 0;         // value accumulator
+  uint8_t  digit;             // current digit being read
+  int sd = 0;                 // number of significant digits (without initial 0s)
 
-  while (*ch=='0') ch++;   // skip leading zeros
-  while ((digit = static_cast<uint8_t>(ch[sf] - '0')) < 10) {
-    acc = 10*acc + digit;
-    sf++;
+  if (allow_leading_zeroes) {
+    while (*ch == '0') ch++;  // skip leading zeros
+  } else if (*ch == '0') {
+    *reinterpret_cast<T*>(ctx.target) = 0;
+    ctx.ch = ch + 1;
+    return;
   }
-  ch += sf;
-  // Usually `0 < sf < 10`, and the condition short-circuits.
-  // If `sf == 0` then the input is valid iff it is "0" (or multiple 0s,
+  while ((digit = static_cast<uint8_t>(ch[sd] - '0')) < 10) {
+    value = 10*value + digit;
+    sd++;
+  }
+  ch += sd;
+  // Usually `0 < sd < MAX_DIGITS`, and no other checks are needed.
+  // If `sd == 0` then the input is valid iff it is "0" (or multiple 0s,
   // possibly with a sign), which can be checked via `ch > start`.
-  // If `sf == 10`, then we explicitly check for overflow ≤2147483647.
-  if ((sf? sf < 10 : ch > start) || (sf == 10 && acc <= INT32_MAX)) {
-    ctx.target->int32 = negative? -static_cast<int32_t>(acc)
-                                :  static_cast<int32_t>(acc);
+  // If `sd == MAX_DIGITS`, then we need to check that the value did not
+  // overflow. Since the accumulator is uint64_t, it can hold integer
+  // values up to 18446744073709551615. This is enough to fit any 10- or
+  // 19-digit number (even 10**19 - 1).
+  if ((sd > 0 && sd < MAX_DIGITS) ||
+      (sd == 0 && ch > start) ||
+      (sd == MAX_DIGITS && value <= MAX_VALUE))
+  {
+    T x = static_cast<T>(value);
+    *reinterpret_cast<T*>(ctx.target) = (x ^ -negative) + negative;
     ctx.ch = ch;
   } else {
-    ctx.target->int32 = NA_INT32;
+    *reinterpret_cast<T*>(ctx.target) = NA_VALUE;
   }
 }
 
@@ -145,7 +160,7 @@ void parse_int32_simple(FreadTokenizer& ctx) {
 // `T` should be either int32_t or int64_t
 //
 template <typename T>
-void parse_intNN_separated(FreadTokenizer& ctx) {
+void parse_intNN_grouped(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   bool quoted = (*ch == ctx.quote);
   ch += quoted;
@@ -206,39 +221,6 @@ void parse_intNN_separated(FreadTokenizer& ctx) {
   fail:
     if (sizeof(T) == 4) ctx.target->int32 = NA_INT32;
     if (sizeof(T) == 8) ctx.target->int64 = NA_INT64;
-}
-
-
-
-//------------------------------------------------------------------------------
-// Int64
-//------------------------------------------------------------------------------
-
-void parse_int64_simple(FreadTokenizer& ctx) {
-  const char* ch = ctx.ch;
-  bool negative = (*ch == '-');
-  ch += (negative || *ch == '+');
-  const char* start = ch;  // to check if at least one digit is present
-  uint_fast64_t acc = 0;   // value accumulator
-  uint8_t  digit;          // current digit being read
-  int sf = 0;              // number of significant digits (without initial 0s)
-
-  while (*ch=='0') ch++;   // skip leading zeros
-  while ((digit = static_cast<uint8_t>(ch[sf] - '0')) < 10) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  // The largest admissible value is "9223372036854775807", which has 19 digits.
-  // At the same time `uint64_t` can hold values up to 18446744073709551615,
-  // which is sufficient to hold any 19-digit values (even 10**19 - 1).
-  if ((sf? sf < 19 : ch > start) || (sf == 19 && acc <= INT64_MAX)) {
-    ctx.target->int64 = negative? -static_cast<int64_t>(acc)
-                                :  static_cast<int64_t>(acc);
-    ctx.ch = ch;
-  } else {
-    ctx.target->int64 = NA_INT64;
-  }
 }
 
 
@@ -738,10 +720,10 @@ void ParserLibrary::init_parsers() {
   add(PT::BoolU,        "Bool8/uppercase", 'b', 1, SType::BOOL,    parse_bool8_uppercase);
   add(PT::BoolT,        "Bool8/titlecase", 'b', 1, SType::BOOL,    parse_bool8_titlecase);
   add(PT::BoolL,        "Bool8/lowercase", 'b', 1, SType::BOOL,    parse_bool8_lowercase);
-  add(PT::Int32,        "Int32",           'i', 4, SType::INT32,   parse_int32_simple);
-  add(PT::Int32Sep,     "Int32/separated", 'i', 4, SType::INT32,   parse_intNN_separated<int32_t>);
-  add(PT::Int64,        "Int64",           'I', 8, SType::INT64,   parse_int64_simple);
-  add(PT::Int64Sep,     "Int64/separated", 'I', 8, SType::INT64,   parse_intNN_separated<int64_t>);
+  add(PT::Int32,        "Int32",           'i', 4, SType::INT32,   parse_int_simple<int32_t, true>);
+  add(PT::Int32Sep,     "Int32/grouped",   'i', 4, SType::INT32,   parse_intNN_grouped<int32_t>);
+  add(PT::Int64,        "Int64",           'I', 8, SType::INT64,   parse_int_simple<int64_t, true>);
+  add(PT::Int64Sep,     "Int64/grouped",   'I', 8, SType::INT64,   parse_intNN_grouped<int64_t>);
   add(PT::Float32Hex,   "Float32/hex",     'f', 4, SType::FLOAT32, parse_float32_hex);
   add(PT::Float64Plain, "Float64",         'F', 8, SType::FLOAT64, parse_float64_simple);
   add(PT::Float64Ext,   "Float64/ext",     'F', 8, SType::FLOAT64, parse_float64_extended);
