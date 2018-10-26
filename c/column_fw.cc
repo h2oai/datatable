@@ -190,17 +190,17 @@ void FwColumn<T>::reify() {
 
 
 template <typename T>
-void FwColumn<T>::resize_and_fill(int64_t new_nrows)
+void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
   if (new_nrows == nrows) return;
 
-  mbuf.resize(sizeof(T) * static_cast<size_t>(new_nrows));
+  mbuf.resize(sizeof(T) * new_nrows);
 
   if (new_nrows > nrows) {
     // Replicate the value or fill with NAs
     T fill_value = nrows == 1? get_elem(0) : na_elem;
     T* data_dest = static_cast<T*>(mbuf.wptr());
-    for (int64_t i = nrows; i < new_nrows; ++i) {
+    for (size_t i = nrows; i < new_nrows; ++i) {
       data_dest[i] = fill_value;
     }
   }

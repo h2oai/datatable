@@ -63,17 +63,17 @@ void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf) {
 }
 
 
-void PyObjectColumn::resize_and_fill(int64_t new_nrows) {
+void PyObjectColumn::resize_and_fill(size_t new_nrows) {
   if (new_nrows == nrows) return;
 
-  mbuf.resize(sizeof(PyObject*) * static_cast<size_t>(new_nrows));
+  mbuf.resize(sizeof(PyObject*) * new_nrows);
 
   if (nrows == 1) {
     // Replicate the value; the case when we need to fill with NAs is already
     // handled by `mbuf.resize()`
     PyObject* fill_value = get_elem(0);
     PyObject** dest_data = this->elements_w();
-    for (int64_t i = 1; i < new_nrows; ++i) {
+    for (size_t i = 1; i < new_nrows; ++i) {
       Py_DECREF(dest_data[i]);
       dest_data[i] = fill_value;
     }

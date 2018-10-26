@@ -427,7 +427,7 @@ size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }
 int64_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::reify() {}
-void VoidColumn::resize_and_fill(int64_t) {}
+void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const Column*) {}

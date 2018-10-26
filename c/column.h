@@ -133,7 +133,7 @@ public:
    * This method can be used to both increase and reduce the size of the
    * column.
    */
-  virtual void resize_and_fill(int64_t nrows) = 0;
+  virtual void resize_and_fill(size_t nrows) = 0;
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
@@ -341,7 +341,7 @@ public:
   void set_elem(int64_t i, T value);
 
   int64_t data_nrows() const override;
-  void resize_and_fill(int64_t nrows) override;
+  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
@@ -604,7 +604,7 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  void resize_and_fill(int64_t nrows) override;
+  void resize_and_fill(size_t nrows) override;
   void fill_na() override;
   void reify() override;
   friend Column;
@@ -632,7 +632,7 @@ public:
   bool is_fixedwidth() const override;
 
   void reify() override;
-  void resize_and_fill(int64_t nrows) override;
+  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
 
@@ -704,7 +704,7 @@ class VoidColumn : public Column {
     bool is_fixedwidth() const override;
     int64_t data_nrows() const override;
     void reify() override;
-    void resize_and_fill(int64_t) override;
+    void resize_and_fill(size_t) override;
     void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
