@@ -80,21 +80,6 @@ DataTable::~DataTable() {
 }
 
 
-// temp
-static colvec array2vec(Column** cols) {
-  colvec res;
-  for (size_t n = 0; cols[n]; ++n) {
-    res.push_back(cols[n]);
-  }
-  delete cols;
-  return res;
-}
-
-// temp
-DataTable::DataTable(Column** cols)
-  : DataTable(array2vec(cols)) {}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -105,15 +90,14 @@ DataTable::DataTable(Column** cols)
  * Make a shallow copy of the current DataTable.
  */
 DataTable* DataTable::copy() const {
-  Column** cols = new Column*[ncols + 1];
-  for (int64_t i = 0; i < ncols; ++i) {
-    cols[i] = columns[i]->shallowcopy();
+  colvec newcols;
+  newcols.reserve(ncols);
+  for (auto col : columns) {
+    // Once Column becomes a proper class with copy-semantics, the `columns`
+    // vector can be default-copied.
+    newcols.push_back(col->shallowcopy());
   }
-  cols[ncols] = nullptr;
-
-  DataTable* newdt = new DataTable(cols);
-  newdt->copy_names_from(this);
-  return newdt;
+  return new DataTable(std::move(newcols), this);
 }
 
 
@@ -265,14 +249,12 @@ size_t DataTable::memory_footprint()
 //------------------------------------------------------------------------------
 
 DataTable* DataTable::_statdt(colmakerfn f) const {
-  Column** out_cols = new Column*[ncols + 1];
-  for (int64_t i = 0; i < ncols; ++i) {
-    out_cols[i] = (columns[i]->*f)();
+  colvec out_cols;
+  out_cols.reserve(ncols);
+  for (auto col : columns) {
+    out_cols.push_back((col->*f)());
   }
-  out_cols[ncols] = nullptr;
-  DataTable* res = new DataTable(out_cols);
-  res->names = names;
-  return res;
+  return new DataTable(std::move(out_cols), this);
 }
 
 DataTable* DataTable::countna_datatable() const { return _statdt(&Column::countna_column); }

@@ -76,7 +76,8 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 
   if (dt->nrows >= min_rows) {
     DataTablePtr dt_double = nullptr;
-    Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
+    std::vector<Column*> cols_double;
+    cols_double.reserve(dt->ncols);
     int32_t ncols = 0;
     // Number of possible `N/A` bins for a particular aggregator.
     int32_t n_na_bins = 0;
@@ -87,18 +88,23 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
         case LType::BOOL:
         case LType::INT:
         case LType::REAL: {
-                            cols_double[ncols] = dt->columns[i]->cast(SType::FLOAT64);
-                            auto c = static_cast<RealColumn<double>*>(cols_double[ncols]);
-                            c->min(); // Pre-generating stats
-                            ncols++;
-                            break;
-                          }
-        default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
+          auto c = static_cast<RealColumn<double>*>(
+                      dt->columns[i]->cast(SType::FLOAT64));
+          c->min(); // Pre-generating stats
+          cols_double.push_back(c);
+          ncols++;
+          break;
+        }
+        default: {
+          if (dt->ncols < 3) {
+            cols_double.push_back(dt->columns[i]->shallowcopy());
+            ncols++;
+          }
+        }
       }
     }
 
-    cols_double[ncols] = nullptr;
-    dt_double = DataTablePtr(new DataTable(cols_double));
+    dt_double = DataTablePtr(new DataTable(std::move(cols_double)));
     switch (dt_double->ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;

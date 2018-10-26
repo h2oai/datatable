@@ -74,7 +74,6 @@ class DataTable {
     DataTable(std::vector<Column*>&& cols, const std::vector<std::string>&);
     DataTable(std::vector<Column*>&& cols, const DataTable*);
     ~DataTable();
-    DataTable(Column**); // TEMP
 
     DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
