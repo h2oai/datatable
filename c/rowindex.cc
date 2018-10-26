@@ -141,7 +141,7 @@ RowIndex RowIndex::uplift(const RowIndex& ri2) const {
 }
 
 
-RowIndex RowIndex::inverse(int64_t nrows) const {
+RowIndex RowIndex::inverse(size_t nrows) const {
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows. The inverse
     // of that is a 0-length RowIndex.

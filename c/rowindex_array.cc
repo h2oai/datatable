@@ -454,7 +454,7 @@ void ArrayRowIndexImpl::compactify()
 
 template <typename TI, typename TO>
 RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
-    const dt::array<TI>& inputs, int64_t nrows) const
+    const dt::array<TI>& inputs, size_t nrows) const
 {
   size_t newsize = static_cast<size_t>(nrows - length);
   size_t inpsize = inputs.size();
@@ -480,7 +480,7 @@ RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
 }
 
 
-RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
+RowIndexImpl* ArrayRowIndexImpl::inverse(size_t nrows) const {
   xassert(nrows >= length);
   if (type == RowIndexType::RI_ARR32) {
     if (nrows <= INT32_MAX)

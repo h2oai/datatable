@@ -36,13 +36,13 @@ SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
   SliceRowIndexImpl::check_triple(i0, n, di);
   type = RowIndexType::RI_SLICE;
   start = i0;
-  length = n;
+  length = static_cast<size_t>(n);
   step = di;
   if (length == 0) {
     min = max = 0;
   } else {
     min = start;
-    max = start + step * (length - 1);
+    max = start + step * (n - 1);
     if (step < 0) std::swap(min, max);
   }
 }
@@ -73,14 +73,14 @@ int64_t SliceRowIndexImpl::nth(int64_t i) const {
 
 RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   RowIndexType uptype = rii->type;
-  size_t zlen = static_cast<size_t>(length);
+  int64_t ilen = static_cast<int64_t>(length);
 
   // Product of 2 slices is again a slice.
   if (uptype == RI_SLICE) {
     SliceRowIndexImpl* uprii = static_cast<SliceRowIndexImpl*>(rii);
     int64_t start_new = uprii->start + uprii->step * start;
     int64_t step_new = uprii->step * step;
-    return new SliceRowIndexImpl(start_new, length, step_new);
+    return new SliceRowIndexImpl(start_new, ilen, step_new);
   }
 
   // Special case: if `step` is 0, then A just contains the same row
@@ -91,7 +91,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     int64_t start_new =
       (uptype == RI_ARR32)? static_cast<int64_t>(arii->indices32()[start]) :
       (uptype == RI_ARR64)? arii->indices64()[start] : -1;
-    return new SliceRowIndexImpl(start_new, length, 0);
+    return new SliceRowIndexImpl(start_new, ilen, 0);
   }
 
   // if C->B is ARR32, then all row indices in C are int32, and thus any
@@ -99,10 +99,10 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   // step = 0 and n > INT32_MAX, which case we handled above).
   if (uptype == RI_ARR32) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    arr32_t res(zlen);
+    arr32_t res(length);
     const int32_t* srcrows = arii->indices32();
     int64_t j = start;
-    for (size_t i = 0; i < zlen; ++i) {
+    for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
@@ -111,10 +111,10 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
 
   if (uptype == RI_ARR64) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    arr64_t res(zlen);
+    arr64_t res(length);
     const int64_t* srcrows = arii->indices64();
     int64_t j = start;
-    for (size_t i = 0; i < zlen; ++i) {
+    for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
@@ -126,7 +126,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
 
 
 
-RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
+RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
   xassert(nrows >= length);
   int64_t newcount = nrows - length;
   int64_t tstart = start;

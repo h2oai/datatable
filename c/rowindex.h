@@ -50,7 +50,7 @@ class RowIndexImpl {
 
     virtual int64_t nth(int64_t i) const = 0;
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
-    virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
+    virtual RowIndexImpl* inverse(size_t nrows) const = 0;
     virtual void shrink(size_t n) = 0;
     virtual RowIndexImpl* shrunk(size_t n) = 0;
     virtual size_t memory_footprint() const = 0;
@@ -86,7 +86,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
-    RowIndexImpl* inverse(int64_t nrows) const override;
+    RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;
     size_t memory_footprint() const override;
@@ -105,7 +105,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 
     // Helper for `inverse()`
     template <typename TI, typename TO>
-    RowIndexImpl* inverse_impl(const dt::array<TI>& inp, int64_t nrows) const;
+    RowIndexImpl* inverse_impl(const dt::array<TI>& inp, size_t nrows) const;
 };
 
 
@@ -125,7 +125,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
 
     int64_t nth(int64_t i) const override;
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
-    RowIndexImpl* inverse(int64_t nrows) const override;
+    RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;
     size_t memory_footprint() const override;
@@ -232,7 +232,7 @@ class RowIndex {
     int64_t slice_step() const { return impl_asslice()->step; }
 
     void extract_into(arr32_t&) const;
-    RowIndex inverse(int64_t nrows) const;
+    RowIndex inverse(size_t nrows) const;
 
     /**
      * Return the RowIndex which is the result of applying current RowIndex to
