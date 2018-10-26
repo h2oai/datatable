@@ -387,10 +387,10 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
 
 template <typename T>
 void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                                 int64_t new_nrows, bool col_empty)
+                                 size_t new_nrows, bool col_empty)
 {
   // Determine the size of the memory to allocate
-  size_t old_nrows = static_cast<size_t>(nrows);
+  size_t old_nrows = nrows;
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
     new_strbuf_size += strbuf.size();
@@ -406,7 +406,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf.size();
   }
-  size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(new_nrows) + 1);
+  size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
@@ -417,8 +417,8 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   T* offs = offsets_w();
 
   // Move the original offsets
-  int64_t rows_to_fill = 0;  // how many rows need to be filled with NAs
-  T curr_offset = 0;   // Current offset within string data section
+  size_t rows_to_fill = 0;  // how many rows need to be filled with NAs
+  T curr_offset = 0;        // Current offset within string data section
   offs[-1] = 0;
   if (col_empty) {
     rows_to_fill += old_nrows;
@@ -432,13 +432,13 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     } else {
       if (rows_to_fill) {
         const T na = curr_offset | GETNA<T>();
-        set_value(offs, &na, sizeof(T), static_cast<size_t>(rows_to_fill));
+        set_value(offs, &na, sizeof(T), rows_to_fill);
         offs += rows_to_fill;
         rows_to_fill = 0;
       }
       const T* col_offsets = static_cast<const StringColumn<T>*>(col)->offsets();
-      int64_t col_nrows = col->nrows;
-      for (int64_t j = 0; j < col_nrows; ++j) {
+      size_t col_nrows = col->nrows;
+      for (size_t j = 0; j < col_nrows; ++j) {
         T off = col_offsets[j];
         *offs++ = off + curr_offset;
       }
@@ -454,7 +454,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   }
   if (rows_to_fill) {
     const T na = curr_offset | GETNA<T>();
-    set_value(offs, &na, sizeof(T), static_cast<size_t>(rows_to_fill));
+    set_value(offs, &na, sizeof(T), rows_to_fill);
   }
 }
 
@@ -657,8 +657,9 @@ void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
   const uint32_t* src_data = this->offsets();
   uint64_t* trg_data = target->offsets_w();
   uint64_t dNA = GETNA<uint64_t>() - GETNA<uint32_t>();
+  trg_data[-1] = 0;
   #pragma omp parallel for schedule(static)
-  for (int64_t i = -1; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     uint32_t v = src_data[i];
     trg_data[i] = ISNA<uint32_t>(v)? v + dNA : v;
   }

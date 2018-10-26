@@ -102,7 +102,7 @@ void PyObjectColumn::reify() {
 
 
 void PyObjectColumn::rbind_impl(
-  std::vector<const Column*>& columns, int64_t nnrows, bool col_empty)
+  std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
 {
   size_t old_nrows = static_cast<size_t>(nrows);
   size_t new_nrows = static_cast<size_t>(nnrows);

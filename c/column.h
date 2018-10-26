@@ -78,15 +78,15 @@ protected:
   mutable Stats* stats;
 
 public:  // TODO: convert this into private
-  int64_t nrows;
+  size_t nrows;
 
 public:
-  static Column* new_data_column(SType, int64_t nrows);
-  static Column* new_na_column(SType, int64_t nrows);
-  static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
+  static Column* new_data_column(SType, size_t nrows);
+  static Column* new_na_column(SType, size_t nrows);
+  static Column* new_mmap_column(SType, size_t nrows, const std::string& filename);
+  static Column* open_mmap_column(SType, size_t nrows, const std::string& filename,
                                   bool recode = false);
-  static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
+  static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
@@ -277,13 +277,13 @@ public:
   Stats* get_stats_if_exist() const { return stats; }
 
 protected:
-  Column(int64_t nrows = 0);
+  Column(size_t nrows = 0);
   virtual void init_data() = 0;
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(std::vector<const Column*>& columns,
-                          int64_t nrows, bool isempty) = 0;
+                          size_t nrows, bool isempty) = 0;
 
   /**
    * These functions are designed to cast the current column into another type.
@@ -355,7 +355,7 @@ protected:
   void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
   void fill_na() override;
 
@@ -601,7 +601,7 @@ protected:
   void cast_into(StringColumn<uint64_t>*) const override;
 
   void replace_buffer(MemoryRange&&) override;
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
   void resize_and_fill(int64_t nrows) override;
@@ -663,7 +663,7 @@ protected:
   void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
   // void cast_into(BoolColumn*) const override;
@@ -705,7 +705,7 @@ class VoidColumn : public Column {
     int64_t data_nrows() const override;
     void reify() override;
     void resize_and_fill(int64_t) override;
-    void rbind_impl(std::vector<const Column*>&, int64_t, bool) override;
+    void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;

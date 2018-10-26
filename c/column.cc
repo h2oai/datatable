@@ -15,7 +15,7 @@
 #include "utils/file.h"
 
 
-Column::Column(int64_t nrows_)
+Column::Column(size_t nrows_)
     : stats(nullptr),
       nrows(nrows_) {}
 
@@ -39,21 +39,21 @@ Column* Column::new_column(SType stype) {
 }
 
 
-Column* Column::new_data_column(SType stype, int64_t nrows) {
+Column* Column::new_data_column(SType stype, size_t nrows) {
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->init_data();
   return col;
 }
 
-Column* Column::new_na_column(SType stype, int64_t nrows) {
+Column* Column::new_na_column(SType stype, size_t nrows) {
   Column* col = new_data_column(stype, nrows);
   col->fill_na();
   return col;
 }
 
 
-Column* Column::new_mmap_column(SType stype, int64_t nrows,
+Column* Column::new_mmap_column(SType stype, size_t nrows,
                                 const std::string& filename) {
   Column* col = new_column(stype);
   col->nrows = nrows;
@@ -83,7 +83,7 @@ void Column::save_to_disk(const std::string& filename,
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */
-Column* Column::open_mmap_column(SType stype, int64_t nrows,
+Column* Column::open_mmap_column(SType stype, size_t nrows,
                                  const std::string& filename, bool recode)
 {
   Column* col = new_column(stype);
@@ -97,7 +97,7 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
  * Construct a column from the externally provided buffer.
  */
 Column* Column::new_xbuf_column(SType stype,
-                                int64_t nrows,
+                                size_t nrows,
                                 Py_buffer* pybuffer)
 {
   Column* col = new_column(stype);
@@ -177,7 +177,7 @@ Column* Column::rbind(std::vector<const Column*>& columns)
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
-  int64_t new_nrows = this->nrows;
+  size_t new_nrows = this->nrows;
   SType new_stype = col_empty? SType::BOOL : stype();
   for (const Column* col : columns) {
     new_nrows += col->nrows;
@@ -428,7 +428,7 @@ bool VoidColumn::is_fixedwidth() const { return true; }
 int64_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::reify() {}
 void VoidColumn::resize_and_fill(int64_t) {}
-void VoidColumn::rbind_impl(std::vector<const Column*>&, int64_t, bool) {}
+void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const Column*) {}
 void VoidColumn::init_data() {}

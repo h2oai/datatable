@@ -213,7 +213,7 @@ void FwColumn<T>::resize_and_fill(int64_t new_nrows)
 
 template <typename T>
 void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                             int64_t new_nrows, bool col_empty)
+                             size_t new_nrows, bool col_empty)
 {
   const T na = na_elem;
   const void* naptr = static_cast<const void*>(&na);
