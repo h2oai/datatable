@@ -28,12 +28,11 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
                        << " columns";
   }
 
-  Column** srccols = dt->columns;
   Column** columns = dt::amalloc<Column*>(count + 1);
   columns[count] = nullptr;
 
   for (int64_t i = 0, j = start; i < count; i++, j += step) {
-    columns[i] = srccols[j]->shallowcopy(rowindex);
+    columns[i] = dt->columns[j]->shallowcopy(rowindex);
   }
   return columns;
 }

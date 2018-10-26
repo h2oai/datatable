@@ -134,7 +134,8 @@ PyObject* to_frame(obj* self, PyObject* args) {
 
   Column** columns = self->columns;
   self->columns = nullptr;
-  DataTable* dt = new DataTable(columns, names);
+  DataTable* dt = new DataTable(columns);
+  dt->set_names(names);
   return py::Frame::from_datatable(dt);
 }
 

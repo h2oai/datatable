@@ -14,6 +14,7 @@
 
 // Forward declarations
 using colvec = std::vector<Column*>;
+using strvec = std::vector<std::string>;
 static Column** prepare_columns(colvec&);
 static int _compare_ints(const void *a, const void *b);
 
@@ -22,99 +23,77 @@ static int _compare_ints(const void *a, const void *b);
 // Constructors
 //------------------------------------------------------------------------------
 
-DataTable::DataTable(colvec&& cols, std::nullptr_t)
-  : DataTable(prepare_columns(cols), nullptr) {}
+DataTable::DataTable()
+  : nrows(0), ncols(0), nkeys(0), py_inames(nullptr) {}
 
-DataTable::DataTable(colvec&& cols, const py::olist& nn)
-  : DataTable(prepare_columns(cols), nn) {}
 
-DataTable::DataTable(colvec&& cols, const std::vector<std::string>& nn)
-  : DataTable(prepare_columns(cols), nn) {}
-
-DataTable::DataTable(colvec&& cols, const DataTable* nn)
-  : DataTable(prepare_columns(cols), nn) {}
-
-DataTable::DataTable(Column** cols, std::nullptr_t)
-  : DataTable(cols)
+DataTable::DataTable(colvec&& cols) : DataTable()
 {
+  columns = std::move(cols);
+  ncols = columns.size();
+  if (ncols > 0) {
+    nrows = static_cast<size_t>(columns[0]->nrows);
+    rowindex = RowIndex(columns[0]->rowindex());
+
+    bool need_to_materialize = false;
+    for (size_t i = 1; i < ncols; ++i) {
+      Column* col = columns[i];
+      if (!col) throw ValueError() << "Column " << i << " is NULL";
+      if (rowindex != col->rowindex()) {
+        need_to_materialize = true;
+      }
+      if (col->nrows != nrows) {
+        throw ValueError() << "Mismatched length in column " << i << ": "
+                           << "found " << col->nrows << ", expected " << nrows;
+      }
+    }
+    // TODO: remove in #1188
+    if (need_to_materialize) {
+      reify();
+    }
+  }
   set_names_to_default();
 }
 
-DataTable::DataTable(Column** cols, const py::olist& namessrc)
-  : DataTable(cols)
+
+DataTable::DataTable(colvec&& cols, const py::olist& nn)
+  : DataTable(std::move(cols))
 {
-  set_names(namessrc);
+  set_names(nn);
 }
 
-DataTable::DataTable(Column** cols, const std::vector<std::string>& namessrc)
-  : DataTable(cols)
+DataTable::DataTable(colvec&& cols, const strvec& nn)
+  : DataTable(std::move(cols))
 {
-  set_names(namessrc);
+  set_names(nn);
 }
 
-DataTable::DataTable(Column** cols, const DataTable* namessrc)
-  : DataTable(cols)
+DataTable::DataTable(colvec&& cols, const DataTable* nn)
+  : DataTable(std::move(cols))
 {
-  copy_names_from(namessrc);
+  copy_names_from(nn);
+}
+
+DataTable::~DataTable() {
+  for (auto col : columns) delete col;
+  columns.clear();
 }
 
 
+// temp
+static colvec array2vec(Column** cols) {
+  colvec res;
+  for (size_t n = 0; cols[n]; ++n) {
+    res.push_back(cols[n]);
+  }
+  delete cols;
+  return res;
+}
+
+// temp
 DataTable::DataTable(Column** cols)
-  : nrows(0),
-    ncols(0),
-    nkeys(0),
-    columns(cols),
-    py_inames(nullptr)
-{
-  if (cols == nullptr) {
-    throw ValueError() << "Column array cannot be null";
-  }
-  if (cols[0] == nullptr) return;
-  rowindex = RowIndex(cols[0]->rowindex());
-  nrows = cols[0]->nrows;
+  : DataTable(array2vec(cols)) {}
 
-  bool need_to_materialize = false;
-  for (ncols = 1; ; ++ncols) {
-    Column* col = cols[ncols];
-    if (!col) break;
-    if (rowindex != col->rowindex()) {
-      need_to_materialize = true;
-    }
-    if (nrows != col->nrows) {
-      throw ValueError() << "Mismatched length in Column " << ncols << ": "
-                         << "found " << col->nrows << ", expected " << nrows;
-    }
-  }
-  // TODO: remove in #1188
-  if (need_to_materialize) {
-    reify();
-  }
-}
-
-
-/**
- * Free memory occupied by the :class:`DataTable` object. This function should
- * be called from `pydatatable::obj`s deallocator only.
- */
-DataTable::~DataTable()
-{
-  for (int64_t i = 0; i < ncols; ++i) {
-    delete columns[i];
-  }
-  delete columns;
-}
-
-static Column** prepare_columns(colvec& cols) {
-  size_t ncols = cols.size();
-  size_t allocsize = sizeof(Column*) * (ncols + 1);
-  Column** newcols = dt::malloc<Column*>(allocsize);
-  if (ncols) {
-    std::memcpy(newcols, cols.data(), sizeof(Column*) * ncols);
-  }
-  newcols[ncols] = nullptr;
-  cols.clear();
-  return newcols;
-}
 
 
 
@@ -158,10 +137,9 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
       ++j;
     }
   }
-  columns[j] = nullptr;
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
-  columns = dt::realloc(columns, sizeof(Column*) * static_cast<size_t>(j + 1));
+  columns.resize(j);
   return this;
 }
 
@@ -340,17 +318,11 @@ void DataTable::verify_integrity() const {
   _integrity_check_pynames();
 
   // Check the number of columns; the number of allocated columns should be
-  // equal to `ncols + 1` (with extra column being NULL). Sometimes the
-  // allocation size can be greater than the required number of columns,
-  // because `malloc()` may allocate more than requested.
-  size_t n_cols_allocd = array_size(columns, sizeof(Column*));
-  if (!columns || !n_cols_allocd) {
-    throw AssertionError() << "DataTable.columns array of is not allocated";
-  }
-  else if (ncols + 1 > static_cast<int64_t>(n_cols_allocd)) {
+  // equal to `ncols`.
+  if (columns.size() != ncols) {
     throw AssertionError()
-        << "DataTable.columns array size is " << n_cols_allocd
-        << " whereas " << ncols + 1 << " columsn are expected.";
+        << "DataTable.columns array size is " << columns.size()
+        << " whereas ncols = " << ncols;
   }
 
   /**
@@ -373,17 +345,6 @@ void DataTable::verify_integrity() const {
           << ", while the Frame has nrows=" << nrows;
     }
     col->verify_integrity(col_name);
-  }
-
-  if (columns[ncols] != nullptr) {
-    // Memory was allocated for `ncols+1` columns, but the last element
-    // was not set to NULL.
-    // Note that if `cols` array was under-allocated and `malloc_size`
-    // not available on this platform, then this might segfault... This is
-    // unavoidable since if we skip the check and do `cols[ncols]` later on
-    // then we will segfault anyways.
-    throw AssertionError()
-        << "Last entry in the `columns` array of Frame is not null";
   }
 
   if (names.size() != static_cast<size_t>(ncols)) {

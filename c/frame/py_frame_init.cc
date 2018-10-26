@@ -609,14 +609,14 @@ class FrameInitializationManager {
 
 
     void make_datatable(nullptr_t) {
-      frame->dt = new DataTable(std::move(cols), nullptr);
+      frame->dt = new DataTable(std::move(cols));
     }
 
     void make_datatable(const Arg& names) {
       if (names) {
         frame->dt = new DataTable(std::move(cols), names.to_pylist());
       } else {
-        frame->dt = new DataTable(std::move(cols), nullptr);
+        frame->dt = new DataTable(std::move(cols));
       }
     }
 
