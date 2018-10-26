@@ -289,20 +289,20 @@ PyObject* column(obj* self, PyObject* args) {
 
 PyObject* delete_columns(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* list;
-  if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:delete_columns", &arg1))
     return nullptr;
+  py::olist list = py::obj(arg1).to_pylist();
+  size_t ncols = list.size();
 
-  int64_t ncols = static_cast<int64_t>(PyList_Size(list));
-  int* cols_to_remove = dt::amalloc<int>(ncols);
-  for (int64_t i = 0; i < ncols; i++) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    cols_to_remove[i] = static_cast<int>(PyLong_AsLong(item));
+  std::vector<size_t> cols_to_remove;
+  cols_to_remove.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    cols_to_remove.push_back(list[i].to_size_t());
   }
-  dt->delete_columns(cols_to_remove, ncols);
+  dt->delete_columns(cols_to_remove);
 
   _clear_types(self);
-  dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
 

@@ -80,7 +80,7 @@ class DataTable {
     DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
 
-    DataTable* delete_columns(int*, int64_t);
+    DataTable* delete_columns(std::vector<size_t>&);
     void resize_rows(size_t n);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
