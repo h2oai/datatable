@@ -12,8 +12,6 @@
 #include "rowindex.h"
 #include "types.h"
 
-// Forward declarations
-using strvec = std::vector<std::string>;
 
 
 //------------------------------------------------------------------------------
@@ -131,7 +129,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 
 
 
-void DataTable::resize_rows(int64_t new_nrows) {
+void DataTable::resize_rows(size_t new_nrows) {
   if (rowindex) {
     if (new_nrows < nrows) {
       rowindex.shrink(new_nrows, ncols);
@@ -144,7 +142,7 @@ void DataTable::resize_rows(int64_t new_nrows) {
     }
   }
   if (new_nrows != nrows) {
-    for (int64_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       columns[i]->resize_and_fill(new_nrows);
     }
     nrows = new_nrows;
@@ -157,7 +155,7 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
   if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
   nrows = rowindex.length();
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }
 }
@@ -173,27 +171,21 @@ void DataTable::replace_groupby(const Groupby& newgb) {
 }
 
 
-void DataTable::set_nkeys(int64_t nk) {
-  if (nk < 0) {
-    throw ValueError() << "Number of keys cannot be negative: " << nk;
-  }
-  if (nk > 1) {
-    throw NotImplError() << "More than 1 key column is not supported yet";
-  }
+void DataTable::set_nkeys(size_t nk) {
   if (nk == 0) {
     nkeys = 0;
     return;
   }
 
   Groupby gb;
-  arr32_t cols(static_cast<size_t>(nk));
-  for (int32_t i = 0; i < nk; ++i) {
-    cols[static_cast<size_t>(i)] = i;
+  arr32_t cols(nk);
+  for (size_t i = 0; i < nk; ++i) {
+    cols[i] = i;
   }
   RowIndex ri = sortby(cols, &gb);
   xassert(ri.length() == nrows);
 
-  if (gb.ngroups() != static_cast<size_t>(nrows)) {
+  if (gb.ngroups() != nrows) {
     throw ValueError() << "Cannot set column as a key: the values are not unique";
   }
 

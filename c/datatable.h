@@ -24,6 +24,7 @@ class NameProvider;
 
 typedef Column* (Column::*colmakerfn)(void) const;
 using colvec = std::vector<Column*>;
+using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
 
 
@@ -62,25 +63,25 @@ class DataTable {
     size_t   nrows;
     size_t   ncols;
     size_t   nkeys;
-    RowIndex rowindex;
+    RowIndex rowindex;  // DEPRECATED (see #1188)
     Groupby  groupby;
     colvec   columns;
 
   private:
-    std::vector<std::string> names;
+    strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
     DataTable();
-    DataTable(std::vector<Column*>&& cols);
-    DataTable(std::vector<Column*>&& cols, const py::olist&);
-    DataTable(std::vector<Column*>&& cols, const std::vector<std::string>&);
-    DataTable(std::vector<Column*>&& cols, const DataTable*);
+    DataTable(colvec&& cols);
+    DataTable(colvec&& cols, const py::olist&);
+    DataTable(colvec&& cols, const strvec&);
+    DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
 
     DataTable* delete_columns(int*, int64_t);
-    void resize_rows(int64_t n);
+    void resize_rows(size_t n);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();
@@ -109,7 +110,7 @@ class DataTable {
     void set_names(const std::vector<std::string>& names_list);
     void replace_names(py::odict replacements);
 
-    void set_nkeys(int64_t nk);
+    void set_nkeys(size_t nk);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
