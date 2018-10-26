@@ -27,7 +27,7 @@ namespace py {
 
 
 // Forward-declare
-static void check_nrows(DataTable* dt, int64_t* nrows);
+static void check_nrows(DataTable* dt, size_t* nrows);
 static Error item_error(const py::_obj&);
 
 
@@ -74,7 +74,7 @@ force: boolean
 void Frame::cbind(const PKArgs& args) {
   bool force = args[0]? args[0].to_bool_strict() : false;
 
-  int64_t nrows = dt->nrows;
+  size_t nrows = dt->nrows;
   std::vector<DataTable*> dts;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
@@ -104,8 +104,8 @@ void Frame::cbind(const PKArgs& args) {
 }
 
 
-static void check_nrows(DataTable* dt, int64_t* nrows) {
-  int64_t inrows = dt->nrows;
+static void check_nrows(DataTable* dt, size_t* nrows) {
+  size_t inrows = dt->nrows;
   if (*nrows <= 1) *nrows = inrows;
   if (*nrows == inrows || inrows == 1) return;
   throw ValueError() << "Cannot merge frame with " << inrows << " rows to "
@@ -134,8 +134,8 @@ static Error item_error(const py::_obj& item) {
  */
 DataTable* DataTable::cbind(std::vector<DataTable*> dts)
 {
-  int64_t t_ncols = ncols;
-  int64_t t_nrows = nrows;
+  size_t t_ncols = ncols;
+  size_t t_nrows = nrows;
   for (size_t i = 0; i < dts.size(); ++i) {
     t_ncols += dts[i]->ncols;
     if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
@@ -147,7 +147,7 @@ DataTable* DataTable::cbind(std::vector<DataTable*> dts)
 
   // Fix up the main datatable if it has too few rows
   if (nrows < t_nrows) {
-    for (int64_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       columns[i]->resize_and_fill(t_nrows);
     }
     nrows = t_nrows;
@@ -156,18 +156,18 @@ DataTable* DataTable::cbind(std::vector<DataTable*> dts)
   // Append columns from `dts` into the "main" datatable
   std::vector<std::string> newnames = names;
   columns.resize(t_ncols);
-  int64_t j = ncols;
+  size_t j = ncols;
   for (size_t i = 0; i < dts.size(); ++i) {
-    int64_t ncolsi = dts[i]->ncols;
-    int64_t nrowsi = dts[i]->nrows;
-    for (int64_t ii = 0; ii < ncolsi; ++ii) {
+    size_t ncolsi = dts[i]->ncols;
+    size_t nrowsi = dts[i]->nrows;
+    for (size_t ii = 0; ii < ncolsi; ++ii) {
       Column *c = dts[i]->columns[ii]->shallowcopy();
       c->reify();
       if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
       columns[j++] = c;
     }
     const auto& namesi = dts[i]->names;
-    xassert(namesi.size() == static_cast<size_t>(ncolsi));
+    xassert(namesi.size() == ncolsi);
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
   xassert(j == t_ncols);
