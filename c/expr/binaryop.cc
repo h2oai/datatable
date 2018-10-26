@@ -351,7 +351,7 @@ static mapperfn resolve2str(OpMode mode) {
 
 
 template<typename LT, typename RT, typename VT>
-static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve1(int opcode, SType stype, void** params, size_t nrows, OpMode mode) {
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
     stype = SType::BOOL;
@@ -385,7 +385,7 @@ static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, 
 
 
 template<typename T0, typename T1>
-static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve1str(int opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::One_to_N) {
     mode = OpMode::N_to_One;
     std::swap(params[0], params[1]);
@@ -400,7 +400,7 @@ static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mod
 }
 
 
-static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
@@ -513,12 +513,12 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
 {
   lhs->reify();
   rhs->reify();
-  int64_t lhs_nrows = lhs->nrows;
-  int64_t rhs_nrows = rhs->nrows;
+  size_t lhs_nrows = lhs->nrows;
+  size_t rhs_nrows = rhs->nrows;
   if (lhs_nrows == 0 || rhs_nrows == 0) {
     lhs_nrows = rhs_nrows = 0;
   }
-  int64_t nrows = std::max(lhs_nrows, rhs_nrows);
+  size_t nrows = std::max(lhs_nrows, rhs_nrows);
   SType lhs_type = lhs->stype();
   SType rhs_type = rhs->stype();
   void* params[3];
@@ -537,7 +537,7 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
       << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
       << ", nrows=" << rhs->nrows << ")";
   }
-  (*mapfn)(0, nrows, params);
+  (*mapfn)(0, static_cast<int64_t>(nrows), params);
 
   return static_cast<Column*>(params[2]);
 }

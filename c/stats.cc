@@ -65,23 +65,23 @@ void Stats::set_computed(Stat s, bool flag) {
 }
 
 
-int64_t Stats::countna(const Column* col) {
+size_t Stats::countna(const Column* col) {
   if (!is_computed(Stat::NaCount)) compute_countna(col);
   return _countna;
 }
 
-int64_t Stats::nunique(const Column* col) {
+size_t Stats::nunique(const Column* col) {
   if (!is_computed(Stat::NUnique)) compute_sorted_stats(col);
   return _nunique;
 }
 
-int64_t Stats::nmodal(const Column* col) {
+size_t Stats::nmodal(const Column* col) {
   if (!is_computed(Stat::NModal)) compute_sorted_stats(col);
   return _nmodal;
 }
 
-void Stats::set_countna(int64_t n) {
-  set_computed(Stat::NaCount, !ISNA<int64_t>(n));
+void Stats::set_countna(size_t n) {
+  set_computed(Stat::NaCount, true);
   _countna = n;
 }
 
@@ -134,7 +134,7 @@ void Stats::verify_stat(Stat s, T value, F getter) const {
  */
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
-  int64_t nrows = col->nrows;
+  size_t nrows = col->nrows;
   const RowIndex& rowindex = col->rowindex();
   const T* data = static_cast<const T*>(col->data());
   int64_t count_notna = 0;
@@ -163,7 +163,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     T t_min = infinity<T>();
     T t_max = -infinity<T>();
 
-    rowindex.strided_loop(ith, nrows, nth,
+    rowindex.strided_loop(ith, static_cast<int64_t>(nrows), nth,
       [&](int64_t i) {
         if (ISNA<int64_t>(i)) return;
         T x = data[i];

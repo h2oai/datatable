@@ -94,8 +94,8 @@ void RowIndex::clear() {
 
 
 void RowIndex::shrink(size_t nrows, size_t ncols) {
-  xassert(impl && impl->refcount >= ncols + 1);
-  if (impl->refcount == ncols + 1) {
+  xassert(impl && static_cast<size_t>(impl->refcount) >= ncols + 1);
+  if (static_cast<size_t>(impl->refcount) == ncols + 1) {
     impl->shrink(nrows);
   } else {
     impl->refcount--;
@@ -108,7 +108,7 @@ void RowIndex::shrink(size_t nrows, size_t ncols) {
 void RowIndex::extract_into(arr32_t& target) const
 {
   if (!impl) return;
-  size_t szlen = static_cast<size_t>(length());
+  size_t szlen = length();
   xassert(target.size() >= szlen);
   switch (impl->type) {
     case RI_ARR32: {
@@ -152,7 +152,7 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // return as an empty RowIndex object.
     return RowIndex();
   }
-  if (nrows < max()) {
+  if (nrows < static_cast<size_t>(max())) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
                           "largest index " << max();
   }
@@ -171,9 +171,6 @@ void RowIndex::verify_integrity() const {
 
 
 void RowIndexImpl::verify_integrity() const {
-  if (length < 0) {
-    throw AssertionError() << "RowIndex.length is negative: " << length;
-  }
   if (refcount <= 0) {
     throw AssertionError() << "RowIndex has invalid refcount: " << refcount;
   }
