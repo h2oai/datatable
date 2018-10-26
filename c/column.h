@@ -114,7 +114,7 @@ public:
   size_t alloc_size() const;
 
   const RowIndex& rowindex() const { return ri; }
-  virtual int64_t data_nrows() const = 0;
+  virtual size_t data_nrows() const = 0;
   size_t memory_footprint() const;
 
   RowIndex sort(Groupby* out_groups) const;
@@ -332,15 +332,15 @@ private:
 template <typename T> class FwColumn : public Column
 {
 public:
-  FwColumn(int64_t nrows);
-  FwColumn(int64_t nrows, MemoryRange&&);
+  FwColumn(size_t nrows);
+  FwColumn(size_t nrows, MemoryRange&&);
   void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
 
-  int64_t data_nrows() const override;
+  size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
@@ -577,8 +577,8 @@ extern template class RealColumn<double>;
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
-  PyObjectColumn(int64_t nrows);
-  PyObjectColumn(int64_t nrows, MemoryRange&&);
+  PyObjectColumn(size_t nrows);
+  PyObjectColumn(size_t nrows, MemoryRange&&);
   virtual SType stype() const override;
   PyObjectStats* get_stats() const override;
 
@@ -638,7 +638,7 @@ public:
 
   MemoryRange str_buf() { return strbuf; }
   size_t datasize() const;
-  int64_t data_nrows() const override;
+  size_t data_nrows() const override;
   const char* strdata() const;
   const uint8_t* ustrdata() const;
   const T* offsets() const;
@@ -702,7 +702,7 @@ class VoidColumn : public Column {
     SType stype() const override;
     size_t elemsize() const override;
     bool is_fixedwidth() const override;
-    int64_t data_nrows() const override;
+    size_t data_nrows() const override;
     void reify() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(std::vector<const Column*>&, size_t, bool) override;

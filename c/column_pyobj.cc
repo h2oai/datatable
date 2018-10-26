@@ -16,11 +16,11 @@ PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(int64_t nrows_) : FwColumn<PyObject*>(nrows_) {
+PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<PyObject*>(nrows_) {
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryRange&& mb)
+PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
     : FwColumn<PyObject*>(nrows_, std::move(mb))
 {
   mbuf.set_pyobjects(/*clear_data = */ true);

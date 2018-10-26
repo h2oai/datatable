@@ -193,9 +193,9 @@ size_t StringColumn<T>::datasize() const{
 }
 
 template <typename T>
-int64_t StringColumn<T>::data_nrows() const {
+size_t StringColumn<T>::data_nrows() const {
   // `mbuf` always contains one more element than the number of rows
-  return static_cast<int64_t>(mbuf.size() / sizeof(T)) - 1;
+  return mbuf.size() / sizeof(T) - 1;
 }
 
 template <typename T>

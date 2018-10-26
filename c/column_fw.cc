@@ -21,13 +21,13 @@ template <typename T>
 FwColumn<T>::FwColumn() : Column(0) {}
 
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {
-  mbuf.resize(elemsize() * static_cast<size_t>(nrows_));
+FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
+  mbuf.resize(elemsize() * nrows_);
 }
 
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_, MemoryRange&& mr) : Column(nrows_) {
-  size_t req_size = elemsize() * static_cast<size_t>(nrows_);
+FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
+  size_t req_size = elemsize() * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
   } else {
@@ -44,20 +44,20 @@ FwColumn<T>::FwColumn(int64_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 template <typename T>
 void FwColumn<T>::init_data() {
   xassert(!ri);
-  mbuf.resize(static_cast<size_t>(nrows) * elemsize());
+  mbuf.resize(nrows * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::init_mmap(const std::string& filename) {
   xassert(!ri);
-  mbuf = MemoryRange::mmap(filename, static_cast<size_t>(nrows) * elemsize());
+  mbuf = MemoryRange::mmap(filename, nrows * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename, bool) {
   xassert(!ri);
   mbuf = MemoryRange::mmap(filename);
-  // size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
+  // size_t exp_size = nrows * sizeof(T);
   // if (mbuf.size() != exp_size) {
   //   throw Error() << "File \"" << filename <<
   //       "\" cannot be used to create a column with " << nrows <<
@@ -69,7 +69,7 @@ void FwColumn<T>::open_mmap(const std::string& filename, bool) {
 template <typename T>
 void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
   xassert(!ri);
-  size_t exp_buf_len = static_cast<size_t>(nrows) * elemsize();
+  size_t exp_buf_len = nrows * elemsize();
   if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
     throw Error() << "PyBuffer cannot be used to create a column of " << nrows
                   << " rows: buffer length is "
@@ -90,7 +90,7 @@ void FwColumn<T>::replace_buffer(MemoryRange&& new_mbuf) {
     throw RuntimeError() << "New buffer has invalid size " << new_mbuf.size();
   }
   mbuf = std::move(new_mbuf);
-  nrows = static_cast<int64_t>(mbuf.size() / sizeof(T));
+  nrows = mbuf.size() / sizeof(T);
 }
 
 template <typename T>
@@ -144,7 +144,7 @@ void FwColumn<T>::reify() {
   bool ascending    = ri.isslice() && ri.slice_step() > 0;
 
   size_t elemsize = sizeof(T);
-  size_t newsize = elemsize * static_cast<size_t>(nrows);
+  size_t newsize = elemsize * nrows;
 
   // Current `mbuf` can be reused iff it is not readonly. Thus, `new_mbuf` can
   // be either the same as `mbuf` (with old size), or a newly allocated buffer
@@ -173,7 +173,7 @@ void FwColumn<T>::reify() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
       [&](int64_t i) {
         *data_dest++ = ISNA(i)? GETNA<T>() : data_src[i];
       });
@@ -219,9 +219,9 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   const void* naptr = static_cast<const void*>(&na);
 
   // Reallocate the column's data buffer
-  size_t old_nrows = static_cast<size_t>(nrows);
+  size_t old_nrows = nrows;
   size_t old_alloc_size = alloc_size();
-  size_t new_alloc_size = sizeof(T) * static_cast<size_t>(new_nrows);
+  size_t new_alloc_size = sizeof(T) * new_nrows;
   mbuf.resize(new_alloc_size);
   nrows = new_nrows;
 
@@ -236,7 +236,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   }
   for (const Column* col : columns) {
     if (col->stype() == SType::VOID) {
-      rows_to_fill += static_cast<size_t>(col->nrows);
+      rows_to_fill += col->nrows;
     } else {
       if (rows_to_fill) {
         set_value(resptr, naptr, sizeof(T), rows_to_fill);
@@ -263,8 +263,8 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
 
 
 template <typename T>
-int64_t FwColumn<T>::data_nrows() const {
-  return static_cast<int64_t>(mbuf.size() / sizeof(T));
+size_t FwColumn<T>::data_nrows() const {
+  return mbuf.size() / sizeof(T);
 }
 
 
@@ -274,7 +274,7 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   constexpr T na = GETNA<T>();
   T* coldata = this->elements_w();
   #pragma omp parallel for schedule(dynamic, 1024)
-  for (int64_t j = 0; j < nrows; ++j) {
+  for (size_t j = 0; j < nrows; ++j) {
     if (maskdata[j] == 1) coldata[j] = na;
   }
   if (stats != nullptr) stats->reset();
@@ -285,7 +285,7 @@ template <typename T>
 void FwColumn<T>::fill_na() {
   T* vals = static_cast<T*>(mbuf.wptr());
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     vals[i] = GETNA<T>();
   }
   ri.clear();
@@ -300,18 +300,18 @@ void FwColumn<T>::replace_values(
     replace_with = replace_with->cast(stype());
   }
 
-  int64_t replace_n = replace_at.length();
+  size_t replace_n = replace_at.length();
   const T* data_src = static_cast<const T*>(replace_with->data());
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
     T value = *data_src;
-    replace_at.strided_loop(0, replace_n, 1,
+    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
       [&](int64_t i) {
         data_dest[i] = value;
       });
   } else {
     xassert(replace_with->nrows == replace_n);
-    replace_at.strided_loop(0, replace_n, 1,
+    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
       [&](int64_t i) {
         data_dest[i] = *data_src;
         ++data_src;
@@ -341,13 +341,13 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
   auto kcol = static_cast<const FwColumn<T>*>(keycol);
   xassert(!kcol->ri);
 
-  arr32_t target_indices(static_cast<size_t>(nrows));
+  arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_data = elements_r();
   const T* search_data = kcol->elements_r();
   int32_t search_n = static_cast<int32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, nrows, 1,
+  ri.strided_loop2(0, static_cast<int64_t>(nrows), 1,
     [&](int64_t i, int64_t j) {
       T value = src_data[j];
       trg_indices[i] = binsearch<T>(search_data, search_n, value);

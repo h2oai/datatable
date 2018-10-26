@@ -425,7 +425,7 @@ VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
 SType VoidColumn::stype() const { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }
-int64_t VoidColumn::data_nrows() const { return nrows; }
+size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::reify() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
