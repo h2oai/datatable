@@ -33,11 +33,10 @@ void DataTable::rbind(
   // If this is a view datatable, then it must be materialized.
   this->reify();
 
-  columns = dt::arealloc<Column*>(columns, new_ncols + 1);
+  columns.resize(new_ncols);
   for (int64_t i = ncols; i < new_ncols; ++i) {
     columns[i] = new VoidColumn(nrows);
   }
-  columns[new_ncols] = nullptr;
 
   int64_t new_nrows = nrows;
   for (int64_t i = 0; i < ndts; ++i) {

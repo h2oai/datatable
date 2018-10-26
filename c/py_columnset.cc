@@ -132,9 +132,12 @@ PyObject* to_frame(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O:to_frame", &arg1)) return nullptr;
   py::olist names = py::obj(arg1).to_pylist();
 
-  Column** columns = self->columns;
+  std::vector<Column*> columns;
+  for (Column** pcol = self->columns; *pcol; pcol++) {
+    columns.push_back(*pcol);
+  }
   self->columns = nullptr;
-  DataTable* dt = new DataTable(columns, names);
+  DataTable* dt = new DataTable(std::move(columns), names);
   return py::Frame::from_datatable(dt);
 }
 

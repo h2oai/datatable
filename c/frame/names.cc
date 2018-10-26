@@ -287,6 +287,7 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
  * verified in DataTable `other`.
  */
 void DataTable::copy_names_from(const DataTable* other) {
+  xassert(other);
   names = other->names;
   py_names = other->py_names;
   py_inames = other->py_inames;
@@ -703,13 +704,13 @@ namespace dttest {
 
 
   void cover_names_integrity_checks() {
-    Column** cols = dt::malloc<Column*>(3 * sizeof(Column*));
-    cols[0] = Column::new_data_column(SType::INT32, 1);
-    cols[1] = Column::new_data_column(SType::FLOAT64, 1);
-    cols[2] = nullptr;
-    DataTable* dt = new DataTable(cols);
+    DataTable* dt = new DataTable({
+                        Column::new_data_column(SType::INT32, 1),
+                        Column::new_data_column(SType::FLOAT64, 1)
+                    });
 
     auto check1 = [dt]() { dt->_integrity_check_names(); };
+    dt->names.clear();
     test_assert(check1, "DataTable.names has size 0, however there are 2 "
                         "columns in the Frame");
     dt->names = { "foo", "foo" };

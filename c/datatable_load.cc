@@ -27,8 +27,8 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
                            bool recode)
 {
     int64_t ncols = colspec->nrows;
-    Column** columns = dt::amalloc<Column*>(ncols + 1);
-    columns[ncols] = nullptr;
+    std::vector<Column*> columns;
+    columns.reserve(ncols);
 
     if (colspec->ncols != 2 && colspec->ncols != 4) {
         throw ValueError() << "colspec table should have had 2 or 4 columns, "
@@ -76,8 +76,9 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
         }
 
         // Load the column
-        columns[i] = Column::open_mmap_column(stype, nrows, filename, recode);
+        Column* newcol = Column::open_mmap_column(stype, nrows, filename, recode);
+        columns.push_back(newcol);
     }
 
-    return new DataTable(columns);
+    return new DataTable(std::move(columns));
 }

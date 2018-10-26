@@ -60,7 +60,7 @@ class DataTable {
     int64_t  nkeys;
     RowIndex rowindex;
     Groupby  groupby;
-    Column** columns;
+    std::vector<Column*> columns;
 
   private:
     std::vector<std::string> names;
@@ -68,15 +68,13 @@ class DataTable {
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
-    DataTable(Column** cols, std::nullptr_t);
-    DataTable(Column** cols, const py::olist& namessrc);
-    DataTable(Column** cols, const std::vector<std::string>& namessrc);
-    DataTable(Column** cols, const DataTable* namessrc);
-    DataTable(std::vector<Column*>&& cols, std::nullptr_t);
+    DataTable();
+    DataTable(std::vector<Column*>&& cols);
     DataTable(std::vector<Column*>&& cols, const py::olist&);
     DataTable(std::vector<Column*>&& cols, const std::vector<std::string>&);
     DataTable(std::vector<Column*>&& cols, const DataTable*);
     ~DataTable();
+
     DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
     void replace_rowindex(const RowIndex& newri);
@@ -132,7 +130,6 @@ class DataTable {
     static DataTable* open_jay(const std::string& path);
 
   private:
-    DataTable(Column**);
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;

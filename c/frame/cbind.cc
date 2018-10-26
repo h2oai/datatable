@@ -155,8 +155,7 @@ DataTable* DataTable::cbind(std::vector<DataTable*> dts)
 
   // Append columns from `dts` into the "main" datatable
   std::vector<std::string> newnames = names;
-  columns = dt::arealloc(columns, t_ncols + 1);
-  columns[t_ncols] = nullptr;
+  columns.resize(t_ncols);
   int64_t j = ncols;
   for (size_t i = 0; i < dts.size(); ++i) {
     int64_t ncolsi = dts[i]->ncols;

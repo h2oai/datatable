@@ -71,13 +71,13 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
   DataTablePtr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
 
-  cols_members[0] = Column::new_data_column(SType::INT32, dt->nrows);
-  cols_members[1] = nullptr;
-  dt_members = DataTablePtr(new DataTable(cols_members, {"exemplar_id"}));
+  Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
+  dt_members = DataTablePtr(new DataTable({col0}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
     DataTablePtr dt_double = nullptr;
-    Column** cols_double = dt::amalloc<Column*>(dt->ncols + 1);
+    std::vector<Column*> cols_double;
+    cols_double.reserve(dt->ncols);
     int32_t ncols = 0;
     // Number of possible `N/A` bins for a particular aggregator.
     int32_t n_na_bins = 0;
@@ -88,18 +88,23 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
         case LType::BOOL:
         case LType::INT:
         case LType::REAL: {
-                            cols_double[ncols] = dt->columns[i]->cast(SType::FLOAT64);
-                            auto c = static_cast<RealColumn<double>*>(cols_double[ncols]);
-                            c->min(); // Pre-generating stats
-                            ncols++;
-                            break;
-                          }
-        default:          if (dt->ncols < 3) cols_double[ncols++] = dt->columns[i]->shallowcopy();
+          auto c = static_cast<RealColumn<double>*>(
+                      dt->columns[i]->cast(SType::FLOAT64));
+          c->min(); // Pre-generating stats
+          cols_double.push_back(c);
+          ncols++;
+          break;
+        }
+        default: {
+          if (dt->ncols < 3) {
+            cols_double.push_back(dt->columns[i]->shallowcopy());
+            ncols++;
+          }
+        }
       }
     }
 
-    cols_double[ncols] = nullptr;
-    dt_double = DataTablePtr(new DataTable(cols_double, nullptr));
+    dt_double = DataTablePtr(new DataTable(std::move(cols_double)));
     switch (dt_double->ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;
@@ -208,11 +213,9 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
   // Setting up a table for counts
   DataTable* dt_counts;
-  Column** cols_counts = dt::amalloc<Column*>(static_cast<int64_t>(2));
-  cols_counts[0] = Column::new_data_column(SType::INT32,
+  Column* col0 = Column::new_data_column(SType::INT32,
                                            static_cast<int64_t>(n_exemplars));
-  cols_counts[1] = nullptr;
-  dt_counts = new DataTable(cols_counts, {"members_count"});
+  dt_counts = new DataTable({col0}, {"members_count"});
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
   std::memset(d_counts, 0, static_cast<size_t>(n_exemplars) * sizeof(int32_t));
 

@@ -400,9 +400,8 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
       throw ValueError() << "Cannot assign to column(s) that are outside of "
                             "the Frame: " << rows_ri;
     }
-    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols + 1)
-                     * sizeof(Column*);
-    dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
+    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols);
+    dt->columns.resize(newsize);
   }
   for (size_t i = 0; i < cols.size(); ++i) {
     py::obj item = cols[i];
@@ -419,7 +418,6 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
       dt->columns[j] = replcol->shallowcopy();
     }
   }
-  dt->columns[dt->ncols] = nullptr;
 
   // Clear cached stypes/ltypes; No need to update names
   _clear_types(self);

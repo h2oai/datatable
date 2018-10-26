@@ -54,8 +54,8 @@ DataTable* DataTable::open_jay(const std::string& path)
   size_t nrows = frame->nrows();
   auto msg_columns = frame->columns();
 
-  Column** columns = dt::malloc<Column*>(sizeof(Column*) * size_t(ncols + 1));
-  columns[ncols] = nullptr;
+  std::vector<Column*> columns;
+  columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
     Column* col = column_from_jay(jcol, mbuf);
@@ -63,13 +63,13 @@ DataTable* DataTable::open_jay(const std::string& path)
       throw IOError() << "Length of column " << i << " is " << col->nrows
           << ", however the Frame contains " << nrows << " rows";
     }
-    columns[i++] = col;
+    columns.push_back(col);
     colnames.push_back(jcol->name()->str());
+    ++i;
   }
 
-  auto dt = new DataTable(columns);
+  auto dt = new DataTable(std::move(columns), colnames);
   dt->nkeys = frame->nkeys();
-  dt->set_names(colnames);
   return dt;
 }
 
