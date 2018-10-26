@@ -13,10 +13,7 @@
 #include "types.h"
 
 // Forward declarations
-using colvec = std::vector<Column*>;
 using strvec = std::vector<std::string>;
-static Column** prepare_columns(colvec&);
-static int _compare_ints(const void *a, const void *b);
 
 
 //------------------------------------------------------------------------------
@@ -105,7 +102,12 @@ DataTable* DataTable::copy() const {
 DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 {
   if (n == 0) return this;
-  qsort(cols_to_remove, static_cast<size_t>(n), sizeof(int), _compare_ints);
+  qsort(cols_to_remove, static_cast<size_t>(n), sizeof(int),
+        [](const void *a, const void *b) {
+          const int x = *static_cast<const int*>(a);
+          const int y = *static_cast<const int*>(b);
+          return (x > y) - (x < y);
+        });
   int j = 0;
   int next_col_to_remove = cols_to_remove[0];
   int64_t k = 0;
@@ -199,14 +201,6 @@ void DataTable::set_nkeys(int64_t nk) {
   reify();
 
   nkeys = nk;
-}
-
-
-// Comparator function to sort integers using `qsort`
-static inline int _compare_ints(const void *a, const void *b) {
-  const int x = *static_cast<const int*>(a);
-  const int y = *static_cast<const int*>(b);
-  return (x > y) - (x < y);
 }
 
 

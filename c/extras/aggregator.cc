@@ -64,18 +64,18 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 /*
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
-DataTablePtr Aggregator::aggregate(DataTable* dt) {
+dtptr Aggregator::aggregate(DataTable* dt) {
   int32_t max_bins;
   bool was_sampled = false;
   progress(0.0);
-  DataTablePtr dt_members = nullptr;
+  dtptr dt_members = nullptr;
   Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
 
   Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
-  dt_members = DataTablePtr(new DataTable({col0}, {"exemplar_id"}));
+  dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
-    DataTablePtr dt_double = nullptr;
+    dtptr dt_double = nullptr;
     std::vector<Column*> cols_double;
     cols_double.reserve(dt->ncols);
     int32_t ncols = 0;
@@ -104,7 +104,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
       }
     }
 
-    dt_double = DataTablePtr(new DataTable(std::move(cols_double)));
+    dt_double = dtptr(new DataTable(std::move(cols_double)));
     switch (dt_double->ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;
@@ -135,7 +135,7 @@ DataTablePtr Aggregator::aggregate(DataTable* dt) {
 *  Check how many exemplars we have got, if there is more than `max_bins+1`
 *  (e.g. too many distinct categorical values) do random sampling.
 */
-bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins, int32_t n_na_bins) {
+bool Aggregator::random_sampling(dtptr& dt_members, int32_t max_bins, int32_t n_na_bins) {
   bool was_sampled = false;
   // Sorting `dt_members` to calculate total number of exemplars.
   arr32_t cols(1);
@@ -188,7 +188,7 @@ bool Aggregator::random_sampling(DataTablePtr& dt_members, int32_t max_bins, int
 *  in the aggregated frame.
 */
 void Aggregator::aggregate_exemplars(DataTable* dt,
-                                     DataTablePtr& dt_members,
+                                     dtptr& dt_members,
                                      bool was_sampled) {
   // Setting up offsets and members row index.
   arr32_t cols(1);
@@ -253,7 +253,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 /*
 *  Do no groupping, i.e. all rows become exemplars.
 */
-void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
+void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   for (int32_t i = 0; i < dt->nrows; ++i) {
     d_members[i] = i;
@@ -264,7 +264,7 @@ void Aggregator::group_0d(const DataTable* dt, DataTablePtr& dt_members) {
 /*
 *  Call an appropriate function for 1D grouping.
 */
-void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_1d(const dtptr& dt, dtptr& dt_members) {
   LType ltype = info(dt->columns[0]->stype()).ltype();
 
   switch (ltype) {
@@ -289,7 +289,7 @@ void Aggregator::group_1d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 *  with NA bins (if ones exist) being gathered at the very beginning
 *  of the exemplar data frame.
 */
-void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_2d(const dtptr& dt, dtptr& dt_members) {
   LType ltype0 = info(dt->columns[0]->stype()).ltype();
   LType ltype1 = info(dt->columns[1]->stype()).ltype();
 
@@ -322,8 +322,8 @@ void Aggregator::group_2d(const DataTablePtr& dt, DataTablePtr& dt_members) {
 /*
 *  Do 1D grouping for a continuous column, i.e. 1D binning.
 */
-void Aggregator::group_1d_continuous(const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+void Aggregator::group_1d_continuous(const dtptr& dt,
+                                     dtptr& dt_members) {
   auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
   const double* d_c0 = c0->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -345,8 +345,8 @@ void Aggregator::group_1d_continuous(const DataTablePtr& dt,
 /*
 *  Do 2D grouping for two continuous columns, i.e. 2D binning.
 */
-void Aggregator::group_2d_continuous(const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+void Aggregator::group_2d_continuous(const dtptr& dt,
+                                     dtptr& dt_members) {
   auto c0 = static_cast<const RealColumn<double>*>(dt->columns[0]);
   auto c1 = static_cast<const RealColumn<double>*>(dt->columns[1]);
   const double* d_c0 = c0->elements_r();
@@ -374,8 +374,8 @@ void Aggregator::group_2d_continuous(const DataTablePtr& dt,
 /*
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
-void Aggregator::group_1d_categorical(const DataTablePtr& dt,
-                                      DataTablePtr& dt_members) {
+void Aggregator::group_1d_categorical(const dtptr& dt,
+                                      dtptr& dt_members) {
   arr32_t cols(1);
   cols[0] = 0;
   Groupby grpby0;
@@ -398,8 +398,8 @@ void Aggregator::group_1d_categorical(const DataTablePtr& dt,
 *  Detect string types for both categorical columns and do a corresponding call
 *  to `group_2d_mixed_str`.
 */
-void Aggregator::group_2d_categorical (const DataTablePtr& dt,
-                                       DataTablePtr& dt_members) {
+void Aggregator::group_2d_categorical (const dtptr& dt,
+                                       dtptr& dt_members) {
   switch (dt->columns[0]->stype()) {
     case SType::STR32:  switch (dt->columns[1]->stype()) {
                           case SType::STR32:  group_2d_categorical_str<uint32_t, uint32_t>(dt, dt_members); break;
@@ -425,8 +425,8 @@ void Aggregator::group_2d_categorical (const DataTablePtr& dt,
 *  and combine their results.
 */
 template<typename T0, typename T1>
-void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
-                                          DataTablePtr& dt_members) {
+void Aggregator::group_2d_categorical_str(const dtptr& dt,
+                                          dtptr& dt_members) {
   auto c0 = static_cast<const StringColumn<T0>*>(dt->columns[0]);
   auto c1 = static_cast<const StringColumn<T1>*>(dt->columns[1]);
   const T0* d_c0 = c0->offsets();
@@ -480,8 +480,8 @@ void Aggregator::group_2d_categorical_str(const DataTablePtr& dt,
 *  Detect string type for a categorical column and do a corresponding call
 *  to `group_2d_mixed_str`.
 */
-void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
-                                 DataTablePtr& dt_members) {
+void Aggregator::group_2d_mixed (bool cont_index, const dtptr& dt,
+                                 dtptr& dt_members) {
   switch (dt->columns[!cont_index]->stype()) {
     case SType::STR32:  group_2d_mixed_str<uint32_t>(cont_index, dt, dt_members); break;
     case SType::STR64:  group_2d_mixed_str<uint64_t>(cont_index, dt, dt_members); break;
@@ -496,8 +496,8 @@ void Aggregator::group_2d_mixed (bool cont_index, const DataTablePtr& dt,
 *  operation for the categorical one.
 */
 template<typename T>
-void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
-                                     DataTablePtr& dt_members) {
+void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
+                                     dtptr& dt_members) {
   auto c_cat = static_cast<const StringColumn<T>*>(dt->columns[!cont_index]);
   const T* d_cat = c_cat->offsets();
 
@@ -559,7 +559,7 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const DataTablePtr& dt,
 *  However, for some datasets this `delta` results in too many (e.g. thousands) or
 *  too few (e.g. just one) exemplars.
 */
-void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members) {
+void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   auto ncols = static_cast<int32_t>(dt->ncols);
@@ -634,7 +634,7 @@ void Aggregator::group_nd(const DataTablePtr& dt, DataTablePtr& dt_members) {
 /*
  *  Figure out how many threads we need to run ND groupping.
  */
-int32_t Aggregator::get_nthreads(const DataTablePtr& dt) {
+int32_t Aggregator::get_nthreads(const dtptr& dt) {
   int32_t nth;
   if (nthreads) {
     nth = static_cast<int32_t>(nthreads);
@@ -713,7 +713,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
 *  i.e. set which exemplar they belong to.
 */
 void Aggregator::adjust_members(std::vector<int64_t>& ids,
-                                DataTablePtr& dt_members) {
+                                dtptr& dt_members) {
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   size_t* map = new size_t[ids.size()];
@@ -771,7 +771,7 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 /*
 *  Normalize the row elements to [0,1).
 */
-void Aggregator::normalize_row(const DataTablePtr& dt, DoublePtr& r, int32_t row_id) {
+void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, int32_t row_id) {
   for (int64_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
@@ -787,7 +787,7 @@ void Aggregator::normalize_row(const DataTablePtr& dt, DoublePtr& r, int32_t row
 /*
 *  Generate projection matrix.
 */
-DoublePtr Aggregator::generate_pmatrix(const DataTablePtr& dt_exemplars) {
+DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
   std::default_random_engine generator;
   DoublePtr pmatrix = DoublePtr(new double[(dt_exemplars->ncols) * max_dimensions]);
 
@@ -812,7 +812,7 @@ DoublePtr Aggregator::generate_pmatrix(const DataTablePtr& dt_exemplars) {
 /*
 *  Project a particular row on a subspace by using the projection matrix.
 */
-void Aggregator::project_row(const DataTablePtr& dt_exemplars, DoublePtr& r,
+void Aggregator::project_row(const dtptr& dt_exemplars, DoublePtr& r,
                              int32_t row_id, DoublePtr& pmatrix) {
 
   std::memset(r.get(), 0, static_cast<size_t>(max_dimensions) * sizeof(double));

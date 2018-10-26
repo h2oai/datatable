@@ -30,7 +30,7 @@ class Aggregator {
   public:
     Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
                unsigned int, PyObject*, unsigned int);
-    DataTablePtr aggregate(DataTable*);
+    dtptr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, int32_t);
     static void print_progress(double, int);
@@ -47,32 +47,32 @@ class Aggregator {
     PyObject* progress_fn;
 
     // Grouping and aggregating methods
-    void group_0d(const DataTable*, DataTablePtr&);
-    void group_1d(const DataTablePtr&, DataTablePtr&);
-    void group_2d(const DataTablePtr&, DataTablePtr&);
-    void group_nd(const DataTablePtr&, DataTablePtr&);
-    void group_1d_continuous(const DataTablePtr&, DataTablePtr&);
-    void group_2d_continuous(const DataTablePtr&, DataTablePtr&);
-    void group_1d_categorical(const DataTablePtr&, DataTablePtr&);
-    void group_2d_categorical(const DataTablePtr&, DataTablePtr&);
+    void group_0d(const DataTable*, dtptr&);
+    void group_1d(const dtptr&, dtptr&);
+    void group_2d(const dtptr&, dtptr&);
+    void group_nd(const dtptr&, dtptr&);
+    void group_1d_continuous(const dtptr&, dtptr&);
+    void group_2d_continuous(const dtptr&, dtptr&);
+    void group_1d_categorical(const dtptr&, dtptr&);
+    void group_2d_categorical(const dtptr&, dtptr&);
     template<typename T1, typename T2>
-    void group_2d_categorical_str(const DataTablePtr&, DataTablePtr&);
-    void group_2d_mixed(bool, const DataTablePtr&, DataTablePtr&);
+    void group_2d_categorical_str(const dtptr&, dtptr&);
+    void group_2d_mixed(bool, const dtptr&, dtptr&);
     template<typename T>
-    void group_2d_mixed_str(bool, const DataTablePtr&, DataTablePtr&);
-    bool random_sampling(DataTablePtr&, int32_t, int32_t);
-    void aggregate_exemplars(DataTable*, DataTablePtr&, bool);
+    void group_2d_mixed_str(bool, const dtptr&, dtptr&);
+    bool random_sampling(dtptr&, int32_t, int32_t);
+    void aggregate_exemplars(DataTable*, dtptr&, bool);
 
     // Helper methods
-    int32_t get_nthreads(const DataTablePtr&);
-    DoublePtr generate_pmatrix(const DataTablePtr&);
-    void normalize_row(const DataTablePtr&, DoublePtr&, int32_t);
-    void project_row(const DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
+    int32_t get_nthreads(const dtptr&);
+    DoublePtr generate_pmatrix(const dtptr&);
+    void normalize_row(const dtptr&, DoublePtr&, int32_t);
+    void project_row(const dtptr&, DoublePtr&, int32_t, DoublePtr&);
     double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double,
                               bool early_exit=true);
     void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&,
                       int64_t);
-    void adjust_members(std::vector<int64_t>&, DataTablePtr&);
+    void adjust_members(std::vector<int64_t>&, dtptr&);
     size_t calculate_map(std::vector<int64_t>&, size_t);
     void progress(double, int status_code=0);
 };
