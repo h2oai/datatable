@@ -60,7 +60,7 @@ using dtptr  = std::unique_ptr<DataTable>;
 class DataTable {
   public:
     size_t   nrows;
-    int64_t   ncols;
+    size_t   ncols;
     size_t   nkeys;
     RowIndex rowindex;
     Groupby  groupby;

@@ -222,8 +222,7 @@ class RowIndex {
     bool isarray() const { return isarr32() || isarr64(); }
     const void* ptr() const { return static_cast<const void*>(impl); }
 
-    int64_t length() const { return impl? impl->length : 0; }
-    size_t zlength() const { return static_cast<size_t>(length()); }
+    size_t length() const { return impl? static_cast<size_t>(impl->length) : 0; }
     int64_t min() const { return impl? impl->min : 0; }
     int64_t max() const { return impl? impl->max : 0; }
     int64_t nth(int64_t i) const { return impl? impl->nth(i) : i; }

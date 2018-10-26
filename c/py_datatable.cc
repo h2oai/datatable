@@ -272,9 +272,10 @@ PyObject* check(obj* self, PyObject*) {
 PyObject* column(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int64_t colidx;
+  int64_t ncols = static_cast<int64_t>(dt->ncols);
   if (!PyArg_ParseTuple(args, "l:column", &colidx))
     return nullptr;
-  if (colidx < -dt->ncols || colidx >= dt->ncols) {
+  if (colidx < -ncols || colidx >= ncols) {
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
     return nullptr;
   }
@@ -371,9 +372,9 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   py::olist cols = py::obj(arg1).to_pylist();
   RowIndex rows_ri = py::obj(arg2).to_rowindex();
   DataTable* repl = py::obj(arg3).to_frame();
-  int64_t rrows = repl->nrows;
-  size_t rcols = static_cast<size_t>(repl->ncols);
-  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows = repl->nrows;
+  size_t rcols = repl->ncols;
+  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
   bool ok = (rrows == rrows2 || rrows == 1) &&
             (rcols == cols.size() || rcols == 1);
@@ -386,12 +387,12 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   dt->reify();
   repl->reify();
 
-  int64_t num_new_cols = 0;
+  size_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
     py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
-    if (j < -1 || j >= dt->ncols) {
+    if (j < -1 || j >= static_cast<int64_t>(dt->ncols)) {
       throw ValueError() << "Invalid index for a replacement column: " << j;
     }
   }
@@ -400,7 +401,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
       throw ValueError() << "Cannot assign to column(s) that are outside of "
                             "the Frame: " << rows_ri;
     }
-    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols);
+    size_t newsize = dt->ncols + num_new_cols;
     dt->columns.resize(newsize);
   }
   for (size_t i = 0; i < cols.size(); ++i) {
