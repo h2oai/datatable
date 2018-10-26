@@ -13,6 +13,7 @@
 #include "csv/writer.h"
 #include "expr/py_expr.h"
 #include "extras/aggregator.h"
+#include "extras/ftrl.h"
 #include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
@@ -200,6 +201,7 @@ void DatatableModule::init_methods() {
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
   add(METHODv(aggregate));
+  add(METHODv(ftrl));
   init_methods_str();
 }
 
