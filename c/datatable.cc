@@ -28,7 +28,7 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   columns = std::move(cols);
   ncols = columns.size();
   if (ncols > 0) {
-    nrows = static_cast<size_t>(columns[0]->nrows);
+    nrows = columns[0]->nrows;
     rowindex = RowIndex(columns[0]->rowindex());
 
     bool need_to_materialize = false;
@@ -161,7 +161,7 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 
 void DataTable::replace_groupby(const Groupby& newgb) {
   int32_t last_offset = newgb.offsets_r()[newgb.ngroups()];
-  if (last_offset != nrows) {
+  if (static_cast<size_t>(last_offset) != nrows) {
     throw ValueError() << "Cannot apply Groupby of " << last_offset << " rows "
       "to a Frame with " << nrows << " rows";
   }
@@ -178,7 +178,7 @@ void DataTable::set_nkeys(size_t nk) {
   Groupby gb;
   arr32_t cols(nk);
   for (size_t i = 0; i < nk; ++i) {
-    cols[i] = i;
+    cols[i] = static_cast<int32_t>(i);
   }
   RowIndex ri = sortby(cols, &gb);
   xassert(ri.length() == nrows);
