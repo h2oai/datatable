@@ -37,7 +37,7 @@ class RowIndexImpl {
   public:
     RowIndexType type;
     int32_t refcount;
-    int64_t length;
+    size_t length;
     int64_t min;
     int64_t max;
 
@@ -51,8 +51,8 @@ class RowIndexImpl {
     virtual int64_t nth(int64_t i) const = 0;
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
-    virtual void shrink(int64_t n) = 0;
-    virtual RowIndexImpl* shrunk(int64_t n) = 0;
+    virtual void shrink(size_t n) = 0;
+    virtual RowIndexImpl* shrunk(size_t n) = 0;
     virtual size_t memory_footprint() const = 0;
     virtual void verify_integrity() const;
 
@@ -87,8 +87,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(int64_t nrows) const override;
-    void shrink(int64_t n) override;
-    RowIndexImpl* shrunk(int64_t n) override;
+    void shrink(size_t n) override;
+    RowIndexImpl* shrunk(size_t n) override;
     size_t memory_footprint() const override;
     void verify_integrity() const override;
 
@@ -126,8 +126,8 @@ class SliceRowIndexImpl : public RowIndexImpl {
     int64_t nth(int64_t i) const override;
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(int64_t nrows) const override;
-    void shrink(int64_t n) override;
-    RowIndexImpl* shrunk(int64_t n) override;
+    void shrink(size_t n) override;
+    RowIndexImpl* shrunk(size_t n) override;
     size_t memory_footprint() const override;
     void verify_integrity() const override;
 
@@ -254,7 +254,7 @@ class RowIndex {
      * RowIndex. Knowing the number of columns allows us to know when the
      * RowIndex can be safely modified in-place, and when it cannot.
      */
-    void shrink(int64_t nrows, int64_t ncols);
+    void shrink(size_t nrows, size_t ncols);
 
     size_t memory_footprint() const;
 

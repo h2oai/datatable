@@ -196,13 +196,13 @@ RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
-void SliceRowIndexImpl::shrink(int64_t n) {
+void SliceRowIndexImpl::shrink(size_t n) {
   length = n;
   if (step > 0) max = start + step * (n - 1);
   if (step < 0) min = start + step * (n - 1);
 }
 
-RowIndexImpl* SliceRowIndexImpl::shrunk(int64_t n) {
+RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
   return new SliceRowIndexImpl(start, n, step);
 }
 

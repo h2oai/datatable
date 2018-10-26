@@ -93,7 +93,7 @@ void RowIndex::clear() {
 }
 
 
-void RowIndex::shrink(int64_t nrows, int64_t ncols) {
+void RowIndex::shrink(size_t nrows, size_t ncols) {
   xassert(impl && impl->refcount >= ncols + 1);
   if (impl->refcount == ncols + 1) {
     impl->shrink(nrows);

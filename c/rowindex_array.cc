@@ -496,28 +496,27 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
-void ArrayRowIndexImpl::shrink(int64_t n) {
+void ArrayRowIndexImpl::shrink(size_t n) {
   xassert(n < length);
   length = n;
   if (type == RowIndexType::RI_ARR32) {
-    ind32.resize(static_cast<size_t>(n));
+    ind32.resize(n);
     set_min_max(ind32);
   } else {
-    ind64.resize(static_cast<size_t>(n));
+    ind64.resize(n);
     set_min_max(ind64);
   }
 }
 
-RowIndexImpl* ArrayRowIndexImpl::shrunk(int64_t n) {
+RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
   xassert(n < length);
-  size_t zn = static_cast<size_t>(n);
   if (type == RowIndexType::RI_ARR32) {
-    arr32_t new_ind32(zn);
-    memcpy(new_ind32.data(), ind32.data(), zn * sizeof(int32_t));
+    arr32_t new_ind32(n);
+    memcpy(new_ind32.data(), ind32.data(), n * sizeof(int32_t));
     return new ArrayRowIndexImpl(std::move(new_ind32), is_sorted);
   } else {
-    arr64_t new_ind64(zn);
-    memcpy(new_ind64.data(), ind64.data(), zn * sizeof(int64_t));
+    arr64_t new_ind64(n);
+    memcpy(new_ind64.data(), ind64.data(), n * sizeof(int64_t));
     return new ArrayRowIndexImpl(std::move(new_ind64), is_sorted);
   }
 }
