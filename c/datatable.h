@@ -59,9 +59,9 @@ using dtptr  = std::unique_ptr<DataTable>;
  */
 class DataTable {
   public:
-    int64_t   nrows;
+    size_t   nrows;
     int64_t   ncols;
-    int64_t   nkeys;
+    size_t   nkeys;
     RowIndex rowindex;
     Groupby  groupby;
     colvec   columns;
