@@ -23,11 +23,12 @@
 PyObject* ftrl(PyObject*, PyObject* args) {
 
   double a, b, l1, l2;
-  unsigned int d, n_epochs, inter, hash_type;
+  unsigned int d, n_epochs, hash_type;
+  bool inter;
   PyObject* arg1;
   PyObject* arg2;
 
-  if (!PyArg_ParseTuple(args, "OOddddIIII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
+  if (!PyArg_ParseTuple(args, "OOddddIIpI:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
                         &d, &n_epochs, &inter, &hash_type)) return nullptr;
 
   DataTable* dt_train = py::obj(arg1).to_frame();
@@ -46,7 +47,7 @@ PyObject* ftrl(PyObject*, PyObject* args) {
 *  Setting up FTRL parameters and initializing weights.
 */
 Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
-           size_t d_in, size_t nepochs_in, size_t inter_in, size_t hash_type_in) :
+           size_t d_in, size_t nepochs_in, bool inter_in, size_t hash_type_in) :
   a(a_in),
   b(b_in),
   l1(l1_in),
@@ -75,9 +76,14 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
 *  Train FTRL model on training data.
 */
 void Ftrl::train(const DataTable* dt) {
-  // This will only work when we don't do feature interactions.
-  SizetPtr x = SizetPtr(new size_t[dt->ncols]);
-  x[0] = 0; // Bias term
+  // This includes a bias term, and `dt->ncols - 1` columns, i.e. excluding the target column.
+  n_features = size_t(dt->ncols);
+  // Number of feature interactions.
+  if (inter) {
+    n_features_inter = (n_features - 1) * (n_features - 2) / 2;
+  } else {
+    n_features_inter = 0;
+  }
 
   // Get the target column.
   Column* cy = dt->columns[dt->ncols - 1];
@@ -87,16 +93,30 @@ void Ftrl::train(const DataTable* dt) {
   // Do training for `n_epochs`.
   for (size_t i = 0; i < n_epochs; ++i) {
     double loss = 0;
-    for (int32_t j = 0; j < dt->nrows; ++j) {
-      bool y = dy_bool[j];
-      hash(x, dt, j);
-      double p = predict(x, size_t(dt->ncols));
-      loss += logloss(p, y);
-      if (j % REPORT_FREQUENCY == 0) {
-        printf("Training epoch: %zu\t row: %d\t prediction: %f\t average loss: %f\n",
-                i, j+1, p, loss / (j+1));
+    int32_t nth = config::nthreads;
+
+    #pragma omp parallel num_threads(nth)
+    {
+      SizetPtr x = SizetPtr(new size_t[n_features + n_features_inter]);
+      x[0] = 0; // Bias term
+      int32_t ith = omp_get_thread_num();
+      nth = omp_get_num_threads();
+
+      for (int32_t j = ith; j < dt->nrows; j+= nth) {
+        bool y = dy_bool[j];
+        hash(x, dt, j);
+        double p = predict(x, n_features + n_features_inter);
+        double ll = logloss(p, y);
+
+        #pragma omp atomic update
+        loss += ll;
+
+        if ((j+1) % REPORT_FREQUENCY == 0) {
+          printf("Training epoch: %zu\t row: %d\t prediction: %f\t loss: %f\t average loss: %f\n",
+                  i, j+1, p, ll, loss / (j+1));
+        }
+        update(x, n_features + n_features_inter, p, y);
       }
-      update(x, size_t(dt->ncols), p, y);
     }
   }
 }
@@ -114,16 +134,23 @@ DataTablePtr Ftrl::test(const DataTable* dt) {
   dt_target = DataTablePtr(new DataTable(cols_target, {"target"}));
   auto d_target = static_cast<double*>(dt_target->columns[0]->data_w());
 
-  // This will only work when we don't do feature interactions.
-  SizetPtr x = SizetPtr(new size_t[dt->ncols]);
-  x[0] = 0; // Bias term
+  int32_t nth = config::nthreads;
 
-  for (int32_t j = 0; j < dt->nrows; ++j) {
-    hash(x, dt, j);
-    d_target[j] = predict(x, size_t(dt->ncols));
-    if (j % REPORT_FREQUENCY == 0) {
-      printf("Testing row: %d\t prediction: %f\n", j+1, d_target[j]);
+  #pragma omp parallel num_threads(nth)
+  {
+    SizetPtr x = SizetPtr(new size_t[n_features + n_features_inter]);
+    x[0] = 0; // Bias term
+    int32_t ith = omp_get_thread_num();
+    nth = omp_get_num_threads();
+
+    for (int32_t j = ith; j < dt->nrows; j+= nth) {
+      hash(x, dt, j);
+      d_target[j] = predict(x, n_features + n_features_inter);
+      if ((j+1) % REPORT_FREQUENCY == 0) {
+        printf("Testing row: %d\t prediction: %f\n", j+1, d_target[j]);
+      }
     }
+
   }
   return dt_target;
 }
@@ -132,10 +159,9 @@ DataTablePtr Ftrl::test(const DataTable* dt) {
 /*
 *  Make predictions for a hashed row.
 */
-double Ftrl::predict(const SizetPtr& x, size_t ncols) {
+double Ftrl::predict(const SizetPtr& x, size_t x_size) {
   double wTx = 0;
-
-  for (size_t j = 0; j < ncols; ++j) {
+  for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
     if (fabs(z[i]) <= l1) {
       w[i] = 0;
@@ -145,10 +171,10 @@ double Ftrl::predict(const SizetPtr& x, size_t ncols) {
     wTx += w[i];
   }
 
-  double res = 1 / (1 + exp(-wTx));
+  double res = 1.0 / (1.0 + exp(-wTx));
 
 // May also want to use a bounded sigmoid
-  res = 1 / (1 + exp(-std::max(std::min(wTx, 35.0), -35.0)));
+//  res = 1 / (1 + exp(-std::max(std::min(wTx, 35.0), -35.0)));
 
   return res;
 }
@@ -157,10 +183,10 @@ double Ftrl::predict(const SizetPtr& x, size_t ncols) {
 /*
 *  Update weights based on prediction and the actual value.
 */
-void Ftrl::update(const SizetPtr& x, size_t ncols, double p, bool y) {
+void Ftrl::update(const SizetPtr& x, size_t x_size, double p, bool y) {
   double g = p - y;
 
-  for (size_t j = 0; j < ncols; ++j) {
+  for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
     double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / a;
     z[i] += g - sigma * w[i];
@@ -172,7 +198,7 @@ void Ftrl::update(const SizetPtr& x, size_t ncols, double p, bool y) {
 /*
 *  Choose a hashing method.
 */
-void Ftrl::hash(SizetPtr& x, const DataTable* dt, int32_t row_id) {
+void Ftrl::hash(SizetPtr& x, const DataTable* dt, int64_t row_id) {
   if (hash_type) {
     hash_string(x, dt, row_id);
   } else {
@@ -185,7 +211,7 @@ void Ftrl::hash(SizetPtr& x, const DataTable* dt, int32_t row_id) {
 *  Do std::hashing leaving numeric values as they are.
 *  May not work well, here just for testing purposes.
 */
-void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int32_t row_id) {
+void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int64_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
 
   for (size_t i = 0; i < static_cast<size_t>(dt->ncols) - 1; ++i) {
@@ -239,10 +265,11 @@ void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int32_t row_id) {
 *  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
 *  `col_value`s to `string`. Needs optimization in terms of performance.
 */
-void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int32_t row_id) {
+void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
-  for (size_t i = 0; i < static_cast<size_t>(dt->ncols) - 1; ++i) {
-    size_t index;
+  size_t index;
+
+  for (size_t i = 0; i < n_features - 1; ++i) {
     std::string str;
     Column* c = dt->columns[i];
 
@@ -278,12 +305,18 @@ void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int32_t row_id) {
       default:             throw ValueError() << "Datatype is not supported";
     }
     index = std::hash<std::string>{}(c_names[i] + '_' + str);
-    x[i+1] = index % d;
+    x[i + 1] = index % d;
   }
 
+  size_t count = 0;
   if (inter) {
-    // TODO: `inter` order feature interaction.
-    // Make sure `x` has enough memory allocated for this purpose.
+    for (size_t i = 0; i < n_features - 1; ++i) {
+      for (size_t j = i + 1; j < n_features - 1; ++j) {
+        index = std::hash<std::string>{}(std::to_string(x[i+1]) + '_' + std::to_string(x[j+1]));
+        x[n_features + count] = index % d;
+        count++;
+      }
+    }
   }
 }
 

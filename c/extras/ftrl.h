@@ -19,26 +19,27 @@ typedef std::unique_ptr<size_t[]> SizetPtr;
 
 class Ftrl {
   public:
-    Ftrl(double, double, double, double, size_t, size_t, size_t, size_t);
+    Ftrl(double, double, double, double, size_t, size_t, bool, size_t);
     void train(const DataTable*);
     DataTablePtr test(const DataTable*);
     double predict(const SizetPtr&, size_t);
     void update(const SizetPtr&, size_t, double, bool);
     double logloss(double, bool);
-    void hash(SizetPtr&, const DataTable*, int32_t);
-    void hash_numeric(SizetPtr&, const DataTable*, int32_t);
-    void hash_string(SizetPtr&, const DataTable*, int32_t);
+    void hash(SizetPtr&, const DataTable*, int64_t);
+    void hash_numeric(SizetPtr&, const DataTable*, int64_t);
+    void hash_string(SizetPtr&, const DataTable*, int64_t);
     static double signum(double);
-    static double sigmoid(double);
 
   private:
     double a;
     double b;
     double l1;
     double l2;
+    size_t n_features;
+    size_t n_features_inter;
     size_t d;
     size_t n_epochs;
-    size_t inter;
+    bool inter;
     size_t hash_type;
     DoublePtr n;
     DoublePtr z;
