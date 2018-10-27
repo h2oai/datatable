@@ -433,13 +433,14 @@ PyObject* rbind(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "lO!:delete_columns",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
+  int64_t ndts = PyList_Size(list);
 
-  int64_t ndts = static_cast<int64_t>(PyList_Size(list));
-  DataTable** dts = dt::amalloc<DataTable*>(ndts);
-  int** cols_to_append = dt::amalloc<int*>(final_ncols);
-  for (int64_t i = 0; i < final_ncols; i++) {
-    cols_to_append[i] = dt::amalloc<int>(ndts);
+  std::vector<DataTable*> dts;
+  std::vector<std::vector<int>> cols_to_append(final_ncols);
+  for (size_t j = 0; j < final_ncols; ++j) {
+    cols_to_append[j].resize(static_cast<size_t>(ndts));
   }
+
   for (int i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
     DataTable* dti;
@@ -464,16 +465,14 @@ PyObject* rbind(obj* self, PyObject* args) {
     for (; j < final_ncols; ++j) {
       cols_to_append[j][i] = -1;
     }
-    dts[i] = dti;
+    dts.push_back(dti);
   }
 
-  dt->rbind(dts, cols_to_append, ndts, final_ncols);
+  dt->rbind(dts, cols_to_append);
 
   // Clear cached stypes/ltypes
   _clear_types(self);
 
-  dt::free(cols_to_append);
-  dt::free(dts);
   Py_RETURN_NONE;
 }
 
