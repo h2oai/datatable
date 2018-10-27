@@ -137,7 +137,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   size_t nrows = col->nrows;
   const RowIndex& rowindex = col->rowindex();
   const T* data = static_cast<const T*>(col->data());
-  int64_t count_notna = 0;
+  size_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
   double m3 = 0;
@@ -150,9 +150,9 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   {
     int ith = omp_get_thread_num();  // current thread index
     int nth = omp_get_num_threads(); // total number of threads
-    int64_t t_count_notna = 0;
-    int64_t n1 = 0;
-    int64_t n2 = 0; // added for readability
+    size_t t_count_notna = 0;
+    size_t n1 = 0;
+    size_t n2 = 0; // added for readability
     double t_mean = 0;
     double t_m2 = 0;
     double t_m3 = 0;
@@ -190,7 +190,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     #pragma omp critical
     {
       if (t_count_notna > 0) {
-        int64_t nold = count_notna;
+        size_t nold = count_notna;
         count_notna += t_count_notna;
         sum += t_sum;
         if (t_min < min) min = t_min;
@@ -204,9 +204,9 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
         double b_m2 = t_m2;
         double b_m3 = t_m3;
         // readibility for counts
-        int64_t a_n = nold;
-        int64_t b_n = t_count_notna;
-        int64_t c_n = count_notna;
+        size_t a_n = nold;
+        size_t b_n = t_count_notna;
+        size_t c_n = count_notna;
 
         // Running SD
         m2 += t_m2 + delta2 * (1.0 * a_n / count_notna * t_count_notna);
@@ -264,18 +264,18 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
     T x0 = coldata[ri.nth(0)];
-    _countna = ISNA<T>(x0)? groups[1] : 0;
+    _countna = ISNA<T>(x0)? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
-  _nunique = static_cast<int64_t>(n_groups) - has_nas;
+  _nunique = n_groups - has_nas;
   set_computed(Stat::NUnique);
 
-  int64_t max_grpsize = 0;
+  size_t max_grpsize = 0;
   size_t best_igrp = 0;
   for (size_t i = has_nas; i < n_groups; ++i) {
-    int32_t grpsize = groups[i + 1] - groups[i];
+    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
     if (grpsize > max_grpsize) {
       max_grpsize = grpsize;
       best_igrp = i;
@@ -440,8 +440,8 @@ template class IntegerStats<int64_t>;
  *            \ (count0 + count1 - 1)(count0 + count1) /
  */
 void BooleanStats::compute_numerical_stats(const Column *col) {
-  int64_t count0 = 0, count1 = 0;
-  int64_t nrows = col->nrows;
+  size_t count0 = 0, count1 = 0;
+  size_t nrows = col->nrows;
   const int8_t* data = static_cast<const int8_t*>(col->data());
   const RowIndex& rowindex = col->rowindex();
   #pragma omp parallel
@@ -450,7 +450,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
     int nth = omp_get_num_threads(); // total number of threads
     size_t tcount0 = 0, tcount1 = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
+    rowindex.strided_loop(ith, static_cast<int64_t>(nrows), nth,
       [&](int64_t i) {
         int8_t x = data[i];
         tcount0 += (x == 0);
@@ -463,7 +463,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
       count1 += tcount1;
     }
   }
-  int64_t t_count = count0 + count1;
+  size_t t_count = count0 + count1;
   double dcount0 = static_cast<double>(count0);
   double dcount1 = static_cast<double>(count1);
   _mean = t_count > 0 ? dcount1 / t_count : GETNA<double>();
@@ -471,7 +471,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
                     : t_count == 1 ? 0 : GETNA<double>();
   _min = count0 ? 0 : count1 ? 1 : GETNA<int8_t>();
   _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
-  _sum = count1;
+  _sum = static_cast<int64_t>(count1);
   _countna = nrows - t_count;
   _nunique = (!!count0) + (!!count1);
   _mode = _nunique ? (count1 >= count0) : GETNA<int8_t>();
@@ -507,8 +507,8 @@ template <typename T>
 void StringStats<T>::compute_countna(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const RowIndex& rowindex = col->rowindex();
-  int64_t nrows = scol->nrows;
-  int64_t countna = 0;
+  size_t nrows = scol->nrows;
+  size_t countna = 0;
   const T* data = scol->offsets();
 
   #pragma omp parallel
@@ -517,7 +517,7 @@ void StringStats<T>::compute_countna(const Column* col) {
     int nth = omp_get_num_threads(); // total number of threads
     size_t tcountna = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
+    rowindex.strided_loop(ith, static_cast<int64_t>(nrows), nth,
       [&](int64_t i) {
         tcountna += data[i] >> (sizeof(T)*8 - 1);
       });
@@ -544,18 +544,18 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
   if (!is_computed(Stat::NaCount)) {
     T off0 = offsets[ri.nth(0)];
-    _countna = ISNA<T>(off0)? groups[1] : 0;
+    _countna = ISNA<T>(off0)? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
-  _nunique = static_cast<int64_t>(n_groups) - has_nas;
+  _nunique = n_groups - has_nas;
   set_computed(Stat::NUnique);
 
-  int64_t max_grpsize = 0;
+  size_t max_grpsize = 0;
   size_t best_igrp = 0;
   for (size_t i = has_nas; i < n_groups; ++i) {
-    int32_t grpsize = groups[i + 1] - groups[i];
+    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
     if (grpsize > max_grpsize) {
       max_grpsize = grpsize;
       best_igrp = i;
@@ -604,8 +604,8 @@ template class StringStats<uint64_t>;
 
 void PyObjectStats::compute_countna(const Column* col) {
   const RowIndex& rowindex = col->rowindex();
-  int64_t nrows = col->nrows;
-  int64_t countna = 0;
+  size_t nrows = col->nrows;
+  size_t countna = 0;
   PyObject* const* data = static_cast<PyObject* const*>(col->data());
 
   #pragma omp parallel
@@ -614,7 +614,7 @@ void PyObjectStats::compute_countna(const Column* col) {
     int nth = omp_get_num_threads(); // total number of threads
     size_t tcountna = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
+    rowindex.strided_loop(ith, static_cast<int64_t>(nrows), nth,
       [&](int64_t i) {
         tcountna += (data[i] == Py_None);
       });
