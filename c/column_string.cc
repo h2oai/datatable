@@ -22,15 +22,15 @@ template <typename T>
 StringColumn<T>::StringColumn() : Column(0) {}
 
 template <typename T>
-StringColumn<T>::StringColumn(int64_t nrows_)
+StringColumn<T>::StringColumn(size_t nrows_)
   : StringColumn<T>(nrows_, MemoryRange(), MemoryRange()) {}
 
 
 template <typename T>
-StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryRange&& sb)
+StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   : Column(n)
 {
-  size_t exp_off_size = sizeof(T) * (static_cast<size_t>(n) + 1);
+  size_t exp_off_size = sizeof(T) * (n + 1);
   if (mb) {
     xassert(mb.size() == exp_off_size);
     xassert(mb.get_element<T>(0) == 0);
@@ -53,14 +53,14 @@ StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryRange&& sb)
 template <typename T>
 void StringColumn<T>::init_data() {
   xassert(!ri);
-  mbuf = MemoryRange::mem((static_cast<size_t>(nrows) + 1) * sizeof(T));
+  mbuf = MemoryRange::mem((nrows + 1) * sizeof(T));
   mbuf.set_element<T>(0, 0);
 }
 
 template <typename T>
 void StringColumn<T>::init_mmap(const std::string& filename) {
   xassert(!ri);
-  size_t mbuf_size = (static_cast<size_t>(nrows) + 1) * sizeof(T);
+  size_t mbuf_size = (nrows + 1) * sizeof(T);
   strbuf = MemoryRange::mmap(path_str(filename), 0);
   mbuf = MemoryRange::mmap(filename, mbuf_size);
   mbuf.set_element<T>(0, 0);
@@ -74,7 +74,7 @@ void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
   mbuf = MemoryRange::mmap(filename);
   strbuf = MemoryRange::mmap(filename_str);
 
-  // size_t exp_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
+  // size_t exp_mbuf_size = sizeof(T) * (nrows + 1);
   // if (mbuf.size() != exp_mbuf_size) {
   //   throw Error() << "File \"" << filename <<
   //       "\" cannot be used to create a column with " << nrows <<
@@ -86,7 +86,7 @@ void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
       // Recode old format of string storage
       T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
       offsets[-1] = 0;
-      for (int64_t i = 0; i < nrows; ++i) {
+      for (size_t i = 0; i < nrows; ++i) {
         T x = offsets[i];
         offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
       }
@@ -133,7 +133,7 @@ template <typename T>
 void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
                                      MemoryRange&& new_strbuf)
 {
-  int64_t new_nrows = new_offbuf.size()/sizeof(T) - 1;
+  size_t new_nrows = new_offbuf.size()/sizeof(T) - 1;
   if (new_offbuf.size() % sizeof(T)) {
     throw ValueError() << "The size of `new_offbuf` is not a multiple of "
                           STRINGIFY(sizeof(T));
@@ -244,7 +244,7 @@ void StringColumn<T>::reify() {
     } else {
       std::memmove(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
     }
-    for (int64_t i = 0; i < nrows; ++i) {
+    for (size_t i = 0; i < nrows; ++i) {
       offs_dest[i] = data_src[i] - off0;
     }
 
@@ -263,7 +263,8 @@ void StringColumn<T>::reify() {
     // We know that the resulting strbuf/mbuf size will be smaller, so no need to
     // worry about resizing beforehand
     T prev_off = 0;
-    for (int64_t i = 0, j = start; i < nrows; ++i, j += step) {
+    int64_t j = start;
+    for (size_t i = 0; i < nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
         offs_dest[i] = prev_off | GETNA<T>();
       } else {
@@ -285,7 +286,7 @@ void StringColumn<T>::reify() {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
       [&](int64_t i) {
         strs_size += offs1[i] - offs0[i];
       });
@@ -295,7 +296,7 @@ void StringColumn<T>::reify() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
       [&](int64_t i) {
         if (ISNA(i) || ISNA<T>(offs1[i])) {
           *offs_dest++ = prev_off | GETNA<T>();
@@ -465,7 +466,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
   // How much to reduce the offsets1 by due to some strings turning into NAs
   T doffset = 0;
   T offp = 0;
-  for (int64_t j = 0; j < nrows; ++j) {
+  for (size_t j = 0; j < nrows; ++j) {
     T offi = offsets[j];
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
@@ -491,12 +492,12 @@ void StringColumn<T>::fill_na() {
   // Perform a mini reify (the actual `reify` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);
-  size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
+  size_t new_mbuf_size = sizeof(T) * (nrows + 1);
   mbuf.resize(new_mbuf_size, /* keep_data = */ false);
   T* off_data = offsets_w();
   off_data[-1] = 0;
   #pragma omp parallel for
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     off_data[i] = GETNA<T>();
   }
   ri.clear();
@@ -567,7 +568,7 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
   auto kcol = static_cast<const StringColumn<T>*>(keycol);
   xassert(!kcol->ri);
 
-  arr32_t target_indices(static_cast<size_t>(nrows));
+  arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_offsets = offsets();
   const T* key_offsets = kcol->offsets();
@@ -575,7 +576,7 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
   const uint8_t* key_strdata = kcol->ustrdata();
   uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, nrows, 1,
+  ri.strided_loop2(0, static_cast<int64_t>(nrows), 1,
     [&](int64_t i, int64_t j) {
       T ostart = src_offsets[j - 1];
       T oend = src_offsets[j];
@@ -636,7 +637,7 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
   PyObject** trg_data = target->elements_w();
 
   T prev_offset = 0;
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     T off_end = offsets[i];
     if (ISNA<T>(off_end)) {
       trg_data[i] = none();
@@ -665,7 +666,7 @@ void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
 
 template <>
 void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
-  size_t alloc_size = sizeof(uint64_t) * static_cast<size_t>(1 + this->nrows);
+  size_t alloc_size = sizeof(uint64_t) * (1 + this->nrows);
   std::memcpy(target->data_w(), this->data(), alloc_size);
   target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
 }
@@ -691,7 +692,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
         << "Offsets section in (string) " << name << " does not start with 0";
   }
 
-  int64_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = data_nrows();
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   if (strbuf.size() != strdata_size) {
@@ -703,7 +704,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 
   // Check for the validity of each offset
   T lastoff = 0;
-  for (int64_t i = 0; i < mbuf_nrows; ++i) {
+  for (size_t i = 0; i < mbuf_nrows; ++i) {
     T oj = str_offsets[i];
     if (ISNA<T>(oj)) {
       if (oj != (lastoff | GETNA<T>())) {

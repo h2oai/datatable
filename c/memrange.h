@@ -210,8 +210,8 @@ class MemoryRange
     void* wptr(size_t offset);
     void* xptr() const;
     void* xptr(size_t offset) const;
-    template <typename T> T get_element(int64_t i) const;
-    template <typename T> void set_element(int64_t i, T value);
+    template <typename T> T get_element(size_t i) const;
+    template <typename T> void set_element(size_t i, T value);
 
     // MemoryRange manipulators
     //
@@ -272,17 +272,17 @@ class MemoryRange
 };
 
 
-template <> void MemoryRange::set_element(int64_t, PyObject*);
-extern template int32_t MemoryRange::get_element(int64_t) const;
-extern template int64_t MemoryRange::get_element(int64_t) const;
-extern template uint32_t MemoryRange::get_element(int64_t) const;
-extern template uint64_t MemoryRange::get_element(int64_t) const;
-extern template void MemoryRange::set_element(int64_t, PyObject*);
-extern template void MemoryRange::set_element(int64_t, char);
-extern template void MemoryRange::set_element(int64_t, int32_t);
-extern template void MemoryRange::set_element(int64_t, int64_t);
-extern template void MemoryRange::set_element(int64_t, uint32_t);
-extern template void MemoryRange::set_element(int64_t, uint64_t);
+template <> void MemoryRange::set_element(size_t, PyObject*);
+extern template int32_t MemoryRange::get_element(size_t) const;
+extern template int64_t MemoryRange::get_element(size_t) const;
+extern template uint32_t MemoryRange::get_element(size_t) const;
+extern template uint64_t MemoryRange::get_element(size_t) const;
+extern template void MemoryRange::set_element(size_t, PyObject*);
+extern template void MemoryRange::set_element(size_t, char);
+extern template void MemoryRange::set_element(size_t, int32_t);
+extern template void MemoryRange::set_element(size_t, int64_t);
+extern template void MemoryRange::set_element(size_t, uint32_t);
+extern template void MemoryRange::set_element(size_t, uint64_t);
 
 
 #endif

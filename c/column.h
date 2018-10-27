@@ -621,8 +621,8 @@ template <typename T> class StringColumn : public Column
   MemoryRange strbuf;
 
 public:
-  StringColumn(int64_t nrows);
-  StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
+  StringColumn(size_t nrows);
+  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryRange&&, MemoryRange&&) override;
