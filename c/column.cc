@@ -242,9 +242,9 @@ size_t Column::memory_footprint() const
 // Stats
 //------------------------------------------------------------------------------
 
-int64_t Column::countna() const { return get_stats()->countna(this); }
-int64_t Column::nunique() const { return get_stats()->nunique(this); }
-int64_t Column::nmodal() const  { return get_stats()->nmodal(this); }
+size_t Column::countna() const { return get_stats()->countna(this); }
+size_t Column::nunique() const { return get_stats()->nunique(this); }
+size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
 /**
@@ -262,19 +262,19 @@ Column* Column::sum_column() const  { return new_na_column(stype(), 1); }
 
 Column* Column::countna_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, countna());
+  col->set_elem(0, static_cast<int64_t>(countna()));
   return col;
 }
 
 Column* Column::nunique_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, nunique());
+  col->set_elem(0, static_cast<int64_t>(nunique()));
   return col;
 }
 
 Column* Column::nmodal_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, nmodal());
+  col->set_elem(0, static_cast<int64_t>(nmodal()));
   return col;
 }
 
@@ -371,14 +371,10 @@ void Column::cast_into(PyObjectColumn*) const {
 //------------------------------------------------------------------------------
 
 void Column::verify_integrity(const std::string& name) const {
-  if (nrows < 0) {
-    throw AssertionError()
-      << name << " has a negative value for nrows: " << nrows;
-  }
   mbuf.verify_integrity();
   ri.verify_integrity();
 
-  int64_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
   if (ri.isabsent()) {
@@ -400,7 +396,7 @@ void Column::verify_integrity(const std::string& name) const {
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (ri.max() >= mbuf_nrows && ri.max() > 0) {
+    if (static_cast<size_t>(ri.max()) >= mbuf_nrows && ri.max() > 0) {
       throw AssertionError()
           << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
@@ -421,7 +417,7 @@ void Column::verify_integrity(const std::string& name) const {
 //==============================================================================
 
 VoidColumn::VoidColumn() {}
-VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
+VoidColumn::VoidColumn(size_t nrows) : Column(nrows) {}
 SType VoidColumn::stype() const { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }

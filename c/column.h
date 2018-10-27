@@ -217,9 +217,9 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  int64_t countna() const;
-  int64_t nunique() const;
-  int64_t nmodal() const;
+  size_t countna() const;
+  size_t nunique() const;
+  size_t nmodal() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
@@ -698,7 +698,7 @@ extern template class StringColumn<uint64_t>;
 // unknown type. This column cannot be put into a DataTable.
 class VoidColumn : public Column {
   public:
-    VoidColumn(int64_t nrows);
+    VoidColumn(size_t nrows);
     SType stype() const override;
     size_t elemsize() const override;
     bool is_fixedwidth() const override;

@@ -584,7 +584,7 @@ template <typename T>
 static Column* _make_range_column(
     int64_t start, int64_t length, int64_t step, SType stype)
 {
-  Column* col = Column::new_data_column(stype, length);
+  Column* col = Column::new_data_column(stype, static_cast<size_t>(length));
   T* elems = static_cast<T*>(col->data_w());
   for (int64_t i = 0, j = start; i < length; ++i) {
     elems[i] = static_cast<T>(j);
