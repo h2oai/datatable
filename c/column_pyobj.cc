@@ -95,7 +95,7 @@ void PyObjectColumn::reify() {
   // element in the column, since we created a new independent reference of
   // each python object.
   PyObject** data = this->elements_w();
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     Py_INCREF(data[i]);
   }
 }
@@ -128,7 +128,7 @@ void PyObjectColumn::rbind_impl(
         col = newcol;
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
-      for (int64_t i = 0; i < col->nrows; ++i) {
+      for (size_t i = 0; i < col->nrows; ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);
         *dest_data = src_data[i];
@@ -148,7 +148,7 @@ using MWBPtr = std::unique_ptr<MemoryWritableBuffer>;
 
 template<typename OT>
 inline static MemoryRange cast_str_helper(
-  int64_t nrows, const PyObject* const* src, OT* toffsets)
+  size_t nrows, const PyObject* const* src, OT* toffsets)
 {
   // Warning: Do not attempt to parallelize this: creating new PyObjects
   // is not thread-safe! In addition `to_pystring_force()` may invoke
@@ -157,7 +157,7 @@ inline static MemoryRange cast_str_helper(
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   OT offset = 0;
   toffsets[-1] = 0;
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     py::ostring xstr = py::obj(src[i]).to_pystring_force();
     CString xcstr = xstr.to_cstring();
     if (xcstr.ch) {
@@ -176,7 +176,7 @@ inline static MemoryRange cast_str_helper(
 void PyObjectColumn::cast_into(PyObjectColumn* target) const {
   PyObject* const* src_data = this->elements_r();
   PyObject** dest_data = target->elements_w();
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     Py_INCREF(src_data[i]);
     Py_DECREF(dest_data[i]);
     dest_data[i] = src_data[i];
