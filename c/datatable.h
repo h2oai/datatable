@@ -85,7 +85,7 @@ class DataTable {
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(std::vector<DataTable*>, std::vector<std::vector<int>>);
+    void rbind(std::vector<DataTable*>, std::vector<std::vector<size_t>>);
     DataTable* cbind(std::vector<DataTable*>);
     DataTable* copy() const;
     size_t memory_footprint();

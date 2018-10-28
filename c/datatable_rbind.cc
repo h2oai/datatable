@@ -26,8 +26,9 @@
  * NAs).
  */
 void DataTable::rbind(
-    std::vector<DataTable*> dts, std::vector<std::vector<int>> cols)
+    std::vector<DataTable*> dts, std::vector<std::vector<size_t>> cols)
 {
+  constexpr size_t INVALID_INDEX = size_t(-1);
   size_t new_ncols = cols.size();
   xassert(new_ncols >= ncols);
 
@@ -47,9 +48,10 @@ void DataTable::rbind(
   std::vector<const Column*> cols_to_append(dts.size(), nullptr);
   for (size_t i = 0; i < new_ncols; ++i) {
     for (size_t j = 0; j < dts.size(); ++j) {
-      int k = cols[i][j];
-      Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
-                          : dts[j]->columns[k]->shallowcopy();
+      size_t k = cols[i][j];
+      Column* col = k == INVALID_INDEX
+                      ? new VoidColumn(dts[j]->nrows)
+                      : dts[j]->columns[k]->shallowcopy();
       col->reify();
       cols_to_append[j] = col;
     }

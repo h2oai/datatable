@@ -435,31 +435,32 @@ PyObject* rbind(obj* self, PyObject* args) {
     return nullptr;
   int64_t ndts = PyList_Size(list);
 
+  constexpr size_t INVALID_INDEX = size_t(-1);
   std::vector<DataTable*> dts;
-  std::vector<std::vector<int>> cols_to_append(final_ncols);
+  std::vector<std::vector<size_t>> cols_to_append(final_ncols);
   for (size_t j = 0; j < final_ncols; ++j) {
     cols_to_append[j].resize(static_cast<size_t>(ndts));
   }
 
-  for (int i = 0; i < ndts; i++) {
+  for (int64_t i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
     DataTable* dti;
     PyObject* colslist;
     if (!PyArg_ParseTuple(item, "O&O",
                           &unwrap, &dti, &colslist))
       return nullptr;
-    int64_t j = 0;
+    size_t j = 0;
     if (colslist == Py_None) {
-      int64_t ncolsi = dti->ncols;
+      size_t ncolsi = dti->ncols;
       for (; j < ncolsi; ++j) {
-        cols_to_append[j][i] = static_cast<int>(j);
+        cols_to_append[j][i] = j;
       }
     } else {
-      int64_t ncolsi = PyList_Size(colslist);
+      size_t ncolsi = static_cast<size_t>(PyList_Size(colslist));
       for (; j < ncolsi; ++j) {
         PyObject* itemj = PyList_GET_ITEM(colslist, j);
-        cols_to_append[j][i] = (itemj == Py_None)? -1
-                               : static_cast<int>(PyLong_AsLong(itemj));
+        cols_to_append[j][i] = (itemj == Py_None)? INVALID_INDEX
+                               : PyLong_AsSize_t(itemj);
       }
     }
     for (; j < final_ncols; ++j) {
