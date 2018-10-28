@@ -176,9 +176,9 @@ void DataTable::set_nkeys(size_t nk) {
   }
 
   Groupby gb;
-  arr32_t cols(nk);
+  std::vector<size_t> cols;
   for (size_t i = 0; i < nk; ++i) {
-    cols[i] = static_cast<int32_t>(i);
+    cols.push_back(i);
   }
   RowIndex ri = sortby(cols, &gb);
   xassert(ri.length() == nrows);

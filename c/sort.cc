@@ -1180,7 +1180,8 @@ class SortContext {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
+RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
+                           Groupby* out_grps) const
 {
   size_t nsortcols = colindices.size();
   if (nrows > INT32_MAX) {
@@ -1214,8 +1215,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
     }
     return RowIndex::from_slice(i, col0->nrows, 1);
   }
-  size_t zrows = static_cast<size_t>(nrows);
-  SortContext sc(zrows, col0->rowindex(),
+  SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));
   sc.start_sort(col0);
   for (size_t j = 1; j < nsortcols; ++j) {

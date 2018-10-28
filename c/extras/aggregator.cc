@@ -138,10 +138,8 @@ dtptr Aggregator::aggregate(DataTable* dt) {
 bool Aggregator::random_sampling(dtptr& dt_members, int32_t max_bins, int32_t n_na_bins) {
   bool was_sampled = false;
   // Sorting `dt_members` to calculate total number of exemplars.
-  arr32_t cols(1);
-  cols[0] = 0;
   Groupby gb_members;
-  RowIndex ri_members = dt_members->sortby(cols, &gb_members);
+  RowIndex ri_members = dt_members->sortby({0}, &gb_members);
 
   // Do random sampling if there is too many exemplars, `n_na_bins` accounts
   // for the additional N/A bins that may appear during grouping.
@@ -191,10 +189,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
                                      dtptr& dt_members,
                                      bool was_sampled) {
   // Setting up offsets and members row index.
-  arr32_t cols(1);
-  cols[0] = 0;
   Groupby gb_members;
-  RowIndex ri_members = dt_members->sortby(cols, &gb_members);
+  RowIndex ri_members = dt_members->sortby({0}, &gb_members);
   const int32_t* offsets = gb_members.offsets_r();
   size_t n_exemplars = gb_members.ngroups() - was_sampled;
   arr32_t exemplar_indices(n_exemplars);
@@ -374,12 +370,9 @@ void Aggregator::group_2d_continuous(const dtptr& dt,
 /*
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
-void Aggregator::group_1d_categorical(const dtptr& dt,
-                                      dtptr& dt_members) {
-  arr32_t cols(1);
-  cols[0] = 0;
+void Aggregator::group_1d_categorical(const dtptr& dt, dtptr& dt_members) {
   Groupby grpby0;
-  RowIndex ri0 = dt->sortby(cols, &grpby0);
+  RowIndex ri0 = dt->sortby({0}, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -432,15 +425,12 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   const T0* d_c0 = c0->offsets();
   const T1* d_c1 = c1->offsets();
 
-  arr32_t cols(1);
-  cols[0] = 0;
   Groupby grpby0;
-  RowIndex ri0 = dt->sortby(cols, &grpby0);
+  RowIndex ri0 = dt->sortby({0}, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
-  cols[0] = 1;
   Groupby grpby1;
-  RowIndex ri1 = dt->sortby(cols, &grpby1);
+  RowIndex ri1 = dt->sortby({1}, &grpby1);
   const int32_t* group_indices_1 = ri1.indices32();
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -501,10 +491,8 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
   auto c_cat = static_cast<const StringColumn<T>*>(dt->columns[!cont_index]);
   const T* d_cat = c_cat->offsets();
 
-  arr32_t cols(1);
-  cols[0] = !cont_index;
   Groupby grpby;
-  RowIndex ri_cat = dt->sortby(cols, &grpby);
+  RowIndex ri_cat = dt->sortby({!cont_index}, &grpby);
   const int32_t* gi_cat = ri_cat.indices32();
 
   auto c_cont = static_cast<RealColumn<double>*>(dt->columns[cont_index]);

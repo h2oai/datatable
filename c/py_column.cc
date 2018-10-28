@@ -103,7 +103,7 @@ PyObject* get_refcount(pycolumn::obj*) {
 
 PyObject* get_nrows(pycolumn::obj* self) {
   Column*& col = self->ref;
-  return PyLong_FromInt64(col->nrows);
+  return PyLong_FromSize_t(col->nrows);
 }
 
 
@@ -173,7 +173,7 @@ PyObject* topython(pycolumn::obj* self, PyObject*) {
   auto formatter = py_stype_formatters[itype];
   py::olist out(col->nrows);
 
-  col->rowindex().strided_loop2(0, col->nrows, 1,
+  col->rowindex().strided_loop2(0, static_cast<int64_t>(col->nrows), 1,
     [&](int64_t i, int64_t j) {
       out.set(i, ISNA(j)? py::None()
                         : py::oobj::from_new_reference(formatter(col, j)));

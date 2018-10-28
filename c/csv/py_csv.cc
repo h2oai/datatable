@@ -53,7 +53,7 @@ PyObject* write_csv(PyObject*, PyObject* args)
     if (nthreads <= 0) nthreads += maxth;
     if (nthreads <= 0) nthreads = 1;
   }
-  cwriter.set_nthreads(nthreads);
+  cwriter.set_nthreads(static_cast<size_t>(nthreads));
 
   // Write CSV
   cwriter.write();

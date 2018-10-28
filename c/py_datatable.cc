@@ -491,9 +491,9 @@ PyObject* sort(obj* self, PyObject* args) {
   bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
   bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
 
-  arr32_t cols(nargs - last_arg_bool);
-  for (size_t i = 0; i < cols.size(); ++i) {
-    cols[i] = arglist[i].to_int32_strict();
+  std::vector<size_t> cols;
+  for (size_t i = 0; i < nargs - last_arg_bool; ++i) {
+    cols.push_back(arglist[i].to_size_t());
   }
   Groupby grpby;
   RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);

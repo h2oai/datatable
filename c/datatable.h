@@ -99,7 +99,8 @@ class DataTable {
      * If `make_groups` is true, then in addition to sorting, the grouping
      * information will be computed and stored with the RowIndex.
      */
-    RowIndex sortby(const arr32_t& colindices, Groupby* out_grps) const;
+    RowIndex sortby(const std::vector<size_t>& colindices,
+                    Groupby* out_grps) const;
 
     const std::vector<std::string>& get_names() const;
     py::otuple get_pynames() const;

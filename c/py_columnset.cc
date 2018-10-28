@@ -72,7 +72,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 PyObject* columns_from_mixed(PyObject*, PyObject *args)
 {
   PyObject* arg1, *arg2;
-  long int nrows;
+  size_t nrows;
   long long rawptr;
   if (!PyArg_ParseTuple(args, "OOlL:columns_from_mixed",
                         &arg1, &arg2, &nrows, &rawptr))
@@ -92,8 +92,8 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
       spec[i] = -elem.get_attr("itype").to_int64_strict();
     }
   }
-  int64_t icols = static_cast<int64_t>(ncols);
-  return wrap(columns_from_mixed(spec, icols, nrows, dt, fnptr), icols);
+  return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr),
+              static_cast<int64_t>(ncols));
 }
 
 
