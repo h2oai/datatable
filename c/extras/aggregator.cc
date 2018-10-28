@@ -19,14 +19,14 @@
 /*
 *  Reading data from Python and passing it to the C++ aggregator.
 */
-PyObject* aggregate(PyObject*, PyObject* args) {
-
-  int32_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
+PyObject* aggregate(PyObject*, PyObject* args)
+{
+  size_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
   unsigned int seed, nthreads;
   PyObject* arg1;
   PyObject* progress_fn;
 
-  if (!PyArg_ParseTuple(args, "OiiiiiiIOI:aggregate", &arg1, &min_rows, &n_bins,
+  if (!PyArg_ParseTuple(args, "OnnnnnnIOI:aggregate", &arg1, &min_rows, &n_bins,
                         &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
                         &progress_fn, &nthreads)) return nullptr;
   DataTable* dt = py::obj(arg1).to_frame();
@@ -45,8 +45,8 @@ PyObject* aggregate(PyObject*, PyObject* args) {
 /*
 *  Setting up aggregation parameters.
 */
-Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_in,
-                       int32_t ny_bins_in, int32_t nd_max_bins_in, int32_t max_dimensions_in,
+Aggregator::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
+                       size_t ny_bins_in, size_t nd_max_bins_in, size_t max_dimensions_in,
                        unsigned int seed_in, PyObject* progress_fn_in, unsigned int nthreads_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
@@ -65,11 +65,11 @@ Aggregator::Aggregator(int32_t min_rows_in, int32_t n_bins_in, int32_t nx_bins_i
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
 dtptr Aggregator::aggregate(DataTable* dt) {
-  int32_t max_bins;
+  size_t max_bins;
   bool was_sampled = false;
   progress(0.0);
-  dtptr dt_members = nullptr;
-  Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
+  dtptr dt_members;
+  // Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
 
   Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
   dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
@@ -78,11 +78,11 @@ dtptr Aggregator::aggregate(DataTable* dt) {
     dtptr dt_double = nullptr;
     std::vector<Column*> cols_double;
     cols_double.reserve(dt->ncols);
-    int32_t ncols = 0;
+    size_t ncols = 0;
     // Number of possible `N/A` bins for a particular aggregator.
-    int32_t n_na_bins = 0;
+    size_t n_na_bins = 0;
 
-    for (int64_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
       LType ltype = info(dt->columns[i]->stype()).ltype();
       switch (ltype) {
         case LType::BOOL:
@@ -135,7 +135,7 @@ dtptr Aggregator::aggregate(DataTable* dt) {
 *  Check how many exemplars we have got, if there is more than `max_bins+1`
 *  (e.g. too many distinct categorical values) do random sampling.
 */
-bool Aggregator::random_sampling(dtptr& dt_members, int32_t max_bins, int32_t n_na_bins) {
+bool Aggregator::random_sampling(dtptr& dt_members, size_t max_bins, size_t n_na_bins) {
   bool was_sampled = false;
   // Sorting `dt_members` to calculate total number of exemplars.
   Groupby gb_members;
@@ -143,13 +143,13 @@ bool Aggregator::random_sampling(dtptr& dt_members, int32_t max_bins, int32_t n_
 
   // Do random sampling if there is too many exemplars, `n_na_bins` accounts
   // for the additional N/A bins that may appear during grouping.
-  if (static_cast<int32_t>(gb_members.ngroups()) > max_bins + n_na_bins) {
+  if (gb_members.ngroups() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
     const int32_t* ri_members_indices = ri_members.indices32();
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
     // First, set all `exemplar_id`s to `N/A`.
-    for (int32_t i = 0; i < dt_members->nrows; ++i) {
+    for (size_t i = 0; i < dt_members->nrows; ++i) {
       d_members[i] = GETNA<int32_t>();
     }
 
@@ -159,12 +159,12 @@ bool Aggregator::random_sampling(dtptr& dt_members, int32_t max_bins, int32_t n_
       seed = rd();
     }
     srand(seed);
-    int32_t k = 0;
+    size_t k = 0;
     while (k < max_bins) {
       int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
       if (ISNA<int32_t>(d_members[ri_members_indices[offsets[i]]])) {
         for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
-          d_members[ri_members_indices[j]] = k;
+          d_members[ri_members_indices[j]] = static_cast<int32_t>(k);
         }
         k++;
       }
@@ -200,7 +200,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   if (ri_members.isarr32()) {
     ri_members_indices = ri_members.indices32();
   } else if (ri_members.isslice()) {
-    temp.resize(static_cast<size_t>(dt_members->nrows));
+    temp.resize(dt_members->nrows);
     ri_members.extract_into(temp);
     ri_members_indices = temp.data();
   } else if (ri_members.isarr64()){
@@ -209,11 +209,10 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
   // Setting up a table for counts
   DataTable* dt_counts;
-  Column* col0 = Column::new_data_column(SType::INT32,
-                                           static_cast<int64_t>(n_exemplars));
+  Column* col0 = Column::new_data_column(SType::INT32, n_exemplars);
   dt_counts = new DataTable({col0}, {"members_count"});
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
-  std::memset(d_counts, 0, static_cast<size_t>(n_exemplars) * sizeof(int32_t));
+  std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -238,7 +237,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   std::vector<DataTable*> dts = { dt_counts };
   dt->cbind(dts);
 
-  for (int64_t i = 0; i < dt->ncols-1; ++i) {
+  for (size_t i = 0; i < dt->ncols-1; ++i) {
     dt->columns[i]->get_stats()->reset();
   }
   delete dt_counts;
@@ -251,8 +250,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 */
 void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  for (int32_t i = 0; i < dt->nrows; ++i) {
-    d_members[i] = i;
+  for (size_t i = 0; i < dt->nrows; ++i) {
+    d_members[i] = static_cast<int32_t>(i);
   }
 }
 
@@ -328,7 +327,7 @@ void Aggregator::group_1d_continuous(const dtptr& dt,
   set_norm_coeffs(norm_factor, norm_shift, c0->min(), c0->max(), n_bins);
 
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt->nrows; ++i) {
+  for (size_t i = 0; i < dt->nrows; ++i) {
     if (ISNA<double>(d_c0[i])) {
       d_members[i] = GETNA<int32_t>();
     } else {
@@ -355,12 +354,13 @@ void Aggregator::group_2d_continuous(const dtptr& dt,
   set_norm_coeffs(normy_factor, normy_shift, c1->min(), c1->max(), ny_bins);
 
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt->nrows; ++i) {
+  for (size_t i = 0; i < dt->nrows; ++i) {
     int32_t na_case = ISNA<double>(d_c0[i]) + 2 * ISNA<double>(d_c1[i]);
     if (na_case) {
       d_members[i] = -na_case;
     } else {
-      d_members[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) * nx_bins +
+      d_members[i] = static_cast<int32_t>(normy_factor * d_c1[i] + normy_shift) *
+                     static_cast<int32_t>(nx_bins) +
                      static_cast<int32_t>(normx_factor * d_c0[i] + normx_shift);
     }
   }
@@ -506,7 +506,7 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
-    int32_t group_cat_id = nx_bins * static_cast<int32_t>(i);
+    int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
     for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
       int32_t gi = gi_cat[j];
       int32_t na_case = ISNA<double>(d_cont[gi]) + 2 * ISNA<T>(d_cat[gi]);
@@ -550,8 +550,8 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
 void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
-  auto ncols = static_cast<int32_t>(dt->ncols);
-  int64_t ndims = std::min(max_dimensions, ncols);
+  size_t ncols = dt->ncols;
+  size_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
   std::vector<int64_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -559,22 +559,22 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
 
   // Figuring out how many threads to use.
-  int32_t nth = get_nthreads(dt);
+  size_t nth0 = get_nthreads(dt);
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
 
-  #pragma omp parallel num_threads(nth)
+  #pragma omp parallel num_threads(nth0)
   {
-    int32_t ith = omp_get_thread_num();
-    nth = omp_get_num_threads();
-    int64_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
+    size_t ith = static_cast<size_t>(omp_get_thread_num());
+    size_t nth = static_cast<size_t>(omp_get_num_threads());
+    size_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
     double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
 
     try {
       // Main loop over all the rows
-      for (int32_t i = ith; i < dt->nrows; i += nth) {
+      for (size_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
         if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
         else normalize_row(dt, member, i);
@@ -622,13 +622,12 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 /*
  *  Figure out how many threads we need to run ND groupping.
  */
-int32_t Aggregator::get_nthreads(const dtptr& dt) {
-  int32_t nth;
+size_t Aggregator::get_nthreads(const dtptr& dt) {
+  size_t nth;
   if (nthreads) {
-    nth = static_cast<int32_t>(nthreads);
+    nth = nthreads;
   } else {
-    nth = config::nthreads;
-    if (nth > dt->nrows) nth = static_cast<int32_t>(dt->nrows);
+    nth = std::min(static_cast<size_t>(config::nthreads), dt->nrows);
   }
   return nth;
 }
@@ -644,7 +643,7 @@ int32_t Aggregator::get_nthreads(const dtptr& dt) {
 *  k = (2 * n - i - 1 ) * i / 2 + j
 */
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
-                              std::vector<int64_t>& ids, int64_t ndims) {
+                              std::vector<int64_t>& ids, size_t ndims) {
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
@@ -716,7 +715,7 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids,
   }
 
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < dt_members->nrows; ++i) {
+  for (size_t i = 0; i < dt_members->nrows; ++i) {
     d_members[i] = static_cast<int32_t>(map[d_members[i]]);
   }
 
@@ -740,12 +739,12 @@ size_t Aggregator::calculate_map(std::vector<int64_t>& ids, size_t id) {
 *  stop when the distance reaches `delta`.
 */
 double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
-                                      int64_t ndims, double delta,
+                                      size_t ndims, double delta,
                                       bool early_exit /*=true*/) {
   double sum = 0.0;
   int32_t n = 0;
 
-  for (size_t i = 0; i < static_cast<size_t>(ndims); ++i) {
+  for (size_t i = 0; i < ndims; ++i) {
     if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) continue;
     ++n;
     sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
@@ -759,15 +758,15 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 /*
 *  Normalize the row elements to [0,1).
 */
-void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, int32_t row_id) {
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, size_t row_id) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
     const double* d_real = c_real->elements_r();
     double norm_factor, norm_shift;
 
     set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
-    r[static_cast<size_t>(i)] =  norm_factor * d_real[row_id] + norm_shift;
+    r[i] =  norm_factor * d_real[row_id] + norm_shift;
   }
 }
 
@@ -777,7 +776,7 @@ void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, int32_t row_id) {
 */
 DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
   std::default_random_engine generator;
-  DoublePtr pmatrix = DoublePtr(new double[(dt_exemplars->ncols) * max_dimensions]);
+  auto pmatrix = DoublePtr(new double[dt_exemplars->ncols * max_dimensions]);
 
   if (!seed) {
     std::random_device rd;
@@ -788,8 +787,7 @@ DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
   std::normal_distribution<double> distribution(0.0, 1.0);
 
   #pragma omp parallel for schedule(static)
-  for (size_t i = 0;
-    i < static_cast<size_t>((dt_exemplars->ncols) * max_dimensions); ++i) {
+  for (size_t i = 0; i < dt_exemplars->ncols * max_dimensions; ++i) {
     pmatrix[i] = distribution(generator);
   }
 
@@ -801,11 +799,11 @@ DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
 *  Project a particular row on a subspace by using the projection matrix.
 */
 void Aggregator::project_row(const dtptr& dt_exemplars, DoublePtr& r,
-                             int32_t row_id, DoublePtr& pmatrix) {
-
-  std::memset(r.get(), 0, static_cast<size_t>(max_dimensions) * sizeof(double));
+                             size_t row_id, DoublePtr& pmatrix)
+{
+  std::memset(r.get(), 0, max_dimensions * sizeof(double));
   int32_t n = 0;
-  for (size_t i = 0; i < static_cast<size_t>(dt_exemplars->ncols); ++i) {
+  for (size_t i = 0; i < dt_exemplars->ncols; ++i) {
     Column* c = dt_exemplars->columns[i];
     auto c_real = static_cast<RealColumn<double>*> (c);
     auto d_real = c_real->elements_r();
@@ -814,13 +812,13 @@ void Aggregator::project_row(const dtptr& dt_exemplars, DoublePtr& r,
       double norm_factor, norm_shift;
       set_norm_coeffs(norm_factor, norm_shift, c_real->min(), c_real->max(), 1);
       double norm_row = norm_factor * d_real[row_id] + norm_shift;
-      for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
-        r[j] +=  pmatrix[i * static_cast<size_t>(max_dimensions) + j] * norm_row;
+      for (size_t j = 0; j < max_dimensions; ++j) {
+        r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
       }
       ++n;
     }
   }
-  for (size_t j = 0; j < static_cast<size_t>(max_dimensions); ++j) {
+  for (size_t j = 0; j < max_dimensions; ++j) {
     r[j] /= n;
   }
 }
@@ -839,7 +837,7 @@ void Aggregator::project_row(const dtptr& dt_exemplars, DoublePtr& r,
 *  and set their values to 0.5, i.e. norm_factor = 0 and norm_shift = 0.5.
 */
 void Aggregator::set_norm_coeffs(double& norm_factor, double& norm_shift,
-                                 double c_min, double c_max, int32_t c_bins) {
+                                 double c_min, double c_max, size_t c_bins) {
   if (fabs(c_max - c_min) > epsilon) {
     norm_factor = c_bins * (1 - epsilon) / (c_max - c_min);
     norm_shift = -norm_factor * c_min;
