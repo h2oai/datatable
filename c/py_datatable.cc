@@ -111,7 +111,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
 PyObject* get_isview(obj* self) {
   DataTable* dt = self->ref;
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     if (dt->columns[i]->rowindex())
       return incref(Py_True);
   }
@@ -149,11 +149,11 @@ int set_groupby(obj* self, PyObject* value) {
 
 
 PyObject* get_nkeys(obj* self) {
-  return PyLong_FromLongLong(self->ref->nkeys);
+  return PyLong_FromSize_t(self->ref->nkeys);
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = py::obj(value).to_int64_strict();
+  size_t nk = py::obj(value).to_size_t();
   self->ref->set_nkeys(nk);
   return 0;
 }
@@ -231,11 +231,11 @@ PyObject* check(obj* self, PyObject*) {
     if (!PyTuple_Check(stypes)) {
       throw AssertionError() << "Frame.stypes is not a tuple";
     }
-    if (PyTuple_Size(stypes) != dt->ncols) {
+    if (static_cast<size_t>(PyTuple_Size(stypes)) != dt->ncols) {
       throw AssertionError() << "len(Frame.stypes) is " << PyTuple_Size(stypes)
           << ", whereas .ncols = " << dt->ncols;
     }
-    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(stypes, i);
       PyObject* eexp = info(st).py_stype().release();
@@ -250,11 +250,11 @@ PyObject* check(obj* self, PyObject*) {
     if (!PyTuple_Check(ltypes)) {
       throw AssertionError() << "Frame.ltypes is not a tuple";
     }
-    if (PyTuple_Size(ltypes) != dt->ncols) {
+    if (static_cast<size_t>(PyTuple_Size(ltypes)) != dt->ncols) {
       throw AssertionError() << "len(Frame.ltypes) is " << PyTuple_Size(ltypes)
           << ", whereas .ncols = " << dt->ncols;
     }
-    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
       PyObject* eexp = info(st).py_ltype().release();
@@ -281,7 +281,7 @@ PyObject* column(obj* self, PyObject* args) {
   }
   if (colidx < 0) colidx += dt->ncols;
   pycolumn::obj* pycol =
-      pycolumn::from_column(dt->columns[colidx], self, colidx);
+      pycolumn::from_column(dt->columns[static_cast<size_t>(colidx)], self, colidx);
   return pycol;
 }
 
@@ -324,17 +324,20 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
 
 PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int64_t start, count, step;
+  int64_t start;
+  size_t count;
+  int64_t step;
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
   RowIndex rows_ri = py::obj(arg4).to_rowindex();
   DataTable* repl = py::obj(arg5).to_frame();
-  int64_t rrows = repl->nrows;
-  int64_t rcols = repl->ncols;
-  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows = repl->nrows;
+  size_t rcols = repl->ncols;
+  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
-  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
+  if (!check_slice_triple(start, static_cast<int64_t>(count), step,
+                          static_cast<int64_t>(dt->ncols - 1))) {
     throw ValueError() << "Invalid slice " << start << "/" << count
                        << "/" << step << " for a Frame with " << dt->ncols
                        << " columns";
@@ -349,14 +352,15 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   dt->reify();  // noop if `dt` is not a view
   repl->reify();
 
-  for (int64_t i = 0; i < count; ++i) {
-    int64_t j = start + i * step;
+  for (size_t i = 0; i < count; ++i) {
+    int64_t j = start + static_cast<int64_t>(i) * step;
+    size_t zj = static_cast<size_t>(j);
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
-      dt->columns[j]->replace_values(rows_ri, replcol);
+      dt->columns[zj]->replace_values(rows_ri, replcol);
     } else {
-      delete dt->columns[j];
-      dt->columns[j] = replcol->shallowcopy();
+      delete dt->columns[zj];
+      dt->columns[zj] = replcol->shallowcopy();
     }
   }
   _clear_types(self);
@@ -407,16 +411,17 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   for (size_t i = 0; i < cols.size(); ++i) {
     py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
+    size_t zj = static_cast<size_t>(j);
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
-      dt->columns[j]->replace_values(rows_ri, replcol);
+      dt->columns[zj]->replace_values(rows_ri, replcol);
     } else {
       if (j == -1) {
-        j = dt->ncols++;
+        zj = dt->ncols++;
       } else {
-        delete dt->columns[j];
+        delete dt->columns[zj];
       }
-      dt->columns[j] = replcol->shallowcopy();
+      dt->columns[zj] = replcol->shallowcopy();
     }
   }
 
@@ -428,21 +433,21 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int64_t final_ncols;
+  size_t final_ncols;
   PyObject* list;
   if (!PyArg_ParseTuple(args, "lO!:delete_columns",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
-  int64_t ndts = PyList_Size(list);
+  size_t ndts = static_cast<size_t>(PyList_Size(list));
 
   constexpr size_t INVALID_INDEX = size_t(-1);
   std::vector<DataTable*> dts;
   std::vector<std::vector<size_t>> cols_to_append(final_ncols);
   for (size_t j = 0; j < final_ncols; ++j) {
-    cols_to_append[j].resize(static_cast<size_t>(ndts));
+    cols_to_append[j].resize(ndts);
   }
 
-  for (int64_t i = 0; i < ndts; i++) {
+  for (size_t i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
     DataTable* dti;
     PyObject* colslist;
@@ -464,7 +469,7 @@ PyObject* rbind(obj* self, PyObject* args) {
       }
     }
     for (; j < final_ncols; ++j) {
-      cols_to_append[j][i] = -1;
+      cols_to_append[j][i] = INVALID_INDEX;
     }
     dts.push_back(dti);
   }
@@ -506,13 +511,13 @@ PyObject* join(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   DataTable* jdt = py::obj(arg2).to_frame();
   RowIndex ri = py::obj(arg1).to_rowindex();
-  py::olist cols = py::obj(arg3).to_pylist();
+  py::olist cols_arg = py::obj(arg3).to_pylist();
 
-  if (cols.size() != 1) {
+  if (cols_arg.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
   }
-  int64_t i = cols[0].to_int64();
-  if (i < 0 || i >= dt->ncols) {
+  size_t i = cols_arg[0].to_size_t();
+  if (i >= dt->ncols) {
     throw ValueError() << "Invalid index " << i << " for a Frame with "
         << dt->ncols << " columns";
   }
@@ -560,7 +565,7 @@ PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Colum
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
 
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     Column* oldcol = dt->columns[i];
     if (!oldcol->rowindex()) continue;
     Column* newcol = oldcol->shallowcopy();
