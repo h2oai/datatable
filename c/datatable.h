@@ -126,7 +126,7 @@ class DataTable {
 
     void verify_integrity() const;
 
-    static DataTable* load(DataTable* schema, int64_t nrows,
+    static DataTable* load(DataTable* schema, size_t nrows,
                            const std::string& path, bool recode);
 
     void save_jay(const std::string& path,

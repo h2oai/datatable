@@ -23,10 +23,10 @@
  * nrows
  *     Number of rows in the stored Frame.
  */
-DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path,
+DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& path,
                            bool recode)
 {
-    int64_t ncols = colspec->nrows;
+    size_t ncols = colspec->nrows;
     std::vector<Column*> columns;
     columns.reserve(ncols);
 
@@ -53,7 +53,7 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     if (!(rootdir.empty() || rootdir.back() == '/'))
       rootdir += "/";
 
-    for (int64_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
         // Extract filename
         size_t fsta = static_cast<size_t>(offf[i - 1] & NONA);
         size_t fend = static_cast<size_t>(offf[i] & NONA);
