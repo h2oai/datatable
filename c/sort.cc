@@ -1239,8 +1239,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
-  size_t zrows = static_cast<size_t>(nrows);
-  SortContext sc(zrows, rowindex(), (out_grps != nullptr));
+  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
   sc.start_sort(this);
   return sc.get_result(out_grps);
 }

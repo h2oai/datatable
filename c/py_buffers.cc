@@ -102,36 +102,40 @@ Column* Column::from_buffer(const py::obj& obuffer)
   }
 
   SType stype = stype_from_format(view->format, view->itemsize);
-  int64_t nrows = view->len / view->itemsize;
+  size_t nrows = static_cast<size_t>(view->len / view->itemsize);
 
   Column* res = nullptr;
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   } else if (view->strides == nullptr) {
-    res = Column::new_xbuf_column(stype, static_cast<size_t>(nrows), view);
+    res = Column::new_xbuf_column(stype, nrows, view);
   } else {
-    res = Column::new_data_column(stype, static_cast<size_t>(nrows));
-    int64_t stride = view->strides[0] / view->itemsize;
+    res = Column::new_data_column(stype, nrows);
+    size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
     if (view->itemsize == 8) {
       int64_t* out = static_cast<int64_t*>(res->data_w());
       int64_t* inp = static_cast<int64_t*>(view->buf);
-      for (int64_t j = 0; j < nrows; ++j)
+      for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
+      }
     } else if (view->itemsize == 4) {
       int32_t* out = static_cast<int32_t*>(res->data_w());
       int32_t* inp = static_cast<int32_t*>(view->buf);
-      for (int64_t j = 0; j < nrows; ++j)
+      for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
+      }
     } else if (view->itemsize == 2) {
       int16_t* out = static_cast<int16_t*>(res->data_w());
       int16_t* inp = static_cast<int16_t*>(view->buf);
-      for (int64_t j = 0; j < nrows; ++j)
+      for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
+      }
     } else if (view->itemsize == 1) {
       int8_t* out = static_cast<int8_t*>(res->data_w());
       int8_t* inp = static_cast<int8_t*>(view->buf);
-      for (int64_t j = 0; j < nrows; ++j)
+      for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
+      }
     }
   }
   if (res->stype() == SType::OBJ) {
@@ -144,19 +148,19 @@ Column* Column::from_buffer(const py::obj& obuffer)
 static Column* convert_fwchararray_to_column(Py_buffer* view)
 {
   // Number of characters in each element
-  int64_t k = view->itemsize / 4;
-  int64_t nrows = view->len / view->itemsize;
-  int64_t stride = view->strides? view->strides[0]/4 : k;
-  uint32_t* input = reinterpret_cast<uint32_t*>(view->buf);
-
+  size_t k = static_cast<size_t>(view->itemsize / 4);
+  size_t nrows = static_cast<size_t>(view->len / view->itemsize);
+  size_t stride = view->strides? static_cast<size_t>(view->strides[0])/4 : k;
   size_t maxsize = static_cast<size_t>(view->len);
+  auto input = reinterpret_cast<uint32_t*>(view->buf);
+
   MemoryRange strbuf = MemoryRange::mem(maxsize);
   MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   char* strptr = static_cast<char*>(strbuf.wptr());
   uint32_t* offptr = static_cast<uint32_t*>(offbuf.wptr());
   *offptr++ = 0;
   uint32_t offset = 0;
-  for (int64_t j = 0; j < nrows; ++j) {
+  for (size_t j = 0; j < nrows; ++j) {
     uint32_t* start = input + j*stride;
     int64_t bytes_len = utf32_to_utf8(start, k, strptr);
     offset += bytes_len;
@@ -165,7 +169,7 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new StringColumn<uint32_t>(static_cast<size_t>(nrows),
+  return new StringColumn<uint32_t>(nrows,
                                     std::move(offbuf), std::move(strbuf));
 }
 
@@ -408,8 +412,8 @@ static int getbuffer_DataTable(
 {
   XInfo* xinfo = nullptr;
   DataTable* dt = self->ref;
-  size_t ncols = static_cast<size_t>(dt->ncols);
-  size_t nrows = static_cast<size_t>(dt->nrows);
+  size_t ncols = dt->ncols;
+  size_t nrows = dt->nrows;
 
   if (ncols == 0) {
     return dt_getbuffer_no_cols(self, view, flags);

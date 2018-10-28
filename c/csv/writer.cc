@@ -303,7 +303,7 @@ CsvWriter::~CsvWriter()
 void CsvWriter::write()
 {
   size_t nrows = dt->nrows;
-  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t ncols = dt->ncols;
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
@@ -461,8 +461,8 @@ double CsvWriter::checkpoint() {
  */
 size_t CsvWriter::estimate_output_size()
 {
-  size_t nrows = static_cast<size_t>(dt->nrows);
-  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols;
   size_t total_string_size = 0;
   size_t total_columns_size = 0;
   fixed_size_per_row = ncols;  // 1 byte per separator

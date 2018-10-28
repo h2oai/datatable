@@ -88,7 +88,7 @@ DataTable* split_into_nhot(Column* col, char sep) {
     strdata = scol->strdata();
   }
 
-  size_t nrows = static_cast<size_t>(col->nrows);
+  size_t nrows = col->nrows;
   std::unordered_map<std::string, size_t> colsmap;
   std::vector<Column*> outcols;
   std::vector<int8_t*> outdata;

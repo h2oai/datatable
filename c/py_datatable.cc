@@ -600,7 +600,7 @@ PyObject* save_jay(obj* self, PyObject* args) {
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
 
-  if (colnames.size() != static_cast<size_t>(dt->ncols)) {
+  if (colnames.size() != dt->ncols) {
     throw ValueError()
       << "The list of column names has wrong length: " << colnames.size();
   }

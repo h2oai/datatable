@@ -20,7 +20,7 @@
 namespace pycolumnset
 {
 
-static PyObject* wrap(Column** columns, int64_t ncols)
+static PyObject* wrap(Column** columns, size_t ncols)
 {
   if (!columns) return nullptr;
   PyObject* pytype = reinterpret_cast<PyObject*>(&type);
@@ -64,7 +64,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
   RowIndex rowindex = py::obj(arg2).to_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
-  PyObject* res = wrap(columns, count);
+  PyObject* res = wrap(columns, static_cast<size_t>(count));
   return res;
 }
 
@@ -92,8 +92,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
       spec[i] = -elem.get_attr("itype").to_int64_strict();
     }
   }
-  return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr),
-              static_cast<int64_t>(ncols));
+  return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr), ncols);
 }
 
 
@@ -104,13 +103,13 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
                         &PyList_Type, &col_list))
     return nullptr;
 
-  int64_t ncols = PyList_Size(col_list);
+  size_t ncols = static_cast<size_t>(PyList_Size(col_list));
   Column** columns = dt::amalloc<Column*>(ncols + 1);
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     PyObject* elem = PyList_GET_ITEM(col_list, i);
     int ret = pycolumn::unwrap(elem, columns + i);
     if (!ret) {
-      for (int64_t j = 0; j < i; ++j) delete columns[j];
+      for (size_t j = 0; j < i; ++j) delete columns[j];
       dt::free(columns);
       return nullptr;
     }
@@ -150,15 +149,15 @@ PyObject* append_columns(obj* self, PyObject* args) {
   }
   obj* other = static_cast<obj*>(arg1);
   // TODO: remove in #1188
-  for (int64_t i = 0; i < other->ncols; ++i) {
+  for (size_t i = 0; i < other->ncols; ++i) {
     other->columns[i]->reify();
   }
 
-  int64_t newncols = self->ncols + other->ncols;
+  size_t newncols = self->ncols + other->ncols;
   Column** columns = self->columns;
-  columns = dt::arealloc<Column*>(columns, static_cast<size_t>(newncols + 1));
+  columns = dt::arealloc<Column*>(columns, newncols + 1);
   std::memcpy(columns + self->ncols, other->columns,
-              static_cast<size_t>(other->ncols) * sizeof(Column*));
+              other->ncols * sizeof(Column*));
   columns[newncols] = nullptr;
   dt::free(other->columns);
   other->columns = nullptr;

@@ -43,7 +43,7 @@ py::oobj PyObjectColumn::get_value_at_index(int64_t i) const {
 // when opening, we'll just fill the column with NAs.
 void PyObjectColumn::open_mmap(const std::string&, bool) {
   xassert(!ri);
-  mbuf = MemoryRange::mem(static_cast<size_t>(nrows) * sizeof(PyObject*))
+  mbuf = MemoryRange::mem(nrows * sizeof(PyObject*))
          .set_pyobjects(/*clear_data = */ true);
 }
 
@@ -104,8 +104,8 @@ void PyObjectColumn::reify() {
 void PyObjectColumn::rbind_impl(
   std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
 {
-  size_t old_nrows = static_cast<size_t>(nrows);
-  size_t new_nrows = static_cast<size_t>(nnrows);
+  size_t old_nrows = nrows;
+  size_t new_nrows = nnrows;
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
@@ -120,7 +120,7 @@ void PyObjectColumn::rbind_impl(
   }
   for (const Column* col : columns) {
     if (col->stype() == SType::VOID) {
-      dest_data += static_cast<size_t>(col->nrows);
+      dest_data += col->nrows;
     } else {
       if (col->stype() != SType::OBJ) {
         Column* newcol = col->cast(stype());
@@ -153,7 +153,7 @@ inline static MemoryRange cast_str_helper(
   // Warning: Do not attempt to parallelize this: creating new PyObjects
   // is not thread-safe! In addition `to_pystring_force()` may invoke
   // arbitrary python code when stringifying a value...
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(PyObject*);
+  size_t exp_size = nrows * sizeof(PyObject*);
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   OT offset = 0;
   toffsets[-1] = 0;

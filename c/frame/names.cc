@@ -355,12 +355,11 @@ void DataTable::replace_names(py::odict replacements) {
 
 void DataTable::_init_pynames() const {
   if (py_names) return;
-  size_t zcols = static_cast<size_t>(ncols);
-  xassert(names.size() == zcols);
+  xassert(names.size() == ncols);
 
-  py_names = py::otuple(zcols);
+  py_names = py::otuple(ncols);
   py_inames = py::odict();
-  for (size_t i = 0; i < zcols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     py::ostring pyname(names[i]);
     py_inames.set(pyname, py::oint(i));
     py_names.set(i, std::move(pyname));
@@ -374,19 +373,18 @@ void DataTable::_init_pynames() const {
  * such constraints.
  */
 void DataTable::_set_names_impl(NameProvider* nameslist) {
-  size_t zcols = static_cast<size_t>(ncols);
-  if (nameslist->size() != zcols) {
+  if (nameslist->size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist->size()
         << ", while the Frame has "
-        << (zcols < nameslist->size() && zcols? "only " : "")
-        << zcols << " column" << (zcols == 1? "" : "s");
+        << (ncols < nameslist->size() && ncols? "only " : "")
+        << ncols << " column" << (ncols == 1? "" : "s");
   }
 
   // Prepare the containers for placing the new column names there
-  py_names  = py::otuple(zcols);
+  py_names  = py::otuple(ncols);
   py_inames = py::odict();
   names.clear();
-  names.reserve(zcols);
+  names.reserve(ncols);
   std::vector<std::string> duplicates;
 
   // If any name is empty or None, it will be replaced with the default name
@@ -395,7 +393,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   // user-specified names somewhere later in the list.
   bool fill_default_names = false;
 
-  for (size_t i = 0; i < zcols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
     CString cname = nameslist->item_as_cstring(i);
@@ -480,7 +478,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
     // Within the existing names, find ones with the pattern "{prefix}<num>".
     // If such names exist, we'll start autonaming with 1 + max(<num>), where
     // the maximum is taken among all such names.
-    for (size_t i = 0; i < zcols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       size_t namelen = names[i].size();
       const char* nameptr = names[i].data();
       if (namelen <= prefixlen) continue;
@@ -498,7 +496,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
     }
 
     // Now actually fill the empty names
-    for (size_t i = 0; i < zcols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       if (!names[i].empty()) continue;
       names[i] = prefix + std::to_string(index0);
       py::oobj newname = py::ostring(names[i]);
@@ -527,18 +525,17 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
     // as `w` goes out of scope, the warning is sent to Python
   }
 
-  xassert(zcols == names.size());
-  xassert(zcols == py_names.size());
-  xassert(zcols == py_inames.size());
+  xassert(ncols == names.size());
+  xassert(ncols == py_names.size());
+  xassert(ncols == py_inames.size());
 }
 
 
 
 void DataTable::_integrity_check_names() const {
-  size_t zcols = static_cast<size_t>(ncols);
-  if (names.size() != zcols) {
+  if (names.size() != ncols) {
     throw AssertionError() << "DataTable.names has size " << names.size()
-      << ", however there are " << zcols << " columns in the Frame";
+      << ", however there are " << ncols << " columns in the Frame";
   }
   std::unordered_set<std::string> seen_names;
   for (size_t i = 0; i < names.size(); ++i) {
@@ -571,16 +568,15 @@ void DataTable::_integrity_check_pynames() const {
   if (!py_inames.is_dict()) {
     throw AssertionError() << "DataTable.py_inames is not a dict";
   }
-  size_t zcols = static_cast<size_t>(ncols);
-  if (py_names.size() != zcols) {
+  if (py_names.size() != ncols) {
     throw AssertionError() << "len(.py_names) is " << py_names.size()
-        << ", whereas .ncols = " << zcols;
+        << ", whereas .ncols = " << ncols;
   }
-  if (py_inames.size() != zcols) {
+  if (py_inames.size() != ncols) {
     throw AssertionError() << ".py_inames has " << py_inames.size()
-      << " elements, while the Frame has " << zcols << " columns";
+      << " elements, while the Frame has " << ncols << " columns";
   }
-  for (size_t i = 0; i < zcols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     py::obj elem = py_names[i];
     if (!elem.is_string()) {
       throw AssertionError() << "Element " << i << " of .py_names is a "

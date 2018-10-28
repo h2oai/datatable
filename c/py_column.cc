@@ -140,7 +140,7 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 
   Column* col = self->ref;
   Groupby* groupby = pygby.to_groupby();
-  if (static_cast<size_t>(col->nrows) != groupby->ngroups()) {
+  if (col->nrows != groupby->ngroups()) {
     throw ValueError() << "Cannot 'ungroup' a Column with " << col->nrows
       << " rows using a Groupby with " << groupby->ngroups() << " groups";
   }
