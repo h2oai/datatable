@@ -20,8 +20,9 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
                             int64_t start, int64_t count, int64_t step)
 {
   if (dt == nullptr) return nullptr;
-  if ((count < 0 || start < 0 || start >= dt->ncols ||
-       start + step < 0 || start + step * (count - 1) >= dt->ncols) &&
+  int64_t icols = static_cast<int64_t>(dt->ncols);
+  if ((count < 0 || start < 0 || start >= icols ||
+       start + step < 0 || start + step * (count - 1) >= icols) &&
       !(count == 0 && start == 0)) {
     throw ValueError() << "Invalid slice " << start << ":" << count << ":"
                        << step << " for a DataTable with " << dt->ncols
@@ -32,7 +33,7 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
   columns[count] = nullptr;
 
   for (int64_t i = 0, j = start; i < count; i++, j += step) {
-    columns[i] = dt->columns[j]->shallowcopy(rowindex);
+    columns[i] = dt->columns[static_cast<size_t>(j)]->shallowcopy(rowindex);
   }
   return columns;
 }
@@ -67,13 +68,13 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
  */
 Column** columns_from_mixed(
     int64_t* spec,
-    int64_t ncols,
-    int64_t nrows,
+    size_t ncols,
+    size_t nrows,
     DataTable* dt,
-    int (*mapfn)(int64_t row0, int64_t row1, void** out)
+    int (*mapfn)(size_t row0, size_t row1, void** out)
 ) {
-  int64_t ncomputedcols = 0;
-  for (int64_t i = 0; i < ncols; i++) {
+  size_t ncomputedcols = 0;
+  for (size_t i = 0; i < ncols; i++) {
     ncomputedcols += (spec[i] < 0);
   }
   if (dt == nullptr && ncomputedcols < ncols) {
@@ -87,12 +88,13 @@ Column** columns_from_mixed(
   Column** columns = dt::amalloc<Column*>(ncols + 1);
   columns[ncols] = nullptr;
 
-  int64_t j = 0;
-  for (int64_t i = 0; i < ncols; i++) {
-    if (spec[i] >= 0) {
-      columns[i] = dt->columns[spec[i]]->shallowcopy();
+  size_t j = 0;
+  for (size_t i = 0; i < ncols; i++) {
+    int64_t s = spec[i];
+    if (s >= 0) {
+      columns[i] = dt->columns[static_cast<size_t>(s)]->shallowcopy();
     } else {
-      SType stype = static_cast<SType>(-spec[i]);
+      SType stype = static_cast<SType>(-s);
       columns[i] = Column::new_data_column(stype, nrows);
       out[j] = columns[i]->data_w();
       j++;

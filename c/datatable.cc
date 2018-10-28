@@ -6,17 +6,13 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "datatable.h"
-#include <stdlib.h>
+#include <algorithm>
+#include <limits>
 #include "utils/parallel.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
 
-// Forward declarations
-using colvec = std::vector<Column*>;
-using strvec = std::vector<std::string>;
-static Column** prepare_columns(colvec&);
-static int _compare_ints(const void *a, const void *b);
 
 
 //------------------------------------------------------------------------------
@@ -32,7 +28,7 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   columns = std::move(cols);
   ncols = columns.size();
   if (ncols > 0) {
-    nrows = static_cast<size_t>(columns[0]->nrows);
+    nrows = columns[0]->nrows;
     rowindex = RowIndex(columns[0]->rowindex());
 
     bool need_to_materialize = false;
@@ -102,20 +98,22 @@ DataTable* DataTable::copy() const {
 
 
 
-DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
+DataTable* DataTable::delete_columns(std::vector<size_t>& cols_to_remove)
 {
-  if (n == 0) return this;
-  qsort(cols_to_remove, static_cast<size_t>(n), sizeof(int), _compare_ints);
-  int j = 0;
-  int next_col_to_remove = cols_to_remove[0];
-  int64_t k = 0;
-  for (int i = 0; i < ncols; ++i) {
+  if (cols_to_remove.empty()) return this;
+  std::sort(cols_to_remove.begin(), cols_to_remove.end());
+
+  size_t next_col_to_remove = cols_to_remove[0];
+  size_t j = 0;
+  for (size_t i = 0, k = 0; i < ncols; ++i) {
     if (i == next_col_to_remove) {
       delete columns[i];
-      do {
+      while (next_col_to_remove == i) {
         ++k;
-        next_col_to_remove = k < n ? cols_to_remove[k] : -1;
-      } while (next_col_to_remove == i);
+        next_col_to_remove = k < cols_to_remove.size()
+                             ? cols_to_remove[k]
+                             : std::numeric_limits<size_t>::max();
+      }
     } else {
       columns[j] = columns[i];
       ++j;
@@ -129,7 +127,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 
 
 
-void DataTable::resize_rows(int64_t new_nrows) {
+void DataTable::resize_rows(size_t new_nrows) {
   if (rowindex) {
     if (new_nrows < nrows) {
       rowindex.shrink(new_nrows, ncols);
@@ -142,7 +140,7 @@ void DataTable::resize_rows(int64_t new_nrows) {
     }
   }
   if (new_nrows != nrows) {
-    for (int64_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       columns[i]->resize_and_fill(new_nrows);
     }
     nrows = new_nrows;
@@ -155,7 +153,7 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
   if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
   nrows = rowindex.length();
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }
 }
@@ -163,7 +161,7 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 
 void DataTable::replace_groupby(const Groupby& newgb) {
   int32_t last_offset = newgb.offsets_r()[newgb.ngroups()];
-  if (last_offset != nrows) {
+  if (static_cast<size_t>(last_offset) != nrows) {
     throw ValueError() << "Cannot apply Groupby of " << last_offset << " rows "
       "to a Frame with " << nrows << " rows";
   }
@@ -171,27 +169,21 @@ void DataTable::replace_groupby(const Groupby& newgb) {
 }
 
 
-void DataTable::set_nkeys(int64_t nk) {
-  if (nk < 0) {
-    throw ValueError() << "Number of keys cannot be negative: " << nk;
-  }
-  if (nk > 1) {
-    throw NotImplError() << "More than 1 key column is not supported yet";
-  }
+void DataTable::set_nkeys(size_t nk) {
   if (nk == 0) {
     nkeys = 0;
     return;
   }
 
   Groupby gb;
-  arr32_t cols(static_cast<size_t>(nk));
-  for (int32_t i = 0; i < nk; ++i) {
-    cols[static_cast<size_t>(i)] = i;
+  std::vector<size_t> cols;
+  for (size_t i = 0; i < nk; ++i) {
+    cols.push_back(i);
   }
   RowIndex ri = sortby(cols, &gb);
   xassert(ri.length() == nrows);
 
-  if (gb.ngroups() != static_cast<size_t>(nrows)) {
+  if (gb.ngroups() != nrows) {
     throw ValueError() << "Cannot set column as a key: the values are not unique";
   }
 
@@ -199,14 +191,6 @@ void DataTable::set_nkeys(int64_t nk) {
   reify();
 
   nkeys = nk;
-}
-
-
-// Comparator function to sort integers using `qsort`
-static inline int _compare_ints(const void *a, const void *b) {
-  const int x = *static_cast<const int*>(a);
-  const int y = *static_cast<const int*>(b);
-  return (x > y) - (x < y);
 }
 
 
@@ -218,7 +202,7 @@ static inline int _compare_ints(const void *a, const void *b) {
  */
 void DataTable::reify() {
   if (rowindex.isabsent()) return;
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
   rowindex.clear();
@@ -230,9 +214,9 @@ size_t DataTable::memory_footprint()
 {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += static_cast<size_t>(ncols + 1) * sizeof(Column*);
+  sz += (ncols + 1) * sizeof(Column*);
   if (rowindex.isabsent()) {
-    for (int i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       sz += columns[i]->memory_footprint();
     }
   } else {
@@ -276,24 +260,12 @@ DataTable* DataTable::sum_datatable() const     { return _statdt(&Column::sum_co
  * Verify that all internal constraints in the DataTable hold, and that there
  * are no any inappropriate values/elements.
  */
-void DataTable::verify_integrity() const {
-  // Check that the number of rows/columns in nonnegative
-  if (nrows < 0) {
-    throw AssertionError()
-        << "Frame has a negative value for `nrows`: " << nrows;
-  }
-  if (ncols < 0) {
-    throw AssertionError()
-        << "Frame has a negative value for `ncols`: " << ncols;
-  }
-  if (nkeys < 0) {
-    throw AssertionError()
-        << "Frame has a negative number of keys: " << nkeys;
-  }
+void DataTable::verify_integrity() const
+{
   if (nkeys > ncols) {
     throw AssertionError()
-        << "Number of keys " << nkeys << " is greater than the number of "
-           "columns in the Frame: " << ncols;
+        << "Number of keys is greater than the number of columns in the Frame: "
+        << nkeys << " > " << ncols;
   }
 
   _integrity_check_names();
@@ -314,7 +286,7 @@ void DataTable::verify_integrity() const {
    * nrows of each column, so we will just check that the datatable's values
    * are equal to those of each column.
    */
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     std::string col_name = std::string("Column ") + std::to_string(i);
     Column* col = columns[i];
     if (col == nullptr) {
@@ -329,7 +301,7 @@ void DataTable::verify_integrity() const {
     col->verify_integrity(col_name);
   }
 
-  if (names.size() != static_cast<size_t>(ncols)) {
+  if (names.size() != ncols) {
     throw AssertionError()
         << "Number of column names, " << names.size() << ", is not equal "
            "to the number of columns in the Frame: " << ncols;

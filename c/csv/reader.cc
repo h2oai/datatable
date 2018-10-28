@@ -786,7 +786,7 @@ void GenericReader::report_columns_to_python() {
 
 
 
-DataTablePtr GenericReader::makeDatatable() {
+dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t ocols = columns.nColumnsInOutput();
   std::vector<Column*> ccols;
@@ -800,5 +800,5 @@ DataTablePtr GenericReader::makeDatatable() {
                                        std::move(strbuf)));
   }
   py::olist names = freader.get_attr("_colnames").to_pylist();
-  return DataTablePtr(new DataTable(std::move(ccols), names));
+  return dtptr(new DataTable(std::move(ccols), names));
 }

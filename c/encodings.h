@@ -18,6 +18,6 @@ int decode_escaped_csv_string(const uint8_t* src, int len, uint8_t* dest, uint8_
 
 int decode_sbcs(const uint8_t* src, int len, uint8_t* dest, uint32_t *map);
 
-int64_t utf32_to_utf8(uint32_t* buf, int64_t maxchars, char* ch);
+int64_t utf32_to_utf8(uint32_t* buf, size_t maxchars, char* ch);
 
 #endif

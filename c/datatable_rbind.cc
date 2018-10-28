@@ -14,42 +14,44 @@
 
 
 /**
- * Append to datatable `dt` a list of datatables `dts`. There are `ndts` items
- * in this list. The `cols` array of dimensions `ncols x ndts` specifies how
- * the columns should be matched.
- * In particular, the datatable `dt` will be expanded to have `ncols` columns,
+ * Append to this Frame a list of other Frames `dts`. The `cols` array of
+ * specifies how the columns should be matched.
+ *
+ * In particular, the Frame `dt` will be expanded to have `cols.size()` columns,
  * and `dt->nrows + sum(dti->nrows for dti in dts)` rows. The `i`th column
- * in the expanded datatable will have the following structure: first comes the
+ * in the expanded Frame will have the following structure: first comes the
  * data from `i`th column of `dt` (if `i < dt->ncols`, otherwise NAs); after
  * that come `ndts` blocks of rows, each `j`th block having data from column
- * number `cols[i][j]` in datatable `dts[j]` (if `cols[i][j] >= 0`, otherwise
+ * number `cols[i][j]` in Frame `dts[j]` (if `cols[i][j] >= 0`, otherwise
  * NAs).
  */
 void DataTable::rbind(
-    DataTable** dts, int** cols, int64_t ndts, int64_t new_ncols)
+    std::vector<DataTable*> dts, std::vector<std::vector<size_t>> cols)
 {
+  constexpr size_t INVALID_INDEX = size_t(-1);
+  size_t new_ncols = cols.size();
   xassert(new_ncols >= ncols);
 
-  // If this is a view datatable, then it must be materialized.
+  // If this is a view Frame, then it must be materialized.
   this->reify();
 
-  columns.resize(new_ncols);
-  for (int64_t i = ncols; i < new_ncols; ++i) {
+  columns.resize(new_ncols, nullptr);
+  for (size_t i = ncols; i < new_ncols; ++i) {
     columns[i] = new VoidColumn(nrows);
   }
 
-  int64_t new_nrows = nrows;
-  for (int64_t i = 0; i < ndts; ++i) {
-    new_nrows += dts[i]->nrows;
+  size_t new_nrows = nrows;
+  for (auto dt : dts) {
+    new_nrows += dt->nrows;
   }
 
-  size_t undts = static_cast<size_t>(ndts);
-  std::vector<const Column*> cols_to_append(undts);
-  for (int64_t i = 0; i < new_ncols; ++i) {
-    for (size_t j = 0; j < undts; ++j) {
-      int k = cols[i][j];
-      Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
-                          : dts[j]->columns[k]->shallowcopy();
+  std::vector<const Column*> cols_to_append(dts.size(), nullptr);
+  for (size_t i = 0; i < new_ncols; ++i) {
+    for (size_t j = 0; j < dts.size(); ++j) {
+      size_t k = cols[i][j];
+      Column* col = k == INVALID_INDEX
+                      ? new VoidColumn(dts[j]->nrows)
+                      : dts[j]->columns[k]->shallowcopy();
       col->reify();
       cols_to_append[j] = col;
     }

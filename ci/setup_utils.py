@@ -553,12 +553,13 @@ def required_link_libraries():
     #   @rpath/libomp.dylib
     #   @rpath/libc++.1.dylib
     #   /usr/lib/libSystem.B.dylib
-    # In addition, `libc++abi.1.dylib` is referenced from `libc++.1.dylib`
+    # In addition, `libc++abi.1.dylib` (or `libc++abi.dylib`) is referenced
+    # from `libc++.1.dylib`.
     # The @rpath- libraries have to be bundled into the datatable package.
     #
     if is_clang():
         if ismacos():
-            return ["libomp.dylib", "libc++.1.dylib", "libc++abi.1.dylib"]
+            return ["libomp.dylib", "libc++.1.dylib", "libc++abi.dylib"]
         if islinux():
             return ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
         if iswindows():
@@ -591,10 +592,11 @@ def find_linked_dynamic_libraries():
             stdout, stderr = proc.communicate()
             if proc.returncode == 0:
                 results = stdout.decode().strip().split("\n")
+                results = [r for r in results if r]
                 if results:
                     results.sort(key=len)
                     fullpath = results[0]
-                    assert os.path.isfile(fullpath)
+                    assert os.path.isfile(fullpath), "Invalid path: %r" % (fullpath,)
                     resolved.append(fullpath)
                     log.info("Library `%s` found at %s" % (libname, fullpath))
                     continue

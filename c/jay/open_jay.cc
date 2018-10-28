@@ -59,7 +59,7 @@ DataTable* DataTable::open_jay(const std::string& path)
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
     Column* col = column_from_jay(jcol, mbuf);
-    if (col->nrows != static_cast<int64_t>(nrows)) {
+    if (col->nrows != nrows) {
       throw IOError() << "Length of column " << i << " is " << col->nrows
           << ", however the Frame contains " << nrows << " rows";
     }
@@ -69,7 +69,7 @@ DataTable* DataTable::open_jay(const std::string& path)
   }
 
   auto dt = new DataTable(std::move(columns), colnames);
-  dt->nkeys = frame->nkeys();
+  dt->nkeys = static_cast<size_t>(frame->nkeys());
   return dt;
 }
 
@@ -91,7 +91,7 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
   auto tstats = static_cast<NumericalStats<T, A>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
-    tstats->set_countna(static_cast<int64_t>(jcol->nullcount()));
+    tstats->set_countna(jcol->nullcount());
     tstats->set_min(jstats->min());
     tstats->set_max(jstats->max());
   }

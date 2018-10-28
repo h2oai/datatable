@@ -17,7 +17,7 @@
 
 typedef std::unique_ptr<double[]> DoublePtr;
 struct ex {
-  int64_t id;
+  size_t id;
   DoublePtr coords;
 };
 typedef std::unique_ptr<ex> ExPtr;
@@ -28,52 +28,52 @@ typedef std::unique_ptr<ex> ExPtr;
 
 class Aggregator {
   public:
-    Aggregator(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
+    Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
                unsigned int, PyObject*, unsigned int);
-    DataTablePtr aggregate(DataTable*);
+    dtptr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
-    static void set_norm_coeffs(double&, double&, double, double, int32_t);
+    static void set_norm_coeffs(double&, double&, double, double, size_t);
     static void print_progress(double, int);
 
   private:
-    int32_t min_rows;
-    int32_t n_bins;
-    int32_t nx_bins;
-    int32_t ny_bins;
-    int32_t nd_max_bins;
-    int32_t max_dimensions;
+    size_t min_rows;
+    size_t n_bins;
+    size_t nx_bins;
+    size_t ny_bins;
+    size_t nd_max_bins;
+    size_t max_dimensions;
     unsigned int seed;
     unsigned int nthreads;
     PyObject* progress_fn;
 
     // Grouping and aggregating methods
-    void group_0d(const DataTable*, DataTablePtr&);
-    void group_1d(const DataTablePtr&, DataTablePtr&);
-    void group_2d(const DataTablePtr&, DataTablePtr&);
-    void group_nd(const DataTablePtr&, DataTablePtr&);
-    void group_1d_continuous(const DataTablePtr&, DataTablePtr&);
-    void group_2d_continuous(const DataTablePtr&, DataTablePtr&);
-    void group_1d_categorical(const DataTablePtr&, DataTablePtr&);
-    void group_2d_categorical(const DataTablePtr&, DataTablePtr&);
+    void group_0d(const DataTable*, dtptr&);
+    void group_1d(const dtptr&, dtptr&);
+    void group_2d(const dtptr&, dtptr&);
+    void group_nd(const dtptr&, dtptr&);
+    void group_1d_continuous(const dtptr&, dtptr&);
+    void group_2d_continuous(const dtptr&, dtptr&);
+    void group_1d_categorical(const dtptr&, dtptr&);
+    void group_2d_categorical(const dtptr&, dtptr&);
     template<typename T1, typename T2>
-    void group_2d_categorical_str(const DataTablePtr&, DataTablePtr&);
-    void group_2d_mixed(bool, const DataTablePtr&, DataTablePtr&);
+    void group_2d_categorical_str(const dtptr&, dtptr&);
+    void group_2d_mixed(bool, const dtptr&, dtptr&);
     template<typename T>
-    void group_2d_mixed_str(bool, const DataTablePtr&, DataTablePtr&);
-    bool random_sampling(DataTablePtr&, int32_t, int32_t);
-    void aggregate_exemplars(DataTable*, DataTablePtr&, bool);
+    void group_2d_mixed_str(bool, const dtptr&, dtptr&);
+    bool random_sampling(dtptr&, size_t, size_t);
+    void aggregate_exemplars(DataTable*, dtptr&, bool);
 
     // Helper methods
-    int32_t get_nthreads(const DataTablePtr&);
-    DoublePtr generate_pmatrix(const DataTablePtr&);
-    void normalize_row(const DataTablePtr&, DoublePtr&, int32_t);
-    void project_row(const DataTablePtr&, DoublePtr&, int32_t, DoublePtr&);
-    double calculate_distance(DoublePtr&, DoublePtr&, int64_t, double,
+    size_t get_nthreads(const dtptr&);
+    DoublePtr generate_pmatrix(const dtptr&);
+    void normalize_row(const dtptr&, DoublePtr&, size_t);
+    void project_row(const dtptr&, DoublePtr&, size_t, DoublePtr&);
+    double calculate_distance(DoublePtr&, DoublePtr&, size_t, double,
                               bool early_exit=true);
-    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&,
-                      int64_t);
-    void adjust_members(std::vector<int64_t>&, DataTablePtr&);
-    size_t calculate_map(std::vector<int64_t>&, size_t);
+    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<size_t>&,
+                      size_t);
+    void adjust_members(std::vector<size_t>&, dtptr&);
+    size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(double, int status_code=0);
 };
 

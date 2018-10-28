@@ -21,7 +21,7 @@ namespace pycolumnset
 
 struct obj : public PyObject {
   Column** columns;
-  int64_t ncols;
+  size_t ncols;
 };
 
 extern PyTypeObject type;

@@ -307,7 +307,7 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
 
   void* params[2];
   params[0] = arg;
-  params[1] = Column::new_data_column(res_type, ngrps);
+  params[1] = Column::new_data_column(res_type, static_cast<size_t>(ngrps));
 
   gmapperfn fn = resolve0(opcode, arg_type);
   if (!fn) {

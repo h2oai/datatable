@@ -338,7 +338,7 @@ class FrameInitializationManager {
 
     void init_from_frame() {
       DataTable* srcdt = src.to_frame();
-      size_t ncols = static_cast<size_t>(srcdt->ncols);
+      size_t ncols = srcdt->ncols;
       check_names_count(ncols);
       if (stypes_arg || stype_arg) {
         // TODO: allow this use case
@@ -596,8 +596,8 @@ class FrameInitializationManager {
       }
       cols.push_back(col);
       if (cols.size() > 1) {
-        int64_t nrows0 = cols.front()->nrows;
-        int64_t nrows1 = cols.back()->nrows;
+        size_t nrows0 = cols.front()->nrows;
+        size_t nrows1 = cols.back()->nrows;
         if (nrows0 != nrows1) {
           throw ValueError()
             << "Column " << cols.size() - 1 << " has different number of "

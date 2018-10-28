@@ -135,8 +135,7 @@ void Frame::replace(const PKArgs& args) {
   ra.parse_x_y(x, y);
   ra.split_x_y_by_type();
 
-  size_t ncols = static_cast<size_t>(dt->ncols);
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     Column* col = dt->columns[i];
     switch (col->stype()) {
       case SType::BOOL:    ra.process_bool_column(i); break;
@@ -225,8 +224,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_real = false,
        done_bool = false,
        done_str = false;
-  size_t ncols = static_cast<size_t>(dt->ncols);
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     SType s = dt->columns[i]->stype();
     switch (s) {
       case SType::BOOL: {
@@ -410,12 +408,11 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
   auto col = static_cast<BoolColumn*>(dt->columns[colidx]);
-  size_t nrows = static_cast<size_t>(col->nrows);
   int8_t* coldata = col->elements_w();
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
   if (n == 0) return;
-  replace_fw<int8_t>(x_bool.data(), y_bool.data(), nrows, coldata, n);
+  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col->nrows, coldata, n);
 }
 
 
@@ -469,9 +466,8 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    size_t nrows = static_cast<size_t>(col->nrows);
     T* coldata = col->elements_w();
-    replace_fw<T>(xfilt.data(), yfilt.data(), nrows, coldata, n);
+    replace_fw<T>(xfilt.data(), yfilt.data(), col->nrows, coldata, n);
     col->get_stats()->reset();
   }
 }
@@ -523,9 +519,8 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    size_t nrows = static_cast<size_t>(col->nrows);
     T* coldata = col->elements_w();
-    replace_fw<T>(xfilt.data(), yfilt.data(), nrows, coldata, n);
+    replace_fw<T>(xfilt.data(), yfilt.data(), col->nrows, coldata, n);
     col->get_stats()->reset();
   }
 }

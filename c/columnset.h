@@ -13,7 +13,7 @@
 #include "rowindex.h"
 
 
-typedef int (columnset_mapfn)(int64_t row0, int64_t row1, void** out);
+typedef int (columnset_mapfn)(size_t row0, size_t row1, void** out);
 
 Column** columns_from_slice(
   DataTable* dt,
@@ -25,8 +25,8 @@ Column** columns_from_slice(
 
 Column** columns_from_mixed(
   int64_t *spec,
-  int64_t ncols,
-  int64_t nrows,
+  size_t ncols,
+  size_t nrows,
   DataTable *dt,
   columnset_mapfn *fn
 );

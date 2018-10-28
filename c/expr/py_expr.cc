@@ -46,7 +46,7 @@ PyObject* expr_cast(PyObject*, PyObject* args)
 
 PyObject* expr_column(PyObject*, PyObject* args)
 {
-  int64_t index;
+  size_t index;
   PyObject* arg1, *arg3;
   if (!PyArg_ParseTuple(args, "OlO:expr_column", &arg1, &index, &arg3))
     return nullptr;
@@ -55,7 +55,7 @@ PyObject* expr_column(PyObject*, PyObject* args)
   DataTable* dt = pyarg1.to_frame();
   RowIndex ri = pyarg3.to_rowindex();
 
-  if (index < 0 || index >= dt->ncols) {
+  if (index >= dt->ncols) {
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", index);
   }
   Column* col = dt->columns[index]->shallowcopy(ri);
@@ -101,14 +101,14 @@ PyObject* expr_count(PyObject*, PyObject* args)
   if (grpby == nullptr) {
     res = Column::new_data_column(SType::INT64, static_cast<int64_t>(1));
     auto d_res = static_cast<int64_t*>(res->data_w());
-    d_res[0] = dt->nrows;
+    d_res[0] = static_cast<int64_t>(dt->nrows);
 
   // If there is, return number of rows in each group
   } else {
     size_t ng = grpby->ngroups();
     const int32_t* offsets = grpby->offsets_r();
 
-    res = Column::new_data_column(SType::INT32, static_cast<int32_t>(ng));
+    res = Column::new_data_column(SType::INT32, ng);
     auto d_res = static_cast<int32_t*>(res->data_w());
 
     for (size_t i = 0; i < ng; ++i) {
