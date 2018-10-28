@@ -553,7 +553,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   size_t ncols = dt->ncols;
   size_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
-  std::vector<int64_t> ids;
+  std::vector<size_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   DoublePtr pmatrix = nullptr;
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
@@ -595,13 +595,13 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         if (is_exemplar) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ true);
-          ExPtr e = ExPtr(new ex{static_cast<int64_t>(ids.size()), std::move(member)});
+          ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
           member = DoublePtr(new double[ndims]);
           ids.push_back(e->id);
           d_members[i] = static_cast<int32_t>(e->id);
           exemplars.push_back(std::move(e));
 
-          if (exemplars.size() > static_cast<size_t>(nd_max_bins)) {
+          if (exemplars.size() > nd_max_bins) {
             adjust_delta(delta, exemplars, ids, ndims);
           }
         }
@@ -643,7 +643,7 @@ size_t Aggregator::get_nthreads(const dtptr& dt) {
 *  k = (2 * n - i - 1 ) * i / 2 + j
 */
 void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
-                              std::vector<int64_t>& ids, size_t ndims) {
+                              std::vector<size_t>& ids, size_t ndims) {
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
@@ -654,10 +654,10 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       double distance = calculate_distance(exemplars[i]->coords,
-                                     exemplars[j]->coords,
-                                     ndims,
-                                     delta,
-                                     0);
+                                           exemplars[j]->coords,
+                                           ndims,
+                                           delta,
+                                           0);
       total_distance += sqrt(distance);
       deltas[k++] = distance;
       // This check is required in the case one thread had already modified `delta`,
@@ -681,7 +681,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       if (deltas[k++] < delta_merge && exemplars[i] != nullptr && exemplars[j] != nullptr) {
-        ids[static_cast<size_t>(exemplars[j]->id)] = exemplars[i]->id;
+        ids[exemplars[j]->id] = exemplars[i]->id;
         exemplars[j] = nullptr;
       }
     }
@@ -699,7 +699,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
 *  Based on the merging info adjust the members information,
 *  i.e. set which exemplar they belong to.
 */
-void Aggregator::adjust_members(std::vector<int64_t>& ids,
+void Aggregator::adjust_members(std::vector<size_t>& ids,
                                 dtptr& dt_members) {
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -707,7 +707,7 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids,
 
   #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < ids.size(); ++i) {
-    if (ids[i] == static_cast<int64_t>(i)) {
+    if (ids[i] == i) {
       map[i] = i;
     } else {
       map[i] = calculate_map(ids, i);
@@ -725,11 +725,11 @@ void Aggregator::adjust_members(std::vector<int64_t>& ids,
 /*
 *  For each exemplar find the one it was merged to.
 */
-size_t Aggregator::calculate_map(std::vector<int64_t>& ids, size_t id) {
-  if (id == static_cast<size_t>(ids[id])){
+size_t Aggregator::calculate_map(std::vector<size_t>& ids, size_t id) {
+  if (id == ids[id]) {
     return id;
   } else {
-    return calculate_map(ids, static_cast<size_t>(ids[id]));
+    return calculate_map(ids, ids[id]);
   }
 }
 
@@ -852,8 +852,8 @@ void Aggregator::set_norm_coeffs(double& norm_factor, double& norm_shift,
 *  Helper function to report on the aggregation process, clear when finished.
 */
 void Aggregator::print_progress(double progress, int status_code) {
-  int val = static_cast<int> (progress * 100);
-  int lpad = static_cast<int> (progress * PBWIDTH);
+  int val = static_cast<int>(progress * 100);
+  int lpad = static_cast<int>(progress * PBWIDTH);
   int rpad = PBWIDTH - lpad;
   printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
   if (status_code) printf("\33[2K\r");

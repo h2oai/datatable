@@ -17,7 +17,7 @@
 
 typedef std::unique_ptr<double[]> DoublePtr;
 struct ex {
-  int64_t id;
+  size_t id;
   DoublePtr coords;
 };
 typedef std::unique_ptr<ex> ExPtr;
@@ -70,10 +70,10 @@ class Aggregator {
     void project_row(const dtptr&, DoublePtr&, size_t, DoublePtr&);
     double calculate_distance(DoublePtr&, DoublePtr&, size_t, double,
                               bool early_exit=true);
-    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<int64_t>&,
+    void adjust_delta(double&, std::vector<ExPtr>&, std::vector<size_t>&,
                       size_t);
-    void adjust_members(std::vector<int64_t>&, dtptr&);
-    size_t calculate_map(std::vector<int64_t>&, size_t);
+    void adjust_members(std::vector<size_t>&, dtptr&);
+    size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(double, int status_code=0);
 };
 
