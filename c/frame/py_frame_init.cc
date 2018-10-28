@@ -596,8 +596,8 @@ class FrameInitializationManager {
       }
       cols.push_back(col);
       if (cols.size() > 1) {
-        int64_t nrows0 = cols.front()->nrows;
-        int64_t nrows1 = cols.back()->nrows;
+        size_t nrows0 = cols.front()->nrows;
+        size_t nrows1 = cols.back()->nrows;
         if (nrows0 != nrows1) {
           throw ValueError()
             << "Column " << cols.size() - 1 << " has different number of "

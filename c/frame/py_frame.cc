@@ -172,7 +172,7 @@ void Frame::set_nrows(obj nr) {
   if (new_nrows < 0) {
     throw ValueError() << "Number of rows cannot be negative";
   }
-  dt->resize_rows(new_nrows);
+  dt->resize_rows(static_cast<size_t>(new_nrows));
 }
 
 

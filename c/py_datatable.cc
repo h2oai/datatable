@@ -77,7 +77,7 @@ int unwrap(PyObject* object, DataTable** address) {
 
 PyObject* datatable_load(PyObject*, PyObject* args) {
   DataTable* colspec;
-  int64_t nrows;
+  size_t nrows;
   const char* path;
   int recode;
   PyObject* names;

@@ -53,7 +53,7 @@ class pylistNP : public NameProvider {
 
 class strvecNP : public NameProvider {
   private:
-    const std::vector<std::string>& names;
+    const strvec& names;
 
   public:
     strvecNP(const std::vector<std::string>& arg) : names(arg) {}
@@ -184,7 +184,7 @@ oobj Frame::colindex(const PKArgs& args)
   }
   if (col.is_int()) {
     int64_t colidx = col.to_int64_strict();
-    int64_t ncols = dt->ncols;
+    int64_t ncols = static_cast<int64_t>(dt->ncols);
     if (colidx < 0 && colidx + ncols >= 0) {
       colidx += ncols;
     }
@@ -300,12 +300,11 @@ void DataTable::copy_names_from(const DataTable* other) {
 void DataTable::set_names_to_default() {
   auto index0 = static_cast<size_t>(config::frame_names_auto_index);
   auto prefix = config::frame_names_auto_prefix;
-  auto zcols  = static_cast<size_t>(ncols);
   py_names  = py::otuple();
   py_inames = py::odict(nullptr);
   names.clear();
-  names.reserve(zcols);
-  for (size_t i = 0; i < zcols; ++i) {
+  names.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
     names.push_back(prefix + std::to_string(i + index0));
   }
 }
@@ -318,7 +317,7 @@ void DataTable::set_names(const py::olist& names_list) {
 }
 
 
-void DataTable::set_names(const std::vector<std::string>& names_list) {
+void DataTable::set_names(const strvec& names_list) {
   strvecNP np(names_list);
   _set_names_impl(&np);
 }
@@ -327,7 +326,7 @@ void DataTable::set_names(const std::vector<std::string>& names_list) {
 void DataTable::replace_names(py::odict replacements) {
   py::olist newnames(ncols);
 
-  for (int64_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     newnames.set(i, py_names[i]);
   }
   for (auto kv : replacements) {
