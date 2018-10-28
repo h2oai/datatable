@@ -20,8 +20,9 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
                             int64_t start, int64_t count, int64_t step)
 {
   if (dt == nullptr) return nullptr;
-  if ((count < 0 || start < 0 || start >= dt->ncols ||
-       start + step < 0 || start + step * (count - 1) >= dt->ncols) &&
+  int64_t icols = static_cast<int64_t>(dt->ncols);
+  if ((count < 0 || start < 0 || start >= icols ||
+       start + step < 0 || start + step * (count - 1) >= icols) &&
       !(count == 0 && start == 0)) {
     throw ValueError() << "Invalid slice " << start << ":" << count << ":"
                        << step << " for a DataTable with " << dt->ncols
