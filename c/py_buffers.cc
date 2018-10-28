@@ -108,9 +108,9 @@ Column* Column::from_buffer(const py::obj& obuffer)
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   } else if (view->strides == nullptr) {
-    res = Column::new_xbuf_column(stype, nrows, view);
+    res = Column::new_xbuf_column(stype, static_cast<size_t>(nrows), view);
   } else {
-    res = Column::new_data_column(stype, nrows);
+    res = Column::new_data_column(stype, static_cast<size_t>(nrows));
     int64_t stride = view->strides[0] / view->itemsize;
     if (view->itemsize == 8) {
       int64_t* out = static_cast<int64_t*>(res->data_w());
@@ -165,7 +165,8 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
+  return new StringColumn<uint32_t>(static_cast<size_t>(nrows),
+                                    std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -180,20 +181,20 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
 static Column* try_to_resolve_object_column(Column* col)
 {
   PyObject* const* data = static_cast<PyObject* const*>(col->data());
-  int64_t nrows = col->nrows;
+  size_t nrows = col->nrows;
 
   int all_strings = 1;
   // Approximate total length of all strings. Do not take into account
   // possibility that the strings may expand in UTF-8 -- if needed, we'll
   // realloc the buffer later.
-  int64_t total_length = 10;
-  for (int64_t i = 0; i < nrows; ++i) {
+  size_t total_length = 10;
+  for (size_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) continue;
     if (!PyUnicode_Check(data[i])) {
       all_strings = 0;
       break;
     }
-    total_length += PyUnicode_GetLength(data[i]);
+    total_length += static_cast<size_t>(PyUnicode_GetLength(data[i]));
   }
 
   // Not all elements were strings -- return the original column unmodified
@@ -202,7 +203,7 @@ static Column* try_to_resolve_object_column(Column* col)
   }
 
   // Otherwise the column is all-strings: convert it into *STRING stype.
-  size_t strbuf_size = static_cast<size_t>(total_length);
+  size_t strbuf_size = total_length;
   MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   MemoryRange strbuf = MemoryRange::mem(strbuf_size);
   uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
@@ -212,7 +213,7 @@ static Column* try_to_resolve_object_column(Column* col)
   ++offsets;
 
   uint32_t offset = 0;
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
       offsets[i] = offset | GETNA<uint32_t>();
     } else {

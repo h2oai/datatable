@@ -171,7 +171,7 @@ Column* unaryop(int opcode, Column* arg)
       << arg_type << ")";
   }
 
-  (*fn)(0, arg->nrows, params);
+  (*fn)(0, static_cast<int64_t>(arg->nrows), params);
 
   return static_cast<Column*>(params[1]);
 }
