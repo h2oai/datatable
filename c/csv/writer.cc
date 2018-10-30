@@ -60,7 +60,7 @@ public:
 
   // This should only be called on a CsvColumn of type i4s / i8s!
   template <typename T>
-  size_t strsize(int64_t row0, int64_t row1) {
+  size_t strsize(size_t row0, size_t row1) {
     const T* offsets = static_cast<const T*>(data);
     return (offsets[row1 - 1] - offsets[row0 - 1]) & ~GETNA<T>();
   }
@@ -302,8 +302,8 @@ CsvWriter::~CsvWriter()
 
 void CsvWriter::write()
 {
-  int64_t nrows = dt->nrows;
-  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols;
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
@@ -311,7 +311,7 @@ void CsvWriter::write()
   create_column_writers(ncols);
   size_t nstrcols32 = strcolumns32.size();
   size_t nstrcols64 = strcolumns64.size();
-  if (nthreads > nchunks) nthreads = static_cast<int>(nchunks);
+  if (nthreads > nchunks) nthreads = nchunks;
 
   OmpExceptionManager oem;
 
@@ -343,10 +343,10 @@ void CsvWriter::write()
 
     // Main data-writing loop
     #pragma omp for ordered schedule(dynamic)
-    for (int64_t i = 0; i < nchunks; i++) {
+    for (size_t i = 0; i < nchunks; i++) {
       if (oem.exception_caught()) continue;
-      int64_t row0 = static_cast<int64_t>(i * rows_per_chunk);
-      int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
+      size_t row0 = static_cast<size_t>(i * rows_per_chunk);
+      size_t row1 = static_cast<size_t>((i + 1) * rows_per_chunk);
       if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
 
       try {
@@ -379,7 +379,8 @@ void CsvWriter::write()
 
         // Write the data in rows row0..row1 and in all columns
         char* thch = thbuf;
-        dt->rowindex.strided_loop(row0, row1, 1,
+        dt->rowindex.strided_loop(static_cast<int64_t>(row0),
+                                  static_cast<int64_t>(row1), 1,
           [&](int64_t row) {
             for (size_t col = 0; col < ncols; col++) {
               columns[col]->write(&thch, row);
@@ -460,8 +461,8 @@ double CsvWriter::checkpoint() {
  */
 size_t CsvWriter::estimate_output_size()
 {
-  size_t nrows = static_cast<size_t>(dt->nrows);
-  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols;
   size_t total_string_size = 0;
   size_t total_columns_size = 0;
   fixed_size_per_row = ncols;  // 1 byte per separator
@@ -532,13 +533,13 @@ void CsvWriter::write_column_names()
  * `nthreads`. Its effect is to fill in values `rows_per_chunk`, 'nchunks' and
  * `bytes_per_chunk`.
  */
-void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
+void CsvWriter::determine_chunking_strategy(size_t bytes_total, size_t nrows)
 {
   static const size_t max_chunk_size = 1024 * 1024;
   static const size_t min_chunk_size = 1024;
 
   double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
-  int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
+  size_t min_nchunks = nthreads == 1 ? 1 : nthreads*2;
   nchunks = 1 + (bytes_total - 1) / max_chunk_size;
   if (nchunks < min_nchunks) nchunks = min_nchunks;
   int attempts = 5;
@@ -580,8 +581,8 @@ void CsvWriter::create_column_writers(size_t ncols)
   columns.reserve(ncols);
   writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
   writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
-  for (int64_t i = 0; i < dt->ncols; i++) {
-    Column *dtcol = dt->columns[i];
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    Column* dtcol = dt->columns[i];
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);

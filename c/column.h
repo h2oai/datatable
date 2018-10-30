@@ -78,15 +78,15 @@ protected:
   mutable Stats* stats;
 
 public:  // TODO: convert this into private
-  int64_t nrows;
+  size_t nrows;
 
 public:
-  static Column* new_data_column(SType, int64_t nrows);
-  static Column* new_na_column(SType, int64_t nrows);
-  static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
+  static Column* new_data_column(SType, size_t nrows);
+  static Column* new_na_column(SType, size_t nrows);
+  static Column* new_mmap_column(SType, size_t nrows, const std::string& filename);
+  static Column* open_mmap_column(SType, size_t nrows, const std::string& filename,
                                   bool recode = false);
-  static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
+  static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
@@ -114,7 +114,7 @@ public:
   size_t alloc_size() const;
 
   const RowIndex& rowindex() const { return ri; }
-  virtual int64_t data_nrows() const = 0;
+  virtual size_t data_nrows() const = 0;
   size_t memory_footprint() const;
 
   RowIndex sort(Groupby* out_groups) const;
@@ -133,7 +133,7 @@ public:
    * This method can be used to both increase and reduce the size of the
    * column.
    */
-  virtual void resize_and_fill(int64_t nrows) = 0;
+  virtual void resize_and_fill(size_t nrows) = 0;
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
@@ -217,9 +217,9 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  int64_t countna() const;
-  int64_t nunique() const;
-  int64_t nmodal() const;
+  size_t countna() const;
+  size_t nunique() const;
+  size_t nmodal() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
@@ -277,13 +277,13 @@ public:
   Stats* get_stats_if_exist() const { return stats; }
 
 protected:
-  Column(int64_t nrows = 0);
+  Column(size_t nrows = 0);
   virtual void init_data() = 0;
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(std::vector<const Column*>& columns,
-                          int64_t nrows, bool isempty) = 0;
+                          size_t nrows, bool isempty) = 0;
 
   /**
    * These functions are designed to cast the current column into another type.
@@ -332,16 +332,16 @@ private:
 template <typename T> class FwColumn : public Column
 {
 public:
-  FwColumn(int64_t nrows);
-  FwColumn(int64_t nrows, MemoryRange&&);
+  FwColumn(size_t nrows);
+  FwColumn(size_t nrows, MemoryRange&&);
   void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
 
-  int64_t data_nrows() const override;
-  void resize_and_fill(int64_t nrows) override;
+  size_t data_nrows() const override;
+  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
@@ -355,7 +355,7 @@ protected:
   void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
   void fill_na() override;
 
@@ -577,8 +577,8 @@ extern template class RealColumn<double>;
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
-  PyObjectColumn(int64_t nrows);
-  PyObjectColumn(int64_t nrows, MemoryRange&&);
+  PyObjectColumn(size_t nrows);
+  PyObjectColumn(size_t nrows, MemoryRange&&);
   virtual SType stype() const override;
   PyObjectStats* get_stats() const override;
 
@@ -601,10 +601,10 @@ protected:
   void cast_into(StringColumn<uint64_t>*) const override;
 
   void replace_buffer(MemoryRange&&) override;
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  void resize_and_fill(int64_t nrows) override;
+  void resize_and_fill(size_t nrows) override;
   void fill_na() override;
   void reify() override;
   friend Column;
@@ -621,8 +621,8 @@ template <typename T> class StringColumn : public Column
   MemoryRange strbuf;
 
 public:
-  StringColumn(int64_t nrows);
-  StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
+  StringColumn(size_t nrows);
+  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryRange&&, MemoryRange&&) override;
@@ -632,13 +632,13 @@ public:
   bool is_fixedwidth() const override;
 
   void reify() override;
-  void resize_and_fill(int64_t nrows) override;
+  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
 
   MemoryRange str_buf() { return strbuf; }
   size_t datasize() const;
-  int64_t data_nrows() const override;
+  size_t data_nrows() const override;
   const char* strdata() const;
   const uint8_t* ustrdata() const;
   const T* offsets() const;
@@ -663,7 +663,7 @@ protected:
   void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
   // void cast_into(BoolColumn*) const override;
@@ -698,14 +698,14 @@ extern template class StringColumn<uint64_t>;
 // unknown type. This column cannot be put into a DataTable.
 class VoidColumn : public Column {
   public:
-    VoidColumn(int64_t nrows);
+    VoidColumn(size_t nrows);
     SType stype() const override;
     size_t elemsize() const override;
     bool is_fixedwidth() const override;
-    int64_t data_nrows() const override;
+    size_t data_nrows() const override;
     void reify() override;
-    void resize_and_fill(int64_t) override;
-    void rbind_impl(std::vector<const Column*>&, int64_t, bool) override;
+    void resize_and_fill(size_t) override;
+    void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;

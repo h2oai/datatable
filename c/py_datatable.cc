@@ -77,7 +77,7 @@ int unwrap(PyObject* object, DataTable** address) {
 
 PyObject* datatable_load(PyObject*, PyObject* args) {
   DataTable* colspec;
-  int64_t nrows;
+  size_t nrows;
   const char* path;
   int recode;
   PyObject* names;
@@ -111,7 +111,7 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
 PyObject* get_isview(obj* self) {
   DataTable* dt = self->ref;
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     if (dt->columns[i]->rowindex())
       return incref(Py_True);
   }
@@ -149,11 +149,11 @@ int set_groupby(obj* self, PyObject* value) {
 
 
 PyObject* get_nkeys(obj* self) {
-  return PyLong_FromLongLong(self->ref->nkeys);
+  return PyLong_FromSize_t(self->ref->nkeys);
 }
 
 int set_nkeys(obj* self, PyObject* value) {
-  int64_t nk = py::obj(value).to_int64_strict();
+  size_t nk = py::obj(value).to_size_t();
   self->ref->set_nkeys(nk);
   return 0;
 }
@@ -231,11 +231,11 @@ PyObject* check(obj* self, PyObject*) {
     if (!PyTuple_Check(stypes)) {
       throw AssertionError() << "Frame.stypes is not a tuple";
     }
-    if (PyTuple_Size(stypes) != dt->ncols) {
+    if (static_cast<size_t>(PyTuple_Size(stypes)) != dt->ncols) {
       throw AssertionError() << "len(Frame.stypes) is " << PyTuple_Size(stypes)
           << ", whereas .ncols = " << dt->ncols;
     }
-    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(stypes, i);
       PyObject* eexp = info(st).py_stype().release();
@@ -250,11 +250,11 @@ PyObject* check(obj* self, PyObject*) {
     if (!PyTuple_Check(ltypes)) {
       throw AssertionError() << "Frame.ltypes is not a tuple";
     }
-    if (PyTuple_Size(ltypes) != dt->ncols) {
+    if (static_cast<size_t>(PyTuple_Size(ltypes)) != dt->ncols) {
       throw AssertionError() << "len(Frame.ltypes) is " << PyTuple_Size(ltypes)
           << ", whereas .ncols = " << dt->ncols;
     }
-    for (Py_ssize_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
       SType st = dt->columns[i]->stype();
       PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
       PyObject* eexp = info(st).py_ltype().release();
@@ -272,15 +272,16 @@ PyObject* check(obj* self, PyObject*) {
 PyObject* column(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int64_t colidx;
+  int64_t ncols = static_cast<int64_t>(dt->ncols);
   if (!PyArg_ParseTuple(args, "l:column", &colidx))
     return nullptr;
-  if (colidx < -dt->ncols || colidx >= dt->ncols) {
+  if (colidx < -ncols || colidx >= ncols) {
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
     return nullptr;
   }
   if (colidx < 0) colidx += dt->ncols;
   pycolumn::obj* pycol =
-      pycolumn::from_column(dt->columns[colidx], self, colidx);
+      pycolumn::from_column(dt->columns[static_cast<size_t>(colidx)], self, colidx);
   return pycol;
 }
 
@@ -288,20 +289,20 @@ PyObject* column(obj* self, PyObject* args) {
 
 PyObject* delete_columns(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* list;
-  if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:delete_columns", &arg1))
     return nullptr;
+  py::olist list = py::obj(arg1).to_pylist();
+  size_t ncols = list.size();
 
-  int64_t ncols = static_cast<int64_t>(PyList_Size(list));
-  int* cols_to_remove = dt::amalloc<int>(ncols);
-  for (int64_t i = 0; i < ncols; i++) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    cols_to_remove[i] = static_cast<int>(PyLong_AsLong(item));
+  std::vector<size_t> cols_to_remove;
+  cols_to_remove.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    cols_to_remove.push_back(list[i].to_size_t());
   }
-  dt->delete_columns(cols_to_remove, ncols);
+  dt->delete_columns(cols_to_remove);
 
   _clear_types(self);
-  dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
 
@@ -323,17 +324,20 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
 
 PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int64_t start, count, step;
+  int64_t start;
+  size_t count;
+  int64_t step;
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
   RowIndex rows_ri = py::obj(arg4).to_rowindex();
   DataTable* repl = py::obj(arg5).to_frame();
-  int64_t rrows = repl->nrows;
-  int64_t rcols = repl->ncols;
-  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows = repl->nrows;
+  size_t rcols = repl->ncols;
+  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
-  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
+  if (!check_slice_triple(start, static_cast<int64_t>(count), step,
+                          static_cast<int64_t>(dt->ncols - 1))) {
     throw ValueError() << "Invalid slice " << start << "/" << count
                        << "/" << step << " for a Frame with " << dt->ncols
                        << " columns";
@@ -348,14 +352,15 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   dt->reify();  // noop if `dt` is not a view
   repl->reify();
 
-  for (int64_t i = 0; i < count; ++i) {
-    int64_t j = start + i * step;
+  for (size_t i = 0; i < count; ++i) {
+    int64_t j = start + static_cast<int64_t>(i) * step;
+    size_t zj = static_cast<size_t>(j);
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
-      dt->columns[j]->replace_values(rows_ri, replcol);
+      dt->columns[zj]->replace_values(rows_ri, replcol);
     } else {
-      delete dt->columns[j];
-      dt->columns[j] = replcol->shallowcopy();
+      delete dt->columns[zj];
+      dt->columns[zj] = replcol->shallowcopy();
     }
   }
   _clear_types(self);
@@ -371,9 +376,9 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   py::olist cols = py::obj(arg1).to_pylist();
   RowIndex rows_ri = py::obj(arg2).to_rowindex();
   DataTable* repl = py::obj(arg3).to_frame();
-  int64_t rrows = repl->nrows;
-  size_t rcols = static_cast<size_t>(repl->ncols);
-  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows = repl->nrows;
+  size_t rcols = repl->ncols;
+  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
   bool ok = (rrows == rrows2 || rrows == 1) &&
             (rcols == cols.size() || rcols == 1);
@@ -386,12 +391,12 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   dt->reify();
   repl->reify();
 
-  int64_t num_new_cols = 0;
+  size_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
     py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
-    if (j < -1 || j >= dt->ncols) {
+    if (j < -1 || j >= static_cast<int64_t>(dt->ncols)) {
       throw ValueError() << "Invalid index for a replacement column: " << j;
     }
   }
@@ -400,26 +405,25 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
       throw ValueError() << "Cannot assign to column(s) that are outside of "
                             "the Frame: " << rows_ri;
     }
-    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols + 1)
-                     * sizeof(Column*);
-    dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
+    size_t newsize = dt->ncols + num_new_cols;
+    dt->columns.resize(newsize);
   }
   for (size_t i = 0; i < cols.size(); ++i) {
     py::obj item = cols[i];
     int64_t j = item.to_int64_strict();
+    size_t zj = static_cast<size_t>(j);
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
-      dt->columns[j]->replace_values(rows_ri, replcol);
+      dt->columns[zj]->replace_values(rows_ri, replcol);
     } else {
       if (j == -1) {
-        j = dt->ncols++;
+        zj = dt->ncols++;
       } else {
-        delete dt->columns[j];
+        delete dt->columns[zj];
       }
-      dt->columns[j] = replcol->shallowcopy();
+      dt->columns[zj] = replcol->shallowcopy();
     }
   }
-  dt->columns[dt->ncols] = nullptr;
 
   // Clear cached stypes/ltypes; No need to update names
   _clear_types(self);
@@ -429,52 +433,52 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int64_t final_ncols;
+  size_t final_ncols;
   PyObject* list;
   if (!PyArg_ParseTuple(args, "lO!:delete_columns",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
+  size_t ndts = static_cast<size_t>(PyList_Size(list));
 
-  int64_t ndts = static_cast<int64_t>(PyList_Size(list));
-  DataTable** dts = dt::amalloc<DataTable*>(ndts);
-  int** cols_to_append = dt::amalloc<int*>(final_ncols);
-  for (int64_t i = 0; i < final_ncols; i++) {
-    cols_to_append[i] = dt::amalloc<int>(ndts);
+  constexpr size_t INVALID_INDEX = size_t(-1);
+  std::vector<DataTable*> dts;
+  std::vector<std::vector<size_t>> cols_to_append(final_ncols);
+  for (size_t j = 0; j < final_ncols; ++j) {
+    cols_to_append[j].resize(ndts);
   }
-  for (int i = 0; i < ndts; i++) {
+
+  for (size_t i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
     DataTable* dti;
     PyObject* colslist;
     if (!PyArg_ParseTuple(item, "O&O",
                           &unwrap, &dti, &colslist))
       return nullptr;
-    int64_t j = 0;
+    size_t j = 0;
     if (colslist == Py_None) {
-      int64_t ncolsi = dti->ncols;
+      size_t ncolsi = dti->ncols;
       for (; j < ncolsi; ++j) {
-        cols_to_append[j][i] = static_cast<int>(j);
+        cols_to_append[j][i] = j;
       }
     } else {
-      int64_t ncolsi = PyList_Size(colslist);
+      size_t ncolsi = static_cast<size_t>(PyList_Size(colslist));
       for (; j < ncolsi; ++j) {
         PyObject* itemj = PyList_GET_ITEM(colslist, j);
-        cols_to_append[j][i] = (itemj == Py_None)? -1
-                               : static_cast<int>(PyLong_AsLong(itemj));
+        cols_to_append[j][i] = (itemj == Py_None)? INVALID_INDEX
+                               : PyLong_AsSize_t(itemj);
       }
     }
     for (; j < final_ncols; ++j) {
-      cols_to_append[j][i] = -1;
+      cols_to_append[j][i] = INVALID_INDEX;
     }
-    dts[i] = dti;
+    dts.push_back(dti);
   }
 
-  dt->rbind(dts, cols_to_append, ndts, final_ncols);
+  dt->rbind(dts, cols_to_append);
 
   // Clear cached stypes/ltypes
   _clear_types(self);
 
-  dt::free(cols_to_append);
-  dt::free(dts);
   Py_RETURN_NONE;
 }
 
@@ -487,9 +491,9 @@ PyObject* sort(obj* self, PyObject* args) {
   bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
   bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
 
-  arr32_t cols(nargs - last_arg_bool);
-  for (size_t i = 0; i < cols.size(); ++i) {
-    cols[i] = arglist[i].to_int32_strict();
+  std::vector<size_t> cols;
+  for (size_t i = 0; i < nargs - last_arg_bool; ++i) {
+    cols.push_back(arglist[i].to_size_t());
   }
   Groupby grpby;
   RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
@@ -507,13 +511,13 @@ PyObject* join(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   DataTable* jdt = py::obj(arg2).to_frame();
   RowIndex ri = py::obj(arg1).to_rowindex();
-  py::olist cols = py::obj(arg3).to_pylist();
+  py::olist cols_arg = py::obj(arg3).to_pylist();
 
-  if (cols.size() != 1) {
+  if (cols_arg.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
   }
-  int64_t i = cols[0].to_int64();
-  if (i < 0 || i >= dt->ncols) {
+  size_t i = cols_arg[0].to_size_t();
+  if (i >= dt->ncols) {
     throw ValueError() << "Invalid index " << i << " for a Frame with "
         << dt->ncols << " columns";
   }
@@ -561,7 +565,7 @@ PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Colum
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
 
-  for (int64_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
     Column* oldcol = dt->columns[i];
     if (!oldcol->rowindex()) continue;
     Column* newcol = oldcol->shallowcopy();
@@ -596,7 +600,7 @@ PyObject* save_jay(obj* self, PyObject* args) {
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
 
-  if (colnames.size() != static_cast<size_t>(dt->ncols)) {
+  if (colnames.size() != dt->ncols) {
     throw ValueError()
       << "The list of column names has wrong length: " << colnames.size();
   }

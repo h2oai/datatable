@@ -72,9 +72,9 @@ constexpr uint8_t NSTATS = 14;
 class Stats {
   protected:
     std::bitset<NSTATS> _computed;
-    int64_t _countna;
-    int64_t _nunique;
-    int64_t _nmodal;
+    size_t _countna;
+    size_t _nunique;
+    size_t _nmodal;
 
   public:
     Stats() = default;
@@ -82,13 +82,13 @@ class Stats {
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
 
-    int64_t countna(const Column*);
-    int64_t nunique(const Column*);
-    int64_t nmodal(const Column*);
+    size_t countna(const Column*);
+    size_t nunique(const Column*);
+    size_t nmodal(const Column*);
 
     bool is_computed(Stat s) const;
     void reset();
-    void set_countna(int64_t n);
+    void set_countna(size_t n);
     virtual void merge_stats(const Stats*);
 
     virtual size_t memory_footprint() const = 0;

@@ -120,9 +120,9 @@ template <typename T> PyObject* RealColumn<T>::kurt_pyscalar() const { return fl
 typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
-inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
+inline static void cast_helper(size_t nrows, const IT* src, OT* trg) {
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     IT x = src[i];
     trg[i] = ISNA<IT>(x)? GETNA<OT>() : static_cast<OT>(x);
   }
@@ -134,14 +134,14 @@ inline static MemoryRange cast_str_helper(
 {
   const IT* src_data = src->elements_r();
   OT* toffsets = target->offsets_w();
-  size_t exp_size = static_cast<size_t>(src->nrows) * sizeof(IT) * 2;
+  size_t exp_size = src->nrows * sizeof(IT) * 2;
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 0;
   toffsets[-1] = 0;
-  for (int64_t i = 0; i < src->nrows; ++i) {
+  for (size_t i = 0; i < src->nrows; ++i) {
     IT x = src_data[i];
     if (ISNA<IT>(x)) {
       toffsets[i] = offset | GETNA<OT>();
@@ -169,7 +169,7 @@ void RealColumn<T>::cast_into(BoolColumn* target) const {
   const T* src_data = this->elements_r();
   int8_t* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = ISNA<T>(x)? na_trg : (x != 0);
   }
@@ -212,7 +212,7 @@ void RealColumn<float>::cast_into(RealColumn<double>* target) const {
   const float* src_data = this->elements_r();
   double* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     trg_data[i] = static_cast<double>(src_data[i]);
   }
 }
@@ -222,7 +222,7 @@ void RealColumn<double>::cast_into(RealColumn<float>* target) const {
   const double* src_data = this->elements_r();
   float* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     trg_data[i] = static_cast<float>(src_data[i]);
   }
 }
@@ -241,7 +241,7 @@ template <typename T>
 void RealColumn<T>::cast_into(PyObjectColumn* target) const {
   const T* src_data = this->elements_r();
   PyObject** trg_data = target->elements_w();
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = ISNA<T>(x)? none()
                             : PyFloat_FromDouble(static_cast<double>(x));

@@ -15,7 +15,7 @@
 #include "utils/file.h"
 
 
-Column::Column(int64_t nrows_)
+Column::Column(size_t nrows_)
     : stats(nullptr),
       nrows(nrows_) {}
 
@@ -39,21 +39,21 @@ Column* Column::new_column(SType stype) {
 }
 
 
-Column* Column::new_data_column(SType stype, int64_t nrows) {
+Column* Column::new_data_column(SType stype, size_t nrows) {
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->init_data();
   return col;
 }
 
-Column* Column::new_na_column(SType stype, int64_t nrows) {
+Column* Column::new_na_column(SType stype, size_t nrows) {
   Column* col = new_data_column(stype, nrows);
   col->fill_na();
   return col;
 }
 
 
-Column* Column::new_mmap_column(SType stype, int64_t nrows,
+Column* Column::new_mmap_column(SType stype, size_t nrows,
                                 const std::string& filename) {
   Column* col = new_column(stype);
   col->nrows = nrows;
@@ -83,7 +83,7 @@ void Column::save_to_disk(const std::string& filename,
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */
-Column* Column::open_mmap_column(SType stype, int64_t nrows,
+Column* Column::open_mmap_column(SType stype, size_t nrows,
                                  const std::string& filename, bool recode)
 {
   Column* col = new_column(stype);
@@ -97,7 +97,7 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
  * Construct a column from the externally provided buffer.
  */
 Column* Column::new_xbuf_column(SType stype,
-                                int64_t nrows,
+                                size_t nrows,
                                 Py_buffer* pybuffer)
 {
   Column* col = new_column(stype);
@@ -177,7 +177,7 @@ Column* Column::rbind(std::vector<const Column*>& columns)
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
-  int64_t new_nrows = this->nrows;
+  size_t new_nrows = this->nrows;
   SType new_stype = col_empty? SType::BOOL : stype();
   for (const Column* col : columns) {
     new_nrows += col->nrows;
@@ -242,9 +242,9 @@ size_t Column::memory_footprint() const
 // Stats
 //------------------------------------------------------------------------------
 
-int64_t Column::countna() const { return get_stats()->countna(this); }
-int64_t Column::nunique() const { return get_stats()->nunique(this); }
-int64_t Column::nmodal() const  { return get_stats()->nmodal(this); }
+size_t Column::countna() const { return get_stats()->countna(this); }
+size_t Column::nunique() const { return get_stats()->nunique(this); }
+size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
 /**
@@ -262,19 +262,19 @@ Column* Column::sum_column() const  { return new_na_column(stype(), 1); }
 
 Column* Column::countna_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, countna());
+  col->set_elem(0, static_cast<int64_t>(countna()));
   return col;
 }
 
 Column* Column::nunique_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, nunique());
+  col->set_elem(0, static_cast<int64_t>(nunique()));
   return col;
 }
 
 Column* Column::nmodal_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, nmodal());
+  col->set_elem(0, static_cast<int64_t>(nmodal()));
   return col;
 }
 
@@ -371,14 +371,10 @@ void Column::cast_into(PyObjectColumn*) const {
 //------------------------------------------------------------------------------
 
 void Column::verify_integrity(const std::string& name) const {
-  if (nrows < 0) {
-    throw AssertionError()
-      << name << " has a negative value for nrows: " << nrows;
-  }
   mbuf.verify_integrity();
   ri.verify_integrity();
 
-  int64_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
   if (ri.isabsent()) {
@@ -400,7 +396,7 @@ void Column::verify_integrity(const std::string& name) const {
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (ri.max() >= mbuf_nrows && ri.max() > 0) {
+    if (static_cast<size_t>(ri.max()) >= mbuf_nrows && ri.max() > 0) {
       throw AssertionError()
           << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
@@ -421,14 +417,14 @@ void Column::verify_integrity(const std::string& name) const {
 //==============================================================================
 
 VoidColumn::VoidColumn() {}
-VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
+VoidColumn::VoidColumn(size_t nrows) : Column(nrows) {}
 SType VoidColumn::stype() const { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }
-int64_t VoidColumn::data_nrows() const { return nrows; }
+size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::reify() {}
-void VoidColumn::resize_and_fill(int64_t) {}
-void VoidColumn::rbind_impl(std::vector<const Column*>&, int64_t, bool) {}
+void VoidColumn::resize_and_fill(size_t) {}
+void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const Column*) {}
 void VoidColumn::init_data() {}

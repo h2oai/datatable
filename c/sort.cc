@@ -1180,7 +1180,8 @@ class SortContext {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
+RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
+                           Groupby* out_grps) const
 {
   size_t nsortcols = colindices.size();
   if (nrows > INT32_MAX) {
@@ -1212,10 +1213,9 @@ RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
     if (out_grps) {
       *out_grps = Groupby::single_group(col0->nrows);
     }
-    return RowIndex::from_slice(i, col0->nrows, 1);
+    return RowIndex::from_slice(i, static_cast<int64_t>(col0->nrows), 1);
   }
-  size_t zrows = static_cast<size_t>(nrows);
-  SortContext sc(zrows, col0->rowindex(),
+  SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));
   sc.start_sort(col0);
   for (size_t j = 1; j < nsortcols; ++j) {
@@ -1231,7 +1231,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   if (out_grps) {
     *out_grps = Groupby::single_group(col->nrows);
   }
-  return RowIndex::from_slice(i, col->nrows, 1);
+  return RowIndex::from_slice(i, static_cast<int64_t>(col->nrows), 1);
 }
 
 
@@ -1239,8 +1239,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
-  size_t zrows = static_cast<size_t>(nrows);
-  SortContext sc(zrows, rowindex(), (out_grps != nullptr));
+  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
   sc.start_sort(this);
   return sc.get_result(out_grps);
 }

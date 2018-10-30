@@ -399,8 +399,8 @@
 
   //---- Element getters/setters -----------------
 
-  static void _oob_check(int64_t i, size_t size, size_t elemsize) {
-    if (i < 0 || static_cast<size_t>(i + 1) * elemsize > size) {
+  static void _oob_check(size_t i, size_t size, size_t elemsize) {
+    if ((i + 1) * elemsize > size) {
       throw ValueError() << "Index " << i << " is out of bounds for a memory "
         "region of size " << size << " viewed as an array of elements of size "
         << elemsize;
@@ -408,14 +408,14 @@
   }
 
   template <typename T>
-  T MemoryRange::get_element(int64_t i) const {
+  T MemoryRange::get_element(size_t i) const {
     _oob_check(i, size(), sizeof(T));
     const T* data = static_cast<const T*>(this->rptr());
     return data[i];
   }
 
   template <>
-  void MemoryRange::set_element(int64_t i, PyObject* value) {
+  void MemoryRange::set_element(size_t i, PyObject* value) {
     _oob_check(i, size(), sizeof(PyObject*));
     xassert(this->is_pyobjects());
     PyObject** data = static_cast<PyObject**>(this->wptr());
@@ -424,7 +424,7 @@
   }
 
   template <typename T>
-  void MemoryRange::set_element(int64_t i, T value) {
+  void MemoryRange::set_element(size_t i, T value) {
     _oob_check(i, size(), sizeof(T));
     T* data = static_cast<T*>(this->wptr());
     data[i] = value;
@@ -1006,12 +1006,12 @@
 // Template instantiations
 //==============================================================================
 
-  template int32_t MemoryRange::get_element(int64_t) const;
-  template int64_t MemoryRange::get_element(int64_t) const;
-  template uint32_t MemoryRange::get_element(int64_t) const;
-  template uint64_t MemoryRange::get_element(int64_t) const;
-  template void MemoryRange::set_element(int64_t, char);
-  template void MemoryRange::set_element(int64_t, int32_t);
-  template void MemoryRange::set_element(int64_t, int64_t);
-  template void MemoryRange::set_element(int64_t, uint32_t);
-  template void MemoryRange::set_element(int64_t, uint64_t);
+  template int32_t MemoryRange::get_element(size_t) const;
+  template int64_t MemoryRange::get_element(size_t) const;
+  template uint32_t MemoryRange::get_element(size_t) const;
+  template uint64_t MemoryRange::get_element(size_t) const;
+  template void MemoryRange::set_element(size_t, char);
+  template void MemoryRange::set_element(size_t, int32_t);
+  template void MemoryRange::set_element(size_t, int64_t);
+  template void MemoryRange::set_element(size_t, uint32_t);
+  template void MemoryRange::set_element(size_t, uint64_t);

@@ -154,7 +154,7 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 //==============================================================================
 
 PyObject* get_nrows(obj* self) {
-  return PyLong_FromLongLong(self->ref->length());
+  return PyLong_FromSize_t(self->ref->length());
 }
 
 PyObject* get_min(obj* self) {
@@ -246,8 +246,8 @@ PyObject* uplift(obj* self, PyObject* args) {
 
 PyObject* inverse(obj* self, PyObject* args) {
   RowIndex& ri = *(self->ref);
-  int64_t nrows;
-  if (!PyArg_ParseTuple(args, "L:RowIndex.inverse", &nrows))
+  size_t nrows;
+  if (!PyArg_ParseTuple(args, "n:RowIndex.inverse", &nrows))
     return nullptr;
   RowIndex res = ri.inverse(nrows);
   return wrap(res);

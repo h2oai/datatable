@@ -52,21 +52,23 @@ oobj Frame::_fast_getset(obj item, obj value) {
       bool a1int = arg1.is_int();
       if (a0int && (a1int || arg1.is_string())) {
         int64_t irow = arg0.to_int64_strict();
-        if (irow < 0) irow += dt->nrows;
-        if (irow < 0 || irow >= dt->nrows) {
-          if (irow < 0) irow -= dt->nrows;
+        int64_t nrows = static_cast<int64_t>(dt->nrows);
+        int64_t ncols = static_cast<int64_t>(dt->ncols);
+        if (irow < 0) irow += nrows;
+        if (irow < 0 || irow >= nrows) {
+          if (irow < 0) irow -= nrows;
           throw ValueError() << "Row `" << irow << "` is invalid for a frame "
-              "with " << dt->nrows << " row" << (dt->nrows == 1? "" : "s");
+              "with " << nrows << " row" << (nrows == 1? "" : "s");
         }
         int64_t icol;
         if (a1int) {
           icol = arg1.to_int64_strict();
-          if (icol < 0) icol += dt->ncols;
-          if (icol < 0 || icol >= dt->ncols) {
-            if (icol < 0) icol -= dt->ncols;
+          if (icol < 0) icol += ncols;
+          if (icol < 0 || icol >= ncols) {
+            if (icol < 0) icol -= ncols;
             throw ValueError() << "Column index `" << icol << "` is invalud "
-                "for a frame with " << dt->ncols << " column" <<
-                (dt->ncols == 1? "" : "s");
+                "for a frame with " << ncols << " column" <<
+                (ncols == 1? "" : "s");
           }
         } else {
           icol = dt->colindex(arg1);
@@ -75,7 +77,7 @@ oobj Frame::_fast_getset(obj item, obj value) {
                 "the frame";
           }
         }
-        Column* col = dt->columns[icol];
+        Column* col = dt->columns[static_cast<size_t>(icol)];
         return col->get_value_at_index(irow);
       }
     }

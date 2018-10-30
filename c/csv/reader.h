@@ -13,6 +13,7 @@
 #include "read/columns.h"   // dt::read::Columns
 
 class DataTable;
+using dtptr = std::unique_ptr<DataTable>;
 
 
 /**
@@ -21,8 +22,6 @@ class DataTable;
  */
 class GenericReader
 {
-  using DataTablePtr = std::unique_ptr<DataTable>;
-
   //---- Input parameters ----
   // nthreads:
   //   Number of threads to use; 0 means use maximum possible, negative number
@@ -113,7 +112,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    DataTablePtr read();
+    dtptr read();
 
     /**
      * Return the pointer to the input data buffer and its size. The method
@@ -178,13 +177,13 @@ class GenericReader
 
     void _message(const char* method, const char* format, va_list args) const;
 
-    DataTablePtr read_empty_input();
+    dtptr read_empty_input();
     void detect_improper_files();
 
   //---- Inherited API ----
   protected:
     GenericReader(const GenericReader&);
-    DataTablePtr makeDatatable();
+    dtptr makeDatatable();
 };
 
 
