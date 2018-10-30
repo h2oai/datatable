@@ -29,6 +29,8 @@ class Ftrl {
     void hash_numeric(SizetPtr&, const DataTable*, int64_t);
     void hash_string(SizetPtr&, const DataTable*, int64_t);
     static double signum(double);
+    static double sigmoid(double);
+    static double bsigmoid(double, double);
 
   private:
     double a;

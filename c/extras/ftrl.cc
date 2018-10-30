@@ -171,10 +171,25 @@ double Ftrl::predict(const SizetPtr& x, size_t x_size) {
     wTx += w[i];
   }
 
-  double res = 1.0 / (1.0 + exp(-wTx));
+  return sigmoid(-wTx);
+}
 
-// May also want to use a bounded sigmoid
-//  res = 1 / (1 + exp(-std::max(std::min(wTx, 35.0), -35.0)));
+
+/*
+*  Sigmoid function.
+*/
+double Ftrl::sigmoid(double x) {
+  double res = 1.0 / (1.0 + exp(-x));
+
+  return res;
+}
+
+
+/*
+*  Bounded sigmoid function.
+*/
+double Ftrl::bsigmoid(double x, double b) {
+  double res = 1 / (1 + exp(-std::max(std::min(x, b), -b)));
 
   return res;
 }
