@@ -38,9 +38,9 @@ constexpr T infinity() {
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static Column* reduce_first(const Column* arg, const Groupby& groupby) {
-  if (arg->nrows == 0) {
-    return Column::new_data_column(arg->stype(), 0);
+Column* reduce_first(const Column* col, const Groupby& groupby) {
+  if (col->nrows == 0) {
+    return Column::new_data_column(col->stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -49,8 +49,8 @@ static Column* reduce_first(const Column* arg, const Groupby& groupby) {
   // to the column will produce the vector of first elements in that column.
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex::from_array32(std::move(indices), true)
-                .uplift(arg->rowindex());
-  Column* res = arg->shallowcopy(ri);
+                .uplift(col->rowindex());
+  Column* res = col->shallowcopy(ri);
   if (ngrps == 1) res->reify();
   return res;
 }

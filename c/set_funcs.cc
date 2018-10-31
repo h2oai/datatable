@@ -20,7 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "datatablemodule.h"
+#include "datatable.h"
+#include "expr/py_expr.h"
+#include "frame/py_frame.h"
 #include "python/args.h"
+#include "utils/exceptions.h"
 
 
 //------------------------------------------------------------------------------
@@ -33,7 +37,8 @@ namespace set {
 static py::PKArgs args_unique(
     1, 0, 0, false, false,
     {"frame"}, "unique",
-R"(unique(frame)\n--
+R"(unique(frame)
+--
 
 Find the unique values in the ``frame``.
 
@@ -42,9 +47,19 @@ type (i.e. either `int` or `real` or `str`, etc). An error will be thrown if
 the columns' ltypes are different.
 )",
 
-[](const PKArgs& args) -> py::oobj {
+[](const py::PKArgs& args) -> py::oobj {
   DataTable* dt = args[0].to_frame();
 
+  if (dt->ncols == 1) {
+    Groupby gb;
+    RowIndex ri = dt->columns[0]->sort(&gb);
+    Column* colri = dt->columns[0]->shallowcopy(ri);
+    Column* uniques = expr::reduce_first(colri, gb);
+    DataTable* res = new DataTable({uniques}, dt);
+    return py::oobj::from_new_reference(py::Frame::from_datatable(res));
+  }
+
+  throw NotImplError();
 });
 
 
@@ -54,6 +69,5 @@ the columns' ltypes are different.
 
 
 void DatatableModule::init_methods_sets() {
-  // ADDFN(config::args_get_option);
-  // ADDFN(config::args_set_option);
+  ADDFN(dt::set::args_unique);
 }
