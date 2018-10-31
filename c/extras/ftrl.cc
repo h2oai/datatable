@@ -15,6 +15,7 @@
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
 #include <stdio.h>
+#include "extras/MurmurHash3.h"
 
 
 /*
@@ -171,7 +172,7 @@ double Ftrl::predict(const SizetPtr& x, size_t x_size) {
     wTx += w[i];
   }
 
-  return sigmoid(-wTx);
+  return sigmoid(wTx);
 }
 
 
@@ -214,10 +215,11 @@ void Ftrl::update(const SizetPtr& x, size_t x_size, double p, bool y) {
 *  Choose a hashing method.
 */
 void Ftrl::hash(SizetPtr& x, const DataTable* dt, int64_t row_id) {
-  if (hash_type) {
-    hash_string(x, dt, row_id);
-  } else {
-    hash_numeric(x, dt, row_id);
+  switch (hash_type) {
+    case 0:  hash_numeric(x, dt, row_id); break;
+    case 1:  hash_string(x, dt, row_id); break;
+    case 2:  hash_murmur(x, dt, row_id); break;
+    default: hash_string(x, dt, row_id);
   }
 }
 
@@ -320,6 +322,69 @@ void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
       default:             throw ValueError() << "Datatype is not supported";
     }
     index = std::hash<std::string>{}(c_names[i] + '_' + str);
+    x[i + 1] = index % d;
+  }
+
+  size_t count = 0;
+  if (inter) {
+    for (size_t i = 0; i < n_features - 1; ++i) {
+      for (size_t j = i + 1; j < n_features - 1; ++j) {
+        index = std::hash<std::string>{}(std::to_string(x[i+1]) + '_' + std::to_string(x[j+1]));
+        x[n_features + count] = index % d;
+        count++;
+      }
+    }
+  }
+}
+
+
+/*
+*  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
+*  `col_value`s to `string`. Needs optimization in terms of performance.
+*/
+void Ftrl::hash_murmur(SizetPtr& x, const DataTable* dt, int64_t row_id) {
+  std::vector<std::string> c_names = dt->get_names();
+  size_t index;
+  uint64_t h[2]= {0};
+
+  for (size_t i = 0; i < n_features - 1; ++i) {
+    std::string str;
+    Column* c = dt->columns[i];
+
+    LType ltype = info(c->stype()).ltype();
+    switch (ltype) {
+      case LType::BOOL:    {
+                             auto c_bool = static_cast<BoolColumn*>(c);
+                             auto d_bool = c_bool->elements_r();
+                             index = static_cast<size_t>(d_bool[row_id]);
+                             break;
+                           }
+      case LType::INT:     {
+                             auto c_int = static_cast<IntColumn<int32_t>*>(c);
+                             auto d_int = c_int->elements_r();
+                             index = static_cast<size_t>(d_int[row_id]);
+                             break;
+                           }
+      case LType::REAL:    {
+                             auto c_real = static_cast<RealColumn<double>*>(c);
+                             auto d_real = c_real->elements_r();
+                             index = static_cast<size_t>(d_real[row_id]);
+                             break;
+                           }
+      case LType::STRING:  {
+                             auto c_string = static_cast<StringColumn<uint32_t>*>(c);
+                             auto d_string = c_string->offsets();
+                             const char* strdata = c_string->strdata();
+                             const char* c_str = strdata + (d_string[row_id - 1] & ~GETNA<uint32_t>());
+                             uint32_t l = d_string[row_id] - (d_string[row_id - 1] & ~GETNA<uint32_t>());
+                             MurmurHash3_x64_128(c_str, l * sizeof(char), 0, h);
+                             index = h[0];
+                             break;
+                           }
+      default:             throw ValueError() << "Datatype is not supported";
+    }
+    MurmurHash3_x64_128(c_names[i].c_str(), c_names[i].length() * sizeof(char), 0, h);
+    index += h[0];
     x[i + 1] = index % d;
   }
 
