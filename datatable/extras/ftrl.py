@@ -9,7 +9,7 @@ from datatable.lib import core
 
 
 def ftrl(dt_train, dt_test, a=0.01, b=1.0, l1=0.0, l2=1.0, 
-         d=10**7, n_epochs=1, inter=False, hash_type=1):
+         d=10**7, n_epochs=1, inter=False, hash_type=2):
     """
     Implementation of Follow the Regularized Leader (FTRL) algorithm.
     
@@ -39,8 +39,10 @@ def ftrl(dt_train, dt_test, a=0.01, b=1.0, l1=0.0, l2=1.0,
     hash_type : int
         Hashing method to use:
           `0` - leave numeric values as they are;
-          `1` - convert all values to strings and hash them 
+          `1` - convert all values to strings and std::hash them 
                 including the column names.
+          `2` - use MurmurHash3 to hash string values and combine this
+                with the numeric values.
 
     Returns
     -------

@@ -43,12 +43,14 @@ class Ftrl {
     size_t d;
     size_t n_epochs;
     bool inter;
+    size_t: 56;
     size_t hash_type;
     DoublePtr n;
     DoublePtr z;
     DoublePtr w;
 };
 
+void MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed, void * out );
 
 DECLARE_FUNCTION(
   ftrl,
