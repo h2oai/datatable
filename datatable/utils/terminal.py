@@ -48,6 +48,32 @@ class MyTerminal(blessed.Terminal):
                 self.jupyter = ipy
 
 
+def noop(self, s):
+    return s
+
+class NoTerminal:
+    is_a_tty = False
+    jupyter = False
+    width = 80
+    height = 25
+    _encoding = "UTF8"
+    bold = noop
+    bright_black = noop
+    bright_red = noop
+    bright_white = noop
+    cyan = noop
+    dim_yellow = noop
+    green = noop
+    clear_eol = ""
+    move_up = ""
+
+    def length(self, s):
+        return len(s)
+
+    def move_x(self, n):
+        return ""
+
+
 
 # Save current locale settings
 try:
@@ -59,7 +85,11 @@ except _locale.Error:
     pass
 
 # Instantiate a terminal
-term = MyTerminal()
+if sys.__stdin__ and sys.__stdout__:
+    term = MyTerminal()
+else:
+    term = NoTerminal()
+
 
 # Restore previous locale settings
 for i, ll in enumerate(_lls):
