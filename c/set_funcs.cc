@@ -50,6 +50,14 @@ struct sort_result {
 // helper functions
 //------------------------------------------------------------------------------
 
+static py::oobj make_pyframe(sort_result& sorted, arr32_t&& arr) {
+  RowIndex out_ri = RowIndex::from_array32(std::move(arr), /* sorted= */ true);
+  Column* out_col = sorted.col->shallowcopy(out_ri);
+  out_col->reify();
+  DataTable* dt = new DataTable({out_col}, {sorted.colname});
+  return py::oobj::from_new_reference(py::Frame::from_datatable(dt));
+}
+
 static void verify_frame_1column(DataTable* dt) {
   if (dt->ncols == 1) return;
   throw ValueError() << "Only single-column Frames are allowed, but received "
@@ -63,7 +71,9 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
       DataTable* dt = va.to_frame();
       if (dt->ncols == 0) continue;
       verify_frame_1column(dt);
-      res.cols.push_back(dt->columns[0]->shallowcopy());
+      Column* col = dt->columns[0]->shallowcopy();
+      col->reify();
+      res.cols.push_back(col);
       if (res.colname.empty()) res.colname = dt->get_names()[0];
     }
     else if (va.is_iterable()) {
@@ -71,7 +81,9 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
         DataTable* dt = item.to_frame();
         if (dt->ncols == 0) continue;
         verify_frame_1column(dt);
-        res.cols.push_back(dt->columns[0]->shallowcopy());
+        Column* col = dt->columns[0]->shallowcopy();
+        col->reify();
+        res.cols.push_back(col);
         if (res.colname.empty()) res.colname = dt->get_names()[0];
       }
     }
@@ -83,28 +95,37 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
   return res;
 }
 
-static sort_result sort_columns(ccolvec& cv) {
+static sort_result sort_columns(ccolvec&& cv) {
   std::vector<const Column*>& cols = cv.cols;
   xassert(!cols.empty());
   sort_result res;
   res.colname = std::move(cv.colname);
-  if (cols.size() == 1) {
-    res.col = std::unique_ptr<Column>(const_cast<Column*>(cols[0]));
-    res.col->reify();
-  } else {
-    // Note: `rbind` will delete all the columns in the vector `cols`...
-    res.col = std::unique_ptr<Column>((new VoidColumn(0))->rbind(cols));
-  }
-  res.ri = res.col->sort(&res.gb);
   size_t cumsize = 0;
   for (auto col : cols) {
     cumsize += col->nrows;
     res.sizes.push_back(cumsize);
   }
+  if (cols.size() == 1) {
+    res.col = std::unique_ptr<Column>(const_cast<Column*>(cols[0]));
+    res.col->reify();
+  } else {
+    // Note: `rbind` will delete all the columns in the vector `cols`...
+    // Therefore, `cols` cannot be used after this call
+    res.col = std::unique_ptr<Column>((new VoidColumn(0))->rbind(cols));
+  }
+  res.ri = res.col->sort(&res.gb);
+
   return res;
 }
 
-static Column* extract_uniques(const sort_result& sorted) {
+
+static py::oobj _union(ccolvec&& cols) {
+  if (cols.cols.empty()) {
+    return py::oobj::from_new_reference(
+              py::Frame::from_datatable(new DataTable()));
+  }
+  sort_result sorted = sort_columns(std::move(cols));
+
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
   const int32_t* indices = sorted.ri.indices32();
@@ -114,10 +135,7 @@ static Column* extract_uniques(const sort_result& sorted) {
   for (size_t i = 0; i < ngrps; ++i) {
     out_indices[i] = indices[goffsets[i]];
   }
-  RowIndex out_ri = RowIndex::from_array32(std::move(arr), /* sorted= */ true);
-  Column* outcol = sorted.col->shallowcopy(out_ri);
-  outcol->reify();
-  return outcol;
+  return make_pyframe(sorted, std::move(arr));
 }
 
 
@@ -146,6 +164,9 @@ which may return the results in a different order.
 )",
 
 [](const py::PKArgs& args) -> py::oobj {
+  if (!args[0]) {
+    throw ValueError() << "Function `unique()` expects a Frame as a parameter";
+  }
   DataTable* dt = args[0].to_frame();
 
   ccolvec cc;
@@ -155,10 +176,7 @@ which may return the results in a different order.
   if (dt->ncols == 1) {
     cc.colname = dt->get_names()[0];
   }
-  sort_result s = sort_columns(cc);
-  Column* col = extract_uniques(s);
-  DataTable* newdt = new DataTable({col}, {s.colname});
-  return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
+  return _union(std::move(cc));
 });
 
 
@@ -175,7 +193,7 @@ static py::PKArgs fn_union(
 R"(union(*frames)
 --
 
-Find union of values in all `frames`.
+Find the union of values in all `frames`.
 
 Each frame should have only a single column (however, empty frames are allowed
 too). The values in each frame will be treated as a set, and this function will
@@ -188,14 +206,105 @@ This operation is equivalent to ``dt.unique(dt.rbind(*frames))``.
 )",
 
 [](const py::PKArgs& args) -> py::oobj {
-  ccolvec cols = columns_from_args(args);
-  sort_result s = sort_columns(cols);
-  Column* col = extract_uniques(s);
-  DataTable* dt = new DataTable({col}, {s.colname});
-  return py::oobj::from_new_reference(py::Frame::from_datatable(dt));
+  ccolvec cc = columns_from_args(args);
+  return _union(std::move(cc));
 });
 
 
+
+//------------------------------------------------------------------------------
+// intersect()
+//------------------------------------------------------------------------------
+
+template <bool TWO>
+static py::oobj _intersect(ccolvec&& cc) {
+  size_t K = cc.cols.size();
+  sort_result sorted = sort_columns(std::move(cc));
+  size_t ngrps = sorted.gb.ngroups();
+  const int32_t* goffsets = sorted.gb.offsets_r();
+  const int32_t* indices = sorted.ri.indices32();
+  arr32_t arr(ngrps);
+  int32_t* out_indices = arr.data();
+  size_t j = 0;
+
+  if (TWO) {
+    // When intersecting only 2 vectors, it is enough to check whether the
+    // first element in a group is < n1 (belongs to column 0), and the last is
+    // >= n1 (belongs to column 1).
+    xassert(K == 2);
+    int32_t n1 = static_cast<int32_t>(sorted.sizes[0]);
+    for (size_t i = 0; i < ngrps; ++i) {
+      int32_t x = indices[goffsets[i]];
+      if (x < n1) {
+        int32_t y = indices[goffsets[i + 1] - 1];
+        if (y >= n1) {
+          out_indices[j++] = x;
+        }
+      }
+    }
+  } else {
+    // When intersecting 3+ vectors, we scan the rowindex by group, and
+    // for each element in a group we check whether it belongs to each
+    // of the K input vectors.
+    xassert(K > 2);
+    int32_t iK = static_cast<int32_t>(K);
+    int32_t off0, off1 = 0;
+    for (size_t i = 1; i <= ngrps; ++i) {
+      off0 = off1;
+      off1 = goffsets[i];
+      int32_t ii = off0;
+      if (off0 + iK > off1) continue;
+      for (size_t k = 0; k < K; ++k) {
+        int32_t nk = static_cast<int32_t>(sorted.sizes[k]);
+        if (indices[ii] >= nk) goto cont_outer_loop;
+        while (ii < off1 && indices[ii] < nk) ++ii;
+        if (ii == off1) {
+          if (k == K - 1) {
+            out_indices[j++] = indices[off0];
+          }
+          break;
+        }
+      }
+      cont_outer_loop:;
+    }
+  }
+  arr.resize(j);
+  return make_pyframe(sorted, std::move(arr));
+}
+
+
+static py::PKArgs fn_intersect(
+    0, 0, 0,
+    true, false,
+    {},
+    "intersect",
+R"(intersect(*frames)
+--
+
+Find the intersection of sets of values in all `frames`.
+
+Each frame should have only a single column (however, empty frames are allowed
+too). The values in each frame will be treated as a set, and this function will
+perform the Intersection operation on these sets. The result will be returned
+as a single-column Frame. Input `frames` are allowed to have different stypes,
+in which case they will be upcasted to the smallest common stype, similar to the
+functionality of ``rbind()``.
+
+The intersection operation returns those values that are present in each of
+the provided ``frames``.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  ccolvec cc = columns_from_args(args);
+  if (cc.cols.size() <= 1) {
+    return _union(std::move(cc));
+  }
+  if (cc.cols.size() == 2) {
+    return _intersect<true>(std::move(cc));
+  } else {
+    return _intersect<false>(std::move(cc));
+  }
+});
 
 
 
@@ -206,4 +315,5 @@ This operation is equivalent to ``dt.unique(dt.rbind(*frames))``.
 void DatatableModule::init_methods_sets() {
   ADDFN(dt::set::fn_unique);
   ADDFN(dt::set::fn_union);
+  ADDFN(dt::set::fn_intersect);
 }
