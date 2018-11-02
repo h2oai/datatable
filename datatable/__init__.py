@@ -32,7 +32,7 @@ __all__ = ("__version__", "__git_revision__",
            "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64",
-           "cbind", "rbind", "unique", "union", "intersect",
+           "cbind", "rbind", "unique", "union", "intersect", "setdiff",
            "split_into_nhot")
 
 bool8 = stype.bool8
@@ -49,5 +49,6 @@ DataTable = Frame
 unique = _core.unique
 union = _core.union
 intersect = _core.intersect
+setdiff = _core.setdiff
 
 Frame.__module__ = "datatable"

@@ -308,6 +308,65 @@ the provided ``frames``.
 
 
 
+//------------------------------------------------------------------------------
+// setdiff()
+//------------------------------------------------------------------------------
+
+static py::oobj _setdiff(ccolvec&& cc) {
+  xassert(cc.cols.size() >= 2);
+  sort_result sorted = sort_columns(std::move(cc));
+  size_t ngrps = sorted.gb.ngroups();
+  const int32_t* goffsets = sorted.gb.offsets_r();
+  const int32_t* indices = sorted.ri.indices32();
+  arr32_t arr(ngrps);
+  int32_t* out_indices = arr.data();
+  size_t j = 0;
+
+  int32_t n1 = static_cast<int32_t>(sorted.sizes[0]);
+  for (size_t i = 0; i < ngrps; ++i) {
+    int32_t x = indices[goffsets[i]];
+    int32_t y = indices[goffsets[i + 1] - 1];
+    if (x < n1 && y < n1) {
+      out_indices[j++] = x;
+    }
+  }
+  arr.resize(j);
+  return make_pyframe(sorted, std::move(arr));
+}
+
+
+static py::PKArgs fn_setdiff(
+    0, 0, 0,
+    true, false,
+    {},
+    "setdiff",
+R"(setdiff(frame0, *frames)
+--
+
+Find the set-difference between `frame0` and the other `frames`.
+
+Each frame should have only a single column (however, empty frames are allowed
+too). The values in each frame will be treated as a set, and this function will
+compute the set difference between the first frame and the union of the other
+frames. The result will be returned as a single-column Frame. Input frames
+are allowed to have different stypes, in which case they will be upcasted to
+the smallest common stype, similar to the functionality of ``rbind()``.
+
+The "set difference" operation returns those values that are present in the
+first frame ``frame0``, but not present in any of the ``frames``.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  ccolvec cc = columns_from_args(args);
+  if (cc.cols.size() <= 1) {
+    return _union(std::move(cc));
+  }
+  return _setdiff(std::move(cc));
+});
+
+
+
+
 } // namespace set
 } // namespace dt
 
@@ -316,4 +375,5 @@ void DatatableModule::init_methods_sets() {
   ADDFN(dt::set::fn_unique);
   ADDFN(dt::set::fn_union);
   ADDFN(dt::set::fn_intersect);
+  ADDFN(dt::set::fn_setdiff);
 }
