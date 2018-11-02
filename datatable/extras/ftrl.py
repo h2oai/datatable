@@ -8,8 +8,8 @@ import datatable as dt
 from datatable.lib import core
 
 
-def ftrl(dt_train, dt_test, a=0.01, b=1.0, l1=0.0, l2=1.0, 
-         d=10**7, n_epochs=1, inter=False, hash_type=2):
+def ftrl(dt_train, dt_test, a=0.005, b=1.0, l1=0.0, l2=1.0, 
+         d=2**24, n_epochs=1, inter=False, hash_type=2):
     """
     Implementation of Follow the Regularized Leader (FTRL) algorithm.
     
