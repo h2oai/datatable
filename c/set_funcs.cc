@@ -50,11 +50,13 @@ struct sort_result {
 // helper functions
 //------------------------------------------------------------------------------
 
-static py::oobj make_pyframe(sort_result& sorted, arr32_t&& arr) {
-  RowIndex out_ri = RowIndex::from_array32(std::move(arr), /* sorted= */ true);
-  Column* out_col = sorted.col->shallowcopy(out_ri);
+static py::oobj make_pyframe(
+    sort_result& sr, arr32_t&& arr, bool arr_sorted = true
+) {
+  RowIndex out_ri = RowIndex::from_array32(std::move(arr), arr_sorted);
+  Column* out_col = sr.col->shallowcopy(out_ri);
   out_col->reify();
-  DataTable* dt = new DataTable({out_col}, {sorted.colname});
+  DataTable* dt = new DataTable({out_col}, {sr.colname});
   return py::oobj::from_new_reference(py::Frame::from_datatable(dt));
 }
 
@@ -366,6 +368,98 @@ first frame ``frame0``, but not present in any of the ``frames``.
 
 
 
+//------------------------------------------------------------------------------
+// symdiff()
+//------------------------------------------------------------------------------
+
+template <bool TWO>
+static py::oobj _symdiff(ccolvec&& cc) {
+  size_t K = cc.cols.size();
+  sort_result sr = sort_columns(std::move(cc));
+  size_t ngrps = sr.gb.ngroups();
+  const int32_t* goffsets = sr.gb.offsets_r();
+  const int32_t* indices = sr.ri.indices32();
+  arr32_t arr(ngrps);
+  int32_t* out_indices = arr.data();
+  size_t j = 0;
+
+  if (TWO) {
+    // When sym-diffing only 2 vectors, it is enough to check whether the
+    // first element in a group belongs to the same column as the last element
+    // in a group
+    xassert(K == 2);
+    int32_t n1 = static_cast<int32_t>(sr.sizes[0]);
+    for (size_t i = 0; i < ngrps; ++i) {
+      int32_t x = indices[goffsets[i]];
+      int32_t y = indices[goffsets[i + 1] - 1];
+      if ((x < n1) == (y < n1)) {
+        out_indices[j++] = x;
+      }
+    }
+  } else {
+    // When sym-diffing 3+ vectors, we scan the rowindex by group, and
+    // for each group count the number of columns that have elements in
+    // that group.
+    xassert(K > 2);
+    int32_t off0, off1 = 0;
+    for (size_t i = 1; i <= ngrps; ++i) {
+      off0 = off1;
+      off1 = goffsets[i];
+      int32_t ii = off0;
+      size_t kk = 0;  // number of columns whose elements are in this group
+      for (size_t k = 0; k < K; ++k) {
+        int32_t nk = static_cast<int32_t>(sr.sizes[k]);
+        if (indices[ii] >= nk) continue;
+        kk++;
+        while (ii < off1 && indices[ii] < nk) ++ii;
+        if (ii == off1) break;
+      }
+      if (kk & 1) {
+        out_indices[j++] = indices[off0];
+      }
+    }
+  }
+  arr.resize(j);
+  // symdiff() is the only method that can produce potentially unsorted `arr`.
+  return make_pyframe(sr, std::move(arr), false);
+}
+
+
+static py::PKArgs fn_symdiff(
+    0, 0, 0,
+    true, false,
+    {},
+    "symdiff",
+R"(symdiff(*frames)
+--
+
+Find the symmetric difference between the sets of values in all `frames`.
+
+Each frame should have only a single column (however, empty frames are allowed
+too). The values in each frame will be treated as a set, and this function will
+perform the Symmetric Difference operation on these sets. The result will be
+returned as a single-column Frame. Input `frames` are allowed to have different
+stypes, in which case they will be upcasted to the smallest common stype,
+similar to the functionality of ``rbind()``.
+
+The symmetric difference of two frames are those values that are present in
+either of the frames, but not in both. The symmetric difference of more than
+two frames are those values that are present in an odd number of frames.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  ccolvec cc = columns_from_args(args);
+  if (cc.cols.size() <= 1) {
+    return _union(std::move(cc));
+  }
+  if (cc.cols.size() == 2) {
+    return _symdiff<true>(std::move(cc));
+  } else {
+    return _symdiff<false>(std::move(cc));
+  }
+});
+
+
 
 } // namespace set
 } // namespace dt
@@ -376,4 +470,5 @@ void DatatableModule::init_methods_sets() {
   ADDFN(dt::set::fn_union);
   ADDFN(dt::set::fn_intersect);
   ADDFN(dt::set::fn_setdiff);
+  ADDFN(dt::set::fn_symdiff);
 }
