@@ -23,18 +23,18 @@
 PyObject* ftrl(PyObject*, PyObject* args) {
 
   double a, b, l1, l2;
-  unsigned int d, n_epochs, hash_type;
+  unsigned int d, n_epochs, hash_type, seed;
   bool inter;
   PyObject* arg1;
   PyObject* arg2;
 
-  if (!PyArg_ParseTuple(args, "OOddddIIpI:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
-                        &d, &n_epochs, &inter, &hash_type)) return nullptr;
+  if (!PyArg_ParseTuple(args, "OOddddIIpII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
+                        &d, &n_epochs, &inter, &hash_type, &seed)) return nullptr;
 
   DataTable* dt_train = py::obj(arg1).to_frame();
   DataTable* dt_test = py::obj(arg2).to_frame();
 
-  Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type);
+  Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
   ft.train(dt_train);
   DataTable* dt_target = ft.test(dt_test).release();
   py::Frame* frame_target = py::Frame::from_datatable(dt_target);
@@ -47,7 +47,8 @@ PyObject* ftrl(PyObject*, PyObject* args) {
 *  Setting up FTRL parameters and initializing weights.
 */
 Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
-           size_t d_in, size_t nepochs_in, bool inter_in, size_t hash_type_in) :
+           size_t d_in, size_t nepochs_in, bool inter_in, size_t hash_type_in,
+           unsigned int seed_in) :
   a(a_in),
   b(b_in),
   l1(l1_in),
@@ -55,7 +56,8 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
   d(d_in),
   n_epochs(nepochs_in),
   inter(inter_in),
-  hash_type(hash_type_in)
+  hash_type(hash_type_in),
+  seed(seed_in)
 {
   n = DoublePtr(new double[d]);
   z = DoublePtr(new double[d]);
@@ -66,6 +68,7 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
 //  std::memset(z.get(), 0, d * sizeof(double));
 
   // Initialize weights with random numbers from [0; 1]
+  srand(seed);
   for (size_t i = 0; i < d; ++i){
     z[i] = static_cast<double>(rand()) / RAND_MAX;
   }
@@ -367,7 +370,7 @@ void Ftrl::hash_murmur(SizetPtr& x, const DataTable* dt, int64_t row_id) {
       case LType::REAL:    {
                              auto c_real = static_cast<RealColumn<double>*>(c);
                              auto d_real = c_real->elements_r();
-                             index = static_cast<size_t>(d_real[row_id]);
+                             index = hash_double(d_real[row_id]);
                              break;
                            }
       case LType::STRING:  {
@@ -425,32 +428,38 @@ double Ftrl::signum(double x) {
 }
 
 
+/*
+*  Hash `double` to `size_t` based on the bit representation.
+*/
+inline __attribute__((always_inline)) size_t hash_double(double x) {
+  size_t* h = reinterpret_cast<size_t*>(&x);
+  return *h;
+}
+
+
 //-----------------------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 
 
-#define FORCE_INLINE inline __attribute__((always_inline))
-
-inline uint64_t rotl64 ( uint64_t x, int8_t r ) {
+inline uint64_t ROTL64 ( uint64_t x, int8_t r ) {
   return (x << r) | (x >> (64 - r));
 }
 
-#define ROTL64(x,y) rotl64(x,y)
 #define BIG_CONSTANT(x) (x##LLU)
 
 //-----------------------------------------------------------------------------
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-FORCE_INLINE uint64_t getblock64 ( const uint64_t * p, int i ) {
+inline __attribute__((always_inline)) uint64_t getblock64 ( const uint64_t * p, int i ) {
   return p[i];
 }
 
 //-----------------------------------------------------------------------------
 // Finalization mix - force all bits of a hash block to avalanche
 
-FORCE_INLINE uint64_t fmix64 ( uint64_t k ) {
+inline __attribute__((always_inline)) uint64_t fmix64 ( uint64_t k ) {
   k ^= k >> 33;
   k *= BIG_CONSTANT(0xff51afd7ed558ccd);
   k ^= k >> 33;

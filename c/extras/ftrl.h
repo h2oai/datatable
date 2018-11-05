@@ -19,7 +19,8 @@ typedef std::unique_ptr<size_t[]> SizetPtr;
 
 class Ftrl {
   public:
-    Ftrl(double, double, double, double, size_t, size_t, bool, size_t);
+    Ftrl(double, double, double, double, size_t, size_t, bool, size_t,
+         unsigned int);
     void train(const DataTable*);
     DataTablePtr test(const DataTable*);
     double predict(const SizetPtr&, size_t);
@@ -43,13 +44,16 @@ class Ftrl {
     size_t d;
     size_t n_epochs;
     bool inter;
-    size_t: 56;
+    int64_t : 56;
     size_t hash_type;
+    unsigned int seed;
+    int64_t : 32;
     DoublePtr n;
     DoublePtr z;
     DoublePtr w;
 };
 
+size_t hash_double(double);
 void MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed, void * out );
 
 DECLARE_FUNCTION(
