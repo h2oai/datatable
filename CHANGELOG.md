@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     frame will contain the sheet name and cell range from where the data was
     extracted).
 - HTML rendering of Frames inside a Jupyter notebook.
+- set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
