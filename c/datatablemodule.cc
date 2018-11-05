@@ -201,6 +201,7 @@ void DatatableModule::init_methods() {
   add(METHODv(aggregate));
   init_methods_str();
   init_methods_options();
+  init_methods_sets();
 }
 
 

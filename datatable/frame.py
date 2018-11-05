@@ -515,6 +515,12 @@ class Frame(core.Frame):
         return self._dt.window(0, self.nrows, 0, self.ncols).data
 
 
+    # Preferred names
+    to_list = topython
+    to_pandas = topandas
+    to_numpy = tonumpy
+
+
     def scalar(self):
         """
         For a 1x1 Frame return its content as a python object.
