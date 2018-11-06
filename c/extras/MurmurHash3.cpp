@@ -6,7 +6,6 @@
 // algorithms are optimized for their respective platforms. You can still
 // compile and run any of them on any platform, but your performance with the
 // non-native version will be less than optimal.
-
 #include "extras/MurmurHash3.h"
 
 //-----------------------------------------------------------------------------
