@@ -39,14 +39,14 @@ class Frame(core.Frame):
     """
 
     @property
-    def key(self):
+    def key1(self):
         """Tuple of column names that comprise the Frame's key. If the Frame
         is not keyed, this will return an empty tuple."""
         return self.names[:self._dt.nkeys]
 
 
-    @key.setter
-    def key(self, colnames):
+    @key1.setter
+    def key1(self, colnames):
         if colnames is None:
             self._dt.nkeys = 0
             return

@@ -98,7 +98,7 @@ def test_jay_simple(tempfile):
     dt0.save(tempfile, format="jay")
     assert os.path.isfile(tempfile)
     with open(tempfile, "rb") as inp:
-        assert inp.read(8) == b"JAY1\0\0\0\0"
+        assert inp.read(8) == b"JAY1\x00\x00\x00\x00"
     dt1 = dt.open(tempfile)
     assert_equals(dt0, dt1)
 
@@ -190,7 +190,7 @@ def test_jay_all_types(tempfile):
 def test_jay_keys(tempfile):
     d0 = dt.Frame([["ab", "cd", "eee", "coo", "aop"],
                    [1, 2, 3, 4, 5]], names=("x", "y"))
-    d0.key = "x"
+    d0.key1 = "x"
     assert len(d0.key) == 1
     assert d0.topython() == [["ab", "aop", "cd", "coo", "eee"],
                              [1, 5, 2, 4, 3]]

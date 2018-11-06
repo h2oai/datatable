@@ -84,7 +84,15 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   gs.add<&Frame::get_ltypes>("ltypes",
     "The tuple of each column's ltypes (\"logical types\")\n");
 
-  gs.add<&Frame::get_key>("key");
+  gs.add<&Frame::get_key, &Frame::set_key>("key",
+    "Tuple of column names that serve as a primary key for this Frame.\n"
+    "\n"
+    "If the Frame is not keyed, this will return an empty tuple.\n"
+    "\n"
+    "Assigning to this property will make the Frame keyed by the specified\n"
+    "column(s). The key columns will be moved to the front, and the Frame\n"
+    "will be sorted. The values in the key columns must be unique.\n");
+
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
 
@@ -127,7 +135,7 @@ void Frame::m__dealloc__() {
   dt = nullptr;  // `dt` is already managed by `core_dt`
 }
 
-void Frame::m__get_buffer__(Py_buffer* , int ) const {
+void Frame::m__get_buffer__(Py_buffer*, int) const {
 }
 
 void Frame::m__release_buffer__(Py_buffer*) const {
@@ -212,9 +220,45 @@ oobj Frame::get_ltypes() const {
 
 oobj Frame::get_key() const {
   py::otuple key(dt->nkeys);
-  // Fill in the keys...
+  py::otuple names = get_names().to_pytuple();
+  for (size_t i = 0; i < dt->nkeys; ++i) {
+    key.set(i, names[i]);
+  }
   return std::move(key);
 }
+
+void Frame::set_key(obj val) {
+  if (val.is_none()) {
+    dt->nkeys = 0;
+    return;
+  }
+  std::vector<size_t> col_indices;
+  if (val.is_string()) {
+    int64_t index = dt->colindex(val);
+    if (index == -1) {
+      throw _name_not_found_error(val.to_string());
+    }
+    col_indices.push_back(static_cast<size_t>(index));
+  }
+  else if (val.is_list_or_tuple()) {
+    py::olist vallist = val.to_pylist();
+    for (size_t i = 0; i < vallist.size(); ++i) {
+      py::obj item = vallist[i];
+      if (vallist[i].is_string()) {
+        int64_t index = dt->colindex(vallist[i]);
+        if (index == -1) {
+          throw _name_not_found_error(vallist[i].to_string());
+        }
+        col_indices.push_back(static_cast<size_t>(index));
+      } else {
+        throw TypeError() << "Key should be a list/tuple of column names, "
+            "instead element " << i << " was a " << elem.typeobj();
+      }
+    }
+  }
+
+}
+
 
 oobj Frame::get_internal() const {
   return oobj(core_dt);
