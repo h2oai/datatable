@@ -336,7 +336,7 @@ class BaseExpr:
         within the ``inode``s main loop will return the "final" value of the
         expression. This is a combination of :meth:`isna` and :meth:`notna`.
         """
-        key = str(self)
+        key = self.safe_name()
         var = inode.get_keyvar(key)
         return var or self._value(key, inode)
 
@@ -385,3 +385,6 @@ class BaseExpr:
                                  .format(type=self.ctype, var=res, isna=isna,
                                          value=self.notna(inode)))
             return res
+
+    def safe_name(self):
+        return str(self)

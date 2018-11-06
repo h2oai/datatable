@@ -42,7 +42,7 @@ void DataTable::save_jay(const std::string& path,
   flatbuffers::FlatBufferBuilder fbb(1024);
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
-  for (size_t i = 0; i < static_cast<size_t>(ncols); ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     Column* col = columns[i];
     if (col->stype() == SType::OBJ) {
       Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
@@ -54,7 +54,7 @@ void DataTable::save_jay(const std::string& path,
   xassert((wb->size() & 7) == 0);
 
   auto frame = jay::CreateFrameDirect(fbb,
-                  static_cast<size_t>(nrows),
+                  nrows,
                   msg_columns.size(),
                   static_cast<int>(nkeys),
                   &msg_columns);

@@ -181,7 +181,7 @@ inline static VT op_div(LT x, RT y) {
   VT vx = static_cast<VT>(x);
   VT vy = static_cast<VT>(y);
   VT res = vx / vy;
-  if (vx < 0 != vy < 0 && vx != res * vy) {
+  if ((vx < 0) != (vy < 0) && vx != res * vy) {
     --res;
   }
   return res;
@@ -192,7 +192,7 @@ struct Mod {
   inline static VT impl(LT x, RT y)  {
     if (IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0) return GETNA<VT>();
     VT res = static_cast<VT>(x) % static_cast<VT>(y);
-    if (x < 0 != y < 0 && res != 0) {
+    if ((x < 0) != (y < 0) && res != 0) {
       res += static_cast<VT>(y);
     }
     return res;
@@ -334,8 +334,7 @@ static mapperfn resolve2(OpMode mode) {
     case N_to_N:   return map_n_to_n<LT, RT, VT, OP>;
     case N_to_One: return map_n_to_1<LT, RT, VT, OP>;
     case One_to_N: return map_1_to_n<LT, RT, VT, OP>;
-    case Error:    return nullptr;
-
+    default:       return nullptr;
   }
 }
 
@@ -352,7 +351,7 @@ static mapperfn resolve2str(OpMode mode) {
 
 
 template<typename LT, typename RT, typename VT>
-static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve1(int opcode, SType stype, void** params, size_t nrows, OpMode mode) {
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
     stype = SType::BOOL;
@@ -386,7 +385,7 @@ static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, 
 
 
 template<typename T0, typename T1>
-static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve1str(int opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::One_to_N) {
     mode = OpMode::N_to_One;
     std::swap(params[0], params[1]);
@@ -401,7 +400,7 @@ static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mod
 }
 
 
-static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, int64_t nrows, OpMode mode) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
@@ -514,11 +513,12 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
 {
   lhs->reify();
   rhs->reify();
-  int64_t lhs_nrows = lhs->nrows;
-  int64_t rhs_nrows = rhs->nrows;
+  size_t lhs_nrows = lhs->nrows;
+  size_t rhs_nrows = rhs->nrows;
   if (lhs_nrows == 0 || rhs_nrows == 0) {
     lhs_nrows = rhs_nrows = 0;
   }
+  size_t nrows = std::max(lhs_nrows, rhs_nrows);
   SType lhs_type = lhs->stype();
   SType rhs_type = rhs->stype();
   void* params[3];
@@ -527,7 +527,7 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   params[2] = nullptr;
 
   mapperfn mapfn = nullptr;
-  mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows,
+  mapfn = resolve0(lhs_type, rhs_type, opcode, params, nrows,
                    lhs_nrows == rhs_nrows? OpMode::N_to_N :
                    rhs_nrows == 1? OpMode::N_to_One :
                    lhs_nrows == 1? OpMode::One_to_N : OpMode::Error);
@@ -537,9 +537,7 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
       << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
       << ", nrows=" << rhs->nrows << ")";
   }
-
-  int64_t nrows = std::max(lhs_nrows, rhs_nrows);
-  (*mapfn)(0, nrows, params);
+  (*mapfn)(0, static_cast<int64_t>(nrows), params);
 
   return static_cast<Column*>(params[2]);
 }

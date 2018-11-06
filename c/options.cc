@@ -5,9 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#define dt_OPTIONS_cc
 #include "options.h"
+#include "datatablemodule.h"
+#include "python/ext_type.h"
+#include "python/int.h"
 #include "python/obj.h"
+#include "python/string.h"
 #include "utils/parallel.h"
 
 
@@ -25,6 +28,7 @@ int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
 int64_t frame_names_auto_index = 0;
 std::string frame_names_auto_prefix = "C";
+bool display_interactive_hint = true;
 
 
 int32_t normalize_nthreads(int32_t nth) {
@@ -34,7 +38,6 @@ int32_t normalize_nthreads(int32_t nth) {
   // know the "real" maximum number of threads.
   static const int max_threads = omp_get_max_threads();
 
-  if (nth > max_threads) nth = max_threads;
   if (nth <= 0) nth += max_threads;
   if (nth <= 0) nth = 1;
   return nth;
@@ -96,13 +99,13 @@ void set_fread_anonymize(int8_t v) {
 
 
 
-PyObject* set_option(PyObject*, PyObject* args) {
-  PyObject* arg1;
-  PyObject* arg2;
-  if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
-  py::obj arg_name(arg1);
-  py::obj value(arg2);
-  std::string name = arg_name.to_string();
+static py::PKArgs args_set_option(
+    2, 0, 0, false, false,
+    {"name", "value"}, "set_option", "",
+
+[](const py::PKArgs& args) -> py::oobj {
+  std::string name = args[0].to_string();
+  py::obj value = args[1];
 
   if (name == "nthreads") {
     set_nthreads(value.to_int32_strict());
@@ -137,11 +140,73 @@ PyObject* set_option(PyObject*, PyObject* args) {
   } else if (name == "frame.names_auto_prefix") {
     frame_names_auto_prefix = value.to_string();
 
+  } else if (name == "display.interactive_hint") {
+    display_interactive_hint = value.to_bool_strict();
+
+  } else {
+    // throw ValueError() << "Unknown option `" << name << "`";
+  }
+  return py::None();
+});
+
+
+
+static py::PKArgs args_get_option(
+    1, 0, 0, false, false,
+    {"name"}, "get_option", "",
+
+[](const py::PKArgs& args) -> py::oobj {
+  std::string name = args[0].to_string();
+
+  if (name == "nthreads") {
+    return py::oint(nthreads);
+
+  } else if (name == "sort.insert_method_threshold") {
+    return py::oint(sort_insert_method_threshold);
+
+  } else if (name == "sort.thread_multiplier") {
+    return py::oint(sort_thread_multiplier);
+
+  } else if (name == "sort.max_chunk_length") {
+    return py::oint(sort_max_chunk_length);
+
+  } else if (name == "sort.max_radix_bits") {
+    return py::oint(sort_max_radix_bits);
+
+  } else if (name == "sort.over_radix_bits") {
+    return py::oint(sort_over_radix_bits);
+
+  } else if (name == "sort.nthreads") {
+    return py::oint(sort_nthreads);
+
+  } else if (name == "core_logger") {
+    return logger? py::oobj(logger) : py::None();
+
+  } else if (name == "fread.anonymize") {
+    return py::oint(fread_anonymize);
+
+  } else if (name == "frame.names_auto_index") {
+    return py::oint(frame_names_auto_index);
+
+  } else if (name == "frame.names_auto_prefix") {
+    return py::ostring(frame_names_auto_prefix);
+
+  } else if (name == "display.interactive_hint") {
+    return py::oint(display_interactive_hint);
+
   } else {
     throw ValueError() << "Unknown option `" << name << "`";
   }
-  return none();
-}
+});
+
 
 
 }; // namespace config
+
+
+void DatatableModule::init_methods_options() {
+  ADDFN(config::args_get_option);
+  ADDFN(config::args_set_option);
+}
+
+

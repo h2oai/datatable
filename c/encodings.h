@@ -16,9 +16,8 @@ int check_escaped_string(const uint8_t* src, size_t len, uint8_t escape_char);
 
 int decode_escaped_csv_string(const uint8_t* src, int len, uint8_t* dest, uint8_t quote);
 
-int decode_sbcs(const unsigned char *__restrict__ src, int len,
-                unsigned char *__restrict__ dest, uint32_t *map);
+int decode_sbcs(const uint8_t* src, int len, uint8_t* dest, uint32_t *map);
 
-int64_t utf32_to_utf8(uint32_t* buf, int64_t maxchars, char* ch);
+int64_t utf32_to_utf8(uint32_t* buf, size_t maxchars, char* ch);
 
 #endif

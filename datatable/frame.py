@@ -288,19 +288,25 @@ class Frame(core.Frame):
 
     def sort(self, *cols):
         """
-        Sort datatable by the specified column.
+        Sort datatable by the specified column(s).
 
         Parameters
         ----------
-        cols: str or int
-            Name or index of the columns to sort by.
+        cols: List[str | int]
+            Names or indices of the columns to sort by. If no columns are given,
+            the Frame will be sorted on all columns.
 
         Returns
         -------
         New datatable sorted by the provided column(s). The target datatable
         remains unmodified.
         """
-        indexes = [self.colindex(col) for col in cols]
+        if not cols:
+            indexes = list(range(self.ncols))
+        elif len(cols) == 1 and isinstance(cols[0], list):
+            indexes = [self.colindex(col) for col in cols[0]]
+        else:
+            indexes = [self.colindex(col) for col in cols]
         ri = self._dt.sort(*indexes)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
         return cs.to_frame(self.names)
@@ -509,6 +515,12 @@ class Frame(core.Frame):
         return self._dt.window(0, self.nrows, 0, self.ncols).data
 
 
+    # Preferred names
+    to_list = topython
+    to_pandas = topandas
+    to_numpy = tonumpy
+
+
     def scalar(self):
         """
         For a 1x1 Frame return its content as a python object.
@@ -562,41 +574,34 @@ core.install_buffer_hooks(Frame())
 
 
 options.register_option(
-    "nthreads", xtype=int, default=0, core=True,
-    doc="The number of OMP threads to be used by datatable. The value of 0 "
-        "(default) allows datatable to use the maximum number of threads. "
-        "Values less than zero allow to use that fewer threads than the "
-        "maximum. Finally, nthreads=1 indicates single-threaded mode.")
-
-options.register_option(
-    "core_logger", xtype=object, default=None, core=True,
+    "core_logger", xtype=callable, default=None,
     doc="If you set this option to a Logger object, then every call to any "
         "core function will be recorded via this object.")
 
 options.register_option(
-    "sort.insert_method_threshold", xtype=int, default=64, core=True,
+    "sort.insert_method_threshold", xtype=int, default=64,
     doc="Largest n at which sorting will be performed using insert sort "
         "method. This setting also governs the recursive parts of the "
         "radix sort algorithm, when we need to sort smaller sub-parts of "
         "the input.")
 
 options.register_option(
-    "sort.thread_multiplier", xtype=int, default=2, core=True)
+    "sort.thread_multiplier", xtype=int, default=2)
 
 options.register_option(
-    "sort.max_chunk_length", xtype=int, default=1024, core=True)
+    "sort.max_chunk_length", xtype=int, default=1024)
 
 options.register_option(
-    "sort.max_radix_bits", xtype=int, default=12, core=True)
+    "sort.max_radix_bits", xtype=int, default=12)
 
 options.register_option(
-    "sort.over_radix_bits", xtype=int, default=8, core=True)
+    "sort.over_radix_bits", xtype=int, default=8)
 
 options.register_option(
-    "sort.nthreads", xtype=int, default=4, core=True)
+    "sort.nthreads", xtype=int, default=4)
 
 options.register_option(
-    "frame.names_auto_index", xtype=int, default=0, core=True,
+    "frame.names_auto_index", xtype=int, default=0,
     doc="When Frame needs to auto-name columns, they will be assigned "
         "names C0, C1, C2, ... by default. This option allows you to "
         "control the starting index in this sequence. For example, setting "
@@ -604,7 +609,7 @@ options.register_option(
         "named C1, C2, C3, ...")
 
 options.register_option(
-    "frame.names_auto_prefix", xtype=str, default="C", core=True,
+    "frame.names_auto_prefix", xtype=str, default="C",
     doc="When Frame needs to auto-name columns, they will be assigned "
         "names C0, C1, C2, ... by default. This option allows you to "
         "control the prefix used in this sequence. For example, setting "

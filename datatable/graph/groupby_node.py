@@ -39,6 +39,9 @@ class SimpleGroupbyNode:
 def make_groupby(grby, ee):
     if grby is None:
         return None
+    if isinstance(grby, by):
+        grby.resolve_columns(ee)
+        return grby
 
     # TODO: change to ee.make_columnset() when we can do multi-col sorts
     grbycol = process_column(grby, ee.dt)
@@ -47,3 +50,29 @@ def make_groupby(grby, ee):
                          "supported")
 
     return SimpleGroupbyNode(ee, grbycol)
+
+
+
+class by:
+    def __init__(self, *args):
+        self._cols = list(args)
+        self._engine = None
+
+    def resolve_columns(self, ee):
+        self._engine = ee
+        dt = self._engine.dt
+        for i, col in enumerate(self._cols):
+            self._cols[i] = process_column(col, dt)
+
+    def execute(self):
+        ee = self._engine
+        df = ee.dt.internal
+        rowindex, groupby = df.sort(*self._cols, True)
+        f.set_rowindex(rowindex)
+        ee.set_source_rowindex(rowindex)
+        ee.clear_final_rowindex()
+        if ee.rowindex:
+            ee.set_final_rowindex(rowindex, ee.rowindex)
+        ee.rowindex = rowindex
+        ee.groupby = groupby
+        ee.groupby_cols = list(self._cols)

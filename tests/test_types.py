@@ -8,10 +8,10 @@ import os
 import re
 
 import pytest
-import datatable
+import datatable as dt
 from datatable.utils.typechecks import TValueError
 
-expr_consts = datatable.expr.consts
+expr_consts = dt.expr.consts
 
 
 #-------------------------------------------------------------------------------
@@ -244,6 +244,32 @@ def test_stype_instantiate_bad():
         print(stype(1.5))
     with pytest.raises(TValueError):
         print(stype(True))
+
+
+
+@pytest.mark.parametrize("st", list(dt.stype))
+def test_stype_minmax(st):
+    from datatable import stype, ltype
+    if st in (stype.str32, stype.str64, stype.obj64):
+        assert st.min is None
+        assert st.max is None
+    else:
+        vtype = float if st.ltype == ltype.real else int
+        assert isinstance(st.min, vtype)
+        assert isinstance(st.max, vtype)
+        F = dt.Frame([st.min, st.max], stype=st)
+        assert F.stypes == (st,)
+        assert F[0, 0] == st.min
+        assert F[1, 0] == st.max
+        if vtype is int:
+            # Check that cannot store any larger value
+            G = dt.Frame([st.min - 1, st.max + 1], stype=st)
+            assert G.stypes == (st,)
+            assert G[0, 0] != st.min - 1
+            assert G[1, 0] != st.max + 1
+        if st == stype.float64:
+            import sys
+            assert st.max == sys.float_info.max
 
 
 

@@ -22,8 +22,10 @@ class Stats;
 class DataTable;
 class NameProvider;
 
-typedef std::unique_ptr<DataTable> DataTablePtr;
 typedef Column* (Column::*colmakerfn)(void) const;
+using colvec = std::vector<Column*>;
+using strvec = std::vector<std::string>;
+using dtptr  = std::unique_ptr<DataTable>;
 
 
 //==============================================================================
@@ -38,51 +40,52 @@ typedef Column* (Column::*colmakerfn)(void) const;
  *     Data dimensions: number of rows and columns in the datatable. We do not
  *     support more than 2 dimensions (as Numpy or TensorFlow do).
  *     The maximum number of rows is 2**63 - 1. The maximum number of columns
- *     is 2**31 - 1 (even though `ncols` is declared as `int64_t`).
+ *     is 2**31 - 1 (even though `ncols` is declared as `size_t`).
+ *
+ * nkeys
+ *     The number of columns that together constitute the primary key of this
+ *     data frame. The key columns are always located at the beginning of the
+ *     `column` list. The key values are unique, and the frame is sorted by
+ *     these values.
  *
  * rowindex
+ *     [DEPRECATED]
  *     If this field is not NULL, then the current datatable is a "view", that
  *     is, all columns should be accessed not directly but via this rowindex.
  *     When this field is set, it must be that `nrows == rowindex->length`.
  *
  * columns
- *     The array of columns within the datatable. This array contains `ncols+1`
- *     elements, and each column has the same number of rows: `nrows`. The
- *     "extra" column is always NULL: a sentinel.
- *     When `rowindex` is specified, then each column is a copy-by-reference
- *     of a column in some other datatable, and only indices given in the
- *     `rowindex` should be used to access values in each column.
+ *     The array of columns within the datatable. This array contains `ncols`
+ *     elements, and each column has the same number of rows: `nrows`.
  */
 class DataTable {
   public:
-    int64_t  nrows;
-    int64_t  ncols;
-    int64_t  nkeys;
-    RowIndex rowindex;
+    size_t   nrows;
+    size_t   ncols;
+    size_t   nkeys;
+    RowIndex rowindex;  // DEPRECATED (see #1188)
     Groupby  groupby;
-    Column** columns;
+    colvec   columns;
 
   private:
-    std::vector<std::string> names;
+    strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
-    DataTable(Column** cols, std::nullptr_t);
-    DataTable(Column** cols, const py::olist& namessrc);
-    DataTable(Column** cols, const std::vector<std::string>& namessrc);
-    DataTable(Column** cols, const DataTable* namessrc);
-    DataTable(std::vector<Column*>&& cols, std::nullptr_t);
-    DataTable(std::vector<Column*>&& cols, const py::olist&);
-    DataTable(std::vector<Column*>&& cols, const std::vector<std::string>&);
-    DataTable(std::vector<Column*>&& cols, const DataTable*);
+    DataTable();
+    DataTable(colvec&& cols);
+    DataTable(colvec&& cols, const py::olist&);
+    DataTable(colvec&& cols, const strvec&);
+    DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
-    DataTable* delete_columns(int*, int64_t);
-    void resize_rows(int64_t n);
+
+    DataTable* delete_columns(std::vector<size_t>&);
+    void resize_rows(size_t n);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(DataTable**, int**, int64_t, int64_t);
+    void rbind(std::vector<DataTable*>, std::vector<std::vector<size_t>>);
     DataTable* cbind(std::vector<DataTable*>);
     DataTable* copy() const;
     size_t memory_footprint();
@@ -96,7 +99,8 @@ class DataTable {
      * If `make_groups` is true, then in addition to sorting, the grouping
      * information will be computed and stored with the RowIndex.
      */
-    RowIndex sortby(const arr32_t& colindices, Groupby* out_grps) const;
+    RowIndex sortby(const std::vector<size_t>& colindices,
+                    Groupby* out_grps) const;
 
     const std::vector<std::string>& get_names() const;
     py::otuple get_pynames() const;
@@ -107,7 +111,7 @@ class DataTable {
     void set_names(const std::vector<std::string>& names_list);
     void replace_names(py::odict replacements);
 
-    void set_nkeys(int64_t nk);
+    void set_nkeys(size_t nk);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
@@ -123,7 +127,7 @@ class DataTable {
 
     void verify_integrity() const;
 
-    static DataTable* load(DataTable* schema, int64_t nrows,
+    static DataTable* load(DataTable* schema, size_t nrows,
                            const std::string& path, bool recode);
 
     void save_jay(const std::string& path,
@@ -132,7 +136,6 @@ class DataTable {
     static DataTable* open_jay(const std::string& path);
 
   private:
-    DataTable(Column**);
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;

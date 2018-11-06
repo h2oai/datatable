@@ -7,8 +7,14 @@ of `datatable` is sponsored by H2O.ai.
 In the lists below each person is listed with their GitHub id in parentheses.
 
 ### Developers
-(with 100 commits or more, excluding merges)
 - Pasha Stetsenko (st-pasha)
+- Matt Dowle (mattdowle), the main author of R `data.table`, who
+  - built the library which paved path for this project,
+  - allowed to use the name "datatable",
+  - contributed the initial core fread functionality,
+  - implemented radix sort in R,
+  - provided general advice on the direction of project development, and
+  - supports the datatable community.
 
 
 ### Contributors
@@ -22,21 +28,14 @@ In the lists below each person is listed with their GitHub id in parentheses.
 
 
 ### Special thanks to
-- **Matt Dowle** (mattdowle), the main author of R `data.table`,
-  - for building the library which inspired this project,
-  - for allowing to use the name "datatable",
-  - for contributing the initial core fread functionality,
-  - for sharing his ideas on implementing radix sort,
-  - for general advice on the direction of project development, and
-  - for supporting the datatable community.
+
+- Jeff Fohl (jefffohl), for designing the datatable logo.
 
 - [Google Flatbuffers project](https://github.com/google/flatbuffers),
   distributed under the terms of Apache License v2.
 
 - Milo Yip (miloyip), for his [`itoa`/`ltoa` functions](https://github.com/miloyip/itoa-benchmark/blob/master/src/branchlut2.cpp),
   distributed under the terms of MIT license.
-
-- Jeff Fohl (jefffohl), for developing the datatable logo.
 
 
 ### Addendum

@@ -120,3 +120,17 @@ def test_join_update():
     assert d0.topython() == [[1, 2, 3, 2, 3, 1, 3, 2, 2, 1],
                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                              [b, a, 4, a, 4, b, 4, a, a, b]]
+
+
+def test_join_and_select_g_col():
+    # Check that selecting a g-column does not confuse it with an f-column.
+    # See issue #1352
+    F = dt.Frame(a=[0, 2, 3], b=[3, 4, 2])
+    G = dt.Frame(b=[2, 4], c=["foo", "bar"])
+    G.key = "b"
+    R = F[:, g.c, join(G)]
+    R.internal.check()
+    assert R.shape == (3, 1)
+    assert R.stypes == (stype.str32,)
+    # assert R.names == ("c",)   # not working yet
+    assert R.topython() == [[None, "bar", "foo"]]

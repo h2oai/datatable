@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     frame will contain the sheet name and cell range from where the data was
     extracted).
 - HTML rendering of Frames inside a Jupyter notebook.
+- set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
@@ -71,6 +72,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   In the unlikely scenario when a single element needs to be returned as
   a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
 - The performance of explicit element selection improved by a factor of 200x.
+- Building no longer requires an LLVM distribution.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
@@ -99,6 +101,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - crash when saving a frame with many boolean columns into CSV (#1278).
 - incorrect .stypes/.ltypes property after calling cbind().
 - calculation of min/max values in internal rowindex upon row resizing.
+- frame.sort() with no arguments no longer produces an error.
+- f-expressions now do not crash when reused with a different Frame.
+- g-columns can be properly selected in a join (#1352).
+- writing to disk of columns > 2GB in size (#1387).
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

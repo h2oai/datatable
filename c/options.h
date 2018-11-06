@@ -24,6 +24,7 @@ extern int32_t sort_nthreads;
 extern bool fread_anonymize;
 extern int64_t frame_names_auto_index;
 extern std::string frame_names_auto_prefix;
+extern bool display_interactive_hint;
 
 int32_t normalize_nthreads(int32_t nth);
 void set_nthreads(int32_t n);
@@ -37,14 +38,6 @@ void set_sort_nthreads(int32_t n);
 void set_fread_anonymize(int8_t v);
 
 
-DECLARE_FUNCTION(
-  set_option,
-  "set_option(name, value)\n\n"
-  "Set core option `name` to the given `value`. The `name` must be a string,\n"
-  "and it must be one of the recognizable option names. If not, an exception\n"
-  "will be raised. The allowed `value`s depend on the option being set.",
-  dt_OPTIONS_cc)
-
-};
+}
 
 #endif

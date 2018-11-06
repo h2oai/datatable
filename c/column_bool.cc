@@ -92,9 +92,9 @@ PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }
 typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template <typename T>
-inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
+inline static void cast_helper(size_t nrows, const int8_t* src, T* trg) {
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     int8_t x = src[i];
     trg[i] = ISNA<int8_t>(x)? GETNA<T>() : static_cast<T>(x);
   }
@@ -106,14 +106,14 @@ inline static MemoryRange cast_str_helper(
 {
   const int8_t* src_data = src->elements_r();
   T* toffsets = target->offsets_w();
-  size_t exp_size = static_cast<size_t>(src->nrows);
+  size_t exp_size = src->nrows;
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   T offset = 0;
   toffsets[-1] = 0;
-  for (int64_t i = 0; i < src->nrows; ++i) {
+  for (size_t i = 0; i < src->nrows; ++i) {
     int8_t x = src_data[i];
     if (ISNA<int8_t>(x)) {
       toffsets[i] = offset | GETNA<T>();
@@ -165,7 +165,7 @@ void BoolColumn::cast_into(RealColumn<double>* target) const {
 void BoolColumn::cast_into(PyObjectColumn* target) const {
   const int8_t* src_data = this->elements_r();
   PyObject**    trg_data = target->elements_w();
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     trg_data[i] = bool_to_py(src_data[i]);
   }
 }
@@ -190,9 +190,9 @@ void BoolColumn::verify_integrity(const std::string& name) const {
   FwColumn<int8_t>::verify_integrity(name);
 
   // Check that all elements in column are either 0, 1, or NA_I1
-  int64_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = data_nrows();
   const int8_t* vals = elements_r();
-  for (int64_t i = 0; i < mbuf_nrows; ++i) {
+  for (size_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
       throw AssertionError()

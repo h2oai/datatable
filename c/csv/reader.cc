@@ -427,11 +427,9 @@ const char* GenericReader::repr_binary(
   char* ptr = buf + pos;
   char* out = ptr;
   char* end = ptr + limit;
-  char* saved = ptr;
   bool stopped_at_newline = false;
   while (out < end) {
     stopped_at_newline = true;
-    saved = out;
     if (ch == endch) break;
     uint8_t c = static_cast<uint8_t>(*ch++);
 
@@ -708,9 +706,7 @@ std::unique_ptr<DataTable> GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
-    Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
-    cols[0] = nullptr;
-    return std::unique_ptr<DataTable>(new DataTable(cols, nullptr));
+    return std::unique_ptr<DataTable>(new DataTable());
   }
   return nullptr;
 }
@@ -790,21 +786,19 @@ void GenericReader::report_columns_to_python() {
 
 
 
-DataTablePtr GenericReader::makeDatatable() {
-  Column** ccols = nullptr;
+dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t ocols = columns.nColumnsInOutput();
-  ccols = dt::malloc<Column*>((ocols + 1) * sizeof(Column*));
-  ccols[ocols] = nullptr;
-  for (size_t i = 0, j = 0; i < ncols; ++i) {
+  std::vector<Column*> ccols;
+  ccols.reserve(ocols);
+  for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
     if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
-    ccols[j] = Column::new_mbuf_column(col.get_stype(), std::move(databuf),
-                                       std::move(strbuf));
-    j++;
+    ccols.push_back(Column::new_mbuf_column(col.get_stype(), std::move(databuf),
+                                       std::move(strbuf)));
   }
   py::olist names = freader.get_attr("_colnames").to_pylist();
-  return DataTablePtr(new DataTable(ccols, names));
+  return dtptr(new DataTable(std::move(ccols), names));
 }

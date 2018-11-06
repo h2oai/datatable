@@ -34,8 +34,8 @@ struct obj : public PyObject {
   // Coordinates of the window returned: `row0`..`row1` x `col0`..`col1`.
   // `row0` is the first row to include, `row1` is one after the last. The
   // number of rows in the window is thus `row1 - row0`. Similarly with cols.
-  int64_t row0, row1;
-  int64_t col0, col1;
+  size_t row0, row1;
+  size_t col0, col1;
 
   // List of types (LType) of each column returned. This list will have
   // `col1 - col0` elements.

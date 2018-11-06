@@ -61,6 +61,7 @@ typedef void (*gmapperfn)(const int32_t* groups, int32_t grp, void** params);
 Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);
 Column* reduceop(int opcode, Column* arg, const Groupby& groupby);
+Column* reduce_first(const Column* col, const Groupby& groupby);
 
 };
 

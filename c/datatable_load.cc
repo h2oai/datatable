@@ -23,12 +23,12 @@
  * nrows
  *     Number of rows in the stored Frame.
  */
-DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path,
+DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& path,
                            bool recode)
 {
-    int64_t ncols = colspec->nrows;
-    Column** columns = dt::amalloc<Column*>(ncols + 1);
-    columns[ncols] = nullptr;
+    size_t ncols = colspec->nrows;
+    std::vector<Column*> columns;
+    columns.reserve(ncols);
 
     if (colspec->ncols != 2 && colspec->ncols != 4) {
         throw ValueError() << "colspec table should have had 2 or 4 columns, "
@@ -53,7 +53,7 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     if (!(rootdir.empty() || rootdir.back() == '/'))
       rootdir += "/";
 
-    for (int64_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
         // Extract filename
         size_t fsta = static_cast<size_t>(offf[i - 1] & NONA);
         size_t fend = static_cast<size_t>(offf[i] & NONA);
@@ -76,8 +76,9 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
         }
 
         // Load the column
-        columns[i] = Column::open_mmap_column(stype, nrows, filename, recode);
+        Column* newcol = Column::open_mmap_column(stype, nrows, filename, recode);
+        columns.push_back(newcol);
     }
 
-    return new DataTable(columns);
+    return new DataTable(std::move(columns));
 }

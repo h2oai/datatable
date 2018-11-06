@@ -120,6 +120,20 @@ class stype(enum.Enum):
         """
         return _stype_2_struct[self]
 
+    @property
+    def min(self):
+        """
+        The smallest finite value that this stype can represent.
+        """
+        return _stype_extrema.get(self, (None, None))[0]
+
+    @property
+    def max(self):
+        """
+        The largest finite value that this stype can represent.
+        """
+        return _stype_extrema.get(self, (None, None))[1]
+
 
 
 #-------------------------------------------------------------------------------
@@ -229,6 +243,16 @@ _stype_2_ctype = {
     stype.str32: ctypes.c_int32,
     stype.str64: ctypes.c_int64,
     stype.obj64: ctypes.py_object,
+}
+
+_stype_extrema = {
+    stype.bool8: (0, 1),
+    stype.int8: (-127, 127),
+    stype.int16: (-32767, 32767),
+    stype.int32: (-2147483647, 2147483647),
+    stype.int64: (-9223372036854775807, 9223372036854775807),
+    stype.float32: (float.fromhex("-0x1.fffffep+127"), float.fromhex("0x1.fffffep+127")),
+    stype.float64: (float.fromhex("-0x1.fffffffffffffp+1023"), float.fromhex("0x1.fffffffffffffp+1023")),
 }
 
 _numpy_init_attempted = False

@@ -8,7 +8,7 @@ import datatable
 from .rows_node import AllRFNode, SortedRFNode, make_rowfilter
 from .cols_node import SliceCSNode, ArrayCSNode, make_columnset
 from .context import make_engine
-from .groupby_node import make_groupby
+from .groupby_node import make_groupby, by
 from .sort_node import make_sort
 from .join_node import join
 from .dtproxy import f, g
@@ -16,7 +16,7 @@ from datatable.expr import BaseExpr
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
-__all__ = ("make_datatable", "f", "g", "join",
+__all__ = ("make_datatable", "f", "g", "by", "join",
            "SliceCSNode")
 
 

@@ -1249,7 +1249,7 @@ void FreadObserver::type_bump_info(
   static const int BUF_SIZE = 1000;
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
-    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
+    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %lld",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);

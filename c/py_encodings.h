@@ -13,12 +13,9 @@
 
 int init_py_encodings(PyObject *module);
 
-int decode_iso8859(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest);
-int decode_win1252(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest);
-int decode_win1251(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest);
+int decode_iso8859(const uint8_t* src, int len, uint8_t* dest);
+int decode_win1252(const uint8_t* src, int len, uint8_t* dest);
+int decode_win1251(const uint8_t* src, int len, uint8_t* dest);
 
 
 #endif

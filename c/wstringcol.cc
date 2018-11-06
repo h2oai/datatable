@@ -33,8 +33,7 @@ fixed_height_string_col::fixed_height_string_col(size_t nrows)
 Column* fixed_height_string_col::to_column() && {
   strdata->finalize();
   offdata.set_element<uint32_t>(0, 0);
-  return new StringColumn<uint32_t>(static_cast<int64_t>(n),
-                                    std::move(offdata), strdata->get_mbuf());
+  return new StringColumn<uint32_t>(n, std::move(offdata), strdata->get_mbuf());
 }
 
 

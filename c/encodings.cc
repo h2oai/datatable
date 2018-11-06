@@ -39,8 +39,7 @@ extern const uint8_t hexdigits[256];  // defined in c/csv/freadLookups.h
  *     sequences.
  */
 int decode_sbcs(
-    const unsigned char *__restrict__ src, int len,
-    unsigned char *__restrict__ dest, uint32_t *map
+    const uint8_t* src, int len, uint8_t* dest, uint32_t *map
 ) {
   const unsigned char* end = src + len;
   unsigned char* d = dest;
@@ -174,7 +173,7 @@ int check_escaped_string(const uint8_t* src, size_t len, uint8_t ech)
  * responsibility of the user to ensure that `ch` has sufficient space to write
  * all the bytes (no more than `maxchars*4` bytes will be needed).
  */
-int64_t utf32_to_utf8(uint32_t* buf, int64_t maxchars, char* ch)
+int64_t utf32_to_utf8(uint32_t* buf, size_t maxchars, char* ch)
 {
   char* out0 = ch;
   uint32_t* end = buf + maxchars;

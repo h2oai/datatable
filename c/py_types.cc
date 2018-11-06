@@ -37,6 +37,10 @@ PyObject* int_to_py(int64_t x) {
   return ISNA<int64_t>(x)? none() : PyLong_FromInt64(x);
 }
 
+PyObject* int_to_py(size_t x) {
+  return PyLong_FromSize_t(x);
+}
+
 PyObject* float_to_py(float x) {
   return ISNA<float>(x)? none() : PyFloat_FromDouble(static_cast<double>(x));
 }

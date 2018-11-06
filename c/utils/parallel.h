@@ -26,10 +26,14 @@
   #define omp_set_num_threads(n)
   #define omp_get_thread_num() 0
 #else
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wreserved-id-macro"
-  #include <omp.h>
-  #pragma clang diagnostic pop
+  #ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wreserved-id-macro"
+    #include <omp.h>
+    #pragma clang diagnostic pop
+  #else
+    #include <omp.h>
+  #endif
 #endif
 
 
@@ -105,7 +109,7 @@ class map_fw2str : private ordered_job {
 
     Column* result() {
       execute();
-      return std::move(outcol)->to_column();
+      return std::move(outcol).to_column();
     }
 
   private:
@@ -143,9 +147,9 @@ class mapper_str2str : private ordered_job {
 
   public:
     mapper_str2str(StringColumn<T>* col, F _f)
-      : ordered_job(static_cast<size_t>(col->nrows)),
+      : ordered_job(col->nrows),
         inpcol(col),
-        outcol(static_cast<size_t>(col->nrows)),
+        outcol(col->nrows),
         f(_f) {}
     ~mapper_str2str() override = default;
 

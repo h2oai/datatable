@@ -47,8 +47,8 @@ template <typename T> T       IntColumn<T>::mode() const { return get_stats()->m
 template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }
-template <typename T> double  IntColumn<T>::skew() const   { return get_stats()->skew(this); }
-template <typename T> double  IntColumn<T>::kurt() const   { return get_stats()->kurt(this); }
+template <typename T> double  IntColumn<T>::skew() const { return get_stats()->skew(this); }
+template <typename T> double  IntColumn<T>::kurt() const { return get_stats()->kurt(this); }
 
 // Retrieve stat value as a column
 template <typename T>
@@ -138,9 +138,9 @@ template <typename T> PyObject* IntColumn<T>::kurt_pyscalar() const { return flo
 typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
-inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
+inline static void cast_helper(size_t nrows, const IT* src, OT* trg) {
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     IT x = src[i];
     trg[i] = ISNA<IT>(x)? GETNA<OT>() : static_cast<OT>(x);
   }
@@ -148,16 +148,16 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 
 template<typename IT, typename OT>
 inline static MemoryRange cast_str_helper(
-  int64_t nrows, const IT* src, OT* toffsets)
+  size_t nrows, const IT* src, OT* toffsets)
 {
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT);
+  size_t exp_size = nrows * sizeof(IT);
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 0;
   toffsets[-1] = 0;
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     IT x = src[i];
     if (ISNA<IT>(x)) {
       toffsets[i] = offset | GETNA<OT>();
@@ -186,7 +186,7 @@ void IntColumn<T>::cast_into(BoolColumn* target) const {
   const T* src_data = this->elements_r();
   int8_t* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : (x != 0);
   }
@@ -245,7 +245,7 @@ void IntColumn<T>::cast_into(PyObjectColumn* target) const {
   constexpr T na_src = GETNA<T>();
   const T* src_data = this->elements_r();
   PyObject** trg_data = target->elements_w();
-  for (int64_t i = 0; i < this->nrows; ++i) {
+  for (size_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     // PyLong_FromInt64 is declared in "py_types.h" as an alias for either
     // PyLong_FromLong or PyLong_FromLongLong, depending on the platform

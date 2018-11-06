@@ -24,18 +24,18 @@ class CsvWriter {
   std::string path;
   std::vector<std::string> column_names;
   void *logger;
-  int nthreads;
+  size_t nthreads;
   WritableBuffer::Strategy strategy;
   bool usehex;
   bool verbose;
-  int : 8;
+  size_t : 40;
 
   // Intermediate values used while writing the file
   std::unique_ptr<WritableBuffer> wb;
   size_t fixed_size_per_row;
   double rows_per_chunk;
   size_t bytes_per_chunk;
-  int64_t nchunks;
+  size_t nchunks;
   std::vector<CsvColumn*> columns;
   std::vector<CsvColumn*> strcolumns32;
   std::vector<CsvColumn*> strcolumns64;
@@ -51,7 +51,7 @@ public:
   ~CsvWriter();
 
   void set_logger(void *v) { logger = v; }
-  void set_nthreads(int n) { nthreads = n; }
+  void set_nthreads(size_t n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
   void set_verbose(bool v) { verbose = v; }
   void set_strategy(WritableBuffer::Strategy s) { strategy = s; }
@@ -67,15 +67,18 @@ private:
   size_t estimate_output_size();
   void create_target(size_t size);
   void write_column_names();
-  void determine_chunking_strategy(size_t size, int64_t nrows);
+  void determine_chunking_strategy(size_t size, size_t nrows);
   void create_column_writers(size_t ncols);
 };
 
 
 void init_csvwrite_constants();
 
-__attribute__((format(printf, 2, 3)))
-void log_message(void *logger, const char *format, ...);
-
+#ifdef _WIN32
+  void log_message(void *logger, const char *format, ...);
+#else
+  __attribute__((format(printf, 2, 3)))
+  void log_message(void *logger, const char *format, ...);
+#endif
 
 #endif

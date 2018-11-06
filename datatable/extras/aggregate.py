@@ -9,7 +9,7 @@ from datatable.lib import core
 
 
 def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-              nd_max_bins=250, max_dimensions=50, seed=0, progress_fn=None,
+              nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
               nthreads=0):
     """
     Aggregate datatable in-place.

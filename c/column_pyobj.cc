@@ -16,11 +16,11 @@ PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(int64_t nrows_) : FwColumn<PyObject*>(nrows_) {
+PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<PyObject*>(nrows_) {
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryRange&& mb)
+PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
     : FwColumn<PyObject*>(nrows_, std::move(mb))
 {
   mbuf.set_pyobjects(/*clear_data = */ true);
@@ -43,7 +43,7 @@ py::oobj PyObjectColumn::get_value_at_index(int64_t i) const {
 // when opening, we'll just fill the column with NAs.
 void PyObjectColumn::open_mmap(const std::string&, bool) {
   xassert(!ri);
-  mbuf = MemoryRange::mem(static_cast<size_t>(nrows) * sizeof(PyObject*))
+  mbuf = MemoryRange::mem(nrows * sizeof(PyObject*))
          .set_pyobjects(/*clear_data = */ true);
 }
 
@@ -63,17 +63,17 @@ void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf) {
 }
 
 
-void PyObjectColumn::resize_and_fill(int64_t new_nrows) {
+void PyObjectColumn::resize_and_fill(size_t new_nrows) {
   if (new_nrows == nrows) return;
 
-  mbuf.resize(sizeof(PyObject*) * static_cast<size_t>(new_nrows));
+  mbuf.resize(sizeof(PyObject*) * new_nrows);
 
   if (nrows == 1) {
     // Replicate the value; the case when we need to fill with NAs is already
     // handled by `mbuf.resize()`
     PyObject* fill_value = get_elem(0);
     PyObject** dest_data = this->elements_w();
-    for (int64_t i = 1; i < new_nrows; ++i) {
+    for (size_t i = 1; i < new_nrows; ++i) {
       Py_DECREF(dest_data[i]);
       dest_data[i] = fill_value;
     }
@@ -95,17 +95,17 @@ void PyObjectColumn::reify() {
   // element in the column, since we created a new independent reference of
   // each python object.
   PyObject** data = this->elements_w();
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     Py_INCREF(data[i]);
   }
 }
 
 
 void PyObjectColumn::rbind_impl(
-  std::vector<const Column*>& columns, int64_t nnrows, bool col_empty)
+  std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
 {
-  size_t old_nrows = static_cast<size_t>(nrows);
-  size_t new_nrows = static_cast<size_t>(nnrows);
+  size_t old_nrows = nrows;
+  size_t new_nrows = nnrows;
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
@@ -120,7 +120,7 @@ void PyObjectColumn::rbind_impl(
   }
   for (const Column* col : columns) {
     if (col->stype() == SType::VOID) {
-      dest_data += static_cast<size_t>(col->nrows);
+      dest_data += col->nrows;
     } else {
       if (col->stype() != SType::OBJ) {
         Column* newcol = col->cast(stype());
@@ -128,7 +128,7 @@ void PyObjectColumn::rbind_impl(
         col = newcol;
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
-      for (int64_t i = 0; i < col->nrows; ++i) {
+      for (size_t i = 0; i < col->nrows; ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);
         *dest_data = src_data[i];
@@ -148,16 +148,16 @@ using MWBPtr = std::unique_ptr<MemoryWritableBuffer>;
 
 template<typename OT>
 inline static MemoryRange cast_str_helper(
-  int64_t nrows, const PyObject* const* src, OT* toffsets)
+  size_t nrows, const PyObject* const* src, OT* toffsets)
 {
   // Warning: Do not attempt to parallelize this: creating new PyObjects
   // is not thread-safe! In addition `to_pystring_force()` may invoke
   // arbitrary python code when stringifying a value...
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(PyObject*);
+  size_t exp_size = nrows * sizeof(PyObject*);
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   OT offset = 0;
   toffsets[-1] = 0;
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     py::ostring xstr = py::obj(src[i]).to_pystring_force();
     CString xcstr = xstr.to_cstring();
     if (xcstr.ch) {
@@ -176,7 +176,7 @@ inline static MemoryRange cast_str_helper(
 void PyObjectColumn::cast_into(PyObjectColumn* target) const {
   PyObject* const* src_data = this->elements_r();
   PyObject** dest_data = target->elements_w();
-  for (int64_t i = 0; i < nrows; ++i) {
+  for (size_t i = 0; i < nrows; ++i) {
     Py_INCREF(src_data[i]);
     Py_DECREF(dest_data[i]);
     dest_data[i] = src_data[i];

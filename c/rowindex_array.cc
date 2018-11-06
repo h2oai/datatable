@@ -26,7 +26,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted)
 {
   is_sorted = sorted;
   type = RowIndexType::RI_ARR32;
-  length = static_cast<int64_t>(ind32.size());
+  length = ind32.size();
   xassert(length <= std::numeric_limits<int32_t>::max());
   set_min_max<int32_t>(ind32);
 }
@@ -37,7 +37,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted)
 {
   is_sorted = sorted;
   type = RowIndexType::RI_ARR64;
-  length = static_cast<int64_t>(ind64.size());
+  length = ind64.size();
   set_min_max<int64_t>(ind64);
 }
 
@@ -66,7 +66,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     if (start > max) max = start;
     if (end < min) min = end;
     if (end > max) max = end;
-    length += len;
+    length += static_cast<size_t>(len);
   }
   if (max == 0) min = 0;
   xassert(min >= 0 && min <= max);
@@ -202,7 +202,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   // In the end we shrink the output buffer to the size corresponding to the
   // actual number of elements written.
   ind32.resize(out_length);
-  length = static_cast<int64_t>(out_length);
+  length = out_length;
   type = RowIndexType::RI_ARR32;
   set_min_max(ind32);
 }
@@ -245,7 +245,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
     }
   }
   ind64.resize(out_length);
-  length = static_cast<int64_t>(out_length);
+  length = out_length;
   type = RowIndexType::RI_ARR64;
   set_min_max(ind64);
 }
@@ -254,32 +254,46 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
 template <typename T>
 void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
   const T* data = arr.data();
-  if (length <= 1) {
-    min = max = (length == 0) ? 0 : static_cast<T>(data[0]);
-  } else if (is_sorted) {
-    min = static_cast<T>(data[0]);
-    max = static_cast<T>(data[length - 1]);
+  if (length == 0) {
+    min = max = 0;
+  } else if (is_sorted || length == 1) {
+    constexpr int64_t NA = static_cast<int64_t>(GETNA<T>());
+    min = static_cast<int64_t>(data[0]);
+    max = static_cast<int64_t>(data[length - 1]);
+    if (min == NA || max == NA) {
+      if (min == NA && max == NA) min = max = 0;
+      else if (min == NA) {
+        size_t j = 1;
+        while (j < length && ISNA<T>(data[j])) ++j;
+        min = static_cast<int64_t>(data[j]);
+      } else {
+        size_t j = length - 2;
+        while (j < length && ISNA<T>(data[j])) --j;
+        max = static_cast<int64_t>(data[j]);
+      }
+    }
     if (min > max) std::swap(min, max);
   } else {
     T tmin = std::numeric_limits<T>::max();
     T tmax = -std::numeric_limits<T>::max();
     #pragma omp parallel for schedule(static) \
         reduction(min:tmin) reduction(max:tmax)
-    for (int64_t j = 0; j < length; ++j) {
+    for (size_t j = 0; j < length; ++j) {
       T t = data[j];
+      if (ISNA<T>(t)) continue;
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
     min = tmin;
     max = tmax;
   }
+  xassert(min >= 0 && max >= min);
 }
 
 
 void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
   const int8_t* data = col->elements_r();
-  length = col->sum();  // total # of 1s in the column
-  size_t zlen = static_cast<size_t>(length);
+  length = static_cast<size_t>(col->sum());  // total # of 1s in the column
 
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
@@ -288,9 +302,9 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
   }
   if (length <= INT32_MAX && col->nrows <= INT32_MAX) {
     type = RowIndexType::RI_ARR32;
-    ind32.resize(zlen);
+    ind32.resize(length);
     size_t k = 0;
-    col->rowindex().strided_loop(0, col->nrows, 1,
+    col->rowindex().strided_loop(0, static_cast<int64_t>(col->nrows), 1,
       [&](int64_t i) {
         if (data[i] == 1)
           ind32[k++] = static_cast<int32_t>(i);
@@ -299,9 +313,9 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
     set_min_max(ind32);
   } else {
     type = RowIndexType::RI_ARR64;
-    ind64.resize(zlen);
+    ind64.resize(length);
     size_t k = 0;
-    col->rowindex().strided_loop(0, col->nrows, 1,
+    col->rowindex().strided_loop(0, static_cast<int64_t>(col->nrows), 1,
       [&](int64_t i) {
         if (data[i] == 1)
           ind64[k++] = i;
@@ -325,22 +339,21 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
   col2->reify();  // noop if col has no rowindex
 
   length = col->nrows;
-  size_t zn = static_cast<size_t>(length);
   Column* col3 = nullptr;
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::RI_ARR32;
-    ind32.resize(zn);
+    ind32.resize(length);
     // Column cast either converts the data, or memcpy-es it. The `col3`s data
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    MemoryRange xbuf = MemoryRange::external(ind32.data(), zn * sizeof(int32_t));
+    MemoryRange xbuf = MemoryRange::external(ind32.data(), length * sizeof(int32_t));
     xassert(xbuf.is_writable());
     col3 = col2->cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::RI_ARR64;
-    ind64.resize(zn);
-    MemoryRange xbuf = MemoryRange::external(ind64.data(), zn * sizeof(int64_t));
+    ind64.resize(length);
+    MemoryRange xbuf = MemoryRange::external(ind64.data(), length * sizeof(int64_t));
     xassert(xbuf.is_writable());
     col3 = col2->cast(SType::INT64, std::move(xbuf));
   }
@@ -425,11 +438,10 @@ void ArrayRowIndexImpl::compactify()
 {
   if (type == RowIndexType::RI_ARR32) return;
   if (max > INT32_MAX || length > INT32_MAX) return;
-  size_t zlen = static_cast<size_t>(length);
-  xassert(zlen == ind64.size());
+  xassert(length == ind64.size());
 
-  ind32.resize(zlen);
-  for (size_t i = 0; i < zlen; ++i) {
+  ind32.resize(length);
+  for (size_t i = 0; i < length; ++i) {
     ind32[i] = static_cast<int32_t>(ind64[i]);
   }
   ind64.resize(0);
@@ -439,7 +451,7 @@ void ArrayRowIndexImpl::compactify()
 
 template <typename TI, typename TO>
 RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
-    const dt::array<TI>& inputs, int64_t nrows) const
+    const dt::array<TI>& inputs, size_t nrows) const
 {
   size_t newsize = static_cast<size_t>(nrows - length);
   size_t inpsize = inputs.size();
@@ -465,7 +477,7 @@ RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
 }
 
 
-RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
+RowIndexImpl* ArrayRowIndexImpl::inverse(size_t nrows) const {
   xassert(nrows >= length);
   if (type == RowIndexType::RI_ARR32) {
     if (nrows <= INT32_MAX)
@@ -481,28 +493,27 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
-void ArrayRowIndexImpl::shrink(int64_t n) {
+void ArrayRowIndexImpl::shrink(size_t n) {
   xassert(n < length);
   length = n;
   if (type == RowIndexType::RI_ARR32) {
-    ind32.resize(static_cast<size_t>(n));
+    ind32.resize(n);
     set_min_max(ind32);
   } else {
-    ind64.resize(static_cast<size_t>(n));
+    ind64.resize(n);
     set_min_max(ind64);
   }
 }
 
-RowIndexImpl* ArrayRowIndexImpl::shrunk(int64_t n) {
+RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
   xassert(n < length);
-  size_t zn = static_cast<size_t>(n);
   if (type == RowIndexType::RI_ARR32) {
-    arr32_t new_ind32(zn);
-    memcpy(new_ind32.data(), ind32.data(), zn * sizeof(int32_t));
+    arr32_t new_ind32(n);
+    memcpy(new_ind32.data(), ind32.data(), n * sizeof(int32_t));
     return new ArrayRowIndexImpl(std::move(new_ind32), is_sorted);
   } else {
-    arr64_t new_ind64(zn);
-    memcpy(new_ind64.data(), ind64.data(), zn * sizeof(int64_t));
+    arr64_t new_ind64(n);
+    memcpy(new_ind64.data(), ind64.data(), n * sizeof(int64_t));
     return new ArrayRowIndexImpl(std::move(new_ind64), is_sorted);
   }
 }
@@ -522,22 +533,18 @@ size_t ArrayRowIndexImpl::memory_footprint() const {
 
 template <typename T>
 static void verify_integrity_helper(
-    const dt::array<T>& ind, int64_t len, int64_t min, int64_t max, bool sorted
-) {
-  size_t zlen = static_cast<size_t>(len);
-  if (ind.size() != zlen) {
+    const dt::array<T>& ind, size_t len, int64_t min, int64_t max, bool sorted)
+{
+  if (ind.size() != len) {
     throw AssertionError() << "length of data array (" << ind.size()
-        << ") does not match the length of the rowindex (" << zlen << ")";
+        << ") does not match the length of the rowindex (" << len << ")";
   }
   T tmin = std::numeric_limits<T>::max();
   T tmax = 0;
   bool check_sorted = sorted;
-  for (size_t i = 0; i < zlen; ++i) {
+  for (size_t i = 0; i < len; ++i) {
     T x = ind[i];
-    if (ISNA<T>(x)) {
-      throw AssertionError()
-          << "Element " << i << " in the ArrayRowIndex is NA";
-    }
+    if (ISNA<T>(x)) continue;
     if (x < 0) {
       throw AssertionError()
           << "Element " << i << " in the ArrayRowIndex is negative: " << x;
@@ -546,7 +553,7 @@ static void verify_integrity_helper(
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
-  if (!zlen) tmin = 0;
+  if (!len) tmin = 0;
   if (tmin != min || tmax != max) {
     throw AssertionError()
         << "Mismatching min/max values in the ArrayRowIndex min=" << min

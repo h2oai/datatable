@@ -47,7 +47,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   pydatatable::obj *pydt;
   DataTable *dt;
   PyObject *stypes = nullptr, *ltypes = nullptr, *view = nullptr;
-  int64_t row0, row1, col0, col1;
+  size_t row0, row1, col0, col1;
 
   // Parse arguments and check their validity
   static const char* kwlist[] =
@@ -61,8 +61,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   try {
   dt = pydt == nullptr? nullptr : pydt->ref;
 
-  if (col0 < 0 || col1 < col0 || col1 > dt->ncols ||
-    row0 < 0 || row1 < row0 || row1 > dt->nrows) {
+  if (col1 < col0 || col1 > dt->ncols ||
+      row1 < row0 || row1 > dt->nrows) {
     throw ValueError() <<
       "Invalid data window bounds: Frame is [" << dt->nrows << " x " <<
       dt->ncols << "], whereas requested window is [" << row0 << ".." <<
@@ -70,8 +70,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   }
 
   // Window dimensions
-  int64_t ncols = col1 - col0;
-  int64_t nrows = row1 - row0;
+  size_t ncols = col1 - col0;
+  size_t nrows = row1 - row0;
 
   RowIndex rindex(dt->rowindex);
   int no_rindex = rindex.isabsent();
@@ -83,28 +83,31 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
   int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
-  stypes = PyList_New(ncols);
-  ltypes = PyList_New(ncols);
-  view = PyList_New(ncols);
+  stypes = PyList_New(static_cast<int64_t>(ncols));
+  ltypes = PyList_New(static_cast<int64_t>(ncols));
+  view   = PyList_New(static_cast<int64_t>(ncols));
   if (view == nullptr) goto fail;
   if (stypes == nullptr || ltypes == nullptr) goto fail;
-  for (int64_t s = 0; s < col1 - col0; ++s) {
-    int64_t i = s < dt->nkeys? s : s + col0;
-    Column *col = dt->columns[i];
+  for (size_t s = 0; s < col1 - col0; ++s) {
+    size_t i = s < dt->nkeys? s : s + col0;
+    Column* col = dt->columns[i];
 
     // Create and fill-in the `data` list
-    PyObject *py_coldata = PyList_New(nrows);
+    PyObject* py_coldata = PyList_New(static_cast<int64_t>(nrows));
     if (py_coldata == nullptr) goto fail;
     PyList_SET_ITEM(view, s, py_coldata);
 
     int n_init_rows = 0;
-    for (int64_t j = row0; j < row1; ++j) {
-      int64_t irow = no_rindex? j :
+    for (size_t j = row0; j < row1; ++j) {
+      // Note: `irow` could be NA, indicating that the value does not
+      // exist and therefore should be treated as NA.
+      int64_t irow = no_rindex? static_cast<int64_t>(j) :
                rindex_is_arr32? rindexarr32[j] :
                rindex_is_arr64? rindexarr64[j] :
-                      rindexstart + rindexstep * j;
+                      rindexstart + rindexstep * static_cast<int64_t>(j);
       int itype = static_cast<int>(col->stype());
-      PyObject *value = py_stype_formatters[itype](col, irow);
+      PyObject *value = irow >= 0? py_stype_formatters[itype](col, irow)
+                                 : py::None().release();
       if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }
@@ -142,19 +145,19 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
 //==============================================================================
 
 PyObject* get_row0(obj* self) {
-  return PyLong_FromLongLong(self->row0);
+  return PyLong_FromSize_t(self->row0);
 }
 
 PyObject* get_row1(obj* self) {
-  return PyLong_FromLongLong(self->row1);
+  return PyLong_FromSize_t(self->row1);
 }
 
 PyObject* get_col0(obj* self) {
-  return PyLong_FromLongLong(self->col0);
+  return PyLong_FromSize_t(self->col0);
 }
 
 PyObject* get_col1(obj* self) {
-  return PyLong_FromLongLong(self->col1);
+  return PyLong_FromSize_t(self->col1);
 }
 
 PyObject* get_types(obj* self) {

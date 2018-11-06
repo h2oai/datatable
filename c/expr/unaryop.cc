@@ -17,6 +17,7 @@ enum OpCode {
   Plus   = 3,
   Invert = 4,
   Abs    = 5,
+  Exp    = 6,
 };
 
 
@@ -70,6 +71,11 @@ inline static T op_abs(T x) {
   return (x < 0) ? -x : x;
 }
 
+template <typename T>
+inline static double op_exp(T x) {
+  return ISNA<T>(x) ? GETNA<double>() : exp(static_cast<double>(x));
+}
+
 
 template<typename T>
 struct Inverse {
@@ -104,6 +110,7 @@ static mapperfn resolve1(int opcode) {
     case IsNa:    return map_n<IT, int8_t, op_isna<IT>>;
     case Minus:   return map_n<IT, IT, op_minus<IT>>;
     case Abs:     return map_n<IT, IT, op_abs<IT>>;
+    case Exp:     return map_n<IT, double, op_exp<IT>>;
     case Invert:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
@@ -150,6 +157,8 @@ Column* unaryop(int opcode, Column* arg)
     res_type = SType::BOOL;
   } else if (arg_type == SType::BOOL && opcode == OpCode::Minus) {
     res_type = SType::INT8;
+  } else if (opcode == OpCode::Exp) {
+    res_type = SType::FLOAT64;
   }
   void* params[2];
   params[0] = arg;
@@ -162,7 +171,7 @@ Column* unaryop(int opcode, Column* arg)
       << arg_type << ")";
   }
 
-  (*fn)(0, arg->nrows, params);
+  (*fn)(0, static_cast<int64_t>(arg->nrows), params);
 
   return static_cast<Column*>(params[1]);
 }

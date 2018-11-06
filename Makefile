@@ -145,7 +145,7 @@ sdist:
 	$(PYTHON) setup.py sdist
 
 version:
-	@$(PYTHON) setup.py --version
+	@$(PYTHON) ci/setup_utils.py version
 
 nothing:
 	@echo Nothing
@@ -243,7 +243,7 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.6.0-PR-1229.4
+DOCKER_IMAGE_TAG ?= 0.6.0-master.3
 CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
