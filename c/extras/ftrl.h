@@ -22,14 +22,14 @@ class Ftrl {
     Ftrl(double, double, double, double, uint64_t, size_t, bool, unsigned int,
         unsigned int);
     void train(const DataTable*);
-    DataTablePtr test(const DataTable*);
+    dtptr test(const DataTable*);
     double predict(const Uint64Ptr&, size_t);
     void update(const Uint64Ptr&, size_t, double, bool);
     double logloss(double, bool);
-    void hash(Uint64Ptr&, const DataTable*, int64_t);
-    void hash_numeric(Uint64Ptr&, const DataTable*, int64_t);
-    void hash_string(Uint64Ptr&, const DataTable*, int64_t);
-    void hash_murmur(Uint64Ptr&, const DataTable*, int64_t);
+    void hash(Uint64Ptr&, const DataTable*, size_t);
+    void hash_numeric(Uint64Ptr&, const DataTable*, size_t);
+    void hash_string(Uint64Ptr&, const DataTable*, size_t);
+    void hash_murmur(Uint64Ptr&, const DataTable*, size_t);
     static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);

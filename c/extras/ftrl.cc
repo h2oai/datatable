@@ -30,7 +30,7 @@ PyObject* ftrl(PyObject*, PyObject* args) {
   PyObject* arg1;
   PyObject* arg2;
 
-  if (!PyArg_ParseTuple(args, "OOddddLIpII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
+  if (!PyArg_ParseTuple(args, "OOddddLnpII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
                         &d, &n_epochs, &inter, &hash_type, &seed)) return nullptr;
 
   DataTable* dt_train = py::obj(arg1).to_frame();
@@ -107,7 +107,7 @@ void Ftrl::train(const DataTable* dt) {
       int32_t ith = omp_get_thread_num();
       nth = omp_get_num_threads();
 
-      for (int32_t j = ith; j < dt->nrows; j+= nth) {
+      for (size_t j = static_cast<size_t>(ith); j < dt->nrows; j+= static_cast<size_t>(nth)) {
         bool y = dy_bool[j];
         hash(x, dt, j);
         double p = predict(x, n_features + n_features_inter);
@@ -117,7 +117,7 @@ void Ftrl::train(const DataTable* dt) {
         loss += ll;
 
         if ((j+1) % REPORT_FREQUENCY == 0) {
-          printf("Training epoch: %zu\t row: %d\t prediction: %f\t loss: %f\t average loss: %f\n",
+          printf("Training epoch: %zu\t row: %zu\t prediction: %f\t loss: %f\t average loss: %f\n",
                   i, j+1, p, ll, loss / (j+1));
         }
         update(x, n_features + n_features_inter, p, y);
@@ -130,13 +130,13 @@ void Ftrl::train(const DataTable* dt) {
 /*
 *  Make predictions on test data and return targets as a new datatable.
 */
-DataTablePtr Ftrl::test(const DataTable* dt) {
+dtptr Ftrl::test(const DataTable* dt) {
   // Create a target datatable.
-  DataTablePtr dt_target = nullptr;
-  Column** cols_target = dt::amalloc<Column*>(static_cast<int64_t>(2));
-  cols_target[0] = Column::new_data_column(SType::FLOAT64, dt->nrows);
-  cols_target[1] = nullptr;
-  dt_target = DataTablePtr(new DataTable(cols_target, {"target"}));
+  dtptr dt_target = nullptr;
+  Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
+  dt_target = dtptr(new DataTable({col_target}, {"target"}));
+
+
   auto d_target = static_cast<double*>(dt_target->columns[0]->data_w());
 
   int32_t nth = config::nthreads;
@@ -148,11 +148,11 @@ DataTablePtr Ftrl::test(const DataTable* dt) {
     int32_t ith = omp_get_thread_num();
     nth = omp_get_num_threads();
 
-    for (int32_t j = ith; j < dt->nrows; j+= nth) {
+    for (size_t j = static_cast<size_t>(ith); j < dt->nrows; j+= static_cast<size_t>(nth)) {
       hash(x, dt, j);
       d_target[j] = predict(x, n_features + n_features_inter);
       if ((j+1) % REPORT_FREQUENCY == 0) {
-        printf("Testing row: %d\t prediction: %f\n", j+1, d_target[j]);
+        printf("Testing row: %zu\t prediction: %f\n", j+1, d_target[j]);
       }
     }
 
@@ -218,7 +218,7 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool y) {
 /*
 *  Choose a hashing method.
 */
-void Ftrl::hash(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   switch (hash_type) {
     case 0:  hash_numeric(x, dt, row_id); break;
     case 1:  hash_string(x, dt, row_id); break;
@@ -232,7 +232,7 @@ void Ftrl::hash(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing leaving numeric values as they are.
 *  May not work well, here just for testing purposes.
 */
-void Ftrl::hash_numeric(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_numeric(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
 
   for (size_t i = 0; i < static_cast<size_t>(dt->ncols) - 1; ++i) {
@@ -286,7 +286,7 @@ void Ftrl::hash_numeric(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
 *  `col_value`s to `string`. Needs optimization in terms of performance.
 */
-void Ftrl::hash_string(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_string(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   size_t index;
 
@@ -348,7 +348,7 @@ void Ftrl::hash_string(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
 *  `col_value`s to `string`. Needs optimization in terms of performance.
 */
-void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   uint64_t index;
   uint64_t h[2]= {0};

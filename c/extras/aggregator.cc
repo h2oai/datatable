@@ -69,7 +69,6 @@ dtptr Aggregator::aggregate(DataTable* dt) {
   bool was_sampled = false;
   progress(0.0);
   dtptr dt_members;
-  // Column** cols_members = dt::amalloc<Column*>(static_cast<int64_t>(2));
 
   Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
   dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
@@ -87,20 +86,17 @@ dtptr Aggregator::aggregate(DataTable* dt) {
       switch (ltype) {
         case LType::BOOL:
         case LType::INT:
-        case LType::REAL: {
-          auto c = static_cast<RealColumn<double>*>(
-                      dt->columns[i]->cast(SType::FLOAT64));
-          c->min(); // Pre-generating stats
-          cols_double.push_back(c);
-          ncols++;
-          break;
-        }
-        default: {
-          if (dt->ncols < 3) {
-            cols_double.push_back(dt->columns[i]->shallowcopy());
-            ncols++;
-          }
-        }
+        case LType::REAL:  {
+                             auto c = static_cast<RealColumn<double>*>(dt->columns[i]->cast(SType::FLOAT64));
+                             c->min(); // Pre-generating stats
+                             cols_double.push_back(c);
+                             ncols++;
+                             break;
+                           }
+        default:           if (dt->ncols < 3) {
+                             cols_double.push_back(dt->columns[i]->shallowcopy());
+                             ncols++;
+                           }
       }
     }
 
