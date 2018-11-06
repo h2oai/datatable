@@ -76,25 +76,43 @@ FileWritableBuffer::~FileWritableBuffer() {
 }
 
 
-size_t FileWritableBuffer::prep_write(size_t size, const void* src) {
+size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
+{
+  constexpr size_t CHUNK_SIZE = 1 << 30;
   size_t pos = bytes_written;
+  if (!src_size) return pos;
 
-  // See https://linux.die.net/man/2/write
-  ssize_t r = ::write(file->descriptor(), src, size);
-
-  if (r == -1) {
-    throw RuntimeError() << "Cannot write to file: " << Errno
-                         << " (bytes already written: " << bytes_written << ")";
-  }
-  if (r < static_cast<ssize_t>(size)) {
+  // On MacOS, it is impossible to write more than 2GB of data at once; on
+  // Unix, the limit is 0x7ffff000 bytes.
+  // Thus, we avoid attempting to write more than 1GB of data at a time,
+  // splitting the data into chunks if necessary (#1387).
+  //
+  // See: https://linux.die.net/man/2/write
+  //
+  int fd = file->descriptor();
+  size_t written_to_file = 0;
+  while (written_to_file < src_size) {
+    size_t count = std::min(src_size, CHUNK_SIZE);
+    const void* buf = static_cast<const char*>(src) + written_to_file;
+    ssize_t r = ::write(fd, buf, count);
+    if (r == -1) {
+      throw RuntimeError() << "Cannot write to file: " << Errno
+          << " (bytes already written: " << bytes_written << ")";
+    }
+    if (r == 0) {
+      throw RuntimeError() << "Output to file truncated: "
+          << written_to_file << " out of " << src_size << " bytes written";
+    }
+    // Normally, `r` contains the number of bytes written to file. This could
+    // be less than the amount requested.
     // This could happen if: (a) there is insufficient space on the target
     // physical medium, (b) RLIMIT_FSIZE resource limit is encountered,
     // (c) the call was interrupted by a signal handler before all data was
     // written.
-    throw RuntimeError() << "Output to file truncated: " << r << " out of "
-                         << size << " bytes written";
+    written_to_file += static_cast<size_t>(r);
   }
-  bytes_written += size;
+  xassert(written_to_file == src_size);
+  bytes_written += written_to_file;
   return pos;
 }
 
