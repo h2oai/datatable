@@ -14,22 +14,22 @@
 #include "utils.h"
 
 typedef std::unique_ptr<double[]> DoublePtr;
-typedef std::unique_ptr<size_t[]> SizetPtr;
+typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 #define REPORT_FREQUENCY 1000
 
 class Ftrl {
   public:
-    Ftrl(double, double, double, double, size_t, size_t, bool, size_t,
-         unsigned int);
+    Ftrl(double, double, double, double, uint64_t, size_t, bool, unsigned int,
+        unsigned int);
     void train(const DataTable*);
     DataTablePtr test(const DataTable*);
-    double predict(const SizetPtr&, size_t);
-    void update(const SizetPtr&, size_t, double, bool);
+    double predict(const Uint64Ptr&, size_t);
+    void update(const Uint64Ptr&, size_t, double, bool);
     double logloss(double, bool);
-    void hash(SizetPtr&, const DataTable*, int64_t);
-    void hash_numeric(SizetPtr&, const DataTable*, int64_t);
-    void hash_string(SizetPtr&, const DataTable*, int64_t);
-    void hash_murmur(SizetPtr&, const DataTable*, int64_t);
+    void hash(Uint64Ptr&, const DataTable*, int64_t);
+    void hash_numeric(Uint64Ptr&, const DataTable*, int64_t);
+    void hash_string(Uint64Ptr&, const DataTable*, int64_t);
+    void hash_murmur(Uint64Ptr&, const DataTable*, int64_t);
     static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);
@@ -41,19 +41,19 @@ class Ftrl {
     double l2;
     size_t n_features;
     size_t n_features_inter;
-    size_t d;
+    uint64_t d;
     size_t n_epochs;
     bool inter;
     int64_t : 56;
-    size_t hash_type;
+    unsigned int hash_type;
     unsigned int seed;
-    int64_t : 32;
+    int64_t : 64;
     DoublePtr n;
     DoublePtr z;
     DoublePtr w;
 };
 
-size_t hash_double(double);
+uint64_t hash_double(double);
 void MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed, void * out );
 
 DECLARE_FUNCTION(

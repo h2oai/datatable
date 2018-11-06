@@ -23,12 +23,14 @@
 PyObject* ftrl(PyObject*, PyObject* args) {
 
   double a, b, l1, l2;
-  unsigned int d, n_epochs, hash_type, seed;
+  uint64_t d;
+  size_t n_epochs;
+  unsigned int seed, hash_type;
   bool inter;
   PyObject* arg1;
   PyObject* arg2;
 
-  if (!PyArg_ParseTuple(args, "OOddddIIpII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
+  if (!PyArg_ParseTuple(args, "OOddddLIpII:ftrl", &arg1, &arg2, &a, &b, &l1, &l2,
                         &d, &n_epochs, &inter, &hash_type, &seed)) return nullptr;
 
   DataTable* dt_train = py::obj(arg1).to_frame();
@@ -47,7 +49,7 @@ PyObject* ftrl(PyObject*, PyObject* args) {
 *  Setting up FTRL parameters and initializing weights.
 */
 Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
-           size_t d_in, size_t nepochs_in, bool inter_in, size_t hash_type_in,
+           uint64_t d_in, size_t nepochs_in, bool inter_in, unsigned int hash_type_in,
            unsigned int seed_in) :
   a(a_in),
   b(b_in),
@@ -69,7 +71,7 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
 
   // Initialize weights with random numbers from [0; 1]
   srand(seed);
-  for (size_t i = 0; i < d; ++i){
+  for (uint64_t i = 0; i < d; ++i){
     z[i] = static_cast<double>(rand()) / RAND_MAX;
   }
 }
@@ -80,7 +82,7 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
 */
 void Ftrl::train(const DataTable* dt) {
   // This includes a bias term, and `dt->ncols - 1` columns, i.e. excluding the target column.
-  n_features = size_t(dt->ncols);
+  n_features = static_cast<size_t>(dt->ncols);
   // Number of feature interactions.
   if (inter) {
     n_features_inter = (n_features - 1) * (n_features - 2) / 2;
@@ -100,7 +102,7 @@ void Ftrl::train(const DataTable* dt) {
 
     #pragma omp parallel num_threads(nth)
     {
-      SizetPtr x = SizetPtr(new size_t[n_features + n_features_inter]);
+      Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_features_inter]);
       x[0] = 0; // Bias term
       int32_t ith = omp_get_thread_num();
       nth = omp_get_num_threads();
@@ -141,7 +143,7 @@ DataTablePtr Ftrl::test(const DataTable* dt) {
 
   #pragma omp parallel num_threads(nth)
   {
-    SizetPtr x = SizetPtr(new size_t[n_features + n_features_inter]);
+    Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_features_inter]);
     x[0] = 0; // Bias term
     int32_t ith = omp_get_thread_num();
     nth = omp_get_num_threads();
@@ -162,7 +164,7 @@ DataTablePtr Ftrl::test(const DataTable* dt) {
 /*
 *  Make predictions for a hashed row.
 */
-double Ftrl::predict(const SizetPtr& x, size_t x_size) {
+double Ftrl::predict(const Uint64Ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
@@ -201,7 +203,7 @@ double Ftrl::bsigmoid(double x, double b) {
 /*
 *  Update weights based on prediction and the actual value.
 */
-void Ftrl::update(const SizetPtr& x, size_t x_size, double p, bool y) {
+void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool y) {
   double g = p - y;
 
   for (size_t j = 0; j < x_size; ++j) {
@@ -216,7 +218,7 @@ void Ftrl::update(const SizetPtr& x, size_t x_size, double p, bool y) {
 /*
 *  Choose a hashing method.
 */
-void Ftrl::hash(SizetPtr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
   switch (hash_type) {
     case 0:  hash_numeric(x, dt, row_id); break;
     case 1:  hash_string(x, dt, row_id); break;
@@ -230,11 +232,11 @@ void Ftrl::hash(SizetPtr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing leaving numeric values as they are.
 *  May not work well, here just for testing purposes.
 */
-void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_numeric(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
 
   for (size_t i = 0; i < static_cast<size_t>(dt->ncols) - 1; ++i) {
-    size_t index;
+    uint64_t index;
     Column* c = dt->columns[i];
     LType ltype = info(c->stype()).ltype();
 
@@ -242,19 +244,19 @@ void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int64_t row_id) {
       case LType::BOOL:    {
                              auto c_bool = static_cast<BoolColumn*>(c);
                              auto d_bool = c_bool->elements_r();
-                             index = static_cast<size_t>(d_bool[row_id]);
+                             index = static_cast<uint64_t>(d_bool[row_id]);
                              break;
                            }
       case LType::INT:     {
                              auto c_int = static_cast<IntColumn<int32_t>*>(c);
                              auto d_int = c_int->elements_r();
-                             index = static_cast<size_t>(d_int[row_id]);
+                             index = static_cast<uint64_t>(d_int[row_id]);
                              break;
                            }
       case LType::REAL:    {
                              auto c_real = static_cast<RealColumn<double>*>(c);
                              auto d_real = c_real->elements_r();
-                             index = static_cast<size_t>(d_real[row_id]);
+                             index = static_cast<uint64_t>(d_real[row_id]);
                              break;
                            }
       case LType::STRING:  {
@@ -265,7 +267,7 @@ void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int64_t row_id) {
                              c_str = strdata + (d_string[row_id - 1] & ~GETNA<uint32_t>());
                              uint32_t l = d_string[row_id] - (d_string[row_id - 1] & ~GETNA<uint32_t>());
                              std::string str(c_str, c_str + l);
-                             index = std::hash<std::string>{}(str);
+                             index = static_cast<uint64_t>(std::hash<std::string>{}(str));
                              break;
                            }
       default:             throw ValueError() << "Datatype is not supported";
@@ -284,7 +286,7 @@ void Ftrl::hash_numeric(SizetPtr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
 *  `col_value`s to `string`. Needs optimization in terms of performance.
 */
-void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_string(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   size_t index;
 
@@ -323,7 +325,7 @@ void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
                            }
       default:             throw ValueError() << "Datatype is not supported";
     }
-    index = std::hash<std::string>{}(c_names[i] + '_' + str);
+    index = static_cast<uint64_t>(std::hash<std::string>{}(c_names[i] + '_' + str));
     x[i + 1] = index % d;
   }
 
@@ -331,7 +333,9 @@ void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
   if (inter) {
     for (size_t i = 0; i < n_features - 1; ++i) {
       for (size_t j = i + 1; j < n_features - 1; ++j) {
-        index = std::hash<std::string>{}(std::to_string(x[i+1]) + '_' + std::to_string(x[j+1]));
+        index = static_cast<uint64_t>(std::hash<std::string>{}( std::to_string(x[i+1]) +
+                                                                '_' +
+                                                                std::to_string(x[j+1])));
         x[n_features + count] = index % d;
         count++;
       }
@@ -344,9 +348,9 @@ void Ftrl::hash_string(SizetPtr& x, const DataTable* dt, int64_t row_id) {
 *  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
 *  `col_value`s to `string`. Needs optimization in terms of performance.
 */
-void Ftrl::hash_murmur(SizetPtr& x, const DataTable* dt, int64_t row_id) {
+void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, int64_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
-  size_t index;
+  uint64_t index;
   uint64_t h[2]= {0};
 
   for (size_t i = 0; i < n_features - 1; ++i) {
@@ -358,13 +362,13 @@ void Ftrl::hash_murmur(SizetPtr& x, const DataTable* dt, int64_t row_id) {
       case LType::BOOL:    {
                              auto c_bool = static_cast<BoolColumn*>(c);
                              auto d_bool = c_bool->elements_r();
-                             index = static_cast<size_t>(d_bool[row_id]);
+                             index = static_cast<uint64_t>(d_bool[row_id]);
                              break;
                            }
       case LType::INT:     {
                              auto c_int = static_cast<IntColumn<int32_t>*>(c);
                              auto d_int = c_int->elements_r();
-                             index = static_cast<size_t>(d_int[row_id]);
+                             index = static_cast<uint64_t>(d_int[row_id]);
                              break;
                            }
       case LType::REAL:    {
@@ -431,8 +435,8 @@ double Ftrl::signum(double x) {
 /*
 *  Hash `double` to `size_t` based on the bit representation.
 */
-inline __attribute__((always_inline)) size_t hash_double(double x) {
-  size_t* h = reinterpret_cast<size_t*>(&x);
+inline __attribute__((always_inline)) uint64_t hash_double(double x) {
+  uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
 }
 
