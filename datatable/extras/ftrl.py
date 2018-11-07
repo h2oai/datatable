@@ -64,7 +64,7 @@ def ftrl(df_train, df_test, a=0.01, b=1.0, l1=0.0, l2=1.0,
     Returns
     -------
      A new datatable of shape (nrows, 1) containing target values for each
-     row from `dt_test`.
+     row from `df_test`.
     """
     
     df_target = core.ftrl(df_train, df_test, a, b, l1, l2, 
