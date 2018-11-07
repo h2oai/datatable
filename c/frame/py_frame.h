@@ -81,7 +81,7 @@ class Frame : public PyObject {
     oobj get_internal() const;
     void set_nrows(obj);
     void set_names(obj);
-    void set_keys(obj);
+    void set_key(obj);
     void set_internal(obj);
 
     void cbind(const PKArgs&);
@@ -99,7 +99,6 @@ class Frame : public PyObject {
     void _fill_default_names();
     void _dedup_and_save_names(NameProvider*);
     void _replace_names_from_map(py::odict);
-    Error _name_not_found_error(const std::string& name);
 
     // getitem / setitem support
     oobj _fast_getset(obj item, obj value);

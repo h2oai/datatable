@@ -105,6 +105,7 @@ class DataTable {
     const std::vector<std::string>& get_names() const;
     py::otuple get_pynames() const;
     int64_t colindex(const py::_obj& pyname) const;
+    size_t xcolindex(const py::_obj& pyname) const;
     void copy_names_from(const DataTable* other);
     void set_names_to_default();
     void set_names(const py::olist& names_list);

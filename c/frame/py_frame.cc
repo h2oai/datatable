@@ -234,29 +234,28 @@ void Frame::set_key(obj val) {
   }
   std::vector<size_t> col_indices;
   if (val.is_string()) {
-    int64_t index = dt->colindex(val);
-    if (index == -1) {
-      throw _name_not_found_error(val.to_string());
-    }
-    col_indices.push_back(static_cast<size_t>(index));
+    size_t index = dt->xcolindex(val);
+    col_indices.push_back(index);
   }
   else if (val.is_list_or_tuple()) {
     py::olist vallist = val.to_pylist();
     for (size_t i = 0; i < vallist.size(); ++i) {
       py::obj item = vallist[i];
       if (vallist[i].is_string()) {
-        int64_t index = dt->colindex(vallist[i]);
-        if (index == -1) {
-          throw _name_not_found_error(vallist[i].to_string());
-        }
-        col_indices.push_back(static_cast<size_t>(index));
+        size_t index = dt->xcolindex(vallist[i]);
+        col_indices.push_back(index);
       } else {
         throw TypeError() << "Key should be a list/tuple of column names, "
-            "instead element " << i << " was a " << elem.typeobj();
+            "instead element " << i << " was a " << item.typeobj();
       }
     }
   }
-
+  if (col_indices.empty()) {
+    dt->nkeys = 0;
+    return;
+  }
+  _clear_types();
+  dt->set_keys(col_indices);
 }
 
 
