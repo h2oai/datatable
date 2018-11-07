@@ -19,17 +19,18 @@ typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 
 class Ftrl {
   public:
-    Ftrl(double, double, double, double, uint64_t, size_t, bool, unsigned int,
-        unsigned int);
+    Ftrl(double, double, double, double, uint64_t, size_t, bool,
+         unsigned int, unsigned int);
     void train(const DataTable*);
     dtptr test(const DataTable*);
     double predict(const Uint64Ptr&, size_t);
     void update(const Uint64Ptr&, size_t, double, bool);
     double logloss(double, bool);
-    void hash(Uint64Ptr&, const DataTable*, size_t);
-    void hash_numeric(Uint64Ptr&, const DataTable*, size_t);
-    void hash_string(Uint64Ptr&, const DataTable*, size_t);
-    void hash_murmur(Uint64Ptr&, const DataTable*, size_t);
+    uint64_t hash_string(const char *, size_t);
+    static uint64_t hash_double(double);
+    void hash_row(Uint64Ptr&, const DataTable*, size_t);
+    uint64_t hash_murmur2(const void *, uint64_t);
+    void hash_murmur3(const void *, int, void *);
     static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);
@@ -53,8 +54,6 @@ class Ftrl {
     DoublePtr w;
 };
 
-uint64_t hash_double(double);
-void MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed, void * out );
 
 DECLARE_FUNCTION(
   ftrl,

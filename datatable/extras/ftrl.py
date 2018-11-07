@@ -39,12 +39,10 @@ def ftrl(dt_train, dt_test, a=0.005, b=1.0, l1=0.0, l2=1.0,
         If feature interactions to be used or not.
     hash_type : int
         Hashing method to use:
-          `0` - leave numeric values as they are;
-          `1` - convert all values to strings and std::hash them 
-                including the column names.
-          `2` - use `MurmurHash3` to hash string values and combine this
-                with the numeric values.
-    seed: int
+          `0` - std::hash;
+          `2` - Murmur2;
+          `3` - Murmur3.
+    seed: unsigned int
         Seed to be used for initialization.
 
     Returns

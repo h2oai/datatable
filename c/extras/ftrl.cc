@@ -109,7 +109,7 @@ void Ftrl::train(const DataTable* dt) {
 
       for (size_t j = static_cast<size_t>(ith); j < dt->nrows; j+= static_cast<size_t>(nth)) {
         bool y = dy_bool[j];
-        hash(x, dt, j);
+        hash_row(x, dt, j);
         double p = predict(x, n_features + n_features_inter);
         double ll = logloss(p, y);
 
@@ -149,7 +149,7 @@ dtptr Ftrl::test(const DataTable* dt) {
     nth = omp_get_num_threads();
 
     for (size_t j = static_cast<size_t>(ith); j < dt->nrows; j+= static_cast<size_t>(nth)) {
-      hash(x, dt, j);
+      hash_row(x, dt, j);
       d_target[j] = predict(x, n_features + n_features_inter);
       if ((j+1) % REPORT_FREQUENCY == 0) {
         printf("Testing row: %zu\t prediction: %f\n", j+1, d_target[j]);
@@ -216,148 +216,42 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool y) {
 
 
 /*
-*  Choose a hashing method.
+*  Hash string using the specified hash function.
 */
-void Ftrl::hash(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
+uint64_t Ftrl::hash_string(const char * key, size_t len) {
+  uint64_t res;
   switch (hash_type) {
-    case 0:  hash_numeric(x, dt, row_id); break;
-    case 1:  hash_string(x, dt, row_id); break;
-    case 2:  hash_murmur(x, dt, row_id); break;
-    default: hash_string(x, dt, row_id);
+    case 0:  {
+                std::string str(key,
+                                key + len / sizeof(char));
+                res = std::hash<std::string>{}(str);
+                break;
+             }
+    case 2:  res = hash_murmur2(key, len); break;
+    case 3:  {
+                uint64_t h[2];
+                hash_murmur3(key, len, h);
+                res = h[0];
+                break;
+             }
+    default: res = hash_murmur2(key, len);
   }
+  return res;
 }
 
 
 /*
-*  Do std::hashing leaving numeric values as they are.
-*  May not work well, here just for testing purposes.
+*  Hash each element within the datatable row.
 */
-void Ftrl::hash_numeric(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
-  std::vector<std::string> c_names = dt->get_names();
-
-  for (size_t i = 0; i < static_cast<size_t>(dt->ncols) - 1; ++i) {
-    uint64_t index;
-    Column* c = dt->columns[i];
-    LType ltype = info(c->stype()).ltype();
-
-    switch (ltype) {
-      case LType::BOOL:    {
-                             auto c_bool = static_cast<BoolColumn*>(c);
-                             auto d_bool = c_bool->elements_r();
-                             index = static_cast<uint64_t>(d_bool[row_id]);
-                             break;
-                           }
-      case LType::INT:     {
-                             auto c_int = static_cast<IntColumn<int32_t>*>(c);
-                             auto d_int = c_int->elements_r();
-                             index = static_cast<uint64_t>(d_int[row_id]);
-                             break;
-                           }
-      case LType::REAL:    {
-                             auto c_real = static_cast<RealColumn<double>*>(c);
-                             auto d_real = c_real->elements_r();
-                             index = static_cast<uint64_t>(d_real[row_id]);
-                             break;
-                           }
-      case LType::STRING:  {
-                             auto c_string = static_cast<StringColumn<uint32_t>*>(c);
-                             auto d_string = c_string->offsets();
-                             const char* strdata = c_string->strdata();
-                             const char* c_str;
-                             c_str = strdata + (d_string[row_id - 1] & ~GETNA<uint32_t>());
-                             uint32_t l = d_string[row_id] - (d_string[row_id - 1] & ~GETNA<uint32_t>());
-                             std::string str(c_str, c_str + l);
-                             index = static_cast<uint64_t>(std::hash<std::string>{}(str));
-                             break;
-                           }
-      default:             throw ValueError() << "Datatype is not supported";
-    }
-    x[i+1] = index % d;
-  }
-
-  if (inter) {
-    // TODO: `inter` order feature interaction.
-    // Make sure `x` has enough memory allocated for this purpose.
-  }
-}
-
-
-/*
-*  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
-*  `col_value`s to `string`. Needs optimization in terms of performance.
-*/
-void Ftrl::hash_string(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
-  std::vector<std::string> c_names = dt->get_names();
-  size_t index;
-
-  for (size_t i = 0; i < n_features - 1; ++i) {
-    std::string str;
-    Column* c = dt->columns[i];
-
-    LType ltype = info(c->stype()).ltype();
-    switch (ltype) {
-      case LType::BOOL:    {
-                             auto c_bool = static_cast<BoolColumn*>(c);
-                             auto d_bool = c_bool->elements_r();
-                             str = std::to_string(d_bool[row_id]);
-                             break;
-                           }
-      case LType::INT:     {
-                             auto c_int = static_cast<IntColumn<int32_t>*>(c);
-                             auto d_int = c_int->elements_r();
-                             str = std::to_string(d_int[row_id]);
-                             break;
-                           }
-      case LType::REAL:    {
-                             auto c_real = static_cast<RealColumn<double>*>(c);
-                             auto d_real = c_real->elements_r();
-                             str = std::to_string(d_real[row_id]);
-                             break;
-                           }
-      case LType::STRING:  {
-                             auto c_string = static_cast<StringColumn<uint32_t>*>(c);
-                             auto d_string = c_string->offsets();
-                             const char* strdata = c_string->strdata();
-                             const char* c_str = strdata + (d_string[row_id - 1] & ~GETNA<uint32_t>());
-                             uint32_t l = d_string[row_id] - (d_string[row_id - 1] & ~GETNA<uint32_t>());
-                             str.assign(c_str, c_str + l);
-                             break;
-                           }
-      default:             throw ValueError() << "Datatype is not supported";
-    }
-    index = static_cast<uint64_t>(std::hash<std::string>{}(c_names[i] + '_' + str));
-    x[i + 1] = index % d;
-  }
-
-  size_t count = 0;
-  if (inter) {
-    for (size_t i = 0; i < n_features - 1; ++i) {
-      for (size_t j = i + 1; j < n_features - 1; ++j) {
-        index = static_cast<uint64_t>(std::hash<std::string>{}( std::to_string(x[i+1]) +
-                                                                '_' +
-                                                                std::to_string(x[j+1])));
-        x[n_features + count] = index % d;
-        count++;
-      }
-    }
-  }
-}
-
-
-/*
-*  Do std::hashing for `col_name` + `_` + `col_value`, casting all the
-*  `col_value`s to `string`. Needs optimization in terms of performance.
-*/
-void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
+void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   uint64_t index;
-  uint64_t h[2]= {0};
 
   for (size_t i = 0; i < n_features - 1; ++i) {
     std::string str;
     Column* c = dt->columns[i];
-
     LType ltype = info(c->stype()).ltype();
+
     switch (ltype) {
       case LType::BOOL:    {
                              auto c_bool = static_cast<BoolColumn*>(c);
@@ -383,14 +277,13 @@ void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
                              const char* strdata = c_string->strdata();
                              const char* c_str = strdata + (d_string[row_id - 1] & ~GETNA<uint32_t>());
                              uint32_t l = d_string[row_id] - (d_string[row_id - 1] & ~GETNA<uint32_t>());
-                             MurmurHash3_x64_128(c_str, static_cast<int>(l * sizeof(char)), 0, h);
-                             index = h[0];
+                             index = hash_string(c_str, l * sizeof(char));
                              break;
                            }
       default:             throw ValueError() << "Datatype is not supported";
     }
-    MurmurHash3_x64_128(c_names[i].c_str(), static_cast<int>(c_names[i].length() * sizeof(char)), 0, h);
-    index += h[0];
+    uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
+    index += h;
     x[i + 1] = index % d;
   }
 
@@ -399,8 +292,8 @@ void Ftrl::hash_murmur(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     for (size_t i = 0; i < n_features - 1; ++i) {
       for (size_t j = i + 1; j < n_features - 1; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
-        MurmurHash3_x64_128(s.c_str(), static_cast<int>(s.length() * sizeof(char)), 0, h);
-        x[n_features + count] = h[0] % d;
+        uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
+        x[n_features + count] = h % d;
         count++;
       }
     }
@@ -433,24 +326,64 @@ double Ftrl::signum(double x) {
 
 
 /*
-*  Hash `double` to `size_t` based on the bit representation.
+*  Hash `double` to `size_t` based on its bit representation.
 */
-inline __attribute__((always_inline)) uint64_t hash_double(double x) {
+inline __attribute__((always_inline)) uint64_t Ftrl::hash_double(double x) {
   uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
 }
 
+
+uint64_t Ftrl::hash_murmur2 (const void * key, uint64_t len) {
+  const uint64_t m = 0xc6a4a7935bd1e995;
+  const int r = 47;
+
+  uint64_t h = seed ^ (len * m);
+
+  const uint64_t * data =static_cast<const uint64_t*>(key);
+  const uint64_t * end = data + (len/8);
+
+  while(data != end) {
+    uint64_t k = *data++;
+
+    k *= m;
+    k ^= k >> r;
+    k *= m;
+
+    h ^= k;
+    h *= m;
+  }
+
+  const unsigned char * data2 = reinterpret_cast<const unsigned char*>(data);
+
+  switch (len & 7) {
+    case 7: h ^= uint64_t(data2[6]) << 48; [[clang::fallthrough]];
+    case 6: h ^= uint64_t(data2[5]) << 40; [[clang::fallthrough]];
+    case 5: h ^= uint64_t(data2[4]) << 32; [[clang::fallthrough]];
+    case 4: h ^= uint64_t(data2[3]) << 24; [[clang::fallthrough]];
+    case 3: h ^= uint64_t(data2[2]) << 16; [[clang::fallthrough]];
+    case 2: h ^= uint64_t(data2[1]) << 8;  [[clang::fallthrough]];
+    case 1: h ^= uint64_t(data2[0]);
+            h *= m;
+  };
+
+  h ^= h >> r;
+  h *= m;
+  h ^= h >> r;
+
+  return h;
+}
 
 //-----------------------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 
 
+#define BIG_CONSTANT(x) (x##LLU)
 inline uint64_t ROTL64 ( uint64_t x, int8_t r ) {
   return (x << r) | (x >> (64 - r));
 }
 
-#define BIG_CONSTANT(x) (x##LLU)
 
 //-----------------------------------------------------------------------------
 // Block read - if your platform needs to do endian-swapping or can only
@@ -474,8 +407,7 @@ inline __attribute__((always_inline)) uint64_t fmix64 ( uint64_t k ) {
 }
 
 
-void MurmurHash3_x64_128 ( const void * key, const int len,
-                           const uint32_t seed, void * out ) {
+void Ftrl::hash_murmur3 ( const void * key, const int len, void * out) {
   const uint8_t * data = static_cast<const uint8_t*>(key);
   const int nblocks = len / 16;
 
@@ -546,3 +478,6 @@ void MurmurHash3_x64_128 ( const void * key, const int len,
   (static_cast<uint64_t*>(out))[0] = h1;
   (static_cast<uint64_t*>(out))[1] = h2;
 }
+
+
+
