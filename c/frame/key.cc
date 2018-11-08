@@ -61,6 +61,10 @@ void py::Frame::set_key(obj val) {
       }
     }
   }
+  else {
+    throw TypeError() << "Key should be a column name, or a list/tuple of "
+        "column names, instead it was a " << val.typeobj();
+  }
   _clear_types();
   dt->set_key(col_indices);
 }
