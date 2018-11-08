@@ -10,10 +10,10 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 
 ::
 
-import datatable as dt
-import numpy as np
-np.random.seed(1)
-dt.Frame(np.random.randn(1000000))
+  import datatable as dt
+  import numpy as np
+  np.random.seed(1)
+  dt.Frame(np.random.randn(1000000))
 
 .. raw:: html
 
