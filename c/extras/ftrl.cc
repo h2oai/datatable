@@ -19,44 +19,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#define dt_EXTRAS_FTRL_cc
 #include "extras/ftrl.h"
+#include "extras/murmurhash.h"
 #include "frame/py_frame.h"
-#include "py_utils.h"
-#include "python/obj.h"
-#include "rowindex.h"
-#include "types.h"
 #include "utils/parallel.h"
-#include "utils/shared_mutex.h"
-#include <stdio.h>
-
+#include "datatablemodule.h"
 
 /*
 *  Read data from Python, train FTRL model and make predictions.
 */
-PyObject* ftrl(PyObject*, PyObject* args) {
+namespace py {
+  static PKArgs ftrl(
+    11, 0, 0, false, false,
+    {"df_train", "df_test", "a", "b", "l1", "l2", "d", "n_epochs", "inter",
+     "hash_type", "seed"}, "ftrl", "",
+     [](const py::PKArgs& args) -> py::oobj {
+       DataTable* dt_train = args[0].to_frame();
+       DataTable* dt_test = args[1].to_frame();
 
-  double a, b, l1, l2;
-  uint64_t d;
-  size_t n_epochs;
-  unsigned int seed, hash_type;
-  bool inter;
-  PyObject* arg1;
-  PyObject* arg2;
+       double a = args[2].to_double();
+       double b = args[3].to_double();
+       double l1 = args[4].to_double();
+       double l2 = args[5].to_double();
 
-  if (!PyArg_ParseTuple(args, "OOddddLnpII:ftrl", &arg1, &arg2,
-                        &a, &b, &l1, &l2, &d, &n_epochs, &inter, &hash_type,
-                        &seed)) return nullptr;
+       uint64_t d = static_cast<uint64_t>(args[6].to_size_t());
+       size_t n_epochs = args[7].to_size_t();
+       bool inter = args[8].to_bool_strict();
+       unsigned int hash_type = static_cast<unsigned int>(args[9].to_size_t());
+       unsigned int seed = static_cast<unsigned int>(args[10].to_size_t());
 
-  DataTable* dt_train = py::obj(arg1).to_frame();
-  DataTable* dt_test = py::obj(arg2).to_frame();
+       Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
+       ft.train(dt_train);
+       DataTable* dt_target = ft.test(dt_test).release();
+       py::Frame* frame_target = py::Frame::from_datatable(dt_target);
 
-  Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
-  ft.train(dt_train);
-  DataTable* dt_target = ft.test(dt_test).release();
-  py::Frame* frame_target = py::Frame::from_datatable(dt_target);
-
-  return frame_target;
+       return frame_target;
+     }
+  );
 }
 
 
@@ -76,10 +75,8 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
   seed(seed_in),
   inter(inter_in)
 {
-  n = DoublePtr(new double[d]);
-  w = DoublePtr(new double[d]);
-  std::memset(n.get(), 0, d * sizeof(double));
-  std::memset(w.get(), 0, d * sizeof(double));
+  n = DoublePtr(new double[d]());
+  w = DoublePtr(new double[d]());
 
   // Initialize weights with random [0; 1] numbers
   z = DoublePtr(new double[d]);
@@ -252,16 +249,16 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
              }
     // 64 bits Murmur2 hash function. The best performer so far,
     // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len); break;
+    case 1:  res = hash_murmur2(key, len, seed); break;
 
     // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
     case 2:  {
                 uint64_t h[2];
-                hash_murmur3(key, len, h);
+                hash_murmur3(key, len, seed, h);
                 res = h[0];
                 break;
              }
-    default: res = hash_murmur2(key, len);
+    default: res = hash_murmur2(key, len, seed);
   }
   return res;
 }
@@ -375,153 +372,6 @@ inline uint64_t Ftrl::hash_double(double x) {
 }
 
 
-/*
-*  Murmur2 hash function by Austin Appleby.
-*  More details at https://sites.google.com/site/murmurhash/
-*/
-uint64_t Ftrl::hash_murmur2 (const void * key, uint64_t len) {
-  const uint64_t m = 0xc6a4a7935bd1e995;
-  const int r = 47;
-
-  uint64_t h = seed ^ (len * m);
-
-  const uint64_t * data =static_cast<const uint64_t*>(key);
-  const uint64_t * end = data + (len/8);
-
-  while(data != end) {
-    uint64_t k = *data++;
-
-    k *= m;
-    k ^= k >> r;
-    k *= m;
-
-    h ^= k;
-    h *= m;
-  }
-
-  const unsigned char * data2 = reinterpret_cast<const unsigned char*>(data);
-
-  switch (len & 7) {
-    case 7: h ^= uint64_t(data2[6]) << 48; [[clang::fallthrough]];
-    case 6: h ^= uint64_t(data2[5]) << 40; [[clang::fallthrough]];
-    case 5: h ^= uint64_t(data2[4]) << 32; [[clang::fallthrough]];
-    case 4: h ^= uint64_t(data2[3]) << 24; [[clang::fallthrough]];
-    case 3: h ^= uint64_t(data2[2]) << 16; [[clang::fallthrough]];
-    case 2: h ^= uint64_t(data2[1]) << 8;  [[clang::fallthrough]];
-    case 1: h ^= uint64_t(data2[0]);
-            h *= m;
-  };
-
-  h ^= h >> r;
-  h *= m;
-  h ^= h >> r;
-
-  return h;
-}
-
-
-/*
-*  Murmur3 hash function by Austin Appleby.
-*  More details at https://github.com/aappleby/smhasher
-*/
-void Ftrl::hash_murmur3 ( const void * key, const uint64_t len, void * out) {
-  const uint8_t * data = static_cast<const uint8_t*>(key);
-  const uint64_t nblocks = len / 16;
-
-  uint64_t h1 = seed;
-  uint64_t h2 = seed;
-
-  const uint64_t c1 = BIG_CONSTANT(0x87c37b91114253d5);
-  const uint64_t c2 = BIG_CONSTANT(0x4cf5ad432745937f);
-
-  //----------
-  // body
-
-  const uint64_t * blocks = reinterpret_cast<const uint64_t *>(data);
-
-  for(uint64_t i = 0; i < nblocks; i++) {
-    uint64_t k1 = getblock64(blocks,i*2+0);
-    uint64_t k2 = getblock64(blocks,i*2+1);
-
-    k1 *= c1; k1  = ROTL64(k1,31); k1 *= c2; h1 ^= k1;
-    h1 = ROTL64(h1,27); h1 += h2; h1 = h1*5+0x52dce729;
-    k2 *= c2; k2  = ROTL64(k2,33); k2 *= c1; h2 ^= k2;
-    h2 = ROTL64(h2,31); h2 += h1; h2 = h2*5+0x38495ab5;
-  }
-
-  //----------
-  // tail
-
-  const uint8_t * tail = static_cast<const uint8_t*>(data + nblocks*16);
-
-  uint64_t k1 = 0;
-  uint64_t k2 = 0;
-
-  switch(len & 15) {
-    case 15: k2 ^= (static_cast<uint64_t>(tail[14])) << 48; [[clang::fallthrough]];
-    case 14: k2 ^= (static_cast<uint64_t>(tail[13])) << 40; [[clang::fallthrough]];
-    case 13: k2 ^= (static_cast<uint64_t>(tail[12])) << 32; [[clang::fallthrough]];
-    case 12: k2 ^= (static_cast<uint64_t>(tail[11])) << 24; [[clang::fallthrough]];
-    case 11: k2 ^= (static_cast<uint64_t>(tail[10])) << 16; [[clang::fallthrough]];
-    case 10: k2 ^= (static_cast<uint64_t>(tail[ 9])) << 8; [[clang::fallthrough]];
-    case  9: k2 ^= (static_cast<uint64_t>(tail[ 8])) << 0;
-             k2 *= c2; k2  = ROTL64(k2,33); k2 *= c1; h2 ^= k2; [[clang::fallthrough]];
-
-    case  8: k1 ^= (static_cast<uint64_t>(tail[ 7])) << 56; [[clang::fallthrough]];
-    case  7: k1 ^= (static_cast<uint64_t>(tail[ 6])) << 48; [[clang::fallthrough]];
-    case  6: k1 ^= (static_cast<uint64_t>(tail[ 5])) << 40; [[clang::fallthrough]];
-    case  5: k1 ^= (static_cast<uint64_t>(tail[ 4])) << 32; [[clang::fallthrough]];
-    case  4: k1 ^= (static_cast<uint64_t>(tail[ 3])) << 24; [[clang::fallthrough]];
-    case  3: k1 ^= (static_cast<uint64_t>(tail[ 2])) << 16; [[clang::fallthrough]];
-    case  2: k1 ^= (static_cast<uint64_t>(tail[ 1])) << 8; [[clang::fallthrough]];
-    case  1: k1 ^= (static_cast<uint64_t>(tail[ 0])) << 0;
-             k1 *= c1; k1  = ROTL64(k1,31); k1 *= c2; h1 ^= k1;
-  };
-
-  //----------
-  // finalization
-
-  h1 ^= static_cast<const uint64_t>(len); h2 ^= static_cast<const uint64_t>(len);
-
-  h1 += h2;
-  h2 += h1;
-
-  h1 = fmix64(h1);
-  h2 = fmix64(h2);
-
-  h1 += h2;
-  h2 += h1;
-
-  (static_cast<uint64_t*>(out))[0] = h1;
-  (static_cast<uint64_t*>(out))[1] = h2;
-}
-
-
-/*
-* Some helper functions for Murmur3 hash
-*/
-inline uint64_t Ftrl::ROTL64 ( uint64_t x, int8_t r ) {
-  return (x << r) | (x >> (64 - r));
-}
-
-/*
-* Block read - if your platform needs to do endian-swapping or can only
-* handle aligned reads, do the conversion here
-*/
-inline uint64_t Ftrl::getblock64(const uint64_t * p, uint64_t i ) {
-  return p[i];
-}
-
-
-/*
-* Finalization mix - force all bits of a hash block to avalanche
-*/
-inline uint64_t Ftrl::fmix64 ( uint64_t k ) {
-  k ^= k >> 33;
-  k *= BIG_CONSTANT(0xff51afd7ed558ccd);
-  k ^= k >> 33;
-  k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
-  k ^= k >> 33;
-
-  return k;
+void DatatableModule::init_methods_ftrl() {
+  ADDFN(py::ftrl);
 }

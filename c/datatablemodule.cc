@@ -199,8 +199,8 @@ void DatatableModule::init_methods() {
   add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
-  add(METHODv(aggregate));
-  add(METHODv(ftrl));
+  init_methods_ftrl();
+  init_methods_aggregate();
   init_methods_str();
   init_methods_options();
   init_methods_sets();

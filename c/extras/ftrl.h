@@ -19,13 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <vector>
-#include <string>
-#include "types.h"
-#include "datatable.h"
-#include <random>
 #include "py_datatable.h"
-#include "utils.h"
 
 typedef std::unique_ptr<double[]> DoublePtr;
 typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
@@ -49,12 +43,6 @@ class Ftrl {
     uint64_t hash_string(const char *, size_t);
     static uint64_t hash_double(double);
     void hash_row(Uint64Ptr&, const DataTable*, size_t);
-    uint64_t hash_murmur2(const void *, uint64_t);
-    void hash_murmur3(const void *, uint64_t, void *);
-
-    uint64_t ROTL64(uint64_t, int8_t);
-    uint64_t getblock64 (const uint64_t *, uint64_t);
-    uint64_t fmix64 (uint64_t);
 
   private:
     double a;
@@ -73,11 +61,3 @@ class Ftrl {
     bool inter;
     uint64_t : 56;
 };
-
-
-DECLARE_FUNCTION(
-  ftrl,
-  "ftrl(self, dt_test, a=0.005, b=1.0, l1=0.0, l2=1.0, d=2**24, n_epochs=1, inter=0, hash_type=1, seed=0)\n\n",
-  dt_EXTRAS_FTRL_cc)
-
-#define BIG_CONSTANT(x) (x##LLU)

@@ -59,6 +59,8 @@ class Arg : public _obj::error_manager {
     bool        to_bool_strict   () const;
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
+    size_t      to_size_t        () const;
+    double      to_double        () const;
     py::olist   to_pylist        () const;
     py::odict   to_pydict        () const;
     std::string to_string        () const;

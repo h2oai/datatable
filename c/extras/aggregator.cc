@@ -5,7 +5,6 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#define dt_EXTRAS_AGGREGATOR_cc
 #include "extras/aggregator.h"
 #include "frame/py_frame.h"
 #include "py_utils.h"
@@ -14,31 +13,43 @@
 #include "types.h"
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
+#include "datatablemodule.h"
+#include "python/float.h"
+#include "python/int.h"
 
 
 /*
 *  Reading data from Python and passing it to the C++ aggregator.
 */
-PyObject* aggregate(PyObject*, PyObject* args)
-{
-  size_t min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions;
-  unsigned int seed, nthreads;
-  PyObject* arg1;
-  PyObject* progress_fn;
+namespace py {
+  static PKArgs aggregate(
+    10, 0, 0, false, false,
+    {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
+     "max_dimensions", "seed", "progress_fn", "nthreads"}, "aggregate", "",
+     [](const py::PKArgs& args) -> py::oobj {
+       DataTable* dt = args[0].to_frame();
 
-  if (!PyArg_ParseTuple(args, "OnnnnnnIOI:aggregate", &arg1, &min_rows, &n_bins,
-                        &nx_bins, &ny_bins, &nd_max_bins, &max_dimensions, &seed,
-                        &progress_fn, &nthreads)) return nullptr;
-  DataTable* dt = py::obj(arg1).to_frame();
+       size_t min_rows = args[1].to_size_t();
+       size_t n_bins = args[2].to_size_t();
+       size_t nx_bins = args[3].to_size_t();
+       size_t ny_bins = args[4].to_size_t();
+       size_t nd_max_bins = args[5].to_size_t();
+       size_t max_dimensions = args[6].to_size_t();
 
-  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
-                 seed, progress_fn, nthreads);
+       unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
+       py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
+       unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
 
-  // dt_exemplars changes in-place with a new column added to the end of it
-  DataTable* dt_members = agg.aggregate(dt).release();
-  py::Frame* frame_members = py::Frame::from_datatable(dt_members);
+       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
+                      seed, progress_fn, nthreads);
 
-  return frame_members;
+       // dt changes in-place with a new column added to the end of it
+       DataTable* dt_members = agg.aggregate(dt).release();
+       py::Frame* frame_members = py::Frame::from_datatable(dt_members);
+
+       return frame_members;
+     }
+  );
 }
 
 
@@ -47,7 +58,7 @@ PyObject* aggregate(PyObject*, PyObject* args)
 */
 Aggregator::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
                        size_t ny_bins_in, size_t nd_max_bins_in, size_t max_dimensions_in,
-                       unsigned int seed_in, PyObject* progress_fn_in, unsigned int nthreads_in) :
+                       unsigned int seed_in, py::oobj progress_fn_in, unsigned int nthreads_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
@@ -862,7 +873,17 @@ void Aggregator::print_progress(double progress, int status_code) {
 *  otherwise just print the progress bar.
 */
 void Aggregator::progress(double progress, int status_code /*= 0*/) {
-  if (PyCallable_Check(progress_fn)) {
-    PyObject_CallFunction(progress_fn,"di",progress,status_code);
-  } else print_progress(progress, status_code);
+  if (progress_fn.is_none()) {
+    print_progress(progress, status_code);
+  } else {
+    py::otuple args(2);
+    args.set(0, py::ofloat(progress));
+    args.set(1, py::oint(status_code));
+    progress_fn.call(args);
+  }
+}
+
+
+void DatatableModule::init_methods_aggregate() {
+  ADDFN(py::aggregate);
 }
