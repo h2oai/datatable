@@ -132,4 +132,3 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
 
   nkeys = K;
 }
-
