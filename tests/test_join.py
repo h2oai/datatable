@@ -16,7 +16,7 @@ def test_join_simple():
     d0 = dt.Frame([[1, 3, 2, 1, 1, 2, 0], list("abcdefg")], names=("A", "B"))
     d1 = dt.Frame([range(4), ["zero", "one", "two", "three"]], names=("A", "V"),
                   stypes=d0.stypes)
-    d1.key1 = "A"
+    d1.key = "A"
     res = d0[:, :, join(d1)]
     res.internal.check()
     assert res.shape == (7, 3)
@@ -30,7 +30,7 @@ def test_join_simple():
 def test_join_strings():
     d0 = dt.Frame([[1, 3, 2, 1, 1, 2, 0], list("cabdabb")], names=("A", "B"))
     d1 = dt.Frame([list("abcd"), range(0, 20, 5)], names=("B", "V"))
-    d1.key1 = "B"
+    d1.key = "B"
     res = d0[:, :, join(d1)]
     res.internal.check()
     assert res.shape == (7, 3)
@@ -44,7 +44,7 @@ def test_join_strings():
 def test_join_missing_levels():
     d0 = dt.Frame(A=[1, 2, 3])
     d1 = dt.Frame(A=[1, 2], K=[True, False])
-    d1.key1 = "A"
+    d1.key = "A"
     res = d0[:, :, join(d1)]
     res.internal.check()
     assert res.topython() == [[1, 2, 3], [True, False, None]]
@@ -56,7 +56,7 @@ def test_join_errors():
     with pytest.raises(ValueError) as e:
         d0[:, :, join(d1)]
     assert "The join frame is not keyed" in str(e.value)
-    d1.key1 = "B"
+    d1.key = "B"
     with pytest.raises(ValueError) as e:
         d0[:, :, join(d1)]
     assert "Key column `B` does not exist in the left Frame" in str(e.value)
@@ -95,7 +95,7 @@ def test_join_random(seed, lt):
     nkeys = len(keys)
 
     dkey = dt.Frame(KEY=keys, VAL=range(nkeys), stypes={"KEY": st})
-    dkey.key1 = "KEY"
+    dkey.key = "KEY"
     keys, vals = dkey.topython()
     main = [random.choice(keys) for i in range(ndata)]
     dmain = dt.Frame(KEY=main, stype=st)
@@ -112,7 +112,7 @@ def test_join_random(seed, lt):
 def test_join_update():
     d0 = dt.Frame([[1, 2, 3, 2, 3, 1, 3, 2, 2, 1], range(10)], names=("A", "B"))
     d1 = d0[:, mean(f.B), f.A]
-    d1.key1 = "A"
+    d1.key = "A"
     d0[:, "AA", join(d1)] = g.V0
     assert d0.names == ("A", "B", "AA")
     a = 4.75
@@ -127,7 +127,7 @@ def test_join_and_select_g_col():
     # See issue #1352
     F = dt.Frame(a=[0, 2, 3], b=[3, 4, 2])
     G = dt.Frame(b=[2, 4], c=["foo", "bar"])
-    G.key1 = "b"
+    G.key = "b"
     R = F[:, g.c, join(G)]
     R.internal.check()
     assert R.shape == (3, 1)

@@ -218,47 +218,6 @@ oobj Frame::get_ltypes() const {
 }
 
 
-oobj Frame::get_key() const {
-  py::otuple key(dt->nkeys);
-  py::otuple names = get_names().to_pytuple();
-  for (size_t i = 0; i < dt->nkeys; ++i) {
-    key.set(i, names[i]);
-  }
-  return std::move(key);
-}
-
-void Frame::set_key(obj val) {
-  if (val.is_none()) {
-    dt->nkeys = 0;
-    return;
-  }
-  std::vector<size_t> col_indices;
-  if (val.is_string()) {
-    size_t index = dt->xcolindex(val);
-    col_indices.push_back(index);
-  }
-  else if (val.is_list_or_tuple()) {
-    py::olist vallist = val.to_pylist();
-    for (size_t i = 0; i < vallist.size(); ++i) {
-      py::obj item = vallist[i];
-      if (vallist[i].is_string()) {
-        size_t index = dt->xcolindex(vallist[i]);
-        col_indices.push_back(index);
-      } else {
-        throw TypeError() << "Key should be a list/tuple of column names, "
-            "instead element " << i << " was a " << item.typeobj();
-      }
-    }
-  }
-  if (col_indices.empty()) {
-    dt->nkeys = 0;
-    return;
-  }
-  _clear_types();
-  dt->set_keys(col_indices);
-}
-
-
 oobj Frame::get_internal() const {
   return oobj(core_dt);
 }

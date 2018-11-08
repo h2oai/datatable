@@ -364,6 +364,27 @@ void DataTable::replace_names(py::odict replacements) {
 }
 
 
+void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
+  xassert(col_indices.size() == ncols);
+  strvec newnames;
+  newnames.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    newnames.push_back(std::move(names[col_indices[i]]));
+  }
+  names = std::move(newnames);
+  if (py_names) {
+    py::otuple new_py_names(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      py::obj pyname = py_names[col_indices[i]];
+      new_py_names.set(i, pyname);
+      py_inames.set(pyname, py::oint(i));
+    }
+    py_names = std::move(new_py_names);
+  }
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // DataTable private helpers

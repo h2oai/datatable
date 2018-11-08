@@ -102,7 +102,8 @@ class DataTable {
     RowIndex sortby(const std::vector<size_t>& colindices,
                     Groupby* out_grps) const;
 
-    const std::vector<std::string>& get_names() const;
+    // Names
+    const strvec& get_names() const;
     py::otuple get_pynames() const;
     int64_t colindex(const py::_obj& pyname) const;
     size_t xcolindex(const py::_obj& pyname) const;
@@ -111,8 +112,10 @@ class DataTable {
     void set_names(const py::olist& names_list);
     void set_names(const std::vector<std::string>& names_list);
     void replace_names(py::odict replacements);
+    void reorder_names(const std::vector<size_t>& col_indices);
 
     void set_nkeys(size_t nk);
+    void set_keys(std::vector<size_t>& col_indices);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
