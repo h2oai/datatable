@@ -8,7 +8,7 @@ import datatable as dt
 from datatable.lib import core
 
 
-def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
+def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
               nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
               nthreads=0):
     """
@@ -16,6 +16,8 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
 
     Parameters
     ----------
+    dt_in: datatable
+        Frame to be aggregated in-place.
     min_rows: int
         Minimum number of rows in a dataset to perform an aggregation on.
     n_bins: int
@@ -49,7 +51,7 @@ def aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     if progress_fn is not None and not callable(progress_fn):
         raise dt.TypeError("`progress_fn` argument should be a function")
 
-    dt_members = core.aggregate(self, min_rows, n_bins, nx_bins, ny_bins,
+    dt_members = core.aggregate(dt_in, min_rows, n_bins, nx_bins, ny_bins,
                                 nd_max_bins, max_dimensions, seed, progress_fn,
                                 nthreads)
 

@@ -29,7 +29,7 @@ typedef std::unique_ptr<ex> ExPtr;
 class Aggregator {
   public:
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, PyObject*, unsigned int);
+               unsigned int, py::oobj, unsigned int);
     dtptr aggregate(DataTable*);
     static constexpr double epsilon = 1.0e-15;
     static void set_norm_coeffs(double&, double&, double, double, size_t);
@@ -44,7 +44,7 @@ class Aggregator {
     size_t max_dimensions;
     unsigned int seed;
     unsigned int nthreads;
-    PyObject* progress_fn;
+    py::oobj progress_fn;
 
     // Grouping and aggregating methods
     void group_0d(const DataTable*, dtptr&);
@@ -76,9 +76,3 @@ class Aggregator {
     size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(double, int status_code=0);
 };
-
-
-DECLARE_FUNCTION(
-  aggregate,
-  "aggregate(self, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50, nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None, nthreads=0)\n\n",
-  dt_EXTRAS_AGGREGATOR_cc)
