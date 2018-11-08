@@ -62,12 +62,12 @@ class DataTable {
   public:
     size_t   nrows;
     size_t   ncols;
-    size_t   nkeys;
     RowIndex rowindex;  // DEPRECATED (see #1188)
     Groupby  groupby;
     colvec   columns;
 
   private:
+    size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
@@ -114,8 +114,10 @@ class DataTable {
     void replace_names(py::odict replacements);
     void reorder_names(const std::vector<size_t>& col_indices);
 
-    void set_nkeys(size_t nk);
-    void set_keys(std::vector<size_t>& col_indices);
+    // Key
+    size_t get_nkeys() const;
+    void set_key(std::vector<size_t>& col_indices);
+    void clear_key();
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;

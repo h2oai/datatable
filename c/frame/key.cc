@@ -19,15 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <numeric>
 #include "frame/py_frame.h"
 #include "python/list.h"
 
 
 
+//------------------------------------------------------------------------------
+// py::Frame API
+//------------------------------------------------------------------------------
+
 py::oobj py::Frame::get_key() const {
-  py::otuple key(dt->nkeys);
+  py::otuple key(dt->get_nkeys());
   py::otuple names = get_names().to_pytuple();
-  for (size_t i = 0; i < dt->nkeys; ++i) {
+  for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
   }
   return std::move(key);
@@ -36,8 +41,7 @@ py::oobj py::Frame::get_key() const {
 
 void py::Frame::set_key(obj val) {
   if (val.is_none()) {
-    dt->nkeys = 0;
-    return;
+    return dt->clear_key();
   }
   std::vector<size_t> col_indices;
   if (val.is_string()) {
@@ -58,12 +62,25 @@ void py::Frame::set_key(obj val) {
     }
   }
   _clear_types();
-  dt->set_keys(col_indices);
+  dt->set_key(col_indices);
 }
 
 
 
-void DataTable::set_keys(std::vector<size_t>& col_indices) {
+//------------------------------------------------------------------------------
+// DataTable API
+//------------------------------------------------------------------------------
+
+size_t DataTable::get_nkeys() const {
+  return nkeys;
+}
+
+void DataTable::clear_key() {
+  nkeys = 0;
+}
+
+
+void DataTable::set_key(std::vector<size_t>& col_indices) {
   if (col_indices.empty()) {
     nkeys = 0;
     return;
@@ -78,6 +95,15 @@ void DataTable::set_keys(std::vector<size_t>& col_indices) {
       }
     }
   }
+
+  // Sort the table by the keys
+  Groupby gb;
+  RowIndex ri = sortby(col_indices, &gb);
+  xassert(ri.length() == nrows);
+  if (gb.ngroups() != nrows) {
+    throw ValueError() << "Cannot set a key: the values are not unique";
+  }
+
   // Fill col_indices with the indices of remaining columns
   auto is_key_column = [&](size_t i) -> bool {
     for (size_t j = 0; j < K; ++j) {
@@ -91,13 +117,19 @@ void DataTable::set_keys(std::vector<size_t>& col_indices) {
     }
   }
   xassert(col_indices.size() == ncols);
+
   // Reorder the columns
   std::vector<Column*> new_columns(ncols, nullptr);
   for (size_t i = 0; i < ncols; ++i) {
     new_columns[i] = columns[col_indices[i]];
   }
   columns = std::move(new_columns);
-  //
   reorder_names(col_indices);
-  set_nkeys(K);
+
+  // Apply sort key
+  replace_rowindex(ri.uplift(rowindex));
+  reify();
+
+  nkeys = K;
 }
+
