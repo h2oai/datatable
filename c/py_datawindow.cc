@@ -72,6 +72,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   // Window dimensions
   size_t ncols = col1 - col0;
   size_t nrows = row1 - row0;
+  size_t nkeys = dt->get_nkeys();
 
   RowIndex rindex(dt->rowindex);
   int no_rindex = rindex.isabsent();
@@ -89,7 +90,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   if (view == nullptr) goto fail;
   if (stypes == nullptr || ltypes == nullptr) goto fail;
   for (size_t s = 0; s < col1 - col0; ++s) {
-    size_t i = s < dt->nkeys? s : s + col0;
+    size_t i = s < nkeys? s : s + col0;
     Column* col = dt->columns[i];
 
     // Create and fill-in the `data` list

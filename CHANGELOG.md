@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     extracted).
 - HTML rendering of Frames inside a Jupyter notebook.
 - set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
+- support for multi-column keys.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --

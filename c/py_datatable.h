@@ -79,10 +79,6 @@ DECLARE_GETSET(
   groupby,
   "Groupby applied to the Frame, or None if no groupby was applied")
 
-DECLARE_GETSET(
-  nkeys,
-  "Number of key columns in the Frame")
-
 DECLARE_GETTER(
   datatable_ptr,
   "Get pointer (converted to an int) to the wrapped DataTable object")

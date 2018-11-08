@@ -84,7 +84,15 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   gs.add<&Frame::get_ltypes>("ltypes",
     "The tuple of each column's ltypes (\"logical types\")\n");
 
-  gs.add<&Frame::get_key>("key");
+  gs.add<&Frame::get_key, &Frame::set_key>("key",
+    "Tuple of column names that serve as a primary key for this Frame.\n"
+    "\n"
+    "If the Frame is not keyed, this will return an empty tuple.\n"
+    "\n"
+    "Assigning to this property will make the Frame keyed by the specified\n"
+    "column(s). The key columns will be moved to the front, and the Frame\n"
+    "will be sorted. The values in the key columns must be unique.\n");
+
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
 
@@ -127,7 +135,7 @@ void Frame::m__dealloc__() {
   dt = nullptr;  // `dt` is already managed by `core_dt`
 }
 
-void Frame::m__get_buffer__(Py_buffer* , int ) const {
+void Frame::m__get_buffer__(Py_buffer*, int) const {
 }
 
 void Frame::m__release_buffer__(Py_buffer*) const {
@@ -209,12 +217,6 @@ oobj Frame::get_ltypes() const {
   return oobj(ltypes);
 }
 
-
-oobj Frame::get_key() const {
-  py::otuple key(dt->nkeys);
-  // Fill in the keys...
-  return std::move(key);
-}
 
 oobj Frame::get_internal() const {
   return oobj(core_dt);

@@ -98,7 +98,7 @@ def test_jay_simple(tempfile):
     dt0.save(tempfile, format="jay")
     assert os.path.isfile(tempfile)
     with open(tempfile, "rb") as inp:
-        assert inp.read(8) == b"JAY1\0\0\0\0"
+        assert inp.read(8) == b"JAY1\x00\x00\x00\x00"
     dt1 = dt.open(tempfile)
     assert_equals(dt0, dt1)
 

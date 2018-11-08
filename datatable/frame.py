@@ -38,37 +38,6 @@ class Frame(core.Frame):
     This is a primary data structure for datatable module.
     """
 
-    @property
-    def key(self):
-        """Tuple of column names that comprise the Frame's key. If the Frame
-        is not keyed, this will return an empty tuple."""
-        return self.names[:self._dt.nkeys]
-
-
-    @key.setter
-    def key(self, colnames):
-        if colnames is None:
-            self._dt.nkeys = 0
-            return
-        if isinstance(colnames, (int, str)):
-            colnames = [colnames]
-        nk = len(colnames)
-        colindices = [self.colindex(n) for n in colnames]
-        if colindices == list(range(nk)):
-            # The key columns are already in the right order: no need to
-            # rearrange the columns
-            pass
-        elif len(set(colindices)) == nk:
-            allindices = colindices + [i for i in range(self.ncols)
-                                       if i not in colindices]
-            self.__init__(self[:, allindices])
-        else:
-            raise ValueError("Duplicate columns requested for the key: %r"
-                             % [self.names[i] for i in colindices])
-        self._dt.nkeys = nk
-
-
-
     #---------------------------------------------------------------------------
     # Display
     #---------------------------------------------------------------------------
@@ -90,7 +59,7 @@ class Frame(core.Frame):
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
         length = max(2, len(str(row1)))
-        nk = self._dt.nkeys
+        nk = len(self.key)
         return {
             "names": self.names[:nk] + self.names[col0 + nk:col1 + nk],
             "types": view.types,
@@ -100,7 +69,7 @@ class Frame(core.Frame):
         }
 
     def view(self, interactive=True):
-        widget = DataFrameWidget(self.nrows, self.ncols, self._dt.nkeys,
+        widget = DataFrameWidget(self.nrows, self.ncols, len(self.key),
                                  self._data_viewer, interactive)
         widget.render()
 

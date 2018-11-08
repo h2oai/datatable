@@ -169,31 +169,6 @@ void DataTable::replace_groupby(const Groupby& newgb) {
 }
 
 
-void DataTable::set_nkeys(size_t nk) {
-  if (nk == 0) {
-    nkeys = 0;
-    return;
-  }
-
-  Groupby gb;
-  std::vector<size_t> cols;
-  for (size_t i = 0; i < nk; ++i) {
-    cols.push_back(i);
-  }
-  RowIndex ri = sortby(cols, &gb);
-  xassert(ri.length() == nrows);
-
-  if (gb.ngroups() != nrows) {
-    throw ValueError() << "Cannot set column as a key: the values are not unique";
-  }
-
-  replace_rowindex(ri.uplift(rowindex));
-  reify();
-
-  nkeys = nk;
-}
-
-
 
 /**
  * Convert a DataTable view into an actual DataTable. This is done in-place.

@@ -22,8 +22,8 @@
 #include "utils/assert.h"
 #include "ztest.h"
 
-static double _dlevenshtein(
-    const std::string& a, const std::string& b, double* v);
+static double _dlevenshtein(const std::string& a, const std::string& b, double* v);
+static Error _name_not_found_error(const DataTable* dt, const std::string& name);
 
 
 //------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ oobj Frame::colindex(const PKArgs& args)
   if (col.is_string()) {
     int64_t index = dt->colindex(col.to_pyobj());
     if (index == -1) {
-      throw _name_not_found_error(col.to_string());
+      throw _name_not_found_error(dt, col.to_string());
     }
     return py::oint(index);
   }
@@ -198,8 +198,13 @@ oobj Frame::colindex(const PKArgs& args)
       "or an integer, not " << col.typeobj();
 }
 
+} // namespace py
 
-Error Frame::_name_not_found_error(const std::string& name) {
+
+
+static Error _name_not_found_error(
+    const DataTable* dt, const std::string& name
+) {
   const std::vector<std::string>& names = dt->get_names();
   auto tmp = std::unique_ptr<double[]>(new double[name.size() + 1]);
   double* vtmp = tmp.get();
@@ -245,9 +250,6 @@ Error Frame::_name_not_found_error(const std::string& name) {
 }
 
 
-} // namespace py
-
-
 
 
 //------------------------------------------------------------------------------
@@ -279,6 +281,20 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
   if (!py_inames) _init_pynames();
   py::obj pyindex = py_inames.get(pyname);
   return pyindex? pyindex.to_int64_strict() : -1;
+}
+
+
+/**
+ * Return the index of a column given its name; throw an exception if the
+ * column does not exist in the DataTable.
+ */
+size_t DataTable::xcolindex(const py::_obj& pyname) const {
+  if (!py_inames) _init_pynames();
+  py::obj pyindex = py_inames.get(pyname);
+  if (!pyindex) {
+    throw _name_not_found_error(this, pyname.to_string());
+  }
+  return pyindex.to_size_t();
 }
 
 
@@ -346,6 +362,27 @@ void DataTable::replace_names(py::odict replacements) {
   }
   set_names(newnames);
 }
+
+
+void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
+  xassert(col_indices.size() == ncols);
+  strvec newnames;
+  newnames.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    newnames.push_back(std::move(names[col_indices[i]]));
+  }
+  names = std::move(newnames);
+  if (py_names) {
+    py::otuple new_py_names(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      py::obj pyname = py_names[col_indices[i]];
+      new_py_names.set(i, pyname);
+      py_inames.set(pyname, py::oint(i));
+    }
+    py_names = std::move(new_py_names);
+  }
+}
+
 
 
 
