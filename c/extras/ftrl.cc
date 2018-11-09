@@ -25,35 +25,58 @@
 #include "utils/parallel.h"
 #include "datatablemodule.h"
 
+
 /*
-*  Read data from Python, train FTRL model and make predictions.
+*  Read data from Python and test an FTRL model.
 */
 namespace py {
-  static PKArgs ftrl(
-    11, 0, 0, false, false,
-    {"df_train", "df_test", "a", "b", "l1", "l2", "d", "n_epochs", "inter",
-     "hash_type", "seed"}, "ftrl", "",
+  static PKArgs ftrl_test(
+    4, 0, 0, false, false,
+    {"df_test", "df_model", "hash_type", "seed"}, "ftrl_test", "",
+     [](const py::PKArgs& args) -> py::oobj {
+       DataTable* dt_test = args[0].to_frame();
+       DataTable* dt_model = args[1].to_frame();
+
+       unsigned int hash_type = static_cast<unsigned int>(args[2].to_size_t());
+       unsigned int seed = static_cast<unsigned int>(args[3].to_size_t());
+
+       Ftrl ft(hash_type, seed);
+       DataTable* dt_target = ft.test(dt_test, dt_model).release();
+       py::Frame* df_target = py::Frame::from_datatable(dt_target);
+
+       return df_target;
+     }
+  );
+}
+
+
+/*
+*  Read data from Python and train an FTRL model.
+*/
+namespace py {
+  static PKArgs ftrl_train(
+    10, 0, 0, false, false,
+    {"df_train", "a", "b", "l1", "l2", "d", "n_epochs",
+     "inter", "hash_type", "seed"}, "ftrl_train", "",
      [](const py::PKArgs& args) -> py::oobj {
        DataTable* dt_train = args[0].to_frame();
-       DataTable* dt_test = args[1].to_frame();
 
-       double a = args[2].to_double();
-       double b = args[3].to_double();
-       double l1 = args[4].to_double();
-       double l2 = args[5].to_double();
+       double a = args[1].to_double();
+       double b = args[2].to_double();
+       double l1 = args[3].to_double();
+       double l2 = args[4].to_double();
 
-       uint64_t d = static_cast<uint64_t>(args[6].to_size_t());
-       size_t n_epochs = args[7].to_size_t();
-       bool inter = args[8].to_bool_strict();
-       unsigned int hash_type = static_cast<unsigned int>(args[9].to_size_t());
-       unsigned int seed = static_cast<unsigned int>(args[10].to_size_t());
+       uint64_t d = static_cast<uint64_t>(args[5].to_size_t());
+       size_t n_epochs = args[6].to_size_t();
+       bool inter = args[7].to_bool_strict();
+       unsigned int hash_type = static_cast<unsigned int>(args[8].to_size_t());
+       unsigned int seed = static_cast<unsigned int>(args[9].to_size_t());
 
        Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
-       ft.train(dt_train);
-       DataTable* dt_target = ft.test(dt_test).release();
-       py::Frame* frame_target = py::Frame::from_datatable(dt_target);
+       DataTable* dt_model = ft.train(dt_train).release();
+       py::Frame* df_model = py::Frame::from_datatable(dt_model);
 
-       return frame_target;
+       return df_model;
      }
   );
 }
@@ -75,29 +98,39 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
   seed(seed_in),
   inter(inter_in)
 {
-  n = DoublePtr(new double[d]());
-  w = DoublePtr(new double[d]());
+}
 
-  // Initialize weights with random [0; 1] numbers
-  z = DoublePtr(new double[d]);
-  srand(seed);
-  for (uint64_t i = 0; i < d; ++i){
-    z[i] = static_cast<double>(rand()) / RAND_MAX;
-  }
+
+/*
+*  Set up FTRL parameters and initialize weights.
+*/
+Ftrl::Ftrl(unsigned int hash_type_in, unsigned int seed_in) :
+  hash_type(hash_type_in),
+  seed(seed_in)
+{
 }
 
 
 /*
 *  Train FTRL model on a training dataset.
 */
-void Ftrl::train(const DataTable* dt) {
-  // Define number of features that equal to one bias term
-  // plus `dt->ncols - 1` columns. We assume that the target column
-  // is the last one.
-  n_features = dt->ncols;
+dtptr Ftrl::train(const DataTable* dt) {
+  // Create a model datatable.
+  Column* col_z = Column::new_data_column(SType::FLOAT64, d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, d);
+  dtptr dt_model = dtptr(new DataTable({col_z, col_n}, {"z", "n"}));
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
+
+  std::memset(z, 0, d * sizeof(double));
+  std::memset(n, 0, d * sizeof(double));
+  w = DoublePtr(new double[d]());
+
+  // Define number of features assuming that the target column is the last one.
+  n_features = dt->ncols - 1;
 
   // Define number of feature interactions.
-  n_inter_features = (inter)? (n_features - 1) * (n_features - 2) / 2 : 0;
+  n_inter_features = (inter)? n_features * (n_features - 1) / 2 : 0;
 
   // Get the target column.
   auto c_target = static_cast<BoolColumn*>(dt->columns[dt->ncols - 1]);
@@ -112,8 +145,6 @@ void Ftrl::train(const DataTable* dt) {
     {
       // Array to store hashed features and feature interactions.
       Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_inter_features]);
-      // Bias term, do we need it? Results are quite similar with/without bias.
-      x[0] = 0;
       int32_t ith = omp_get_thread_num();
       nth = omp_get_num_threads();
 
@@ -124,28 +155,33 @@ void Ftrl::train(const DataTable* dt) {
         bool target = d_target[j];
         hash_row(x, dt, j);
         double p = predict(x, n_features + n_inter_features);
-        double loss = logloss(p, target);
+        update(x, n_features + n_inter_features, p, target);
 
+        double loss = logloss(p, target);
         #pragma omp atomic update
         total_loss += loss;
-
         if ((j+1) % REPORT_FREQUENCY == 0) {
           printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
                  "Current loss: %f\tAverage loss: %f\n",
                  i, j+1, p, loss, total_loss / (j+1));
         }
-        update(x, n_features + n_inter_features, p, target);
       }
     }
   }
+  return dt_model;
 }
 
 
 /*
 *  Make predictions for a test dataset and return targets as a new datatable.
 */
-dtptr Ftrl::test(const DataTable* dt) {
-  // Create a datatable to store targets.
+dtptr Ftrl::test(const DataTable* dt, const DataTable* dt_model) {
+  // Read model parameters.
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
+  w = DoublePtr(new double[d]());
+
+  // Create a target datatable.
   dtptr dt_target = nullptr;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
   dt_target = dtptr(new DataTable({col_target}, {"target"}));
@@ -156,7 +192,6 @@ dtptr Ftrl::test(const DataTable* dt) {
   #pragma omp parallel num_threads(nth)
   {
     Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_inter_features]);
-    x[0] = 0;
     int32_t ith = omp_get_thread_num();
     nth = omp_get_num_threads();
 
@@ -271,7 +306,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   uint64_t index;
 
-  for (size_t i = 0; i < n_features - 1; ++i) {
+  for (size_t i = 0; i < n_features; ++i) {
     std::string str;
     Column* c = dt->columns[i];
     LType ltype = info(c->stype()).ltype();
@@ -320,7 +355,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     // in different columns will result in different hashes.
     uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
     index += h;
-    x[i+1] = index % d;
+    x[i] = index % d;
   }
 
   // Do feature interaction if required. We may also want to test
@@ -328,7 +363,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   size_t count = 0;
   if (inter) {
     for (size_t i = 0; i < n_features - 1; ++i) {
-      for (size_t j = i + 1; j < n_features - 1; ++j) {
+      for (size_t j = i + 1; j < n_features; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
         x[n_features + count] = h % d;
@@ -372,6 +407,11 @@ inline uint64_t Ftrl::hash_double(double x) {
 }
 
 
-void DatatableModule::init_methods_ftrl() {
-  ADDFN(py::ftrl);
+void DatatableModule::init_methods_ftrl_train() {
+  ADDFN(py::ftrl_train);
+}
+
+
+void DatatableModule::init_methods_ftrl_test() {
+  ADDFN(py::ftrl_test);
 }

@@ -30,8 +30,10 @@ class Ftrl {
     Ftrl(double, double, double, double, uint64_t, size_t, bool,
          unsigned int, unsigned int);
 
-    void train(const DataTable*);
-    dtptr test(const DataTable*);
+    Ftrl(unsigned int, unsigned int);
+
+    dtptr train(const DataTable*);
+    dtptr test(const DataTable*, const DataTable*);
     double predict(const Uint64Ptr&, size_t);
     void update(const Uint64Ptr&, size_t, double, bool);
 
@@ -55,8 +57,8 @@ class Ftrl {
     size_t n_epochs;
     unsigned int hash_type;
     unsigned int seed;
-    DoublePtr n;
-    DoublePtr z;
+    double* z;
+    double* n;
     DoublePtr w;
     bool inter;
     uint64_t : 56;
