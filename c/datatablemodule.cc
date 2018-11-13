@@ -13,7 +13,7 @@
 #include "csv/writer.h"
 #include "expr/py_expr.h"
 #include "extras/aggregator.h"
-#include "extras/ftrl.h"
+#include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
@@ -199,8 +199,6 @@ void DatatableModule::init_methods() {
   add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
-  init_methods_ftrl_train();
-  init_methods_ftrl_test();
   init_methods_aggregate();
   init_methods_str();
   init_methods_options();
@@ -231,6 +229,7 @@ PyInit__datatable()
 
   try {
     py::Frame::Type::init(m);
+    py::Ftrl::Type::init(m);
 
     #ifdef DTTEST
       dttest::run_tests();

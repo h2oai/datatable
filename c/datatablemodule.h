@@ -29,8 +29,6 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
 
     void init_methods();
     void init_methods_aggregate();  // extra/aggergate.cc
-    void init_methods_ftrl_test();  // extra/ftrl.cc
-    void init_methods_ftrl_train(); // extra/ftrl.cc
     void init_methods_str();        // str/py_str.cc
     void init_methods_options();    // options.cc
     void init_methods_sets();       // set_funcs.cc

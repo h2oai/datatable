@@ -19,48 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "py_datatable.h"
+#include "python/ext_type.h"
+#include "extras/ftrl.h"
 
-typedef std::unique_ptr<double[]> DoublePtr;
-typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
-#define REPORT_FREQUENCY 1000
+namespace py {
+  class Ftrl : public PyObject {
+    public:
+      class Type : public ExtType<Ftrl> {
+        public:
+          static PKArgs args___init__;
+          static PKArgs args_fit;
+          static PKArgs args_predict;
+          static const char* classname();
+          static const char* classdoc();
+          static bool is_subclassable() { return true; }
+          static void init_methods_and_getsets(Methods&, GetSetters&);
+      };
+      void m__init__(PKArgs&);
+      void m__dealloc__();
+      oobj fit(const PKArgs&);
+      oobj predict(const PKArgs&);
 
-class FtrlModel {
-  public:
-    FtrlModel(double, double, double, double, uint64_t, size_t, bool,
-         unsigned int, unsigned int);
-
-    FtrlModel(unsigned int, unsigned int);
-
-    dtptr fit(const DataTable*);
-    dtptr predict(const DataTable*, const DataTable* = nullptr);
-    double predict_row(const Uint64Ptr&, size_t);
-    void update(const Uint64Ptr&, size_t, double, bool);
-
-    double logloss(double, bool);
-    static double signum(double);
-    static double sigmoid(double);
-    static double bsigmoid(double, double);
-
-    uint64_t hash_string(const char *, size_t);
-    static uint64_t hash_double(double);
-    void hash_row(Uint64Ptr&, const DataTable*, size_t);
-
-  private:
-    double a;
-    double b;
-    double l1;
-    double l2;
-    size_t n_features;
-    size_t n_inter_features;
-    uint64_t d;
-    size_t n_epochs;
-    unsigned int hash_type;
-    unsigned int seed;
-    double* z;
-    double* n;
-    DoublePtr w;
-    bool inter;
-    uint64_t : 56;
-};
-
+    private:
+      FtrlModel* fm;
+  };
+}

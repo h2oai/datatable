@@ -27,65 +27,9 @@
 
 
 /*
-*  Read data from Python and test an FTRL model.
-*/
-namespace py {
-  static PKArgs ftrl_test(
-    4, 0, 0, false, false,
-    {"df_test", "df_model", "hash_type", "seed"}, "ftrl_test", "",
-     [](const py::PKArgs& args) -> py::oobj {
-       DataTable* dt_test = args[0].to_frame();
-       DataTable* dt_model = args[1].to_frame();
-
-       unsigned int hash_type = static_cast<unsigned int>(args[2].to_size_t());
-       unsigned int seed = static_cast<unsigned int>(args[3].to_size_t());
-
-       Ftrl ft(hash_type, seed);
-       DataTable* dt_target = ft.test(dt_test, dt_model).release();
-       py::Frame* df_target = py::Frame::from_datatable(dt_target);
-
-       return df_target;
-     }
-  );
-}
-
-
-/*
-*  Read data from Python and train an FTRL model.
-*/
-namespace py {
-  static PKArgs ftrl_train(
-    10, 0, 0, false, false,
-    {"df_train", "a", "b", "l1", "l2", "d", "n_epochs",
-     "inter", "hash_type", "seed"}, "ftrl_train", "",
-     [](const py::PKArgs& args) -> py::oobj {
-       DataTable* dt_train = args[0].to_frame();
-
-       double a = args[1].to_double();
-       double b = args[2].to_double();
-       double l1 = args[3].to_double();
-       double l2 = args[4].to_double();
-
-       uint64_t d = static_cast<uint64_t>(args[5].to_size_t());
-       size_t n_epochs = args[6].to_size_t();
-       bool inter = args[7].to_bool_strict();
-       unsigned int hash_type = static_cast<unsigned int>(args[8].to_size_t());
-       unsigned int seed = static_cast<unsigned int>(args[9].to_size_t());
-
-       Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
-       DataTable* dt_model = ft.train(dt_train).release();
-       py::Frame* df_model = py::Frame::from_datatable(dt_model);
-
-       return df_model;
-     }
-  );
-}
-
-
-/*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
+FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
            uint64_t d_in, size_t nepochs_in, bool inter_in,
            unsigned int hash_type_in, unsigned int seed_in) :
   a(a_in),
@@ -104,7 +48,7 @@ Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(unsigned int hash_type_in, unsigned int seed_in) :
+FtrlModel::FtrlModel(unsigned int hash_type_in, unsigned int seed_in) :
   hash_type(hash_type_in),
   seed(seed_in)
 {
@@ -114,7 +58,7 @@ Ftrl::Ftrl(unsigned int hash_type_in, unsigned int seed_in) :
 /*
 *  Train FTRL model on a training dataset.
 */
-dtptr Ftrl::train(const DataTable* dt) {
+dtptr FtrlModel::fit(const DataTable* dt) {
   // Create a model datatable.
   Column* col_z = Column::new_data_column(SType::FLOAT64, d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, d);
@@ -124,6 +68,7 @@ dtptr Ftrl::train(const DataTable* dt) {
 
   std::memset(z, 0, d * sizeof(double));
   std::memset(n, 0, d * sizeof(double));
+
   w = DoublePtr(new double[d]());
 
   // Define number of features assuming that the target column is the last one.
@@ -154,7 +99,7 @@ dtptr Ftrl::train(const DataTable* dt) {
 
         bool target = d_target[j];
         hash_row(x, dt, j);
-        double p = predict(x, n_features + n_inter_features);
+        double p = predict_row(x, n_features + n_inter_features);
         update(x, n_features + n_inter_features, p, target);
 
         double loss = logloss(p, target);
@@ -175,10 +120,12 @@ dtptr Ftrl::train(const DataTable* dt) {
 /*
 *  Make predictions for a test dataset and return targets as a new datatable.
 */
-dtptr Ftrl::test(const DataTable* dt, const DataTable* dt_model) {
+dtptr FtrlModel::predict(const DataTable* dt, const DataTable* dt_model /* = nullptr */) {
   // Read model parameters.
-  z = static_cast<double*>(dt_model->columns[0]->data_w());
-  n = static_cast<double*>(dt_model->columns[1]->data_w());
+  if (dt_model != nullptr) {
+    z = static_cast<double*>(dt_model->columns[0]->data_w());
+    n = static_cast<double*>(dt_model->columns[1]->data_w());
+  }
   w = DoublePtr(new double[d]());
 
   // Create a target datatable.
@@ -200,7 +147,7 @@ dtptr Ftrl::test(const DataTable* dt, const DataTable* dt_model) {
          j+= static_cast<size_t>(nth)) {
 
       hash_row(x, dt, j);
-      d_target[j] = predict(x, n_features + n_inter_features);
+      d_target[j] = predict_row(x, n_features + n_inter_features);
       if ((j+1) % REPORT_FREQUENCY == 0) {
         printf("Row: %zu\tPrediction: %f\n", j+1, d_target[j]);
       }
@@ -214,7 +161,7 @@ dtptr Ftrl::test(const DataTable* dt, const DataTable* dt_model) {
 /*
 *  Make a prediction for an array of hashed features.
 */
-double Ftrl::predict(const Uint64Ptr& x, size_t x_size) {
+double FtrlModel::predict_row(const Uint64Ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
@@ -233,7 +180,7 @@ double Ftrl::predict(const Uint64Ptr& x, size_t x_size) {
 /*
 *  Sigmoid function.
 */
-inline double Ftrl::sigmoid(double x) {
+inline double FtrlModel::sigmoid(double x) {
   double res = 1.0 / (1.0 + exp(-x));
 
   return res;
@@ -243,7 +190,7 @@ inline double Ftrl::sigmoid(double x) {
 /*
 *  Bounded sigmoid function.
 */
-inline double Ftrl::bsigmoid(double x, double b) {
+inline double FtrlModel::bsigmoid(double x, double b) {
   double res = 1 / (1 + exp(-std::max(std::min(x, b), -b)));
 
   return res;
@@ -253,7 +200,7 @@ inline double Ftrl::bsigmoid(double x, double b) {
 /*
 *  Update weights based on prediction and the actual target.
 */
-void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
+void FtrlModel::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
   double g = p - target;
 
   for (size_t j = 0; j < x_size; ++j) {
@@ -270,7 +217,7 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
 *  for production we will remove this method and stick to the hash function,
 *  that demonstrates the best performance.
 */
-uint64_t Ftrl::hash_string(const char * key, size_t len) {
+uint64_t FtrlModel::hash_string(const char * key, size_t len) {
   uint64_t res;
   switch (hash_type) {
     // `std::hash` is kind of slow, because we need to convert `char*` to
@@ -302,7 +249,7 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
 /*
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
-void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
+void FtrlModel::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   uint64_t index;
 
@@ -377,7 +324,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
 /*
 *  Calculate logloss based on a prediction and the actual target.
 */
-double Ftrl::logloss(double p, bool target) {
+double FtrlModel::logloss(double p, bool target) {
   double epsilon = std::numeric_limits<double>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   if (target) {
@@ -391,7 +338,7 @@ double Ftrl::logloss(double p, bool target) {
 /*
 *  Calculate signum.
 */
-inline double Ftrl::signum(double x) {
+inline double FtrlModel::signum(double x) {
   if (x > 0) return 1;
   if (x < 0) return -1;
   return 0;
@@ -401,17 +348,7 @@ inline double Ftrl::signum(double x) {
 /*
 *  Hash `double` to `uint64_t` based on its bit representation.
 */
-inline uint64_t Ftrl::hash_double(double x) {
+inline uint64_t FtrlModel::hash_double(double x) {
   uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
-}
-
-
-void DatatableModule::init_methods_ftrl_train() {
-  ADDFN(py::ftrl_train);
-}
-
-
-void DatatableModule::init_methods_ftrl_test() {
-  ADDFN(py::ftrl_test);
 }
