@@ -204,6 +204,7 @@ void DatatableModule::init_methods() {
   init_methods_str();
   init_methods_options();
   init_methods_sets();
+  init_methods_join();
 }
 
 

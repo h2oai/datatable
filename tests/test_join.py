@@ -134,3 +134,18 @@ def test_join_and_select_g_col():
     assert R.stypes == (stype.str32,)
     # assert R.names == ("c",)   # not working yet
     assert R.topython() == [[None, "bar", "foo"]]
+
+
+def test_join_multi():
+    fr1 = dt.Frame(A=[1, 2, 1, 2],
+                   B=[3, 3, 4, 4],
+                   C=["goo", "blah", "zoe", "rij"])
+    fr1.key = ("A", "B")
+    fr2 = dt.Frame([[1, 2, 3, 2, 3, 1, 2, 1, 1],
+                    [3, 4, 5, 4, 3, 3, 3, 4, 3]], names=("A", "B"))
+    res = fr2[:, :, join(fr1)]
+    assert res.names == ("A", "B", "C")
+    assert res.to_list() == [[1, 2, 3, 2, 3, 1, 2, 1, 1],
+                             [3, 4, 5, 4, 3, 3, 3, 4, 3],
+                             ["goo", "rij", None, "rij", None,
+                              "goo", "blah", "zoe", "goo"]]
