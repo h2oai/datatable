@@ -149,3 +149,41 @@ def test_join_multi():
                              [3, 4, 5, 4, 3, 3, 3, 4, 3],
                              ["goo", "rij", None, "rij", None,
                               "goo", "blah", "zoe", "goo"]]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+def test_join_multi_random(seed):
+    num_stypes = [dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64]
+    str_stypes = [dt.str32, dt.str64]
+    src0 = [False, True, None]
+    src1 = list(range(10)) + [None]
+    src2 = list(range(-50, 50)) + [None]
+    src3 = list("abcdefg?") + [None]
+    all_srcs = [src0, src1, src2, src3]
+    all_stypes = [num_stypes, num_stypes, num_stypes, str_stypes]
+    random.seed(seed)
+    nkeys = random.randint(2, 4)
+    isrcs = [random.randint(0, 3) for _ in range(nkeys)]
+    jcolsources = [all_srcs[t] for t in isrcs]
+    jstypes = [random.choice(all_stypes[t]) for t in isrcs]
+    jnrows = int(random.expovariate(0.001) + 10)
+    jsrcrows = [tuple(random.choice(s) for s in jcolsources)
+                for i in range(jnrows)]
+    jsrcrows = list(set(jsrcrows))
+    jnrows = len(jsrcrows)
+    jvalcol = [random.randint(0, 1000001) for i in range(jnrows)]
+    jframe = dt.Frame(jsrcrows, names=list("ABCD")[:nkeys], stypes=jstypes)
+    jframe.cbind(dt.Frame(V=jvalcol, stype=dt.int32))
+    jframe.key = jframe.names[:nkeys]
+
+    xnrows = int(random.expovariate(0.001) + 5)
+    xstypes = [random.choice(all_stypes[t]) for t in isrcs]
+    xsrcrows = [tuple(random.choice(s) for s in jcolsources)
+                for i in range(xnrows)]
+    xframe = dt.Frame(xsrcrows, stypes=xstypes, names=list("ABCD")[:nkeys])
+
+    jdict = {jsrcrows[i]: jvalcol[i] for i in range(jnrows)}
+    rescol = [jdict.get(xsrcrows[i], None) for i in range(xnrows)]
+
+    joinframe = xframe[:, :, join(jframe)]
+    assert joinframe[:, "V"].to_list()[0] == rescol
