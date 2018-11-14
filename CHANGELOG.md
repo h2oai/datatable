@@ -74,6 +74,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
 - The performance of explicit element selection improved by a factor of 200x.
 - Building no longer requires an LLVM distribution.
+- `DT[col]` syntax has been deprecated and now emits a warning. This
+  will be converted to an error in version 0.8.0, and will be interpreted
+  as row selector in 0.9.0.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
