@@ -153,7 +153,7 @@ def test_join_multi():
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(1)])
 def test_join_multi_random(seed):
-    seed = 222247507
+    seed = 4149349689
     num_stypes = [dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64]
     str_stypes = [dt.str32, dt.str64]
     src0 = [False, True, None]
@@ -189,5 +189,7 @@ def test_join_multi_random(seed):
 
     print("\n  Joining xframe %r" % (xframe.stypes,))
     print("  to jframe %r" % (jframe.stypes,))
+    print("    X = %r" % list(zip(*xframe.to_list())))
+    print("    J = %r" % list(zip(*jframe.to_list())))
     joinframe = xframe[:, :, join(jframe)]
     assert joinframe[:, "V"].to_list()[0] == rescol

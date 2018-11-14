@@ -242,11 +242,11 @@ int StringCmp<TX, TJ>::cmp_jrow(size_t row) const {
   const uint8_t* xstr = strdataX + xstart;
   const uint8_t* jstr = strdataJ + jstart;
   for (TJ i = 0; i < jlen; ++i) {
-    if (i == xlen) return 1;  // jstr is shorter than xstr
-    uint8_t ch1 = xstr[i];
-    uint8_t ch2 = jstr[i];
-    if (ch1 != ch2) {
-      return 1 - 2*(ch1 < ch2);
+    if (i == xlen) return 1;  // jstr is longer than xstr
+    uint8_t jch = jstr[i];
+    uint8_t xch = xstr[i];
+    if (xch != jch) {
+      return 1 - 2*(jch < xch);
     }
   }
   return -(jlen != xlen);
@@ -400,10 +400,14 @@ Join two Frames `xdt` and `jdt` on the keys of `jdt`.
 
     // #pragma omp parallel for
     for (size_t i = 0; i < xdt->nrows; ++i) {
-      comparator.set_xrow(i);
-      size_t j = binsearch(&comparator, jdt->nrows);
-      result_indices[i] = (j == NO_MATCH)? GETNA<int32_t>()
-                                         : static_cast<int32_t>(j);
+      int r = comparator.set_xrow(i);
+      if (r == 0) {
+        size_t j = binsearch(&comparator, jdt->nrows);
+        result_indices[i] = (j == NO_MATCH)? GETNA<int32_t>()
+                                           : static_cast<int32_t>(j);
+      } else {
+        result_indices[i] = GETNA<int32_t>();
+      }
     }
   }
 
