@@ -464,6 +464,7 @@ class SortContext {
 
   void _prepare_data_for_column(const Column* col, bool firstcol) {
     strtype = 0;
+    strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = col->stype();
