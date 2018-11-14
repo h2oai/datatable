@@ -172,10 +172,10 @@ def test_dt_view(dt0, patched_terminal, capsys):
 
 
 def test_dt_getitem(dt0):
-    dt1 = dt0[0]
+    dt1 = dt0[:, 0]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("A", )
-    dt1 = dt0[(4,)]
+    dt1 = dt0[(..., 4)]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("E", )
     elem2 = dt0[0, 1]
@@ -183,6 +183,12 @@ def test_dt_getitem(dt0):
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+    with pytest.warns(FutureWarning) as ws:
+        dt0["A"]
+    assert len(ws) == 1
+    assert ("Single-item selectors `DT[col]` are deprecated"
+            in ws[0].message.args[0])
+
 
 
 
