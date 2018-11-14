@@ -194,6 +194,9 @@ def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         dt0[tuple()]
     assert "Invalid selector ()" == str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0[(None,)]
+    assert "Invalid selector (None,)" == str(e.value)
 
 
 
