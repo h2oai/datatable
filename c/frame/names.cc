@@ -546,7 +546,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   // If there were any duplicate names, issue a warning
   size_t ndup = duplicates.size();
   if (ndup) {
-    Warning w;
+    Warning w = DatatableWarning();
     if (ndup == 1) {
       w << "Duplicate column name '" << duplicates[0] << "' found, and was "
            "assigned a unique name";

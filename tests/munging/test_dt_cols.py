@@ -78,7 +78,7 @@ def test_cols_integer(dt0, tbl0):
     should select the 3rd column from the end
     """
     for i in range(-4, 4):
-        dt1 = dt0[i]
+        dt1 = dt0[:, i]
         assert dt1.shape == (6, 1)
         assert dt1.names == ("ABCD"[i], )
         assert not dt1.internal.isview
@@ -90,7 +90,7 @@ def test_cols_integer(dt0, tbl0):
 
 def test_cols_string(dt0, tbl0):
     for s in "ABCD":
-        dt1 = dt0[s]
+        dt1 = dt0[:, s]
         assert dt1.shape == (6, 1)
         assert dt1.names == (s, )
         assert not dt1.internal.isview
@@ -108,17 +108,17 @@ def test_cols_intslice(dt0, tbl0):
     indices is allowed, since that's Python's semantic too:
         dt[:1000]
     """
-    assert as_list(dt0[:]) == tbl0
-    assert as_list(dt0[:3]) == tbl0[:3]
-    assert as_list(dt0[:-3]) == tbl0[:-3]
-    assert as_list(dt0[1:]) == tbl0[1:]
-    assert as_list(dt0[-2:]) == tbl0[-2:]
-    assert as_list(dt0[::2]) == tbl0[::2]
-    assert as_list(dt0[::-2]) == tbl0[::-2]
+    assert as_list(dt0[:, :]) == tbl0
+    assert as_list(dt0[:, :3]) == tbl0[:3]
+    assert as_list(dt0[:, :-3]) == tbl0[:-3]
+    assert as_list(dt0[:, 1:]) == tbl0[1:]
+    assert as_list(dt0[:, -2:]) == tbl0[-2:]
+    assert as_list(dt0[:, ::2]) == tbl0[::2]
+    assert as_list(dt0[:, ::-2]) == tbl0[::-2]
     for s in [slice(-1), slice(1, 4), slice(2, 2), slice(None, None, 2),
               slice(1000), slice(100, None), slice(-100, None), slice(-100),
               slice(1, None, -1), slice(None, None, -2), slice(None, None, -3)]:
-        dt1 = dt0(select=s)
+        dt1 = dt0[:, s]
         assert as_list(dt1) == tbl0[s]
         assert dt1.names == dt0.names[s]
         assert dt1.stypes == dt0.stypes[s]
@@ -134,10 +134,10 @@ def test_cols_strslice(dt0, tbl0):
     select columns "A", "B" and "C"). Strided column selection is not allowed
     for string slices.
     """
-    assert as_list(dt0["A":"D"]) == tbl0
-    assert as_list(dt0["D":"A"]) == tbl0[::-1]
-    assert as_list(dt0["B":]) == tbl0[1:]
-    assert as_list(dt0[:"C"]) == tbl0[:3]
+    assert as_list(dt0[:, "A":"D"]) == tbl0
+    assert as_list(dt0[:, "D":"A"]) == tbl0[::-1]
+    assert as_list(dt0[:, "B":]) == tbl0[1:]
+    assert as_list(dt0[:, :"C"]) == tbl0[:3]
     assert_valueerror(dt0, slice("a", "D"), "Column `a` does not exist")
     assert_valueerror(dt0, slice("A", "D", 2),
                       "Column name slices cannot use strides")
@@ -150,7 +150,7 @@ def test_cols_list(dt0, tbl0):
     Test selecting multiple columns using a list of selectors:
         dt[[0, 3, 1, 2]]
     """
-    dt1 = dt0[[3, 1, 0]]
+    dt1 = dt0[:, [3, 1, 0]]
     assert dt1.shape == (6, 3)
     assert dt1.names == ("D", "B", "A")
     assert not dt1.internal.isview
@@ -168,18 +168,18 @@ def test_cols_list(dt0, tbl0):
 
 
 def test_cols_select_by_type(dt0):
-    dt1 = dt0[int]
+    dt1 = dt0[:, int]
     assert dt1.shape == (6, 2)
     assert dt1.ltypes == (dt.ltype.int, dt.ltype.int)
     assert dt1.names == ("A", "B")
-    dt2 = dt0[float]
+    dt2 = dt0[:, float]
     assert dt2.shape == (6, 1)
     assert dt2.stypes == (dt.stype.float64, )
     assert dt2.names == ("C", )
-    dt3 = dt0[dt.ltype.str]
+    dt3 = dt0[:, dt.ltype.str]
     assert dt3.shape == (0, 0)
     assert dt3.topython() == []
-    dt4 = dt0[dt.stype.bool8]
+    dt4 = dt0[:, dt.stype.bool8]
     assert dt4.shape == (6, 1)
     assert dt4.stypes == (dt.stype.bool8, )
     assert dt4.names == ("D", )
@@ -196,7 +196,7 @@ def test_cols_dict(dt0, tbl0):
     assert same_iterables(dt1.names, ("x", "y"))
     assert not dt1.internal.isview
     assert same_iterables(as_list(dt1), [tbl0[0], tbl0[3]])
-    dt2 = dt0[{"_": slice(None)}]
+    dt2 = dt0[:, {"_": slice(None)}]
     dt2.internal.check()
     assert dt2.shape == (6, 4)
     assert dt2.names == ("_", "_1", "_2", "_3")
@@ -216,13 +216,13 @@ def test_cols_colselector(dt0, tbl0):
     assert dt1.names == ("B", )
     assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[1]]
-    dt2 = dt0(select=lambda f: [f.A, f.C])
+    dt2 = dt0[:, [f.A, f.C]]
     dt2.internal.check()
     assert dt2.shape == (6, 2)
     assert dt2.names == ("A", "C")
     assert not dt2.internal.isview
     assert as_list(dt2) == [tbl0[0], tbl0[2]]
-    dt3 = dt0[lambda f: {"x": f.A, "y": f.D}]
+    dt3 = dt0[:, {"x": f.A, "y": f.D}]
     dt3.internal.check()
     assert dt3.shape == (6, 2)
     assert same_iterables(dt3.names, ("x", "y"))
@@ -254,8 +254,8 @@ def test_cols_expression(dt0, tbl0):
     assert same_iterables(dt3.ltypes,
                           (ltype.real, ltype.int, ltype.int, ltype.real))
     assert not dt3.internal.isview
-    assert as_list(dt3["foo"]) == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
-                                    for i in range(6)]]
+    assert as_list(dt3[:, "foo"]) == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
+                                      for i in range(6)]]
 
 
 def test_cols_expression2():
@@ -292,7 +292,7 @@ def test_cols_bad_arguments(dt0):
 def test_cols_from_view(dt0):
     d1 = dt0[:3, :]
     assert d1.internal.isview
-    d2 = d1["B"]
+    d2 = d1[:, "B"]
     d2.internal.check()
     assert d2.topython() == [[2, 3, 2]]
 

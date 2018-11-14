@@ -98,11 +98,7 @@ oobj Frame::_fallback_getset(obj item, obj value) {
   if (item.is_tuple()) {
     otuple argslist = item.to_pytuple();
     size_t n = argslist.size();
-    if (n == 1) {
-      args.set(1, py::None());
-      args.set(2, argslist[0]);
-    }
-    else if (n >= 2) {
+    if (n >= 2) {
       args.set(1, argslist[0]);
       args.set(2, argslist[1]);
       if (n == 3) {
@@ -110,10 +106,15 @@ oobj Frame::_fallback_getset(obj item, obj value) {
       } else if (n >= 4) {
         throw ValueError() << "Selector " << item << " is not supported";
       }
+    } else {
+      throw ValueError() << "Invalid selector " << item;
     }
   } else {
     args.set(1, py::None());
     args.set(2, item);
+    DeprecationWarning() << "Single-item selectors `DT[col]` are deprecated "
+        "since 0.7.0; please use `DT[:, col]` instead. This message will "
+        "become an error in version 0.8.0";
   }
   if (!args[3]) args.set(3, py::None());
   if (!args[4]) args.set(4, py::None());

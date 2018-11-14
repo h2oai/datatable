@@ -101,8 +101,8 @@ def test_replace_ints(st):
     df.replace({0: 100, 1: -99, 2: 10})
     df.internal.check()
     assert df.stypes == (st, st)
-    assert df["A"].topython() == [[-99, 10, 3, 5, 9, 100]]
-    assert df["B"].topython() == [[100, 10, -99, 3, 10, -99]]
+    assert df[:, "A"].to_list() == [[-99, 10, 3, 5, 9, 100]]
+    assert df[:, "B"].to_list() == [[100, 10, -99, 3, 10, -99]]
 
 
 def test_replace_int_with_upcast():

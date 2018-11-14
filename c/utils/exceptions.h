@@ -112,9 +112,14 @@ void init_exceptions();
 
 class Warning : public Error {
   public:
-    Warning();
+    Warning(PyObject* cls);
+    Warning(const Warning&) = default;
     ~Warning() override;
 };
+
+Warning DatatableWarning();
+Warning DeprecationWarning();
+
 
 
 //------------------------------------------------------------------------------
