@@ -153,7 +153,7 @@ def test_join_multi():
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(1)])
 def test_join_multi_random(seed):
-    seed = 4149349689
+    seed = 3820049749
     num_stypes = [dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64]
     str_stypes = [dt.str32, dt.str64]
     src0 = [False, True, None]

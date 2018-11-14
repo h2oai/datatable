@@ -158,7 +158,8 @@ cmpptr FwCmp<TX, TJ>::make(const Column* col1, const Column* col2) {
 template <typename TX, typename TJ>
 int FwCmp<TX, TJ>::cmp_jrow(size_t row) const {
   TJ jval = dataJ[row];
-  return (jval > x_value) - (jval < x_value);
+  return (jval > x_value) - (jval < x_value) +
+         (std::is_integral<TJ>::value? 0 : ISNA<TJ>(x_value) - ISNA<TJ>(jval));
 }
 
 
