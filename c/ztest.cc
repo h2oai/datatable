@@ -6,16 +6,24 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #ifdef DTTEST
-#include "ztest.h"
+#include "datatablemodule.h"
+#include "python/args.h"
 #include "utils/exceptions.h"
+#include "ztest.h"
 namespace dttest {
 
 
-void run_tests() {
+static py::PKArgs fn_tests(
+  0, 0, 0, false, false, {},
+  "test_internal",
+  "Run internal tests that check functionality of some internal structures",
+
+[](const py::PKArgs&) -> py::oobj {
   cover_init_FrameInitializationManager_em();
   cover_names_FrameNameProviders();
   cover_names_integrity_checks();
-}
+  return py::None();
+});
 
 
 /**
@@ -43,4 +51,11 @@ void test_assert(const std::function<void(void)>& f,
 
 
 }  // namespace dttest
+
+
+
+void DatatableModule::init_tests() {
+  ADDFN(dttest::fn_tests);
+}
+
 #endif

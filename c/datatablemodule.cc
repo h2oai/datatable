@@ -205,6 +205,9 @@ void DatatableModule::init_methods() {
   init_methods_options();
   init_methods_sets();
   init_methods_join();
+  #ifdef DTTEST
+    init_tests();
+  #endif
 }
 
 
@@ -231,11 +234,6 @@ PyInit__datatable()
 
   try {
     py::Frame::Type::init(m);
-
-    #ifdef DTTEST
-      dttest::run_tests();
-    #endif
-
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
