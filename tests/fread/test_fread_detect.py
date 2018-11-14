@@ -7,7 +7,6 @@
 # Tests related to datatable's ability to detect various parsing settings, such
 # as sep, ncols, quote rule, presence of headers, etc.
 #-------------------------------------------------------------------------------
-import pytest
 import datatable as dt
 
 
@@ -69,4 +68,4 @@ def test_detect_sep1():
     f0.internal.check()
     assert f0.shape == (3, 6)
     assert f0.names == ("Date Time", "Open", "High", "Low", "Close", "Volume")
-    assert f0["Open"].topython() == [[5683, 5675, 5674]]
+    assert f0[:, "Open"].to_list() == [[5683, 5675, 5674]]

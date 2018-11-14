@@ -520,7 +520,7 @@ def test_sort_view4():
 
 def test_sort_view_large_strs():
     d0 = dt.Frame(list("abcbpeiuqenvkjqperufhqperofin;d") * 100)
-    d1 = d0[::2].sort(0)
+    d1 = d0[:, ::2].sort(0)
     d1.internal.check()
     elems = d1.topython()[0]
     assert elems == sorted(elems)

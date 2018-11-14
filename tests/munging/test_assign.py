@@ -22,17 +22,17 @@ def test_assign_column_slice():
 def test_assign_column_array():
     f0 = dt.Frame({"A": range(10)})
     assert f0.ltypes == (dt.ltype.int,)
-    f0["B"] = 3.5
+    f0[:, "B"] = 3.5
     assert f0.names == ("A", "B")
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real)
     assert f0.shape == (10, 2)
-    f0["C"] = "foo"
+    f0[:, "C"] = "foo"
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     assert f0.topython() == [list(range(10)), [3.5] * 10, ["foo"] * 10]
     f0[:, ["B", "C"]] = False
     assert f0.ltypes == (dt.ltype.int, dt.ltype.bool, dt.ltype.bool)
     assert f0.topython() == [list(range(10)), [False] * 10, [False] * 10]
-    f0["A"] = None
+    f0[:, "A"] = None
     assert f0.ltypes == (dt.ltype.bool,) * 3
 
 
@@ -57,7 +57,7 @@ def test_assign_filtered():
 def test_assign_to_view():
     f0 = dt.Frame({"A": range(10)})
     f1 = f0[::2, :]
-    f1["AA"] = "test"
+    f1[:, "AA"] = "test"
     assert f1.names == ("A", "AA")
     assert f1.ltypes == (dt.ltype.int, dt.ltype.str)
     assert f1.topython() == [list(range(0, 10, 2)), ["test"] * 5]
@@ -67,6 +67,6 @@ def test_assign_to_view():
 def test_assign_frame():
     f0 = dt.Frame({"A": range(10)})
     f1 = dt.Frame([i / 2 for i in range(100)])
-    f0["A"] = f1[:10, :]
+    f0[:, "A"] = f1[:10, :]
     assert f0.names == ("A",)
     assert f0.ltypes == (dt.ltype.real,)
