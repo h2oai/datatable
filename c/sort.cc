@@ -907,7 +907,7 @@ class SortContext {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
       uint8_t _nsigbits = nsigbits;
-      nsigbits = strdata? 8 : shift;
+      nsigbits = strtype? 8 : shift;
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
       _fill_rrmap_from_histogram(rrmap_ptr);
@@ -1032,11 +1032,12 @@ class SortContext {
 
     n = _n;
     x = _x;
-    o = _o;
     xx = _xx;
+    o = _o;
     next_o = _next_o;
-    strstart = _strstart;
     elemsize = _elemsize;
+    nradixes = _nradixes;
+    strstart = _strstart;
     gg.init(ggdata0, ggoff0);
 
     // Finally iterate over all remaining radix ranges, in-parallel, and

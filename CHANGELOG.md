@@ -106,6 +106,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - f-expressions now do not crash when reused with a different Frame.
 - g-columns can be properly selected in a join (#1352).
 - writing to disk of columns > 2GB in size (#1387).
+- crash when sorting by multiple columns and the first column was
+  of string type (#1401).
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
