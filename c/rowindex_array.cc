@@ -286,6 +286,8 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
     }
     min = tmin;
     max = tmax;
+    if (min == std::numeric_limits<T>::max() &&
+        max == -std::numeric_limits<T>::max()) min = max = 0;
   }
   xassert(min >= 0 && max >= min);
 }
