@@ -15,38 +15,16 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-ofloat::ofloat() : oobj() {}
-
-ofloat::ofloat(PyObject* src) : oobj(src) {}
-
-ofloat::ofloat(const ofloat& other) : oobj(other) {}
-
-ofloat::ofloat(ofloat&& other) : oobj(std::move(other)) {}
-
-ofloat& ofloat::operator=(const ofloat& other) {
-  oobj::operator=(other);
-  return *this;
-}
-
-ofloat& ofloat::operator=(ofloat&& other) {
-  oobj::operator=(std::move(other));
-  return *this;
-}
-
-ofloat ofloat::from_new_reference(PyObject* ref) {
-  ofloat res;
-  res.v = ref;
-  return res;
-}
-
-
 ofloat::ofloat(double src) {
   v = PyFloat_FromDouble(src);  // new ref
 }
 
-ofloat::ofloat(float src) {
-  v = PyFloat_FromDouble(static_cast<double>(src));  // new ref
-}
+ofloat::ofloat(float src) : ofloat(static_cast<double>(src)) {}
+
+
+// private constructors
+ofloat::ofloat(const robj& src) : oobj(src) {}
+ofloat::ofloat(const oobj& src) : oobj(src) {}
 
 
 
@@ -54,15 +32,18 @@ ofloat::ofloat(float src) {
 // Value conversions
 //------------------------------------------------------------------------------
 
-template<typename T>
-T ofloat::value() const {
-  if (!v) return GETNA<T>();
-  return static_cast<T>(PyFloat_AS_DOUBLE(v));
+template<>
+float ofloat::value() const {
+  if (!v) return GETNA<float>();
+  return static_cast<float>(PyFloat_AS_DOUBLE(v));
+}
+
+template<>
+double ofloat::value() const {
+  if (!v) return GETNA<double>();
+  return PyFloat_AS_DOUBLE(v);
 }
 
 
-
-template float  ofloat::value() const;
-template double ofloat::value() const;
 
 }  // namespace py

@@ -318,16 +318,16 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
+py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
-    return py::ofloat(v);
+    return py::ofloat(robj(v));
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::ofloat::from_new_reference(num);
+  return py::ofloat(oobj::from_new_reference(num));
 }
 
 
