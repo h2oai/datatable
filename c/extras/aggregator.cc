@@ -576,7 +576,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
-    double distance;
+    double distance, delta_local;
     DoublePtr member = DoublePtr(new double[ndims]);
 
     try {
@@ -586,13 +586,14 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
         if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
         else normalize_row(dt, member, i);
 
-        {
+        test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
+          delta_local = delta;
           for (size_t j = 0; j < exemplars.size(); ++j) {
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
-            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
-            if (distance < delta) {
+            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta_local);
+            if (distance < delta_local) {
               d_members[i] = static_cast<int32_t>(exemplars[j]->id);
               is_exemplar = false;
               break;
@@ -602,14 +603,17 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         if (is_exemplar) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ true);
-          ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
-          member = DoublePtr(new double[ndims]);
-          ids.push_back(e->id);
-          d_members[i] = static_cast<int32_t>(e->id);
-          exemplars.push_back(std::move(e));
-
-          if (exemplars.size() > nd_max_bins) {
-            adjust_delta(delta, exemplars, ids, ndims);
+          if (delta == delta_local) {
+            ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
+            member = DoublePtr(new double[ndims]);
+            ids.push_back(e->id);
+            d_members[i] = static_cast<int32_t>(e->id);
+            exemplars.push_back(std::move(e));
+            if (exemplars.size() > nd_max_bins) {
+              adjust_delta(delta, exemplars, ids, ndims);
+            }
+          } else {
+            goto test_member;
           }
         }
 
@@ -656,7 +660,6 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   size_t k = 0;
   DoublePtr deltas(new double[n_distances]);
   double total_distance = 0.0;
-  bool merge_only = false;
 
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
@@ -666,31 +669,29 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
                                            delta,
                                            0);
       total_distance += sqrt(distance);
-      deltas[k++] = distance;
-      // This check is required in the case one thread had already modified `delta`,
-      // but others used the old value and produced unnecessary exemplars.
-      // In this case we only merge exemplars but don't change `delta`.
-      if (distance < delta) merge_only = true;
+      deltas[k] = distance;
+      k++;
     }
   }
 
-  double delta_merge;
-  if (merge_only) {
-    delta_merge = delta;
-  } else {
-    delta_merge = pow(0.5 * total_distance / n_distances, 2);
-    // Update delta, taking into account size of the initial bubble
-    delta += delta_merge + 2 * sqrt(delta * delta_merge);
-  }
+  // Use `delta_merge` for merging exemplars.
+  double delta_merge = pow(0.5 * total_distance / n_distances, 2);
+
+  // When exemplars are merged, all members will be within their `delta`,
+  // not `delta_merge`. For that, update delta by taking into account size
+  // of initial bubble.
+  delta += delta_merge + 2 * sqrt(delta * delta_merge);
+
 
   // Set exemplars that have to be merged to `nullptr`.
   k = 0;
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
-      if (deltas[k++] < delta_merge && exemplars[i] != nullptr && exemplars[j] != nullptr) {
+      if (deltas[k] < delta_merge && exemplars[i] != nullptr && exemplars[j] != nullptr) {
         ids[exemplars[j]->id] = exemplars[i]->id;
         exemplars[j] = nullptr;
       }
+      k++;
     }
   }
 
@@ -752,7 +753,9 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
   int32_t n = 0;
 
   for (size_t i = 0; i < ndims; ++i) {
-    if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) continue;
+    if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) {
+      continue;
+    }
     ++n;
     sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
     if (early_exit && sum > delta) return sum; // i/n normalization here?
