@@ -34,24 +34,24 @@ namespace py {
  */
 class oint : public oobj {
   public:
-    oint();
+    oint() = default;
+    oint(const oint&) = default;
+    oint(oint&&) = default;
+    oint& operator=(const oint&) = default;
+    oint& operator=(oint&&) = default;
+
     oint(int32_t n);
     oint(int64_t n);
     oint(size_t n);
     oint(double x);
-
-    oint(const oint&);
-    oint(oint&&);
-    oint& operator=(const oint&);
-    oint& operator=(oint&&);
 
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
 
   private:
-    oint(PyObject*);
-    static oint from_new_reference(PyObject*);
+    oint(const obj&);
+    oint(const oobj&);
     friend class _obj;
 };
 

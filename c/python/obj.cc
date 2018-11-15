@@ -282,20 +282,20 @@ size_t _obj::to_size_t(const error_manager& em) const {
 
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
-  if (PyLong_Check(v)) return py::oint(v);
+  if (PyLong_Check(v)) return py::oint(obj(v));
   throw em.error_not_integer(v);
 }
 
 
 py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
   if (v == Py_None) return py::oint();
-  if (PyLong_Check(v)) return py::oint(v);
+  if (PyLong_Check(v)) return py::oint(obj(v));
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
     num = nullptr;
   }
-  return py::oint::from_new_reference(num);
+  return py::oint(oobj::from_new_reference(num));
 }
 
 

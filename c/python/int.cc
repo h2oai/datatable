@@ -1,10 +1,25 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <limits>
 #include "python/int.h"
 #include "utils/exceptions.h"
 
@@ -15,38 +30,18 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-oint::oint() : oobj() {}
-
-oint::oint(PyObject* src) : oobj(src) {}
-
-oint::oint(const oint& other) : oobj(other) {}
-
-oint::oint(oint&& other) : oobj(std::move(other)) {}
-
-oint& oint::operator=(const oint& other) {
-  oobj::operator=(other);
-  return *this;
-}
-
-oint& oint::operator=(oint&& other) {
-  oobj::operator=(std::move(other));
-  return *this;
-}
-
-oint oint::from_new_reference(PyObject* ref) {
-  oint res;
-  res.v = ref;
-  return res;
-}
-
-
 oint::oint(int32_t n) {
   v = PyLong_FromLong(n);
 }
 
 oint::oint(int64_t n) {
-  static_assert(sizeof(long) == sizeof(int64_t), "Wrong size of long");
-  v = PyLong_FromLong(n);
+  #if LONG_MAX==9223372036854775807
+    v = PyLong_FromLong(n);
+  #elif LLONG_MAX==9223372036854775807
+    v = PyLong_FromLongLong(n);
+  #else
+    #error "Cannot determine size of `long`"
+  #endif
 }
 
 oint::oint(size_t n) {
@@ -56,6 +51,11 @@ oint::oint(size_t n) {
 oint::oint(double x) {
   v = PyLong_FromDouble(x);
 }
+
+
+// private constructors
+oint::oint(const obj& src) : oobj(src) {}
+oint::oint(const oobj& src) : oobj(src) {}
 
 
 
