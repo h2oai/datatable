@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
@@ -153,7 +170,6 @@ def test_join_multi():
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
 def test_join_multi_random(seed):
-    seed = 1806372749
     num_stypes = [dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64]
     str_stypes = [dt.str32, dt.str64]
     src0 = [False, True, None]
@@ -162,6 +178,7 @@ def test_join_multi_random(seed):
     src3 = list("abcdefg?") + [None]
     all_srcs = [src0, src1, src2, src3]
     all_stypes = [num_stypes, num_stypes, num_stypes, str_stypes]
+
     random.seed(seed)
     nkeys = random.randint(2, 4)
     isrcs = [random.randint(0, 3) for _ in range(nkeys)]
@@ -178,7 +195,6 @@ def test_join_multi_random(seed):
     jframe.key = jframe.names[:nkeys]
 
     xnrows = int(random.expovariate(0.001) + 5)
-    xnrows = 10
     xstypes = [random.choice(all_stypes[t]) for t in isrcs]
     xsrcrows = [tuple(random.choice(s) for s in jcolsources)
                 for i in range(xnrows)]
@@ -187,9 +203,5 @@ def test_join_multi_random(seed):
     jdict = {jsrcrows[i]: jvalcol[i] for i in range(jnrows)}
     rescol = [jdict.get(xsrcrows[i], None) for i in range(xnrows)]
 
-    print("\n  Joining xframe %r" % (xframe.stypes,))
-    print("  to jframe %r" % (jframe.stypes,))
-    print("    X = %r" % list(zip(*xframe.to_list())))
-    print("    J = %r" % list(zip(*jframe.to_list())))
     joinframe = xframe[:, :, join(jframe)]
     assert joinframe[:, "V"].to_list()[0] == rescol

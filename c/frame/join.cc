@@ -351,7 +351,9 @@ static size_t binsearch(Cmp* cmp, size_t nrows) {
     // We won't ever have as many rows for this to overflow
     size_t mid = (start + end) >> 1;
     int r = cmp->cmp_jrow(mid);
-    if (r > 0) end = mid - 1;
+    // Note: `mid` can be 0 (if start == 0 and end == 1), so don't use
+    // `mid - 1` here.
+    if (r > 0) end = mid;
     else if (r < 0) start = mid + 1;
     else return mid;
   }
