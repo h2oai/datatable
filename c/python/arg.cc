@@ -33,7 +33,7 @@ void Arg::init(size_t i, PKArgs* args) {
 
 
 void Arg::set(PyObject* value) {
-  pyobj = py::obj(value);
+  pyobj = py::robj(value);
 }
 
 

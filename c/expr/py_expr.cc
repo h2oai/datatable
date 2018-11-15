@@ -19,8 +19,8 @@ PyObject* expr_binaryop(PyObject*, PyObject* args)
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "iOO:expr_binaryop", &opcode, &arg1, &arg2))
     return nullptr;
-  py::obj py_lhs(arg1);
-  py::obj py_rhs(arg2);
+  py::robj py_lhs(arg1);
+  py::robj py_rhs(arg2);
 
   Column* lhs = py_lhs.to_column();
   Column* rhs = py_rhs.to_column();
@@ -35,7 +35,7 @@ PyObject* expr_cast(PyObject*, PyObject* args)
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "Oi:expr_cast", &arg1, &stype))
     return nullptr;
-  py::obj pyarg(arg1);
+  py::robj pyarg(arg1);
 
   Column* col = pyarg.to_column();
   col->reify();
@@ -50,8 +50,8 @@ PyObject* expr_column(PyObject*, PyObject* args)
   PyObject* arg1, *arg3;
   if (!PyArg_ParseTuple(args, "OlO:expr_column", &arg1, &index, &arg3))
     return nullptr;
-  py::obj pyarg1(arg1);
-  py::obj pyarg3(arg3);
+  py::robj pyarg1(arg1);
+  py::robj pyarg3(arg3);
   DataTable* dt = pyarg1.to_frame();
   RowIndex ri = pyarg3.to_rowindex();
 
@@ -70,8 +70,8 @@ PyObject* expr_reduceop(PyObject*, PyObject* args)
   PyObject* arg1, *arg2;
   if (!PyArg_ParseTuple(args, "iOO:expr_reduceop", &opcode, &arg1, &arg2))
     return nullptr;
-  py::obj pyarg1(arg1);
-  py::obj pyarg2(arg2);
+  py::robj pyarg1(arg1);
+  py::robj pyarg2(arg2);
 
   Column* col = pyarg1.to_column();
   Groupby* grpby = pyarg2.to_groupby();
@@ -92,8 +92,8 @@ PyObject* expr_count(PyObject*, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO:expr_count", &arg1, &arg2))
     return nullptr;
 
-  DataTable* dt = py::obj(arg1).to_frame();
-  Groupby* grpby = py::obj(arg2).to_groupby();
+  DataTable* dt = py::robj(arg1).to_frame();
+  Groupby* grpby = py::robj(arg2).to_groupby();
 
   Column* res = nullptr;
 
@@ -126,7 +126,7 @@ PyObject* expr_unaryop(PyObject*, PyObject* args)
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "iO:expr_isna", &opcode, &arg1))
     return nullptr;
-  py::obj pyarg1(arg1);
+  py::robj pyarg1(arg1);
 
   Column* col = pyarg1.to_column();
   Column* res = expr::unaryop(opcode, col);

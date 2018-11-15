@@ -86,7 +86,7 @@ class ReplaceAgent {
   private:
     DataTable* dt;
     // vx, vy are simple lists of source/target values for replacement
-    std::vector<py::obj> vx, vy;
+    std::vector<py::robj> vx, vy;
 
     std::vector<int8_t> x_bool, y_bool;
     std::vector<int64_t> x_int, y_int;
@@ -265,8 +265,8 @@ void ReplaceAgent::split_x_y_by_type() {
 void ReplaceAgent::split_x_y_bool() {
   size_t n = vx.size();
   for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
+    py::robj xelem = vx[i];
+    py::robj yelem = vy[i];
     if (xelem.is_none()) {
       if (yelem.is_none()) continue;
       if (!yelem.is_bool()) continue;
@@ -292,8 +292,8 @@ void ReplaceAgent::split_x_y_int() {
   xmin_int = std::numeric_limits<int64_t>::max();
   xmax_int = -xmin_int;
   for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
+    py::robj xelem = vx[i];
+    py::robj yelem = vy[i];
     if (xelem.is_none()) {
       if (yelem.is_none() || !yelem.is_int()) continue;
       na_repl = yelem.to_int64();
@@ -325,8 +325,8 @@ void ReplaceAgent::split_x_y_real() {
   xmin_real = std::numeric_limits<double>::max();
   xmax_real = -xmin_real;
   for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
+    py::robj xelem = vx[i];
+    py::robj yelem = vy[i];
     if (xelem.is_none()) {
       if (yelem.is_none() || !yelem.is_float()) continue;
       na_repl = yelem.to_double();
@@ -360,8 +360,8 @@ void ReplaceAgent::split_x_y_str() {
   size_t n = vx.size();
   CString na_repl;
   for (size_t i = 0; i < n; ++i) {
-    py::obj xelem = vx[i];
-    py::obj yelem = vy[i];
+    py::robj xelem = vx[i];
+    py::robj yelem = vy[i];
     if (xelem.is_none()) {
       if (yelem.is_none() || !yelem.is_string()) continue;
       na_repl = yelem.to_cstring();

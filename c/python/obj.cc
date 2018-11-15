@@ -36,28 +36,28 @@ static void init_numpy();
 _obj::error_manager _obj::_em0;
 
 
-obj::obj(const PyObject* p) {
+robj::robj(const PyObject* p) {
   v = const_cast<PyObject*>(p);
 }
 
-obj::obj(const Arg& arg) {
+robj::robj(const Arg& arg) {
   v = arg.to_borrowed_ref();
 }
 
-obj::obj(const obj& other) {
+robj::robj(const robj& other) {
   v = other.v;
 }
 
-obj::obj(const oobj& other) {
+robj::robj(const oobj& other) {
   v = other.v;
 }
 
-obj& obj::operator=(const obj& other) {
+robj& robj::operator=(const robj& other) {
   v = other.v;
   return *this;
 }
 
-obj& obj::operator=(const _obj& other) {
+robj& robj::operator=(const _obj& other) {
   v = other.v;
   return *this;
 }
@@ -73,7 +73,7 @@ oobj::oobj(PyObject* p) {
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
-oobj::oobj(const obj& other) : oobj(other.v) {}
+oobj::oobj(const robj& other) : oobj(other.v) {}
 
 oobj::oobj(oobj&& other) {
   v = other.v;
@@ -282,14 +282,14 @@ size_t _obj::to_size_t(const error_manager& em) const {
 
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
-  if (PyLong_Check(v)) return py::oint(obj(v));
+  if (PyLong_Check(v)) return py::oint(robj(v));
   throw em.error_not_integer(v);
 }
 
 
 py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
   if (v == Py_None) return py::oint();
-  if (PyLong_Check(v)) return py::oint(obj(v));
+  if (PyLong_Check(v)) return py::oint(robj(v));
   PyObject* num = PyNumber_Long(v);  // new ref
   if (!num) {
     PyErr_Clear();
@@ -686,7 +686,7 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
-obj rnone()     { return obj(Py_None); }
+robj rnone()     { return robj(Py_None); }
 
 
 //------------------------------------------------------------------------------

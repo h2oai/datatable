@@ -72,7 +72,7 @@ size_t pylistNP::size() const {
 }
 
 CString pylistNP::item_as_cstring(size_t i) {
-  py::obj name = names[i];
+  py::robj name = names[i];
   if (!name.is_string() && !name.is_none()) {
     throw TypeError() << "Invalid `names` list: element " << i
         << " is not a string";
@@ -154,7 +154,7 @@ oobj Frame::get_names() const {
 }  // LCOV_EXCL_LINE
 
 
-void Frame::set_names(obj arg)
+void Frame::set_names(robj arg)
 {
   if (arg.is_undefined() || arg.is_none()) {
     dt->set_names_to_default();
@@ -279,7 +279,7 @@ py::otuple DataTable::get_pynames() const {
  */
 int64_t DataTable::colindex(const py::_obj& pyname) const {
   if (!py_inames) _init_pynames();
-  py::obj pyindex = py_inames.get(pyname);
+  py::robj pyindex = py_inames.get(pyname);
   return pyindex? pyindex.to_int64_strict() : -1;
 }
 
@@ -290,7 +290,7 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
  */
 size_t DataTable::xcolindex(const py::_obj& pyname) const {
   if (!py_inames) _init_pynames();
-  py::obj pyindex = py_inames.get(pyname);
+  py::robj pyindex = py_inames.get(pyname);
   if (!pyindex) {
     throw _name_not_found_error(this, pyname.to_string());
   }
@@ -346,9 +346,9 @@ void DataTable::replace_names(py::odict replacements) {
     newnames.set(i, py_names[i]);
   }
   for (auto kv : replacements) {
-    py::obj key = kv.first;
-    py::obj val = kv.second;
-    py::obj idx = py_inames.get(key);
+    py::robj key = kv.first;
+    py::robj val = kv.second;
+    py::robj idx = py_inames.get(key);
     if (idx.is_undefined()) {
       throw ValueError() << "Cannot find column `" << key.str()
         << "` in the Frame";
@@ -375,7 +375,7 @@ void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
   if (py_names) {
     py::otuple new_py_names(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      py::obj pyname = py_names[col_indices[i]];
+      py::robj pyname = py_names[col_indices[i]];
       new_py_names.set(i, pyname);
       py_inames.set(pyname, py::oint(i));
     }
@@ -614,7 +614,7 @@ void DataTable::_integrity_check_pynames() const {
       << " elements, while the Frame has " << ncols << " columns";
   }
   for (size_t i = 0; i < ncols; ++i) {
-    py::obj elem = py_names[i];
+    py::robj elem = py_names[i];
     if (!elem.is_string()) {
       throw AssertionError() << "Element " << i << " of .py_names is a "
           << elem.typeobj();
@@ -624,7 +624,7 @@ void DataTable::_integrity_check_pynames() const {
       throw AssertionError() << "Element " << i << " of .py_names is '"
           << sname << "', but the actual column name is '" << names[i] << "'";
     }
-    py::obj res = py_inames.get(elem);
+    py::robj res = py_inames.get(elem);
     if (!res) {
       throw AssertionError() << "Column " << i << " '" << names[i] << "' is "
           "absent from the .py_inames dictionary";

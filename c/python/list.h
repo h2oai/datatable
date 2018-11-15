@@ -17,7 +17,7 @@ namespace py {
  * Python list of objects.
  *
  * There are 2 ways of instantiating this class: either by creating a new list
- * of `n` elements via `olist(n)`, or by casting a `py::obj` into a list using
+ * of `n` elements via `olist(n)`, or by casting a `py::robj` into a list using
  * `.to_pylist()` method. The former method is used when you want to create a
  * new list and return it to Python, the latter when you're processing a list
  * which came from Python.
@@ -44,9 +44,9 @@ class olist : public oobj {
     operator bool() const noexcept;
     size_t size() const noexcept;
 
-    obj operator[](size_t i) const;
-    obj operator[](int64_t i) const;
-    obj operator[](int i) const;
+    robj operator[](size_t i) const;
+    robj operator[](int64_t i) const;
+    robj operator[](int i) const;
 
     void set(size_t i,  const _obj& value);
     void set(int64_t i, const _obj& value);

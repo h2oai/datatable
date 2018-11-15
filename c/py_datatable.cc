@@ -87,7 +87,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 
   DataTable* dt = DataTable::load(colspec, nrows, path, recode);
   py::Frame* frame = py::Frame::from_datatable(dt);
-  frame->set_names(py::obj(names));
+  frame->set_names(py::robj(names));
   return frame;
 }
 
@@ -95,7 +95,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
-  std::string filename = py::obj(arg1).to_string();
+  std::string filename = py::robj(arg1).to_string();
 
   DataTable* dt = DataTable::open_jay(filename);
   py::Frame* frame = py::Frame::from_datatable(dt);
@@ -281,7 +281,7 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:delete_columns", &arg1))
     return nullptr;
-  py::olist list = py::obj(arg1).to_pylist();
+  py::olist list = py::robj(arg1).to_pylist();
   size_t ncols = list.size();
 
   std::vector<size_t> cols_to_remove;
@@ -303,7 +303,7 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
     return nullptr;
-  RowIndex newri = py::obj(arg1).to_rowindex();
+  RowIndex newri = py::robj(arg1).to_rowindex();
 
   dt->replace_rowindex(newri);
   Py_RETURN_NONE;
@@ -319,8 +319,8 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
-  RowIndex rows_ri = py::obj(arg4).to_rowindex();
-  DataTable* repl = py::obj(arg5).to_frame();
+  RowIndex rows_ri = py::robj(arg4).to_rowindex();
+  DataTable* repl = py::robj(arg5).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
   size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -362,9 +362,9 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   PyObject *arg1, *arg2, *arg3;
   if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
-  py::olist cols = py::obj(arg1).to_pylist();
-  RowIndex rows_ri = py::obj(arg2).to_rowindex();
-  DataTable* repl = py::obj(arg3).to_frame();
+  py::olist cols = py::robj(arg1).to_pylist();
+  RowIndex rows_ri = py::robj(arg2).to_rowindex();
+  DataTable* repl = py::robj(arg3).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
   size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
@@ -382,7 +382,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
   size_t num_new_cols = 0;
   for (size_t i = 0; i < cols.size(); ++i) {
-    py::obj item = cols[i];
+    py::robj item = cols[i];
     int64_t j = item.to_int64_strict();
     num_new_cols += (j == -1);
     if (j < -1 || j >= static_cast<int64_t>(dt->ncols)) {
@@ -398,7 +398,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     dt->columns.resize(newsize);
   }
   for (size_t i = 0; i < cols.size(); ++i) {
-    py::obj item = cols[i];
+    py::robj item = cols[i];
     int64_t j = item.to_int64_strict();
     size_t zj = static_cast<size_t>(j);
     Column* replcol = repl->columns[i % rcols];
@@ -475,7 +475,7 @@ PyObject* rbind(obj* self, PyObject* args) {
 
 PyObject* sort(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  py::olist arglist = py::obj(args).to_pylist();
+  py::olist arglist = py::robj(args).to_pylist();
   size_t nargs = arglist.size();
   bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
   bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
@@ -498,9 +498,9 @@ PyObject* join(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
 
   DataTable* dt = self->ref;
-  DataTable* jdt = py::obj(arg2).to_frame();
-  RowIndex ri = py::obj(arg1).to_rowindex();
-  py::olist cols_arg = py::obj(arg3).to_pylist();
+  DataTable* jdt = py::robj(arg2).to_frame();
+  RowIndex ri = py::robj(arg1).to_rowindex();
+  py::olist cols_arg = py::robj(arg3).to_pylist();
 
   if (cols_arg.size() != 1) {
     throw NotImplError() << "Only single-column joins are currently supported";
@@ -582,9 +582,9 @@ PyObject* save_jay(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
     return nullptr;
 
-  auto filename = py::obj(arg1).to_string();
-  auto colnames = py::obj(arg2).to_stringlist();
-  auto strategy = py::obj(arg3).to_string();
+  auto filename = py::robj(arg1).to_string();
+  auto colnames = py::robj(arg2).to_stringlist();
+  auto strategy = py::robj(arg3).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;

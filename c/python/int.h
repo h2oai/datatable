@@ -50,7 +50,7 @@ class oint : public oobj {
     template<typename T> T masked_value() const;
 
   private:
-    oint(const obj&);
+    oint(const robj&);
     oint(const oobj&);
     friend class _obj;
 };

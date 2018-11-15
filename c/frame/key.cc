@@ -39,7 +39,7 @@ py::oobj py::Frame::get_key() const {
 }
 
 
-void py::Frame::set_key(obj val) {
+void py::Frame::set_key(py::robj val) {
   if (val.is_none()) {
     return dt->clear_key();
   }
@@ -51,7 +51,7 @@ void py::Frame::set_key(obj val) {
   else if (val.is_list_or_tuple()) {
     py::olist vallist = val.to_pylist();
     for (size_t i = 0; i < vallist.size(); ++i) {
-      py::obj item = vallist[i];
+      py::robj item = vallist[i];
       if (vallist[i].is_string()) {
         size_t index = dt->xcolindex(vallist[i]);
         col_indices.push_back(index);

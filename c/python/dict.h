@@ -17,7 +17,7 @@ class dict_iterator;
 /**
  * Python dict wrapper.
  *
- * Keys / values are `py::obj`s. This class supports retrieving a value by
+ * Keys / values are `py::robj`s. This class supports retrieving a value by
  * its key, querying existence of a key, inserting new key/value pair, and
  * iterating over all key/values.
  */
@@ -32,7 +32,7 @@ class odict : public oobj {
 
     size_t size() const;
     bool has(_obj key) const;
-    obj  get(_obj key) const;
+    robj get(_obj key) const;
     void set(_obj key, _obj val);
     void del(_obj key);
 
@@ -45,12 +45,12 @@ class odict : public oobj {
 };
 
 
-class rdict : public obj {
+class rdict : public robj {
   public:
-    using obj::obj;
+    using robj::robj;
     size_t size() const;
-    obj get(_obj key) const;
-    obj get_or_none(_obj key) const;
+    robj get(_obj key) const;
+    robj get_or_none(_obj key) const;
     dict_iterator begin() const;
     dict_iterator end() const;
 };
@@ -61,7 +61,7 @@ class rdict : public obj {
  */
 class dict_iterator {
   public:
-    using value_type = std::pair<py::obj, py::obj>;
+    using value_type = std::pair<py::robj, py::robj>;
     using category_type = std::input_iterator_tag;
 
   private:

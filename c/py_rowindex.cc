@@ -238,7 +238,7 @@ PyObject* uplift(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:RowIndex.uplift", &arg1)) return nullptr;
   RowIndex& r1 = *(self->ref);
-  RowIndex  r2 = py::obj(arg1).to_rowindex();
+  RowIndex  r2 = py::robj(arg1).to_rowindex();
   RowIndex res = r1.uplift(r2);
   return wrap(res);
 }

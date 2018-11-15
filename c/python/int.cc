@@ -54,7 +54,7 @@ oint::oint(double x) {
 
 
 // private constructors
-oint::oint(const obj& src) : oobj(src) {}
+oint::oint(const robj& src) : oobj(src) {}
 oint::oint(const oobj& src) : oobj(src) {}
 
 

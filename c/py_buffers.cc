@@ -64,7 +64,7 @@ static char strB[] = "B";
 // Construct a DataTable from a list of objects implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column* Column::from_buffer(const py::obj& obuffer)
+Column* Column::from_buffer(const py::robj& obuffer)
 {
   PyObject* buffer = obuffer.to_borrowed_ref();
   Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
@@ -97,7 +97,7 @@ Column* Column::from_buffer(const py::obj& obuffer)
   // If buffer is in float16 format, convert it to float32
   if (view->itemsize == 2 && std::strcmp(view->format, "e") == 0) {
     PyBuffer_Release(view);
-    py::oobj newbuf = py::obj(buffer).invoke("astype", "(s)", "float32");
+    py::oobj newbuf = py::robj(buffer).invoke("astype", "(s)", "float32");
     return Column::from_buffer(newbuf);
   }
 

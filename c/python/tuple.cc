@@ -46,21 +46,21 @@ otuple& otuple::operator=(otuple&& other) {
 // Element accessors
 //------------------------------------------------------------------------------
 
-obj otuple::operator[](int64_t i) const {
+robj otuple::operator[](int64_t i) const {
   // PyTuple_GET_ITEM returns a borrowed reference
-  return obj(PyTuple_GET_ITEM(v, i));
+  return robj(PyTuple_GET_ITEM(v, i));
 }
 
-obj otuple::operator[](size_t i) const {
+robj otuple::operator[](size_t i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
-obj otuple::operator[](int i) const {
+robj otuple::operator[](int i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
-obj rtuple::operator[](size_t i) const {
-  return obj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
+robj rtuple::operator[](size_t i) const {
+  return robj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
 }
 
 

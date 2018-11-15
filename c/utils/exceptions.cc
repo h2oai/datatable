@@ -193,7 +193,7 @@ bool PyError::is_assertion_error() const {
 }
 
 std::string PyError::message() const {
-  return py::obj(exc_value).to_pystring_force().to_string();
+  return py::robj(exc_value).to_pystring_force().to_string();
 }
 
 
