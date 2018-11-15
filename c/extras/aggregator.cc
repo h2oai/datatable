@@ -86,6 +86,7 @@ dtptr Aggregator::aggregate(DataTable* dt) {
 
   if (dt->nrows >= min_rows) {
     dtptr dt_double = nullptr;
+
     std::vector<Column*> cols_double;
     cols_double.reserve(dt->ncols);
     size_t ncols = 0;
@@ -570,14 +571,19 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   double delta = epsilon;
+  // Exemplar counter, if doesn't match thread local value, it means
+  // some new exemplars were added (and may be even `delta` was adjusted)
+  // meanwhile, so restart is needed for the `test_member` procedure.
+  size_t ecounter;
 
   #pragma omp parallel num_threads(nth0)
   {
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
-    double distance, delta_local;
+    double distance;
     DoublePtr member = DoublePtr(new double[ndims]);
+    size_t ecounter_local;
 
     try {
       // Main loop over all the rows
@@ -588,12 +594,12 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
-          delta_local = delta;
+          ecounter_local = ecounter;
           for (size_t j = 0; j < exemplars.size(); ++j) {
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
-            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta_local);
-            if (distance < delta_local) {
+            distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
+            if (distance < delta) {
               d_members[i] = static_cast<int32_t>(exemplars[j]->id);
               is_exemplar = false;
               break;
@@ -603,7 +609,9 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         if (is_exemplar) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ true);
-          if (delta == delta_local) {
+
+          if (ecounter_local == ecounter) {
+            ecounter++;
             ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
             member = DoublePtr(new double[ndims]);
             ids.push_back(e->id);
@@ -620,7 +628,6 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
         #pragma omp master
         if ((i / nth) % rstep == 0) progress(static_cast<double>(i+1) / dt->nrows);
       } // End main loop over all the rows
-
     } catch (...) {
       oem.capture_exception();
     }
@@ -759,6 +766,10 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
     ++n;
     sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
     if (early_exit && sum > delta) return sum; // i/n normalization here?
+  }
+
+  if (ndims != static_cast<size_t>(n)) {
+    printf("      Coefficient involved!\n");
   }
 
   return sum * ndims / n;
