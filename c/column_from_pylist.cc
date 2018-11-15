@@ -198,7 +198,7 @@ static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from
       }
       if (item.is_int()) {
         py::oint litem = item.to_pyint();
-        outdata[i] = litem.value<T>(&overflow);
+        outdata[i] = litem.ovalue<T>(&overflow);
         if (!overflow) continue;
       }
       from = i;
@@ -232,7 +232,7 @@ static void force_as_int(const iterable* list, MemoryRange& membuf)
       continue;
     }
     py::oint litem = item.to_pyint_force();
-    outdata[i] = litem.masked_value<T>();
+    outdata[i] = litem.mvalue<T>();
   }
 }
 
@@ -266,7 +266,7 @@ static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& f
       }
       if (item.is_int()) {
         py::oint litem = item.to_pyint();
-        outdata[i] = litem.value<double>(&overflow);
+        outdata[i] = litem.ovalue<double>(&overflow);
         continue;
       }
       if (item.is_float()) {
@@ -299,7 +299,7 @@ static void force_as_real(const iterable* list, MemoryRange& membuf)
     }
     if (item.is_int()) {
       py::oint litem = item.to_pyint();
-      outdata[i] = litem.value<T>(&overflow);
+      outdata[i] = litem.ovalue<T>(&overflow);
       continue;
     }
     py::ofloat fitem = item.to_pyfloat_force();
