@@ -768,10 +768,6 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
     if (early_exit && sum > delta) return sum; // i/n normalization here?
   }
 
-  if (ndims != static_cast<size_t>(n)) {
-    printf("      Coefficient involved!\n");
-  }
-
   return sum * ndims / n;
 }
 
