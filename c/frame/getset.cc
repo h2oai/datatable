@@ -66,7 +66,7 @@ oobj Frame::_fast_getset(obj item, obj value) {
           if (icol < 0) icol += ncols;
           if (icol < 0 || icol >= ncols) {
             if (icol < 0) icol -= ncols;
-            throw ValueError() << "Column index `" << icol << "` is invalud "
+            throw ValueError() << "Column index `" << icol << "` is invalid "
                 "for a frame with " << ncols << " column" <<
                 (ncols == 1? "" : "s");
           }

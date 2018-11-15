@@ -144,6 +144,15 @@ def test_dt_properties(dt0):
     assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
 
 
+
+def test_internal():
+    # Run C++ tests
+    from datatable.lib import core
+    if hasattr(core, "test_internal"):
+        core.test_internal()
+
+
+
 def test_dt_call(dt0, capsys):
     print("before computing dt1")
     dt1 = dt0(timeit=True)

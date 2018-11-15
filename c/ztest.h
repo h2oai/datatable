@@ -14,7 +14,6 @@
 namespace dttest {
 
 
-void run_tests();
 void test_assert(const std::function<void(void)>&, const std::string&);
 
 void cover_init_FrameInitializationManager_em();
