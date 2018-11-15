@@ -520,7 +520,7 @@ def test_sort_view4():
 
 def test_sort_view_large_strs():
     d0 = dt.Frame(list("abcbpeiuqenvkjqperufhqperofin;d") * 100)
-    d1 = d0[::2].sort(0)
+    d1 = d0[:, ::2].sort(0)
     d1.internal.check()
     elems = d1.topython()[0]
     assert elems == sorted(elems)
@@ -799,14 +799,26 @@ def test_sort_random_multi(seed):
 # Misc issues
 #-------------------------------------------------------------------------------
 
-def sort_api():
+def test_sort_api():
     df = dt.Frame([[1, 2, 1, 2], [3.3, 2.7, 0.1, 4.5]], names=["A", "B"])
     df1 = df.sort("A")
     df2 = df.sort("B")
     df3 = df.sort("A", "B")
     df4 = df.sort(["A", "B"])
     df5 = df.sort()  # issue 1354
-    assert df1.topython() == [[1, 1, 2, 2], [0.1, 3.3, 2.7, 4.5]]
-    assert df2.topython() == [[1, 2, 1, 2], [0.1, 2.7, 3.3, 4.5]]
-    assert df3.topython() == [[1, 1, 2, 2], [0.1, 2.7, 3.3, 4.5]]
-    assert df4.topython() == df5.topython() == df3.topython()
+    assert df1.to_list() == [[1, 1, 2, 2], [3.3, 0.1, 2.7, 4.5]]
+    assert df2.to_list() == [[1, 2, 1, 2], [0.1, 2.7, 3.3, 4.5]]
+    assert df3.to_list() == [[1, 1, 2, 2], [0.1, 3.3, 2.7, 4.5]]
+    assert df4.to_list() == df5.to_list() == df3.to_list()
+
+
+def test_issue1401():
+    col = [9.0, 21.0, 23.0, 40.0, 5.0, 49.0, 16.0, 2.0, 49.0, 39.0, 46.0, 21.0,
+           42.0, 47.0, 43.0, 20.0, 44.0, 26.0, 3.0, 44.0, 40.0, 42.0, 31.0, 7.0,
+           35.0, 15.0, 28.0, 32.0, 41.0, 44.0, 49.0, 21.0, 8.0, 35.0, 44.0, 44,
+           33.0, 26.0, 21.0, 46.0, 15.0, 41.0, 34.0, 10.0, 19.0, 21.0, 27.0, 13,
+           20.0, 35.0, 23.0, 32.0, 47.0, 27.0, 39.0, 3.0, 36.0, 6.0, 13.0, 38.0,
+           8.0, 33.0, 27.0, 32.0, 11.0]
+    DT = dt.Frame([['a'] * 65, col], names=["A", "B"])
+    res = DT.sort("A", "B")
+    assert res.to_list()[1] == sorted(col)

@@ -295,7 +295,7 @@ def test_create_from_frame():
     d1.internal.check()
     assert_equals(d0, d1)
     # Now check that d1 is a true copy of d0, rather than reference
-    del d1["C"]
+    del d1[:, "C"]
     d1.nrows = 10
     assert d1.nrows == 10
     assert d1.ncols == 2

@@ -416,13 +416,16 @@ class Frame(core.Frame):
     # Converters
     #---------------------------------------------------------------------------
 
-    def topandas(self):
+    def to_pandas(self):
         """
         Convert Frame to a pandas DataFrame, or raise an error if `pandas`
         module is not installed.
         """
         pandas = load_module("pandas")
         numpy = load_module("numpy")
+        if not hasattr(pandas, "DataFrame"):  # pragma: no cover
+            raise ImportError("Unsupported pandas version: `%s`"
+                              % (getattr(pandas, "__version__", "???"), ))
         nas = {stype.bool8: -128,
                stype.int8: -128,
                stype.int16: -32768,
@@ -456,7 +459,7 @@ class Frame(core.Frame):
         return pd
 
 
-    def tonumpy(self, stype=None):
+    def to_numpy(self, stype=None):
         """
         Convert Frame into a numpy array, optionally forcing it into a
         specific stype/dtype.
@@ -468,6 +471,9 @@ class Frame(core.Frame):
             array.
         """
         numpy = load_module("numpy")
+        if not hasattr(numpy, "array"):  # pragma: no cover
+            raise ImportError("Unsupported numpy version: `%s`"
+                              % (getattr(numpy, "__version__", "???"), ))
         st = 0
         if stype:
             st = datatable.stype(stype).value
@@ -477,17 +483,17 @@ class Frame(core.Frame):
         return res
 
 
-    def topython(self):
+    def to_list(self):
         """
         Convert the Frame into a python list-of-lists.
         """
         return self._dt.window(0, self.nrows, 0, self.ncols).data
 
 
-    # Preferred names
-    to_list = topython
-    to_pandas = topandas
-    to_numpy = tonumpy
+    # Old names
+    topython = to_list
+    topandas = to_pandas
+    tonumpy = to_numpy
 
 
     def scalar(self):
