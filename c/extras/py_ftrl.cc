@@ -47,6 +47,49 @@ void Ftrl::m__init__(PKArgs& args) {
 }
 
 
+void Ftrl::m__dealloc__() {
+  delete fm;
+}
+
+
+const char* Ftrl::Type::classname() {
+  return "datatable.core.Ftrl";
+}
+
+
+const char* Ftrl::Type::classdoc() {
+  return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
+    
+See this reference for more details:
+https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
+
+Parameters
+----------
+a : float
+    `alpha` in per-coordinate learning rate formula.
+b : float
+    `beta` in per-coordinate learning rate formula.
+l1 : float
+    L1 regularization parameter.
+l2 : float
+    L2 regularization parameter.
+d : int
+    Number of bins to be used after the hashing trick. 
+n_epochs : int
+    Number of epochs to train for.
+inter : boolean
+    If feature interactions to be used or not.
+hash_type : int
+    Hashing method to use for strings:
+    `0` - std::hash;
+    `1` - Murmur2;
+    `2` - Murmur3.
+seed: unsigned int
+    Seed to be used for Murmur hash functions.
+)";
+}
+
+
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_model, &Ftrl::set_model>("model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
@@ -61,8 +104,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", "Number of bins to be used after the hashing trick.\n");
   gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>("n_epochs", "Number of epochs to train for.\n");
   gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", "If feature interactions to be used or not.\n");
-  gs.add<&Ftrl::get_hash_type, &Ftrl::set_hash_type>("hash_type",
-    "Hashing method to use for strings.\n"
+  gs.add<&Ftrl::get_hash_type, &Ftrl::set_hash_type>("hash_type", "Hashing method to use for strings.\n"
     "`0` - std::hash;\n"
     "`1` - Murmur2;\n"
     "`2` - Murmur3.\n");
@@ -73,7 +115,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 }
 
 
-PKArgs Ftrl::Type::args_fit(1, 0, 0, false, false, {"df_train"}, "fit",
+PKArgs Ftrl::Type::args_fit(1, 0, 0, false, false, {"frame"}, "fit",
 R"(fit(self, frame)
 --
 
@@ -86,21 +128,17 @@ frame: Frame
 
 Returns
 ----------
-    A new Frame of shape `(d, 2)` containing `z` and `n` model coefficients.
+    None
 )");
 
 
 void Ftrl::fit(const PKArgs& args) {
-  if (!args[0].is_frame()) {
-    throw TypeError() << "argument must be a frame, not "
-        << args[0].typeobj();
-  }
   DataTable* dt_train = args[0].to_frame();
   fm->fit(dt_train);
 }
 
 
-PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"df_test"}, "predict",
+PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"frame"}, "predict",
 R"(predict(self, frame)
 --
 
@@ -132,29 +170,32 @@ oobj Ftrl::predict(const PKArgs& args) {
 
   DataTable* dt_test = args[0].to_frame();
   DataTable* dt_target = fm->predict(dt_test).release();
-  py::Frame* df_target = py::Frame::from_datatable(dt_target);
+  py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
 
   return df_target;
 }
 
 
 void Ftrl::set_model(robj model) {
-  if (!model.is_frame()) {
-    throw TypeError() << "`model` must be a frame, not "
-        << model.typeobj();
-  }
-
   DataTable* dt_model_in = model.to_frame();
-  const std::vector<std::string> model_cols_in = dt_model_in->get_names();
-  if (dt_model_in->nrows == fm->get_d() && dt_model_in->ncols == 2 &&
-    dt_model_in->columns[0]->stype() == SType::FLOAT64 &&
-    dt_model_in->columns[1]->stype() == SType::FLOAT64 &&
-    model_cols_in == FtrlModel::model_cols) {
-    fm->set_model(dt_model_in);
+  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
+
+  if (dt_model_in->nrows != fm->get_d() || dt_model_in->ncols != 2) {
+    throw ValueError() << "FTRL model frame must have " << fm->get_d() << " rows,"
+                       << "and 2 columns, whereas your frame has " << dt_model_in->nrows
+                       << " rows and " << dt_model_in->ncols << " columns";
+  } else if (model_cols_in != FtrlModel::model_cols) {
+    throw ValueError() << "FTRL model frame must have columns named `z` and `n`,"
+                       << "whereas your frame has the following column names `" << model_cols_in[0]
+                       << "` and `" << model_cols_in[1] << "`";
+  } else if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
+    dt_model_in->columns[1]->stype() != SType::FLOAT64) {
+    throw ValueError() << "FTRL model frame must have both column types as `float64`, "
+                       << "whereas your frame has the following column types: `"
+                       << dt_model_in->columns[0]->stype()
+                       << "` and `" << dt_model_in->columns[1]->stype() << "`";
   } else {
-    throw ValueError() << "FTRL model frame must have " << fm->get_d() <<" rows, and" <<
-                          "2 columns named `z` and `n`, " <<
-                          "both columns must be of `FLOAT64` type.";
+    fm->set_model(dt_model_in);
   }
 }
 
@@ -164,7 +205,7 @@ oobj Ftrl::get_model(void) const {
   if (dt_model == nullptr) {
     throw ValueError() << "There is no trained model available, train it first or set.";
   }
-  py::Frame* df_model = py::Frame::from_datatable(dt_model);
+  py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
   return df_model;
 }
 
@@ -313,26 +354,6 @@ void Ftrl::set_seed(robj seed) {
     throw ValueError() << "`seed` cannot be negative";
   }
   fm->set_seed(static_cast<unsigned int>(seed_in));
-}
-
-
-
-const char* Ftrl::Type::classname() {
-  return "datatable.core.Ftrl";
-}
-
-
-const char* Ftrl::Type::classdoc() {
-  return
-    "Follow the Regularized Leader (FTRL) model.\n"
-    "\n"
-    "See this reference for more details:\n"
-    "https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf";
-}
-
-
-void Ftrl::m__dealloc__() {
-  delete fm;
 }
 
 } // namespace py

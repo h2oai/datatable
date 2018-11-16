@@ -24,6 +24,9 @@
 
 namespace py {
   class Ftrl : public PyObject {
+    private:
+      FtrlModel* fm;
+
     public:
       class Type : public ExtType<Ftrl> {
         public:
@@ -42,27 +45,25 @@ namespace py {
 
       // Getters and setters.
       oobj get_model(void) const;
-      void set_model(robj);
       oobj get_a(void) const;
-      void set_a(robj);
       oobj get_b(void) const;
-      void set_b(robj);
       oobj get_l1(void) const;
-      void set_l1(robj);
       oobj get_l2(void) const;
-      void set_l2(robj);
       oobj get_d(void) const;
-      void set_d(robj);
-      oobj get_n_epochs(void) const;
-      void set_n_epochs(robj);
       oobj get_inter(void) const;
-      void set_inter(robj);
+      oobj get_n_epochs(void) const;
       oobj get_hash_type(void) const;
-      void set_hash_type(robj);
       oobj get_seed(void) const;
+      void set_model(robj);
+      void set_a(robj);
+      void set_b(robj);
+      void set_l1(robj);
+      void set_l2(robj);
+      void set_d(robj);
+      void set_n_epochs(robj);
+      void set_inter(robj);
+      void set_hash_type(robj);
       void set_seed(robj);
 
-    private:
-      FtrlModel* fm;
   };
 }

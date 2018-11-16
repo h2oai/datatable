@@ -38,16 +38,16 @@ const std::vector<std::string> FtrlModel::model_cols = {"z", "n"};
 FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
            uint64_t d_in, size_t nepochs_in, bool inter_in,
            unsigned int hash_type_in, unsigned int seed_in) :
-  n_epochs(nepochs_in),
+  dt_model(nullptr),
   a(a_in),
   b(b_in),
   l1(l1_in),
   l2(l2_in),
   d(d_in),
-  inter(inter_in),
   hash_type(hash_type_in),
   seed(seed_in),
-  dt_model(nullptr)
+  inter(inter_in),
+  n_epochs(nepochs_in)
 {
   w = DoublePtr(new double[d]());
 }

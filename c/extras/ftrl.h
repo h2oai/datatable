@@ -26,11 +26,36 @@ typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 #define REPORT_FREQUENCY 1000
 
 class FtrlModel {
+  private:
+    // Datatable containing `z` and `n` model values.
+    dtptr dt_model;
+
+    // Input to the model.
+    double a;
+    double b;
+    double l1;
+    double l2;
+    uint64_t d;
+    unsigned int hash_type;
+    unsigned int seed;
+    bool inter;
+    size_t : 56;
+
+    // Calculated during the learning process.
+    size_t n_features;
+    size_t n_inter_features;
+    double* z;
+    double* n;
+    DoublePtr w;
+
   public:
     FtrlModel(double, double, double, double, uint64_t, size_t, bool,
          unsigned int, unsigned int);
 
     FtrlModel(unsigned int, unsigned int);
+
+    // Changing these values should not invalidate any results.
+    size_t n_epochs;
 
     // Learning and predicting methods.
     void fit(const DataTable*);
@@ -51,47 +76,23 @@ class FtrlModel {
     static const std::vector<std::string> model_cols;
 
     // Getters and setters, some will invalidate the learning results.
-    void set_model(DataTable*);
     DataTable* get_model(void);
-    void set_a(double);
     double get_a(void);
-    void set_b(double);
     double get_b(void);
-    void set_l1(double);
     double get_l1(void);
-    void set_l2(double);
     double get_l2(void);
-    void set_d(uint64_t);
     uint64_t get_d(void);
-    void set_inter(bool);
-    bool get_inter(void);
-    void set_hash_type(unsigned int);
     unsigned int get_hash_type(void);
-    void set_seed(unsigned int );
     unsigned int get_seed(void);
-
-    // Changing these values should not invalidate any results.
-    size_t n_epochs;
-
-  private:
-    // Input to the model.
-    double a;
-    double b;
-    double l1;
-    double l2;
-    uint64_t d;
-    bool inter;
-    size_t : 24;
-    unsigned int hash_type;
-    unsigned int seed;
-    size_t : 32;
-
-    // Calculated during the learning process.
-    size_t n_features;
-    size_t n_inter_features;
-    double* z;
-    double* n;
-    DoublePtr w;
-    dtptr dt_model;
+    bool get_inter(void);
+    void set_model(DataTable*);
+    void set_a(double);
+    void set_b(double);
+    void set_l1(double);
+    void set_l2(double);
+    void set_d(uint64_t);
+    void set_inter(bool);
+    void set_hash_type(unsigned int);
+    void set_seed(unsigned int);
 };
 
