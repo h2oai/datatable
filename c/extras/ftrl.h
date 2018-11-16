@@ -48,14 +48,16 @@ class FtrlModel {
     double* n;
     DoublePtr w;
 
+    void init_model();
+    void create_model();
+
   public:
     FtrlModel(double, double, double, double, uint64_t, size_t, bool,
          unsigned int, unsigned int);
 
-    FtrlModel(unsigned int, unsigned int);
-
     // Changing these values should not invalidate any results.
     size_t n_epochs;
+
 
     // Learning and predicting methods.
     void fit(const DataTable*);
@@ -64,7 +66,7 @@ class FtrlModel {
     void update(const Uint64Ptr&, size_t, double, bool);
 
     // Learning helper methods.
-    double logloss(double, bool);
+    static double logloss(double, bool);
     static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);

@@ -49,27 +49,32 @@ FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
   inter(inter_in),
   n_epochs(nepochs_in)
 {
-  w = DoublePtr(new double[d]());
+  // Create and initialize model datatable and weight vector.
+  create_model();
+  init_model();
 }
 
+
+void FtrlModel::init_model() {
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
+  std::memset(z, 0, d * sizeof(double));
+  std::memset(n, 0, d * sizeof(double));
+}
+
+
+void FtrlModel::create_model() {
+  w = DoublePtr(new double[d]());
+
+  Column* col_z = Column::new_data_column(SType::FLOAT64, d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, d);
+  dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
+}
 
 /*
 *  Train FTRL model on a training dataset.
 */
 void FtrlModel::fit(const DataTable* dt) {
-  // Create a model datatable.
-  if (dt_model == nullptr) {
-    Column* col_z = Column::new_data_column(SType::FLOAT64, d);
-    Column* col_n = Column::new_data_column(SType::FLOAT64, d);
-    dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
-  }
-
-  z = static_cast<double*>(dt_model->columns[0]->data_w());
-  n = static_cast<double*>(dt_model->columns[1]->data_w());
-  std::memset(z, 0, d * sizeof(double));
-  std::memset(n, 0, d * sizeof(double));
-
-
   // Define number of features assuming that the target column is the last one.
   n_features = dt->ncols - 1;
 
@@ -120,10 +125,6 @@ void FtrlModel::fit(const DataTable* dt) {
 *  We assume that all the validation is done in `py_ftrl.cc`.
 */
 dtptr FtrlModel::predict(const DataTable* dt) {
-  // Read model parameters.
-  z = static_cast<double*>(dt_model->columns[0]->data_w());
-  n = static_cast<double*>(dt_model->columns[1]->data_w());
-
   // Create a target datatable.
   dtptr dt_target = nullptr;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
@@ -375,24 +376,8 @@ DataTable* FtrlModel::get_model(void) {
 *  Other getters and setters.
 *  Here we assume that all the validation is done in `py_ftrl.cc`.
 */
-void FtrlModel::set_a(double a_in) {
-  if (a != a_in) {
-    a = a_in;
-    dt_model = nullptr;
-  }
-}
-
-
 double FtrlModel::get_a(void) {
   return a;
-}
-
-
-void FtrlModel::set_b(double b_in) {
-  if (b != b_in) {
-    b = b_in;
-    dt_model = nullptr;
-  }
 }
 
 
@@ -401,24 +386,8 @@ double FtrlModel::get_b(void) {
 }
 
 
-void FtrlModel::set_l1(double l1_in) {
-  if (l1 != l1_in) {
-    l1 = l1_in;
-    dt_model = nullptr;
-  }
-}
-
-
 double FtrlModel::get_l1(void) {
   return l1;
-}
-
-
-void FtrlModel::set_l2(double l2_in) {
-  if (l2 != l2_in) {
-    l2 = l2_in;
-    dt_model = nullptr;
-  }
 }
 
 
@@ -427,25 +396,8 @@ double FtrlModel::get_l2(void) {
 }
 
 
-void FtrlModel::set_d(uint64_t d_in) {
-  if (d != d_in) {
-    d = d_in;
-    w = DoublePtr(new double[d]());
-    dt_model = nullptr;
-  }
-}
-
-
 uint64_t FtrlModel::get_d(void) {
   return d;
-}
-
-
-void FtrlModel::set_inter(bool inter_in) {
-  if (inter != inter_in) {
-    inter = inter_in;
-    dt_model = nullptr;
-  }
 }
 
 
@@ -454,27 +406,78 @@ bool FtrlModel::get_inter(void) {
 }
 
 
-void FtrlModel::set_hash_type(unsigned int hash_type_in) {
-  if (hash_type != hash_type_in) {
-    hash_type = hash_type_in;
-    dt_model = nullptr;
+unsigned int FtrlModel::get_hash_type(void) {
+  return hash_type;
+}
+
+
+unsigned int FtrlModel::get_seed(void) {
+  return seed;
+}
+
+
+void FtrlModel::set_a(double a_in) {
+  if (a != a_in) {
+    a = a_in;
+    init_model();
   }
 }
 
 
-unsigned int FtrlModel::get_hash_type(void) {
-  return hash_type;
+
+
+void FtrlModel::set_b(double b_in) {
+  if (b != b_in) {
+    b = b_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_l1(double l1_in) {
+  if (l1 != l1_in) {
+    l1 = l1_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_l2(double l2_in) {
+  if (l2 != l2_in) {
+    l2 = l2_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_d(uint64_t d_in) {
+  if (d != d_in) {
+    d = d_in;
+    create_model();
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_inter(bool inter_in) {
+  if (inter != inter_in) {
+    inter = inter_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_hash_type(unsigned int hash_type_in) {
+  if (hash_type != hash_type_in) {
+    hash_type = hash_type_in;
+    init_model();
+  }
 }
 
 
 void FtrlModel::set_seed(unsigned int seed_in) {
   if (seed != seed_in) {
     seed = seed_in;
-    dt_model = nullptr;
+    init_model();
   }
-}
-
-
-unsigned int FtrlModel::get_seed(void) {
-  return seed;
 }

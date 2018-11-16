@@ -157,22 +157,21 @@ Returns
 
 
 oobj Ftrl::predict(const PKArgs& args) {
-  if (fm->get_model() == nullptr) {
-    throw ValueError() << "There is no trained model in place.\n"
-                       << "To make predictions, the model must be either trained first, or "
-                       << "set.";
-  }
-
-  if (!args[0].is_frame()) {
-    throw TypeError() << "argument must be a frame, not "
-        << args[0].typeobj();
-  }
-
   DataTable* dt_test = args[0].to_frame();
   DataTable* dt_target = fm->predict(dt_test).release();
   py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
 
   return df_target;
+}
+
+
+/*
+*  Getter and setter for the model datatable.
+*/
+oobj Ftrl::get_model(void) const {
+  DataTable* dt_model = fm->get_model();
+  py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
+  return df_model;
 }
 
 
@@ -200,18 +199,51 @@ void Ftrl::set_model(robj model) {
 }
 
 
-oobj Ftrl::get_model(void) const {
-  DataTable* dt_model = fm->get_model();
-  if (dt_model == nullptr) {
-    throw ValueError() << "There is no trained model available, train it first or set.";
-  }
-  py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
-  return df_model;
+/*
+*  All other getters and setters.
+*/
+oobj Ftrl::get_a() const {
+  return py::ofloat(fm->get_a());
 }
 
 
-oobj Ftrl::get_a() const {
-  return py::ofloat(fm->get_a());
+oobj Ftrl::get_b() const {
+  return py::ofloat(fm->get_b());
+}
+
+
+oobj Ftrl::get_l1() const {
+  return py::ofloat(fm->get_l1());
+}
+
+
+oobj Ftrl::get_l2() const {
+  return py::ofloat(fm->get_l2());
+}
+
+
+oobj Ftrl::get_d() const {
+  return py::oint(static_cast<size_t>(fm->get_d()));
+}
+
+
+oobj Ftrl::get_n_epochs() const {
+  return py::oint(fm->n_epochs);
+}
+
+
+oobj Ftrl::get_inter() const {
+  return py::oint(static_cast<size_t>(fm->get_inter()));
+}
+
+
+oobj Ftrl::get_hash_type() const {
+  return py::oint(static_cast<size_t>(fm->get_hash_type()));
+}
+
+
+oobj Ftrl::get_seed() const {
+  return py::oint(static_cast<size_t>(fm->get_seed()));
 }
 
 
@@ -224,22 +256,12 @@ void Ftrl::set_a(robj a) {
 }
 
 
-oobj Ftrl::get_b() const {
-  return py::ofloat(fm->get_b());
-}
-
-
 void Ftrl::set_b(robj b) {
   if (!b.is_numeric()) {
     throw TypeError() << "`b` must be numeric, not "
         << b.typeobj();
   }
   fm->set_b(b.to_double());
-}
-
-
-oobj Ftrl::get_l1() const {
-  return py::ofloat(fm->get_l1());
 }
 
 
@@ -252,22 +274,12 @@ void Ftrl::set_l1(robj l1) {
 }
 
 
-oobj Ftrl::get_l2() const {
-  return py::ofloat(fm->get_l2());
-}
-
-
 void Ftrl::set_l2(robj l2) {
   if (!l2.is_numeric()) {
     throw TypeError() << "`l2` must be numeric, not "
         << l2.typeobj();
   }
   fm->set_l2(l2.to_double());
-}
-
-
-oobj Ftrl::get_d() const {
-  return py::oint(static_cast<size_t>(fm->get_d()));
 }
 
 
@@ -284,11 +296,6 @@ void Ftrl::set_d(robj d) {
 }
 
 
-oobj Ftrl::get_n_epochs() const {
-  return py::oint(fm->n_epochs);
-}
-
-
 void Ftrl::set_n_epochs(robj n_epochs) {
   if (!n_epochs.is_int()) {
     throw TypeError() << "`n_epochs` must be integer, not "
@@ -299,12 +306,6 @@ void Ftrl::set_n_epochs(robj n_epochs) {
     throw ValueError() << "`n_epochs` cannot be negative";
   }
   fm->n_epochs = static_cast<size_t>(n_epochs_in);
-}
-
-
-
-oobj Ftrl::get_inter() const {
-  return py::oint(static_cast<size_t>(fm->get_inter()));
 }
 
 
@@ -321,11 +322,6 @@ void Ftrl::set_inter(robj inter) {
 }
 
 
-oobj Ftrl::get_hash_type() const {
-  return py::oint(static_cast<size_t>(fm->get_hash_type()));
-}
-
-
 void Ftrl::set_hash_type(robj hash_type) {
   if (!hash_type.is_int()) {
     throw TypeError() << "`hash_type` must be integer, not "
@@ -336,11 +332,6 @@ void Ftrl::set_hash_type(robj hash_type) {
     throw ValueError() << "`hash_type_in` must be either `0` or `1` or `2`";
   }
   fm->set_hash_type(static_cast<unsigned int>(hash_type_in));
-}
-
-
-oobj Ftrl::get_seed() const {
-  return py::oint(static_cast<size_t>(fm->get_seed()));
 }
 
 
