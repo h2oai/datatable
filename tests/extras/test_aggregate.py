@@ -433,7 +433,7 @@ def test_aggregate_nd_projection():
 
 
 def aggregate_nd(nd):
-    nrows = 1000  
+    nrows = 1000
     div = 50
     column = [i%div for i in range(nrows)]
     matrix = [column for i in range(nd)] 
