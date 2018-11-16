@@ -50,26 +50,25 @@ class FtrlModel {
     void hash_row(Uint64Ptr&, const DataTable*, size_t);
     static const std::vector<std::string> model_cols;
 
-    // Getters and setters, some will invalidate learning results.
+    // Getters and setters, some will invalidate the learning results.
     void set_model(DataTable*);
     DataTable* get_model(void);
-
-    void set_a(double a_in) { a = a_in; dt_model = nullptr; }
-    double get_a(void)      { return a; }
-    void set_b(double b_in) { b = b_in; dt_model = nullptr; }
-    double get_b(void)      { return b; }
-    void set_l1(double l1_in) { l1 = l1_in; dt_model = nullptr; }
-    double get_l1(void)       { return l1; }
-    void set_l2(double l2_in) { l2 = l2_in; dt_model = nullptr; }
-    double get_l2(void)       { return l2; }
-    void set_d(uint64_t d_in) { d = d_in; dt_model = nullptr; }
-    uint64_t get_d(void)      { return d; }
-    void set_inter(bool inter_in) { inter = inter_in; dt_model = nullptr; }
-    bool get_inter(void)          { return inter; }
-    void set_hash_type(unsigned int hash_type_in) { hash_type = hash_type_in; dt_model = nullptr; }
-    unsigned int get_hash_type(void)              { return hash_type; }
-    void set_seed(unsigned int seed_in) { seed = seed_in; dt_model = nullptr; }
-    unsigned int get_seed(void)         { return seed; }
+    void set_a(double);
+    double get_a(void);
+    void set_b(double);
+    double get_b(void);
+    void set_l1(double);
+    double get_l1(void);
+    void set_l2(double);
+    double get_l2(void);
+    void set_d(uint64_t);
+    uint64_t get_d(void);
+    void set_inter(bool);
+    bool get_inter(void);
+    void set_hash_type(unsigned int);
+    unsigned int get_hash_type(void);
+    void set_seed(unsigned int );
+    unsigned int get_seed(void);
 
     // Changing these values should not invalidate any results.
     size_t n_epochs;

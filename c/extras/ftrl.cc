@@ -49,49 +49,7 @@ FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
   seed(seed_in),
   dt_model(nullptr)
 {
-}
-
-
-/*
-*  Set up FTRL parameters and initialize weights.
-*/
-FtrlModel::FtrlModel(unsigned int hash_type_in, unsigned int seed_in) :
-  hash_type(hash_type_in),
-  seed(seed_in)
-{
-}
-
-
-/*
-*  Set an FTRL model.
-*/
-void FtrlModel::set_model(DataTable* dt_model_in) {
-  const std::vector<std::string> model_cols_in = dt_model_in->get_names();
-
-  if (dt_model_in->nrows == d && dt_model_in->ncols == 2 &&
-      dt_model_in->columns[0]->stype() == SType::FLOAT64 &&
-      dt_model_in->columns[1]->stype() == SType::FLOAT64 &&
-      model_cols_in == model_cols) {
-
-      dt_model = dtptr(dt_model_in);
-
-  } else {
-    throw ValueError() << "FTRL model frame must have " << d <<" rows, and" <<
-                          "2 columns, i.e. named `z` and `n`, " <<
-                          "both columns be of `FLOAT64` type.";
-  }
-}
-
-
-/*
-*  Get a shallow copy of an FTRL model.
-*/
-DataTable* FtrlModel::get_model(void) {
-  if (dt_model != nullptr) {
-    return dt_model->copy();
-  } else {
-    throw ValueError() << "There is no trained model available, train it first or set.";
-  }
+  w = DoublePtr(new double[d]());
 }
 
 
@@ -111,7 +69,6 @@ void FtrlModel::fit(const DataTable* dt) {
   std::memset(z, 0, d * sizeof(double));
   std::memset(n, 0, d * sizeof(double));
 
-  w = DoublePtr(new double[d]());
 
   // Define number of features assuming that the target column is the last one.
   n_features = dt->ncols - 1;
@@ -167,12 +124,10 @@ dtptr FtrlModel::predict(const DataTable* dt) {
     z = static_cast<double*>(dt_model->columns[0]->data_w());
     n = static_cast<double*>(dt_model->columns[1]->data_w());
   } else {
-    throw ValueError() << "There is no trained model in place. "
+    throw ValueError() << "There is no trained model in place.\n"
                        << "To make predictions, the model must be either trained first, or"
-                       << "set with `set_model(...)` method!";
+                       << "set.\n";
   }
-
-  w = DoublePtr(new double[d]());
 
   // Create a target datatable.
   dtptr dt_target = nullptr;
@@ -397,4 +352,133 @@ inline double FtrlModel::signum(double x) {
 inline uint64_t FtrlModel::hash_double(double x) {
   uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
+}
+
+
+/*
+*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
+*/
+void FtrlModel::set_model(DataTable* dt_model_in) {
+  dt_model = dtptr(dt_model_in);
+}
+
+
+/*
+*  Get a shallow copy of an FTRL model if available.
+*/
+DataTable* FtrlModel::get_model(void) {
+  if (dt_model != nullptr) {
+    return dt_model->copy();
+  } else {
+    return nullptr;
+  }
+}
+
+
+/*
+*  Other getters and setters.
+*  Here we assume that all the validation is done in `py_ftrl.cc`.
+*/
+void FtrlModel::set_a(double a_in) {
+  if (a != a_in) {
+    a = a_in;
+    dt_model = nullptr;
+  }
+}
+
+
+double FtrlModel::get_a(void) {
+  return a;
+}
+
+
+void FtrlModel::set_b(double b_in) {
+  if (b != b_in) {
+    b = b_in;
+    dt_model = nullptr;
+  }
+}
+
+
+double FtrlModel::get_b(void) {
+  return b;
+}
+
+
+void FtrlModel::set_l1(double l1_in) {
+  if (l1 != l1_in) {
+    l1 = l1_in;
+    dt_model = nullptr;
+  }
+}
+
+
+double FtrlModel::get_l1(void) {
+  return l1;
+}
+
+
+void FtrlModel::set_l2(double l2_in) {
+  if (l2 != l2_in) {
+    l2 = l2_in;
+    dt_model = nullptr;
+  }
+}
+
+
+double FtrlModel::get_l2(void) {
+  return l2;
+}
+
+
+void FtrlModel::set_d(uint64_t d_in) {
+  if (d != d_in) {
+    d = d_in;
+    w = DoublePtr(new double[d]());
+    dt_model = nullptr;
+  }
+}
+
+
+uint64_t FtrlModel::get_d(void) {
+  return d;
+}
+
+
+void FtrlModel::set_inter(bool inter_in) {
+  if (inter != inter_in) {
+    inter = inter_in;
+    dt_model = nullptr;
+  }
+}
+
+
+bool FtrlModel::get_inter(void) {
+  return inter;
+}
+
+
+void FtrlModel::set_hash_type(unsigned int hash_type_in) {
+  if (hash_type != hash_type_in) {
+    hash_type = hash_type_in;
+    dt_model = nullptr;
+  }
+}
+
+
+unsigned int FtrlModel::get_hash_type(void) {
+  return hash_type;
+}
+
+
+void FtrlModel::set_seed(unsigned int seed_in) {
+  if (seed != seed_in) {
+    seed = seed_in;
+    dt_model = nullptr;
+  }
+}
+
+
+unsigned int FtrlModel::get_seed(void) {
+  return seed;
 }

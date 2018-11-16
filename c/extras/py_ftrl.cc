@@ -62,7 +62,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", "If feature interactions to be used or not.\n");
   gs.add<&Ftrl::get_hash_type, &Ftrl::set_hash_type>("hash_type",
     "Hashing method to use for strings.\n"
-    "`0` - std::hash;"
+    "`0` - std::hash;\n"
     "`1` - Murmur2;\n"
     "`2` - Murmur3.\n");
   gs.add<&Ftrl::get_seed, &Ftrl::set_seed>("seed", "Seed to be used for Murmur hash functions.\n");
@@ -122,14 +122,32 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-void Ftrl::set_model(obj dt) {
-  DataTable* dt_model = dt.to_frame();
-  fm->set_model(dt_model);
+void Ftrl::set_model(obj model) {
+  if (!model.is_frame()) {
+    throw TypeError() << "`model` must be a frame, not "
+        << model.typeobj();
+  }
+
+  DataTable* dt_model_in = model.to_frame();
+  const std::vector<std::string> model_cols_in = dt_model_in->get_names();
+  if (dt_model_in->nrows == fm->get_d() && dt_model_in->ncols == 2 &&
+    dt_model_in->columns[0]->stype() == SType::FLOAT64 &&
+    dt_model_in->columns[1]->stype() == SType::FLOAT64 &&
+    model_cols_in == FtrlModel::model_cols) {
+    fm->set_model(dt_model_in);
+  } else {
+    throw ValueError() << "FTRL model frame must have " << fm->get_d() <<" rows, and" <<
+                          "2 columns named `z` and `n`, " <<
+                          "both columns must be of `FLOAT64` type.";
+  }
 }
 
 
 oobj Ftrl::get_model(void) const {
   DataTable* dt_model = fm->get_model();
+  if (dt_model == nullptr) {
+    throw ValueError() << "There is no trained model available, train it first or set.";
+  }
   py::Frame* df_model = py::Frame::from_datatable(dt_model);
   return df_model;
 }
@@ -197,8 +215,8 @@ oobj Ftrl::get_d() const {
 
 
 void Ftrl::set_d(obj d) {
-  if (!d.is_numeric()) {
-    throw TypeError() << "`d` must be numeric, not "
+  if (!d.is_int()) {
+    throw TypeError() << "`d` must be integer, not "
         << d.typeobj();
   }
   int64_t d_in = d.to_int64_strict();
@@ -215,8 +233,8 @@ oobj Ftrl::get_n_epochs() const {
 
 
 void Ftrl::set_n_epochs(obj n_epochs) {
-  if (!n_epochs.is_numeric()) {
-    throw TypeError() << "`n_epochs` must be numeric, not "
+  if (!n_epochs.is_int()) {
+    throw TypeError() << "`n_epochs` must be integer, not "
         << n_epochs.typeobj();
   }
   int64_t n_epochs_in = n_epochs.to_int64_strict();
@@ -234,8 +252,8 @@ oobj Ftrl::get_inter() const {
 
 
 void Ftrl::set_inter(obj inter) {
-  if (!inter.is_numeric()) {
-    throw TypeError() << "`inter` must be numeric, not "
+  if (!inter.is_int()) {
+    throw TypeError() << "`inter` must be integer, not "
         << inter.typeobj();
   }
   int64_t inter_in = inter.to_int64_strict();
@@ -252,8 +270,8 @@ oobj Ftrl::get_hash_type() const {
 
 
 void Ftrl::set_hash_type(obj hash_type) {
-  if (!hash_type.is_numeric()) {
-    throw TypeError() << "`hash_type` must be numeric, not "
+  if (!hash_type.is_int()) {
+    throw TypeError() << "`hash_type` must be integer, not "
         << hash_type.typeobj();
   }
   int64_t hash_type_in = hash_type.to_int64_strict();
@@ -270,8 +288,8 @@ oobj Ftrl::get_seed() const {
 
 
 void Ftrl::set_seed(obj seed) {
-  if (!seed.is_numeric()) {
-    throw TypeError() << "`seed` must be numeric, not "
+  if (!seed.is_int()) {
+    throw TypeError() << "`seed` must be integer, not "
         << seed.typeobj();
   }
   int32_t seed_in = seed.to_int32_strict();
@@ -295,6 +313,7 @@ const char* Ftrl::Type::classdoc() {
     "See this reference for more details:\n"
     "https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf\n";
 }
+
 
 void Ftrl::m__dealloc__() {
   delete fm;
