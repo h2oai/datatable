@@ -51,7 +51,8 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_model, &Ftrl::set_model>("model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
     "where `d` is a number of bins set for modeling. Both column types\n"
-    "must be `FLOAT64`.\n");
+    "must be `FLOAT64`.\n"
+    "NB: as the model trains, this frame will be changed in-place.\n");
 
   gs.add<&Ftrl::get_a, &Ftrl::set_a>("a", "`alpha` in per-coordinate learning rate formula.\n");
   gs.add<&Ftrl::get_b, &Ftrl::set_b>("b", "`beta` in per-coordinate learning rate formula.\n");
@@ -90,6 +91,10 @@ Returns
 
 
 void Ftrl::fit(const PKArgs& args) {
+  if (!args[0].is_frame()) {
+    throw TypeError() << "argument must be a frame, not "
+        << args[0].typeobj();
+  }
   DataTable* dt_train = args[0].to_frame();
   fm->fit(dt_train);
 }
@@ -114,6 +119,17 @@ Returns
 
 
 oobj Ftrl::predict(const PKArgs& args) {
+  if (fm->get_model() == nullptr) {
+    throw ValueError() << "There is no trained model in place.\n"
+                       << "To make predictions, the model must be either trained first, or "
+                       << "set.";
+  }
+
+  if (!args[0].is_frame()) {
+    throw TypeError() << "argument must be a frame, not "
+        << args[0].typeobj();
+  }
+
   DataTable* dt_test = args[0].to_frame();
   DataTable* dt_target = fm->predict(dt_test).release();
   py::Frame* df_target = py::Frame::from_datatable(dt_target);
@@ -311,7 +327,7 @@ const char* Ftrl::Type::classdoc() {
     "Follow the Regularized Leader (FTRL) model.\n"
     "\n"
     "See this reference for more details:\n"
-    "https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf\n";
+    "https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf";
 }
 
 

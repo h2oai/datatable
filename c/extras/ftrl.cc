@@ -117,17 +117,12 @@ void FtrlModel::fit(const DataTable* dt) {
 
 /*
 *  Make predictions for a test dataset and return targets as a new datatable.
+*  We assume that all the validation is done in `py_ftrl.cc`.
 */
 dtptr FtrlModel::predict(const DataTable* dt) {
   // Read model parameters.
-  if (dt_model != nullptr) {
-    z = static_cast<double*>(dt_model->columns[0]->data_w());
-    n = static_cast<double*>(dt_model->columns[1]->data_w());
-  } else {
-    throw ValueError() << "There is no trained model in place.\n"
-                       << "To make predictions, the model must be either trained first, or"
-                       << "set.\n";
-  }
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
 
   // Create a target datatable.
   dtptr dt_target = nullptr;
@@ -301,6 +296,7 @@ void FtrlModel::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     }
     // Add the column name hash to the hashed value, so that the same value
     // in different columns will result in different hashes.
+    // TODO: pre-hash all the column names only once.
     uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
     index += h;
     x[i] = index % d;
