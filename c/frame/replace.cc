@@ -168,9 +168,9 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
   if (x.is_dict()) {
     if (y) {
       throw TypeError() << "When the first argument to Frame.replace() is a "
-        "dict, there should be no second argument";
+        "dictionary, there should be no other arguments";
     }
-    for (auto kv : rdict(x)) {
+    for (const auto kv : x.to_rdict()) {
       vx.push_back(kv.first);
       vy.push_back(kv.second);
     }

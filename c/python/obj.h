@@ -31,6 +31,7 @@ class ostring;
 class orange;
 class otuple;
 class robj;
+class rdict;
 class oobj;
 using strvec = std::vector<std::string>;
 
@@ -188,6 +189,7 @@ class _obj {
     py::olist   to_pylist        (const error_manager& = _em0) const;
     py::otuple  to_pytuple       (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
+    py::rdict   to_rdict         (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
     py::oiter   to_pyiter        (const error_manager& = _em0) const;
 
@@ -237,6 +239,8 @@ class _obj {
 
     friend robj;
     friend oobj;
+    friend odict;
+    friend rdict;
     friend Arg;
     friend oobj get_module(const char* name);
 };

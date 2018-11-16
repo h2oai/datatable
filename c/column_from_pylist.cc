@@ -56,8 +56,8 @@ class ituplist : public iterable {
 
 class idictlist : public iterable {
   private:
-    const py::olist& dict_list;
     const py::robj key;
+    std::vector<py::rdict> dict_list;
 
   public:
     idictlist(const py::olist& src, py::robj name);
@@ -88,13 +88,18 @@ py::robj ituplist::item(size_t i) const {
 }
 
 
-idictlist::idictlist(const py::olist& src, py::robj name)
-    : dict_list(src), key(name) {}
+idictlist::idictlist(const py::olist& src, py::robj name) : key(name) {
+  for (size_t i = 0; i < src.size(); ++i) {
+    dict_list.push_back(src[i].to_rdict());
+  }
+}
 
-size_t idictlist::size() const { return dict_list.size(); }
+size_t idictlist::size() const {
+  return dict_list.size();
+}
 
 py::robj idictlist::item(size_t i) const {
-  return py::rdict(dict_list[i]).get_or_none(key);
+  return dict_list[i].get_or_none(key);
 }
 
 

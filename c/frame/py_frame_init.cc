@@ -213,7 +213,7 @@ class FrameInitializationManager {
           throw TypeError() << "The source is not a list of dicts: element "
               << i << " is a " << item.typeobj();
         }
-        py::rdict row(item);
+        py::rdict row = item.to_rdict();
         for (auto kv : row) {
           py::robj& name = kv.first;
           if (!namesset.has(name)) {

@@ -538,8 +538,14 @@ PyObject* _obj::to_pyobject_newref() const noexcept {
 
 py::odict _obj::to_pydict(const error_manager& em) const {
   if (is_none()) return py::odict();
-  if (is_dict()) return py::odict(v);
+  if (is_dict()) return py::odict(robj(v));
   throw em.error_not_dict(v);
+}
+
+
+py::rdict _obj::to_rdict(const error_manager& em) const {
+  if (!is_dict()) throw em.error_not_dict(v);
+  return py::rdict(robj(v));
 }
 
 

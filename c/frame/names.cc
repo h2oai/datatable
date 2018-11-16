@@ -278,7 +278,7 @@ py::otuple DataTable::get_pynames() const {
  * exist in the DataTable.
  */
 int64_t DataTable::colindex(const py::_obj& pyname) const {
-  if (!py_inames) _init_pynames();
+  if (!py_names) _init_pynames();
   py::robj pyindex = py_inames.get(pyname);
   return pyindex? pyindex.to_int64_strict() : -1;
 }
@@ -289,7 +289,7 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
  * column does not exist in the DataTable.
  */
 size_t DataTable::xcolindex(const py::_obj& pyname) const {
-  if (!py_inames) _init_pynames();
+  if (!py_names) _init_pynames();
   py::robj pyindex = py_inames.get(pyname);
   if (!pyindex) {
     throw _name_not_found_error(this, pyname.to_string());
@@ -317,7 +317,7 @@ void DataTable::set_names_to_default() {
   auto index0 = static_cast<size_t>(config::frame_names_auto_index);
   auto prefix = config::frame_names_auto_prefix;
   py_names  = py::otuple();
-  py_inames = py::odict(nullptr);
+  py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
@@ -594,10 +594,9 @@ void DataTable::_integrity_check_names() const {
 
 
 void DataTable::_integrity_check_pynames() const {
-  if (!py_names && !py_inames) return;
-  if (!py_names || !py_inames) {
-    throw AssertionError() << "One of DataTable.py_names or DataTable.py_inames"
-      " is not properly computed";
+  if (!py_names && py_inames.size() == 0) return;
+  if (!py_names && py_inames.size() > 0) {
+    throw AssertionError() << "DataTable.py_names is not properly computed";
   }
   if (!py_names.is_tuple()) {
     throw AssertionError() << "DataTable.py_names is not a tuple";
@@ -753,11 +752,13 @@ namespace dttest {
 
     auto check2 = [dt]() { dt->_integrity_check_pynames(); };
     py::oobj q = py::None();
+    dt->py_inames.set(q, q);
+    test_assert(check2, "DataTable.py_names is not properly computed");
+    dt->py_inames.del(q);
+
     dt->py_names = *reinterpret_cast<const py::otuple*>(&q);
-    test_assert(check2, "One of DataTable.py_names or DataTable.py_inames"
-                        " is not properly computed");
-    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
     test_assert(check2, "DataTable.py_names is not a tuple");
+    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
     dt->py_names = py::otuple(1);
     test_assert(check2, "DataTable.py_inames is not a dict");
     dt->py_inames = py::odict();

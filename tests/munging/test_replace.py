@@ -311,8 +311,8 @@ def test_replace_bad1():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame(A=range(10))
         df0.replace({0: 500}, 17)
-    assert ("When the first argument to Frame.replace() is a dict, there "
-            "should be no second argument" == str(e.value))
+    assert ("When the first argument to Frame.replace() is a dictionary, there "
+            "should be no other arguments" == str(e.value))
 
 
 def test_replace_bad2():
