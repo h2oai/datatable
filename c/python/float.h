@@ -28,7 +28,14 @@ namespace py {
 
 
 /**
- * Python float object.
+ * C++ interface to python `float`.
+ *
+ * Public API
+ * ----------
+ * value<T>()
+ *   Return the stored value as either float or double. This method does not
+ *   throw exceptions.
+ *
  */
 class ofloat : public oobj {
   public:
@@ -41,7 +48,8 @@ class ofloat : public oobj {
     ofloat(double x);
     ofloat(float x);
 
-    template <typename T> T value() const;
+    template <typename T>
+    T value() const noexcept;
 
   private:
     // Private constructors, used from `_obj`. If you need to construct
@@ -54,8 +62,8 @@ class ofloat : public oobj {
 
 
 // Explicit instantiation
-template<> float  ofloat::value() const;
-template<> double ofloat::value() const;
+template<> float  ofloat::value() const noexcept;
+template<> double ofloat::value() const noexcept;
 
 
 }  // namespace py
