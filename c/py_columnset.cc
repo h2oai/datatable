@@ -60,8 +60,8 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
   if (!PyArg_ParseTuple(args, "OOLLL:columns_from_slice",
                         &arg1, &arg2, &start, &count, &step))
     return nullptr;
-  DataTable* dt = py::obj(arg1).to_frame();
-  RowIndex rowindex = py::obj(arg2).to_rowindex();
+  DataTable* dt = py::robj(arg1).to_frame();
+  RowIndex rowindex = py::robj(arg2).to_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, static_cast<size_t>(count));
@@ -77,8 +77,8 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
   if (!PyArg_ParseTuple(args, "OOlL:columns_from_mixed",
                         &arg1, &arg2, &nrows, &rawptr))
     return nullptr;
-  py::olist pyspec = py::obj(arg1).to_pylist();
-  DataTable* dt = py::obj(arg2).to_frame();
+  py::olist pyspec = py::robj(arg1).to_pylist();
+  DataTable* dt = py::robj(arg2).to_frame();
 
   columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
   size_t ncols = pyspec.size();
@@ -129,7 +129,7 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
 PyObject* to_frame(obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:to_frame", &arg1)) return nullptr;
-  py::olist names = py::obj(arg1).to_pylist();
+  py::olist names = py::robj(arg1).to_pylist();
 
   std::vector<Column*> columns;
   for (Column** pcol = self->columns; *pcol; pcol++) {

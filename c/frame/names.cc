@@ -72,7 +72,7 @@ size_t pylistNP::size() const {
 }
 
 CString pylistNP::item_as_cstring(size_t i) {
-  py::obj name = names[i];
+  py::robj name = names[i];
   if (!name.is_string() && !name.is_none()) {
     throw TypeError() << "Invalid `names` list: element " << i
         << " is not a string";
@@ -154,7 +154,7 @@ oobj Frame::get_names() const {
 }  // LCOV_EXCL_LINE
 
 
-void Frame::set_names(obj arg)
+void Frame::set_names(robj arg)
 {
   if (arg.is_undefined() || arg.is_none()) {
     dt->set_names_to_default();
@@ -278,8 +278,8 @@ py::otuple DataTable::get_pynames() const {
  * exist in the DataTable.
  */
 int64_t DataTable::colindex(const py::_obj& pyname) const {
-  if (!py_inames) _init_pynames();
-  py::obj pyindex = py_inames.get(pyname);
+  if (!py_names) _init_pynames();
+  py::robj pyindex = py_inames.get(pyname);
   return pyindex? pyindex.to_int64_strict() : -1;
 }
 
@@ -289,8 +289,8 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
  * column does not exist in the DataTable.
  */
 size_t DataTable::xcolindex(const py::_obj& pyname) const {
-  if (!py_inames) _init_pynames();
-  py::obj pyindex = py_inames.get(pyname);
+  if (!py_names) _init_pynames();
+  py::robj pyindex = py_inames.get(pyname);
   if (!pyindex) {
     throw _name_not_found_error(this, pyname.to_string());
   }
@@ -317,7 +317,7 @@ void DataTable::set_names_to_default() {
   auto index0 = static_cast<size_t>(config::frame_names_auto_index);
   auto prefix = config::frame_names_auto_prefix;
   py_names  = py::otuple();
-  py_inames = py::odict(nullptr);
+  py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
@@ -346,9 +346,9 @@ void DataTable::replace_names(py::odict replacements) {
     newnames.set(i, py_names[i]);
   }
   for (auto kv : replacements) {
-    py::obj key = kv.first;
-    py::obj val = kv.second;
-    py::obj idx = py_inames.get(key);
+    py::robj key = kv.first;
+    py::robj val = kv.second;
+    py::robj idx = py_inames.get(key);
     if (idx.is_undefined()) {
       throw ValueError() << "Cannot find column `" << key.str()
         << "` in the Frame";
@@ -375,7 +375,7 @@ void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
   if (py_names) {
     py::otuple new_py_names(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      py::obj pyname = py_names[col_indices[i]];
+      py::robj pyname = py_names[col_indices[i]];
       new_py_names.set(i, pyname);
       py_inames.set(pyname, py::oint(i));
     }
@@ -546,7 +546,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   // If there were any duplicate names, issue a warning
   size_t ndup = duplicates.size();
   if (ndup) {
-    Warning w;
+    Warning w = DatatableWarning();
     if (ndup == 1) {
       w << "Duplicate column name '" << duplicates[0] << "' found, and was "
            "assigned a unique name";
@@ -594,10 +594,9 @@ void DataTable::_integrity_check_names() const {
 
 
 void DataTable::_integrity_check_pynames() const {
-  if (!py_names && !py_inames) return;
-  if (!py_names || !py_inames) {
-    throw AssertionError() << "One of DataTable.py_names or DataTable.py_inames"
-      " is not properly computed";
+  if (!py_names && py_inames.size() == 0) return;
+  if (!py_names && py_inames.size() > 0) {
+    throw AssertionError() << "DataTable.py_names is not properly computed";
   }
   if (!py_names.is_tuple()) {
     throw AssertionError() << "DataTable.py_names is not a tuple";
@@ -614,7 +613,7 @@ void DataTable::_integrity_check_pynames() const {
       << " elements, while the Frame has " << ncols << " columns";
   }
   for (size_t i = 0; i < ncols; ++i) {
-    py::obj elem = py_names[i];
+    py::robj elem = py_names[i];
     if (!elem.is_string()) {
       throw AssertionError() << "Element " << i << " of .py_names is a "
           << elem.typeobj();
@@ -624,7 +623,7 @@ void DataTable::_integrity_check_pynames() const {
       throw AssertionError() << "Element " << i << " of .py_names is '"
           << sname << "', but the actual column name is '" << names[i] << "'";
     }
-    py::obj res = py_inames.get(elem);
+    py::robj res = py_inames.get(elem);
     if (!res) {
       throw AssertionError() << "Column " << i << " '" << names[i] << "' is "
           "absent from the .py_inames dictionary";
@@ -753,11 +752,13 @@ namespace dttest {
 
     auto check2 = [dt]() { dt->_integrity_check_pynames(); };
     py::oobj q = py::None();
+    dt->py_inames.set(q, q);
+    test_assert(check2, "DataTable.py_names is not properly computed");
+    dt->py_inames.del(q);
+
     dt->py_names = *reinterpret_cast<const py::otuple*>(&q);
-    test_assert(check2, "One of DataTable.py_names or DataTable.py_inames"
-                        " is not properly computed");
-    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
     test_assert(check2, "DataTable.py_names is not a tuple");
+    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
     dt->py_names = py::otuple(1);
     test_assert(check2, "DataTable.py_inames is not a dict");
     dt->py_inames = py::odict();

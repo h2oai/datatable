@@ -144,6 +144,15 @@ def test_dt_properties(dt0):
     assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
 
 
+
+def test_internal():
+    # Run C++ tests
+    from datatable.lib import core
+    if hasattr(core, "test_internal"):
+        core.test_internal()
+
+
+
 def test_dt_call(dt0, capsys):
     print("before computing dt1")
     dt1 = dt0(timeit=True)
@@ -172,10 +181,10 @@ def test_dt_view(dt0, patched_terminal, capsys):
 
 
 def test_dt_getitem(dt0):
-    dt1 = dt0[0]
+    dt1 = dt0[:, 0]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("A", )
-    dt1 = dt0[(4,)]
+    dt1 = dt0[(..., 4)]
     assert dt1.shape == (4, 1)
     assert dt1.names == ("E", )
     elem2 = dt0[0, 1]
@@ -183,6 +192,20 @@ def test_dt_getitem(dt0):
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+    with pytest.warns(FutureWarning) as ws:
+        dt0["A"]
+    assert len(ws) == 1
+    assert ("Single-item selectors `DT[col]` are deprecated"
+            in ws[0].message.args[0])
+
+
+def test_issue1406(dt0):
+    with pytest.raises(ValueError) as e:
+        dt0[tuple()]
+    assert "Invalid selector ()" == str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0[(None,)]
+    assert "Invalid selector (None,)" == str(e.value)
 
 
 
@@ -261,14 +284,14 @@ def smalldt():
 
 def test_del_0cols():
     d0 = smalldt()
-    del d0[[]]
+    del d0[:, []]
     d0.internal.check()
     assert d0.shape == (1, 16)
     assert d0.topython() == smalldt().topython()
 
 def test_del_1col_str_1():
     d0 = smalldt()
-    del d0["A"]
+    del d0[:, "A"]
     d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(1, 16)]
@@ -277,7 +300,7 @@ def test_del_1col_str_1():
 
 def test_del_1col_str_2():
     d0 = smalldt()
-    del d0["B"]
+    del d0[:, "B"]
     d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(16) if i != 1]
@@ -285,7 +308,7 @@ def test_del_1col_str_2():
 
 def test_del_1col_str_3():
     d0 = smalldt()
-    del d0["P"]
+    del d0[:, "P"]
     d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(16) if i != 15]
@@ -293,14 +316,14 @@ def test_del_1col_str_3():
 
 def test_del_1col_int():
     d0 = smalldt()
-    del d0[-1]
+    del d0[:, -1]
     d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
 
 def test_del_cols_strslice():
     d0 = smalldt()
-    del d0["E":"K"]
+    del d0[:, "E":"K"]
     d0.internal.check()
     assert d0.shape == (1, 9)
     assert d0.names == tuple("ABCDLMNOP")
@@ -308,7 +331,7 @@ def test_del_cols_strslice():
 
 def test_del_cols_intslice1():
     d0 = smalldt()
-    del d0[::2]
+    del d0[:, ::2]
     d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("BDFHJLNP")
@@ -316,7 +339,7 @@ def test_del_cols_intslice1():
 
 def test_del_cols_intslice2():
     d0 = smalldt()
-    del d0[::-2]
+    del d0[:, ::-2]
     d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("ACEGIKMO")
@@ -324,28 +347,28 @@ def test_del_cols_intslice2():
 
 def test_del_cols_all():
     d0 = smalldt()
-    del d0[:]
+    del d0[:, :]
     d0.internal.check()
     assert d0.names == tuple()
     assert d0.shape == (0, 0)
 
 def test_del_cols_list():
     d0 = smalldt()
-    del d0[[0, 3, 0, 5, 0, 9]]
+    del d0[:, [0, 3, 0, 5, 0, 9]]
     d0.internal.check()
     assert d0.names == tuple("BCEGHIKLMNOP")
     assert d0.shape == (1, 12)
 
 def test_del_cols_multislice():
     d0 = smalldt()
-    del d0[[slice(10), 12, -1]]
+    del d0[:, [slice(10), 12, -1]]
     d0.internal.check()
     assert d0.names == tuple("KLNO")
     assert d0.shape == (1, 4)
 
 def test_del_cols_generator():
     d0 = smalldt()
-    del d0[(i**2 for i in range(4))]
+    del d0[:, (i**2 for i in range(4))]
     d0.internal.check()
     assert d0.names == tuple("CDFGHIKLMNOP")
 
@@ -364,12 +387,12 @@ def test_delitem_invalid_selectors():
     """
     d0 = smalldt()
     with pytest.raises(ValueError) as e:
-        del d0[0.5]
+        del d0[:, 0.5]
     assert "Unknown `select` argument: 0.5" in str(e.value)
     with pytest.raises(ValueError):
-        del d0[d0]
+        del d0[:, d0]
     with pytest.raises(TypeError):
-        del d0[[1, 2, 1, 0.7]]
+        del d0[:, [1, 2, 1, 0.7]]
 
 
 

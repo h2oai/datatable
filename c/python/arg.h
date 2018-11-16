@@ -27,7 +27,7 @@ class Arg : public _obj::error_manager {
   private:
     size_t pos;
     PKArgs* parent;
-    py::obj pyobj;
+    py::robj pyobj;
     mutable std::string cached_name;
 
   public:
@@ -63,11 +63,12 @@ class Arg : public _obj::error_manager {
     double      to_double        () const;
     py::olist   to_pylist        () const;
     py::odict   to_pydict        () const;
+    py::rdict   to_rdict         () const;
     std::string to_string        () const;
     strvec      to_stringlist    () const;
     SType       to_stype         () const;
     SType       to_stype         (const error_manager&) const;
-    py::obj     to_pyobj         () const { return pyobj; }
+    py::robj    to_pyobj         () const { return pyobj; }
     DataTable*  to_frame         () const;
 
 
@@ -77,7 +78,7 @@ class Arg : public _obj::error_manager {
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }
-    PyObject* obj() const { return pyobj.to_pyobject_newref(); }
+    PyObject* robj() const { return pyobj.to_pyobject_newref(); }
     PyObject* to_borrowed_ref() const { return pyobj.to_borrowed_ref(); }
     PyTypeObject* typeobj() const { return pyobj.typeobj(); }
     void print() const;

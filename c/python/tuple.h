@@ -34,9 +34,9 @@ class otuple : public oobj {
 
     size_t size() const noexcept;
 
-    obj operator[](int64_t i) const;
-    obj operator[](size_t i) const;
-    obj operator[](int i) const;
+    robj operator[](int64_t i) const;
+    robj operator[](size_t i) const;
+    robj operator[](int i) const;
 
     /**
      * `set(...)` methods should only be used to fill-in a new tuple object.
@@ -74,11 +74,11 @@ class otuple : public oobj {
  * or not -- the caller is expected to do that himself. Thus, this class
  * should be used judiciously.
  */
-class rtuple : public obj {
+class rtuple : public robj {
   public:
-    using obj::obj;
+    using robj::robj;
     size_t size() const noexcept;
-    obj operator[](size_t i) const;
+    robj operator[](size_t i) const;
 };
 
 

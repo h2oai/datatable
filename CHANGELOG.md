@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - HTML rendering of Frames inside a Jupyter notebook.
 - set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
 - support for multi-column keys.
+- ability to join Frames on multiple columns.
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
@@ -74,6 +75,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
 - The performance of explicit element selection improved by a factor of 200x.
 - Building no longer requires an LLVM distribution.
+- `DT[col]` syntax has been deprecated and now emits a warning. This
+  will be converted to an error in version 0.8.0, and will be interpreted
+  as row selector in 0.9.0.
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
@@ -106,6 +110,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - f-expressions now do not crash when reused with a different Frame.
 - g-columns can be properly selected in a join (#1352).
 - writing to disk of columns > 2GB in size (#1387).
+- crash when sorting by multiple columns and the first column was
+  of string type (#1401).
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

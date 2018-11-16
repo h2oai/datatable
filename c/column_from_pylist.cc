@@ -27,7 +27,7 @@ class iterable {
   public:
     virtual ~iterable();
     virtual size_t size() const = 0;
-    virtual py::obj item(size_t i) const = 0;
+    virtual py::robj item(size_t i) const = 0;
 };
 
 
@@ -38,7 +38,7 @@ class ilist : public iterable {
   public:
     ilist(const py::olist& src);
     size_t size() const override;
-    py::obj item(size_t i) const override;
+    py::robj item(size_t i) const override;
 };
 
 
@@ -50,19 +50,19 @@ class ituplist : public iterable {
   public:
     ituplist(const py::olist& src, size_t index);
     size_t size() const override;
-    py::obj item(size_t i) const override;
+    py::robj item(size_t i) const override;
 };
 
 
 class idictlist : public iterable {
   private:
-    const py::olist& dict_list;
-    const py::obj key;
+    const py::robj key;
+    std::vector<py::rdict> dict_list;
 
   public:
-    idictlist(const py::olist& src, py::obj name);
+    idictlist(const py::olist& src, py::robj name);
     size_t size() const override;
-    py::obj item(size_t i) const override;
+    py::robj item(size_t i) const override;
   };
 
 
@@ -75,7 +75,7 @@ ilist::ilist(const py::olist& src) : list(src) {}
 
 size_t ilist::size() const { return list.size(); }
 
-py::obj ilist::item(size_t i) const { return list[i]; }
+py::robj ilist::item(size_t i) const { return list[i]; }
 
 
 ituplist::ituplist(const py::olist& src, size_t index)
@@ -83,18 +83,23 @@ ituplist::ituplist(const py::olist& src, size_t index)
 
 size_t ituplist::size() const { return tuple_list.size(); }
 
-py::obj ituplist::item(size_t i) const {
+py::robj ituplist::item(size_t i) const {
   return py::rtuple(tuple_list[i])[j];
 }
 
 
-idictlist::idictlist(const py::olist& src, py::obj name)
-    : dict_list(src), key(name) {}
+idictlist::idictlist(const py::olist& src, py::robj name) : key(name) {
+  for (size_t i = 0; i < src.size(); ++i) {
+    dict_list.push_back(src[i].to_rdict());
+  }
+}
 
-size_t idictlist::size() const { return dict_list.size(); }
+size_t idictlist::size() const {
+  return dict_list.size();
+}
 
-py::obj idictlist::item(size_t i) const {
-  return py::rdict(dict_list[i]).get_or_none(key);
+py::robj idictlist::item(size_t i) const {
+  return dict_list[i].get_or_none(key);
 }
 
 
@@ -125,7 +130,7 @@ static bool parse_as_bool(const iterable* list, MemoryRange& membuf, size_t& fro
   size_t i = 0;
   try {
     for (; i < nrows; ++i) {
-      py::obj item = list->item(i);
+      py::robj item = list->item(i);
       // This will throw an exception if the value is not bool-like.
       outdata[i] = item.to_bool();
     }
@@ -155,7 +160,7 @@ static void force_as_bool(const iterable* list, MemoryRange& membuf)
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list->item(i);
+    py::robj item = list->item(i);
     outdata[i] = item.to_bool_force();
   }
 }
@@ -190,7 +195,7 @@ static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from
     size_t ito   = j ? from : nrows;
 
     for (size_t i = ifrom; i < ito; ++i) {
-      py::obj item = list->item(i);
+      py::robj item = list->item(i);
 
       if (item.is_none()) {
         outdata[i] = GETNA<T>();
@@ -198,7 +203,7 @@ static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from
       }
       if (item.is_int()) {
         py::oint litem = item.to_pyint();
-        outdata[i] = litem.value<T>(&overflow);
+        outdata[i] = litem.ovalue<T>(&overflow);
         if (!overflow) continue;
       }
       from = i;
@@ -226,13 +231,13 @@ static void force_as_int(const iterable* list, MemoryRange& membuf)
   T* outdata = static_cast<T*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list->item(i);
+    py::robj item = list->item(i);
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
       continue;
     }
     py::oint litem = item.to_pyint_force();
-    outdata[i] = litem.masked_value<T>();
+    outdata[i] = litem.mvalue<T>();
   }
 }
 
@@ -258,7 +263,7 @@ static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& f
     size_t ifrom = j ? 0 : from;
     size_t ito   = j ? from : nrows;
     for (size_t i = ifrom; i < ito; ++i) {
-      py::obj item = list->item(i);
+      py::robj item = list->item(i);
 
       if (item.is_none()) {
         outdata[i] = GETNA<double>();
@@ -266,7 +271,7 @@ static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& f
       }
       if (item.is_int()) {
         py::oint litem = item.to_pyint();
-        outdata[i] = litem.value<double>(&overflow);
+        outdata[i] = litem.ovalue<double>(&overflow);
         continue;
       }
       if (item.is_float()) {
@@ -291,7 +296,7 @@ static void force_as_real(const iterable* list, MemoryRange& membuf)
 
   int overflow = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    py::obj item = list->item(i);
+    py::robj item = list->item(i);
 
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
@@ -299,7 +304,7 @@ static void force_as_real(const iterable* list, MemoryRange& membuf)
     }
     if (item.is_int()) {
       py::oint litem = item.to_pyint();
-      outdata[i] = litem.value<T>(&overflow);
+      outdata[i] = litem.ovalue<T>(&overflow);
       continue;
     }
     py::ofloat fitem = item.to_pyfloat_force();
@@ -330,7 +335,7 @@ static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
   T curr_offset = 0;
   size_t i = 0;
   for (i = 0; i < nrows; ++i) {
-    py::obj item = list->item(i);
+    py::robj item = list->item(i);
 
     if (item.is_none()) {
       offsets[i] = curr_offset | GETNA<T>();
@@ -567,7 +572,7 @@ Column* Column::from_pylist_of_tuples(
 
 
 Column* Column::from_pylist_of_dicts(
-    const py::olist& list, py::obj name, int stype0)
+    const py::olist& list, py::robj name, int stype0)
 {
   idictlist il(list, name);
   return from_py_iterable(&il, stype0);

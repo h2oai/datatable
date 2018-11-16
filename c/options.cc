@@ -105,7 +105,7 @@ static py::PKArgs args_set_option(
 
 [](const py::PKArgs& args) -> py::oobj {
   std::string name = args[0].to_string();
-  py::obj value = args[1];
+  py::robj value = args[1];
 
   if (name == "nthreads") {
     set_nthreads(value.to_int32_strict());

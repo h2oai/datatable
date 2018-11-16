@@ -138,7 +138,7 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-void Ftrl::set_model(obj model) {
+void Ftrl::set_model(robj model) {
   if (!model.is_frame()) {
     throw TypeError() << "`model` must be a frame, not "
         << model.typeobj();
@@ -174,7 +174,7 @@ oobj Ftrl::get_a() const {
 }
 
 
-void Ftrl::set_a(obj a) {
+void Ftrl::set_a(robj a) {
   if (!a.is_numeric()) {
     throw TypeError() << "`a` must be numeric, not "
         << a.typeobj();
@@ -188,7 +188,7 @@ oobj Ftrl::get_b() const {
 }
 
 
-void Ftrl::set_b(obj b) {
+void Ftrl::set_b(robj b) {
   if (!b.is_numeric()) {
     throw TypeError() << "`b` must be numeric, not "
         << b.typeobj();
@@ -202,7 +202,7 @@ oobj Ftrl::get_l1() const {
 }
 
 
-void Ftrl::set_l1(obj l1) {
+void Ftrl::set_l1(robj l1) {
   if (!l1.is_numeric()) {
     throw TypeError() << "`l1` must be numeric, not "
         << l1.typeobj();
@@ -216,7 +216,7 @@ oobj Ftrl::get_l2() const {
 }
 
 
-void Ftrl::set_l2(obj l2) {
+void Ftrl::set_l2(robj l2) {
   if (!l2.is_numeric()) {
     throw TypeError() << "`l2` must be numeric, not "
         << l2.typeobj();
@@ -230,7 +230,7 @@ oobj Ftrl::get_d() const {
 }
 
 
-void Ftrl::set_d(obj d) {
+void Ftrl::set_d(robj d) {
   if (!d.is_int()) {
     throw TypeError() << "`d` must be integer, not "
         << d.typeobj();
@@ -248,7 +248,7 @@ oobj Ftrl::get_n_epochs() const {
 }
 
 
-void Ftrl::set_n_epochs(obj n_epochs) {
+void Ftrl::set_n_epochs(robj n_epochs) {
   if (!n_epochs.is_int()) {
     throw TypeError() << "`n_epochs` must be integer, not "
         << n_epochs.typeobj();
@@ -267,7 +267,7 @@ oobj Ftrl::get_inter() const {
 }
 
 
-void Ftrl::set_inter(obj inter) {
+void Ftrl::set_inter(robj inter) {
   if (!inter.is_int()) {
     throw TypeError() << "`inter` must be integer, not "
         << inter.typeobj();
@@ -285,7 +285,7 @@ oobj Ftrl::get_hash_type() const {
 }
 
 
-void Ftrl::set_hash_type(obj hash_type) {
+void Ftrl::set_hash_type(robj hash_type) {
   if (!hash_type.is_int()) {
     throw TypeError() << "`hash_type` must be integer, not "
         << hash_type.typeobj();
@@ -303,7 +303,7 @@ oobj Ftrl::get_seed() const {
 }
 
 
-void Ftrl::set_seed(obj seed) {
+void Ftrl::set_seed(robj seed) {
   if (!seed.is_int()) {
     throw TypeError() << "`seed` must be integer, not "
         << seed.typeobj();

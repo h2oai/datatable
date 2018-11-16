@@ -114,7 +114,7 @@ namespace py {
  * Getters / setters
  * -----------------
  * A property getter has generic signature `oobj (T::*)() const`, and a setter
- * has signature `void (T::*)(obj)`. These methods should be implemented in
+ * has signature `void (T::*)(py::robj)`. These methods should be implemented in
  * your main class, and then declared in `Type::init_getsetters(GetSetters&)`.
  * Inside the `init_getsetters(gs)` you should call
  * `gs.add<getter, setter>(name, doc)` for each property in your class. Some
@@ -127,7 +127,7 @@ namespace py {
  *    class Please : public PyObject {
  *    public:
  *      oobj get_pretty() const;
- *      void set_pretty(obj);
+ *      void set_pretty(py::robj);
  *      ...
  *      struct Type : py::ExtType<Please> {
  *        ...
@@ -189,7 +189,7 @@ struct ExtType {
     std::vector<PyGetSetDef> defs;
     public:
       using getter = oobj (T::*)() const;
-      using setter = void (T::*)(obj);
+      using setter = void (T::*)(py::robj);
       template <getter fg>            void add(const char* name, const char* doc = nullptr);
       template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
       explicit operator bool() const;
@@ -257,7 +257,7 @@ namespace _impl {
   PyObject* _safe_getitem(PyObject* self, PyObject* key) {
     try {
       T* tself = static_cast<T*>(self);
-      py::oobj res = tself->m__getitem__(py::obj(key));
+      py::oobj res = tself->m__getitem__(py::robj(key));
       return std::move(res).release();
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -269,7 +269,7 @@ namespace _impl {
   int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) {
     try {
       T* tself = static_cast<T*>(self);
-      tself->m__setitem__(py::obj(key), py::obj(val));
+      tself->m__setitem__(py::robj(key), py::robj(val));
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -311,11 +311,11 @@ namespace _impl {
     }
   }
 
-  template <typename T, void (T::*F)(obj)>
+  template <typename T, void (T::*F)(py::robj)>
   int _safe_setter(PyObject* self, PyObject* value, void*) {
     try {
       T* t = static_cast<T*>(self);
-      (t->*F)(obj(value));
+      (t->*F)(py::robj(value));
       return 0;
     } catch (const std::exception& e) {
       exception_to_python(e);
@@ -525,7 +525,7 @@ void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
 }
 
 template <class T>
-template <oobj (T::*gg)() const, void (T::*ss)(obj)>
+template <oobj (T::*gg)() const, void (T::*ss)(py::robj)>
 void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
   defs.push_back(PyGetSetDef {
     const_cast<char*>(name),

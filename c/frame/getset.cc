@@ -21,16 +21,16 @@
 namespace py {
 
 // Sentinel value for __getitem__() mode
-static obj GETITEM(reinterpret_cast<PyObject*>(-1));
+static robj GETITEM(reinterpret_cast<PyObject*>(-1));
 
 
 
 
-oobj Frame::m__getitem__(obj item) {
+oobj Frame::m__getitem__(robj item) {
   return _fast_getset(item, GETITEM);
 }
 
-void Frame::m__setitem__(obj item, obj value) {
+void Frame::m__setitem__(robj item, robj value) {
   _fast_getset(item, value);
 }
 
@@ -43,11 +43,11 @@ void Frame::m__setitem__(obj item, obj value) {
  * This case should also be handled first, to ensure that it has maximum
  * performance.
  */
-oobj Frame::_fast_getset(obj item, obj value) {
+oobj Frame::_fast_getset(robj item, robj value) {
   if (item.is_tuple()) {
     rtuple targs(item);
     if (targs.size() == 2 && value == GETITEM) {
-      obj arg0 = targs[0], arg1 = targs[1];
+      robj arg0 = targs[0], arg1 = targs[1];
       bool a0int = arg0.is_int();
       bool a1int = arg1.is_int();
       if (a0int && (a1int || arg1.is_string())) {
@@ -66,7 +66,7 @@ oobj Frame::_fast_getset(obj item, obj value) {
           if (icol < 0) icol += ncols;
           if (icol < 0 || icol >= ncols) {
             if (icol < 0) icol -= ncols;
-            throw ValueError() << "Column index `" << icol << "` is invalud "
+            throw ValueError() << "Column index `" << icol << "` is invalid "
                 "for a frame with " << ncols << " column" <<
                 (ncols == 1? "" : "s");
           }
@@ -86,23 +86,19 @@ oobj Frame::_fast_getset(obj item, obj value) {
 }
 
 
-oobj Frame::_main_getset(obj item, obj value) {
+oobj Frame::_main_getset(robj item, robj value) {
   return _fallback_getset(item, value);
 }
 
 
-oobj Frame::_fallback_getset(obj item, obj value) {
+oobj Frame::_fallback_getset(robj item, robj value) {
   odict kwargs;
   otuple args(5);
-  args.set(0, py::obj(this));
+  args.set(0, py::robj(this));
   if (item.is_tuple()) {
     otuple argslist = item.to_pytuple();
     size_t n = argslist.size();
-    if (n == 1) {
-      args.set(1, py::None());
-      args.set(2, argslist[0]);
-    }
-    else if (n >= 2) {
+    if (n >= 2) {
       args.set(1, argslist[0]);
       args.set(2, argslist[1]);
       if (n == 3) {
@@ -110,10 +106,15 @@ oobj Frame::_fallback_getset(obj item, obj value) {
       } else if (n >= 4) {
         throw ValueError() << "Selector " << item << " is not supported";
       }
+    } else {
+      throw ValueError() << "Invalid selector " << item;
     }
   } else {
     args.set(1, py::None());
     args.set(2, item);
+    DeprecationWarning() << "Single-item selectors `DT[col]` are deprecated "
+        "since 0.7.0; please use `DT[:, col]` instead. This message will "
+        "become an error in version 0.8.0";
   }
   if (!args[3]) args.set(3, py::None());
   if (!args[4]) args.set(4, py::None());
@@ -124,7 +125,7 @@ oobj Frame::_fallback_getset(obj item, obj value) {
   } else {
     kwargs.set(ostring("mode"), ostring("delete"));
   }
-  return obj(py::fallback_makedatatable).call(args, kwargs);
+  return robj(py::fallback_makedatatable).call(args, kwargs);
 }
 
 

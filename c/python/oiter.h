@@ -41,7 +41,7 @@ class oiter : public oobj {
 
 class iter_iterator {
   public:
-    using value_type = py::obj;
+    using value_type = py::robj;
     using category_type = std::input_iterator_tag;
 
   private:

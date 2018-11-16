@@ -94,7 +94,7 @@ class FrameInitializationManager {
         if (collist.size() == 0) {
           return init_empty_frame();
         }
-        py::obj item0 = collist[0];
+        py::robj item0 = collist[0];
         if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
           return init_from_list_of_lists();
         }
@@ -170,7 +170,7 @@ class FrameInitializationManager {
       check_names_count(collist.size());
       check_stypes_count(collist.size());
       for (size_t i = 0; i < collist.size(); ++i) {
-        py::obj item = collist[i];
+        py::robj item = collist[i];
         SType s = get_stype_for_column(i);
         make_column(item, s);
       }
@@ -186,7 +186,7 @@ class FrameInitializationManager {
       size_t ncols = nameslist.size();
       check_stypes_count(ncols);
       for (size_t i = 0; i < nrows; ++i) {
-        py::obj item = srclist[i];
+        py::robj item = srclist[i];
         if (!item.is_dict()) {
           throw TypeError() << "The source is not a list of dicts: element "
               << i << " is a " << item.typeobj();
@@ -208,14 +208,14 @@ class FrameInitializationManager {
       py::oset  namesset;
       size_t nrows = srclist.size();
       for (size_t i = 0; i < nrows; ++i) {
-        py::obj item = srclist[i];
+        py::robj item = srclist[i];
         if (!item.is_dict()) {
           throw TypeError() << "The source is not a list of dicts: element "
               << i << " is a " << item.typeobj();
         }
-        py::rdict row(item);
+        py::rdict row = item.to_rdict();
         for (auto kv : row) {
-          py::obj& name = kv.first;
+          py::robj& name = kv.first;
           if (!namesset.has(name)) {
             if (!name.is_string()) {
               throw TypeError() << "Invalid data in Frame() constructor: row "
@@ -235,7 +235,7 @@ class FrameInitializationManager {
       py::olist srclist = src.to_pylist();
       size_t ncols = nameslist.size();
       for (size_t j = 0; j < ncols; ++j) {
-        py::obj name = nameslist[j];
+        py::robj name = nameslist[j];
         SType s = get_stype_for_column(j, &name);
         Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
         cols.push_back(col);
@@ -253,7 +253,7 @@ class FrameInitializationManager {
       check_stypes_count(ncols);
       // Check that all entries are proper tuples
       for (size_t i = 0; i < nrows; ++i) {
-        py::obj item = srclist[i];
+        py::robj item = srclist[i];
         if (!item.is_tuple()) {
           throw TypeError() << "The source is not a list of tuples: element "
               << i << " is a " << item.typeobj();
@@ -301,7 +301,7 @@ class FrameInitializationManager {
       newnames.reserve(ncols);
       for (auto kv : coldict) {
         size_t i = newnames.size();
-        py::obj name = kv.first;
+        py::robj name = kv.first;
         SType stype = get_stype_for_column(i, &name);
         newnames.push_back(name.to_string());
         make_column(kv.second, stype);
@@ -360,7 +360,7 @@ class FrameInitializationManager {
       py::otuple call_args(1);
       call_args.set(0, src.to_pyobj());
 
-      py::oobj res = py::obj(py::fread_fn).call(call_args);
+      py::oobj res = py::robj(py::fread_fn).call(call_args);
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);
@@ -388,7 +388,7 @@ class FrameInitializationManager {
         throw TypeError() << "Argument `stypes` is not supported in Frame() "
             "constructor when creating a Frame from pandas DataFrame";
       }
-      py::obj pdsrc = src.to_pyobj();
+      py::robj pdsrc = src.to_pyobj();
       py::olist colnames(0);
       if (src.is_pandas_frame()) {
         py::oiter pdcols = pdsrc.get_attr("columns").to_pyiter();
@@ -530,7 +530,7 @@ class FrameInitializationManager {
           return stypes[i].to_stype();
         }
         else {
-          py::obj oname(nullptr);
+          py::robj oname(nullptr);
           if (name == nullptr) {
             if (!defined_names) {
               throw TypeError() << "When parameter `stypes` is a dictionary, "
@@ -542,7 +542,7 @@ class FrameInitializationManager {
             oname = *name;
           }
           py::odict stypes = stypes_arg.to_pydict();
-          py::obj res = stypes.get(oname);
+          py::robj res = stypes.get(oname);
           if (res) {
             return res.to_stype();
           } else {
@@ -579,7 +579,7 @@ class FrameInitializationManager {
     }
 
 
-    void make_column(py::obj colsrc, SType s) {
+    void make_column(py::robj colsrc, SType s) {
       Column* col = nullptr;
       if (colsrc.is_buffer()) {
         col = Column::from_buffer(colsrc);

@@ -158,7 +158,7 @@ inline static MemoryRange cast_str_helper(
   OT offset = 0;
   toffsets[-1] = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    py::ostring xstr = py::obj(src[i]).to_pystring_force();
+    py::ostring xstr = py::robj(src[i]).to_pystring_force();
     CString xcstr = xstr.to_cstring();
     if (xcstr.ch) {
       wb->write(static_cast<size_t>(xcstr.size), xcstr.ch);

@@ -25,7 +25,7 @@ PyObject* write_csv(PyObject*, PyObject* args)
 {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:write_csv", &arg1)) return nullptr;
-  py::obj pywr(arg1);
+  py::robj pywr(arg1);
 
   DataTable* dt = pywr.get_attr("datatable").to_frame();
   auto filename = pywr.get_attr("path").to_string();
@@ -84,7 +84,7 @@ PyObject* gread(PyObject*, PyObject* args)
 {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:gread", &arg1)) return nullptr;
-  py::obj pyreader(arg1);
+  py::robj pyreader(arg1);
 
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read();

@@ -19,53 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PYTHON_FLOAT_h
-#define dt_PYTHON_FLOAT_h
-#include <Python.h>
-#include "python/obj.h"
-
-namespace py {
-
-
-/**
- * C++ interface to python `float`.
- *
- * Public API
- * ----------
- * value<T>()
- *   Return the stored value as either float or double. This method does not
- *   throw exceptions.
- *
- */
-class ofloat : public oobj {
-  public:
-    ofloat() = default;
-    ofloat(const ofloat&) = default;
-    ofloat(ofloat&&) = default;
-    ofloat& operator=(const ofloat&) = default;
-    ofloat& operator=(ofloat&&) = default;
-
-    ofloat(double x);
-    ofloat(float x);
-
-    template <typename T>
-    T value() const noexcept;
-
-  private:
-    // Private constructors, used from `_obj`. If you need to construct
-    // `ofloat` from `oobj`, use `oobj.to_pyfloat()` instead.
-    ofloat(const robj&);
-    ofloat(const oobj&);
-    friend class _obj;
-};
-
-
-
-// Explicit instantiation
-template<> float  ofloat::value() const noexcept;
-template<> double ofloat::value() const noexcept;
-
-
-}  // namespace py
-
-#endif
+#include "python/dict.h"
+#include "python/float.h"
+#include "python/int.h"

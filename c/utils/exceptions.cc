@@ -193,7 +193,7 @@ bool PyError::is_assertion_error() const {
 }
 
 std::string PyError::message() const {
-  return py::obj(exc_value).to_pystring_force().to_string();
+  return py::robj(exc_value).to_pystring_force().to_string();
 }
 
 
@@ -223,13 +223,17 @@ void init_exceptions() {
 
 //==============================================================================
 
-Warning::Warning()
-  : Error(datatable_warning_class) {}
+Warning::Warning(PyObject* cls) : Error(cls) {}
 
 Warning::~Warning() {
   const std::string errstr = error.str();
   PyErr_WarnEx(pycls, errstr.c_str(), 1);
 }
+
+
+Warning DatatableWarning()  { return Warning(datatable_warning_class); }
+// Note, DeprecationWarnings are ignored by default in python
+Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
 
 
 

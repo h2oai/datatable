@@ -68,7 +68,7 @@ iter_iterator& iter_iterator::operator++() {
   return *this;
 }
 
-py::obj iter_iterator::operator*() const {
+py::robj iter_iterator::operator*() const {
   return next_value;
 }
 

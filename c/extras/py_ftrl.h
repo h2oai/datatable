@@ -42,25 +42,25 @@ namespace py {
 
       // Getters and setters.
       oobj get_model(void) const;
-      void set_model(obj);
+      void set_model(robj);
       oobj get_a(void) const;
-      void set_a(obj);
+      void set_a(robj);
       oobj get_b(void) const;
-      void set_b(obj);
+      void set_b(robj);
       oobj get_l1(void) const;
-      void set_l1(obj);
+      void set_l1(robj);
       oobj get_l2(void) const;
-      void set_l2(obj);
+      void set_l2(robj);
       oobj get_d(void) const;
-      void set_d(obj);
+      void set_d(robj);
       oobj get_n_epochs(void) const;
-      void set_n_epochs(obj);
+      void set_n_epochs(robj);
       oobj get_inter(void) const;
-      void set_inter(obj);
+      void set_inter(robj);
       oobj get_hash_type(void) const;
-      void set_hash_type(obj);
+      void set_hash_type(robj);
       oobj get_seed(void) const;
-      void set_seed(obj);
+      void set_seed(robj);
 
     private:
       FtrlModel* fm;

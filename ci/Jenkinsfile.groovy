@@ -10,7 +10,7 @@
 // DISCLAIMER: Code in this pipeline is currently "unwinded" for better readability of non-Jenkins users. //
 //                                                                                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-@Library('test-shared-library@1.9') _
+@Library('test-shared-library@1.17') _
 
 import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary

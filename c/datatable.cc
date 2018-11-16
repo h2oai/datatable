@@ -20,7 +20,7 @@
 //------------------------------------------------------------------------------
 
 DataTable::DataTable()
-  : nrows(0), ncols(0), nkeys(0), py_inames(nullptr) {}
+  : nrows(0), ncols(0), nkeys(0) {}
 
 
 DataTable::DataTable(colvec&& cols) : DataTable()

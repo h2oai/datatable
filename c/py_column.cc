@@ -45,7 +45,7 @@ PyObject* column_from_list(PyObject*, PyObject* args) {
   PyObject* arg1;
   int stype = 0;
   if (!PyArg_ParseTuple(args, "O|i", &arg1, &stype)) return nullptr;
-  py::olist list = py::obj(arg1).to_pylist();
+  py::olist list = py::robj(arg1).to_pylist();
 
   Column* col = Column::from_pylist(list, stype);
   return from_column(col, nullptr, 0);
@@ -117,8 +117,8 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
   PyObject* arg2 = nullptr;
   if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
     return nullptr;
-  py::obj pyfilename(arg1);
-  py::obj pystrategy(arg2);
+  py::robj pyfilename(arg1);
+  py::robj pystrategy(arg2);
 
   Column* col = self->ref;
   const char* filename = pyfilename.to_cstring().ch;
@@ -136,7 +136,7 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 {
   PyObject* arg1 = nullptr;
   if (!PyArg_ParseTuple(args, "O:ungroup", &arg1)) return nullptr;
-  py::obj pygby(arg1);
+  py::robj pygby(arg1);
 
   Column* col = self->ref;
   Groupby* groupby = pygby.to_groupby();
@@ -154,7 +154,7 @@ PyObject* ungroup(pycolumn::obj* self, PyObject* args)
 PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
-  RowIndex newri = py::obj(arg1).to_rowindex();
+  RowIndex newri = py::robj(arg1).to_rowindex();
 
   Column* col = self->ref;
   self->ref = col->shallowcopy(newri);

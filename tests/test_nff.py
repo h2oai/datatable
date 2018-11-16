@@ -147,7 +147,7 @@ def test_jay_object_columns(tempfile):
     with pytest.warns(DatatableWarning) as ws:
         d0.save(tempfile, format="jay")
     assert len(ws) == 1
-    assert "Column 'B' of type obj64 was not saved" in ws[0].message.args[0]
+    assert "Column `B` of type obj64 was not saved" in ws[0].message.args[0]
     d1 = dt.open(tempfile)
     d1.internal.check()
     assert d1.names == ("A",)
