@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
+#include "python/float.h"
+#include "python/int.h"
 
 namespace py {
 
@@ -46,6 +48,25 @@ void Ftrl::m__init__(PKArgs& args) {
 
 
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
+  gs.add<&Ftrl::get_model, &Ftrl::set_model>("model",
+    "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
+    "where `d` is a number of bins set for modeling. Both column types\n"
+    "must be `FLOAT64`.\n");
+
+  gs.add<&Ftrl::get_a, &Ftrl::set_a>("a", "`alpha` in per-coordinate learning rate formula.\n");
+  gs.add<&Ftrl::get_b, &Ftrl::set_b>("b", "`beta` in per-coordinate learning rate formula.\n");
+  gs.add<&Ftrl::get_l1, &Ftrl::set_l1>("l1", "L1 regularization parameter.\n");
+  gs.add<&Ftrl::get_l2, &Ftrl::set_l2>("l2", "L2 regularization parameter.\n");
+  gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", "Number of bins to be used after the hashing trick.\n");
+  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>("n_epochs", "Number of epochs to train for.\n");
+  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", "If feature interactions to be used or not.\n");
+  gs.add<&Ftrl::get_hash_type, &Ftrl::set_hash_type>("hash_type",
+    "Hashing method to use for strings.\n"
+    "`0` - std::hash;"
+    "`1` - Murmur2;\n"
+    "`2` - Murmur3.\n");
+  gs.add<&Ftrl::get_seed, &Ftrl::set_seed>("seed", "Seed to be used for Murmur hash functions.\n");
+
   mm.add<&Ftrl::fit, args_fit>();
   mm.add<&Ftrl::predict, args_predict>();
 }
@@ -68,13 +89,9 @@ Returns
 )");
 
 
-oobj Ftrl::fit(const PKArgs& args) {
+void Ftrl::fit(const PKArgs& args) {
   DataTable* dt_train = args[0].to_frame();
-
-  DataTable* dt_model = fm->fit(dt_train).release();
-  py::Frame* df_model = py::Frame::from_datatable(dt_model);
-
-  return df_model;
+  fm->fit(dt_train);
 }
 
 
@@ -103,6 +120,167 @@ oobj Ftrl::predict(const PKArgs& args) {
 
   return df_target;
 }
+
+
+void Ftrl::set_model(obj dt) {
+  DataTable* dt_model = dt.to_frame();
+  fm->set_model(dt_model);
+}
+
+
+oobj Ftrl::get_model(void) const {
+  DataTable* dt_model = fm->get_model();
+  py::Frame* df_model = py::Frame::from_datatable(dt_model);
+  return df_model;
+}
+
+
+oobj Ftrl::get_a() const {
+  return py::ofloat(fm->get_a());
+}
+
+
+void Ftrl::set_a(obj a) {
+  if (!a.is_numeric()) {
+    throw TypeError() << "`a` must be numeric, not "
+        << a.typeobj();
+  }
+  fm->set_a(a.to_double());
+}
+
+
+oobj Ftrl::get_b() const {
+  return py::ofloat(fm->get_b());
+}
+
+
+void Ftrl::set_b(obj b) {
+  if (!b.is_numeric()) {
+    throw TypeError() << "`b` must be numeric, not "
+        << b.typeobj();
+  }
+  fm->set_b(b.to_double());
+}
+
+
+oobj Ftrl::get_l1() const {
+  return py::ofloat(fm->get_l1());
+}
+
+
+void Ftrl::set_l1(obj l1) {
+  if (!l1.is_numeric()) {
+    throw TypeError() << "`l1` must be numeric, not "
+        << l1.typeobj();
+  }
+  fm->set_l1(l1.to_double());
+}
+
+
+oobj Ftrl::get_l2() const {
+  return py::ofloat(fm->get_l2());
+}
+
+
+void Ftrl::set_l2(obj l2) {
+  if (!l2.is_numeric()) {
+    throw TypeError() << "`l2` must be numeric, not "
+        << l2.typeobj();
+  }
+  fm->set_l2(l2.to_double());
+}
+
+
+oobj Ftrl::get_d() const {
+  return py::oint(static_cast<size_t>(fm->get_d()));
+}
+
+
+void Ftrl::set_d(obj d) {
+  if (!d.is_numeric()) {
+    throw TypeError() << "`d` must be numeric, not "
+        << d.typeobj();
+  }
+  int64_t d_in = d.to_int64_strict();
+  if (d_in < 0) {
+    throw ValueError() << "`d` cannot be negative";
+  }
+  fm->set_d(static_cast<uint64_t>(d_in));
+}
+
+
+oobj Ftrl::get_n_epochs() const {
+  return py::oint(fm->n_epochs);
+}
+
+
+void Ftrl::set_n_epochs(obj n_epochs) {
+  if (!n_epochs.is_numeric()) {
+    throw TypeError() << "`n_epochs` must be numeric, not "
+        << n_epochs.typeobj();
+  }
+  int64_t n_epochs_in = n_epochs.to_int64_strict();
+  if (n_epochs_in < 0) {
+    throw ValueError() << "`n_epochs` cannot be negative";
+  }
+  fm->n_epochs = static_cast<size_t>(n_epochs_in);
+}
+
+
+
+oobj Ftrl::get_inter() const {
+  return py::oint(static_cast<size_t>(fm->get_inter()));
+}
+
+
+void Ftrl::set_inter(obj inter) {
+  if (!inter.is_numeric()) {
+    throw TypeError() << "`inter` must be numeric, not "
+        << inter.typeobj();
+  }
+  int64_t inter_in = inter.to_int64_strict();
+  if (inter_in != 0 && inter_in != 1) {
+    throw ValueError() << "`inter` must be either `0` or `1`";
+  }
+  fm->set_d(static_cast<bool>(inter_in));
+}
+
+
+oobj Ftrl::get_hash_type() const {
+  return py::oint(static_cast<size_t>(fm->get_hash_type()));
+}
+
+
+void Ftrl::set_hash_type(obj hash_type) {
+  if (!hash_type.is_numeric()) {
+    throw TypeError() << "`hash_type` must be numeric, not "
+        << hash_type.typeobj();
+  }
+  int64_t hash_type_in = hash_type.to_int64_strict();
+  if (hash_type_in != 0 && hash_type_in != 1 && hash_type_in !=2) {
+    throw ValueError() << "`hash_type_in` must be either `0` or `1` or `2`";
+  }
+  fm->set_hash_type(static_cast<unsigned int>(hash_type_in));
+}
+
+
+oobj Ftrl::get_seed() const {
+  return py::oint(static_cast<size_t>(fm->get_seed()));
+}
+
+
+void Ftrl::set_seed(obj seed) {
+  if (!seed.is_numeric()) {
+    throw TypeError() << "`seed` must be numeric, not "
+        << seed.typeobj();
+  }
+  int32_t seed_in = seed.to_int32_strict();
+  if (seed_in < 0) {
+    throw ValueError() << "`seed` cannot be negative";
+  }
+  fm->set_seed(static_cast<unsigned int>(seed_in));
+}
+
 
 
 const char* Ftrl::Type::classname() {

@@ -37,8 +37,30 @@ namespace py {
       };
       void m__init__(PKArgs&);
       void m__dealloc__();
-      oobj fit(const PKArgs&);
+      void fit(const PKArgs&);
       oobj predict(const PKArgs&);
+
+      // Getters and setters.
+      oobj get_model(void) const;
+      void set_model(obj);
+      oobj get_a(void) const;
+      void set_a(obj);
+      oobj get_b(void) const;
+      void set_b(obj);
+      oobj get_l1(void) const;
+      void set_l1(obj);
+      oobj get_l2(void) const;
+      void set_l2(obj);
+      oobj get_d(void) const;
+      void set_d(obj);
+      oobj get_n_epochs(void) const;
+      void set_n_epochs(obj);
+      oobj get_inter(void) const;
+      void set_inter(obj);
+      oobj get_hash_type(void) const;
+      void set_hash_type(obj);
+      oobj get_seed(void) const;
+      void set_seed(obj);
 
     private:
       FtrlModel* fm;

@@ -27,20 +27,27 @@
 
 
 /*
+*  Set column names for `dt_model`.
+*/
+const std::vector<std::string> FtrlModel::model_cols = {"z", "n"};
+
+
+/*
 *  Set up FTRL parameters and initialize weights.
 */
 FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
            uint64_t d_in, size_t nepochs_in, bool inter_in,
            unsigned int hash_type_in, unsigned int seed_in) :
+  n_epochs(nepochs_in),
   a(a_in),
   b(b_in),
   l1(l1_in),
   l2(l2_in),
   d(d_in),
-  n_epochs(nepochs_in),
+  inter(inter_in),
   hash_type(hash_type_in),
   seed(seed_in),
-  inter(inter_in)
+  dt_model(nullptr)
 {
 }
 
@@ -56,16 +63,51 @@ FtrlModel::FtrlModel(unsigned int hash_type_in, unsigned int seed_in) :
 
 
 /*
+*  Set an FTRL model.
+*/
+void FtrlModel::set_model(DataTable* dt_model_in) {
+  const std::vector<std::string> model_cols_in = dt_model_in->get_names();
+
+  if (dt_model_in->nrows == d && dt_model_in->ncols == 2 &&
+      dt_model_in->columns[0]->stype() == SType::FLOAT64 &&
+      dt_model_in->columns[1]->stype() == SType::FLOAT64 &&
+      model_cols_in == model_cols) {
+
+      dt_model = dtptr(dt_model_in);
+
+  } else {
+    throw ValueError() << "FTRL model frame must have " << d <<" rows, and" <<
+                          "2 columns, i.e. named `z` and `n`, " <<
+                          "both columns be of `FLOAT64` type.";
+  }
+}
+
+
+/*
+*  Get a shallow copy of an FTRL model.
+*/
+DataTable* FtrlModel::get_model(void) {
+  if (dt_model != nullptr) {
+    return dt_model->copy();
+  } else {
+    throw ValueError() << "There is no trained model available, train it first or set.";
+  }
+}
+
+
+/*
 *  Train FTRL model on a training dataset.
 */
-dtptr FtrlModel::fit(const DataTable* dt) {
+void FtrlModel::fit(const DataTable* dt) {
   // Create a model datatable.
-  Column* col_z = Column::new_data_column(SType::FLOAT64, d);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, d);
-  dtptr dt_model = dtptr(new DataTable({col_z, col_n}, {"z", "n"}));
+  if (dt_model == nullptr) {
+    Column* col_z = Column::new_data_column(SType::FLOAT64, d);
+    Column* col_n = Column::new_data_column(SType::FLOAT64, d);
+    dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
+  }
+
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
-
   std::memset(z, 0, d * sizeof(double));
   std::memset(n, 0, d * sizeof(double));
 
@@ -113,19 +155,23 @@ dtptr FtrlModel::fit(const DataTable* dt) {
       }
     }
   }
-  return dt_model;
 }
 
 
 /*
 *  Make predictions for a test dataset and return targets as a new datatable.
 */
-dtptr FtrlModel::predict(const DataTable* dt, const DataTable* dt_model /* = nullptr */) {
+dtptr FtrlModel::predict(const DataTable* dt) {
   // Read model parameters.
   if (dt_model != nullptr) {
     z = static_cast<double*>(dt_model->columns[0]->data_w());
     n = static_cast<double*>(dt_model->columns[1]->data_w());
+  } else {
+    throw ValueError() << "There is no trained model in place. "
+                       << "To make predictions, the model must be either trained first, or"
+                       << "set with `set_model(...)` method!";
   }
+
   w = DoublePtr(new double[d]());
 
   // Create a target datatable.
