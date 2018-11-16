@@ -285,7 +285,7 @@ VarArgsIterator VarArgsIterable::end() const {
 
 
 VarKwdsIterator::VarKwdsIterator(const PKArgs& args, Py_ssize_t i0)
-    : parent(args), pos(i0), curr_value(std::string(), py::obj(nullptr))
+    : parent(args), pos(i0), curr_value(std::string(), py::robj(nullptr))
 {
   if (parent.kwds_dict) {
     advance();
@@ -316,8 +316,8 @@ void VarKwdsIterator::advance() {
   PyObject *key, *value;
   while (PyDict_Next(parent.kwds_dict, &pos, &key, &value)) {
     if (parent.kwd_map.count(key) == 0) {
-      curr_value = value_type(py::obj(key).to_string(),
-                              py::obj(value));
+      curr_value = value_type(py::robj(key).to_string(),
+                              py::robj(value));
       return;
     }
   }
@@ -334,9 +334,9 @@ VarArgsIterator& VarArgsIterator::operator++() {
   return *this;
 }
 
-py::obj VarArgsIterator::operator*() const {
+py::robj VarArgsIterator::operator*() const {
   PyObject* tup = parent.args_tuple;
-  return py::obj(PyTuple_GET_ITEM(tup, static_cast<Py_ssize_t>(pos)));
+  return py::robj(PyTuple_GET_ITEM(tup, static_cast<Py_ssize_t>(pos)));
 }
 
 bool VarArgsIterator::operator==(const VarArgsIterator& other) const {

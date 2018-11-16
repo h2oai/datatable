@@ -9,7 +9,7 @@
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr
 #include "memrange.h"       // MemoryRange
-#include "python/obj.h"     // py::obj, py::oobj
+#include "python/obj.h"     // py::robj, py::oobj
 #include "read/columns.h"   // dt::read::Columns
 
 class DataTable;
@@ -108,7 +108,7 @@ class GenericReader
 
   //---- Public API ----
   public:
-    GenericReader(const py::obj& pyreader);
+    GenericReader(const py::robj& pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 

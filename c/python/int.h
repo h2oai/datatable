@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_INT_h
 #define dt_PYTHON_INT_h
@@ -14,74 +28,71 @@ namespace py {
 
 
 /**
- * C++ wrapper around PyLong_Object (python `int` object).
+ * C++ wrapper around PyLong_Object (python `int`).
  *
  * Public API
  * ----------
- * value<T>()
- *   Return value as an integral T or double type. If the value cannot be
- *   represented as T, an overflow exception will be thrown.
+ * ovalue<T>(int* overflow)
+ *   Return the value converted into C++ type `T`. If the value cannot be
+ *   converted, set the `overflow` flag to +1/-1, and the value returned will
+ *   be ±MAX<T>.
  *
- * value<T>(int* overflow)
- *   Similar to the previous method, but if the value cannot be represented
- *   as T, sets the `overflow` flag to 1 (or -1) and returns the ±MAX<T>
- *   value depending on the sign of the underlying object.
+ * xvalue<T>()
+ *   Return the value converted into C++ type `T`, or throw an overflow
+ *   exception if the value cannot be converted into `T`.
  *
- * masked_value<T>()
+ * mvalue<T>()
  *   Similar to the first method, but if the value does not fit into <T>
  *   truncate it using `static_cast<T>`.
  *
  */
 class oint : public oobj {
   public:
-    oint();
+    oint() = default;
+    oint(const oint&) = default;
+    oint(oint&&) = default;
+    oint& operator=(const oint&) = default;
+    oint& operator=(oint&&) = default;
+
     oint(int32_t n);
     oint(int64_t n);
     oint(size_t n);
     oint(double x);
 
-    oint(const oint&);
-    oint(oint&&);
-    oint& operator=(const oint&);
-    oint& operator=(oint&&);
-
-    template<typename T> T value() const;
-    template<typename T> T value(int* overflow) const;
-    template<typename T> T masked_value() const;
+    template<typename T> T ovalue(int*) const;
+    template<typename T> T xvalue() const;
+    template<typename T> T mvalue() const;
 
   private:
-    oint(PyObject*);
-    static oint from_new_reference(PyObject*);
+    // Private constructors, used from `_obj`. If you need to construct
+    // `oint` from `oobj`, use `oobj.to_pyint()` instead.
+    oint(const robj&);
+    oint(const oobj&);
     friend class _obj;
 };
 
 
 
 // Explicit specializations
-template<> float     oint::value<float>(int*) const;
-template<> double    oint::value<double>(int*) const;
-template<> long      oint::value<long>(int*) const;
-template<> long long oint::value<long long>(int*) const;
-template<> long long oint::masked_value<long long>() const;
+template<> int8_t  oint::ovalue(int*) const;
+template<> int16_t oint::ovalue(int*) const;
+template<> int32_t oint::ovalue(int*) const;
+template<> int64_t oint::ovalue(int*) const;
+template<> size_t  oint::ovalue(int*) const;
+template<> float   oint::ovalue(int*) const;
+template<> double  oint::ovalue(int*) const;
 
-// Forward-declare explicit instantiations
-extern template int8_t  oint::value() const;
-extern template int16_t oint::value() const;
-extern template int32_t oint::value() const;
-extern template int64_t oint::value() const;
-extern template float   oint::value() const;
-extern template double  oint::value() const;
+template<> int8_t  oint::xvalue() const;
+template<> int16_t oint::xvalue() const;
+template<> int32_t oint::xvalue() const;
+template<> int64_t oint::xvalue() const;
+template<> size_t  oint::xvalue() const;
+template<> double  oint::xvalue() const;
 
-extern template int8_t  oint::value(int*) const;
-extern template int16_t oint::value(int*) const;
-extern template int32_t oint::value(int*) const;
-extern template int64_t oint::value(int*) const;
-
-extern template int8_t  oint::masked_value() const;
-extern template int16_t oint::masked_value() const;
-extern template int32_t oint::masked_value() const;
-extern template int64_t oint::masked_value() const;
-
+template<> int8_t  oint::mvalue() const;
+template<> int16_t oint::mvalue() const;
+template<> int32_t oint::mvalue() const;
+template<> int64_t oint::mvalue() const;
 
 }  // namespace py
 

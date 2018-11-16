@@ -243,7 +243,7 @@ int stype_from_pyobject(PyObject* s) {
     PyErr_Clear();
     return -1;
   }
-  int32_t value = py::obj(res).get_attr("value").to_int32();
+  int32_t value = py::robj(res).get_attr("value").to_int32();
   return value;
 }
 

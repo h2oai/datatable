@@ -67,8 +67,8 @@ class Frame : public PyObject {
     void m__dealloc__();
     void m__get_buffer__(Py_buffer* buf, int flags) const;
     void m__release_buffer__(Py_buffer* buf) const;
-    oobj m__getitem__(obj item);
-    void m__setitem__(obj item, obj value);
+    oobj m__getitem__(robj item);
+    void m__setitem__(robj item, robj value);
 
     oobj _repr_html_(const NoArgs&);
     oobj get_ncols() const;
@@ -79,10 +79,10 @@ class Frame : public PyObject {
     oobj get_names() const;
     oobj get_key() const;
     oobj get_internal() const;
-    void set_nrows(obj);
-    void set_names(obj);
-    void set_key(obj);
-    void set_internal(obj);
+    void set_nrows(robj);
+    void set_names(robj);
+    void set_key(robj);
+    void set_internal(robj);
 
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
@@ -101,9 +101,9 @@ class Frame : public PyObject {
     void _replace_names_from_map(py::odict);
 
     // getitem / setitem support
-    oobj _fast_getset(obj item, obj value);
-    oobj _main_getset(obj item, obj value);
-    oobj _fallback_getset(obj item, obj value);
+    oobj _fast_getset(robj item, robj value);
+    oobj _main_getset(robj item, robj value);
+    oobj _fallback_getset(robj item, robj value);
 
     friend void pydatatable::_clear_types(pydatatable::obj*); // temp
     friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp

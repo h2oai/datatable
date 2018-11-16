@@ -57,16 +57,16 @@ olist::olist(PyObject* src) : oobj(src) {
 // Element accessors
 //------------------------------------------------------------------------------
 
-obj olist::operator[](int64_t i) const {
-  return obj(is_list? PyList_GET_ITEM(v, i)
-                    : PyTuple_GET_ITEM(v, i));
+robj olist::operator[](int64_t i) const {
+  return robj(is_list? PyList_GET_ITEM(v, i)
+                     : PyTuple_GET_ITEM(v, i));
 }
 
-obj olist::operator[](size_t i) const {
+robj olist::operator[](size_t i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 
-obj olist::operator[](int i) const {
+robj olist::operator[](int i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
 

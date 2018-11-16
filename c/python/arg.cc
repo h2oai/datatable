@@ -33,7 +33,7 @@ void Arg::init(size_t i, PKArgs* args) {
 
 
 void Arg::set(PyObject* value) {
-  pyobj = py::obj(value);
+  pyobj = py::robj(value);
 }
 
 
@@ -80,6 +80,7 @@ size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }
 double      Arg::to_double()       const { return pyobj.to_double(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
+py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }

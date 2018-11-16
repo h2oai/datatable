@@ -153,7 +153,7 @@ class PKArgs : public Args {
 
 class VarKwdsIterator {
   public:
-    using value_type = std::pair<std::string, py::obj>;
+    using value_type = std::pair<std::string, py::robj>;
     using category_type = std::input_iterator_tag;
 
   private:
@@ -191,7 +191,7 @@ class VarKwdsIterable {
 
 class VarArgsIterator {
   public:
-    using value_type = py::obj;
+    using value_type = py::robj;
     using category_type = std::input_iterator_tag;
 
   private:

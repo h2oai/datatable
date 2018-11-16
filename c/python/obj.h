@@ -30,7 +30,8 @@ class olist;
 class ostring;
 class orange;
 class otuple;
-class obj;
+class robj;
+class rdict;
 class oobj;
 using strvec = std::vector<std::string>;
 
@@ -42,13 +43,13 @@ using strvec = std::vector<std::string>;
  *
  * `py::_obj` by itself is not usable: instead, you should use one of the two
  * derived classes:
- *   - `py::obj` contains a *borrowed PyObject reference*. This class is used
+ *   - `py::robj` contains a *borrowed PyObject reference*. This class is used
  *     most commonly for objects that have a very small lifespan. DO NOT use
  *     this class to store `PyObject*`s for an extended period of time.
  *   - `py::oobj` contains an *owned PyObject reference*. The value that it
  *     wraps will not be garbage-collected as long as the `py::oobj` object
  *     remains alive. This class bears extra performance cost compared to
- *     `py::obj` (however this extra cost is very small).
+ *     `py::robj` (however this extra cost is very small).
  *
  *
  * Conversion methods
@@ -188,6 +189,7 @@ class _obj {
     py::olist   to_pylist        (const error_manager& = _em0) const;
     py::otuple  to_pytuple       (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
+    py::rdict   to_rdict         (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
     py::oiter   to_pyiter        (const error_manager& = _em0) const;
 
@@ -231,26 +233,28 @@ class _obj {
   protected:
     static error_manager _em0;
 
-    // `_obj` class is not directly constructible: create either `obj` or
+    // `_obj` class is not directly constructible: create either `robj` or
     // `oobj` objects instead.
     _obj() = default;
 
-    friend obj;
+    friend robj;
     friend oobj;
+    friend odict;
+    friend rdict;
     friend Arg;
     friend oobj get_module(const char* name);
 };
 
 
 
-class obj : public _obj {
+class robj : public _obj {
   public:
-    obj(const PyObject* p);
-    obj(const Arg&);
-    obj(const obj&);
-    obj(const oobj&);
-    obj& operator=(const obj&);
-    obj& operator=(const _obj&);
+    robj(const PyObject* p);
+    robj(const Arg&);
+    robj(const robj&);
+    robj(const oobj&);
+    robj& operator=(const robj&);
+    robj& operator=(const _obj&);
 };
 
 
@@ -260,7 +264,7 @@ class oobj : public _obj {
     oobj();
     oobj(PyObject* p);
     oobj(const oobj&);
-    oobj(const obj&);
+    oobj(const robj&);
     oobj(oobj&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
@@ -283,7 +287,7 @@ oobj None();
 oobj True();
 oobj False();
 oobj Ellipsis();
-obj rnone();
+robj rnone();
 
 
 }  // namespace py
