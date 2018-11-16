@@ -58,7 +58,6 @@ class FtrlModel {
     // Changing these values should not invalidate any results.
     size_t n_epochs;
 
-
     // Learning and predicting methods.
     void fit(const DataTable*);
     dtptr predict(const DataTable*);

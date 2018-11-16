@@ -424,8 +424,6 @@ void FtrlModel::set_a(double a_in) {
 }
 
 
-
-
 void FtrlModel::set_b(double b_in) {
   if (b != b_in) {
     b = b_in;
