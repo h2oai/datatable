@@ -8,6 +8,7 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.7.0)
 
 
