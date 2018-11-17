@@ -25,39 +25,42 @@ typedef std::unique_ptr<double[]> DoublePtr;
 typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 #define REPORT_FREQUENCY 1000
 
-class FtrlModel {
-  private:
-    // Datatable containing `z` and `n` model values.
-    dtptr dt_model;
-
-    // Input to the model.
+struct FtrlModelParams {
     double a;
     double b;
     double l1;
     double l2;
     uint64_t d;
+    size_t n_epochs;
     unsigned int hash_type;
     unsigned int seed;
     bool inter;
-    size_t : 48;
+    size_t : 56;
+};
 
-    // Calculated during the learning process.
-    bool model_trained;
-    size_t n_features;
-    size_t n_inter_features;
+
+class FtrlModel {
+  private:
+    // Datatable with `z` and `n` model values.
+    dtptr dt_model;
     double* z;
     double* n;
-    DoublePtr w;
+    
+    // Input to the model.
+    FtrlModelParams fmp;
 
-    void init_model();
-    void create_model();
+    // Calculated during the learning process.
+    size_t n_features;
+    size_t n_inter_features;
+    DoublePtr w;
+    bool model_trained;
+    size_t : 56;
 
   public:
-    FtrlModel(double, double, double, double, uint64_t, size_t, bool,
-         unsigned int, unsigned int);
+    FtrlModel(FtrlModelParams);
 
-    // Changing these values should not invalidate any results.
-    size_t n_epochs;
+    static const std::vector<std::string> model_cols;
+    static const FtrlModelParams fmp_default;
 
     // Learning and predicting methods.
     bool is_trained();
@@ -65,6 +68,8 @@ class FtrlModel {
     dtptr predict(const DataTable*);
     double predict_row(const Uint64Ptr&, size_t);
     void update(const Uint64Ptr&, size_t, double, bool);
+    void init_model();
+    void create_model();
 
     // Learning helper methods.
     static double logloss(double, bool);
@@ -76,7 +81,6 @@ class FtrlModel {
     uint64_t hash_string(const char *, size_t);
     static uint64_t hash_double(double);
     void hash_row(Uint64Ptr&, const DataTable*, size_t);
-    static const std::vector<std::string> model_cols;
 
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
@@ -85,6 +89,7 @@ class FtrlModel {
     double get_l1();
     double get_l2();
     uint64_t get_d();
+    size_t get_n_epochs();
     unsigned int get_hash_type();
     unsigned int get_seed();
     bool get_inter();
@@ -94,6 +99,7 @@ class FtrlModel {
     void set_l1(double);
     void set_l2(double);
     void set_d(uint64_t);
+    void set_n_epochs(size_t);
     void set_inter(bool);
     void set_hash_type(unsigned int);
     void set_seed(unsigned int);

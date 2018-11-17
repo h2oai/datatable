@@ -26,24 +26,55 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(9, 0, 0, false, false,
+PKArgs Ftrl::Type::args___init__(0, 0, 9, false, true,
                                  {"a", "b", "l1", "l2", "d", "n_epochs",
                                  "inter", "hash_type", "seed"},
                                  "__init__", nullptr);
 
 void Ftrl::m__init__(PKArgs& args) {
-  double a = args[0].to_double();
-  double b = args[1].to_double();
-  double l1 = args[2].to_double();
-  double l2 = args[3].to_double();
+  FtrlModelParams fmp = FtrlModel::fmp_default;
 
-  uint64_t d = static_cast<uint64_t>(args[4].to_size_t());
-  size_t n_epochs = args[5].to_size_t();
-  bool inter = args[6].to_bool_strict();
-  unsigned int hash_type = static_cast<unsigned int>(args[7].to_size_t());
-  unsigned int seed = static_cast<unsigned int>(args[8].to_size_t());
+  if (!(args[0].is_undefined() || args[0].is_none())) {
+    fmp.a = args[0].to_double();
+  }
 
-  fm = new FtrlModel(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
+  if (!(args[1].is_undefined() || args[1].is_none())) {
+    fmp.b = args[1].to_double();
+  }
+
+  if (!(args[2].is_undefined() || args[2].is_none())) {
+    fmp.l1 = args[2].to_double();
+  }
+
+  if (!(args[3].is_undefined() || args[3].is_none())) {
+    fmp.l2 = args[3].to_double();
+  }
+
+  if (!(args[4].is_undefined() || args[4].is_none())) {
+    fmp.d = static_cast<uint64_t>(args[4].to_size_t());
+  }
+
+  if (!(args[5].is_undefined() || args[5].is_none())) {
+    fmp.n_epochs = args[5].to_size_t();
+  }
+
+  if (!(args[6].is_undefined() || args[6].is_none())) {
+    fmp.inter = args[6].to_bool_strict();
+  }
+
+  if (!(args[7].is_undefined() || args[7].is_none())) {
+    fmp.hash_type = static_cast<unsigned int>(args[7].to_size_t());
+  }
+
+  if (!(args[8].is_undefined() || args[8].is_none())) {
+    fmp.seed = static_cast<unsigned int>(args[8].to_size_t());
+  }
+
+  if (args.num_varkwd_args() > 0) {
+    throw ValueError() << "Unexpected keyword argument";
+  }
+
+  fm = new FtrlModel(fmp);
 }
 
 
@@ -112,6 +143,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   mm.add<&Ftrl::fit, args_fit>();
   mm.add<&Ftrl::predict, args_predict>();
+  mm.add<&Ftrl::reset, args_reset>();
 }
 
 
@@ -167,6 +199,26 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 }
 
+
+PKArgs Ftrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
+R"(reset(self)
+--
+
+Reset an FTRL model.
+
+Parameters
+----------
+    None
+
+Returns
+----------
+    None
+)");
+
+
+void Ftrl::reset(const PKArgs&) {
+  fm->init_model();
+}
 
 /*
 *  Getter and setter for the model datatable.
@@ -239,7 +291,7 @@ oobj Ftrl::get_d() const {
 
 
 oobj Ftrl::get_n_epochs() const {
-  return py::oint(fm->n_epochs);
+  return py::oint(fm->get_n_epochs());
 }
 
 
@@ -316,7 +368,7 @@ void Ftrl::set_n_epochs(robj n_epochs) {
   if (n_epochs_in < 0) {
     throw ValueError() << "`n_epochs` cannot be negative";
   }
-  fm->n_epochs = static_cast<size_t>(n_epochs_in);
+  fm->set_n_epochs(static_cast<size_t>(n_epochs_in));
 }
 
 

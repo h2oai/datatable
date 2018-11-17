@@ -30,25 +30,15 @@
 *  Set column names for `dt_model`.
 */
 const std::vector<std::string> FtrlModel::model_cols = {"z", "n"};
-
+const FtrlModelParams FtrlModel::fmp_default = {0.005, 1.0, 0.0, 1.0, 1000000, 1, 1, 0, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
-           uint64_t d_in, size_t nepochs_in, bool inter_in,
-           unsigned int hash_type_in, unsigned int seed_in) :
-  dt_model(nullptr),
-  a(a_in),
-  b(b_in),
-  l1(l1_in),
-  l2(l2_in),
-  d(d_in),
-  hash_type(hash_type_in),
-  seed(seed_in),
-  inter(inter_in),
-  n_epochs(nepochs_in)
+FtrlModel::FtrlModel(FtrlModelParams fmp_in)
 {
+  // Set model parameters
+  fmp = fmp_in;
   // Create and initialize model datatable and weight vector.
   create_model();
   init_model();
@@ -59,16 +49,16 @@ void FtrlModel::init_model() {
   model_trained = false;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
-  std::memset(z, 0, d * sizeof(double));
-  std::memset(n, 0, d * sizeof(double));
+  std::memset(z, 0, fmp.d * sizeof(double));
+  std::memset(n, 0, fmp.d * sizeof(double));
 }
 
 
 void FtrlModel::create_model() {
-  w = DoublePtr(new double[d]());
+  w = DoublePtr(new double[fmp.d]());
 
-  Column* col_z = Column::new_data_column(SType::FLOAT64, d);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, d);
+  Column* col_z = Column::new_data_column(SType::FLOAT64, fmp.d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, fmp.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
 }
 
@@ -86,14 +76,14 @@ void FtrlModel::fit(const DataTable* dt) {
   n_features = dt->ncols - 1;
 
   // Define number of feature interactions.
-  n_inter_features = (inter)? n_features * (n_features - 1) / 2 : 0;
+  n_inter_features = (fmp.inter)? n_features * (n_features - 1) / 2 : 0;
 
   // Get the target column.
   auto c_target = static_cast<BoolColumn*>(dt->columns[dt->ncols - 1]);
   auto d_target = c_target->elements_r();
 
   // Do training for `n_epochs`.
-  for (size_t i = 0; i < n_epochs; ++i) {
+  for (size_t i = 0; i < fmp.n_epochs; ++i) {
     double total_loss = 0;
     int32_t nth = config::nthreads;
 
@@ -169,10 +159,11 @@ double FtrlModel::predict_row(const Uint64Ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    if (fabs(z[i]) <= l1) {
+    if (fabs(z[i]) <= fmp.l1) {
       w[i] = 0;
     } else {
-      w[i] = (signum(z[i]) * l1 - z[i]) / ((b + sqrt(n[i])) / a + l2);
+      w[i] = (signum(z[i]) * fmp.l1 - z[i]) /
+             ((fmp.b + sqrt(n[i])) / fmp.a + fmp.l2);
     }
     wTx += w[i];
   }
@@ -209,7 +200,7 @@ void FtrlModel::update(const Uint64Ptr& x, size_t x_size, double p, bool target)
 
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / a;
+    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / fmp.a;
     z[i] += g - sigma * w[i];
     n[i] += g * g;
   }
@@ -223,7 +214,7 @@ void FtrlModel::update(const Uint64Ptr& x, size_t x_size, double p, bool target)
 */
 uint64_t FtrlModel::hash_string(const char * key, size_t len) {
   uint64_t res;
-  switch (hash_type) {
+  switch (fmp.hash_type) {
     // `std::hash` is kind of slow, because we need to convert `char*` to
     // `std::string`, as `std::hash<char*>` doesn't hash
     // the actual data.
@@ -235,16 +226,16 @@ uint64_t FtrlModel::hash_string(const char * key, size_t len) {
              }
     // 64 bits Murmur2 hash function. The best performer so far,
     // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len, seed); break;
+    case 1:  res = hash_murmur2(key, len, fmp.seed); break;
 
     // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
     case 2:  {
                 uint64_t h[2];
-                hash_murmur3(key, len, seed, h);
+                hash_murmur3(key, len, fmp.seed, h);
                 res = h[0];
                 break;
              }
-    default: res = hash_murmur2(key, len, seed);
+    default: res = hash_murmur2(key, len, fmp.seed);
   }
   return res;
 }
@@ -307,18 +298,18 @@ void FtrlModel::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     // TODO: pre-hash all the column names only once.
     uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
     index += h;
-    x[i] = index % d;
+    x[i] = index % fmp.d;
   }
 
   // Do feature interaction if required. We may also want to test
   // just a simple `h = x[i+1] + x[j+1]` approach.
   size_t count = 0;
-  if (inter) {
+  if (fmp.inter) {
     for (size_t i = 0; i < n_features - 1; ++i) {
       for (size_t j = i + 1; j < n_features; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
-        x[n_features + count] = h % d;
+        x[n_features + count] = h % fmp.d;
         count++;
       }
     }
@@ -384,80 +375,85 @@ void FtrlModel::set_model(DataTable* dt_model_in) {
 *  Here we assume that all the validation is done in `py_ftrl.cc`.
 */
 double FtrlModel::get_a() {
-  return a;
+  return fmp.a;
 }
 
 
 double FtrlModel::get_b() {
-  return b;
+  return fmp.b;
 }
 
 
 double FtrlModel::get_l1() {
-  return l1;
+  return fmp.l1;
 }
 
 
 double FtrlModel::get_l2() {
-  return l2;
+  return fmp.l2;
 }
 
 
 uint64_t FtrlModel::get_d() {
-  return d;
+  return fmp.d;
 }
 
 
 bool FtrlModel::get_inter() {
-  return inter;
+  return fmp.inter;
 }
 
 
 unsigned int FtrlModel::get_hash_type() {
-  return hash_type;
+  return fmp.hash_type;
 }
 
 
 unsigned int FtrlModel::get_seed() {
-  return seed;
+  return fmp.seed;
+}
+
+
+size_t FtrlModel::get_n_epochs() {
+  return fmp.n_epochs;
 }
 
 
 void FtrlModel::set_a(double a_in) {
-  if (a != a_in) {
-    a = a_in;
+  if (fmp.a != a_in) {
+    fmp.a = a_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_b(double b_in) {
-  if (b != b_in) {
-    b = b_in;
+  if (fmp.b != b_in) {
+    fmp.b = b_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_l1(double l1_in) {
-  if (l1 != l1_in) {
-    l1 = l1_in;
+  if (fmp.l1 != l1_in) {
+    fmp.l1 = l1_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_l2(double l2_in) {
-  if (l2 != l2_in) {
-    l2 = l2_in;
+  if (fmp.l2 != l2_in) {
+    fmp.l2 = l2_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_d(uint64_t d_in) {
-  if (d != d_in) {
-    d = d_in;
+  if (fmp.d != d_in) {
+    fmp.d = d_in;
     create_model();
     init_model();
   }
@@ -465,24 +461,31 @@ void FtrlModel::set_d(uint64_t d_in) {
 
 
 void FtrlModel::set_inter(bool inter_in) {
-  if (inter != inter_in) {
-    inter = inter_in;
+  if (fmp.inter != inter_in) {
+    fmp.inter = inter_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_hash_type(unsigned int hash_type_in) {
-  if (hash_type != hash_type_in) {
-    hash_type = hash_type_in;
+  if (fmp.hash_type != hash_type_in) {
+    fmp.hash_type = hash_type_in;
     init_model();
   }
 }
 
 
 void FtrlModel::set_seed(unsigned int seed_in) {
-  if (seed != seed_in) {
-    seed = seed_in;
+  if (fmp.seed != seed_in) {
+    fmp.seed = seed_in;
     init_model();
+  }
+}
+
+
+void FtrlModel::set_n_epochs(size_t n_epochs_in) {
+  if (fmp.n_epochs != n_epochs_in) {
+    fmp.n_epochs = n_epochs_in;
   }
 }
