@@ -39,9 +39,10 @@ class FtrlModel {
     unsigned int hash_type;
     unsigned int seed;
     bool inter;
-    size_t : 56;
+    size_t : 48;
 
     // Calculated during the learning process.
+    bool model_trained;
     size_t n_features;
     size_t n_inter_features;
     double* z;
@@ -59,6 +60,7 @@ class FtrlModel {
     size_t n_epochs;
 
     // Learning and predicting methods.
+    bool is_trained();
     void fit(const DataTable*);
     dtptr predict(const DataTable*);
     double predict_row(const Uint64Ptr&, size_t);
@@ -77,15 +79,15 @@ class FtrlModel {
     static const std::vector<std::string> model_cols;
 
     // Getters and setters, some will invalidate the learning results.
-    DataTable* get_model(void);
-    double get_a(void);
-    double get_b(void);
-    double get_l1(void);
-    double get_l2(void);
-    uint64_t get_d(void);
-    unsigned int get_hash_type(void);
-    unsigned int get_seed(void);
-    bool get_inter(void);
+    DataTable* get_model();
+    double get_a();
+    double get_b();
+    double get_l1();
+    double get_l2();
+    uint64_t get_d();
+    unsigned int get_hash_type();
+    unsigned int get_seed();
+    bool get_inter();
     void set_model(DataTable*);
     void set_a(double);
     void set_b(double);

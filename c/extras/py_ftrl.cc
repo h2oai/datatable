@@ -157,21 +157,28 @@ Returns
 
 
 oobj Ftrl::predict(const PKArgs& args) {
-  DataTable* dt_test = args[0].to_frame();
-  DataTable* dt_target = fm->predict(dt_test).release();
-  py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
-
-  return df_target;
+  if (fm->is_trained()) {
+    DataTable* dt_test = args[0].to_frame();
+    DataTable* dt_target = fm->predict(dt_test).release();
+    py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
+    return df_target;
+  } else {
+    throw ValueError() << "Cannot make any predictions, because the model was not trained";
+  }
 }
 
 
 /*
 *  Getter and setter for the model datatable.
 */
-oobj Ftrl::get_model(void) const {
-  DataTable* dt_model = fm->get_model();
-  py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
-  return df_model;
+oobj Ftrl::get_model() const {
+  if (fm->is_trained()) {
+    DataTable* dt_model = fm->get_model();
+    py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
+    return df_model;
+  } else {
+    return py::None();
+  }
 }
 
 
@@ -183,19 +190,23 @@ void Ftrl::set_model(robj model) {
     throw ValueError() << "FTRL model frame must have " << fm->get_d() << " rows,"
                        << "and 2 columns, whereas your frame has " << dt_model_in->nrows
                        << " rows and " << dt_model_in->ncols << " columns";
-  } else if (model_cols_in != FtrlModel::model_cols) {
+  }
+
+  if (model_cols_in != FtrlModel::model_cols) {
     throw ValueError() << "FTRL model frame must have columns named `z` and `n`,"
                        << "whereas your frame has the following column names `" << model_cols_in[0]
                        << "` and `" << model_cols_in[1] << "`";
-  } else if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
+  }
+
+  if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
     dt_model_in->columns[1]->stype() != SType::FLOAT64) {
     throw ValueError() << "FTRL model frame must have both column types as `float64`, "
                        << "whereas your frame has the following column types: `"
                        << dt_model_in->columns[0]->stype()
                        << "` and `" << dt_model_in->columns[1]->stype() << "`";
-  } else {
-    fm->set_model(dt_model_in);
   }
+
+  fm->set_model(dt_model_in);
 }
 
 

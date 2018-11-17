@@ -56,6 +56,7 @@ FtrlModel::FtrlModel(double a_in, double b_in, double l1_in, double l2_in,
 
 
 void FtrlModel::init_model() {
+  model_trained = false;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
   std::memset(z, 0, d * sizeof(double));
@@ -70,6 +71,12 @@ void FtrlModel::create_model() {
   Column* col_n = Column::new_data_column(SType::FLOAT64, d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
 }
+
+
+bool FtrlModel::is_trained() {
+  return model_trained;
+}
+
 
 /*
 *  Train FTRL model on a training dataset.
@@ -117,6 +124,7 @@ void FtrlModel::fit(const DataTable* dt) {
       }
     }
   }
+  model_trained = true;
 }
 
 
@@ -150,7 +158,6 @@ dtptr FtrlModel::predict(const DataTable* dt) {
       }
     }
   }
-
   return dt_target;
 }
 
@@ -353,17 +360,9 @@ inline uint64_t FtrlModel::hash_double(double x) {
 
 
 /*
-*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
-*/
-void FtrlModel::set_model(DataTable* dt_model_in) {
-  dt_model = dtptr(dt_model_in);
-}
-
-
-/*
 *  Get a shallow copy of an FTRL model if available.
 */
-DataTable* FtrlModel::get_model(void) {
+DataTable* FtrlModel::get_model() {
   if (dt_model != nullptr) {
     return dt_model->copy();
   } else {
@@ -373,45 +372,53 @@ DataTable* FtrlModel::get_model(void) {
 
 
 /*
+*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
+*/
+void FtrlModel::set_model(DataTable* dt_model_in) {
+  dt_model = dtptr(dt_model_in);
+}
+
+
+/*
 *  Other getters and setters.
 *  Here we assume that all the validation is done in `py_ftrl.cc`.
 */
-double FtrlModel::get_a(void) {
+double FtrlModel::get_a() {
   return a;
 }
 
 
-double FtrlModel::get_b(void) {
+double FtrlModel::get_b() {
   return b;
 }
 
 
-double FtrlModel::get_l1(void) {
+double FtrlModel::get_l1() {
   return l1;
 }
 
 
-double FtrlModel::get_l2(void) {
+double FtrlModel::get_l2() {
   return l2;
 }
 
 
-uint64_t FtrlModel::get_d(void) {
+uint64_t FtrlModel::get_d() {
   return d;
 }
 
 
-bool FtrlModel::get_inter(void) {
+bool FtrlModel::get_inter() {
   return inter;
 }
 
 
-unsigned int FtrlModel::get_hash_type(void) {
+unsigned int FtrlModel::get_hash_type() {
   return hash_type;
 }
 
 
-unsigned int FtrlModel::get_seed(void) {
+unsigned int FtrlModel::get_seed() {
   return seed;
 }
 
