@@ -5,8 +5,6 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import math
-import tempfile
-import shutil
 import pytest
 import types
 import datatable as dt
@@ -198,17 +196,15 @@ def test_rbind_self():
     assert_equals(dt0, dtr)
 
 
-def test_rbind_mmapped():
-    dir0 = tempfile.mkdtemp()
+def test_rbind_mmapped(tempfile):
     dt0 = dt.Frame({"A": [1, 5, 7], "B": ["one", "two", None]})
-    dt.save(dt0, dir0)
+    dt0.save(tempfile)
     del dt0
-    dt1 = dt.open(dir0)
+    dt1 = dt.open(tempfile)
     dt2 = dt.Frame({"A": [-1], "B": ["zero"]})
     dt1.rbind(dt2)
     dtr = dt.Frame({"A": [1, 5, 7, -1], "B": ["one", "two", None, "zero"]})
     assert_equals(dt1, dtr)
-    shutil.rmtree(dir0)
 
 
 def test_rbind_views0():

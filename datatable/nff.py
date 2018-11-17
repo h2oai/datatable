@@ -24,7 +24,7 @@ def _stringify(x):
 
 
 @typed(dest=str, format=str, _strategy=str)
-def save(self, dest, format="nff", _strategy="auto"):
+def save(self, dest, format="jay", _strategy="auto"):
     """
     Save Frame in binary NFF/Jay format.
 
