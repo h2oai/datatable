@@ -1,22 +1,67 @@
 //------------------------------------------------------------------------------
 // Copyright 2018 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/py_frame.h"
+#include <ctime>
 #include <sstream>
+#include "frame/py_frame.h"
 #include "python/string.h"
 #include "types.h"
+
+static const char* imgx =
+    "url('data:image/png;base64,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"
+    "QSFHy1p4fgAAAAASUVORK5CYII=');";
+static const char* imgv =
+    "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAkCAYAAACE7WrnAAA"
+    "AdElEQVR42mP4wyMVQQ3M8P///whqYBSDkG2A8bGJo+tBMQifIbgMQ5ZjwGUIPjY2wxiwOZWQZ"
+    "rxhhM0F6IYjq8PqNWyBh4+NN7CpGv2jBo0aNGrQqEGjBtHFIIoLf5pUR2RXkFStsqnSiKBqs4b"
+    "i6KdW0w8AxFl+XL1lK8wAAAAASUVORK5CYII=');";
 
 
 
@@ -51,12 +96,12 @@ class HtmlWidget {
   private:
     void render_all() {
       render_styles();
-      html << "<div class=datatable>\n";
-      html << "  <table class=frame>\n";
+      html << "<div class='datatable'>\n";
+      html << "  <table class='frame'>\n";
       render_table_header();
       render_table_body();
       html << "  </table>\n";
-      render_frame_dimensions();
+      render_table_footer();
       html << "</div>\n";
     }
 
@@ -64,11 +109,11 @@ class HtmlWidget {
       const std::vector<std::string>& colnames = dt->get_names();
       html << "  <thead>\n"
               "    <tr>";
-      html << "<td class=row_index></td>";
+      html << "<td class='row_index'></td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
-          html << "<th clas=vellipsis>&hellip;</th>";
+          html << "<th class='vellipsis'>&hellip;</th>";
         }
         html << "<th>";
         render_escaped_string(colnames[j].data(), colnames[j].size());
@@ -92,20 +137,20 @@ class HtmlWidget {
 
     void render_ellipsis_row() {
       html << "    <tr>";
-      html << "<td class=hellipsis>&middot;&middot;&middot;</td>";
+      html << "<td class='row_index'>&#x22EE;</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
-          html << "<td></td>";
+          html << "<td class='hellipsis'>&#x22F1;</td>";
         }
-        html << "<td class=hellipsis>&middot;&middot;&middot;</td>";
+        html << "<td class='hellipsis'>&#x22EE;</td>";
       }
       html << "</tr>\n";
     }
 
     void render_data_row(size_t i) {
       html << "    <tr>";
-      html << "<td class=row_index>" << i << "</td>";
+      html << "<td class='row_index'>" << i << "</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
@@ -131,8 +176,15 @@ class HtmlWidget {
       html << "</tr>\n";
     }
 
+
+    void render_table_footer() {
+      html << "  <div class='footer'>";
+      render_frame_dimensions();
+      html << "  </div>\n";
+    }
+
     void render_frame_dimensions() {
-      html << "  <div class=frame_dimensions>";
+      html << "  <div class='frame_dimensions'>";
       render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
       render_comma_separated(ncols);
@@ -188,40 +240,51 @@ class HtmlWidget {
 
     void render_styles() {
       if (styles_emitted) return;
-      html << "<style type='text/css'>\n"
+      std::time_t now = std::time(nullptr);
+      std::tm* t = std::localtime(&now);
+      bool xd = (t->tm_mon == 11);
+      bool vd = (t->tm_mon == 4) && (t->tm_wday == 4) &&
+                (t->tm_mday >= 15) && (t->tm_mday <= 21);
+
+      html << "<style type='text/css'>\n";
+      html << ".datatable table.frame { margin-bottom: 0; }\n"
               ".datatable .row_index {"
-              "  color: #CDE;"
-              "  background: rgba(255,255,255,0.75);"
-              "  font-size: 80%;"
-              "  border-right: 1px solid #CCE6FF;"
+              "  background: var(--jp-border-color3);"
+              "  border-right: 1px solid var(--jp-border-color0);"
+              "  color: var(--jp-ui-font-color3);"
+              "  font-size: 9px;"
               "}\n"
-              ".datatable .hellipsis { "
-              "  background: linear-gradient(to bottom, "
-              "    rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 7%, "
-              "    rgba(0,0,0,0.0) 15%, rgba(0,0,0,0.0) 95%, "
-              "    rgba(0,0,0,0.3) 100%);"
-              "  padding: 0.1em 0.5em;"
-              "  color: #DDD;"
+              ".datatable th:nth-child(2) { padding-left: 12px; }\n"
+              ".datatable .hellipsis {"
+              "  color: var(--jp-cell-editor-border-color);"
               "}\n"
               ".datatable .vellipsis {"
-              "  background: #FFF;"
-              "  color: #DDD;"
-              "  padding: 0.5em 1em;"
-              "  border: 1px solid #EEE;"
-              "  border-style: none solid;"
+              "  background: var(--jp-layout-color0);"
+              "  color: var(--jp-cell-editor-border-color);"
               "}\n"
-              ".datatable th.vellipsis { border: none; }\n"
-              ".datatable .na { color: #DDD; font-size: 80%; }\n"
-              ".datatable .frame_dimensions {"
-              "  background: #FAFAFA;"
-              "  display: inline-block;"
+              ".datatable .na {"
+              "  color: var(--jp-cell-editor-border-color);"
               "  font-size: 80%;"
-              "  color: #AAA;"
-              "  border: 1px solid #EEE;"
-              "  padding: 0.1em .5em;"
-              "  margin-left: 2em;"
               "}\n"
-              "</style>\n";
+              ".datatable .footer { font-size: 9px; }\n"
+              ".datatable .frame_dimensions {"
+              "  background: var(--jp-border-color3);"
+              "  border-top: 1px solid var(--jp-border-color0);"
+              "  color: var(--jp-ui-font-color3);"
+              "  display: inline-block;"
+              "  opacity: 0.6;"
+              "  padding: 1px 10px 1px 5px;"
+              "}\n";
+      if (xd || vd) {
+        html << ".datatable .frame thead { border-bottom: none; }\n"
+                ".datatable .frame tr {"
+                "  background-image: " << (xd? imgx : imgv) <<
+                "  background-repeat: repeat-x;"
+                "  background-size: 14px;"
+                "  height: 28px;"
+                "}\n";
+      }
+      html << "</style>\n";
       styles_emitted = true;
     }
 
