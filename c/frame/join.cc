@@ -394,14 +394,14 @@ Join two Frames `xdt` and `jdt` on the keys of `jdt`.
   arr32_t arr_result_indices(xdt->nrows);
   int32_t* result_indices = arr_result_indices.data();
 
-  size_t nchunks = std::min(xdt->nrows / 2,
+  size_t nchunks = std::min(xdt->nrows / 200,
                             static_cast<size_t>(config::nthreads));
 
-  // #pragma omp parallel num_threads(nchunks)
+  #pragma omp parallel num_threads(nchunks)
   {
     MultiCmp comparator(xcols, jcols);
 
-    // #pragma omp parallel for
+    #pragma omp for
     for (size_t i = 0; i < xdt->nrows; ++i) {
       int r = comparator.set_xrow(i);
       if (r == 0) {
