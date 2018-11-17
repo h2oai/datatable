@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DT[col]` syntax has been deprecated and now emits a warning. This
   will be converted to an error in version 0.8.0, and will be interpreted
   as row selector in 0.9.0.
+- default format for `Frame.save()` is now "jay".
 
 #### Fixed
 - bug in dt.cbind() where the first Frame in the list was ignored.
