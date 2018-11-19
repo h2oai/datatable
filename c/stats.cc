@@ -115,7 +115,7 @@ void Stats::verify_stat(Stat s, T value, F getter) const {
   T test_value = getter();
   if (value == test_value) return;
   if (std::is_floating_point<T>::value && (value != 0) &&
-      std::abs(1.0 - static_cast<double>(test_value/value)) < 1e-14) return;
+      std::abs(1.0 - static_cast<double>(test_value/value)) < 1e-12) return;
   throw AssertionError()
       << "Stored " << stat_name(s) << " stat is " << value
       << ", whereas computed " << stat_name(s) << " is " << getter();
