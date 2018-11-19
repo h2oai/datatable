@@ -150,7 +150,9 @@ class HtmlWidget {
 
     void render_data_row(size_t i) {
       html << "    <tr>";
-      html << "<td class='row_index'>" << i << "</td>";
+      html << "<td class='row_index'>";
+      render_comma_separated(i);
+      html << "</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
@@ -178,18 +180,18 @@ class HtmlWidget {
 
 
     void render_table_footer() {
-      html << "  <div class='footer'>";
+      html << "  <div class='footer'>\n";
       render_frame_dimensions();
       html << "  </div>\n";
     }
 
     void render_frame_dimensions() {
-      html << "  <div class='frame_dimensions'>";
+      html << "    <div class='frame_dimensions'>";
       render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
       render_comma_separated(ncols);
       html << " column" << (ncols == 1? "" : "s");
-      html << "  </div>\n";
+      html << "</div>\n";
     }
 
 
@@ -277,7 +279,7 @@ class HtmlWidget {
               "}\n";
       if (xd || vd) {
         html << ".datatable .frame thead { border-bottom: none; }\n"
-                ".datatable .frame tr {"
+                ".datatable .frame thead tr {"
                 "  background-image: " << (xd? imgx : imgv) <<
                 "  background-repeat: repeat-x;"
                 "  background-size: 14px;"
@@ -289,8 +291,9 @@ class HtmlWidget {
     }
 
     void render_comma_separated(size_t n) {
-      if (n == 0) {
-        html << '0';
+      // It is customary not to display commas in 4-digit numbers
+      if (n < 10000) {
+        html << n;
         return;
       }
       size_t n10 = n / 10;
