@@ -26,7 +26,7 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 0, 9, false, true,
+PKArgs Ftrl::Type::args___init__(0, 0, 9, false, false,
                                  {"a", "b", "l1", "l2", "d", "n_epochs",
                                  "inter", "hash_type", "seed"},
                                  "__init__", nullptr);
@@ -70,10 +70,6 @@ void Ftrl::m__init__(PKArgs& args) {
     fmp.seed = static_cast<unsigned int>(args[8].to_size_t());
   }
 
-  if (args.num_varkwd_args() > 0) {
-    throw ValueError() << "Unexpected keyword argument";
-  }
-
   fm = new FtrlModel(fmp);
 }
 
@@ -108,14 +104,14 @@ d : int
     Number of bins to be used after the hashing trick. 
 n_epochs : int
     Number of epochs to train for.
-inter : boolean
+inter : bool
     If feature interactions to be used or not.
 hash_type : int
     Hashing method to use for strings:
     `0` - std::hash;
     `1` - Murmur2;
     `2` - Murmur3.
-seed: unsigned int
+seed: int
     Seed to be used for Murmur hash functions.
 )";
 }

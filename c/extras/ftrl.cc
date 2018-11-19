@@ -366,7 +366,7 @@ DataTable* FtrlModel::get_model() {
 *  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
 */
 void FtrlModel::set_model(DataTable* dt_model_in) {
-  dt_model = dtptr(dt_model_in);
+  dt_model = dtptr(dt_model_in->copy());
 }
 
 
