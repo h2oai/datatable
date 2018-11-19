@@ -50,6 +50,9 @@ class Frame : public PyObject {
         static PKArgs args_colindex;
         static PKArgs args_replace;
         static NoArgs args_copy;
+        static NoArgs args_to_dict;
+        static NoArgs args_to_list;
+        static NoArgs args_to_tuples;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
@@ -88,6 +91,9 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const NoArgs&);
     void replace(const PKArgs&);
+    oobj to_dict(const NoArgs&);
+    oobj to_list(const NoArgs&);
+    oobj to_tuples(const NoArgs&);
 
   private:
     static bool internal_construction;
