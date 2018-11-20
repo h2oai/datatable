@@ -104,6 +104,7 @@ ansiColor('xterm') {
                 def stageDir = 'checkout'
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
+                        deleteDir()
                         def scmEnv = checkout scm
                         env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
@@ -121,7 +122,7 @@ ansiColor('xterm') {
                         if (isRelease()) {
                             CI_VERSION_SUFFIX = ''
                         }
-                        if (env.BRANCH_NAME != 'master' || !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
+                        if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
                             CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
                         }
                         env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
@@ -133,7 +134,7 @@ ansiColor('xterm') {
                         }
 
                         stash includes: "CHANGELOG.md", name: 'CHANGELOG'
-                        final String dockerImageTag = sh(script: 'make docker_image_tag', returnStdout: true).trim()
+                        final String dockerImageTag = sh(script: "make ${MAKE_OPTS} docker_image_tag", returnStdout: true).trim()
                         docker.image("${X86_64_CENTOS_DOCKER_IMAGE_NAME}:${dockerImageTag}").inside {
                             def dockerfileSHAsString = ""
                             EXPECTED_SHAS.files.each { filename, sha ->

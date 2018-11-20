@@ -175,7 +175,9 @@ CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
-CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
+ifneq ($(CI), 1)
+	CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
+endif
 
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
