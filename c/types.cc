@@ -300,6 +300,19 @@ LType info::ltype() const {
   return stype_info[stype].ltype;
 }
 
+const char* info::ltype_name() const {
+  switch (ltype()) {
+    case LType::MU:       return "void";
+    case LType::BOOL:     return "bool";
+    case LType::INT:      return "int";
+    case LType::REAL:     return "real";
+    case LType::STRING:   return "str";
+    case LType::DATETIME: return "time";
+    case LType::DURATION: return "duration";
+    case LType::OBJECT:   return "obj";
+  }
+}
+
 py::oobj info::py_ltype() const {
   return py::oobj(py_ltype_objs[static_cast<uint8_t>(ltype())]);
 }

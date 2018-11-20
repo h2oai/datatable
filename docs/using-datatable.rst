@@ -20,7 +20,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
   <div class=output-cell><div class='datatable'>
     <table class='frame'>
     <thead>
-      <tr><td class='row_index'></td><th>C0</th></tr>
+      <tr class='colnames'><td class='row_index'></td><th>C0</th></tr>
+      <tr class='coltypes'><td class='row_index'></td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
     </thead>
     <tbody>
       <tr><td class='row_index'>0</td><td>1.62435</td></tr>
@@ -56,7 +57,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
   <div class=output-cell><div class='datatable'>
     <table class='frame'>
     <thead>
-      <tr><td class='row_index'></td><th>A</th></tr>
+      <tr class='colnames'><td class='row_index'></td><th>A</th></tr>
+      <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
     </thead>
     <tbody>
       <tr><td class='row_index'>0</td><td>0</td></tr>
@@ -91,7 +93,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
   <div class=output-cell><div class='datatable'>
     <table class='frame'>
     <thead>
-      <tr><td class='row_index'></td><th>n</th><th>s</th></tr>
+      <tr class='colnames'><td class='row_index'></td><th>n</th><th>s</th></tr>
+      <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
     </thead>
     <tbody>
       <tr><td class='row_index'>0</td><td>1</td><td>foo</td></tr>

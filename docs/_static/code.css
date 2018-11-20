@@ -66,13 +66,24 @@ div.document div.output-cell:before {
   border-collapse: collapse;
   border-spacing: 0;
   color: #222;
+  cursor: default;
   font-size: 12px;
   margin: 0 0 0 0;
 }
 .datatable .frame thead {
-  border-bottom: 1px solid #BDBDBD;
+  border-bottom: none;
   vertical-align: bottom;
 }
+.datatable table.frame tr.coltypes td {
+  color: #FFFFFF;
+  line-height: 6px;
+  padding: 0 0.5em;
+}
+.datatable .bool { background: #DDDD99; }
+.datatable .obj  { background: #565656; }
+.datatable .int  { background: #5D9E5D; }
+.datatable .real { background: #4040CC; }
+.datatable .str  { background: #CC4040; }
 .datatable .frame td,
 .datatable .frame th,
 .datatable .frame tr {
@@ -94,6 +105,9 @@ div.document div.output-cell:before {
   background: #EEEEEE;
   font-size: 9px;
   border-right: 1px solid #BDBDBD;
+}
+.datatable .frame tr.coltypes .row_index {
+  background: #BDBDBD;
 }
 .datatable .frame .hellipsis {
   color: #E0E0E0;
