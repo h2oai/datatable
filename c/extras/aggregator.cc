@@ -254,28 +254,17 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
 
 /*
-*  Do no grouping, i.e. all rows become exemplars.
+*  Do no grouping, i.e. all rows become exemplars sorted by the first column.
 */
 void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
   if (dt->ncols > 0) {
     RowIndex ri_exemplars = dt->sortby({0}, nullptr);
-
-    const int32_t* ri_exemplars_indices = nullptr;
-    arr32_t temp;
-    if (ri_exemplars.isarr32()) {
-      ri_exemplars_indices = ri_exemplars.indices32();
-    } else if (ri_exemplars.isslice()) {
-      temp.resize(dt->nrows);
-      ri_exemplars.extract_into(temp);
-      ri_exemplars_indices = temp.data();
-    } else if (ri_exemplars.isarr64()){
-      throw ValueError() << "RI_ARR64 is not supported for the moment";
-    }
-
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-    for (size_t i = 0; i < dt->nrows; ++i) {
-      d_members[ri_exemplars_indices[i]] = static_cast<int32_t>(i);
-    }
+
+    ri_exemplars.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
+    [&](int64_t i, int64_t j) {
+      d_members[j] = static_cast<int32_t>(i);
+    });
   }
 }
 
