@@ -63,7 +63,7 @@ def test_aggregate_0d_continuous_integer_random():
 def test_aggregate_1d_empty():
     n_bins = 1
     d_in = dt.Frame([])
-    d_members = aggregate(d_in, min_rows=5, n_bins=n_bins, progress_fn=report_progress)
+    d_members = aggregate(d_in, min_rows=0, n_bins=n_bins, progress_fn=report_progress)
     d_members.internal.check()
     assert d_members.shape == (0, 1)
     assert d_members.ltypes == (ltype.int,)
