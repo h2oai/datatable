@@ -45,9 +45,9 @@ namespace py {
 
        // dt changes in-place with a new column added to the end of it
        DataTable* dt_members = agg.aggregate(dt).release();
-       py::oobj frame_members = py::oobj::from_new_reference(py::Frame::from_datatable(dt_members));
+       py::oobj df_members = py::oobj::from_new_reference(py::Frame::from_datatable(dt_members));
 
-       return frame_members;
+       return df_members;
      }
   );
 }

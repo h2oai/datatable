@@ -8,6 +8,12 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+#### Added
+- In Jupyter notebook columns now have visual indicators of their types.
+  The logical types are color-coded, and the size of each element is
+  given by the number of dots (#1428).
+
+
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.6.0)
 #### Added
 - Frame can now be created from a list/dict of numpy arrays.
