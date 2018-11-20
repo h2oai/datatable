@@ -1109,6 +1109,13 @@ def test_maxnrows_on_large_dataset():
     d1 = dt.fread(src, nthreads=4, verbose=True)
     t1 = time.time() - t1
     assert d1.shape == (2000000, 3)
+    n_attempts = 3
+    while n_attempts > 0 and t0 >= t1 / 2:
+        time.sleep(0.5)
+        t0 = time.time()
+        d0 = dt.fread(src, nthreads=4, max_nrows=5)
+        t0 = time.time() - t0
+        n_attempts -= 1
     assert t0 < t1 / 2, ("Reading with max_nrows=5 should be faster than "
                          "reading the whole dataset")
 
