@@ -8,23 +8,22 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-#### Added
-- In Jupyter notebook columns now have visual indicators of their types.
-  The logical types are color-coded, and the size of each element is
-  given by the number of dots (#1428).
+
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.7.0)
 
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.6.0)
+
+### [v0.7.0](https://github.com/h2oai/datatable/compare/0.7.0...v0.6.0) — 2018-11-16
 #### Added
 - Frame can now be created from a list/dict of numpy arrays.
 - Filters can now be used together with groupby expressions.
-- fread's verbose output now includes time for opening the input file.
+- fread's verbose output now includes time spent opening the input file.
 - Added ability to read/write Jay files.
 - Frames can now be constructed via the keyword-args list of columns
   (i.e. `Frame(A=..., B=...)`).
 - Implemented logical operators "and" `&` and "or" `|` for eager evaluator.
 - Implemented integer division `//` and modulo `%` operators.
-- Now a key column can be set on a Frame.
+- A Frame can now have a key column (or columns).
 - Key column(s) are saved when the frame is saved into a Jay file.
 - A Frame can now be naturally-joined with a keyed Frame.
 - Columns can now be updated within join expressions.
@@ -62,15 +61,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
 - support for multi-column keys.
 - ability to join Frames on multiple columns.
+- In Jupyter notebook columns now have visual indicators of their types.
+  The logical types are color-coded, and the size of each element is
+  given by the number of dots (#1428).
 
 #### Changed
 - `names` argument in `Frame()` constructor can no longer be a string --
   use a list or tuple of strings instead.
-- `Frame.resize()` was removed -- same functionality is available via
+- `Frame.resize()` removed -- same functionality is available via
   assigning to `Frame.nrows`.
-- `Frame.rename()` was removed -- .name setter can be used instead.
+- `Frame.rename()` removed -- .name setter can be used instead.
 - `Frame([])` now creates a 0x0 Frame instead of 0x1.
-- Parameter `inplace` in `Frame.cbind()` was removed (was deprecated).
+- Parameter `inplace` in `Frame.cbind()` removed (was deprecated).
   Instead of `inplace=False` use `dt.cbind(...)`.
 - `Frame.cbind()` no longer returns anything (previously it returned self,
   but this was confusing w.r.t whether it modifies the target, or returns
@@ -107,7 +109,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - upgraded dependency version for typesentry, the previous version was not
   compatible with Python 3.7.
 - rare crash when converting a string column from pandas DataFrame, when
-  that the column contains many non-ASCII characters.
+  that column contains many non-ASCII characters.
 - f-column-selectors should no longer throw errors and produce only unique
   ids when stringified (#1241).
 - crash when saving a frame with many boolean columns into CSV (#1278).
