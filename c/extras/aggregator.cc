@@ -45,7 +45,7 @@ namespace py {
 
        // dt changes in-place with a new column added to the end of it
        DataTable* dt_members = agg.aggregate(dt).release();
-       py::Frame* frame_members = py::Frame::from_datatable(dt_members);
+       py::oobj frame_members = py::oobj::from_new_reference(py::Frame::from_datatable(dt_members));
 
        return frame_members;
      }
@@ -254,12 +254,28 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 
 
 /*
-*  Do no groupping, i.e. all rows become exemplars.
+*  Do no grouping, i.e. all rows become exemplars.
 */
 void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  for (size_t i = 0; i < dt->nrows; ++i) {
-    d_members[i] = static_cast<int32_t>(i);
+  if (dt->ncols > 0) {
+    RowIndex ri_exemplars = dt->sortby({0}, nullptr);
+
+    const int32_t* ri_exemplars_indices = nullptr;
+    arr32_t temp;
+    if (ri_exemplars.isarr32()) {
+      ri_exemplars_indices = ri_exemplars.indices32();
+    } else if (ri_exemplars.isslice()) {
+      temp.resize(dt->nrows);
+      ri_exemplars.extract_into(temp);
+      ri_exemplars_indices = temp.data();
+    } else if (ri_exemplars.isarr64()){
+      throw ValueError() << "RI_ARR64 is not supported for the moment";
+    }
+
+    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+    for (size_t i = 0; i < dt->nrows; ++i) {
+      d_members[ri_exemplars_indices[i]] = static_cast<int32_t>(i);
+    }
   }
 }
 

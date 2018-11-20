@@ -35,6 +35,27 @@ def report_progress(progress, status_code):
     assert status_code in (0, 1)
     assert progress >= 0 and progress <= 1
 
+
+#-------------------------------------------------------------------------------
+# Aggregate 0D
+#-------------------------------------------------------------------------------
+
+# Issue #1429
+def test_aggregate_0d_continuous_integer_random():
+    n_bins = 3 # `nrows < min_rows`, so we also test that this input is ignored
+    min_rows = 500
+    d_in = dt.Frame([None, 9, 8, None, 2, 3, 3, 0, 5, 5, 8, 1, None])
+    d_members = aggregate(d_in, min_rows=min_rows, n_bins=n_bins, progress_fn=report_progress)
+    d_members.internal.check()
+    assert d_members.shape == (13, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.topython() == [[0, 12, 10, 1, 5, 6, 7, 3, 8, 9, 11, 4, 2]]
+    d_in.internal.check()
+    assert d_in.shape == (13, 2)
+    assert d_in.ltypes == (ltype.int, ltype.int)
+    assert d_in.topython() == [[None, None, None, 0, 1, 2, 3, 3, 5, 5, 8, 8, 9],
+                               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+
 #-------------------------------------------------------------------------------
 # Aggregate 1D
 #-------------------------------------------------------------------------------
@@ -42,7 +63,7 @@ def report_progress(progress, status_code):
 def test_aggregate_1d_empty():
     n_bins = 1
     d_in = dt.Frame([])
-    d_members = aggregate(d_in, min_rows=0, n_bins=n_bins, progress_fn=report_progress)
+    d_members = aggregate(d_in, min_rows=5, n_bins=n_bins, progress_fn=report_progress)
     d_members.internal.check()
     assert d_members.shape == (0, 1)
     assert d_members.ltypes == (ltype.int,)
