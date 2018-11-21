@@ -106,9 +106,15 @@ class HtmlWidget {
     }
 
     void render_table_header() {
+      html << "  <thead>\n";
+      render_column_names();
+      render_column_types();
+      html << "  </thead>\n";
+    }
+
+    void render_column_names() {
       const std::vector<std::string>& colnames = dt->get_names();
-      html << "  <thead>\n"
-              "    <tr>";
+      html << "    <tr class='colnames'>";
       html << "<td class='row_index'></td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
@@ -119,8 +125,25 @@ class HtmlWidget {
         render_escaped_string(colnames[j].data(), colnames[j].size());
         html << "</th>";
       }
-      html << "</tr>\n"
-              "  </thead>\n";
+      html << "</tr>\n";
+    }
+
+    void render_column_types() {
+      html << "    <tr class='coltypes'>";
+      html << "<td class='row_index'></td>";
+      for (size_t j = 0; j < ncols; ++j) {
+        if (j == cols0) {
+          j = ncols - cols1;
+          html << "<th class='vellipsis'>&hellip;</th>";
+        }
+        SType stype = dt->columns[j]->stype();
+        size_t elemsize = info(stype).elemsize();
+        html << "<td class='" << info(stype).ltype_name()
+             << "' title='" << info(stype).name() << "'>";
+        for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
+        html << "</td>";
+      }
+      html << "</tr>\n";
     }
 
     void render_table_body() {
@@ -150,7 +173,9 @@ class HtmlWidget {
 
     void render_data_row(size_t i) {
       html << "    <tr>";
-      html << "<td class='row_index'>" << i << "</td>";
+      html << "<td class='row_index'>";
+      render_comma_separated(i);
+      html << "</td>";
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
@@ -168,6 +193,7 @@ class HtmlWidget {
           case SType::FLOAT64: render_fw_value<double>(col, i); break;
           case SType::STR32:   render_str_value<uint32_t>(col, i); break;
           case SType::STR64:   render_str_value<uint64_t>(col, i); break;
+          case SType::OBJ:     render_obj_value(col, i); break;
           default:
             html << "(unknown stype)";
         }
@@ -178,18 +204,18 @@ class HtmlWidget {
 
 
     void render_table_footer() {
-      html << "  <div class='footer'>";
+      html << "  <div class='footer'>\n";
       render_frame_dimensions();
       html << "  </div>\n";
     }
 
     void render_frame_dimensions() {
-      html << "  <div class='frame_dimensions'>";
+      html << "    <div class='frame_dimensions'>";
       render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
       render_comma_separated(ncols);
       html << " column" << (ncols == 1? "" : "s");
-      html << "  </div>\n";
+      html << "</div>\n";
     }
 
 
@@ -234,6 +260,18 @@ class HtmlWidget {
       }
     }
 
+    void render_obj_value(const Column* col, size_t row) {
+      auto scol = static_cast<const PyObjectColumn*>(col);
+      PyObject* val = scol->get_elem(static_cast<int64_t>(row));
+      if (ISNA<PyObject*>(val)) render_na();
+      else {
+        // Should we use repr() here instead?
+        py::ostring strval = py::robj(val).to_pystring_force();
+        CString cstr = strval.to_cstring();
+        render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
+      }
+    }
+
     void render_na() {
       html << "<span class=na>NA</span>";
     }
@@ -248,11 +286,25 @@ class HtmlWidget {
 
       html << "<style type='text/css'>\n";
       html << ".datatable table.frame { margin-bottom: 0; }\n"
+              ".datatable table.frame thead { border-bottom: none; }\n"
+              ".datatable table.frame tr.coltypes td {"
+              "  color: #FFFFFF;"
+              "  line-height: 6px;"
+              "  padding: 0 0.5em;"
+              "}\n"
+              ".datatable .bool { background: #DDDD99; }\n"
+              ".datatable .obj  { background: #565656; }\n"
+              ".datatable .int  { background: #5D9E5D; }\n"
+              ".datatable .real { background: #4040CC; }\n"
+              ".datatable .str  { background: #CC4040; }\n"
               ".datatable .row_index {"
               "  background: var(--jp-border-color3);"
               "  border-right: 1px solid var(--jp-border-color0);"
               "  color: var(--jp-ui-font-color3);"
               "  font-size: 9px;"
+              "}\n"
+              ".datatable .frame tr.coltypes .row_index {"
+              "  background: var(--jp-border-color0);"
               "}\n"
               ".datatable th:nth-child(2) { padding-left: 12px; }\n"
               ".datatable .hellipsis {"
@@ -276,8 +328,7 @@ class HtmlWidget {
               "  padding: 1px 10px 1px 5px;"
               "}\n";
       if (xd || vd) {
-        html << ".datatable .frame thead { border-bottom: none; }\n"
-                ".datatable .frame tr {"
+        html << ".datatable .frame thead tr.colnames {"
                 "  background-image: " << (xd? imgx : imgv) <<
                 "  background-repeat: repeat-x;"
                 "  background-size: 14px;"
@@ -289,8 +340,9 @@ class HtmlWidget {
     }
 
     void render_comma_separated(size_t n) {
-      if (n == 0) {
-        html << '0';
+      // It is customary not to display commas in 4-digit numbers
+      if (n < 10000) {
+        html << n;
         return;
       }
       size_t n10 = n / 10;

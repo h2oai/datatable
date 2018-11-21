@@ -1,117 +1,133 @@
 
 body {
-    counter-reset: cc;
+  counter-reset: cc;
 }
 
 div.document div.notranslate {
-    border: none;
-    counter-increment: cc;
-    display: flex;
-    flex-direction: row;
-    padding: 0;
-    margin: 0 0 24px 0;
+  border: none;
+  counter-increment: cc;
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  margin: 0 0 24px 0;
 }
 
 div.document p + div.notranslate {
-    margin-top: -12px;
+  margin-top: -12px;
 }
 
 div.document div.notranslate + div.output-cell {
-    margin-top: -16px;
+  margin-top: -16px;
 }
 
 div.document div.notranslate:before {
-    color: #A6D2BB;
-    content: "[" counter(cc) "]:";
-    flex: 0 0 48px;
-    font-family: "Source Code Pro", monospace;
-    font-weight: bold;
-    font-size: 80%;
-    padding: .385em;
-    text-align: right;
+  color: #A6D2BB;
+  content: "[" counter(cc) "]:";
+  flex: 0 0 48px;
+  font-family: "Source Code Pro", monospace;
+  font-weight: bold;
+  font-size: 80%;
+  padding: .385em;
+  text-align: right;
 }
 
 div.document div.notranslate div.highlight {
-    background: #F5F5F5;
-    border: 1px solid #E0E0E0;
-    border-radius: 3px;
-    flex: 1 1 auto;
+  background: #F5F5F5;
+  border: 1px solid #E0E0E0;
+  border-radius: 3px;
+  flex: 1 1 auto;
 }
 
 div.document div.notranslate div.highlight pre {
-    padding: .5em 1em;
+  padding: .5em 1em;
 }
 
 
 div.document div.output-cell {
-    border: none;
-    display: flex;
-    flex-direction: row;
-    margin: 0 0 24px 0;
+  border: none;
+  display: flex;
+  flex-direction: row;
+  margin: 0 0 24px 0;
 }
 
 div.document div.output-cell:before {
-    color: #D9B1B2;
-    content: "[" counter(cc) "]:";
-    flex: 0 0 48px;
-    font-family: "Source Code Pro", monospace;
-    font-weight: bold;
-    font-size: 80%;
-    padding: .385em;
-    text-align: right;
+  color: #D9B1B2;
+  content: "[" counter(cc) "]:";
+  flex: 0 0 48px;
+  font-family: "Source Code Pro", monospace;
+  font-weight: bold;
+  font-size: 80%;
+  padding: .385em;
+  text-align: right;
 }
 
 .datatable table.frame {
-    border: none;
-    border-collapse: collapse;
-    border-spacing: 0;
-    color: #222;
-    font-size: 12px;
-    margin: 0 0 0 0;
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: #222;
+  cursor: default;
+  font-size: 12px;
+  margin: 0 0 0 0;
 }
 .datatable .frame thead {
-    border-bottom: 1px solid #BDBDBD;
-    vertical-align: bottom;
+  border-bottom: none;
+  vertical-align: bottom;
 }
+.datatable table.frame tr.coltypes td {
+  color: #FFFFFF;
+  line-height: 6px;
+  padding: 0 0.5em;
+}
+.datatable .bool { background: #DDDD99; }
+.datatable .obj  { background: #565656; }
+.datatable .int  { background: #5D9E5D; }
+.datatable .real { background: #4040CC; }
+.datatable .str  { background: #CC4040; }
 .datatable .frame td,
 .datatable .frame th,
 .datatable .frame tr {
-    border: none;
-    max-width: none;
-    padding: 0.5em 0.5em;
-    text-align: right;
-    vertical-align: middle;
+  border: none;
+  max-width: none;
+  padding: 0.5em 0.5em;
+  text-align: right;
+  vertical-align: middle;
+}
+.datatable .frame th:nth-child(2) {
+  padding-left: 12px;
+}
+.datatable .frame tr:nth-child(even) {
+  background-color: #F5F5F5;
 }
 
 .datatable .frame .row_index {
-  color: #CDE;
-  background: rgba(255,255,255,0.75);
-  font-size: 80%;
-  border-right: 1px solid #CCE6FF;
+  color: rgba(0, 0, 0, 0.38);
+  background: #EEEEEE;
+  font-size: 9px;
+  border-right: 1px solid #BDBDBD;
+}
+.datatable .frame tr.coltypes .row_index {
+  background: #BDBDBD;
 }
 .datatable .frame .hellipsis {
-  background: linear-gradient(to bottom,
-    rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 7%,
-    rgba(0,0,0,0.0) 15%, rgba(0,0,0,0.0) 95%,
-    rgba(0,0,0,0.3) 100%);
-  padding: 0.1em 0.5em;
-  color: #DDD;
+  color: #E0E0E0;
 }
 .datatable .frame .vellipsis {
-  background: #FFF;
-  color: #DDD;
-  padding: 0.5em 1em;
-  border: 1px solid #EEE;
-  border-style: none solid;
+  background: #FFFFFF;
+  color: #E0E0E0;
 }
-.datatable .frame th.vellipsis { border: none; }
-.datatable .frame .na { color: #DDD; font-size: 80%; }
-.datatable .frame_dimensions {
-  background: #FAFAFA;
+.datatable .frame .na {
+  color: #E0E0E0;
+  font-size: 80%;
+}
+.datatable .footer {
+  font-size: 9px;
+}
+.datatable .footer .frame_dimensions {
+  background: #EEEEEE;
+  border-top: 1px solid #BDBDBD;
+  color: rgba(0, 0, 0, 0.38);
   display: inline-block;
-  font-size: 10px;
-  color: #AAA;
-  border: 1px solid #EEE;
-  padding: 0.1em .5em;
-  margin-left: 2em;
+  opacity: 0.6;
+  padding: 1px 10px 1px 5px;
 }

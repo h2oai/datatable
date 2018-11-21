@@ -25,86 +25,65 @@
 #include "utils/parallel.h"
 #include "datatablemodule.h"
 
+
 /*
-*  Read data from Python, train FTRL model and make predictions.
+*  Set column names for `dt_model`.
 */
-namespace py {
-  static PKArgs ftrl(
-    11, 0, 0, false, false,
-    {"df_train", "df_test", "a", "b", "l1", "l2", "d", "n_epochs", "inter",
-     "hash_type", "seed"}, "ftrl", "",
-     [](const py::PKArgs& args) -> py::oobj {
-       DataTable* dt_train = args[0].to_frame();
-       DataTable* dt_test = args[1].to_frame();
-
-       double a = args[2].to_double();
-       double b = args[3].to_double();
-       double l1 = args[4].to_double();
-       double l2 = args[5].to_double();
-
-       uint64_t d = static_cast<uint64_t>(args[6].to_size_t());
-       size_t n_epochs = args[7].to_size_t();
-       bool inter = args[8].to_bool_strict();
-       unsigned int hash_type = static_cast<unsigned int>(args[9].to_size_t());
-       unsigned int seed = static_cast<unsigned int>(args[10].to_size_t());
-
-       Ftrl ft(a, b, l1, l2, d, n_epochs, inter, hash_type, seed);
-       ft.train(dt_train);
-       DataTable* dt_target = ft.test(dt_test).release();
-       py::Frame* frame_target = py::Frame::from_datatable(dt_target);
-
-       return frame_target;
-     }
-  );
-}
-
+const std::vector<std::string> FtrlModel::model_cols = {"z", "n"};
+const FtrlModelParams FtrlModel::fmp_default = {0.005, 1.0, 0.0, 1.0, 1000000, 1, 1, 0, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(double a_in, double b_in, double l1_in, double l2_in,
-           uint64_t d_in, size_t nepochs_in, bool inter_in,
-           unsigned int hash_type_in, unsigned int seed_in) :
-  a(a_in),
-  b(b_in),
-  l1(l1_in),
-  l2(l2_in),
-  d(d_in),
-  n_epochs(nepochs_in),
-  hash_type(hash_type_in),
-  seed(seed_in),
-  inter(inter_in)
+FtrlModel::FtrlModel(FtrlModelParams fmp_in)
 {
-  n = DoublePtr(new double[d]());
-  w = DoublePtr(new double[d]());
+  // Set model parameters
+  fmp = fmp_in;
+  // Create and initialize model datatable and weight vector.
+  create_model();
+  init_model();
+}
 
-  // Initialize weights with random [0; 1] numbers
-  z = DoublePtr(new double[d]);
-  srand(seed);
-  for (uint64_t i = 0; i < d; ++i){
-    z[i] = static_cast<double>(rand()) / RAND_MAX;
-  }
+
+void FtrlModel::init_model() {
+  model_trained = false;
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
+  std::memset(z, 0, fmp.d * sizeof(double));
+  std::memset(n, 0, fmp.d * sizeof(double));
+}
+
+
+void FtrlModel::create_model() {
+  w = DoublePtr(new double[fmp.d]());
+
+  Column* col_z = Column::new_data_column(SType::FLOAT64, fmp.d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, fmp.d);
+  dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
+}
+
+
+bool FtrlModel::is_trained() {
+  return model_trained;
 }
 
 
 /*
 *  Train FTRL model on a training dataset.
 */
-void Ftrl::train(const DataTable* dt) {
-  // Define number of features that equal to one bias term
-  // plus `dt->ncols - 1` columns. We assume that the target column
-  // is the last one.
-  n_features = dt->ncols;
+void FtrlModel::fit(const DataTable* dt) {
+  // Define number of features assuming that the target column is the last one.
+  n_features = dt->ncols - 1;
 
   // Define number of feature interactions.
-  n_inter_features = (inter)? (n_features - 1) * (n_features - 2) / 2 : 0;
+  n_inter_features = (fmp.inter)? n_features * (n_features - 1) / 2 : 0;
 
   // Get the target column.
   auto c_target = static_cast<BoolColumn*>(dt->columns[dt->ncols - 1]);
   auto d_target = c_target->elements_r();
 
   // Do training for `n_epochs`.
-  for (size_t i = 0; i < n_epochs; ++i) {
+  for (size_t i = 0; i < fmp.n_epochs; ++i) {
     double total_loss = 0;
     int32_t nth = config::nthreads;
 
@@ -112,8 +91,6 @@ void Ftrl::train(const DataTable* dt) {
     {
       // Array to store hashed features and feature interactions.
       Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_inter_features]);
-      // Bias term, do we need it? Results are quite similar with/without bias.
-      x[0] = 0;
       int32_t ith = omp_get_thread_num();
       nth = omp_get_num_threads();
 
@@ -123,29 +100,30 @@ void Ftrl::train(const DataTable* dt) {
 
         bool target = d_target[j];
         hash_row(x, dt, j);
-        double p = predict(x, n_features + n_inter_features);
-        double loss = logloss(p, target);
+        double p = predict_row(x, n_features + n_inter_features);
+        update(x, n_features + n_inter_features, p, target);
 
+        double loss = logloss(p, target);
         #pragma omp atomic update
         total_loss += loss;
-
         if ((j+1) % REPORT_FREQUENCY == 0) {
           printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
                  "Current loss: %f\tAverage loss: %f\n",
                  i, j+1, p, loss, total_loss / (j+1));
         }
-        update(x, n_features + n_inter_features, p, target);
       }
     }
   }
+  model_trained = true;
 }
 
 
 /*
 *  Make predictions for a test dataset and return targets as a new datatable.
+*  We assume that all the validation is done in `py_ftrl.cc`.
 */
-dtptr Ftrl::test(const DataTable* dt) {
-  // Create a datatable to store targets.
+dtptr FtrlModel::predict(const DataTable* dt) {
+  // Create a target datatable.
   dtptr dt_target = nullptr;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
   dt_target = dtptr(new DataTable({col_target}, {"target"}));
@@ -156,7 +134,6 @@ dtptr Ftrl::test(const DataTable* dt) {
   #pragma omp parallel num_threads(nth)
   {
     Uint64Ptr x = Uint64Ptr(new uint64_t[n_features + n_inter_features]);
-    x[0] = 0;
     int32_t ith = omp_get_thread_num();
     nth = omp_get_num_threads();
 
@@ -165,13 +142,12 @@ dtptr Ftrl::test(const DataTable* dt) {
          j+= static_cast<size_t>(nth)) {
 
       hash_row(x, dt, j);
-      d_target[j] = predict(x, n_features + n_inter_features);
+      d_target[j] = predict_row(x, n_features + n_inter_features);
       if ((j+1) % REPORT_FREQUENCY == 0) {
         printf("Row: %zu\tPrediction: %f\n", j+1, d_target[j]);
       }
     }
   }
-
   return dt_target;
 }
 
@@ -179,14 +155,15 @@ dtptr Ftrl::test(const DataTable* dt) {
 /*
 *  Make a prediction for an array of hashed features.
 */
-double Ftrl::predict(const Uint64Ptr& x, size_t x_size) {
+double FtrlModel::predict_row(const Uint64Ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    if (fabs(z[i]) <= l1) {
+    if (fabs(z[i]) <= fmp.l1) {
       w[i] = 0;
     } else {
-      w[i] = (signum(z[i]) * l1 - z[i]) / ((b + sqrt(n[i])) / a + l2);
+      w[i] = (signum(z[i]) * fmp.l1 - z[i]) /
+             ((fmp.b + sqrt(n[i])) / fmp.a + fmp.l2);
     }
     wTx += w[i];
   }
@@ -198,7 +175,7 @@ double Ftrl::predict(const Uint64Ptr& x, size_t x_size) {
 /*
 *  Sigmoid function.
 */
-inline double Ftrl::sigmoid(double x) {
+inline double FtrlModel::sigmoid(double x) {
   double res = 1.0 / (1.0 + exp(-x));
 
   return res;
@@ -208,7 +185,7 @@ inline double Ftrl::sigmoid(double x) {
 /*
 *  Bounded sigmoid function.
 */
-inline double Ftrl::bsigmoid(double x, double b) {
+inline double FtrlModel::bsigmoid(double x, double b) {
   double res = 1 / (1 + exp(-std::max(std::min(x, b), -b)));
 
   return res;
@@ -218,12 +195,12 @@ inline double Ftrl::bsigmoid(double x, double b) {
 /*
 *  Update weights based on prediction and the actual target.
 */
-void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
+void FtrlModel::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
   double g = p - target;
 
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / a;
+    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / fmp.a;
     z[i] += g - sigma * w[i];
     n[i] += g * g;
   }
@@ -235,9 +212,9 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
 *  for production we will remove this method and stick to the hash function,
 *  that demonstrates the best performance.
 */
-uint64_t Ftrl::hash_string(const char * key, size_t len) {
+uint64_t FtrlModel::hash_string(const char * key, size_t len) {
   uint64_t res;
-  switch (hash_type) {
+  switch (fmp.hash_type) {
     // `std::hash` is kind of slow, because we need to convert `char*` to
     // `std::string`, as `std::hash<char*>` doesn't hash
     // the actual data.
@@ -249,16 +226,16 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
              }
     // 64 bits Murmur2 hash function. The best performer so far,
     // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len, seed); break;
+    case 1:  res = hash_murmur2(key, len, fmp.seed); break;
 
     // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
     case 2:  {
                 uint64_t h[2];
-                hash_murmur3(key, len, seed, h);
+                hash_murmur3(key, len, fmp.seed, h);
                 res = h[0];
                 break;
              }
-    default: res = hash_murmur2(key, len, seed);
+    default: res = hash_murmur2(key, len, fmp.seed);
   }
   return res;
 }
@@ -267,11 +244,11 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
 /*
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
-void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
+void FtrlModel::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
   std::vector<std::string> c_names = dt->get_names();
   uint64_t index;
 
-  for (size_t i = 0; i < n_features - 1; ++i) {
+  for (size_t i = 0; i < n_features; ++i) {
     std::string str;
     Column* c = dt->columns[i];
     LType ltype = info(c->stype()).ltype();
@@ -318,20 +295,21 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     }
     // Add the column name hash to the hashed value, so that the same value
     // in different columns will result in different hashes.
+    // TODO: pre-hash all the column names only once.
     uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
     index += h;
-    x[i+1] = index % d;
+    x[i] = index % fmp.d;
   }
 
   // Do feature interaction if required. We may also want to test
   // just a simple `h = x[i+1] + x[j+1]` approach.
   size_t count = 0;
-  if (inter) {
+  if (fmp.inter) {
     for (size_t i = 0; i < n_features - 1; ++i) {
-      for (size_t j = i + 1; j < n_features - 1; ++j) {
+      for (size_t j = i + 1; j < n_features; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
-        x[n_features + count] = h % d;
+        x[n_features + count] = h % fmp.d;
         count++;
       }
     }
@@ -342,7 +320,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
 /*
 *  Calculate logloss based on a prediction and the actual target.
 */
-double Ftrl::logloss(double p, bool target) {
+double FtrlModel::logloss(double p, bool target) {
   double epsilon = std::numeric_limits<double>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   if (target) {
@@ -356,7 +334,7 @@ double Ftrl::logloss(double p, bool target) {
 /*
 *  Calculate signum.
 */
-inline double Ftrl::signum(double x) {
+inline double FtrlModel::signum(double x) {
   if (x > 0) return 1;
   if (x < 0) return -1;
   return 0;
@@ -366,12 +344,148 @@ inline double Ftrl::signum(double x) {
 /*
 *  Hash `double` to `uint64_t` based on its bit representation.
 */
-inline uint64_t Ftrl::hash_double(double x) {
+inline uint64_t FtrlModel::hash_double(double x) {
   uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
 }
 
 
-void DatatableModule::init_methods_ftrl() {
-  ADDFN(py::ftrl);
+/*
+*  Get a shallow copy of an FTRL model if available.
+*/
+DataTable* FtrlModel::get_model() {
+  if (dt_model != nullptr) {
+    return dt_model->copy();
+  } else {
+    return nullptr;
+  }
+}
+
+
+/*
+*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
+*/
+void FtrlModel::set_model(DataTable* dt_model_in) {
+  dt_model = dtptr(dt_model_in->copy());
+}
+
+
+/*
+*  Other getters and setters.
+*  Here we assume that all the validation is done in `py_ftrl.cc`.
+*/
+double FtrlModel::get_a() {
+  return fmp.a;
+}
+
+
+double FtrlModel::get_b() {
+  return fmp.b;
+}
+
+
+double FtrlModel::get_l1() {
+  return fmp.l1;
+}
+
+
+double FtrlModel::get_l2() {
+  return fmp.l2;
+}
+
+
+uint64_t FtrlModel::get_d() {
+  return fmp.d;
+}
+
+
+bool FtrlModel::get_inter() {
+  return fmp.inter;
+}
+
+
+unsigned int FtrlModel::get_hash_type() {
+  return fmp.hash_type;
+}
+
+
+unsigned int FtrlModel::get_seed() {
+  return fmp.seed;
+}
+
+
+size_t FtrlModel::get_n_epochs() {
+  return fmp.n_epochs;
+}
+
+
+void FtrlModel::set_a(double a_in) {
+  if (fmp.a != a_in) {
+    fmp.a = a_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_b(double b_in) {
+  if (fmp.b != b_in) {
+    fmp.b = b_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_l1(double l1_in) {
+  if (fmp.l1 != l1_in) {
+    fmp.l1 = l1_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_l2(double l2_in) {
+  if (fmp.l2 != l2_in) {
+    fmp.l2 = l2_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_d(uint64_t d_in) {
+  if (fmp.d != d_in) {
+    fmp.d = d_in;
+    create_model();
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_inter(bool inter_in) {
+  if (fmp.inter != inter_in) {
+    fmp.inter = inter_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_hash_type(unsigned int hash_type_in) {
+  if (fmp.hash_type != hash_type_in) {
+    fmp.hash_type = hash_type_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_seed(unsigned int seed_in) {
+  if (fmp.seed != seed_in) {
+    fmp.seed = seed_in;
+    init_model();
+  }
+}
+
+
+void FtrlModel::set_n_epochs(size_t n_epochs_in) {
+  if (fmp.n_epochs != n_epochs_in) {
+    fmp.n_epochs = n_epochs_in;
+  }
 }

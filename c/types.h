@@ -328,6 +328,7 @@ class info {
   public:
     info(SType s);
     const char* name() const;
+    const char* ltype_name() const;
     size_t elemsize() const;
     bool is_varwidth() const;
     LType ltype() const;
