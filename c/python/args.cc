@@ -191,6 +191,10 @@ PyObject* PKArgs::exec(PyObject* args, PyObject* kwds) noexcept {
 
 std::string PKArgs::make_arg_name(size_t i) const {
   std::string res;
+  if (i == 0 && n_posonly_args == 1 && n_all_args == 1 &&
+      !has_varargs && !has_varkwds) {
+    res = "The argument";
+  } else
   if (i < n_posonly_args) {
     res = (i == 0)? "First" :
           (i == 1)? "Second" :
@@ -200,7 +204,7 @@ std::string PKArgs::make_arg_name(size_t i) const {
   } else {
     res = std::string("Argument `") + arg_names[i] + '`';
   }
-  res += std::string(" in ") + get_long_name();
+  res += std::string(" in `") + get_long_name() + '`';
   return res;
 }
 

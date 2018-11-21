@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Added
 - methods `Frame.to_tuples()` and `Frame.to_dict()` (#1400).
+- methods `Frame.head(n)` and `Frame.tail(n)` (#1307).
 
 #### Fixed
 - crash when an int-column row selector is applied to a Frame which already
