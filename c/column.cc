@@ -301,9 +301,6 @@ Column* Column::cast(SType new_stype) const {
 }
 
 Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
-  if (new_stype == stype()) {
-    return shallowcopy();
-  }
   if (ri) {
     // TODO: implement this
     throw RuntimeError() << "Cannot cast a column with rowindex";
@@ -314,6 +311,9 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
     res->nrows = nrows;
     res->mbuf = std::move(mr);
   } else {
+    if (new_stype == stype()) {
+      return shallowcopy();
+    }
     res = Column::new_data_column(new_stype, nrows);
   }
   switch (new_stype) {
