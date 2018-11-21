@@ -1042,6 +1042,64 @@ def test_copy_frame():
 
 
 #-------------------------------------------------------------------------------
+# head / tail
+#-------------------------------------------------------------------------------
+
+def test_head():
+    d0 = dt.Frame(A=range(20), B=[3, 5] * 10)
+    d1 = d0.head(3)
+    assert d1.to_dict() == {"A": [0, 1, 2], "B": [3, 5, 3]}
+    d2 = d0.head(1)
+    assert d2.to_dict() == {"A": [0], "B": [3]}
+    d3 = d0.head(0)
+    assert d3.to_dict() == {"A": [], "B": []}
+    d4 = d0.head(100)
+    assert d4.to_dict() == d0.to_dict()
+    d5 = d0.head()
+    assert d5.to_dict() == {"A": list(range(10)), "B": [3, 5] * 5}
+
+
+def test_tail():
+    d0 = dt.Frame(A=range(20), B=[3, 5] * 10)
+    d1 = d0.tail(3)
+    assert d1.to_dict() == {"A": [17, 18, 19], "B": [5, 3, 5]}
+    d2 = d0.tail(1)
+    assert d2.to_dict() == {"A": [19], "B": [5]}
+    d3 = d0.tail(0)
+    assert d3.to_dict() == {"A": [], "B": []}
+    d4 = d0.tail(100)
+    assert d4.to_dict() == d0.to_dict()
+    d5 = d0.tail()
+    assert d5.to_dict() == {"A": list(range(10, 20)), "B": [3, 5] * 5}
+
+
+def test_head_bad():
+    d0 = dt.Frame(range(10))
+    with pytest.raises(ValueError) as e:
+        d0.head(-5)
+    assert ("The argument in Frame.head() cannot be negative"
+            in str(e.value))
+    with pytest.raises(TypeError) as e:
+        d0.head(5.0)
+    assert ("The argument in Frame.head() should be an integer"
+            in str(e.value))
+
+
+def test_tail_bad():
+    d0 = dt.Frame(range(10))
+    with pytest.raises(ValueError) as e:
+        d0.tail(-5)
+    assert ("The argument in Frame.tail() cannot be negative"
+            in str(e.value))
+    with pytest.raises(TypeError) as e:
+        d0.tail(5.0)
+    assert ("The argument in Frame.tail() should be an integer"
+            in str(e.value))
+
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 

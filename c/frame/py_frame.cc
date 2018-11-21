@@ -1,21 +1,28 @@
 //------------------------------------------------------------------------------
 // Copyright 2018 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include <iostream>
 #include "python/int.h"
+#include "python/orange.h"
 #include "python/tuple.h"
 
 namespace py {
@@ -40,6 +47,25 @@ NoArgs Frame::Type::args_copy("copy",
 "any changes made to one of the Frames will not propagate to the other.\n"
 "Thus, for all intents and purposes the copied Frame will behave as if\n"
 "it was deep-copied.\n");
+
+static PKArgs fn_head(
+    1, 0, 0, false, false,
+    {"n"}, "head",
+R"(head(self, n=10)
+--
+
+Return the first `n` rows of the Frame, same as ``self[:n, :]``.
+)");
+
+static PKArgs fn_tail(
+    1, 0, 0, false, false,
+    {"n"}, "tail",
+R"(tail(self, n=10)
+--
+
+Return the last `n` rows of the Frame, same as ``self[-n:, :]``.
+)");
+
 
 
 const char* Frame::Type::classname() {
@@ -103,6 +129,8 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::to_dict, args_to_dict>();
   mm.add<&Frame::to_list, args_to_list>();
   mm.add<&Frame::to_tuples, args_to_tuples>();
+  mm.add<&Frame::head, fn_head>();
+  mm.add<&Frame::tail, fn_tail>();
 }
 
 
@@ -157,6 +185,26 @@ void Frame::_clear_types() const {
   Py_XDECREF(ltypes);
   stypes = nullptr;
   ltypes = nullptr;
+}
+
+
+oobj Frame::head(const PKArgs& args) {
+  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
+  if (n > dt->nrows) n = dt->nrows;
+  py::otuple aa(2);
+  aa.set(0, py::orange(0, n, 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
+}
+
+
+oobj Frame::tail(const PKArgs& args) {
+  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
+  if (n > dt->nrows) n = dt->nrows;
+  py::otuple aa(2);
+  aa.set(0, py::orange(dt->nrows - n, dt->nrows, 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
 }
 
 
@@ -224,7 +272,6 @@ oobj Frame::get_ltypes() const {
 oobj Frame::get_internal() const {
   return oobj(core_dt);
 }
-
 
 
 }  // namespace py
