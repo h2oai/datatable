@@ -757,3 +757,13 @@ def test_issue689(tempfile):
     d2 = d1(rows=lambda g: g[0] == 1)
     d2.internal.check()
     assert d2.shape == (n / 8, 1)
+
+
+@pytest.mark.parametrize("st", dt.ltype.int.stypes)
+def test_issue1437(st):
+    d0 = dt.Frame(range(100))
+    d1 = d0[range(20), :]
+    d2 = d1[dt.Frame(range(10), stype=st), :]
+    d2.internal.check()
+    assert d2.to_list() == [list(range(10))]
+

@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.7.0)
 
+#### Fixed
+- crash when an int-column row selector is applied to a Frame which already
+  had another row filter applied (#1437).
 
 
 ### [v0.7.0](https://github.com/h2oai/datatable/compare/0.7.0...v0.6.0) — 2018-11-16
