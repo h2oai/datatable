@@ -728,6 +728,53 @@ def test_rename_default():
 
 
 #-------------------------------------------------------------------------------
+# Test conversions into python
+#-------------------------------------------------------------------------------
+
+def test_to_list():
+    src = [[-1, 0, 1, 3],
+           ["cat", "dog", "mouse", "elephant"],
+           [False, True, None, True]]
+    d0 = dt.Frame(src, names=["A", "B", "C"])
+    assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
+    a0 = d0.topython()
+    assert len(a0) == 3
+    assert len(a0[0]) == 4
+    assert a0 == src
+    # Special case for booleans (because Booleans compare equal to 1/0)
+    assert all(b is None or isinstance(b, bool) for b in a0[2])
+
+
+def test_to_list2():
+    src = [[1.0, None, float("nan"), 3.3]]
+    d0 = dt.Frame(src)
+    assert d0.ltypes == (ltype.real, )
+    a0 = d0.topython()[0]
+    assert a0 == [1.0, None, None, 3.3]
+
+
+def test_to_tuples():
+    d0 = dt.Frame([[2, 17, -5, 148],
+                   [3.6, 9.99, -14.15, 2.5e100],
+                   ["mars", "venus", "mercury", "polonium"],
+                   [None, True, False, None]])
+    assert d0.to_tuples() == [(2, 3.6, "mars", None),
+                              (17, 9.99, "venus", True),
+                              (-5, -14.15, "mercury", False),
+                              (148, 2.5e100, "polonium", None)]
+
+
+def test_to_dict():
+    d0 = dt.Frame(A=["purple", "yellow", "indigo", "crimson"],
+                  B=[0, None, 123779, -299],
+                  C=[1.23, 4.56, 7.89, 10.11])
+    assert d0.to_dict() == {"A": ["purple", "yellow", "indigo", "crimson"],
+                            "B": [0, None, 123779, -299],
+                            "C": [1.23, 4.56, 7.89, 10.11]}
+
+
+
+#-------------------------------------------------------------------------------
 # Test conversions into Pandas / Numpy
 #-------------------------------------------------------------------------------
 
@@ -767,28 +814,6 @@ def test_topandas_nas():
     p0 = d0.topandas()
     # Check that each column in Pandas DataFrame has the correct number of NAs
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
-
-
-def test_topython():
-    src = [[-1, 0, 1, 3],
-           ["cat", "dog", "mouse", "elephant"],
-           [False, True, None, True]]
-    d0 = dt.Frame(src, names=["A", "B", "C"])
-    assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
-    a0 = d0.topython()
-    assert len(a0) == 3
-    assert len(a0[0]) == 4
-    assert a0 == src
-    # Special case for booleans (because Booleans compare equal to 1/0)
-    assert all(b is None or isinstance(b, bool) for b in a0[2])
-
-
-def test_topython2():
-    src = [[1.0, None, float("nan"), 3.3]]
-    d0 = dt.Frame(src)
-    assert d0.ltypes == (ltype.real, )
-    a0 = d0.topython()[0]
-    assert a0 == [1.0, None, None, 3.3]
 
 
 def test_tonumpy0(numpy):

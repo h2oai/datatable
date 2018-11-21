@@ -483,15 +483,10 @@ class Frame(core.Frame):
         return res
 
 
-    def to_list(self):
-        """
-        Convert the Frame into a python list-of-lists.
-        """
-        return self._dt.window(0, self.nrows, 0, self.ncols).data
-
+    def topython(self):  # DEPRECATED
+        return self.to_list()
 
     # Old names
-    topython = to_list
     topandas = to_pandas
     tonumpy = to_numpy
 

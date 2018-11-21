@@ -100,6 +100,9 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::copy, args_copy>();
   mm.add<&Frame::replace, args_replace>();
   mm.add<&Frame::_repr_html_, args__repr_html_>();
+  mm.add<&Frame::to_dict, args_to_dict>();
+  mm.add<&Frame::to_list, args_to_list>();
+  mm.add<&Frame::to_tuples, args_to_tuples>();
 }
 
 
