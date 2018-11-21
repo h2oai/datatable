@@ -25,7 +25,7 @@ typedef std::unique_ptr<double[]> DoublePtr;
 typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 #define REPORT_FREQUENCY 1000
 
-struct FtrlModelParams {
+struct FtrlParams {
     double a;
     double b;
     double l1;
@@ -39,7 +39,7 @@ struct FtrlModelParams {
 };
 
 
-class FtrlModel {
+class Ftrl {
   private:
     // Datatable with `z` and `n` model values.
     dtptr dt_model;
@@ -47,7 +47,7 @@ class FtrlModel {
     double* n;
     
     // Input to the model.
-    FtrlModelParams fmp;
+    FtrlParams fp;
 
     // Calculated during the learning process.
     size_t n_features;
@@ -57,10 +57,10 @@ class FtrlModel {
     size_t : 56;
 
   public:
-    FtrlModel(FtrlModelParams);
+    Ftrl(FtrlParams);
 
     static const std::vector<std::string> model_cols;
-    static const FtrlModelParams fmp_default;
+    static const FtrlParams fp_default;
 
     // Learning and predicting methods.
     bool is_trained();

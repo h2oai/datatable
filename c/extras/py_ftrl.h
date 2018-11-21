@@ -23,12 +23,12 @@
 #include "extras/ftrl.h"
 
 namespace py {
-  class Ftrl : public PyObject {
+  class PyFtrl : public PyObject {
     private:
-      FtrlModel* fm;
+      Ftrl* ft;
 
     public:
-      class Type : public ExtType<Ftrl> {
+      class Type : public ExtType<PyFtrl> {
         public:
           static PKArgs args___init__;
           static PKArgs args_fit;
@@ -47,6 +47,8 @@ namespace py {
 
       // Getters and setters.
       oobj get_model() const;
+      oobj get_params() const;
+      oobj get_default_params() const;
       oobj get_a() const;
       oobj get_b() const;
       oobj get_l1() const;
@@ -57,6 +59,7 @@ namespace py {
       oobj get_hash_type() const;
       oobj get_seed() const;
       void set_model(robj);
+      void set_params(robj);
       void set_a(robj);
       void set_b(robj);
       void set_l1(robj);

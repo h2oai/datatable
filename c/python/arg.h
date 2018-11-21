@@ -12,6 +12,7 @@
 #include <Python.h>
 #include "python/obj.h"
 #include "python/list.h"
+#include "python/tuple.h"
 
 namespace py {
 
@@ -64,6 +65,7 @@ class Arg : public _obj::error_manager {
     py::olist   to_pylist        () const;
     py::odict   to_pydict        () const;
     py::rdict   to_rdict         () const;
+    py::otuple  to_pytuple       () const;
     std::string to_string        () const;
     strvec      to_stringlist    () const;
     SType       to_stype         () const;

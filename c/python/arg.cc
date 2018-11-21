@@ -81,6 +81,7 @@ double      Arg::to_double()       const { return pyobj.to_double(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }
+py::otuple  Arg::to_pytuple()      const { return pyobj.to_pytuple(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
