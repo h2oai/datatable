@@ -1077,11 +1077,11 @@ def test_head_bad():
     d0 = dt.Frame(range(10))
     with pytest.raises(ValueError) as e:
         d0.head(-5)
-    assert ("The argument in `Frame.head()` cannot be negative"
+    assert ("The argument in Frame.head() cannot be negative"
             in str(e.value))
     with pytest.raises(TypeError) as e:
         d0.head(5.0)
-    assert ("The argument in `Frame.head()` should be an integer"
+    assert ("The argument in Frame.head() should be an integer"
             in str(e.value))
 
 
@@ -1089,11 +1089,11 @@ def test_tail_bad():
     d0 = dt.Frame(range(10))
     with pytest.raises(ValueError) as e:
         d0.tail(-5)
-    assert ("The argument in `Frame.tail()` cannot be negative"
+    assert ("The argument in Frame.tail() cannot be negative"
             in str(e.value))
     with pytest.raises(TypeError) as e:
         d0.tail(5.0)
-    assert ("The argument in `Frame.tail()` should be an integer"
+    assert ("The argument in Frame.tail() should be an integer"
             in str(e.value))
 
 

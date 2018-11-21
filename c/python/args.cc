@@ -204,7 +204,7 @@ std::string PKArgs::make_arg_name(size_t i) const {
   } else {
     res = std::string("Argument `") + arg_names[i] + '`';
   }
-  res += std::string(" in `") + get_long_name() + '`';
+  res += std::string(" in ") + get_long_name();
   return res;
 }
 
