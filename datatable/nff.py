@@ -45,7 +45,7 @@ def save(self, dest, format="jay", _strategy="auto"):
         os.makedirs(dest)
 
     if format == "jay":
-        self.internal.save_jay(dest, self.names, _strategy)
+        self.internal.save_jay(dest, _strategy)
         return
 
     self.materialize()

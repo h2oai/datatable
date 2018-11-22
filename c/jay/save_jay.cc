@@ -28,7 +28,6 @@ static flatbuffers::Offset<void> saveStats(
 //------------------------------------------------------------------------------
 
 void DataTable::save_jay(const std::string& path,
-                         const std::vector<std::string>& colnames,
                          WritableBuffer::Strategy wstrategy)
 {
   // Cannot store a view frame, so materialize first.
@@ -45,10 +44,10 @@ void DataTable::save_jay(const std::string& path,
   for (size_t i = 0; i < ncols; ++i) {
     Column* col = columns[i];
     if (col->stype() == SType::OBJ) {
-      DatatableWarning() << "Column `" << colnames[i]
+      DatatableWarning() << "Column `" << names[i]
           << "` of type obj64 was not saved";
     } else {
-      auto saved_col = column_to_jay(col, colnames[i], fbb, wb);
+      auto saved_col = column_to_jay(col, names[i], fbb, wb);
       msg_columns.push_back(saved_col);
     }
   }

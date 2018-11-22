@@ -576,25 +576,20 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+
 PyObject* save_jay(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* arg1, *arg2, *arg3;
-  if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
+  PyObject* arg1;
+  PyObject* arg2;
+  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2))
     return nullptr;
 
   auto filename = py::robj(arg1).to_string();
-  auto colnames = py::robj(arg2).to_stringlist();
-  auto strategy = py::robj(arg3).to_string();
+  auto strategy = py::robj(arg2).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
-
-  if (colnames.size() != dt->ncols) {
-    throw ValueError()
-      << "The list of column names has wrong length: " << colnames.size();
-  }
-
-  dt->save_jay(filename, colnames, sstrategy);
+  dt->save_jay(filename, sstrategy);
   Py_RETURN_NONE;
 }
 
@@ -603,8 +598,6 @@ PyObject* save_jay(obj* self, PyObject* args) {
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
-
-
 
 static void dealloc(obj* self) {
   delete self->ref;
