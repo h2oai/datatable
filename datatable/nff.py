@@ -11,7 +11,7 @@ import datatable as dt
 from datatable.lib import core
 # from datatable.fread import Frame
 # from datatable.fread import fread
-from datatable.utils.typechecks import typed, TValueError, dtwarn
+from datatable.utils.typechecks import typed, TTypeError, TValueError, dtwarn
 
 _builtin_open = open
 
@@ -23,8 +23,7 @@ def _stringify(x):
     return str(x)
 
 
-@typed(dest=str, format=str, _strategy=str)
-def save(self, dest, format="jay", _strategy="auto"):
+def save(self, dest=None, format="jay", _strategy="auto"):
     """
     Save Frame in binary NFF/Jay format.
 
@@ -32,6 +31,8 @@ def save(self, dest, format="jay", _strategy="auto"):
     :param format: either "nff" or "jay"
     :param _strategy: one of "mmap", "write" or "auto"
     """
+    if dest is None:
+        return self.internal.save_jay(None, None)
     if _strategy not in ("auto", "write", "mmap"):
         raise TValueError("Invalid parameter _strategy: only 'write' / 'mmap' "
                           "/ 'auto' are allowed")
@@ -75,8 +76,11 @@ def save(self, dest, format="jay", _strategy="auto"):
 
 
 
-@typed(path=str)
 def open(path):
+    if isinstance(path, bytes):
+        return core.open_jay(path)
+    if not isinstance(path, str):
+        raise TTypeError("Parameter `path` should be a string")
     path = os.path.expanduser(path)
     if not os.path.exists(path):
         msg = "Path %s does not exist" % path

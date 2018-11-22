@@ -185,8 +185,7 @@ void DataTable::reify() {
 
 
 
-size_t DataTable::memory_footprint()
-{
+size_t DataTable::memory_footprint() const {
   size_t sz = 0;
   sz += sizeof(*this);
   sz += (ncols + 1) * sizeof(Column*);

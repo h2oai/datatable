@@ -528,6 +528,11 @@ class Frame(core.Frame):
         """
         return self._dt.alloc_size
 
+    def __getstate__(self):
+        return self.internal.save_jay(None, None)
+
+    def __setstate__(self, state):
+        self.__init__(datatable.open(state))
 
 
 
