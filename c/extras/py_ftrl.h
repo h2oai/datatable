@@ -34,6 +34,7 @@ namespace py {
           static PKArgs args_fit;
           static PKArgs args_predict;
           static PKArgs args_reset;
+          static PKArgs args_reset_params;
           static const char* classname();
           static const char* classdoc();
           static bool is_subclassable() { return true; }
@@ -44,6 +45,7 @@ namespace py {
       void fit(const PKArgs&);
       oobj predict(const PKArgs&);
       void reset(const PKArgs&);
+      void reset_params(const PKArgs&);
 
       // Getters and setters.
       oobj get_model() const;

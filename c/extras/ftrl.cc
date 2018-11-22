@@ -367,6 +367,7 @@ DataTable* Ftrl::get_model() {
 */
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
+  model_trained = true;
 }
 
 

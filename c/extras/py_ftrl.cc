@@ -170,6 +170,7 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   mm.add<&PyFtrl::fit, args_fit>();
   mm.add<&PyFtrl::predict, args_predict>();
   mm.add<&PyFtrl::reset, args_reset>();
+  mm.add<&PyFtrl::reset_params, args_reset_params>();
 }
 
 
@@ -244,6 +245,33 @@ Returns
 
 void PyFtrl::reset(const PKArgs&) {
   ft->init_model();
+}
+
+
+PKArgs PyFtrl::Type::args_reset_params(0, 0, 0, false, false, {}, "reset_params",
+R"(reset_params(self)
+--
+
+Reset FTRL parameters.
+
+Parameters
+----------
+    None
+
+Returns
+----------
+    None
+)");
+
+
+void PyFtrl::reset_params(const PKArgs&) {
+  ft->set_a(Ftrl::fp_default.a);
+  ft->set_b(Ftrl::fp_default.b);
+  ft->set_l1(Ftrl::fp_default.l1);
+  ft->set_l2(Ftrl::fp_default.l2);
+  ft->set_d(Ftrl::fp_default.d);
+  ft->set_n_epochs(Ftrl::fp_default.n_epochs);
+  ft->set_inter(Ftrl::fp_default.inter);
 }
 
 /*
