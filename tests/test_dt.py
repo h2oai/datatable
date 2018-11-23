@@ -1040,6 +1040,19 @@ def test_copy_frame():
     assert d1.names != d0.names
 
 
+def test_copy_keyed_frame():
+    d0 = dt.Frame(A=range(5), B=["alpha", "beta", "gamma", "delta", "epsilon"])
+    d0.key = "A"
+    d1 = d0.copy()
+    d2 = dt.Frame(d0)
+    d1.internal.check()
+    d2.internal.check()
+    assert d2.names == d1.names == d0.names
+    assert d2.stypes == d1.stypes == d0.stypes
+    assert d2.key == d1.key == d0.key
+    assert d2.to_list() == d1.to_list() == d0.to_list()
+
+
 
 #-------------------------------------------------------------------------------
 # head / tail

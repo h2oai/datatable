@@ -93,7 +93,9 @@ DataTable* DataTable::copy() const {
     // vector can be default-copied.
     newcols.push_back(col->shallowcopy());
   }
-  return new DataTable(std::move(newcols), this);
+  DataTable* res = new DataTable(std::move(newcols), this);
+  res->nkeys = nkeys;
+  return res;
 }
 
 
