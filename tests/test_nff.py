@@ -1,15 +1,34 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+#-------------------------------------------------------------------------------
+import datatable as dt
+import math
 import os
-import shutil
+import pickle
 import pytest
 import random
+import shutil
 import tempfile
-import datatable as dt
 from datatable import DatatableWarning
 from tests import assert_equals
 
@@ -198,3 +217,56 @@ def test_jay_keys(tempfile):
     d1 = dt.open(tempfile)
     assert d1.key == ("x",)
     assert_equals(d0, d1)
+
+
+
+#-------------------------------------------------------------------------------
+# pickling
+#-------------------------------------------------------------------------------
+
+def test_pickle(tempfile):
+    DT = dt.Frame(A=range(10), B=list("ABCDEFGHIJ"), C=[5.5]*10)
+    with open(tempfile, 'wb') as out:
+        pickle.dump(DT, out)
+    with open(tempfile, 'rb') as inp:
+        DT2 = pickle.load(inp)
+    DT2.internal.check()
+    assert DT.to_list() == DT2.to_list()
+    assert DT.names == DT2.names
+    assert DT.stypes == DT2.stypes
+
+
+def test_pickle2(tempfile):
+    DT = dt.Frame([[1, 2, 3, 4],
+                   [5, 6, 7, None],
+                   [10, 0, None, -5],
+                   [1000, 10000, 10000000, 10**18],
+                   [True, None, None, False],
+                   [None, 3.14, 2.99, 1.6923e-18],
+                   [134.23891, 901239.00001, 2.5e+300, math.inf],
+                   ["Bespectable", None, "z e w", "1"],
+                   ["We", "the", "people", "!"]],
+                  stypes=[dt.int8, dt.int16, dt.int32, dt.int64, dt.bool8,
+                          dt.float32, dt.float64, dt.str32, dt.str64])
+    with open(tempfile, 'wb') as out:
+        pickle.dump(DT, out)
+    with open(tempfile, 'rb') as inp:
+        DT2 = pickle.load(inp)
+    DT2.internal.check()
+    assert DT.names == DT2.names
+    assert DT.stypes == DT2.stypes
+    assert DT.to_list() == DT2.to_list()
+
+
+def test_pickle_keyed_frame(tempfile):
+    DT = dt.Frame(A=list("ABCD"), B=[12.1, 34.7, 90.1238, -23.239045])
+    DT.key = "A"
+    with open(tempfile, 'wb') as out:
+        pickle.dump(DT, out)
+    with open(tempfile, 'rb') as inp:
+        DT2 = pickle.load(inp)
+    DT2.internal.check()
+    assert DT.names == DT2.names
+    assert DT.stypes == DT2.stypes
+    assert DT.to_list() == DT2.to_list()
+    assert DT.key == DT2.key

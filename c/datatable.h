@@ -118,6 +118,7 @@ class DataTable {
     size_t get_nkeys() const;
     void set_key(std::vector<size_t>& col_indices);
     void clear_key();
+    void set_nkeys_unsafe(size_t K);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
@@ -147,7 +148,6 @@ class DataTable {
 
     DataTable* _statdt(colmakerfn f) const;
     void save_jay_impl(WritableBuffer*);
-    friend DataTable* open_jay_from_mbuf(const MemoryRange&);
 
     #ifdef DTTEST
       friend void dttest::cover_names_integrity_checks();

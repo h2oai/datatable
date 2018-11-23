@@ -80,7 +80,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   }
 
   auto dt = new DataTable(std::move(columns), colnames);
-  dt->nkeys = static_cast<size_t>(frame->nkeys());
+  dt->set_nkeys_unsafe(static_cast<size_t>(frame->nkeys()));
   return dt;
 }
 
