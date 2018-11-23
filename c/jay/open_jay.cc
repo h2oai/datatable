@@ -12,7 +12,8 @@
 
 
 // Helper functions
-static Column* column_from_jay(const jay::Column* jaycol, MemoryRange& jaybuf);
+static Column* column_from_jay(const jay::Column* jaycol,
+                               const MemoryRange& jaybuf);
 
 
 
@@ -20,10 +21,20 @@ static Column* column_from_jay(const jay::Column* jaycol, MemoryRange& jaybuf);
 // Open DataTable
 //------------------------------------------------------------------------------
 
-DataTable* DataTable::open_jay(const std::string& path)
+DataTable* open_jay_from_file(const std::string& path) {
+  MemoryRange mbuf = MemoryRange::mmap(path);
+  return open_jay_from_mbuf(mbuf);
+}
+
+DataTable* open_jay_from_bytes(const char* ptr, size_t len) {
+  MemoryRange mbuf = MemoryRange::external(ptr, len);
+  return open_jay_from_mbuf(mbuf);
+}
+
+
+DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
 {
   std::vector<std::string> colnames;
-  MemoryRange mbuf = MemoryRange::mmap(path);
 
   const uint8_t* ptr = static_cast<const uint8_t*>(mbuf.rptr());
   const size_t len = mbuf.size();
@@ -69,7 +80,7 @@ DataTable* DataTable::open_jay(const std::string& path)
   }
 
   auto dt = new DataTable(std::move(columns), colnames);
-  dt->nkeys = static_cast<size_t>(frame->nkeys());
+  dt->set_nkeys_unsafe(static_cast<size_t>(frame->nkeys()));
   return dt;
 }
 
@@ -79,7 +90,9 @@ DataTable* DataTable::open_jay(const std::string& path)
 // Open an individual column
 //------------------------------------------------------------------------------
 
-static MemoryRange extract_buffer(MemoryRange& src, const jay::Buffer* jbuf) {
+static MemoryRange extract_buffer(
+    const MemoryRange& src, const jay::Buffer* jbuf)
+{
   size_t offset = jbuf->offset();
   size_t length = jbuf->length();
   return MemoryRange::view(src, length, offset + 8);
@@ -98,7 +111,9 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static Column* column_from_jay(const jay::Column* jcol, MemoryRange& jaybuf) {
+static Column* column_from_jay(
+    const jay::Column* jcol, const MemoryRange& jaybuf)
+{
   jay::Type jtype = jcol->type();
 
   Column* col = nullptr;

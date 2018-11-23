@@ -16,8 +16,8 @@ using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
 static flatbuffers::Offset<jay::Column> column_to_jay(
     Column* col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
-    WritableBufferPtr& wb);
-static jay::Buffer saveMemoryRange(const MemoryRange*, WritableBufferPtr&);
+    WritableBuffer* wb);
+static jay::Buffer saveMemoryRange(const MemoryRange*, WritableBuffer*);
 template <typename T, typename A, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
     Stats* stats, flatbuffers::FlatBufferBuilder& fbb);
@@ -27,16 +27,34 @@ static flatbuffers::Offset<void> saveStats(
 // Save DataTable
 //------------------------------------------------------------------------------
 
+/**
+ * Save Frame in Jay format to the provided file.
+ */
 void DataTable::save_jay(const std::string& path,
-                         const std::vector<std::string>& colnames,
                          WritableBuffer::Strategy wstrategy)
 {
-  // Cannot store a view frame, so materialize first.
-  reify();
-
   size_t sizehint = (wstrategy == WritableBuffer::Strategy::Auto)
                     ? memory_footprint() : 0;
   auto wb = WritableBuffer::create_target(path, sizehint, wstrategy);
+  save_jay_impl(wb.get());
+}
+
+
+/**
+ * Save Frame in Jay format to memory,
+ */
+MemoryRange DataTable::save_jay() {
+  auto wb = std::unique_ptr<MemoryWritableBuffer>(
+                new MemoryWritableBuffer(memory_footprint()));
+  save_jay_impl(wb.get());
+  return wb->get_mbuf();
+}
+
+
+void DataTable::save_jay_impl(WritableBuffer* wb) {
+  // Cannot store a view frame, so materialize first.
+  reify();
+
   wb->write(8, "JAY1\0\0\0\0");
 
   flatbuffers::FlatBufferBuilder fbb(1024);
@@ -45,10 +63,10 @@ void DataTable::save_jay(const std::string& path,
   for (size_t i = 0; i < ncols; ++i) {
     Column* col = columns[i];
     if (col->stype() == SType::OBJ) {
-      DatatableWarning() << "Column `" << colnames[i]
+      DatatableWarning() << "Column `" << names[i]
           << "` of type obj64 was not saved";
     } else {
-      auto saved_col = column_to_jay(col, colnames[i], fbb, wb);
+      auto saved_col = column_to_jay(col, names[i], fbb, wb);
       msg_columns.push_back(saved_col);
     }
   }
@@ -82,7 +100,7 @@ void DataTable::save_jay(const std::string& path,
 
 static flatbuffers::Offset<jay::Column> column_to_jay(
     Column* col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
-    WritableBufferPtr& wb)
+    WritableBuffer* wb)
 {
   jay::Stats jsttype = jay::Stats_NONE;
   flatbuffers::Offset<void> jsto;
@@ -170,7 +188,7 @@ void init_jay() {
 
 
 static jay::Buffer saveMemoryRange(
-    const MemoryRange* mbuf, WritableBufferPtr& wb)
+    const MemoryRange* mbuf, WritableBuffer* wb)
 {
   if (!mbuf) return jay::Buffer();
   size_t len = mbuf->size();

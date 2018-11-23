@@ -88,7 +88,7 @@ class DataTable {
     void rbind(std::vector<DataTable*>, std::vector<std::vector<size_t>>);
     DataTable* cbind(std::vector<DataTable*>);
     DataTable* copy() const;
-    size_t memory_footprint();
+    size_t memory_footprint() const;
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding
@@ -118,6 +118,7 @@ class DataTable {
     size_t get_nkeys() const;
     void set_key(std::vector<size_t>& col_indices);
     void clear_key();
+    void set_nkeys_unsafe(size_t K);
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
@@ -136,10 +137,8 @@ class DataTable {
     static DataTable* load(DataTable* schema, size_t nrows,
                            const std::string& path, bool recode);
 
-    void save_jay(const std::string& path,
-                  const std::vector<std::string>& colnames,
-                  WritableBuffer::Strategy wstrategy);
-    static DataTable* open_jay(const std::string& path);
+    MemoryRange save_jay();
+    void save_jay(const std::string& path, WritableBuffer::Strategy);
 
   private:
     void _init_pynames() const;
@@ -148,12 +147,17 @@ class DataTable {
     void _integrity_check_pynames() const;
 
     DataTable* _statdt(colmakerfn f) const;
+    void save_jay_impl(WritableBuffer*);
 
     #ifdef DTTEST
       friend void dttest::cover_names_integrity_checks();
     #endif
 };
 
+
+DataTable* open_jay_from_file(const std::string& path);
+DataTable* open_jay_from_bytes(const char* ptr, size_t len);
+DataTable* open_jay_from_mbuf(const MemoryRange&);
 
 
 //==============================================================================

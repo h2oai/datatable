@@ -65,6 +65,7 @@ class Frame : public PyObject {
         static void init_methods_and_getsets(Methods&, GetSetters&);
       private:
         static void _init_names(Methods&, GetSetters&);
+        static void _init_init(Methods&, GetSetters&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -78,6 +79,8 @@ class Frame : public PyObject {
     void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
+    oobj m__getstate__(const NoArgs&);  // pickling support
+    void m__setstate__(const PKArgs&);
 
     oobj _repr_html_(const NoArgs&);
     oobj get_ncols() const;

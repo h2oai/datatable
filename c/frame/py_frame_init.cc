@@ -353,6 +353,9 @@ class FrameInitializationManager {
       } else {
         make_datatable(srcdt);
       }
+      if (srcdt->get_nkeys()) {
+        frame->dt->set_nkeys_unsafe(srcdt->get_nkeys());
+      }
     }
 
 
@@ -668,6 +671,52 @@ void Frame::m__init__(PKArgs& args) {
 
   core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
   core_dt->_frame = this;
+}
+
+
+
+//------------------------------------------------------------------------------
+// pickling / unpickling
+//------------------------------------------------------------------------------
+
+static NoArgs fn___getstate__("__getstate__", nullptr);
+static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
+                              "__setstate__", nullptr);
+
+
+// TODO: add py::obytes object
+oobj Frame::m__getstate__(const NoArgs&) {
+  MemoryRange mr = dt->save_jay();
+  auto data = static_cast<const char*>(mr.xptr());
+  auto size = static_cast<Py_ssize_t>(mr.size());
+  return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
+}
+
+void Frame::m__setstate__(const PKArgs& args) {
+  PyObject* _state = args[0].to_borrowed_ref();
+  if (!PyBytes_Check(_state)) {
+    throw TypeError() << "`__setstate__()` expects a bytes object";
+  }
+  // Clean up any previous state of the Frame (since pickle first creates an
+  // empty Frame object, and then calls __setstate__ on it).
+  m__dealloc__();
+  core_dt = nullptr;
+  stypes = nullptr;
+  ltypes = nullptr;
+
+  const char* data = PyBytes_AS_STRING(_state);
+  size_t length = static_cast<size_t>(PyBytes_GET_SIZE(_state));
+  dt = open_jay_from_bytes(data, length);
+  PyObject* _dt = pydatatable::wrap(dt);
+  if (!_dt) throw PyError();
+  core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
+  core_dt->_frame = this;
+}
+
+
+void Frame::Type::_init_init(Methods& mm, GetSetters&) {
+  mm.add<&Frame::m__getstate__, fn___getstate__>();
+  mm.add<&Frame::m__setstate__, fn___setstate__>();
 }
 
 
