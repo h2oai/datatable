@@ -87,6 +87,7 @@ const char* Frame::Type::classdoc() {
 
 void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
+  _init_init(mm, gs);
   _init_names(mm, gs);
 
   gs.add<&Frame::get_ncols>("ncols",
