@@ -234,7 +234,8 @@ class HtmlWidget {
     template <typename T>
     void render_fw_value(const Column* col, size_t row) {
       auto scol = static_cast<const FwColumn<T>*>(col);
-      T val = scol->get_elem(static_cast<int64_t>(row));
+      auto irow = scol->rowindex().nth(static_cast<int64_t>(row));
+      T val = scol->get_elem(irow);
       if (ISNA<T>(val)) render_na();
       else {
         if (val < 0) {
@@ -249,10 +250,11 @@ class HtmlWidget {
     template <typename T>
     void render_str_value(const Column* col, size_t row) {
       auto scol = static_cast<const StringColumn<T>*>(col);
+      auto irow = scol->rowindex().nth(static_cast<int64_t>(row));
       const T* offsets = scol->offsets();
       const char* strdata = scol->strdata();
-      T str0 = offsets[row - 1] & ~GETNA<T>();
-      T str1 = offsets[row];
+      T str0 = offsets[irow - 1] & ~GETNA<T>();
+      T str1 = offsets[irow];
       if (ISNA<T>(str1)) {
         render_na();
       } else {
@@ -262,7 +264,8 @@ class HtmlWidget {
 
     void render_obj_value(const Column* col, size_t row) {
       auto scol = static_cast<const PyObjectColumn*>(col);
-      PyObject* val = scol->get_elem(static_cast<int64_t>(row));
+      auto irow = scol->rowindex().nth(static_cast<int64_t>(row));
+      PyObject* val = scol->get_elem(irow);
       if (ISNA<PyObject*>(val)) render_na();
       else {
         // Should we use repr() here instead?
