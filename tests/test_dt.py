@@ -5,10 +5,12 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import pytest
+import re
 import subprocess
 import sys
 import time
 import datatable as dt
+from collections import namedtuple
 from datatable import stype, ltype, f, isna
 from tests import same_iterables, list_equals
 
@@ -1109,6 +1111,65 @@ def test_tail_bad():
     assert ("The argument in Frame.tail() should be an integer"
             in str(e.value))
 
+
+
+#-------------------------------------------------------------------------------
+# HTML repr
+#-------------------------------------------------------------------------------
+
+def parse_html_repr(html):
+    # Here `re.S` means "single-line mode", i.e. allow '.' to match any
+    # character, including the newline (by default '.' does not match '\n').
+    mm = re.search("<div class='datatable'>(.*)</div>", html, re.S)
+    html = mm.group(1).strip()
+    mm = re.match(r"<table class='frame'>(.*)</table>\s*"
+                  r"<div class='footer'>(.*)</div>", html, re.S)
+    frame = mm.group(1).strip()
+    footer = mm.group(2).strip()
+    mm = re.match(r"<div class='frame_dimensions'>"
+                  r"(\d+) rows? &times; (\d+) columns?</div>", footer, re.S)
+    shape = (int(mm.group(1).strip()), int(mm.group(2).strip()))
+    mm = re.match(r"<thead>(.*)</thead>\s*<tbody>(.*)</tbody>", frame, re.S)
+    thead = mm.group(1).strip()
+    tbody = mm.group(2).strip()
+    mm = re.match("<tr class='colnames'><td class='row_index'></td>(.*)</tr>"
+                  "\\s*"
+                  "<tr class='coltypes'><td class='row_index'></td>(.*)</tr>",
+                  thead, re.S)
+    str_colnames = mm.group(1).strip()
+    str_coltypes = mm.group(2).strip()
+    colnames = re.findall("<th>(.*?)</th>", str_colnames)
+    coltypes = re.findall("<td class='\\w+' title='(\\w+)'>", str_coltypes)
+    str_rows = re.findall("<tr>(.*?)</tr>", tbody, re.S)
+    rows = []
+    for str_row in str_rows:
+        row = re.findall("<td>(.*?)</td>", str_row, re.S)
+        rows.append(row)
+    html_repr = namedtuple("html_repr", ["names", "stypes", "shape", "data"])
+    return html_repr(names=tuple(colnames),
+                     stypes=tuple(dt.stype(s) for s in coltypes),
+                     shape=shape,
+                     data=rows)
+
+
+def test_html_repr():
+    DT = dt.Frame(A=range(5))
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == DT.names
+    assert hr.stypes == DT.stypes
+    assert hr.shape == DT.shape
+    assert hr.data == [["0"], ["1"], ["2"], ["3"], ["4"]]
+
+
+def test_html_repr_slice():
+    DT = dt.Frame(A=range(5))[::-1, :]
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == DT.names
+    assert hr.stypes == DT.stypes
+    assert hr.shape == DT.shape
+    assert hr.data == [["4"], ["3"], ["2"], ["1"], ["0"]]
 
 
 
