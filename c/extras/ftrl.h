@@ -84,6 +84,7 @@ class Ftrl {
 
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
+    size_t get_n_features();
     double get_a();
     double get_b();
     double get_l1();

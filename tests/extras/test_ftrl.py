@@ -33,7 +33,7 @@ import random
 from tests import assert_equals
 
 #-------------------------------------------------------------------------------
-# Define namedtuple of parameters
+# Define namedtuple of test parameters
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["a", "b", "l1", "l2", "d", "n_epochs",
                                            "inter"])
@@ -132,7 +132,7 @@ def test_ftrl_create_individual():
     
     
 #-------------------------------------------------------------------------------
-# Test getters, setters and reset methods for FTRL model parameters
+# Test getters, setters and reset methods for FTRL parameters
 #-------------------------------------------------------------------------------
 
 def test_ftrl_get_params_individual():
@@ -167,7 +167,7 @@ def test_ftrl_reset_params():
     
     
 #-------------------------------------------------------------------------------
-# Test getters, setters and reset methods for FTRL model itself
+# Test getters, setters and reset methods for FTRL model
 #-------------------------------------------------------------------------------
 
 def test_ftrl_model_none():
@@ -183,3 +183,72 @@ def test_ftrl_get_set_reset_model():
     assert_equals(ft.model, model)
     ft.reset()
     assert ft.model == None
+    
+    
+#-------------------------------------------------------------------------------
+# Test wrong training frame
+#-------------------------------------------------------------------------------
+
+def test_ftrl_fit_empty():
+    ft = core.Ftrl()
+    df_train = dt.Frame()
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train)
+    assert ("Cannot train a model on an empty frame" ==
+            str(e.value))
+    
+
+def test_ftrl_fit_one_column():
+    ft = core.Ftrl()
+    df_train = dt.Frame([1, 2, 3])
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train)
+    assert ("Training frame must have at least two columns" ==
+            str(e.value))
+    
+    
+def test_ftrl_fit_wrong_target_integer():
+    ft = core.Ftrl()
+    df_train = dt.Frame([[1, 2, 3], [4, 5, 6]])
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train)
+    assert ("Last column in a training frame must have a `bool` type" ==
+            str(e.value))
+    
+    
+def test_ftrl_fit_wrong_target_real():
+    ft = core.Ftrl()
+    df_train = dt.Frame([[1, 2, 3], [4.0, 5.0, 6.0]])
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train)
+    assert ("Last column in a training frame must have a `bool` type" ==
+            str(e.value))
+    
+    
+def test_ftrl_fit_wrong_target_string():
+    ft = core.Ftrl()
+    df_train = dt.Frame([[1, 2, 3], ["Monday", "Tuesday", "Friday"]])
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train)
+    assert ("Last column in a training frame must have a `bool` type" ==
+            str(e.value))
+
+   
+def test_ftrl_predict_not_trained():
+    ft = core.Ftrl()
+    df_train = dt.Frame([[1, 2, 3], [True, False, True]])
+    with pytest.raises(ValueError) as e:
+        ft.predict(df_train)
+    assert ("Cannot make any predictions, because the model was not trained" 
+            == str(e.value))
+  
+
+def test_ftrl_predict_wrong_columns():
+    ft = core.Ftrl()
+    df_train = dt.Frame([[1, 2, 3], [True, False, True]])
+    ft.fit(df_train)
+    with pytest.raises(ValueError) as e:
+        ft.predict(df_train)
+    assert ("Can only predict on a frame that has %d column(s), i.e. the same "
+            "number of features as was used for model training" 
+            % (df_train.ncols - 1) == str(e.value))

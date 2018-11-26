@@ -46,6 +46,8 @@ Ftrl::Ftrl(FtrlParams fp_in)
 
 
 void Ftrl::init_model() {
+  n_features = 0;
+  n_inter_features = 0;
   model_trained = false;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
@@ -375,6 +377,11 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 *  Other getters and setters.
 *  Here we assume that all the validation is done in `py_ftrl.cc`.
 */
+size_t Ftrl::get_n_features() {
+  return n_features;
+}
+
+
 double Ftrl::get_a() {
   return fp.a;
 }

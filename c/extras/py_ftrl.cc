@@ -183,7 +183,9 @@ Train an FTRL model on a dataset.
 Parameters
 ----------
 frame: Frame
-    Frame to be trained on, last column is treated as `target`.
+    Frame to be trained on. All but the last column are used as 
+    a model input. The last column must have a `bool` type, 
+    and is treated as a `target`.
 
 Returns
 ----------
@@ -193,6 +195,15 @@ Returns
 
 void PyFtrl::fit(const PKArgs& args) {
   DataTable* dt_train = args[0].to_frame();
+  if (dt_train->nrows == 0) {
+    throw ValueError() << "Cannot train a model on an empty frame";
+  }
+  if (dt_train->ncols < 2) {
+    throw ValueError() << "Training frame must have at least two columns";
+  }
+  if (dt_train->columns[dt_train->ncols - 1]->stype() != SType::BOOL ) {
+    throw ValueError() << "Last column in a training frame must have a `bool` type";
+  }
   ft->fit(dt_train);
 }
 
@@ -216,14 +227,21 @@ Returns
 
 
 oobj PyFtrl::predict(const PKArgs& args) {
-  if (ft->is_trained()) {
-    DataTable* dt_test = args[0].to_frame();
-    DataTable* dt_target = ft->predict(dt_test).release();
-    py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
-    return df_target;
-  } else {
+  DataTable* dt_test = args[0].to_frame();
+  if (!ft->is_trained()) {
     throw ValueError() << "Cannot make any predictions, because the model was not trained";
   }
+
+  size_t n_features = ft->get_n_features();
+  if (dt_test->ncols != n_features) {
+    throw ValueError() << "Can only predict on a frame that has "<< n_features
+                       << " column(s), i.e. the same number of features as was "
+                       << "used for model training";
+  }
+
+  DataTable* dt_target = ft->predict(dt_test).release();
+  py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
+  return df_target;
 }
 
 
