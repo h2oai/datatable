@@ -1,20 +1,35 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "rowindex.h"
 #include <cstring>     // std::memcpy
+#include "rowindex.h"
+#include "rowindex_impl.h"
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/parallel.h"
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
 // Construction
-//==============================================================================
+//------------------------------------------------------------------------------
 
 RowIndex::RowIndex() : impl(nullptr) {}
 
@@ -83,9 +98,40 @@ RowIndex RowIndex::from_column(Column* col) {
 
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
 // API
-//==============================================================================
+//------------------------------------------------------------------------------
+
+RowIndexType RowIndex::type() const {
+  return impl? impl->type : RowIndexType::UNKNOWN;
+}
+bool RowIndex::isabsent() const { return impl == nullptr; }
+bool RowIndex::isslice() const { return impl && impl->type == RowIndexType::SLICE; }
+bool RowIndex::isarr32() const { return impl && impl->type == RowIndexType::ARR32; }
+bool RowIndex::isarr64() const { return impl && impl->type == RowIndexType::ARR64; }
+bool RowIndex::isarray() const { return isarr32() || isarr64(); }
+const void* RowIndex::ptr() const { return static_cast<const void*>(impl); }
+
+size_t RowIndex::length() const { return impl? static_cast<size_t>(impl->length) : 0; }
+int64_t RowIndex::min() const { return impl? impl->min : 0; }
+int64_t RowIndex::max() const { return impl? impl->max : 0; }
+int64_t RowIndex::nth(int64_t i) const { return impl? impl->nth(i) : i; }
+
+const int32_t* RowIndex::indices32() const {
+  return static_cast<ArrayRowIndexImpl*>(impl)->indices32();
+}
+const int64_t* RowIndex::indices64() const {
+  return static_cast<ArrayRowIndexImpl*>(impl)->indices64();
+}
+
+int64_t RowIndex::slice_start() const {
+  return slice_rowindex_get_start(impl);
+}
+int64_t RowIndex::slice_step() const {
+  return slice_rowindex_get_step(impl);
+}
+
+
 
 void RowIndex::clear() {
   if (impl) impl->release();
@@ -111,11 +157,11 @@ void RowIndex::extract_into(arr32_t& target) const
   size_t szlen = length();
   xassert(target.size() >= szlen);
   switch (impl->type) {
-    case RI_ARR32: {
+    case RowIndexType::ARR32: {
       std::memcpy(target.data(), indices32(), szlen * sizeof(int32_t));
       break;
     }
-    case RI_SLICE: {
+    case RowIndexType::SLICE: {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
         int32_t start = static_cast<int32_t>(slice_start());
         int32_t step = static_cast<int32_t>(slice_step());

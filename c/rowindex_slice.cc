@@ -5,10 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "rowindex.h"
 #include <algorithm>           // std::swap, std::move
+#include "rowindex.h"
+#include "rowindex_impl.h"
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
+
+
 
 
 /**
@@ -22,8 +25,17 @@ bool check_slice_triple(int64_t start, int64_t count, int64_t step, int64_t max)
   // must therefore use a safer version.
   return (start >= 0) &&
          (count >= 0) &&
+         (step  != 0) &&
          (count <= 1 || step >= -start/(count - 1)) &&
          (count <= 1 || step <= (max - start)/(count - 1));
+}
+
+static void _check_triple(int64_t start, int64_t count, int64_t step)
+{
+  if (!check_slice_triple(start, count, step, INT64_MAX)) {
+    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
+                       << count << "/" << step << "]";
+  }
 }
 
 
@@ -33,8 +45,8 @@ bool check_slice_triple(int64_t start, int64_t count, int64_t step, int64_t max)
 //------------------------------------------------------------------------------
 
 SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
-  SliceRowIndexImpl::check_triple(i0, n, di);
-  type = RowIndexType::RI_SLICE;
+  _check_triple(i0, n, di);
+  type = RowIndexType::SLICE;
   start = i0;
   length = static_cast<size_t>(n);
   step = di;
@@ -49,20 +61,6 @@ SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
 
 
 
-/**
- * Helper function to verify that
- *     0 <= start, count, start + (count-1)*step <= INT64_MAX
- *
- * If one of these conditions fails, throws an exception, otherwise does
- * nothing.
- */
-void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
-{
-  if (!check_slice_triple(start, count, step, INT64_MAX)) {
-    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
-                       << count << "/" << step << "]";
-  }
-}
 
 
 int64_t SliceRowIndexImpl::nth(int64_t i) const {
@@ -76,7 +74,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   int64_t ilen = static_cast<int64_t>(length);
 
   // Product of 2 slices is again a slice.
-  if (uptype == RI_SLICE) {
+  if (uptype == RowIndexType::SLICE) {
     SliceRowIndexImpl* uprii = static_cast<SliceRowIndexImpl*>(rii);
     int64_t start_new = uprii->start + uprii->step * start;
     int64_t step_new = uprii->step * step;
@@ -89,15 +87,15 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   if (step == 0) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
     int64_t start_new =
-      (uptype == RI_ARR32)? static_cast<int64_t>(arii->indices32()[start]) :
-      (uptype == RI_ARR64)? arii->indices64()[start] : -1;
+      (uptype == RowIndexType::ARR32)? static_cast<int64_t>(arii->indices32()[start]) :
+      (uptype == RowIndexType::ARR64)? arii->indices64()[start] : -1;
     return new SliceRowIndexImpl(start_new, ilen, 0);
   }
 
   // if C->B is ARR32, then all row indices in C are int32, and thus any
   // valid slice over B will also be ARR32 (except possibly a slice with
   // step = 0 and n > INT32_MAX, which case we handled above).
-  if (uptype == RI_ARR32) {
+  if (uptype == RowIndexType::ARR32) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
     arr32_t res(length);
     const int32_t* srcrows = arii->indices32();
@@ -109,7 +107,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     return new ArrayRowIndexImpl(std::move(res), false);
   }
 
-  if (uptype == RI_ARR64) {
+  if (uptype == RowIndexType::ARR64) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
     arr64_t res(length);
     const int64_t* srcrows = arii->indices64();
@@ -121,7 +119,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     return new ArrayRowIndexImpl(std::move(res), false);
   }
 
-  throw RuntimeError() << "Unknown RowIndexType " << uptype;
+  throw RuntimeError() << "Unknown RowIndexType " << static_cast<int>(uptype);
 }
 
 
@@ -218,12 +216,13 @@ size_t SliceRowIndexImpl::memory_footprint() const {
 void SliceRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
-  if (type != RowIndexType::RI_SLICE) {
-    throw AssertionError() << "Invalid type = " << type << " in a SliceRowIndex";
+  if (type != RowIndexType::SLICE) {
+    throw AssertionError() << "Invalid type = " << static_cast<int>(type)
+        << " in a SliceRowIndex";
   }
 
   try {
-    check_triple(start, static_cast<int64_t>(length), step);
+    _check_triple(start, static_cast<int64_t>(length), step);
   } catch (const Error&) {
     throw AssertionError()
         << "Invalid slice rowindex: " << start << "/" << length << "/" << step;
@@ -239,4 +238,14 @@ void SliceRowIndexImpl::verify_integrity() const {
           << length << "/" << step << ": min = " << min << ", max = " << max;
     }
   }
+}
+
+
+int64_t slice_rowindex_get_start(const RowIndexImpl* impl) {
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->start;
+}
+int64_t slice_rowindex_get_step(const RowIndexImpl* impl) {
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->step;
 }

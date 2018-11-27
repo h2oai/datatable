@@ -212,7 +212,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
     ri_members.extract_into(temp);
     ri_members_indices = temp.data();
   } else if (ri_members.isarr64()){
-    throw ValueError() << "RI_ARR64 is not supported for the moment";
+    throw ValueError() << "RowIndexType::ARR64 is not supported for the moment";
   }
 
   // Setting up a table for counts
