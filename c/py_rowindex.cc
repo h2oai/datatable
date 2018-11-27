@@ -10,6 +10,8 @@
 #include "py_datatable.h"
 #include "py_column.h"
 #include "py_utils.h"
+#include "python/int.h"
+#include "python/list.h"
 #include "python/obj.h"
 
 namespace pyrowindex
@@ -206,31 +208,29 @@ static PyObject* repr(obj* self)
 PyObject* tolist(obj* self, PyObject*)
 {
   RowIndex& ri = *(self->ref);
-  int64_t n = static_cast<int64_t>(ri.length());
+  size_t n = ri.length();
 
-  PyObject* list = PyList_New(n);
-  if (!list) return nullptr;
+  py::olist list(n);
   if (ri.isarr32()) {
-    int32_t n32 = static_cast<int32_t>(n);
     const int32_t* a = ri.indices32();
-    for (int32_t i = 0; i < n32; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
+    for (size_t i = 0; i < n; ++i) {
+      list.set(i, py::oint(a[i]));
     }
   }
   if (ri.isarr64()) {
     const int64_t* a = ri.indices64();
-    for (int64_t i = 0; i < n; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
+    for (size_t i = 0; i < n; ++i) {
+      list.set(i, py::oint(a[i]));
     }
   }
   if (ri.isslice()) {
-    int64_t start = ri.slice_start();
-    int64_t step = ri.slice_step();
-    for (int64_t i = 0; i < n; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(start + i*step));
+    size_t start = ri.slice_start();
+    size_t step = ri.slice_step();
+    for (size_t i = 0; i < n; ++i) {
+      list.set(i, py::oint(start + i*step));
     }
   }
-  return list;
+  return std::move(list).release();
 }
 
 

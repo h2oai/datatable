@@ -78,7 +78,7 @@ oobj Frame::_fast_getset(robj item, robj value) {
           }
         }
         Column* col = dt->columns[static_cast<size_t>(icol)];
-        return col->get_value_at_index(irow);
+        return col->get_value_at_index(static_cast<size_t>(irow));
       }
     }
   }

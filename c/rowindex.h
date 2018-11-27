@@ -49,6 +49,8 @@ class RowIndex {
     RowIndexImpl* impl;  // Shared reference semantics
 
   public:
+    static constexpr size_t NA = size_t(-1);
+
     RowIndex();
     RowIndex(const RowIndex&);
     RowIndex(RowIndex&&);
@@ -129,11 +131,11 @@ class RowIndex {
     size_t length() const;
     int64_t min() const;
     int64_t max() const;
-    int64_t nth(int64_t i) const;
+    size_t nth(size_t i) const;
     const int32_t* indices32() const;
     const int64_t* indices64() const;
-    int64_t slice_start() const;
-    int64_t slice_step() const;
+    size_t slice_start() const;
+    size_t slice_step() const;
 
     void extract_into(arr32_t&) const;
     RowIndex inverse(size_t nrows) const;
@@ -166,9 +168,9 @@ class RowIndex {
      * Template function that facilitates looping through a RowIndex.
      */
     template<typename F> void strided_loop(
-        int64_t istart, int64_t iend, int64_t istep, F f) const;
+        size_t istart, size_t iend, size_t istep, F f) const;
     template<typename F> void strided_loop2(
-        int64_t istart, int64_t iend, int64_t istep, F f) const;
+        size_t istart, size_t iend, size_t istep, F f) const;
 
     void verify_integrity() const;
 
@@ -183,36 +185,37 @@ class RowIndex {
 
 template<typename F>
 void RowIndex::strided_loop(
-    int64_t istart, int64_t iend, int64_t istep, F f) const
+    size_t istart, size_t iend, size_t istep, F f) const
 {
   switch (type()) {
     case RowIndexType::UNKNOWN: {
-      for (int64_t i = istart; i < iend; i += istep) {
+      for (size_t i = istart; i < iend; i += istep) {
         f(i);
       }
       break;
     }
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
-      for (int64_t i = istart; i < iend; i += istep) {
+      for (size_t i = istart; i < iend; i += istep) {
         int32_t j = ridata[i];
-        f(ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
+        f(ISNA<int32_t>(j)? RowIndex::NA : static_cast<size_t>(j));
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(ridata[i]);
+      for (size_t i = istart; i < iend; i += istep) {
+        int64_t j = ridata[i];
+        f(ISNA<int64_t>(j)? RowIndex::NA : static_cast<size_t>(j));
       }
       break;
     }
     case RowIndexType::SLICE: {
       // Careful with negative slice steps (in which case j goes down,
       // and therefore we cannot iterate until `j < jend`).
-      int64_t jstep = slice_step() * istep;
-      int64_t j = slice_start() + istart * slice_step();
-      for (int64_t i = istart; i < iend; i += istep) {
+      size_t jstep = slice_step() * istep;
+      size_t j = slice_start() + istart * slice_step();
+      for (size_t i = istart; i < iend; i += istep) {
         f(j);
         j += jstep;
       }
@@ -224,36 +227,37 @@ void RowIndex::strided_loop(
 
 template<typename F>
 void RowIndex::strided_loop2(
-    int64_t istart, int64_t iend, int64_t istep, F f) const
+    size_t istart, size_t iend, size_t istep, F f) const
 {
   switch (type()) {
     case RowIndexType::UNKNOWN: {
-      for (int64_t i = istart; i < iend; i += istep) {
+      for (size_t i = istart; i < iend; i += istep) {
         f(i, i);
       }
       break;
     }
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
-      for (int64_t i = istart; i < iend; i += istep) {
+      for (size_t i = istart; i < iend; i += istep) {
         int32_t j = ridata[i];
-        f(i, ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
+        f(i, ISNA(j)? RowIndex::NA : static_cast<size_t>(j));
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(i, ridata[i]);
+      for (size_t i = istart; i < iend; i += istep) {
+        int64_t j = ridata[i];
+        f(i, ISNA(j)? RowIndex::NA : static_cast<size_t>(j));
       }
       break;
     }
     case RowIndexType::SLICE: {
       // Careful with negative slice steps (in which case j goes down,
       // and therefore we cannot iterate until `j < jend`).
-      int64_t jstep = slice_step() * istep;
-      int64_t j = slice_start() + istart * slice_step();
-      for (int64_t i = istart; i < iend; i += istep) {
+      size_t jstep = slice_step() * istep;
+      size_t j = slice_start() + istart * slice_step();
+      for (size_t i = istart; i < iend; i += istep) {
         f(i, j);
         j += jstep;
       }

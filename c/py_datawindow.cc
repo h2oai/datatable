@@ -81,8 +81,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   int rindex_is_slice = rindex.isslice();
   const int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : nullptr;
   const int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : nullptr;
-  int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
-  int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
+  size_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
+  size_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
   stypes = PyList_New(static_cast<int64_t>(ncols));
   ltypes = PyList_New(static_cast<int64_t>(ncols));
@@ -102,13 +102,13 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
     for (size_t j = row0; j < row1; ++j) {
       // Note: `irow` could be NA, indicating that the value does not
       // exist and therefore should be treated as NA.
-      int64_t irow = no_rindex? static_cast<int64_t>(j) :
-               rindex_is_arr32? rindexarr32[j] :
-               rindex_is_arr64? rindexarr64[j] :
-                      rindexstart + rindexstep * static_cast<int64_t>(j);
+      size_t irow = no_rindex?  j :
+               rindex_is_arr32? static_cast<size_t>(rindexarr32[j]) :
+               rindex_is_arr64? static_cast<size_t>(rindexarr64[j]) :
+                                rindexstart + rindexstep * j;
       int itype = static_cast<int>(col->stype());
-      PyObject *value = irow >= 0? py_stype_formatters[itype](col, irow)
-                                 : py::None().release();
+      PyObject* value = irow == RowIndex::NA? py::None().release()
+                                 : py_stype_formatters[itype](col, irow);
       if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }

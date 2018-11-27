@@ -173,9 +173,9 @@ void FwColumn<T>::reify() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
-      [&](int64_t i) {
-        *data_dest++ = ISNA(i)? GETNA<T>() : data_src[i];
+    ri.strided_loop(0, nrows, 1,
+      [&](size_t i) {
+        *data_dest++ = (i == RowIndex::NA)? GETNA<T>() : data_src[i];
       });
   }
 
@@ -305,14 +305,16 @@ void FwColumn<T>::replace_values(
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
     T value = *data_src;
-    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
-      [&](int64_t i) {
+    replace_at.strided_loop(0, replace_n, 1,
+      [&](size_t i) {
+        xassert(i != RowIndex::NA);
         data_dest[i] = value;
       });
   } else {
     xassert(replace_with->nrows == replace_n);
-    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
-      [&](int64_t i) {
+    replace_at.strided_loop(0, replace_n, 1,
+      [&](size_t i) {
+        xassert(i != RowIndex::NA);
         data_dest[i] = *data_src;
         ++data_src;
       });
@@ -347,8 +349,9 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
   const T* search_data = kcol->elements_r();
   int32_t search_n = static_cast<int32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, static_cast<int64_t>(nrows), 1,
-    [&](int64_t i, int64_t j) {
+  ri.strided_loop2(0, nrows, 1,
+    [&](size_t i, size_t j) {
+      if (j == RowIndex::NA) return;
       T value = src_data[j];
       trg_indices[i] = binsearch<T>(search_data, search_n, value);
     });

@@ -434,4 +434,4 @@ void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
-py::oobj VoidColumn::get_value_at_index(int64_t) const { return py::oobj(); }
+py::oobj VoidColumn::get_value_at_index(size_t) const { return py::oobj(); }

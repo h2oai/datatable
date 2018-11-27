@@ -63,8 +63,8 @@ SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
 
 
 
-int64_t SliceRowIndexImpl::nth(int64_t i) const {
-  return start + i * step;
+size_t SliceRowIndexImpl::nth(size_t i) const {
+  return static_cast<size_t>(start) + i * static_cast<size_t>(step);
 }
 
 
@@ -241,11 +241,16 @@ void SliceRowIndexImpl::verify_integrity() const {
 }
 
 
-int64_t slice_rowindex_get_start(const RowIndexImpl* impl) {
+size_t slice_rowindex_get_start(const RowIndexImpl* impl) {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl->start;
+  return static_cast<size_t>(simpl->start);
 }
-int64_t slice_rowindex_get_step(const RowIndexImpl* impl) {
+size_t slice_rowindex_get_step(const RowIndexImpl* impl) {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl->step;
+  return static_cast<size_t>(simpl->step);
+}
+
+bool slice_rowindex_increasing(const RowIndexImpl* impl) {
+  constexpr size_t MAX_STEP = static_cast<size_t>(-1) >> 1;
+  return slice_rowindex_get_step(impl) < MAX_STEP;
 }

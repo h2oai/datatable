@@ -261,10 +261,10 @@ void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
     RowIndex ri_exemplars = dt->sortby({0}, nullptr);
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
-    ri_exemplars.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
-    [&](int64_t i, int64_t j) {
-      d_members[j] = static_cast<int32_t>(i);
-    });
+    ri_exemplars.strided_loop2(0, dt->nrows, 1,
+      [&](size_t i, size_t j) {
+        d_members[j] = static_cast<int32_t>(i);
+      });
   }
 }
 

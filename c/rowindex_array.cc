@@ -307,8 +307,8 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
     type = RowIndexType::ARR32;
     ind32.resize(length);
     size_t k = 0;
-    col->rowindex().strided_loop(0, static_cast<int64_t>(col->nrows), 1,
-      [&](int64_t i) {
+    col->rowindex().strided_loop(0, col->nrows, 1,
+      [&](size_t i) {
         if (data[i] == 1)
           ind32[k++] = static_cast<int32_t>(i);
       });
@@ -318,10 +318,10 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
     type = RowIndexType::ARR64;
     ind64.resize(length);
     size_t k = 0;
-    col->rowindex().strided_loop(0, static_cast<int64_t>(col->nrows), 1,
-      [&](int64_t i) {
+    col->rowindex().strided_loop(0, col->nrows, 1,
+      [&](size_t i) {
         if (data[i] == 1)
-          ind64[k++] = i;
+          ind64[k++] = static_cast<int64_t>(i);
       });
     is_sorted = true;
     set_min_max(ind64);
@@ -370,19 +370,21 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   RowIndexType uptype = rii->type;
   size_t zlen = static_cast<size_t>(length);
   if (uptype == RowIndexType::SLICE) {
-    int64_t start = slice_rowindex_get_start(rii);
-    int64_t step  = slice_rowindex_get_step(rii);
+    size_t start = slice_rowindex_get_start(rii);
+    size_t step  = slice_rowindex_get_step(rii);
     arr64_t rowsres(zlen);
     if (type == RowIndexType::ARR32) {
       for (size_t i = 0; i < zlen; ++i) {
-        rowsres[i] = start + static_cast<int64_t>(ind32[i]) * step;
+        size_t j = start + static_cast<size_t>(ind32[i]) * step;
+        rowsres[i] = static_cast<int64_t>(j);
       }
     } else {
       for (size_t i = 0; i < zlen; ++i) {
-        rowsres[i] = start + ind64[i] * step;
+        size_t j = start + static_cast<size_t>(ind32[i]) * step;
+        rowsres[i] = static_cast<int64_t>(j);
       }
     }
-    bool res_sorted = is_sorted && step >= 0;
+    bool res_sorted = is_sorted && slice_rowindex_increasing(rii);
     auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
     res->compactify();
     return res;
@@ -521,9 +523,8 @@ RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
 }
 
 
-int64_t ArrayRowIndexImpl::nth(int64_t i) const {
-  size_t zi = static_cast<size_t>(i);
-  return (type == RowIndexType::ARR32)? ind32[zi] : ind64[zi];
+size_t ArrayRowIndexImpl::nth(size_t i) const {
+  return static_cast<size_t>(type == RowIndexType::ARR32? ind32[i] : ind64[i]);
 }
 
 

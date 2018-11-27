@@ -40,12 +40,12 @@ class RowIndexImpl {
 
     RowIndexImpl()
       : type(RowIndexType::UNKNOWN),
-        refcount(1),
+        refcount(0),
         length(0), min(0), max(0) {}
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
 
-    virtual int64_t nth(int64_t i) const = 0;
+    virtual size_t nth(size_t i) const = 0;
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(size_t nrows) const = 0;
     virtual void shrink(size_t n) = 0;
@@ -71,7 +71,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
   public:
     SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
 
-    int64_t nth(int64_t i) const override;
+    size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
@@ -81,13 +81,14 @@ class SliceRowIndexImpl : public RowIndexImpl {
 
   protected:
     friend RowIndex;
-    friend int64_t slice_rowindex_get_start(const RowIndexImpl*);
-    friend int64_t slice_rowindex_get_step(const RowIndexImpl*);
+    friend size_t slice_rowindex_get_start(const RowIndexImpl*);
+    friend size_t slice_rowindex_get_step(const RowIndexImpl*);
 };
 
 
-int64_t slice_rowindex_get_start(const RowIndexImpl*);
-int64_t slice_rowindex_get_step(const RowIndexImpl*);
+size_t slice_rowindex_get_start(const RowIndexImpl*);
+size_t slice_rowindex_get_step(const RowIndexImpl*);
+bool slice_rowindex_increasing(const RowIndexImpl*);
 
 
 
@@ -111,7 +112,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(filterfn64* f, int64_t n, bool sorted);
     ArrayRowIndexImpl(Column*);
 
-    int64_t nth(int64_t i) const override;
+    size_t nth(size_t i) const override;
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;

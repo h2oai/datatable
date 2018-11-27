@@ -1211,11 +1211,11 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   }
 
   if (nrows <= 1) {
-    int64_t i = col0->rowindex().nth(0);
+    size_t i = col0->rowindex().nth(0);
     if (out_grps) {
       *out_grps = Groupby::single_group(col0->nrows);
     }
-    return RowIndex::from_slice(i, static_cast<int64_t>(col0->nrows), 1);
+    return RowIndex::from_slice(i, col0->nrows, 1);
   }
   SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));

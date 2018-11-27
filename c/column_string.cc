@@ -163,8 +163,8 @@ SType StringColumn<T>::stype() const {
 }
 
 template <typename T>
-py::oobj StringColumn<T>::get_value_at_index(int64_t i) const {
-  int64_t j = (this->ri).nth(i);
+py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
+  size_t j = (this->ri).nth(i);
   const T* offs = this->offsets();
   T off_end = offs[j];
   if (ISNA<T>(off_end)) return py::None();
@@ -254,8 +254,8 @@ void StringColumn<T>::reify() {
     if (!strbuf.is_writable())
       new_strbuf = MemoryRange::mem(strbuf.size()); // We don't know the actual size yet
                                                     // but it can't be larger than this
-    int64_t step = ri.slice_step();
-    int64_t start = ri.slice_start();
+    size_t step = ri.slice_step();
+    size_t start = ri.slice_start();
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     const char* str_src = strdata();
@@ -263,7 +263,7 @@ void StringColumn<T>::reify() {
     // We know that the resulting strbuf/mbuf size will be smaller, so no need to
     // worry about resizing beforehand
     T prev_off = 0;
-    int64_t j = start;
+    size_t j = start;
     for (size_t i = 0; i < nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
         offs_dest[i] = prev_off | GETNA<T>();
@@ -286,8 +286,8 @@ void StringColumn<T>::reify() {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
-      [&](int64_t i) {
+    ri.strided_loop(0, nrows, 1,
+      [&](size_t i) {
         strs_size += offs1[i] - offs0[i];
       });
     strs_size &= ~GETNA<T>();
@@ -296,9 +296,9 @@ void StringColumn<T>::reify() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
-      [&](int64_t i) {
-        if (ISNA(i) || ISNA<T>(offs1[i])) {
+    ri.strided_loop(0, nrows, 1,
+      [&](size_t i) {
+        if (i == RowIndex::NA || ISNA<T>(offs1[i])) {
           *offs_dest++ = prev_off | GETNA<T>();
         } else {
           T off0 = offs0[i] & ~GETNA<T>();
@@ -576,8 +576,9 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
   const uint8_t* key_strdata = kcol->ustrdata();
   uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, static_cast<int64_t>(nrows), 1,
-    [&](int64_t i, int64_t j) {
+  ri.strided_loop2(0, nrows, 1,
+    [&](size_t i, size_t j) {
+      if (j == RowIndex::NA) return;
       T ostart = src_offsets[j - 1];
       T oend = src_offsets[j];
       trg_indices[i] = binsearch<T>(key_strdata, key_offsets, key_n,

@@ -35,7 +35,7 @@ namespace py {
 class converter {
   public:
     virtual ~converter();
-    virtual oobj to_oobj(int64_t row) const = 0;
+    virtual oobj to_oobj(size_t row) const = 0;
 };
 using convptr = std::unique_ptr<converter>;
 
@@ -48,14 +48,14 @@ class bool8_converter : public converter {
     const int8_t* values;
   public:
     bool8_converter(const Column*);
-    oobj to_oobj(int64_t row) const override;
+    oobj to_oobj(size_t row) const override;
 };
 
 bool8_converter::bool8_converter(const Column* col) {
   values = dynamic_cast<const BoolColumn*>(col)->elements_r();
 }
 
-oobj bool8_converter::to_oobj(int64_t row) const {
+oobj bool8_converter::to_oobj(size_t row) const {
   int8_t x = values[row];
   return x == 0? py::False() : x == 1? py::True() : py::None();
 }
@@ -68,7 +68,7 @@ class int_converter : public converter {
     const T* values;
   public:
     int_converter(const Column*);
-    oobj to_oobj(int64_t row) const override;
+    oobj to_oobj(size_t row) const override;
 };
 
 template <typename T>
@@ -77,7 +77,7 @@ int_converter<T>::int_converter(const Column* col) {
 }
 
 template <typename T>
-oobj int_converter<T>::to_oobj(int64_t row) const {
+oobj int_converter<T>::to_oobj(size_t row) const {
   T x = values[row];
   return ISNA<T>(x)? py::None() : oint(x);
 }
@@ -90,7 +90,7 @@ class float_converter : public converter {
     const T* values;
   public:
     float_converter(const Column*);
-    oobj to_oobj(int64_t row) const override;
+    oobj to_oobj(size_t row) const override;
 };
 
 template <typename T>
@@ -99,7 +99,7 @@ float_converter<T>::float_converter(const Column* col) {
 }
 
 template <typename T>
-oobj float_converter<T>::to_oobj(int64_t row) const {
+oobj float_converter<T>::to_oobj(size_t row) const {
   T x = values[row];
   return ISNA<T>(x)? py::None() : ofloat(x);
 }
@@ -113,7 +113,7 @@ class string_converter : public converter {
     const T* offsets;
   public:
     string_converter(const Column*);
-    oobj to_oobj(int64_t row) const override;
+    oobj to_oobj(size_t row) const override;
 };
 
 template <typename T>
@@ -124,7 +124,7 @@ string_converter<T>::string_converter(const Column* col) {
 }
 
 template <typename T>
-oobj string_converter<T>::to_oobj(int64_t row) const {
+oobj string_converter<T>::to_oobj(size_t row) const {
   T end = offsets[row];
   if (ISNA<T>(end)) return py::None();
   T start = offsets[row - 1] & ~GETNA<T>();
@@ -138,14 +138,14 @@ class pyobj_converter : public converter {
     const PyObject* const* values;
   public:
     pyobj_converter(const Column*);
-    oobj to_oobj(int64_t row) const override;
+    oobj to_oobj(size_t row) const override;
 };
 
 pyobj_converter::pyobj_converter(const Column* col) {
   values = dynamic_cast<const PyObjectColumn*>(col)->elements_r();
 }
 
-oobj pyobj_converter::to_oobj(int64_t row) const {
+oobj pyobj_converter::to_oobj(size_t row) const {
   return oobj(values[row]);
 }
 
@@ -201,10 +201,10 @@ oobj Frame::to_tuples(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
-      [&](int64_t i, int64_t ii) {
-        oobj x = ii >= 0? conv->to_oobj(ii) : py::None();
-        list_of_tuples[static_cast<size_t>(i)].set(j, std::move(x));
+    ri.strided_loop2(0, dt->nrows, 1,
+      [&](size_t i, size_t ii) {
+        oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
+        list_of_tuples[i].set(j, std::move(x));
       });
   }
   py::olist res(dt->nrows);
@@ -239,9 +239,9 @@ oobj Frame::to_list(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
-      [&](int64_t i, int64_t ii) {
-        oobj x = ii >= 0? conv->to_oobj(ii) : py::None();
+    ri.strided_loop2(0, dt->nrows, 1,
+      [&](size_t i, size_t ii) {
+        oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
         pycol.set(i, std::move(x));
       });
     res.set(j, std::move(pycol));
@@ -275,9 +275,9 @@ oobj Frame::to_dict(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
-      [&](int64_t i, int64_t ii) {
-        oobj x = ii >= 0? conv->to_oobj(ii) : py::None();
+    ri.strided_loop2(0, dt->nrows, 1,
+      [&](size_t i, size_t ii) {
+        oobj x = (ii == RowIndex::NA)? py::None() : conv->to_oobj(ii);
         pycol.set(i, std::move(x));
       });
     res.set(names[j], pycol);

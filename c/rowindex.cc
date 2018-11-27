@@ -33,8 +33,6 @@
 
 RowIndex::RowIndex() : impl(nullptr) {}
 
-RowIndex::RowIndex(RowIndexImpl* rii) : impl(rii) {}
-
 // copy-constructor, performs shallow copying
 RowIndex::RowIndex(const RowIndex& other) {
   impl = other.impl;
@@ -57,6 +55,13 @@ RowIndex::RowIndex(RowIndex&& other) {
 
 RowIndex::~RowIndex() {
   if (impl) impl->release();
+}
+
+
+// Private constructor
+RowIndex::RowIndex(RowIndexImpl* rii) {
+  impl = rii;
+  if (impl) impl->acquire();
 }
 
 
@@ -115,7 +120,7 @@ const void* RowIndex::ptr() const { return static_cast<const void*>(impl); }
 size_t RowIndex::length() const { return impl? static_cast<size_t>(impl->length) : 0; }
 int64_t RowIndex::min() const { return impl? impl->min : 0; }
 int64_t RowIndex::max() const { return impl? impl->max : 0; }
-int64_t RowIndex::nth(int64_t i) const { return impl? impl->nth(i) : i; }
+size_t RowIndex::nth(size_t i) const { return impl? impl->nth(i) : i; }
 
 const int32_t* RowIndex::indices32() const {
   return static_cast<ArrayRowIndexImpl*>(impl)->indices32();
@@ -124,10 +129,10 @@ const int64_t* RowIndex::indices64() const {
   return static_cast<ArrayRowIndexImpl*>(impl)->indices64();
 }
 
-int64_t RowIndex::slice_start() const {
+size_t RowIndex::slice_start() const {
   return slice_rowindex_get_start(impl);
 }
-int64_t RowIndex::slice_step() const {
+size_t RowIndex::slice_step() const {
   return slice_rowindex_get_step(impl);
 }
 
