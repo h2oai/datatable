@@ -304,7 +304,10 @@ static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags) {
     // Do not provide a writable array (this may violate all kinds of internal
     // assumptions about the data). Instead let the requester ask again, this
     // time for a read-only buffer.
-    throw ValueError() << "Cannot create a writable buffer for a Column";
+    // Do not use a C++ exception here, as it may create deadlocks on rare
+    // occasions.
+    PyErr_SetString(PyExc_ValueError, "Cannot create a writable buffer");
+    return -1;
   }
   if (info(col->stype()).is_varwidth()) {
     throw ValueError() << "Column's data has variable width";
