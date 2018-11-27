@@ -27,7 +27,11 @@ DataTable* open_jay_from_file(const std::string& path) {
 }
 
 DataTable* open_jay_from_bytes(const char* ptr, size_t len) {
-  MemoryRange mbuf = MemoryRange::external(ptr, len);
+  // The buffer's lifetime is tied to the lifetime of the bytes object, which
+  // could be very short. This is why we have to copy the buffer (even storing
+  // a reference will be insufficient: what if the bytes object gets modified?)
+  MemoryRange mbuf = MemoryRange::mem(len);
+  std::memcpy(mbuf.xptr(), ptr, len);
   return open_jay_from_mbuf(mbuf);
 }
 
