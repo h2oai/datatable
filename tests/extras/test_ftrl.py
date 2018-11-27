@@ -35,10 +35,10 @@ from tests import assert_equals
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters
 #-------------------------------------------------------------------------------
-Params = collections.namedtuple("Params",["a", "b", "l1", "l2", "d", "n_epochs",
-                                           "inter"])
+Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
+                                          "d", "n_epochs", "inter"])
 
-fp = Params(a = 1, b = 2, l1 = 3, l2 = 4, d = 5, n_epochs = 6, 
+fp = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5, n_epochs = 6, 
                 inter = True)
 
 
@@ -46,30 +46,30 @@ fp = Params(a = 1, b = 2, l1 = 3, l2 = 4, d = 5, n_epochs = 6,
 # Test wrong parameter types, names and combination in constructor
 #-------------------------------------------------------------------------------
    
-def test_ftrl_wrong_a():
+def test_ftrl_wrong_alpha():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(a = "1.0")
+        ft = core.Ftrl(alpha = "1.0")
     assert ("Expected a float, instead got <class 'str'>" ==
             str(e.value))
     
     
-def test_ftrl_wrong_b():
+def test_ftrl_wrong_beta():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(b = "1.0")
+        ft = core.Ftrl(beta = "1.0")
     assert ("Expected a float, instead got <class 'str'>" ==
             str(e.value))
     
     
-def test_ftrl_wrong_l1():
+def test_ftrl_wrong_lambda1():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(l1 = "1.0")
+        ft = core.Ftrl(lambda1 = "1.0")
     assert ("Expected a float, instead got <class 'str'>" ==
             str(e.value))
     
     
-def test_ftrl_wrong_l2():
+def test_ftrl_wrong_lambda2():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(l2 = "1.0")
+        ft = core.Ftrl(lambda2 = "1.0")
     assert ("Expected a float, instead got <class 'str'>" ==
             str(e.value))
     
@@ -97,10 +97,11 @@ def test_ftrl_wrong_inter():
     
 def test_ftrl_create_wrong_combination():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(params=fp, a = fp.a)
-    assert ("You can either pass all the parameters with `params` or  any of the "
-            "individual parameters with `a`, `b`, `l1`, `l2`, `d`,`n_epchs` or "
-            "`inter` to Ftrl constructor, but not both at the same time" ==
+        ft = core.Ftrl(params=fp, alpha = fp.alpha)
+    assert ("You can either pass all the parameters with `params` or  any of "
+            "the individual parameters with `alpha`, `beta`, `lambda1`, "
+            "`lambda2`, `d`,`n_epchs` or `inter` to Ftrl constructor, "
+            "but not both at the same time" ==
             str(e.value))
 
 
@@ -126,9 +127,11 @@ def test_ftrl_create_params():
     
     
 def test_ftrl_create_individual():
-    ft = core.Ftrl(a = fp.a, b = fp.b, l1 = fp.l1, l2 = fp.l2, d = fp.d, 
-                   n_epochs = fp.n_epochs, inter = fp.inter)
-    assert ft.params == (fp.a, fp.b, fp.l1, fp.l2, fp.d, fp.n_epochs, fp.inter)
+    ft = core.Ftrl(alpha = fp.alpha, beta = fp.beta, lambda1 = fp.lambda1, 
+                   lambda2 = fp.lambda2, d = fp.d, n_epochs = fp.n_epochs, 
+                   inter = fp.inter)
+    assert ft.params == (fp.alpha, fp.beta, fp.lambda1, fp.lambda2, 
+                         fp.d, fp.n_epochs, fp.inter)
     
     
 #-------------------------------------------------------------------------------
@@ -138,7 +141,8 @@ def test_ftrl_create_individual():
 def test_ftrl_get_params_individual():
     ft = core.Ftrl(params = fp)
     assert ft.params == fp
-    assert (ft.a, ft.b, ft.l1, ft.l2, ft.d, ft.n_epochs, ft.inter) == fp
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, 
+            ft.d, ft.n_epochs, ft.inter) == fp
     
 
 def test_ftrl_set_params():
@@ -149,10 +153,10 @@ def test_ftrl_set_params():
     
 def test_ftrl_set_individual():
     ft = core.Ftrl()
-    ft.a = fp.a
-    ft.b = fp.b
-    ft.l1 = fp.l1
-    ft.l2 = fp.l2
+    ft.alpha = fp.alpha
+    ft.beta = fp.beta
+    ft.lambda1 = fp.lambda1
+    ft.lambda2 = fp.lambda2
     ft.d = fp.d
     ft.n_epochs = fp.n_epochs
     ft.inter = fp.inter
@@ -233,6 +237,10 @@ def test_ftrl_fit_wrong_target_string():
     assert ("Last column in a training frame must have a `bool` type" ==
             str(e.value))
 
+
+#-------------------------------------------------------------------------------
+# Test wrong prediction frame
+#-------------------------------------------------------------------------------
    
 def test_ftrl_predict_not_trained():
     ft = core.Ftrl()
@@ -252,3 +260,4 @@ def test_ftrl_predict_wrong_columns():
     assert ("Can only predict on a frame that has %d column(s), i.e. the same "
             "number of features as was used for model training" 
             % (df_train.ncols - 1) == str(e.value))
+    

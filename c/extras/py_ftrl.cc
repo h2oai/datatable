@@ -28,54 +28,54 @@
 namespace py {
 
 PKArgs PyFtrl::Type::args___init__(0, 0, 10, false, false,
-                                 {"params", "a", "b", "l1", "l2", "d", "n_epochs",
-                                 "inter", "hash_type", "seed"},
-                                 "__init__", nullptr);
+                                   {"params", "alpha", "beta", "lambda1", "lambda2",
+                                   "d", "n_epochs", "inter", "hash_type", "seed"},
+                                   "__init__", nullptr);
 
 void PyFtrl::m__init__(PKArgs& args) {
   FtrlParams fp = Ftrl::fp_default;
   bool defined_params = !(args[0].is_undefined() || args[0].is_none());
-  bool defined_a = !(args[1].is_undefined() || args[1].is_none());
-  bool defined_b = !(args[2].is_undefined() || args[2].is_none());
-  bool defined_l1 = !(args[3].is_undefined() || args[3].is_none());
-  bool defined_l2 = !(args[4].is_undefined() || args[4].is_none());
+  bool defined_alpha = !(args[1].is_undefined() || args[1].is_none());
+  bool defined_beta = !(args[2].is_undefined() || args[2].is_none());
+  bool defined_lambda1 = !(args[3].is_undefined() || args[3].is_none());
+  bool defined_lambda2 = !(args[4].is_undefined() || args[4].is_none());
   bool defined_d = !(args[5].is_undefined() || args[5].is_none());
   bool defined_n_epochs= !(args[6].is_undefined() || args[6].is_none());
   bool defined_inter = !(args[7].is_undefined() || args[7].is_none());
 
   if (defined_params) {
-    if (!(defined_a || defined_b || defined_l1 || defined_l2
+    if (!(defined_alpha || defined_beta || defined_lambda1 || defined_lambda2
         || defined_d || defined_n_epochs || defined_inter)) {
 
       py::otuple arg0_tuple = args[0].to_pytuple();
-      fp.a = arg0_tuple.get_attr("a").to_double();
-      fp.b = arg0_tuple.get_attr("b").to_double();
-      fp.l1 = arg0_tuple.get_attr("l1").to_double();
-      fp.l2 = arg0_tuple.get_attr("l2").to_double();
+      fp.alpha = arg0_tuple.get_attr("alpha").to_double();
+      fp.beta = arg0_tuple.get_attr("beta").to_double();
+      fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double();
+      fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double();
       fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t());
       fp.n_epochs = arg0_tuple.get_attr("n_epochs").to_size_t();
       fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
 
     } else {
       throw TypeError() << "You can either pass all the parameters with `params` or "
-            << " any of the individual parameters with `a`, `b`, `l1`, `l2`, `d`,"
+            << " any of the individual parameters with `alpha`, `beta`, `lambda1`, `lambda2`, `d`,"
             << "`n_epchs` or `inter` to Ftrl constructor, but not both at the same time";
     }
   } else {
-    if (defined_a) {
-      fp.a = args[1].to_double();
+    if (defined_alpha) {
+      fp.alpha = args[1].to_double();
     }
 
-    if (defined_b) {
-      fp.b = args[2].to_double();
+    if (defined_beta) {
+      fp.beta = args[2].to_double();
     }
 
-    if (defined_l1) {
-      fp.l1 = args[3].to_double();
+    if (defined_lambda1) {
+      fp.lambda1 = args[3].to_double();
     }
 
-    if (defined_l2) {
-      fp.l2 = args[4].to_double();
+    if (defined_lambda2) {
+      fp.lambda2 = args[4].to_double();
     }
 
     if (defined_d) {
@@ -121,13 +121,13 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 
 Parameters
 ----------
-a : float
+alpha : float
     `alpha` in per-coordinate learning rate formula.
-b : float
+beta : float
     `beta` in per-coordinate learning rate formula.
-l1 : float
+lambda1 : float
     L1 regularization parameter.
-l2 : float
+lambda2 : float
     L2 regularization parameter.
 d : int
     Number of bins to be used after the hashing trick. 
@@ -154,10 +154,10 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&PyFtrl::get_params, &PyFtrl::set_params>("params", "FTRL model parameters.\n");
   gs.add<&PyFtrl::get_default_params>("default_params", "FTRL model default parameters.\n");
 
-  gs.add<&PyFtrl::get_a, &PyFtrl::set_a>("a", "`alpha` in per-coordinate learning rate formula.\n");
-  gs.add<&PyFtrl::get_b, &PyFtrl::set_b>("b", "`beta` in per-coordinate learning rate formula.\n");
-  gs.add<&PyFtrl::get_l1, &PyFtrl::set_l1>("l1", "L1 regularization parameter.\n");
-  gs.add<&PyFtrl::get_l2, &PyFtrl::set_l2>("l2", "L2 regularization parameter.\n");
+  gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>("alpha", "`alpha` in per-coordinate learning rate formula.\n");
+  gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>("beta", "`beta` in per-coordinate learning rate formula.\n");
+  gs.add<&PyFtrl::get_lambda1, &PyFtrl::set_lambda1>("lambda1", "L1 regularization parameter.\n");
+  gs.add<&PyFtrl::get_lambda2, &PyFtrl::set_lambda2>("lambda2", "L2 regularization parameter.\n");
   gs.add<&PyFtrl::get_d, &PyFtrl::set_d>("d", "Number of bins to be used after the hashing trick.\n");
   gs.add<&PyFtrl::get_n_epochs, &PyFtrl::set_n_epochs>("n_epochs", "Number of epochs to train for.\n");
   gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>("inter", "If feature interactions to be used or not.\n");
@@ -283,10 +283,10 @@ Returns
 
 
 void PyFtrl::reset_params(const PKArgs&) {
-  ft->set_a(Ftrl::fp_default.a);
-  ft->set_b(Ftrl::fp_default.b);
-  ft->set_l1(Ftrl::fp_default.l1);
-  ft->set_l2(Ftrl::fp_default.l2);
+  ft->set_alpha(Ftrl::fp_default.alpha);
+  ft->set_beta(Ftrl::fp_default.beta);
+  ft->set_lambda1(Ftrl::fp_default.lambda1);
+  ft->set_lambda2(Ftrl::fp_default.lambda2);
   ft->set_d(Ftrl::fp_default.d);
   ft->set_n_epochs(Ftrl::fp_default.n_epochs);
   ft->set_inter(Ftrl::fp_default.inter);
@@ -339,10 +339,10 @@ void PyFtrl::set_model(robj model) {
 */
 oobj PyFtrl::get_params() const {
   py::otuple params(7);
-  params.set(0, get_a());
-  params.set(1, get_b());
-  params.set(2, get_l1());
-  params.set(3, get_l2());
+  params.set(0, get_alpha());
+  params.set(1, get_beta());
+  params.set(2, get_lambda1());
+  params.set(3, get_lambda2());
   params.set(4, get_d());
   params.set(5, get_n_epochs());
   params.set(6, get_inter());
@@ -351,10 +351,10 @@ oobj PyFtrl::get_params() const {
 
 
 void PyFtrl::set_params(robj params) {
-  set_a(params.get_attr("a"));
-  set_b(params.get_attr("b"));
-  set_l1(params.get_attr("l1"));
-  set_l2(params.get_attr("l2"));
+  set_alpha(params.get_attr("alpha"));
+  set_beta(params.get_attr("beta"));
+  set_lambda1(params.get_attr("lambda1"));
+  set_lambda2(params.get_attr("lambda2"));
   set_d(params.get_attr("d"));
   set_n_epochs(params.get_attr("n_epochs"));
   set_inter(params.get_attr("inter"));
@@ -364,10 +364,10 @@ void PyFtrl::set_params(robj params) {
 
 oobj PyFtrl::get_default_params() const {
   py::otuple params(7);
-  params.set(0, py::ofloat(Ftrl::fp_default.a));
-  params.set(1, py::ofloat(Ftrl::fp_default.b));
-  params.set(2, py::ofloat(Ftrl::fp_default.l1));
-  params.set(3, py::ofloat(Ftrl::fp_default.l2));
+  params.set(0, py::ofloat(Ftrl::fp_default.alpha));
+  params.set(1, py::ofloat(Ftrl::fp_default.beta));
+  params.set(2, py::ofloat(Ftrl::fp_default.lambda1));
+  params.set(3, py::ofloat(Ftrl::fp_default.lambda2));
   params.set(4, py::oint(static_cast<size_t>(Ftrl::fp_default.d)));
   params.set(5, py::oint(Ftrl::fp_default.n_epochs));
   params.set(6, py::oint(Ftrl::fp_default.inter));
@@ -375,23 +375,23 @@ oobj PyFtrl::get_default_params() const {
 }
 
 
-oobj PyFtrl::get_a() const {
-  return py::ofloat(ft->get_a());
+oobj PyFtrl::get_alpha() const {
+  return py::ofloat(ft->get_alpha());
 }
 
 
-oobj PyFtrl::get_b() const {
-  return py::ofloat(ft->get_b());
+oobj PyFtrl::get_beta() const {
+  return py::ofloat(ft->get_beta());
 }
 
 
-oobj PyFtrl::get_l1() const {
-  return py::ofloat(ft->get_l1());
+oobj PyFtrl::get_lambda1() const {
+  return py::ofloat(ft->get_lambda1());
 }
 
 
-oobj PyFtrl::get_l2() const {
-  return py::ofloat(ft->get_l2());
+oobj PyFtrl::get_lambda2() const {
+  return py::ofloat(ft->get_lambda2());
 }
 
 
@@ -420,39 +420,39 @@ oobj PyFtrl::get_seed() const {
 }
 
 
-void PyFtrl::set_a(robj a) {
-  if (!a.is_numeric()) {
-    throw TypeError() << "`a` must be numeric, not "
-        << a.typeobj();
+void PyFtrl::set_alpha(robj alpha) {
+  if (!alpha.is_numeric()) {
+    throw TypeError() << "`alpha` must be numeric, not "
+        << alpha.typeobj();
   }
-  ft->set_a(a.to_double());
+  ft->set_alpha(alpha.to_double());
 }
 
 
-void PyFtrl::set_b(robj b) {
-  if (!b.is_numeric()) {
-    throw TypeError() << "`b` must be numeric, not "
-        << b.typeobj();
+void PyFtrl::set_beta(robj beta) {
+  if (!beta.is_numeric()) {
+    throw TypeError() << "`beta` must be numeric, not "
+        << beta.typeobj();
   }
-  ft->set_b(b.to_double());
+  ft->set_beta(beta.to_double());
 }
 
 
-void PyFtrl::set_l1(robj l1) {
-  if (!l1.is_numeric()) {
-    throw TypeError() << "`l1` must be numeric, not "
-        << l1.typeobj();
+void PyFtrl::set_lambda1(robj lambda1) {
+  if (!lambda1.is_numeric()) {
+    throw TypeError() << "`lambda1` must be numeric, not "
+        << lambda1.typeobj();
   }
-  ft->set_l1(l1.to_double());
+  ft->set_lambda1(lambda1.to_double());
 }
 
 
-void PyFtrl::set_l2(robj l2) {
-  if (!l2.is_numeric()) {
-    throw TypeError() << "`l2` must be numeric, not "
-        << l2.typeobj();
+void PyFtrl::set_lambda2(robj lambda2) {
+  if (!lambda2.is_numeric()) {
+    throw TypeError() << "`lambda2` must be numeric, not "
+        << lambda2.typeobj();
   }
-  ft->set_l2(l2.to_double());
+  ft->set_lambda2(lambda2.to_double());
 }
 
 

@@ -70,12 +70,56 @@ bool Ftrl::is_trained() {
 }
 
 
+dtptr Ftrl::convert(const DataTable* dt, size_t ncols) {
+    std::vector<Column*> cols64;
+    cols64.reserve(ncols);
+
+    for (size_t i = 0; i < ncols; ++i) {
+      LType ltype = info(dt->columns[i]->stype()).ltype();
+      switch (ltype) {
+        case LType::BOOL:
+        case LType::INT:  {
+                             auto c = dt->columns[i]->cast(SType::INT64);
+                             cols64.push_back(c);
+                             break;
+                           }
+        case LType::REAL:  {
+                             auto c = dt->columns[i]->cast(SType::FLOAT64);
+                             cols64.push_back(c);
+                             break;
+                           }
+        case LType::STRING:{
+                             auto c = dt->columns[i]->shallowcopy();
+                             cols64.push_back(c);
+                             break;
+                           }
+        default:           throw ValueError() << "Datatype is not supported";
+      }
+    }
+
+    dtptr dt64 = dtptr(new DataTable(std::move(cols64)));
+
+    // Re-hash column names, if number of features has changed.
+    if (n_features != dt64->ncols || !col_hashes.size()) {
+      const std::vector<std::string>& c_names = dt64->get_names();
+      col_hashes.reserve(dt64->ncols);
+
+      for (size_t i = 0; i < dt64->ncols; i++) {
+        uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
+        col_hashes.push_back(h);
+      }
+    }
+
+    return dt64;
+}
+
 /*
-*  Train FTRL model on a training dataset.
+*  Train FTRL model on a dataset.
 */
 void Ftrl::fit(const DataTable* dt) {
   // Define number of features assuming that the target column is the last one.
   n_features = dt->ncols - 1;
+  dtptr dt64 = convert(dt, n_features);
 
   // Define number of feature interactions.
   n_inter_features = (fp.inter)? n_features * (n_features - 1) / 2 : 0;
@@ -101,7 +145,7 @@ void Ftrl::fit(const DataTable* dt) {
            j+= static_cast<size_t>(nth)) {
 
         bool target = d_target[j];
-        hash_row(x, dt, j);
+        hash_row(x, dt64, j);
         double p = predict_row(x, n_features + n_inter_features);
         update(x, n_features + n_inter_features, p, target);
 
@@ -125,6 +169,8 @@ void Ftrl::fit(const DataTable* dt) {
 *  We assume that all the validation is done in `py_ftrl.cc`.
 */
 dtptr Ftrl::predict(const DataTable* dt) {
+  dtptr dt64 = convert(dt, n_features);
+
   // Create a target datatable.
   dtptr dt_target = nullptr;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
@@ -140,10 +186,10 @@ dtptr Ftrl::predict(const DataTable* dt) {
     nth = omp_get_num_threads();
 
     for (size_t j = static_cast<size_t>(ith);
-         j < dt->nrows;
+         j < dt64->nrows;
          j+= static_cast<size_t>(nth)) {
 
-      hash_row(x, dt, j);
+      hash_row(x, dt64, j);
       d_target[j] = predict_row(x, n_features + n_inter_features);
       if ((j+1) % REPORT_FREQUENCY == 0) {
         printf("Row: %zu\tPrediction: %f\n", j+1, d_target[j]);
@@ -161,11 +207,11 @@ double Ftrl::predict_row(const Uint64Ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    if (fabs(z[i]) <= fp.l1) {
+    if (fabs(z[i]) <= fp.lambda1) {
       w[i] = 0;
     } else {
-      w[i] = (signum(z[i]) * fp.l1 - z[i]) /
-             ((fp.b + sqrt(n[i])) / fp.a + fp.l2);
+      w[i] = (signum(z[i]) * fp.lambda1 - z[i]) /
+             ((fp.beta + sqrt(n[i])) / fp.alpha + fp.lambda2);
     }
     wTx += w[i];
   }
@@ -202,7 +248,7 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
 
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / fp.a;
+    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / fp.alpha;
     z[i] += g - sigma * w[i];
     n[i] += g * g;
   }
@@ -246,8 +292,7 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
 /*
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
-void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
-  std::vector<std::string> c_names = dt->get_names();
+void Ftrl::hash_row(Uint64Ptr& x, dtptr& dt, size_t row_id) {
   uint64_t index;
 
   for (size_t i = 0; i < n_features; ++i) {
@@ -256,24 +301,17 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     LType ltype = info(c->stype()).ltype();
 
     switch (ltype) {
-      // For booleans, just cast `bool` to `uint64_t`.
-      case LType::BOOL:    {
-                             auto c_bool = static_cast<BoolColumn*>(c);
-                             auto d_bool = c_bool->elements_r();
-                             index = static_cast<uint64_t>(d_bool[row_id]);
-                             break;
-                           }
-
-      // For integers, just cast `int32_t` to `uint64_t`. This also works fine
-      // for negative numbers as they're casted to very large `uint64_t`.
+      // For integers, just cast `int64_t` to `uint64_t`. This also works fine
+      // for negative numbers as they're casted to very large `uint64_t`s.
       case LType::INT:     {
-                             auto c_int = static_cast<IntColumn<int32_t>*>(c);
+                             auto c_int = static_cast<IntColumn<int64_t>*>(c);
                              auto d_int = c_int->elements_r();
                              index = static_cast<uint64_t>(d_int[row_id]);
                              break;
                            }
 
       // For doubles, use their bit representation as `uint64_t`.
+      // We may want to use less bits for binning here.
       case LType::REAL:    {
                              auto c_real = static_cast<RealColumn<double>*>(c);
                              auto d_real = c_real->elements_r();
@@ -297,9 +335,7 @@ void Ftrl::hash_row(Uint64Ptr& x, const DataTable* dt, size_t row_id) {
     }
     // Add the column name hash to the hashed value, so that the same value
     // in different columns will result in different hashes.
-    // TODO: pre-hash all the column names only once.
-    uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
-    index += h;
+    index += col_hashes[i];
     x[i] = index % fp.d;
   }
 
@@ -382,23 +418,23 @@ size_t Ftrl::get_n_features() {
 }
 
 
-double Ftrl::get_a() {
-  return fp.a;
+double Ftrl::get_alpha() {
+  return fp.alpha;
 }
 
 
-double Ftrl::get_b() {
-  return fp.b;
+double Ftrl::get_beta() {
+  return fp.beta;
 }
 
 
-double Ftrl::get_l1() {
-  return fp.l1;
+double Ftrl::get_lambda1() {
+  return fp.lambda1;
 }
 
 
-double Ftrl::get_l2() {
-  return fp.l2;
+double Ftrl::get_lambda2() {
+  return fp.lambda2;
 }
 
 
@@ -427,33 +463,33 @@ size_t Ftrl::get_n_epochs() {
 }
 
 
-void Ftrl::set_a(double a_in) {
-  if (fp.a != a_in) {
-    fp.a = a_in;
+void Ftrl::set_alpha(double a_in) {
+  if (fp.alpha != a_in) {
+    fp.alpha = a_in;
     init_model();
   }
 }
 
 
-void Ftrl::set_b(double b_in) {
-  if (fp.b != b_in) {
-    fp.b = b_in;
+void Ftrl::set_beta(double b_in) {
+  if (fp.beta != b_in) {
+    fp.beta = b_in;
     init_model();
   }
 }
 
 
-void Ftrl::set_l1(double l1_in) {
-  if (fp.l1 != l1_in) {
-    fp.l1 = l1_in;
+void Ftrl::set_lambda1(double l1_in) {
+  if (fp.lambda1 != l1_in) {
+    fp.lambda1 = l1_in;
     init_model();
   }
 }
 
 
-void Ftrl::set_l2(double l2_in) {
-  if (fp.l2 != l2_in) {
-    fp.l2 = l2_in;
+void Ftrl::set_lambda2(double l2_in) {
+  if (fp.lambda2 != l2_in) {
+    fp.lambda2 = l2_in;
     init_model();
   }
 }

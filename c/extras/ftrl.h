@@ -26,10 +26,10 @@ typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
 #define REPORT_FREQUENCY 1000
 
 struct FtrlParams {
-    double a;
-    double b;
-    double l1;
-    double l2;
+    double alpha;
+    double beta;
+    double lambda1;
+    double lambda2;
     uint64_t d;
     size_t n_epochs;
     unsigned int hash_type;
@@ -50,6 +50,7 @@ class Ftrl {
     FtrlParams fp;
 
     // Calculated during the learning process.
+    std::vector<uint64_t> col_hashes;
     size_t n_features;
     size_t n_inter_features;
     DoublePtr w;
@@ -64,6 +65,7 @@ class Ftrl {
 
     // Learning and predicting methods.
     bool is_trained();
+    dtptr convert(const DataTable*, size_t);
     void fit(const DataTable*);
     dtptr predict(const DataTable*);
     double predict_row(const Uint64Ptr&, size_t);
@@ -80,25 +82,25 @@ class Ftrl {
     // Hashing methods.
     uint64_t hash_string(const char *, size_t);
     static uint64_t hash_double(double);
-    void hash_row(Uint64Ptr&, const DataTable*, size_t);
+    void hash_row(Uint64Ptr&, dtptr&, size_t);
 
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
     size_t get_n_features();
-    double get_a();
-    double get_b();
-    double get_l1();
-    double get_l2();
+    double get_alpha();
+    double get_beta();
+    double get_lambda1();
+    double get_lambda2();
     uint64_t get_d();
     size_t get_n_epochs();
     unsigned int get_hash_type();
     unsigned int get_seed();
     bool get_inter();
     void set_model(DataTable*);
-    void set_a(double);
-    void set_b(double);
-    void set_l1(double);
-    void set_l2(double);
+    void set_alpha(double);
+    void set_beta(double);
+    void set_lambda1(double);
+    void set_lambda2(double);
     void set_d(uint64_t);
     void set_n_epochs(size_t);
     void set_inter(bool);
