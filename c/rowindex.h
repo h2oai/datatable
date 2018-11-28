@@ -35,8 +35,8 @@ enum class RowIndexType : uint8_t {
   SLICE = 3,
 };
 
-typedef int (filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
-typedef int (filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
+using filterfn32 = int (size_t row0, size_t row1, int32_t* ind, size_t* nouts);
+using filterfn64 = int (size_t row0, size_t row1, int64_t* ind, size_t* nouts);
 
 
 
@@ -63,8 +63,8 @@ class RowIndex {
      * Optional `sorted` flag tells the constructor whether the arrays are
      * sorted or not.
      */
-    static RowIndex from_array32(arr32_t&& arr, bool sorted = false);
-    static RowIndex from_array64(arr64_t&& arr, bool sorted = false);
+    RowIndex(arr32_t&& arr, bool sorted = false);
+    RowIndex(arr64_t&& arr, bool sorted = false);
 
     /**
      * Construct a "slice" RowIndex from triple `(start, count, step)`.
@@ -76,7 +76,7 @@ class RowIndex {
      *   - with explicit `count` the `step` may potentially be 0.
      *   - there is no difference in handling positive/negative steps.
      */
-    static RowIndex from_slice(size_t start, size_t count, size_t step);
+    RowIndex(size_t start, size_t count, size_t step);
 
     /**
      * Construct an "array" `RowIndex` object from a series of triples
@@ -86,8 +86,7 @@ class RowIndex {
      * This will create either an RowIndexType::ARR32 or RowIndexType::ARR64
      * object, depending on which one is sufficient to hold all the indices.
      */
-    static RowIndex from_slices(const arr64_t& starts, const arr64_t& counts,
-                                const arr64_t& steps);
+    RowIndex(const arr64_t& starts, const arr64_t& counts, const arr64_t& steps);
 
     /**
      * Construct a RowIndex object using an external filter function. The
@@ -111,10 +110,13 @@ class RowIndex {
      *     When True indicates that the filter function is guaranteed to produce
      *     row index in sorted order.
      */
-    static RowIndex from_filterfn32(filterfn32* f, int64_t n, bool sorted);
-    static RowIndex from_filterfn64(filterfn64* f, int64_t n, bool sorted);
+    RowIndex(filterfn32* f, size_t n, bool sorted);
+    RowIndex(filterfn64* f, size_t n, bool sorted);
 
-    static RowIndex from_column(Column* col);
+    /**
+     * Create RowIndex from either a boolean or an integer column.
+     */
+    RowIndex(const Column* col);
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     bool operator!=(const RowIndex& other) { return impl != other.impl; }

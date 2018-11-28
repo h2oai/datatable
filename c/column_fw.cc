@@ -356,7 +356,7 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
       trg_indices[i] = binsearch<T>(search_data, search_n, value);
     });
 
-  return RowIndex::from_array32(std::move(target_indices));
+  return RowIndex(std::move(target_indices));
 }
 
 

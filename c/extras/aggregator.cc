@@ -240,7 +240,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   dt_members->columns[0]->get_stats()->reset();
 
   // Applying exemplars row index and binding exemplars with the counts.
-  RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
+  RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
   dt->replace_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts };
   dt->cbind(dts);

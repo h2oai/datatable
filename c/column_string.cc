@@ -585,7 +585,7 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
                                     src_strdata, ostart, oend);
     });
 
-  return RowIndex::from_array32(std::move(target_indices));
+  return RowIndex(std::move(target_indices));
 }
 
 

@@ -53,7 +53,7 @@ struct sort_result {
 static py::oobj make_pyframe(
     sort_result& sr, arr32_t&& arr, bool arr_sorted = true
 ) {
-  RowIndex out_ri = RowIndex::from_array32(std::move(arr), arr_sorted);
+  RowIndex out_ri = RowIndex(std::move(arr), arr_sorted);
   Column* out_col = sr.col->shallowcopy(out_ri);
   out_col->reify();
   DataTable* dt = new DataTable({out_col}, {sr.colname});

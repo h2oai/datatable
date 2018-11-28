@@ -429,7 +429,7 @@ class SortContext {
 
 
   RowIndex get_result(Groupby* out_grps) {
-    RowIndex res = RowIndex::from_array32(
+    RowIndex res = RowIndex(
         arr32_t(n, static_cast<int32_t*>(container_o.release()), true)
     );
     if (out_grps) {
@@ -1215,7 +1215,7 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
     if (out_grps) {
       *out_grps = Groupby::single_group(col0->nrows);
     }
-    return RowIndex::from_slice(i, col0->nrows, 1);
+    return RowIndex(i, col0->nrows, 1);
   }
   SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));
@@ -1231,7 +1231,7 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
 static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   if (col->nrows == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
-    return RowIndex::from_array32(arr32_t(0), true);
+    return RowIndex(arr32_t(0), true);
   }
   xassert(col->nrows == 1);
   if (out_grps) {
@@ -1239,7 +1239,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   }
   arr32_t indices(1);
   indices[0] = static_cast<int32_t>(col->rowindex().nth(0));
-  return RowIndex::from_array32(std::move(indices), true);
+  return RowIndex(std::move(indices), true);
 }
 
 

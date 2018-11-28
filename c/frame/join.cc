@@ -414,7 +414,7 @@ Join two Frames `xdt` and `jdt` on the keys of `jdt`.
     }
   }
 
-  RowIndex res = RowIndex::from_array32(std::move(arr_result_indices));
+  RowIndex res = RowIndex(std::move(arr_result_indices));
   return py::oobj::from_new_reference(pyrowindex::wrap(res));
 });
 

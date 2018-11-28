@@ -106,16 +106,16 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     arr32_t ind32;
     arr64_t ind64;
     bool is_sorted;
-    int64_t : 56;
+    size_t : 56;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
     ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
-    ArrayRowIndexImpl(filterfn32* f, int64_t n, bool sorted);
-    ArrayRowIndexImpl(filterfn64* f, int64_t n, bool sorted);
-    ArrayRowIndexImpl(Column*);
+    ArrayRowIndexImpl(filterfn32* f, size_t n, bool sorted);
+    ArrayRowIndexImpl(filterfn64* f, size_t n, bool sorted);
+    ArrayRowIndexImpl(const Column*);
 
     size_t nth(size_t i) const override;
     const int32_t* indices32() const { return ind32.data(); }
@@ -134,8 +134,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     template <typename T> void set_min_max(const dt::array<T>&);
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
-    void init_from_boolean_column(BoolColumn* col);
-    void init_from_integer_column(Column* col);
+    void init_from_boolean_column(const BoolColumn* col);
+    void init_from_integer_column(const Column* col);
     void compactify();
 
     // Helper for `inverse()`

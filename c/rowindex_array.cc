@@ -114,11 +114,11 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
   is_sorted = false;
   switch (col->stype()) {
     case SType::BOOL:
-      init_from_boolean_column(static_cast<BoolColumn*>(col));
+      init_from_boolean_column(static_cast<const BoolColumn*>(col));
       break;
     case SType::INT8:
     case SType::INT16:
@@ -132,7 +132,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
   xassert(n <= std::numeric_limits<int32_t>::max());
   is_sorted = sorted;
 
@@ -143,7 +143,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   // least some of the reallocs will have to memmove the data, and moreover
   // the realloc has to occur within a critical section, slowing down the
   // team of threads).
-  ind32.resize(static_cast<size_t>(n));
+  ind32.resize(n);
 
   // Number of elements that were written (or tentatively written) so far
   // into the array `out`.
@@ -153,18 +153,17 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   // is a fundamental unit of work for this function: every thread in the team
   // works on a single chunk at a time, and then moves on to the next chunk
   // in the queue.
-  int64_t rows_per_chunk = 65536;
-  int64_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
-  size_t zrows_per_chunk = static_cast<size_t>(rows_per_chunk);
+  size_t rows_per_chunk = 65536;
+  size_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
 
   #pragma omp parallel
   {
     // Intermediate buffer where each thread stores the row numbers it found
     // before they are consolidated into the final output buffer.
-    arr32_t buf(zrows_per_chunk);
+    arr32_t buf(rows_per_chunk);
 
     // Number of elements that are currently being held in `buf`.
-    int32_t buf_length = 0;
+    size_t buf_length = 0;
     // Offset (within the output buffer) where this thread needs to save the
     // contents of its temporary buffer `buf`.
     // The algorithm works as follows: first, the thread calls `filterfn` to
@@ -179,31 +178,31 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
     size_t out_offset = 0;
 
     #pragma omp for ordered schedule(dynamic, 1)
-    for (int64_t i = 0; i < num_chunks; ++i) {
+    for (size_t i = 0; i < num_chunks; ++i) {
       if (buf_length) {
         // This clause is conceptually located after the "ordered"
         // section -- however due to a bug in libgOMP the "ordered"
         // section must come last in the loop. So in order to circumvent
         // the bug, this block had to be moved to the front of the loop.
-        size_t bufsize = static_cast<size_t>(buf_length) * sizeof(int32_t);
+        size_t bufsize = buf_length * sizeof(int32_t);
         std::memcpy(ind32.data() + out_offset, buf.data(), bufsize);
         buf_length = 0;
       }
 
-      int64_t row0 = i * rows_per_chunk;
-      int64_t row1 = std::min(row0 + rows_per_chunk, n);
+      size_t row0 = i * rows_per_chunk;
+      size_t row1 = std::min(row0 + rows_per_chunk, n);
       (*ff)(row0, row1, buf.data(), &buf_length);
 
       #pragma omp ordered
       {
         out_offset = out_length;
-        out_length += static_cast<size_t>(buf_length);
+        out_length += buf_length;
       }
     }
     // Note: if the underlying array is small, then some threads may have
     // done nothing at all, and their buffers would be empty.
     if (buf_length) {
-      size_t bufsize = static_cast<size_t>(buf_length) * sizeof(int32_t);
+      size_t bufsize = buf_length * sizeof(int32_t);
       std::memcpy(ind32.data() + out_offset, buf.data(), bufsize);
       buf_length = 0;
     }
@@ -218,38 +217,37 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
   is_sorted = sorted;
   size_t out_length = 0;
-  int64_t rows_per_chunk = 65536;
-  int64_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
-  size_t zrows_per_chunk = static_cast<size_t>(rows_per_chunk);
+  size_t rows_per_chunk = 65536;
+  size_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
 
-  ind64.resize(static_cast<size_t>(n));
+  ind64.resize(n);
   #pragma omp parallel
   {
-    arr64_t buf(zrows_per_chunk);
-    int32_t buf_length = 0;
+    arr64_t buf(rows_per_chunk);
+    size_t buf_length = 0;
     size_t out_offset = 0;
 
     #pragma omp for ordered schedule(dynamic, 1)
-    for (int64_t i = 0; i < num_chunks; ++i) {
+    for (size_t i = 0; i < num_chunks; ++i) {
       if (buf_length) {
-        size_t bufsize = static_cast<size_t>(buf_length) * sizeof(int64_t);
+        size_t bufsize = buf_length * sizeof(int64_t);
         std::memcpy(ind64.data() + out_offset, buf.data(), bufsize);
         buf_length = 0;
       }
-      int64_t row0 = i * rows_per_chunk;
-      int64_t row1 = std::min(row0 + rows_per_chunk, n);
+      size_t row0 = i * rows_per_chunk;
+      size_t row1 = std::min(row0 + rows_per_chunk, n);
       (*ff)(row0, row1, buf.data(), &buf_length);
       #pragma omp ordered
       {
         out_offset = out_length;
-        out_length += static_cast<size_t>(buf_length);
+        out_length += buf_length;
       }
     }
     if (buf_length) {
-      size_t bufsize = static_cast<size_t>(buf_length) * sizeof(int64_t);
+      size_t bufsize = buf_length * sizeof(int64_t);
       memcpy(ind64.data() + out_offset, buf.data(), bufsize);
       buf_length = 0;
     }
@@ -303,7 +301,7 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
 }
 
 
-void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
+void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
   const int8_t* data = col->elements_r();
   length = static_cast<size_t>(col->sum());  // total # of 1s in the column
 
@@ -338,7 +336,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
 }
 
 
-void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
+void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
   if (col->countna()) {
     throw ValueError() << "RowIndex source column contains NA values.";
   }

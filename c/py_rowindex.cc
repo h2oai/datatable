@@ -42,7 +42,7 @@ PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
   size_t start, count, step;
   if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
                         &start, &count, &step)) return nullptr;
-  return wrap(RowIndex::from_slice(start, count, step));
+  return wrap(RowIndex(start, count, step));
 }
 
 
@@ -79,7 +79,7 @@ PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
     counts[ii] = count;
     steps[ii] = step;
   }
-  return wrap(RowIndex::from_slices(starts, counts, steps));
+  return wrap(RowIndex(starts, counts, steps));
 }
 
 
@@ -118,8 +118,8 @@ PyObject* rowindex_from_array(PyObject*, PyObject* args) {
     }
   }
   // Construct and return the RowIndex object
-  return data32? wrap(RowIndex::from_array32(std::move(data32)))
-               : wrap(RowIndex::from_array64(std::move(data64)));
+  return data32? wrap(RowIndex(std::move(data32)))
+               : wrap(RowIndex(std::move(data64)));
 }
 
 
@@ -127,7 +127,7 @@ PyObject* rowindex_from_column(PyObject*, PyObject* args) {
   Column* col;
   if (!PyArg_ParseTuple(args, "O&:rowindex_from_column",
                         &pycolumn::unwrap, &col)) return nullptr;
-  return wrap(RowIndex::from_column(col));
+  return wrap(RowIndex(col));
 }
 
 
@@ -139,13 +139,13 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
                         &_fnptr, &_nrows))
       return nullptr;
 
-  int64_t nrows = static_cast<int64_t>(_nrows);
+  size_t nrows = static_cast<size_t>(_nrows);
   if (nrows <= INT32_MAX) {
     filterfn32* fnptr = reinterpret_cast<filterfn32*>(_fnptr);
-    return wrap(RowIndex::from_filterfn32(fnptr, nrows, 0));
+    return wrap(RowIndex(fnptr, nrows, 0));
   } else {
     filterfn64* fnptr = reinterpret_cast<filterfn64*>(_fnptr);
-    return wrap(RowIndex::from_filterfn64(fnptr, nrows, 0));
+    return wrap(RowIndex(fnptr, nrows, 0));
   }
 }
 
