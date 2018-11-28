@@ -30,7 +30,8 @@
 *  Set column names for `dt_model`.
 */
 const std::vector<std::string> Ftrl::model_cols = {"z", "n"};
-const FtrlParams Ftrl::fp_default = {0.005, 1.0, 0.0, 1.0, 1000000, 1, 1, 0, false};
+const FtrlParams Ftrl::fp_default = {0.005, 1.0, 0.0, 1.0,
+                                     1000000, 1, 1, 0, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
@@ -99,13 +100,14 @@ dtptr Ftrl::convert(const DataTable* dt, size_t ncols) {
 
     dtptr dt64 = dtptr(new DataTable(std::move(cols64)));
 
-    // Re-hash column names, if number of features has changed.
+    // Pre-hash column names, if number of features has changed.
     if (n_features != dt64->ncols || !col_hashes.size()) {
       const std::vector<std::string>& c_names = dt64->get_names();
       col_hashes.reserve(dt64->ncols);
 
       for (size_t i = 0; i < dt64->ncols; i++) {
-        uint64_t h = hash_string(c_names[i].c_str(), c_names[i].length() * sizeof(char));
+        uint64_t h = hash_string(c_names[i].c_str(),
+                                 c_names[i].length() * sizeof(char));
         col_hashes.push_back(h);
       }
     }
@@ -224,9 +226,7 @@ double Ftrl::predict_row(const Uint64Ptr& x, size_t x_size) {
 *  Sigmoid function.
 */
 inline double Ftrl::sigmoid(double x) {
-  double res = 1.0 / (1.0 + exp(-x));
-
-  return res;
+  return 1.0 / (1.0 + exp(-x));
 }
 
 

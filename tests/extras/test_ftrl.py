@@ -33,13 +33,15 @@ import random
 from tests import assert_equals
 
 #-------------------------------------------------------------------------------
-# Define namedtuple of test parameters
+# Define namedtuple of test parameters and `epsilon` to check accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
 
 fp = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5, n_epochs = 6, 
                 inter = True)
+
+epsilon = 0.01
 
 
 #-------------------------------------------------------------------------------
@@ -260,4 +262,70 @@ def test_ftrl_predict_wrong_columns():
     assert ("Can only predict on a frame that has %d column(s), i.e. the same "
             "number of features as was used for model training" 
             % (df_train.ncols - 1) == str(e.value))
+    
+
+#-------------------------------------------------------------------------------
+# Test training step
+#-------------------------------------------------------------------------------
+
+def test_ftrl_fit_unique():
+    ft = core.Ftrl(d = 10)
+    
+    df_train = dt.Frame([[i for i in range(ft.d)], 
+                         [True for i in range(ft.d)]])
+    ft.fit(df_train)
+    model = [[-0.5 for i in range(ft.d)], [0.25 for i in range(ft.d)]]
+    assert ft.model.topython() == model
+    
+
+def test_ftrl_fit_predict_int():
+    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    df_train = dt.Frame([[0, 1], 
+                         [True, False]])
+    ft.fit(df_train)
+    df_target = ft.predict(df_train[:,0])
+
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
+    
+
+def test_ftrl_fit_predict_bool():
+    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    df_train = dt.Frame([[True, False], 
+                         [True, False]])
+    ft.fit(df_train)
+    df_target = ft.predict(df_train[:,0])
+    
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
+    
+    
+def test_ftrl_fit_predict_float():
+    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    df_train = dt.Frame([[0.0, 0.1], 
+                         [True, False]])
+    ft.fit(df_train)
+    df_target = ft.predict(df_train[:,0])
+    
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
+    
+
+def test_ftrl_fit_predict_string():
+    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    df_train = dt.Frame([["Monday", "Tuesday"], 
+                         [True, False]])
+    ft.fit(df_train)
+    df_target = ft.predict(df_train[:,0])
+    
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
     
