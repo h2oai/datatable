@@ -39,7 +39,7 @@
 ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted)
     : ind32(std::move(array)), ind64()
 {
-  is_sorted = sorted;
+  ascending = sorted;
   type = RowIndexType::ARR32;
   length = ind32.size();
   xassert(length <= std::numeric_limits<int32_t>::max());
@@ -50,7 +50,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted)
 ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted)
     : ind32(), ind64(std::move(array))
 {
-  is_sorted = sorted;
+  ascending = sorted;
   type = RowIndexType::ARR64;
   length = ind64.size();
   set_min_max<int64_t>(ind64);
@@ -63,7 +63,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 {
   size_t n = starts.size();
   xassert(n == counts.size() && n == steps.size());
-  is_sorted = false;
+  ascending = false;
 
   // Compute the total number of elements, and the largest index that needs
   // to be stored. Also check for potential overflows / invalid values.
@@ -115,7 +115,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
-  is_sorted = false;
+  ascending = false;
   switch (col->stype()) {
     case SType::BOOL:
       init_from_boolean_column(static_cast<const BoolColumn*>(col));
@@ -134,7 +134,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
   xassert(n <= std::numeric_limits<int32_t>::max());
-  is_sorted = sorted;
+  ascending = sorted;
 
   // Output buffer, where we will write the indices of selected rows. This
   // buffer is preallocated to the length of the original dataset, and it will
@@ -218,7 +218,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
-  is_sorted = sorted;
+  ascending = sorted;
   size_t out_length = 0;
   size_t rows_per_chunk = 65536;
   size_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
@@ -264,7 +264,7 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
   const T* data = arr.data();
   if (length == 0) {
     min = max = 0;
-  } else if (is_sorted || length == 1) {
+  } else if (ascending || length == 1) {
     constexpr size_t NA = static_cast<size_t>(GETNA<T>());
     min = static_cast<size_t>(data[0]);
     max = static_cast<size_t>(data[length - 1]);
@@ -319,7 +319,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
         if (data[i] == 1)
           ind32[k++] = static_cast<int32_t>(i);
       });
-    is_sorted = true;
+    ascending = true;
     set_min_max(ind32);
   } else {
     type = RowIndexType::ARR64;
@@ -330,7 +330,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
         if (data[i] == 1)
           ind64[k++] = static_cast<int64_t>(i);
       });
-    is_sorted = true;
+    ascending = true;
     set_min_max(ind64);
   }
 }
@@ -392,7 +392,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
         rowsres[i] = static_cast<int64_t>(j);
       }
     }
-    bool res_sorted = is_sorted && slice_rowindex_increasing(rii);
+    bool res_sorted = ascending && slice_rowindex_increasing(rii);
     auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
     res->compactify();
     return res;
@@ -405,7 +405,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
     for (size_t i = 0; i < length; ++i) {
       rowsres[i] = rows_ab[rows_bc[i]];
     }
-    bool res_sorted = is_sorted && arii->is_sorted;
+    bool res_sorted = ascending && arii->ascending;
     return new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
   }
   if (uptype == RowIndexType::ARR32 || uptype == RowIndexType::ARR64) {
@@ -432,7 +432,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
-    bool res_sorted = is_sorted && arii->is_sorted;
+    bool res_sorted = ascending && arii->ascending;
     auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
     res->compactify();
     return res;
@@ -522,11 +522,11 @@ RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
   if (type == RowIndexType::ARR32) {
     arr32_t new_ind32(n);
     memcpy(new_ind32.data(), ind32.data(), n * sizeof(int32_t));
-    return new ArrayRowIndexImpl(std::move(new_ind32), is_sorted);
+    return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
   } else {
     arr64_t new_ind64(n);
     memcpy(new_ind64.data(), ind64.data(), n * sizeof(int64_t));
-    return new ArrayRowIndexImpl(std::move(new_ind64), is_sorted);
+    return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
   }
 }
 
@@ -581,9 +581,9 @@ void ArrayRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
   if (type == RowIndexType::ARR32) {
-    verify_integrity_helper<int32_t>(ind32, length, min, max, is_sorted);
+    verify_integrity_helper<int32_t>(ind32, length, min, max, ascending);
   } else if (type == RowIndexType::ARR64) {
-    verify_integrity_helper<int64_t>(ind64, length, min, max, is_sorted);
+    verify_integrity_helper<int64_t>(ind64, length, min, max, ascending);
   } else {
     throw AssertionError() << "Invalid type = " << static_cast<int>(type)
         << " in ArrayRowIndex";

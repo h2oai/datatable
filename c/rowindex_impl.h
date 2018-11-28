@@ -32,7 +32,19 @@
 class RowIndexImpl {
   public:
     /**
-     * length - number of entries in the RowIndex.
+     * length
+     *     The number of elements in the RowIndex.
+     *
+     * min, max
+     *     Smallest / largest entry in the RowIndex.
+     *
+     * type
+     *     The type of the RowIndex: SLICE, ARR32 or ARR64.
+     *
+     * ascending
+     *     True if the entries in the rowindex are strictly increasing, or false
+     *     otherwise. Note that if `ascending` is false it does not mean the
+     *     elements are descending, they may also be non-monotonous.
      */
     size_t length;
     size_t min;
@@ -40,7 +52,7 @@ class RowIndexImpl {
     uint32_t refcount;
     RowIndexType type;
     bool ascending;
-    size_t : 16;
+    int : 16;
 
   public:
     RowIndexImpl();
@@ -105,8 +117,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
   private:
     arr32_t ind32;
     arr64_t ind64;
-    bool is_sorted;
-    size_t : 56;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);

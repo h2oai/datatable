@@ -118,6 +118,7 @@ class RowIndex {
      */
     RowIndex(const Column* col);
 
+
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
