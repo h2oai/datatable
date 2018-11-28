@@ -228,12 +228,12 @@ void RowIndex::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 RowIndexImpl::RowIndexImpl()
-    : type(RowIndexType::UNKNOWN),
-      ascending(false),
-      refcount(0),
-      length(0),
+    : length(0),
       min(0),
-      max(0) {}
+      max(0),
+      refcount(0),
+      type(RowIndexType::UNKNOWN),
+      ascending(false) {}
 
 RowIndexImpl::~RowIndexImpl() {}
 

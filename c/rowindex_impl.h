@@ -31,19 +31,21 @@
 
 class RowIndexImpl {
   public:
-    RowIndexType type;
-    bool ascending;
-    size_t : 16;
-    uint32_t refcount;
     size_t length;
     size_t min;
     size_t max;
+    uint32_t refcount;
+    RowIndexType type;
+    bool ascending;
+    size_t : 16;
 
+  public:
     RowIndexImpl();
     RowIndexImpl(const RowIndexImpl&) = delete;
     RowIndexImpl(RowIndexImpl&&) = delete;
     RowIndexImpl& operator=(const RowIndexImpl&) = delete;
     RowIndexImpl& operator=(RowIndexImpl&&) = delete;
+    virtual ~RowIndexImpl();
 
     void acquire();
     void release();
@@ -55,9 +57,6 @@ class RowIndexImpl {
     virtual RowIndexImpl* shrunk(size_t n) = 0;
     virtual size_t memory_footprint() const = 0;
     virtual void verify_integrity() const;
-
-  protected:
-    virtual ~RowIndexImpl();
 };
 
 
