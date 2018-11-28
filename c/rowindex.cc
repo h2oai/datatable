@@ -65,7 +65,7 @@ RowIndex::RowIndex(RowIndexImpl* rii) {
 }
 
 
-RowIndex RowIndex::from_slice(int64_t start, int64_t count, int64_t step) {
+RowIndex RowIndex::from_slice(size_t start, size_t count, size_t step) {
   return RowIndex(new SliceRowIndexImpl(start, count, step));
 }
 
@@ -117,9 +117,9 @@ bool RowIndex::isarr64() const { return impl && impl->type == RowIndexType::ARR6
 bool RowIndex::isarray() const { return isarr32() || isarr64(); }
 const void* RowIndex::ptr() const { return static_cast<const void*>(impl); }
 
-size_t RowIndex::length() const { return impl? static_cast<size_t>(impl->length) : 0; }
-int64_t RowIndex::min() const { return impl? impl->min : 0; }
-int64_t RowIndex::max() const { return impl? impl->max : 0; }
+size_t RowIndex::length() const { return impl? impl->length : 0; }
+size_t RowIndex::min() const { return impl? impl->min : 0; }
+size_t RowIndex::max() const { return impl? impl->max : 0; }
 size_t RowIndex::nth(size_t i) const { return impl? impl->nth(i) : i; }
 
 const int32_t* RowIndex::indices32() const {
@@ -229,8 +229,13 @@ void RowIndexImpl::verify_integrity() const {
     throw AssertionError() << "RowIndex has length 0, but either min = " << min
         << " or max = " << max << " are non-zero";
   }
-  if (min < 0) {
-    throw AssertionError() << "min value in RowIndex is negative: " << min;
+  if (min > RowIndex::MAX) {
+    int64_t imin = static_cast<int64_t>(min);
+    throw AssertionError() << "min value in RowIndex is negative: " << imin;
+  }
+  if (max > RowIndex::MAX) {
+    int64_t imax = static_cast<int64_t>(max);
+    throw AssertionError() << "max value in RowIndex is negative: " << imax;
   }
   if (min > max) {
     throw AssertionError() << "min value in RowIndex is larger than max: min = "

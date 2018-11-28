@@ -39,7 +39,7 @@ PyObject* wrap(const RowIndex& rowindex) {
 //==============================================================================
 
 PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
-  int64_t start, count, step;
+  size_t start, count, step;
   if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
                         &start, &count, &step)) return nullptr;
   return wrap(RowIndex::from_slice(start, count, step));
@@ -160,11 +160,11 @@ PyObject* get_nrows(obj* self) {
 }
 
 PyObject* get_min(obj* self) {
-  return PyLong_FromLongLong(self->ref->min());
+  return PyLong_FromSize_t(self->ref->min());
 }
 
 PyObject* get_max(obj* self) {
-  return PyLong_FromLongLong(self->ref->max());
+  return PyLong_FromSize_t(self->ref->max());
 }
 
 PyObject* get_ptr(obj* self) {

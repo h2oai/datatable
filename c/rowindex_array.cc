@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::min, std::swap, std::move
 #include <cstdlib>             // std::memcpy
@@ -57,25 +71,20 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
   min = INT64_MAX;
   max = 0;
   for (size_t i = 0; i < n; ++i) {
-    int64_t start = starts[i];
-    int64_t step = steps[i];
-    int64_t len = counts[i];
+    size_t start = static_cast<size_t>(starts[i]);
+    size_t step  = static_cast<size_t>(steps[i]);
+    size_t len   = static_cast<size_t>(counts[i]);
     SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-    if (len == 0) continue;
-    int64_t end = start + step * (len - 1);
-    if (start < min) min = start;
-    if (start > max) max = start;
-    if (end < min) min = end;
-    if (end > max) max = end;
-    length += static_cast<size_t>(len);
+    if (tmp.min < min) min = tmp.min;
+    if (tmp.max > max) max = tmp.max;
+    length += len;
   }
   if (max == 0) min = 0;
   xassert(min >= 0 && min <= max);
-  size_t zlen = static_cast<size_t>(length);
 
-  if (zlen <= INT32_MAX && max <= INT32_MAX) {
+  if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::ARR32;
-    ind32.resize(zlen);
+    ind32.resize(length);
     int32_t* rowsptr = ind32.data();
     for (size_t i = 0; i < n; ++i) {
       int32_t j = static_cast<int32_t>(starts[i]);
@@ -86,10 +95,10 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
         j += istep;
       }
     }
-    xassert(rowsptr == &ind32[zlen]);
+    xassert(rowsptr == &ind32[length]);
   } else {
     type = RowIndexType::ARR64;
-    ind64.resize(zlen);
+    ind64.resize(length);
     int64_t* rowsptr = ind64.data();
     for (size_t i = 0; i < n; ++i) {
       int64_t j = starts[i];
@@ -100,7 +109,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
         j += istep;
       }
     }
-    xassert(rowsptr == &ind64[zlen]);
+    xassert(rowsptr == &ind64[length]);
   }
 }
 
@@ -258,19 +267,19 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
   if (length == 0) {
     min = max = 0;
   } else if (is_sorted || length == 1) {
-    constexpr int64_t NA = static_cast<int64_t>(GETNA<T>());
-    min = static_cast<int64_t>(data[0]);
-    max = static_cast<int64_t>(data[length - 1]);
+    constexpr size_t NA = static_cast<size_t>(GETNA<T>());
+    min = static_cast<size_t>(data[0]);
+    max = static_cast<size_t>(data[length - 1]);
     if (min == NA || max == NA) {
       if (min == NA && max == NA) min = max = 0;
       else if (min == NA) {
         size_t j = 1;
         while (j < length && ISNA<T>(data[j])) ++j;
-        min = static_cast<int64_t>(data[j]);
+        min = static_cast<size_t>(data[j]);
       } else {
         size_t j = length - 2;
         while (j < length && ISNA<T>(data[j])) --j;
-        max = static_cast<int64_t>(data[j]);
+        max = static_cast<size_t>(data[j]);
       }
     }
     if (min > max) std::swap(min, max);
@@ -285,10 +294,10 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr) {
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
-    min = tmin;
-    max = tmax;
-    if (min == std::numeric_limits<T>::max() &&
-        max == -std::numeric_limits<T>::max()) min = max = 0;
+    if (tmin == std::numeric_limits<T>::max() &&
+        tmax == -std::numeric_limits<T>::max()) tmin = tmax = 0;
+    min = static_cast<size_t>(tmin);
+    max = static_cast<size_t>(tmax);
   }
   xassert(min >= 0 && max >= min);
 }
@@ -333,11 +342,13 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
   if (col->countna()) {
     throw ValueError() << "RowIndex source column contains NA values.";
   }
-  min = col->min_int64();
-  max = col->max_int64();
-  if (min < 0) {
+  int64_t imin = col->min_int64();
+  int64_t imax = col->max_int64();
+  if (imin < 0) {
     throw ValueError() << "Row indices in integer column cannot be negative";
   }
+  min = static_cast<size_t>(imin);
+  max = static_cast<size_t>(imax);
   Column* col2 = col->shallowcopy();
   col2->reify();  // noop if col has no rowindex
 
@@ -366,20 +377,19 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
 }
 
 
-RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
+RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
   RowIndexType uptype = rii->type;
-  size_t zlen = static_cast<size_t>(length);
   if (uptype == RowIndexType::SLICE) {
     size_t start = slice_rowindex_get_start(rii);
     size_t step  = slice_rowindex_get_step(rii);
-    arr64_t rowsres(zlen);
+    arr64_t rowsres(length);
     if (type == RowIndexType::ARR32) {
-      for (size_t i = 0; i < zlen; ++i) {
+      for (size_t i = 0; i < length; ++i) {
         size_t j = start + static_cast<size_t>(ind32[i]) * step;
         rowsres[i] = static_cast<int64_t>(j);
       }
     } else {
-      for (size_t i = 0; i < zlen; ++i) {
+      for (size_t i = 0; i < length; ++i) {
         size_t j = start + static_cast<size_t>(ind32[i]) * step;
         rowsres[i] = static_cast<int64_t>(j);
       }
@@ -390,37 +400,37 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     return res;
   }
   if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR32) {
-    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    arr32_t rowsres(zlen);
-    int32_t* rows_ab = arii->ind32.data();
-    int32_t* rows_bc = ind32.data();
-    for (size_t i = 0; i < zlen; ++i) {
+    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
+    arr32_t rowsres(length);
+    const int32_t* rows_ab = arii->ind32.data();
+    const int32_t* rows_bc = ind32.data();
+    for (size_t i = 0; i < length; ++i) {
       rowsres[i] = rows_ab[rows_bc[i]];
     }
     bool res_sorted = is_sorted && arii->is_sorted;
     return new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
   }
   if (uptype == RowIndexType::ARR32 || uptype == RowIndexType::ARR64) {
-    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    arr64_t rowsres(zlen);
+    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
+    arr64_t rowsres(length);
     if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR64) {
-      int32_t* rows_ab = arii->ind32.data();
-      int64_t* rows_bc = ind64.data();
-      for (size_t i = 0; i < zlen; ++i) {
+      const int32_t* rows_ab = arii->ind32.data();
+      const int64_t* rows_bc = ind64.data();
+      for (size_t i = 0; i < length; ++i) {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
     if (uptype == RowIndexType::ARR64 && type == RowIndexType::ARR32) {
-      int64_t* rows_ab = arii->ind64.data();
-      int32_t* rows_bc = ind32.data();
-      for (size_t i = 0; i < zlen; ++i) {
+      const int64_t* rows_ab = arii->ind64.data();
+      const int32_t* rows_bc = ind32.data();
+      for (size_t i = 0; i < length; ++i) {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
     if (uptype == RowIndexType::ARR64 && type == RowIndexType::ARR64) {
-      int64_t* rows_ab = arii->ind64.data();
-      int64_t* rows_bc = ind64.data();
-      for (size_t i = 0; i < zlen; ++i) {
+      const int64_t* rows_ab = arii->ind64.data();
+      const int64_t* rows_bc = ind64.data();
+      for (size_t i = 0; i < length; ++i) {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
@@ -536,7 +546,7 @@ size_t ArrayRowIndexImpl::memory_footprint() const {
 
 template <typename T>
 static void verify_integrity_helper(
-    const dt::array<T>& ind, size_t len, int64_t min, int64_t max, bool sorted)
+    const dt::array<T>& ind, size_t len, size_t min, size_t max, bool sorted)
 {
   if (ind.size() != len) {
     throw AssertionError() << "length of data array (" << ind.size()
@@ -557,7 +567,7 @@ static void verify_integrity_helper(
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
   if (!len) tmin = 0;
-  if (tmin != min || tmax != max) {
+  if (static_cast<size_t>(tmin) != min || static_cast<size_t>(tmax) != max) {
     throw AssertionError()
         << "Mismatching min/max values in the ArrayRowIndex min=" << min
         << "/max=" << max << " compared to the computed min=" << tmin

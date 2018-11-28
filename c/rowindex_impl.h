@@ -35,8 +35,8 @@ class RowIndexImpl {
     size_t : 24;
     int32_t refcount;
     size_t length;
-    int64_t min;
-    int64_t max;
+    size_t min;
+    size_t max;
 
     RowIndexImpl()
       : type(RowIndexType::UNKNOWN),
@@ -46,7 +46,7 @@ class RowIndexImpl {
     void release() { if (!--refcount) delete this; }
 
     virtual size_t nth(size_t i) const = 0;
-    virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
+    virtual RowIndexImpl* uplift_from(const RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(size_t nrows) const = 0;
     virtual void shrink(size_t n) = 0;
     virtual RowIndexImpl* shrunk(size_t n) = 0;
@@ -65,14 +65,14 @@ class RowIndexImpl {
 
 class SliceRowIndexImpl : public RowIndexImpl {
   private:
-    int64_t start;
-    int64_t step;
+    size_t start;
+    size_t step;
 
   public:
-    SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
+    SliceRowIndexImpl(size_t start, size_t count, size_t step);
 
     size_t nth(size_t i) const override;
-    RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;
@@ -115,7 +115,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     size_t nth(size_t i) const override;
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
-    RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;

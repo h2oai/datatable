@@ -50,6 +50,7 @@ class RowIndex {
 
   public:
     static constexpr size_t NA = size_t(-1);
+    static constexpr size_t MAX = size_t(-1) >> 1;
 
     RowIndex();
     RowIndex(const RowIndex&);
@@ -66,17 +67,16 @@ class RowIndex {
     static RowIndex from_array64(arr64_t&& arr, bool sorted = false);
 
     /**
-     * Construct a RowIndex object from triple `(start, count, step)`. The new
-     * object will have type `RowIndexType::SLICE`.
+     * Construct a "slice" RowIndex from triple `(start, count, step)`.
      *
      * Note that we depart from Python's standard of using `(start, end, step)`
      * to denote a slice -- having a `count` gives several advantages:
      *   - computing the "end" is easy and unambiguous: `start + count * step`;
      *     whereas computing "count" from `end` is harder.
-     *   - with explicit `count` the `step` may safely be 0.
+     *   - with explicit `count` the `step` may potentially be 0.
      *   - there is no difference in handling positive/negative steps.
      */
-    static RowIndex from_slice(int64_t start, int64_t count, int64_t step);
+    static RowIndex from_slice(size_t start, size_t count, size_t step);
 
     /**
      * Construct an "array" `RowIndex` object from a series of triples
@@ -129,8 +129,8 @@ class RowIndex {
     const void* ptr() const;
 
     size_t length() const;
-    int64_t min() const;
-    int64_t max() const;
+    size_t min() const;
+    size_t max() const;
     size_t nth(size_t i) const;
     const int32_t* indices32() const;
     const int64_t* indices64() const;
@@ -267,7 +267,7 @@ void RowIndex::strided_loop2(
 }
 
 
-bool check_slice_triple(int64_t start, int64_t cnt, int64_t step, int64_t max);
+bool check_slice_triple(size_t start, size_t cnt, size_t step, size_t max);
 
 
 #endif
