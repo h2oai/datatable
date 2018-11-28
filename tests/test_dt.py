@@ -5,10 +5,12 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import pytest
+import re
 import subprocess
 import sys
 import time
 import datatable as dt
+from collections import namedtuple
 from datatable import stype, ltype, f, isna
 from tests import same_iterables, list_equals
 
@@ -728,6 +730,53 @@ def test_rename_default():
 
 
 #-------------------------------------------------------------------------------
+# Test conversions into python
+#-------------------------------------------------------------------------------
+
+def test_to_list():
+    src = [[-1, 0, 1, 3],
+           ["cat", "dog", "mouse", "elephant"],
+           [False, True, None, True]]
+    d0 = dt.Frame(src, names=["A", "B", "C"])
+    assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
+    a0 = d0.topython()
+    assert len(a0) == 3
+    assert len(a0[0]) == 4
+    assert a0 == src
+    # Special case for booleans (because Booleans compare equal to 1/0)
+    assert all(b is None or isinstance(b, bool) for b in a0[2])
+
+
+def test_to_list2():
+    src = [[1.0, None, float("nan"), 3.3]]
+    d0 = dt.Frame(src)
+    assert d0.ltypes == (ltype.real, )
+    a0 = d0.topython()[0]
+    assert a0 == [1.0, None, None, 3.3]
+
+
+def test_to_tuples():
+    d0 = dt.Frame([[2, 17, -5, 148],
+                   [3.6, 9.99, -14.15, 2.5e100],
+                   ["mars", "venus", "mercury", "polonium"],
+                   [None, True, False, None]])
+    assert d0.to_tuples() == [(2, 3.6, "mars", None),
+                              (17, 9.99, "venus", True),
+                              (-5, -14.15, "mercury", False),
+                              (148, 2.5e100, "polonium", None)]
+
+
+def test_to_dict():
+    d0 = dt.Frame(A=["purple", "yellow", "indigo", "crimson"],
+                  B=[0, None, 123779, -299],
+                  C=[1.23, 4.56, 7.89, 10.11])
+    assert d0.to_dict() == {"A": ["purple", "yellow", "indigo", "crimson"],
+                            "B": [0, None, 123779, -299],
+                            "C": [1.23, 4.56, 7.89, 10.11]}
+
+
+
+#-------------------------------------------------------------------------------
 # Test conversions into Pandas / Numpy
 #-------------------------------------------------------------------------------
 
@@ -767,28 +816,6 @@ def test_topandas_nas():
     p0 = d0.topandas()
     # Check that each column in Pandas DataFrame has the correct number of NAs
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
-
-
-def test_topython():
-    src = [[-1, 0, 1, 3],
-           ["cat", "dog", "mouse", "elephant"],
-           [False, True, None, True]]
-    d0 = dt.Frame(src, names=["A", "B", "C"])
-    assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
-    a0 = d0.topython()
-    assert len(a0) == 3
-    assert len(a0[0]) == 4
-    assert a0 == src
-    # Special case for booleans (because Booleans compare equal to 1/0)
-    assert all(b is None or isinstance(b, bool) for b in a0[2])
-
-
-def test_topython2():
-    src = [[1.0, None, float("nan"), 3.3]]
-    d0 = dt.Frame(src)
-    assert d0.ltypes == (ltype.real, )
-    a0 = d0.topython()[0]
-    assert a0 == [1.0, None, None, 3.3]
 
 
 def test_tonumpy0(numpy):
@@ -1013,6 +1040,136 @@ def test_copy_frame():
     assert d0.topython() != d1.topython()
     d0.names = ("w", "x", "y", "z")
     assert d1.names != d0.names
+
+
+def test_copy_keyed_frame():
+    d0 = dt.Frame(A=range(5), B=["alpha", "beta", "gamma", "delta", "epsilon"])
+    d0.key = "A"
+    d1 = d0.copy()
+    d2 = dt.Frame(d0)
+    d1.internal.check()
+    d2.internal.check()
+    assert d2.names == d1.names == d0.names
+    assert d2.stypes == d1.stypes == d0.stypes
+    assert d2.key == d1.key == d0.key
+    assert d2.to_list() == d1.to_list() == d0.to_list()
+
+
+
+#-------------------------------------------------------------------------------
+# head / tail
+#-------------------------------------------------------------------------------
+
+def test_head():
+    d0 = dt.Frame(A=range(20), B=[3, 5] * 10)
+    d1 = d0.head(3)
+    assert d1.to_dict() == {"A": [0, 1, 2], "B": [3, 5, 3]}
+    d2 = d0.head(1)
+    assert d2.to_dict() == {"A": [0], "B": [3]}
+    d3 = d0.head(0)
+    assert d3.to_dict() == {"A": [], "B": []}
+    d4 = d0.head(100)
+    assert d4.to_dict() == d0.to_dict()
+    d5 = d0.head()
+    assert d5.to_dict() == {"A": list(range(10)), "B": [3, 5] * 5}
+
+
+def test_tail():
+    d0 = dt.Frame(A=range(20), B=[3, 5] * 10)
+    d1 = d0.tail(3)
+    assert d1.to_dict() == {"A": [17, 18, 19], "B": [5, 3, 5]}
+    d2 = d0.tail(1)
+    assert d2.to_dict() == {"A": [19], "B": [5]}
+    d3 = d0.tail(0)
+    assert d3.to_dict() == {"A": [], "B": []}
+    d4 = d0.tail(100)
+    assert d4.to_dict() == d0.to_dict()
+    d5 = d0.tail()
+    assert d5.to_dict() == {"A": list(range(10, 20)), "B": [3, 5] * 5}
+
+
+def test_head_bad():
+    d0 = dt.Frame(range(10))
+    with pytest.raises(ValueError) as e:
+        d0.head(-5)
+    assert ("The argument in Frame.head() cannot be negative"
+            in str(e.value))
+    with pytest.raises(TypeError) as e:
+        d0.head(5.0)
+    assert ("The argument in Frame.head() should be an integer"
+            in str(e.value))
+
+
+def test_tail_bad():
+    d0 = dt.Frame(range(10))
+    with pytest.raises(ValueError) as e:
+        d0.tail(-5)
+    assert ("The argument in Frame.tail() cannot be negative"
+            in str(e.value))
+    with pytest.raises(TypeError) as e:
+        d0.tail(5.0)
+    assert ("The argument in Frame.tail() should be an integer"
+            in str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# HTML repr
+#-------------------------------------------------------------------------------
+
+def parse_html_repr(html):
+    # Here `re.S` means "single-line mode", i.e. allow '.' to match any
+    # character, including the newline (by default '.' does not match '\n').
+    mm = re.search("<div class='datatable'>(.*)</div>", html, re.S)
+    html = mm.group(1).strip()
+    mm = re.match(r"<table class='frame'>(.*)</table>\s*"
+                  r"<div class='footer'>(.*)</div>", html, re.S)
+    frame = mm.group(1).strip()
+    footer = mm.group(2).strip()
+    mm = re.match(r"<div class='frame_dimensions'>"
+                  r"(\d+) rows? &times; (\d+) columns?</div>", footer, re.S)
+    shape = (int(mm.group(1).strip()), int(mm.group(2).strip()))
+    mm = re.match(r"<thead>(.*)</thead>\s*<tbody>(.*)</tbody>", frame, re.S)
+    thead = mm.group(1).strip()
+    tbody = mm.group(2).strip()
+    mm = re.match("<tr class='colnames'><td class='row_index'></td>(.*)</tr>"
+                  "\\s*"
+                  "<tr class='coltypes'><td class='row_index'></td>(.*)</tr>",
+                  thead, re.S)
+    str_colnames = mm.group(1).strip()
+    str_coltypes = mm.group(2).strip()
+    colnames = re.findall("<th>(.*?)</th>", str_colnames)
+    coltypes = re.findall("<td class='\\w+' title='(\\w+)'>", str_coltypes)
+    str_rows = re.findall("<tr>(.*?)</tr>", tbody, re.S)
+    rows = []
+    for str_row in str_rows:
+        row = re.findall("<td>(.*?)</td>", str_row, re.S)
+        rows.append(row)
+    html_repr = namedtuple("html_repr", ["names", "stypes", "shape", "data"])
+    return html_repr(names=tuple(colnames),
+                     stypes=tuple(dt.stype(s) for s in coltypes),
+                     shape=shape,
+                     data=rows)
+
+
+def test_html_repr():
+    DT = dt.Frame(A=range(5))
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == DT.names
+    assert hr.stypes == DT.stypes
+    assert hr.shape == DT.shape
+    assert hr.data == [["0"], ["1"], ["2"], ["3"], ["4"]]
+
+
+def test_html_repr_slice():
+    DT = dt.Frame(A=range(5))[::-1, :]
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == DT.names
+    assert hr.stypes == DT.stypes
+    assert hr.shape == DT.shape
+    assert hr.data == [["4"], ["3"], ["2"], ["1"], ["0"]]
 
 
 

@@ -133,7 +133,8 @@ const char* filesize_to_str(size_t fsize)
       }
     } else {
       snprintf(output, BUFFSIZE, "%.*f%cB",
-               ndigits, static_cast<double>(fsize) / (1 << shift), suffixes[i]);
+               ndigits, static_cast<double>(fsize) / (1LL << shift),
+               suffixes[i]);
       return output;
     }
   }

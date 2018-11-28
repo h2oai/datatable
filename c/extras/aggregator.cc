@@ -723,7 +723,7 @@ void Aggregator::adjust_members(std::vector<size_t>& ids,
                                 dtptr& dt_members) {
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  size_t* map = new size_t[ids.size()];
+  auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
 
   #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < ids.size(); ++i) {
@@ -736,7 +736,8 @@ void Aggregator::adjust_members(std::vector<size_t>& ids,
 
   #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < dt_members->nrows; ++i) {
-    d_members[i] = static_cast<int32_t>(map[d_members[i]]);
+    auto j = static_cast<size_t>(d_members[i]);
+    d_members[i] = static_cast<int32_t>(map[j]);
   }
 
 }

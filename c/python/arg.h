@@ -34,7 +34,7 @@ class Arg : public _obj::error_manager {
   public:
     Arg();
     Arg(const Arg&) = default;
-    virtual ~Arg();
+    virtual ~Arg() override;
     void init(size_t i, PKArgs* args);
     void set(PyObject* value);
 
@@ -75,8 +75,10 @@ class Arg : public _obj::error_manager {
 
 
     //---- Error messages --------------
-    virtual Error error_not_list       (PyObject*) const;
-    virtual Error error_not_stype      (PyObject*) const;
+    virtual Error error_not_list       (PyObject*) const override;
+    virtual Error error_not_stype      (PyObject*) const override;
+    virtual Error error_not_integer    (PyObject*) const override;
+    virtual Error error_int_negative   (PyObject*) const override;
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }

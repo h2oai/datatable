@@ -26,6 +26,12 @@ orange::orange(int64_t start, int64_t stop, int64_t step) {
   if (!v) throw PyError();
 }
 
+orange::orange(size_t start, size_t stop, size_t step)
+  : orange(static_cast<int64_t>(start),
+           static_cast<int64_t>(stop),
+           static_cast<int64_t>(step)) {}
+
+
 orange::orange(const orange& other) : oobj(other) {}
 
 orange::orange(orange&& other) : oobj(std::move(other)) {}

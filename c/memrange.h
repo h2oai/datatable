@@ -130,7 +130,7 @@ class MemoryRange
     static MemoryRange acquire(void* ptr, size_t n);
     static MemoryRange external(const void* ptr, size_t n);
     static MemoryRange external(const void* ptr, size_t n, Py_buffer* pybuf);
-    static MemoryRange view(MemoryRange& src, size_t n, size_t offset);
+    static MemoryRange view(const MemoryRange& src, size_t n, size_t offset);
     static MemoryRange mmap(const std::string& path);
     static MemoryRange mmap(const std::string& path, size_t n, int fd = -1);
     static MemoryRange overmap(const std::string& path, size_t nextra,

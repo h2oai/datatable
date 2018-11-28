@@ -1,17 +1,23 @@
 //------------------------------------------------------------------------------
 // Copyright 2018 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_FRAME_PYFRAME_h
 #define dt_FRAME_PYFRAME_h
@@ -50,12 +56,16 @@ class Frame : public PyObject {
         static PKArgs args_colindex;
         static PKArgs args_replace;
         static NoArgs args_copy;
+        static NoArgs args_to_dict;
+        static NoArgs args_to_list;
+        static NoArgs args_to_tuples;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
         static void init_methods_and_getsets(Methods&, GetSetters&);
       private:
         static void _init_names(Methods&, GetSetters&);
+        static void _init_init(Methods&, GetSetters&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -69,6 +79,8 @@ class Frame : public PyObject {
     void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
+    oobj m__getstate__(const NoArgs&);  // pickling support
+    void m__setstate__(const PKArgs&);
 
     oobj _repr_html_(const NoArgs&);
     oobj get_ncols() const;
@@ -88,6 +100,11 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const NoArgs&);
     void replace(const PKArgs&);
+    oobj to_dict(const NoArgs&);
+    oobj to_list(const NoArgs&);
+    oobj to_tuples(const NoArgs&);
+    oobj head(const PKArgs&);
+    oobj tail(const PKArgs&);
 
   private:
     static bool internal_construction;

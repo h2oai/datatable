@@ -113,7 +113,7 @@
       ViewedMRI* base;
 
     public:
-      ViewMRI(size_t n, MemoryRange& src, size_t offset);
+      ViewMRI(size_t n, const MemoryRange& src, size_t offset);
       virtual ~ViewMRI() override;
 
       void resize(size_t n) override;
@@ -130,7 +130,7 @@
       size_t refcount;
 
     public:
-      static ViewedMRI* acquire_viewed(MemoryRange& src);
+      static ViewedMRI* acquire_viewed(const MemoryRange& src);
       void release();
 
       bool is_writable() const;
@@ -138,7 +138,7 @@
       const char* name() const override { return "viewed"; }
 
     private:
-      ViewedMRI(MemoryRange& src);
+      ViewedMRI(const MemoryRange& src);
     };
 
 
@@ -223,7 +223,7 @@
     return MemoryRange(new ExternalMRI(n, ptr, pb));
   }
 
-  MemoryRange MemoryRange::view(MemoryRange& src, size_t n, size_t offset) {
+  MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
     return MemoryRange(new ViewMRI(n, src, offset));
   }
 
@@ -602,7 +602,7 @@
 // ViewMRI
 //==============================================================================
 
-  ViewMRI::ViewMRI(size_t n, MemoryRange& src, size_t offs) {
+  ViewMRI::ViewMRI(size_t n, const MemoryRange& src, size_t offs) {
     xassert(offs + n <= src.size());
     base = ViewedMRI::acquire_viewed(src);
     offset = offs;
@@ -647,7 +647,7 @@
 // ViewedMRI
 //==============================================================================
 
-  ViewedMRI::ViewedMRI(MemoryRange& src) {
+  ViewedMRI::ViewedMRI(const MemoryRange& src) {
     BaseMRI* implptr = src.o->impl.release();
     src.o->impl.reset(this);
     parent = src.o;  // copy std::shared_ptr
@@ -660,7 +660,7 @@
     resizable = false;
   }
 
-  ViewedMRI* ViewedMRI::acquire_viewed(MemoryRange& src) {
+  ViewedMRI* ViewedMRI::acquire_viewed(const MemoryRange& src) {
     BaseMRI* implptr = src.o->impl.get();
     ViewedMRI* viewedptr = dynamic_cast<ViewedMRI*>(implptr);
     if (!viewedptr) {

@@ -191,7 +191,7 @@ Select subsets of rows and/or columns using:
 
 ::
 
-   df["A"]            # select 1 column
+   df[:, "A"]         # select 1 column
    df[:10, :]         # first 10 rows
    df[::-1, "A":"D"]  # reverse rows order, columns from A to D
    df[27, 3]          # single element in row 27, column 3 (0-based)
@@ -203,7 +203,7 @@ Delete rows and or columns using:
 
 ::
 
-   del df["D"]        # delete column D
+   del df[:, "D"]     # delete column D
    del df[f.A < 0, :] # delete rows where column A has negative values
 
 Filter Rows

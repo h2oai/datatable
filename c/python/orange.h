@@ -21,6 +21,7 @@ namespace py {
 class orange : public oobj {
   public:
     orange(int64_t start, int64_t stop, int64_t step);
+    orange(size_t start, size_t stop, size_t step);
     orange(const orange&);
     orange(orange&&);
     orange& operator=(const orange&);
