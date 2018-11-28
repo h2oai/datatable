@@ -300,7 +300,7 @@ void FwColumn<T>::replace_values(
     replace_with = replace_with->cast(stype());
   }
 
-  size_t replace_n = replace_at.length();
+  size_t replace_n = replace_at.size();
   const T* data_src = static_cast<const T*>(replace_with->data());
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {

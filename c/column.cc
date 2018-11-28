@@ -154,7 +154,7 @@ Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
 
   if (new_rowindex) {
     col->ri = new_rowindex;
-    col->nrows = new_rowindex.length();
+    col->nrows = new_rowindex.size();
   } else if (ri) {
     col->ri = ri;
   }
@@ -212,7 +212,7 @@ Column* Column::rbind(std::vector<const Column*>& columns)
 
 void Column::replace_rowindex(const RowIndex& newri) {
   ri = newri;
-  nrows = ri.length();
+  nrows = ri.size();
 }
 
 
@@ -388,11 +388,11 @@ void Column::verify_integrity(const std::string& name) const {
   }
   else {
     // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != ri.length()) {
+    if (nrows != ri.size()) {
       throw AssertionError()
           << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.length();
+          << ri.size();
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer

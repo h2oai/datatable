@@ -117,7 +117,7 @@ bool RowIndex::isarr64() const { return impl && impl->type == RowIndexType::ARR6
 bool RowIndex::isarray() const { return isarr32() || isarr64(); }
 const void* RowIndex::ptr() const { return static_cast<const void*>(impl); }
 
-size_t RowIndex::length() const { return impl? impl->length : 0; }
+size_t RowIndex::size() const { return impl? impl->length : 0; }
 size_t RowIndex::min() const { return impl? impl->min : 0; }
 size_t RowIndex::max() const { return impl? impl->max : 0; }
 size_t RowIndex::nth(size_t i) const { return impl? impl->nth(i) : i; }
@@ -159,7 +159,7 @@ void RowIndex::shrink(size_t nrows, size_t ncols) {
 void RowIndex::extract_into(arr32_t& target) const
 {
   if (!impl) return;
-  size_t szlen = length();
+  size_t szlen = size();
   xassert(target.size() >= szlen);
   switch (impl->type) {
     case RowIndexType::ARR32: {
@@ -198,7 +198,7 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // of that is a 0-length RowIndex.
     return RowIndex(new SliceRowIndexImpl(0, 0, 0));
   }
-  if (length() == 0) {
+  if (size() == 0) {
     // An inverse of a 0-length RowIndex is a RowIndex over all rows, which we
     // return as an empty RowIndex object.
     return RowIndex();

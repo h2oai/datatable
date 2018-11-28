@@ -31,6 +31,9 @@
 
 class RowIndexImpl {
   public:
+    /**
+     * length - number of entries in the RowIndex.
+     */
     size_t length;
     size_t min;
     size_t max;

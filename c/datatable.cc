@@ -152,7 +152,7 @@ void DataTable::resize_rows(size_t new_nrows) {
 void DataTable::replace_rowindex(const RowIndex& newri) {
   if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
-  nrows = rowindex.length();
+  nrows = rowindex.size();
   for (size_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }

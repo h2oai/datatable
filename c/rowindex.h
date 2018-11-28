@@ -128,7 +128,7 @@ class RowIndex {
     bool isarray() const;
     const void* ptr() const;
 
-    size_t length() const;
+    size_t size() const;
     size_t min() const;
     size_t max() const;
     size_t nth(size_t i) const;

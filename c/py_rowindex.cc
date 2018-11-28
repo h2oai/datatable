@@ -156,7 +156,7 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 //==============================================================================
 
 PyObject* get_nrows(obj* self) {
-  return PyLong_FromSize_t(self->ref->length());
+  return PyLong_FromSize_t(self->ref->size());
 }
 
 PyObject* get_min(obj* self) {
@@ -192,14 +192,14 @@ static PyObject* repr(obj* self)
   if (rz.isabsent())
     return PyUnicode_FromString("_RowIndex(nullptr)");
   if (rz.isarr32()) {
-    return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.length());
+    return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.size());
   }
   if (rz.isarr64()) {
-    return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.length());
+    return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.size());
   }
   if (rz.isslice()) {
     return PyUnicode_FromFormat("_RowIndex(%ld/%ld/%ld)",
-        rz.slice_start(), rz.length(), rz.slice_step());
+        rz.slice_start(), rz.size(), rz.slice_step());
   }
   return nullptr;
 }
@@ -208,7 +208,7 @@ static PyObject* repr(obj* self)
 PyObject* tolist(obj* self, PyObject*)
 {
   RowIndex& ri = *(self->ref);
-  size_t n = ri.length();
+  size_t n = ri.size();
 
   py::olist list(n);
   if (ri.isarr32()) {

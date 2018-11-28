@@ -103,7 +103,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   // Sort the table by the keys
   Groupby gb;
   RowIndex ri = sortby(col_indices, &gb);
-  xassert(ri.length() == nrows);
+  xassert(ri.size() == nrows);
   if (gb.ngroups() != nrows) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }

@@ -1189,7 +1189,7 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   if (nrows > INT32_MAX) {
     throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
   }
-  if (rowindex.isarr64() || rowindex.length() > INT32_MAX ||
+  if (rowindex.isarr64() || rowindex.size() > INT32_MAX ||
       rowindex.max() > INT32_MAX) {
     throw NotImplError() << "Cannot sort a datatable which is based on a "
                             "datatable with >2**31 rows";

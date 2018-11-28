@@ -226,7 +226,7 @@ void StringColumn<T>::reify() {
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
   bool ascending    = ri.isslice() && ri.slice_step() > 0;
 
-  size_t new_mbuf_size = (ri.length() + 1) * sizeof(T);
+  size_t new_mbuf_size = (ri.size() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
   MemoryRange new_strbuf = strbuf;
   MemoryRange new_mbuf = MemoryRange::mem(new_mbuf_size);

@@ -323,7 +323,7 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg5).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
 
   if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
     throw ValueError() << "Invalid slice " << start << "/" << count
@@ -365,7 +365,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg3).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
 
   bool ok = (rrows == rrows2 || rrows == 1) &&
             (rcols == cols.size() || rcols == 1);
