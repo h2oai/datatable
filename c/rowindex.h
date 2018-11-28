@@ -141,15 +141,17 @@ class RowIndex {
     RowIndex inverse(size_t nrows) const;
 
     /**
-     * Return the RowIndex which is the result of applying current RowIndex to
-     * the provided one. More specifically, suppose there are 2 frames A and B,
+     * Return the RowIndex which is the result of applying RowIndex `ab` to
+     * RowIndex `bc`. More specifically, suppose there are 2 frames A and B,
      * with A being a subset of B, and that `this` RowIndex describes which
      * rows in B are selected into A. Furthermore, suppose B itself is a
      * subframe of C, and RowIndex `other` describes which rows from C are
-     * selected into B. Then `this->uplift(other)` will return a new RowIndex
+     * selected into B. Then `AB * BC` will return a new RowIndex
      * object describing how the rows of A can be obtained from C.
+     *
+     * Note that the product is not commutative: `ab * bc` != `bc * ab`.
      */
-    RowIndex uplift(const RowIndex& other) const;
+    friend RowIndex operator *(const RowIndex& ab, const RowIndex& bc);
 
     void clear();
 

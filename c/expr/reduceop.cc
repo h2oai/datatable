@@ -49,7 +49,7 @@ Column* reduce_first(const Column* col, const Groupby& groupby) {
   // to the column will produce the vector of first elements in that column.
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex::from_array32(std::move(indices), true)
-                .uplift(col->rowindex());
+                * col->rowindex();
   Column* res = col->shallowcopy(ri);
   if (ngrps == 1) res->reify();
   return res;
