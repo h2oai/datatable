@@ -48,6 +48,8 @@ class Ftrl {
     
     // Input to the model.
     FtrlParams fp;
+    uint32_t nthreads;
+    py::oobj progress_fn;
 
     // Calculated during the learning process.
     std::vector<uint64_t> col_hashes;

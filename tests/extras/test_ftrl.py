@@ -38,7 +38,7 @@ from tests import assert_equals
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
 fp = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5, n_epochs = 6, 
-                inter = True)
+            inter = True)
 epsilon = 0.01
 
 
@@ -243,13 +243,14 @@ def test_ftrl_fit_wrong_target_string():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_col_hashes():
+    ncols = 10
     col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840, 
                           14296604503264754754,  3956937694466614811,
                           10071734010655191393,  6063711047550005084,
                            4309007444360962581,  4517980897659475069,
                           17871586791652695964, 15779814813469047786)
     ft = core.Ftrl()
-    df_train = dt.Frame([[0]] * 10 + [[True]])
+    df_train = dt.Frame([[0]] * ncols + [[True]])
     ft.fit(df_train)
     assert col_hashes_murmur2 == ft.col_hashes
 

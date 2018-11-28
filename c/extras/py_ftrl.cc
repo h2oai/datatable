@@ -236,7 +236,7 @@ oobj PyFtrl::predict(const PKArgs& args) {
   size_t n_features = ft->get_n_features();
   if (dt_test->ncols != n_features) {
     throw ValueError() << "Can only predict on a frame that has "<< n_features
-                       << " column(s), i.e. the same number of features as was "
+                       << " column(s), i.e. has the same number of features as was "
                        << "used for model training";
   }
 

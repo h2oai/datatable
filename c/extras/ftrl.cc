@@ -104,11 +104,12 @@ dtptr Ftrl::convert(const DataTable* dt) {
     // TODO: if we stick to default column names, like `C*`,
     // this may only be necessary, when number of features increases.
     const std::vector<std::string>& c_names = dt64->get_names();
-    col_hashes.resize(n_features);
+    col_hashes.clear();
+    col_hashes.reserve(n_features);
     for (size_t i = 0; i < n_features; i++) {
       uint64_t h = hash_string(c_names[i].c_str(),
                                c_names[i].length() * sizeof(char));
-      col_hashes[i] = h;
+      col_hashes.push_back(h);
     }
 
     return dt64;
