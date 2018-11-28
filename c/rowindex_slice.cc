@@ -62,6 +62,7 @@ static void _check_triple(size_t start, size_t count, size_t step)
 SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   _check_triple(i0, n, di);
   type   = RowIndexType::SLICE;
+  ascending = (di <= RowIndex::MAX);
   start  = i0;
   length = n;
   step   = di;
@@ -70,7 +71,7 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   } else {
     min = start;
     max = start + step * (n - 1);
-    if (min > max) std::swap(min, max);
+    if (!ascending) std::swap(min, max);
   }
 }
 
@@ -79,7 +80,7 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
 
 
 size_t SliceRowIndexImpl::nth(size_t i) const {
-  return static_cast<size_t>(start) + i * static_cast<size_t>(step);
+  return start + i * step;
 }
 
 
@@ -145,7 +146,7 @@ RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
   size_t tstart = start;
   size_t tcount = length;
   size_t tstep  = step;
-  if (tstep > RowIndex::MAX) {  // negative step
+  if (!ascending) {  // negative step
     tstart += (tcount - 1) * tstep;
     tstep = -tstep;
   }
@@ -206,7 +207,7 @@ void SliceRowIndexImpl::shrink(size_t n) {
   length = n;
   min = start;
   max = start + step*(n - 1);
-  if (min > max) std::swap(min, max);
+  if (!ascending) std::swap(min, max);
 }
 
 RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
@@ -240,12 +241,16 @@ void SliceRowIndexImpl::verify_integrity() const {
   if (length > 0) {
     size_t minrow = start;
     size_t maxrow = start + step * (length - 1);
-    if (minrow > maxrow) std::swap(minrow, maxrow);
+    if (!ascending) std::swap(minrow, maxrow);
     if (min != minrow || max != maxrow) {
       int64_t istep = static_cast<int64_t>(step);
       throw AssertionError()
           << "Invalid min/max values in a Slice RowIndex " << start << "/"
           << length << "/" << istep << ": min = " << min << ", max = " << max;
+    }
+    if (ascending != (step <= RowIndex::MAX)) {
+      throw AssertionError()
+          << "Incorrect 'ascending' flag in Slice RowIndex";
     }
   }
 }
@@ -253,14 +258,14 @@ void SliceRowIndexImpl::verify_integrity() const {
 
 size_t slice_rowindex_get_start(const RowIndexImpl* impl) {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return static_cast<size_t>(simpl->start);
+  return simpl->start;
 }
 size_t slice_rowindex_get_step(const RowIndexImpl* impl) {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return static_cast<size_t>(simpl->step);
+  return simpl->step;
 }
 
 bool slice_rowindex_increasing(const RowIndexImpl* impl) {
-  constexpr size_t MAX_STEP = static_cast<size_t>(-1) >> 1;
-  return slice_rowindex_get_step(impl) < MAX_STEP;
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->ascending;
 }

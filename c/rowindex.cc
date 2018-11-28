@@ -221,9 +221,37 @@ void RowIndex::verify_integrity() const {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// RowIndexImpl
+//------------------------------------------------------------------------------
+
+RowIndexImpl::RowIndexImpl()
+    : type(RowIndexType::UNKNOWN),
+      ascending(false),
+      refcount(0),
+      length(0),
+      min(0),
+      max(0) {}
+
+RowIndexImpl::~RowIndexImpl() {}
+
+
+void RowIndexImpl::acquire() {
+  refcount++;
+}
+
+void RowIndexImpl::release() {
+  refcount--;
+  if (!refcount) delete this;
+}
+
+
+
 void RowIndexImpl::verify_integrity() const {
-  if (refcount <= 0) {
-    throw AssertionError() << "RowIndex has invalid refcount: " << refcount;
+  if (refcount == 0) {
+    throw AssertionError() << "RowIndex has refcount of 0";
   }
   if (length == 0 && (min || max)) {
     throw AssertionError() << "RowIndex has length 0, but either min = " << min
