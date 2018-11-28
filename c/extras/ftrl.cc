@@ -71,11 +71,11 @@ bool Ftrl::is_trained() {
 }
 
 
-dtptr Ftrl::convert(const DataTable* dt, size_t ncols) {
+dtptr Ftrl::convert(const DataTable* dt) {
     std::vector<Column*> cols64;
-    cols64.reserve(ncols);
+    cols64.reserve(n_features);
 
-    for (size_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < n_features; ++i) {
       LType ltype = info(dt->columns[i]->stype()).ltype();
       switch (ltype) {
         case LType::BOOL:
@@ -100,16 +100,15 @@ dtptr Ftrl::convert(const DataTable* dt, size_t ncols) {
 
     dtptr dt64 = dtptr(new DataTable(std::move(cols64)));
 
-    // Pre-hash column names, if number of features has changed.
-    if (n_features != dt64->ncols || !col_hashes.size()) {
-      const std::vector<std::string>& c_names = dt64->get_names();
-      col_hashes.reserve(dt64->ncols);
-
-      for (size_t i = 0; i < dt64->ncols; i++) {
-        uint64_t h = hash_string(c_names[i].c_str(),
-                                 c_names[i].length() * sizeof(char));
-        col_hashes.push_back(h);
-      }
+    // Pre-hash column names.
+    // TODO: if we stick to default column names, like `C*`,
+    // this may only be necessary, when number of features increases.
+    const std::vector<std::string>& c_names = dt64->get_names();
+    col_hashes.resize(n_features);
+    for (size_t i = 0; i < n_features; i++) {
+      uint64_t h = hash_string(c_names[i].c_str(),
+                               c_names[i].length() * sizeof(char));
+      col_hashes[i] = h;
     }
 
     return dt64;
@@ -121,7 +120,7 @@ dtptr Ftrl::convert(const DataTable* dt, size_t ncols) {
 void Ftrl::fit(const DataTable* dt) {
   // Define number of features assuming that the target column is the last one.
   n_features = dt->ncols - 1;
-  dtptr dt64 = convert(dt, n_features);
+  dtptr dt64 = convert(dt);
 
   // Define number of feature interactions.
   n_inter_features = (fp.inter)? n_features * (n_features - 1) / 2 : 0;
@@ -171,7 +170,7 @@ void Ftrl::fit(const DataTable* dt) {
 *  We assume that all the validation is done in `py_ftrl.cc`.
 */
 dtptr Ftrl::predict(const DataTable* dt) {
-  dtptr dt64 = convert(dt, n_features);
+  dtptr dt64 = convert(dt);
 
   // Create a target datatable.
   dtptr dt_target = nullptr;
@@ -256,40 +255,6 @@ void Ftrl::update(const Uint64Ptr& x, size_t x_size, double p, bool target) {
 
 
 /*
-*  Hash string using the specified hash function. This is for the tests only,
-*  for production we will remove this method and stick to the hash function,
-*  that demonstrates the best performance.
-*/
-uint64_t Ftrl::hash_string(const char * key, size_t len) {
-  uint64_t res;
-  switch (fp.hash_type) {
-    // `std::hash` is kind of slow, because we need to convert `char*` to
-    // `std::string`, as `std::hash<char*>` doesn't hash
-    // the actual data.
-    case 0:  {
-                std::string str(key,
-                                key + len / sizeof(char));
-                res = std::hash<std::string>{}(str);
-                break;
-             }
-    // 64 bits Murmur2 hash function. The best performer so far,
-    // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len, fp.seed); break;
-
-    // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
-    case 2:  {
-                uint64_t h[2];
-                hash_murmur3(key, len, fp.seed, h);
-                res = h[0];
-                break;
-             }
-    default: res = hash_murmur2(key, len, fp.seed);
-  }
-  return res;
-}
-
-
-/*
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
 void Ftrl::hash_row(Uint64Ptr& x, dtptr& dt, size_t row_id) {
@@ -356,6 +321,49 @@ void Ftrl::hash_row(Uint64Ptr& x, dtptr& dt, size_t row_id) {
 
 
 /*
+*  Hash string using the specified hash function. This is for the tests only,
+*  for production we will remove this method and stick to the hash function,
+*  that demonstrates the best performance.
+*/
+uint64_t Ftrl::hash_string(const char * key, size_t len) {
+  uint64_t res;
+  switch (fp.hash_type) {
+    // `std::hash` is kind of slow, because we need to convert `char*` to
+    // `std::string`, as `std::hash<char*>` doesn't hash
+    // the actual data.
+    case 0:  {
+                std::string str(key,
+                                key + len / sizeof(char));
+                res = std::hash<std::string>{}(str);
+                break;
+             }
+    // 64 bits Murmur2 hash function. The best performer so far,
+    // need to test it for the memory alignment issues.
+    case 1:  res = hash_murmur2(key, len, fp.seed); break;
+
+    // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
+    case 2:  {
+                uint64_t h[2];
+                hash_murmur3(key, len, fp.seed, h);
+                res = h[0];
+                break;
+             }
+    default: res = hash_murmur2(key, len, fp.seed);
+  }
+  return res;
+}
+
+
+/*
+*  Hash `double` to `uint64_t` based on its bit representation.
+*/
+inline uint64_t Ftrl::hash_double(double x) {
+  uint64_t* h = reinterpret_cast<uint64_t*>(&x);
+  return *h;
+}
+
+
+/*
 *  Calculate logloss based on a prediction and the actual target.
 */
 double Ftrl::logloss(double p, bool target) {
@@ -376,15 +384,6 @@ inline double Ftrl::signum(double x) {
   if (x > 0) return 1;
   if (x < 0) return -1;
   return 0;
-}
-
-
-/*
-*  Hash `double` to `uint64_t` based on its bit representation.
-*/
-inline uint64_t Ftrl::hash_double(double x) {
-  uint64_t* h = reinterpret_cast<uint64_t*>(&x);
-  return *h;
 }
 
 
@@ -411,8 +410,12 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 
 /*
 *  Other getters and setters.
-*  Here we assume that all the validation is done in `py_ftrl.cc`.
+*  Here we assume that all the validation for setters is done in `py_ftrl.cc`.
 */
+std::vector<uint64_t> Ftrl::get_col_hashes() {
+  return col_hashes;
+}
+
 size_t Ftrl::get_n_features() {
   return n_features;
 }

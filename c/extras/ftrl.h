@@ -65,7 +65,7 @@ class Ftrl {
 
     // Learning and predicting methods.
     bool is_trained();
-    dtptr convert(const DataTable*, size_t);
+    dtptr convert(const DataTable*);
     void fit(const DataTable*);
     dtptr predict(const DataTable*);
     double predict_row(const Uint64Ptr&, size_t);
@@ -87,6 +87,7 @@ class Ftrl {
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
     size_t get_n_features();
+    std::vector<uint64_t> get_col_hashes();
     double get_alpha();
     double get_beta();
     double get_lambda1();

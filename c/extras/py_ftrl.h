@@ -49,6 +49,7 @@ namespace py {
 
       // Getters and setters.
       oobj get_model() const;
+      oobj get_col_hashes() const;
       oobj get_params() const;
       oobj get_default_params() const;
       oobj get_alpha() const;
@@ -71,6 +72,5 @@ namespace py {
       void set_inter(robj);
       void set_hash_type(robj);
       void set_seed(robj);
-
   };
 }

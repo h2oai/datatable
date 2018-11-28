@@ -153,6 +153,7 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "must be `FLOAT64`.\n");
   gs.add<&PyFtrl::get_params, &PyFtrl::set_params>("params", "FTRL model parameters.\n");
   gs.add<&PyFtrl::get_default_params>("default_params", "FTRL model default parameters.\n");
+  gs.add<&PyFtrl::get_col_hashes>("col_hashes", "Column name hashes.\n");
 
   gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>("alpha", "`alpha` in per-coordinate learning rate formula.\n");
   gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>("beta", "`beta` in per-coordinate learning rate formula.\n");
@@ -337,6 +338,18 @@ void PyFtrl::set_model(robj model) {
 /*
 *  All other getters and setters.
 */
+oobj PyFtrl::get_col_hashes() const {
+  size_t n_features = ft->get_n_features();
+  py::otuple py_col_hashes(n_features);
+  std::vector<uint64_t> col_hashes = ft->get_col_hashes();
+  for (size_t i = 0; i < n_features; ++i) {
+    py_col_hashes.set(i, py::oint(static_cast<size_t>(col_hashes[i])));
+  }
+
+  return std::move(py_col_hashes);
+}
+
+
 oobj PyFtrl::get_params() const {
   py::otuple params(7);
   params.set(0, get_alpha());
@@ -347,18 +360,6 @@ oobj PyFtrl::get_params() const {
   params.set(5, get_n_epochs());
   params.set(6, get_inter());
   return std::move(params);
-}
-
-
-void PyFtrl::set_params(robj params) {
-  set_alpha(params.get_attr("alpha"));
-  set_beta(params.get_attr("beta"));
-  set_lambda1(params.get_attr("lambda1"));
-  set_lambda2(params.get_attr("lambda2"));
-  set_d(params.get_attr("d"));
-  set_n_epochs(params.get_attr("n_epochs"));
-  set_inter(params.get_attr("inter"));
-  // TODO: check that there are no unknown parameters
 }
 
 
@@ -417,6 +418,18 @@ oobj PyFtrl::get_hash_type() const {
 
 oobj PyFtrl::get_seed() const {
   return py::oint(static_cast<size_t>(ft->get_seed()));
+}
+
+
+void PyFtrl::set_params(robj params) {
+  set_alpha(params.get_attr("alpha"));
+  set_beta(params.get_attr("beta"));
+  set_lambda1(params.get_attr("lambda1"));
+  set_lambda2(params.get_attr("lambda2"));
+  set_d(params.get_attr("d"));
+  set_n_epochs(params.get_attr("n_epochs"));
+  set_inter(params.get_attr("inter"));
+  // TODO: check that there are no unknown parameters
 }
 
 

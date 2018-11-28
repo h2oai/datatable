@@ -97,7 +97,7 @@ def test_ftrl_wrong_inter():
             str(e.value))
     
     
-def test_ftrl_create_wrong_combination():
+def test_ftrl_wrong_combination():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(params=fp, alpha = fp.alpha)
     assert ("You can either pass all the parameters with `params` or  any of "
@@ -195,7 +195,7 @@ def test_ftrl_get_set_reset_model():
 # Test wrong training frame
 #-------------------------------------------------------------------------------
 
-def test_ftrl_fit_empty():
+def test_ftrl_fit_wrong_empty():
     ft = core.Ftrl()
     df_train = dt.Frame()
     with pytest.raises(ValueError) as e:
@@ -204,7 +204,7 @@ def test_ftrl_fit_empty():
             str(e.value))
     
 
-def test_ftrl_fit_one_column():
+def test_ftrl_fit_wrong_one_column():
     ft = core.Ftrl()
     df_train = dt.Frame([1, 2, 3])
     with pytest.raises(ValueError) as e:
@@ -241,6 +241,24 @@ def test_ftrl_fit_wrong_target_string():
 
 
 #-------------------------------------------------------------------------------
+# Test hash function
+#-------------------------------------------------------------------------------
+
+def test_ftrl_col_hashes():
+    col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840, 
+                          14296604503264754754,  3956937694466614811,
+                          10071734010655191393,  6063711047550005084,
+                           4309007444360962581,  4517980897659475069,
+                          17871586791652695964, 15779814813469047786)
+
+    ft = core.Ftrl()
+    df_train = dt.Frame([[0]] * 10 + [[True]])
+    ft.fit(df_train)
+    assert col_hashes_murmur2 == ft.col_hashes
+     
+
+
+#-------------------------------------------------------------------------------
 # Test wrong prediction frame
 #-------------------------------------------------------------------------------
    
@@ -265,7 +283,7 @@ def test_ftrl_predict_wrong_columns():
     
 
 #-------------------------------------------------------------------------------
-# Test training step
+# Test training `fit` and `predict` methods
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_unique():
@@ -278,19 +296,6 @@ def test_ftrl_fit_unique():
     assert ft.model.topython() == model
     
 
-def test_ftrl_fit_predict_int():
-    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[0, 1], 
-                         [True, False]])
-    ft.fit(df_train)
-    df_target = ft.predict(df_train[:,0])
-
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
-    
-
 def test_ftrl_fit_predict_bool():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
     df_train = dt.Frame([[True, False], 
@@ -298,6 +303,19 @@ def test_ftrl_fit_predict_bool():
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])
     
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
+    
+    
+def test_ftrl_fit_predict_int():
+    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    df_train = dt.Frame([[0, 1], 
+                         [True, False]])
+    ft.fit(df_train)
+    df_target = ft.predict(df_train[:,0])
+
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon
     assert df_target[1, 0] >= 0
