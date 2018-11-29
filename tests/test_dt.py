@@ -1003,20 +1003,20 @@ def test_single_element_all_stypes(st):
     df.internal.check()
     assert df.names == ("A", )
     assert df.stypes == (st, )
-    for i in range(len(src)):
+    for i, item in enumerate(src):
         x = df[i, 0]
         y = df[i, "A"]
         assert x == y
-        if src[i] is None:
+        if item is None:
             assert x is None
         else:
             assert isinstance(x, pt)
             if st == dt.stype.int8:
-                assert (x - src[i]) % 256 == 0
+                assert (x - item) % 256 == 0
             elif st == dt.stype.float32:
-                assert abs(1 - src[i] / x) < 1e-7
+                assert abs(1 - item / x) < 1e-7
             else:
-                assert x == src[i]
+                assert x == item
 
 
 

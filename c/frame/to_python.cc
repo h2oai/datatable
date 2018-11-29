@@ -47,7 +47,7 @@ class bool8_converter : public converter {
   private:
     const int8_t* values;
   public:
-    bool8_converter(const Column*);
+    explicit bool8_converter(const Column*);
     oobj to_oobj(size_t row) const override;
 };
 
@@ -67,7 +67,7 @@ class int_converter : public converter {
   private:
     const T* values;
   public:
-    int_converter(const Column*);
+    explicit int_converter(const Column*);
     oobj to_oobj(size_t row) const override;
 };
 
@@ -89,7 +89,7 @@ class float_converter : public converter {
   private:
     const T* values;
   public:
-    float_converter(const Column*);
+    explicit float_converter(const Column*);
     oobj to_oobj(size_t row) const override;
 };
 
@@ -112,7 +112,7 @@ class string_converter : public converter {
     const char* strdata;
     const T* offsets;
   public:
-    string_converter(const Column*);
+    explicit string_converter(const Column*);
     oobj to_oobj(size_t row) const override;
 };
 
@@ -137,7 +137,7 @@ class pyobj_converter : public converter {
   private:
     const PyObject* const* values;
   public:
-    pyobj_converter(const Column*);
+    explicit pyobj_converter(const Column*);
     oobj to_oobj(size_t row) const override;
 };
 

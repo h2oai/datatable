@@ -186,10 +186,10 @@ def ___new___(cls, value):
     # We're re-implementing Enum.__new__() method, which is called by the
     # metaclass' `__call__` (for example `stype(5)` or `stype("int64")`).
     # Also called by pickle.
-    if type(value) is cls:
+    if isinstance(value, cls):
         return value
     try:
-        if value in cls._value2member_map_ and type(value) is not bool:
+        if value in cls._value2member_map_ and not isinstance(value, bool):
             return cls._value2member_map_[value]
         if not isinstance(value, int) and not _numpy_init_attempted:
             _init_numpy_transforms()
@@ -251,8 +251,10 @@ _stype_extrema = {
     stype.int16: (-32767, 32767),
     stype.int32: (-2147483647, 2147483647),
     stype.int64: (-9223372036854775807, 9223372036854775807),
-    stype.float32: (float.fromhex("-0x1.fffffep+127"), float.fromhex("0x1.fffffep+127")),
-    stype.float64: (float.fromhex("-0x1.fffffffffffffp+1023"), float.fromhex("0x1.fffffffffffffp+1023")),
+    stype.float32: (float.fromhex("-0x1.fffffep+127"),
+                    float.fromhex("0x1.fffffep+127")),
+    stype.float64: (float.fromhex("-0x1.fffffffffffffp+1023"),
+                    float.fromhex("0x1.fffffffffffffp+1023")),
 }
 
 _numpy_init_attempted = False
@@ -343,7 +345,7 @@ def _additional_stype_members():
 
 def _init_value2members_from(iterator):
     for k, st in iterator:
-        assert type(st) is stype
+        assert isinstance(st, stype)
         stype._value2member_map_[k] = st
         ltype._value2member_map_[k] = st.ltype
 
