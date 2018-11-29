@@ -65,29 +65,42 @@ RowIndex::RowIndex(RowIndexImpl* rii) {
 }
 
 
-RowIndex::RowIndex(size_t start, size_t count, size_t step)
-  : RowIndex(new SliceRowIndexImpl(start, count, step)) {}
-
+RowIndex::RowIndex(size_t start, size_t count, size_t step){
+  impl = new SliceRowIndexImpl(start, count, step);
+  impl->acquire();
+}
 
 RowIndex::RowIndex(const arr64_t& starts,
                    const arr64_t& counts,
-                   const arr64_t& steps)
-  : RowIndex(new ArrayRowIndexImpl(starts, counts, steps)) {}
+                   const arr64_t& steps) {
+  impl = new ArrayRowIndexImpl(starts, counts, steps);
+  impl->acquire();
+}
 
-RowIndex::RowIndex(arr32_t&& arr, bool sorted)
-  : RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted)) {}
+RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
+  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
+  impl->acquire();
+}
 
-RowIndex::RowIndex(arr64_t&& arr, bool sorted)
-  : RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted)) {}
+RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
+  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
+  impl->acquire();
+}
 
-RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted)
-  : RowIndex(new ArrayRowIndexImpl(f, n, sorted)) {}
+RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
+  impl = new ArrayRowIndexImpl(f, n, sorted);
+  impl->acquire();
+}
 
-RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted)
-  : RowIndex(new ArrayRowIndexImpl(f, n, sorted)) {}
+RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
+  impl = new ArrayRowIndexImpl(f, n, sorted);
+  impl->acquire();
+}
 
-RowIndex::RowIndex(const Column* col)
-  : RowIndex(new ArrayRowIndexImpl(col)) {}
+RowIndex::RowIndex(const Column* col) {
+  impl = new ArrayRowIndexImpl(col);
+  impl->acquire();
+}
 
 
 
