@@ -252,7 +252,7 @@ def test_ftrl_col_hashes():
     ft = core.Ftrl()
     df_train = dt.Frame([[0]] * ncols + [[True]])
     ft.fit(df_train)
-    assert col_hashes_murmur2 == ft.col_hashes
+    assert col_hashes_murmur2 == ft.colnames_hashes
 
 
 #-------------------------------------------------------------------------------

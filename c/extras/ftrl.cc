@@ -469,7 +469,7 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 *  Other getters and setters.
 *  Here we assume that all the validation for setters is done in `py_ftrl.cc`.
 */
-std::vector<uint64_t> Ftrl::get_col_hashes() {
+std::vector<uint64_t> Ftrl::get_colnames_hashes() {
   return colnames_hashes;
 }
 

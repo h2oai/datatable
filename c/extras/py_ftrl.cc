@@ -153,7 +153,7 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "must be `FLOAT64`.\n");
   gs.add<&PyFtrl::get_params, &PyFtrl::set_params>("params", "FTRL model parameters.\n");
   gs.add<&PyFtrl::get_default_params>("default_params", "FTRL model default parameters.\n");
-  gs.add<&PyFtrl::get_col_hashes>("col_hashes", "Column name hashes.\n");
+  gs.add<&PyFtrl::get_colnames_hashes>("colnames_hashes", "Column name hashes.\n");
 
   gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>("alpha", "`alpha` in per-coordinate learning rate formula.\n");
   gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>("beta", "`beta` in per-coordinate learning rate formula.\n");
@@ -338,15 +338,15 @@ void PyFtrl::set_model(robj model) {
 /*
 *  All other getters and setters.
 */
-oobj PyFtrl::get_col_hashes() const {
+oobj PyFtrl::get_colnames_hashes() const {
   size_t n_features = ft->get_n_features();
-  py::otuple py_col_hashes(n_features);
-  std::vector<uint64_t> col_hashes = ft->get_col_hashes();
+  py::otuple py_colnames_hashes(n_features);
+  std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
   for (size_t i = 0; i < n_features; ++i) {
-    py_col_hashes.set(i, py::oint(static_cast<size_t>(col_hashes[i])));
+    py_colnames_hashes.set(i, py::oint(static_cast<size_t>(colnames_hashes[i])));
   }
 
-  return std::move(py_col_hashes);
+  return std::move(py_colnames_hashes);
 }
 
 

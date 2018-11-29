@@ -49,7 +49,7 @@ namespace py {
 
       // Getters and setters.
       oobj get_model() const;
-      oobj get_col_hashes() const;
+      oobj get_colnames_hashes() const;
       oobj get_params() const;
       oobj get_default_params() const;
       oobj get_alpha() const;

@@ -101,7 +101,7 @@ class Ftrl {
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
     size_t get_n_features();
-    std::vector<uint64_t> get_col_hashes();
+    std::vector<uint64_t> get_colnames_hashes();
     double get_alpha();
     double get_beta();
     double get_lambda1();
