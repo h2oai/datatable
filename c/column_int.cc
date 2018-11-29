@@ -24,7 +24,7 @@ SType IntColumn<T>::stype() const {
 
 template <typename T>
 py::oobj IntColumn<T>::get_value_at_index(size_t i) const {
-  size_t j = (this->ri).nth(i);
+  size_t j = (this->ri)[i];
   T x = this->elements_r()[j];
   return ISNA<T>(x)? py::None() : py::oint(x);
 }

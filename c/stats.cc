@@ -263,7 +263,7 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   // we did not yet compute the NA count for the column, we can do so now by
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
-    T x0 = coldata[ri.nth(0)];
+    T x0 = coldata[ri[0]];
     _countna = ISNA<T>(x0)? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
@@ -284,7 +284,7 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
 
   _nmodal = max_grpsize;
   size_t ig = static_cast<size_t>(groups[best_igrp]);
-  _mode = max_grpsize ? coldata[ri.nth(ig)] : GETNA<T>();
+  _mode = max_grpsize ? coldata[ri[ig]] : GETNA<T>();
   set_computed(Stat::NModal);
   set_computed(Stat::Mode);
 }
@@ -546,7 +546,7 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
   size_t n_groups = grpby.ngroups();
 
   if (!is_computed(Stat::NaCount)) {
-    T off0 = offsets[ri.nth(0)];
+    T off0 = offsets[ri[0]];
     _countna = ISNA<T>(off0)? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
@@ -567,7 +567,7 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
   if (max_grpsize) {
     size_t ig = static_cast<size_t>(groups[best_igrp]);
-    size_t i = ri.nth(ig);
+    size_t i = ri[ig];
     T o0 = offsets[i - 1] & ~GETNA<T>();
     _nmodal = max_grpsize;
     // FIXME: this is dangerous, what if strdata() pointer changes for any reason?

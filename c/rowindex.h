@@ -134,7 +134,7 @@ class RowIndex {
     size_t size() const;
     size_t min() const;
     size_t max() const;
-    size_t nth(size_t i) const;
+    size_t operator[](size_t i) const;
     const int32_t* indices32() const;
     const int64_t* indices64() const;
     size_t slice_start() const;
@@ -174,7 +174,7 @@ class RowIndex {
      * method will run the equivalent of
      *
      *     for i in range(istart, iend, istep):
-     *         j = self.nth(i)
+     *         j = self[i]
      *         f(i, j)
      *
      * Function `f` is expected to have a signature `void(size_t i, size_t j)`.

@@ -201,7 +201,7 @@ PyObject* to_scalar(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   if (dt->ncols == 1 && dt->nrows == 1) {
     Column* col = dt->columns[0];
-    size_t i = col->rowindex().nth(0);
+    size_t i = col->rowindex()[0];
     auto f = py_stype_formatters[static_cast<int>(col->stype())];
     return f(col, i);
   } else {

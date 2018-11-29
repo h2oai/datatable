@@ -164,7 +164,7 @@ SType StringColumn<T>::stype() const {
 
 template <typename T>
 py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
-  size_t j = (this->ri).nth(i);
+  size_t j = (this->ri)[i];
   const T* offs = this->offsets();
   T off_end = offs[j];
   if (ISNA<T>(off_end)) return py::None();

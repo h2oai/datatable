@@ -135,7 +135,7 @@ size_t RowIndex::max() const {
   return impl? impl->max : RowIndex::NA;
 }
 
-size_t RowIndex::nth(size_t i) const {
+size_t RowIndex::operator[](size_t i) const {
   return impl? impl->nth(i) : i;
 }
 

@@ -17,7 +17,7 @@ SType BoolColumn::stype() const {
 }
 
 py::oobj BoolColumn::get_value_at_index(size_t i) const {
-  size_t j = ri.nth(i);
+  size_t j = ri[i];
   int8_t x = elements_r()[j];
   return ISNA(x)? py::None() : x? py::True() : py::False();
 }

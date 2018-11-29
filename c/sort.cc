@@ -1211,7 +1211,7 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   }
 
   if (nrows <= 1) {
-    size_t i = col0->rowindex().nth(0);
+    size_t i = col0->rowindex()[0];
     if (out_grps) {
       *out_grps = Groupby::single_group(col0->nrows);
     }
@@ -1238,7 +1238,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex().nth(0));
+  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
   return RowIndex(std::move(indices), true);
 }
 
