@@ -2,8 +2,8 @@ Please do not use issues to ask questions. Post your questions on [StackOverflow
 
 GitHub issues are used for:
 
-* Bug reporting.
-* Feature/enhancement requests and discussion.
+  * Bug reporting.
+  * Feature/enhancement requests and discussion.
 
 Before submitting a new issue, please make sure a similar issue is not already present in the tracker.
 
@@ -13,10 +13,10 @@ Please make sure to fill out the form below as best as you can. This will help b
 
 ### Environment (for bugs)
 
-- **OS platform, distribution and version (e.g. Linux Ubuntu 16.04)**:
-- **Installed from (source or binary)**:
-- **Version**: 
-- **Python version (optional)**:
+  * **OS platform, distribution and version (e.g. Linux Ubuntu 16.04)**:
+  * **Installed from (source or binary)**:
+  * **Version**:
+  * **Python version (optional)**:
 
 Please refer to Google for information on how to obtain the above on your platform.
 
