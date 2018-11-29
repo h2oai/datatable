@@ -140,6 +140,7 @@ def get_datatable_version():
 def make_git_version_file(force):
     import subprocess
     with TaskContext("Generate git version file" + " (force)" * force) as log:
+        filename = os.path.join(dtroot(), "datatable", "__git__.py")
         # Try to read git revision from env.
         githash = os.getenv('DTBL_GIT_HASH', None)
         if githash:
@@ -150,6 +151,14 @@ def make_git_version_file(force):
             # accessible.
             gitdir = os.path.join(dtroot(), ".git")
             if not os.path.isdir(gitdir):
+                # Check whether the file below is present. If not, this must
+                # be a source distribution, and it will not be possible to
+                # rebuild the __git__.py file.
+                testfile = os.path.join(dtroot(), "ci", "Jenkinsfile.groovy")
+                if not os.path.isfile(testfile) and os.path.isfile(filename):
+                    log.info("Source distribution detected, file __git__.py "
+                             "cannot be rebuilt")
+                    return
                 if force:
                     log.fatal("Cannot determine git revision of the package "
                               "because folder `%s` is missing and environment "
@@ -162,7 +171,6 @@ def make_git_version_file(force):
             out = subprocess.check_output(["git", "rev-parse", "HEAD"])
             githash = out.decode("ascii").strip()
             log.info("`git rev-parse HEAD` = " + githash)
-        filename = os.path.join(dtroot(), "datatable", "__git__.py")
         log.info("Generating file " + filename)
         with open(filename, "w", encoding="utf-8") as o:
             o.write(
