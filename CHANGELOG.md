@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   had another row filter applied (#1437).
 - Frame.copy() now retains the key (#1443).
 - rendering of "view" Frames in Jupyter notebook (#1448).
+- installation from source distribution (#1451).
 
 
 ### [v0.7.0](https://github.com/h2oai/datatable/compare/0.7.0...v0.6.0) — 2018-11-16
