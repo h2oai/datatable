@@ -103,6 +103,11 @@ Error Arg::error_not_stype(PyObject* src) const {
   return TypeError() << name() << " cannot be converted into an stype: " << src;
 }
 
+Error Arg::error_not_boolean(PyObject* src) const {
+  return TypeError() << name() << " should be an boolean, instead got "
+      <<Py_TYPE(src);
+}
+
 Error Arg::error_not_integer(PyObject* src) const {
   return TypeError() << name() << " should be an integer, instead got "
       <<Py_TYPE(src);
@@ -110,6 +115,11 @@ Error Arg::error_not_integer(PyObject* src) const {
 
 Error Arg::error_int_negative(PyObject* src) const {
   return ValueError() << name() << " cannot be negative: " << src;
+}
+
+Error Arg::error_not_double(PyObject* src) const {
+  return TypeError() << name() << " should be a float, instead got "
+      <<Py_TYPE(src);
 }
 
 

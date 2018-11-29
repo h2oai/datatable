@@ -77,8 +77,10 @@ class Arg : public _obj::error_manager {
     //---- Error messages --------------
     virtual Error error_not_list       (PyObject*) const override;
     virtual Error error_not_stype      (PyObject*) const override;
+    virtual Error error_not_boolean    (PyObject*) const override;
     virtual Error error_not_integer    (PyObject*) const override;
     virtual Error error_int_negative   (PyObject*) const override;
+    virtual Error error_not_double     (PyObject*) const override;
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }

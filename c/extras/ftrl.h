@@ -21,9 +21,21 @@
 //------------------------------------------------------------------------------
 #include "py_datatable.h"
 
-typedef std::unique_ptr<double[]> DoublePtr;
-typedef std::unique_ptr<uint64_t[]> Uint64Ptr;
+
+/*
+* An abstract class for all the hashers.
+*/
+class Hash {
+  public:
+    virtual ~Hash();
+    virtual uint64_t hash(size_t row) const = 0;
+};
+
+typedef std::unique_ptr<Hash> hashptr;
+typedef std::unique_ptr<double[]> doubleptr;
+typedef std::unique_ptr<uint64_t[]> uint64ptr;
 #define REPORT_FREQUENCY 1000
+
 
 struct FtrlParams {
     double alpha;
@@ -41,23 +53,23 @@ struct FtrlParams {
 
 class Ftrl {
   private:
-    // Datatable with `z` and `n` model values.
     dtptr dt_model;
     double* z;
     double* n;
     
     // Input to the model.
     FtrlParams fp;
-    uint32_t nthreads;
-    py::oobj progress_fn;
 
     // Calculated during the learning process.
-    std::vector<uint64_t> col_hashes;
     size_t n_features;
     size_t n_inter_features;
-    DoublePtr w;
+    doubleptr w;
     bool model_trained;
     size_t : 56;
+
+    // Hashed column names and column hashers
+    std::vector<uint64_t> colnames_hashes;
+    std::vector<hashptr> hashers;
 
   public:
     Ftrl(FtrlParams);
@@ -66,12 +78,12 @@ class Ftrl {
     static const FtrlParams fp_default;
 
     // Learning and predicting methods.
-    bool is_trained();
-    dtptr convert(const DataTable*);
     void fit(const DataTable*);
     dtptr predict(const DataTable*);
-    double predict_row(const Uint64Ptr&, size_t);
-    void update(const Uint64Ptr&, size_t, double, bool);
+    double predict_row(const uint64ptr&, size_t);
+    void update(const uint64ptr&, size_t, double, bool);
+
+    bool is_trained();
     void init_model();
     void create_model();
 
@@ -82,9 +94,9 @@ class Ftrl {
     static double bsigmoid(double, double);
 
     // Hashing methods.
+    void create_hashers(const DataTable*);
+    void hash_row(uint64ptr&, size_t);
     uint64_t hash_string(const char *, size_t);
-    static uint64_t hash_double(double);
-    void hash_row(Uint64Ptr&, dtptr&, size_t);
 
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
@@ -99,6 +111,7 @@ class Ftrl {
     unsigned int get_hash_type();
     unsigned int get_seed();
     bool get_inter();
+
     void set_model(DataTable*);
     void set_alpha(double);
     void set_beta(double);
@@ -110,4 +123,3 @@ class Ftrl {
     void set_hash_type(unsigned int);
     void set_seed(unsigned int);
 };
-

@@ -49,50 +49,50 @@ epsilon = 0.01
 def test_ftrl_wrong_alpha():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(alpha = "1.0")
-    assert ("Expected a float, instead got <class 'str'>" ==
-            str(e.value))
+    assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_wrong_beta():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(beta = "1.0")
-    assert ("Expected a float, instead got <class 'str'>" ==
-            str(e.value))
+    assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_wrong_lambda1():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(lambda1 = "1.0")
-    assert ("Expected a float, instead got <class 'str'>" ==
-            str(e.value))
+    assert ("Argument `lambda1` in Ftrl() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_wrong_lambda2():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(lambda2 = "1.0")
-    assert ("Expected a float, instead got <class 'str'>" ==
-            str(e.value))
+    assert ("Argument `lambda2` in Ftrl() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_wrong_d():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(d = 1000000.0)
-    assert ("Expected an integer, instead got <class 'float'>" ==
-            str(e.value))
+    assert ("Argument `d` in Ftrl() constructor should be an integer, instead "
+            "got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_wrong_n_epochs():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(n_epochs = 10.0)
-    assert ("Expected an integer, instead got <class 'float'>" ==
-            str(e.value))
+    assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, instead "
+            "got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_wrong_inter():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(inter = 2)
-    assert ("Expected a boolean, instead got <class 'int'>" ==
-            str(e.value))
+    assert ("Argument `inter` in Ftrl() constructor should be an boolean, instead "
+            "got <class 'int'>" == str(e.value))
 
 
 def test_ftrl_wrong_combination():
@@ -274,8 +274,8 @@ def test_ftrl_predict_wrong_columns():
     ft.fit(df_train)
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
-    assert ("Can only predict on a frame that has %d column(s), i.e. the same "
-            "number of features as was used for model training" 
+    assert ("Can only predict on a frame that has %d column(s), i.e. has the "
+            "same number of features as was used for model training" 
             % (df_train.ncols - 1) == str(e.value))
 
 
