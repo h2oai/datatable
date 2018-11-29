@@ -38,6 +38,12 @@ class RowIndexImpl {
      * min, max
      *     Smallest / largest entry in the RowIndex.
      *
+     * refcount
+     *     Ref-counter for this RowIndexImpl object. A RowIndexImpl* object
+     *     may be co-owned by several RowIndex objects, and `refcount` keeps
+     *     track of the number of co-owners. When `refcount` reaches 0, the
+     *     object is deleted.
+     *
      * type
      *     The type of the RowIndex: SLICE, ARR32 or ARR64.
      *
@@ -115,8 +121,9 @@ bool slice_rowindex_increasing(const RowIndexImpl*);
 
 class ArrayRowIndexImpl : public RowIndexImpl {
   private:
-    arr32_t ind32;
-    arr64_t ind64;
+    void* data;
+    bool owned;
+    size_t : 56;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
@@ -126,10 +133,11 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(filterfn32* f, size_t n, bool sorted);
     ArrayRowIndexImpl(filterfn64* f, size_t n, bool sorted);
     ArrayRowIndexImpl(const Column*);
+    ~ArrayRowIndexImpl() override;
 
     size_t nth(size_t i) const override;
-    const int32_t* indices32() const { return ind32.data(); }
-    const int64_t* indices64() const { return ind64.data(); }
+    const int32_t* indices32() const;
+    const int64_t* indices64() const;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
@@ -138,10 +146,11 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     void verify_integrity() const override;
 
   private:
+    void _resize_data();
     // Helper function that computes and sets proper `min` / `max` fields for
     // this RowIndex. The `sorted` flag is a hint whether the indices are
     // sorted (if they are, computing min/max is much simpler).
-    template <typename T> void set_min_max(const dt::array<T>&);
+    template <typename T> void set_min_max();
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
     void init_from_boolean_column(const BoolColumn* col);
@@ -150,7 +159,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 
     // Helper for `inverse()`
     template <typename TI, typename TO>
-    RowIndexImpl* inverse_impl(const dt::array<TI>& inp, size_t nrows) const;
+    RowIndexImpl* inverse_impl(size_t nrows) const;
 };
 
 
