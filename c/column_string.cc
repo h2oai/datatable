@@ -286,7 +286,7 @@ void StringColumn<T>::reify() {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.strided_loop2(0, nrows, 1,
+    ri.iterate(0, nrows, 1,
       [&](size_t, size_t j) {
         strs_size += offs1[j] - offs0[j];
       });
@@ -296,7 +296,7 @@ void StringColumn<T>::reify() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.strided_loop2(0, nrows, 1,
+    ri.iterate(0, nrows, 1,
       [&](size_t i, size_t j) {
         if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
           offs_dest[i] = prev_off | GETNA<T>();
@@ -576,7 +576,7 @@ RowIndex StringColumn<T>::join(const Column* keycol) const {
   const uint8_t* key_strdata = kcol->ustrdata();
   uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, nrows, 1,
+  ri.iterate(0, nrows, 1,
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
       T ostart = src_offsets[j - 1];

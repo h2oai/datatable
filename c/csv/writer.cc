@@ -379,7 +379,7 @@ void CsvWriter::write()
 
         // Write the data in rows row0..row1 and in all columns
         char* thch = thbuf;
-        dt->rowindex.strided_loop2(row0, row1, 1,
+        dt->rowindex.iterate(row0, row1, 1,
           [&](size_t, size_t row) {
             if (row == RowIndex::NA) return;
             for (size_t col = 0; col < ncols; col++) {

@@ -337,7 +337,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
     _resize_data();
     auto ind32 = static_cast<int32_t*>(data);
     size_t k = 0;
-    col->rowindex().strided_loop2(0, col->nrows, 1,
+    col->rowindex().iterate(0, col->nrows, 1,
       [&](size_t, size_t j) {
         if (tdata[j] == 1)
           ind32[k++] = static_cast<int32_t>(j);
@@ -349,7 +349,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
     _resize_data();
     auto ind64 = static_cast<int64_t*>(data);
     size_t k = 0;
-    col->rowindex().strided_loop2(0, col->nrows, 1,
+    col->rowindex().iterate(0, col->nrows, 1,
       [&](size_t, size_t j) {
         if (tdata[j] == 1)
           ind64[k++] = static_cast<int64_t>(j);

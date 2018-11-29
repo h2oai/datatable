@@ -173,7 +173,7 @@ PyObject* topython(pycolumn::obj* self, PyObject*) {
   auto formatter = py_stype_formatters[itype];
   py::olist out(col->nrows);
 
-  col->rowindex().strided_loop2(0, col->nrows, 1,
+  col->rowindex().iterate(0, col->nrows, 1,
     [&](size_t i, size_t j) {
       out.set(i, j == RowIndex::NA
                         ? py::None()

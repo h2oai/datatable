@@ -170,9 +170,16 @@ class RowIndex {
     size_t memory_footprint() const;
 
     /**
-     * Template function that facilitates looping through a RowIndex.
+     * Template function that allows looping through the RowIndex. This
+     * method will run the equivalent of
+     *
+     *     for i in range(istart, iend, istep):
+     *         j = self.nth(i)
+     *         f(i, j)
+     *
+     * Function `f` is expected to have a signature `void(size_t i, size_t j)`.
      */
-    template<typename F> void strided_loop2(
+    template<typename F> void iterate(
         size_t istart, size_t iend, size_t istep, F f) const;
 
     void verify_integrity() const;
@@ -187,26 +194,24 @@ class RowIndex {
 //==============================================================================
 
 template<typename F>
-void RowIndex::strided_loop2(
-    size_t istart, size_t iend, size_t istep, F f) const
-{
+void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
   switch (type()) {
     case RowIndexType::UNKNOWN: {
-      for (size_t i = istart; i < iend; i += istep) {
+      for (size_t i = i0; i < i1; i += di) {
         f(i, i);
       }
       break;
     }
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
-      for (size_t i = istart; i < iend; i += istep) {
+      for (size_t i = i0; i < i1; i += di) {
         f(i, static_cast<size_t>(ridata[i]));
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
-      for (size_t i = istart; i < iend; i += istep) {
+      for (size_t i = i0; i < i1; i += di) {
         f(i, static_cast<size_t>(ridata[i]));
       }
       break;
@@ -214,9 +219,9 @@ void RowIndex::strided_loop2(
     case RowIndexType::SLICE: {
       // Careful with negative slice steps (in which case j goes down,
       // and therefore we cannot iterate until `j < jend`).
-      size_t jstep = slice_step() * istep;
-      size_t j = slice_start() + istart * slice_step();
-      for (size_t i = istart; i < iend; i += istep) {
+      size_t jstep = slice_step() * di;
+      size_t j = slice_start() + i0 * slice_step();
+      for (size_t i = i0; i < i1; i += di) {
         f(i, j);
         j += jstep;
       }

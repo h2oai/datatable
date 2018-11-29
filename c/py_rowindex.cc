@@ -211,7 +211,7 @@ PyObject* tolist(obj* self, PyObject*)
   size_t n = ri.size();
 
   py::olist list(n);
-  ri.strided_loop2(0, n, 1,
+  ri.iterate(0, n, 1,
     [&](size_t i, size_t j) {
       list.set(i, j == RowIndex::NA? py::None() : py::oint(j));
     });

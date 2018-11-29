@@ -201,7 +201,7 @@ oobj Frame::to_tuples(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, dt->nrows, 1,
+    ri.iterate(0, dt->nrows, 1,
       [&](size_t i, size_t ii) {
         oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
         list_of_tuples[i].set(j, std::move(x));
@@ -239,7 +239,7 @@ oobj Frame::to_list(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, dt->nrows, 1,
+    ri.iterate(0, dt->nrows, 1,
       [&](size_t i, size_t ii) {
         oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
         pycol.set(i, std::move(x));
@@ -275,7 +275,7 @@ oobj Frame::to_dict(const NoArgs&) {
     const Column* col = dt->columns[j];
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
-    ri.strided_loop2(0, dt->nrows, 1,
+    ri.iterate(0, dt->nrows, 1,
       [&](size_t i, size_t ii) {
         oobj x = (ii == RowIndex::NA)? py::None() : conv->to_oobj(ii);
         pycol.set(i, std::move(x));

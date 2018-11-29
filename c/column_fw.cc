@@ -173,7 +173,7 @@ void FwColumn<T>::reify() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.strided_loop2(0, nrows, 1,
+    ri.iterate(0, nrows, 1,
       [&](size_t i, size_t j) {
         data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
       });
@@ -305,14 +305,14 @@ void FwColumn<T>::replace_values(
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
     T value = *data_src;
-    replace_at.strided_loop2(0, replace_n, 1,
+    replace_at.iterate(0, replace_n, 1,
       [&](size_t, size_t j) {
         xassert(j != RowIndex::NA);
         data_dest[j] = value;
       });
   } else {
     xassert(replace_with->nrows == replace_n);
-    replace_at.strided_loop2(0, replace_n, 1,
+    replace_at.iterate(0, replace_n, 1,
       [&](size_t i, size_t j) {
         xassert(j != RowIndex::NA);
         data_dest[j] = data_src[i];
@@ -348,7 +348,7 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
   const T* search_data = kcol->elements_r();
   int32_t search_n = static_cast<int32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, nrows, 1,
+  ri.iterate(0, nrows, 1,
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
       T value = src_data[j];
