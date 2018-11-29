@@ -117,20 +117,20 @@ T* FwColumn<T>::elements_w() {
 
 
 template <typename T>
-T FwColumn<T>::get_elem(int64_t i) const {
+T FwColumn<T>::get_elem(size_t i) const {
   return static_cast<const T*>(mbuf.rptr())[i];
 }
 
 
 template <>
-void FwColumn<PyObject*>::set_elem(int64_t i, PyObject* value) {
+void FwColumn<PyObject*>::set_elem(size_t i, PyObject* value) {
   PyObject** data = static_cast<PyObject**>(mbuf.wptr());
   data[i] = value;
   Py_INCREF(value);
 }
 
 template <typename T>
-void FwColumn<T>::set_elem(int64_t i, T value) {
+void FwColumn<T>::set_elem(size_t i, T value) {
   T* data = static_cast<T*>(mbuf.wptr());
   data[i] = value;
 }
