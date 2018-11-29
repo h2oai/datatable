@@ -81,7 +81,9 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     if (tmp.max > max) max = tmp.max;
     length += len;
   }
-  if (max == 0) min = 0;
+  if (max == 0) {
+    min = max = RowIndex::NA;
+  }
   xassert(min >= 0 && min <= max);
 
   if (length <= INT32_MAX && max <= INT32_MAX) {
@@ -285,7 +287,7 @@ void ArrayRowIndexImpl::set_min_max() {
   const T* idata = static_cast<const T*>(data);
   if (length == 1) ascending = true;
   if (length == 0) {
-    min = max = 0;
+    min = max = RowIndex::NA;
   } else if (length == 1) {
     min = static_cast<size_t>(idata[0]);
     max = static_cast<size_t>(idata[length - 1]);
@@ -315,11 +317,12 @@ void ArrayRowIndexImpl::set_min_max() {
       if (t > tmax) tmax = t;
     }
     if (tmin == std::numeric_limits<T>::max() &&
-        tmax == -std::numeric_limits<T>::max()) tmin = tmax = 0;
+        tmax == -std::numeric_limits<T>::max()) tmin = tmax = -1;
     min = static_cast<size_t>(tmin);
     max = static_cast<size_t>(tmax);
   }
-  xassert(min >= 0 && max >= min);
+  xassert(max >= min && (max == RowIndex::NA || max <= RowIndex::MAX)
+                     && (min == RowIndex::NA || min <= RowIndex::MAX));
 }
 
 
@@ -484,7 +487,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
 void ArrayRowIndexImpl::compactify()
 {
   if (type == RowIndexType::ARR32) return;
-  if (max > INT32_MAX || length > INT32_MAX) return;
+  if ((max > INT32_MAX && max != RowIndex::MAX) || length > INT32_MAX) return;
 
   int32_t* ind32 = static_cast<int32_t*>(data);
   int64_t* ind64 = static_cast<int64_t*>(data);
@@ -598,7 +601,7 @@ static void verify_integrity_helper(
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
-  if (!len) tmin = 0;
+  if (!len) tmin = tmax = -1;
   if (static_cast<size_t>(tmin) != min || static_cast<size_t>(tmax) != max) {
     throw AssertionError()
         << "Mismatching min/max values in the ArrayRowIndex min=" << min

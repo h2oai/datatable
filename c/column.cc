@@ -396,7 +396,7 @@ void Column::verify_integrity(const std::string& name) const {
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (static_cast<size_t>(ri.max()) >= mbuf_nrows && ri.max() > 0) {
+    if (ri.max() >= mbuf_nrows && ri.max() != RowIndex::NA) {
       throw AssertionError()
           << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="

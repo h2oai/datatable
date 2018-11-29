@@ -67,16 +67,13 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   length = n;
   step   = di;
   if (length == 0) {
-    min = max = 0;
+    min = max = RowIndex::NA;
   } else {
     min = start;
     max = start + step * (n - 1);
     if (!ascending) std::swap(min, max);
   }
 }
-
-
-
 
 
 size_t SliceRowIndexImpl::nth(size_t i) const {

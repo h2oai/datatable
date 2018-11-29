@@ -98,17 +98,46 @@ RowIndex::RowIndex(const Column* col)
 RowIndexType RowIndex::type() const {
   return impl? impl->type : RowIndexType::UNKNOWN;
 }
-bool RowIndex::isabsent() const { return impl == nullptr; }
-bool RowIndex::isslice() const { return impl && impl->type == RowIndexType::SLICE; }
-bool RowIndex::isarr32() const { return impl && impl->type == RowIndexType::ARR32; }
-bool RowIndex::isarr64() const { return impl && impl->type == RowIndexType::ARR64; }
-bool RowIndex::isarray() const { return isarr32() || isarr64(); }
-const void* RowIndex::ptr() const { return static_cast<const void*>(impl); }
 
-size_t RowIndex::size() const { return impl? impl->length : 0; }
-size_t RowIndex::min() const { return impl? impl->min : 0; }
-size_t RowIndex::max() const { return impl? impl->max : 0; }
-size_t RowIndex::nth(size_t i) const { return impl? impl->nth(i) : i; }
+bool RowIndex::isabsent() const {
+  return impl == nullptr;
+}
+
+bool RowIndex::isslice() const {
+  return impl && impl->type == RowIndexType::SLICE;
+}
+
+bool RowIndex::isarr32() const {
+  return impl && impl->type == RowIndexType::ARR32;
+}
+
+bool RowIndex::isarr64() const {
+  return impl && impl->type == RowIndexType::ARR64;
+}
+
+bool RowIndex::isarray() const {
+  return isarr32() || isarr64();
+}
+
+const void* RowIndex::ptr() const {
+  return static_cast<const void*>(impl);
+}
+
+size_t RowIndex::size() const {
+  return impl? impl->length : 0;
+}
+
+size_t RowIndex::min() const {
+  return impl? impl->min : RowIndex::NA;
+}
+
+size_t RowIndex::max() const {
+  return impl? impl->max : RowIndex::NA;
+}
+
+size_t RowIndex::nth(size_t i) const {
+  return impl? impl->nth(i) : i;
+}
 
 const int32_t* RowIndex::indices32() const {
   return static_cast<ArrayRowIndexImpl*>(impl)->indices32();
@@ -137,15 +166,16 @@ void RowIndex::shrink(size_t nrows, size_t ncols) {
   if (static_cast<size_t>(impl->refcount) == ncols + 1) {
     impl->shrink(nrows);
   } else {
-    impl->refcount--;
-    impl = impl->shrunk(nrows);
-    xassert(impl->refcount == 1);
+    auto newimpl = impl->shrunk(nrows);
+    xassert(newimpl->refcount == 0);
+    impl->release();
+    impl = newimpl;
+    impl->acquire();
   }
 }
 
 
-void RowIndex::extract_into(arr32_t& target) const
-{
+void RowIndex::extract_into(arr32_t& target) const {
   if (!impl) return;
   size_t szlen = size();
   xassert(target.size() >= szlen);
@@ -156,12 +186,12 @@ void RowIndex::extract_into(arr32_t& target) const
     }
     case RowIndexType::SLICE: {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
-        int32_t start = static_cast<int32_t>(slice_start());
-        int32_t step = static_cast<int32_t>(slice_step());
+        size_t start = slice_start();
+        size_t step = slice_step();
         dt::run_interleaved(
           [&](size_t i0, size_t i1, size_t di) {
             for (size_t i = i0; i < i1; i += di) {
-              target[i] = start + static_cast<int32_t>(i) * step;
+              target[i] = static_cast<int32_t>(start + i * step);
             }
           }, szlen);
       }
@@ -195,7 +225,7 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // return as an empty RowIndex object.
     return RowIndex();
   }
-  if (nrows < static_cast<size_t>(max())) {
+  if (nrows < max()) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
                           "largest index " << max();
   }
@@ -221,8 +251,8 @@ void RowIndex::verify_integrity() const {
 
 RowIndexImpl::RowIndexImpl()
     : length(0),
-      min(0),
-      max(0),
+      min(RowIndex::NA),
+      max(RowIndex::NA),
       refcount(0),
       type(RowIndexType::UNKNOWN),
       ascending(false) {}
@@ -245,19 +275,19 @@ void RowIndexImpl::verify_integrity() const {
   if (refcount == 0) {
     throw AssertionError() << "RowIndex has refcount of 0";
   }
-  if (length == 0 && (min || max)) {
+  if (length == 0 && (min != RowIndex::NA || max != RowIndex::NA)) {
     throw AssertionError() << "RowIndex has length 0, but either min = " << min
-        << " or max = " << max << " are non-zero";
+        << " or max = " << max << " are non-NA";
   }
-  if (min > RowIndex::MAX) {
+  if (min > RowIndex::MAX && min != RowIndex::NA) {
     int64_t imin = static_cast<int64_t>(min);
     throw AssertionError() << "min value in RowIndex is negative: " << imin;
   }
-  if (max > RowIndex::MAX) {
+  if (max > RowIndex::MAX && max != RowIndex::NA) {
     int64_t imax = static_cast<int64_t>(max);
     throw AssertionError() << "max value in RowIndex is negative: " << imax;
   }
-  if (min > max) {
+  if (min > max && min != RowIndex::NA) {
     throw AssertionError() << "min value in RowIndex is larger than max: min = "
         << min << ", max = " << max;
   }
