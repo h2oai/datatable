@@ -150,8 +150,8 @@ class rmem {
     #endif
   public:
     rmem();
-    rmem(const omem&);
-    rmem(const rmem&);
+    explicit rmem(const omem&);
+    explicit rmem(const rmem&);
     rmem(const rmem&, size_t offset, size_t n);
     rmem& operator=(const rmem&) = default;
     explicit operator bool() const noexcept;
@@ -972,8 +972,8 @@ class SortContext {
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;
-    rmem     _x        = x;
-    rmem     _xx       = xx;
+    rmem     _x        { x };
+    rmem     _xx       { xx };
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
     uint8_t  _elemsize = elemsize;
@@ -1070,7 +1070,7 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          rmem     tx = rmem(_x, off * elemsize, zn * elemsize);
+          rmem     tx { _x, off * elemsize, zn * elemsize };
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);

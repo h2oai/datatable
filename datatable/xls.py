@@ -225,16 +225,16 @@ def _collapse_ranges(ranges, ja):
 def _process_merged_cells(ranges, merged_cells):
     for mc in merged_cells:
         mrow0, mrow1, mcol0, mcol1 = mc
-        for j in range(len(ranges)):
-            jrow0, jrow1, jcol0, jcol1 = ranges[j]
+        for j, rng in enumerate(ranges):
+            jrow0, jrow1, jcol0, jcol1 = rng
             if mrow0 > jrow1 or mrow1 < jrow0: continue
             if mcol0 > jcol1 or mcol1 < jcol0: continue
             if mrow0 >= jrow0 and mrow1 <= jrow1 and \
                mcol0 >= jcol0 and mcol1 <= jcol1: continue
-            if mrow0 < jrow0: ranges[j][0] = mrow0
-            if mrow1 > jrow1: ranges[j][1] = mrow1
-            if mcol0 < jcol0: ranges[j][2] = mcol0
-            if mcol1 > jcol1: ranges[j][3] = mcol1
+            if mrow0 < jrow0: rng[0] = mrow0
+            if mrow1 > jrow1: rng[1] = mrow1
+            if mcol0 < jcol0: rng[2] = mcol0
+            if mcol1 > jcol1: rng[3] = mcol1
             _collapse_ranges(ranges, j)
             break
 

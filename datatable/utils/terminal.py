@@ -106,7 +106,7 @@ for i, ll in enumerate(_lls):
 def _new_displayhook(value):
     if value is None:
         return
-    if hasattr(value, "_display_in_terminal_") and type(value) is not type:
+    if hasattr(value, "_display_in_terminal_") and not isinstance(value, type):
         value._display_in_terminal_()
     else:
         _original_displayhook(value)

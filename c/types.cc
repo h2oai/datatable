@@ -78,13 +78,11 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
  */
 struct STypeInfo {
   size_t      elemsize;
-  const void *na;
   const char* name;
-  char        code[4];
   char        code2[3];
   LType       ltype;
   bool        varwidth;
-  int64_t : 56;  // padding
+  int : 24;  // padding
 };
 
 
@@ -93,30 +91,30 @@ static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
-  #define STI(T, code, code2, name, csize, vw, ltype, na) \
-      stype_info[int(T)] = STypeInfo{csize, na, name, code, code2, ltype, vw}
-  STI(SType::VOID,    "---", "--", "void",    0, 0, LType::MU,       nullptr);
-  STI(SType::BOOL,    "i1b", "b1", "bool8",   1, 0, LType::BOOL,     &NA_I1);
-  STI(SType::INT8,    "i1i", "i1", "int8",    1, 0, LType::INT,      &NA_I1);
-  STI(SType::INT16,   "i2i", "i2", "int16",   2, 0, LType::INT,      &NA_I2);
-  STI(SType::INT32,   "i4i", "i4", "int32",   4, 0, LType::INT,      &NA_I4);
-  STI(SType::INT64,   "i8i", "i8", "int64",   8, 0, LType::INT,      &NA_I8);
-  STI(SType::FLOAT32, "f4r", "r4", "float32", 4, 0, LType::REAL,     &NA_F4);
-  STI(SType::FLOAT64, "f8r", "r8", "float64", 8, 0, LType::REAL,     &NA_F8);
-  STI(SType::DEC16,   "i2r", "d2", "dec16",   2, 0, LType::REAL,     &NA_I2);
-  STI(SType::DEC32,   "i4r", "d4", "dec32",   4, 0, LType::REAL,     &NA_I4);
-  STI(SType::DEC64,   "i8r", "d8", "dec64",   8, 0, LType::REAL,     &NA_I8);
-  STI(SType::STR32,   "i4s", "s4", "str32",   4, 1, LType::STRING,   nullptr);
-  STI(SType::STR64,   "i8s", "s8", "str64",   8, 1, LType::STRING,   nullptr);
-  STI(SType::FSTR,    "c#s", "sx", "strfix",  0, 0, LType::STRING,   nullptr);
-  STI(SType::CAT8,    "u1e", "e1", "cat8",    1, 1, LType::STRING,   &NA_U1);
-  STI(SType::CAT16,   "u2e", "e2", "cat16",   2, 1, LType::STRING,   &NA_U2);
-  STI(SType::CAT32,   "u4e", "e4", "cat32",   4, 1, LType::STRING,   &NA_U4);
-  STI(SType::DATE64,  "i8d", "t8", "date64",  8, 0, LType::DATETIME, &NA_I8);
-  STI(SType::TIME32,  "i4t", "T4", "time32",  4, 0, LType::DATETIME, &NA_I4);
-  STI(SType::DATE32,  "i4d", "t4", "date32",  4, 0, LType::DATETIME, &NA_I4);
-  STI(SType::DATE16,  "i2d", "t2", "date16",  2, 0, LType::DATETIME, &NA_I2);
-  STI(SType::OBJ,     "p8p", "o8", "obj64",   8, 0, LType::OBJECT,   nullptr);
+  #define STI(T, code2, name, csize, vw, ltype) \
+      stype_info[int(T)] = STypeInfo{csize, name, code2, ltype, vw}
+  STI(SType::VOID,    "--", "void",    0, 0, LType::MU);
+  STI(SType::BOOL,    "b1", "bool8",   1, 0, LType::BOOL);
+  STI(SType::INT8,    "i1", "int8",    1, 0, LType::INT);
+  STI(SType::INT16,   "i2", "int16",   2, 0, LType::INT);
+  STI(SType::INT32,   "i4", "int32",   4, 0, LType::INT);
+  STI(SType::INT64,   "i8", "int64",   8, 0, LType::INT);
+  STI(SType::FLOAT32, "r4", "float32", 4, 0, LType::REAL);
+  STI(SType::FLOAT64, "r8", "float64", 8, 0, LType::REAL);
+  STI(SType::DEC16,   "d2", "dec16",   2, 0, LType::REAL);
+  STI(SType::DEC32,   "d4", "dec32",   4, 0, LType::REAL);
+  STI(SType::DEC64,   "d8", "dec64",   8, 0, LType::REAL);
+  STI(SType::STR32,   "s4", "str32",   4, 1, LType::STRING);
+  STI(SType::STR64,   "s8", "str64",   8, 1, LType::STRING);
+  STI(SType::FSTR,    "sx", "strfix",  0, 0, LType::STRING);
+  STI(SType::CAT8,    "e1", "cat8",    1, 1, LType::STRING);
+  STI(SType::CAT16,   "e2", "cat16",   2, 1, LType::STRING);
+  STI(SType::CAT32,   "e4", "cat32",   4, 1, LType::STRING);
+  STI(SType::DATE64,  "t8", "date64",  8, 0, LType::DATETIME);
+  STI(SType::TIME32,  "T4", "time32",  4, 0, LType::DATETIME);
+  STI(SType::DATE32,  "t4", "date32",  4, 0, LType::DATETIME);
+  STI(SType::DATE16,  "t2", "date16",  2, 0, LType::DATETIME);
+  STI(SType::OBJ,     "o8", "obj64",   8, 0, LType::OBJECT);
   #undef STI
 
   #define UPCAST(stype1, stype2, stypeR)         \
@@ -168,7 +166,7 @@ void init_types(void)
     }
 
     for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
-      xassert(static_cast<SType>(i) == stype_from_string(stype_info[i].code));
+      xassert(static_cast<SType>(i) == stype_from_string(stype_info[i].code2));
     }
   #endif
 }
@@ -216,6 +214,7 @@ SType stype_from_string(const std::string& str)
     if (s2 == '\0') {
       if (s1 == '4') return SType::STR32;
       if (s1 == '8') return SType::STR64;
+      if (s1 == 'x') return SType::FSTR;
     }
   } else if (s0 == 'f') {
     if (s2 == 'r') {
@@ -232,6 +231,20 @@ SType stype_from_string(const std::string& str)
     if (s1 == '#' && s2 == 's') return SType::FSTR;
   } else if (s0 == 'p') {
     if (s1 == '8' && s2 == 'p') return SType::OBJ;
+  } else if (s0 == 'd' && s2 == '\0') {
+    if (s1 == '2') return SType::DEC16;
+    if (s1 == '4') return SType::DEC32;
+    if (s1 == '8') return SType::DEC64;
+  } else if (s0 == 'e' && s2 == '\0') {
+    if (s1 == '1') return SType::CAT8;
+    if (s1 == '2') return SType::CAT16;
+    if (s1 == '4') return SType::CAT32;
+  } else if (s0 == 't' && s2 == '\0') {
+    if (s1 == '2') return SType::DATE16;
+    if (s1 == '4') return SType::DATE32;
+    if (s1 == '8') return SType::DATE64;
+  } else if (s0 == 'T' && s1 == '4' && s2 == '\0') {
+    return SType::TIME32;
   }
   return SType::VOID;
 }

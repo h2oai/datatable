@@ -220,18 +220,18 @@ PyInit__datatable()
   static DatatableModule dtmod;
   PyObject* m = dtmod.init();
 
-  // Initialize submodules
-  if (!init_py_types(m)) return nullptr;
-  if (!pydatawindow::static_init(m)) return nullptr;
-  if (!pycolumn::static_init(m)) return nullptr;
-  if (!pycolumnset::static_init(m)) return nullptr;
-  if (!pydatatable::static_init(m)) return nullptr;
-  if (!pygroupby::static_init(m)) return nullptr;
-  if (!pyrowindex::static_init(m)) return nullptr;
-  if (!init_py_encodings(m)) return nullptr;
-  init_jay();
-
   try {
+    // Initialize submodules
+    if (!init_py_types(m)) return nullptr;
+    if (!pydatawindow::static_init(m)) return nullptr;
+    if (!pycolumn::static_init(m)) return nullptr;
+    if (!pycolumnset::static_init(m)) return nullptr;
+    if (!pydatatable::static_init(m)) return nullptr;
+    if (!pygroupby::static_init(m)) return nullptr;
+    if (!pyrowindex::static_init(m)) return nullptr;
+    if (!init_py_encodings(m)) return nullptr;
+    init_jay();
+
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
 

@@ -380,6 +380,7 @@ class FrameInitializationManager {
           if (i == 1) err << ", ";
           if (i == 2) { err << ", ..."; break; }
           err << '\'' << kv.first << '\'';
+          ++i;
         }
         throw err;
       }

@@ -76,7 +76,6 @@ Aggregator::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
 dtptr Aggregator::aggregate(DataTable* dt) {
-  size_t max_bins;
   bool was_sampled = false;
   progress(0.0);
   dtptr dt_members;
@@ -113,6 +112,7 @@ dtptr Aggregator::aggregate(DataTable* dt) {
     }
 
     dt_double = dtptr(new DataTable(std::move(cols_double)));
+    size_t max_bins;
     switch (dt_double->ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;

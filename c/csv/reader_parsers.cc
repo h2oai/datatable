@@ -506,7 +506,8 @@ void parse_float64_hex(FreadTokenizer& ctx) {
   bool Eneg, subnormal = 0;
   ch += (neg = (*ch=='-')) + (*ch=='+');
 
-  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') && (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
+  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
+      (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
     ch += 3;
     uint64_t acc = 0;
     if (*ch == '.') {

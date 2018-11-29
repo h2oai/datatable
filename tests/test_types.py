@@ -53,42 +53,32 @@ def c_stypes():
     with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\(SType::(\w+),\s*"
-                    r'"(...)",\s*'
                     r'"(..)",\s*'
                     r'"(.*)",\s*'
                     r"(\d+),\s*"
                     r"(\d),\s*"
-                    r"LType::(\w+),\s*"
-                    r"&?(\w+)\)",
+                    r"LType::(\w+)\)",
                     txt2)
-    for name, code3, code2, fullname, elemsize, varwidth, ltype, na in mm:
-        stypes[name]["stype"] = code3
+    for name, code2, fullname, elemsize, varwidth, ltype in mm:
+        # stypes[name]["stype"] = code3
         stypes[name]["code2"] = code2
         stypes[name]["name"] = fullname
         stypes[name]["elemsize"] = int(elemsize)
         stypes[name]["varwidth"] = bool(int(varwidth))
         stypes[name]["ltype"] = ltype
-        stypes[name]["na"] = na
 
     # Fill-in ctypes
     for ct in stypes.values():
-        stype = ct["stype"]
-        ct["ctype"] = "int%d_t" % (int(stype[1]) * 8) if stype[0] == "i" else \
-                      "uint%d_t" % (int(stype[1]) * 8) if stype[0] == "u" else \
-                      "float" if stype[:2] == "f4" else \
-                      "double" if stype[:2] == "f8" else \
-                      "void*" if stype == "p8p" else \
-                      "char*" if stype == "c#s" else None
+        code2 = ct["code2"]
+        ct["ctype"] = "int%d_t" % (int(code2[1]) * 8) if code2[0] == "i" else \
+                      "uint%d_t" % (int(code2[1]) * 8) if code2[0] == "e" else \
+                      "float" if code2 == "f4" else \
+                      "double" if code2 == "f8" else \
+                      "void*" if code2 == "o8" else \
+                      "char*" if code2 == "sx" else None
 
     # Re-key to "stype" field
-    return {st["stype"]: st for st in stypes.values() if st["stype"] != "---"}
-
-
-@pytest.fixture()
-def c_stypes2(c_stypes):
-    """Same as c_stypes, but keyed to 'code2' field."""
-    return {v["code2"]: v for v in c_stypes.values()}
-
+    return {st["code2"]: st for st in stypes.values() if st["code2"] != "--"}
 
 
 
@@ -146,16 +136,16 @@ def test_stype_codes():
     assert stype.obj64.code == "o8"
 
 
-def test_stype_values(c_stypes2):
+def test_stype_values(c_stypes):
     from datatable import stype
     for st in stype:
-        assert st.value == c_stypes2[st.code]["itype"]
+        assert st.value == c_stypes[st.code]["itype"]
 
 
-def test_stype_sizes(c_stypes2):
+def test_stype_sizes(c_stypes):
     from datatable import stype
     for st in stype:
-        assert int(st.code[1:]) == c_stypes2[st.code]["elemsize"]
+        assert int(st.code[1:]) == c_stypes[st.code]["elemsize"]
 
 
 def test_stype_ctypes():
@@ -305,10 +295,10 @@ def test_ltype_repr():
         assert repr(lt) == str(lt) == "ltype." + lt.name
 
 
-def test_stype_ltypes(c_stypes2):
+def test_stype_ltypes(c_stypes):
     from datatable import stype, ltype
     for st in stype:
-        assert st.ltype is ltype(c_stypes2[st.code]["ltype"].lower())
+        assert st.ltype is ltype(c_stypes[st.code]["ltype"].lower())
 
 
 def test_ltype_stypes():
