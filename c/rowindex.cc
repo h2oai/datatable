@@ -203,11 +203,6 @@ void RowIndex::extract_into(arr32_t& target) const {
 }
 
 
-// RowIndex RowIndex::uplift(const RowIndex& ri2) const {
-//   if (isabsent()) return RowIndex(ri2);
-//   if (ri2.isabsent()) return RowIndex(*this);
-//   return RowIndex(impl->uplift_from(ri2.impl));
-// }
 RowIndex operator *(const RowIndex& ri1, const RowIndex& ri2) {
   if (ri1.isabsent()) return RowIndex(ri2);
   if (ri2.isabsent()) return RowIndex(ri1);
