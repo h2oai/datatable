@@ -557,7 +557,7 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
       return static_cast<int32_t>(mid);
     }
   }
-  return GETNA<int32_t>();
+  return -1;
 }
 
 

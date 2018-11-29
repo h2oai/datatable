@@ -283,21 +283,22 @@ ArrayRowIndexImpl::~ArrayRowIndexImpl() {
 template <typename T>
 void ArrayRowIndexImpl::set_min_max() {
   const T* idata = static_cast<const T*>(data);
+  if (length == 1) ascending = true;
   if (length == 0) {
     min = max = 0;
-  } else if (ascending || length == 1) {
-    constexpr size_t NA = static_cast<size_t>(GETNA<T>());
+  } else if (length == 1) {
     min = static_cast<size_t>(idata[0]);
     max = static_cast<size_t>(idata[length - 1]);
-    if (min == NA || max == NA) {
-      if (min == NA && max == NA) min = max = 0;
-      else if (min == NA) {
+    if (min == RowIndex::NA || max == RowIndex::NA) {
+      if (min == RowIndex::NA && max == RowIndex::NA) {
+        min = max = 0;
+      } else if (min == RowIndex::NA) {
         size_t j = 1;
-        while (j < length && ISNA<T>(idata[j])) ++j;
+        while (j < length && idata[j] == -1) ++j;
         min = static_cast<size_t>(idata[j]);
       } else {
         size_t j = length - 2;
-        while (j < length && ISNA<T>(idata[j])) --j;
+        while (j < length && idata[j] == -1) --j;
         max = static_cast<size_t>(idata[j]);
       }
     }
@@ -309,7 +310,7 @@ void ArrayRowIndexImpl::set_min_max() {
         reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < length; ++j) {
       T t = idata[j];
-      if (ISNA<T>(t)) continue;
+      if (t == -1) continue;
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
@@ -588,7 +589,7 @@ static void verify_integrity_helper(
   bool check_sorted = sorted;
   for (size_t i = 0; i < len; ++i) {
     T x = ind[i];
-    if (ISNA<T>(x)) continue;
+    if (x == -1) continue;
     if (x < 0) {
       throw AssertionError()
           << "Element " << i << " in the ArrayRowIndex is negative: " << x;

@@ -332,7 +332,7 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
     if (data[mid] > value) end = mid;
     else start = mid;
   }
-  return (data[start] == value)? static_cast<int32_t>(start) : GETNA<int32_t>();
+  return (data[start] == value)? static_cast<int32_t>(start) : -1;
 }
 
 
