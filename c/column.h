@@ -211,7 +211,7 @@ public:
    */
   virtual void reify() = 0;
 
-  virtual py::oobj get_value_at_index(int64_t i) const = 0;
+  virtual py::oobj get_value_at_index(size_t i) const = 0;
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
@@ -337,8 +337,8 @@ public:
   void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
-  T get_elem(int64_t i) const;
-  void set_elem(int64_t i, T value);
+  T get_elem(size_t i) const;
+  void set_elem(size_t i, T value);
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
@@ -364,7 +364,7 @@ protected:
 };
 
 
-template <> void FwColumn<PyObject*>::set_elem(int64_t, PyObject*);
+template <> void FwColumn<PyObject*>::set_elem(size_t, PyObject*);
 extern template class FwColumn<int8_t>;
 extern template class FwColumn<int16_t>;
 extern template class FwColumn<int32_t>;
@@ -404,7 +404,7 @@ public:
   PyObject* sd_pyscalar() const override;
   BooleanStats* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
   protected:
 
@@ -464,7 +464,7 @@ public:
   PyObject* kurt_pyscalar() const override;
   IntegerStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   void cast_into(BoolColumn*) const override;
@@ -529,7 +529,7 @@ public:
   PyObject* kurt_pyscalar() const override;
   RealStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   void cast_into(BoolColumn*) const override;
@@ -582,7 +582,7 @@ public:
   virtual SType stype() const override;
   PyObjectStats* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   PyObjectColumn();
@@ -654,7 +654,7 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   StringColumn();
@@ -710,7 +710,7 @@ class VoidColumn : public Column {
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
-    py::oobj get_value_at_index(int64_t i) const override;
+    py::oobj get_value_at_index(size_t i) const override;
   protected:
     VoidColumn();
     void init_data() override;

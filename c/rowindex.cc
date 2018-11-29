@@ -1,24 +1,37 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "rowindex.h"
 #include <cstring>     // std::memcpy
+#include "rowindex.h"
+#include "rowindex_impl.h"
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/parallel.h"
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
 // Construction
-//==============================================================================
+//------------------------------------------------------------------------------
 
 RowIndex::RowIndex() : impl(nullptr) {}
-
-RowIndex::RowIndex(RowIndexImpl* rii) : impl(rii) {}
 
 // copy-constructor, performs shallow copying
 RowIndex::RowIndex(const RowIndex& other) {
@@ -45,47 +58,115 @@ RowIndex::~RowIndex() {
 }
 
 
-RowIndex RowIndex::from_slice(int64_t start, int64_t count, int64_t step) {
-  return RowIndex(new SliceRowIndexImpl(start, count, step));
+// Private constructor
+RowIndex::RowIndex(RowIndexImpl* rii) {
+  impl = rii;
+  if (impl) impl->acquire();
 }
 
 
-RowIndex RowIndex::from_slices(const arr64_t& starts,
-                               const arr64_t& counts,
-                               const arr64_t& steps) {
-  return RowIndex(new ArrayRowIndexImpl(starts, counts, steps));
+RowIndex::RowIndex(size_t start, size_t count, size_t step){
+  impl = new SliceRowIndexImpl(start, count, step);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(const arr64_t& starts,
+                   const arr64_t& counts,
+                   const arr64_t& steps) {
+  impl = new ArrayRowIndexImpl(starts, counts, steps);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
+  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
+  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
+  impl = new ArrayRowIndexImpl(f, n, sorted);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
+  impl = new ArrayRowIndexImpl(f, n, sorted);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(const Column* col) {
+  impl = new ArrayRowIndexImpl(col);
+  impl->acquire();
 }
 
 
-RowIndex RowIndex::from_array32(arr32_t&& arr, bool sorted) {
-  return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
-}
 
-
-RowIndex RowIndex::from_array64(arr64_t&& arr, bool sorted) {
-  return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
-}
-
-
-RowIndex RowIndex::from_filterfn32(filterfn32* f, int64_t n, bool sorted) {
-  return RowIndex(new ArrayRowIndexImpl(f, n, sorted));
-}
-
-
-RowIndex RowIndex::from_filterfn64(filterfn64* f, int64_t n, bool sorted) {
-  return RowIndex(new ArrayRowIndexImpl(f, n, sorted));
-}
-
-
-RowIndex RowIndex::from_column(Column* col) {
-  return RowIndex(new ArrayRowIndexImpl(col));
-}
-
-
-
-//==============================================================================
+//------------------------------------------------------------------------------
 // API
-//==============================================================================
+//------------------------------------------------------------------------------
+
+RowIndexType RowIndex::type() const {
+  return impl? impl->type : RowIndexType::UNKNOWN;
+}
+
+bool RowIndex::isabsent() const {
+  return impl == nullptr;
+}
+
+bool RowIndex::isslice() const {
+  return impl && impl->type == RowIndexType::SLICE;
+}
+
+bool RowIndex::isarr32() const {
+  return impl && impl->type == RowIndexType::ARR32;
+}
+
+bool RowIndex::isarr64() const {
+  return impl && impl->type == RowIndexType::ARR64;
+}
+
+bool RowIndex::isarray() const {
+  return isarr32() || isarr64();
+}
+
+const void* RowIndex::ptr() const {
+  return static_cast<const void*>(impl);
+}
+
+size_t RowIndex::size() const {
+  return impl? impl->length : 0;
+}
+
+size_t RowIndex::min() const {
+  return impl? impl->min : RowIndex::NA;
+}
+
+size_t RowIndex::max() const {
+  return impl? impl->max : RowIndex::NA;
+}
+
+size_t RowIndex::operator[](size_t i) const {
+  return impl? impl->nth(i) : i;
+}
+
+const int32_t* RowIndex::indices32() const {
+  return static_cast<ArrayRowIndexImpl*>(impl)->indices32();
+}
+const int64_t* RowIndex::indices64() const {
+  return static_cast<ArrayRowIndexImpl*>(impl)->indices64();
+}
+
+size_t RowIndex::slice_start() const {
+  return slice_rowindex_get_start(impl);
+}
+size_t RowIndex::slice_step() const {
+  return slice_rowindex_get_step(impl);
+}
+
+
 
 void RowIndex::clear() {
   if (impl) impl->release();
@@ -98,31 +179,32 @@ void RowIndex::shrink(size_t nrows, size_t ncols) {
   if (static_cast<size_t>(impl->refcount) == ncols + 1) {
     impl->shrink(nrows);
   } else {
-    impl->refcount--;
-    impl = impl->shrunk(nrows);
-    xassert(impl->refcount == 1);
+    auto newimpl = impl->shrunk(nrows);
+    xassert(newimpl->refcount == 0);
+    impl->release();
+    impl = newimpl;
+    impl->acquire();
   }
 }
 
 
-void RowIndex::extract_into(arr32_t& target) const
-{
+void RowIndex::extract_into(arr32_t& target) const {
   if (!impl) return;
-  size_t szlen = length();
+  size_t szlen = size();
   xassert(target.size() >= szlen);
   switch (impl->type) {
-    case RI_ARR32: {
+    case RowIndexType::ARR32: {
       std::memcpy(target.data(), indices32(), szlen * sizeof(int32_t));
       break;
     }
-    case RI_SLICE: {
+    case RowIndexType::SLICE: {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
-        int32_t start = static_cast<int32_t>(slice_start());
-        int32_t step = static_cast<int32_t>(slice_step());
+        size_t start = slice_start();
+        size_t step = slice_step();
         dt::run_interleaved(
           [&](size_t i0, size_t i1, size_t di) {
             for (size_t i = i0; i < i1; i += di) {
-              target[i] = start + static_cast<int32_t>(i) * step;
+              target[i] = static_cast<int32_t>(start + i * step);
             }
           }, szlen);
       }
@@ -134,12 +216,11 @@ void RowIndex::extract_into(arr32_t& target) const
 }
 
 
-RowIndex RowIndex::uplift(const RowIndex& ri2) const {
-  if (isabsent()) return RowIndex(ri2);
-  if (ri2.isabsent()) return RowIndex(*this);
-  return RowIndex(impl->uplift_from(ri2.impl));
+RowIndex operator *(const RowIndex& ri1, const RowIndex& ri2) {
+  if (ri1.isabsent()) return RowIndex(ri2);
+  if (ri2.isabsent()) return RowIndex(ri1);
+  return RowIndex(ri1.impl->uplift_from(ri2.impl));
 }
-
 
 RowIndex RowIndex::inverse(size_t nrows) const {
   if (isabsent()) {
@@ -147,12 +228,12 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // of that is a 0-length RowIndex.
     return RowIndex(new SliceRowIndexImpl(0, 0, 0));
   }
-  if (length() == 0) {
+  if (size() == 0) {
     // An inverse of a 0-length RowIndex is a RowIndex over all rows, which we
     // return as an empty RowIndex object.
     return RowIndex();
   }
-  if (nrows < static_cast<size_t>(max())) {
+  if (nrows < max()) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
                           "largest index " << max();
   }
@@ -170,18 +251,51 @@ void RowIndex::verify_integrity() const {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// RowIndexImpl
+//------------------------------------------------------------------------------
+
+RowIndexImpl::RowIndexImpl()
+    : length(0),
+      min(RowIndex::NA),
+      max(RowIndex::NA),
+      refcount(0),
+      type(RowIndexType::UNKNOWN),
+      ascending(false) {}
+
+RowIndexImpl::~RowIndexImpl() {}
+
+
+void RowIndexImpl::acquire() {
+  refcount++;
+}
+
+void RowIndexImpl::release() {
+  refcount--;
+  if (!refcount) delete this;
+}
+
+
+
 void RowIndexImpl::verify_integrity() const {
-  if (refcount <= 0) {
-    throw AssertionError() << "RowIndex has invalid refcount: " << refcount;
+  if (refcount == 0) {
+    throw AssertionError() << "RowIndex has refcount of 0";
   }
-  if (length == 0 && (min || max)) {
+  if (length == 0 && (min != RowIndex::NA || max != RowIndex::NA)) {
     throw AssertionError() << "RowIndex has length 0, but either min = " << min
-        << " or max = " << max << " are non-zero";
+        << " or max = " << max << " are non-NA";
   }
-  if (min < 0) {
-    throw AssertionError() << "min value in RowIndex is negative: " << min;
+  if (min > RowIndex::MAX && min != RowIndex::NA) {
+    int64_t imin = static_cast<int64_t>(min);
+    throw AssertionError() << "min value in RowIndex is negative: " << imin;
   }
-  if (min > max) {
+  if (max > RowIndex::MAX && max != RowIndex::NA) {
+    int64_t imax = static_cast<int64_t>(max);
+    throw AssertionError() << "max value in RowIndex is negative: " << imax;
+  }
+  if (min > max && min != RowIndex::NA) {
     throw AssertionError() << "min value in RowIndex is larger than max: min = "
         << min << ", max = " << max;
   }

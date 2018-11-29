@@ -99,6 +99,7 @@ template <typename T> class array
 
     T* data() { return x; }
     const T* data() const { return x; }
+    bool data_owned() const { return owned; }
 
     size_t size() const { return n; }
 
@@ -109,6 +110,12 @@ template <typename T> class array
       }
       x = dt::arealloc<T>(x, newn);
       n = newn;
+    }
+
+    void* release() {
+      void* ptr = x;
+      x = nullptr;
+      return ptr;
     }
 
     void ensuresize(size_t newn) {

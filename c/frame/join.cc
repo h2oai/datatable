@@ -341,7 +341,6 @@ static cmpptr make_comparator(const Column* col1, const Column* col2) {
 //------------------------------------------------------------------------------
 // Join functionality
 //------------------------------------------------------------------------------
-static constexpr size_t NO_MATCH = size_t(-1);
 
 static size_t binsearch(Cmp* cmp, size_t nrows) {
   // Use unsigned indices in order to avoid overflows
@@ -357,7 +356,7 @@ static size_t binsearch(Cmp* cmp, size_t nrows) {
     else if (r < 0) start = mid + 1;
     else return mid;
   }
-  return cmp->cmp_jrow(start) == 0? start : NO_MATCH;
+  return cmp->cmp_jrow(start) == 0? start : RowIndex::NA;
 }
 
 
@@ -406,15 +405,14 @@ Join two Frames `xdt` and `jdt` on the keys of `jdt`.
       int r = comparator.set_xrow(i);
       if (r == 0) {
         size_t j = binsearch(&comparator, jdt->nrows);
-        result_indices[i] = (j == NO_MATCH)? GETNA<int32_t>()
-                                           : static_cast<int32_t>(j);
+        result_indices[i] = static_cast<int32_t>(j);
       } else {
-        result_indices[i] = GETNA<int32_t>();
+        result_indices[i] = -1;
       }
     }
   }
 
-  RowIndex res = RowIndex::from_array32(std::move(arr_result_indices));
+  RowIndex res = RowIndex(std::move(arr_result_indices));
   return py::oobj::from_new_reference(pyrowindex::wrap(res));
 });
 

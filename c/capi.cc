@@ -18,7 +18,7 @@ void* datatable_get_column_data(void* dt_, size_t column)
 }
 
 
-void datatable_unpack_slicerowindex(void *dt_, int64_t *start, int64_t *step)
+void datatable_unpack_slicerowindex(void* dt_, size_t* start, size_t* step)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
   RowIndex ri(dt->rowindex);

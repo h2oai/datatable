@@ -17,10 +17,10 @@ class IteratorNode(object):
 
     The IteratorNode will generate a C function with the following structure:
 
-        int `fnname`(int64_t row0, int64_t row1, `extras`) {
+        int `fnname`(size_t row0, size_t row1, `extras`) {
             `preamble`
-            for (int64_t ii = row0; ii < row1; ii++) {
-                int64_t i = /* function of ii */;
+            for (size_t ii = row0; ii < row1; ii++) {
+                size_t i = /* function of ii */;
                 `mainloop`
             }
             `epilogue`
@@ -115,7 +115,7 @@ class IteratorNode(object):
 
 
     def generate_c(self):
-        args = "int64_t row0, int64_t row1"
+        args = "size_t row0, size_t row1"
         if self._extraargs:
             args += ", " + self._extraargs
         iexpr = "i = ii;"
@@ -142,7 +142,7 @@ class IteratorNode(object):
         fn = ("int {func}({args}) {{\n"
               "    int64_t i;\n"
               "    {preamble}\n"
-              "    for (int64_t ii = row0; ii < row1; ii++) {{\n"
+              "    for (size_t ii = row0; ii < row1; ii++) {{\n"
               "        {iexpr}\n"
               "        {mainloop}\n"
               "    }}\n"

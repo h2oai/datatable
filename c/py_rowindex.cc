@@ -1,15 +1,31 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #define dt_PY_ROWINDEX_cc
 #include "py_rowindex.h"
 #include "py_datatable.h"
 #include "py_column.h"
 #include "py_utils.h"
+#include "python/int.h"
+#include "python/list.h"
 #include "python/obj.h"
 
 namespace pyrowindex
@@ -37,10 +53,10 @@ PyObject* wrap(const RowIndex& rowindex) {
 //==============================================================================
 
 PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
-  int64_t start, count, step;
+  size_t start, count, step;
   if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
                         &start, &count, &step)) return nullptr;
-  return wrap(RowIndex::from_slice(start, count, step));
+  return wrap(RowIndex(start, count, step));
 }
 
 
@@ -77,7 +93,7 @@ PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
     counts[ii] = count;
     steps[ii] = step;
   }
-  return wrap(RowIndex::from_slices(starts, counts, steps));
+  return wrap(RowIndex(starts, counts, steps));
 }
 
 
@@ -116,8 +132,8 @@ PyObject* rowindex_from_array(PyObject*, PyObject* args) {
     }
   }
   // Construct and return the RowIndex object
-  return data32? wrap(RowIndex::from_array32(std::move(data32)))
-               : wrap(RowIndex::from_array64(std::move(data64)));
+  return data32? wrap(RowIndex(std::move(data32)))
+               : wrap(RowIndex(std::move(data64)));
 }
 
 
@@ -125,7 +141,7 @@ PyObject* rowindex_from_column(PyObject*, PyObject* args) {
   Column* col;
   if (!PyArg_ParseTuple(args, "O&:rowindex_from_column",
                         &pycolumn::unwrap, &col)) return nullptr;
-  return wrap(RowIndex::from_column(col));
+  return wrap(RowIndex(col));
 }
 
 
@@ -137,13 +153,13 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
                         &_fnptr, &_nrows))
       return nullptr;
 
-  int64_t nrows = static_cast<int64_t>(_nrows);
+  size_t nrows = static_cast<size_t>(_nrows);
   if (nrows <= INT32_MAX) {
     filterfn32* fnptr = reinterpret_cast<filterfn32*>(_fnptr);
-    return wrap(RowIndex::from_filterfn32(fnptr, nrows, 0));
+    return wrap(RowIndex(fnptr, nrows, 0));
   } else {
     filterfn64* fnptr = reinterpret_cast<filterfn64*>(_fnptr);
-    return wrap(RowIndex::from_filterfn64(fnptr, nrows, 0));
+    return wrap(RowIndex(fnptr, nrows, 0));
   }
 }
 
@@ -154,15 +170,15 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 //==============================================================================
 
 PyObject* get_nrows(obj* self) {
-  return PyLong_FromSize_t(self->ref->length());
+  return PyLong_FromSize_t(self->ref->size());
 }
 
 PyObject* get_min(obj* self) {
-  return PyLong_FromLongLong(self->ref->min());
+  return PyLong_FromSize_t(self->ref->min());
 }
 
 PyObject* get_max(obj* self) {
-  return PyLong_FromLongLong(self->ref->max());
+  return PyLong_FromSize_t(self->ref->max());
 }
 
 PyObject* get_ptr(obj* self) {
@@ -190,14 +206,14 @@ static PyObject* repr(obj* self)
   if (rz.isabsent())
     return PyUnicode_FromString("_RowIndex(nullptr)");
   if (rz.isarr32()) {
-    return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.length());
+    return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.size());
   }
   if (rz.isarr64()) {
-    return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.length());
+    return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.size());
   }
   if (rz.isslice()) {
     return PyUnicode_FromFormat("_RowIndex(%ld/%ld/%ld)",
-        rz.slice_start(), rz.length(), rz.slice_step());
+        rz.slice_start(), rz.size(), rz.slice_step());
   }
   return nullptr;
 }
@@ -206,31 +222,14 @@ static PyObject* repr(obj* self)
 PyObject* tolist(obj* self, PyObject*)
 {
   RowIndex& ri = *(self->ref);
-  int64_t n = static_cast<int64_t>(ri.length());
+  size_t n = ri.size();
 
-  PyObject* list = PyList_New(n);
-  if (!list) return nullptr;
-  if (ri.isarr32()) {
-    int32_t n32 = static_cast<int32_t>(n);
-    const int32_t* a = ri.indices32();
-    for (int32_t i = 0; i < n32; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
-    }
-  }
-  if (ri.isarr64()) {
-    const int64_t* a = ri.indices64();
-    for (int64_t i = 0; i < n; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
-    }
-  }
-  if (ri.isslice()) {
-    int64_t start = ri.slice_start();
-    int64_t step = ri.slice_step();
-    for (int64_t i = 0; i < n; ++i) {
-      PyList_SET_ITEM(list, i, PyLong_FromLong(start + i*step));
-    }
-  }
-  return list;
+  py::olist list(n);
+  ri.iterate(0, n, 1,
+    [&](size_t i, size_t j) {
+      list.set(i, j == RowIndex::NA? py::None() : py::oint(j));
+    });
+  return std::move(list).release();
 }
 
 
@@ -239,7 +238,7 @@ PyObject* uplift(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O:RowIndex.uplift", &arg1)) return nullptr;
   RowIndex& r1 = *(self->ref);
   RowIndex  r2 = py::robj(arg1).to_rowindex();
-  RowIndex res = r1.uplift(r2);
+  RowIndex res = r1 * r2;
   return wrap(res);
 }
 

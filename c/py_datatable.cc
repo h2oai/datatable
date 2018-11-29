@@ -208,7 +208,7 @@ PyObject* to_scalar(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   if (dt->ncols == 1 && dt->nrows == 1) {
     Column* col = dt->columns[0];
-    int64_t i = col->rowindex().nth(0);
+    size_t i = col->rowindex()[0];
     auto f = py_stype_formatters[static_cast<int>(col->stype())];
     return f(col, i);
   } else {
@@ -320,9 +320,9 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
 
 PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int64_t start;
+  size_t start;
   size_t count;
-  int64_t step;
+  size_t step;
   PyObject *arg4, *arg5;
   if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
                         &start, &count, &step, &arg4, &arg5)) return nullptr;
@@ -330,10 +330,9 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg5).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
 
-  if (!check_slice_triple(start, static_cast<int64_t>(count), step,
-                          static_cast<int64_t>(dt->ncols - 1))) {
+  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
     throw ValueError() << "Invalid slice " << start << "/" << count
                        << "/" << step << " for a Frame with " << dt->ncols
                        << " columns";
@@ -349,14 +348,13 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   repl->reify();
 
   for (size_t i = 0; i < count; ++i) {
-    int64_t j = start + static_cast<int64_t>(i) * step;
-    size_t zj = static_cast<size_t>(j);
+    size_t j = start + i * step;
     Column* replcol = repl->columns[i % rcols];
     if (rows_ri) {
-      dt->columns[zj]->replace_values(rows_ri, replcol);
+      dt->columns[j]->replace_values(rows_ri, replcol);
     } else {
-      delete dt->columns[zj];
-      dt->columns[zj] = replcol->shallowcopy();
+      delete dt->columns[j];
+      dt->columns[j] = replcol->shallowcopy();
     }
   }
   _clear_types(self);
@@ -374,7 +372,7 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg3).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
 
   bool ok = (rrows == rrows2 || rrows == 1) &&
             (rcols == cols.size() || rcols == 1);
