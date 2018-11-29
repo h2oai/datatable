@@ -93,7 +93,9 @@ DataTable* DataTable::copy() const {
     // vector can be default-copied.
     newcols.push_back(col->shallowcopy());
   }
-  return new DataTable(std::move(newcols), this);
+  DataTable* res = new DataTable(std::move(newcols), this);
+  res->nkeys = nkeys;
+  return res;
 }
 
 
@@ -185,8 +187,7 @@ void DataTable::reify() {
 
 
 
-size_t DataTable::memory_footprint()
-{
+size_t DataTable::memory_footprint() const {
   size_t sz = 0;
   sz += sizeof(*this);
   sz += (ncols + 1) * sizeof(Column*);

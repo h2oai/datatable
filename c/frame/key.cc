@@ -136,3 +136,8 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
 
   nkeys = K;
 }
+
+
+void DataTable::set_nkeys_unsafe(size_t K) {
+  nkeys = K;
+}

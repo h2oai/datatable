@@ -95,9 +95,16 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
-  std::string filename = py::robj(arg1).to_string();
 
-  DataTable* dt = DataTable::open_jay(filename);
+  DataTable* dt = nullptr;
+  if (PyBytes_Check(arg1)) {
+    const char* data = PyBytes_AS_STRING(arg1);
+    size_t length = static_cast<size_t>(PyBytes_GET_SIZE(arg1));
+    dt = open_jay_from_bytes(data, length);
+  } else {
+    std::string filename = py::robj(arg1).to_string();
+    dt = open_jay_from_file(filename);
+  }
   py::Frame* frame = py::Frame::from_datatable(dt);
   return frame;
 }
@@ -574,26 +581,28 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+
 PyObject* save_jay(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* arg1, *arg2, *arg3;
-  if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
+  PyObject* arg1;
+  PyObject* arg2;
+  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2))
     return nullptr;
 
   auto filename = py::robj(arg1).to_string();
-  auto colnames = py::robj(arg2).to_stringlist();
-  auto strategy = py::robj(arg3).to_string();
+  auto strategy = py::robj(arg2).to_string();
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
-
-  if (colnames.size() != dt->ncols) {
-    throw ValueError()
-      << "The list of column names has wrong length: " << colnames.size();
+  if (!filename.empty()) {
+    dt->save_jay(filename, sstrategy);
+    Py_RETURN_NONE;
+  } else {
+    MemoryRange mr = dt->save_jay();
+    auto data = static_cast<const char*>(mr.xptr());
+    auto size = static_cast<Py_ssize_t>(mr.size());
+    return PyBytes_FromStringAndSize(data, size);
   }
-
-  dt->save_jay(filename, colnames, sstrategy);
-  Py_RETURN_NONE;
 }
 
 
@@ -601,8 +610,6 @@ PyObject* save_jay(obj* self, PyObject* args) {
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
-
-
 
 static void dealloc(obj* self) {
   delete self->ref;
