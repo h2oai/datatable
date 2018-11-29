@@ -173,9 +173,9 @@ void FwColumn<T>::reify() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.strided_loop(0, nrows, 1,
-      [&](size_t i) {
-        *data_dest++ = (i == RowIndex::NA)? GETNA<T>() : data_src[i];
+    ri.strided_loop2(0, nrows, 1,
+      [&](size_t i, size_t j) {
+        data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
       });
   }
 
@@ -305,18 +305,17 @@ void FwColumn<T>::replace_values(
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
     T value = *data_src;
-    replace_at.strided_loop(0, replace_n, 1,
-      [&](size_t i) {
-        xassert(i != RowIndex::NA);
-        data_dest[i] = value;
+    replace_at.strided_loop2(0, replace_n, 1,
+      [&](size_t, size_t j) {
+        xassert(j != RowIndex::NA);
+        data_dest[j] = value;
       });
   } else {
     xassert(replace_with->nrows == replace_n);
-    replace_at.strided_loop(0, replace_n, 1,
-      [&](size_t i) {
-        xassert(i != RowIndex::NA);
-        data_dest[i] = *data_src;
-        ++data_src;
+    replace_at.strided_loop2(0, replace_n, 1,
+      [&](size_t i, size_t j) {
+        xassert(j != RowIndex::NA);
+        data_dest[j] = data_src[i];
       });
   }
 }

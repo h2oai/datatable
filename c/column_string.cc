@@ -286,9 +286,9 @@ void StringColumn<T>::reify() {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.strided_loop(0, nrows, 1,
-      [&](size_t i) {
-        strs_size += offs1[i] - offs0[i];
+    ri.strided_loop2(0, nrows, 1,
+      [&](size_t, size_t j) {
+        strs_size += offs1[j] - offs0[j];
       });
     strs_size &= ~GETNA<T>();
     new_strbuf_size = static_cast<size_t>(strs_size);
@@ -296,19 +296,19 @@ void StringColumn<T>::reify() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.strided_loop(0, nrows, 1,
-      [&](size_t i) {
-        if (i == RowIndex::NA || ISNA<T>(offs1[i])) {
-          *offs_dest++ = prev_off | GETNA<T>();
+    ri.strided_loop2(0, nrows, 1,
+      [&](size_t i, size_t j) {
+        if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
+          offs_dest[i] = prev_off | GETNA<T>();
         } else {
-          T off0 = offs0[i] & ~GETNA<T>();
-          T str_len = offs1[i] - off0;
+          T off0 = offs0[j] & ~GETNA<T>();
+          T str_len = offs1[j] - off0;
           if (str_len != 0) {
             std::memcpy(strs_dest, strs_src + off0, str_len);
             strs_dest += str_len;
             prev_off += str_len;
           }
-          *offs_dest++ = prev_off;
+          offs_dest[i] = prev_off;
         }
       });
   }

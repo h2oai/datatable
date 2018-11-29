@@ -172,8 +172,6 @@ class RowIndex {
     /**
      * Template function that facilitates looping through a RowIndex.
      */
-    template<typename F> void strided_loop(
-        size_t istart, size_t iend, size_t istep, F f) const;
     template<typename F> void strided_loop2(
         size_t istart, size_t iend, size_t istep, F f) const;
 
@@ -187,46 +185,6 @@ class RowIndex {
 
 
 //==============================================================================
-
-template<typename F>
-void RowIndex::strided_loop(
-    size_t istart, size_t iend, size_t istep, F f) const
-{
-  switch (type()) {
-    case RowIndexType::UNKNOWN: {
-      for (size_t i = istart; i < iend; i += istep) {
-        f(i);
-      }
-      break;
-    }
-    case RowIndexType::ARR32: {
-      const int32_t* ridata = indices32();
-      for (size_t i = istart; i < iend; i += istep) {
-        f(static_cast<size_t>(ridata[i]));
-      }
-      break;
-    }
-    case RowIndexType::ARR64: {
-      const int64_t* ridata = indices64();
-      for (size_t i = istart; i < iend; i += istep) {
-        f(static_cast<size_t>(ridata[i]));
-      }
-      break;
-    }
-    case RowIndexType::SLICE: {
-      // Careful with negative slice steps (in which case j goes down,
-      // and therefore we cannot iterate until `j < jend`).
-      size_t jstep = slice_step() * istep;
-      size_t j = slice_start() + istart * slice_step();
-      for (size_t i = istart; i < iend; i += istep) {
-        f(j);
-        j += jstep;
-      }
-      break;
-    }
-  }
-}
-
 
 template<typename F>
 void RowIndex::strided_loop2(

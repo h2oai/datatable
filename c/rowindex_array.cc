@@ -335,24 +335,24 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
   if (length <= INT32_MAX && col->nrows <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
-    size_t k = 0;
     auto ind32 = static_cast<int32_t*>(data);
-    col->rowindex().strided_loop(0, col->nrows, 1,
-      [&](size_t i) {
-        if (tdata[i] == 1)
-          ind32[k++] = static_cast<int32_t>(i);
+    size_t k = 0;
+    col->rowindex().strided_loop2(0, col->nrows, 1,
+      [&](size_t, size_t j) {
+        if (tdata[j] == 1)
+          ind32[k++] = static_cast<int32_t>(j);
       });
     ascending = true;
     set_min_max<int32_t>();
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
-    size_t k = 0;
     auto ind64 = static_cast<int64_t*>(data);
-    col->rowindex().strided_loop(0, col->nrows, 1,
-      [&](size_t i) {
-        if (tdata[i] == 1)
-          ind64[k++] = static_cast<int64_t>(i);
+    size_t k = 0;
+    col->rowindex().strided_loop2(0, col->nrows, 1,
+      [&](size_t, size_t j) {
+        if (tdata[j] == 1)
+          ind64[k++] = static_cast<int64_t>(j);
       });
     ascending = true;
     set_min_max<int64_t>();

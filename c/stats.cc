@@ -163,10 +163,10 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     T t_min = infinity<T>();
     T t_max = -infinity<T>();
 
-    rowindex.strided_loop(ith, nrows, nth,
-      [&](size_t i) {
-        if (i == RowIndex::NA) return;
-        T x = data[i];
+    rowindex.strided_loop2(ith, nrows, nth,
+      [&](size_t, size_t j) {
+        if (j == RowIndex::NA) return;
+        T x = data[j];
         if (ISNA<T>(x)) return;
         n1 = t_count_notna;
         ++t_count_notna;
@@ -451,10 +451,10 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t tcount0 = 0, tcount1 = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
-      [&](size_t i) {
-        if (i == RowIndex::NA) return;
-        int8_t x = data[i];
+    rowindex.strided_loop2(ith, nrows, nth,
+      [&](size_t, size_t j) {
+        if (j == RowIndex::NA) return;
+        int8_t x = data[j];
         tcount0 += (x == 0);
         tcount1 += (x == 1);
       });
@@ -519,10 +519,10 @@ void StringStats<T>::compute_countna(const Column* col) {
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t tcountna = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
-      [&](size_t i) {
-        if (i == RowIndex::NA) return;
-        tcountna += data[i] >> (sizeof(T)*8 - 1);
+    rowindex.strided_loop2(ith, nrows, nth,
+      [&](size_t, size_t j) {
+        if (j == RowIndex::NA) return;
+        tcountna += data[j] >> (sizeof(T)*8 - 1);
       });
 
     #pragma omp critical
@@ -618,10 +618,10 @@ void PyObjectStats::compute_countna(const Column* col) {
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t tcountna = 0;
 
-    rowindex.strided_loop(ith, nrows, nth,
-      [&](size_t i) {
-        if (i == RowIndex::NA) return;
-        tcountna += (data[i] == Py_None);
+    rowindex.strided_loop2(ith, nrows, nth,
+      [&](size_t, size_t j) {
+        if (j == RowIndex::NA) return;
+        tcountna += (data[j] == Py_None);
       });
 
     #pragma omp critical
