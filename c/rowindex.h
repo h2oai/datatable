@@ -202,16 +202,14 @@ void RowIndex::strided_loop(
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
       for (size_t i = istart; i < iend; i += istep) {
-        int32_t j = ridata[i];
-        f(ISNA<int32_t>(j)? RowIndex::NA : static_cast<size_t>(j));
+        f(static_cast<size_t>(ridata[i]));
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
       for (size_t i = istart; i < iend; i += istep) {
-        int64_t j = ridata[i];
-        f(ISNA<int64_t>(j)? RowIndex::NA : static_cast<size_t>(j));
+        f(static_cast<size_t>(ridata[i]));
       }
       break;
     }
@@ -244,16 +242,14 @@ void RowIndex::strided_loop2(
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
       for (size_t i = istart; i < iend; i += istep) {
-        int32_t j = ridata[i];
-        f(i, ISNA(j)? RowIndex::NA : static_cast<size_t>(j));
+        f(i, static_cast<size_t>(ridata[i]));
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
       for (size_t i = istart; i < iend; i += istep) {
-        int64_t j = ridata[i];
-        f(i, ISNA(j)? RowIndex::NA : static_cast<size_t>(j));
+        f(i, static_cast<size_t>(ridata[i]));
       }
       break;
     }

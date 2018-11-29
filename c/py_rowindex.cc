@@ -211,25 +211,10 @@ PyObject* tolist(obj* self, PyObject*)
   size_t n = ri.size();
 
   py::olist list(n);
-  if (ri.isarr32()) {
-    const int32_t* a = ri.indices32();
-    for (size_t i = 0; i < n; ++i) {
-      list.set(i, py::oint(a[i]));
-    }
-  }
-  if (ri.isarr64()) {
-    const int64_t* a = ri.indices64();
-    for (size_t i = 0; i < n; ++i) {
-      list.set(i, py::oint(a[i]));
-    }
-  }
-  if (ri.isslice()) {
-    size_t start = ri.slice_start();
-    size_t step = ri.slice_step();
-    for (size_t i = 0; i < n; ++i) {
-      list.set(i, py::oint(start + i*step));
-    }
-  }
+  ri.strided_loop2(0, n, 1,
+    [&](size_t i, size_t j) {
+      list.set(i, j == RowIndex::NA? py::None() : py::oint(j));
+    });
   return std::move(list).release();
 }
 

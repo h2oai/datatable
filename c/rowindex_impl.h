@@ -135,9 +135,10 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(const Column*);
     ~ArrayRowIndexImpl() override;
 
-    size_t nth(size_t i) const override;
     const int32_t* indices32() const;
     const int64_t* indices64() const;
+
+    size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
     void shrink(size_t n) override;
@@ -147,6 +148,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 
   private:
     void _resize_data();
+
     // Helper function that computes and sets proper `min` / `max` fields for
     // this RowIndex. The `sorted` flag is a hint whether the indices are
     // sorted (if they are, computing min/max is much simpler).
