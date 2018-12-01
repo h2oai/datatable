@@ -24,54 +24,10 @@
 #include "python/args.h"
 #include "rowindex.h"
 
-// Forward declarations
-template <typename T>
-static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps);
-static Column* repeat_column(const Column* col, size_t nreps);
 
-
-
-static py::PKArgs fn_repeat(
-    2, 0, 0, false, false, {"frame", "n"},
-    "repeat",
-R"(repeat(frame, n)
---
-
-Concatenate `n` copies of the `frame` by rows and return the result.
-
-This is equivalent to ``dt.rbind([self] * n)``.
-)",
-
-
-[](const py::PKArgs& args) -> py::oobj {
-  DataTable* dt = args[0].to_frame();
-  size_t n = args[1].to_size_t();
-
-  // Empty Frame: repeating is a noop
-  if (dt->ncols == 0 || dt->nrows == 0) {
-    return py::oobj::from_new_reference(py::Frame::from_datatable(dt->copy()));
-  }
-
-  // Single-colum fixed-width Frame:
-  Column* col0 = dt->columns[0];
-  if (dt->ncols == 1 &&
-      !info(col0->stype()).is_varwidth() &&
-      !col0->rowindex())
-  {
-    Column* newcol = repeat_column(col0, n);
-    DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
-    return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
-  }
-
-  RowIndex ri = (dt->nrows * n < std::numeric_limits<int32_t>::max())
-      ? _make_repeat_rowindex<int32_t>(dt->nrows, n)
-      : _make_repeat_rowindex<int64_t>(dt->nrows, n);
-
-  DataTable* newdt = apply_rowindex(dt, ri);
-  return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
-});
-
-
+//------------------------------------------------------------------------------
+// Static helpers
+//------------------------------------------------------------------------------
 
 /**
  * Create and return a RowIndex with elements
@@ -125,6 +81,52 @@ static Column* repeat_column(const Column* col, size_t nreps) {
 
   return newcol;
 }
+
+
+
+//------------------------------------------------------------------------------
+// datatable.repeat()
+//------------------------------------------------------------------------------
+
+static py::PKArgs fn_repeat(
+    2, 0, 0, false, false, {"frame", "n"},
+    "repeat",
+R"(repeat(frame, n)
+--
+
+Concatenate `n` copies of the `frame` by rows and return the result.
+
+This is equivalent to ``dt.rbind([self] * n)``.
+)",
+
+
+[](const py::PKArgs& args) -> py::oobj {
+  DataTable* dt = args[0].to_frame();
+  size_t n = args[1].to_size_t();
+
+  // Empty Frame: repeating is a noop
+  if (dt->ncols == 0 || dt->nrows == 0) {
+    return py::oobj::from_new_reference(py::Frame::from_datatable(dt->copy()));
+  }
+
+  // Single-colum fixed-width Frame:
+  Column* col0 = dt->columns[0];
+  if (dt->ncols == 1 &&
+      !info(col0->stype()).is_varwidth() &&
+      !col0->rowindex())
+  {
+    Column* newcol = repeat_column(col0, n);
+    DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
+    return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
+  }
+
+  RowIndex ri = (dt->nrows * n < std::numeric_limits<int32_t>::max())
+      ? _make_repeat_rowindex<int32_t>(dt->nrows, n)
+      : _make_repeat_rowindex<int64_t>(dt->nrows, n);
+
+  DataTable* newdt = apply_rowindex(dt, ri);
+  return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
+});
 
 
 

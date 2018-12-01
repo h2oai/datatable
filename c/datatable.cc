@@ -196,11 +196,13 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
  * Equivalent of ``dt[ri, :]``.
  */
 DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
-  auto [rowindices, colindices] = _split_columns_by_rowindices(dt);
+  auto rc = _split_columns_by_rowindices(dt);
+  auto& rowindices = rc.first;
+  auto& colindices = rc.second;
 
   colvec newcols(dt->ncols);
   for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex newri = rowindices[j] * ri;
+    RowIndex newri = ri * rowindices[j];
     for (size_t i : colindices[j]) {
       newcols[i] = dt->columns[i]->shallowcopy(newri);
     }

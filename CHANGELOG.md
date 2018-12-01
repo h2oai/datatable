@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame` objects can now pickled (#1442).
 
 - function `dt.repeat(frame, n)` that creates a Frame by row-binding `n`
-  copies of the `frame`, but more efficiently.
+  copies of the `frame`.
 
 
 #### Fixed
