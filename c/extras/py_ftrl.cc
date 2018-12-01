@@ -371,8 +371,8 @@ void PyFtrl::set_model(robj model) {
   }
 
   if (model_cols_in != Ftrl::model_cols) {
-    throw ValueError() << "FTRL model frame must have columns named `z` and `n`,"
-                       << "whereas your frame has the following column names `" << model_cols_in[0]
+    throw ValueError() << "FTRL model frame must have columns named `z` and `n`, "
+                       << "whereas your frame has the following column names: `" << model_cols_in[0]
                        << "` and `" << model_cols_in[1] << "`";
   }
 
