@@ -37,8 +37,8 @@ from tests import assert_equals
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
-test_params = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5, n_epochs = 6, 
-            inter = True)
+test_params = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
+                     n_epochs = 6, inter = True)
 
 
 #-------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(c = 1.0)
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
-            str(e.value))    
+            str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -126,10 +126,12 @@ def test_ftrl_create_params():
 
 
 def test_ftrl_create_individual():
-    ft = core.Ftrl(alpha = test_params.alpha, beta = test_params.beta, lambda1 = test_params.lambda1, 
-                   lambda2 = test_params.lambda2, d = test_params.d, n_epochs = test_params.n_epochs, 
+    ft = core.Ftrl(alpha = test_params.alpha, beta = test_params.beta,
+                   lambda1 = test_params.lambda1, lambda2 = test_params.lambda2,
+                   d = test_params.d, n_epochs = test_params.n_epochs,
                    inter = test_params.inter)
-    assert ft.params == (test_params.alpha, test_params.beta, test_params.lambda1, test_params.lambda2, 
+    assert ft.params == (test_params.alpha, test_params.beta,
+                         test_params.lambda1, test_params.lambda2,
                          test_params.d, test_params.n_epochs, test_params.inter)
 
 
@@ -140,7 +142,7 @@ def test_ftrl_create_individual():
 def test_ftrl_get_params_individual():
     ft = core.Ftrl(params = test_params)
     assert ft.params == test_params
-    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, 
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
             ft.d, ft.n_epochs, ft.inter) == test_params
 
 
@@ -226,7 +228,7 @@ def test_ftrl_set_params():
     ft = core.Ftrl()
     ft.params = test_params
     assert ft.params == test_params
-    
+
 
 def test_ftrl_reset_params():
     ft = core.Ftrl(params = test_params)
@@ -263,7 +265,7 @@ def test_ftrl_fit_wrong_empty():
     df_train = dt.Frame()
     with pytest.raises(ValueError) as e:
         ft.fit(df_train)
-    assert ("Cannot train a model on an empty frame" == 
+    assert ("Cannot train a model on an empty frame" ==
             str(e.value))
 
 
@@ -309,7 +311,7 @@ def test_ftrl_fit_wrong_target_string():
 
 def test_ftrl_col_hashes():
     ncols = 10
-    col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840, 
+    col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840,
                           14296604503264754754,  3956937694466614811,
                           10071734010655191393,  6063711047550005084,
                            4309007444360962581,  4517980897659475069,
@@ -329,7 +331,7 @@ def test_ftrl_predict_not_trained():
     df_train = dt.Frame([[1, 2, 3], [True, False, True]])
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
-    assert ("Cannot make any predictions, because the model was not trained" 
+    assert ("Cannot make any predictions, because the model was not trained"
             == str(e.value))
 
 
@@ -340,7 +342,7 @@ def test_ftrl_predict_wrong_columns():
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
     assert ("Can only predict on a frame that has %d column(s), i.e. has the "
-            "same number of features as was used for model training" 
+            "same number of features as was used for model training"
             % (df_train.ncols - 1) == str(e.value))
 
 
@@ -352,7 +354,7 @@ epsilon = 0.01
 
 def test_ftrl_fit_unique():
     ft = core.Ftrl(d = 10)
-    df_train = dt.Frame([[i for i in range(ft.d)], 
+    df_train = dt.Frame([[i for i in range(ft.d)],
                          [True for i in range(ft.d)]])
     ft.fit(df_train)
     model = [[-0.5 for i in range(ft.d)], [0.25 for i in range(ft.d)]]
@@ -361,7 +363,7 @@ def test_ftrl_fit_unique():
 
 def test_ftrl_fit_predict_bool():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[True, False], 
+    df_train = dt.Frame([[True, False],
                          [True, False]])
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])
@@ -373,7 +375,7 @@ def test_ftrl_fit_predict_bool():
 
 def test_ftrl_fit_predict_int():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[0, 1], 
+    df_train = dt.Frame([[0, 1],
                          [True, False]])
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])
@@ -385,7 +387,7 @@ def test_ftrl_fit_predict_int():
 
 def test_ftrl_fit_predict_float():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[0.0, 0.1], 
+    df_train = dt.Frame([[0.0, 0.1],
                          [True, False]])
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])
@@ -398,7 +400,7 @@ def test_ftrl_fit_predict_float():
 
 def test_ftrl_fit_predict_string():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([["Monday", "Tuesday"], 
+    df_train = dt.Frame([["Monday", "Tuesday"],
                          [True, False]])
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])

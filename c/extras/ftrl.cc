@@ -358,10 +358,8 @@ void Ftrl::update(const uint64ptr& x, size_t x_size, double p, bool target) {
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
 void Ftrl::hash_row(uint64ptr& x, size_t row_id) {
-  uint64_t index;
-
   for (size_t i = 0; i < n_features; ++i) {
-    index = hashers[i]->hash(row_id);
+    uint64_t index = hashers[i]->hash(row_id);
     // Add the column name hash to the hashed value, so that the same value
     // in different columns will result in different hashes.
     index += colnames_hashes[i];
