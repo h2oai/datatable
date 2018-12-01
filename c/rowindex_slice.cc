@@ -212,6 +212,30 @@ RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
 }
 
 
+void SliceRowIndexImpl::resize(size_t n) {
+  xassert(n <= length);
+  length = n;
+  min = start;
+  max = start + step*(n - 1);
+  if (!ascending) std::swap(min, max);
+}
+
+RowIndexImpl* SliceRowIndexImpl::resized(size_t n) {
+  if (n <= length) {
+    return new SliceRowIndexImpl(start, n, step);
+  } else {
+    arr64_t starts(2), counts(2), steps(2);
+    starts[0] = static_cast<int64_t>(start);
+    counts[0] = static_cast<int64_t>(length);
+    steps[0]  = static_cast<int64_t>(step);
+    starts[1] = -1;
+    counts[1] = static_cast<int64_t>(n - length);
+    steps[1]  = 0;
+    return new ArrayRowIndexImpl(starts, counts, steps);
+  }
+}
+
+
 
 size_t SliceRowIndexImpl::memory_footprint() const {
   return sizeof(*this);

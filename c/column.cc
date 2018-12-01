@@ -210,6 +210,12 @@ Column* Column::rbind(std::vector<const Column*>& columns)
 }
 
 
+RowIndex Column::remove_rowindex() {
+  RowIndex res(std::move(ri));
+  xassert(!ri);
+  return res;
+}
+
 void Column::replace_rowindex(const RowIndex& newri) {
   ri = newri;
   nrows = ri.size();

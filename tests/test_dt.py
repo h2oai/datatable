@@ -526,7 +526,7 @@ def test_resize_rows_api():
     f0.nrows = 3
     f0.nrows = 5
     f0.internal.check()
-    assert f0.topython() == [[20, 20, 20, None, None]]
+    assert f0.topython() == [[20, None, None, None, None]]
 
 
 def test_resize_rows0():
@@ -550,7 +550,7 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (20, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.topython() == [[0] * 20]
+    assert f0.topython() == [[0] + [None] * 19]
 
 
 def test_resize_rows1():
@@ -564,12 +564,12 @@ def test_resize_rows1():
     f0.internal.check()
     assert f0.shape == (7, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src * 7 for src in srcs]
+    assert f0.topython() == [src + [None] * 6 for src in srcs]
     f0.nrows = 20
     f0.internal.check()
     assert f0.shape == (20, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src * 7 + [None] * 13 for src in srcs]
+    assert f0.topython() == [src + [None] * 19 for src in srcs]
     f0.nrows = 0
     f0.internal.check()
     assert f0.shape == (0, 5)
@@ -600,7 +600,7 @@ def test_resize_view_slice():
     f1.nrows = 15
     f1.internal.check()
     assert f1.shape == (15, 1)
-    assert not f1.internal.isview
+    assert f1.internal.isview
     assert f1.topython()[0] == list(range(8, 28, 2)) + [None] * 5
 
 
@@ -619,7 +619,7 @@ def test_resize_view_array():
     f1.nrows = 5
     f1.internal.check()
     assert f1.shape == (5, 1)
-    assert not f1.internal.isview
+    assert f1.internal.isview
     assert f1.topython() == [[1, 1, 2, 3, None]]
 
 

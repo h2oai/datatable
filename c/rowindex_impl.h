@@ -74,8 +74,12 @@ class RowIndexImpl {
     virtual size_t nth(size_t i) const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(size_t nrows) const = 0;
+
     virtual void shrink(size_t n) = 0;
     virtual RowIndexImpl* shrunk(size_t n) = 0;
+    virtual void resize(size_t n) = 0;
+    virtual RowIndexImpl* resized(size_t n) = 0;
+
     virtual size_t memory_footprint() const = 0;
     virtual void verify_integrity() const;
 };
@@ -97,8 +101,12 @@ class SliceRowIndexImpl : public RowIndexImpl {
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
+
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;
+    void resize(size_t n) override;
+    RowIndexImpl* resized(size_t n) override;
+
     size_t memory_footprint() const override;
     void verify_integrity() const override;
 
@@ -128,6 +136,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
     ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
+    ArrayRowIndexImpl(arr32_t&& indices, size_t min, size_t max);
+    ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
     ArrayRowIndexImpl(filterfn32* f, size_t n, bool sorted);
@@ -141,18 +151,23 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
+
     void shrink(size_t n) override;
     RowIndexImpl* shrunk(size_t n) override;
+    void resize(size_t n) override;
+    RowIndexImpl* resized(size_t n) override;
+
     size_t memory_footprint() const override;
     void verify_integrity() const override;
 
   private:
     void _resize_data();
+    void set_min_max();
 
     // Helper function that computes and sets proper `min` / `max` fields for
     // this RowIndex. The `sorted` flag is a hint whether the indices are
     // sorted (if they are, computing min/max is much simpler).
-    template <typename T> void set_min_max();
+    template <typename T> void _set_min_max();
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
     void init_from_boolean_column(const BoolColumn* col);

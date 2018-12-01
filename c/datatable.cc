@@ -128,36 +128,84 @@ DataTable* DataTable::delete_columns(std::vector<size_t>& cols_to_remove)
 }
 
 
+// Split all columns into groups, by their `RowIndex`es
+static std::pair<std::vector<RowIndex>, std::vector<std::vector<size_t>>>
+_split_columns_by_rowindices(const DataTable* dt)
+{
+  std::vector<RowIndex> rowindices;
+  std::vector<std::vector<size_t>> colindices;
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    RowIndex r = dt->columns[i]->rowindex();
+    size_t j = 0;
+    for (; j < rowindices.size(); ++j) {
+      if (rowindices[j] == r) break;
+    }
+    if (j == rowindices.size()) {
+      rowindices.push_back(std::move(r));
+      colindices.resize(j + 1);
+    }
+    colindices[j].push_back(i);
+  }
+  return std::make_pair(std::move(rowindices), std::move(colindices));
+}
+
 
 void DataTable::resize_rows(size_t new_nrows) {
-  if (rowindex) {
-    if (new_nrows < nrows) {
-      rowindex.shrink(new_nrows, ncols);
-      replace_rowindex(rowindex);
-      return;
+  if (new_nrows == nrows) return;
+
+  // Split all columns into groups, by their `RowIndex`es
+  std::vector<RowIndex> rowindices;
+  std::vector<std::vector<size_t>> colindices;
+  for (size_t i = 0; i < ncols; ++i) {
+    RowIndex r = columns[i]->remove_rowindex();
+    size_t j = 0;
+    for (; j < rowindices.size(); ++j) {
+      if (rowindices[j] == r) break;
     }
-    if (new_nrows > nrows) {
-      reify();
-      // fall-through
+    if (j == rowindices.size()) {
+      rowindices.push_back(std::move(r));
+      colindices.resize(j + 1);
+    }
+    colindices[j].push_back(i);
+  }
+
+  for (size_t j = 0; j < rowindices.size(); ++j) {
+    RowIndex& r = rowindices[j];
+    if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
+    r.resize(new_nrows);
+    for (size_t i : colindices[j]) {
+      columns[i]->replace_rowindex(r);
     }
   }
-  if (new_nrows != nrows) {
-    for (size_t i = 0; i < ncols; ++i) {
-      columns[i]->resize_and_fill(new_nrows);
-    }
-    nrows = new_nrows;
-  }
+  nrows = new_nrows;
 }
 
 
 
 void DataTable::replace_rowindex(const RowIndex& newri) {
-  if (newri.isabsent() && rowindex.isabsent()) return;
+  if (!newri && !rowindex) return;
   rowindex = newri;
   nrows = rowindex.size();
   for (size_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }
+}
+
+
+/**
+ * Equivalent of ``dt[ri, :]``.
+ */
+DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
+  auto [rowindices, colindices] = _split_columns_by_rowindices(dt);
+
+  colvec newcols(dt->ncols);
+  for (size_t j = 0; j < rowindices.size(); ++j) {
+    RowIndex newri = rowindices[j] * ri;
+    for (size_t i : colindices[j]) {
+      newcols[i] = dt->columns[i]->shallowcopy(newri);
+    }
+  }
+  return new DataTable(std::move(newcols), dt);
 }
 
 
@@ -178,7 +226,7 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * Do nothing if the DataTable is not a view.
  */
 void DataTable::reify() {
-  if (rowindex.isabsent()) return;
+  // if (rowindex.isabsent()) return;
   for (size_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
