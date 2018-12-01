@@ -135,7 +135,6 @@ const std::vector<std::string> Ftrl::model_cols = {"z", "n"};
 const FtrlParams Ftrl::fp_default = {0.005, 1.0, 0.0, 1.0,
                                      1000000, 1, 1, 0, false};
 
-
 /*
 *  Set up FTRL parameters and initialize weights.
 */
@@ -457,15 +456,6 @@ DataTable* Ftrl::get_model() {
 
 
 /*
-*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
-*/
-void Ftrl::set_model(DataTable* dt_model_in) {
-  dt_model = dtptr(dt_model_in->copy());
-  model_trained = true;
-}
-
-
-/*
 *  Other getters and setters.
 *  Here we assume that all the validation for setters is done in `py_ftrl.cc`.
 */
@@ -520,6 +510,15 @@ unsigned int Ftrl::get_seed() {
 
 size_t Ftrl::get_n_epochs() {
   return fp.n_epochs;
+}
+
+
+/*
+*  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
+*/
+void Ftrl::set_model(DataTable* dt_model_in) {
+  dt_model = dtptr(dt_model_in->copy());
+  model_trained = true;
 }
 
 

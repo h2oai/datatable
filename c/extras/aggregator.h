@@ -15,10 +15,10 @@
 #include "utils.h"
 
 
-typedef std::unique_ptr<double[]> DoublePtr;
+typedef std::unique_ptr<double[]> doubleptr;
 struct ex {
   size_t id;
-  DoublePtr coords;
+  doubleptr coords;
 };
 typedef std::unique_ptr<ex> ExPtr;
 
@@ -65,10 +65,10 @@ class Aggregator {
 
     // Helper methods
     size_t get_nthreads(const dtptr&);
-    DoublePtr generate_pmatrix(const dtptr&);
-    void normalize_row(const dtptr&, DoublePtr&, size_t);
-    void project_row(const dtptr&, DoublePtr&, size_t, DoublePtr&);
-    double calculate_distance(DoublePtr&, DoublePtr&, size_t, double,
+    doubleptr generate_pmatrix(const dtptr&);
+    void normalize_row(const dtptr&, doubleptr&, size_t);
+    void project_row(const dtptr&, doubleptr&, size_t, doubleptr&);
+    double calculate_distance(doubleptr&, doubleptr&, size_t, double,
                               bool early_exit=true);
     void adjust_delta(double&, std::vector<ExPtr>&, std::vector<size_t>&,
                       size_t);

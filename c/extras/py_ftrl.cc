@@ -32,6 +32,16 @@ PKArgs PyFtrl::Type::args___init__(0, 0, 10, false, false,
                                    "d", "n_epochs", "inter", "hash_type", "seed"},
                                    "__init__", nullptr);
 
+std::vector<strpair> PyFtrl::Type::params_info = {
+  strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
+  strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
+  strpair("lambda1", "L1 regularization parameter"),
+  strpair("lambda2", "L1 regularization parameter"),
+  strpair("d", "Number of bins to be used for the hashing trick"),
+  strpair("n_epochs", "Number of epochs to train a model for"),
+  strpair("inter", "Parameter that controls if feature interactions to be used or not")
+};
+
 void PyFtrl::m__init__(PKArgs& args) {
   FtrlParams fp = Ftrl::fp_default;
   bool defined_params = !(args[0].is_undefined() || args[0].is_none());
@@ -135,38 +145,81 @@ n_epochs : int
     Number of epochs to train for.
 inter : bool
     If feature interactions to be used or not.
-hash_type : int
-    Hashing method to use for strings:
-    `0` - std::hash;
-    `1` - Murmur2;
-    `2` - Murmur3.
-seed: integer
-    Seed to be used for Murmur hash functions.
 )";
 }
 
 
 void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  gs.add<&PyFtrl::get_model, &PyFtrl::set_model>("model",
+  gs.add<&PyFtrl::get_model, &PyFtrl::set_model>(
+    "model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
     "where `d` is a number of bins set for modeling. Both column types\n"
-    "must be `FLOAT64`.\n");
-  gs.add<&PyFtrl::get_params, &PyFtrl::set_params>("params", "FTRL model parameters.\n");
-  gs.add<&PyFtrl::get_default_params>("default_params", "FTRL model default parameters.\n");
-  gs.add<&PyFtrl::get_colnames_hashes>("colnames_hashes", "Column name hashes.\n");
+    "must be `FLOAT64`"
+  );
 
-  gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>("alpha", "`alpha` in per-coordinate learning rate formula.\n");
-  gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>("beta", "`beta` in per-coordinate learning rate formula.\n");
-  gs.add<&PyFtrl::get_lambda1, &PyFtrl::set_lambda1>("lambda1", "L1 regularization parameter.\n");
-  gs.add<&PyFtrl::get_lambda2, &PyFtrl::set_lambda2>("lambda2", "L2 regularization parameter.\n");
-  gs.add<&PyFtrl::get_d, &PyFtrl::set_d>("d", "Number of bins to be used after the hashing trick.\n");
-  gs.add<&PyFtrl::get_n_epochs, &PyFtrl::set_n_epochs>("n_epochs", "Number of epochs to train for.\n");
-  gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>("inter", "If feature interactions to be used or not.\n");
-  gs.add<&PyFtrl::get_hash_type, &PyFtrl::set_hash_type>("hash_type", "Hashing method to use for strings.\n"
+  gs.add<&PyFtrl::get_params, &PyFtrl::set_params>(
+    "params",
+    "FTRL model parameters"
+  );
+
+  gs.add<&PyFtrl::get_default_params>(
+    "default_params",
+    "FTRL model default parameters"
+  );
+
+  gs.add<&PyFtrl::get_colnames_hashes>(
+    "colnames_hashes",
+    "Column name hashes.\n"
+  );
+
+  gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>(
+    Type::params_info[0].first,
+    Type::params_info[0].second
+  );
+
+  gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>(
+    Type::params_info[1].first,
+    Type::params_info[1].second
+  );
+
+  gs.add<&PyFtrl::get_lambda1, &PyFtrl::set_lambda1>(
+    Type::params_info[2].first,
+    Type::params_info[2].second
+  );
+
+  gs.add<&PyFtrl::get_lambda2, &PyFtrl::set_lambda2>(
+    Type::params_info[3].first,
+    Type::params_info[3].second
+  );
+
+  gs.add<&PyFtrl::get_d, &PyFtrl::set_d>(
+    Type::params_info[4].first,
+    Type::params_info[4].second
+  );
+
+  gs.add<&PyFtrl::get_n_epochs, &PyFtrl::set_n_epochs>(
+    Type::params_info[5].first,
+    Type::params_info[5].second
+  );
+
+
+  gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>(
+    Type::params_info[6].first,
+    Type::params_info[6].second
+  );
+
+  gs.add<&PyFtrl::get_hash_type, &PyFtrl::set_hash_type>(
+    "hash_type",
+    "Hashing method to use for strings\n"
     "`0` - std::hash;\n"
     "`1` - Murmur2;\n"
-    "`2` - Murmur3.\n");
-  gs.add<&PyFtrl::get_seed, &PyFtrl::set_seed>("seed", "Seed to be used for Murmur hash functions.\n");
+    "`2` - Murmur3.\n"
+  );
+
+  gs.add<&PyFtrl::get_seed, &PyFtrl::set_seed>(
+    "seed",
+    "Seed to be used for Murmur hash functions\n"
+  );
 
   mm.add<&PyFtrl::fit, args_fit>();
   mm.add<&PyFtrl::predict, args_predict>();
@@ -271,7 +324,7 @@ PKArgs PyFtrl::Type::args_reset_params(0, 0, 0, false, false, {}, "reset_params"
 R"(reset_params(self)
 --
 
-Reset FTRL parameters.
+Reset FTRL parameters to default values.
 
 Parameters
 ----------
@@ -351,15 +404,21 @@ oobj PyFtrl::get_colnames_hashes() const {
 
 
 oobj PyFtrl::get_params() const {
-  py::otuple params(7);
-  params.set(0, get_alpha());
-  params.set(1, get_beta());
-  params.set(2, get_lambda1());
-  params.set(3, get_lambda2());
-  params.set(4, get_d());
-  params.set(5, get_n_epochs());
-  params.set(6, get_inter());
-  return std::move(params);
+  strpair tuple_info;
+  tuple_info.first = "Params";
+  tuple_info.second = "FTRL model parameters";
+
+  py::onamedtupletype nttype(tuple_info, Type::params_info);
+  py::onamedtuple nt(&nttype);
+  nt.set(0, get_alpha());
+  nt.set(1, get_beta());
+  nt.set(2, get_lambda1());
+  nt.set(3, get_lambda2());
+  nt.set(4, get_d());
+  nt.set(5, get_n_epochs());
+  nt.set(6, get_inter());
+
+  return std::move(nt);
 }
 
 
@@ -434,46 +493,26 @@ void PyFtrl::set_params(robj params) {
 
 
 void PyFtrl::set_alpha(robj alpha) {
-  if (!alpha.is_numeric()) {
-    throw TypeError() << "`alpha` must be numeric, not "
-        << alpha.typeobj();
-  }
   ft->set_alpha(alpha.to_double());
 }
 
 
 void PyFtrl::set_beta(robj beta) {
-  if (!beta.is_numeric()) {
-    throw TypeError() << "`beta` must be numeric, not "
-        << beta.typeobj();
-  }
   ft->set_beta(beta.to_double());
 }
 
 
 void PyFtrl::set_lambda1(robj lambda1) {
-  if (!lambda1.is_numeric()) {
-    throw TypeError() << "`lambda1` must be numeric, not "
-        << lambda1.typeobj();
-  }
   ft->set_lambda1(lambda1.to_double());
 }
 
 
 void PyFtrl::set_lambda2(robj lambda2) {
-  if (!lambda2.is_numeric()) {
-    throw TypeError() << "`lambda2` must be numeric, not "
-        << lambda2.typeobj();
-  }
   ft->set_lambda2(lambda2.to_double());
 }
 
 
 void PyFtrl::set_d(robj d) {
-  if (!d.is_int()) {
-    throw TypeError() << "`d` must be integer, not "
-        << d.typeobj();
-  }
   int64_t d_in = d.to_int64_strict();
   if (d_in < 0) {
     throw ValueError() << "`d` cannot be negative";
@@ -483,10 +522,6 @@ void PyFtrl::set_d(robj d) {
 
 
 void PyFtrl::set_n_epochs(robj n_epochs) {
-  if (!n_epochs.is_int()) {
-    throw TypeError() << "`n_epochs` must be integer, not "
-        << n_epochs.typeobj();
-  }
   int64_t n_epochs_in = n_epochs.to_int64_strict();
   if (n_epochs_in < 0) {
     throw ValueError() << "`n_epochs` cannot be negative";
@@ -496,20 +531,12 @@ void PyFtrl::set_n_epochs(robj n_epochs) {
 
 
 void PyFtrl::set_inter(robj inter) {
-  if (!inter.is_bool()) {
-    throw TypeError() << "`inter` must be boolean, not "
-        << inter.typeobj();
-  }
-  bool inter_in = inter.to_bool();
+  bool inter_in = inter.to_bool_strict();
   ft->set_inter(inter_in);
 }
 
 
 void PyFtrl::set_hash_type(robj hash_type) {
-  if (!hash_type.is_int()) {
-    throw TypeError() << "`hash_type` must be integer, not "
-        << hash_type.typeobj();
-  }
   int64_t hash_type_in = hash_type.to_int64_strict();
   if (hash_type_in != 0 && hash_type_in != 1 && hash_type_in !=2) {
     throw ValueError() << "`hash_type_in` must be either `0` or `1` or `2`";
@@ -519,10 +546,6 @@ void PyFtrl::set_hash_type(robj hash_type) {
 
 
 void PyFtrl::set_seed(robj seed) {
-  if (!seed.is_int()) {
-    throw TypeError() << "`seed` must be integer, not "
-        << seed.typeobj();
-  }
   int32_t seed_in = seed.to_int32_strict();
   if (seed_in < 0) {
     throw ValueError() << "`seed` cannot be negative";

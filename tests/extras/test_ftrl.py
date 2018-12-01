@@ -33,69 +33,68 @@ import random
 from tests import assert_equals
 
 #-------------------------------------------------------------------------------
-# Define namedtuple of test parameters and `epsilon` to check accuracy
+# Define namedtuple of test parameters
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
 fp = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5, n_epochs = 6, 
             inter = True)
-epsilon = 0.01
 
 
 #-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
 #-------------------------------------------------------------------------------
 
-def test_ftrl_wrong_alpha():
+def test_ftrl_construct_wrong_alpha():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(alpha = "1.0")
     assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_wrong_beta():
+def test_ftrl_construct_wrong_beta():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(beta = "1.0")
     assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_wrong_lambda1():
+def test_ftrl_construct_wrong_lambda1():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(lambda1 = "1.0")
     assert ("Argument `lambda1` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_wrong_lambda2():
+def test_ftrl_construct_wrong_lambda2():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(lambda2 = "1.0")
     assert ("Argument `lambda2` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_wrong_d():
+def test_ftrl_construct_wrong_d():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(d = 1000000.0)
     assert ("Argument `d` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_wrong_n_epochs():
+def test_ftrl_construct_wrong_n_epochs():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(n_epochs = 10.0)
     assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_wrong_inter():
+def test_ftrl_construct_wrong_inter():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(inter = 2)
     assert ("Argument `inter` in Ftrl() constructor should be an boolean, instead "
             "got <class 'int'>" == str(e.value))
 
 
-def test_ftrl_wrong_combination():
+def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(params=fp, alpha = fp.alpha)
     assert ("You can either pass all the parameters with `params` or  any of "
@@ -105,7 +104,7 @@ def test_ftrl_wrong_combination():
             str(e.value))
 
 
-def test_ftrl_unknown_arg():
+def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
         ft = core.Ftrl(c = 1.0)
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
@@ -145,12 +144,6 @@ def test_ftrl_get_params_individual():
             ft.d, ft.n_epochs, ft.inter) == fp
 
 
-def test_ftrl_set_params():
-    ft = core.Ftrl()
-    ft.params = fp
-    assert ft.params == fp
-
-
 def test_ftrl_set_individual():
     ft = core.Ftrl()
     ft.alpha = fp.alpha
@@ -162,6 +155,78 @@ def test_ftrl_set_individual():
     ft.inter = fp.inter
     assert ft.params == fp
 
+
+def test_ftrl_set_wrong_alpha():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.alpha = "1.0"
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_beta():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.beta = "1.0"
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_lambda1():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.lambda1 = "1.0"
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_lambda2():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.lambda2 = "1.0"
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_d():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.d = 1000000.0
+    assert ("Expected an integer, instead got <class 'float'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_n_epochs():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.n_epochs = 10.0
+    assert ("Expected an integer, instead got <class 'float'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_inter():
+    ft = core.Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.inter = 2
+    assert ("Expected a boolean, instead got <class 'int'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_params_type():
+    ft = core.Ftrl()
+    params = fp._replace(alpha = "1.0")
+    with pytest.raises(TypeError) as e:
+        ft.params = params
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_params_name():
+    ft = core.Ftrl()
+    WrongParams = collections.namedtuple("WrongParams",["alpha", "inter"])
+    wfp = WrongParams(alpha = 1, inter = True)
+    with pytest.raises(AttributeError) as e:
+        ft.params = wfp
+    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
+
+
+def test_ftrl_set_params():
+    ft = core.Ftrl()
+    ft.params = fp
+    assert ft.params == fp
+    
 
 def test_ftrl_reset_params():
     ft = core.Ftrl(params = fp)
@@ -198,7 +263,7 @@ def test_ftrl_fit_wrong_empty():
     df_train = dt.Frame()
     with pytest.raises(ValueError) as e:
         ft.fit(df_train)
-    assert ("Cannot train a model on an empty frame" ==
+    assert ("Cannot train a model on an empty frame" == 
             str(e.value))
 
 
@@ -282,6 +347,8 @@ def test_ftrl_predict_wrong_columns():
 #-------------------------------------------------------------------------------
 # Test training `fit` and `predict` methods
 #-------------------------------------------------------------------------------
+
+epsilon = 0.01
 
 def test_ftrl_fit_unique():
     ft = core.Ftrl(d = 10)

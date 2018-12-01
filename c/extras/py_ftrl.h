@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "python/ext_type.h"
 #include "extras/ftrl.h"
+#include "python/namedtuple.h"
 
 namespace py {
   class PyFtrl : public PyObject {
@@ -35,6 +36,7 @@ namespace py {
           static PKArgs args_predict;
           static PKArgs args_reset;
           static PKArgs args_reset_params;
+          static std::vector<strpair> params_info;
           static const char* classname();
           static const char* classdoc();
           static bool is_subclassable() { return true; }

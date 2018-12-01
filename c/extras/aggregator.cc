@@ -568,7 +568,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   std::vector<ExPtr> exemplars;
   std::vector<size_t> ids;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  DoublePtr pmatrix = nullptr;
+  doubleptr pmatrix = nullptr;
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
 
   // Figuring out how many threads to use.
@@ -587,7 +587,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     size_t nth = static_cast<size_t>(omp_get_num_threads());
     size_t rstep = (dt->nrows > nth * PBSTEPS)? dt->nrows / (nth * PBSTEPS) : 1;
     double distance;
-    DoublePtr member = DoublePtr(new double[ndims]);
+    doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
 
     try {
@@ -618,7 +618,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           if (ecounter_local == ecounter) {
             ecounter++;
             ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
-            member = DoublePtr(new double[ndims]);
+            member = doubleptr(new double[ndims]);
             ids.push_back(e->id);
             d_members[i] = static_cast<int32_t>(e->id);
             exemplars.push_back(std::move(e));
@@ -670,7 +670,7 @@ void Aggregator::adjust_delta(double& delta, std::vector<ExPtr>& exemplars,
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
-  DoublePtr deltas(new double[n_distances]);
+  doubleptr deltas(new double[n_distances]);
   double total_distance = 0.0;
 
   for (size_t i = 0; i < n - 1; ++i) {
@@ -759,7 +759,7 @@ size_t Aggregator::calculate_map(std::vector<size_t>& ids, size_t id) {
 *  Calculate distance between two vectors. If `early_exit` is set to `true`,
 *  stop when the distance reaches `delta`.
 */
-double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
+double Aggregator::calculate_distance(doubleptr& e1, doubleptr& e2,
                                       size_t ndims, double delta,
                                       bool early_exit /*=true*/) {
   double sum = 0.0;
@@ -781,7 +781,7 @@ double Aggregator::calculate_distance(DoublePtr& e1, DoublePtr& e2,
 /*
 *  Normalize the row elements to [0,1).
 */
-void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, size_t row_id) {
+void Aggregator::normalize_row(const dtptr& dt, doubleptr& r, size_t row_id) {
   for (size_t i = 0; i < dt->ncols; ++i) {
     Column* c = dt->columns[i];
     auto c_real = static_cast<RealColumn<double>*>(c);
@@ -797,9 +797,9 @@ void Aggregator::normalize_row(const dtptr& dt, DoublePtr& r, size_t row_id) {
 /*
 *  Generate projection matrix.
 */
-DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
+doubleptr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
   std::default_random_engine generator;
-  auto pmatrix = DoublePtr(new double[dt_exemplars->ncols * max_dimensions]);
+  auto pmatrix = doubleptr(new double[dt_exemplars->ncols * max_dimensions]);
 
   if (!seed) {
     std::random_device rd;
@@ -821,8 +821,8 @@ DoublePtr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
 /*
 *  Project a particular row on a subspace by using the projection matrix.
 */
-void Aggregator::project_row(const dtptr& dt_exemplars, DoublePtr& r,
-                             size_t row_id, DoublePtr& pmatrix)
+void Aggregator::project_row(const dtptr& dt_exemplars, doubleptr& r,
+                             size_t row_id, doubleptr& pmatrix)
 {
   std::memset(r.get(), 0, max_dimensions * sizeof(double));
   int32_t n = 0;

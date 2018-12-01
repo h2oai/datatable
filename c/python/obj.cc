@@ -588,6 +588,13 @@ oobj _obj::get_item(const py::_obj& key) const {
 }
 
 
+oobj _obj::import(const char* mod, const char* symbol) {
+  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
+  if (!mod_obj) throw PyError();
+  return mod_obj.get_attr(symbol);
+}
+
+
 oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* callable = nullptr;
   PyObject* args = nullptr;
