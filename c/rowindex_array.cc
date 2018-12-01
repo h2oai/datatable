@@ -43,7 +43,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted) {
   xassert(length <= std::numeric_limits<int32_t>::max());
   owned = array.data_owned();
   data = array.release();
-  set_min_max<int32_t>();
+  set_min_max();
 }
 
 
@@ -53,7 +53,32 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
   length = array.size();
   owned = array.data_owned();
   data = array.release();
-  set_min_max<int64_t>();
+  set_min_max();
+}
+
+
+ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, size_t _min, size_t _max)
+{
+  type = RowIndexType::ARR32;
+  ascending = false;
+  length = array.size();
+  xassert(length <= std::numeric_limits<int32_t>::max());
+  owned = array.data_owned();
+  data = array.release();
+  min = _min;
+  max = _max;
+}
+
+
+ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, size_t _min, size_t _max)
+{
+  type = RowIndexType::ARR64;
+  ascending = false;
+  length = array.size();
+  owned = array.data_owned();
+  data = array.release();
+  min = _min;
+  max = _max;
 }
 
 
@@ -63,7 +88,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 {
   size_t n = starts.size();
   xassert(n == counts.size() && n == steps.size());
-  ascending = false;
+  ascending = true;
   data = nullptr;
   owned = true;
 
@@ -76,12 +101,16 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     size_t start = static_cast<size_t>(starts[i]);
     size_t step  = static_cast<size_t>(steps[i]);
     size_t len   = static_cast<size_t>(counts[i]);
-    SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-    if (tmp.min < min) min = tmp.min;
-    if (tmp.max > max) max = tmp.max;
+    if (start == RowIndex::NA && step == 0 && len <= RowIndex::MAX) {}
+    else {
+      SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
+      if (!tmp.ascending || tmp.min < max) ascending = false;
+      if (tmp.min < min) min = tmp.min;
+      if (tmp.max > max) max = tmp.max;
+    }
     length += len;
   }
-  if (max == 0) {
+  if (min > max) {
     min = max = RowIndex::NA;
   }
   xassert(min >= 0 && min <= max);
@@ -223,7 +252,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
   // actual number of elements written.
   length = out_length;
   _resize_data();
-  set_min_max<int32_t>();
+  set_min_max();
 }
 
 
@@ -269,7 +298,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
   }
   length = out_length;
   _resize_data();
-  set_min_max<int64_t>();
+  set_min_max();
 }
 
 
@@ -281,9 +310,16 @@ ArrayRowIndexImpl::~ArrayRowIndexImpl() {
 }
 
 
+void ArrayRowIndexImpl::set_min_max() {
+  if (type == RowIndexType::ARR32) {
+    _set_min_max<int32_t>();
+  } else {
+    _set_min_max<int64_t>();
+  }
+}
 
 template <typename T>
-void ArrayRowIndexImpl::set_min_max() {
+void ArrayRowIndexImpl::_set_min_max() {
   const T* idata = static_cast<const T*>(data);
   if (length == 1) ascending = true;
   if (length == 0) {
@@ -345,8 +381,6 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
         if (tdata[j] == 1)
           ind32[k++] = static_cast<int32_t>(j);
       });
-    ascending = true;
-    set_min_max<int32_t>();
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
@@ -357,9 +391,9 @@ void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
         if (tdata[j] == 1)
           ind64[k++] = static_cast<int64_t>(j);
       });
-    ascending = true;
-    set_min_max<int64_t>();
   }
+  ascending = true;
+  set_min_max();
 }
 
 
@@ -547,11 +581,7 @@ void ArrayRowIndexImpl::shrink(size_t n) {
   xassert(n < length);
   length = n;
   _resize_data();
-  if (type == RowIndexType::ARR32) {
-    set_min_max<int32_t>();
-  } else {
-    set_min_max<int64_t>();
-  }
+  set_min_max();
 }
 
 RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
@@ -566,6 +596,36 @@ RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
     return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
   }
 }
+
+
+void ArrayRowIndexImpl::resize(size_t n) {
+  size_t oldlen = length;
+  length = n;
+  _resize_data();
+  if (n <= oldlen) {
+    set_min_max();
+  } else {
+    size_t elemsize = (type == RowIndexType::ARR32)? 4 : 8;
+    std::memset(static_cast<char*>(data) + oldlen * elemsize,
+                -1, elemsize * (n - oldlen));
+  }
+}
+
+RowIndexImpl* ArrayRowIndexImpl::resized(size_t n) {
+  size_t ncopy = std::min(n, length);
+  if (type == RowIndexType::ARR32) {
+    arr32_t new_ind32(n);
+    std::memcpy(new_ind32.data(), data, ncopy * 4);
+    std::memset(new_ind32.data() + ncopy, -1, (n - ncopy) * 4);
+    return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
+  } else {
+    arr64_t new_ind64(n);
+    std::memcpy(new_ind64.data(), data, n * 8);
+    std::memset(new_ind64.data() + ncopy, -1, (n - ncopy) * 8);
+    return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
+  }
+}
+
 
 
 size_t ArrayRowIndexImpl::nth(size_t i) const {
@@ -634,10 +694,17 @@ void ArrayRowIndexImpl::_resize_data() {
   }
   size_t elemsize = type == RowIndexType::ARR32? 4 : 8;
   size_t allocsize = length * elemsize;
-  void* ptr = std::realloc(data, allocsize);
-  if (!ptr) {
-    throw MemoryError() << "Cannot allocate " << allocsize << " bytes "
-        "for a RowIndex object";
+  if (allocsize) {
+    void* ptr = std::realloc(data, allocsize);
+    if (!ptr) {
+      throw MemoryError() << "Cannot allocate " << allocsize << " bytes "
+          "for a RowIndex object";
+    }
+    data = ptr;
+  } else {
+    // If allocsize==0, the behavior of std::realloc is implementation-defined
+    // See https://en.cppreference.com/w/cpp/memory/c/realloc
+    std::free(data);
+    data = nullptr;
   }
-  data = ptr;
 }

@@ -87,6 +87,16 @@ RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl->acquire();
 }
 
+RowIndex::RowIndex(arr32_t&& arr, size_t min, size_t max) {
+  impl = new ArrayRowIndexImpl(std::move(arr), min, max);
+  impl->acquire();
+}
+
+RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
+  impl = new ArrayRowIndexImpl(std::move(arr), min, max);
+  impl->acquire();
+}
+
 RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
   impl = new ArrayRowIndexImpl(f, n, sorted);
   impl->acquire();
@@ -174,16 +184,31 @@ void RowIndex::clear() {
 }
 
 
-void RowIndex::shrink(size_t nrows, size_t ncols) {
-  xassert(impl && static_cast<size_t>(impl->refcount) >= ncols + 1);
-  if (static_cast<size_t>(impl->refcount) == ncols + 1) {
-    impl->shrink(nrows);
-  } else {
-    auto newimpl = impl->shrunk(nrows);
+// void RowIndex::shrink(size_t nrows, size_t ncols) {
+//   xassert(impl && static_cast<size_t>(impl->refcount) >= ncols + 1);
+//   if (static_cast<size_t>(impl->refcount) == ncols + 1) {
+//     impl->shrink(nrows);
+//   } else {
+//     auto newimpl = impl->shrunk(nrows);
+//     xassert(newimpl->refcount == 0);
+//     impl->release();
+//     impl = newimpl;
+//     impl->acquire();
+//   }
+// }
+
+
+void RowIndex::resize(size_t nrows) {
+  xassert(impl);
+  if (impl->refcount > 1 || (impl->type == RowIndexType::SLICE &&
+                             impl->length < nrows)) {
+    auto newimpl = impl->resized(nrows);
     xassert(newimpl->refcount == 0);
     impl->release();
     impl = newimpl;
     impl->acquire();
+  } else {
+    impl->resize(nrows);
   }
 }
 

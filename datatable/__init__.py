@@ -10,7 +10,10 @@ from .frame import Frame
 from .expr import mean, min, max, sd, isna, sum, count, first, abs, exp
 from .fread import fread, GenericReader, FreadWarning
 from .graph import f, g, join, by
-from .lib import core as _core
+from .lib._datatable import (
+    unique, union, intersect, setdiff, symdiff,
+    repeat
+)
 from .nff import save, open
 from .options import options
 from .str import split_into_nhot
@@ -32,7 +35,7 @@ __all__ = ("__version__", "__git_revision__",
            "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64",
-           "cbind", "rbind",
+           "cbind", "rbind", "repeat",
            "unique", "union", "intersect", "setdiff", "symdiff",
            "split_into_nhot")
 
@@ -47,10 +50,6 @@ str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
 DataTable = Frame
-unique = _core.unique
-union = _core.union
-intersect = _core.intersect
-setdiff = _core.setdiff
-symdiff = _core.symdiff
+
 
 Frame.__module__ = "datatable"

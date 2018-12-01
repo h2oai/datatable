@@ -12,16 +12,40 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.7.0)
 
 #### Added
+
 - methods `Frame.to_tuples()` and `Frame.to_dict()` (#1400).
-- methods `Frame.head(n)` and `Frame.tail(n)` (#1307).
-- `Frame` objects are now pickle-able (#1442).
+
+- methods `Frame.head(n)` and `Frame.tail(n)` to return the first/last
+  `n` rows correspondingly (#1307).
+
+- `Frame` objects can now pickled (#1442).
+
+- function `dt.repeat(frame, n)` that creates a Frame by row-binding `n`
+  copies of the `frame`.
+
 
 #### Fixed
+
 - crash when an int-column row selector is applied to a Frame which already
   had another row filter applied (#1437).
+
 - Frame.copy() now retains the key (#1443).
+
 - rendering of "view" Frames in Jupyter notebook (#1448).
+
 - installation from source distribution (#1451).
+
+
+### Changed
+
+- Setting `frame.nrows` now always pads the Frame with NAs, even if the Frame
+  had only 1 row originally. Use `frame.repeat()` in order to expand the Frame
+  by copying its values.
+
+- Improved the performance of setting `frame.nrows`. Now if the frame has
+  multiple columns, a view will be created.
+
+
 
 
 ### [v0.7.0](https://github.com/h2oai/datatable/compare/0.7.0...v0.6.0) — 2018-11-16

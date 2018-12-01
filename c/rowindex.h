@@ -65,6 +65,8 @@ class RowIndex {
      */
     RowIndex(arr32_t&& arr, bool sorted = false);
     RowIndex(arr64_t&& arr, bool sorted = false);
+    RowIndex(arr32_t&& arr, size_t min, size_t max);
+    RowIndex(arr64_t&& arr, size_t min, size_t max);
 
     /**
      * Construct a "slice" RowIndex from triple `(start, count, step)`.
@@ -166,6 +168,20 @@ class RowIndex {
      * RowIndex can be safely modified in-place, and when it cannot.
      */
     void shrink(size_t nrows, size_t ncols);
+
+    /**
+     * Modifies the RowIndex so that its new size becomes `nrows`. This will
+     * either throw out the existing elements at the tail, or append "NA"
+     * indices.
+     *
+     * This method either modifies the existing `impl` in-place if its refcount
+     * is 1, or replaces it with a new "modified" impl. Additionally, a "slice"
+     * impl will be replaced with an "array" impl if `nrows` is greater than
+     * the current size of the RowIndex.
+     *
+     * This method should not be evoked on an "empty" RowIndex.
+     */
+    void resize(size_t nrows);
 
     size_t memory_footprint() const;
 

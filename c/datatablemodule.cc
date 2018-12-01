@@ -199,11 +199,13 @@ void DatatableModule::init_methods() {
   add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
+
   init_methods_aggregate();
-  init_methods_str();
-  init_methods_options();
-  init_methods_sets();
   init_methods_join();
+  init_methods_options();
+  init_methods_repeat();
+  init_methods_sets();
+  init_methods_str();
   #ifdef DTTEST
     init_tests();
   #endif

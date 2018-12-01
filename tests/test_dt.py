@@ -526,7 +526,7 @@ def test_resize_rows_api():
     f0.nrows = 3
     f0.nrows = 5
     f0.internal.check()
-    assert f0.topython() == [[20, 20, 20, None, None]]
+    assert f0.topython() == [[20, None, None, None, None]]
 
 
 def test_resize_rows0():
@@ -550,7 +550,7 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (20, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.topython() == [[0] * 20]
+    assert f0.topython() == [[0] + [None] * 19]
 
 
 def test_resize_rows1():
@@ -564,12 +564,12 @@ def test_resize_rows1():
     f0.internal.check()
     assert f0.shape == (7, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src * 7 for src in srcs]
+    assert f0.topython() == [src + [None] * 6 for src in srcs]
     f0.nrows = 20
     f0.internal.check()
     assert f0.shape == (20, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src * 7 + [None] * 13 for src in srcs]
+    assert f0.topython() == [src + [None] * 19 for src in srcs]
     f0.nrows = 0
     f0.internal.check()
     assert f0.shape == (0, 5)
@@ -600,7 +600,7 @@ def test_resize_view_slice():
     f1.nrows = 15
     f1.internal.check()
     assert f1.shape == (15, 1)
-    assert not f1.internal.isview
+    assert f1.internal.isview
     assert f1.topython()[0] == list(range(8, 28, 2)) + [None] * 5
 
 
@@ -619,7 +619,7 @@ def test_resize_view_array():
     f1.nrows = 5
     f1.internal.check()
     assert f1.shape == (5, 1)
-    assert not f1.internal.isview
+    assert f1.internal.isview
     assert f1.topython() == [[1, 1, 2, 3, None]]
 
 
@@ -638,6 +638,62 @@ def test_resize_bad():
         f0.nrows = (10, 2)
     assert ("Number of rows must be an integer, not <class 'tuple'>"
             in str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Frame.repeat()
+#-------------------------------------------------------------------------------
+
+def test_dt_repeat():
+    f0 = dt.Frame(range(10))
+    f1 = dt.repeat(f0, 3)
+    f1.internal.check()
+    assert f1.to_list() == [list(range(10)) * 3]
+
+
+def test_dt_repeat2():
+    f0 = dt.Frame(["A", "B", "CDE"])
+    f1 = dt.repeat(f0, 7)
+    f1.internal.check()
+    assert f1.to_list() == [f0.to_list()[0] * 7]
+
+
+def test_dt_repeat_multicol():
+    f0 = dt.Frame(A=[None, 1.4, -2.6, 3.9998],
+                  B=["row", "row", "row", "your boat"],
+                  C=[25, -9, 18, 2],
+                  D=[True, None, True, False])
+    f1 = dt.repeat(f0, 4)
+    f1.internal.check()
+    assert f1.internal.isview
+    assert f1.names == f0.names
+    assert f1.stypes == f0.stypes
+    assert f1.to_list() == [col * 4 for col in f0.to_list()]
+
+
+def test_dt_repeat_view():
+    f0 = dt.Frame(A=[1, 3, 4, 5], B=[2, 6, 3, 1])
+    f1 = f0[::2, :]
+    f2 = dt.repeat(f1, 5)
+    f2.internal.check()
+    assert f2.to_dict() == {"A": [1, 4] * 5, "B": [2, 3] * 5}
+
+
+def test_dt_repeat_empty_frame():
+    f0 = dt.Frame()
+    f1 = dt.repeat(f0, 5)
+    f1.internal.check()
+    assert f1.to_list() == []
+
+
+def test_repeat_empty_frame2():
+    f0 = dt.Frame(A=[], B=[], C=[], stypes=[dt.int32, dt.str32, dt.float32])
+    f1 = dt.repeat(f0, 1000)
+    f1.internal.check()
+    assert f1.names == f0.names
+    assert f1.stypes == f0.stypes
+    assert f1.to_list() == f0.to_list()
 
 
 
