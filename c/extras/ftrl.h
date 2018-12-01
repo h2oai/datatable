@@ -58,7 +58,7 @@ class Ftrl {
     double* n;
     
     // Input to the model.
-    FtrlParams fp;
+    FtrlParams params;
 
     // Calculated during the learning process.
     size_t n_features;
@@ -75,7 +75,7 @@ class Ftrl {
     Ftrl(FtrlParams);
 
     static const std::vector<std::string> model_cols;
-    static const FtrlParams fp_default;
+    static const FtrlParams params_default;
 
     // Learning and predicting methods.
     void fit(const DataTable*);

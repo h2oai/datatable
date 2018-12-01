@@ -127,21 +127,20 @@ uint64_t HashString<T>::hash(size_t row) const {
   return h;
 }
 
-
 /*
-*  Set column names for `dt_model`.
+*  Set column names for `dt_model` and default parameter values.
 */
 const std::vector<std::string> Ftrl::model_cols = {"z", "n"};
-const FtrlParams Ftrl::fp_default = {0.005, 1.0, 0.0, 1.0,
+const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
                                      1000000, 1, 1, 0, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(FtrlParams fp_in)
+Ftrl::Ftrl(FtrlParams params_in)
 {
   // Set model parameters
-  fp = fp_in;
+  params = params_in;
   // Create and initialize model datatable and weight vector.
   create_model();
   init_model();
@@ -154,16 +153,16 @@ void Ftrl::init_model() {
   model_trained = false;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
-  std::memset(z, 0, fp.d * sizeof(double));
-  std::memset(n, 0, fp.d * sizeof(double));
+  std::memset(z, 0, params.d * sizeof(double));
+  std::memset(n, 0, params.d * sizeof(double));
 }
 
 
 void Ftrl::create_model() {
-  w = doubleptr(new double[fp.d]());
+  w = doubleptr(new double[params.d]());
 
-  Column* col_z = Column::new_data_column(SType::FLOAT64, fp.d);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, fp.d);
+  Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
 }
 
@@ -224,14 +223,14 @@ void Ftrl::fit(const DataTable* dt) {
   create_hashers(dt);
 
   // Define number of feature interactions.
-  n_inter_features = (fp.inter)? n_features * (n_features - 1) / 2 : 0;
+  n_inter_features = (params.inter)? n_features * (n_features - 1) / 2 : 0;
 
   // Get the target column.
   auto c_target = static_cast<BoolColumn*>(dt->columns[dt->ncols - 1]);
   auto d_target = c_target->elements_r();
 
   // Do training for `n_epochs`.
-  for (size_t i = 0; i < fp.n_epochs; ++i) {
+  for (size_t i = 0; i < params.n_epochs; ++i) {
     double total_loss = 0;
     int32_t nth = config::nthreads;
 
@@ -309,11 +308,11 @@ double Ftrl::predict_row(const uint64ptr& x, size_t x_size) {
   double wTx = 0;
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    if (fabs(z[i]) <= fp.lambda1) {
+    if (fabs(z[i]) <= params.lambda1) {
       w[i] = 0;
     } else {
-      w[i] = (signum(z[i]) * fp.lambda1 - z[i]) /
-             ((fp.beta + sqrt(n[i])) / fp.alpha + fp.lambda2);
+      w[i] = (signum(z[i]) * params.lambda1 - z[i]) /
+             ((params.beta + sqrt(n[i])) / params.alpha + params.lambda2);
     }
     wTx += w[i];
   }
@@ -348,7 +347,7 @@ void Ftrl::update(const uint64ptr& x, size_t x_size, double p, bool target) {
 
   for (size_t j = 0; j < x_size; ++j) {
     size_t i = x[j];
-    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / fp.alpha;
+    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / params.alpha;
     z[i] += g - sigma * w[i];
     n[i] += g * g;
   }
@@ -366,18 +365,18 @@ void Ftrl::hash_row(uint64ptr& x, size_t row_id) {
     // Add the column name hash to the hashed value, so that the same value
     // in different columns will result in different hashes.
     index += colnames_hashes[i];
-    x[i] = index % fp.d;
+    x[i] = index % params.d;
   }
 
   // Do feature interaction if required. We may also want to test
   // just a simple `h = x[i+1] + x[j+1]` approach.
   size_t count = 0;
-  if (fp.inter) {
+  if (params.inter) {
     for (size_t i = 0; i < n_features - 1; ++i) {
       for (size_t j = i + 1; j < n_features; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
-        x[n_features + count] = h % fp.d;
+        x[n_features + count] = h % params.d;
         count++;
       }
     }
@@ -392,7 +391,7 @@ void Ftrl::hash_row(uint64ptr& x, size_t row_id) {
 */
 uint64_t Ftrl::hash_string(const char * key, size_t len) {
   uint64_t res;
-  switch (fp.hash_type) {
+  switch (params.hash_type) {
     // `std::hash` is kind of slow, because we need to convert `char*` to
     // `std::string`, as `std::hash<char*>` doesn't hash
     // the actual data.
@@ -404,16 +403,16 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
              }
     // 64 bits Murmur2 hash function. The best performer so far,
     // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len, fp.seed); break;
+    case 1:  res = hash_murmur2(key, len, params.seed); break;
 
     // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
     case 2:  {
                 uint64_t h[2];
-                hash_murmur3(key, len, fp.seed, h);
+                hash_murmur3(key, len, params.seed, h);
                 res = h[0];
                 break;
              }
-    default: res = hash_murmur2(key, len, fp.seed);
+    default: res = hash_murmur2(key, len, params.seed);
   }
   return res;
 }
@@ -469,47 +468,47 @@ size_t Ftrl::get_n_features() {
 
 
 double Ftrl::get_alpha() {
-  return fp.alpha;
+  return params.alpha;
 }
 
 
 double Ftrl::get_beta() {
-  return fp.beta;
+  return params.beta;
 }
 
 
 double Ftrl::get_lambda1() {
-  return fp.lambda1;
+  return params.lambda1;
 }
 
 
 double Ftrl::get_lambda2() {
-  return fp.lambda2;
+  return params.lambda2;
 }
 
 
 uint64_t Ftrl::get_d() {
-  return fp.d;
+  return params.d;
 }
 
 
 bool Ftrl::get_inter() {
-  return fp.inter;
+  return params.inter;
 }
 
 
 unsigned int Ftrl::get_hash_type() {
-  return fp.hash_type;
+  return params.hash_type;
 }
 
 
 unsigned int Ftrl::get_seed() {
-  return fp.seed;
+  return params.seed;
 }
 
 
 size_t Ftrl::get_n_epochs() {
-  return fp.n_epochs;
+  return params.n_epochs;
 }
 
 
@@ -523,40 +522,40 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 
 
 void Ftrl::set_alpha(double a_in) {
-  if (fp.alpha != a_in) {
-    fp.alpha = a_in;
+  if (params.alpha != a_in) {
+    params.alpha = a_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_beta(double b_in) {
-  if (fp.beta != b_in) {
-    fp.beta = b_in;
+  if (params.beta != b_in) {
+    params.beta = b_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_lambda1(double l1_in) {
-  if (fp.lambda1 != l1_in) {
-    fp.lambda1 = l1_in;
+  if (params.lambda1 != l1_in) {
+    params.lambda1 = l1_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_lambda2(double l2_in) {
-  if (fp.lambda2 != l2_in) {
-    fp.lambda2 = l2_in;
+  if (params.lambda2 != l2_in) {
+    params.lambda2 = l2_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_d(uint64_t d_in) {
-  if (fp.d != d_in) {
-    fp.d = d_in;
+  if (params.d != d_in) {
+    params.d = d_in;
     create_model();
     init_model();
   }
@@ -564,31 +563,31 @@ void Ftrl::set_d(uint64_t d_in) {
 
 
 void Ftrl::set_inter(bool inter_in) {
-  if (fp.inter != inter_in) {
-    fp.inter = inter_in;
+  if (params.inter != inter_in) {
+    params.inter = inter_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_hash_type(unsigned int hash_type_in) {
-  if (fp.hash_type != hash_type_in) {
-    fp.hash_type = hash_type_in;
+  if (params.hash_type != hash_type_in) {
+    params.hash_type = hash_type_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_seed(unsigned int seed_in) {
-  if (fp.seed != seed_in) {
-    fp.seed = seed_in;
+  if (params.seed != seed_in) {
+    params.seed = seed_in;
     init_model();
   }
 }
 
 
 void Ftrl::set_n_epochs(size_t n_epochs_in) {
-  if (fp.n_epochs != n_epochs_in) {
-    fp.n_epochs = n_epochs_in;
+  if (params.n_epochs != n_epochs_in) {
+    params.n_epochs = n_epochs_in;
   }
 }

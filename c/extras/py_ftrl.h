@@ -34,7 +34,7 @@ namespace py {
           static PKArgs args___init__;
           static PKArgs args_fit;
           static PKArgs args_predict;
-          static PKArgs args_reset;
+          static PKArgs args_reset_model;
           static PKArgs args_reset_params;
           static std::vector<strpair> params_info;
           static const char* classname();
@@ -46,7 +46,7 @@ namespace py {
       void m__dealloc__();
       void fit(const PKArgs&);
       oobj predict(const PKArgs&);
-      void reset(const PKArgs&);
+      void reset_model(const PKArgs&);
       void reset_params(const PKArgs&);
 
       // Getters and setters.

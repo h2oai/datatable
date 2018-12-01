@@ -104,7 +104,7 @@ Error Arg::error_not_stype(PyObject* src) const {
 }
 
 Error Arg::error_not_boolean(PyObject* src) const {
-  return TypeError() << name() << " should be an boolean, instead got "
+  return TypeError() << name() << " should be a boolean, instead got "
       <<Py_TYPE(src);
 }
 

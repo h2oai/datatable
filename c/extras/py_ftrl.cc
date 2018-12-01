@@ -43,7 +43,7 @@ std::vector<strpair> PyFtrl::Type::params_info = {
 };
 
 void PyFtrl::m__init__(PKArgs& args) {
-  FtrlParams fp = Ftrl::fp_default;
+  FtrlParams fp = Ftrl::params_default;
   bool defined_params = !(args[0].is_undefined() || args[0].is_none());
   bool defined_alpha = !(args[1].is_undefined() || args[1].is_none());
   bool defined_beta = !(args[2].is_undefined() || args[2].is_none());
@@ -223,7 +223,7 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   mm.add<&PyFtrl::fit, args_fit>();
   mm.add<&PyFtrl::predict, args_predict>();
-  mm.add<&PyFtrl::reset, args_reset>();
+  mm.add<&PyFtrl::reset_model, args_reset_model>();
   mm.add<&PyFtrl::reset_params, args_reset_params>();
 }
 
@@ -299,8 +299,8 @@ oobj PyFtrl::predict(const PKArgs& args) {
 }
 
 
-PKArgs PyFtrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
-R"(reset(self)
+PKArgs PyFtrl::Type::args_reset_model(0, 0, 0, false, false, {}, "reset_model",
+R"(reset_model(self)
 --
 
 Reset an FTRL model.
@@ -315,7 +315,7 @@ Returns
 )");
 
 
-void PyFtrl::reset(const PKArgs&) {
+void PyFtrl::reset_model(const PKArgs&) {
   ft->init_model();
 }
 
@@ -337,13 +337,13 @@ Returns
 
 
 void PyFtrl::reset_params(const PKArgs&) {
-  ft->set_alpha(Ftrl::fp_default.alpha);
-  ft->set_beta(Ftrl::fp_default.beta);
-  ft->set_lambda1(Ftrl::fp_default.lambda1);
-  ft->set_lambda2(Ftrl::fp_default.lambda2);
-  ft->set_d(Ftrl::fp_default.d);
-  ft->set_n_epochs(Ftrl::fp_default.n_epochs);
-  ft->set_inter(Ftrl::fp_default.inter);
+  ft->set_alpha(Ftrl::params_default.alpha);
+  ft->set_beta(Ftrl::params_default.beta);
+  ft->set_lambda1(Ftrl::params_default.lambda1);
+  ft->set_lambda2(Ftrl::params_default.lambda2);
+  ft->set_d(Ftrl::params_default.d);
+  ft->set_n_epochs(Ftrl::params_default.n_epochs);
+  ft->set_inter(Ftrl::params_default.inter);
 }
 
 /*
@@ -424,13 +424,13 @@ oobj PyFtrl::get_params() const {
 
 oobj PyFtrl::get_default_params() const {
   py::otuple params(7);
-  params.set(0, py::ofloat(Ftrl::fp_default.alpha));
-  params.set(1, py::ofloat(Ftrl::fp_default.beta));
-  params.set(2, py::ofloat(Ftrl::fp_default.lambda1));
-  params.set(3, py::ofloat(Ftrl::fp_default.lambda2));
-  params.set(4, py::oint(static_cast<size_t>(Ftrl::fp_default.d)));
-  params.set(5, py::oint(Ftrl::fp_default.n_epochs));
-  params.set(6, py::oint(Ftrl::fp_default.inter));
+  params.set(0, py::ofloat(Ftrl::params_default.alpha));
+  params.set(1, py::ofloat(Ftrl::params_default.beta));
+  params.set(2, py::ofloat(Ftrl::params_default.lambda1));
+  params.set(3, py::ofloat(Ftrl::params_default.lambda2));
+  params.set(4, py::oint(static_cast<size_t>(Ftrl::params_default.d)));
+  params.set(5, py::oint(Ftrl::params_default.n_epochs));
+  params.set(6, py::oint(Ftrl::params_default.inter));
   return std::move(params);
 }
 
