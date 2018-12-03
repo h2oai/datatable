@@ -248,8 +248,9 @@ def test_ftrl_model_none():
 
 def test_ftrl_get_set_reset_model():
     ft = core.Ftrl(params = test_params)
-    model = dt.Frame({"z" : [random.random() for i in range(test_params.d)],
-                      "n" : [random.random() for i in range(test_params.d)]})
+    model = dt.Frame([[random.random() for i in range(test_params.d)],
+                     [random.random() for i in range(test_params.d)]],
+                      names=['z', 'n'])
     ft.model = model
     assert_equals(ft.model, model)
     ft.reset_model()
@@ -391,7 +392,6 @@ def test_ftrl_fit_predict_float():
                          [True, False]])
     ft.fit(df_train)
     df_target = ft.predict(df_train[:,0])
-    
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon
     assert df_target[1, 0] >= 0
