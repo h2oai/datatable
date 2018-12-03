@@ -1,6 +1,6 @@
 # Contributing guidelines
 
-This document is a set of guidelines for contributors, nothing is set in stone
+This document is a set of guidelines for contributors. Nothing is set in stone,
 so please just use common sense.
 
 ## Table of contents
@@ -22,7 +22,7 @@ so please just use common sense.
 ## How to contribute
 
 There are plenty of ways to contribute, not only by submitting new code!
-Reporting bugs, adding/improving documentation and tests is just as important
+Reporting bugs, adding/improving documentation and tests are just as important
 to us.
 
 
@@ -34,7 +34,7 @@ to us.
 * Only when you are sure the bug has not yet been reported,
   [open a new issue](https://github.com/h2oai/datatable/issues/new).
 * Please follow the [issue template](ISSUE_TEMPLATE.md) and provide as many
-  details as possible. A clear, but concise, title, your environment, and a
+  details as possible. A clear but concise, title, your environment, and an
   [MCVE](https://stackoverflow.com/help/mcve) will make everyone's life easier.
 
 
@@ -45,12 +45,12 @@ We are open to new enhancements/feature requests!
 * Just like with bugs, please check whether there is already an existing issue
   in the tracker.
 
-* If not, then you can reach create a new issue with an appropriate label
+* If not, then you can create a new issue with an appropriate label
   (`feature request` or `enhancement`).
 
-* Use a descriptive, but concise title.
+* Use a descriptive but concise title.
 
-* Start of by stating what would this improvement fix/enhance and why would it
+* Start off by stating what would this improvement fix/enhance and why would it
   be useful.
 
 * Provide as detailed a description as possible (but do not write a novel).
@@ -58,22 +58,22 @@ We are open to new enhancements/feature requests!
 * Preferably add a specific example.
 
 * If necessary (or you just think it would be beneficial), add drawings,
-  diagrams etc.
+  diagrams, etc.
 
 
 ### Committing code
 
 Should you want to improve the codebase, please submit a pull request. If you
-are new to GitHub check their
+are new to GitHub, check their
 [how-to](https://help.github.com/articles/using-pull-requests/) first.
 
 Please be sure to comment on an issue should you decide to give it a go so
-other developers know about it. All issue related discussion should take place
+other developers know about it. All issue-related discussions should take place
 in the issue's comment section.
 
 Before submitting your PR for a
 [review](https://github.com/h2oai/datatable/pulls), please make sure your
-changes follow the standards described below, are well tested, and all the
+changes follow the standards described below, are well tested, and that all the
 previous tests are passing.
 
 
@@ -81,22 +81,22 @@ previous tests are passing.
 
 #### General
 
-* Test your code. Be it a bug fix, enhancement or a new feature please provide
+* Test your code. Be it a bug fix, enhancement, or a new feature, please provide
   a set of tests showing 1) that it actually runs 2) does what it is supposed
-  to be doing 3) does not break existing codebase
+  to be doing and 3) does not break existing codebase
 
-* Keep in mind performance - runtime speed, resource use and accuracy are
+* Keep in mind performance - runtime speed, resource use, and accuracy are
   important to us.
 
 * API breaking changes/fixes will need an extended discussion.
 
-* If you add new features or add a non trivial piece of code please do document
+* If you add new features or add a non trivial piece of code, please do document
   it if needed.
 
 
 #### Git commit messages
 
-Clean and descriptive commit messages keep the maintainers happy so please
+Clean and descriptive commit messages keep the maintainers happy, so please
 take a minute to polish yours.
 
 Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
@@ -121,7 +121,7 @@ Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
 
 * Keep the initial line short (50 characters or less).
 
-* Use imperative mode in the first line i.e. "Fix", "Add", "Change" instead of
+* Use imperative mood in the first line i.e. "Fix", "Add", "Change" instead of
   "Fixed", "Added", "Changed".
 
 * Second line blank.
@@ -131,7 +131,7 @@ Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
 * Don't end the summary line with a period.
 
 * If you are having trouble describing what a commit does, make sure it does
-  not include several logical changes or bug fixes. Should that be the case
+  not include several logical changes or bug fixes. Should that be the case,
   please split it up into several commits using `git add -p`.
 
 

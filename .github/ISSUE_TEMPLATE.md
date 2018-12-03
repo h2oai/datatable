@@ -34,5 +34,5 @@ For bugs, please provide an [MCVE](https://stackoverflow.com/help/mcve) and all
 the logs/source code you can. Large log and source code files should be attached
 separately instead of being pasted in the GitHub issue.
 
-For information on how to write enhancements/feature requests please check our
+For information on how to write enhancements/feature requests, please check our
 [CONTRIBUTING document](CONTRIBUTING.md#enhancements-and-feature-requests).
