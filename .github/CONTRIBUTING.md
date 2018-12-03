@@ -33,6 +33,7 @@ to us.
 
 * Only when you are sure the bug has not yet been reported,
   [open a new issue](https://github.com/h2oai/datatable/issues/new).
+
 * Please follow the [issue template](ISSUE_TEMPLATE.md) and provide as many
   details as possible. A clear, but concise, title, your environment, and a
   [MCVE](https://stackoverflow.com/help/mcve) will make everyone's life easier.
@@ -45,7 +46,7 @@ We are open to new enhancements/feature requests!
 * Just like with bugs, please check whether there is already an existing issue
   in the tracker.
 
-* If not, then you can reach create a new issue with an appropriate label
+* If not, then you can create a new issue with an appropriate label
   (`feature request` or `enhancement`).
 
 * Use a descriptive, but concise title.
