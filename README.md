@@ -1,23 +1,23 @@
 <!---
-    Copyright 2018 H2O.ai
+  Copyright 2018 H2O.ai
 
-    Permission is hereby granted, free of charge, to any person obtaining a
-    copy of this software and associated documentation files (the "Software"),
-    to deal in the Software without restriction, including without limitation
-    the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    and/or sell copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-    IN THE SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
 -->
 
 # datatable
@@ -51,47 +51,47 @@ achieve the best model accuracy. The first user of `datatable` was
 The set of features that we want to implement with `datatable` is at least
 the following:
 
-  * Column-oriented data storage.
+* Column-oriented data storage.
 
-  * Native-C implementation for all datatypes, including strings. Packages such
-    as pandas and numpy already do that for numeric columns, but not for
-    strings.
+* Native-C implementation for all datatypes, including strings. Packages such
+  as pandas and numpy already do that for numeric columns, but not for
+  strings.
 
-  * Support for date-time and categorical types. Object type is also supported,
-    but promotion into object discouraged.
+* Support for date-time and categorical types. Object type is also supported,
+  but promotion into object discouraged.
 
-  * All types should support null values, with as little overhead as possible.
+* All types should support null values, with as little overhead as possible.
 
-  * Data should be stored on disk in the same format as in memory. This will
-    allow us to memory-map data on disk and work on out-of-memory datasets
-    transparently.
+* Data should be stored on disk in the same format as in memory. This will
+  allow us to memory-map data on disk and work on out-of-memory datasets
+  transparently.
 
-  * Work with memory-mapped datasets to avoid loading into memory more data than
-    necessary for each particular operation.
+* Work with memory-mapped datasets to avoid loading into memory more data than
+  necessary for each particular operation.
 
-  * Fast data reading from CSV and other formats.
+* Fast data reading from CSV and other formats.
 
-  * Multi-threaded data processing: time-consuming operations should attempt to
-    utilize all cores for maximum efficiency.
+* Multi-threaded data processing: time-consuming operations should attempt to
+  utilize all cores for maximum efficiency.
 
-  * Efficient algorithms for sorting/grouping/joining.
+* Efficient algorithms for sorting/grouping/joining.
 
-  * Expressive query syntax (similar to [data.table][]).
+* Expressive query syntax (similar to [data.table][]).
 
-  * LLVM-based lazy computation for complex queries (code generated, compiled
-    and executed on-the-fly).
+* LLVM-based lazy computation for complex queries (code generated, compiled
+  and executed on-the-fly).
 
-  * LLVM-based user-defined functions.
+* LLVM-based user-defined functions.
 
-  * Minimal amount of data copying, copy-on-write semantics for shared data.
+* Minimal amount of data copying, copy-on-write semantics for shared data.
 
-  * Use "rowindex" views in filtering/sorting/grouping/joining operators to
-    avoid unnecessary data copying.
+* Use "rowindex" views in filtering/sorting/grouping/joining operators to
+  avoid unnecessary data copying.
 
-  * Interoperability with pandas / numpy / pure python: the users should have
-    the ability to convert to another data-processing framework with ease.
+* Interoperability with pandas / numpy / pure python: the users should have
+  the ability to convert to another data-processing framework with ease.
 
-  * Restrictions: Python 3.5+, 64-bit systems only.
+* Restrictions: Python 3.5+, 64-bit systems only.
 
 
 ## Installation
@@ -115,9 +115,9 @@ On all other platforms a source distribution will be needed. For more informatio
 
 ## See also
 
-  * [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions)
-  * [Changelog](https://github.com/h2oai/datatable/blob/master/CHANGELOG.md)
-  * [Documentation](https://datatable.readthedocs.io/en/latest/?badge=latest)
+* [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions)
+* [Changelog](https://github.com/h2oai/datatable/blob/master/CHANGELOG.md)
+* [Documentation](https://datatable.readthedocs.io/en/latest/?badge=latest)
 
 
   [pandas]: https://github.com/pandas-dev/pandas
