@@ -20,4 +20,6 @@ about: Is something not right? Let us know.
   What is your datatable version, python version, and operating system?
 
 - Tag the issue with `[bug]` or `[segfault]` (depending on whether it crashes
-  Python or not). Thank you for contributing, and sorry for the inconvenience...
+  Python or not).
+
+- Thank you for contributing, and sorry for the inconvenience.

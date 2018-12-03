@@ -33,6 +33,7 @@ to us.
 
 * Only when you are sure the bug has not yet been reported,
   [open a new issue](https://github.com/h2oai/datatable/issues/new).
+
 * Please follow the [issue template](ISSUE_TEMPLATE.md) and provide as many
   details as possible. A clear but concise, title, your environment, and an
   [MCVE](https://stackoverflow.com/help/mcve) will make everyone's life easier.
