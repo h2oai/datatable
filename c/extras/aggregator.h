@@ -13,9 +13,9 @@
 #include <random>
 #include "py_datatable.h"
 #include "utils.h"
+#include "extras/ftrl.h"
 
 
-typedef std::unique_ptr<double[]> doubleptr;
 struct ex {
   size_t id;
   doubleptr coords;

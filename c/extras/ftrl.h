@@ -19,17 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#ifndef dt_EXTRAS_FTRL_h
+#define dt_EXTRAS_FTRL_h
 #include "py_datatable.h"
+#include "extras/hash.h"
 
-
-/*
-* An abstract class for all the hashers.
-*/
-class Hash {
-  public:
-    virtual ~Hash();
-    virtual uint64_t hash(size_t row) const = 0;
-};
 
 typedef std::unique_ptr<Hash> hashptr;
 typedef std::unique_ptr<double[]> doubleptr;
@@ -123,3 +117,5 @@ class Ftrl {
     void set_hash_type(unsigned int);
     void set_seed(unsigned int);
 };
+
+#endif

@@ -19,120 +19,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "extras/ftrl.h"
 #include "extras/murmurhash.h"
 #include "frame/py_frame.h"
 #include "utils/parallel.h"
+#include "extras/ftrl.h"
 
-
-Hash::~Hash() {}
-
-
-/*
-* Class to hash booleans.
-*/
-class HashBool : public Hash {
-  private:
-    const int8_t* values;
-  public:
-    explicit HashBool(const Column*);
-    uint64_t hash(size_t row) const override;
-};
-
-HashBool::HashBool(const Column* col) {
-  values = dynamic_cast<const BoolColumn*>(col)->elements_r();
-}
-
-uint64_t HashBool::hash(size_t row) const {
-  uint64_t h = static_cast<uint64_t>(values[row]);
-  return h;
-}
-
-
-/*
-* Template class to hash integers.
-*/
-template <typename T>
-class HashInt : public Hash {
-  private:
-    const T* values;
-  public:
-    explicit HashInt(const Column*);
-    uint64_t hash(size_t row) const override;
-};
-
-template <typename T>
-HashInt<T>::HashInt(const Column* col) {
-  values = dynamic_cast<const IntColumn<T>*>(col)->elements_r();
-}
-
-template <typename T>
-uint64_t HashInt<T>::hash(size_t row) const {
-  uint64_t h = static_cast<uint64_t>(values[row]);
-  return h;
-}
-
-
-/*
-*  Template class to hash floats.
-*/
-template <typename T>
-class HashFloat : public Hash {
-  private:
-    const T* values;
-  public:
-    explicit HashFloat(const Column*);
-    uint64_t hash(size_t row) const override;
-};
-
-template <typename T>
-HashFloat<T>::HashFloat(const Column* col) {
-  values = dynamic_cast<const RealColumn<T>*>(col)->elements_r();
-}
-
-template <typename T>
-uint64_t HashFloat<T>::hash(size_t row) const {
-  auto x = static_cast<double>(values[row]);
-  uint64_t* h = reinterpret_cast<uint64_t*>(&x);
-  return *h;
-}
-
-
-/*
-*  Template class to hash strings.
-*/
-template <typename T>
-class HashString : public Hash {
-  private:
-    const char* strdata;
-    const T* offsets;
-  public:
-    explicit HashString(const Column*);
-    uint64_t hash(size_t row) const override;
-};
-
-template <typename T>
-HashString<T>::HashString(const Column* col) {
-  auto scol = dynamic_cast<const StringColumn<T>*>(col);
-  strdata = scol->strdata();
-  offsets = scol->offsets();
-}
-
-template <typename T>
-uint64_t HashString<T>::hash(size_t row) const {
-  const T strstart = offsets[row - 1] & ~GETNA<T>();
-  const char* c_str = strdata + strstart;
-  T len = offsets[row] - strstart;
-  uint64_t h = hash_murmur2(c_str, len * sizeof(char), 0);
-  return h;
-}
 
 /*
 *  Set column names for `dt_model` and default parameter values.
 */
 const std::vector<std::string> Ftrl::model_cols = {"z", "n"};
 const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
-                                     1000000, 1, 1, 0, false};
+                                         1000000, 1, 1, 0, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
