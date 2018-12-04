@@ -32,7 +32,7 @@ PKArgs PyFtrl::Type::args___init__(0, 0, 10, false, false,
                                    "d", "n_epochs", "inter", "hash_type", "seed"},
                                    "__init__", nullptr);
 
-std::vector<strpair> PyFtrl::Type::params_info = {
+std::vector<strpair> PyFtrl::params_fields_info = {
   strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
   strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
   strpair("lambda1", "L1 regularization parameter"),
@@ -42,16 +42,21 @@ std::vector<strpair> PyFtrl::Type::params_info = {
   strpair("inter", "Parameter that controls if feature interactions to be used or not")
 };
 
+strpair PyFtrl::params_info = strpair("Params", "FTRL model parameters");
+
+onamedtupletype PyFtrl::params_nttype(PyFtrl::params_info, PyFtrl::params_fields_info);
+
 void PyFtrl::m__init__(PKArgs& args) {
   FtrlParams fp = Ftrl::params_default;
-  bool defined_params = !(args[0].is_undefined() || args[0].is_none());
-  bool defined_alpha = !(args[1].is_undefined() || args[1].is_none());
-  bool defined_beta = !(args[2].is_undefined() || args[2].is_none());
-  bool defined_lambda1 = !(args[3].is_undefined() || args[3].is_none());
-  bool defined_lambda2 = !(args[4].is_undefined() || args[4].is_none());
-  bool defined_d = !(args[5].is_undefined() || args[5].is_none());
-  bool defined_n_epochs= !(args[6].is_undefined() || args[6].is_none());
-  bool defined_inter = !(args[7].is_undefined() || args[7].is_none());
+
+  bool defined_params = !args[0].is_none_or_undefined();
+  bool defined_alpha = !args[1].is_none_or_undefined();
+  bool defined_beta = !args[2].is_none_or_undefined();
+  bool defined_lambda1 = !args[3].is_none_or_undefined();
+  bool defined_lambda2 = !args[4].is_none_or_undefined();
+  bool defined_d = !args[5].is_none_or_undefined();
+  bool defined_n_epochs= !args[6].is_none_or_undefined();
+  bool defined_inter = !args[7].is_none_or_undefined();
 
   if (defined_params) {
     if (!(defined_alpha || defined_beta || defined_lambda1 || defined_lambda2
@@ -173,39 +178,39 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   );
 
   gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>(
-    Type::params_info[0].first,
-    Type::params_info[0].second
+    params_fields_info[0].first,
+    params_fields_info[0].second
   );
 
   gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>(
-    Type::params_info[1].first,
-    Type::params_info[1].second
+    params_fields_info[1].first,
+    params_fields_info[1].second
   );
 
   gs.add<&PyFtrl::get_lambda1, &PyFtrl::set_lambda1>(
-    Type::params_info[2].first,
-    Type::params_info[2].second
+    params_fields_info[2].first,
+    params_fields_info[2].second
   );
 
   gs.add<&PyFtrl::get_lambda2, &PyFtrl::set_lambda2>(
-    Type::params_info[3].first,
-    Type::params_info[3].second
+    params_fields_info[3].first,
+    params_fields_info[3].second
   );
 
   gs.add<&PyFtrl::get_d, &PyFtrl::set_d>(
-    Type::params_info[4].first,
-    Type::params_info[4].second
+    params_fields_info[4].first,
+    params_fields_info[4].second
   );
 
   gs.add<&PyFtrl::get_n_epochs, &PyFtrl::set_n_epochs>(
-    Type::params_info[5].first,
-    Type::params_info[5].second
+    params_fields_info[5].first,
+    params_fields_info[5].second
   );
 
 
   gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>(
-    Type::params_info[6].first,
-    Type::params_info[6].second
+    params_fields_info[6].first,
+    params_fields_info[6].second
   );
 
   gs.add<&PyFtrl::get_hash_type, &PyFtrl::set_hash_type>(
@@ -392,45 +397,43 @@ void PyFtrl::set_model(robj model) {
 *  All other getters and setters.
 */
 oobj PyFtrl::get_colnames_hashes() const {
-  size_t n_features = ft->get_n_features();
-  py::otuple py_colnames_hashes(n_features);
-  std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
-  for (size_t i = 0; i < n_features; ++i) {
-    py_colnames_hashes.set(i, py::oint(static_cast<size_t>(colnames_hashes[i])));
+  if (ft->is_trained()) {
+    size_t n_features = ft->get_n_features();
+    py::otuple py_colnames_hashes(n_features);
+    std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
+    for (size_t i = 0; i < n_features; ++i) {
+      py_colnames_hashes.set(i, py::oint(static_cast<size_t>(colnames_hashes[i])));
+    }
+    return std::move(py_colnames_hashes);
+  } else {
+    return py::None();
   }
 
-  return std::move(py_colnames_hashes);
 }
 
 
 oobj PyFtrl::get_params() const {
-  strpair tuple_info;
-  tuple_info.first = "Params";
-  tuple_info.second = "FTRL model parameters";
-
-  py::onamedtupletype nttype(tuple_info, Type::params_info);
-  py::onamedtuple nt(&nttype);
-  nt.set(0, get_alpha());
-  nt.set(1, get_beta());
-  nt.set(2, get_lambda1());
-  nt.set(3, get_lambda2());
-  nt.set(4, get_d());
-  nt.set(5, get_n_epochs());
-  nt.set(6, get_inter());
-
-  return std::move(nt);
+  py::onamedtuple params(params_nttype);
+  params.set(0, get_alpha());
+  params.set(1, get_beta());
+  params.set(2, get_lambda1());
+  params.set(3, get_lambda2());
+  params.set(4, get_d());
+  params.set(5, get_n_epochs());
+  params.set(6, get_inter());
+  return std::move(params);
 }
 
 
 oobj PyFtrl::get_default_params() const {
-  py::otuple params(7);
+  py::onamedtuple params(params_nttype);
   params.set(0, py::ofloat(Ftrl::params_default.alpha));
   params.set(1, py::ofloat(Ftrl::params_default.beta));
   params.set(2, py::ofloat(Ftrl::params_default.lambda1));
   params.set(3, py::ofloat(Ftrl::params_default.lambda2));
   params.set(4, py::oint(static_cast<size_t>(Ftrl::params_default.d)));
   params.set(5, py::oint(Ftrl::params_default.n_epochs));
-  params.set(6, py::oint(Ftrl::params_default.inter));
+  params.set(6, Ftrl::params_default.inter? True() : False());
   return std::move(params);
 }
 
@@ -466,7 +469,7 @@ oobj PyFtrl::get_n_epochs() const {
 
 
 oobj PyFtrl::get_inter() const {
-  return py::oint(static_cast<size_t>(ft->get_inter()));
+  return ft->get_inter()? True() : False();
 }
 
 

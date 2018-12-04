@@ -104,6 +104,12 @@ oobj oobj::from_new_reference(PyObject* p) {
   return res;
 }
 
+oobj oobj::import(const char* mod, const char* symbol) {
+  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
+  if (!mod_obj) throw PyError();
+  return mod_obj.get_attr(symbol);
+}
+
 oobj::~oobj() {
   Py_XDECREF(v);
 }
@@ -585,13 +591,6 @@ oobj _obj::get_item(const py::_obj& key) const {
   PyObject* res = PyObject_GetItem(v, key.v);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
-}
-
-
-oobj _obj::import(const char* mod, const char* symbol) {
-  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
-  if (!mod_obj) throw PyError();
-  return mod_obj.get_attr(symbol);
 }
 
 

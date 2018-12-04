@@ -35,7 +35,7 @@ class HashBool : public Hash {
   private:
     const int8_t* values;
   public:
-    HashBool(const Column*);
+    explicit HashBool(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -57,7 +57,7 @@ class HashInt : public Hash {
   private:
     const T* values;
   public:
-    HashInt(const Column*);
+    explicit HashInt(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -81,7 +81,7 @@ class HashFloat : public Hash {
   private:
     const T* values;
   public:
-    HashFloat(const Column*);
+    explicit HashFloat(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -107,7 +107,7 @@ class HashString : public Hash {
     const char* strdata;
     const T* offsets;
   public:
-    HashString(const Column*);
+    explicit HashString(const Column*);
     uint64_t hash(size_t row) const override;
 };
 

@@ -67,9 +67,9 @@ class FrameInitializationManager {
         stype_arg(args[3]),
         frame(f)
     {
-      defined_names  = !(names_arg.is_undefined() || names_arg.is_none());
-      defined_stypes = !(stypes_arg.is_undefined() || stypes_arg.is_none());
-      defined_stype  = !(stype_arg.is_undefined() || stype_arg.is_none());
+      defined_names  = !names_arg.is_none_or_undefined();
+      defined_stypes = !stypes_arg.is_none_or_undefined();
+      defined_stype  = !stype_arg.is_none_or_undefined();
       if (defined_stype && defined_stypes) {
         throw TypeError() << "You can pass either parameter `stypes` or "
             "`stype` to Frame() constructor, but not both at the same time";

@@ -50,22 +50,24 @@ const std::string& Arg::name() const {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool Arg::is_undefined()     const { return pyobj.is_undefined(); }
-bool Arg::is_none()          const { return pyobj.is_none(); }
-bool Arg::is_ellipsis()      const { return pyobj.is_ellipsis(); }
-bool Arg::is_bool()          const { return pyobj.is_bool(); }
-bool Arg::is_int()           const { return pyobj.is_int(); }
-bool Arg::is_float()         const { return pyobj.is_float(); }
-bool Arg::is_list()          const { return pyobj.is_list(); }
-bool Arg::is_tuple()         const { return pyobj.is_tuple(); }
-bool Arg::is_list_or_tuple() const { return pyobj.is_list_or_tuple(); }
-bool Arg::is_dict()          const { return pyobj.is_dict(); }
-bool Arg::is_string()        const { return pyobj.is_string(); }
-bool Arg::is_range()         const { return pyobj.is_range(); }
-bool Arg::is_frame()         const { return pyobj.is_frame(); }
-bool Arg::is_pandas_frame()  const { return pyobj.is_pandas_frame(); }
-bool Arg::is_pandas_series() const { return pyobj.is_pandas_series(); }
-bool Arg::is_numpy_array()   const { return pyobj.is_numpy_array(); }
+bool Arg::is_undefined()         const { return pyobj.is_undefined(); }
+bool Arg::is_none()              const { return pyobj.is_none(); }
+bool Arg::is_none_or_undefined() const { return pyobj.is_none() ||
+                                                pyobj.is_undefined(); }
+bool Arg::is_ellipsis()          const { return pyobj.is_ellipsis(); }
+bool Arg::is_bool()              const { return pyobj.is_bool(); }
+bool Arg::is_int()               const { return pyobj.is_int(); }
+bool Arg::is_float()             const { return pyobj.is_float(); }
+bool Arg::is_list()              const { return pyobj.is_list(); }
+bool Arg::is_tuple()             const { return pyobj.is_tuple(); }
+bool Arg::is_list_or_tuple()     const { return pyobj.is_list_or_tuple(); }
+bool Arg::is_dict()              const { return pyobj.is_dict(); }
+bool Arg::is_string()            const { return pyobj.is_string(); }
+bool Arg::is_range()             const { return pyobj.is_range(); }
+bool Arg::is_frame()             const { return pyobj.is_frame(); }
+bool Arg::is_pandas_frame()      const { return pyobj.is_pandas_frame(); }
+bool Arg::is_pandas_series()     const { return pyobj.is_pandas_series(); }
+bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
 
 
 

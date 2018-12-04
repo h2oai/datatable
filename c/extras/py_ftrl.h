@@ -36,12 +36,12 @@ namespace py {
           static PKArgs args_predict;
           static PKArgs args_reset_model;
           static PKArgs args_reset_params;
-          static std::vector<strpair> params_info;
           static const char* classname();
           static const char* classdoc();
           static bool is_subclassable() { return true; }
           static void init_methods_and_getsets(Methods&, GetSetters&);
       };
+
       void m__init__(PKArgs&);
       void m__dealloc__();
       void fit(const PKArgs&);
@@ -74,5 +74,10 @@ namespace py {
       void set_inter(robj);
       void set_hash_type(robj);
       void set_seed(robj);
+
+      // Info for a namedtuple of parameters
+      static strpair params_info;
+      static std::vector<strpair> params_fields_info;
+      static onamedtupletype params_nttype;
   };
 }

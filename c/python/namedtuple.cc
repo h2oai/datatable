@@ -83,10 +83,14 @@ onamedtupletype::~onamedtupletype() {
 }
 
 
-onamedtuple::onamedtuple(onamedtupletype* type) {
-  v = PyTuple_New(static_cast<int64_t>(type->nfields));
+onamedtuple::onamedtuple(const onamedtupletype& type) {
+  v = PyTuple_New(static_cast<Py_ssize_t>(type.nfields));
   if (!v) throw PyError();
-  Py_TYPE(v) = type->v;
+
+  // Set the new type and adjust number of references as needed
+  Py_DECREF(Py_TYPE(v));
+  Py_TYPE(v) = type.v;
+  Py_INCREF(type.v);
 }
 
 

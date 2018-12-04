@@ -44,7 +44,7 @@ class onamedtupletype {
 
 class onamedtuple : public otuple {
   public:
-    onamedtuple(onamedtupletype*);
+    onamedtuple(const py::onamedtupletype&);
 };
 
 }  // namespace py
