@@ -14,8 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
-#include "python/dict.h"
-#include "python/tuple.h"
+#include "python/_all.h"
 #include "python/string.h"
 
 namespace py {
@@ -44,39 +43,37 @@ void Frame::m__setitem__(robj item, robj value) {
  * performance.
  */
 oobj Frame::_fast_getset(robj item, robj value) {
-  if (item.is_tuple()) {
-    rtuple targs(item);
-    if (targs.size() == 2 && value == GETITEM) {
-      robj arg0 = targs[0], arg1 = targs[1];
-      bool a0int = arg0.is_int();
-      bool a1int = arg1.is_int();
-      if (a0int && (a1int || arg1.is_string())) {
-        int64_t irow = arg0.to_int64_strict();
-        int64_t nrows = static_cast<int64_t>(dt->nrows);
-        int64_t ncols = static_cast<int64_t>(dt->ncols);
-        if (irow < 0) irow += nrows;
-        if (irow < 0 || irow >= nrows) {
-          if (irow < 0) irow -= nrows;
-          throw ValueError() << "Row `" << irow << "` is invalid for a frame "
-              "with " << nrows << " row" << (nrows == 1? "" : "s");
-        }
-        size_t col_index;
-        if (a1int) {
-          int64_t icol = arg1.to_int64_strict();
-          if (icol < 0) icol += ncols;
-          if (icol < 0 || icol >= ncols) {
-            if (icol < 0) icol -= ncols;
-            throw ValueError() << "Column index `" << icol << "` is invalid "
-                "for a frame with " << ncols << " column" <<
-                (ncols == 1? "" : "s");
-          }
-          col_index = static_cast<size_t>(icol);
-        } else {
-          col_index = dt->xcolindex(arg1);
-        }
-        Column* col = dt->columns[col_index];
-        return col->get_value_at_index(static_cast<size_t>(irow));
+  rtuple targs = item.to_rtuple_lax();
+  if (targs && targs.size() == 2 && value == GETITEM) {
+    robj arg0 = targs[0], arg1 = targs[1];
+    bool a0int = arg0.is_int();
+    bool a1int = arg1.is_int();
+    if (a0int && (a1int || arg1.is_string())) {
+      int64_t irow = arg0.to_int64_strict();
+      int64_t nrows = static_cast<int64_t>(dt->nrows);
+      int64_t ncols = static_cast<int64_t>(dt->ncols);
+      if (irow < 0) irow += nrows;
+      if (irow < 0 || irow >= nrows) {
+        if (irow < 0) irow -= nrows;
+        throw ValueError() << "Row `" << irow << "` is invalid for a frame "
+            "with " << nrows << " row" << (nrows == 1? "" : "s");
       }
+      size_t col_index;
+      if (a1int) {
+        int64_t icol = arg1.to_int64_strict();
+        if (icol < 0) icol += ncols;
+        if (icol < 0 || icol >= ncols) {
+          if (icol < 0) icol -= ncols;
+          throw ValueError() << "Column index `" << icol << "` is invalid "
+              "for a frame with " << ncols << " column" <<
+              (ncols == 1? "" : "s");
+        }
+        col_index = static_cast<size_t>(icol);
+      } else {
+        col_index = dt->xcolindex(arg1);
+      }
+      Column* col = dt->columns[col_index];
+      return col->get_value_at_index(static_cast<size_t>(irow));
     }
   }
   return _main_getset(item, value);
@@ -93,7 +90,7 @@ oobj Frame::_fallback_getset(robj item, robj value) {
   otuple args(5);
   args.set(0, py::robj(this));
   if (item.is_tuple()) {
-    otuple argslist = item.to_pytuple();
+    otuple argslist = item.to_otuple();
     size_t n = argslist.size();
     if (n >= 2) {
       args.set(1, argslist[0]);

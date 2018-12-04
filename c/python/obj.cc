@@ -394,12 +394,15 @@ py::olist _obj::to_pylist(const error_manager& em) const {
 }
 
 
-py::otuple _obj::to_pytuple(const error_manager& em) const {
-  if (is_none()) return py::otuple(nullptr);
-  if (is_tuple()) {
-    return py::otuple(v);
-  }
+py::otuple _obj::to_otuple(const error_manager& em) const {
+  if (is_none()) return py::otuple();
+  if (is_tuple()) return py::otuple(robj(v));
   throw em.error_not_list(v);
+}
+
+py::rtuple _obj::to_rtuple_lax() const {
+  if (is_tuple()) return py::rtuple(robj(v));
+  return py::rtuple(nullptr);
 }
 
 

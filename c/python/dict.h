@@ -95,7 +95,6 @@ class odict : public oobj {
 
   private:
     odict(const robj&);
-    odict(const oobj&);
     friend class _obj;
 };
 
@@ -119,7 +118,6 @@ class rdict : public robj {
 
   private:
     rdict(const robj&);
-    rdict(const oobj&);
     friend class _obj;
 };
 

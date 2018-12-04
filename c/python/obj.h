@@ -30,6 +30,7 @@ class olist;
 class ostring;
 class orange;
 class otuple;
+class rtuple;
 class robj;
 class rdict;
 class oobj;
@@ -187,11 +188,13 @@ class _obj {
     char**      to_cstringlist   (const error_manager& = _em0) const;
     strvec      to_stringlist    (const error_manager& = _em0) const;
     py::olist   to_pylist        (const error_manager& = _em0) const;
-    py::otuple  to_pytuple       (const error_manager& = _em0) const;
     py::odict   to_pydict        (const error_manager& = _em0) const;
     py::rdict   to_rdict         (const error_manager& = _em0) const;
     py::orange  to_pyrange       (const error_manager& = _em0) const;
     py::oiter   to_pyiter        (const error_manager& = _em0) const;
+
+    py::otuple  to_otuple        (const error_manager& = _em0) const;
+    py::rtuple  to_rtuple_lax    () const;
 
     Column*     to_column        (const error_manager& = _em0) const;
     Groupby*    to_groupby       (const error_manager& = _em0) const;

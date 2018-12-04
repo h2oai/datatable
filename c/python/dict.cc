@@ -38,10 +38,7 @@ odict::odict() {
 
 // private constructors
 odict::odict(const robj& src) : oobj(src) {}
-odict::odict(const oobj& src) : oobj(src) {}
-
 rdict::rdict(const robj& src) : robj(src) {}
-rdict::rdict(const oobj& src) : robj(src) {}
 
 
 

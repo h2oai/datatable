@@ -31,7 +31,7 @@
 
 py::oobj py::Frame::get_key() const {
   py::otuple key(dt->get_nkeys());
-  py::otuple names = get_names().to_pytuple();
+  py::otuple names = get_names().to_otuple();
   for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
   }

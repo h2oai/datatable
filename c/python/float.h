@@ -52,10 +52,9 @@ class ofloat : public oobj {
     T value() const noexcept;
 
   private:
-    // Private constructors, used from `_obj`. If you need to construct
+    // Private constructor, used from `_obj`. If you need to construct
     // `ofloat` from `oobj`, use `oobj.to_pyfloat()` instead.
     ofloat(const robj&);
-    ofloat(const oobj&);
     friend class _obj;
 };
 

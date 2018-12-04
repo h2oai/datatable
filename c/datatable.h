@@ -9,8 +9,7 @@
 #define dt_DATATABLE_h
 #include <vector>
 #include <string>
-#include "python/dict.h"
-#include "python/tuple.h"
+#include "python/_all.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
