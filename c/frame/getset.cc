@@ -60,9 +60,9 @@ oobj Frame::_fast_getset(robj item, robj value) {
           throw ValueError() << "Row `" << irow << "` is invalid for a frame "
               "with " << nrows << " row" << (nrows == 1? "" : "s");
         }
-        int64_t icol;
+        size_t col_index;
         if (a1int) {
-          icol = arg1.to_int64_strict();
+          int64_t icol = arg1.to_int64_strict();
           if (icol < 0) icol += ncols;
           if (icol < 0 || icol >= ncols) {
             if (icol < 0) icol -= ncols;
@@ -70,14 +70,11 @@ oobj Frame::_fast_getset(robj item, robj value) {
                 "for a frame with " << ncols << " column" <<
                 (ncols == 1? "" : "s");
           }
+          col_index = static_cast<size_t>(icol);
         } else {
-          icol = dt->colindex(arg1);
-          if (icol == -1) {
-            throw ValueError() << "Column `" << arg1 << "` does not exist in "
-                "the frame";
-          }
+          col_index = dt->xcolindex(arg1);
         }
-        Column* col = dt->columns[static_cast<size_t>(icol)];
+        Column* col = dt->columns[col_index];
         return col->get_value_at_index(static_cast<size_t>(irow));
       }
     }

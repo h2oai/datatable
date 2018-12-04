@@ -12,7 +12,8 @@ import time
 import datatable as dt
 from collections import namedtuple
 from datatable import stype, ltype, f, isna
-from tests import same_iterables, list_equals
+from tests import same_iterables, list_equals, noop
+
 
 
 #-------------------------------------------------------------------------------
@@ -1073,6 +1074,14 @@ def test_single_element_all_stypes(st):
                 assert abs(1 - item / x) < 1e-7
             else:
                 assert x == item
+
+
+def test_single_element_select_invalid_column(dt0):
+    with pytest.raises(ValueError) as e:
+        noop(dt0[0, "Dd"])
+    assert ("Column `Dd` does not exist in the Frame; did you mean `D`?" ==
+            str(e.value))
+
 
 
 
