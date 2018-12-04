@@ -8,7 +8,6 @@
 # on GitHub. The test cases are expected to all be reasonably small.
 #-------------------------------------------------------------------------------
 import datatable as dt
-import os
 import pytest
 import random
 import re
@@ -316,6 +315,7 @@ def test_issue_664(capsys):
     f = dt.fread("x\nA B 2\n\ny\n", sep=" ", fill=True, verbose=True,
                  skip_blank_lines=True)
     out, err = capsys.readouterr()
+    assert not err
     assert "Too few rows allocated" not in out
     assert "we know nrows=3 exactly" in out
     f.internal.check()
@@ -442,6 +442,7 @@ def test_issue939(capsys):
     assert df.shape == (18, 3)
     assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
     out, err = capsys.readouterr()
+    assert not err
     assert "`header` determined to be False" in out
     assert "Sampled 18 rows" in out
     assert "Type codes (jump 000): isb" in out

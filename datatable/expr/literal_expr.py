@@ -51,15 +51,15 @@ class LiteralExpr(BaseExpr):
     def evaluate_eager(self, ee):
         return core.column_from_list([self.arg])
 
-    def _isna(self, key, block):
+    def _isna(self, key, inode):
         return self.arg is None
 
 
-    def _notna(self, key, block):
+    def _notna(self, key, inode):
         return str(self.arg)
 
 
-    def _value(self, key, block):
+    def _value(self, key, inode):
         if self.arg is None:
             return nas_map[self.stype]
         else:

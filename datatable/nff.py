@@ -11,7 +11,7 @@ import datatable as dt
 from datatable.lib import core
 # from datatable.fread import Frame
 # from datatable.fread import fread
-from datatable.utils.typechecks import typed, TTypeError, TValueError, dtwarn
+from datatable.utils.typechecks import TTypeError, TValueError, dtwarn
 
 _builtin_open = open
 

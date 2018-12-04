@@ -41,12 +41,12 @@ class StdevReducer(BaseExpr):
         return "sd%d(%s)" % (self.skipna, self.expr)
 
 
-    def _value(self, block):
-        pf = block.previous_function
+    def _value(self, key, inode):
+        pf = inode.previous_function
         vavg, navg, vs, vcnt, vx = \
             pf.make_variable("runavg", "newavg", "runs", "runcnt", "x")
-        vres = block.make_variable("sd")
-        i = block.add_stack_variable(str(self))
+        vres = inode.make_variable("sd")
+        i = inode.add_stack_variable(str(self))
         arg_isna = self.expr.isna(pf)
         arg_notna = self.expr.notna(pf)
         res_ctype = ctypes_map[self.stype]
@@ -70,17 +70,17 @@ class StdevReducer(BaseExpr):
             pf.add_epilogue_expr("%s %s = sqrt(%s / (%s - 1));"
                                  % (res_ctype, vres, vs, vcnt))
         pf.add_epilogue_expr("stack[%d].f8 = %s;" % (i, vres))
-        block.add_prologue_expr("%s %s = stack[%d].f8;"
+        inode.add_prologue_expr("%s %s = stack[%d].f8;"
                                 % (res_ctype, vres, i))
         return vres
 
 
-    def _isna(self, block):
+    def _isna(self, key, inode):
         if self.skipna:
             return "0"
         else:
-            return "ISNA_F8(%s)" % self.value(block)
+            return "ISNA_F8(%s)" % self.value(inode)
 
 
-    def _notna(self, block):
-        return self.value(block)
+    def _notna(self, key, inode):
+        return self.value(inode)
