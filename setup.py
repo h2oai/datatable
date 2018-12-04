@@ -39,7 +39,7 @@ def get_c_sources(folder, include_headers=False):
     if include_headers:
         allowed_extensions += [".h", ".hpp"]
     sources = []
-    for root, dirs, files in os.walk(folder):
+    for root, _, files in os.walk(folder):
         for name in files:
             ext = os.path.splitext(name)[1]
             if name == "types.cc":

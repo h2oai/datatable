@@ -197,9 +197,8 @@
 
   //---- Constructors ----------------------------
 
-  MemoryRange::MemoryRange(BaseMRI* impl) {
-    o = std::make_shared<internal>(impl);
-  }
+  MemoryRange::MemoryRange(BaseMRI* impl)
+    : o(std::make_shared<internal>(impl)) {}
 
   MemoryRange::MemoryRange() : MemoryRange(new MemoryMRI(0)) {}
 

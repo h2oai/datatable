@@ -14,7 +14,6 @@ import os
 import pytest
 import random
 import re
-import sys
 import time
 from tests import random_string, list_equals
 
@@ -1015,6 +1014,7 @@ def test_int64s_and_typebumps(capsys):
     assert f0.stypes == (stype.int32, stype.int64, stype.int64,
                          stype.float64, stype.float64,
                          stype.str32, stype.str32, stype.str32, stype.str32)
+    assert not err
     assert "6 columns need to be re-read" in out
     assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
     assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
@@ -1023,6 +1023,7 @@ def test_int64s_and_typebumps(capsys):
     out, err = capsys.readouterr()
     assert f1.stypes == f0.stypes
     assert not re.search("columns? needs? to be re-?read", out)
+    assert not err
     assert "bumped from" not in out
 
 
@@ -1042,6 +1043,7 @@ def test_almost_nodata(capsys):
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.topython() == [[2017] * n, m, ["foo"] * n]
     print(out)
+    assert not err
     assert ("Column 2 (B) bumped from Unknown to Str32 "
             "due to <<gotcha>> on row 109" in out)
 
@@ -1060,6 +1062,7 @@ def test_under_allocation(capsys):
     mm = re.search("Initial alloc = (\\d+) rows", out)
     assert mm
     assert int(mm.group(1)) < n, "Under-allocation didn't happen"
+    assert not err
     assert "Too few rows allocated" in out
     d0.internal.check()
     assert d0.shape == (n, 2)
@@ -1127,6 +1130,7 @@ def test_typebumps(capsys):
     d0 = dt.fread(src, verbose=True)
     d0.internal.check()
     out, err = capsys.readouterr()
+    assert not err
     assert ("4 columns need to be re-read because their types have changed"
             in out)
     assert ("Column 1 (A) bumped from Bool8/numeric to Str32 due to <<Fals>> "
@@ -1165,6 +1169,7 @@ def test_qr_bump_out_of_sample(capsys):
     src = "".join(lines)
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
+    assert not err
     assert "sep = ','" in out
     assert "Quote rule = 0" in out
     assert d0.shape == (3000, 2)

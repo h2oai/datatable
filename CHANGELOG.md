@@ -533,8 +533,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Changed
 
 - When writing "round" doubles/floats to CSV, they'll now always have trailing
-  zero. For example, [0.0, 1.0, 1e23] now produce "0.0,1.0,1.0e+23" instead of
-  "0,1,1e+23".
+  zero. For example, `[0.0, 1.0, 1e23]` now produces `"0.0,1.0,1.0e+23"`
+  instead of `"0,1,1e+23"`.
 
 - `df.stypes` now returns a tuple of `stype` elements (previously it was
   returning a list of strings). Likewise, `df.types` was renamed into

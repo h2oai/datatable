@@ -30,7 +30,7 @@ import random
 import shutil
 import tempfile
 from datatable import DatatableWarning
-from tests import assert_equals
+from tests import assert_equals, noop
 
 
 
@@ -198,7 +198,8 @@ def test_jay_all_types(tempfile):
                   names=["b8", "i8", "i16", "i32", "i64", "f32", "f64",
                          "s32", "s64"])
     # Force calculation of mins and maxs, so that they get saved into Jay
-    d0.min(), d0.max()
+    noop(d0.min())
+    noop(d0.max())
     assert len(set(d0.stypes)) == d0.ncols
     d0.save(tempfile)
     assert os.path.isfile(tempfile)

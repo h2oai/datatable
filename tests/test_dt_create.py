@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 #
 # Test creating a datatable from various sources
@@ -194,9 +211,9 @@ def test_create_from_list_of_lists():
 def test_create_from_list_of_lists_with_stypes_dict():
     d0 = dt.Frame([[4], [9], [3]], names=("a", "b", "c"), stypes={"c": float})
     d0.internal.check()
-    d0.names == ("a", "b", "c")
-    d0.ltypes == (ltype.int, ltype.int, ltype.real)
-    d0.topython() == [[4], [9], [3.0]]
+    assert d0.names == ("a", "b", "c")
+    assert d0.ltypes == (ltype.int, ltype.int, ltype.real)
+    assert d0.topython() == [[4], [9], [3.0]]
 
 
 def test_create_from_list_of_lists_with_stypes_dict_bad():
@@ -473,18 +490,18 @@ def test_create_from_list_of_dicts2():
 
 
 def test_create_from_list_of_dicts_with_names1():
-    d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
-                   {"a": 99},
-                   {"a": -4, "c": "Yay", "d": 2.17},
-                   {"d": 1e10}, {}],
+    d0 = dt.Frame([{"a": 12, "b": 77797, "c": "Rose"},
+                   {"a": 37},
+                   {"a": 80, "c": "Lily", "d": 3.14159},
+                   {"d": 1.7e10}, {}],
                   names=["c", "a", "d", "e"])
     d0.internal.check()
     assert d0.shape == (5, 4)
     assert d0.names == ("c", "a", "d", "e")
     assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
-    assert d0.topython() == [["Hey", None, "Yay", None, None],
-                             [5, 99, -4, None, None],
-                             [None, None, 2.17, 1e10, None],
+    assert d0.topython() == [["Rose", None, "Lily", None, None],
+                             [12, 37, 80, None, None],
+                             [None, None, 3.14159, 1.7e10, None],
                              [None, None, None, None, None]]
 
 

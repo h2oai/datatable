@@ -167,7 +167,7 @@ def _combine_ranges(ranges):
         while jb < len(rowranges):
             bcol0, bcol1 = rowranges[jb]
             if ja < len(ranges2d):
-                arow0, arow1, acol0, acol1 = ranges2d[ja]
+                _, arow1, acol0, acol1 = ranges2d[ja]
                 if arow1 < irow:
                     ja += 1
                     continue

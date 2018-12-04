@@ -33,17 +33,17 @@ class Isna(BaseExpr):
         opcode = unary_op_codes["isna"]
         return core.expr_unaryop(opcode, arg)
 
-    def _isna(self, key, block):
+    def _isna(self, key, inode):
         # The function always returns either True or False but never NA
         return False
 
 
-    def _notna(self, key, block):
-        return self._arg.isna(block)
+    def _notna(self, key, inode):
+        return self._arg.isna(inode)
 
 
-    def _value(self, key, block):
-        return self._arg.isna(block)
+    def _value(self, key, inode):
+        return self._arg.isna(inode)
 
 
     def __str__(self):
