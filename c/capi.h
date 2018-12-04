@@ -16,8 +16,8 @@ extern "C" {
 
 
 void* datatable_get_column_data(void* dt, size_t column);
-void  datatable_unpack_slicerowindex(void *dt, int64_t *start, int64_t *step);
-void  datatable_unpack_arrayrowindex(void *dt, void **indices);
+void  datatable_unpack_slicerowindex(void* dt, size_t* start, size_t* step);
+void  datatable_unpack_arrayrowindex(void* dt, void** indices);
 
 #ifdef __cplusplus
 }

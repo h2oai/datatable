@@ -117,20 +117,20 @@ T* FwColumn<T>::elements_w() {
 
 
 template <typename T>
-T FwColumn<T>::get_elem(int64_t i) const {
+T FwColumn<T>::get_elem(size_t i) const {
   return static_cast<const T*>(mbuf.rptr())[i];
 }
 
 
 template <>
-void FwColumn<PyObject*>::set_elem(int64_t i, PyObject* value) {
+void FwColumn<PyObject*>::set_elem(size_t i, PyObject* value) {
   PyObject** data = static_cast<PyObject**>(mbuf.wptr());
   data[i] = value;
   Py_INCREF(value);
 }
 
 template <typename T>
-void FwColumn<T>::set_elem(int64_t i, T value) {
+void FwColumn<T>::set_elem(size_t i, T value) {
   T* data = static_cast<T*>(mbuf.wptr());
   data[i] = value;
 }
@@ -173,9 +173,9 @@ void FwColumn<T>::reify() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.strided_loop(0, static_cast<int64_t>(nrows), 1,
-      [&](int64_t i) {
-        *data_dest++ = ISNA(i)? GETNA<T>() : data_src[i];
+    ri.iterate(0, nrows, 1,
+      [&](size_t i, size_t j) {
+        data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
       });
   }
 
@@ -300,21 +300,22 @@ void FwColumn<T>::replace_values(
     replace_with = replace_with->cast(stype());
   }
 
-  size_t replace_n = replace_at.length();
+  size_t replace_n = replace_at.size();
   const T* data_src = static_cast<const T*>(replace_with->data());
   T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
     T value = *data_src;
-    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
-      [&](int64_t i) {
-        data_dest[i] = value;
+    replace_at.iterate(0, replace_n, 1,
+      [&](size_t, size_t j) {
+        xassert(j != RowIndex::NA);
+        data_dest[j] = value;
       });
   } else {
     xassert(replace_with->nrows == replace_n);
-    replace_at.strided_loop(0, static_cast<int64_t>(replace_n), 1,
-      [&](int64_t i) {
-        data_dest[i] = *data_src;
-        ++data_src;
+    replace_at.iterate(0, replace_n, 1,
+      [&](size_t i, size_t j) {
+        xassert(j != RowIndex::NA);
+        data_dest[j] = data_src[i];
       });
   }
 }
@@ -330,7 +331,7 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
     if (data[mid] > value) end = mid;
     else start = mid;
   }
-  return (data[start] == value)? static_cast<int32_t>(start) : GETNA<int32_t>();
+  return (data[start] == value)? static_cast<int32_t>(start) : -1;
 }
 
 
@@ -347,13 +348,14 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
   const T* search_data = kcol->elements_r();
   int32_t search_n = static_cast<int32_t>(keycol->nrows);
 
-  ri.strided_loop2(0, static_cast<int64_t>(nrows), 1,
-    [&](int64_t i, int64_t j) {
+  ri.iterate(0, nrows, 1,
+    [&](size_t i, size_t j) {
+      if (j == RowIndex::NA) return;
       T value = src_data[j];
       trg_indices[i] = binsearch<T>(search_data, search_n, value);
     });
 
-  return RowIndex::from_array32(std::move(target_indices));
+  return RowIndex(std::move(target_indices));
 }
 
 

@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_h
 #define dt_COLUMN_h
@@ -105,6 +119,8 @@ public:
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
 
+  const RowIndex& rowindex() const { return ri; }
+  RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
   MemoryRange data_buf() const { return mbuf; }
@@ -113,7 +129,6 @@ public:
   PyObject* mbuf_repr() const;
   size_t alloc_size() const;
 
-  const RowIndex& rowindex() const { return ri; }
   virtual size_t data_nrows() const = 0;
   size_t memory_footprint() const;
 
@@ -211,7 +226,7 @@ public:
    */
   virtual void reify() = 0;
 
-  virtual py::oobj get_value_at_index(int64_t i) const = 0;
+  virtual py::oobj get_value_at_index(size_t i) const = 0;
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
@@ -337,8 +352,8 @@ public:
   void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
-  T get_elem(int64_t i) const;
-  void set_elem(int64_t i, T value);
+  T get_elem(size_t i) const;
+  void set_elem(size_t i, T value);
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
@@ -364,7 +379,7 @@ protected:
 };
 
 
-template <> void FwColumn<PyObject*>::set_elem(int64_t, PyObject*);
+template <> void FwColumn<PyObject*>::set_elem(size_t, PyObject*);
 extern template class FwColumn<int8_t>;
 extern template class FwColumn<int16_t>;
 extern template class FwColumn<int32_t>;
@@ -404,7 +419,7 @@ public:
   PyObject* sd_pyscalar() const override;
   BooleanStats* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
   protected:
 
@@ -464,7 +479,7 @@ public:
   PyObject* kurt_pyscalar() const override;
   IntegerStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   void cast_into(BoolColumn*) const override;
@@ -529,7 +544,7 @@ public:
   PyObject* kurt_pyscalar() const override;
   RealStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   void cast_into(BoolColumn*) const override;
@@ -582,7 +597,7 @@ public:
   virtual SType stype() const override;
   PyObjectStats* get_stats() const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   PyObjectColumn();
@@ -654,7 +669,7 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
-  py::oobj get_value_at_index(int64_t i) const override;
+  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   StringColumn();
@@ -710,7 +725,7 @@ class VoidColumn : public Column {
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
-    py::oobj get_value_at_index(int64_t i) const override;
+    py::oobj get_value_at_index(size_t i) const override;
   protected:
     VoidColumn();
     void init_data() override;

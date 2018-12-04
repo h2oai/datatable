@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -d ".asan" ]; then
-    PYVER=`python -c "import sys; print(sys.version[:3])"`
+    PYVER=$(python -c "import sys; print(sys.version[:3])")
     TARGET=".asan/lib/python$PYVER/site-packages"
 
     virtualenv .asan --python=python$PYVER
@@ -13,8 +13,8 @@ if [ ! -d ".asan" ]; then
     LLVM="$LLVM4$LLVM5$LLVM6"
     CC="$LLVM/bin/clang"
     PYCONF="python$PYVER-config"
-    LDFLAGS="$LDFLAGS `$PYCONF --ldflags`"
-    CFLAGS="$CFLAGS `$PYCONF --cflags` -fsanitize=address"
+    LDFLAGS="$LDFLAGS $($PYCONF --ldflags)"
+    CFLAGS="$CFLAGS $($PYCONF --cflags) -fsanitize=address"
 
     DT_ASAN_TARGETDIR=$TARGET \
         $CC $CFLAGS $LDFLAGS -o .asan/bin/mypython ci/asan-python.c

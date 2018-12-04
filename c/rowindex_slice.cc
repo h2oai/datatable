@@ -1,14 +1,31 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "rowindex.h"
 #include <algorithm>           // std::swap, std::move
+#include "rowindex.h"
+#include "rowindex_impl.h"
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
+
+
 
 
 /**
@@ -16,14 +33,24 @@
  *     0 <= start, count, start + (count-1)*step <= max
  * (note that `max` is inclusive).
  */
-bool check_slice_triple(int64_t start, int64_t count, int64_t step, int64_t max)
+bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
 {
   // Note: computing `start + step*(count - 1)` may potentially overflow, we
   // must therefore use a safer version.
-  return (start >= 0) &&
-         (count >= 0) &&
-         (count <= 1 || step >= -start/(count - 1)) &&
-         (count <= 1 || step <= (max - start)/(count - 1));
+  return (start <= max) &&
+         (count <= RowIndex::MAX) &&
+         (step  != 0) &&
+         (count <= 1 ||
+          (step <= RowIndex::MAX? step <= (max - start)/(count - 1)
+                                : step >= -start/(count - 1)));
+}
+
+static void _check_triple(size_t start, size_t count, size_t step)
+{
+  if (!check_slice_triple(start, count, step, RowIndex::MAX)) {
+    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
+                       << count << "/" << step << "]";
+  }
 }
 
 
@@ -32,76 +59,60 @@ bool check_slice_triple(int64_t start, int64_t count, int64_t step, int64_t max)
 // SliceRowIndexImpl implementation
 //------------------------------------------------------------------------------
 
-SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
-  SliceRowIndexImpl::check_triple(i0, n, di);
-  type = RowIndexType::RI_SLICE;
-  start = i0;
-  length = static_cast<size_t>(n);
-  step = di;
+SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
+  _check_triple(i0, n, di);
+  type   = RowIndexType::SLICE;
+  ascending = (di <= RowIndex::MAX);
+  start  = i0;
+  length = n;
+  step   = di;
   if (length == 0) {
-    min = max = 0;
+    min = max = RowIndex::NA;
   } else {
     min = start;
     max = start + step * (n - 1);
-    if (step < 0) std::swap(min, max);
+    if (!ascending) std::swap(min, max);
   }
 }
 
 
-
-/**
- * Helper function to verify that
- *     0 <= start, count, start + (count-1)*step <= INT64_MAX
- *
- * If one of these conditions fails, throws an exception, otherwise does
- * nothing.
- */
-void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
-{
-  if (!check_slice_triple(start, count, step, INT64_MAX)) {
-    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
-                       << count << "/" << step << "]";
-  }
-}
-
-
-int64_t SliceRowIndexImpl::nth(int64_t i) const {
+size_t SliceRowIndexImpl::nth(size_t i) const {
   return start + i * step;
 }
 
 
 
-RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
+RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
   RowIndexType uptype = rii->type;
-  int64_t ilen = static_cast<int64_t>(length);
 
   // Product of 2 slices is again a slice.
-  if (uptype == RI_SLICE) {
-    SliceRowIndexImpl* uprii = static_cast<SliceRowIndexImpl*>(rii);
-    int64_t start_new = uprii->start + uprii->step * start;
-    int64_t step_new = uprii->step * step;
-    return new SliceRowIndexImpl(start_new, ilen, step_new);
+  if (uptype == RowIndexType::SLICE) {
+    auto uprii = static_cast<const SliceRowIndexImpl*>(rii);
+    size_t start_new = uprii->start + uprii->step * start;
+    size_t step_new = uprii->step * step;
+    return new SliceRowIndexImpl(start_new, length, step_new);
   }
 
   // Special case: if `step` is 0, then A just contains the same row
   // repeated `length` times, and hence can be created as a slice even
   // if `rii` is an ArrayRowIndex.
   if (step == 0) {
-    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    int64_t start_new =
-      (uptype == RI_ARR32)? static_cast<int64_t>(arii->indices32()[start]) :
-      (uptype == RI_ARR64)? arii->indices64()[start] : -1;
-    return new SliceRowIndexImpl(start_new, ilen, 0);
+    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
+    size_t start_new =
+      (uptype == RowIndexType::ARR32)? static_cast<size_t>(arii->indices32()[start]) :
+      (uptype == RowIndexType::ARR64)? static_cast<size_t>(arii->indices64()[start]) :
+      RowIndex::NA;
+    return new SliceRowIndexImpl(start_new, length, 0);
   }
 
   // if C->B is ARR32, then all row indices in C are int32, and thus any
   // valid slice over B will also be ARR32 (except possibly a slice with
   // step = 0 and n > INT32_MAX, which case we handled above).
-  if (uptype == RI_ARR32) {
-    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+  if (uptype == RowIndexType::ARR32) {
+    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
     arr32_t res(length);
     const int32_t* srcrows = arii->indices32();
-    int64_t j = start;
+    size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
@@ -109,11 +120,11 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     return new ArrayRowIndexImpl(std::move(res), false);
   }
 
-  if (uptype == RI_ARR64) {
-    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+  if (uptype == RowIndexType::ARR64) {
+    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
     arr64_t res(length);
     const int64_t* srcrows = arii->indices64();
-    int64_t j = start;
+    size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
@@ -121,77 +132,69 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     return new ArrayRowIndexImpl(std::move(res), false);
   }
 
-  throw RuntimeError() << "Unknown RowIndexType " << uptype;
+  throw RuntimeError() << "Unknown RowIndexType " << static_cast<int>(uptype);
 }
 
 
 
 RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
   xassert(nrows >= length);
-  int64_t newcount = static_cast<int64_t>(nrows - length);
-  int64_t tstart = start;
-  int64_t tcount = static_cast<int64_t>(length);
-  int64_t tstep  = step;
-  int64_t irows  = static_cast<int64_t>(nrows);
-  if (tstep < 0) {
+  size_t newcount = nrows - length;
+  size_t tstart = start;
+  size_t tcount = length;
+  size_t tstep  = step;
+  if (!ascending) {  // negative step
     tstart += (tcount - 1) * tstep;
     tstep = -tstep;
-  }
-  if (tstep == 0) {
-    tstep = 1;
-    tcount = 1;
   }
   if (tstep == 1) {
     if (tstart == 0) {
       return new SliceRowIndexImpl(tcount, newcount, 1);
     }
-    if (tstart + tcount == irows) {
+    if (tstart + tcount == nrows) {
       return new SliceRowIndexImpl(0, newcount, 1);
     }
     arr64_t starts(2);
     arr64_t counts(2);
     arr64_t steps(2);
     starts[0] = 0;
-    counts[0] = tstart;
+    counts[0] = static_cast<int64_t>(tstart);
     steps[0] = 1;
-    starts[1] = tstart + tcount;
-    counts[1] = irows - (tstart + tcount);
+    starts[1] = static_cast<int64_t>(tstart + tcount);
+    counts[1] = static_cast<int64_t>(nrows - (tstart + tcount));
     steps[1] = 1;
     return new ArrayRowIndexImpl(starts, counts, steps);
   }
-  size_t znewcount = static_cast<size_t>(newcount);
   size_t j = 0;
-  if (irows <= INT32_MAX) {
-    arr32_t indices(znewcount);
-    int32_t nrows32 = static_cast<int32_t>(irows);
-    int32_t tstep32 = static_cast<int32_t>(tstep);
-    int32_t next_row_to_skip = static_cast<int32_t>(tstart);
-    int32_t tend = static_cast<int32_t>(tstart + tcount * tstep);
-    for (int32_t i = 0; i < nrows32; ++i) {
-      if (i == next_row_to_skip) {
-        next_row_to_skip += tstep32;
-        if (next_row_to_skip == tend) next_row_to_skip = nrows32;
-        continue;
-      } else {
-        indices[j++] = i;
-      }
-    }
-    xassert(j == znewcount);
-    return new ArrayRowIndexImpl(std::move(indices), true);
-  } else {
-    arr64_t indices(znewcount);
-    int64_t next_row_to_skip = tstart;
-    int64_t tend = tstart + tcount * tstep;
-    for (int64_t i = 0; i < irows; ++i) {
+  if (nrows <= INT32_MAX) {
+    arr32_t indices(newcount);
+    size_t next_row_to_skip = tstart;
+    size_t tend = tstart + tcount * tstep;
+    for (size_t i = 0; i < nrows; ++i) {
       if (i == next_row_to_skip) {
         next_row_to_skip += tstep;
-        if (next_row_to_skip == tend) next_row_to_skip = irows;
+        if (next_row_to_skip == tend) next_row_to_skip = nrows;
         continue;
       } else {
-        indices[j++] = i;
+        indices[j++] = static_cast<int32_t>(i);
       }
     }
-    xassert(j == znewcount);
+    xassert(j == newcount);
+    return new ArrayRowIndexImpl(std::move(indices), true);
+  } else {
+    arr64_t indices(newcount);
+    size_t next_row_to_skip = tstart;
+    size_t tend = tstart + tcount * tstep;
+    for (size_t i = 0; i < nrows; ++i) {
+      if (i == next_row_to_skip) {
+        next_row_to_skip += tstep;
+        if (next_row_to_skip == tend) next_row_to_skip = nrows;
+        continue;
+      } else {
+        indices[j++] = static_cast<int64_t>(i);
+      }
+    }
+    xassert(j == newcount);
     return new ArrayRowIndexImpl(std::move(indices), true);
   }
 }
@@ -199,12 +202,37 @@ RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
 
 void SliceRowIndexImpl::shrink(size_t n) {
   length = n;
-  if (step > 0) max = start + step * static_cast<int64_t>(n - 1);
-  if (step < 0) min = start + step * static_cast<int64_t>(n - 1);
+  min = start;
+  max = start + step*(n - 1);
+  if (!ascending) std::swap(min, max);
 }
 
 RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
-  return new SliceRowIndexImpl(start, static_cast<int64_t>(n), step);
+  return new SliceRowIndexImpl(start, n, step);
+}
+
+
+void SliceRowIndexImpl::resize(size_t n) {
+  xassert(n <= length);
+  length = n;
+  min = start;
+  max = start + step*(n - 1);
+  if (!ascending) std::swap(min, max);
+}
+
+RowIndexImpl* SliceRowIndexImpl::resized(size_t n) {
+  if (n <= length) {
+    return new SliceRowIndexImpl(start, n, step);
+  } else {
+    arr64_t starts(2), counts(2), steps(2);
+    starts[0] = static_cast<int64_t>(start);
+    counts[0] = static_cast<int64_t>(length);
+    steps[0]  = static_cast<int64_t>(step);
+    starts[1] = -1;
+    counts[1] = static_cast<int64_t>(n - length);
+    steps[1]  = 0;
+    return new ArrayRowIndexImpl(starts, counts, steps);
+  }
 }
 
 
@@ -218,25 +246,47 @@ size_t SliceRowIndexImpl::memory_footprint() const {
 void SliceRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
-  if (type != RowIndexType::RI_SLICE) {
-    throw AssertionError() << "Invalid type = " << type << " in a SliceRowIndex";
+  if (type != RowIndexType::SLICE) {
+    throw AssertionError() << "Invalid type = " << static_cast<int>(type)
+        << " in a SliceRowIndex";
   }
 
   try {
-    check_triple(start, static_cast<int64_t>(length), step);
+    _check_triple(start, length, step);
   } catch (const Error&) {
+    int64_t istep = static_cast<int64_t>(step);
     throw AssertionError()
-        << "Invalid slice rowindex: " << start << "/" << length << "/" << step;
+        << "Invalid slice rowindex: " << start << "/" << length << "/" << istep;
   }
 
   if (length > 0) {
-    int64_t minrow = start;
-    int64_t maxrow = start + step * static_cast<int64_t>(length - 1);
-    if (step < 0) std::swap(minrow, maxrow);
+    size_t minrow = start;
+    size_t maxrow = start + step * (length - 1);
+    if (!ascending) std::swap(minrow, maxrow);
     if (min != minrow || max != maxrow) {
+      int64_t istep = static_cast<int64_t>(step);
       throw AssertionError()
           << "Invalid min/max values in a Slice RowIndex " << start << "/"
-          << length << "/" << step << ": min = " << min << ", max = " << max;
+          << length << "/" << istep << ": min = " << min << ", max = " << max;
+    }
+    if (ascending != (step <= RowIndex::MAX)) {
+      throw AssertionError()
+          << "Incorrect 'ascending' flag in Slice RowIndex";
     }
   }
+}
+
+
+size_t slice_rowindex_get_start(const RowIndexImpl* impl) {
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->start;
+}
+size_t slice_rowindex_get_step(const RowIndexImpl* impl) {
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->step;
+}
+
+bool slice_rowindex_increasing(const RowIndexImpl* impl) {
+  auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
+  return simpl->ascending;
 }

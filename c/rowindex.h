@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_ROWINDEX_h
 #define dt_ROWINDEX_h
@@ -11,129 +25,18 @@
 
 class Column;
 class BoolColumn;
-class RowIndex;
+class RowIndexImpl;
 
 
-
-//==============================================================================
-
-enum RowIndexType {
-  RI_UNKNOWN = 0,
-  RI_ARR32 = 1,
-  RI_ARR64 = 2,
-  RI_SLICE = 3,
+enum class RowIndexType : uint8_t {
+  UNKNOWN = 0,
+  ARR32 = 1,
+  ARR64 = 2,
+  SLICE = 3,
 };
 
-typedef int (filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
-typedef int (filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
-
-
-
-//==============================================================================
-// Base RowIndexImpl class
-//==============================================================================
-
-class RowIndexImpl {
-  public:
-    RowIndexType type;
-    int32_t refcount;
-    size_t length;
-    int64_t min;
-    int64_t max;
-
-    RowIndexImpl()
-      : type(RowIndexType::RI_UNKNOWN),
-        refcount(1),
-        length(0), min(0), max(0) {}
-    void acquire() { refcount++; }
-    void release() { if (!--refcount) delete this; }
-
-    virtual int64_t nth(int64_t i) const = 0;
-    virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
-    virtual RowIndexImpl* inverse(size_t nrows) const = 0;
-    virtual void shrink(size_t n) = 0;
-    virtual RowIndexImpl* shrunk(size_t n) = 0;
-    virtual size_t memory_footprint() const = 0;
-    virtual void verify_integrity() const;
-
-  protected:
-    virtual ~RowIndexImpl() {}
-};
-
-
-
-//==============================================================================
-// "Array" RowIndexImpl class
-//==============================================================================
-
-class ArrayRowIndexImpl : public RowIndexImpl {
-  private:
-    arr32_t ind32;
-    arr64_t ind64;
-    bool is_sorted;
-    int64_t : 56;
-
-  public:
-    ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
-    ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
-    ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
-                      const arr64_t& steps);
-    ArrayRowIndexImpl(filterfn32* f, int64_t n, bool sorted);
-    ArrayRowIndexImpl(filterfn64* f, int64_t n, bool sorted);
-    ArrayRowIndexImpl(Column*);
-
-    int64_t nth(int64_t i) const override;
-    const int32_t* indices32() const { return ind32.data(); }
-    const int64_t* indices64() const { return ind64.data(); }
-    RowIndexImpl* uplift_from(RowIndexImpl*) override;
-    RowIndexImpl* inverse(size_t nrows) const override;
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
-    size_t memory_footprint() const override;
-    void verify_integrity() const override;
-
-  private:
-    // Helper function that computes and sets proper `min` / `max` fields for
-    // this RowIndex. The `sorted` flag is a hint whether the indices are
-    // sorted (if they are, computing min/max is much simpler).
-    template <typename T> void set_min_max(const dt::array<T>&);
-
-    // Helpers for `ArrayRowIndexImpl(Column*)`
-    void init_from_boolean_column(BoolColumn* col);
-    void init_from_integer_column(Column* col);
-    void compactify();
-
-    // Helper for `inverse()`
-    template <typename TI, typename TO>
-    RowIndexImpl* inverse_impl(const dt::array<TI>& inp, size_t nrows) const;
-};
-
-
-
-//==============================================================================
-// "Slice" RowIndexImpl class
-//==============================================================================
-
-class SliceRowIndexImpl : public RowIndexImpl {
-  public:
-    int64_t start;
-    int64_t step;
-
-  public:
-    SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
-    static void check_triple(int64_t start, int64_t count, int64_t step);
-
-    int64_t nth(int64_t i) const override;
-    RowIndexImpl* uplift_from(RowIndexImpl*) override;
-    RowIndexImpl* inverse(size_t nrows) const override;
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
-    size_t memory_footprint() const override;
-    void verify_integrity() const override;
-
-  protected:
-    friend RowIndex;
-};
+using filterfn32 = int (size_t row0, size_t row1, int32_t* ind, size_t* nouts);
+using filterfn64 = int (size_t row0, size_t row1, int64_t* ind, size_t* nouts);
 
 
 
@@ -143,9 +46,12 @@ class SliceRowIndexImpl : public RowIndexImpl {
 
 class RowIndex {
   private:
-    RowIndexImpl* impl;
+    RowIndexImpl* impl;  // Shared reference semantics
 
   public:
+    static constexpr size_t NA = size_t(-1);
+    static constexpr size_t MAX = size_t(-1) >> 1;
+
     RowIndex();
     RowIndex(const RowIndex&);
     RowIndex(RowIndex&&);
@@ -157,32 +63,32 @@ class RowIndex {
      * Optional `sorted` flag tells the constructor whether the arrays are
      * sorted or not.
      */
-    static RowIndex from_array32(arr32_t&& arr, bool sorted = false);
-    static RowIndex from_array64(arr64_t&& arr, bool sorted = false);
+    RowIndex(arr32_t&& arr, bool sorted = false);
+    RowIndex(arr64_t&& arr, bool sorted = false);
+    RowIndex(arr32_t&& arr, size_t min, size_t max);
+    RowIndex(arr64_t&& arr, size_t min, size_t max);
 
     /**
-     * Construct a RowIndex object from triple `(start, count, step)`. The new
-     * object will have type `RI_SLICE`.
+     * Construct a "slice" RowIndex from triple `(start, count, step)`.
      *
      * Note that we depart from Python's standard of using `(start, end, step)`
      * to denote a slice -- having a `count` gives several advantages:
      *   - computing the "end" is easy and unambiguous: `start + count * step`;
      *     whereas computing "count" from `end` is harder.
-     *   - with explicit `count` the `step` may safely be 0.
+     *   - with explicit `count` the `step` may potentially be 0.
      *   - there is no difference in handling positive/negative steps.
      */
-    static RowIndex from_slice(int64_t start, int64_t count, int64_t step);
+    RowIndex(size_t start, size_t count, size_t step);
 
     /**
      * Construct an "array" `RowIndex` object from a series of triples
      * `(start, count, step)`. The triples are given as 3 separate arrays of
      * starts, of counts and of steps.
      *
-     * This will create either an RI_ARR32 or RI_ARR64 object, depending on
-     * which one is sufficient to hold all the indices.
+     * This will create either an RowIndexType::ARR32 or RowIndexType::ARR64
+     * object, depending on which one is sufficient to hold all the indices.
      */
-    static RowIndex from_slices(const arr64_t& starts, const arr64_t& counts,
-                                const arr64_t& steps);
+    RowIndex(const arr64_t& starts, const arr64_t& counts, const arr64_t& steps);
 
     /**
      * Construct a RowIndex object using an external filter function. The
@@ -206,44 +112,51 @@ class RowIndex {
      *     When True indicates that the filter function is guaranteed to produce
      *     row index in sorted order.
      */
-    static RowIndex from_filterfn32(filterfn32* f, int64_t n, bool sorted);
-    static RowIndex from_filterfn64(filterfn64* f, int64_t n, bool sorted);
+    RowIndex(filterfn32* f, size_t n, bool sorted);
+    RowIndex(filterfn64* f, size_t n, bool sorted);
 
-    static RowIndex from_column(Column* col);
+    /**
+     * Create RowIndex from either a boolean or an integer column.
+     */
+    RowIndex(const Column* col);
+
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
 
-    bool isabsent() const { return impl == nullptr; }
-    bool isslice() const { return impl && impl->type == RI_SLICE; }
-    bool isarr32() const { return impl && impl->type == RI_ARR32; }
-    bool isarr64() const { return impl && impl->type == RI_ARR64; }
-    bool isarray() const { return isarr32() || isarr64(); }
-    const void* ptr() const { return static_cast<const void*>(impl); }
+    RowIndexType type() const;
+    bool isabsent() const;
+    bool isslice() const;
+    bool isarr32() const;
+    bool isarr64() const;
+    bool isarray() const;
+    const void* ptr() const;
 
-    size_t length() const { return impl? static_cast<size_t>(impl->length) : 0; }
-    int64_t min() const { return impl? impl->min : 0; }
-    int64_t max() const { return impl? impl->max : 0; }
-    int64_t nth(int64_t i) const { return impl? impl->nth(i) : i; }
-    const int32_t* indices32() const { return impl_asarray()->indices32(); }
-    const int64_t* indices64() const { return impl_asarray()->indices64(); }
-    int64_t slice_start() const { return impl_asslice()->start; }
-    int64_t slice_step() const { return impl_asslice()->step; }
+    size_t size() const;
+    size_t min() const;
+    size_t max() const;
+    size_t operator[](size_t i) const;
+    const int32_t* indices32() const;
+    const int64_t* indices64() const;
+    size_t slice_start() const;
+    size_t slice_step() const;
 
     void extract_into(arr32_t&) const;
     RowIndex inverse(size_t nrows) const;
 
     /**
-     * Return the RowIndex which is the result of applying current RowIndex to
-     * the provided one. More specifically, suppose there are 2 frames A and B,
+     * Return the RowIndex which is the result of applying RowIndex `ab` to
+     * RowIndex `bc`. More specifically, suppose there are 2 frames A and B,
      * with A being a subset of B, and that `this` RowIndex describes which
      * rows in B are selected into A. Furthermore, suppose B itself is a
      * subframe of C, and RowIndex `other` describes which rows from C are
-     * selected into B. Then `this->uplift(other)` will return a new RowIndex
+     * selected into B. Then `AB * BC` will return a new RowIndex
      * object describing how the rows of A can be obtained from C.
+     *
+     * Note that the product is not commutative: `ab * bc` != `bc * ab`.
      */
-    RowIndex uplift(const RowIndex& other) const;
+    friend RowIndex operator *(const RowIndex& ab, const RowIndex& bc);
 
     void clear();
 
@@ -256,104 +169,75 @@ class RowIndex {
      */
     void shrink(size_t nrows, size_t ncols);
 
+    /**
+     * Modifies the RowIndex so that its new size becomes `nrows`. This will
+     * either throw out the existing elements at the tail, or append "NA"
+     * indices.
+     *
+     * This method either modifies the existing `impl` in-place if its refcount
+     * is 1, or replaces it with a new "modified" impl. Additionally, a "slice"
+     * impl will be replaced with an "array" impl if `nrows` is greater than
+     * the current size of the RowIndex.
+     *
+     * This method should not be evoked on an "empty" RowIndex.
+     */
+    void resize(size_t nrows);
+
     size_t memory_footprint() const;
 
     /**
-     * Template function that facilitates looping through a RowIndex.
+     * Template function that allows looping through the RowIndex. This
+     * method will run the equivalent of
+     *
+     *     for i in range(istart, iend, istep):
+     *         j = self[i]
+     *         f(i, j)
+     *
+     * Function `f` is expected to have a signature `void(size_t i, size_t j)`.
      */
-    template<typename F> void strided_loop(
-        int64_t istart, int64_t iend, int64_t istep, F f) const;
-    template<typename F> void strided_loop2(
-        int64_t istart, int64_t iend, int64_t istep, F f) const;
+    template<typename F> void iterate(
+        size_t istart, size_t iend, size_t istep, F f) const;
 
     void verify_integrity() const;
 
   private:
     RowIndex(RowIndexImpl* rii);
-    ArrayRowIndexImpl* impl_asarray() const {
-      return static_cast<ArrayRowIndexImpl*>(impl);
-    }
-    SliceRowIndexImpl* impl_asslice() const {
-      return static_cast<SliceRowIndexImpl*>(impl);
-    }
 };
+
+
 
 
 //==============================================================================
 
 template<typename F>
-void RowIndex::strided_loop(
-    int64_t istart, int64_t iend, int64_t istep, F f) const
-{
-  switch (impl? impl->type : RowIndexType::RI_UNKNOWN) {
-    case RI_UNKNOWN: {
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(i);
-      }
-      break;
-    }
-    case RI_ARR32: {
-      const int32_t* ridata = indices32();
-      for (int64_t i = istart; i < iend; i += istep) {
-        int32_t j = ridata[i];
-        f(ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
-      }
-      break;
-    }
-    case RI_ARR64: {
-      const int64_t* ridata = indices64();
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(ridata[i]);
-      }
-      break;
-    }
-    case RI_SLICE: {
-      // Careful with negative slice steps (in which case j goes down,
-      // and therefore we cannot iterate until `j < jend`).
-      int64_t jstep = slice_step() * istep;
-      int64_t j = slice_start() + istart * slice_step();
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(j);
-        j += jstep;
-      }
-      break;
-    }
-  }
-}
-
-
-template<typename F>
-void RowIndex::strided_loop2(
-    int64_t istart, int64_t iend, int64_t istep, F f) const
-{
-  switch (impl? impl->type : RowIndexType::RI_UNKNOWN) {
-    case RI_UNKNOWN: {
-      for (int64_t i = istart; i < iend; i += istep) {
+void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
+  switch (type()) {
+    case RowIndexType::UNKNOWN: {
+      for (size_t i = i0; i < i1; i += di) {
         f(i, i);
       }
       break;
     }
-    case RI_ARR32: {
+    case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
-      for (int64_t i = istart; i < iend; i += istep) {
-        int32_t j = ridata[i];
-        f(i, ISNA(j)? GETNA<int64_t>() : static_cast<int64_t>(j));
+      for (size_t i = i0; i < i1; i += di) {
+        f(i, static_cast<size_t>(ridata[i]));
       }
       break;
     }
-    case RI_ARR64: {
+    case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
-      for (int64_t i = istart; i < iend; i += istep) {
-        f(i, ridata[i]);
+      for (size_t i = i0; i < i1; i += di) {
+        f(i, static_cast<size_t>(ridata[i]));
       }
       break;
     }
-    case RI_SLICE: {
+    case RowIndexType::SLICE: {
       // Careful with negative slice steps (in which case j goes down,
       // and therefore we cannot iterate until `j < jend`).
-      int64_t jstep = slice_step() * istep;
-      int64_t j = slice_start() + istart * slice_step();
-      for (int64_t i = istart; i < iend; i += istep) {
+      size_t jstep = slice_step() * di;
+      size_t j = slice_start() + i0 * slice_step();
+      for (size_t i = i0; i < i1; i += di) {
         f(i, j);
         j += jstep;
       }
@@ -363,7 +247,7 @@ void RowIndex::strided_loop2(
 }
 
 
-bool check_slice_triple(int64_t start, int64_t cnt, int64_t step, int64_t max);
+bool check_slice_triple(size_t start, size_t cnt, size_t step, size_t max);
 
 
 #endif

@@ -10,12 +10,9 @@
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
 #include "py_types.h"      // PyLong_AsInt64AndOverflow
-#include "python/dict.h"   // py::rdict
-#include "python/float.h"  // py::float
-#include "python/int.h"    // py::oint
+#include "python/_all.h"
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
-#include "python/tuple.h"  // py::rtuple
 #include "utils.h"
 #include "utils/exceptions.h"
 
@@ -84,7 +81,7 @@ ituplist::ituplist(const py::olist& src, size_t index)
 size_t ituplist::size() const { return tuple_list.size(); }
 
 py::robj ituplist::item(size_t i) const {
-  return py::rtuple(tuple_list[i])[j];
+  return py::rtuple::unchecked(tuple_list[i])[j];
 }
 
 

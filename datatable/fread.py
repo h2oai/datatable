@@ -983,8 +983,8 @@ class GenericReader(object):
                         "Unknown entry %r for %s in `columns`" % (val, key))
         if new_entries:
             colsdict = {**colsdict, **new_entries}
-        for i in range(len(colsdesc)):
-            name = colsdesc[i].name
+        for i, desc in enumerate(colsdesc):
+            name = desc.name
             entry = colsdict.get(name, default_entry)
             if entry is None:
                 pass  # coltype is already "drop"

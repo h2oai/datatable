@@ -150,8 +150,8 @@ class rmem {
     #endif
   public:
     rmem();
-    rmem(const omem&);
-    rmem(const rmem&);
+    explicit rmem(const omem&);
+    explicit rmem(const rmem&);
     rmem(const rmem&, size_t offset, size_t n);
     rmem& operator=(const rmem&) = default;
     explicit operator bool() const noexcept;
@@ -429,7 +429,7 @@ class SortContext {
 
 
   RowIndex get_result(Groupby* out_grps) {
-    RowIndex res = RowIndex::from_array32(
+    RowIndex res = RowIndex(
         arr32_t(n, static_cast<int32_t*>(container_o.release()), true)
     );
     if (out_grps) {
@@ -972,8 +972,8 @@ class SortContext {
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;
-    rmem     _x        = x;
-    rmem     _xx       = xx;
+    rmem     _x        { x };
+    rmem     _xx       { xx };
     int32_t* _o        = o;
     int32_t* _next_o   = next_o;
     uint8_t  _elemsize = elemsize;
@@ -1070,7 +1070,7 @@ class SortContext {
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  tn = static_cast<int32_t>(zn);
-          rmem     tx = rmem(_x, off * elemsize, zn * elemsize);
+          rmem     tx { _x, off * elemsize, zn * elemsize };
           int32_t* to = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
@@ -1189,8 +1189,8 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   if (nrows > INT32_MAX) {
     throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
   }
-  if (rowindex.isarr64() || rowindex.length() > INT32_MAX ||
-      rowindex.max() > INT32_MAX) {
+  if (rowindex.isarr64() || rowindex.size() > INT32_MAX ||
+      (rowindex.max() > INT32_MAX && rowindex.max() != RowIndex::NA)) {
     throw NotImplError() << "Cannot sort a datatable which is based on a "
                             "datatable with >2**31 rows";
   }
@@ -1211,11 +1211,11 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   }
 
   if (nrows <= 1) {
-    int64_t i = col0->rowindex().nth(0);
+    size_t i = col0->rowindex()[0];
     if (out_grps) {
       *out_grps = Groupby::single_group(col0->nrows);
     }
-    return RowIndex::from_slice(i, static_cast<int64_t>(col0->nrows), 1);
+    return RowIndex(i, col0->nrows, 1);
   }
   SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));
@@ -1231,15 +1231,15 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
 static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   if (col->nrows == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
-    return RowIndex::from_array32(arr32_t(0), true);
+    return RowIndex(arr32_t(0), true);
   }
   xassert(col->nrows == 1);
   if (out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex().nth(0));
-  return RowIndex::from_array32(std::move(indices), true);
+  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  return RowIndex(std::move(indices), true);
 }
 
 

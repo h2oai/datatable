@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/tuple.h"
 
@@ -14,30 +28,15 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-otuple::otuple() : oobj(nullptr) {}
-
-otuple::otuple(PyObject* v) : oobj(v) {}
-
-otuple::otuple(int n) : otuple(static_cast<int64_t>(n)) {}
-
-otuple::otuple(size_t n) : otuple(static_cast<int64_t>(n)) {}
-
-otuple::otuple(int64_t n) {
-  v = PyTuple_New(n);
+otuple::otuple(size_t n) {
+  v = PyTuple_New(static_cast<Py_ssize_t>(n));
 }
 
-otuple::otuple(const otuple& other) : oobj(other) {}
+otuple::otuple(const robj& src) : oobj(src) {}
+rtuple::rtuple(const robj& src) : robj(src) {}
 
-otuple::otuple(otuple&& other) : oobj(std::move(other)) {}
-
-otuple& otuple::operator=(const otuple& other) {
-  oobj::operator=(other);
-  return *this;
-}
-
-otuple& otuple::operator=(otuple&& other) {
-  oobj::operator=(std::move(other));
-  return *this;
+rtuple rtuple::unchecked(const robj& src) {
+  return rtuple(src);
 }
 
 
@@ -46,17 +45,9 @@ otuple& otuple::operator=(otuple&& other) {
 // Element accessors
 //------------------------------------------------------------------------------
 
-robj otuple::operator[](int64_t i) const {
-  // PyTuple_GET_ITEM returns a borrowed reference
-  return robj(PyTuple_GET_ITEM(v, i));
-}
-
 robj otuple::operator[](size_t i) const {
-  return this->operator[](static_cast<int64_t>(i));
-}
-
-robj otuple::operator[](int i) const {
-  return this->operator[](static_cast<int64_t>(i));
+  return robj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
+  // return this->operator[](static_cast<int64_t>(i));
 }
 
 robj rtuple::operator[](size_t i) const {
@@ -64,55 +55,23 @@ robj rtuple::operator[](size_t i) const {
 }
 
 
-void otuple::set(int64_t i, const _obj& value) {
-  // PyTuple_SET_ITEM "steals" a reference to the last argument
-  PyTuple_SET_ITEM(v, i, value.to_pyobject_newref());
-}
-
-void otuple::set(int64_t i, oobj&& value) {
-  PyTuple_SET_ITEM(v, i, std::move(value).release());
-}
-
 void otuple::set(size_t i, const _obj& value) {
-  set(static_cast<int64_t>(i), value);
+  // PyTuple_SET_ITEM "steals" a reference to the last argument
+  PyTuple_SET_ITEM(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
 void otuple::set(size_t i, oobj&& value) {
-  set(static_cast<int64_t>(i), std::move(value));
+  PyTuple_SET_ITEM(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
-void otuple::set(int i, const _obj& value) {
-  set(static_cast<int64_t>(i), value);
-}
-
-void otuple::set(int i, oobj&& value) {
-  set(static_cast<int64_t>(i), std::move(value));
-}
-
-
-void otuple::replace(int64_t i, const _obj& value) {
-  // PyTuple_SetItem "steals" a reference to the last argument
-  PyTuple_SetItem(v, i, value.to_pyobject_newref());
-}
-
-void otuple::replace(int64_t i, oobj&& value) {
-  PyTuple_SetItem(v, i, std::move(value).release());
-}
 
 void otuple::replace(size_t i, const _obj& value) {
-  set(static_cast<int64_t>(i), value);
+  // PyTuple_SetItem "steals" a reference to the last argument
+  PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
 void otuple::replace(size_t i, oobj&& value) {
-  set(static_cast<int64_t>(i), std::move(value));
-}
-
-void otuple::replace(int i, const _obj& value) {
-  set(static_cast<int64_t>(i), value);
-}
-
-void otuple::replace(int i, oobj&& value) {
-  set(static_cast<int64_t>(i), std::move(value));
+  PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
 

@@ -48,8 +48,8 @@ Column* reduce_first(const Column* col, const Groupby& groupby) {
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
   // to the column will produce the vector of first elements in that column.
   arr32_t indices(ngrps, groupby.offsets_r());
-  RowIndex ri = RowIndex::from_array32(std::move(indices), true)
-                .uplift(col->rowindex());
+  RowIndex ri = RowIndex(std::move(indices), true)
+                * col->rowindex();
   Column* res = col->shallowcopy(ri);
   if (ngrps == 1) res->reify();
   return res;
@@ -68,11 +68,12 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
   const IT* inputs = static_cast<const IT*>(col0->data());
   OT* outputs = static_cast<OT*>(col1->data_w());
   OT sum = 0;
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      IT x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      IT x = inputs[j];
       if (!ISNA<IT>(x))
         sum += static_cast<OT>(x);
     });
@@ -94,11 +95,12 @@ static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
       std::is_same<uint64_t, IT>::value) inputs++;
   OT* outputs = static_cast<OT*>(col1->data_w());
   OT count = 0;
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      IT x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      IT x = inputs[j];
       count += !ISNA<IT>(x);
     });
   outputs[grp] = count;
@@ -119,11 +121,12 @@ static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
   OT sum = 0;
   int64_t cnt = 0;
   OT delta = 0;
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      IT x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      IT x = inputs[j];
       if (ISNA<IT>(x)) return;
       OT y = static_cast<OT>(x) - delta;
       OT t = sum + y;
@@ -150,11 +153,12 @@ static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
   OT mean = 0;
   OT m2 = 0;
   int64_t cnt = 0;
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      IT x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      IT x = inputs[j];
       if (ISNA<IT>(x)) return;
       cnt++;
       OT t1 = x - mean;
@@ -178,11 +182,12 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
   const T* inputs = static_cast<const T*>(col0->data());
   T* outputs = static_cast<T*>(col1->data_w());
   T res = infinity<T>();
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      T x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      T x = inputs[j];
       if (!ISNA<T>(x) && x < res) {
         res = x;
       }
@@ -203,11 +208,12 @@ static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
   const T* inputs = static_cast<const T*>(col0->data());
   T* outputs = static_cast<T*>(col1->data_w());
   T res = -infinity<T>();
-  int32_t row0 = groups[grp];
-  int32_t row1 = groups[grp + 1];
-  col0->rowindex().strided_loop(row0, row1, 1,
-    [&](int64_t i) {
-      T x = inputs[i];
+  size_t row0 = static_cast<size_t>(groups[grp]);
+  size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  col0->rowindex().iterate(row0, row1, 1,
+    [&](size_t, size_t j) {
+      if (j == RowIndex::NA) return;
+      T x = inputs[j];
       if (!ISNA<T>(x) && x > res) {
         res = x;
       }

@@ -22,3 +22,4 @@
 #include "python/dict.h"
 #include "python/float.h"
 #include "python/int.h"
+#include "python/tuple.h"

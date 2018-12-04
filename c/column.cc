@@ -154,7 +154,7 @@ Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
 
   if (new_rowindex) {
     col->ri = new_rowindex;
-    col->nrows = new_rowindex.length();
+    col->nrows = new_rowindex.size();
   } else if (ri) {
     col->ri = ri;
   }
@@ -210,9 +210,15 @@ Column* Column::rbind(std::vector<const Column*>& columns)
 }
 
 
+RowIndex Column::remove_rowindex() {
+  RowIndex res(std::move(ri));
+  xassert(!ri);
+  return res;
+}
+
 void Column::replace_rowindex(const RowIndex& newri) {
   ri = newri;
-  nrows = ri.length();
+  nrows = ri.size();
 }
 
 
@@ -388,15 +394,15 @@ void Column::verify_integrity(const std::string& name) const {
   }
   else {
     // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != ri.length()) {
+    if (nrows != ri.size()) {
       throw AssertionError()
           << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.length();
+          << ri.size();
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (static_cast<size_t>(ri.max()) >= mbuf_nrows && ri.max() > 0) {
+    if (ri.max() >= mbuf_nrows && ri.max() != RowIndex::NA) {
       throw AssertionError()
           << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
@@ -434,4 +440,4 @@ void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
-py::oobj VoidColumn::get_value_at_index(int64_t) const { return py::oobj(); }
+py::oobj VoidColumn::get_value_at_index(size_t) const { return py::oobj(); }

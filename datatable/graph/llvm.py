@@ -45,8 +45,8 @@ class Llvm:
                 lineno = int(mm.group(1))
                 charno = int(mm.group(2))
                 lines = cc.split("\n")
-                for i in range(len(lines)):
-                    print(lines[i])
+                for i, line in enumerate(lines):
+                    print(line)
                     if i == lineno - 1:
                         print(" " * (charno - 1) +
                               term.bold("^--- ") +

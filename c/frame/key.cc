@@ -31,7 +31,7 @@
 
 py::oobj py::Frame::get_key() const {
   py::otuple key(dt->get_nkeys());
-  py::otuple names = get_names().to_pytuple();
+  py::otuple names = get_names().to_otuple();
   for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
   }
@@ -103,7 +103,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   // Sort the table by the keys
   Groupby gb;
   RowIndex ri = sortby(col_indices, &gb);
-  xassert(ri.length() == nrows);
+  xassert(ri.size() == nrows);
   if (gb.ngroups() != nrows) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
@@ -131,7 +131,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   reorder_names(col_indices);
 
   // Apply sort key
-  replace_rowindex(ri.uplift(rowindex));
+  replace_rowindex(ri * rowindex);
   reify();
 
   nkeys = K;

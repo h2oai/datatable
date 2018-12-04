@@ -134,3 +134,16 @@ def find_file(*nameparts):
 def has_llvm():
     import datatable as dt
     return dt.graph.llvm.llvm.available
+
+
+def noop(x):
+    """
+    Use this function to discard the result of some calculation, e.g:
+
+        with pytest.raises(ValueError):
+            noop(DT[1, 2, 3, 4, 5])
+
+    The purpose of this function is to silence the warning about unassigned
+    expression result.
+    """
+    pass

@@ -9,8 +9,7 @@
 #define dt_DATATABLE_h
 #include <vector>
 #include <string>
-#include "python/dict.h"
-#include "python/tuple.h"
+#include "python/_all.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
@@ -158,6 +157,8 @@ class DataTable {
 DataTable* open_jay_from_file(const std::string& path);
 DataTable* open_jay_from_bytes(const char* ptr, size_t len);
 DataTable* open_jay_from_mbuf(const MemoryRange&);
+
+DataTable* apply_rowindex(const DataTable*, const RowIndex& ri);
 
 
 //==============================================================================

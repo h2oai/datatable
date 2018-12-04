@@ -199,11 +199,13 @@ void DatatableModule::init_methods() {
   add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
+
   init_methods_aggregate();
-  init_methods_str();
-  init_methods_options();
-  init_methods_sets();
   init_methods_join();
+  init_methods_options();
+  init_methods_repeat();
+  init_methods_sets();
+  init_methods_str();
   #ifdef DTTEST
     init_tests();
   #endif
@@ -220,18 +222,18 @@ PyInit__datatable()
   static DatatableModule dtmod;
   PyObject* m = dtmod.init();
 
-  // Initialize submodules
-  if (!init_py_types(m)) return nullptr;
-  if (!pydatawindow::static_init(m)) return nullptr;
-  if (!pycolumn::static_init(m)) return nullptr;
-  if (!pycolumnset::static_init(m)) return nullptr;
-  if (!pydatatable::static_init(m)) return nullptr;
-  if (!pygroupby::static_init(m)) return nullptr;
-  if (!pyrowindex::static_init(m)) return nullptr;
-  if (!init_py_encodings(m)) return nullptr;
-  init_jay();
-
   try {
+    // Initialize submodules
+    if (!init_py_types(m)) return nullptr;
+    if (!pydatawindow::static_init(m)) return nullptr;
+    if (!pycolumn::static_init(m)) return nullptr;
+    if (!pycolumnset::static_init(m)) return nullptr;
+    if (!pydatatable::static_init(m)) return nullptr;
+    if (!pygroupby::static_init(m)) return nullptr;
+    if (!pyrowindex::static_init(m)) return nullptr;
+    if (!init_py_encodings(m)) return nullptr;
+    init_jay();
+
     py::Frame::Type::init(m);
     py::PyFtrl::Type::init(m);
 

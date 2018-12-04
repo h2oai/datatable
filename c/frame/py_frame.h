@@ -105,6 +105,7 @@ class Frame : public PyObject {
     oobj to_tuples(const NoArgs&);
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);
+    void repeat(const PKArgs&);
 
   private:
     static bool internal_construction;

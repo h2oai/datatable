@@ -62,5 +62,5 @@ void Groupby::compute_ungroup_rowindex() {
     int32_t ii = static_cast<int32_t>(i);
     while (j < upto) data[j++] = ii;
   }
-  ungroup_ri = RowIndex::from_array32(std::move(indices), /* sorted = */ true);
+  ungroup_ri = RowIndex(std::move(indices), /* sorted = */ true);
 }

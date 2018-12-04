@@ -622,7 +622,6 @@ void FreadReader::detect_column_types()
     trace("Type codes (final): %s", columns.printTypes());
   }
 
-  size_t estnrow = 1;
   allocnrow = 1;
   meanLineLen = 0;
 
@@ -637,7 +636,7 @@ void FreadReader::detect_column_types()
   } else {
     size_t bytesRead = static_cast<size_t>(eof - sof);
     meanLineLen = sumLen/n_sample_lines;
-    estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
+    size_t estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
     double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/n_sample_lines)/(n_sample_lines-1) );
     allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
                          static_cast<size_t>(1.1*estnrow));

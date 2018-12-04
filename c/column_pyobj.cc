@@ -32,8 +32,8 @@ SType PyObjectColumn::stype() const {
   return SType::OBJ;
 }
 
-py::oobj PyObjectColumn::get_value_at_index(int64_t i) const {
-  int64_t j = (this->ri).nth(i);
+py::oobj PyObjectColumn::get_value_at_index(size_t i) const {
+  size_t j = (this->ri)[i];
   PyObject* x = this->elements_r()[j];
   return py::oobj(x);
 }

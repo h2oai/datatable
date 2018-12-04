@@ -76,7 +76,6 @@ Aggregator::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
 *  Convert all the numeric values to double, do grouping and aggregation.
 */
 dtptr Aggregator::aggregate(DataTable* dt) {
-  size_t max_bins;
   bool was_sampled = false;
   progress(0.0);
   dtptr dt_members;
@@ -113,6 +112,7 @@ dtptr Aggregator::aggregate(DataTable* dt) {
     }
 
     dt_double = dtptr(new DataTable(std::move(cols_double)));
+    size_t max_bins;
     switch (dt_double->ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;
@@ -212,7 +212,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
     ri_members.extract_into(temp);
     ri_members_indices = temp.data();
   } else if (ri_members.isarr64()){
-    throw ValueError() << "RI_ARR64 is not supported for the moment";
+    throw ValueError() << "RowIndexType::ARR64 is not supported for the moment";
   }
 
   // Setting up a table for counts
@@ -240,7 +240,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   dt_members->columns[0]->get_stats()->reset();
 
   // Applying exemplars row index and binding exemplars with the counts.
-  RowIndex ri_exemplars = RowIndex::from_array32(std::move(exemplar_indices));
+  RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
   dt->replace_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts };
   dt->cbind(dts);
@@ -261,10 +261,10 @@ void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
     RowIndex ri_exemplars = dt->sortby({0}, nullptr);
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
-    ri_exemplars.strided_loop2(0, static_cast<int64_t>(dt->nrows), 1,
-    [&](int64_t i, int64_t j) {
-      d_members[j] = static_cast<int32_t>(i);
-    });
+    ri_exemplars.iterate(0, dt->nrows, 1,
+      [&](size_t i, size_t j) {
+        d_members[j] = static_cast<int32_t>(i);
+      });
   }
 }
 
