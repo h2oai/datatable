@@ -84,6 +84,7 @@ def test_fread_from_anysource_as_text1(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     d0.internal.check()
+    assert not err
     assert "Input contains '\\x0A', treating it as raw text" in out
 
 
@@ -93,6 +94,7 @@ def test_fread_from_anysource_as_text2(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     d0.internal.check()
+    assert not err
     assert ("Input is a string of length %d, treating it as raw text"
             % len(src)) in out
 
@@ -102,6 +104,7 @@ def test_fread_from_anysource_as_text3(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     d0.internal.check()
+    assert not err
     assert d0.topython() == [[1, 5], [2, 4], [3, 3]]
     assert "Input contains '\\x0A', treating it as raw text" in out
 
@@ -113,6 +116,7 @@ def test_fread_from_anysource_as_file1(tempfile, capsys):
     d0 = dt.fread(tempfile, verbose=True)
     out, err = capsys.readouterr()
     d0.internal.check()
+    assert not err
     assert "Input is assumed to be a file name" in out
 
 
@@ -153,6 +157,7 @@ def test_fread_from_anysource_as_url(tempfile, capsys):
     d0 = dt.fread("file://" + os.path.abspath(tempfile), verbose=True)
     out, err = capsys.readouterr()
     d0.internal.check()
+    assert not err
     assert "Input is a URL" in out
 
 
@@ -200,6 +205,7 @@ def test_fread_xz_file(tempfile, capsys):
     out, err = capsys.readouterr()
     d0.internal.check()
     assert d0.topython() == [[1, 2, 3]]
+    assert not err
     assert ("Extracting %s into memory" % xzfile) in out
     os.unlink(xzfile)
 
@@ -213,6 +219,7 @@ def test_fread_gz_file(tempfile, capsys):
     out, err = capsys.readouterr()
     d0.internal.check()
     assert d0.topython() == [[10, 20, 30]]
+    assert not err
     assert ("Extracting %s into memory" % gzfile) in out
     os.unlink(gzfile)
 
@@ -227,6 +234,7 @@ def test_fread_bz2_file(tempfile, capsys):
         out, err = capsys.readouterr()
         d0.internal.check()
         assert d0.topython() == [[11, 22, 33]]
+        assert not err
         assert ("Extracting %s into memory" % bzfile) in out
     finally:
         os.remove(bzfile)
@@ -242,6 +250,7 @@ def test_fread_zip_file_1(tempfile, capsys):
     d0.internal.check()
     assert d0.names == ("a", "b", "c")
     assert d0.topython() == [[10, 5], [20, 7], [30, 12]]
+    assert not err
     assert ("Extracting %s to temporary directory" % zfname) in out
     os.unlink(zfname)
 
@@ -950,11 +959,14 @@ def test_anonymize1(capsys):
                "Та марне бога б не хвалили,\n"
                "На наші сльози сміючись.\n")
         d0 = dt.fread(src, sep="", verbose=True)
+        assert d0
         out, err = capsys.readouterr()
+        assert not err
         assert "На наші сльози сміючись." in out
         dt.options.fread.anonymize = True
         d1 = dt.fread(src, sep="", verbose=True)
         out, err = capsys.readouterr()
+        assert not err
         assert "На наші сльози сміючись." not in out
         assert "UU UUUU UUUUUU UUUUUUUU." in out
     finally:
@@ -967,12 +979,15 @@ def test_anonymize2(capsys):
         lines[111] = "boo"
         src = "\n".join(lines)
         d0 = dt.fread(src, verbose=True)
+        assert d0
         out, err = capsys.readouterr()
+        assert not err
         assert "secret code" in out
         assert "Column 1 (secret code)" in out
         dt.options.fread.anonymize = True
         d0 = dt.fread(src, verbose=True)
         out, err = capsys.readouterr()
+        assert not err
         assert "Column 1 (secret code)" not in out
         assert "Column 1 (aaaaaa aaaa)" in out
     finally:

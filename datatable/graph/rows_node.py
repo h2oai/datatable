@@ -11,7 +11,7 @@ from datatable.lib import core
 from .iterator_node import IteratorNode
 from datatable.expr import BaseExpr
 from datatable.graph.dtproxy import f
-from .context import EvaluationEngine, LlvmEvaluationEngine
+from .context import LlvmEvaluationEngine
 from datatable.types import stype, ltype
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -55,7 +55,7 @@ class RFNode:
     __slots__ = ["_engine", "_inverse"]
 
     def __init__(self, ee):
-        self._engine = ee  # type: EvaluationEngine
+        self._engine = ee
         self._inverse = False
 
     def negate(self):
