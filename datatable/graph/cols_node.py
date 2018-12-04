@@ -277,7 +277,7 @@ class MixedCSNode(ColumnSetNode):
                            for e in self._elems]
             return core.columns_from_columns(columns)
 
-    def execute_update(self):
+    def execute_update(self, dt, replacement):
         raise TValueError("Cannot execute update on computed columns")
 
 

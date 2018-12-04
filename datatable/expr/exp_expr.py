@@ -18,11 +18,10 @@ from .base_expr import BaseExpr
 from .unary_expr import UnaryOpExpr
 from datatable.graph.dtproxy import f
 from datatable.lib import core
-from math import exp, inf
+import math
 
 __all__ = ("exp",)
 
-_builtin_exp = exp
 
 def exp(x):
     if isinstance(x, BaseExpr):
@@ -33,6 +32,6 @@ def exp(x):
     if x is None:
         return None
     try:
-        return _builtin_exp(x)
+        return math.exp(x)
     except OverflowError:
-        return inf
+        return math.inf
