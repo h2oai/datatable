@@ -36,9 +36,8 @@ ofloat::ofloat(double src) {
 ofloat::ofloat(float src) : ofloat(static_cast<double>(src)) {}
 
 
-// private constructors
+// private constructor
 ofloat::ofloat(const robj& src) : oobj(src) {}
-ofloat::ofloat(const oobj& src) : oobj(src) {}
 
 
 

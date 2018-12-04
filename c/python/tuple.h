@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_TUPLE_h
 #define dt_PYTHON_TUPLE_h
@@ -23,49 +37,41 @@ namespace py {
  */
 class otuple : public oobj {
   public:
-    otuple();
-    otuple(int n);
+    otuple() = default;
+    otuple(const otuple&) = default;
+    otuple(otuple&&) = default;
+    otuple& operator=(const otuple&) = default;
+    otuple& operator=(otuple&&) = default;
+
     otuple(size_t n);
-    otuple(int64_t n);
-    otuple(const otuple&);
-    otuple(otuple&&);
-    otuple& operator=(const otuple&);
-    otuple& operator=(otuple&&);
 
     size_t size() const noexcept;
 
-    robj operator[](int64_t i) const;
     robj operator[](size_t i) const;
-    robj operator[](int i) const;
 
     /**
      * `set(...)` methods should only be used to fill-in a new tuple object.
      * They do not perform any bounds checks; and cannot properly overwrite
      * an existing value.
      */
-    void set(int64_t i, const _obj& value);
     void set(size_t i,  const _obj& value);
-    void set(int i,     const _obj& value);
-    void set(int64_t i, oobj&& value);
     void set(size_t i,  oobj&& value);
-    void set(int i,     oobj&& value);
 
     /**
      * `replace(...)` methods are safer alternatives to `set(...)`: they
      * perform proper bounds checks, and if an element already exists in the
      * tuple at index `i`, it will be properly disposed of.
      */
-    void replace(int64_t i, const _obj& value);
     void replace(size_t i,  const _obj& value);
-    void replace(int i,     const _obj& value);
-    void replace(int64_t i, oobj&& value);
     void replace(size_t i,  oobj&& value);
-    void replace(int i,     oobj&& value);
 
   private:
-    otuple(PyObject*);
+    // Private constructors, used from `_obj`. If you need to construct
+    // `otuple` from `_obj`, use `_obj.to_otuple()` instead.
+    otuple(const robj&);
     friend class _obj;
 };
+
 
 
 /**
@@ -76,9 +82,21 @@ class otuple : public oobj {
  */
 class rtuple : public robj {
   public:
-    using robj::robj;
+    rtuple() = default;
+    rtuple(const rtuple&) = default;
+    rtuple(rtuple&&) = default;
+    rtuple& operator=(const rtuple&) = default;
+    rtuple& operator=(rtuple&&) = default;
+
+    static rtuple unchecked(const robj&);
+
     size_t size() const noexcept;
+
     robj operator[](size_t i) const;
+
+  private:
+    rtuple(const robj&);
+    friend class _obj;
 };
 
 

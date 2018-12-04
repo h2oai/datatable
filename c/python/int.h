@@ -64,10 +64,9 @@ class oint : public oobj {
     template<typename T> T mvalue() const;
 
   private:
-    // Private constructors, used from `_obj`. If you need to construct
+    // Private constructor, used from `_obj`. If you need to construct
     // `oint` from `oobj`, use `oobj.to_pyint()` instead.
     oint(const robj&);
-    oint(const oobj&);
     friend class _obj;
 };
 

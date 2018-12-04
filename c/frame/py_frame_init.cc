@@ -246,19 +246,19 @@ class FrameInitializationManager {
 
     void init_from_list_of_tuples() {
       py::olist srclist = src.to_pylist();
-      py::rtuple item0 = py::rtuple(srclist[0]);
+      py::rtuple item0 = srclist[0].to_rtuple_lax();
       size_t nrows = srclist.size();
       size_t ncols = item0.size();
       check_names_count(ncols);
       check_stypes_count(ncols);
       // Check that all entries are proper tuples
       for (size_t i = 0; i < nrows; ++i) {
-        py::robj item = srclist[i];
-        if (!item.is_tuple()) {
+        py::rtuple item = srclist[i].to_rtuple_lax();
+        if (!item) {
           throw TypeError() << "The source is not a list of tuples: element "
-              << i << " is a " << item.typeobj();
+              << i << " is a " << srclist[i].typeobj();
         }
-        size_t this_ncols = rtuple(item).size();
+        size_t this_ncols = item.size();
         if (this_ncols != ncols) {
           throw ValueError() << "Misshaped rows in Frame() constructor: "
               "row " << i << " contains " << this_ncols << " element"
