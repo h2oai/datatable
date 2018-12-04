@@ -66,7 +66,7 @@ class Arg : public _obj::error_manager {
     py::olist   to_pylist        () const;
     py::odict   to_pydict        () const;
     py::rdict   to_rdict         () const;
-    py::otuple  to_pytuple       () const;
+    py::otuple  to_otuple        () const;
     std::string to_string        () const;
     strvec      to_stringlist    () const;
     SType       to_stype         () const;

@@ -62,7 +62,7 @@ void PyFtrl::m__init__(PKArgs& args) {
     if (!(defined_alpha || defined_beta || defined_lambda1 || defined_lambda2
         || defined_d || defined_n_epochs || defined_inter)) {
 
-      py::otuple arg0_tuple = args[0].to_pytuple();
+      py::otuple arg0_tuple = args[0].to_otuple();
       fp.alpha = arg0_tuple.get_attr("alpha").to_double();
       fp.beta = arg0_tuple.get_attr("beta").to_double();
       fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double();

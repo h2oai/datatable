@@ -31,6 +31,7 @@ import pytest
 import collections
 import random
 from tests import assert_equals
+from tests import noop
 
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters
@@ -44,69 +45,69 @@ test_params = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
 #-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
 #-------------------------------------------------------------------------------
-
+ 
 def test_ftrl_construct_wrong_alpha():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(alpha = "1.0")
+        noop(core.Ftrl(alpha = "1.0"))
     assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_beta():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(beta = "1.0")
+        noop(core.Ftrl(beta = "1.0"))
     assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_lambda1():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(lambda1 = "1.0")
+        noop(core.Ftrl(lambda1 = "1.0"))
     assert ("Argument `lambda1` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_lambda2():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(lambda2 = "1.0")
+        noop(core.Ftrl(lambda2 = "1.0"))
     assert ("Argument `lambda2` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_d():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(d = 1000000.0)
+        noop(core.Ftrl(d = 1000000.0))
     assert ("Argument `d` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_n_epochs():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(n_epochs = 10.0)
+        noop(core.Ftrl(n_epochs = 10.0))
     assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_inter():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(inter = 2)
+        noop(core.Ftrl(inter = 2))
     assert ("Argument `inter` in Ftrl() constructor should be a boolean, instead "
             "got <class 'int'>" == str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(params=test_params, alpha = test_params.alpha)
+        noop(core.Ftrl(params=test_params, alpha = test_params.alpha))
     assert ("You can either pass all the parameters with `params` or  any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
             "`lambda2`, `d`,`n_epchs` or `inter` to Ftrl constructor, "
             "but not both at the same time" ==
             str(e.value))
-
-
+ 
+ 
 def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
-        ft = core.Ftrl(c = 1.0)
+        noop(core.Ftrl(c = 1.0))
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
             str(e.value))
 
@@ -139,7 +140,7 @@ def test_ftrl_create_individual():
 # Test getters, setters and reset methods for FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_get_params_individual():
+def test_ftrl_get_params():
     ft = core.Ftrl(params = test_params)
     assert ft.params == test_params
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
@@ -250,7 +251,7 @@ def test_ftrl_get_set_reset_model():
     ft = core.Ftrl(params = test_params)
     model = dt.Frame([[random.random() for i in range(test_params.d)],
                      [random.random() for i in range(test_params.d)]],
-                      names=['z', 'n'])
+                     names=['z', 'n'])
     ft.model = model
     assert_equals(ft.model, model)
     ft.reset_model()
