@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "extras/murmurhash.h"
 #include "frame/py_frame.h"
 #include "utils/parallel.h"
 #include "extras/ftrl.h"
+#include "extras/murmurhash.h"
 
 
 /*
@@ -108,7 +108,6 @@ void Ftrl::create_hashers(const DataTable* dt) {
                              0);
     colnames_hashes.push_back(h);
   }
-
 }
 
 
@@ -143,12 +142,12 @@ void Ftrl::fit(const DataTable* dt) {
            j < dt->nrows;
            j+= static_cast<size_t>(nth)) {
 
-        bool target = d_target[j];
+        bool y = d_target[j];
         hash_row(x, j);
-        double p = predict_row(x, n_features + n_inter_features);
-        update(x, n_features + n_inter_features, p, target);
+        double p = predict_row(x);
+        update(x, p, y);
 
-        double loss = logloss(p, target);
+        double loss = logloss(p, y);
         #pragma omp atomic update
         total_loss += loss;
         if ((j+1) % REPORT_FREQUENCY == 0) {
@@ -189,7 +188,7 @@ dtptr Ftrl::predict(const DataTable* dt) {
          j+= static_cast<size_t>(nth)) {
 
       hash_row(x, j);
-      d_target[j] = predict_row(x, n_features + n_inter_features);
+      d_target[j] = predict_row(x);
       if ((j+1) % REPORT_FREQUENCY == 0) {
         printf("Row: %zu\tPrediction: %f\n", j+1, d_target[j]);
       }
@@ -202,19 +201,18 @@ dtptr Ftrl::predict(const DataTable* dt) {
 /*
 *  Make a prediction for an array of hashed features.
 */
-double Ftrl::predict_row(const uint64ptr& x, size_t x_size) {
+double Ftrl::predict_row(const uint64ptr& x) {
   double wTx = 0;
-  for (size_t j = 0; j < x_size; ++j) {
-    size_t i = x[j];
-    if (fabs(z[i]) <= params.lambda1) {
-      w[i] = 0;
+  for (size_t i = 0; i < n_features + n_inter_features; ++i) {
+    size_t index = x[i];
+    if (fabs(z[index]) <= params.lambda1) {
+      w[index] = 0;
     } else {
-      w[i] = (signum(z[i]) * params.lambda1 - z[i]) /
-             ((params.beta + sqrt(n[i])) / params.alpha + params.lambda2);
+      w[index] = (signum(z[index]) * params.lambda1 - z[index]) /
+                 ((params.beta + sqrt(n[index])) / params.alpha + params.lambda2);
     }
-    wTx += w[i];
+    wTx += w[index];
   }
-
   return sigmoid(wTx);
 }
 
@@ -232,22 +230,21 @@ inline double Ftrl::sigmoid(double x) {
 */
 inline double Ftrl::bsigmoid(double x, double b) {
   double res = 1 / (1 + exp(-std::max(std::min(x, b), -b)));
-
   return res;
 }
 
 
 /*
-*  Update weights based on prediction and the actual target.
+*  Update weights based on prediction `p` and the actual target `y`.
 */
-void Ftrl::update(const uint64ptr& x, size_t x_size, double p, bool target) {
-  double g = p - target;
+void Ftrl::update(const uint64ptr& x, double p, bool y) {
+  double g = p - y;
 
-  for (size_t j = 0; j < x_size; ++j) {
-    size_t i = x[j];
-    double sigma = (sqrt(n[i] + g * g) - sqrt(n[i])) / params.alpha;
-    z[i] += g - sigma * w[i];
-    n[i] += g * g;
+  for (size_t i = 0; i < n_features + n_inter_features; ++i) {
+    size_t index = x[i];
+    double sigma = (sqrt(n[index] + g * g) - sqrt(n[index])) / params.alpha;
+    z[index] += g - sigma * w[index];
+    n[index] += g * g;
   }
 }
 
@@ -255,13 +252,11 @@ void Ftrl::update(const uint64ptr& x, size_t x_size, double p, bool target) {
 /*
 *  Hash each element of the datatable row, do feature interaction is requested.
 */
-void Ftrl::hash_row(uint64ptr& x, size_t row_id) {
+void Ftrl::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < n_features; ++i) {
-    uint64_t index = hashers[i]->hash(row_id);
-    // Add the column name hash to the hashed value, so that the same value
-    // in different columns will result in different hashes.
-    index += colnames_hashes[i];
-    x[i] = index % params.d;
+    // Hash a value adding a column name hash to it, so that the same value
+    // in different columns results in different hashes.
+    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % params.d;
   }
 
   // Do feature interaction if required. We may also want to test
@@ -315,12 +310,12 @@ uint64_t Ftrl::hash_string(const char * key, size_t len) {
 
 
 /*
-*  Calculate logloss based on a prediction and the actual target.
+*  Calculate logloss based on a prediction `p` and the actual target `y`.
 */
-double Ftrl::logloss(double p, bool target) {
+double Ftrl::logloss(double p, bool y) {
   double epsilon = std::numeric_limits<double>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
-  if (target) {
+  if (y) {
     return -log(p);
   } else {
     return -log(1 - p);

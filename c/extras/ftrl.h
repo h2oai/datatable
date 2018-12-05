@@ -74,8 +74,8 @@ class Ftrl {
     // Learning and predicting methods.
     void fit(const DataTable*);
     dtptr predict(const DataTable*);
-    double predict_row(const uint64ptr&, size_t);
-    void update(const uint64ptr&, size_t, double, bool);
+    double predict_row(const uint64ptr&);
+    void update(const uint64ptr&, double, bool);
 
     bool is_trained();
     void init_model();

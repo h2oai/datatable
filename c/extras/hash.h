@@ -22,6 +22,7 @@
 #ifndef dt_EXTRAS_HASH_h
 #define dt_EXTRAS_HASH_h
 #include "py_datatable.h"
+#include "extras/murmurhash.h"
 
 
 /*

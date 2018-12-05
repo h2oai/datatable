@@ -233,7 +233,7 @@ def test_ftrl_set_params():
 
 def test_ftrl_reset_params():
     ft = core.Ftrl(params = test_params)
-    assert ft.params != ft.default_params
+    assert ft.params == test_params
     ft.reset_params()
     assert ft.params == ft.default_params
 
