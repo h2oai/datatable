@@ -63,15 +63,15 @@ def test_ftrl_construct_wrong_beta():
 def test_ftrl_construct_wrong_lambda1():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(lambda1 = "1.0"))
-    assert ("Argument `lambda1` in Ftrl() constructor should be a float, instead "
-            "got <class 'str'>" == str(e.value))
+    assert ("Argument `lambda1` in Ftrl() constructor should be a float, "
+            "instead got <class 'str'>" == str(e.value))
  
  
 def test_ftrl_construct_wrong_lambda2():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(lambda2 = "1.0"))
-    assert ("Argument `lambda2` in Ftrl() constructor should be a float, instead "
-            "got <class 'str'>" == str(e.value))
+    assert ("Argument `lambda2` in Ftrl() constructor should be a float, "
+            "instead got <class 'str'>" == str(e.value))
  
  
 def test_ftrl_construct_wrong_d():
@@ -84,25 +84,24 @@ def test_ftrl_construct_wrong_d():
 def test_ftrl_construct_wrong_n_epochs():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(n_epochs = 10.0))
-    assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, instead "
-            "got <class 'float'>" == str(e.value))
+    assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, "
+            "instead got <class 'float'>" == str(e.value))
  
  
 def test_ftrl_construct_wrong_inter():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(inter = 2))
-    assert ("Argument `inter` in Ftrl() constructor should be a boolean, instead "
-            "got <class 'int'>" == str(e.value))
+    assert ("Argument `inter` in Ftrl() constructor should be a boolean, "
+            "instead got <class 'int'>" == str(e.value))
  
  
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(params=test_params, alpha = test_params.alpha))
-    assert ("You can either pass all the parameters with `params` or  any of "
+    assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `d`,`n_epchs` or `inter` to Ftrl constructor, "
-            "but not both at the same time" ==
-            str(e.value))
+            "`lambda2`, `d`, `n_epochs` or `inter` to Ftrl constructor, "
+            "but not both at the same time" == str(e.value))
  
  
 def test_ftrl_construct_unknown_arg():

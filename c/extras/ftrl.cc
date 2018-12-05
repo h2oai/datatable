@@ -82,7 +82,8 @@ static hashptr create_colhasher(const Column* col) {
     case SType::FLOAT64: return hashptr(new HashFloat<double>(col));
     case SType::STR32:   return hashptr(new HashString<uint32_t>(col));
     case SType::STR64:   return hashptr(new HashString<uint64_t>(col));
-    default:             throw ValueError() << "Cannot hash column of type " << stype;
+    default:             throw ValueError() << "Cannot hash column of type "
+                                            << stype;
   }
 }
 
@@ -204,14 +205,14 @@ dtptr Ftrl::predict(const DataTable* dt) {
 double Ftrl::predict_row(const uint64ptr& x) {
   double wTx = 0;
   for (size_t i = 0; i < n_features + n_inter_features; ++i) {
-    size_t index = x[i];
-    if (fabs(z[index]) <= params.lambda1) {
-      w[index] = 0;
+    size_t j = x[i];
+    if (fabs(z[j]) <= params.lambda1) {
+      w[j] = 0;
     } else {
-      w[index] = (signum(z[index]) * params.lambda1 - z[index]) /
-                 ((params.beta + sqrt(n[index])) / params.alpha + params.lambda2);
+      w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
+                 ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
     }
-    wTx += w[index];
+    wTx += w[j];
   }
   return sigmoid(wTx);
 }
@@ -241,16 +242,16 @@ void Ftrl::update(const uint64ptr& x, double p, bool y) {
   double g = p - y;
 
   for (size_t i = 0; i < n_features + n_inter_features; ++i) {
-    size_t index = x[i];
-    double sigma = (sqrt(n[index] + g * g) - sqrt(n[index])) / params.alpha;
-    z[index] += g - sigma * w[index];
-    n[index] += g * g;
+    size_t j = x[i];
+    double sigma = (sqrt(n[j] + g * g) - sqrt(n[j])) / params.alpha;
+    z[j] += g - sigma * w[j];
+    n[j] += g * g;
   }
 }
 
 
 /*
-*  Hash each element of the datatable row, do feature interaction is requested.
+*  Hash each element of the datatable row, do feature interaction if requested.
 */
 void Ftrl::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < n_features; ++i) {

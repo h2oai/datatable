@@ -28,8 +28,9 @@
 namespace py {
 
 PKArgs PyFtrl::Type::args___init__(0, 0, 10, false, false,
-                                   {"params", "alpha", "beta", "lambda1", "lambda2",
-                                   "d", "n_epochs", "inter", "hash_type", "seed"},
+                                   {"params", "alpha", "beta", "lambda1",
+                                   "lambda2", "d", "n_epochs", "inter",
+                                   "hash_type", "seed"},
                                    "__init__", nullptr);
 
 std::vector<strpair> PyFtrl::params_fields_info = {
@@ -39,12 +40,13 @@ std::vector<strpair> PyFtrl::params_fields_info = {
   strpair("lambda2", "L1 regularization parameter"),
   strpair("d", "Number of bins to be used for the hashing trick"),
   strpair("n_epochs", "Number of epochs to train a model for"),
-  strpair("inter", "Parameter that controls if feature interactions to be used or not")
+  strpair("inter", "Parameter that controls if feature interactions to be used "
+                   "or not")
 };
-
 strpair PyFtrl::params_info = strpair("Params", "FTRL model parameters");
+onamedtupletype PyFtrl::params_nttype(PyFtrl::params_info,
+                                      PyFtrl::params_fields_info);
 
-onamedtupletype PyFtrl::params_nttype(PyFtrl::params_info, PyFtrl::params_fields_info);
 
 void PyFtrl::m__init__(PKArgs& args) {
   FtrlParams fp = Ftrl::params_default;
@@ -72,9 +74,10 @@ void PyFtrl::m__init__(PKArgs& args) {
       fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
 
     } else {
-      throw TypeError() << "You can either pass all the parameters with `params` or "
-            << " any of the individual parameters with `alpha`, `beta`, `lambda1`, `lambda2`, `d`,"
-            << "`n_epchs` or `inter` to Ftrl constructor, but not both at the same time";
+      throw TypeError() << "You can either pass all the parameters with "
+            << "`params` or any of the individual parameters with `alpha`, "
+            << "`beta`, `lambda1`, `lambda2`, `d`, `n_epochs` or `inter` to "
+            << "Ftrl constructor, but not both at the same time";
     }
   } else {
     if (defined_alpha) {
@@ -261,7 +264,8 @@ void PyFtrl::fit(const PKArgs& args) {
     throw ValueError() << "Training frame must have at least two columns";
   }
   if (dt_train->columns[dt_train->ncols - 1]->stype() != SType::BOOL ) {
-    throw ValueError() << "Last column in a training frame must have a `bool` type";
+    throw ValueError() << "Last column in a training frame must have a `bool` "
+                       << "type";
   }
   ft->fit(dt_train);
 }
@@ -288,18 +292,22 @@ Returns
 oobj PyFtrl::predict(const PKArgs& args) {
   DataTable* dt_test = args[0].to_frame();
   if (!ft->is_trained()) {
-    throw ValueError() << "Cannot make any predictions, because the model was not trained";
+    throw ValueError() << "Cannot make any predictions, because the model "
+                       << "was not trained";
   }
 
   size_t n_features = ft->get_n_features();
   if (dt_test->ncols != n_features) {
     throw ValueError() << "Can only predict on a frame that has "<< n_features
-                       << " column(s), i.e. has the same number of features as was "
-                       << "used for model training";
+                       << " column(s), i.e. has the same number of features as "
+                       << "was used for model training";
   }
 
   DataTable* dt_target = ft->predict(dt_test).release();
-  py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
+  py::oobj df_target = py::oobj::from_new_reference(
+                         py::Frame::from_datatable(dt_target)
+                       );
+
   return df_target;
 }
 
@@ -325,8 +333,8 @@ void PyFtrl::reset_model(const PKArgs&) {
 }
 
 
-PKArgs PyFtrl::Type::args_reset_params(0, 0, 0, false, false, {}, "reset_params",
-R"(reset_params(self)
+PKArgs PyFtrl::Type::args_reset_params(0, 0, 0, false, false, {},
+"reset_params", R"(reset_params(self)
 --
 
 Reset FTRL parameters to default values.
@@ -357,7 +365,9 @@ void PyFtrl::reset_params(const PKArgs&) {
 oobj PyFtrl::get_model() const {
   if (ft->is_trained()) {
     DataTable* dt_model = ft->get_model();
-    py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
+    py::oobj df_model = py::oobj::from_new_reference(
+                          py::Frame::from_datatable(dt_model)
+                        );
     return df_model;
   } else {
     return py::None();
@@ -370,21 +380,25 @@ void PyFtrl::set_model(robj model) {
   const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
   if (dt_model_in->nrows != ft->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << ft->get_d() << " rows,"
-                       << "and 2 columns, whereas your frame has " << dt_model_in->nrows
-                       << " rows and " << dt_model_in->ncols << " columns";
+    throw ValueError() << "FTRL model frame must have " << ft->get_d()
+                       << " rows, and 2 columns, whereas your frame has "
+                       << dt_model_in->nrows << " rows and "
+                       << dt_model_in->ncols << " columns";
+
   }
 
   if (model_cols_in != Ftrl::model_cols) {
-    throw ValueError() << "FTRL model frame must have columns named `z` and `n`, "
-                       << "whereas your frame has the following column names: `" << model_cols_in[0]
+    throw ValueError() << "FTRL model frame must have columns named `z` and "
+                       << "`n`, whereas your frame has the following column "
+                       << "names: `" << model_cols_in[0]
                        << "` and `" << model_cols_in[1] << "`";
   }
 
   if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
     dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-    throw ValueError() << "FTRL model frame must have both column types as `float64`, "
-                       << "whereas your frame has the following column types: `"
+    throw ValueError() << "FTRL model frame must have both column types as "
+                       << "`float64`, whereas your frame has the following "
+                       << "column types: `"
                        << dt_model_in->columns[0]->stype()
                        << "` and `" << dt_model_in->columns[1]->stype() << "`";
   }
@@ -402,7 +416,8 @@ oobj PyFtrl::get_colnames_hashes() const {
     py::otuple py_colnames_hashes(n_features);
     std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
     for (size_t i = 0; i < n_features; ++i) {
-      py_colnames_hashes.set(i, py::oint(static_cast<size_t>(colnames_hashes[i])));
+      size_t h = static_cast<size_t>(colnames_hashes[i]);
+      py_colnames_hashes.set(i, py::oint(h));
     }
     return std::move(py_colnames_hashes);
   } else {
