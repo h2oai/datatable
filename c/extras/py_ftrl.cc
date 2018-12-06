@@ -230,8 +230,19 @@ Returns
 
 
 void PyFtrl::fit(const PKArgs& args) {
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Training frame parameter is missing";
+  }
+
+  if (args[1].is_undefined()) {
+    throw ValueError() << "Target frame parameter is missing";
+  }
+
+
   DataTable* dt_X = args[0].to_frame();
   DataTable* dt_y = args[1].to_frame();
+
+  if (dt_X == nullptr || dt_y == nullptr) return;
 
   if (dt_X->ncols == 0) {
     throw ValueError() << "Training frame must have at least one column";
@@ -278,7 +289,14 @@ Returns
 
 
 oobj PyFtrl::predict(const PKArgs& args) {
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Frame to make predictions for is missing";
+  }
+
   DataTable* dt_X = args[0].to_frame();
+
+  if (dt_X == nullptr) return Py_None;
+
   if (!ft->is_trained()) {
     throw ValueError() << "Cannot make any predictions, because the model "
                        << "was not trained";
@@ -339,6 +357,13 @@ oobj PyFtrl::get_model() const {
 
 void PyFtrl::set_model(robj model) {
   DataTable* dt_model_in = model.to_frame();
+
+  // Reset model when it was assigned `None` in Python
+  if (dt_model_in == nullptr) {
+    if (ft->is_trained()) ft->reset_model();
+    return;
+  }
+
   const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
   if (dt_model_in->nrows != ft->get_d() || dt_model_in->ncols != 2) {

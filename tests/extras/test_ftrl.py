@@ -236,10 +236,10 @@ def test_ftrl_set_params():
 # Test getters, setters and reset methods for FTRL model
 #-------------------------------------------------------------------------------
 
-def test_ftrl_model_none():
+def test_ftrl_model_untrained():
     ft = core.Ftrl()
     assert ft.model == None
-
+    
 
 def test_ftrl_get_set_reset_model():
     ft = core.Ftrl(params = test_params)
@@ -249,6 +249,9 @@ def test_ftrl_get_set_reset_model():
     ft.model = model
     assert_equals(ft.model, model)
     ft.reset()
+    assert ft.model == None
+    ft.model = model
+    ft.model = None
     assert ft.model == None
 
 
@@ -325,8 +328,32 @@ def test_ftrl_col_hashes():
 
 
 #-------------------------------------------------------------------------------
-# Test wrong prediction frame
+# Test wrong parameters for `fit` and `predict` methods
 #-------------------------------------------------------------------------------
+
+
+def test_ftrl_fit_no_frame():
+    ft = core.Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.fit()
+    assert ("Training frame parameter is missing"
+            == str(e.value))
+    
+    
+def test_ftrl_fit_no_target():
+    ft = core.Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.fit(None)
+    assert ("Target frame parameter is missing"
+            == str(e.value))
+    
+    
+def test_ftrl_fit_predict_nones():
+    ft = core.Ftrl()
+    ft.fit(None, None)
+    df_target = ft.predict(None)
+    assert df_target == None
+    
 
 def test_ftrl_predict_not_trained():
     ft = core.Ftrl()
@@ -351,7 +378,7 @@ def test_ftrl_predict_wrong_frame():
 
 
 #-------------------------------------------------------------------------------
-# Test training `fit` and `predict` methods
+# Test `fit` and `predict` methods
 #-------------------------------------------------------------------------------
 
 epsilon = 0.01
