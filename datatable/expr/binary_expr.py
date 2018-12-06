@@ -7,7 +7,7 @@
 
 from .base_expr import BaseExpr
 from .literal_expr import LiteralExpr
-from .consts import ops_rules, division_ops
+from .consts import ops_rules, division_ops, baseexpr_opcodes
 from datatable.utils.typechecks import TTypeError, TValueError
 from datatable.lib import core
 
@@ -44,6 +44,12 @@ class BinaryOpExpr(BaseExpr):
 
     def is_reduce_expr(self, ee):
         return self._lhs.is_reduce_expr(ee) and self._rhs.is_reduce_expr(ee)
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["binop"],
+                              binary_op_codes[self._op],
+                              self._lhs._core(),
+                              self._rhs._core())
 
 
     #---------------------------------------------------------------------------

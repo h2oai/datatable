@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 
 from .base_expr import BaseExpr
-from .consts import nas_map
+from .consts import nas_map, baseexpr_opcodes
 from ..types import stype
 from datatable.lib import core
 from datatable.utils.typechecks import TTypeError
@@ -43,6 +43,10 @@ class ColSelectorExpr(BaseExpr):
     @property
     def col_index(self):
         return self._colid
+
+    def _core(self):
+        opcode = baseexpr_opcodes["col"]
+        return core.base_expr(opcode, self._dtexpr._id, self._colexpr)
 
     def __str__(self):
         strf = str(self._dtexpr)

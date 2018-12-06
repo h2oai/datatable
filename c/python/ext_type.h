@@ -48,8 +48,8 @@ namespace py {
  *    Please::Type::init(module);
  *
  * Note that unlike standard Python C extension types, this initialization
- * method does not return a status code. Instead, should an error occur, it
- * will be thrown as an exception.
+ * method does not return a status code. Instead, should an error occur,
+ * an exception will be thrown.
  *
  * Thus, in order to declare a python extension type, you should create a
  * class derived from `PyObject`, and containing a public internal class
