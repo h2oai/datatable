@@ -30,7 +30,7 @@
 */
 const std::vector<std::string> Ftrl::model_cols = {"z", "n"};
 const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
-                                         1000000, 1, 1, 0, false};
+                                         1000000, 1, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
@@ -267,46 +267,12 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
     for (size_t i = 0; i < n_features - 1; ++i) {
       for (size_t j = i + 1; j < n_features; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
-        uint64_t h = hash_string(s.c_str(), s.length() * sizeof(char));
+        uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
         x[n_features + count] = h % params.d;
         count++;
       }
     }
   }
-}
-
-
-/*
-*  Hash string using the specified hash function. This is for the tests only,
-*  for production we will remove this method and stick to the hash function,
-*  that demonstrates the best performance.
-*/
-uint64_t Ftrl::hash_string(const char * key, size_t len) {
-  uint64_t res;
-  switch (params.hash_type) {
-    // `std::hash` is kind of slow, because we need to convert `char*` to
-    // `std::string`, as `std::hash<char*>` doesn't hash
-    // the actual data.
-    case 0:  {
-                std::string str(key,
-                                key + len / sizeof(char));
-                res = std::hash<std::string>{}(str);
-                break;
-             }
-    // 64 bits Murmur2 hash function. The best performer so far,
-    // need to test it for the memory alignment issues.
-    case 1:  res = hash_murmur2(key, len, params.seed); break;
-
-    // 128 bits Murmur3 hash function, similar performance to `hash_murmur2`.
-    case 2:  {
-                uint64_t h[2];
-                hash_murmur3(key, len, params.seed, h);
-                res = h[0];
-                break;
-             }
-    default: res = hash_murmur2(key, len, params.seed);
-  }
-  return res;
 }
 
 
@@ -389,16 +355,6 @@ bool Ftrl::get_inter() {
 }
 
 
-unsigned int Ftrl::get_hash_type() {
-  return params.hash_type;
-}
-
-
-unsigned int Ftrl::get_seed() {
-  return params.seed;
-}
-
-
 size_t Ftrl::get_n_epochs() {
   return params.n_epochs;
 }
@@ -457,22 +413,6 @@ void Ftrl::set_d(uint64_t d_in) {
 void Ftrl::set_inter(bool inter_in) {
   if (params.inter != inter_in) {
     params.inter = inter_in;
-    init_model();
-  }
-}
-
-
-void Ftrl::set_hash_type(unsigned int hash_type_in) {
-  if (params.hash_type != hash_type_in) {
-    params.hash_type = hash_type_in;
-    init_model();
-  }
-}
-
-
-void Ftrl::set_seed(unsigned int seed_in) {
-  if (params.seed != seed_in) {
-    params.seed = seed_in;
     init_model();
   }
 }

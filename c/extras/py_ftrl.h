@@ -61,8 +61,6 @@ namespace py {
       oobj get_d() const;
       oobj get_inter() const;
       oobj get_n_epochs() const;
-      oobj get_hash_type() const;
-      oobj get_seed() const;
       void set_model(robj);
       void set_params(robj);
       void set_alpha(robj);
@@ -72,8 +70,6 @@ namespace py {
       void set_d(robj);
       void set_n_epochs(robj);
       void set_inter(robj);
-      void set_hash_type(robj);
-      void set_seed(robj);
 
       // Info for a namedtuple of parameters
       static strpair params_info;

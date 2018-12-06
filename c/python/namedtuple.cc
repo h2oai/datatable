@@ -55,8 +55,9 @@ onamedtupletype::onamedtupletype(strpair tuple_info,
   auto res = std::move(type).release();
 
   // Set namedtuple doc
+  py::ostring docstr = py::ostring(tuple_info.second);
   PyObject_SetAttrString(res, "__doc__",
-                         py::ostring(tuple_info.second).to_borrowed_ref());
+                         docstr.to_borrowed_ref());
 
   // Set field docs
   py::otuple args_prop(4);

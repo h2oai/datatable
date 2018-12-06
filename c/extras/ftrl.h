@@ -38,8 +38,6 @@ struct FtrlParams {
     double lambda2;
     uint64_t d;
     size_t n_epochs;
-    unsigned int hash_type;
-    unsigned int seed;
     bool inter;
     size_t : 56;
 };
@@ -90,7 +88,6 @@ class Ftrl {
     // Hashing methods.
     void create_hashers(const DataTable*);
     void hash_row(uint64ptr&, size_t);
-    uint64_t hash_string(const char *, size_t);
 
     // Getters and setters, some will invalidate the learning results.
     DataTable* get_model();
@@ -102,8 +99,6 @@ class Ftrl {
     double get_lambda2();
     uint64_t get_d();
     size_t get_n_epochs();
-    unsigned int get_hash_type();
-    unsigned int get_seed();
     bool get_inter();
 
     void set_model(DataTable*);
@@ -114,8 +109,6 @@ class Ftrl {
     void set_d(uint64_t);
     void set_n_epochs(size_t);
     void set_inter(bool);
-    void set_hash_type(unsigned int);
-    void set_seed(unsigned int);
 };
 
 #endif

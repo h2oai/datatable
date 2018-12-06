@@ -27,10 +27,9 @@
 
 namespace py {
 
-PKArgs PyFtrl::Type::args___init__(0, 0, 10, false, false,
+PKArgs PyFtrl::Type::args___init__(0, 0, 8, false, false,
                                    {"params", "alpha", "beta", "lambda1",
-                                   "lambda2", "d", "n_epochs", "inter",
-                                   "hash_type", "seed"},
+                                   "lambda2", "d", "n_epochs", "inter"},
                                    "__init__", nullptr);
 
 std::vector<strpair> PyFtrl::params_fields_info = {
@@ -106,14 +105,6 @@ void PyFtrl::m__init__(PKArgs& args) {
 
     if (defined_inter) {
       fp.inter = args[7].to_bool_strict();
-    }
-
-    if (!(args[8].is_undefined() || args[8].is_none())) {
-      fp.hash_type = static_cast<unsigned int>(args[8].to_size_t());
-    }
-
-    if (!(args[9].is_undefined() || args[9].is_none())) {
-      fp.seed = static_cast<unsigned int>(args[9].to_size_t());
     }
   }
 
@@ -214,19 +205,6 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>(
     params_fields_info[6].first,
     params_fields_info[6].second
-  );
-
-  gs.add<&PyFtrl::get_hash_type, &PyFtrl::set_hash_type>(
-    "hash_type",
-    "Hashing method to use for strings\n"
-    "`0` - std::hash;\n"
-    "`1` - Murmur2;\n"
-    "`2` - Murmur3.\n"
-  );
-
-  gs.add<&PyFtrl::get_seed, &PyFtrl::set_seed>(
-    "seed",
-    "Seed to be used for Murmur hash functions\n"
   );
 
   mm.add<&PyFtrl::fit, args_fit>();
@@ -488,16 +466,6 @@ oobj PyFtrl::get_inter() const {
 }
 
 
-oobj PyFtrl::get_hash_type() const {
-  return py::oint(static_cast<size_t>(ft->get_hash_type()));
-}
-
-
-oobj PyFtrl::get_seed() const {
-  return py::oint(static_cast<size_t>(ft->get_seed()));
-}
-
-
 void PyFtrl::set_params(robj params) {
   set_alpha(params.get_attr("alpha"));
   set_beta(params.get_attr("beta"));
@@ -553,22 +521,5 @@ void PyFtrl::set_inter(robj inter) {
   ft->set_inter(inter_in);
 }
 
-
-void PyFtrl::set_hash_type(robj hash_type) {
-  int64_t hash_type_in = hash_type.to_int64_strict();
-  if (hash_type_in != 0 && hash_type_in != 1 && hash_type_in !=2) {
-    throw ValueError() << "`hash_type_in` must be either `0` or `1` or `2`";
-  }
-  ft->set_hash_type(static_cast<unsigned int>(hash_type_in));
-}
-
-
-void PyFtrl::set_seed(robj seed) {
-  int32_t seed_in = seed.to_int32_strict();
-  if (seed_in < 0) {
-    throw ValueError() << "`seed` cannot be negative";
-  }
-  ft->set_seed(static_cast<unsigned int>(seed_in));
-}
 
 } // namespace py
