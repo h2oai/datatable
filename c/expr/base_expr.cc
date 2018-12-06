@@ -20,10 +20,10 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <memory>             // std::unique_ptr
+#include <stdlib.h>
 #include "datatable.h"
 #include "expr/base_expr.h"
 #include "expr/py_expr.h"
-#include "stdlib.h"
 
 
 namespace dt {
