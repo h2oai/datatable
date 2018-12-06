@@ -248,7 +248,7 @@ def test_ftrl_get_set_reset_model():
                      names=['z', 'n'])
     ft.model = model
     assert_equals(ft.model, model)
-    ft.reset_model()
+    ft.reset()
     assert ft.model == None
 
 
@@ -256,48 +256,53 @@ def test_ftrl_get_set_reset_model():
 # Test wrong training frame
 #-------------------------------------------------------------------------------
 
-def test_ftrl_fit_wrong_empty():
+def test_ftrl_fit_wrong_empty_training():
     ft = core.Ftrl()
     df_train = dt.Frame()
+    df_target = dt.Frame([True])
     with pytest.raises(ValueError) as e:
-        ft.fit(df_train)
-    assert ("Cannot train a model on an empty frame" ==
+        ft.fit(df_train, df_target)
+    assert ("Training frame must have at least one column" ==
             str(e.value))
 
 
-def test_ftrl_fit_wrong_one_column():
+def test_ftrl_fit_wrong_empty_target():
     ft = core.Ftrl()
-    df_train = dt.Frame([1, 2, 3])
+    df_train = dt.Frame([1.0, 2.0])
+    df_target = dt.Frame()
     with pytest.raises(ValueError) as e:
-        ft.fit(df_train)
-    assert ("Training frame must have at least two columns" ==
+        ft.fit(df_train, df_target)
+    assert ("Target frame must have exactly one column" ==
             str(e.value))
 
 
 def test_ftrl_fit_wrong_target_integer():
     ft = core.Ftrl()
-    df_train = dt.Frame([[1, 2, 3], [4, 5, 6]])
+    df_train = dt.Frame([1, 2, 3])
+    df_target = dt.Frame([4, 5, 6])
     with pytest.raises(ValueError) as e:
-        ft.fit(df_train)
-    assert ("Last column in a training frame must have a `bool` type" ==
+        ft.fit(df_train, df_target)
+    assert ("Target column must be of a `bool` type" ==
             str(e.value))
 
 
 def test_ftrl_fit_wrong_target_real():
     ft = core.Ftrl()
-    df_train = dt.Frame([[1, 2, 3], [4.0, 5.0, 6.0]])
+    df_train = dt.Frame([1, 2, 3])
+    df_target = dt.Frame([4.0, 5.0, 6.0])
     with pytest.raises(ValueError) as e:
-        ft.fit(df_train)
-    assert ("Last column in a training frame must have a `bool` type" ==
+        ft.fit(df_train, df_target)
+    assert ("Target column must be of a `bool` type" ==
             str(e.value))
 
 
 def test_ftrl_fit_wrong_target_string():
     ft = core.Ftrl()
-    df_train = dt.Frame([[1, 2, 3], ["Monday", "Tuesday", "Friday"]])
+    df_train = dt.Frame([1, 2, 3])
+    df_target = dt.Frame(["Monday", "Tuesday", "Wedenesday"])
     with pytest.raises(ValueError) as e:
-        ft.fit(df_train)
-    assert ("Last column in a training frame must have a `bool` type" ==
+        ft.fit(df_train, df_target)
+    assert ("Target column must be of a `bool` type" ==
             str(e.value))
 
 
@@ -313,8 +318,9 @@ def test_ftrl_col_hashes():
                            4309007444360962581,  4517980897659475069,
                           17871586791652695964, 15779814813469047786)
     ft = core.Ftrl()
-    df_train = dt.Frame([[0]] * ncols + [[True]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[0]] * ncols)
+    df_target = dt.Frame([[True]])
+    ft.fit(df_train, df_target)
     assert col_hashes_murmur2 == ft.colnames_hashes
 
 
@@ -331,15 +337,17 @@ def test_ftrl_predict_not_trained():
             == str(e.value))
 
 
-def test_ftrl_predict_wrong_columns():
+def test_ftrl_predict_wrong_frame():
     ft = core.Ftrl()
-    df_train = dt.Frame([[1, 2, 3], [True, False, True]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[1, 2, 3]])
+    df_target = dt.Frame([[True, False, True]])
+    df_predict = dt.Frame([[1, 2, 3], [4, 5, 6]])
+    ft.fit(df_train, df_target)
     with pytest.raises(ValueError) as e:
-        ft.predict(df_train)
+        ft.predict(df_predict)
     assert ("Can only predict on a frame that has %d column(s), i.e. has the "
             "same number of features as was used for model training"
-            % (df_train.ncols - 1) == str(e.value))
+            % (df_train.ncols) == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -350,18 +358,18 @@ epsilon = 0.01
 
 def test_ftrl_fit_unique():
     ft = core.Ftrl(d = 10)
-    df_train = dt.Frame([[i for i in range(ft.d)],
-                         [True for i in range(ft.d)]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[i for i in range(ft.d)]])
+    df_target = dt.Frame([[True for i in range(ft.d)]])
+    ft.fit(df_train, df_target)
     model = [[-0.5 for i in range(ft.d)], [0.25 for i in range(ft.d)]]
     assert ft.model.topython() == model
 
 
 def test_ftrl_fit_predict_bool():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[True, False],
-                         [True, False]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[True, False]])
+    df_target = dt.Frame([[True, False]])
+    ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon
@@ -371,9 +379,9 @@ def test_ftrl_fit_predict_bool():
 
 def test_ftrl_fit_predict_int():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[0, 1],
-                         [True, False]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[0, 1]])
+    df_target = dt.Frame([[True, False]])
+    ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon
@@ -383,9 +391,9 @@ def test_ftrl_fit_predict_int():
 
 def test_ftrl_fit_predict_float():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([[0.0, 0.1],
-                         [True, False]])
-    ft.fit(df_train)
+    df_train = dt.Frame([[0.0, 1.0]])
+    df_target = dt.Frame([[True, False]])
+    ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon
@@ -395,9 +403,9 @@ def test_ftrl_fit_predict_float():
 
 def test_ftrl_fit_predict_string():
     ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
-    df_train = dt.Frame([["Monday", "Tuesday"],
-                         [True, False]])
-    ft.fit(df_train)
+    df_train = dt.Frame([["Monday", "Tuesday"]])
+    df_target = dt.Frame([[True, False]])
+    ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert df_target[0, 0] <= 1
     assert df_target[0, 0] >= 1 - epsilon

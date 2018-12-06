@@ -204,22 +204,24 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   mm.add<&PyFtrl::fit, args_fit>();
   mm.add<&PyFtrl::predict, args_predict>();
-  mm.add<&PyFtrl::reset_model, args_reset_model>();
+  mm.add<&PyFtrl::reset, args_reset>();
 }
 
 
-PKArgs PyFtrl::Type::args_fit(1, 0, 0, false, false, {"frame"}, "fit",
-R"(fit(self, frame)
+PKArgs PyFtrl::Type::args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
+R"(fit(self, X, y)
 --
 
 Train an FTRL model on a dataset.
 
 Parameters
 ----------
-frame: Frame
-    Frame to be trained on. All but the last column are used as 
-    a model input. The last column must have a `bool` type, 
-    and is treated as a `target`.
+X: Frame
+    Datatable frame of shape (nrows, ncols) to be trained on. 
+
+y: Frame
+    Datatable frame of shape (nrows, 1), i.e. the target column. 
+    This column must have a `bool` type. 
 
 Returns
 ----------
@@ -228,67 +230,81 @@ Returns
 
 
 void PyFtrl::fit(const PKArgs& args) {
-  DataTable* dt_train = args[0].to_frame();
-  if (dt_train->nrows == 0) {
-    throw ValueError() << "Cannot train a model on an empty frame";
+  DataTable* dt_X = args[0].to_frame();
+  DataTable* dt_y = args[1].to_frame();
+
+  if (dt_X->ncols == 0) {
+    throw ValueError() << "Training frame must have at least one column";
   }
-  if (dt_train->ncols < 2) {
-    throw ValueError() << "Training frame must have at least two columns";
+
+  if (dt_X->nrows == 0) {
+    throw ValueError() << "Training frame cannot be empty";
   }
-  if (dt_train->columns[dt_train->ncols - 1]->stype() != SType::BOOL ) {
-    throw ValueError() << "Last column in a training frame must have a `bool` "
-                       << "type";
+
+  if (dt_y->ncols != 1) {
+    throw ValueError() << "Target frame must have exactly one column";
   }
-  ft->fit(dt_train);
+
+  if (dt_y->columns[0]->stype() != SType::BOOL ) {
+    throw ValueError() << "Target column must be of a `bool` type";
+  }
+
+  if (dt_X->nrows != dt_y->nrows) {
+    throw ValueError() << "Target column must have the same number of rows"
+                       << " as the training frame";
+  }
+
+  ft->fit(dt_X, dt_y);
 }
 
 
-PKArgs PyFtrl::Type::args_predict(1, 0, 0, false, false, {"frame"}, "predict",
-R"(predict(self, frame)
+PKArgs PyFtrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
+R"(predict(self, X)
 --
 
 Make predictions for a dataset.
 
 Parameters
 ----------
-frame: Frame
-    Frame of shape `(nrows, ncols)` to make predictions for. It must have one 
-    column less than the training dataset.
+X: Frame
+    Datatable frame of shape (nrows, ncols) to make predictions for. 
+    It must have the same number of columns as the training frame.
 
 Returns
 ----------
-    A new `Frame` of shape `(nrows, 1)` with a prediction for each row.
+    A new datatable frame of shape (nrows, 1) with a prediction 
+    for each row of frame X.
 )");
 
 
 oobj PyFtrl::predict(const PKArgs& args) {
-  DataTable* dt_test = args[0].to_frame();
+  DataTable* dt_X = args[0].to_frame();
   if (!ft->is_trained()) {
     throw ValueError() << "Cannot make any predictions, because the model "
                        << "was not trained";
   }
 
   size_t n_features = ft->get_n_features();
-  if (dt_test->ncols != n_features) {
+  if (dt_X->ncols != n_features) {
     throw ValueError() << "Can only predict on a frame that has "<< n_features
                        << " column(s), i.e. has the same number of features as "
                        << "was used for model training";
   }
 
-  DataTable* dt_target = ft->predict(dt_test).release();
-  py::oobj df_target = py::oobj::from_new_reference(
-                         py::Frame::from_datatable(dt_target)
+  DataTable* dt_y = ft->predict(dt_X).release();
+  py::oobj df_y = py::oobj::from_new_reference(
+                         py::Frame::from_datatable(dt_y)
                        );
 
-  return df_target;
+  return df_y;
 }
 
 
-PKArgs PyFtrl::Type::args_reset_model(0, 0, 0, false, false, {}, "reset_model",
-R"(reset_model(self)
+PKArgs PyFtrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
+R"(reset(self)
 --
 
-Reset an FTRL model.
+Reset an FTRL model, i.e. initialize all the weights to zero.
 
 Parameters
 ----------
@@ -300,8 +316,8 @@ Returns
 )");
 
 
-void PyFtrl::reset_model(const PKArgs&) {
-  ft->init_model();
+void PyFtrl::reset(const PKArgs&) {
+  ft->reset_model();
 }
 
 

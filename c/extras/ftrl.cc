@@ -35,19 +35,33 @@ const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(FtrlParams params_in)
+Ftrl::Ftrl(FtrlParams params_in) :
+  dt_model(nullptr),
+  z(nullptr),
+  n(nullptr),
+  params(params_in),
+  n_features(0),
+  n_inter_features(0),
+  model_trained(false)
 {
-  // Set model parameters
-  params = params_in;
-  // Create and initialize model datatable and weight vector.
-  create_model();
-  init_model();
 }
 
 
-void Ftrl::init_model() {
-  n_features = 0;
-  n_inter_features = 0;
+void Ftrl::prepare_model() {
+  create_model();
+  reset_model();
+}
+
+
+void Ftrl::create_model() {
+  w = doubleptr(new double[params.d]());
+  Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
+  dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
+}
+
+
+void Ftrl::reset_model() {
   model_trained = false;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
@@ -56,12 +70,118 @@ void Ftrl::init_model() {
 }
 
 
-void Ftrl::create_model() {
-  w = doubleptr(new double[params.d]());
+/*
+*  Train FTRL model on a dataset.
+*/
+void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
+  if (dt_model == nullptr) prepare_model();
 
-  Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
-  dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
+  // Define number of features assuming that the target column is the last one.
+  n_features = dt_X->ncols;
+  // Define number of feature interactions.
+  n_inter_features = (params.inter)? n_features * (n_features - 1) / 2 : 0;
+  // Create column hashers
+  create_hashers(dt_X);
+
+
+  // Get the target column.
+  auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
+  auto d_y = c_y->elements_r();
+
+  // Do training for `n_epochs`.
+  for (size_t i = 0; i < params.n_epochs; ++i) {
+    double total_loss = 0;
+    int32_t nth = config::nthreads;
+
+    #pragma omp parallel num_threads(nth)
+    {
+      // Array to store hashed features and feature interactions.
+      uint64ptr x = uint64ptr(new uint64_t[n_features + n_inter_features]);
+      int32_t ith = omp_get_thread_num();
+      nth = omp_get_num_threads();
+
+      for (size_t j = static_cast<size_t>(ith);
+           j < dt_X->nrows;
+           j+= static_cast<size_t>(nth)) {
+
+        bool y = d_y[j];
+        hash_row(x, j);
+        double p = predict_row(x);
+        update(x, p, y);
+
+        double loss = logloss(p, y);
+        #pragma omp atomic update
+        total_loss += loss;
+        if ((j+1) % REPORT_FREQUENCY == 0) {
+          printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
+                 "Current loss: %f\tAverage loss: %f\n",
+                 i, j+1, p, loss, total_loss / (j+1));
+        }
+      }
+    }
+  }
+  model_trained = true;
+}
+
+
+/*
+*  Make predictions for a test dataset and return targets as a new datatable.
+*  We assume that all the validation is done in `py_ftrl.cc`.
+*/
+dtptr Ftrl::predict(const DataTable* dt_X) {
+  // Define number of features
+  n_features = dt_X->ncols;
+  // Define number of feature interactions.
+  n_inter_features = (params.inter)? n_features * (n_features - 1) / 2 : 0;
+
+  //Re-create hashers as stypes for training dataset and `dt` may be different
+  create_hashers(dt_X);
+
+  // Create a target datatable.
+  dtptr dt_y = nullptr;
+  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
+  dt_y = dtptr(new DataTable({col_target}, {"target"}));
+  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
+
+  int32_t nth = config::nthreads;
+
+  #pragma omp parallel num_threads(nth)
+  {
+    uint64ptr x = uint64ptr(new uint64_t[n_features + n_inter_features]);
+    int32_t ith = omp_get_thread_num();
+    nth = omp_get_num_threads();
+
+    for (size_t j = static_cast<size_t>(ith);
+         j < dt_X->nrows;
+         j+= static_cast<size_t>(nth)) {
+
+      hash_row(x, j);
+      d_y[j] = predict_row(x);
+      if ((j+1) % REPORT_FREQUENCY == 0) {
+        printf("Row: %zu\tPrediction: %f\n", j+1, d_y[j]);
+      }
+    }
+  }
+  return dt_y;
+}
+
+
+/*
+*  Make a prediction for an array of hashed features.
+*/
+double Ftrl::predict_row(const uint64ptr& x) {
+  double wTx = 0;
+  for (size_t i = 0; i < n_features + n_inter_features; ++i) {
+    size_t j = x[i];
+    if (fabs(z[j]) <= params.lambda1) {
+      w[j] = 0;
+    } else {
+      w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
+                 ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
+    }
+    wTx += w[j];
+  }
+  return sigmoid(wTx);
 }
 
 
@@ -109,112 +229,6 @@ void Ftrl::create_hashers(const DataTable* dt) {
                              0);
     colnames_hashes.push_back(h);
   }
-}
-
-
-/*
-*  Train FTRL model on a dataset.
-*/
-void Ftrl::fit(const DataTable* dt) {
-  // Define number of features assuming that the target column is the last one.
-  n_features = dt->ncols - 1;
-  create_hashers(dt);
-
-  // Define number of feature interactions.
-  n_inter_features = (params.inter)? n_features * (n_features - 1) / 2 : 0;
-
-  // Get the target column.
-  auto c_target = static_cast<BoolColumn*>(dt->columns[dt->ncols - 1]);
-  auto d_target = c_target->elements_r();
-
-  // Do training for `n_epochs`.
-  for (size_t i = 0; i < params.n_epochs; ++i) {
-    double total_loss = 0;
-    int32_t nth = config::nthreads;
-
-    #pragma omp parallel num_threads(nth)
-    {
-      // Array to store hashed features and feature interactions.
-      uint64ptr x = uint64ptr(new uint64_t[n_features + n_inter_features]);
-      int32_t ith = omp_get_thread_num();
-      nth = omp_get_num_threads();
-
-      for (size_t j = static_cast<size_t>(ith);
-           j < dt->nrows;
-           j+= static_cast<size_t>(nth)) {
-
-        bool y = d_target[j];
-        hash_row(x, j);
-        double p = predict_row(x);
-        update(x, p, y);
-
-        double loss = logloss(p, y);
-        #pragma omp atomic update
-        total_loss += loss;
-        if ((j+1) % REPORT_FREQUENCY == 0) {
-          printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
-                 "Current loss: %f\tAverage loss: %f\n",
-                 i, j+1, p, loss, total_loss / (j+1));
-        }
-      }
-    }
-  }
-  model_trained = true;
-}
-
-
-/*
-*  Make predictions for a test dataset and return targets as a new datatable.
-*  We assume that all the validation is done in `py_ftrl.cc`.
-*/
-dtptr Ftrl::predict(const DataTable* dt) {
-  create_hashers(dt);
-
-  // Create a target datatable.
-  dtptr dt_target = nullptr;
-  Column* col_target = Column::new_data_column(SType::FLOAT64, dt->nrows);
-  dt_target = dtptr(new DataTable({col_target}, {"target"}));
-  auto d_target = static_cast<double*>(dt_target->columns[0]->data_w());
-
-  int32_t nth = config::nthreads;
-
-  #pragma omp parallel num_threads(nth)
-  {
-    uint64ptr x = uint64ptr(new uint64_t[n_features + n_inter_features]);
-    int32_t ith = omp_get_thread_num();
-    nth = omp_get_num_threads();
-
-    for (size_t j = static_cast<size_t>(ith);
-         j < dt->nrows;
-         j+= static_cast<size_t>(nth)) {
-
-      hash_row(x, j);
-      d_target[j] = predict_row(x);
-      if ((j+1) % REPORT_FREQUENCY == 0) {
-        printf("Row: %zu\tPrediction: %f\n", j+1, d_target[j]);
-      }
-    }
-  }
-  return dt_target;
-}
-
-
-/*
-*  Make a prediction for an array of hashed features.
-*/
-double Ftrl::predict_row(const uint64ptr& x) {
-  double wTx = 0;
-  for (size_t i = 0; i < n_features + n_inter_features; ++i) {
-    size_t j = x[i];
-    if (fabs(z[j]) <= params.lambda1) {
-      w[j] = 0;
-    } else {
-      w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
-                 ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
-    }
-    wTx += w[j];
-  }
-  return sigmoid(wTx);
 }
 
 
@@ -369,57 +383,36 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 }
 
 
-void Ftrl::set_alpha(double a_in) {
-  if (params.alpha != a_in) {
-    params.alpha = a_in;
-    init_model();
-  }
+void Ftrl::set_alpha(double alpha_in) {
+  params.alpha = alpha_in;
 }
 
 
-void Ftrl::set_beta(double b_in) {
-  if (params.beta != b_in) {
-    params.beta = b_in;
-    init_model();
-  }
+void Ftrl::set_beta(double beta_in) {
+  params.beta = beta_in;
 }
 
 
-void Ftrl::set_lambda1(double l1_in) {
-  if (params.lambda1 != l1_in) {
-    params.lambda1 = l1_in;
-    init_model();
-  }
+void Ftrl::set_lambda1(double lambda1_in) {
+  params.lambda1 = lambda1_in;
 }
 
 
-void Ftrl::set_lambda2(double l2_in) {
-  if (params.lambda2 != l2_in) {
-    params.lambda2 = l2_in;
-    init_model();
-  }
+void Ftrl::set_lambda2(double lambda2_in) {
+  params.lambda2 = lambda2_in;
 }
 
 
 void Ftrl::set_d(uint64_t d_in) {
-  if (params.d != d_in) {
-    params.d = d_in;
-    create_model();
-    init_model();
-  }
+  params.d = d_in;
 }
 
 
 void Ftrl::set_inter(bool inter_in) {
-  if (params.inter != inter_in) {
-    params.inter = inter_in;
-    init_model();
-  }
+  params.inter = inter_in;
 }
 
 
 void Ftrl::set_n_epochs(size_t n_epochs_in) {
-  if (params.n_epochs != n_epochs_in) {
-    params.n_epochs = n_epochs_in;
-  }
+  params.n_epochs = n_epochs_in;
 }

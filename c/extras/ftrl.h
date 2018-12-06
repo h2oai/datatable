@@ -70,14 +70,15 @@ class Ftrl {
     static const FtrlParams params_default;
 
     // Learning and predicting methods.
-    void fit(const DataTable*);
+    void fit(const DataTable*, const DataTable*);
     dtptr predict(const DataTable*);
     double predict_row(const uint64ptr&);
     void update(const uint64ptr&, double, bool);
 
     bool is_trained();
-    void init_model();
+    void prepare_model();
     void create_model();
+    void reset_model();
 
     // Learning helper methods.
     static double logloss(double, bool);
