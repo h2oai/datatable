@@ -4,7 +4,6 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-
 import datatable
 from .consts import ctypes_map, nas_map
 
@@ -98,6 +97,13 @@ class BaseExpr:
         """
         Returns True iff this expression is a reducer (i.e. produces as many
         rows as there are groups in the groupby).
+        """
+        raise NotImplementedError
+
+
+    def _core(self):
+        """
+        Converts this object into a ``_datatable.base_expr``.
         """
         raise NotImplementedError
 
