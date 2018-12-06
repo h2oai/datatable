@@ -161,11 +161,6 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "FTRL model parameters"
   );
 
-  gs.add<&PyFtrl::get_default_params>(
-    "default_params",
-    "FTRL model default parameters"
-  );
-
   gs.add<&PyFtrl::get_colnames_hashes>(
     "colnames_hashes",
     "Column name hashes.\n"
@@ -210,7 +205,6 @@ void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   mm.add<&PyFtrl::fit, args_fit>();
   mm.add<&PyFtrl::predict, args_predict>();
   mm.add<&PyFtrl::reset_model, args_reset_model>();
-  mm.add<&PyFtrl::reset_params, args_reset_params>();
 }
 
 
@@ -311,32 +305,6 @@ void PyFtrl::reset_model(const PKArgs&) {
 }
 
 
-PKArgs PyFtrl::Type::args_reset_params(0, 0, 0, false, false, {},
-"reset_params", R"(reset_params(self)
---
-
-Reset FTRL parameters to default values.
-
-Parameters
-----------
-    None
-
-Returns
-----------
-    None
-)");
-
-
-void PyFtrl::reset_params(const PKArgs&) {
-  ft->set_alpha(Ftrl::params_default.alpha);
-  ft->set_beta(Ftrl::params_default.beta);
-  ft->set_lambda1(Ftrl::params_default.lambda1);
-  ft->set_lambda2(Ftrl::params_default.lambda2);
-  ft->set_d(Ftrl::params_default.d);
-  ft->set_n_epochs(Ftrl::params_default.n_epochs);
-  ft->set_inter(Ftrl::params_default.inter);
-}
-
 /*
 *  Getter and setter for the model datatable.
 */
@@ -417,18 +385,6 @@ oobj PyFtrl::get_params() const {
   return std::move(params);
 }
 
-
-oobj PyFtrl::get_default_params() const {
-  py::onamedtuple params(params_nttype);
-  params.set(0, py::ofloat(Ftrl::params_default.alpha));
-  params.set(1, py::ofloat(Ftrl::params_default.beta));
-  params.set(2, py::ofloat(Ftrl::params_default.lambda1));
-  params.set(3, py::ofloat(Ftrl::params_default.lambda2));
-  params.set(4, py::oint(static_cast<size_t>(Ftrl::params_default.d)));
-  params.set(5, py::oint(Ftrl::params_default.n_epochs));
-  params.set(6, Ftrl::params_default.inter? True() : False());
-  return std::move(params);
-}
 
 
 oobj PyFtrl::get_alpha() const {

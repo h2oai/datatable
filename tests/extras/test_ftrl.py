@@ -40,6 +40,8 @@ Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
 test_params = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
                      n_epochs = 6, inter = True)
+default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
+                        d = 1000000, n_epochs = 1, inter = False)
 
 
 #-------------------------------------------------------------------------------
@@ -117,7 +119,7 @@ def test_ftrl_construct_unknown_arg():
 
 def test_ftrl_create_default():
     ft = core.Ftrl()
-    assert ft.params == ft.default_params
+    assert ft.params == default_params
 
 
 def test_ftrl_create_params():
@@ -228,13 +230,6 @@ def test_ftrl_set_params():
     ft = core.Ftrl()
     ft.params = test_params
     assert ft.params == test_params
-
-
-def test_ftrl_reset_params():
-    ft = core.Ftrl(params = test_params)
-    assert ft.params == test_params
-    ft.reset_params()
-    assert ft.params == ft.default_params
 
 
 #-------------------------------------------------------------------------------
