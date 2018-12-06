@@ -237,7 +237,7 @@ class expr_literal : public base_expr {
     Column* col;
 
   public:
-    expr_literal(const py::robj&);
+    explicit expr_literal(const py::robj&);
     ~expr_literal() override;
     SType resolve(const workframe&) override;
     Column* evaluate_eager(const workframe&) override;
