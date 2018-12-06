@@ -39,8 +39,7 @@ bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
   // must therefore use a safer version.
   return (start <= max) &&
          (count <= RowIndex::MAX) &&
-         (step  != 0) &&
-         (count <= 1 ||
+         (count <= 1 || (step == 0) ||
           (step <= RowIndex::MAX? step <= (max - start)/(count - 1)
                                 : step >= -start/(count - 1)));
 }

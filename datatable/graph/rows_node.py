@@ -462,8 +462,6 @@ def make_rowfilter(rows, ee, _nested=False) -> RFNode:
                         "Row `%d` is invalid for datatable with %s"
                         % (elem, plural(nrows, "row")))
             elif isinstance(elem, (range, slice)):
-                if elem.step == 0:
-                    raise TValueError("In %r step must not be 0" % elem)
                 if not all(x is None or isinstance(x, int)
                            for x in (elem.start, elem.stop, elem.step)):
                     raise TValueError("%r is not integer-valued" % elem)
