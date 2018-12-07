@@ -12,7 +12,7 @@
 
 
 
-SType BoolColumn::stype() const {
+SType BoolColumn::stype() const noexcept {
   return SType::BOOL;
 }
 

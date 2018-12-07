@@ -28,7 +28,7 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
 
 
 
-SType PyObjectColumn::stype() const {
+SType PyObjectColumn::stype() const noexcept {
   return SType::OBJ;
 }
 

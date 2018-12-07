@@ -276,16 +276,16 @@ void SliceRowIndexImpl::verify_integrity() const {
 }
 
 
-size_t slice_rowindex_get_start(const RowIndexImpl* impl) {
+size_t slice_rowindex_get_start(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl->start;
+  return simpl? simpl->start : RowIndex::NA;
 }
-size_t slice_rowindex_get_step(const RowIndexImpl* impl) {
+size_t slice_rowindex_get_step(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl->step;
+  return simpl? simpl->step : 0;
 }
 
-bool slice_rowindex_increasing(const RowIndexImpl* impl) {
+bool slice_rowindex_increasing(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl->ascending;
+  return simpl? simpl->ascending : false;
 }

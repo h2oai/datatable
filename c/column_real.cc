@@ -14,7 +14,7 @@
 
 
 template <typename T>
-SType RealColumn<T>::stype() const {
+SType RealColumn<T>::stype() const noexcept {
   return sizeof(T) == 4? SType::FLOAT32 :
          sizeof(T) == 8? SType::FLOAT64 : SType::VOID;
 }

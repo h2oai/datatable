@@ -436,10 +436,10 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
 }
 
 
-const int32_t* ArrayRowIndexImpl::indices32() const {
+const int32_t* ArrayRowIndexImpl::indices32() const noexcept {
   return static_cast<int32_t*>(data);
 }
-const int64_t* ArrayRowIndexImpl::indices64() const {
+const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
   return static_cast<int64_t*>(data);
 }
 

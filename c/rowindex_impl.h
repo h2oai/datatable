@@ -112,14 +112,14 @@ class SliceRowIndexImpl : public RowIndexImpl {
 
   protected:
     friend RowIndex;
-    friend size_t slice_rowindex_get_start(const RowIndexImpl*);
-    friend size_t slice_rowindex_get_step(const RowIndexImpl*);
+    friend size_t slice_rowindex_get_start(const RowIndexImpl*) noexcept;
+    friend size_t slice_rowindex_get_step(const RowIndexImpl*) noexcept;
 };
 
 
-size_t slice_rowindex_get_start(const RowIndexImpl*);
-size_t slice_rowindex_get_step(const RowIndexImpl*);
-bool slice_rowindex_increasing(const RowIndexImpl*);
+size_t slice_rowindex_get_start(const RowIndexImpl*) noexcept;
+size_t slice_rowindex_get_step(const RowIndexImpl*) noexcept;
+bool slice_rowindex_increasing(const RowIndexImpl*) noexcept;
 
 
 
@@ -145,8 +145,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(const Column*);
     ~ArrayRowIndexImpl() override;
 
-    const int32_t* indices32() const;
-    const int64_t* indices64() const;
+    const int32_t* indices32() const noexcept;
+    const int64_t* indices64() const noexcept;
 
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;

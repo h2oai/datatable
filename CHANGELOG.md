@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - function `dt.repeat(frame, n)` that creates a Frame by row-binding `n`
   copies of the `frame`.
 
+- `datatable` now exposes C API, to allow other C/C++ libraries interact
+  with datatable Frames directly (#1469).
+
 
 #### Fixed
 

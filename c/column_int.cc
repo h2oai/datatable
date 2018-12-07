@@ -15,7 +15,7 @@
 
 
 template <typename T>
-SType IntColumn<T>::stype() const {
+SType IntColumn<T>::stype() const noexcept {
   return sizeof(T) == 1? SType::INT8 :
          sizeof(T) == 2? SType::INT16 :
          sizeof(T) == 4? SType::INT32 :
