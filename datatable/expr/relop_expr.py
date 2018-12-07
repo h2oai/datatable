@@ -7,6 +7,7 @@
 
 from .base_expr import BaseExpr
 from .binary_expr import binary_op_codes
+from .consts import baseexpr_opcodes
 from .literal_expr import LiteralExpr
 from ..types import stype
 from datatable.utils.typechecks import TValueError
@@ -36,6 +37,12 @@ class RelationalOpExpr(BaseExpr):
         self._lhs.resolve()
         self._rhs.resolve()
         self._stype = stype.bool8
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["binop"],
+                              binary_op_codes[self._op],
+                              self._lhs._core(),
+                              self._rhs._core())
 
 
     #---------------------------------------------------------------------------

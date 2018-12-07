@@ -57,7 +57,7 @@ class DatatableProxy(object):
     >>> d3 = d0[:, expr]
     >>> d4 = d0[expr > 0, expr]
     """
-    __slots__ = ["_datatable", "_rowindex", "_name"]
+    __slots__ = ["_datatable", "_rowindex", "_name", "_id"]
 
     # Developer notes:
     # This class uses dynamic name resolution to convert arbitrary attribute
@@ -65,10 +65,11 @@ class DatatableProxy(object):
     # internal attributes or method names that have a chance of clashing with
     # user's column names.
 
-    def __init__(self, name):
+    def __init__(self, name, id_):
         self._datatable = None
         self._rowindex = None
         self._name = name
+        self._id = id_
 
 
     def get_datatable(self):
@@ -156,5 +157,5 @@ class DatatableProxy(object):
             return self._datatable.stypes
 
 
-f = DatatableProxy("f")
-g = DatatableProxy("g")
+f = DatatableProxy("f", 0)
+g = DatatableProxy("g", 1)

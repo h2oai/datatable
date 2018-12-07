@@ -19,8 +19,67 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#ifndef dt_EXPR_BASE_EXPR_h
+#define dt_EXPR_BASE_EXPR_h
+#include "column.h"
+#include "python/ext_type.h"
+
+
+namespace dt {
+  class base_expr;
+
+  enum exprCode : size_t {
+    COL = 1,
+    BINOP = 2,
+    LITERAL = 3,
+  };
+
+  enum class binopCode : size_t {
+    PLUS           = 1,
+    MINUS          = 2,
+    MULTIPLY       = 3,
+    DIVIDE         = 4,
+    INT_DIVIDE     = 5,
+    POWER          = 6,
+    MODULO         = 7,
+    LOGICAL_AND    = 8,
+    LOGICAL_OR     = 9,
+    LEFT_SHIFT     = 10,
+    RIGHT_SHIFT    = 11,
+    REL_EQ         = 12,  // ==
+    REL_NE         = 13,  // !=
+    REL_GT         = 14,  // >
+    REL_LT         = 15,  // <
+    REL_GE         = 16,  // >=
+    REL_LE         = 17,  // <=
+  };
+
+}
+
+
+namespace py {
+
+
+class base_expr : public PyObject {
+  public:
+    dt::base_expr* expr;
+
+  public:
+    class Type : public ExtType<base_expr> {
+      public:
+        static PKArgs args___init__;
+        static const char* classname();
+        static const char* classdoc();
+        static bool is_subclassable() { return false; }
+        static void init_methods_and_getsets(Methods&, GetSetters&);
+    };
+
+    void m__init__(PKArgs&);
+    void m__dealloc__();
+
+};
+
+
+}
+
+#endif
