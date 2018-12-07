@@ -201,7 +201,7 @@ setup(
     ext_modules=[
         Extension(
             "datatable/lib/_datatable",
-            include_dirs=["c"],
+            include_dirs=["c", "include"],
             sources=cpp_files,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
@@ -210,5 +210,5 @@ setup(
     ],
 
     package_dir={"datatable": "datatable"},
-    package_data={"datatable": ["lib/*.*"]},
+    package_data={"datatable": ["lib/*.*", "include/*.h"]},
 )

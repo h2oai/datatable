@@ -118,7 +118,7 @@ RowIndex::RowIndex(const Column* col) {
 // API
 //------------------------------------------------------------------------------
 
-RowIndexType RowIndex::type() const {
+RowIndexType RowIndex::type() const noexcept {
   return impl? impl->type : RowIndexType::UNKNOWN;
 }
 
@@ -162,17 +162,19 @@ size_t RowIndex::operator[](size_t i) const {
   return impl? impl->nth(i) : i;
 }
 
-const int32_t* RowIndex::indices32() const {
-  return static_cast<ArrayRowIndexImpl*>(impl)->indices32();
+const int32_t* RowIndex::indices32() const noexcept {
+  auto a = dynamic_cast<ArrayRowIndexImpl*>(impl);
+  return a? a->indices32() : nullptr;
 }
-const int64_t* RowIndex::indices64() const {
-  return static_cast<ArrayRowIndexImpl*>(impl)->indices64();
+const int64_t* RowIndex::indices64() const noexcept {
+  auto a = dynamic_cast<ArrayRowIndexImpl*>(impl);
+  return a? a->indices64() : nullptr;
 }
 
-size_t RowIndex::slice_start() const {
+size_t RowIndex::slice_start() const noexcept {
   return slice_rowindex_get_start(impl);
 }
-size_t RowIndex::slice_step() const {
+size_t RowIndex::slice_step() const noexcept {
   return slice_rowindex_get_step(impl);
 }
 

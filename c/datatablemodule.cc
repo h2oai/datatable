@@ -8,7 +8,7 @@
 #define dt_DATATABLEMODULE_cc
 #include "datatablemodule.h"
 #include <Python.h>
-#include "capi.h"
+#include "../datatable/include/datatable.h"
 #include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/base_expr.h"

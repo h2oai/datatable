@@ -20,7 +20,8 @@ def get_files():
     "c/csv/reader_utils.cc".
     """
     sources = []
-    headers = []
+    headers = ["datatable/include/datatable.h"]
+    assert os.path.isfile(headers[0])
     for dirpath, _, filenames in os.walk("c"):
         for f in filenames:
             fullname = os.path.join(dirpath, f)
@@ -64,7 +65,8 @@ def build_headermap(headers):
     for hfile in headers:
         headermap[hfile] = None
     for hfile in headers:
-        assert hfile.startswith("c/")
+        assert (hfile.startswith("c/") or
+                hfile.startswith("datatable/include/"))
         inc = find_includes(hfile)
         for f in inc:
             assert f != hfile, "File %s includes itself?" % f
@@ -90,11 +92,26 @@ def build_sourcemap(sources):
 
 def write_header(out):
     out.write("#" + "-" * 79 + "\n")
-    out.write("# © H2O.ai 2018; -*- encoding: utf-8 -*-\n")
-    out.write("#   This Source Code Form is subject to the terms of the\n")
-    out.write("#   Mozilla Public License, v. 2.0. If a copy of the MPL\n")
-    out.write("#   was not distributed with this file, You can obtain one\n")
-    out.write("#   at http://mozilla.org/MPL/2.0/.\n")
+    out.write("""#  Copyright 2018 H2O.ai
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a
+#  copy of this software and associated documentation files (the "Software"),
+#  to deal in the Software without restriction, including without limitation
+#  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+#  and/or sell copies of the Software, and to permit persons to whom the
+#  Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in
+#  all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+#  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+#  IN THE SOFTWARE.
+""")
     out.write("#" + "-" * 79 + "\n")
     out.write("# This file is auto-generated from ci/make_fast.py\n")
     out.write("#" + "-" * 79 + "\n")
@@ -106,17 +123,26 @@ def write_headers_to_makefile(headermap, out):
     out.write("# Header files\n")
     out.write("#" + "-" * 79 + "\n\n")
     for hfile in sorted(headermap.keys()):
-        target = "$(BUILDDIR)/" + hfile[2:]
+        if hfile.startswith("datatable"):
+            target = "$(BUILDDIR)/" + hfile
+            dependencies = ""
+        else:
+            target = "$(BUILDDIR)/" + hfile[2:]
+            dependencies = " ".join("$(BUILDDIR)/%s" % d[2:]
+                                    for d in sorted(headermap[hfile]))
         hdir = os.path.dirname(target)
-        dependencies = " ".join("$(BUILDDIR)/%s" % d[2:]
-                                for d in sorted(headermap[hfile]))
         out.write("%s: %s %s | %s\n" % (target, hfile, dependencies, hdir))
-        out.write("\t@echo • Refreshing $<\n")
-        out.write("\t@cp $< $@\n")
+        out.write("\t@echo • Refreshing %s\n" % hfile)
+        out.write("\t@cp %s $@\n" % hfile)
         out.write("\n")
 
 
 def write_sources_to_makefile(sourcemap, out):
+    def header_file(d):
+        if d.startswith("c/"): d = d[2:]
+        if d.startswith("../"): d = d[3:]
+        return d
+
     out.write("\n\n")
     out.write("#" + "-" * 79 + "\n")
     out.write("# Object files\n")
@@ -125,11 +151,11 @@ def write_sources_to_makefile(sourcemap, out):
         assert ccfile.endswith(".cc")
         target = "$(BUILDDIR)/" + ccfile[2:-3] + ".o"
         odir = os.path.dirname(target)
-        dependencies = " ".join("$(BUILDDIR)/%s" % d[2:]
+        dependencies = " ".join("$(BUILDDIR)/%s" % header_file(d)
                                 for d in sorted(sourcemap[ccfile]))
         out.write("%s: %s %s | %s\n" % (target, ccfile, dependencies, odir))
-        out.write("\t@echo • Compiling $<\n")
-        out.write("\t@$(CC) -c $< $(CCFLAGS) -o $@\n")
+        out.write("\t@echo • Compiling %s\n" % ccfile)
+        out.write("\t@$(CC) -c %s $(CCFLAGS) -o $@\n" % ccfile)
         out.write("\n")
 
 
@@ -143,13 +169,17 @@ def write_objects_list(sourcemap, out):
 
 
 def write_build_directories(realhdrs, realsrcs, out):
+    def clean_dir_name(inp):
+        if inp.startswith("c/"): inp = inp[2:]
+        return inp
+
     out.write("\n\n")
     out.write("#" + "-" * 79 + "\n")
     out.write("# Build directories\n")
     out.write("#" + "-" * 79 + "\n")
     out.write("\n")
     inputs = list(realhdrs) + list(realsrcs)
-    alldirs = set(os.path.dirname("$(BUILDDIR)/" + inp[2:])
+    alldirs = set(os.path.dirname("$(BUILDDIR)/" + clean_dir_name(inp))
                   for inp in inputs)
     for target in alldirs:
         out.write("%s:\n" % target)
