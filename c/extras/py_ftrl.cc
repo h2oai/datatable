@@ -340,7 +340,7 @@ void PyFtrl::reset(const PKArgs&) {
 
 
 /*
-*  Getter and setter for the model datatable.
+*  Getters and setters.
 */
 oobj PyFtrl::get_model() const {
   if (ft->is_trained()) {
@@ -352,65 +352,6 @@ oobj PyFtrl::get_model() const {
   } else {
     return py::None();
   }
-}
-
-
-void PyFtrl::set_model(robj model) {
-  DataTable* dt_model_in = model.to_frame();
-
-  // Reset model when it was assigned `None` in Python
-  if (dt_model_in == nullptr) {
-    if (ft->is_trained()) ft->reset_model();
-    return;
-  }
-
-  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
-
-  if (dt_model_in->nrows != ft->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << ft->get_d()
-                       << " rows, and 2 columns, whereas your frame has "
-                       << dt_model_in->nrows << " rows and "
-                       << dt_model_in->ncols << " columns";
-
-  }
-
-  if (model_cols_in != Ftrl::model_cols) {
-    throw ValueError() << "FTRL model frame must have columns named `z` and "
-                       << "`n`, whereas your frame has the following column "
-                       << "names: `" << model_cols_in[0]
-                       << "` and `" << model_cols_in[1] << "`";
-  }
-
-  if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
-    dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-    throw ValueError() << "FTRL model frame must have both column types as "
-                       << "`float64`, whereas your frame has the following "
-                       << "column types: `"
-                       << dt_model_in->columns[0]->stype()
-                       << "` and `" << dt_model_in->columns[1]->stype() << "`";
-  }
-
-  ft->set_model(dt_model_in);
-}
-
-
-/*
-*  All other getters and setters.
-*/
-oobj PyFtrl::get_colnames_hashes() const {
-  if (ft->is_trained()) {
-    size_t n_features = ft->get_n_features();
-    py::otuple py_colnames_hashes(n_features);
-    std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
-    for (size_t i = 0; i < n_features; ++i) {
-      size_t h = static_cast<size_t>(colnames_hashes[i]);
-      py_colnames_hashes.set(i, py::oint(h));
-    }
-    return std::move(py_colnames_hashes);
-  } else {
-    return py::None();
-  }
-
 }
 
 
@@ -463,6 +404,66 @@ oobj PyFtrl::get_inter() const {
 }
 
 
+oobj PyFtrl::get_colnames_hashes() const {
+  if (ft->is_trained()) {
+    size_t n_features = ft->get_n_features();
+    py::otuple py_colnames_hashes(n_features);
+    std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
+    for (size_t i = 0; i < n_features; ++i) {
+      size_t h = static_cast<size_t>(colnames_hashes[i]);
+      py_colnames_hashes.set(i, py::oint(h));
+    }
+    return std::move(py_colnames_hashes);
+  } else {
+    return py::None();
+  }
+}
+
+
+void PyFtrl::set_model(robj model) {
+  DataTable* dt_model_in = model.to_frame();
+
+  // Reset model when it was assigned `None` in Python
+  if (dt_model_in == nullptr) {
+    if (ft->is_trained()) ft->reset_model();
+    return;
+  }
+
+  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
+
+  if (dt_model_in->nrows != ft->get_d() || dt_model_in->ncols != 2) {
+    throw ValueError() << "FTRL model frame must have " << ft->get_d()
+                       << " rows, and 2 columns, whereas your frame has "
+                       << dt_model_in->nrows << " rows and "
+                       << dt_model_in->ncols << " column(s)";
+
+  }
+
+  if (model_cols_in != Ftrl::model_cols) {
+    throw ValueError() << "FTRL model frame must have columns named `z` and "
+                       << "`n`, whereas your frame has the following column "
+                       << "names: `" << model_cols_in[0]
+                       << "` and `" << model_cols_in[1] << "`";
+  }
+
+  if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
+    dt_model_in->columns[1]->stype() != SType::FLOAT64) {
+    throw ValueError() << "FTRL model frame must have both column types as "
+                       << "`float64`, whereas your frame has the following "
+                       << "column types: `"
+                       << dt_model_in->columns[0]->stype()
+                       << "` and `" << dt_model_in->columns[1]->stype() << "`";
+  }
+
+  auto c_double = static_cast<RealColumn<double>*>(dt_model_in->columns[1]);
+  if (c_double->min() < 0) {
+    throw ValueError() << "Values in column `n` cannot be negative";
+  }
+
+  ft->set_model(dt_model_in);
+}
+
+
 void PyFtrl::set_params(robj params) {
   set_alpha(params.get_attr("alpha"));
   set_beta(params.get_attr("beta"));
@@ -475,8 +476,12 @@ void PyFtrl::set_params(robj params) {
 }
 
 
-void PyFtrl::set_alpha(robj alpha) {
-  ft->set_alpha(alpha.to_double());
+void PyFtrl::set_alpha(robj alpha_in) {
+  double alpha = alpha_in.to_double();
+  if (alpha <= 0) {
+    throw ValueError() << "Parameter `alpha` must be positive";
+  }
+  ft->set_alpha(alpha);
 }
 
 
@@ -497,8 +502,8 @@ void PyFtrl::set_lambda2(robj lambda2) {
 
 void PyFtrl::set_d(robj d) {
   int64_t d_in = d.to_int64_strict();
-  if (d_in < 0) {
-    throw ValueError() << "`d` cannot be negative";
+  if (d_in <= 0) {
+    throw ValueError() << "Parameter `d` must be positive";
   }
   ft->set_d(static_cast<uint64_t>(d_in));
 }
@@ -507,7 +512,7 @@ void PyFtrl::set_d(robj d) {
 void PyFtrl::set_n_epochs(robj n_epochs) {
   int64_t n_epochs_in = n_epochs.to_int64_strict();
   if (n_epochs_in < 0) {
-    throw ValueError() << "`n_epochs` cannot be negative";
+    throw ValueError() << "Parameter `n_epochs` cannot be negative";
   }
   ft->set_n_epochs(static_cast<size_t>(n_epochs_in));
 }

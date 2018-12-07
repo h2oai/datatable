@@ -241,6 +241,39 @@ def test_ftrl_model_untrained():
     assert ft.model == None
     
 
+def test_ftrl_set_negative_n_model():
+    ft = core.Ftrl(params = test_params)
+    model = dt.Frame([[random.random() for i in range(test_params.d)],
+                     [-random.random() for i in range(test_params.d)]],
+                     names=['z', 'n'])
+    with pytest.raises(ValueError) as e:
+        ft.model = model
+    assert ("Values in column `n` cannot be negative" == str(e.value))
+
+
+def test_ftrl_set_wrong_shape_model():
+    ft = core.Ftrl(params = test_params)
+    model = dt.Frame([random.random() for i in range(test_params.d)],
+                     names=['z'])
+    with pytest.raises(ValueError) as e:
+        ft.model = model
+    assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
+            "frame has %d rows and 1 column(s)" % (test_params.d, test_params.d)
+            == str(e.value))
+
+
+def test_ftrl_set_wrong_type_model():
+    ft = core.Ftrl(params = test_params)
+    model = dt.Frame([["noise" for i in range(test_params.d)],
+                     [True for i in range(test_params.d)]],
+                     names=['z', 'n'])
+    with pytest.raises(ValueError) as e:
+        ft.model = model
+    assert ("FTRL model frame must have both column types as `float64`, whereas"
+            " your frame has the following column types: `str32` and `bool8`"
+            == str(e.value)) 
+
+
 def test_ftrl_get_set_reset_model():
     ft = core.Ftrl(params = test_params)
     model = dt.Frame([[random.random() for i in range(test_params.d)],
