@@ -35,7 +35,7 @@ from tests import assert_equals
 from tests import noop
 
 #-------------------------------------------------------------------------------
-# Define namedtuple of test parameters
+# Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "d", "n_epochs", "inter"])
@@ -48,6 +48,8 @@ tmodel = dt.Frame([[random.random() for i in range(tparams.d)],
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
                         d = 1000000, n_epochs = 1, inter = False)
+
+epsilon = 0.01
 
 #-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
@@ -479,8 +481,8 @@ def test_ftrl_fit_no_target():
         ft.fit(None)
     assert ("Target frame parameter is missing"
             == str(e.value))
-    
-    
+
+
 def test_ftrl_fit_predict_nones():
     ft = core.Ftrl()
     ft.fit(None, None)
@@ -513,8 +515,6 @@ def test_ftrl_predict_wrong_frame():
 #-------------------------------------------------------------------------------
 # Test `fit` and `predict` methods
 #-------------------------------------------------------------------------------
-
-epsilon = 0.01
 
 def test_ftrl_fit_unique():
     ft = core.Ftrl(d = 10)
