@@ -115,11 +115,11 @@ public:
   virtual void replace_buffer(MemoryRange&&);
   virtual void replace_buffer(MemoryRange&&, MemoryRange&&);
 
-  virtual SType stype() const = 0;
+  virtual SType stype() const noexcept = 0;
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
 
-  const RowIndex& rowindex() const { return ri; }
+  const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
@@ -396,7 +396,7 @@ class BoolColumn : public FwColumn<int8_t>
 {
 public:
   using FwColumn<int8_t>::FwColumn;
-  SType stype() const override;
+  SType stype() const noexcept override;
 
   int8_t min() const;
   int8_t max() const;
@@ -448,7 +448,7 @@ template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
   using FwColumn<T>::FwColumn;
-  virtual SType stype() const override;
+  virtual SType stype() const noexcept override;
 
   T min() const;
   T max() const;
@@ -515,7 +515,7 @@ template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
   using FwColumn<T>::FwColumn;
-  virtual SType stype() const override;
+  virtual SType stype() const noexcept override;
 
   T min() const;
   T max() const;
@@ -594,7 +594,7 @@ class PyObjectColumn : public FwColumn<PyObject*>
 public:
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
-  virtual SType stype() const override;
+  virtual SType stype() const noexcept override;
   PyObjectStats* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -642,7 +642,7 @@ public:
                     WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryRange&&, MemoryRange&&) override;
 
-  SType stype() const override;
+  SType stype() const noexcept override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
 
@@ -714,7 +714,7 @@ extern template class StringColumn<uint64_t>;
 class VoidColumn : public Column {
   public:
     VoidColumn(size_t nrows);
-    SType stype() const override;
+    SType stype() const noexcept override;
     size_t elemsize() const override;
     bool is_fixedwidth() const override;
     size_t data_nrows() const override;

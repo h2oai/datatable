@@ -4,8 +4,8 @@ include CHANGELOG.md
 include setup.py
 include setup.cfg
 include ci/setup_utils.py
-recursive-include c         *.c *.cc *.h
-recursive-include datatable *.py
+recursive-include c         *.cc *.h
+recursive-include datatable *.py *.h
 recursive-include tests     *.py
 
 exclude datatable/lib/*.*

@@ -125,7 +125,7 @@ class RowIndex {
     bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
 
-    RowIndexType type() const;
+    RowIndexType type() const noexcept;
     bool isabsent() const;
     bool isslice() const;
     bool isarr32() const;
@@ -137,10 +137,10 @@ class RowIndex {
     size_t min() const;
     size_t max() const;
     size_t operator[](size_t i) const;
-    const int32_t* indices32() const;
-    const int64_t* indices64() const;
-    size_t slice_start() const;
-    size_t slice_step() const;
+    const int32_t* indices32() const noexcept;
+    const int64_t* indices64() const noexcept;
+    size_t slice_start() const noexcept;
+    size_t slice_step() const noexcept;
 
     void extract_into(arr32_t&) const;
     RowIndex inverse(size_t nrows) const;
