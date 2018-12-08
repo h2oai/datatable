@@ -60,6 +60,9 @@ class oslice : public oobj {
 
     oslice(int64_t start, int64_t stop, int64_t step);
 
+    // Return true if all components of the slice are None
+    bool is_trivial() const;
+
     bool is_numeric() const;
     int64_t start() const;
     int64_t stop() const;

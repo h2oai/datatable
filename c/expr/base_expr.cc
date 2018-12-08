@@ -24,7 +24,7 @@
 #include "datatable.h"
 #include "expr/base_expr.h"
 #include "expr/py_expr.h"
-
+#include "expr/workframe.h"
 
 namespace dt {
 
@@ -34,24 +34,6 @@ namespace dt {
 // workframe
 //------------------------------------------------------------------------------
 
-class workframe {
-  private:
-    std::vector<DataTable*> dts;
-    std::vector<RowIndex> rowindexes;
-
-  public:
-    workframe() = default;
-    workframe(const workframe&) = delete;
-    workframe(workframe&&) = delete;
-
-    DataTable* get_datatable(size_t id) const {
-      return dts[id];
-    }
-
-    const RowIndex& get_rowindex(size_t id) const {
-      return rowindexes[id];
-    }
-};
 
 
 

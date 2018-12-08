@@ -49,6 +49,12 @@ oslice::oslice(int64_t start, int64_t stop, int64_t step) {
 oslice::oslice(const robj& src) : oobj(src) {}
 
 
+bool oslice::is_trivial() const {
+  auto w = reinterpret_cast<PySliceObject*>(v);
+  return (w->start == Py_None) && (w->stop == Py_None) && (w->step == Py_None);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Numeric slice
