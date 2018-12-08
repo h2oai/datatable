@@ -473,8 +473,8 @@ def test_ftrl_fit_no_frame():
         ft.fit()
     assert ("Training frame parameter is missing"
             == str(e.value))
-    
-    
+
+
 def test_ftrl_fit_no_target():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
