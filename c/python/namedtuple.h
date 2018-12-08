@@ -27,25 +27,41 @@
 
 namespace py {
 
-typedef std::pair<const char*, const char*> strpair;
 
+/**
+ * In Python, before a `namedtuple` can be created, its class must be
+ * instantiated. This class allows you to create new "namedtuple" classes
+ * dynamically and then use them when creating namedtuple objects.
+ *
+ * Example:
+ *
+ *     onamedtupletype cls("Point", {"x", "y"});
+ *     onamedtuple tup(cls);
+ *     tup.set(0, ofloat(1.0));
+ *     tup.set(1, ofloat(2.0));
+ */
 class onamedtupletype {
   private:
     PyTypeObject* v;
     size_t nfields;
 
   public:
-    onamedtupletype(strpair, std::vector<strpair>);
+    onamedtupletype(const std::string& cls_name, const strvec& field_names);
+    onamedtupletype(const std::string& cls_name, const std::string& cls_doc,
+                    const strvec& field_names, const strvec& field_docs);
     ~onamedtupletype();
 
     friend class onamedtuple;
 };
 
 
+
 class onamedtuple : public otuple {
   public:
     onamedtuple(const py::onamedtupletype& type);
 };
+
+
 
 }  // namespace py
 
