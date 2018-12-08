@@ -27,10 +27,10 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 0, 8, false, false,
-                                   {"params", "alpha", "beta", "lambda1",
-                                   "lambda2", "d", "n_epochs", "inter"},
-                                   "__init__", nullptr);
+PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
+                                 {"params", "alpha", "beta", "lambda1",
+                                 "lambda2", "d", "n_epochs", "inter"},
+                                 "__init__", nullptr);
 
 std::vector<strpair> Ftrl::params_fields_info = {
   strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),

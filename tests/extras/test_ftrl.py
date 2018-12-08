@@ -174,7 +174,7 @@ def test_ftrl_create_default():
 
 
 def test_ftrl_create_params():
-    ft = core.Ftrl(params=tparams)
+    ft = core.Ftrl(tparams)
     assert ft.params == tparams
 
 
@@ -193,7 +193,7 @@ def test_ftrl_create_individual():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_get_parameters():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
             ft.d, ft.n_epochs, ft.inter) == tparams
@@ -342,14 +342,14 @@ def test_ftrl_model_untrained():
     
 
 def test_ftrl_set_negative_n_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = tmodel[:, {'z' : f.z, 'n' : -f.n}]
     assert ("Values in column `n` cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_shape_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = tmodel[:, 'n']
     assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
@@ -358,7 +358,7 @@ def test_ftrl_set_wrong_shape_model():
 
 
 def test_ftrl_set_wrong_type_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     model = dt.Frame([["foo" for i in range(tparams.d)],
                       [random.random() for i in range(tparams.d)]],
                       names=['z', 'n'])
@@ -370,20 +370,20 @@ def test_ftrl_set_wrong_type_model():
 
 
 def test_ftrl_get_set_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     ft.model = tmodel
     assert_equals(ft.model, tmodel)
 
 
 def test_ftrl_reset_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     ft.model = tmodel
     ft.reset()
     assert ft.model == None
 
     
 def test_ftrl_none_model():
-    ft = core.Ftrl(params = tparams)
+    ft = core.Ftrl(tparams)
     ft.model = None
     assert ft.model == None
 
