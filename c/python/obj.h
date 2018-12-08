@@ -275,6 +275,7 @@ class oobj : public _obj {
     oobj(oobj&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
+    static oobj import(const char* module, const char* symbol);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
