@@ -31,8 +31,8 @@ from datatable import f
 import pytest
 import collections
 import random
-from tests import assert_equals
-from tests import noop
+from tests import assert_equals, noop
+
 
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters, test model and accuracy
@@ -51,59 +51,61 @@ default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
 
 epsilon = 0.01
 
+
+
 #-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
 #-------------------------------------------------------------------------------
- 
+
 def test_ftrl_construct_wrong_alpha_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(alpha = "1.0"))
     assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_beta_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(beta = "1.0"))
     assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_lambda1_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(lambda1 = "1.0"))
     assert ("Argument `lambda1` in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_lambda2_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(lambda2 = "1.0"))
     assert ("Argument `lambda2` in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_d_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(d = 1000000.0))
     assert ("Argument `d` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_n_epochs_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(n_epochs = 10.0))
     assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, "
             "instead got <class 'float'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_inter_type():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(inter = 2))
     assert ("Argument `inter` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(params=tparams, alpha = tparams.alpha))
@@ -111,13 +113,14 @@ def test_ftrl_construct_wrong_combination():
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
             "`lambda2`, `d`, `n_epochs` or `inter` to Ftrl constructor, "
             "but not both at the same time" == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
         noop(core.Ftrl(c = 1.0))
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
             str(e.value))
+
 
 
 #-------------------------------------------------------------------------------
@@ -136,36 +139,36 @@ def test_ftrl_construct_wrong_beta_value():
         noop(core.Ftrl(beta = -1.0))
     assert ("Argument `beta` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(lambda1 = -1.0))
     assert ("Argument `lambda1` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_lambda2_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(lambda2 = -1.0))
     assert ("Argument `lambda2` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_d_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(d = 0))
     assert ("Argument `d` in Ftrl() constructor should be positive: 0"
             == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_n_epochs_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(n_epochs = -1))
     assert ("Argument `n_epochs` in Ftrl() constructor cannot be negative: -1"
             == str(e.value))
 
-    
+
 #-------------------------------------------------------------------------------
 # Test creation of Ftrl object
 #-------------------------------------------------------------------------------
@@ -341,7 +344,7 @@ def test_ftrl_set_wrong_n_epochs_value():
 def test_ftrl_model_untrained():
     ft = core.Ftrl()
     assert ft.model == None
-    
+
 
 def test_ftrl_set_negative_n_model():
     ft = core.Ftrl(tparams)
@@ -383,7 +386,7 @@ def test_ftrl_reset_model():
     ft.reset()
     assert ft.model == None
 
-    
+
 def test_ftrl_none_model():
     ft = core.Ftrl(tparams)
     ft.model = None
