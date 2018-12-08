@@ -125,10 +125,10 @@ def test_ftrl_construct_unknown_arg():
 def test_ftrl_construct_wrong_alpha_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(alpha = 0.0))
-    assert ("Argument `alpha` in Ftrl() constructor should be positive: 0.0" 
+    assert ("Argument `alpha` in Ftrl() constructor should be positive: 0.0"
             == str(e.value))
- 
- 
+
+
 def test_ftrl_construct_wrong_beta_value():
     with pytest.raises(ValueError) as e:
         noop(core.Ftrl(beta = -1.0))
@@ -344,7 +344,7 @@ def test_ftrl_model_untrained():
 def test_ftrl_set_negative_n_model():
     ft = core.Ftrl(tparams)
     with pytest.raises(ValueError) as e:
-        ft.model = tmodel[:, {'z' : f.z, 'n' : -f.n}]
+        ft.model = tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']]
     assert ("Values in column `n` cannot be negative" == str(e.value))
 
 
@@ -366,7 +366,7 @@ def test_ftrl_set_wrong_type_model():
         ft.model = model
     assert ("FTRL model frame must have both column types as `float64`, whereas"
             " your frame has the following column types: `str32` and `float64`"
-            == str(e.value)) 
+            == str(e.value))
 
 
 def test_ftrl_get_set_model():
@@ -486,7 +486,7 @@ def test_ftrl_fit_predict_nones():
     ft.fit(None, None)
     df_target = ft.predict(None)
     assert df_target == None
-    
+
 
 def test_ftrl_predict_not_trained():
     ft = core.Ftrl()
