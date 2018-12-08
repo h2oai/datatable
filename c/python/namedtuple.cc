@@ -28,18 +28,23 @@
 namespace py {
 
 
+//------------------------------------------------------------------------------
+// onamedtupletype
+//------------------------------------------------------------------------------
+
 onamedtupletype::onamedtupletype(
   const std::string& cls_name, const strvec& field_names
 ) : onamedtupletype(cls_name, "", field_names, {}) {}
 
 
 /**
-*  Create a namedtuple type based on the collections.namedtuple datatype.
-*  An alternative is to use `Struct Sequence Objects` as outlined here
-*  https://docs.python.org/3/c-api/tuple.html
-*  However, objects created with `PyStructSequence_New` are not standard
-*  Python namedtuples, but rather a simpler version of the latter.
-*/
+ * Create a namedtuple using python function `collections.namedtuple()`.
+ *
+ * Note: we do not use PyStructSequence objects from Python C API, because
+ * they are not standard namedtuples and do not provide the same API (for
+ * example, there is no `_replace()` method).
+ * https://docs.python.org/3/c-api/tuple.html
+ */
 onamedtupletype::onamedtupletype(const std::string& cls_name,
                                  const std::string& cls_doc,
                                  const strvec& field_names,
@@ -88,10 +93,30 @@ onamedtupletype::onamedtupletype(const std::string& cls_name,
 }
 
 
+onamedtupletype::onamedtupletype(const onamedtupletype& o) {
+  v = o.v;
+  nfields = o.nfields;
+  Py_XINCREF(v);
+}
+
+
+onamedtupletype::onamedtupletype(onamedtupletype&& o) {
+  v = o.v;
+  nfields = o.nfields;
+  o.v = nullptr;
+  o.nfields = 0;
+}
+
+
 onamedtupletype::~onamedtupletype() {
   Py_XDECREF(v);
 }
 
+
+
+//------------------------------------------------------------------------------
+// onamedtuple
+//------------------------------------------------------------------------------
 
 onamedtuple::onamedtuple(const onamedtupletype& type) {
   v = PyTuple_New(static_cast<Py_ssize_t>(type.nfields));

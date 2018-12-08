@@ -49,6 +49,8 @@ class onamedtupletype {
     onamedtupletype(const std::string& cls_name, const strvec& field_names);
     onamedtupletype(const std::string& cls_name, const std::string& cls_doc,
                     const strvec& field_names, const strvec& field_docs);
+    onamedtuple(const onamedtuple&);
+    onamedtuple(onamedtuple&&);
     ~onamedtupletype();
 
     friend class onamedtuple;
@@ -56,9 +58,21 @@ class onamedtupletype {
 
 
 
+/**
+ * This class inherits the API from `py::otuple`. The primary difference is
+ * that the constructor takes an `onamedtupletype` argument rather than the
+ * number of fields.
+ */
 class onamedtuple : public otuple {
   public:
-    onamedtuple(const py::onamedtupletype& type);
+    explicit onamedtuple(const py::onamedtupletype& type);
+    onamedtuple() = default;
+    onamedtuple(const onamedtuple&) = default;
+    onamedtuple(onamedtuple&&) = default;
+    onamedtuple& operator=(const onamedtuple&) = default;
+    onamedtuple& operator=(onamedtuple&&) = default;
+
+    // TODO: create from an existing namedtuple PyObject, extract fields, etc.
 };
 
 
