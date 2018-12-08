@@ -168,42 +168,45 @@ class _obj {
     bool is_numpy_marray()  const noexcept;
 
     struct error_manager;  // see below
-    int8_t      to_bool          (const error_manager& = _em0) const;
-    int8_t      to_bool_strict   (const error_manager& = _em0) const;
-    int8_t      to_bool_force    (const error_manager& = _em0) const noexcept;
+    int8_t      to_bool           (const error_manager& = _em0) const;
+    int8_t      to_bool_strict    (const error_manager& = _em0) const;
+    int8_t      to_bool_force     (const error_manager& = _em0) const noexcept;
 
-    int32_t     to_int32         (const error_manager& = _em0) const;
-    int64_t     to_int64         (const error_manager& = _em0) const;
-    int32_t     to_int32_strict  (const error_manager& = _em0) const;
-    int64_t     to_int64_strict  (const error_manager& = _em0) const;
-    size_t      to_size_t        (const error_manager& = _em0) const;
-    py::oint    to_pyint         (const error_manager& = _em0) const;
-    py::oint    to_pyint_force   (const error_manager& = _em0) const noexcept;
+    int32_t     to_int32          (const error_manager& = _em0) const;
+    int64_t     to_int64          (const error_manager& = _em0) const;
+    int32_t     to_int32_strict   (const error_manager& = _em0) const;
+    int64_t     to_int64_strict   (const error_manager& = _em0) const;
+    size_t      to_size_t         (const error_manager& = _em0) const;
+    size_t      to_size_t_positive(const error_manager& = _em0) const;
+    py::oint    to_pyint          (const error_manager& = _em0) const;
+    py::oint    to_pyint_force    (const error_manager& = _em0) const noexcept;
 
-    double      to_double        (const error_manager& = _em0) const;
-    py::ofloat  to_pyfloat_force (const error_manager& = _em0) const noexcept;
+    double      to_double         (const error_manager& = _em0) const;
+    double      to_double_positive(const error_manager& = _em0) const;
+    double      to_double_not_negative(const error_manager& = _em0) const;
+    py::ofloat  to_pyfloat_force  (const error_manager& = _em0) const noexcept;
 
-    CString     to_cstring       (const error_manager& = _em0) const;
-    std::string to_string        (const error_manager& = _em0) const;
-    py::ostring to_pystring_force(const error_manager& = _em0) const noexcept;
+    CString     to_cstring        (const error_manager& = _em0) const;
+    std::string to_string         (const error_manager& = _em0) const;
+    py::ostring to_pystring_force (const error_manager& = _em0) const noexcept;
 
-    char**      to_cstringlist   (const error_manager& = _em0) const;
-    strvec      to_stringlist    (const error_manager& = _em0) const;
-    py::olist   to_pylist        (const error_manager& = _em0) const;
-    py::odict   to_pydict        (const error_manager& = _em0) const;
-    py::rdict   to_rdict         (const error_manager& = _em0) const;
-    py::orange  to_pyrange       (const error_manager& = _em0) const;
-    py::oiter   to_pyiter        (const error_manager& = _em0) const;
-    py::oslice  to_oslice        (const error_manager& = _em0) const;
+    char**      to_cstringlist    (const error_manager& = _em0) const;
+    strvec      to_stringlist     (const error_manager& = _em0) const;
+    py::olist   to_pylist         (const error_manager& = _em0) const;
+    py::odict   to_pydict         (const error_manager& = _em0) const;
+    py::rdict   to_rdict          (const error_manager& = _em0) const;
+    py::orange  to_pyrange        (const error_manager& = _em0) const;
+    py::oiter   to_pyiter         (const error_manager& = _em0) const;
+    py::oslice  to_oslice         (const error_manager& = _em0) const;
 
-    py::otuple  to_otuple        (const error_manager& = _em0) const;
-    py::rtuple  to_rtuple_lax    () const;
+    py::otuple  to_otuple         (const error_manager& = _em0) const;
+    py::rtuple  to_rtuple_lax     () const;
 
-    Column*     to_column        (const error_manager& = _em0) const;
-    Groupby*    to_groupby       (const error_manager& = _em0) const;
-    RowIndex    to_rowindex      (const error_manager& = _em0) const;
-    DataTable*  to_frame         (const error_manager& = _em0) const;
-    SType       to_stype         (const error_manager& = _em0) const;
+    Column*     to_column         (const error_manager& = _em0) const;
+    Groupby*    to_groupby        (const error_manager& = _em0) const;
+    RowIndex    to_rowindex       (const error_manager& = _em0) const;
+    DataTable*  to_frame          (const error_manager& = _em0) const;
+    SType       to_stype          (const error_manager& = _em0) const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }
@@ -217,24 +220,27 @@ class _obj {
       error_manager() = default;
       error_manager(const error_manager&) = default;
       virtual ~error_manager() {}
-      virtual Error error_not_boolean    (PyObject*) const;
-      virtual Error error_not_integer    (PyObject*) const;
-      virtual Error error_not_double     (PyObject*) const;
-      virtual Error error_not_string     (PyObject*) const;
-      virtual Error error_not_groupby    (PyObject*) const;
-      virtual Error error_not_rowindex   (PyObject*) const;
-      virtual Error error_not_frame      (PyObject*) const;
-      virtual Error error_not_column     (PyObject*) const;
-      virtual Error error_not_list       (PyObject*) const;
-      virtual Error error_not_dict       (PyObject*) const;
-      virtual Error error_not_range      (PyObject*) const;
-      virtual Error error_not_slice      (PyObject*) const;
-      virtual Error error_not_stype      (PyObject*) const;
-      virtual Error error_not_iterable   (PyObject*) const;
-      virtual Error error_int32_overflow (PyObject*) const;
-      virtual Error error_int64_overflow (PyObject*) const;
-      virtual Error error_double_overflow(PyObject*) const;
-      virtual Error error_int_negative   (PyObject*) const;
+      virtual Error error_not_boolean        (PyObject*) const;
+      virtual Error error_not_integer        (PyObject*) const;
+      virtual Error error_not_double         (PyObject*) const;
+      virtual Error error_not_string         (PyObject*) const;
+      virtual Error error_not_groupby        (PyObject*) const;
+      virtual Error error_not_rowindex       (PyObject*) const;
+      virtual Error error_not_frame          (PyObject*) const;
+      virtual Error error_not_column         (PyObject*) const;
+      virtual Error error_not_list           (PyObject*) const;
+      virtual Error error_not_dict           (PyObject*) const;
+      virtual Error error_not_range          (PyObject*) const;
+      virtual Error error_not_slice          (PyObject*) const;
+      virtual Error error_not_stype          (PyObject*) const;
+      virtual Error error_not_iterable       (PyObject*) const;
+      virtual Error error_int32_overflow     (PyObject*) const;
+      virtual Error error_int64_overflow     (PyObject*) const;
+      virtual Error error_double_overflow    (PyObject*) const;
+      virtual Error error_int_negative       (PyObject*) const;
+      virtual Error error_int_not_positive   (PyObject*) const;
+      virtual Error error_double_negative    (PyObject*) const;
+      virtual Error error_double_not_positive(PyObject*) const;
     };
 
   protected:
@@ -275,6 +281,7 @@ class oobj : public _obj {
     oobj(oobj&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
+    static oobj import(const char* module, const char* symbol);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
