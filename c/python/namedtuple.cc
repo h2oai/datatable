@@ -69,22 +69,26 @@ onamedtupletype::onamedtupletype(const std::string& cls_name,
   auto res = std::move(type).release();
 
   // Set namedtuple doc
-  py::ostring docstr = py::ostring(cls_doc);
-  PyObject_SetAttrString(res, "__doc__",
-                         docstr.to_borrowed_ref());
+  if (!cls_doc.empty()) {
+    py::ostring docstr = py::ostring(cls_doc);
+    PyObject_SetAttrString(res, "__doc__",
+                           docstr.to_borrowed_ref());
+  }
 
   // Set field docs
-  py::otuple args_prop(4);
-  py::otuple args_itemgetter(1);
-  args_prop.set(1, py::None());
-  args_prop.set(2, py::None());
-  for (size_t i = 0; i < field_docs.size(); ++i) {
-    args_itemgetter.set(0, py::oint(i));
-    args_prop.set(0, itemgetter.call(args_itemgetter));
-    args_prop.set(3, py::ostring(field_docs[i]));
-    auto prop = property.call(args_prop);
-    PyObject_SetAttrString(res, field_names[i].c_str(),
-                           prop.to_borrowed_ref());
+  if (!field_docs.empty()) {
+    py::otuple args_prop(4);
+    py::otuple args_itemgetter(1);
+    args_prop.set(1, py::None());
+    args_prop.set(2, py::None());
+    for (size_t i = 0; i < field_docs.size(); ++i) {
+      args_itemgetter.set(0, py::oint(i));
+      args_prop.set(0, itemgetter.call(args_itemgetter));
+      args_prop.set(3, py::ostring(field_docs[i]));
+      auto prop = property.call(args_prop);
+      PyObject_SetAttrString(res, field_names[i].c_str(),
+                             prop.to_borrowed_ref());
+    }
   }
 
   // Convert `PyObject*` to `PyTypeObject*`, so that it can be passed to
