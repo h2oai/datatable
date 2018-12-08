@@ -12,13 +12,10 @@
 #include "py_datatable.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
-#include "python/dict.h"
-#include "python/int.h"
-#include "python/float.h"
+#include "python/_all.h"
 #include "python/list.h"
 #include "python/oiter.h"
 #include "python/orange.h"
-#include "python/tuple.h"
 #include "python/string.h"
 
 namespace py {
@@ -140,6 +137,7 @@ bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
+bool _obj::is_slice()         const noexcept { return v && PySlice_Check(v); }
 
 bool _obj::is_iterable() const noexcept {
   return v && (v->ob_type->tp_iter || PySequence_Check(v));
@@ -599,6 +597,13 @@ py::oiter _obj::to_pyiter(const error_manager& em) const {
 }
 
 
+py::oslice _obj::to_oslice(const error_manager& em) const {
+  if (is_none()) return py::oslice();
+  if (is_slice()) return py::oslice(robj(v));
+  throw em.error_not_slice(v);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Misc
@@ -778,6 +783,10 @@ Error _obj::error_manager::error_not_dict(PyObject* o) const {
 
 Error _obj::error_manager::error_not_range(PyObject* o) const {
   return TypeError() << "Expected a range, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_slice(PyObject* o) const {
+  return TypeError() << "Expected a slice, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_not_stype(PyObject* o) const {

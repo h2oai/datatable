@@ -79,10 +79,10 @@ bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }
-size_t      Arg::to_size_t_positive() const { return pyobj.to_size_t_positive(*this); }
+size_t      Arg::to_size_t_positive()       const { return pyobj.to_size_t_positive(*this); }
 double      Arg::to_double()       const { return pyobj.to_double(*this); }
-double      Arg::to_double_not_negative() const { return pyobj.to_double_not_negative(*this); }
-double      Arg::to_double_positive() const { return pyobj.to_double_positive(*this); }
+double      Arg::to_double_not_negative()       const { return pyobj.to_double_not_negative(*this); }
+double      Arg::to_double_positive()       const { return pyobj.to_double_positive(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }

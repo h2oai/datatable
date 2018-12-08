@@ -27,6 +27,7 @@ class ofloat;
 class oint;
 class oiter;
 class olist;
+class oslice;
 class ostring;
 class orange;
 class otuple;
@@ -159,6 +160,7 @@ class _obj {
     bool is_dict()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_range()         const noexcept;
+    bool is_slice()         const noexcept;
     bool is_frame()         const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
@@ -188,13 +190,14 @@ class _obj {
     std::string to_string         (const error_manager& = _em0) const;
     py::ostring to_pystring_force (const error_manager& = _em0) const noexcept;
 
-    char**      to_cstringlist    (const error_manager& = _em0) const;
-    strvec      to_stringlist     (const error_manager& = _em0) const;
-    py::olist   to_pylist         (const error_manager& = _em0) const;
-    py::odict   to_pydict         (const error_manager& = _em0) const;
-    py::rdict   to_rdict          (const error_manager& = _em0) const;
-    py::orange  to_pyrange        (const error_manager& = _em0) const;
-    py::oiter   to_pyiter         (const error_manager& = _em0) const;
+    char**      to_cstringlist   (const error_manager& = _em0) const;
+    strvec      to_stringlist    (const error_manager& = _em0) const;
+    py::olist   to_pylist        (const error_manager& = _em0) const;
+    py::odict   to_pydict        (const error_manager& = _em0) const;
+    py::rdict   to_rdict         (const error_manager& = _em0) const;
+    py::orange  to_pyrange       (const error_manager& = _em0) const;
+    py::oiter   to_pyiter        (const error_manager& = _em0) const;
+    py::oslice  to_oslice        (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;
     py::rtuple  to_rtuple_lax     () const;
@@ -228,6 +231,7 @@ class _obj {
       virtual Error error_not_list           (PyObject*) const;
       virtual Error error_not_dict           (PyObject*) const;
       virtual Error error_not_range          (PyObject*) const;
+      virtual Error error_not_slice          (PyObject*) const;
       virtual Error error_not_stype          (PyObject*) const;
       virtual Error error_not_iterable       (PyObject*) const;
       virtual Error error_int32_overflow     (PyObject*) const;

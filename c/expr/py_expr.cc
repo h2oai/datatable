@@ -24,7 +24,7 @@ PyObject* expr_binaryop(PyObject*, PyObject* args)
 
   Column* lhs = py_lhs.to_column();
   Column* rhs = py_rhs.to_column();
-  Column* res = expr::binaryop(opcode, lhs, rhs);
+  Column* res = expr::binaryop(static_cast<size_t>(opcode), lhs, rhs);
   return pycolumn::from_column(res, nullptr, 0);
 }
 

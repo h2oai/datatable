@@ -157,3 +157,10 @@ reduce_opcodes = {
     "sum": 6,
     "count": 7,
 }
+
+
+baseexpr_opcodes = {
+    "col": 1,
+    "binop": 2,
+    "literal": 3,
+}

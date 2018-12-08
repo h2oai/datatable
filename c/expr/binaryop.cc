@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 // This file implements binary operations between columbs, such as Plus, Minus,
 // Multiply, etc. That is, if `x` and `y` are two columns of compatible
@@ -351,7 +365,7 @@ static mapperfn resolve2str(OpMode mode) {
 
 
 template<typename LT, typename RT, typename VT>
-static mapperfn resolve1(int opcode, SType stype, void** params, size_t nrows, OpMode mode) {
+static mapperfn resolve1(size_t opcode, SType stype, void** params, size_t nrows, OpMode mode) {
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
     stype = SType::BOOL;
@@ -385,7 +399,7 @@ static mapperfn resolve1(int opcode, SType stype, void** params, size_t nrows, O
 
 
 template<typename T0, typename T1>
-static mapperfn resolve1str(int opcode, void** params, size_t nrows, OpMode mode) {
+static mapperfn resolve1str(size_t opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::One_to_N) {
     mode = OpMode::N_to_One;
     std::swap(params[0], params[1]);
@@ -400,7 +414,7 @@ static mapperfn resolve1str(int opcode, void** params, size_t nrows, OpMode mode
 }
 
 
-static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, size_t nrows, OpMode mode) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
@@ -509,7 +523,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
 // Exported binaryop function
 //------------------------------------------------------------------------------
 
-Column* binaryop(int opcode, Column* lhs, Column* rhs)
+Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
 {
   lhs->reify();
   rhs->reify();

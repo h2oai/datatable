@@ -5,7 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 from .base_expr import BaseExpr
-from .consts import nas_map
+from .consts import nas_map, baseexpr_opcodes
 from ..types import stype
 from datatable.lib import core
 
@@ -50,6 +50,9 @@ class LiteralExpr(BaseExpr):
 
     def evaluate_eager(self, ee):
         return core.column_from_list([self.arg])
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["literal"], self.arg)
 
     def _isna(self, key, inode):
         return self.arg is None

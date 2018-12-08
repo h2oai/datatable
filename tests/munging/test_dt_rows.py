@@ -167,7 +167,11 @@ def test_rows_slice2(dt0):
 
 
 def test_rows_slice3(dt0):
-    assert_valueerror(dt0, slice(0, 10, 0), "step must not be 0")
+    assert dt0[2:10:0, 0].to_list()[0] == [1] * 10
+    assert dt0[-3:7:0, 2].to_list()[0] == [-14.0] * 7
+
+
+def test_rows_slice_errors(dt0):
     # noinspection PyTypeChecker
     assert_valueerror(dt0, slice(3, 5.7),
                       "slice(3, 5.7, None) is not integer-valued")
