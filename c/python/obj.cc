@@ -284,15 +284,6 @@ size_t _obj::to_size_t(const error_manager& em) const {
 }
 
 
-size_t _obj::to_size_t_positive(const error_manager& em) const {
-  int64_t res = to_int64_strict(em);
-  if (res <= 0) {
-    throw em.error_int_not_positive(v);
-  }
-  return static_cast<size_t>(res);
-}
-
-
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
   if (PyLong_Check(v)) return py::oint(robj(v));
@@ -331,24 +322,6 @@ double _obj::to_double(const error_manager& em) const {
 }
 
 
-double _obj::to_double_not_negative(const error_manager& em) const {
-  double res = to_double(em);
-  if (res < 0) {
-    throw em.error_double_negative(v);
-  }
-  return res;
-}
-
-
-double _obj::to_double_positive(const error_manager& em) const {
-  double res = to_double(em);
-  if (res <= 0) {
-    throw em.error_double_not_positive(v);
-  }
-  return res;
-}
-
-
 py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   if (PyFloat_Check(v) || v == Py_None) {
     return py::ofloat(robj(v));
@@ -360,8 +333,6 @@ py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
   }
   return py::ofloat(oobj::from_new_reference(num));
 }
-
-
 
 
 //------------------------------------------------------------------------------

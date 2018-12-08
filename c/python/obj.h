@@ -177,13 +177,10 @@ class _obj {
     int32_t     to_int32_strict   (const error_manager& = _em0) const;
     int64_t     to_int64_strict   (const error_manager& = _em0) const;
     size_t      to_size_t         (const error_manager& = _em0) const;
-    size_t      to_size_t_positive(const error_manager& = _em0) const;
     py::oint    to_pyint          (const error_manager& = _em0) const;
     py::oint    to_pyint_force    (const error_manager& = _em0) const noexcept;
 
     double      to_double         (const error_manager& = _em0) const;
-    double      to_double_positive(const error_manager& = _em0) const;
-    double      to_double_not_negative(const error_manager& = _em0) const;
     py::ofloat  to_pyfloat_force  (const error_manager& = _em0) const noexcept;
 
     CString     to_cstring        (const error_manager& = _em0) const;
