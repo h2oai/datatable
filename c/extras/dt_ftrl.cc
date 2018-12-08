@@ -49,39 +49,26 @@ Ftrl::Ftrl(FtrlParams params_in) :
 }
 
 
-void Ftrl::prepare_model() {
-  create_model();
-  init_model();
-  reset_model();
-}
-
-
 void Ftrl::create_model() {
   w = doubleptr(new double[params.d]());
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
-}
-
-
-void Ftrl::init_model() {
-  z = static_cast<double*>(dt_model->columns[0]->data_w());
-  n = static_cast<double*>(dt_model->columns[1]->data_w());
+  init_zn();
+  reset_model();
 }
 
 
 void Ftrl::reset_model() {
-  model_trained = false;
   std::memset(z, 0, params.d * sizeof(double));
   std::memset(n, 0, params.d * sizeof(double));
-  reset_stats();
+  model_trained = false;
 }
 
 
-void Ftrl::reset_stats() {
-  for (size_t i = 0; i < dt_model->ncols-1; ++i) {
-    dt_model->columns[i]->get_stats()->reset();
-  }
+void Ftrl::init_zn() {
+  z = static_cast<double*>(dt_model->columns[0]->data_w());
+  n = static_cast<double*>(dt_model->columns[1]->data_w());
 }
 
 
@@ -89,7 +76,9 @@ void Ftrl::reset_stats() {
 *  Train FTRL model on a dataset.
 */
 void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
-  if (dt_model == nullptr) prepare_model();
+  if (dt_model == nullptr || dt_model->nrows != params.d) {
+    create_model();
+  }
 
   // Define number of features assuming that the target column is the last one.
   n_features = dt_X->ncols;
@@ -134,7 +123,6 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
       }
     }
   }
-  reset_stats();
   model_trained = true;
 }
 
@@ -144,7 +132,7 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
 *  We assume that all the validation is done in `py_ftrl.cc`.
 */
 dtptr Ftrl::predict(const DataTable* dt_X) {
-  init_model();
+  xassert(model_trained);
   // Define number of features
   n_features = dt_X->ncols;
   // Define number of feature interactions.
@@ -396,7 +384,8 @@ size_t Ftrl::get_n_epochs() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_d(dt_model->nrows);
-  init_model();
+  init_zn();
+  n_features = 0;
   model_trained = true;
 }
 

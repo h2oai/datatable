@@ -77,11 +77,9 @@ class Ftrl {
     void update(const uint64ptr&, double, bool);
 
     bool is_trained();
-    void prepare_model();
     void create_model();
-    void init_model();
     void reset_model();
-    void reset_stats();
+    void init_zn();
 
     // Learning helper methods.
     static double logloss(double, bool);

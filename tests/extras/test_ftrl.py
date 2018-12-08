@@ -221,7 +221,7 @@ def test_ftrl_set_params():
 # Test getters and setters for wrong types / names of FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_set_wrong_params_type_type():
+def test_ftrl_set_wrong_params_type():
     ft = core.Ftrl()
     params = tparams._replace(alpha = "1.0")
     with pytest.raises(TypeError) as e:
