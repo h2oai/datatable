@@ -190,14 +190,14 @@ class _obj {
     std::string to_string         (const error_manager& = _em0) const;
     py::ostring to_pystring_force (const error_manager& = _em0) const noexcept;
 
-    char**      to_cstringlist   (const error_manager& = _em0) const;
-    strvec      to_stringlist    (const error_manager& = _em0) const;
-    py::olist   to_pylist        (const error_manager& = _em0) const;
-    py::odict   to_pydict        (const error_manager& = _em0) const;
-    py::rdict   to_rdict         (const error_manager& = _em0) const;
-    py::orange  to_pyrange       (const error_manager& = _em0) const;
-    py::oiter   to_pyiter        (const error_manager& = _em0) const;
-    py::oslice  to_oslice        (const error_manager& = _em0) const;
+    char**      to_cstringlist    (const error_manager& = _em0) const;
+    strvec      to_stringlist     (const error_manager& = _em0) const;
+    py::olist   to_pylist         (const error_manager& = _em0) const;
+    py::odict   to_pydict         (const error_manager& = _em0) const;
+    py::rdict   to_rdict          (const error_manager& = _em0) const;
+    py::orange  to_pyrange        (const error_manager& = _em0) const;
+    py::oiter   to_pyiter         (const error_manager& = _em0) const;
+    py::oslice  to_oslice         (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;
     py::rtuple  to_rtuple_lax     () const;
