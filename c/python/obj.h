@@ -235,9 +235,6 @@ class _obj {
       virtual Error error_int64_overflow     (PyObject*) const;
       virtual Error error_double_overflow    (PyObject*) const;
       virtual Error error_int_negative       (PyObject*) const;
-      virtual Error error_int_not_positive   (PyObject*) const;
-      virtual Error error_double_negative    (PyObject*) const;
-      virtual Error error_double_not_positive(PyObject*) const;
     };
 
   protected:

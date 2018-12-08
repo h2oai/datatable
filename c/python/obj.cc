@@ -784,16 +784,4 @@ Error _obj::error_manager::error_int_negative(PyObject*) const {
   return ValueError() << "Integer value is negative";
 }
 
-Error _obj::error_manager::error_int_not_positive(PyObject*) const {
-  return ValueError() << "Integer value is not positive";
-}
-
-Error _obj::error_manager::error_double_negative(PyObject*) const {
-  return ValueError() << "Float value is negative";
-}
-
-Error _obj::error_manager::error_double_not_positive(PyObject*) const {
-  return ValueError() << "Float value is not positive";
-}
-
 }  // namespace py
