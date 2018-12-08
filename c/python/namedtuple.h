@@ -49,8 +49,8 @@ class onamedtupletype {
     onamedtupletype(const std::string& cls_name, const strvec& field_names);
     onamedtupletype(const std::string& cls_name, const std::string& cls_doc,
                     const strvec& field_names, const strvec& field_docs);
-    onamedtuple(const onamedtuple&);
-    onamedtuple(onamedtuple&&);
+    onamedtupletype(const onamedtupletype&);
+    onamedtupletype(onamedtupletype&&);
     ~onamedtupletype();
 
     friend class onamedtuple;
