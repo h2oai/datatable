@@ -32,7 +32,7 @@ PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
                                  "lambda2", "d", "n_epochs", "inter"},
                                  "__init__", nullptr);
 
-std::vector<strpair> Ftrl::params_fields_info = {
+static std::vector<strpair> params_fields_info = {
   strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
   strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
   strpair("lambda1", "L1 regularization parameter"),
@@ -42,9 +42,13 @@ std::vector<strpair> Ftrl::params_fields_info = {
   strpair("inter", "Parameter that controls if feature interactions to be used "
                    "or not")
 };
-strpair Ftrl::params_info = strpair("Params", "FTRL model parameters");
-onamedtupletype Ftrl::params_nttype(Ftrl::params_info,
-                                    Ftrl::params_fields_info);
+
+static onamedtupletype& _get_params_namedtupletype() {
+  static onamedtupletype ntt(
+    strpair("FtrlParams", "FTRL model parameters"),
+    params_fields_info);
+  return ntt;
+}
 
 
 void Ftrl::m__init__(PKArgs& args) {
@@ -124,7 +128,7 @@ const char* Ftrl::Type::classname() {
 
 const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
-    
+
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 
@@ -139,7 +143,7 @@ lambda1 : float
 lambda2 : float
     L2 regularization parameter.
 d : int
-    Number of bins to be used after the hashing trick. 
+    Number of bins to be used after the hashing trick.
 n_epochs : int
     Number of epochs to train for.
 inter : bool
@@ -217,11 +221,11 @@ Train an FTRL model on a dataset.
 Parameters
 ----------
 X: Frame
-    Datatable frame of shape (nrows, ncols) to be trained on. 
+    Datatable frame of shape (nrows, ncols) to be trained on.
 
 y: Frame
-    Datatable frame of shape (nrows, 1), i.e. the target column. 
-    This column must have a `bool` type. 
+    Datatable frame of shape (nrows, 1), i.e. the target column.
+    This column must have a `bool` type.
 
 Returns
 ----------
@@ -278,12 +282,12 @@ Make predictions for a dataset.
 Parameters
 ----------
 X: Frame
-    Datatable frame of shape (nrows, ncols) to make predictions for. 
+    Datatable frame of shape (nrows, ncols) to make predictions for.
     It must have the same number of columns as the training frame.
 
 Returns
 ----------
-    A new datatable frame of shape (nrows, 1) with a prediction 
+    A new datatable frame of shape (nrows, 1) with a prediction
     for each row of frame X.
 )");
 
@@ -356,7 +360,7 @@ oobj Ftrl::get_model() const {
 
 
 oobj Ftrl::get_params() const {
-  py::onamedtuple params(params_nttype);
+  py::onamedtuple params(_get_params_namedtupletype());
   params.set(0, get_alpha());
   params.set(1, get_beta());
   params.set(2, get_lambda1());

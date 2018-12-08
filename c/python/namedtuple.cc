@@ -27,6 +27,7 @@
 
 namespace py {
 
+
 /**
 *  Create a namedtuple type based on the collections.namedtuple datatype.
 *  An alternative is to use `Struct Sequence Objects` as outlined here

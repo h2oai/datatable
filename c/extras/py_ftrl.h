@@ -71,11 +71,6 @@ class Ftrl : public PyObject {
 
     // Helper validation functions
     bool has_negative_n(DataTable*);
-
-    // Info for a namedtuple of parameters
-    static strpair params_info;
-    static std::vector<strpair> params_fields_info;
-    static onamedtupletype params_nttype;
 };
 
 } // namespece py
