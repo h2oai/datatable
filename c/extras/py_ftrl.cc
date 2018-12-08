@@ -19,20 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
 #include "python/float.h"
 #include "python/int.h"
 #include "python/tuple.h"
+#include "extras/py_ftrl.h"
 
 namespace py {
 
-PKArgs PyFtrl::Type::args___init__(0, 0, 8, false, false,
+PKArgs Ftrl::Type::args___init__(0, 0, 8, false, false,
                                    {"params", "alpha", "beta", "lambda1",
                                    "lambda2", "d", "n_epochs", "inter"},
                                    "__init__", nullptr);
 
-std::vector<strpair> PyFtrl::params_fields_info = {
+std::vector<strpair> Ftrl::params_fields_info = {
   strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
   strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
   strpair("lambda1", "L1 regularization parameter"),
@@ -42,13 +42,13 @@ std::vector<strpair> PyFtrl::params_fields_info = {
   strpair("inter", "Parameter that controls if feature interactions to be used "
                    "or not")
 };
-strpair PyFtrl::params_info = strpair("Params", "FTRL model parameters");
-onamedtupletype PyFtrl::params_nttype(PyFtrl::params_info,
-                                      PyFtrl::params_fields_info);
+strpair Ftrl::params_info = strpair("Params", "FTRL model parameters");
+onamedtupletype Ftrl::params_nttype(Ftrl::params_info,
+                                    Ftrl::params_fields_info);
 
 
-void PyFtrl::m__init__(PKArgs& args) {
-  FtrlParams fp = Ftrl::params_default;
+void Ftrl::m__init__(PKArgs& args) {
+  dt::FtrlParams fp = dt::Ftrl::params_default;
 
   bool defined_params = !args[0].is_none_or_undefined();
   bool defined_alpha = !args[1].is_none_or_undefined();
@@ -64,11 +64,11 @@ void PyFtrl::m__init__(PKArgs& args) {
         || defined_d || defined_n_epochs || defined_inter)) {
 
       py::otuple arg0_tuple = args[0].to_otuple();
-      fp.alpha = arg0_tuple.get_attr("alpha").to_double();
-      fp.beta = arg0_tuple.get_attr("beta").to_double();
-      fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double();
-      fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double();
-      fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t());
+      fp.alpha = arg0_tuple.get_attr("alpha").to_double_positive();
+      fp.beta = arg0_tuple.get_attr("beta").to_double_not_negative();
+      fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double_not_negative();
+      fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double_not_negative();
+      fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t_positive());
       fp.n_epochs = arg0_tuple.get_attr("n_epochs").to_size_t();
       fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
 
@@ -80,23 +80,23 @@ void PyFtrl::m__init__(PKArgs& args) {
     }
   } else {
     if (defined_alpha) {
-      fp.alpha = args[1].to_double();
+      fp.alpha = args[1].to_double_positive();
     }
 
     if (defined_beta) {
-      fp.beta = args[2].to_double();
+      fp.beta = args[2].to_double_not_negative();
     }
 
     if (defined_lambda1) {
-      fp.lambda1 = args[3].to_double();
+      fp.lambda1 = args[3].to_double_not_negative();
     }
 
     if (defined_lambda2) {
-      fp.lambda2 = args[4].to_double();
+      fp.lambda2 = args[4].to_double_not_negative();
     }
 
     if (defined_d) {
-      fp.d = static_cast<uint64_t>(args[5].to_size_t());
+      fp.d = static_cast<uint64_t>(args[5].to_size_t_positive());
     }
 
     if (defined_n_epochs) {
@@ -108,21 +108,21 @@ void PyFtrl::m__init__(PKArgs& args) {
     }
   }
 
-  ft = new Ftrl(fp);
+  dtft = new dt::Ftrl(fp);
 }
 
 
-void PyFtrl::m__dealloc__() {
-  delete ft;
+void Ftrl::m__dealloc__() {
+  delete dtft;
 }
 
 
-const char* PyFtrl::Type::classname() {
+const char* Ftrl::Type::classname() {
   return "datatable.core.Ftrl";
 }
 
 
-const char* PyFtrl::Type::classdoc() {
+const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
     
 See this reference for more details:
@@ -148,67 +148,67 @@ inter : bool
 }
 
 
-void PyFtrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  gs.add<&PyFtrl::get_model, &PyFtrl::set_model>(
+void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
+  gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
     "where `d` is a number of bins set for modeling. Both column types\n"
     "must be `FLOAT64`"
   );
 
-  gs.add<&PyFtrl::get_params, &PyFtrl::set_params>(
+  gs.add<&Ftrl::get_params, &Ftrl::set_params>(
     "params",
     "FTRL model parameters"
   );
 
-  gs.add<&PyFtrl::get_colnames_hashes>(
+  gs.add<&Ftrl::get_colnames_hashes>(
     "colnames_hashes",
     "Column name hashes.\n"
   );
 
-  gs.add<&PyFtrl::get_alpha, &PyFtrl::set_alpha>(
+  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>(
     params_fields_info[0].first,
     params_fields_info[0].second
   );
 
-  gs.add<&PyFtrl::get_beta, &PyFtrl::set_beta>(
+  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>(
     params_fields_info[1].first,
     params_fields_info[1].second
   );
 
-  gs.add<&PyFtrl::get_lambda1, &PyFtrl::set_lambda1>(
+  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>(
     params_fields_info[2].first,
     params_fields_info[2].second
   );
 
-  gs.add<&PyFtrl::get_lambda2, &PyFtrl::set_lambda2>(
+  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>(
     params_fields_info[3].first,
     params_fields_info[3].second
   );
 
-  gs.add<&PyFtrl::get_d, &PyFtrl::set_d>(
+  gs.add<&Ftrl::get_d, &Ftrl::set_d>(
     params_fields_info[4].first,
     params_fields_info[4].second
   );
 
-  gs.add<&PyFtrl::get_n_epochs, &PyFtrl::set_n_epochs>(
+  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>(
     params_fields_info[5].first,
     params_fields_info[5].second
   );
 
 
-  gs.add<&PyFtrl::get_inter, &PyFtrl::set_inter>(
+  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>(
     params_fields_info[6].first,
     params_fields_info[6].second
   );
 
-  mm.add<&PyFtrl::fit, args_fit>();
-  mm.add<&PyFtrl::predict, args_predict>();
-  mm.add<&PyFtrl::reset, args_reset>();
+  mm.add<&Ftrl::fit, args_fit>();
+  mm.add<&Ftrl::predict, args_predict>();
+  mm.add<&Ftrl::reset, args_reset>();
 }
 
 
-PKArgs PyFtrl::Type::args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
+PKArgs Ftrl::Type::args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
 R"(fit(self, X, y)
 --
 
@@ -229,7 +229,7 @@ Returns
 )");
 
 
-void PyFtrl::fit(const PKArgs& args) {
+void Ftrl::fit(const PKArgs& args) {
   if (args[0].is_undefined()) {
     throw ValueError() << "Training frame parameter is missing";
   }
@@ -265,11 +265,11 @@ void PyFtrl::fit(const PKArgs& args) {
                        << " as the training frame";
   }
 
-  ft->fit(dt_X, dt_y);
+  dtft->fit(dt_X, dt_y);
 }
 
 
-PKArgs PyFtrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
+PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
 
@@ -288,7 +288,7 @@ Returns
 )");
 
 
-oobj PyFtrl::predict(const PKArgs& args) {
+oobj Ftrl::predict(const PKArgs& args) {
   if (args[0].is_undefined()) {
     throw ValueError() << "Frame to make predictions for is missing";
   }
@@ -297,19 +297,19 @@ oobj PyFtrl::predict(const PKArgs& args) {
 
   if (dt_X == nullptr) return Py_None;
 
-  if (!ft->is_trained()) {
+  if (!dtft->is_trained()) {
     throw ValueError() << "Cannot make any predictions, because the model "
                        << "was not trained";
   }
 
-  size_t n_features = ft->get_n_features();
-  if (dt_X->ncols != n_features) {
+  size_t n_features = dtft->get_n_features();
+  if (dt_X->ncols != n_features && n_features != 0) {
     throw ValueError() << "Can only predict on a frame that has "<< n_features
                        << " column(s), i.e. has the same number of features as "
                        << "was used for model training";
   }
 
-  DataTable* dt_y = ft->predict(dt_X).release();
+  DataTable* dt_y = dtft->predict(dt_X).release();
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
                        );
@@ -318,7 +318,7 @@ oobj PyFtrl::predict(const PKArgs& args) {
 }
 
 
-PKArgs PyFtrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
+PKArgs Ftrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
 
@@ -334,17 +334,17 @@ Returns
 )");
 
 
-void PyFtrl::reset(const PKArgs&) {
-  ft->reset_model();
+void Ftrl::reset(const PKArgs&) {
+  dtft->reset_model();
 }
 
 
 /*
 *  Getters and setters.
 */
-oobj PyFtrl::get_model() const {
-  if (ft->is_trained()) {
-    DataTable* dt_model = ft->get_model();
+oobj Ftrl::get_model() const {
+  if (dtft->is_trained()) {
+    DataTable* dt_model = dtft->get_model();
     py::oobj df_model = py::oobj::from_new_reference(
                           py::Frame::from_datatable(dt_model)
                         );
@@ -355,7 +355,7 @@ oobj PyFtrl::get_model() const {
 }
 
 
-oobj PyFtrl::get_params() const {
+oobj Ftrl::get_params() const {
   py::onamedtuple params(params_nttype);
   params.set(0, get_alpha());
   params.set(1, get_beta());
@@ -369,46 +369,46 @@ oobj PyFtrl::get_params() const {
 
 
 
-oobj PyFtrl::get_alpha() const {
-  return py::ofloat(ft->get_alpha());
+oobj Ftrl::get_alpha() const {
+  return py::ofloat(dtft->get_alpha());
 }
 
 
-oobj PyFtrl::get_beta() const {
-  return py::ofloat(ft->get_beta());
+oobj Ftrl::get_beta() const {
+  return py::ofloat(dtft->get_beta());
 }
 
 
-oobj PyFtrl::get_lambda1() const {
-  return py::ofloat(ft->get_lambda1());
+oobj Ftrl::get_lambda1() const {
+  return py::ofloat(dtft->get_lambda1());
 }
 
 
-oobj PyFtrl::get_lambda2() const {
-  return py::ofloat(ft->get_lambda2());
+oobj Ftrl::get_lambda2() const {
+  return py::ofloat(dtft->get_lambda2());
 }
 
 
-oobj PyFtrl::get_d() const {
-  return py::oint(static_cast<size_t>(ft->get_d()));
+oobj Ftrl::get_d() const {
+  return py::oint(static_cast<size_t>(dtft->get_d()));
 }
 
 
-oobj PyFtrl::get_n_epochs() const {
-  return py::oint(ft->get_n_epochs());
+oobj Ftrl::get_n_epochs() const {
+  return py::oint(dtft->get_n_epochs());
 }
 
 
-oobj PyFtrl::get_inter() const {
-  return ft->get_inter()? True() : False();
+oobj Ftrl::get_inter() const {
+  return dtft->get_inter()? True() : False();
 }
 
 
-oobj PyFtrl::get_colnames_hashes() const {
-  if (ft->is_trained()) {
-    size_t n_features = ft->get_n_features();
+oobj Ftrl::get_colnames_hashes() const {
+  if (dtft->is_trained()) {
+    size_t n_features = dtft->get_n_features();
     py::otuple py_colnames_hashes(n_features);
-    std::vector<uint64_t> colnames_hashes = ft->get_colnames_hashes();
+    std::vector<uint64_t> colnames_hashes = dtft->get_colnames_hashes();
     for (size_t i = 0; i < n_features; ++i) {
       size_t h = static_cast<size_t>(colnames_hashes[i]);
       py_colnames_hashes.set(i, py::oint(h));
@@ -420,26 +420,26 @@ oobj PyFtrl::get_colnames_hashes() const {
 }
 
 
-void PyFtrl::set_model(robj model) {
+void Ftrl::set_model(robj model) {
   DataTable* dt_model_in = model.to_frame();
 
   // Reset model when it was assigned `None` in Python
   if (dt_model_in == nullptr) {
-    if (ft->is_trained()) ft->reset_model();
+    if (dtft->is_trained()) dtft->reset_model();
     return;
   }
 
   const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-  if (dt_model_in->nrows != ft->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << ft->get_d()
+  if (dt_model_in->nrows != dtft->get_d() || dt_model_in->ncols != 2) {
+    throw ValueError() << "FTRL model frame must have " << dtft->get_d()
                        << " rows, and 2 columns, whereas your frame has "
                        << dt_model_in->nrows << " rows and "
                        << dt_model_in->ncols << " column(s)";
 
   }
 
-  if (model_cols_in != Ftrl::model_cols) {
+  if (model_cols_in != dt::Ftrl::model_cols) {
     throw ValueError() << "FTRL model frame must have columns named `z` and "
                        << "`n`, whereas your frame has the following column "
                        << "names: `" << model_cols_in[0]
@@ -455,16 +455,25 @@ void PyFtrl::set_model(robj model) {
                        << "` and `" << dt_model_in->columns[1]->stype() << "`";
   }
 
-  auto c_double = static_cast<RealColumn<double>*>(dt_model_in->columns[1]);
-  if (c_double->min() < 0) {
+  if (has_negative_n(dt_model_in)) {
     throw ValueError() << "Values in column `n` cannot be negative";
   }
 
-  ft->set_model(dt_model_in);
+  dtft->set_model(dt_model_in);
 }
 
 
-void PyFtrl::set_params(robj params) {
+bool Ftrl::has_negative_n(DataTable* dt) {
+  auto c_n = static_cast<RealColumn<double>*>(dt->columns[1]);
+  auto d_n = c_n->elements_r();
+  for (size_t i = 0; i < dt->nrows; ++i) {
+    if (d_n[i] < 0) return true;
+  }
+  return false;
+}
+
+
+void Ftrl::set_params(robj params) {
   set_alpha(params.get_attr("alpha"));
   set_beta(params.get_attr("beta"));
   set_lambda1(params.get_attr("lambda1"));
@@ -476,52 +485,45 @@ void PyFtrl::set_params(robj params) {
 }
 
 
-void PyFtrl::set_alpha(robj alpha_in) {
-  double alpha = alpha_in.to_double();
-  if (alpha <= 0) {
-    throw ValueError() << "Parameter `alpha` must be positive";
-  }
-  ft->set_alpha(alpha);
+void Ftrl::set_alpha(robj alpha_in) {
+  double alpha = alpha_in.to_double_positive();
+  dtft->set_alpha(alpha);
 }
 
 
-void PyFtrl::set_beta(robj beta) {
-  ft->set_beta(beta.to_double());
+void Ftrl::set_beta(robj beta_in) {
+  double beta = beta_in.to_double_not_negative();
+  dtft->set_beta(beta);
 }
 
 
-void PyFtrl::set_lambda1(robj lambda1) {
-  ft->set_lambda1(lambda1.to_double());
+void Ftrl::set_lambda1(robj lambda1_in) {
+  double lambda1 = lambda1_in.to_double_not_negative();
+  dtft->set_lambda1(lambda1);
 }
 
 
-void PyFtrl::set_lambda2(robj lambda2) {
-  ft->set_lambda2(lambda2.to_double());
+void Ftrl::set_lambda2(robj lambda2_in) {
+  double lambda2 = lambda2_in.to_double_not_negative();
+  dtft->set_lambda2(lambda2);
 }
 
 
-void PyFtrl::set_d(robj d) {
-  int64_t d_in = d.to_int64_strict();
-  if (d_in <= 0) {
-    throw ValueError() << "Parameter `d` must be positive";
-  }
-  ft->set_d(static_cast<uint64_t>(d_in));
+void Ftrl::set_d(robj d) {
+  size_t d_in = d.to_size_t_positive();
+  dtft->set_d(static_cast<uint64_t>(d_in));
 }
 
 
-void PyFtrl::set_n_epochs(robj n_epochs) {
-  int64_t n_epochs_in = n_epochs.to_int64_strict();
-  if (n_epochs_in < 0) {
-    throw ValueError() << "Parameter `n_epochs` cannot be negative";
-  }
-  ft->set_n_epochs(static_cast<size_t>(n_epochs_in));
+void Ftrl::set_n_epochs(robj n_epochs) {
+  size_t n_epochs_in = n_epochs.to_size_t();
+  dtft->set_n_epochs(n_epochs_in);
 }
 
 
-void PyFtrl::set_inter(robj inter) {
+void Ftrl::set_inter(robj inter) {
   bool inter_in = inter.to_bool_strict();
-  ft->set_inter(inter_in);
+  dtft->set_inter(inter_in);
 }
-
 
 } // namespace py

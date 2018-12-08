@@ -252,7 +252,6 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 }
 
 
-
 /*
 *  Do no grouping, i.e. all rows become exemplars sorted by the first column.
 */

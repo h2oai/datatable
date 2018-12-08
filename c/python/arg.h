@@ -62,7 +62,10 @@ class Arg : public _obj::error_manager {
     int32_t     to_int32_strict  () const;
     int64_t     to_int64_strict  () const;
     size_t      to_size_t        () const;
+    size_t      to_size_t_positive() const;
     double      to_double        () const;
+    double      to_double_not_negative() const;
+    double      to_double_positive() const;
     py::olist   to_pylist        () const;
     py::odict   to_pydict        () const;
     py::rdict   to_rdict         () const;
@@ -76,12 +79,15 @@ class Arg : public _obj::error_manager {
 
 
     //---- Error messages --------------
-    virtual Error error_not_list       (PyObject*) const override;
-    virtual Error error_not_stype      (PyObject*) const override;
-    virtual Error error_not_boolean    (PyObject*) const override;
-    virtual Error error_not_integer    (PyObject*) const override;
-    virtual Error error_int_negative   (PyObject*) const override;
-    virtual Error error_not_double     (PyObject*) const override;
+    virtual Error error_not_list           (PyObject*) const override;
+    virtual Error error_not_stype          (PyObject*) const override;
+    virtual Error error_not_boolean        (PyObject*) const override;
+    virtual Error error_not_integer        (PyObject*) const override;
+    virtual Error error_int_negative       (PyObject*) const override;
+    virtual Error error_int_not_positive   (PyObject*) const override;
+    virtual Error error_not_double         (PyObject*) const override;
+    virtual Error error_double_negative    (PyObject*) const override;
+    virtual Error error_double_not_positive(PyObject*) const override;
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }

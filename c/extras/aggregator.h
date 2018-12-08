@@ -13,7 +13,7 @@
 #include <random>
 #include "py_datatable.h"
 #include "utils.h"
-#include "extras/ftrl.h"
+#include <extras/dt_ftrl.h>
 
 
 struct ex {
