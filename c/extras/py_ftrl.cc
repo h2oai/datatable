@@ -19,63 +19,101 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
 #include "python/float.h"
 #include "python/int.h"
+#include "python/tuple.h"
+#include "extras/py_ftrl.h"
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 0, 9, false, false,
-                                 {"a", "b", "l1", "l2", "d", "n_epochs",
-                                 "inter", "hash_type", "seed"},
+PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
+                                 {"params", "alpha", "beta", "lambda1",
+                                 "lambda2", "d", "n_epochs", "inter"},
                                  "__init__", nullptr);
 
+std::vector<strpair> Ftrl::params_fields_info = {
+  strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
+  strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
+  strpair("lambda1", "L1 regularization parameter"),
+  strpair("lambda2", "L1 regularization parameter"),
+  strpair("d", "Number of bins to be used for the hashing trick"),
+  strpair("n_epochs", "Number of epochs to train a model for"),
+  strpair("inter", "Parameter that controls if feature interactions to be used "
+                   "or not")
+};
+strpair Ftrl::params_info = strpair("Params", "FTRL model parameters");
+onamedtupletype Ftrl::params_nttype(Ftrl::params_info,
+                                    Ftrl::params_fields_info);
+
+
 void Ftrl::m__init__(PKArgs& args) {
-  FtrlModelParams fmp = FtrlModel::fmp_default;
+  dt::FtrlParams fp = dt::Ftrl::params_default;
 
-  if (!(args[0].is_undefined() || args[0].is_none())) {
-    fmp.a = args[0].to_double();
+  bool defined_params = !args[0].is_none_or_undefined();
+  bool defined_alpha = !args[1].is_none_or_undefined();
+  bool defined_beta = !args[2].is_none_or_undefined();
+  bool defined_lambda1 = !args[3].is_none_or_undefined();
+  bool defined_lambda2 = !args[4].is_none_or_undefined();
+  bool defined_d = !args[5].is_none_or_undefined();
+  bool defined_n_epochs= !args[6].is_none_or_undefined();
+  bool defined_inter = !args[7].is_none_or_undefined();
+
+  if (defined_params) {
+    if (!(defined_alpha || defined_beta || defined_lambda1 || defined_lambda2
+        || defined_d || defined_n_epochs || defined_inter)) {
+
+      py::otuple arg0_tuple = args[0].to_otuple();
+      fp.alpha = arg0_tuple.get_attr("alpha").to_double_positive();
+      fp.beta = arg0_tuple.get_attr("beta").to_double_not_negative();
+      fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double_not_negative();
+      fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double_not_negative();
+      fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t_positive());
+      fp.n_epochs = arg0_tuple.get_attr("n_epochs").to_size_t();
+      fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
+
+    } else {
+      throw TypeError() << "You can either pass all the parameters with "
+            << "`params` or any of the individual parameters with `alpha`, "
+            << "`beta`, `lambda1`, `lambda2`, `d`, `n_epochs` or `inter` to "
+            << "Ftrl constructor, but not both at the same time";
+    }
+  } else {
+    if (defined_alpha) {
+      fp.alpha = args[1].to_double_positive();
+    }
+
+    if (defined_beta) {
+      fp.beta = args[2].to_double_not_negative();
+    }
+
+    if (defined_lambda1) {
+      fp.lambda1 = args[3].to_double_not_negative();
+    }
+
+    if (defined_lambda2) {
+      fp.lambda2 = args[4].to_double_not_negative();
+    }
+
+    if (defined_d) {
+      fp.d = static_cast<uint64_t>(args[5].to_size_t_positive());
+    }
+
+    if (defined_n_epochs) {
+      fp.n_epochs = args[6].to_size_t();
+    }
+
+    if (defined_inter) {
+      fp.inter = args[7].to_bool_strict();
+    }
   }
 
-  if (!(args[1].is_undefined() || args[1].is_none())) {
-    fmp.b = args[1].to_double();
-  }
-
-  if (!(args[2].is_undefined() || args[2].is_none())) {
-    fmp.l1 = args[2].to_double();
-  }
-
-  if (!(args[3].is_undefined() || args[3].is_none())) {
-    fmp.l2 = args[3].to_double();
-  }
-
-  if (!(args[4].is_undefined() || args[4].is_none())) {
-    fmp.d = static_cast<uint64_t>(args[4].to_size_t());
-  }
-
-  if (!(args[5].is_undefined() || args[5].is_none())) {
-    fmp.n_epochs = args[5].to_size_t();
-  }
-
-  if (!(args[6].is_undefined() || args[6].is_none())) {
-    fmp.inter = args[6].to_bool_strict();
-  }
-
-  if (!(args[7].is_undefined() || args[7].is_none())) {
-    fmp.hash_type = static_cast<unsigned int>(args[7].to_size_t());
-  }
-
-  if (!(args[8].is_undefined() || args[8].is_none())) {
-    fmp.seed = static_cast<unsigned int>(args[8].to_size_t());
-  }
-
-  fm = new FtrlModel(fmp);
+  dtft = new dt::Ftrl(fp);
 }
 
 
 void Ftrl::m__dealloc__() {
-  delete fm;
+  delete dtft;
 }
 
 
@@ -92,13 +130,13 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 
 Parameters
 ----------
-a : float
+alpha : float
     `alpha` in per-coordinate learning rate formula.
-b : float
+beta : float
     `beta` in per-coordinate learning rate formula.
-l1 : float
+lambda1 : float
     L1 regularization parameter.
-l2 : float
+lambda2 : float
     L2 regularization parameter.
 d : int
     Number of bins to be used after the hashing trick. 
@@ -106,36 +144,63 @@ n_epochs : int
     Number of epochs to train for.
 inter : bool
     If feature interactions to be used or not.
-hash_type : int
-    Hashing method to use for strings:
-    `0` - std::hash;
-    `1` - Murmur2;
-    `2` - Murmur3.
-seed: int
-    Seed to be used for Murmur hash functions.
 )";
 }
 
 
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  gs.add<&Ftrl::get_model, &Ftrl::set_model>("model",
+  gs.add<&Ftrl::get_model, &Ftrl::set_model>(
+    "model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
     "where `d` is a number of bins set for modeling. Both column types\n"
-    "must be `FLOAT64`.\n"
-    "NB: as the model trains, this frame will be changed in-place.\n");
+    "must be `FLOAT64`"
+  );
 
-  gs.add<&Ftrl::get_a, &Ftrl::set_a>("a", "`alpha` in per-coordinate learning rate formula.\n");
-  gs.add<&Ftrl::get_b, &Ftrl::set_b>("b", "`beta` in per-coordinate learning rate formula.\n");
-  gs.add<&Ftrl::get_l1, &Ftrl::set_l1>("l1", "L1 regularization parameter.\n");
-  gs.add<&Ftrl::get_l2, &Ftrl::set_l2>("l2", "L2 regularization parameter.\n");
-  gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", "Number of bins to be used after the hashing trick.\n");
-  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>("n_epochs", "Number of epochs to train for.\n");
-  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", "If feature interactions to be used or not.\n");
-  gs.add<&Ftrl::get_hash_type, &Ftrl::set_hash_type>("hash_type", "Hashing method to use for strings.\n"
-    "`0` - std::hash;\n"
-    "`1` - Murmur2;\n"
-    "`2` - Murmur3.\n");
-  gs.add<&Ftrl::get_seed, &Ftrl::set_seed>("seed", "Seed to be used for Murmur hash functions.\n");
+  gs.add<&Ftrl::get_params, &Ftrl::set_params>(
+    "params",
+    "FTRL model parameters"
+  );
+
+  gs.add<&Ftrl::get_colnames_hashes>(
+    "colnames_hashes",
+    "Column name hashes.\n"
+  );
+
+  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>(
+    params_fields_info[0].first,
+    params_fields_info[0].second
+  );
+
+  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>(
+    params_fields_info[1].first,
+    params_fields_info[1].second
+  );
+
+  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>(
+    params_fields_info[2].first,
+    params_fields_info[2].second
+  );
+
+  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>(
+    params_fields_info[3].first,
+    params_fields_info[3].second
+  );
+
+  gs.add<&Ftrl::get_d, &Ftrl::set_d>(
+    params_fields_info[4].first,
+    params_fields_info[4].second
+  );
+
+  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>(
+    params_fields_info[5].first,
+    params_fields_info[5].second
+  );
+
+
+  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>(
+    params_fields_info[6].first,
+    params_fields_info[6].second
+  );
 
   mm.add<&Ftrl::fit, args_fit>();
   mm.add<&Ftrl::predict, args_predict>();
@@ -143,16 +208,20 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 }
 
 
-PKArgs Ftrl::Type::args_fit(1, 0, 0, false, false, {"frame"}, "fit",
-R"(fit(self, frame)
+PKArgs Ftrl::Type::args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
+R"(fit(self, X, y)
 --
 
 Train an FTRL model on a dataset.
 
 Parameters
 ----------
-frame: Frame
-    Frame to be trained on, last column is treated as `target`.
+X: Frame
+    Datatable frame of shape (nrows, ncols) to be trained on. 
+
+y: Frame
+    Datatable frame of shape (nrows, 1), i.e. the target column. 
+    This column must have a `bool` type. 
 
 Returns
 ----------
@@ -161,38 +230,91 @@ Returns
 
 
 void Ftrl::fit(const PKArgs& args) {
-  DataTable* dt_train = args[0].to_frame();
-  fm->fit(dt_train);
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Training frame parameter is missing";
+  }
+
+  if (args[1].is_undefined()) {
+    throw ValueError() << "Target frame parameter is missing";
+  }
+
+
+  DataTable* dt_X = args[0].to_frame();
+  DataTable* dt_y = args[1].to_frame();
+
+  if (dt_X == nullptr || dt_y == nullptr) return;
+
+  if (dt_X->ncols == 0) {
+    throw ValueError() << "Training frame must have at least one column";
+  }
+
+  if (dt_X->nrows == 0) {
+    throw ValueError() << "Training frame cannot be empty";
+  }
+
+  if (dt_y->ncols != 1) {
+    throw ValueError() << "Target frame must have exactly one column";
+  }
+
+  if (dt_y->columns[0]->stype() != SType::BOOL ) {
+    throw ValueError() << "Target column must be of a `bool` type";
+  }
+
+  if (dt_X->nrows != dt_y->nrows) {
+    throw ValueError() << "Target column must have the same number of rows"
+                       << " as the training frame";
+  }
+
+  dtft->fit(dt_X, dt_y);
 }
 
 
-PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"frame"}, "predict",
-R"(predict(self, frame)
+PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
+R"(predict(self, X)
 --
 
 Make predictions for a dataset.
 
 Parameters
 ----------
-frame: Frame
-    Frame of shape `(nrows, ncols)` to make predictions for. It must have one 
-    column less than the training dataset.
+X: Frame
+    Datatable frame of shape (nrows, ncols) to make predictions for. 
+    It must have the same number of columns as the training frame.
 
 Returns
 ----------
-    A new `Frame` of shape `(nrows, 1)` with a prediction for each row.
+    A new datatable frame of shape (nrows, 1) with a prediction 
+    for each row of frame X.
 )");
 
 
 oobj Ftrl::predict(const PKArgs& args) {
-  if (fm->is_trained()) {
-    DataTable* dt_test = args[0].to_frame();
-    DataTable* dt_target = fm->predict(dt_test).release();
-    py::oobj df_target = py::oobj::from_new_reference(py::Frame::from_datatable(dt_target));
-    return df_target;
-  } else {
-    throw ValueError() << "Cannot make any predictions, because the model was not trained";
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Frame to make predictions for is missing";
   }
+
+  DataTable* dt_X = args[0].to_frame();
+
+  if (dt_X == nullptr) return Py_None;
+
+  if (!dtft->is_trained()) {
+    throw ValueError() << "Cannot make any predictions, because the model "
+                       << "was not trained";
+  }
+
+  size_t n_features = dtft->get_n_features();
+  if (dt_X->ncols != n_features && n_features != 0) {
+    throw ValueError() << "Can only predict on a frame that has "<< n_features
+                       << " column(s), i.e. has the same number of features as "
+                       << "was used for model training";
+  }
+
+  DataTable* dt_y = dtft->predict(dt_X).release();
+  py::oobj df_y = py::oobj::from_new_reference(
+                         py::Frame::from_datatable(dt_y)
+                       );
+
+  return df_y;
 }
 
 
@@ -200,7 +322,7 @@ PKArgs Ftrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
 
-Reset an FTRL model.
+Reset an FTRL model, i.e. initialize all the weights to zero.
 
 Parameters
 ----------
@@ -213,17 +335,85 @@ Returns
 
 
 void Ftrl::reset(const PKArgs&) {
-  fm->init_model();
+  dtft->reset_model();
 }
 
+
 /*
-*  Getter and setter for the model datatable.
+*  Getters and setters.
 */
 oobj Ftrl::get_model() const {
-  if (fm->is_trained()) {
-    DataTable* dt_model = fm->get_model();
-    py::oobj df_model = py::oobj::from_new_reference(py::Frame::from_datatable(dt_model));
+  if (dtft->is_trained()) {
+    DataTable* dt_model = dtft->get_model();
+    py::oobj df_model = py::oobj::from_new_reference(
+                          py::Frame::from_datatable(dt_model)
+                        );
     return df_model;
+  } else {
+    return py::None();
+  }
+}
+
+
+oobj Ftrl::get_params() const {
+  py::onamedtuple params(params_nttype);
+  params.set(0, get_alpha());
+  params.set(1, get_beta());
+  params.set(2, get_lambda1());
+  params.set(3, get_lambda2());
+  params.set(4, get_d());
+  params.set(5, get_n_epochs());
+  params.set(6, get_inter());
+  return std::move(params);
+}
+
+
+
+oobj Ftrl::get_alpha() const {
+  return py::ofloat(dtft->get_alpha());
+}
+
+
+oobj Ftrl::get_beta() const {
+  return py::ofloat(dtft->get_beta());
+}
+
+
+oobj Ftrl::get_lambda1() const {
+  return py::ofloat(dtft->get_lambda1());
+}
+
+
+oobj Ftrl::get_lambda2() const {
+  return py::ofloat(dtft->get_lambda2());
+}
+
+
+oobj Ftrl::get_d() const {
+  return py::oint(static_cast<size_t>(dtft->get_d()));
+}
+
+
+oobj Ftrl::get_n_epochs() const {
+  return py::oint(dtft->get_n_epochs());
+}
+
+
+oobj Ftrl::get_inter() const {
+  return dtft->get_inter()? True() : False();
+}
+
+
+oobj Ftrl::get_colnames_hashes() const {
+  if (dtft->is_trained()) {
+    size_t n_features = dtft->get_n_features();
+    py::otuple py_colnames_hashes(n_features);
+    std::vector<uint64_t> colnames_hashes = dtft->get_colnames_hashes();
+    for (size_t i = 0; i < n_features; ++i) {
+      size_t h = static_cast<size_t>(colnames_hashes[i]);
+      py_colnames_hashes.set(i, py::oint(h));
+    }
+    return std::move(py_colnames_hashes);
   } else {
     return py::None();
   }
@@ -232,178 +422,108 @@ oobj Ftrl::get_model() const {
 
 void Ftrl::set_model(robj model) {
   DataTable* dt_model_in = model.to_frame();
-  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-  if (dt_model_in->nrows != fm->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << fm->get_d() << " rows,"
-                       << "and 2 columns, whereas your frame has " << dt_model_in->nrows
-                       << " rows and " << dt_model_in->ncols << " columns";
+  // Reset model when it was assigned `None` in Python
+  if (dt_model_in == nullptr) {
+    if (dtft->is_trained()) dtft->reset_model();
+    return;
   }
 
-  if (model_cols_in != FtrlModel::model_cols) {
-    throw ValueError() << "FTRL model frame must have columns named `z` and `n`,"
-                       << "whereas your frame has the following column names `" << model_cols_in[0]
+  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
+
+  if (dt_model_in->nrows != dtft->get_d() || dt_model_in->ncols != 2) {
+    throw ValueError() << "FTRL model frame must have " << dtft->get_d()
+                       << " rows, and 2 columns, whereas your frame has "
+                       << dt_model_in->nrows << " rows and "
+                       << dt_model_in->ncols << " column(s)";
+
+  }
+
+  if (model_cols_in != dt::Ftrl::model_cols) {
+    throw ValueError() << "FTRL model frame must have columns named `z` and "
+                       << "`n`, whereas your frame has the following column "
+                       << "names: `" << model_cols_in[0]
                        << "` and `" << model_cols_in[1] << "`";
   }
 
   if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
     dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-    throw ValueError() << "FTRL model frame must have both column types as `float64`, "
-                       << "whereas your frame has the following column types: `"
+    throw ValueError() << "FTRL model frame must have both column types as "
+                       << "`float64`, whereas your frame has the following "
+                       << "column types: `"
                        << dt_model_in->columns[0]->stype()
                        << "` and `" << dt_model_in->columns[1]->stype() << "`";
   }
 
-  fm->set_model(dt_model_in);
-}
-
-
-/*
-*  All other getters and setters.
-*/
-oobj Ftrl::get_a() const {
-  return py::ofloat(fm->get_a());
-}
-
-
-oobj Ftrl::get_b() const {
-  return py::ofloat(fm->get_b());
-}
-
-
-oobj Ftrl::get_l1() const {
-  return py::ofloat(fm->get_l1());
-}
-
-
-oobj Ftrl::get_l2() const {
-  return py::ofloat(fm->get_l2());
-}
-
-
-oobj Ftrl::get_d() const {
-  return py::oint(static_cast<size_t>(fm->get_d()));
-}
-
-
-oobj Ftrl::get_n_epochs() const {
-  return py::oint(fm->get_n_epochs());
-}
-
-
-oobj Ftrl::get_inter() const {
-  return py::oint(static_cast<size_t>(fm->get_inter()));
-}
-
-
-oobj Ftrl::get_hash_type() const {
-  return py::oint(static_cast<size_t>(fm->get_hash_type()));
-}
-
-
-oobj Ftrl::get_seed() const {
-  return py::oint(static_cast<size_t>(fm->get_seed()));
-}
-
-
-void Ftrl::set_a(robj a) {
-  if (!a.is_numeric()) {
-    throw TypeError() << "`a` must be numeric, not "
-        << a.typeobj();
+  if (has_negative_n(dt_model_in)) {
+    throw ValueError() << "Values in column `n` cannot be negative";
   }
-  fm->set_a(a.to_double());
+
+  dtft->set_model(dt_model_in);
 }
 
 
-void Ftrl::set_b(robj b) {
-  if (!b.is_numeric()) {
-    throw TypeError() << "`b` must be numeric, not "
-        << b.typeobj();
+bool Ftrl::has_negative_n(DataTable* dt) {
+  auto c_n = static_cast<RealColumn<double>*>(dt->columns[1]);
+  auto d_n = c_n->elements_r();
+  for (size_t i = 0; i < dt->nrows; ++i) {
+    if (d_n[i] < 0) return true;
   }
-  fm->set_b(b.to_double());
+  return false;
 }
 
 
-void Ftrl::set_l1(robj l1) {
-  if (!l1.is_numeric()) {
-    throw TypeError() << "`l1` must be numeric, not "
-        << l1.typeobj();
-  }
-  fm->set_l1(l1.to_double());
+void Ftrl::set_params(robj params) {
+  set_alpha(params.get_attr("alpha"));
+  set_beta(params.get_attr("beta"));
+  set_lambda1(params.get_attr("lambda1"));
+  set_lambda2(params.get_attr("lambda2"));
+  set_d(params.get_attr("d"));
+  set_n_epochs(params.get_attr("n_epochs"));
+  set_inter(params.get_attr("inter"));
+  // TODO: check that there are no unknown parameters
 }
 
 
-void Ftrl::set_l2(robj l2) {
-  if (!l2.is_numeric()) {
-    throw TypeError() << "`l2` must be numeric, not "
-        << l2.typeobj();
-  }
-  fm->set_l2(l2.to_double());
+void Ftrl::set_alpha(robj alpha_in) {
+  double alpha = alpha_in.to_double_positive();
+  dtft->set_alpha(alpha);
+}
+
+
+void Ftrl::set_beta(robj beta_in) {
+  double beta = beta_in.to_double_not_negative();
+  dtft->set_beta(beta);
+}
+
+
+void Ftrl::set_lambda1(robj lambda1_in) {
+  double lambda1 = lambda1_in.to_double_not_negative();
+  dtft->set_lambda1(lambda1);
+}
+
+
+void Ftrl::set_lambda2(robj lambda2_in) {
+  double lambda2 = lambda2_in.to_double_not_negative();
+  dtft->set_lambda2(lambda2);
 }
 
 
 void Ftrl::set_d(robj d) {
-  if (!d.is_int()) {
-    throw TypeError() << "`d` must be integer, not "
-        << d.typeobj();
-  }
-  int64_t d_in = d.to_int64_strict();
-  if (d_in < 0) {
-    throw ValueError() << "`d` cannot be negative";
-  }
-  fm->set_d(static_cast<uint64_t>(d_in));
+  size_t d_in = d.to_size_t_positive();
+  dtft->set_d(static_cast<uint64_t>(d_in));
 }
 
 
 void Ftrl::set_n_epochs(robj n_epochs) {
-  if (!n_epochs.is_int()) {
-    throw TypeError() << "`n_epochs` must be integer, not "
-        << n_epochs.typeobj();
-  }
-  int64_t n_epochs_in = n_epochs.to_int64_strict();
-  if (n_epochs_in < 0) {
-    throw ValueError() << "`n_epochs` cannot be negative";
-  }
-  fm->set_n_epochs(static_cast<size_t>(n_epochs_in));
+  size_t n_epochs_in = n_epochs.to_size_t();
+  dtft->set_n_epochs(n_epochs_in);
 }
 
 
 void Ftrl::set_inter(robj inter) {
-  if (!inter.is_int()) {
-    throw TypeError() << "`inter` must be integer, not "
-        << inter.typeobj();
-  }
-  int64_t inter_in = inter.to_int64_strict();
-  if (inter_in != 0 && inter_in != 1) {
-    throw ValueError() << "`inter` must be either `0` or `1`";
-  }
-  fm->set_d(static_cast<bool>(inter_in));
-}
-
-
-void Ftrl::set_hash_type(robj hash_type) {
-  if (!hash_type.is_int()) {
-    throw TypeError() << "`hash_type` must be integer, not "
-        << hash_type.typeobj();
-  }
-  int64_t hash_type_in = hash_type.to_int64_strict();
-  if (hash_type_in != 0 && hash_type_in != 1 && hash_type_in !=2) {
-    throw ValueError() << "`hash_type_in` must be either `0` or `1` or `2`";
-  }
-  fm->set_hash_type(static_cast<unsigned int>(hash_type_in));
-}
-
-
-void Ftrl::set_seed(robj seed) {
-  if (!seed.is_int()) {
-    throw TypeError() << "`seed` must be integer, not "
-        << seed.typeobj();
-  }
-  int32_t seed_in = seed.to_int32_strict();
-  if (seed_in < 0) {
-    throw ValueError() << "`seed` cannot be negative";
-  }
-  fm->set_seed(static_cast<unsigned int>(seed_in));
+  bool inter_in = inter.to_bool_strict();
+  dtft->set_inter(inter_in);
 }
 
 } // namespace py

@@ -12,6 +12,7 @@
 #include <Python.h>
 #include "python/obj.h"
 #include "python/list.h"
+#include "python/tuple.h"
 
 namespace py {
 
@@ -40,6 +41,7 @@ class Arg : public _obj::error_manager {
     //---- Type checks -----------------
     bool is_undefined() const;
     bool is_none() const;
+    bool is_none_or_undefined() const;
     bool is_ellipsis() const;
     bool is_bool() const;
     bool is_int() const;
@@ -56,27 +58,36 @@ class Arg : public _obj::error_manager {
     bool is_numpy_array() const;
 
     //---- Type conversions ------------
-    bool        to_bool_strict   () const;
-    int32_t     to_int32_strict  () const;
-    int64_t     to_int64_strict  () const;
-    size_t      to_size_t        () const;
-    double      to_double        () const;
-    py::olist   to_pylist        () const;
-    py::odict   to_pydict        () const;
-    py::rdict   to_rdict         () const;
-    std::string to_string        () const;
-    strvec      to_stringlist    () const;
-    SType       to_stype         () const;
-    SType       to_stype         (const error_manager&) const;
-    py::robj    to_pyobj         () const { return pyobj; }
-    DataTable*  to_frame         () const;
+    bool        to_bool_strict        () const;
+    int32_t     to_int32_strict       () const;
+    int64_t     to_int64_strict       () const;
+    size_t      to_size_t             () const;
+    size_t      to_size_t_positive    () const;
+    double      to_double             () const;
+    double      to_double_not_negative() const;
+    double      to_double_positive    () const;
+    py::olist   to_pylist             () const;
+    py::odict   to_pydict             () const;
+    py::rdict   to_rdict              () const;
+    py::otuple  to_otuple             () const;
+    std::string to_string             () const;
+    strvec      to_stringlist         () const;
+    SType       to_stype              () const;
+    SType       to_stype              (const error_manager&) const;
+    py::robj    to_pyobj              () const { return pyobj; }
+    DataTable*  to_frame              () const;
 
 
     //---- Error messages --------------
-    virtual Error error_not_list       (PyObject*) const override;
-    virtual Error error_not_stype      (PyObject*) const override;
-    virtual Error error_not_integer    (PyObject*) const override;
-    virtual Error error_int_negative   (PyObject*) const override;
+    virtual Error error_not_list           (PyObject*) const override;
+    virtual Error error_not_stype          (PyObject*) const override;
+    virtual Error error_not_boolean        (PyObject*) const override;
+    virtual Error error_not_integer        (PyObject*) const override;
+    virtual Error error_int_negative       (PyObject*) const override;
+    virtual Error error_int_not_positive   (PyObject*) const override;
+    virtual Error error_not_double         (PyObject*) const override;
+    virtual Error error_double_negative    (PyObject*) const override;
+    virtual Error error_double_not_positive(PyObject*) const override;
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }
