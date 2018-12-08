@@ -1,6 +1,8 @@
-// Slightly modified murmur hash functions that are originally written by
+//------------------------------------------------------------------------------
+// Slightly modified Murmur hash functions that are originally written by
 // Austin Appleby and placed to the public domain, see
 // https://github.com/aappleby/smhasher
+//------------------------------------------------------------------------------
 #include "extras/murmurhash.h"
 #define BIG_CONSTANT(x) (x##LLU)
 

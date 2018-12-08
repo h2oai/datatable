@@ -50,22 +50,24 @@ const std::string& Arg::name() const {
 // Type checks
 //------------------------------------------------------------------------------
 
-bool Arg::is_undefined()     const { return pyobj.is_undefined(); }
-bool Arg::is_none()          const { return pyobj.is_none(); }
-bool Arg::is_ellipsis()      const { return pyobj.is_ellipsis(); }
-bool Arg::is_bool()          const { return pyobj.is_bool(); }
-bool Arg::is_int()           const { return pyobj.is_int(); }
-bool Arg::is_float()         const { return pyobj.is_float(); }
-bool Arg::is_list()          const { return pyobj.is_list(); }
-bool Arg::is_tuple()         const { return pyobj.is_tuple(); }
-bool Arg::is_list_or_tuple() const { return pyobj.is_list_or_tuple(); }
-bool Arg::is_dict()          const { return pyobj.is_dict(); }
-bool Arg::is_string()        const { return pyobj.is_string(); }
-bool Arg::is_range()         const { return pyobj.is_range(); }
-bool Arg::is_frame()         const { return pyobj.is_frame(); }
-bool Arg::is_pandas_frame()  const { return pyobj.is_pandas_frame(); }
-bool Arg::is_pandas_series() const { return pyobj.is_pandas_series(); }
-bool Arg::is_numpy_array()   const { return pyobj.is_numpy_array(); }
+bool Arg::is_undefined()         const { return pyobj.is_undefined(); }
+bool Arg::is_none()              const { return pyobj.is_none(); }
+bool Arg::is_none_or_undefined() const { return pyobj.is_none() ||
+                                                pyobj.is_undefined(); }
+bool Arg::is_ellipsis()          const { return pyobj.is_ellipsis(); }
+bool Arg::is_bool()              const { return pyobj.is_bool(); }
+bool Arg::is_int()               const { return pyobj.is_int(); }
+bool Arg::is_float()             const { return pyobj.is_float(); }
+bool Arg::is_list()              const { return pyobj.is_list(); }
+bool Arg::is_tuple()             const { return pyobj.is_tuple(); }
+bool Arg::is_list_or_tuple()     const { return pyobj.is_list_or_tuple(); }
+bool Arg::is_dict()              const { return pyobj.is_dict(); }
+bool Arg::is_string()            const { return pyobj.is_string(); }
+bool Arg::is_range()             const { return pyobj.is_range(); }
+bool Arg::is_frame()             const { return pyobj.is_frame(); }
+bool Arg::is_pandas_frame()      const { return pyobj.is_pandas_frame(); }
+bool Arg::is_pandas_series()     const { return pyobj.is_pandas_series(); }
+bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
 
 
 
@@ -77,10 +79,14 @@ bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }
+size_t      Arg::to_size_t_positive() const { return pyobj.to_size_t_positive(*this); }
 double      Arg::to_double()       const { return pyobj.to_double(*this); }
+double      Arg::to_double_not_negative() const { return pyobj.to_double_not_negative(*this); }
+double      Arg::to_double_positive() const { return pyobj.to_double_positive(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }
+py::otuple  Arg::to_otuple()       const { return pyobj.to_otuple(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
@@ -102,6 +108,11 @@ Error Arg::error_not_stype(PyObject* src) const {
   return TypeError() << name() << " cannot be converted into an stype: " << src;
 }
 
+Error Arg::error_not_boolean(PyObject* src) const {
+  return TypeError() << name() << " should be a boolean, instead got "
+      <<Py_TYPE(src);
+}
+
 Error Arg::error_not_integer(PyObject* src) const {
   return TypeError() << name() << " should be an integer, instead got "
       <<Py_TYPE(src);
@@ -111,7 +122,22 @@ Error Arg::error_int_negative(PyObject* src) const {
   return ValueError() << name() << " cannot be negative: " << src;
 }
 
+Error Arg::error_int_not_positive(PyObject* src) const {
+  return ValueError() << name() << " should be positive: " << src;
+}
 
+Error Arg::error_not_double(PyObject* src) const {
+  return TypeError() << name() << " should be a float, instead got "
+      <<Py_TYPE(src);
+}
+
+Error Arg::error_double_negative(PyObject* src) const {
+  return ValueError() << name() << " cannot be negative: " << src;
+}
+
+Error Arg::error_double_not_positive(PyObject* src) const {
+  return ValueError() << name() << " should be positive: " << src;
+}
 
 //------------------------------------------------------------------------------
 // Misc

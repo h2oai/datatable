@@ -284,6 +284,15 @@ size_t _obj::to_size_t(const error_manager& em) const {
 }
 
 
+size_t _obj::to_size_t_positive(const error_manager& em) const {
+  int64_t res = to_int64_strict(em);
+  if (res <= 0) {
+    throw em.error_int_not_positive(v);
+  }
+  return static_cast<size_t>(res);
+}
+
+
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
   if (PyLong_Check(v)) return py::oint(robj(v));
@@ -319,6 +328,24 @@ double _obj::to_double(const error_manager& em) const {
     return res;
   }
   throw em.error_not_double(v);
+}
+
+
+double _obj::to_double_not_negative(const error_manager& em) const {
+  double res = to_double(em);
+  if (res < 0) {
+    throw em.error_double_negative(v);
+  }
+  return res;
+}
+
+
+double _obj::to_double_positive(const error_manager& em) const {
+  double res = to_double(em);
+  if (res <= 0) {
+    throw em.error_double_not_positive(v);
+  }
+  return res;
 }
 
 
@@ -786,5 +813,16 @@ Error _obj::error_manager::error_int_negative(PyObject*) const {
   return ValueError() << "Integer value is negative";
 }
 
+Error _obj::error_manager::error_int_not_positive(PyObject*) const {
+  return ValueError() << "Integer value is not positive";
+}
+
+Error _obj::error_manager::error_double_negative(PyObject*) const {
+  return ValueError() << "Float value is negative";
+}
+
+Error _obj::error_manager::error_double_not_positive(PyObject*) const {
+  return ValueError() << "Float value is not positive";
+}
 
 }  // namespace py
