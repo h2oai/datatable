@@ -19,43 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/workframe.h"
+#ifndef dt_EXPR_J_NODE_h
+#define dt_EXPR_J_NODE_h
 namespace dt {
 
 
-workframe::workframe(DataTable* dt) {
-  dts.push_back(dt);
-  ris.push_back(RowIndex());
-}
+class jnode_impl;
 
+/**
+ * This class handles the `j` part of the `DT[i, j, ...]` expression.
+ */
+class j_node {
+  private:
+    std::unique_ptr<jnode_impl> impl;
 
-DataTable* workframe::get_datatable(size_t id) const {
-  return dts[id];
-}
-
-
-const RowIndex& workframe::get_rowindex(size_t id) const {
-  return ris[id];
-}
-
-
-size_t workframe::nframes() const {
-  return dts.size();
-}
-
-
-size_t workframe::nrows() const {
-  const RowIndex& ri0 = ris[0];
-  return ri0? ri0.size() : dts[0]->nrows;
-}
-
-
-void workframe::apply_rowindex(const RowIndex& ri) {
-  for (size_t i = 0; i < ris.size(); ++i) {
-    ris[i] = ri * ris[i];
-  }
-}
+  public:
+    j_node(py::robj src);
+};
 
 
 
-} // namespace dt
+}  // namespace dt
+#endif

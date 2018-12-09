@@ -164,8 +164,15 @@ static inode_impl* _make_impl(py::robj src) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// i_node API
+//------------------------------------------------------------------------------
+
 i_node::i_node(py::robj src)
   : impl(_make_impl(src)) {}
+
+
 
 
 
@@ -281,17 +288,6 @@ i_node::i_node(py::robj src)
                              "an integer column, however it has type %s"
                              % col0type)
 
-    if isinstance(rows, types.FunctionType):
-        return make_rowfilter(rows(f), ee, _nested=True)
-
-    if isinstance(rows, BaseExpr):
-        return FilterExprRFNode(ee, rows)
-
-    if _nested:
-        raise TTypeError("Unexpected result produced by the `rows` "
-                         "function: %r" % (rows, ))
-    else:
-        raise TTypeError("Unexpected `rows` argument: %r" % (rows, ))
 
  *******/
 

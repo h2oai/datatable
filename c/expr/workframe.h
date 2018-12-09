@@ -65,6 +65,7 @@ class workframe {
 
     DataTable* get_datatable(size_t id) const;
     const RowIndex& get_rowindex(size_t id) const;
+    size_t nframes() const;
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
