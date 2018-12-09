@@ -21,31 +21,46 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_WORKFRAME_h
 #define dt_EXPR_WORKFRAME_h
-#include <vector>
-#include "datatable.h"
-#include "rowindex.h"
+#include <vector>        // std::vector
+#include "datatable.h"   // DataTable
+#include "groupby.h"     // Groupby
+#include "rowindex.h"    // RowIndex
 namespace dt {
 
 
 
+/**
+ * This is a main class used to evaluate the expression `DT[i, j, ...]`. This
+ * class is essentially a "work-in-progress Frame", hence the name. It is not
+ * a real frame, however, in the sense that it may be misshapen, or violate
+ * other Frame constraints at some point in its lifetime.
+ *
+ * Initially, a workframe is created using the DataTable* object `DT` which is
+ * at the root of the expression `DT[i, j, ...]`.
+ *
+ * Later, `join_node`(s) may append additional DataTable* objects, with all
+ * `RowIndex`es specifying how they merge together.
+ *
+ * The `by_node` will attach a `Groupby` object. The Groupby will specify how
+ * the rows are split into groups, and it applies to all `DataTable*`s in the
+ * workframe. The shape of the Groupby must be compatible with all current
+ * `RowIndex`es.
+ */
 class workframe {
   private:
     std::vector<DataTable*> dts;
-    std::vector<RowIndex> rowindexes;
+    std::vector<RowIndex> ris;
+    Groupby gb;
 
   public:
-    workframe() = default;
+    workframe() = delete;
     workframe(const workframe&) = delete;
     workframe(workframe&&) = delete;
 
-    DataTable* get_datatable(size_t id) const {
-      return dts[id];
-    }
+    explicit workframe(DataTable*);
 
-    const RowIndex& get_rowindex(size_t id) const {
-      return rowindexes[id];
-    }
-
+    DataTable* get_datatable(size_t id) const;
+    const RowIndex& get_rowindex(size_t id) const;
     void apply_rowindex(const RowIndex& ri);
 };
 
