@@ -24,6 +24,7 @@
 #include "python/tuple.h"
 #include "python/string.h"
 #include "python/int.h"
+#include "utils/assert.h"
 
 namespace py {
 
@@ -77,11 +78,12 @@ onamedtupletype::onamedtupletype(const std::string& cls_name,
 
   // Set field docs
   if (!field_docs.empty()) {
+    xassert(field_docs.size() == nfields);
     py::otuple args_prop(4);
     py::otuple args_itemgetter(1);
     args_prop.set(1, py::None());
     args_prop.set(2, py::None());
-    for (size_t i = 0; i < field_docs.size(); ++i) {
+    for (size_t i = 0; i < nfields; ++i) {
       args_itemgetter.set(0, py::oint(i));
       args_prop.set(0, itemgetter.call(args_itemgetter));
       args_prop.set(3, py::ostring(field_docs[i]));
