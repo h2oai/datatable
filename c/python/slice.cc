@@ -90,23 +90,38 @@ int64_t oslice::step() const {
 
 
 void oslice::normalize(
-    size_t len, size_t* start, size_t* count, size_t* step) const
+    size_t len, size_t* pstart, size_t* pcount, size_t* pstep) const
+{
+  normalize(len, this->start(), this->stop(), this->step(),
+            pstart, pcount, pstep);
+}
+
+
+void oslice::normalize(
+    size_t len,
+    int64_t istart, int64_t istop, int64_t istep,
+    size_t* ostart, size_t* ocount, size_t* ostep)
 {
   int64_t ilen = static_cast<int64_t>(len);
-  int64_t istep = this->step();
   if (istep == oslice::NA) istep = 1;
-  if (istep == 0) {
-    throw ValueError() << "Slice step cannot be zero";
-  }
 
-  int64_t istart = this->start();
-  if (istart == oslice::NA) istart = (istep > 0)? 0 : ilen - 1;
+  if (istart == oslice::NA) istart = (istep >= 0)? 0 : ilen - 1;
   if (istart < 0) istart += ilen;
   if (istart < 0) istart = 0;
   if (istart > ilen) istart = ilen;
   xassert(istart >= 0 && istart <= ilen);
 
-  int64_t istop = this->stop();
+  if (istep == 0) {
+    if (istop == oslice::NA || istop < 0) {
+      throw ValueError() <<
+          "When slice step is zero, the count must be non-negative";
+    }
+    *ostart = static_cast<size_t>(istart);
+    *ocount = static_cast<size_t>(istop);
+    *ostep = 0;
+    return;
+  }
+
   if (istop == oslice::NA) {
     istop = (istep > 0)? ilen : -1;
   }
@@ -126,9 +141,9 @@ void oslice::normalize(
   }
   xassert(icount >= 0 && icount < ilen);
 
-  *start = static_cast<size_t>(istart);
-  *count = static_cast<size_t>(icount);
-  *step  = static_cast<size_t>(istep);
+  *ostart = static_cast<size_t>(istart);
+  *ocount = static_cast<size_t>(icount);
+  *ostep  = static_cast<size_t>(istep);
 }
 
 

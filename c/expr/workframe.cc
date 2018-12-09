@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/workframe.h"
-
+namespace dt {
 
 
 workframe::workframe(DataTable* dt) {
@@ -37,3 +37,20 @@ DataTable* workframe::get_datatable(size_t id) const {
 const RowIndex& workframe::get_rowindex(size_t id) const {
   return ris[id];
 }
+
+
+size_t workframe::nrows() const {
+  const RowIndex& ri0 = ris[0];
+  return ri0? ri0.size() : dts[0]->nrows;
+}
+
+
+void workframe::apply_rowindex(const RowIndex& ri) {
+  for (size_t i = 0; i < ris.size(); ++i) {
+    ris[i] = ri * ris[i];
+  }
+}
+
+
+
+} // namespace dt

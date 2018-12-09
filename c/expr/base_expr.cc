@@ -31,22 +31,9 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// workframe
-//------------------------------------------------------------------------------
-
-
-
-
-//------------------------------------------------------------------------------
 // base_expr
 //------------------------------------------------------------------------------
 
-class base_expr {
-  public:
-    virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual Column* evaluate_eager(const workframe&) = 0;
-};
 
 using base_expr_ptr = std::unique_ptr<base_expr>;
 
@@ -324,4 +311,11 @@ void py::base_expr::Type::init_methods_and_getsets(
     py::ExtType<py::base_expr>::GetSetters&)
 {
   dt::init_binops();
+}
+
+
+bool is_PyBaseExpr(const py::_obj& obj) {
+  static auto BaseExprType = py::oobj::import("datatable.graph", "BaseExpr");
+  return PyObject_IsInstance(obj.to_borrowed_ref(),
+                             BaseExprType.to_borrowed_ref());
 }

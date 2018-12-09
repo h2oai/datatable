@@ -45,6 +45,10 @@ namespace dt {
  * the rows are split into groups, and it applies to all `DataTable*`s in the
  * workframe. The shape of the Groupby must be compatible with all current
  * `RowIndex`es.
+ *
+ * An `i_node` applies a new row filter to all Frames in the workframe. If
+ * there is a non-empty Groupby, the `i_node` must apply within each group, and
+ * then update the Groupby to account for the new configuration of the rows.
  */
 class workframe {
   private:
@@ -61,6 +65,8 @@ class workframe {
 
     DataTable* get_datatable(size_t id) const;
     const RowIndex& get_rowindex(size_t id) const;
+    size_t nrows() const;
+
     void apply_rowindex(const RowIndex& ri);
 };
 

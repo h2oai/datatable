@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/i_node.h"
 #include "expr/workframe.h"   // dt::workframe
 namespace dt {
@@ -74,7 +75,7 @@ void allrows_ii::execute(workframe&) {}
 
 class slice_ii : public inode_impl {
   private:
-    int64_t start, stop, step;
+    int64_t istart, istop, istep;
 
   public:
     slice_ii(int64_t, int64_t, int64_t);
@@ -83,14 +84,54 @@ class slice_ii : public inode_impl {
 
 
 slice_ii::slice_ii(int64_t _start, int64_t _stop, int64_t _step) {
-  start = _start;
-  stop = _stop;
-  step = _step;
+  istart = _start;
+  istop = _stop;
+  istep = _step;
 }
 
 
 void slice_ii::execute(workframe& wf) {
-  // wf.apply_rowindex(ri);
+  size_t nrows = wf.nrows();
+  size_t start, count, step;
+  py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
+  wf.apply_rowindex(RowIndex(start, count, step));
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// expr_ii
+//------------------------------------------------------------------------------
+
+class expr_ii : public inode_impl {
+  private:
+    dt::base_expr* expr;
+
+  public:
+    explicit expr_ii(const py::robj& src);
+    virtual void execute(workframe&) override;
+};
+
+
+expr_ii::expr_ii(const py::robj& src) {
+  py::oobj res = src.invoke("_core");
+  xassert(res.typeobj() == &py::base_expr::Type::type);
+  auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
+  expr = pybe->expr;
+}
+
+
+void expr_ii::execute(workframe& wf) {
+  SType st = expr->resolve(wf);
+  if (st != SType::BOOL) {
+    throw TypeError() << "Filter expression must be of `bool8` type, instead it "
+        "was of type " << st;
+  }
+  Column* col = expr->evaluate_eager(wf);
+  RowIndex res(col);
+  wf.apply_rowindex(res);
+  delete col;
 }
 
 
@@ -101,6 +142,7 @@ void slice_ii::execute(workframe& wf) {
 //------------------------------------------------------------------------------
 
 static inode_impl* _make_impl(py::robj src) {
+  // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
     if (ssrc.is_trivial()) return new allrows_ii();
@@ -109,10 +151,16 @@ static inode_impl* _make_impl(py::robj src) {
     }
     throw TypeError() << src << " is not integer-valued";
   }
-  if (src.is_ellipsis() || src.is_none()) {
+  if (is_PyBaseExpr(src)) {
+    return new expr_ii(src);
+  }
+  if (src.is_none() || src.is_ellipsis()) {
     return new allrows_ii();
   }
-
+  if (src.is_bool()) {
+    throw TypeError() << "Boolean value cannot be used as an `i` expression";
+  }
+  return nullptr;  // for now
 }
 
 
@@ -123,11 +171,7 @@ i_node::i_node(py::robj src)
 
 /*******
 
-    if rows is True or rows is False:
-        # Note: True/False are integer objects in Python
-        raise TTypeError("Boolean value cannot be used as a `rows` selector")
-
-    if isinstance(rows, (int, slice, range)):
+    if isinstance(rows, (int, range)):
         rows = [rows]
 
     from_generator = False
