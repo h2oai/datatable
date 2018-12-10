@@ -40,9 +40,6 @@ class col_set {
       Column* newcol = col->shallowcopy(rowindex_product(ri, ricol));
       columns.push_back(newcol);
     }
-    void clear_cache() {
-      all_ri.clear();
-    }
     colvec&& release() {
       return std::move(columns);
     }
@@ -92,7 +89,6 @@ DataTable* allcols_ji::execute(workframe& wf) {
     for (size_t j = j0; j < dti->ncols; ++j) {
       cols.add_column(dti->columns[j], rii);
     }
-    cols.clear_cache();
   }
   if (wf.nframes() == 1) {
     // Copy names from the source DataTable
