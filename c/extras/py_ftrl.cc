@@ -42,9 +42,16 @@ static const char* doc_inter    = "Parameter that controls if feature interactio
 
 static onamedtupletype& _get_params_namedtupletype() {
   static onamedtupletype ntt(
-    "FtrlParams", "FTRL model parameters",
-    {"alpha", "beta", "lambda1", "lambda2", "d", "n_epochs", "inter"},
-    {doc_alpha, doc_beta, doc_lambda1, doc_lambda2, doc_d, doc_n_epochs, doc_inter});
+    "FtrlParams",
+    "FTRL model parameters",
+    {{"alpha",    doc_alpha},
+     {"beta",     doc_beta},
+     {"lambda1",  doc_lambda1},
+     {"lambda2",  doc_lambda2},
+     {"d",        doc_d},
+     {"n_epochs", doc_n_epochs},
+     {"inter",    doc_inter}}
+  );
   return ntt;
 }
 

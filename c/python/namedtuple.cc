@@ -33,9 +33,11 @@ namespace py {
 // onamedtupletype
 //------------------------------------------------------------------------------
 
-onamedtupletype::onamedtupletype(
-  const std::string& cls_name, const strvec& field_names
-) : onamedtupletype(cls_name, "", field_names, {}) {}
+onamedtupletype::onamedtupletype(const std::string& cls_name,
+                                 const strvec& field_names)
+  : onamedtupletype(cls_name, "",
+                    std::vector<field>(field_names.begin(), field_names.end()))
+{}
 
 
 /**
@@ -48,18 +50,17 @@ onamedtupletype::onamedtupletype(
  */
 onamedtupletype::onamedtupletype(const std::string& cls_name,
                                  const std::string& cls_doc,
-                                 const strvec& field_names,
-                                 const strvec& field_docs)
+                                 const std::vector<field> fields)
 {
   auto itemgetter = py::oobj::import("operator", "itemgetter");
   auto namedtuple = py::oobj::import("collections", "namedtuple");
   auto property   = py::oobj::import("builtins", "property");
 
   // Create a namedtuple type from the supplied fields
-  nfields = field_names.size();
+  nfields = fields.size();
   py::olist argnames(nfields);
   for (size_t i = 0; i < nfields; ++i) {
-    argnames.set(i, py::ostring(field_names[i]));
+    argnames.set(i, py::ostring(fields[i].name));
   }
 
   py::otuple args(2);
@@ -77,20 +78,18 @@ onamedtupletype::onamedtupletype(const std::string& cls_name,
   }
 
   // Set field docs
-  if (!field_docs.empty()) {
-    xassert(field_docs.size() == nfields);
-    py::otuple args_prop(4);
-    py::otuple args_itemgetter(1);
-    args_prop.set(1, py::None());
-    args_prop.set(2, py::None());
-    for (size_t i = 0; i < nfields; ++i) {
-      args_itemgetter.set(0, py::oint(i));
-      args_prop.set(0, itemgetter.call(args_itemgetter));
-      args_prop.set(3, py::ostring(field_docs[i]));
-      auto prop = property.call(args_prop);
-      PyObject_SetAttrString(res, field_names[i].c_str(),
-                             prop.to_borrowed_ref());
-    }
+  py::otuple args_prop(4);
+  py::otuple args_itemgetter(1);
+  args_prop.set(1, py::None());
+  args_prop.set(2, py::None());
+  for (size_t i = 0; i < nfields; ++i) {
+    if (fields[i].doc.empty()) continue;
+    args_itemgetter.set(0, py::oint(i));
+    args_prop.set(0, itemgetter.call(args_itemgetter));
+    args_prop.set(3, py::ostring(fields[i].doc));
+    py::oobj prop = property.call(args_prop);
+    PyObject_SetAttrString(res, fields[i].name.c_str(),
+                           prop.to_borrowed_ref());
   }
 
   // Convert `PyObject*` to `PyTypeObject*`, so that it can be passed to

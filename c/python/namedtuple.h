@@ -46,9 +46,22 @@ class onamedtupletype {
     size_t nfields;
 
   public:
-    onamedtupletype(const std::string& cls_name, const strvec& field_names);
-    onamedtupletype(const std::string& cls_name, const std::string& cls_doc,
-                    const strvec& field_names, const strvec& field_docs);
+    struct field {
+      std::string name;
+      std::string doc;
+
+      field(const char* n) : name(n) {}
+      field(const char* n, const char* d) : name(n), doc(d) {}
+      field(const std::string& n) : name(n) {}
+      field(const std::string& n, const std::string& d) : name(n), doc(d) {}
+    };
+
+  public:
+    onamedtupletype(const std::string& cls_name,
+                    const std::vector<std::string>& field_names);
+    onamedtupletype(const std::string& cls_name,
+                    const std::string& cls_doc,
+                    const std::vector<field> fields);
     onamedtupletype(const onamedtupletype&);
     onamedtupletype(onamedtupletype&&);
     ~onamedtupletype();
