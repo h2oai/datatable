@@ -24,60 +24,67 @@
 #include "python/int.h"
 #include "python/tuple.h"
 #include "extras/py_ftrl.h"
-
 namespace py {
+
 
 PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "d", "n_epochs", "inter"},
                                  "__init__", nullptr);
 
-std::vector<strpair> Ftrl::params_fields_info = {
-  strpair("alpha", "`alpha` in per-coordinate FTRL-Proximal algorithm"),
-  strpair("beta", "`beta` in per-coordinate FTRL-Proximal algorithm"),
-  strpair("lambda1", "L1 regularization parameter"),
-  strpair("lambda2", "L1 regularization parameter"),
-  strpair("d", "Number of bins to be used for the hashing trick"),
-  strpair("n_epochs", "Number of epochs to train a model for"),
-  strpair("inter", "Parameter that controls if feature interactions to be used "
-                   "or not")
-};
-strpair Ftrl::params_info = strpair("Params", "FTRL model parameters");
-onamedtupletype Ftrl::params_nttype(Ftrl::params_info,
-                                    Ftrl::params_fields_info);
+static const char* doc_alpha    = "`alpha` in per-coordinate FTRL-Proximal algorithm";
+static const char* doc_beta     = "`beta` in per-coordinate FTRL-Proximal algorithm";
+static const char* doc_lambda1  = "L1 regularization parameter";
+static const char* doc_lambda2  = "L2 regularization parameter";
+static const char* doc_d        = "Number of bins to be used for the hashing trick";
+static const char* doc_n_epochs = "Number of epochs to train a model";
+static const char* doc_inter    = "Parameter that controls if feature interactions to be used or not";
+
+static onamedtupletype& _get_params_namedtupletype() {
+  static onamedtupletype ntt(
+    "FtrlParams",
+    "FTRL model parameters",
+    {{"alpha",    doc_alpha},
+     {"beta",     doc_beta},
+     {"lambda1",  doc_lambda1},
+     {"lambda2",  doc_lambda2},
+     {"d",        doc_d},
+     {"n_epochs", doc_n_epochs},
+     {"inter",    doc_inter}}
+  );
+  return ntt;
+}
 
 
 void Ftrl::m__init__(PKArgs& args) {
   dt::FtrlParams fp = dt::Ftrl::params_default;
 
-  bool defined_params = !args[0].is_none_or_undefined();
-  bool defined_alpha = !args[1].is_none_or_undefined();
-  bool defined_beta = !args[2].is_none_or_undefined();
-  bool defined_lambda1 = !args[3].is_none_or_undefined();
-  bool defined_lambda2 = !args[4].is_none_or_undefined();
-  bool defined_d = !args[5].is_none_or_undefined();
-  bool defined_n_epochs= !args[6].is_none_or_undefined();
-  bool defined_inter = !args[7].is_none_or_undefined();
+  bool defined_params   = !args[0].is_none_or_undefined();
+  bool defined_alpha    = !args[1].is_none_or_undefined();
+  bool defined_beta     = !args[2].is_none_or_undefined();
+  bool defined_lambda1  = !args[3].is_none_or_undefined();
+  bool defined_lambda2  = !args[4].is_none_or_undefined();
+  bool defined_d        = !args[5].is_none_or_undefined();
+  bool defined_n_epochs = !args[6].is_none_or_undefined();
+  bool defined_inter    = !args[7].is_none_or_undefined();
 
   if (defined_params) {
-    if (!(defined_alpha || defined_beta || defined_lambda1 || defined_lambda2
-        || defined_d || defined_n_epochs || defined_inter)) {
-
-      py::otuple arg0_tuple = args[0].to_otuple();
-      fp.alpha = arg0_tuple.get_attr("alpha").to_double_positive();
-      fp.beta = arg0_tuple.get_attr("beta").to_double_not_negative();
-      fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double_not_negative();
-      fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double_not_negative();
-      fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t_positive());
-      fp.n_epochs = arg0_tuple.get_attr("n_epochs").to_size_t();
-      fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
-
-    } else {
+    if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
+        defined_d || defined_n_epochs || defined_inter) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
             << "`beta`, `lambda1`, `lambda2`, `d`, `n_epochs` or `inter` to "
             << "Ftrl constructor, but not both at the same time";
     }
+    py::otuple arg0_tuple = args[0].to_otuple();
+    fp.alpha = arg0_tuple.get_attr("alpha").to_double_positive();
+    fp.beta = arg0_tuple.get_attr("beta").to_double_not_negative();
+    fp.lambda1 = arg0_tuple.get_attr("lambda1").to_double_not_negative();
+    fp.lambda2 = arg0_tuple.get_attr("lambda2").to_double_not_negative();
+    fp.d = static_cast<uint64_t>(arg0_tuple.get_attr("d").to_size_t_positive());
+    fp.n_epochs = arg0_tuple.get_attr("n_epochs").to_size_t();
+    fp.inter = arg0_tuple.get_attr("inter").to_bool_strict();
+
   } else {
     if (defined_alpha) {
       fp.alpha = args[1].to_double_positive();
@@ -124,7 +131,7 @@ const char* Ftrl::Type::classname() {
 
 const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
-    
+
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 
@@ -139,7 +146,7 @@ lambda1 : float
 lambda2 : float
     L2 regularization parameter.
 d : int
-    Number of bins to be used after the hashing trick. 
+    Number of bins to be used after the hashing trick.
 n_epochs : int
     Number of epochs to train for.
 inter : bool
@@ -153,7 +160,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
     "where `d` is a number of bins set for modeling. Both column types\n"
-    "must be `FLOAT64`"
+    "must be `float64`"
   );
 
   gs.add<&Ftrl::get_params, &Ftrl::set_params>(
@@ -166,41 +173,13 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "Column name hashes.\n"
   );
 
-  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>(
-    params_fields_info[0].first,
-    params_fields_info[0].second
-  );
-
-  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>(
-    params_fields_info[1].first,
-    params_fields_info[1].second
-  );
-
-  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>(
-    params_fields_info[2].first,
-    params_fields_info[2].second
-  );
-
-  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>(
-    params_fields_info[3].first,
-    params_fields_info[3].second
-  );
-
-  gs.add<&Ftrl::get_d, &Ftrl::set_d>(
-    params_fields_info[4].first,
-    params_fields_info[4].second
-  );
-
-  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>(
-    params_fields_info[5].first,
-    params_fields_info[5].second
-  );
-
-
-  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>(
-    params_fields_info[6].first,
-    params_fields_info[6].second
-  );
+  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>("alpha", doc_alpha);
+  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>("beta", doc_beta);
+  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
+  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
+  gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", doc_d);
+  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>("n_epochs", doc_n_epochs);
+  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", doc_inter);
 
   mm.add<&Ftrl::fit, args_fit>();
   mm.add<&Ftrl::predict, args_predict>();
@@ -217,11 +196,11 @@ Train an FTRL model on a dataset.
 Parameters
 ----------
 X: Frame
-    Datatable frame of shape (nrows, ncols) to be trained on. 
+    Datatable frame of shape (nrows, ncols) to be trained on.
 
 y: Frame
-    Datatable frame of shape (nrows, 1), i.e. the target column. 
-    This column must have a `bool` type. 
+    Datatable frame of shape (nrows, 1), i.e. the target column.
+    This column must have a `bool` type.
 
 Returns
 ----------
@@ -278,12 +257,12 @@ Make predictions for a dataset.
 Parameters
 ----------
 X: Frame
-    Datatable frame of shape (nrows, ncols) to make predictions for. 
+    Datatable frame of shape (nrows, ncols) to make predictions for.
     It must have the same number of columns as the training frame.
 
 Returns
-----------
-    A new datatable frame of shape (nrows, 1) with a prediction 
+-------
+    A new Frame of shape (nrows, 1) with the predicted probability
     for each row of frame X.
 )");
 
@@ -304,9 +283,10 @@ oobj Ftrl::predict(const PKArgs& args) {
 
   size_t n_features = dtft->get_n_features();
   if (dt_X->ncols != n_features && n_features != 0) {
-    throw ValueError() << "Can only predict on a frame that has "<< n_features
-                       << " column(s), i.e. has the same number of features as "
-                       << "was used for model training";
+    throw ValueError() << "Can only predict on a Frame that has " << n_features
+                       << " column" << (n_features == 1? "" : "s")
+                       << ", i.e. has the same number of features as "
+                          "was used for model training";
   }
 
   DataTable* dt_y = dtft->predict(dt_X).release();
@@ -318,7 +298,7 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-PKArgs Ftrl::Type::args_reset(0, 0, 0, false, false, {}, "reset",
+NoArgs Ftrl::Type::args_reset("reset",
 R"(reset(self)
 --
 
@@ -329,12 +309,12 @@ Parameters
     None
 
 Returns
-----------
+-------
     None
 )");
 
 
-void Ftrl::reset(const PKArgs&) {
+void Ftrl::reset(const NoArgs&) {
   dtft->reset_model();
 }
 
@@ -356,7 +336,7 @@ oobj Ftrl::get_model() const {
 
 
 oobj Ftrl::get_params() const {
-  py::onamedtuple params(params_nttype);
+  py::onamedtuple params(_get_params_namedtupletype());
   params.set(0, get_alpha());
   params.set(1, get_beta());
   params.set(2, get_lambda1());
@@ -525,5 +505,6 @@ void Ftrl::set_inter(robj inter) {
   bool inter_in = inter.to_bool_strict();
   dtft->set_inter(inter_in);
 }
+
 
 } // namespace py

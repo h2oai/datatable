@@ -27,25 +27,68 @@
 
 namespace py {
 
-typedef std::pair<const char*, const char*> strpair;
 
+/**
+ * In Python, before a `namedtuple` can be created, its class must be
+ * instantiated. This class allows you to create new "namedtuple" classes
+ * dynamically and then use them when creating namedtuple objects.
+ *
+ * Example:
+ *
+ *     onamedtupletype cls("Point", {"x", "y"});
+ *     onamedtuple tup(cls);
+ *     tup.set(0, ofloat(1.0));
+ *     tup.set(1, ofloat(2.0));
+ */
 class onamedtupletype {
   private:
     PyTypeObject* v;
     size_t nfields;
 
   public:
-    onamedtupletype(strpair, std::vector<strpair>);
+    struct field {
+      std::string name;
+      std::string doc;
+
+      field(const char* n) : name(n) {}
+      field(const char* n, const char* d) : name(n), doc(d) {}
+      field(const std::string& n) : name(n) {}
+      field(const std::string& n, const std::string& d) : name(n), doc(d) {}
+    };
+
+  public:
+    onamedtupletype(const std::string& cls_name,
+                    const std::vector<std::string>& field_names);
+    onamedtupletype(const std::string& cls_name,
+                    const std::string& cls_doc,
+                    const std::vector<field> fields);
+    onamedtupletype(const onamedtupletype&);
+    onamedtupletype(onamedtupletype&&);
     ~onamedtupletype();
 
     friend class onamedtuple;
 };
 
 
+
+/**
+ * This class inherits the API from `py::otuple`. The primary difference is
+ * that the constructor takes an `onamedtupletype` argument rather than the
+ * number of fields.
+ */
 class onamedtuple : public otuple {
   public:
-    onamedtuple(const py::onamedtupletype& type);
+    explicit onamedtuple(const py::onamedtupletype& type);
+    onamedtuple() = default;
+    onamedtuple(const onamedtuple&) = default;
+    onamedtuple(onamedtuple&&) = default;
+    onamedtuple& operator=(const onamedtuple&) = default;
+    onamedtuple& operator=(onamedtuple&&) = default;
+
+    // TODO: create from an existing namedtuple PyObject, extract fields, etc.
 };
+
+
 
 }  // namespace py
 

@@ -510,9 +510,9 @@ def test_ftrl_predict_wrong_frame():
     ft.fit(df_train, df_target)
     with pytest.raises(ValueError) as e:
         ft.predict(df_predict)
-    assert ("Can only predict on a frame that has %d column(s), i.e. has the "
+    assert ("Can only predict on a Frame that has 1 column, i.e. has the "
             "same number of features as was used for model training"
-            % (df_train.ncols) == str(e.value))
+            == str(e.value))
 
 
 #-------------------------------------------------------------------------------

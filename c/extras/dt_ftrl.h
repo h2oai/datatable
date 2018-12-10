@@ -25,9 +25,9 @@
 #include "extras/hash.h"
 
 
-typedef std::unique_ptr<Hash> hashptr;
-typedef std::unique_ptr<double[]> doubleptr;
-typedef std::unique_ptr<uint64_t[]> uint64ptr;
+using hashptr = std::unique_ptr<Hash>;
+using doubleptr = std::unique_ptr<double[]>;
+using uint64ptr = std::unique_ptr<uint64_t[]>;
 #define REPORT_FREQUENCY 1000
 
 namespace dt {
@@ -49,7 +49,7 @@ class Ftrl {
     dtptr dt_model;
     double* z;
     double* n;
-    
+
     // Input to the model.
     FtrlParams params;
 

@@ -24,40 +24,58 @@
 #include "python/tuple.h"
 #include "python/string.h"
 #include "python/int.h"
+#include "utils/assert.h"
 
 namespace py {
 
+
+//------------------------------------------------------------------------------
+// onamedtupletype
+//------------------------------------------------------------------------------
+
+onamedtupletype::onamedtupletype(const std::string& cls_name,
+                                 const strvec& field_names)
+  : onamedtupletype(cls_name, "",
+                    std::vector<field>(field_names.begin(), field_names.end()))
+{}
+
+
 /**
-*  Create a namedtuple type based on the collections.namedtuple datatype.
-*  An alternative is to use `Struct Sequence Objects` as outlined here
-*  https://docs.python.org/3/c-api/tuple.html
-*  However, objects created with `PyStructSequence_New` are not standard
-*  Python namedtuples, but rather a simpler version of the latter.
-*/
-onamedtupletype::onamedtupletype(strpair tuple_info,
-                                 std::vector<strpair> fields_info) {
+ * Create a namedtuple using python function `collections.namedtuple()`.
+ *
+ * Note: we do not use PyStructSequence objects from Python C API, because
+ * they are not standard namedtuples and do not provide the same API (for
+ * example, there is no `_replace()` method).
+ * https://docs.python.org/3/c-api/tuple.html
+ */
+onamedtupletype::onamedtupletype(const std::string& cls_name,
+                                 const std::string& cls_doc,
+                                 const std::vector<field> fields)
+{
   auto itemgetter = py::oobj::import("operator", "itemgetter");
   auto namedtuple = py::oobj::import("collections", "namedtuple");
   auto property   = py::oobj::import("builtins", "property");
 
   // Create a namedtuple type from the supplied fields
-  nfields = fields_info.size();
+  nfields = fields.size();
   py::olist argnames(nfields);
   for (size_t i = 0; i < nfields; ++i) {
-    argnames.set(i, py::ostring(fields_info[i].first));
+    argnames.set(i, py::ostring(fields[i].name));
   }
 
   py::otuple args(2);
-  args.set(0, py::ostring(tuple_info.first));
+  args.set(0, py::ostring(cls_name));
   args.set(1, argnames);
 
   auto type = namedtuple.call(args);
   auto res = std::move(type).release();
 
   // Set namedtuple doc
-  py::ostring docstr = py::ostring(tuple_info.second);
-  PyObject_SetAttrString(res, "__doc__",
-                         docstr.to_borrowed_ref());
+  if (!cls_doc.empty()) {
+    py::ostring docstr = py::ostring(cls_doc);
+    PyObject_SetAttrString(res, "__doc__",
+                           docstr.to_borrowed_ref());
+  }
 
   // Set field docs
   py::otuple args_prop(4);
@@ -65,11 +83,12 @@ onamedtupletype::onamedtupletype(strpair tuple_info,
   args_prop.set(1, py::None());
   args_prop.set(2, py::None());
   for (size_t i = 0; i < nfields; ++i) {
+    if (fields[i].doc.empty()) continue;
     args_itemgetter.set(0, py::oint(i));
     args_prop.set(0, itemgetter.call(args_itemgetter));
-    args_prop.set(3, py::ostring(fields_info[i].second));
-    auto prop = property.call(args_prop);
-    PyObject_SetAttrString(res, fields_info[i].first,
+    args_prop.set(3, py::ostring(fields[i].doc));
+    py::oobj prop = property.call(args_prop);
+    PyObject_SetAttrString(res, fields[i].name.c_str(),
                            prop.to_borrowed_ref());
   }
 
@@ -79,10 +98,30 @@ onamedtupletype::onamedtupletype(strpair tuple_info,
 }
 
 
+onamedtupletype::onamedtupletype(const onamedtupletype& o) {
+  v = o.v;
+  nfields = o.nfields;
+  Py_XINCREF(v);
+}
+
+
+onamedtupletype::onamedtupletype(onamedtupletype&& o) {
+  v = o.v;
+  nfields = o.nfields;
+  o.v = nullptr;
+  o.nfields = 0;
+}
+
+
 onamedtupletype::~onamedtupletype() {
   Py_XDECREF(v);
 }
 
+
+
+//------------------------------------------------------------------------------
+// onamedtuple
+//------------------------------------------------------------------------------
 
 onamedtuple::onamedtuple(const onamedtupletype& type) {
   v = PyTuple_New(static_cast<Py_ssize_t>(type.nfields));
