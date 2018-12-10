@@ -59,20 +59,29 @@ class col_set {
 
 
 //------------------------------------------------------------------------------
-// allcols_ji
+// allcols_jn
 //------------------------------------------------------------------------------
 
 /**
- * j_node representing selection of all columns.
+ * j_node representing selection of all columns (i.e. `:`).
+ *
+ * In the simplest case, this j node selects all columns from the source Frame.
+ * The groupby field, if present, is ignored and the columns are selected as-is,
+ * applying the RowIndex that was already computed. The names of the selected
+ * columns will be exactly the same as in the source Frame.
+ *
+ * However, when 2 or more Frames are joined, this selector will select all
+ * columns from all joined Frames. The exception to this are natural joins,
+ * where the key columns of joined Frames will be excluded from the result.
  */
-class allcols_ji : public j_node {
+class allcols_jn : public j_node {
   public:
-    allcols_ji() = default;
+    allcols_jn() = default;
     DataTable* execute(workframe&) override;
 };
 
 
-DataTable* allcols_ji::execute(workframe& wf) {
+DataTable* allcols_jn::execute(workframe& wf) {
   col_set cols;
   strvec names;
   for (size_t i = 0; i < wf.nframes(); ++i) {
@@ -111,7 +120,7 @@ j_node* j_node::make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
-    if (ssrc.is_trivial()) return new allcols_ji();
+    if (ssrc.is_trivial()) return new allcols_jn();
     // if (ssrc.is_numeric()) {
     //   return new slice_ii(ssrc.start(), ssrc.stop(), ssrc.step());
     // }
@@ -121,7 +130,7 @@ j_node* j_node::make(py::robj src) {
   //   return new expr_ii(src);
   // }
   if (src.is_none() || src.is_ellipsis()) {
-    return new allcols_ji();
+    return new allcols_jn();
   }
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as a `j` expression";
