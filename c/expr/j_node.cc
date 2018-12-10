@@ -85,7 +85,7 @@ DataTable* allcols_jn::execute(workframe& wf) {
   col_set cols;
   strvec names;
   for (size_t i = 0; i < wf.nframes(); ++i) {
-    DataTable* dti = wf.get_datatable(i);
+    const DataTable* dti = wf.get_datatable(i);
     const RowIndex& rii = wf.get_rowindex(i);
 
     size_t j0 = (i > 0)? dti->get_nkeys() : 0;

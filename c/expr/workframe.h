@@ -28,6 +28,13 @@
 namespace dt {
 
 
+struct subframe {
+  const DataTable* dt;
+  RowIndex ri;
+  bool natural;  // was this frame joined naturally?
+  size_t : 56;
+};
+
 
 /**
  * This is a main class used to evaluate the expression `DT[i, j, ...]`. This
@@ -52,8 +59,7 @@ namespace dt {
  */
 class workframe {
   private:
-    std::vector<DataTable*> dts;
-    std::vector<RowIndex> ris;
+    std::vector<subframe> frames;
     Groupby gb;
 
   public:
@@ -61,10 +67,10 @@ class workframe {
     workframe(const workframe&) = delete;
     workframe(workframe&&) = delete;
 
-    explicit workframe(DataTable*);
+    explicit workframe(const DataTable*);
 
-    DataTable* get_datatable(size_t id) const;
-    const RowIndex& get_rowindex(size_t id) const;
+    const DataTable* get_datatable(size_t i) const;
+    const RowIndex& get_rowindex(size_t i) const;
     size_t nframes() const;
     size_t nrows() const;
 

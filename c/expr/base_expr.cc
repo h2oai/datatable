@@ -64,7 +64,7 @@ expr_column::expr_column(size_t dfid, const py::robj& col)
 
 
 SType expr_column::resolve(const workframe& wf) {
-  DataTable* dt = wf.get_datatable(frame_id);
+  const DataTable* dt = wf.get_datatable(frame_id);
   if (col_selector.is_int()) {
     int64_t icolid = col_selector.to_int64_strict();
     int64_t incols = static_cast<int64_t>(dt->ncols);
@@ -84,8 +84,8 @@ SType expr_column::resolve(const workframe& wf) {
 
 
 Column* expr_column::evaluate_eager(const workframe& wf) {
-  DataTable* dt = wf.get_datatable(frame_id);
-  Column* rcol = dt->columns[col_id];
+  const DataTable* dt = wf.get_datatable(frame_id);
+  const Column* rcol = dt->columns[col_id];
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
   const RowIndex& col_ri = rcol->rowindex();
 

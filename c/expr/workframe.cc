@@ -23,36 +23,35 @@
 namespace dt {
 
 
-workframe::workframe(DataTable* dt) {
-  dts.push_back(dt);
-  ris.push_back(RowIndex());
+workframe::workframe(const DataTable* dt) {
+  frames.push_back(subframe {dt, RowIndex(), false});
 }
 
 
-DataTable* workframe::get_datatable(size_t id) const {
-  return dts[id];
+const DataTable* workframe::get_datatable(size_t i) const {
+  return frames[i].dt;
 }
 
 
-const RowIndex& workframe::get_rowindex(size_t id) const {
-  return ris[id];
+const RowIndex& workframe::get_rowindex(size_t i) const {
+  return frames[i].ri;
 }
 
 
 size_t workframe::nframes() const {
-  return dts.size();
+  return frames.size();
 }
 
 
 size_t workframe::nrows() const {
-  const RowIndex& ri0 = ris[0];
-  return ri0? ri0.size() : dts[0]->nrows;
+  const RowIndex& ri0 = frames[0].ri;
+  return ri0? ri0.size() : frames[0].dt->nrows;
 }
 
 
 void workframe::apply_rowindex(const RowIndex& ri) {
-  for (size_t i = 0; i < ris.size(); ++i) {
-    ris[i] = ri * ris[i];
+  for (size_t i = 0; i < frames.size(); ++i) {
+    frames[i].ri = ri * frames[i].ri;
   }
 }
 
