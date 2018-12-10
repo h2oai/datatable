@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 
 from .base_expr import BaseExpr
-from .consts import unary_ops_rules, unary_op_codes
+from .consts import unary_ops_rules, unary_op_codes, baseexpr_opcodes
 from ..types import stype
 from datatable.utils.typechecks import TTypeError
 from datatable.lib import core
@@ -48,3 +48,9 @@ class UnaryOpExpr(BaseExpr):
 
     def __str__(self):
         return "(%s %s)" % (self._op, self._arg)
+
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["unop"],
+                              unary_op_codes[self._op],
+                              self._arg._core())

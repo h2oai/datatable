@@ -629,6 +629,14 @@ oobj _obj::get_item(const py::_obj& key) const {
 }
 
 
+oobj _obj::invoke(const char* fn) const {
+  oobj method = get_attr(fn);
+  PyObject* res = PyObject_CallObject(method.v, nullptr);  // new ref
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
 oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* callable = nullptr;
   PyObject* args = nullptr;
@@ -651,15 +659,14 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 
 
 oobj _obj::call(otuple args) const {
-  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(), nullptr);
+  PyObject* res = PyObject_Call(v, args.v, nullptr);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
 
 
 oobj _obj::call(otuple args, odict kws) const {
-  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(),
-                                kws.to_borrowed_ref());
+  PyObject* res = PyObject_Call(v, args.v, kws.v);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }

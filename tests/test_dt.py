@@ -210,11 +210,10 @@ def test_dt_getitem(dt0):
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
-    with pytest.warns(FutureWarning) as ws:
+    with pytest.raises(ValueError) as e:
         dt0["A"]
-    assert len(ws) == 1
-    assert ("Single-item selectors `DT[col]` are deprecated"
-            in ws[0].message.args[0])
+    assert ("Single-item selectors `DT[col]` are prohibited"
+            in str(e.value))
 
 
 def test_issue1406(dt0):
