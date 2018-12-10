@@ -134,10 +134,14 @@ void oslice::normalize(
 
   int64_t icount = 0;
   if (istep > 0 && istop > istart) {
-    icount = (istop - istart) / istep;
+    // istart + (icount-1)*istep <= istop - 1  =>
+    // icount <= 1 + (istop - istart - 1)/istep
+    icount = 1 + (istop - istart - 1) / istep;
   }
   if (istep < 0 && istop < istart) {
-    icount = (istart - istop) / (-istep);
+    // istart - (icount-1)*(-istep) >= istop + 1  =>
+    // icount <= 1 + (istart - istop - 1)/(-istep)
+    icount = 1 + (istart - istop - 1) / (-istep);
   }
   xassert(icount >= 0 && icount <= ilen);
 
