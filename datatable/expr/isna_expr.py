@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import math
 from .base_expr import BaseExpr
-from .unary_expr import unary_op_codes
+from .unary_expr import unary_op_codes, baseexpr_opcodes
 from ..utils.typechecks import TTypeError, Frame_t, is_type
 from ..types import stype
 from datatable.lib import core
@@ -48,6 +48,12 @@ class Isna(BaseExpr):
 
     def __str__(self):
         return "isna(%s)" % self._arg
+
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["unop"],
+                              unary_op_codes["isna"],
+                              self._arg._core())
 
 
 

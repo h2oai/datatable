@@ -24,17 +24,16 @@
 namespace dt {
 
 
-class jnode_impl;
 
 /**
  * This class handles the `j` part of the `DT[i, j, ...]` expression.
  */
 class j_node {
-  private:
-    std::unique_ptr<jnode_impl> impl;
-
   public:
-    j_node(py::robj src);
+    static j_node* make(py::robj src);
+
+    virtual ~j_node();
+    virtual DataTable* execute(workframe& wf) = 0;
 };
 
 

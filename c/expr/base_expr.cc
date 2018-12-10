@@ -235,6 +235,39 @@ Column* expr_literal::evaluate_eager(const workframe&) {
 
 
 
+//------------------------------------------------------------------------------
+// expr_unaryop
+//------------------------------------------------------------------------------
+
+class expr_unaryop : public base_expr {
+  private:
+    base_expr* arg;
+    size_t unop_code;
+
+  public:
+    expr_unaryop(size_t opcode, base_expr* a);
+    SType resolve(const workframe& wf) override;
+    Column* evaluate_eager(const workframe& wf) override;
+};
+
+
+expr_unaryop::expr_unaryop(size_t opcode, base_expr* a)
+  : arg(a), unop_code(opcode) {}
+
+
+SType expr_unaryop::resolve(const workframe& wf) {
+  SType arg_stype = arg->resolve(wf);
+  // ???
+  return arg_stype;
+}
+
+
+Column* expr_unaryop::evaluate_eager(const workframe& wf) {
+  Column* arg_res = arg->evaluate_eager(wf);
+  return expr::unaryop(int(unop_code), arg_res);
+}
+
+
 
 };
 
@@ -296,6 +329,13 @@ void py::base_expr::m__init__(py::PKArgs& args) {
     case dt::exprCode::LITERAL: {
       check_args_count(va, 1);
       expr = new dt::expr_literal(va[0]);
+      break;
+    }
+    case dt::exprCode::UNOP: {
+      check_args_count(va, 2);
+      size_t unop_code = va[0].to_size_t();
+      dt::base_expr* arg = to_base_expr(va[1]);
+      expr = new dt::expr_unaryop(unop_code, arg);
       break;
     }
   }

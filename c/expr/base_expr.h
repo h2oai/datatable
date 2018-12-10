@@ -32,6 +32,7 @@ enum exprCode : size_t {
   COL = 1,
   BINOP = 2,
   LITERAL = 3,
+  UNOP = 4,
 };
 
 enum class binopCode : size_t {

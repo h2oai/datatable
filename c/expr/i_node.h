@@ -22,21 +22,25 @@
 #ifndef dt_EXPR_I_NODE_h
 #define dt_EXPR_I_NODE_h
 #include <memory>             // std::unique_ptr
+#include "expr/workframe.h"   // dt::workframe
 #include "python/_all.h"      // py::robj, ...
 namespace dt {
 
 
-class inode_impl;
 
 /**
- * This class handles the `i` part of the `DT[i, j, ...]` expression.
+ * Base class for all "Row Filter" nodes. A row filter node represents the
+ * `i` part in a `DT[i, j, ...]` call.
+ *
+ * When executed, this class will compute a RowIndex and apply it to the
+ * provided workframe `wf`.
  */
 class i_node {
-  private:
-    std::unique_ptr<inode_impl> impl;
-
   public:
-    i_node(py::robj src);
+    static i_node* make(py::robj src);
+
+    virtual ~i_node();
+    virtual void execute(workframe& wf) = 0;
 };
 
 

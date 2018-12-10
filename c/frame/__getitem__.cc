@@ -20,6 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/i_node.h"
+#include "expr/j_node.h"
+#include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -29,6 +31,8 @@ namespace py {
 // Sentinel value for __getitem__() mode
 static robj GETITEM(reinterpret_cast<PyObject*>(-1));
 
+using iptr = std::unique_ptr<dt::i_node>;
+using jptr = std::unique_ptr<dt::j_node>;
 
 
 
@@ -88,6 +92,25 @@ oobj Frame::_fast_getset(robj item, robj value) {
 
 
 oobj Frame::_main_getset(robj item, robj value) {
+  rtuple targs = item.to_rtuple_lax();
+  if (targs) {
+    size_t nargs = targs.size();
+    if (nargs == 2 && value == GETITEM) {
+      auto iexpr = iptr(dt::i_node::make(targs[0]));
+      auto jexpr = jptr(dt::j_node::make(targs[1]));
+      if (iexpr && jexpr) {
+        dt::workframe wf(dt);
+        iexpr->execute(wf);
+        DataTable* res = jexpr->execute(wf);
+        return oobj::from_new_reference(py::Frame::from_datatable(res));
+      }
+    }
+
+  } else {
+    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
+        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
+        "will be interpreted as a row selector instead.";
+  }
   return _fallback_getset(item, value);
 }
 
@@ -110,10 +133,6 @@ oobj Frame::_fallback_getset(robj item, robj value) {
     } else {
       throw ValueError() << "Invalid selector " << item;
     }
-  } else {
-    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
-        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
-        "will be interpreted as a row selector instead.";
   }
   if (!args[3]) args.set(3, py::None());
   if (!args[4]) args.set(4, py::None());

@@ -139,7 +139,7 @@ void oslice::normalize(
   if (istep < 0 && istop < istart) {
     icount = (istart - istop) / (-istep);
   }
-  xassert(icount >= 0 && icount < ilen);
+  xassert(icount >= 0 && icount <= ilen);
 
   *ostart = static_cast<size_t>(istart);
   *ocount = static_cast<size_t>(icount);

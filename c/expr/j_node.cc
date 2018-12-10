@@ -25,20 +25,6 @@
 namespace dt {
 
 
-//------------------------------------------------------------------------------
-// jnode_impl
-//------------------------------------------------------------------------------
-
-class jnode_impl {
-  public:
-    virtual ~jnode_impl();
-    virtual DataTable* execute(workframe& wf) = 0;
-};
-
-jnode_impl::~jnode_impl() {}
-
-
-
 
 //------------------------------------------------------------------------------
 // allcols_ji
@@ -47,10 +33,10 @@ jnode_impl::~jnode_impl() {}
 /**
  * j_node representing selection of all columns.
  */
-class allcols_ji : public jnode_impl {
+class allcols_ji : public j_node {
   public:
     allcols_ji() = default;
-    virtual DataTable* execute(workframe&) override;
+    DataTable* execute(workframe&) override;
 };
 
 
@@ -92,7 +78,7 @@ DataTable* allcols_ji::execute(workframe& wf) {
 // j_node factory function
 //------------------------------------------------------------------------------
 
-static jnode_impl* _make_impl(py::robj src) {
+j_node* j_node::make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
@@ -115,14 +101,7 @@ static jnode_impl* _make_impl(py::robj src) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// j_node API
-//------------------------------------------------------------------------------
-
-j_node::j_node(py::robj src)
-  : impl(_make_impl(src)) {}
+j_node::~j_node() {}
 
 
 

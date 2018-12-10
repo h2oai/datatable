@@ -21,29 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
-#include "expr/workframe.h"   // dt::workframe
 namespace dt {
-
-
-//------------------------------------------------------------------------------
-// inode_impl
-//------------------------------------------------------------------------------
-
-/**
- * Base class for all "Row Filter" nodes. A row filter node represents the
- * `i` part in a `DT[i, j, ...]` call.
- *
- * When executed, this class will compute a RowIndex and apply it to the
- * provided workframe `wf`.
- */
-class inode_impl {
-  public:
-    virtual ~inode_impl();
-    virtual void execute(workframe& wf) = 0;
-};
-
-inode_impl::~inode_impl() {}
-
 
 
 //------------------------------------------------------------------------------
@@ -58,10 +36,10 @@ inode_impl::~inode_impl() {}
  * and (2) in some cases useful optimizations can be achieved if we know that
  * all rows were selected.
  */
-class allrows_ii : public inode_impl {
+class allrows_ii : public i_node {
   public:
     allrows_ii() = default;
-    virtual void execute(workframe&) override;
+    void execute(workframe&) override;
 };
 
 // All rows are selected, so no need to change the workframe.
@@ -73,13 +51,13 @@ void allrows_ii::execute(workframe&) {}
 // slice_ii
 //------------------------------------------------------------------------------
 
-class slice_ii : public inode_impl {
+class slice_ii : public i_node {
   private:
     int64_t istart, istop, istep;
 
   public:
     slice_ii(int64_t, int64_t, int64_t);
-    virtual void execute(workframe&) override;
+    void execute(workframe&) override;
 };
 
 
@@ -104,21 +82,28 @@ void slice_ii::execute(workframe& wf) {
 // expr_ii
 //------------------------------------------------------------------------------
 
-class expr_ii : public inode_impl {
+class expr_ii : public i_node {
   private:
     dt::base_expr* expr;
 
   public:
-    explicit expr_ii(const py::robj& src);
-    virtual void execute(workframe&) override;
+    explicit expr_ii(py::robj src);
+    ~expr_ii() override;
+    void execute(workframe&) override;
 };
 
 
-expr_ii::expr_ii(const py::robj& src) {
+expr_ii::expr_ii(py::robj src) {
+  expr = nullptr;
   py::oobj res = src.invoke("_core");
   xassert(res.typeobj() == &py::base_expr::Type::type);
   auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
   expr = pybe->expr;
+  pybe->expr = nullptr;
+}
+
+expr_ii::~expr_ii() {
+  delete expr;
 }
 
 
@@ -138,10 +123,13 @@ void expr_ii::execute(workframe& wf) {
 
 
 //------------------------------------------------------------------------------
-// i_node factory function
+// i_node
 //------------------------------------------------------------------------------
 
-static inode_impl* _make_impl(py::robj src) {
+i_node::~i_node() {}
+
+
+i_node* i_node::make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
@@ -162,15 +150,6 @@ static inode_impl* _make_impl(py::robj src) {
   }
   return nullptr;  // for now
 }
-
-
-
-//------------------------------------------------------------------------------
-// i_node API
-//------------------------------------------------------------------------------
-
-i_node::i_node(py::robj src)
-  : impl(_make_impl(src)) {}
 
 
 
