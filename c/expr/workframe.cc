@@ -24,6 +24,8 @@ namespace dt {
 
 
 workframe::workframe(const DataTable* dt) {
+  // The source frame must have flag `natural=false` so that `allcols_jn`
+  // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
 }
 
@@ -35,6 +37,11 @@ const DataTable* workframe::get_datatable(size_t i) const {
 
 const RowIndex& workframe::get_rowindex(size_t i) const {
   return frames[i].ri;
+}
+
+
+bool workframe::is_naturally_joined(size_t i) const {
+  return frames[i].natural;
 }
 
 

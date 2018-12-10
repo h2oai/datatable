@@ -88,7 +88,7 @@ DataTable* allcols_jn::execute(workframe& wf) {
     const DataTable* dti = wf.get_datatable(i);
     const RowIndex& rii = wf.get_rowindex(i);
 
-    size_t j0 = (i > 0)? dti->get_nkeys() : 0;
+    size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
     cols.reserve_extra(dti->ncols - j0);
     if (wf.nframes() > 1) {
       const strvec& dti_names = dti->get_names();
