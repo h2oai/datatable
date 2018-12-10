@@ -41,10 +41,10 @@ base_expr::~base_expr() {}
 
 
 
+
 //------------------------------------------------------------------------------
 // expr_column
 //------------------------------------------------------------------------------
-
 
 class expr_column : public base_expr {
   private:
@@ -153,8 +153,23 @@ static void init_binops() {
   binop_rules[bin_id(binopCode::LOGICAL_OR, bool8, bool8)] = bool8;
 
   binop_names.resize(18);
-  binop_names[size_t(binopCode::PLUS)] = "+";
-  binop_names[size_t(binopCode::MINUS)] = "-";
+  binop_names[static_cast<size_t>(binopCode::PLUS)] = "+";
+  binop_names[static_cast<size_t>(binopCode::MINUS)] = "-";
+  binop_names[static_cast<size_t>(binopCode::MULTIPLY)] = "*";
+  binop_names[static_cast<size_t>(binopCode::DIVIDE)] = "/";
+  binop_names[static_cast<size_t>(binopCode::INT_DIVIDE)] = "//";
+  binop_names[static_cast<size_t>(binopCode::POWER)] = "**";
+  binop_names[static_cast<size_t>(binopCode::MODULO)] = "%";
+  binop_names[static_cast<size_t>(binopCode::LOGICAL_AND)] = "&";
+  binop_names[static_cast<size_t>(binopCode::LOGICAL_OR)] = "|";
+  binop_names[static_cast<size_t>(binopCode::LEFT_SHIFT)] = "<<";
+  binop_names[static_cast<size_t>(binopCode::RIGHT_SHIFT)] = ">>";
+  binop_names[static_cast<size_t>(binopCode::REL_EQ)] = "==";
+  binop_names[static_cast<size_t>(binopCode::REL_NE)] = "!=";
+  binop_names[static_cast<size_t>(binopCode::REL_GT)] = ">";
+  binop_names[static_cast<size_t>(binopCode::REL_LT)] = "<";
+  binop_names[static_cast<size_t>(binopCode::REL_GE)] = ">=";
+  binop_names[static_cast<size_t>(binopCode::REL_LE)] = "<=";
 }
 
 
@@ -180,9 +195,9 @@ SType expr_binaryop::resolve(const workframe& wf) {
   SType rhs_stype = rhs->resolve(wf);
   size_t triple = bin_id(static_cast<binopCode>(binop_code),
                          lhs_stype, rhs_stype);
-  if (binop_rules.count(triple)) {
+  if (binop_rules.count(triple) == 0) {
     throw TypeError() << "Binary operator `" << binop_names[binop_code]
-        << "` cannot be applied to column with stypes `" << lhs_stype
+        << "` cannot be applied to columns with stypes `" << lhs_stype
         << "` and `" << rhs_stype << "`";
   }
   return binop_rules.at(triple);
@@ -298,7 +313,7 @@ static dt::base_expr* to_base_expr(const py::robj& arg) {
   PyObject* v = arg.to_borrowed_ref();
   if (Py_TYPE(v) == &py::base_expr::Type::type) {
     auto vv = reinterpret_cast<py::base_expr*>(v);
-    return vv->expr;
+    return vv->release();
   }
   throw TypeError() << "Expected a base_expr object, but got " << arg.typeobj();
 }
@@ -343,6 +358,13 @@ void py::base_expr::m__init__(py::PKArgs& args) {
 
 void py::base_expr::m__dealloc__() {
   delete expr;
+}
+
+
+dt::base_expr* py::base_expr::release() {
+  dt::base_expr* res = expr;
+  expr = nullptr;
+  return res;
 }
 
 

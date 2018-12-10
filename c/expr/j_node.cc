@@ -25,6 +25,41 @@
 namespace dt {
 
 
+class col_set {
+  private:
+    using ripair = std::pair<RowIndex, RowIndex>;
+    colvec columns;
+    std::vector<ripair> all_ri;
+
+  public:
+    void reserve_extra(size_t n) {
+      columns.reserve(columns.size() + n);
+    }
+    void add_column(const Column* col, const RowIndex& ri) {
+      const RowIndex& ricol = col->rowindex();
+      Column* newcol = col->shallowcopy(rowindex_product(ri, ricol));
+      columns.push_back(newcol);
+    }
+    void clear_cache() {
+      all_ri.clear();
+    }
+    colvec&& release() {
+      return std::move(columns);
+    }
+
+  private:
+    RowIndex& rowindex_product(const RowIndex& ra, const RowIndex& rb) {
+      for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
+        if (it->first == rb) {
+          return it->second;
+        }
+      }
+      all_ri.push_back(std::make_pair(rb, ra * rb));
+      return all_ri.back().second;
+    }
+};
+
+
 
 //------------------------------------------------------------------------------
 // allcols_ji
@@ -41,33 +76,31 @@ class allcols_ji : public j_node {
 
 
 DataTable* allcols_ji::execute(workframe& wf) {
-  colvec cols;
+  col_set cols;
   strvec names;
   for (size_t i = 0; i < wf.nframes(); ++i) {
     DataTable* dti = wf.get_datatable(i);
     const RowIndex& rii = wf.get_rowindex(i);
 
     size_t j0 = (i > 0)? dti->get_nkeys() : 0;
-    cols.reserve(cols.size() + dti->ncols - j0);
+    cols.reserve_extra(dti->ncols - j0);
     if (wf.nframes() > 1) {
       const strvec& dti_names = dti->get_names();
       names.insert(names.end(), dti_names.begin(), dti_names.end());
     }
 
     for (size_t j = j0; j < dti->ncols; ++j) {
-      Column* colj = dti->columns[j];
-      const RowIndex& rij = colj->rowindex();
-
-      cols.push_back(colj->shallowcopy(rii * rij));
+      cols.add_column(dti->columns[j], rii);
     }
+    cols.clear_cache();
   }
   if (wf.nframes() == 1) {
     // Copy names from the source DataTable
-    return new DataTable(std::move(cols), wf.get_datatable(0));
+    return new DataTable(cols.release(), wf.get_datatable(0));
   }
   else {
     // Otherwise the names must be potentially de-duplicated
-    return new DataTable(std::move(cols), std::move(names));
+    return new DataTable(cols.release(), std::move(names));
   }
 }
 

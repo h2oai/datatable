@@ -71,7 +71,7 @@ namespace py {
 
 
 class base_expr : public PyObject {
-  public:
+  private:
     dt::base_expr* expr;
 
   public:
@@ -87,6 +87,7 @@ class base_expr : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
+    dt::base_expr* release();
 };
 
 

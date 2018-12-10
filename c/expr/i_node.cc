@@ -98,8 +98,7 @@ expr_ii::expr_ii(py::robj src) {
   py::oobj res = src.invoke("_core");
   xassert(res.typeobj() == &py::base_expr::Type::type);
   auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-  expr = pybe->expr;
-  pybe->expr = nullptr;
+  expr = pybe->release();
 }
 
 expr_ii::~expr_ii() {
