@@ -26,7 +26,6 @@
 #include "python/_all.h"
 #include "python/list.h"
 #include "python/oiter.h"
-#include "python/orange.h"
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
