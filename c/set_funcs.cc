@@ -24,8 +24,8 @@
 #include "datatable.h"
 #include "expr/py_expr.h"
 #include "frame/py_frame.h"
+#include "python/_all.h"
 #include "python/args.h"
-#include "python/oiter.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 

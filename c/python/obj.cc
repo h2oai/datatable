@@ -14,7 +14,6 @@
 #include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
-#include "python/oiter.h"
 #include "python/string.h"
 
 namespace py {
