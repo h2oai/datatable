@@ -61,6 +61,7 @@ class onerow_in : public i_node {
 
   public:
     onerow_in(int64_t i);
+    void post_init_check(workframe&) override;
     void execute(workframe&) override;
 };
 
@@ -68,13 +69,17 @@ class onerow_in : public i_node {
 onerow_in::onerow_in(int64_t i) : irow(i) {}
 
 
-void onerow_in::execute(workframe& wf) {
+void onerow_in::post_init_check(workframe& wf) {
   int64_t inrows = static_cast<int64_t>(wf.nrows());
   if (irow < -inrows || irow >= inrows) {
     throw ValueError() << "Row `" << irow << "` is invalid for a frame with "
         << inrows << " row" << (inrows == 1? "" : "s");
   }
   if (irow < 0) irow += inrows;
+}
+
+
+void onerow_in::execute(workframe& wf) {
   size_t start = static_cast<size_t>(irow);
   wf.apply_rowindex(RowIndex(start, 1, 1));
 }
@@ -129,21 +134,21 @@ void slice_in::execute(workframe& wf) {
 
 
 //------------------------------------------------------------------------------
-// expr_ii
+// expr_in
 //------------------------------------------------------------------------------
 
-class expr_ii : public i_node {
+class expr_in : public i_node {
   private:
     dt::base_expr* expr;
 
   public:
-    explicit expr_ii(py::robj src);
-    ~expr_ii() override;
+    explicit expr_in(py::robj src);
+    ~expr_in() override;
     void execute(workframe&) override;
 };
 
 
-expr_ii::expr_ii(py::robj src) {
+expr_in::expr_in(py::robj src) {
   expr = nullptr;
   py::oobj res = src.invoke("_core");
   xassert(res.typeobj() == &py::base_expr::Type::type);
@@ -152,12 +157,12 @@ expr_ii::expr_ii(py::robj src) {
 }
 
 
-expr_ii::~expr_ii() {
+expr_in::~expr_in() {
   delete expr;
 }
 
 
-void expr_ii::execute(workframe& wf) {
+void expr_in::execute(workframe& wf) {
   SType st = expr->resolve(wf);
   if (st != SType::BOOL) {
     throw TypeError() << "Filter expression must be of `bool8` type, instead it "
@@ -171,12 +176,76 @@ void expr_ii::execute(workframe& wf) {
 
 
 
+//------------------------------------------------------------------------------
+// frame_in
+//------------------------------------------------------------------------------
+
+class frame_in : public i_node {
+  private:
+    const DataTable* dt;  // borrowed ref
+
+  public:
+    explicit frame_in(py::robj src);
+    void post_init_check(workframe&) override;
+    void execute(workframe&) override;
+};
+
+
+frame_in::frame_in(py::robj src) {
+  dt = src.to_frame();
+  if (dt->ncols != 1) {
+    throw ValueError() << "Only a single-column Frame may be used as `i` "
+        "selector, instead got a Frame with " << dt->ncols << " columns";
+  }
+  SType st = dt->columns[0]->stype();
+  if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
+    throw TypeError() << "A Frame which is used as an `i` selector should be "
+        "either boolean or integer, instead got `" << st << "`";
+  }
+}
+
+
+void frame_in::post_init_check(workframe& wf) {
+  Column* col = dt->columns[0];
+  size_t nrows = wf.nrows();
+  if (col->stype() == SType::BOOL) {
+    if (col->nrows != nrows) {
+      throw ValueError() << "A boolean column used as `i` selector has "
+          << col->nrows << " row" << (col->nrows == 1? "" : "s")
+          << ", but applied to a Frame with "
+           << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  } else {
+    int64_t min = col->min_int64();
+    int64_t max = col->max_int64();
+    if (min < -1) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains invalid negative indices: " << min;
+    }
+    if (max >= static_cast<int64_t>(nrows)) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains index " << max << " which is not valid for a Frame with "
+          << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  }
+}
+
+
+void frame_in::execute(workframe& wf) {
+  RowIndex ri { dt->columns[0] };
+  wf.apply_rowindex(ri);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // i_node
 //------------------------------------------------------------------------------
 
 i_node::~i_node() {}
+
+void i_node::post_init_check(workframe&) {}
 
 
 i_node* i_node::make(py::robj src) {
@@ -190,7 +259,10 @@ i_node* i_node::make(py::robj src) {
     throw TypeError() << src << " is not integer-valued";
   }
   if (is_PyBaseExpr(src)) {
-    return new expr_ii(src);
+    return new expr_in(src);
+  }
+  if (src.is_frame()) {
+    return new frame_in(src);
   }
   if (src.is_int()) {
     int64_t val = src.to_int64_strict();
@@ -199,12 +271,17 @@ i_node* i_node::make(py::robj src) {
   if (src.is_none() || src.is_ellipsis()) {
     return new allrows_in();
   }
-  if (src.is_bool()) {
-    throw TypeError() << "Boolean value cannot be used as an `i` expression";
-  }
   if (src.is_range()) {
     auto ss = src.to_orange();
     return new slice_in(ss.start(), ss.stop(), ss.step(), false);
+  }
+  // "iterable" is a very generic interface, so it must come close to last
+  // in the resolution sequence
+  if (src.is_iterable()) {
+
+  }
+  if (src.is_bool()) {
+    throw TypeError() << "Boolean value cannot be used as an `i` expression";
   }
   return nullptr;  // for now
 }
@@ -214,13 +291,6 @@ i_node* i_node::make(py::robj src) {
 
 
 /*******
-
-    from_generator = False
-    if isinstance(rows, types.GeneratorType):
-        # If an iterator is given, materialize it first. Otherwise there
-        # is no way to ensure that the produced indices are valid.
-        rows = list(rows)
-        from_generator = True
 
     if isinstance(rows, (list, tuple, set)):
         bases = []
@@ -302,26 +372,6 @@ i_node* i_node::make(py::robj src) {
         rows = datatable.Frame(arr)
         assert rows.ncols == 1
         assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
-
-    if is_type(rows, Frame_t):
-        if rows.ncols != 1:
-            raise TValueError("`rows` argument should be a single-column "
-                              "datatable, got %r" % rows)
-        col0type = rows.ltypes[0]
-        if col0type == ltype.bool:
-            if rows.nrows != nrows:
-                s1rows = plural(rows.nrows, "row")
-                s2rows = plural(nrows, "row")
-                raise TValueError("`rows` datatable has %s, but applied to a "
-                                  "datatable with %s" % (s1rows, s2rows))
-            return BooleanColumnRFNode(ee, rows)
-        elif col0type == ltype.int:
-            return IntegerColumnRFNode(ee, rows)
-        else:
-            raise TTypeError("`rows` datatable should be either a boolean or "
-                             "an integer column, however it has type %s"
-                             % col0type)
-
 
  *******/
 
