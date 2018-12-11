@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "datatable.h"
 #include "frame/py_frame.h"
-#include "python/oiter.h"
+#include "python/_all.h"
 #include "utils/assert.h"
 
 namespace py {
