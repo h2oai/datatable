@@ -596,7 +596,7 @@ class FrameInitializationManager {
         col = Column::from_pylist(colsrc.to_pylist(), int(s));
       }
       else if (colsrc.is_range()) {
-        auto r = colsrc.to_pyrange();
+        auto r = colsrc.to_orange();
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else {

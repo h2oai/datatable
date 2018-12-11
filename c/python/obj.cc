@@ -583,7 +583,7 @@ py::rdict _obj::to_rdict(const error_manager& em) const {
 }
 
 
-py::orange _obj::to_pyrange(const error_manager& em) const {
+py::orange _obj::to_orange(const error_manager& em) const {
   if (is_none()) return py::orange(nullptr);
   if (is_range()) return py::orange(v);
   throw em.error_not_range(v);

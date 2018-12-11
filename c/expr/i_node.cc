@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
+#include "python/_all.h"
 namespace dt {
 
 
@@ -88,24 +89,39 @@ void onerow_in::execute(workframe& wf) {
 class slice_in : public i_node {
   private:
     int64_t istart, istop, istep;
+    bool is_slice;
+    size_t : 56;
 
   public:
-    slice_in(int64_t, int64_t, int64_t);
+    slice_in(int64_t, int64_t, int64_t, bool);
     void execute(workframe&) override;
 };
 
 
-slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step) {
+slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step, bool _slice)
+{
   istart = _start;
   istop = _stop;
   istep = _step;
+  is_slice = _slice;
 }
 
 
 void slice_in::execute(workframe& wf) {
   size_t nrows = wf.nrows();
   size_t start, count, step;
-  py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
+  if (is_slice) {
+    py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
+  }
+  else {
+    bool ok = py::orange::normalize(nrows, istart, istop, istep,
+                                    &start, &count, &step);
+    if (!ok) {
+      throw ValueError() << "range(" << istart << ", " << istop << ", "
+          << istep << ") cannot be applied to a Frame with " << nrows
+          << " row" << (nrows == 1? "" : "s");
+    }
+  }
   wf.apply_rowindex(RowIndex(start, count, step));
 }
 
@@ -169,7 +185,7 @@ i_node* i_node::make(py::robj src) {
     auto ssrc = src.to_oslice();
     if (ssrc.is_trivial()) return new allrows_in();
     if (ssrc.is_numeric()) {
-      return new slice_in(ssrc.start(), ssrc.stop(), ssrc.step());
+      return new slice_in(ssrc.start(), ssrc.stop(), ssrc.step(), true);
     }
     throw TypeError() << src << " is not integer-valued";
   }
@@ -185,6 +201,10 @@ i_node* i_node::make(py::robj src) {
   }
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as an `i` expression";
+  }
+  if (src.is_range()) {
+    auto ss = src.to_orange();
+    return new slice_in(ss.start(), ss.stop(), ss.step(), false);
   }
   return nullptr;  // for now
 }
