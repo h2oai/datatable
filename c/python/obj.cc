@@ -15,7 +15,6 @@
 #include "python/_all.h"
 #include "python/list.h"
 #include "python/oiter.h"
-#include "python/orange.h"
 #include "python/string.h"
 
 namespace py {

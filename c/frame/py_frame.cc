@@ -19,11 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/py_frame.h"
 #include <iostream>
-#include "python/int.h"
-#include "python/orange.h"
-#include "python/tuple.h"
+#include "frame/py_frame.h"
+#include "python/_all.h"
 
 namespace py {
 
@@ -193,7 +191,7 @@ oobj Frame::head(const PKArgs& args) {
   size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
   if (n > dt->nrows) n = dt->nrows;
   py::otuple aa(2);
-  aa.set(0, py::orange(0, n, 1));
+  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
   aa.set(1, py::None());
   return m__getitem__(aa);
 }
@@ -203,7 +201,8 @@ oobj Frame::tail(const PKArgs& args) {
   size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
   if (n > dt->nrows) n = dt->nrows;
   py::otuple aa(2);
-  aa.set(0, py::orange(dt->nrows - n, dt->nrows, 1));
+  // Note: usual slice `-n::` doesn't work as expected when `n = 0`
+  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
   aa.set(1, py::None());
   return m__getitem__(aa);
 }
