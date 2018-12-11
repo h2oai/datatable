@@ -215,9 +215,6 @@ i_node* i_node::make(py::robj src) {
 
 /*******
 
-    if isinstance(rows, range):
-        rows = [rows]
-
     from_generator = False
     if isinstance(rows, types.GeneratorType):
         # If an iterator is given, materialize it first. Otherwise there
