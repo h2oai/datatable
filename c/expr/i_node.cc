@@ -21,7 +21,9 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
+#include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/string.h"
 namespace dt {
 
 
@@ -238,6 +240,46 @@ void frame_in::execute(workframe& wf) {
 
 
 
+//------------------------------------------------------------------------------
+// nparray
+//------------------------------------------------------------------------------
+
+static i_node* _from_nparray(py::oobj src) {
+  py::otuple shape = src.get_attr("shape").to_otuple();
+  size_t ndims = shape.size();
+  if (ndims == 2) {
+    size_t dim0 = shape[0].to_size_t();
+    size_t dim1 = shape[1].to_size_t();
+    if (dim0 == 1 || dim1 == 1) {
+      py::otuple args(1);
+      args.set(0, py::oint(dim0 * dim1));
+      src = src.invoke("reshape", args);
+      shape = src.get_attr("shape").to_otuple();
+      ndims = shape.size();
+    }
+  }
+  if (ndims != 1) {
+    throw ValueError() << "Only a single-dimensional numpy array is allowed "
+        "as `i` selector, got array of shape " << shape;
+  }
+  py::ostring dtype = src.get_attr("dtype").to_pystring_force();
+  std::string dtype_str { PyUnicode_AsUTF8(dtype.to_borrowed_ref()) };
+  bool is_bool = dtype_str.compare(0, 4, "bool");
+  bool is_int = dtype_str.compare(0, 3, "int");
+  if (!(is_bool || is_int)) {
+    throw TypeError() << "Either a boolean or an integer numpy array expected "
+        "for an `i` selector, got array of dtype `" << dtype_str << "`";
+  }
+  // Now convert numpy array into a datatable Frame
+  auto dt_Frame = py::oobj(reinterpret_cast<PyObject*>(&py::Frame::Type::type));
+  py::otuple args(1);
+  args.set(0, src);
+  py::oobj frame = dt_Frame.call(args);
+  return new frame_in(frame);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // i_node
@@ -270,6 +312,9 @@ i_node* i_node::make(py::robj src) {
   }
   if (src.is_none() || src.is_ellipsis()) {
     return new allrows_in();
+  }
+  if (src.is_numpy_array()) {
+    return _from_nparray(src);
   }
   if (src.is_range()) {
     auto ss = src.to_orange();
@@ -353,25 +398,6 @@ i_node* i_node::make(py::robj src) {
                 return SliceRFNode(ee, bases[0], counts[0], steps[0])
         else:
             return MultiSliceRFNode(ee, bases, counts, steps)
-
-    if is_type(rows, NumpyArray_t):
-        arr = rows
-        if not (len(arr.shape) == 1 or
-                len(arr.shape) == 2 and min(arr.shape) == 1):
-            raise TValueError("Only a single-dimensional numpy.array is allowed"
-                              " as a `rows` argument, got %r" % arr)
-        if len(arr.shape) == 2 and arr.shape[1] > 1:
-            arr = arr.T
-        if not (str(arr.dtype) == "bool" or str(arr.dtype).startswith("int")):
-            raise TValueError("Either a boolean or an integer numpy.array is "
-                              "expected for `rows` argument, got %r" % arr)
-        if str(arr.dtype) == "bool" and arr.shape[-1] != nrows:
-            raise TValueError("Cannot apply a boolean numpy array of length "
-                              "%d to a datatable with %s"
-                              % (arr.shape[-1], plural(nrows, "row")))
-        rows = datatable.Frame(arr)
-        assert rows.ncols == 1
-        assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
 
  *******/
 
