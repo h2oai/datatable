@@ -24,8 +24,9 @@
 namespace dt {
 
 
+
 //------------------------------------------------------------------------------
-// allrows_ii
+// allrows_in
 //------------------------------------------------------------------------------
 
 /**
@@ -36,39 +37,72 @@ namespace dt {
  * and (2) in some cases useful optimizations can be achieved if we know that
  * all rows were selected.
  */
-class allrows_ii : public i_node {
+class allrows_in : public i_node {
   public:
-    allrows_ii() = default;
+    allrows_in() = default;
     void execute(workframe&) override;
 };
 
+
 // All rows are selected, so no need to change the workframe.
-void allrows_ii::execute(workframe&) {}
+void allrows_in::execute(workframe&) {}
+
 
 
 
 //------------------------------------------------------------------------------
-// slice_ii
+// onerow_in
 //------------------------------------------------------------------------------
 
-class slice_ii : public i_node {
+class onerow_in : public i_node {
+  private:
+    int64_t irow;
+
+  public:
+    onerow_in(int64_t i);
+    void execute(workframe&) override;
+};
+
+
+onerow_in::onerow_in(int64_t i) : irow(i) {}
+
+
+void onerow_in::execute(workframe& wf) {
+  int64_t inrows = static_cast<int64_t>(wf.nrows());
+  if (irow < -inrows || irow >= inrows) {
+    throw ValueError() << "Row `" << irow << "` is invalid for a frame with "
+        << inrows << " row" << (inrows == 1? "" : "s");
+  }
+  if (irow < 0) irow += inrows;
+  size_t start = static_cast<size_t>(irow);
+  wf.apply_rowindex(RowIndex(start, 1, 1));
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// slice_in
+//------------------------------------------------------------------------------
+
+class slice_in : public i_node {
   private:
     int64_t istart, istop, istep;
 
   public:
-    slice_ii(int64_t, int64_t, int64_t);
+    slice_in(int64_t, int64_t, int64_t);
     void execute(workframe&) override;
 };
 
 
-slice_ii::slice_ii(int64_t _start, int64_t _stop, int64_t _step) {
+slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step) {
   istart = _start;
   istop = _stop;
   istep = _step;
 }
 
 
-void slice_ii::execute(workframe& wf) {
+void slice_in::execute(workframe& wf) {
   size_t nrows = wf.nrows();
   size_t start, count, step;
   py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
@@ -101,6 +135,7 @@ expr_ii::expr_ii(py::robj src) {
   expr = pybe->release();
 }
 
+
 expr_ii::~expr_ii() {
   delete expr;
 }
@@ -132,17 +167,21 @@ i_node* i_node::make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
-    if (ssrc.is_trivial()) return new allrows_ii();
+    if (ssrc.is_trivial()) return new allrows_in();
     if (ssrc.is_numeric()) {
-      return new slice_ii(ssrc.start(), ssrc.stop(), ssrc.step());
+      return new slice_in(ssrc.start(), ssrc.stop(), ssrc.step());
     }
     throw TypeError() << src << " is not integer-valued";
   }
   if (is_PyBaseExpr(src)) {
     return new expr_ii(src);
   }
+  if (src.is_int()) {
+    int64_t val = src.to_int64_strict();
+    return new onerow_in(val);
+  }
   if (src.is_none() || src.is_ellipsis()) {
-    return new allrows_ii();
+    return new allrows_in();
   }
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as an `i` expression";
@@ -156,7 +195,7 @@ i_node* i_node::make(py::robj src) {
 
 /*******
 
-    if isinstance(rows, (int, range)):
+    if isinstance(rows, range):
         rows = [rows]
 
     from_generator = False
