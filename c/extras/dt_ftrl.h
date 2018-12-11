@@ -76,6 +76,7 @@ class Ftrl {
     double predict_row(const uint64ptr&);
     void update(const uint64ptr&, double, bool);
 
+    // Model handling methods.
     bool is_trained();
     void create_model();
     void reset_model();

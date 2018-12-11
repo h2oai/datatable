@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#ifndef dt_EXTRAS_PY_FTRL_h
+#define dt_EXTRAS_PY_FTRL_h
 #include "python/ext_type.h"
 #include "python/namedtuple.h"
 #include "extras/dt_ftrl.h"
@@ -44,6 +46,8 @@ class Ftrl : public PyObject {
 
     void m__init__(PKArgs&);
     void m__dealloc__();
+
+   // Learning and predicting methods.
     void fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);
@@ -69,8 +73,10 @@ class Ftrl : public PyObject {
     void set_n_epochs(robj);
     void set_inter(robj);
 
-    // Helper validation functions
-    bool has_negative_n(DataTable*);
+    // Model validation methods.
+    bool has_negative_n(DataTable*) const;
 };
 
-} // namespece py
+} // namespace py
+
+#endif

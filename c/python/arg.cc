@@ -79,10 +79,7 @@ bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }
-size_t      Arg::to_size_t_positive() const { return pyobj.to_size_t_positive(*this); }
 double      Arg::to_double()       const { return pyobj.to_double(*this); }
-double      Arg::to_double_not_negative() const { return pyobj.to_double_not_negative(*this); }
-double      Arg::to_double_positive() const { return pyobj.to_double_positive(*this); }
 py::olist   Arg::to_pylist()       const { return pyobj.to_pylist(*this); }
 py::odict   Arg::to_pydict()       const { return pyobj.to_pydict(*this); }
 py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }
@@ -110,34 +107,23 @@ Error Arg::error_not_stype(PyObject* src) const {
 
 Error Arg::error_not_boolean(PyObject* src) const {
   return TypeError() << name() << " should be a boolean, instead got "
-      <<Py_TYPE(src);
+      << Py_TYPE(src);
 }
 
 Error Arg::error_not_integer(PyObject* src) const {
   return TypeError() << name() << " should be an integer, instead got "
-      <<Py_TYPE(src);
+      << Py_TYPE(src);
 }
 
 Error Arg::error_int_negative(PyObject* src) const {
   return ValueError() << name() << " cannot be negative: " << src;
 }
 
-Error Arg::error_int_not_positive(PyObject* src) const {
-  return ValueError() << name() << " should be positive: " << src;
-}
-
 Error Arg::error_not_double(PyObject* src) const {
   return TypeError() << name() << " should be a float, instead got "
-      <<Py_TYPE(src);
+      << Py_TYPE(src);
 }
 
-Error Arg::error_double_negative(PyObject* src) const {
-  return ValueError() << name() << " cannot be negative: " << src;
-}
-
-Error Arg::error_double_not_positive(PyObject* src) const {
-  return ValueError() << name() << " should be positive: " << src;
-}
 
 //------------------------------------------------------------------------------
 // Misc

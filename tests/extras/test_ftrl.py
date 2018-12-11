@@ -300,42 +300,42 @@ def test_ftrl_set_wrong_alpha_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = 0.0
-    assert ("Float value is not positive" == str(e.value))
+    assert ("Float value should be positive" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = -1.0
-    assert ("Float value is negative" == str(e.value))
+    assert ("Float value cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = -1.0
-    assert ("Float value is negative" == str(e.value))
+    assert ("Float value cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = -1.0
-    assert ("Float value is negative" == str(e.value))
+    assert ("Float value cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_d_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.d = 0
-    assert ("Integer value is not positive" == str(e.value))
+    assert ("Integer value should be positive" == str(e.value))
 
 
 def test_ftrl_set_wrong_n_epochs_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.n_epochs = -10
-    assert ("Integer value is negative" == str(e.value))
+    assert ("Integer value cannot be negative" == str(e.value))
 
 #-------------------------------------------------------------------------------
 # Test getters, setters and reset methods for FTRL model
@@ -358,7 +358,7 @@ def test_ftrl_set_wrong_shape_model():
     with pytest.raises(ValueError) as e:
         ft.model = tmodel[:, 'n']
     assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
-            "frame has %d rows and 1 column(s)" % (tparams.d, tparams.d)
+            "frame has %d rows and 1 column" % (tparams.d, tparams.d)
             == str(e.value))
 
 
@@ -498,7 +498,7 @@ def test_ftrl_predict_not_trained():
     df_train = dt.Frame([[1, 2, 3], [True, False, True]])
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
-    assert ("Cannot make any predictions, because the model was not trained"
+    assert ("Cannot make any predictions, train or set the model first"
             == str(e.value))
 
 
@@ -510,7 +510,7 @@ def test_ftrl_predict_wrong_frame():
     ft.fit(df_train, df_target)
     with pytest.raises(ValueError) as e:
         ft.predict(df_predict)
-    assert ("Can only predict on a Frame that has 1 column, i.e. has the "
+    assert ("Can only predict on a frame that has 1 column, i.e. has the "
             "same number of features as was used for model training"
             == str(e.value))
 
