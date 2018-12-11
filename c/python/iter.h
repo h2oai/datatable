@@ -19,11 +19,64 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#ifndef dt_PYTHON_ITER_h
+#define dt_PYTHON_ITER_h
+#include <Python.h>
+#include "python/obj.h"
+
+namespace py {
+class iter_iterator;
+
+
+/**
+ * Python iterator interface (the result of `iter(obj)`).
+ */
+class oiter : public oobj {
+  public:
+    oiter() = default;
+    oiter(const oiter&) = default;
+    oiter(oiter&&) = default;
+    oiter& operator=(const oiter&) = default;
+    oiter& operator=(oiter&&) = default;
+
+    // Returns size of the iterator, or -1 if unknown
+    size_t size() const noexcept;
+
+    iter_iterator begin() const noexcept;
+    iter_iterator end() const noexcept;
+
+  private:
+    // Wrap an existing PyObject* into an `oiter`.
+    oiter(PyObject* src);
+    friend class _obj;
+};
+
+
+
+class iter_iterator {
+  public:
+    using value_type = py::robj;
+    using category_type = std::input_iterator_tag;
+
+  private:
+    py::oobj iter;
+    py::oobj next_value;
+
+  public:
+    iter_iterator(PyObject* d);
+    iter_iterator(const iter_iterator&) = default;
+    iter_iterator& operator=(const iter_iterator&) = default;
+
+    iter_iterator& operator++();
+    value_type operator*() const;
+    bool operator==(const iter_iterator&) const;
+    bool operator!=(const iter_iterator&) const;
+
+  private:
+    void advance();
+};
+
+
+
+}  // namespace py
+#endif
