@@ -28,88 +28,85 @@ _obj::error_manager ObjValidator::_em0;
 
 size_t ObjValidator::to_size_t_positive(const py::_obj& o,
                                      const _obj::error_manager& em,
-                                     const verror_manager& vm)
+                                     const verror_manager& vm,
+                                     const std::string& name)
 {
   int64_t res = o.to_int64_strict(em);
   if (res <= 0) {
-    throw vm.error_int_not_positive(o.v);
+    throw vm.error_int_not_positive(o.v, name);
   }
   return static_cast<size_t>(res);
 }
 
 
 double ObjValidator::to_double_positive(const py::_obj& o,
-                                     const _obj::error_manager& em,
-                                     const verror_manager& vm)
+                                        const _obj::error_manager& em,
+                                        const verror_manager& vm,
+                                        const std::string& name)
 {
   double res = o.to_double(em);
   if (res <= 0) {
-    throw vm.error_double_not_positive(o.v);
+    throw vm.error_double_not_positive(o.v, name);
   }
   return res;
 }
 
 
 double ObjValidator::to_double_not_negative(const py::_obj& o,
-                                         const _obj::error_manager& em,
-                                         const verror_manager& vm)
+                                            const _obj::error_manager& em,
+                                            const verror_manager& vm,
+                                            const std::string& name)
 {
   double res = o.to_double(em);
   if (res < 0) {
-    throw vm.error_double_negative(o.v);
+    throw vm.error_double_negative(o.v, name);
   }
   return res;
 }
 
 
-Error ObjValidator::verror_manager::error_int_not_positive(PyObject*) const {
+Error ObjValidator::verror_manager::error_int_not_positive(PyObject*, const std::string&) const {
   return ValueError() << "Integer value should be positive";
 }
 
 
-Error ObjValidator::verror_manager::error_double_not_positive(PyObject*) const {
+Error ObjValidator::verror_manager::error_double_not_positive(PyObject*, const std::string&) const {
   return ValueError() << "Float value should be positive";
 }
 
 
-Error ObjValidator::verror_manager::error_double_negative(PyObject*) const {
+Error ObjValidator::verror_manager::error_double_negative(PyObject*, const std::string&) const {
   return ValueError() << "Float value cannot be negative";
 }
 
 
-ArgValidator::ArgValidator(const Arg* arg_in) :
-  arg(arg_in)
-{
+size_t ArgValidator::to_size_t_positive(const py::Arg& arg) const {
+  return ObjValidator::to_size_t_positive(arg.pyobj, arg, *this, arg.name());
 }
 
 
-size_t ArgValidator::to_size_t_positive() const {
-  return ObjValidator::to_size_t_positive(arg->pyobj, *arg, *this);
+double ArgValidator::to_double_positive(const py::Arg& arg) const {
+  return ObjValidator::to_double_positive(arg.pyobj, arg, *this, arg.name());
 }
 
 
-double ArgValidator::to_double_positive() const {
-  return ObjValidator::to_double_positive(arg->pyobj, *arg, *this);
+double ArgValidator::to_double_not_negative(const py::Arg& arg) const {
+  return ObjValidator::to_double_not_negative(arg.pyobj, arg, *this, arg.name());
 }
 
 
-double ArgValidator::to_double_not_negative() const {
-  return ObjValidator::to_double_not_negative(arg->pyobj, *arg, *this);
+Error ArgValidator::error_int_not_positive(PyObject* src, const std::string& name) const {
+  return ValueError() << name << " should be positive: " << src;
 }
 
 
-Error ArgValidator::error_int_not_positive(PyObject* src) const {
-  return ValueError() << arg->name() << " should be positive: " << src;
+Error ArgValidator::error_double_not_positive(PyObject* src, const std::string& name) const {
+  return ValueError() << name << " should be positive: " << src;
 }
 
 
-Error ArgValidator::error_double_not_positive(PyObject* src) const {
-  return ValueError() << arg->name() << " should be positive: " << src;
-}
-
-
-Error ArgValidator::error_double_negative(PyObject* src) const {
-  return ValueError() << arg->name() << " cannot be negative: " << src;
+Error ArgValidator::error_double_negative(PyObject* src, const std::string& name) const {
+  return ValueError() << name << " cannot be negative: " << src;
 }
 
 } // namespace py

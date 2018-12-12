@@ -32,19 +32,22 @@ class ObjValidator {
       verror_manager() = default;
       verror_manager(const verror_manager&) = default;
       virtual ~verror_manager() {}
-      virtual Error error_int_not_positive    (PyObject*) const;
-      virtual Error error_double_not_positive (PyObject*) const;
-      virtual Error error_double_negative     (PyObject*) const;
+      virtual Error error_int_not_positive    (PyObject*, const std::string& name = "") const;
+      virtual Error error_double_not_positive (PyObject*, const std::string& name = "") const;
+      virtual Error error_double_negative     (PyObject*, const std::string& name = "") const;
     };
     static size_t to_size_t_positive(const py::_obj& o,
                                      const _obj::error_manager& em = _em0,
-                                     const verror_manager& vm = _vm0);
+                                     const verror_manager& vm = _vm0,
+                                     const std::string& name = "");
     static double to_double_positive(const py::_obj& o,
                                      const _obj::error_manager& em = _em0,
-                                     const verror_manager& vm = _vm0);
+                                     const verror_manager& vm = _vm0,
+                                     const std::string& name = "");
     static double to_double_not_negative(const py::_obj& o,
                                          const _obj::error_manager& em = _em0,
-                                         const verror_manager& vm = _vm0);
+                                         const verror_manager& vm = _vm0,
+                                         const std::string& name = "");
 
   protected :
     static verror_manager _vm0;
@@ -53,17 +56,14 @@ class ObjValidator {
 
 
 class ArgValidator : ObjValidator::verror_manager {
-  private:
-    const Arg* arg;
   public:
-    ArgValidator(const Arg*);
-    size_t to_size_t_positive() const;
-    double to_double_positive() const;
-    double to_double_not_negative() const;
+    size_t to_size_t_positive(const py::Arg&) const;
+    double to_double_positive(const py::Arg&) const;
+    double to_double_not_negative(const py::Arg&) const;
 
-    virtual Error error_int_not_positive    (PyObject*) const override;
-    virtual Error error_double_not_positive (PyObject*) const override;
-    virtual Error error_double_negative     (PyObject*) const override;
+    virtual Error error_int_not_positive    (PyObject*, const std::string&) const override;
+    virtual Error error_double_not_positive (PyObject*, const std::string&) const override;
+    virtual Error error_double_negative     (PyObject*, const std::string&) const override;
 };
 
 } // namespace py

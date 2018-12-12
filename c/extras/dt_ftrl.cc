@@ -181,7 +181,7 @@ double Ftrl::predict_row(const uint64ptr& x) {
       w[j] = 0;
     } else {
       w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
-                 ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
+             ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
     }
     wTx += w[j];
   }

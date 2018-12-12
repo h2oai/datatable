@@ -96,30 +96,26 @@ void Ftrl::m__init__(PKArgs& args) {
     dt_params.inter = py_inter.to_bool_strict();
 
   } else {
+    py::ArgValidator argval;
 
     if (defined_alpha) {
-      py::ArgValidator v(&args[1]);
-      dt_params.alpha = v.to_double_positive();
+      dt_params.alpha = argval.to_double_positive(args[1]);
     }
 
     if (defined_beta) {
-      py::ArgValidator v(&args[2]);
-      dt_params.beta =v.to_double_not_negative();
+      dt_params.beta = argval.to_double_not_negative(args[2]);
     }
 
     if (defined_lambda1) {
-      py::ArgValidator v(&args[3]);
-      dt_params.lambda1 = v.to_double_not_negative();
+      dt_params.lambda1 = argval.to_double_not_negative(args[3]);
     }
 
     if (defined_lambda2) {
-      py::ArgValidator v(&args[4]);
-      dt_params.lambda2 = v.to_double_not_negative();
+      dt_params.lambda2 = argval.to_double_not_negative(args[4]);
     }
 
     if (defined_d) {
-      py::ArgValidator v(&args[5]);
-      dt_params.d = static_cast<uint64_t>(v.to_size_t_positive());
+      dt_params.d = static_cast<uint64_t>(argval.to_size_t_positive(args[5]));
     }
 
     if (defined_n_epochs) {
