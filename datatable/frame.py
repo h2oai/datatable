@@ -346,9 +346,19 @@ class Frame(core.Frame):
             category=FutureWarning)
         return self.to_list()
 
-    # Old names
-    topandas = to_pandas
-    tonumpy = to_numpy
+    def topandas(self):
+        warnings.warn(
+            "Method `Frame.topandas()` is deprecated (will be removed in "
+            "0.9.0), please use `Frame.to_pandas()` instead",
+            category=FutureWarning)
+        return self.to_pandas()
+
+    def tonumpy(self, stype=None):
+        warnings.warn(
+            "Method `Frame.tonumpy()` is deprecated (will be removed in "
+            "0.9.0), please use `Frame.to_numpy()` instead",
+            category=FutureWarning)
+        return self.to_numpy(stype)
 
 
     def scalar(self):

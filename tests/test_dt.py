@@ -854,7 +854,7 @@ def test_to_dict():
 @pytest.mark.usefixtures("pandas")
 def test_topandas():
     d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
-    p0 = d0.topandas()
+    p0 = d0.to_pandas()
     assert p0.shape == (2, 3)
     assert same_iterables(p0.columns.tolist(), ["A", "B", "C"])
     assert p0["A"].values.tolist() == [1, 5]
@@ -868,7 +868,7 @@ def test_topandas_view():
                    ["alpha", "beta", None, "delta", "epsilon", "zeta"],
                    [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
     d1 = d0[::-2, :]
-    p1 = d1.topandas()
+    p1 = d1.to_pandas()
     assert p1.shape == d1.shape
     assert p1.columns.tolist() == ["A", "b", "c"]
     assert p1.values.T.tolist() == d1.to_list()
@@ -884,7 +884,7 @@ def test_topandas_nas():
     d0.internal.check()
     assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
                          dt.stype.int32, dt.stype.int64)
-    p0 = d0.topandas()
+    p0 = d0.to_pandas()
     # Check that each column in Pandas DataFrame has the correct number of NAs
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
 
@@ -892,7 +892,7 @@ def test_topandas_nas():
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stypes == (stype.int8, )
-    a0 = d0.tonumpy()
+    a0 = d0.to_numpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("int8")
     assert a0.tolist() == [[1], [3], [5], [7], [9]]
@@ -903,7 +903,7 @@ def test_tonumpy0(numpy):
 def test_tonumpy1(numpy):
     d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
                    "C": [True, False], "D": [3.4, None]})
-    a0 = d0.tonumpy()
+    a0 = d0.to_numpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("object")
     assert same_iterables(a0.T.tolist(), d0.to_list())
@@ -945,7 +945,7 @@ def test_numpy_constructor_multi_types(numpy):
                              [1.0, 0, 0],
                              [30498, 1349810, -134308],
                              [1.454, 4.9e-23, 1e7]]
-    assert (d0.tonumpy() == n0).all()
+    assert (d0.to_numpy() == n0).all()
 
 
 def test_numpy_constructor_view(numpy):
@@ -956,7 +956,7 @@ def test_numpy_constructor_view(numpy):
     assert n1.dtype == numpy.dtype("int32")
     assert n1.T.tolist() == [list(range(99, 0, -2)),
                              list(range(990000, 0, -20000))]
-    assert (d1.tonumpy() == n1).all()
+    assert (d1.to_numpy() == n1).all()
 
 
 def test_numpy_constructor_single_col(numpy):
@@ -965,7 +965,7 @@ def test_numpy_constructor_single_col(numpy):
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int8")
-    assert (n0 == d0.tonumpy()).all()
+    assert (n0 == d0.to_numpy()).all()
 
 
 def test_numpy_constructor_single_string_col(numpy):
@@ -976,26 +976,26 @@ def test_numpy_constructor_single_string_col(numpy):
     assert a.shape == d.shape
     assert a.dtype == numpy.dtype("object")
     assert a.T.tolist() == d.to_list()
-    assert (a == d.tonumpy()).all()
+    assert (a == d.to_numpy()).all()
 
 
 def test_numpy_constructor_view_1col(numpy):
     d0 = dt.Frame({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
     d2 = d0[::2, "B"]
-    a = d2.tonumpy()
+    a = d2.to_numpy()
     assert a.T.tolist() == [[True, True]]
     assert (a == numpy.array(d2)).all()
 
 
 def test_tonumpy_with_stype(numpy):
     """
-    Test using dt.tonumpy() with explicit `stype` argument.
+    Test using dt.to_numpy() with explicit `stype` argument.
     """
     src = [[1.5, 2.6, 5.4], [3, 7, 10]]
     d0 = dt.Frame(src)
     assert d0.stypes == (stype.float64, stype.int8)
-    a1 = d0.tonumpy("float32")
-    a2 = d0.tonumpy()
+    a1 = d0.to_numpy("float32")
+    a2 = d0.to_numpy()
     del d0
     # Check using list_equals(), which allows a tolerance of 1e-6, because
     # conversion to float32 resulted in loss of precision

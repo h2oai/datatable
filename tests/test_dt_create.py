@@ -734,7 +734,7 @@ def test_create_from_pandas_float16_dataframe(pandas):
 
 
 def test_create_from_pandas_issue1235(pandas):
-    df = dt.fread("A\n" + "\U00010000" * 50).topandas()
+    df = dt.fread("A\n" + "\U00010000" * 50).to_pandas()
     table = dt.Frame(df)
     table.internal.check()
     assert table.shape == (1, 1)
