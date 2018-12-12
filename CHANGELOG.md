@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improved the performance of setting `frame.nrows`. Now if the frame has
   multiple columns, a view will be created.
 
+- Single-item Frame selectors are prohibited: `DT[col]` is now an error. In
+  0.9.0 this will be interpreted as a row selector instead.
+
+- Frame methods `.topython()`, `.topandas()` and `.tonumpy()` are now
+  deprecated, they will be removed in 0.9.0. Please use `.to_list()`,
+  `.to_pandas()` and `.to_numpy()` instead.
 
 
 
