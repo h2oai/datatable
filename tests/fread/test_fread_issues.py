@@ -28,9 +28,9 @@ def test_issue_R1113():
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
                          dt.ltype.real)
     assert d0.to_list() == [[-11000, -10999, -10998],
-                             [-2.5, -24.9853, 0.195957],
-                             [2.3, 379.270, 4.16522],
-                             [345678.20255, -195780.43911, 7937.13048]]
+                            [-2.5, -24.9853, 0.195957],
+                            [2.3, 379.270, 4.16522],
+                            [345678.20255, -195780.43911, 7937.13048]]
     # `strip_whitespace` has no effect when `sep == ' '`
     d1 = dt.fread(txt, strip_whitespace=False)
     d1.internal.check()
@@ -321,8 +321,8 @@ def test_issue_664(capsys):
     f.internal.check()
     assert f.shape == (3, 3)
     assert f.to_list() == [["x", "A", "y"],
-                            [None, "B", None],
-                            [None, 2, None]]
+                           [None, "B", None],
+                           [None, 2, None]]
 
 
 def test_issue_670():

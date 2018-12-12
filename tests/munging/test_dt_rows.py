@@ -356,8 +356,8 @@ def test_rows_int_numpy_array(dt0, numpy):
     assert dt1.shape == (4, 3)
     assert dt1.ltypes == dt0.ltypes
     assert dt1.to_list() == [[None, 1, 0, None],
-                              [-1, -11, 7, 10000],
-                              [-14, 1, 5, 0.1]]
+                             [-1, -11, 7, 10000],
+                             [-14, 1, 5, 0.1]]
     arr2 = numpy.array([[7, 1, 0, 3]])
     dt2 = dt0(rows=arr2)
     dt2.internal.check()

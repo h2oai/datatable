@@ -240,8 +240,8 @@ def test_int8_large_stable(n):
     assert d0.stypes[0] == stype.int8
     d1 = d0(sort="A", select="B")
     assert d1.to_list() == [list(range(0, n, 3)) +
-                             list(range(2, n, 3)) +
-                             list(range(1, n, 3))]
+                            list(range(2, n, 3)) +
+                            list(range(1, n, 3))]
 
 
 
