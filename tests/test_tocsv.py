@@ -54,7 +54,7 @@ def test_issue365():
     assert d1.shape == d0.shape
     assert d1.names == d0.names
     assert d1.ltypes == d0.ltypes
-    assert d1.topython() == d0.topython()
+    assert d1.to_list() == d0.to_list()
 
 
 def test_write_spacestrs():
@@ -62,7 +62,7 @@ def test_write_spacestrs():
     d = dt.Frame([" hello ", "world  ", " !", "!", ""])
     assert d.to_csv() == 'C0\n" hello "\n"world  "\n" !"\n!\n""\n'
     dd = dt.fread(text=d.to_csv(), sep='\n')
-    assert d.topython() == dd.topython()
+    assert d.to_list() == dd.to_list()
 
 
 def test_write_spacenames():
@@ -70,7 +70,7 @@ def test_write_spacenames():
                  names=["  foo", "bar ", " "])
     assert d.to_csv() == '"  foo","bar "," "\n1,1,0\n2,2,0\n3,3,0\n'
     dd = dt.fread(text=d.to_csv())
-    assert d.topython() == dd.topython()
+    assert d.to_list() == dd.to_list()
 
 
 def test_strategy(capsys, tempfile):
@@ -169,7 +169,7 @@ def test_save_double():
            [10**p for p in range(320) if p != 126])
     d = dt.Frame(src)
     dd = dt.fread(text=d.to_csv())
-    assert d.topython()[0] == dd.topython()[0]
+    assert d.to_list()[0] == dd.to_list()[0]
     # .split() in order to produce better error messages
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
 

@@ -39,7 +39,7 @@ def assert_typeerror(df, rows, error_message):
 
 
 def as_list(df):
-    return df.topython()
+    return df.to_list()
 
 
 def is_slice(df):
@@ -100,16 +100,16 @@ def test_rows_integer1(dt0, i):
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
     assert is_slice(dt1)
-    assert dt1.topython() == [[col[i]] for col in dt0.topython()]
+    assert dt1.to_list() == [[col[i]] for col in dt0.to_list()]
 
 
 def test_rows_integer2(dt0):
-    assert dt0(0).topython() == [[0], [7], [5]]
-    assert dt0(-2).topython()[:2] == [[1], [1]]
-    assert dt0(-2).topython()[2][0] is None  # nan turns into None
-    assert dt0(2).topython() == [[1], [9], [1.3]]
-    assert dt0(4).topython() == [[0], [None], [100000]]
-    assert dt0[1, :].topython() == [[1], [-11], [1]]
+    assert dt0(0).to_list() == [[0], [7], [5]]
+    assert dt0(-2).to_list()[:2] == [[1], [1]]
+    assert dt0(-2).to_list()[2][0] is None  # nan turns into None
+    assert dt0(2).to_list() == [[1], [9], [1.3]]
+    assert dt0(4).to_list() == [[0], [None], [100000]]
+    assert dt0[1, :].to_list() == [[1], [-11], [1]]
 
 
 def test_rows_integer3(dt0):
@@ -153,17 +153,17 @@ def test_rows_slice1(dt0, sliceobj, nrows):
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
     assert nrows == 0 or is_slice(dt1)
-    assert dt1.topython() == [col[sliceobj] for col in dt0.topython()]
+    assert dt1.to_list() == [col[sliceobj] for col in dt0.to_list()]
 
 
 def test_rows_slice2(dt0):
-    assert dt0[:5, :].topython()[0] == [0, 1, 1, None, 0]
-    assert dt0[::-1, :].topython()[1] == \
+    assert dt0[:5, :].to_list()[0] == [0, 1, 1, None, 0]
+    assert dt0[::-1, :].to_list()[1] == \
         [None, 1, -1, 0, 0, None, 1e4, 9, -11, 7]
-    assert dt0[::3, :].topython()[1] == [7, 10000, 0, None]
-    assert dt0[:3:2, :].topython()[1] == [7, 9]
-    assert dt0[4:-2, :].topython()[1] == [None, 0, 0, -1]
-    assert dt0[20:, :].topython()[2] == []
+    assert dt0[::3, :].to_list()[1] == [7, 10000, 0, None]
+    assert dt0[:3:2, :].to_list()[1] == [7, 9]
+    assert dt0[4:-2, :].to_list()[1] == [None, 0, 0, -1]
+    assert dt0[20:, :].to_list()[2] == []
 
 
 def test_rows_slice3(dt0):
@@ -201,8 +201,8 @@ def test_rows_range1(dt0, rangeobj):
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
     assert len(rangeobj) == 0 or is_slice(dt1)
-    assert dt1.topython() == [[col[i] for i in rangeobj]
-                              for col in dt0.topython()]
+    assert dt1.to_list() == [[col[i] for i in rangeobj]
+                             for col in dt0.to_list()]
 
 
 def test_rows_range2(dt0):
@@ -344,9 +344,9 @@ def test_rows_int_column(dt0):
     assert dt1.shape == (4, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
-    assert dt1.topython() == [[0, None, 0, 1],
-                              [7, 10000, 7, -11],
-                              [5, 0.1, 5, 1]]
+    assert dt1.to_list() == [[0, None, 0, 1],
+                             [7, 10000, 7, -11],
+                             [5, 0.1, 5, 1]]
 
 
 def test_rows_int_numpy_array(dt0, numpy):
@@ -355,18 +355,18 @@ def test_rows_int_numpy_array(dt0, numpy):
     dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert dt1.ltypes == dt0.ltypes
-    assert dt1.topython() == [[None, 1, 0, None],
+    assert dt1.to_list() == [[None, 1, 0, None],
                               [-1, -11, 7, 10000],
                               [-14, 1, 5, 0.1]]
     arr2 = numpy.array([[7, 1, 0, 3]])
     dt2 = dt0(rows=arr2)
     dt2.internal.check()
     assert dt1.shape == dt2.shape
-    assert dt1.topython() == dt2.topython()
+    assert dt1.to_list() == dt2.to_list()
     dt3 = dt0(rows=numpy.array([[7], [1], [0], [3]]))
     dt3.internal.check()
     assert dt3.shape == dt2.shape
-    assert dt3.topython() == dt2.topython()
+    assert dt3.to_list() == dt2.to_list()
 
 
 def test_rows_int_numpy_array_errors(dt0, numpy):
@@ -412,7 +412,7 @@ def test_rows_function1(dt0):
     assert dt1.shape == dt2.shape == (5, 3)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
-    assert dt1.topython() == dt2.topython()
+    assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_function2(dt0):
@@ -428,7 +428,7 @@ def test_rows_function3(dt0):
     dt1.internal.check()
     dt2.internal.check()
     assert dt1.shape == dt2.shape == (2, 3)
-    assert dt1.topython() == dt2.topython() == [[0, 1], [7, 9], [5, 1.3]]
+    assert dt1.to_list() == dt2.to_list() == [[0, 1], [7, 9], [5, 1.3]]
 
 
 def test_rows_function4(dt0):
@@ -437,7 +437,7 @@ def test_rows_function4(dt0):
     dt1.internal.check()
     dt2.internal.check()
     assert dt1.shape == dt2.shape == (2, 3)
-    assert dt1.topython() == dt2.topython() == [[0, 1], [0, 0], [0, -2.6]]
+    assert dt1.to_list() == dt2.to_list() == [[0, 1], [0, 0], [0, -2.6]]
 
 
 def test_rows_function_invalid(dt0):
@@ -478,98 +478,98 @@ def test_rows_equal(df1):
     dt1 = df1(f.A == f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[3, 4, None, 9], [3, 4, None, 9]]
+    assert dt1.to_list() == [[3, 4, None, 9], [3, 4, None, 9]]
     if has_llvm():
         dt2 = df1(f.A == f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_not_equal(df1):
     dt1 = df1(f.A != f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[0, 1, 2, 5, 6, 7, None],
-                              [3, 2, 1, 0, 2, None, 8]]
+    assert dt1.to_list() == [[0, 1, 2, 5, 6, 7, None],
+                             [3, 2, 1, 0, 2, None, 8]]
     if has_llvm():
         dt2 = df1(f.A != f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_less_than(df1):
     dt1 = df1(f.A < f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[0, 1], [3, 2]]
+    assert dt1.to_list() == [[0, 1], [3, 2]]
     if has_llvm():
         dt2 = df1(f.A < f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_greater_than(df1):
     dt1 = df1(f.A > f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[2, 5, 6], [1, 0, 2]]
+    assert dt1.to_list() == [[2, 5, 6], [1, 0, 2]]
     if has_llvm():
         dt2 = df1(f.A > f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_less_than_or_equal(df1):
     dt1 = df1(f.A <= f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[0, 1, 3, 4, None, 9], [3, 2, 3, 4, None, 9]]
+    assert dt1.to_list() == [[0, 1, 3, 4, None, 9], [3, 2, 3, 4, None, 9]]
     if has_llvm():
         dt2 = df1(f.A <= f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_greater_than_or_equal(df1):
     dt1 = df1(f.A >= f.B, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[2, 3, 4, 5, 6, None, 9],
-                              [1, 3, 4, 0, 2, None, 9]]
+    assert dt1.to_list() == [[2, 3, 4, 5, 6, None, 9],
+                             [1, 3, 4, 0, 2, None, 9]]
     if has_llvm():
         dt2 = df1(f.A >= f.B, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_compare_to_scalar_gt(df1):
     dt1 = df1(f.A > 3, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
+    assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
     if has_llvm():
         dt2 = df1(f.A > 3, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_compare_to_scalar_lt(df1):
     dt1 = df1(f.A < 3, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[0, 1, 2], [3, 2, 1]]
+    assert dt1.to_list() == [[0, 1, 2], [3, 2, 1]]
     if has_llvm():
         dt2 = df1(f.A < 3, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 # noinspection PyComparisonWithNone
@@ -577,24 +577,24 @@ def test_rows_compare_to_scalar_eq(df1):
     dt1 = df1(f.A == None, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[None, None], [None, 8]]
+    assert dt1.to_list() == [[None, None], [None, 8]]
     if has_llvm():
         dt2 = df1(f.A == None, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_unary_minus(df1):
     dt1 = df1(-f.A < -3, engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
+    assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
     if has_llvm():
         dt2 = df1(-f.A < -3, engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_isna(df1):
@@ -602,12 +602,12 @@ def test_rows_isna(df1):
     dt1 = df1(isna(f.A), engine="eager")
     dt1.internal.check()
     assert dt1.names == df1.names
-    assert dt1.topython() == [[None, None], [None, 8]]
+    assert dt1.to_list() == [[None, None], [None, 8]]
     if has_llvm():
         dt2 = df1(isna(f.A), engine="llvm")
         dt2.internal.check()
         assert dt1.names == dt2.names
-        assert dt1.topython() == dt2.topython()
+        assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_mean():
@@ -615,7 +615,7 @@ def test_rows_mean():
     df0 = dt.Frame(range(10), names=["A"])
     df1 = df0(f.A > mean(f.A), engine="eager")
     df1.internal.check()
-    assert df1.topython() == [[5, 6, 7, 8, 9]]
+    assert df1.to_list() == [[5, 6, 7, 8, 9]]
 
 
 def test_rows_min_max():
@@ -624,7 +624,7 @@ def test_rows_min_max():
     # min = 0, max = 9
     df1 = df0(f.A > (min(f.A) + max(f.A)) / 2, engine="eager")
     df1.internal.check()
-    assert df1.topython() == [[5, 6, 7, 8, 9]]
+    assert df1.to_list() == [[5, 6, 7, 8, 9]]
 
 
 def test_rows_stdev():
@@ -633,7 +633,7 @@ def test_rows_stdev():
     # stdev = 3.0276
     df1 = df0(f.A > sd(f.A), engine="eager")
     df1.internal.check()
-    assert df1.topython() == [[4, 5, 6, 7, 8, 9]]
+    assert df1.to_list() == [[4, 5, 6, 7, 8, 9]]
 
 
 def test_rows_strequal():
@@ -646,11 +646,11 @@ def test_rows_strequal():
     df4 = df0("bcD" == f.B, engine="eager")
     df1.internal.check()
     df2.internal.check()
-    assert df1.topython() == [["a", None, "xia"]] * 2
-    assert df2.topython() == [["bcd", "foo", "bee", "good"],
-                              ["bcD", "fooo", None, "evil"]]
-    assert df3.topython() == [["foo"], ["fooo"]]
-    assert df4.topython() == [["bcd"], ["bcD"]]
+    assert df1.to_list() == [["a", None, "xia"]] * 2
+    assert df2.to_list() == [["bcd", "foo", "bee", "good"],
+                             ["bcD", "fooo", None, "evil"]]
+    assert df3.to_list() == [["foo"], ["fooo"]]
+    assert df4.to_list() == [["bcd"], ["bcD"]]
 
 
 
@@ -666,7 +666,7 @@ def test_filter_on_view1():
     df2 = df1(f.A < 10)
     df2.internal.check()
     assert df2.internal.isview
-    assert df2.topython() == [[0, 2, 4, 6, 8]]
+    assert df2.to_list() == [[0, 2, 4, 6, 8]]
 
 
 def test_filter_on_view2():
@@ -675,7 +675,7 @@ def test_filter_on_view2():
     df2 = df1(rows=lambda g: g.A < 10)
     df2.internal.check()
     assert df2.internal.isview
-    assert df2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
+    assert df2.to_list() == [[5, 7, 9, 3, 1, 4, 8]]
 
 
 def test_filter_on_view3():
@@ -683,11 +683,11 @@ def test_filter_on_view3():
     df1 = df0[::5, :]
     df2 = df1(f.A <= 10, engine="eager")
     df2.internal.check()
-    assert df2.topython() == [[0, 5, 10]]
+    assert df2.to_list() == [[0, 5, 10]]
     if has_llvm():
         df3 = df1(f.A <= 10, engine="llvm")
         df3.internal.check()
-        assert df3.topython() == [[0, 5, 10]]
+        assert df3.to_list() == [[0, 5, 10]]
 
 
 def test_chained_slice(dt0):

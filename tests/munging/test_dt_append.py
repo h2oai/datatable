@@ -185,7 +185,7 @@ def test_rbind_strings5():
     f0 = dt.Frame([1, 2, 3])
     f1 = dt.Frame(["foo", "bra"])
     f1.rbind(f0)
-    assert f1.topython() == [["foo", "bra", "1", "2", "3"]]
+    assert f1.to_list() == [["foo", "bra", "1", "2", "3"]]
 
 
 
@@ -291,7 +291,7 @@ def test_rbind_different_stypes3():
     assert dt1.stypes == (stype.str32,) * 4
     dt0.rbind(dt1)
     assert dt0.stypes == (stype.str32,) * 4
-    assert dt0.topython() == [
+    assert dt0.to_list() == [
         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "alpha"],
         ["100", "110", "120", "130", "140", "150", "160", "170", "180", "190",
          "beta"],
@@ -315,7 +315,7 @@ def test_rbind_different_stypes4():
     assert dt1.stypes == (stype.str32, ) * 3
     dt0.rbind(dt1)
     assert dt0.stypes == (stype.str32, ) * 3
-    assert dt0.topython() == [
+    assert dt0.to_list() == [
         ["1", "0", "0", None, "1", "vega", "altair", None],
         ["0.0", "-12.34", None, "70000000.0", "1499.0", None, "wren", "crow"],
         [None, "4.998", "5.14", "-340000.0", "1.333333", "f", None, None]
@@ -347,7 +347,7 @@ def test_rbind_all_stypes():
             f3.internal.check()
             assert f1.nrows == len(sources[st1]) + len(sources[st2])
             assert f3.shape == f1.shape
-            assert f1.topython() == f3.topython()
+            assert f1.to_list() == f3.to_list()
             del f1
             del f2
             del f3
@@ -358,7 +358,7 @@ def test_rbind_modulefn():
     f1 = dt.Frame([109813, None, 9385])
     f3 = dt.rbind(f0, f1)
     f3.internal.check()
-    assert f3.topython()[0] == f0.topython()[0] + f1.topython()[0]
+    assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
 def test_issue1292():
@@ -366,5 +366,5 @@ def test_issue1292():
     f0.nrows = 2
     f0.rbind(f0)
     f0.internal.check()
-    assert f0.topython() == [[None] * 4]
+    assert f0.to_list() == [[None] * 4]
     assert f0.stypes == (stype.str32,)

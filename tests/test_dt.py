@@ -304,14 +304,14 @@ def test_del_0cols():
     del d0[:, []]
     d0.internal.check()
     assert d0.shape == (1, 16)
-    assert d0.topython() == smalldt().topython()
+    assert d0.to_list() == smalldt().to_list()
 
 def test_del_1col_str_1():
     d0 = smalldt()
     del d0[:, "A"]
     d0.internal.check()
     assert d0.shape == (1, 15)
-    assert d0.topython() == [[i] for i in range(1, 16)]
+    assert d0.to_list() == [[i] for i in range(1, 16)]
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
     assert len(d0.ltypes) == d0.ncols
 
@@ -320,7 +320,7 @@ def test_del_1col_str_2():
     del d0[:, "B"]
     d0.internal.check()
     assert d0.shape == (1, 15)
-    assert d0.topython() == [[i] for i in range(16) if i != 1]
+    assert d0.to_list() == [[i] for i in range(16) if i != 1]
     assert d0.names == tuple("ACDEFGHIJKLMNOP")
 
 def test_del_1col_str_3():
@@ -328,7 +328,7 @@ def test_del_1col_str_3():
     del d0[:, "P"]
     d0.internal.check()
     assert d0.shape == (1, 15)
-    assert d0.topython() == [[i] for i in range(16) if i != 15]
+    assert d0.to_list() == [[i] for i in range(16) if i != 15]
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
 
 def test_del_1col_int():
@@ -344,7 +344,7 @@ def test_del_cols_strslice():
     d0.internal.check()
     assert d0.shape == (1, 9)
     assert d0.names == tuple("ABCDLMNOP")
-    assert d0.topython() == [[0], [1], [2], [3], [11], [12], [13], [14], [15]]
+    assert d0.to_list() == [[0], [1], [2], [3], [11], [12], [13], [14], [15]]
 
 def test_del_cols_intslice1():
     d0 = smalldt()
@@ -352,7 +352,7 @@ def test_del_cols_intslice1():
     d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("BDFHJLNP")
-    assert d0.topython() == [[i] for i in range(1, 16, 2)]
+    assert d0.to_list() == [[i] for i in range(1, 16, 2)]
 
 def test_del_cols_intslice2():
     d0 = smalldt()
@@ -360,7 +360,7 @@ def test_del_cols_intslice2():
     d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("ACEGIKMO")
-    assert d0.topython() == [[i] for i in range(0, 16, 2)]
+    assert d0.to_list() == [[i] for i in range(0, 16, 2)]
 
 def test_del_cols_all():
     d0 = smalldt()
@@ -421,7 +421,7 @@ def test_del_rows_single():
     d0 = dt.Frame(range(10))
     del d0[3, :]
     d0.internal.check()
-    assert d0.topython() == [[0, 1, 2, 4, 5, 6, 7, 8, 9]]
+    assert d0.to_list() == [[0, 1, 2, 4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_slice0():
@@ -429,7 +429,7 @@ def test_del_rows_slice0():
     del d0[:3, :]
     d0.internal.check()
     assert d0.shape == (7, 1)
-    assert d0.topython() == [list(range(3, 10))]
+    assert d0.to_list() == [list(range(3, 10))]
 
 
 def test_del_rows_slice1():
@@ -437,7 +437,7 @@ def test_del_rows_slice1():
     del d0[-4:, :]
     d0.internal.check()
     assert d0.shape == (6, 1)
-    assert d0.topython() == [list(range(10 - 4))]
+    assert d0.to_list() == [list(range(10 - 4))]
 
 
 def test_del_rows_slice2():
@@ -445,7 +445,7 @@ def test_del_rows_slice2():
     del d0[2:6, :]
     d0.internal.check()
     assert d0.shape == (6, 1)
-    assert d0.topython() == [[0, 1, 6, 7, 8, 9]]
+    assert d0.to_list() == [[0, 1, 6, 7, 8, 9]]
 
 
 def test_del_rows_slice_empty():
@@ -453,7 +453,7 @@ def test_del_rows_slice_empty():
     del d0[4:4, :]
     d0.internal.check()
     assert d0.shape == (10, 1)
-    assert d0.topython() == [list(range(10))]
+    assert d0.to_list() == [list(range(10))]
 
 
 def test_del_rows_slice_reverse():
@@ -462,7 +462,7 @@ def test_del_rows_slice_reverse():
     del d0[:4:-1, :]
     del s0[:4:-1]
     d0.internal.check()
-    assert d0.topython() == [s0]
+    assert d0.to_list() == [s0]
 
 
 def test_del_rows_slice_all():
@@ -483,14 +483,14 @@ def test_del_rows_slice_step():
     d0 = dt.Frame(range(10))
     del d0[::3, :]
     d0.internal.check()
-    assert d0.topython() == [[1, 2, 4, 5, 7, 8]]
+    assert d0.to_list() == [[1, 2, 4, 5, 7, 8]]
 
 
 def test_del_rows_array():
     d0 = dt.Frame(range(10))
     del d0[[0, 7, 8], :]
     d0.internal.check()
-    assert d0.topython() == [[1, 2, 3, 4, 5, 6, 9]]
+    assert d0.to_list() == [[1, 2, 3, 4, 5, 6, 9]]
 
 
 @pytest.mark.skip("Issue #805")
@@ -498,37 +498,37 @@ def test_del_rows_array_unordered():
     d0 = dt.Frame(range(10))
     del d0[[3, 1, 5, 2, 2, 0, -1], :]
     d0.internal.check()
-    assert d0.topython() == [[4, 6, 7, 8]]
+    assert d0.to_list() == [[4, 6, 7, 8]]
 
 
 def test_del_rows_filter():
     d0 = dt.Frame(range(10), names=["A"], stype="int32")
     del d0[f.A < 4, :]
     d0.internal.check()
-    assert d0.topython() == [[4, 5, 6, 7, 8, 9]]
+    assert d0.to_list() == [[4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_nas():
     d0 = dt.Frame({"A": [1, 5, None, 12, 7, None, -3]})
     del d0[isna(f.A), :]
     d0.internal.check()
-    assert d0.topython() == [[1, 5, 12, 7, -3]]
+    assert d0.to_list() == [[1, 5, 12, 7, -3]]
 
 
 def test_del_rows_from_view1():
     d0 = dt.Frame(range(10))
     d1 = d0[::2, :]  # 0 2 4 6 8
     del d1[3, :]
-    assert d1.topython() == [[0, 2, 4, 8]]
+    assert d1.to_list() == [[0, 2, 4, 8]]
     del d1[[0, 3], :]
-    assert d1.topython() == [[2, 4]]
+    assert d1.to_list() == [[2, 4]]
 
 
 def test_del_rows_from_view2():
     f0 = dt.Frame([1, 3, None, 4, 5, None, None, 2, None, None, None])
     f1 = f0[5:, :]
     del f1[isna(f[0]), :]
-    assert f1.topython() == [[2]]
+    assert f1.to_list() == [[2]]
 
 
 
@@ -541,7 +541,7 @@ def test_resize_rows_api():
     f0.nrows = 3
     f0.nrows = 5
     f0.internal.check()
-    assert f0.topython() == [[20, None, None, None, None]]
+    assert f0.to_list() == [[20, None, None, None, None]]
 
 
 def test_resize_rows0():
@@ -550,12 +550,12 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (6, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.topython() == [[0, 1, 2, 3, 4, 5]]
+    assert f0.to_list() == [[0, 1, 2, 3, 4, 5]]
     f0.nrows = 12
     f0.internal.check()
     assert f0.shape == (12, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.topython() == [[0, 1, 2, 3, 4, 5] + [None] * 6]
+    assert f0.to_list() == [[0, 1, 2, 3, 4, 5] + [None] * 6]
     f0.nrows = 1
     f0.internal.check()
     assert f0.shape == (1, 1)
@@ -565,7 +565,7 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (20, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.topython() == [[0] + [None] * 19]
+    assert f0.to_list() == [[0] + [None] * 19]
 
 
 def test_resize_rows1():
@@ -579,26 +579,26 @@ def test_resize_rows1():
     f0.internal.check()
     assert f0.shape == (7, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src + [None] * 6 for src in srcs]
+    assert f0.to_list() == [src + [None] * 6 for src in srcs]
     f0.nrows = 20
     f0.internal.check()
     assert f0.shape == (20, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [src + [None] * 19 for src in srcs]
+    assert f0.to_list() == [src + [None] * 19 for src in srcs]
     f0.nrows = 0
     f0.internal.check()
     assert f0.shape == (0, 5)
     assert f0.stypes == stypes
-    assert f0.topython() == [[]] * 5
+    assert f0.to_list() == [[]] * 5
 
 
 def test_resize_rows_nastrs():
     f0 = dt.Frame(["foo", None, None, None, "gar"])
     f0.nrows = 3
-    assert f0.topython() == [["foo", None, None]]
+    assert f0.to_list() == [["foo", None, None]]
     f0.nrows = 10
     f0.internal.check()
-    assert f0.topython() == [["foo"] + [None] * 9]
+    assert f0.to_list() == [["foo"] + [None] * 9]
 
 
 def test_resize_view_slice():
@@ -611,12 +611,12 @@ def test_resize_view_slice():
     f1.internal.check()
     assert f1.shape == (10, 1)
     assert f1.internal.isview
-    assert f1.topython()[0] == list(range(8, 28, 2))
+    assert f1.to_list()[0] == list(range(8, 28, 2))
     f1.nrows = 15
     f1.internal.check()
     assert f1.shape == (15, 1)
     assert f1.internal.isview
-    assert f1.topython()[0] == list(range(8, 28, 2)) + [None] * 5
+    assert f1.to_list()[0] == list(range(8, 28, 2)) + [None] * 5
 
 
 def test_resize_view_array():
@@ -625,17 +625,17 @@ def test_resize_view_array():
     f1.internal.check()
     assert f1.shape == (8, 1)
     assert f1.internal.isview
-    assert f1.topython() == [[1, 1, 2, 3, 5, 8, 13, 0]]
+    assert f1.to_list() == [[1, 1, 2, 3, 5, 8, 13, 0]]
     f1.nrows = 4
     f1.internal.check()
     assert f1.shape == (4, 1)
     assert f1.internal.isview
-    assert f1.topython() == [[1, 1, 2, 3]]
+    assert f1.to_list() == [[1, 1, 2, 3]]
     f1.nrows = 5
     f1.internal.check()
     assert f1.shape == (5, 1)
     assert f1.internal.isview
-    assert f1.topython() == [[1, 1, 2, 3, None]]
+    assert f1.to_list() == [[1, 1, 2, 3, None]]
 
 
 def test_resize_bad():
@@ -810,7 +810,7 @@ def test_to_list():
            [False, True, None, True]]
     d0 = dt.Frame(src, names=["A", "B", "C"])
     assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
-    a0 = d0.topython()
+    a0 = d0.to_list()
     assert len(a0) == 3
     assert len(a0[0]) == 4
     assert a0 == src
@@ -822,7 +822,7 @@ def test_to_list2():
     src = [[1.0, None, float("nan"), 3.3]]
     d0 = dt.Frame(src)
     assert d0.ltypes == (ltype.real, )
-    a0 = d0.topython()[0]
+    a0 = d0.to_list()[0]
     assert a0 == [1.0, None, None, 3.3]
 
 
@@ -871,7 +871,7 @@ def test_topandas_view():
     p1 = d1.topandas()
     assert p1.shape == d1.shape
     assert p1.columns.tolist() == ["A", "b", "c"]
-    assert p1.values.T.tolist() == d1.topython()
+    assert p1.values.T.tolist() == d1.to_list()
 
 
 @pytest.mark.usefixtures("pandas")
@@ -906,7 +906,7 @@ def test_tonumpy1(numpy):
     a0 = d0.tonumpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("object")
-    assert same_iterables(a0.T.tolist(), d0.topython())
+    assert same_iterables(a0.T.tolist(), d0.to_list())
     a1 = numpy.array(d0)
     assert (a0 == a1).all()
 
@@ -916,7 +916,7 @@ def test_numpy_constructor_simple(numpy):
     d0 = dt.Frame(tbl)
     assert d0.shape == (5, 3)
     assert d0.stypes == (stype.int8, stype.int8, stype.int8)
-    assert d0.topython() == tbl
+    assert d0.to_list() == tbl
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int8")
@@ -975,7 +975,7 @@ def test_numpy_constructor_single_string_col(numpy):
     a = numpy.array(d)
     assert a.shape == d.shape
     assert a.dtype == numpy.dtype("object")
-    assert a.T.tolist() == d.topython()
+    assert a.T.tolist() == d.to_list()
     assert (a == d.tonumpy()).all()
 
 
@@ -1114,9 +1114,9 @@ def test_copy_frame():
     d1.internal.check()
     assert d0.names == d1.names
     assert d0.stypes == d1.stypes
-    assert d0.topython() == d1.topython()
+    assert d0.to_list() == d1.to_list()
     d0[1, "A"] = 100
-    assert d0.topython() != d1.topython()
+    assert d0.to_list() != d1.to_list()
     d0.names = ("w", "x", "y", "z")
     assert d1.names != d0.names
 
@@ -1274,5 +1274,5 @@ def test_issue898():
     f1 = f0[:-1, :]
     del f0
     f1.materialize()
-    res = f1.topython()
+    res = f1.to_list()
     del res

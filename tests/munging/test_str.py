@@ -47,7 +47,7 @@ def test_split_into_nhot0():
     assert f1.names == fr.names
     assert f1.stypes == (dt.stype.bool8, ) * f1.ncols
     assert f1.shape == fr.shape
-    assert f1.topython() == fr.topython()
+    assert f1.to_list() == fr.to_list()
 
 
 def test_split_into_nhot1():
@@ -63,7 +63,7 @@ def test_split_into_nhot1():
     fr = fr[..., f1.names]
     assert f1.shape == fr.shape == (5, 2)
     assert f1.stypes == (dt.stype.bool8, dt.stype.bool8)
-    assert f1.topython() == fr.topython()
+    assert f1.to_list() == fr.to_list()
 
 
 def test_split_into_nhot_sep():
@@ -72,7 +72,7 @@ def test_split_into_nhot_sep():
     assert set(f1.names) == {"a", "b", "c"}
     fr = dt.Frame(a=[1, 1, 1], b=[1, 1, 0], c=[1, 0, 1])
     assert set(f1.names) == set(fr.names)
-    assert f1.topython() == fr[:, f1.names].topython()
+    assert f1.to_list() == fr[:, f1.names].to_list()
 
 
 def test_split_into_nhot_quotes():
@@ -125,4 +125,4 @@ def test_split_into_nhot_long(seed, st):
     fr = dt.Frame(liberty=col1, equality=col2, justice=col3, freedom=col4)
     assert set(f1.names) == set(fr.names)
     f1 = f1[..., fr.names]
-    assert f1.topython() == fr.topython()
+    assert f1.to_list() == fr.to_list()

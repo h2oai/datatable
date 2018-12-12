@@ -217,7 +217,7 @@ def test_cbind_array():
     d0.internal.check()
     assert d0.shape == (5, 11)
     assert d0.names == ("A",) + tuple("A.%d" % (i + 1) for i in range(10))
-    assert d0.topython() == [[0, 1, 2, 3, 4]] * 11
+    assert d0.to_list() == [[0, 1, 2, 3, 4]] * 11
 
 
 def test_cbind_bad_things():

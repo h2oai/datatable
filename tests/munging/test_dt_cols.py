@@ -178,7 +178,7 @@ def test_cols_select_by_type(dt0):
     assert dt2.names == ("C", )
     dt3 = dt0[:, dt.ltype.str]
     assert dt3.shape == (0, 0)
-    assert dt3.topython() == []
+    assert dt3.to_list() == []
     dt4 = dt0[:, dt.stype.bool8]
     assert dt4.shape == (6, 1)
     assert dt4.stypes == (dt.stype.bool8, )
@@ -267,13 +267,13 @@ def test_cols_expression2():
     f1.internal.check()
     assert f1.names == ("foo", "bar")
     assert f1.stypes == f0.stypes * 2
-    assert f1.topython() == [list(range(10)), list(range(0, -10, -1))]
+    assert f1.to_list() == [list(range(10)), list(range(0, -10, -1))]
     if has_llvm():
         f2 = f0(select=selector, engine="llvm")
         f2.internal.check()
         assert f2.stypes == f1.stypes
         assert f2.names == f1.names
-        assert f2.topython() == f1.topython()
+        assert f2.to_list() == f1.to_list()
 
 
 def test_cols_bad_arguments(dt0):
@@ -294,7 +294,7 @@ def test_cols_from_view(dt0):
     assert d1.internal.isview
     d2 = d1[:, "B"]
     d2.internal.check()
-    assert d2.topython() == [[2, 3, 2]]
+    assert d2.to_list() == [[2, 3, 2]]
 
 
 def test_cols_on_empty_frame():

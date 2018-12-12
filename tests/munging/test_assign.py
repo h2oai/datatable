@@ -15,7 +15,7 @@ def test_assign_column_slice():
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     f0[:, 1:] = -1
     assert f0.shape == (4, 3)
-    assert f0.topython() == [src[0], [-1] * 4, [-1] * 4]
+    assert f0.to_list() == [src[0], [-1] * 4, [-1] * 4]
     assert f0.ltypes == (dt.ltype.int, ) * 3
 
 
@@ -28,10 +28,10 @@ def test_assign_column_array():
     assert f0.shape == (10, 2)
     f0[:, "C"] = "foo"
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
-    assert f0.topython() == [list(range(10)), [3.5] * 10, ["foo"] * 10]
+    assert f0.to_list() == [list(range(10)), [3.5] * 10, ["foo"] * 10]
     f0[:, ["B", "C"]] = False
     assert f0.ltypes == (dt.ltype.int, dt.ltype.bool, dt.ltype.bool)
-    assert f0.topython() == [list(range(10)), [False] * 10, [False] * 10]
+    assert f0.to_list() == [list(range(10)), [False] * 10, [False] * 10]
     f0[:, "A"] = None
     assert f0.ltypes == (dt.ltype.bool,) * 3
 
@@ -43,15 +43,15 @@ def test_assign_single_cell():
             f0[i, j] = i + j
     f0.internal.check()
     assert f0.ltypes == (dt.ltype.int, ) * 2
-    assert f0.topython() == [[0, 1, 2, 3], [1, 2, 3, 4]]
+    assert f0.to_list() == [[0, 1, 2, 3], [1, 2, 3, 4]]
 
 
 def test_assign_filtered():
     f0 = dt.Frame({"A": range(10)})
     f0[f.A < 5, :] = -1
-    assert f0.topython() == [[-1, -1, -1, -1, -1, 5, 6, 7, 8, 9]]
+    assert f0.to_list() == [[-1, -1, -1, -1, -1, 5, 6, 7, 8, 9]]
     f0[f.A < 0, :] = None
-    assert f0.topython() == [[None, None, None, None, None, 5, 6, 7, 8, 9]]
+    assert f0.to_list() == [[None, None, None, None, None, 5, 6, 7, 8, 9]]
 
 
 def test_assign_to_view():
@@ -60,8 +60,8 @@ def test_assign_to_view():
     f1[:, "AA"] = "test"
     assert f1.names == ("A", "AA")
     assert f1.ltypes == (dt.ltype.int, dt.ltype.str)
-    assert f1.topython() == [list(range(0, 10, 2)), ["test"] * 5]
-    assert f0.topython() == [list(range(10))]
+    assert f1.to_list() == [list(range(0, 10, 2)), ["test"] * 5]
+    assert f0.to_list() == [list(range(10))]
 
 
 def test_assign_frame():

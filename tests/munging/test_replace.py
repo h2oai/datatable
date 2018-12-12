@@ -35,37 +35,37 @@ from tests import list_equals
 def test_replace_scalar_scalar():
     df = dt.Frame([1, 2, 3])
     df.replace(1, 5)
-    assert df.topython() == [[5, 2, 3]]
+    assert df.to_list() == [[5, 2, 3]]
 
 
 def test_replace_list_scalar():
     df = dt.Frame([1, 2, 3])
     df.replace([1, 2, 7], 5)
-    assert df.topython() == [[5, 5, 3]]
+    assert df.to_list() == [[5, 5, 3]]
 
 
 def test_replace_none_list():
     df = dt.Frame([1, 2, 3, None])
     df.replace(None, [0, 0.0, ""])
-    assert df.topython() == [[1, 2, 3, 0]]
+    assert df.to_list() == [[1, 2, 3, 0]]
 
 
 def test_replace_list_list():
     df = dt.Frame([1, 2, 3])
     df.replace([1, 2, 7], [6, 2, 5])
-    assert df.topython() == [[6, 2, 3]]
+    assert df.to_list() == [[6, 2, 3]]
 
 
 def test_replace_emptylist():
     df = dt.Frame([1, 2, 3])
     df.replace([], 0)
-    assert df.topython() == [[1, 2, 3]]
+    assert df.to_list() == [[1, 2, 3]]
 
 
 def test_replace_dict():
     df = dt.Frame([1, 2, 3])
     df.replace({3: 1, 1: 3})
-    assert df.topython() == [[3, 2, 1]]
+    assert df.to_list() == [[3, 2, 1]]
 
 
 
@@ -79,14 +79,14 @@ def test_replace_bool_simple():
     df.replace({True: False, False: True})
     df.internal.check()
     assert df.stypes == (dt.bool8,) * 3
-    assert df.topython() == [[False, True, None], [False] * 3, [True] * 3]
+    assert df.to_list() == [[False, True, None], [False] * 3, [True] * 3]
 
 
 def test_replace_bool_na():
     df = dt.Frame([True, False, None])
     df.replace(None, False)
     df.internal.check()
-    assert df.topython() == [[True, False, False]]
+    assert df.to_list() == [[True, False, False]]
 
 
 
@@ -99,7 +99,7 @@ def test_replace_int_simple():
     df = dt.Frame(range(5))
     df.replace(0, -1)
     df.internal.check()
-    assert df.topython() == [[-1, 1, 2, 3, 4]]
+    assert df.to_list() == [[-1, 1, 2, 3, 4]]
 
 
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
@@ -118,17 +118,17 @@ def test_replace_int_with_upcast():
     df.replace(5, 1000)
     df.internal.check()
     assert df.stypes == (dt.stype.int32,)
-    assert df.topython() == [[0, 1, 2, 3, 4, 1000, 6, 7, 8, 9]]
+    assert df.to_list() == [[0, 1, 2, 3, 4, 1000, 6, 7, 8, 9]]
     df.replace(9, 10**10)
     assert df.stypes == (dt.stype.int64,)
-    assert df.topython() == [[0, 1, 2, 3, 4, 1000, 6, 7, 8, 10**10]]
+    assert df.to_list() == [[0, 1, 2, 3, 4, 1000, 6, 7, 8, 10**10]]
 
 
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_replace_into_int(st):
     df = dt.Frame(A=[0, 5, 9, 0, 3, 1], stype=st)
     df.replace([0, 1], None)
-    assert df.topython() == [[None, 5, 9, None, 3, None]]
+    assert df.to_list() == [[None, 5, 9, None, 3, None]]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -145,7 +145,7 @@ def test_replace_large(seed):
     for i in range(n):
         src[i] = replacements.get(src[i], src[i])
     df.internal.check()
-    assert df.topython() == [src]
+    assert df.to_list() == [src]
     assert df.stypes == (st,)
     assert df.names == ("A",)
     assert df.sum1() == sum(src)
@@ -166,7 +166,7 @@ def test_replace_floats(st):
     assert df.stypes == (st, st)
     res = [[1.1, 0.0, 5e10, -1.0, -2.0],
            [-inf, -2.0, -2.0, 3.99, 7.0]]
-    pydt = df.topython()
+    pydt = df.to_list()
     if st == dt.stype.float64:
         assert pydt == res
     else:
@@ -180,7 +180,7 @@ def test_replace_infs():
     assert df.stypes == (dt.float32, dt.float64)
     df.replace([inf, -inf], None)
     df.internal.check()
-    assert df.topython() == [[1.0, None, None]] * 2
+    assert df.to_list() == [[1.0, None, None]] * 2
     assert df.stypes == (dt.float32, dt.float64)
 
 
@@ -189,7 +189,7 @@ def test_replace_float_with_upcast():
     assert df.stypes == (dt.float32,)
     df.replace(2.0, 1.5e100)
     assert df.stypes == (dt.float64,)
-    assert df.topython() == [[1.5, 1.5e100, 3.5, 4.0]]
+    assert df.to_list() == [[1.5, 1.5e100, 3.5, 4.0]]
 
 
 
@@ -201,13 +201,13 @@ def test_replace_float_with_upcast():
 def test_replace_str_simple():
     df = dt.Frame(["foo", "bar", "buzz"])
     df.replace("bar", "oomph")
-    assert df.topython() == [["foo", "oomph", "buzz"]]
+    assert df.to_list() == [["foo", "oomph", "buzz"]]
 
 
 def test_replace_str_none():
     df = dt.Frame(["A", "BC", None, "DEF", None, "G"])
     df.replace(["A", None], [None, "??"])
-    assert df.topython() == [[None, "BC", "??", "DEF", "??", "G"]]
+    assert df.to_list() == [[None, "BC", "??", "DEF", "??", "G"]]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -223,7 +223,7 @@ def test_replace_str_large(seed):
             src[i] = "2"
         elif word == "five":
             src[i] = "1+1+1+1+1"
-    assert df.topython() == [src]
+    assert df.to_list() == [src]
 
 
 
@@ -236,7 +236,7 @@ def test_replace_nothing():
     df = dt.Frame(range(5))
     df.replace([], [])
     df.replace({})
-    assert df.topython() == [list(range(5))]
+    assert df.to_list() == [list(range(5))]
 
 
 def test_replace_nas():
@@ -245,9 +245,9 @@ def test_replace_nas():
                    [True, False, None, None]])
     df.replace(None, [77, 9.999, True])
     df.internal.check()
-    assert df.topython() == [[1, 77, 5, 10],
-                             [2.7, 9.999, 9.999, 1e5],
-                             [True, False, True, True]]
+    assert df.to_list() == [[1, 77, 5, 10],
+                            [2.7, 9.999, 9.999, 1e5],
+                            [True, False, True, True]]
 
 
 @pytest.mark.parametrize("st", [dt.float32, dt.float64])
@@ -258,7 +258,7 @@ def test_replace_nas2(st):
     df.replace(nan, 0.0)
     df.internal.check()
     assert df.stypes == (st,)
-    assert df.topython() == [[1.0, 0.0, 2.5, 0.0, 0.0]]
+    assert df.to_list() == [[1.0, 0.0, 2.5, 0.0, 0.0]]
 
 
 @pytest.mark.parametrize("nn", [0, 1, 2, 3, 5, 8])
@@ -281,15 +281,15 @@ def test_replace_multiple(nn, st):
     df.replace(replacements)
     df.internal.check()
     assert df.stypes == (st,)
-    assert df.topython()[0] == res
+    assert df.to_list()[0] == res
 
 
 def test_replace_in_copy():
     df1 = dt.Frame([[1, 2, 3], [5.5, 6.6, 7.7], ["A", "B", "C"]])
     df2 = df1.copy()
     df2.replace({3: 9, 5.5: 0.0, "B": "-"})
-    assert df1.topython() == [[1, 2, 3], [5.5, 6.6, 7.7], ["A", "B", "C"]]
-    assert df2.topython() == [[1, 2, 9], [0.0, 6.6, 7.7], ["A", "-", "C"]]
+    assert df1.to_list() == [[1, 2, 3], [5.5, 6.6, 7.7], ["A", "B", "C"]]
+    assert df2.to_list() == [[1, 2, 9], [0.0, 6.6, 7.7], ["A", "-", "C"]]
 
 
 def test_replace_do_nothing():
@@ -297,7 +297,7 @@ def test_replace_do_nothing():
     df1 = dt.Frame([[1, 2], [3, 4], [5.0, 6.6], [-inf, inf]])
     df1.replace([-99, -inf, inf], None)
     df1.internal.check()
-    assert df1.topython() == [[1, 2], [3, 4], [5.0, 6.6], [None, None]]
+    assert df1.to_list() == [[1, 2], [3, 4], [5.0, 6.6], [None, None]]
 
 
 def test_replace_do_nothing2(numpy):
@@ -306,7 +306,7 @@ def test_replace_do_nothing2(numpy):
     df = dt.Frame(a)
     df.replace([-np.inf, np.inf], [np.nan, np.nan])
     df.internal.check()
-    assert df.topython() == [[1., 1.], [2., None], [3., 4.], [None, 5.]]
+    assert df.to_list() == [[1., 1.], [2., None], [3., 4.], [None, 5.]]
 
 
 

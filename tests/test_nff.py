@@ -89,7 +89,7 @@ def test_obj_columns(tempdir):
     d1.internal.check()
     assert d1.shape == (4, 1)
     assert d1.names == ("A", )
-    assert d1.topython() == [src1]
+    assert d1.to_list() == [src1]
 
 
 def test_save_view(tempdir):
@@ -102,7 +102,7 @@ def test_save_view(tempdir):
     assert not dt2.internal.isview
     dt2.internal.check()
     assert dt2.names == dt1.names
-    assert dt2.topython() == dt1.topython()
+    assert dt2.to_list() == dt1.to_list()
 
 
 
@@ -145,7 +145,7 @@ def test_jay_view(tempfile, seed):
     dt2.internal.check()
     assert dt1.names == dt2.names
     assert dt1.stypes == dt2.stypes
-    assert dt1.topython() == dt2.topython()
+    assert dt1.to_list() == dt2.to_list()
 
 
 def test_jay_unicode_names(tempfile):
@@ -170,7 +170,7 @@ def test_jay_object_columns(tempfile):
     d1 = dt.open(tempfile)
     d1.internal.check()
     assert d1.names == ("A",)
-    assert d1.topython() == [src1]
+    assert d1.to_list() == [src1]
 
 
 def test_jay_empty_frame(tempfile):
@@ -212,8 +212,8 @@ def test_jay_keys(tempfile):
                    [1, 2, 3, 4, 5]], names=("x", "y"))
     d0.key = "x"
     assert len(d0.key) == 1
-    assert d0.topython() == [["ab", "aop", "cd", "coo", "eee"],
-                             [1, 5, 2, 4, 3]]
+    assert d0.to_list() == [["ab", "aop", "cd", "coo", "eee"],
+                            [1, 5, 2, 4, 3]]
     d0.save(tempfile)
     d1 = dt.open(tempfile)
     assert d1.key == ("x",)

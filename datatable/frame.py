@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import collections
 import time
+import warnings
 
 from datatable.lib import core
 import datatable
@@ -339,6 +340,10 @@ class Frame(core.Frame):
 
 
     def topython(self):  # DEPRECATED
+        warnings.warn(
+            "Method `Frame.topython()` is deprecated (will be removed in "
+            "0.9.0), please use `Frame.to_list()` instead",
+            category=FutureWarning)
         return self.to_list()
 
     # Old names

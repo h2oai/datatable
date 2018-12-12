@@ -35,24 +35,24 @@ def test_groups_internal2():
     gb = d1.internal.groupby
     assert gb.ngroups == 5
     assert gb.group_sizes == [1, 4, 1, 2, 1]
-    assert d1.topython() == [[None, 1, 1, 1, 1, 2, 3, 3, 5],
-                             ["d", "a", None, "b", "h", "a", "c", "f", "b"]]
+    assert d1.to_list() == [[None, 1, 1, 1, 1, 2, 3, 3, 5],
+                            ["d", "a", None, "b", "h", "a", "c", "f", "b"]]
     d2 = d0(groupby="B")
     d2.internal.check()
     gb = d2.internal.groupby
     assert gb.ngroups == 7
     assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
-    assert d2.topython() == [[1, 1, 2, 5, 1, 3, None, 3, 1],
-                             [None, "a", "a", "b", "b", "c", "d", "f", "h"]]
+    assert d2.to_list() == [[1, 1, 2, 5, 1, 3, None, 3, 1],
+                            [None, "a", "a", "b", "b", "c", "d", "f", "h"]]
 
 
 def test_groups_internal3():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
     f1 = f0(select=["B", f.A + f.B], groupby="A")
     f1.internal.check()
-    assert f1.topython() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
-                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
-                             [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
+    assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
+                            [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
+                            [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
     gb = f1.internal.groupby
     assert gb
     assert gb.ngroups == 3
@@ -93,7 +93,7 @@ def test_groups_internal5_strs(seed):
     assert gb
     grp_offsets = gb.group_offsets
     ssrc = sorted(src)
-    assert f1.topython() == [ssrc]
+    assert f1.to_list() == [ssrc]
     x_prev = None
     for i in range(gb.ngroups):
         s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
@@ -113,10 +113,10 @@ def test_groups1():
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
     f1 = f0(select=mean(f.B), groupby=f.A)
     assert f1.stypes == (dt.int8, dt.float64,)
-    assert f1.topython() == [[1, 2, 3], [3.8, 2.0, 5.0]]
+    assert f1.to_list() == [[1, 2, 3], [3.8, 2.0, 5.0]]
     f2 = f0[:, mean(f.B), "A"]
     assert f2.stypes == f1.stypes
-    assert f2.topython() == f1.topython()
+    assert f2.to_list() == f1.to_list()
 
 
 def test_groups_multiple():
@@ -124,7 +124,7 @@ def test_groups_multiple():
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [min(f.size), max(f.size)], "color"]
     f1.internal.check()
-    assert f1.topython() == [["blue", "green", "red"], [2, 0, 5], [2, 7, 13]]
+    assert f1.to_list() == [["blue", "green", "red"], [2, 0, 5], [2, 7, 13]]
 
 
 def test_groups_autoexpand():
@@ -132,15 +132,15 @@ def test_groups_autoexpand():
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [mean(f.size), "size"], f.color]
     f1.internal.check()
-    assert f1.topython() == [["blue", "green", "green", "red", "red"],
-                             [2.0, 3.5, 3.5, 9.0, 9.0],
-                             [2, 7, 0, 5, 13]]
+    assert f1.to_list() == [["blue", "green", "green", "red", "red"],
+                            [2.0, 3.5, 3.5, 9.0, 9.0],
+                            [2, 7, 0, 5, 13]]
 
 
 def test_groupby_with_filter1():
     f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
     f1 = f0[f.X > 0, sum(f.X), f.KEY]
-    assert f1.topython() == [[1, 2], [4, 2]]
+    assert f1.to_list() == [[1, 2], [4, 2]]
 
 
 def test_groupby_with_filter2():
@@ -154,7 +154,7 @@ def test_groupby_with_filter2():
     answer = [sum(src1[i] for i in range(n)
                   if src0[i] == key and 0 <= src1[i] <= 2)
               for key in range(4)]
-    assert f2.topython() == [[0, 1, 2, 3], answer]
+    assert f2.to_list() == [[0, 1, 2, 3], answer]
 
 
 
@@ -168,8 +168,8 @@ def test_reduce_sum():
                    "size": [5, 2, 7, 13, -1]})
     f1 = f0[:, sum(f.size), f.color]
     f1.internal.check()
-    assert f1.topython() == [["blue", "green", "red"],
-                             [2, 6, 18]]
+    assert f1.to_list() == [["blue", "green", "red"],
+                            [2, 6, 18]]
 
 
 
@@ -228,9 +228,9 @@ def test_groupby_large_random_integers(seed):
 def test_groupby_multi():
     DT = dt.Frame(A=[1, 2, 3] * 3, B=[1, 2] * 4 + [1], C=range(9))
     res = DT[:, sum(f.C), by("A", "B")]
-    assert res.topython() == [[1, 1, 2, 2, 3, 3],
-                              [1, 2, 1, 2, 1, 2],
-                              [6, 3, 4, 8, 10, 5]]
+    assert res.to_list() == [[1, 1, 2, 2, 3, 3],
+                             [1, 2, 1, 2, 1, 2],
+                             [6, 3, 4, 8, 10, 5]]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -258,4 +258,4 @@ def test_groupby_multi_large(seed):
     DT0 = dt.Frame([col0, col1, col2, col3], names=["A", "B", "C", "D"])
     DT1 = DT0[:, sum(f.D), by(f.A, f.B, f.C)]
     DT2 = dt.Frame(grouped)
-    assert same_iterables(DT1.topython(), DT2.topython())
+    assert same_iterables(DT1.to_list(), DT2.to_list())

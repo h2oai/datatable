@@ -31,7 +31,7 @@ def test_bool1():
     d0.internal.check()
     assert d0.shape == (3, 4)
     assert d0.ltypes == (ltype.bool,) * 4
-    assert d0.topython() == [[True, False, None]] * 4
+    assert d0.to_list() == [[True, False, None]] * 4
 
 
 def test_bool_nas():
@@ -40,15 +40,15 @@ def test_bool_nas():
                   "false,FALSE,10\n"
                   "NA,NA,100\n")
     assert d0.ltypes == (ltype.bool, ltype.bool, ltype.int)
-    assert d0.topython() == [[True, False, None], [True, False, None],
-                             [5, 10, 100]]
+    assert d0.to_list() == [[True, False, None], [True, False, None],
+                            [5, 10, 100]]
 
 
 def test_bool_truncated():
     d0 = dt.fread("A\nTrue\nFalse\nFal")
     d0.internal.check()
     assert d0.ltypes == (ltype.str,)
-    assert d0.topython() == [["True", "False", "Fal"]]
+    assert d0.to_list() == [["True", "False", "Fal"]]
 
 
 def test_incompatible_bools():
@@ -59,10 +59,10 @@ def test_incompatible_bools():
                   "TRUE,true,True,TRUE\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.str,) * 4
-    assert d0.topython() == [["True", "False", "TRUE"],
-                             ["TRUE", "FALSE", "true"],
-                             ["true", "false", "True"],
-                             ["1", "0", "TRUE"]]
+    assert d0.to_list() == [["True", "False", "TRUE"],
+                            ["TRUE", "FALSE", "true"],
+                            ["true", "false", "True"],
+                            ["1", "0", "TRUE"]]
 
 
 def test_float_hex_random():
@@ -72,7 +72,7 @@ def test_float_hex_random():
     d0 = dt.fread(text=inp)
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [arr]
+    assert d0.to_list() == [arr]
 
 
 def test_float_hex_formats():
@@ -86,7 +86,7 @@ def test_float_hex_formats():
                   "Infinity\n"
                   "-Infinity")
     d0.internal.check()
-    assert d0.topython() == [[1, -2, 8, 10, 100, None, math.inf, -math.inf]]
+    assert d0.to_list() == [[1, -2, 8, 10, 100, None, math.inf, -math.inf]]
 
 
 def test_float_hex0():
@@ -94,8 +94,8 @@ def test_float_hex0():
                   "0x0.0p+0\n"
                   "0x0p0\n"
                   "-0x0p-0\n")
-    assert d0.topython() == [[0.0] * 3]
-    assert math.copysign(1.0, d0.topython()[0][2]) == -1.0
+    assert d0.to_list() == [[0.0] * 3]
+    assert math.copysign(1.0, d0.to_list()[0][2]) == -1.0
 
 
 def test_float_hex1():
@@ -106,7 +106,7 @@ def test_float_hex1():
                        "0x1.2AAAAAp+22")
     d0.internal.check()
     assert d0.stypes == (stype.float32, )
-    assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
+    assert d0.to_list() == [[0, 1.3125, 0.65625, 4893354.5]]
 
 
 def test_float_hex2():
@@ -120,10 +120,10 @@ def test_float_hex2():
                   "0x1.FFFFFFFFFFFFFp+1023\n"  # largest normal
                   "0x1.0000000000000p-1022")   # smallest normal
     d0.internal.check()
-    assert d0.topython()[0] == [0.9380760727005495, 0.06192392729945053,
-                                0.9884021124759415, 0.011597887524058551,
-                                2.225073858507201e-308, 4.940656458412e-324,
-                                1.7976931348623157e308, 2.2250738585072014e-308]
+    assert d0.to_list()[0] == [0.9380760727005495, 0.06192392729945053,
+                               0.9884021124759415, 0.011597887524058551,
+                               2.225073858507201e-308, 4.940656458412e-324,
+                               1.7976931348623157e308, 2.2250738585072014e-308]
 
 
 def test_float_hex_invalid():
@@ -135,7 +135,7 @@ def test_float_hex_invalid():
               "0x0.1p1"]        # exponent too small for a subnormal number
     d0 = dt.fread("A,B,C,D,E,F\n" + ",".join(fields))
     d0.internal.check()
-    assert d0.topython() == [[f] for f in fields]
+    assert d0.to_list() == [[f] for f in fields]
 
 
 def test_float_decimal0(noppc64):
@@ -175,7 +175,7 @@ def test_float_precision():
     d0 = dt.fread(text)
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert list_equals(d0.topython()[0], src)
+    assert list_equals(d0.to_list()[0], src)
 
 
 def test_float_overflow():
@@ -189,7 +189,7 @@ def test_float_overflow():
     d0.internal.check()
     assert d0.shape == (1, len(fields))
     assert d0.ltypes == (ltype.str,) * len(fields)
-    assert d0.topython() == [[x] for x in fields]
+    assert d0.to_list() == [[x] for x in fields]
 
 
 def test_int():
@@ -202,9 +202,9 @@ def test_int():
     i64max = 9223372036854775807
     d0.internal.check()
     assert d0.stypes == (stype.int32, stype.int64, stype.int32)
-    assert d0.topython() == [[0, 99, 100, 2147483647, -2147483647],
-                             [0, 999, 2587, i64max, -i64max],
-                             [0, 9999, -1000, 99, None]]
+    assert d0.to_list() == [[0, 99, 100, 2147483647, -2147483647],
+                            [0, 999, 2587, i64max, -i64max],
+                            [0, 9999, -1000, 99, None]]
 
 
 def test_leading0s():
@@ -212,7 +212,7 @@ def test_leading0s():
     d0 = dt.fread(src)
     d0.internal.check()
     assert d0.shape == (1000, 1)
-    assert d0.topython() == [list(range(1000))]
+    assert d0.to_list() == [list(range(1000))]
 
 
 def test_int_toolong1():
@@ -224,8 +224,8 @@ def test_int_toolong1():
     d1.internal.check()
     assert d0.stypes == (stype.int64, )
     assert d1.stypes == (stype.str32, )
-    assert d0.topython() == [[int(x) for x in src[1:-1]]]
-    assert d1.topython() == [src[1:]]
+    assert d0.to_list() == [[int(x) for x in src[1:-1]]]
+    assert d1.to_list() == [src[1:]]
 
 
 def test_int_toolong2():
@@ -234,15 +234,15 @@ def test_int_toolong2():
                   "9223372036854775808,-9223372036854775808\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.str, ltype.str)
-    assert d0.topython() == [["9223372036854775807", "9223372036854775808"],
-                             ["9223372036854775806", "-9223372036854775808"]]
+    assert d0.to_list() == [["9223372036854775807", "9223372036854775808"],
+                            ["9223372036854775806", "-9223372036854775808"]]
 
 
 def test_int_toolong3():
     # from R issue #2250
     d0 = dt.fread("A,B\n2,384325987234905827340958734572934\n")
     d0.internal.check()
-    assert d0.topython() == [[2], ["384325987234905827340958734572934"]]
+    assert d0.to_list() == [[2], ["384325987234905827340958734572934"]]
 
 
 def test_int_even_longer():
@@ -256,9 +256,9 @@ def test_int_even_longer():
     text = "A,B,C,D\n%s,%s,1.%s,%s.99" % (src1, src2, src2, src2)
     d0 = dt.fread(text)
     d0.internal.check()
-    assert d0.topython() == [[src1], [src2],
-                             [float("1." + src2)],
-                             [float(src2)]]
+    assert d0.to_list() == [[src1], [src2],
+                            [float("1." + src2)],
+                            [float(src2)]]
 
 
 def test_int_with_thousand_sep():
@@ -269,9 +269,9 @@ def test_int_with_thousand_sep():
     d0.internal.check()
     assert d0.shape == (3, 3)
     assert d0.names == ("A", "B", "C")
-    assert d0.topython() == [[5, 0, 295],
-                             [100, 1234, 500005],
-                             [3378149, 1999, 7134930]]
+    assert d0.to_list() == [[5, 0, 295],
+                            [100, 1234, 500005],
+                            [3378149, 1999, 7134930]]
 
 
 def test_int_with_thousand_sep2():
@@ -282,9 +282,9 @@ def test_int_with_thousand_sep2():
                   ',"1,549,048,733,295,668",5354\n')
     d0.internal.check()
     assert d0.stypes == (dt.int32, dt.int64, dt.int32)
-    assert d0.topython() == [[3, 4785, 17, None],
-                             [200, 11, 835, 1549048733295668],
-                             [998, 9560293, 0, 5354]]
+    assert d0.to_list() == [[3, 4785, 17, None],
+                            [200, 11, 835, 1549048733295668],
+                            [998, 9560293, 0, 5354]]
 
 
 def test_int_with_thousand_sep_not_really():
@@ -305,7 +305,7 @@ def test_int_with_thousand_sep_not_really():
     d0 = dt.fread(src)
     assert d0.names == names
     assert d0.stypes == (dt.str32,) * len(bad_ints)
-    assert d0.topython() == [[x] for x in bad_ints]
+    assert d0.to_list() == [[x] for x in bad_ints]
 
 
 
@@ -314,7 +314,7 @@ def test_float_ext_literals1():
     d0 = dt.fread("A\n+Inf\nINF\n-inf\n-Infinity\n1.3e2")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[inf, inf, -inf, -inf, 130]]
+    assert d0.to_list() == [[inf, inf, -inf, -inf, 130]]
 
 
 def test_float_ext_literals2():
@@ -322,22 +322,22 @@ def test_float_ext_literals2():
                   "sNaN\nNaNQ\nNaNS\n-.999e-1")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[0.2, None, None, None, None, None,
-                              None, None, None, -0.0999]]
+    assert d0.to_list() == [[0.2, None, None, None, None, None,
+                             None, None, None, -0.0999]]
 
 
 def test_float_ext_literals3():
     d0 = dt.fread("C\n1.0\nNaN3490\n-qNaN9\n+sNaN99999\nNaN000000\nNaN000")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[1, None, None, None, None, None]]
+    assert d0.to_list() == [[1, None, None, None, None, None]]
 
 
 def test_float_ext_literals4():
     d0 = dt.fread("D\n1.\n1.#SNAN\n1.#QNAN\n1.#IND\n1.#INF\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[1, None, None, None, math.inf]]
+    assert d0.to_list() == [[1, None, None, None, math.inf]]
 
 
 def test_float_ext_literals5():
@@ -345,34 +345,34 @@ def test_float_ext_literals5():
                   "#REF!\n#N/A\n1e0\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[0, None, None, None, None, None, None, None, 1]]
+    assert d0.to_list() == [[0, None, None, None, None, None, None, None, 1]]
 
 
 def test_float_ext_literals6():
     d0 = dt.fread("F\n1.1\n+1.3333333333333\n5.9e320\n45609E11\n-0890.e-03\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[1.1, 1.3333333333333, 5.9e320, 45609e11, -0.890]]
+    assert d0.to_list() == [[1.1, 1.3333333333333, 5.9e320, 45609e11, -0.890]]
 
 
 def test_float_many_zeros():
     d0 = dt.fread("G\n0.0000000000000000000000000000000000000000000000449548\n")
     d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [[4.49548e-47]]
+    assert d0.to_list() == [[4.49548e-47]]
 
 
 def test_invalid_int_numbers():
     d0 = dt.fread('A,B,C\n1,+,4\n2,-,5\n3,-,6\n')
     d0.internal.check()
     assert d0.names == ("A", "B", "C")
-    assert d0.topython() == [[1, 2, 3], ["+", "-", "-"], [4, 5, 6]]
+    assert d0.to_list() == [[1, 2, 3], ["+", "-", "-"], [4, 5, 6]]
 
 
 def test_invalid_float_numbers():
     d0 = dt.fread("A,B,C,D,E,F\n.,+.,.e,.e+,0e,e-3\n")
     d0.internal.check()
-    assert d0.topython() == [["."], ["+."], [".e"], [".e+"], ["0e"], ["e-3"]]
+    assert d0.to_list() == [["."], ["+."], [".e"], [".e+"], ["0e"], ["e-3"]]
 
 
 
@@ -382,8 +382,8 @@ def test_invalid_float_numbers():
 
 @pytest.mark.parametrize(
     "src", ["", " ", "\n", " \n" * 3, "\t\n  \n\n        \t  ", "\uFEFF",
-            "\uFEFF\n", "\uFEFF  \t\n \n\n", "\n\x1A\x1A", "\0", "\0\0\0\0",
-            "\n\0", "\uFEFF  \n  \n\t\0\x1A\0\x1A"])
+            "\uFEFF\n", "\uFEFF  \t\n \n\n", "\n\x1A\x1A", "\x00", "\x00" * 4,
+            "\n\x00", "\uFEFF  \n  \n\t\x00\x1A\x00\x1A"])
 def test_input_empty(tempfile, src):
     with open(tempfile, "w", encoding="utf-8") as o:
         o.write(src)
@@ -446,21 +446,21 @@ def test_fread_single_number1():
     f.internal.check()
     assert f.shape == (1, 1)
     assert f.names == ("C", )
-    assert f.topython() == [[12.345]]
+    assert f.to_list() == [[12.345]]
 
 
 def test_fread_single_number2():
     f = dt.fread("345.12\n")
     f.internal.check()
     assert f.shape == (1, 1)
-    assert f.topython() == [[345.12]]
+    assert f.to_list() == [[345.12]]
 
 
 def test_fread_two_numbers():
     f = dt.fread("12.34\n56.78")
     f.internal.check()
     assert f.shape == (2, 1)
-    assert f.topython() == [[12.34, 56.78]]
+    assert f.to_list() == [[12.34, 56.78]]
 
 
 def test_1x1_na():
@@ -469,7 +469,7 @@ def test_1x1_na():
     assert d0.shape == (1, 1)
     assert d0.names == ("A", )
     assert d0.ltypes == (ltype.bool, )
-    assert d0.topython() == [[None]]
+    assert d0.to_list() == [[None]]
 
 
 def test_0x2_na():
@@ -479,7 +479,7 @@ def test_0x2_na():
     assert d0.shape == (0, 2)
     assert d0.names == ("A", "B")
     assert d0.ltypes == (ltype.bool, ltype.bool)
-    assert d0.topython() == [[], []]
+    assert d0.to_list() == [[], []]
 
 
 def test_0x3_with_whitespace():
@@ -495,7 +495,7 @@ def test_1line_not_header():
     d0.internal.check()
     assert d0.shape == (1, 3)
     assert d0.ltypes == (ltype.str, ltype.str, ltype.int)
-    assert d0.topython() == [["C1"], ["C2"], [3]]
+    assert d0.to_list() == [["C1"], ["C2"], [3]]
 
 
 def test_input_htmlfile():
@@ -517,7 +517,7 @@ def test_fread1():
                  "100.3")
     assert f.shape == (3, 1)
     assert f.names == ("hello", )
-    assert f.topython() == [[1.1, 200000.0, 100.3]]
+    assert f.to_list() == [[1.1, 200000.0, 100.3]]
 
 
 def test_fread2():
@@ -536,50 +536,50 @@ def test_runaway_quote():
     d0 = dt.fread('"A,B,C\n1,2,3\n4,5,6')
     assert d0.shape == (2, 3)
     assert d0.names == ('"A', 'B', 'C')
-    assert d0.topython() == [[1, 4], [2, 5], [3, 6]]
+    assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
 def test_unmatched_quotes():
     # Should instead all quotes remain around 'aa', 'bb' and 'cc' ?
     assert dt.fread('A,B\n"aa",1\n"bb,2\n"cc",3\n') \
-             .topython() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+             .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\n""bb",2\n"cc",3\n') \
-             .topython() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+             .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\nbb",2\n"cc",3\n') \
-             .topython() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
+             .to_list() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\n"bb"",2\n"cc",3\n') \
-             .topython() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
+             .to_list() == [['aa', 'bb"', 'cc'], [1, 2, 3]]
 
 
 def test_unescaped_quotes():
     d0 = dt.fread('key\tvalue\tcheck\n'
                   '8591\t{"item":12,"content":"TABLE"}\tok')
     assert d0.names == ("key", "value", "check")
-    assert d0.topython() == [[8591], ['{"item":12,"content":"TABLE"}'], ["ok"]]
+    assert d0.to_list() == [[8591], ['{"item":12,"content":"TABLE"}'], ["ok"]]
 
 
 def test_unescaped_quotes2():
     d0 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d"\nfo"o,bar,"b,az""\n')
-    assert d0.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
-                             ['a"b"c"d', 'b,az"']]
+    assert d0.to_list() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                            ['a"b"c"d', 'b,az"']]
     d1 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d""\nfo"o,bar,"b,az""\n')
-    assert d1.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
-                             ['a"b"c"d"', 'b,az"']]
+    assert d1.to_list() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                            ['a"b"c"d"', 'b,az"']]
     d2 = dt.fread('A,B,C\n1.2,Foo"Bar,"a"b\"c"d""\nfo"o,bar,"b,"az""\n')
-    assert d2.topython() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
-                             ['a"b"c"d"', 'b,"az"']]
+    assert d2.to_list() == [["1.2", 'fo"o'], ['Foo"Bar', 'bar'],
+                            ['a"b"c"d"', 'b,"az"']]
 
 
 def test_quoted_headers():
     d0 = dt.fread('"One,Two","Three",Four\n12,3,4\n56,7,8\n')
     assert d0.names == ("One,Two", "Three", "Four")
-    assert d0.topython() == [[12, 56], [3, 7], [4, 8]]
+    assert d0.to_list() == [[12, 56], [3, 7], [4, 8]]
 
 
 def test_trailing_backslash():
     d0 = dt.fread('dir,size\n"C:\\",123\n')
     assert d0.names == ("dir", "size")
-    assert d0.topython() == [["C:\\"], [123]]
+    assert d0.to_list() == [["C:\\"], [123]]
 
 
 def test_space_separated_numbers():
@@ -614,7 +614,7 @@ def test_utf16(tempfile):
         d0 = dt.fread(tempfile)
         d0.internal.check()
         assert d0.names == names
-        assert d0.topython() == [col1, col2, col3]
+        assert d0.to_list() == [col1, col2, col3]
 
 
 def test_fread_CtrlZ():
@@ -623,15 +623,15 @@ def test_fread_CtrlZ():
     d0 = dt.fread(text=src)
     d0.internal.check()
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
-    assert d0.topython() == [[-1], [2], [3]]
+    assert d0.to_list() == [[-1], [2], [3]]
 
 
 def test_fread_NUL():
     """Check that NUL characters at the end of the file are removed"""
-    d0 = dt.fread(text=b"A,B\n2.3,5\0\0\0\0\0\0\0\0\0\0")
+    d0 = dt.fread(text=b"A,B\n2.3,5\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
     d0.internal.check()
     assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
-    assert d0.topython() == [[2.3], [5]]
+    assert d0.to_list() == [[2.3], [5]]
 
 
 def test_fread_1col_a():
@@ -648,7 +648,7 @@ def test_fread_1col_a():
                        "\n")
     d0.internal.check()
     assert d0.names == ("A",)
-    assert d0.topython() == [[1, 2, None, 4, None, 5, None]]
+    assert d0.to_list() == [[1, 2, None, 4, None, 5, None]]
 
 
 def test_fread_1col_b():
@@ -658,8 +658,8 @@ def test_fread_1col_b():
                   "you can.\n\n", sep="\n")
     d1.internal.check()
     assert d1.names == ("QUOTE",)
-    assert d1.topython() == [["If you think", "you can do it,", "",
-                              "you can.", ""]]
+    assert d1.to_list() == [["If you think", "you can do it,", "",
+                             "you can.", ""]]
 
 
 @pytest.mark.parametrize("eol", ["\n", "\r", "\n\r", "\r\n", "\r\r\n"])
@@ -668,7 +668,7 @@ def test_fread_1col_c(eol):
     d0 = dt.fread(eol.join(data))
     d0.internal.check()
     assert d0.names == ("A", )
-    assert d0.topython() == [[100, 200, None, 400, None, 600]]
+    assert d0.to_list() == [[100, 200, None, 400, None, 600]]
 
 
 @pytest.mark.parametrize("eol", ["\n", "\r", "\n\r", "\r\n", "\r\r\n"])
@@ -678,26 +678,26 @@ def test_different_line_endings(eol):
     d0 = dt.fread(text=text)
     d0.internal.check()
     assert d0.names == ("A", "B")
-    assert d0.topython() == [[None, 1, 2, 3], ["koo", "vi", "mu", "yay"]]
+    assert d0.to_list() == [[None, 1, 2, 3], ["koo", "vi", "mu", "yay"]]
 
 
 def test_fread_quoting():
     d0 = dt.fread("A,B,C,D\n1,3,ghu,5\n2,4,zifuh,667")
     d0.internal.check()
     assert d0.names == ("A", "B", "C", "D")
-    assert d0.topython() == [[1, 2], [3, 4], ["ghu", "zifuh"], [5, 667]]
+    assert d0.to_list() == [[1, 2], [3, 4], ["ghu", "zifuh"], [5, 667]]
     d1 = dt.fread('A,B,C,D\n1,3,pq[q,5\n2,4,"dflb",6')
     d1.internal.check()
     assert d1.names == ("A", "B", "C", "D")
-    assert d1.topython() == [[1, 2], [3, 4], ["pq[q", "dflb"], [5, 6]]
+    assert d1.to_list() == [[1, 2], [3, 4], ["pq[q", "dflb"], [5, 6]]
     d2 = dt.fread('A,B,C,D\n1,3,nib,5\n2,4,"la,la,la,la",6')
     d2.internal.check()
     assert d2.names == ("A", "B", "C", "D")
-    assert d2.topython() == [[1, 2], [3, 4], ["nib", "la,la,la,la"], [5, 6]]
+    assert d2.to_list() == [[1, 2], [3, 4], ["nib", "la,la,la,la"], [5, 6]]
     d3 = dt.fread('A,B,C,D\n1,3,foo,5\n2,4,"ba,\\"r,",6')
     d3.internal.check()
     assert d3.names == ("A", "B", "C", "D")
-    assert d3.topython() == [[1, 2], [3, 4], ["foo", "ba,\"r,"], [5, 6]]
+    assert d3.to_list() == [[1, 2], [3, 4], ["foo", "ba,\"r,"], [5, 6]]
 
 
 def test_fread_default_colnames():
@@ -724,7 +724,7 @@ def test_fread_na_field():
     d0.internal.check()
     assert d0.names == ("A", "B", "C")
     assert d0.stypes == (stype.int32, stype.int32, stype.bool8)
-    assert d0.topython() == [[1, 2], [3, 4], [None, None]]
+    assert d0.to_list() == [[1, 2], [3, 4], [None, None]]
 
 
 def test_last_quoted_field():
@@ -734,7 +734,7 @@ def test_last_quoted_field():
     d0.internal.check()
     assert d0.shape == (2, 3)
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
-    assert d0.topython() == [[1, 3], [5, 9], [17, 1000]]
+    assert d0.to_list() == [[1, 3], [5, 9], [17, 1000]]
 
 
 def test_numbers_with_quotes1():
@@ -746,7 +746,7 @@ def test_numbers_with_quotes1():
     assert d0.shape == (3, 2)
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
     assert d0.names == ("B", "C")
-    assert d0.topython() == [[12, 13, 14], [15, 18, 3]]
+    assert d0.to_list() == [[12, 13, 14], [15, 18, 3]]
 
 
 def test_numbers_with_quotes2():
@@ -757,7 +757,7 @@ def test_numbers_with_quotes2():
     assert d0.shape == (2, 2)
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
     assert d0.names == ("A", "B")
-    assert d0.topython() == [[83, 55], [23948, 20487203497]]
+    assert d0.to_list() == [[83, 55], [23948, 20487203497]]
 
 
 def test_unquoting1():
@@ -767,7 +767,7 @@ def test_unquoting1():
                   '"goodbye"\n')
     d0.internal.check()
     assert d0.names == ('"A"',)
-    assert d0.topython() == [['hello, "world"', '"', 'goodbye']]
+    assert d0.to_list() == [['hello, "world"', '"', 'goodbye']]
 
 
 def test_unquoting2():
@@ -779,7 +779,7 @@ def test_unquoting2():
                   quotechar="'")
     d0.internal.check()
     assert d0.names == ("B",)
-    assert d0.topython() == [["morning", "'night'", "day", "even'ing"]]
+    assert d0.to_list() == [["morning", "'night'", "day", "even'ing"]]
 
 
 def test_unescaping1():
@@ -789,9 +789,9 @@ def test_unescaping1():
                   '"\\r\\t\\v\\a\\b\\071\\uABCD"\n')
     d0.internal.check()
     assert d0.names == ("C\\D",)
-    assert d0.topython() == [["AB CD\n",
-                              "\"one\", 'two', three",
-                              "\r\t\v\a\b\071\uABCD"]]
+    assert d0.to_list() == [["AB CD\n",
+                             "\"one\", 'two', three",
+                             "\r\t\v\a\b\071\uABCD"]]
 
 
 def test_whitespace_nas():
@@ -803,9 +803,9 @@ def test_whitespace_nas():
     d0.internal.check()
     assert d0.names == ("A", "B", "C")
     assert d0.ltypes == (dt.ltype.real,) * 3
-    assert d0.topython() == [[17, 3, None, 0],
-                             [34, None, 2, 0.1],
-                             [2.3, 1, None, 0]]
+    assert d0.to_list() == [[17, 3, None, 0],
+                            [34, None, 2, 0.1],
+                            [2.3, 1, None, 0]]
 
 
 def test_quoted_na_strings():
@@ -817,7 +817,7 @@ def test_quoted_na_strings():
     d0.internal.check()
     assert d0.names == ("A", "B", "C")
     assert d0.ltypes == (dt.ltype.str,) * 3
-    assert d0.topython() == [["foo", None], ["bar", None], ["caw", None]]
+    assert d0.to_list() == [["foo", None], ["bar", None], ["caw", None]]
 
 
 def test_clashing_column_names():
@@ -841,32 +841,32 @@ def test_clashing_column_names2():
 
 
 def test_nuls1():
-    d0 = dt.fread("A,B\0\n1,2\n")
+    d0 = dt.fread("A,B\x00\n1,2\n")
     d0.internal.check()
     # Special characters are replaced in column names
     assert d0.names == ("A", "B.")
     assert d0.shape == (1, 2)
-    assert d0.topython() == [[1], [2]]
+    assert d0.to_list() == [[1], [2]]
 
 
 def test_nuls2():
-    d0 = dt.fread("A,B\nfoo,ba\0r\nalpha,beta\0\ngamma\0,delta\n")
+    d0 = dt.fread("A,B\nfoo,ba\x00r\nalpha,beta\x00\ngamma\x00,delta\n")
     d0.internal.check()
     assert d0.names == ("A", "B")
     assert d0.shape == (3, 2)
-    assert d0.topython() == [["foo", "alpha", "gamma\0"],
-                             ["ba\0r", "beta\0", "delta"]]
+    assert d0.to_list() == [["foo", "alpha", "gamma\x00"],
+                            ["ba\x00r", "beta\x00", "delta"]]
 
 def test_nuls3():
-    lines = ["%02d,%d,%d\0" % (i, i % 3, 20 - i) for i in range(10)]
+    lines = ["%02d,%d,%d\x00" % (i, i % 3, 20 - i) for i in range(10)]
     src = "\n".join(["a,b,c"] + lines + [""])
     d0 = dt.fread(src, verbose=True)
     d0.internal.check()
     assert d0.shape == (10, 3)
     assert d0.names == ("a", "b", "c")
-    assert d0.topython() == [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                             [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
-                             ["%d\0" % i for i in range(20, 10, -1)]]
+    assert d0.to_list() == [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                            [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
+                            ["%d\x00" % i for i in range(20, 10, -1)]]
 
 
 def test_headers_with_na():
@@ -876,7 +876,7 @@ def test_headers_with_na():
                  "1,2,3\n")
     d.internal.check()
     assert d.names == ("A", "B", "C0")
-    assert d.topython() == [[1], [2], [3]]
+    assert d.to_list() == [[1], [2], [3]]
 
 
 def test_file_nolock(tempfile):
@@ -893,14 +893,14 @@ def test_file_nolock(tempfile):
     assert os.stat(tempfile).st_size == 32
     # Try reading the file again
     d0 = dt.fread(tempfile, fill=True)
-    assert d0.topython() == [[1, 4, 5, 8, 10],
-                             [2, None, 6, 9, 11],
-                             [3, None, 7, None, 1]]
+    assert d0.to_list() == [[1, 4, 5, 8, 10],
+                            [2, None, 6, 9, 11],
+                            [3, None, 7, None, 1]]
     # Try overwriting the file
     with open(tempfile, "wb") as o:
         o.write(b"A,B\n1\n2,3\n")
     d0 = dt.fread(tempfile, fill=True)
-    assert d0.topython() == [[1, 2], [None, 3]]
+    assert d0.to_list() == [[1, 2], [None, 3]]
     # Try removing the file
     os.unlink(tempfile)
     assert not os.path.exists(tempfile)
@@ -939,7 +939,7 @@ def test_empty_strings(seed, repl):
     d1.internal.check()
     assert d1.names == d0.names
     assert d1.stypes == d0.stypes
-    assert d1.topython() == src
+    assert d1.to_list() == src
 
 
 @pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
@@ -973,8 +973,8 @@ def test_random_data(seed, tempfile):
     src[1][1] = None
     src[2][2] = None
     src[3][3] = ""    # FIXME
-    src[4][4] = None  # .topython() below converts `nan`s into None
-    res = d1.topython()
+    src[4][4] = None  # .to_list() below converts `nan`s into None
+    res = d1.to_list()
     assert res[0] == src[0]
     assert res[1] == src[1]
     assert list_equals(res[2], src[2])
@@ -1041,7 +1041,7 @@ def test_almost_nodata(capsys):
     d0.internal.check()
     assert d0.shape == (n, 3)
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
-    assert d0.topython() == [[2017] * n, m, ["foo"] * n]
+    assert d0.to_list() == [[2017] * n, m, ["foo"] * n]
     print(out)
     assert not err
     assert ("Column 2 (B) bumped from Unknown to Str32 "
@@ -1070,7 +1070,7 @@ def test_under_allocation(capsys):
     assert d0.names == ("A", "B")
     sum1 = 1234567 * 200 * 101 + 7 * 2000 * 100
     sum2 = 45789123 * 200 * 101 + 3 * 2000 * 100
-    assert d0.sum().topython() == [[sum1], [sum2]]
+    assert d0.sum().to_list() == [[sum1], [sum2]]
 
 
 @pytest.mark.parametrize("mul", [16, 128, 256, 512, 1024, 2048])
@@ -1094,7 +1094,7 @@ def test_round_filesize(tempfile, mul, eol):
     d0 = dt.fread(tempfile)
     d0.internal.check()
     assert d0.shape == (mul, 7)
-    assert d0.topython() == data
+    assert d0.to_list() == data
 
 
 def test_maxnrows_on_large_dataset():
@@ -1107,7 +1107,7 @@ def test_maxnrows_on_large_dataset():
     t0 = time.time() - t0
     d0.internal.check()
     assert d0.shape == (5, 3)
-    assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
+    assert d0.to_list() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
     t1 = time.time()
     d1 = dt.fread(src, nthreads=4, verbose=True)
     t1 = time.time() - t1
@@ -1176,4 +1176,4 @@ def test_qr_bump_out_of_sample(capsys):
     pysrc = [[123] * 3000, ["abcd"] * 3000]
     pysrc[0][137] = -1
     pysrc[1][137] = '"This" is not funny'
-    assert d0.topython() == pysrc
+    assert d0.to_list() == pysrc

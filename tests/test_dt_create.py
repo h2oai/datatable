@@ -192,7 +192,7 @@ def test_create_from_range():
     d0 = dt.Frame(range(8))
     d0.internal.check()
     assert d0.shape == (8, 1)
-    assert d0.topython() == [list(range(8))]
+    assert d0.to_list() == [list(range(8))]
 
 
 
@@ -213,7 +213,7 @@ def test_create_from_list_of_lists_with_stypes_dict():
     d0.internal.check()
     assert d0.names == ("a", "b", "c")
     assert d0.ltypes == (ltype.int, ltype.int, ltype.real)
-    assert d0.topython() == [[4], [9], [3.0]]
+    assert d0.to_list() == [[4], [9], [3.0]]
 
 
 def test_create_from_list_of_lists_with_stypes_dict_bad():
@@ -227,7 +227,7 @@ def test_create_from_list_of_ranges():
     d0 = dt.Frame([range(6), range(0, 12, 2)])
     d0.internal.check()
     assert d0.shape == (6, 2)
-    assert d0.topython() == [list(range(6)), list(range(0, 12, 2))]
+    assert d0.to_list() == [list(range(6)), list(range(0, 12, 2))]
 
 
 def test_create_from_empty_list_of_lists():
@@ -269,16 +269,16 @@ def test_create_from_kwargs0():
     d0 = dt.Frame(varname=[1])
     d0.internal.check()
     assert d0.names == ("varname",)
-    assert d0.topython() == [[1]]
+    assert d0.to_list() == [[1]]
 
 
 def test_create_from_kwargs1():
     d0 = dt.Frame(A=[1, 2, 3], B=[True, None, False], C=["a", "b", "c"])
     d0.internal.check()
     assert same_iterables(d0.names, ("A", "B", "C"))
-    assert same_iterables(d0.topython(), [[1, 2, 3],
-                                          [True, None, False],
-                                          ["a", "b", "c"]])
+    assert same_iterables(d0.to_list(), [[1, 2, 3],
+                                         [True, None, False],
+                                         ["a", "b", "c"]])
 
 
 def test_create_from_kwargs2():
@@ -287,7 +287,7 @@ def test_create_from_kwargs2():
     assert d0.shape == (4, 2)
     assert same_iterables(d0.names, ("x", "y"))
     assert same_iterables(d0.stypes, (dt.int64, dt.float32))
-    assert same_iterables(d0.topython(), [[0, 1, 2, 3], [1, 3, 8, 0]])
+    assert same_iterables(d0.to_list(), [[0, 1, 2, 3], [1, 3, 8, 0]])
 
 
 def test_create_from_kwargs_error():
@@ -324,7 +324,7 @@ def test_create_from_frame2():
     d0 = dt.Frame([range(5), [7] * 5, list("owbke")])
     d1 = dt.Frame(d0, names=["A", "B", "C"])
     d1.internal.check()
-    assert d1.topython() == d0.topython()
+    assert d1.to_list() == d0.to_list()
     assert d1.stypes == d0.stypes
     assert d1.names != d0.names
     assert d1.names == ("A", "B", "C")
@@ -358,8 +358,8 @@ def test_create_from_string():
     assert d0.names == ("A", "B", "C", "D")
     assert d0.ltypes == (dt.ltype.bool, dt.ltype.real, dt.ltype.int,
                          dt.ltype.str)
-    assert d0.topython() == [[True, False, None], [2.0, 5.5, None],
-                             [3, None, 1000], ["boo", "bar", ""]]
+    assert d0.to_list() == [[True, False, None], [2.0, 5.5, None],
+                            [3, None, 1000], ["boo", "bar", ""]]
 
 
 def test_cannot_create_from_multiple_files(tempfile):
@@ -397,9 +397,9 @@ def test_create_from_list_of_tuples1():
     d0.internal.check()
     assert d0.shape == (4, 3)
     assert d0.ltypes == (ltype.int, ltype.real, ltype.str)
-    assert d0.topython() == [[1, 3, 9, 0],
-                             [2.0, 1.5, 0.1, -10.0],
-                             ["foo", "zee", "xyx", None]]
+    assert d0.to_list() == [[1, 3, 9, 0],
+                            [2.0, 1.5, 0.1, -10.0],
+                            ["foo", "zee", "xyx", None]]
 
 
 def test_create_from_list_of_tuples2():
@@ -408,7 +408,7 @@ def test_create_from_list_of_tuples2():
     assert d0.shape == (1, 3)
     assert d0.ltypes == (ltype.int, ltype.real, ltype.str)
     assert d0.names == ("a", "b", "c")
-    assert d0.topython() == [[1], [3.0], ["5"]]
+    assert d0.to_list() == [[1], [3.0], ["5"]]
 
 
 def test_create_from_list_of_tuples_bad():
@@ -443,8 +443,8 @@ def test_create_from_list_of_namedtuples():
     assert d0.shape == (3, 3)
     assert d0.names == ("name", "age", "sex")
     assert d0.ltypes == (ltype.str, ltype.int, ltype.str)
-    assert d0.topython() == [["Grogg", "Alexx", "Fiona"],
-                             [21, 14, 24], ["M", "M", "F"]]
+    assert d0.to_list() == [["Grogg", "Alexx", "Fiona"],
+                            [21, 14, 24], ["M", "M", "F"]]
 
 
 def test_create_from_list_of_namedtuples_names_override():
@@ -455,7 +455,7 @@ def test_create_from_list_of_namedtuples_names_override():
     assert d0.shape == (2, 3)
     assert d0.names == ("x", "y", "z")
     assert d0.ltypes == (ltype.int,) * 3
-    assert d0.topython() == [[5, 3], [6, 2], [7, 1]]
+    assert d0.to_list() == [[5, 3], [6, 2], [7, 1]]
 
 
 
@@ -473,10 +473,10 @@ def test_create_from_list_of_dicts1():
     assert d0.shape == (5, 4)
     assert d0.names == ("a", "b", "c", "d")
     assert d0.ltypes == (ltype.int, ltype.int, ltype.str, ltype.real)
-    assert d0.topython() == [[5, 99, -4, None, None],
-                             [7, None, None, None, None],
-                             ["Hey", None, "Yay", None, None],
-                             [None, None, 2.17, 1e10, None]]
+    assert d0.to_list() == [[5, 99, -4, None, None],
+                            [7, None, None, None, None],
+                            ["Hey", None, "Yay", None, None],
+                            [None, None, 2.17, 1e10, None]]
 
 
 @pytest.mark.usefixtures("py36")
@@ -485,8 +485,8 @@ def test_create_from_list_of_dicts2():
     d0.internal.check()
     assert d0.shape == (3, 4)
     assert d0.names == ("foo", "bar", "argh", "_")
-    assert d0.topython() == [[11, 4, None], [34, None, None],
-                             [None, 17, None], [None, None, 0]]
+    assert d0.to_list() == [[11, 4, None], [34, None, None],
+                            [None, 17, None], [None, None, 0]]
 
 
 def test_create_from_list_of_dicts_with_names1():
@@ -499,10 +499,10 @@ def test_create_from_list_of_dicts_with_names1():
     assert d0.shape == (5, 4)
     assert d0.names == ("c", "a", "d", "e")
     assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
-    assert d0.topython() == [["Rose", None, "Lily", None, None],
-                             [12, 37, 80, None, None],
-                             [None, None, 3.14159, 1.7e10, None],
-                             [None, None, None, None, None]]
+    assert d0.to_list() == [["Rose", None, "Lily", None, None],
+                            [12, 37, 80, None, None],
+                            [None, None, 3.14159, 1.7e10, None],
+                            [None, None, None, None, None]]
 
 
 def test_create_from_list_of_dicts_with_names2():
@@ -556,7 +556,7 @@ def test_create_as_int8():
     d0.internal.check()
     assert d0.stypes == (stype.int8, )
     assert d0.shape == (7, 1)
-    assert d0.topython() == [[1, None, -1, -24, 2, 123, None]]
+    assert d0.to_list() == [[1, None, -1, -24, 2, 123, None]]
 
 
 def test_create_as_int16():
@@ -565,7 +565,7 @@ def test_create_as_int16():
     assert d0.stypes == (stype.int16, )
     assert d0.shape == (6, 1)
     # int(1e50) = 2407412430484045 * 2**115, which is ≡0 (mod 2**16)
-    assert d0.topython() == [[0, 1000, None, 27, None, 1]]
+    assert d0.to_list() == [[0, 1000, None, 27, None, 1]]
 
 
 def test_create_as_int32():
@@ -573,7 +573,7 @@ def test_create_as_int32():
     d0.internal.check()
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
-    assert d0.topython() == [[1, 2, 5, 3, None]]
+    assert d0.to_list() == [[1, 2, 5, 3, None]]
 
 
 def test_create_as_float32():
@@ -583,7 +583,7 @@ def test_create_as_float32():
     assert d0.stypes == (stype.float32, )
     assert d0.shape == (6, 1)
     # Apparently, float "inf" converts into double "inf" when cast. Good!
-    assert list_equals(d0.topython(), [[1, 5, 2.6, 7.7777, -math.inf, 0]])
+    assert list_equals(d0.to_list(), [[1, 5, 2.6, 7.7777, -math.inf, 0]])
 
 
 def test_create_as_float64():
@@ -593,8 +593,8 @@ def test_create_as_float64():
     d0.internal.check()
     assert d0.stypes == (stype.float64, stype.float64)
     assert d0.shape == (6, 2)
-    assert d0.topython() == [[1.0, 2.0, 3.0, 4.0, 5.0, None],
-                             [2.7, 3.1, 0, None, math.inf, -math.inf]]
+    assert d0.to_list() == [[1.0, 2.0, 3.0, 4.0, 5.0, None],
+                            [2.7, 3.1, 0, None, math.inf, -math.inf]]
 
 
 def test_create_as_str32():
@@ -602,7 +602,7 @@ def test_create_as_str32():
     d0.internal.check()
     assert d0.stypes == (stype.str32, )
     assert d0.shape == (5, 1)
-    assert d0.topython() == [["1", "2.7", "foo", None, "(3, 4)"]]
+    assert d0.to_list() == [["1", "2.7", "foo", None, "(3, 4)"]]
 
 
 def test_create_as_str64():
@@ -610,7 +610,7 @@ def test_create_as_str64():
     d0.internal.check()
     assert d0.stypes == (stype.str64, )
     assert d0.shape == (10, 1)
-    assert d0.topython() == [[str(n) for n in range(10)]]
+    assert d0.to_list() == [[str(n) for n in range(10)]]
 
 
 @pytest.mark.parametrize("st", [stype.int8, stype.int16, stype.int64,
@@ -620,9 +620,9 @@ def test_create_range_as_stype(st):
     d0.internal.check()
     assert d0.stypes == (st,)
     if st == stype.str32:
-        assert d0.topython()[0] == [str(x) for x in range(10)]
+        assert d0.to_list()[0] == [str(x) for x in range(10)]
     else:
-        assert d0.topython()[0] == list(range(10))
+        assert d0.to_list()[0] == list(range(10))
 
 
 
@@ -693,7 +693,7 @@ def test_create_from_pandas_series(pandas):
     d = dt.Frame(p)
     d.internal.check()
     assert d.shape == (4, 1)
-    assert d.topython() == [[1, 5, 9, -12]]
+    assert d.to_list() == [[1, 5, 9, -12]]
 
 
 def test_create_from_pandas_with_names(pandas):
@@ -710,7 +710,7 @@ def test_create_from_pandas_series_with_names(pandas):
     d.internal.check()
     assert d.shape == (4, 1)
     assert d.names == ("ha!", )
-    assert d.topython() == [[10000, 5, 19, -12]]
+    assert d.to_list() == [[10000, 5, 19, -12]]
 
 
 def test_create_from_pandas_float16_series(pandas):
@@ -721,7 +721,7 @@ def test_create_from_pandas_float16_series(pandas):
     assert d.stypes == (stype.float32, )
     assert d.shape == (3, 1)
     # The precision of `float16`s is too low for `list_equals()` method.
-    res = d.topython()[0]
+    res = d.to_list()[0]
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
@@ -768,7 +768,7 @@ def test_create_from_0d_numpy_array(numpy):
     d.internal.check()
     assert d.shape == (1, 1)
     assert d.names == ("C0", )
-    assert d.topython() == [[100]]
+    assert d.to_list() == [[100]]
 
 
 def test_create_from_1d_numpy_array(numpy):
@@ -777,7 +777,7 @@ def test_create_from_1d_numpy_array(numpy):
     d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("C0", )
-    assert d.topython() == [[1, 2, 3]]
+    assert d.to_list() == [[1, 2, 3]]
 
 
 def test_create_from_2d_numpy_array(numpy):
@@ -786,7 +786,7 @@ def test_create_from_2d_numpy_array(numpy):
     d.internal.check()
     assert d.shape == a.shape
     assert d.names == ("C0", "C1", "C2", "C3", "C4")
-    assert d.topython() == a.T.tolist()
+    assert d.to_list() == a.T.tolist()
 
 
 def test_create_from_3d_numpy_array(numpy):
@@ -802,7 +802,7 @@ def test_create_from_string_numpy_array(numpy):
     d.internal.check()
     assert d.shape == (6, 1)
     assert d.names == ("C0", )
-    assert d.topython() == [a.tolist()]
+    assert d.to_list() == [a.tolist()]
 
 
 def test_create_from_masked_numpy_array1(numpy):
@@ -813,7 +813,7 @@ def test_create_from_masked_numpy_array1(numpy):
     d.internal.check()
     assert d.shape == (5, 1)
     assert d.stypes == (stype.bool8, )
-    assert d.topython() == [[True, None, True, False, None]]
+    assert d.to_list() == [[True, None, True, False, None]]
 
 
 def test_create_from_masked_numpy_array2(numpy):
@@ -825,7 +825,7 @@ def test_create_from_masked_numpy_array2(numpy):
     d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int16, )
-    assert d.topython() == [arr.tolist()]
+    assert d.to_list() == [arr.tolist()]
 
 
 def test_create_from_masked_numpy_array3(numpy):
@@ -837,7 +837,7 @@ def test_create_from_masked_numpy_array3(numpy):
     d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.int32, )
-    assert d.topython() == [arr.tolist()]
+    assert d.to_list() == [arr.tolist()]
 
 
 def test_create_from_masked_numpy_array4(numpy):
@@ -849,7 +849,7 @@ def test_create_from_masked_numpy_array4(numpy):
     d.internal.check()
     assert d.shape == (n, 1)
     assert d.stypes == (stype.float64, )
-    assert list_equals(d.topython(), [arr.tolist()])
+    assert list_equals(d.to_list(), [arr.tolist()])
 
 
 def test_create_from_numpy_array_with_names(numpy):
@@ -858,7 +858,7 @@ def test_create_from_numpy_array_with_names(numpy):
     d.internal.check()
     assert d.shape == (3, 1)
     assert d.names == ("gargantuan", )
-    assert d.topython() == [[1, 2, 3]]
+    assert d.to_list() == [[1, 2, 3]]
 
 
 def test_create_from_numpy_float16(numpy):
@@ -869,7 +869,7 @@ def test_create_from_numpy_float16(numpy):
     assert d.stypes == (stype.float32, )
     assert d.shape == (len(src), 1)
     # The precision of `float16`s is too low for `list_equals()` method.
-    res = d.topython()[0]
+    res = d.to_list()[0]
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
@@ -910,7 +910,7 @@ def test_create_from_datetime_array(numpy):
     df.internal.check()
     assert df.shape == (10, 1)
     assert df.stypes == (stype.str32,)
-    assert df.topython() == [["1970-01-01T00:00:00"] * 10]
+    assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
 
 
 
@@ -956,7 +956,7 @@ def test_issue_409():
     d = dt.Frame([10**333, -10**333, 10**-333, -10**-333])
     d.internal.check()
     assert d.ltypes == (ltype.real, )
-    p = d.topython()
+    p = d.to_list()
     assert p == [[inf, -inf, 0.0, -0.0]]
     assert copysign(1, p[0][-1]) == -1
 
@@ -997,4 +997,4 @@ def test_create_datatable():
     d = dt.DataTable([1, 2, 3])
     d.internal.check()
     assert d.__class__.__name__ == "Frame"
-    assert d.topython() == [[1, 2, 3]]
+    assert d.to_list() == [[1, 2, 3]]
