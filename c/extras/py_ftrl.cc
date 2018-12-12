@@ -24,7 +24,7 @@
 #include "python/int.h"
 #include "python/tuple.h"
 #include "extras/py_ftrl.h"
-#include "extras/py_validator.h"
+#include <extras/py_validator.h>
 
 namespace py {
 
@@ -87,11 +87,11 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_n_epochs = py_params.get_attr("n_epochs");
     py::oobj py_inter = py_params.get_attr("inter");
 
-    dt_params.alpha = py::Validator::to_double_positive(py_alpha);
-    dt_params.beta = py::Validator::to_double_not_negative(py_beta);
-    dt_params.lambda1 = py::Validator::to_double_not_negative(py_lambda1);
-    dt_params.lambda2 = py::Validator::to_double_not_negative(py_lambda2);
-    dt_params.d = static_cast<uint64_t>(py::Validator::to_size_t_positive(py_d));
+    dt_params.alpha = py::ObjValidator::to_double_positive(py_alpha);
+    dt_params.beta = py::ObjValidator::to_double_not_negative(py_beta);
+    dt_params.lambda1 = py::ObjValidator::to_double_not_negative(py_lambda1);
+    dt_params.lambda2 = py::ObjValidator::to_double_not_negative(py_lambda2);
+    dt_params.d = static_cast<uint64_t>(py::ObjValidator::to_size_t_positive(py_d));
     dt_params.n_epochs = py_n_epochs.to_size_t();
     dt_params.inter = py_inter.to_bool_strict();
 
@@ -473,31 +473,31 @@ void Ftrl::set_params(robj params) {
 
 
 void Ftrl::set_alpha(robj alpha_in) {
-  double alpha = py::Validator::to_double_positive(alpha_in);
+  double alpha = py::ObjValidator::to_double_positive(alpha_in);
   dtft->set_alpha(alpha);
 }
 
 
 void Ftrl::set_beta(robj beta_in) {
-  double beta = py::Validator::to_double_not_negative(beta_in);
+  double beta = py::ObjValidator::to_double_not_negative(beta_in);
   dtft->set_beta(beta);
 }
 
 
 void Ftrl::set_lambda1(robj lambda1_in) {
-  double lambda1 = py::Validator::to_double_not_negative(lambda1_in);
+  double lambda1 = py::ObjValidator::to_double_not_negative(lambda1_in);
   dtft->set_lambda1(lambda1);
 }
 
 
 void Ftrl::set_lambda2(robj lambda2_in) {
-  double lambda2 = py::Validator::to_double_not_negative(lambda2_in);
+  double lambda2 = py::ObjValidator::to_double_not_negative(lambda2_in);
   dtft->set_lambda2(lambda2);
 }
 
 
 void Ftrl::set_d(robj d) {
-  size_t d_in = py::Validator::to_size_t_positive(d);
+  size_t d_in = py::ObjValidator::to_size_t_positive(d);
   dtft->set_d(static_cast<uint64_t>(d_in));
 }
 

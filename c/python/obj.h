@@ -35,7 +35,7 @@ class rtuple;
 class robj;
 class rdict;
 class oobj;
-class Validator;
+class ObjValidator;
 using strvec = std::vector<std::string>;
 
 
@@ -251,7 +251,7 @@ class _obj {
     friend rdict;
     friend Arg;
     friend oobj get_module(const char* name);
-    friend Validator;
+    friend ObjValidator;
 };
 
 
