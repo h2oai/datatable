@@ -100,6 +100,7 @@ oobj Frame::_main_getset(robj item, robj value) {
       auto jexpr = jptr(dt::j_node::make(targs[1]));
       if (iexpr && jexpr) {
         dt::workframe wf(dt);
+        iexpr->post_init_check(wf);
         iexpr->execute(wf);
         DataTable* res = jexpr->execute(wf);
         return oobj::from_new_reference(py::Frame::from_datatable(res));

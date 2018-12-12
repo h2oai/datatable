@@ -21,11 +21,15 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
+#include "frame/py_frame.h"
+#include "python/_all.h"
+#include "python/string.h"
 namespace dt {
 
 
+
 //------------------------------------------------------------------------------
-// allrows_ii
+// allrows_in
 //------------------------------------------------------------------------------
 
 /**
@@ -36,42 +40,95 @@ namespace dt {
  * and (2) in some cases useful optimizations can be achieved if we know that
  * all rows were selected.
  */
-class allrows_ii : public i_node {
+class allrows_in : public i_node {
   public:
-    allrows_ii() = default;
+    allrows_in() = default;
     void execute(workframe&) override;
 };
+
 
 // All rows are selected, so no need to change the workframe.
-void allrows_ii::execute(workframe&) {}
+void allrows_in::execute(workframe&) {}
+
 
 
 
 //------------------------------------------------------------------------------
-// slice_ii
+// onerow_in
 //------------------------------------------------------------------------------
 
-class slice_ii : public i_node {
+class onerow_in : public i_node {
   private:
-    int64_t istart, istop, istep;
+    int64_t irow;
 
   public:
-    slice_ii(int64_t, int64_t, int64_t);
+    onerow_in(int64_t i);
+    void post_init_check(workframe&) override;
     void execute(workframe&) override;
 };
 
 
-slice_ii::slice_ii(int64_t _start, int64_t _stop, int64_t _step) {
-  istart = _start;
-  istop = _stop;
-  istep = _step;
+onerow_in::onerow_in(int64_t i) : irow(i) {}
+
+
+void onerow_in::post_init_check(workframe& wf) {
+  int64_t inrows = static_cast<int64_t>(wf.nrows());
+  if (irow < -inrows || irow >= inrows) {
+    throw ValueError() << "Row `" << irow << "` is invalid for a frame with "
+        << inrows << " row" << (inrows == 1? "" : "s");
+  }
+  if (irow < 0) irow += inrows;
 }
 
 
-void slice_ii::execute(workframe& wf) {
+void onerow_in::execute(workframe& wf) {
+  size_t start = static_cast<size_t>(irow);
+  wf.apply_rowindex(RowIndex(start, 1, 1));
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// slice_in
+//------------------------------------------------------------------------------
+
+class slice_in : public i_node {
+  private:
+    int64_t istart, istop, istep;
+    bool is_slice;
+    size_t : 56;
+
+  public:
+    slice_in(int64_t, int64_t, int64_t, bool);
+    void execute(workframe&) override;
+};
+
+
+slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step, bool _slice)
+{
+  istart = _start;
+  istop = _stop;
+  istep = _step;
+  is_slice = _slice;
+}
+
+
+void slice_in::execute(workframe& wf) {
   size_t nrows = wf.nrows();
   size_t start, count, step;
-  py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
+  if (is_slice) {
+    py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
+  }
+  else {
+    bool ok = py::orange::normalize(nrows, istart, istop, istep,
+                                    &start, &count, &step);
+    if (!ok) {
+      throw ValueError() << "range(" << istart << ", " << istop << ", "
+          << istep << ") cannot be applied to a Frame with " << nrows
+          << " row" << (nrows == 1? "" : "s");
+    }
+  }
   wf.apply_rowindex(RowIndex(start, count, step));
 }
 
@@ -79,21 +136,21 @@ void slice_ii::execute(workframe& wf) {
 
 
 //------------------------------------------------------------------------------
-// expr_ii
+// expr_in
 //------------------------------------------------------------------------------
 
-class expr_ii : public i_node {
+class expr_in : public i_node {
   private:
     dt::base_expr* expr;
 
   public:
-    explicit expr_ii(py::robj src);
-    ~expr_ii() override;
+    explicit expr_in(py::robj src);
+    ~expr_in() override;
     void execute(workframe&) override;
 };
 
 
-expr_ii::expr_ii(py::robj src) {
+expr_in::expr_in(py::robj src) {
   expr = nullptr;
   py::oobj res = src.invoke("_core");
   xassert(res.typeobj() == &py::base_expr::Type::type);
@@ -101,12 +158,13 @@ expr_ii::expr_ii(py::robj src) {
   expr = pybe->release();
 }
 
-expr_ii::~expr_ii() {
+
+expr_in::~expr_in() {
   delete expr;
 }
 
 
-void expr_ii::execute(workframe& wf) {
+void expr_in::execute(workframe& wf) {
   SType st = expr->resolve(wf);
   if (st != SType::BOOL) {
     throw TypeError() << "Filter expression must be of `bool8` type, instead it "
@@ -120,6 +178,272 @@ void expr_ii::execute(workframe& wf) {
 
 
 
+//------------------------------------------------------------------------------
+// frame_in
+//------------------------------------------------------------------------------
+
+class frame_in : public i_node {
+  private:
+    const DataTable* dt;  // borrowed ref
+
+  public:
+    explicit frame_in(py::robj src);
+    void post_init_check(workframe&) override;
+    void execute(workframe&) override;
+};
+
+
+frame_in::frame_in(py::robj src) {
+  dt = src.to_frame();
+  if (dt->ncols != 1) {
+    throw ValueError() << "Only a single-column Frame may be used as `i` "
+        "selector, instead got a Frame with " << dt->ncols << " columns";
+  }
+  SType st = dt->columns[0]->stype();
+  if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
+    throw TypeError() << "A Frame which is used as an `i` selector should be "
+        "either boolean or integer, instead got `" << st << "`";
+  }
+}
+
+
+void frame_in::post_init_check(workframe& wf) {
+  Column* col = dt->columns[0];
+  size_t nrows = wf.nrows();
+  if (col->stype() == SType::BOOL) {
+    if (col->nrows != nrows) {
+      throw ValueError() << "A boolean column used as `i` selector has "
+          << col->nrows << " row" << (col->nrows == 1? "" : "s")
+          << ", but applied to a Frame with "
+           << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  } else {
+    int64_t min = col->min_int64();
+    int64_t max = col->max_int64();
+    if (min < -1) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains invalid negative indices: " << min;
+    }
+    if (max >= static_cast<int64_t>(nrows)) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains index " << max << " which is not valid for a Frame with "
+          << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  }
+}
+
+
+void frame_in::execute(workframe& wf) {
+  RowIndex ri { dt->columns[0] };
+  wf.apply_rowindex(ri);
+}
+
+
+
+//------------------------------------------------------------------------------
+// nparray
+//------------------------------------------------------------------------------
+
+static i_node* _from_nparray(py::oobj src) {
+  py::otuple shape = src.get_attr("shape").to_otuple();
+  size_t ndims = shape.size();
+  if (ndims == 2) {
+    size_t dim0 = shape[0].to_size_t();
+    size_t dim1 = shape[1].to_size_t();
+    if (dim0 == 1 || dim1 == 1) {
+      py::otuple args(1);
+      args.set(0, py::oint(dim0 * dim1));
+      src = src.invoke("reshape", args);
+      shape = src.get_attr("shape").to_otuple();
+      ndims = shape.size();
+    }
+  }
+  if (ndims != 1) {
+    throw ValueError() << "Only a single-dimensional numpy array is allowed "
+        "as `i` selector, got array of shape " << shape;
+  }
+  py::ostring dtype = src.get_attr("dtype").to_pystring_force();
+  std::string dtype_str { PyUnicode_AsUTF8(dtype.to_borrowed_ref()) };
+  bool is_bool = dtype_str.compare(0, 4, "bool");
+  bool is_int = dtype_str.compare(0, 3, "int");
+  if (!(is_bool || is_int)) {
+    throw TypeError() << "Either a boolean or an integer numpy array expected "
+        "for an `i` selector, got array of dtype `" << dtype_str << "`";
+  }
+  // Now convert numpy array into a datatable Frame
+  auto dt_Frame = py::oobj(reinterpret_cast<PyObject*>(&py::Frame::Type::type));
+  py::otuple args(1);
+  args.set(0, src);
+  py::oobj frame = dt_Frame.call(args);
+  return new frame_in(frame);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// multislice_in
+//------------------------------------------------------------------------------
+
+class multislice_in : public i_node {
+  private:
+    enum class item_kind : size_t {
+      INT, SLICE, RANGE
+    };
+    struct item {
+      int64_t start, stop, step;
+      item_kind kind;
+    };
+    std::vector<item> items;
+    size_t min_nrows;
+
+  public:
+    explicit multislice_in(py::robj src);
+    void post_init_check(workframe&) override;
+    void execute(workframe&) override;
+};
+
+
+multislice_in::multislice_in(py::robj src) {
+  size_t i = 0;
+  size_t max_nrows = 0;
+  for (auto elem : src.to_oiter()) {
+    if (elem.is_int()) {
+      int64_t value = elem.to_int64_strict();
+      size_t n = (value >= 0)? static_cast<size_t>(value + 1)
+                             : static_cast<size_t>(-value);
+      if (n > max_nrows) max_nrows = n;
+      items.push_back({value, 0, 0, item_kind::INT});
+    }
+    else if (elem.is_range()) {
+      py::orange rr = elem.to_orange();
+      int64_t start = rr.start();
+      int64_t stop = rr.stop();
+      int64_t step = rr.step();
+      int64_t count = step > 0? (stop - start + step - 1) / step
+                              : (start - stop - step - 1) / (-step);
+      // Empty range, for example `range(5, 0)`. This is a valid object, but
+      // it produces nothing. Hence, we'll just skip it.
+      if (count <= 0) continue;
+      // The first and the last element in the range must be either both
+      // positive or both negative.
+      int64_t last = start + (count - 1) * step;
+      if ((start >= 0) != (last >= 0)) {
+        throw ValueError() << "Invalid wrap-around range(" << start << ", "
+            << stop << ", " << step << ") for an `i` selector";
+      }
+      stop = start + count * step;
+      size_t n1 = static_cast<size_t>(start > 0? start + 1 : -start);
+      size_t n2 = static_cast<size_t>(last > 0? last + 1 : -last);
+      if (n1 > max_nrows) max_nrows = n1;
+      if (n2 > max_nrows) max_nrows = n2;
+      items.push_back({start, stop, step, item_kind::RANGE});
+    }
+    else if (elem.is_slice()) {
+      py::oslice ss = elem.to_oslice();
+      if (!ss.is_numeric()) {
+        throw TypeError() << "Only integer-valued slices are allowed";
+      }
+      int64_t start = ss.start();
+      int64_t stop = ss.stop();
+      int64_t step = ss.step();
+      if (step == 0) {
+        if (stop < 0 || start == py::oslice::NA || stop == py::oslice::NA) {
+          throw ValueError() << "Invalid " << ss << ": when step is 0, both "
+              "start and stop must be present, and stop must be non-negative";
+        }
+      } else {
+        if (step == py::oslice::NA) step = 1;
+        if (start == py::oslice::NA) start = (step > 0)? 0 : py::oslice::MAX;
+        if (stop == py::oslice::NA) stop = (step > 0)? py::oslice::MAX
+                                                     : -py::oslice::MAX;
+      }
+      items.push_back({start, stop, step, item_kind::SLICE});
+    }
+    else {
+      throw TypeError() << "Invalid item " << elem << " at index " << i
+          << " in the `i` selector list";
+    }
+    i++;
+  }
+  min_nrows = max_nrows;
+}
+
+
+void multislice_in::post_init_check(workframe& wf) {
+  if (wf.nrows() < min_nrows) {
+    throw ValueError() << "`i` selector is valid for a Frame with at least "
+        << min_nrows << " row" << (min_nrows == 1? "" : "s");
+  }
+}
+
+
+void multislice_in::execute(workframe& wf) {
+  int64_t inrows = static_cast<int64_t>(wf.nrows());
+  size_t total_count = 0;
+  for (auto& item : items) {
+    switch (item.kind) {
+      case item_kind::INT: {
+        if (item.start < 0) item.start += inrows;
+        xassert(item.start >= 0 && item.start < inrows);
+        total_count++;
+        break;
+      }
+      case item_kind::RANGE: {
+        if (item.start < 0) item.start += inrows;
+        if (item.stop < 0) item.stop += inrows;
+        int64_t icount = (item.stop - item.start) / item.step;
+        total_count += static_cast<size_t>(icount);
+        break;
+      }
+      case item_kind::SLICE: {
+        if (item.start < 0) item.start += inrows;
+        if (item.start < 0) item.start = 0;
+        if (item.start > inrows) continue;
+        if (item.stop < 0) item.stop += inrows;
+        if (item.stop < 0) item.stop = -1;
+        if (item.stop > inrows) item.stop = inrows;
+        int64_t icount = 0;
+        if (item.step > 0 && item.stop > item.start) {
+          icount = (item.stop - item.start + item.step - 1) / item.step;
+        }
+        if (item.step < 0 && item.stop < item.start) {
+          icount = (item.start - item.stop - item.step - 1) / (-item.step);
+        }
+        total_count += static_cast<size_t>(icount);
+        break;
+      }
+    }
+  }
+  arr32_t indices(total_count);
+  int32_t* ind = indices.data();
+  size_t j = 0;
+  for (auto& item : items) {
+    if (item.kind == item_kind::INT) {
+      ind[j++] = static_cast<int32_t>(item.start);
+    }
+    else if (item.step > 0) {
+      for (int64_t k = item.start; k < item.stop; k += item.step) {
+        ind[j++] = static_cast<int32_t>(k);
+      }
+    }
+    else if (item.step < 0) {
+      for (int64_t k = item.start; k > item.stop; k += item.step) {
+        ind[j++] = static_cast<int32_t>(k);
+      }
+    }
+    else {
+      for (int64_t k = 0; k < item.stop; k++) {
+        ind[j++] = static_cast<int32_t>(item.start);
+      }
+    }
+  }
+  RowIndex ri(std::move(indices), false);
+  wf.apply_rowindex(ri);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // i_node
@@ -127,147 +451,49 @@ void expr_ii::execute(workframe& wf) {
 
 i_node::~i_node() {}
 
+void i_node::post_init_check(workframe&) {}
+
 
 i_node* i_node::make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
-    if (ssrc.is_trivial()) return new allrows_ii();
+    if (ssrc.is_trivial()) return new allrows_in();
     if (ssrc.is_numeric()) {
-      return new slice_ii(ssrc.start(), ssrc.stop(), ssrc.step());
+      return new slice_in(ssrc.start(), ssrc.stop(), ssrc.step(), true);
     }
     throw TypeError() << src << " is not integer-valued";
   }
   if (is_PyBaseExpr(src)) {
-    return new expr_ii(src);
+    return new expr_in(src);
+  }
+  if (src.is_frame()) {
+    return new frame_in(src);
+  }
+  if (src.is_int()) {
+    int64_t val = src.to_int64_strict();
+    return new onerow_in(val);
   }
   if (src.is_none() || src.is_ellipsis()) {
-    return new allrows_ii();
+    return new allrows_in();
+  }
+  if (src.is_numpy_array()) {
+    return _from_nparray(src);
+  }
+  if (src.is_range()) {
+    auto ss = src.to_orange();
+    return new slice_in(ss.start(), ss.stop(), ss.step(), false);
+  }
+  // "iterable" is a very generic interface, so it must come close to last
+  // in the resolution sequence
+  if (src.is_iterable()) {
+    return new multislice_in(src);
   }
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as an `i` expression";
   }
   return nullptr;  // for now
 }
-
-
-
-
-
-/*******
-
-    if isinstance(rows, (int, range)):
-        rows = [rows]
-
-    from_generator = False
-    if isinstance(rows, types.GeneratorType):
-        # If an iterator is given, materialize it first. Otherwise there
-        # is no way to ensure that the produced indices are valid.
-        rows = list(rows)
-        from_generator = True
-
-    if isinstance(rows, (list, tuple, set)):
-        bases = []
-        counts = []
-        steps = []
-        for i, elem in enumerate(rows):
-            if isinstance(elem, int):
-                if -nrows <= elem < nrows:
-                    # `elem % nrows` forces the row number to become positive
-                    bases.append(elem % nrows)
-                else:
-                    raise TValueError(
-                        "Row `%d` is invalid for datatable with %s"
-                        % (elem, plural(nrows, "row")))
-            elif isinstance(elem, (range, slice)):
-                if not all(x is None or isinstance(x, int)
-                           for x in (elem.start, elem.stop, elem.step)):
-                    raise TValueError("%r is not integer-valued" % elem)
-                if isinstance(elem, range):
-                    res = normalize_range(elem, nrows)
-                    if res is None:
-                        raise TValueError(
-                            "Invalid %r for a datatable with %s"
-                            % (elem, plural(nrows, "row")))
-                else:
-                    res = normalize_slice(elem, nrows)
-                start, count, step = res
-                assert count >= 0
-                if count == 0:
-                    pass  # don't do anything
-                elif count == 1:
-                    bases.append(start)
-                else:
-                    if len(counts) < len(bases):
-                        counts += [1] * (len(bases) - len(counts))
-                        steps += [1] * (len(bases) - len(steps))
-                    bases.append(start)
-                    counts.append(count)
-                    steps.append(step)
-            else:
-                if from_generator:
-                    raise TValueError(
-                        "Invalid row selector %r generated at position %d"
-                        % (elem, i))
-                else:
-                    raise TValueError(
-                        "Invalid row selector %r at element %d of the "
-                        "`rows` list" % (elem, i))
-        if not counts:
-            if len(bases) == 1:
-                if bases[0] == 0 and nrows == 1:
-                    return AllRFNode(ee)
-                return SliceRFNode(ee, bases[0], 1, 1)
-            else:
-                return ArrayRFNode(ee, bases)
-        elif len(bases) == 1:
-            if bases[0] == 0 and counts[0] == nrows and steps[0] == 1:
-                return AllRFNode(ee)
-            else:
-                return SliceRFNode(ee, bases[0], counts[0], steps[0])
-        else:
-            return MultiSliceRFNode(ee, bases, counts, steps)
-
-    if is_type(rows, NumpyArray_t):
-        arr = rows
-        if not (len(arr.shape) == 1 or
-                len(arr.shape) == 2 and min(arr.shape) == 1):
-            raise TValueError("Only a single-dimensional numpy.array is allowed"
-                              " as a `rows` argument, got %r" % arr)
-        if len(arr.shape) == 2 and arr.shape[1] > 1:
-            arr = arr.T
-        if not (str(arr.dtype) == "bool" or str(arr.dtype).startswith("int")):
-            raise TValueError("Either a boolean or an integer numpy.array is "
-                              "expected for `rows` argument, got %r" % arr)
-        if str(arr.dtype) == "bool" and arr.shape[-1] != nrows:
-            raise TValueError("Cannot apply a boolean numpy array of length "
-                              "%d to a datatable with %s"
-                              % (arr.shape[-1], plural(nrows, "row")))
-        rows = datatable.Frame(arr)
-        assert rows.ncols == 1
-        assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
-
-    if is_type(rows, Frame_t):
-        if rows.ncols != 1:
-            raise TValueError("`rows` argument should be a single-column "
-                              "datatable, got %r" % rows)
-        col0type = rows.ltypes[0]
-        if col0type == ltype.bool:
-            if rows.nrows != nrows:
-                s1rows = plural(rows.nrows, "row")
-                s2rows = plural(nrows, "row")
-                raise TValueError("`rows` datatable has %s, but applied to a "
-                                  "datatable with %s" % (s1rows, s2rows))
-            return BooleanColumnRFNode(ee, rows)
-        elif col0type == ltype.int:
-            return IntegerColumnRFNode(ee, rows)
-        else:
-            raise TTypeError("`rows` datatable should be either a boolean or "
-                             "an integer column, however it has type %s"
-                             % col0type)
-
-
- *******/
 
 
 

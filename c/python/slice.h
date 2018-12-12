@@ -50,6 +50,7 @@ namespace py {
  */
 class oslice : public oobj {
   public:
+    static constexpr int64_t MAX = 9223372036854775807LL;
     static constexpr int64_t NA = -9223372036854775807LL - 1;
 
     oslice() = default;

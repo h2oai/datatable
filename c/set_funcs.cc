@@ -79,7 +79,7 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
       if (res.colname.empty()) res.colname = dt->get_names()[0];
     }
     else if (va.is_iterable()) {
-      for (auto item : va.to_pyiter()) {
+      for (auto item : va.to_oiter()) {
         DataTable* dt = item.to_frame();
         if (dt->ncols == 0) continue;
         verify_frame_1column(dt);

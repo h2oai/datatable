@@ -81,8 +81,8 @@ bool orange::normalize(
     size_t* ostart, size_t* ocount, size_t* ostep)
 {
   int64_t ilen = static_cast<int64_t>(len);
-  int64_t icount = (istep > 0)? 1 + (istop - istart - 1) / istep
-                              : 1 + (istart - istop - 1) / (-istep);
+  int64_t icount = (istep > 0)? (istop - istart + istep - 1) / istep
+                              : (istart - istop - istep - 1) / (-istep);
   if (icount <= 0) {
     *ostart = 0;
     *ocount = 0;

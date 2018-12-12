@@ -40,6 +40,7 @@ class i_node {
     static i_node* make(py::robj src);
 
     virtual ~i_node();
+    virtual void post_init_check(workframe& wf);
     virtual void execute(workframe& wf) = 0;
 };
 
