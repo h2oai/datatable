@@ -397,7 +397,7 @@ class FrameInitializationManager {
       py::robj pdsrc = src.to_pyobj();
       py::olist colnames(0);
       if (src.is_pandas_frame()) {
-        py::oiter pdcols = pdsrc.get_attr("columns").to_pyiter();
+        py::oiter pdcols = pdsrc.get_attr("columns").to_oiter();
         size_t ncols = pdcols.size();
         if (ncols != size_t(-1)) {
           check_names_count(ncols);

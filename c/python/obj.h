@@ -197,8 +197,8 @@ class _obj {
     py::olist   to_pylist         (const error_manager& = _em0) const;
     py::odict   to_pydict         (const error_manager& = _em0) const;
     py::rdict   to_rdict          (const error_manager& = _em0) const;
-    py::orange  to_orange        (const error_manager& = _em0) const;
-    py::oiter   to_pyiter         (const error_manager& = _em0) const;
+    py::orange  to_orange         (const error_manager& = _em0) const;
+    py::oiter   to_oiter          (const error_manager& = _em0) const;
     py::oslice  to_oslice         (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;

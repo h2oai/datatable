@@ -282,6 +282,170 @@ static i_node* _from_nparray(py::oobj src) {
 
 
 //------------------------------------------------------------------------------
+// multislice_in
+//------------------------------------------------------------------------------
+
+class multislice_in : public i_node {
+  private:
+    enum class item_kind : size_t {
+      INT, SLICE, RANGE
+    };
+    struct item {
+      int64_t start, stop, step;
+      item_kind kind;
+    };
+    std::vector<item> items;
+    size_t min_nrows;
+
+  public:
+    explicit multislice_in(py::robj src);
+    void post_init_check(workframe&) override;
+    void execute(workframe&) override;
+};
+
+
+multislice_in::multislice_in(py::robj src) {
+  size_t i = 0;
+  size_t max_nrows = 0;
+  for (auto elem : src.to_oiter()) {
+    if (elem.is_int()) {
+      int64_t value = elem.to_int64_strict();
+      size_t n = (value >= 0)? static_cast<size_t>(value + 1)
+                             : static_cast<size_t>(-value);
+      if (n > max_nrows) max_nrows = n;
+      items.push_back({value, 0, 0, item_kind::INT});
+    }
+    else if (elem.is_range()) {
+      py::orange rr = elem.to_orange();
+      int64_t start = rr.start();
+      int64_t stop = rr.stop();
+      int64_t step = rr.step();
+      int64_t count = step > 0? (stop - start + step - 1) / step
+                              : (start - stop - step - 1) / (-step);
+      // Empty range, for example `range(5, 0)`. This is a valid object, but
+      // it produces nothing. Hence, we'll just skip it.
+      if (count <= 0) continue;
+      // The first and the last element in the range must be either both
+      // positive or both negative.
+      int64_t last = start + (count - 1) * step;
+      if ((start >= 0) != (last >= 0)) {
+        throw ValueError() << "Invalid wrap-around range(" << start << ", "
+            << stop << ", " << step << ") for an `i` selector";
+      }
+      stop = start + count * step;
+      size_t n1 = static_cast<size_t>(start > 0? start + 1 : -start);
+      size_t n2 = static_cast<size_t>(last > 0? last + 1 : -last);
+      if (n1 > max_nrows) max_nrows = n1;
+      if (n2 > max_nrows) max_nrows = n2;
+      items.push_back({start, stop, step, item_kind::RANGE});
+    }
+    else if (elem.is_slice()) {
+      py::oslice ss = elem.to_oslice();
+      if (!ss.is_numeric()) {
+        throw TypeError() << "Only integer-valued slices are allowed";
+      }
+      int64_t start = ss.start();
+      int64_t stop = ss.stop();
+      int64_t step = ss.step();
+      if (step == 0) {
+        if (stop < 0 || start == py::oslice::NA || stop == py::oslice::NA) {
+          throw ValueError() << "Invalid " << ss << ": when step is 0, both "
+              "start and stop must be present, and stop must be non-negative";
+        }
+      } else {
+        if (step == py::oslice::NA) step = 1;
+        if (start == py::oslice::NA) start = (step > 0)? 0 : py::oslice::MAX;
+        if (stop == py::oslice::NA) stop = (step > 0)? py::oslice::MAX
+                                                     : -py::oslice::MAX;
+      }
+      items.push_back({start, stop, step, item_kind::SLICE});
+    }
+    else {
+      throw TypeError() << "Invalid item " << elem << " at index " << i
+          << " in the `i` selector list";
+    }
+    i++;
+  }
+  min_nrows = max_nrows;
+}
+
+
+void multislice_in::post_init_check(workframe& wf) {
+  if (wf.nrows() < min_nrows) {
+    throw ValueError() << "`i` selector is valid for a Frame with at least "
+        << min_nrows << " row" << (min_nrows == 1? "" : "s");
+  }
+}
+
+
+void multislice_in::execute(workframe& wf) {
+  int64_t inrows = static_cast<int64_t>(wf.nrows());
+  size_t total_count = 0;
+  for (auto& item : items) {
+    switch (item.kind) {
+      case item_kind::INT: {
+        if (item.start < 0) item.start += inrows;
+        xassert(item.start >= 0 && item.start < inrows);
+        total_count++;
+        break;
+      }
+      case item_kind::RANGE: {
+        if (item.start < 0) item.start += inrows;
+        if (item.stop < 0) item.stop += inrows;
+        int64_t icount = (item.stop - item.start) / item.step;
+        total_count += static_cast<size_t>(icount);
+        break;
+      }
+      case item_kind::SLICE: {
+        if (item.start < 0) item.start += inrows;
+        if (item.start < 0) item.start = 0;
+        if (item.start > inrows) continue;
+        if (item.stop < 0) item.stop += inrows;
+        if (item.stop < 0) item.stop = -1;
+        if (item.stop > inrows) item.stop = inrows;
+        int64_t icount = 0;
+        if (item.step > 0 && item.stop > item.start) {
+          icount = (item.stop - item.start + item.step - 1) / item.step;
+        }
+        if (item.step < 0 && item.stop < item.start) {
+          icount = (item.start - item.stop - item.step - 1) / (-item.step);
+        }
+        total_count += static_cast<size_t>(icount);
+        break;
+      }
+    }
+  }
+  arr32_t indices(total_count);
+  int32_t* ind = indices.data();
+  size_t j = 0;
+  for (auto& item : items) {
+    if (item.kind == item_kind::INT) {
+      ind[j++] = static_cast<int32_t>(item.start);
+    }
+    else if (item.step > 0) {
+      for (int64_t k = item.start; k < item.stop; k += item.step) {
+        ind[j++] = static_cast<int32_t>(k);
+      }
+    }
+    else if (item.step < 0) {
+      for (int64_t k = item.start; k > item.stop; k += item.step) {
+        ind[j++] = static_cast<int32_t>(k);
+      }
+    }
+    else {
+      for (int64_t k = 0; k < item.stop; k++) {
+        ind[j++] = static_cast<int32_t>(item.start);
+      }
+    }
+  }
+  RowIndex ri(std::move(indices), false);
+  wf.apply_rowindex(ri);
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // i_node
 //------------------------------------------------------------------------------
 
@@ -323,83 +487,13 @@ i_node* i_node::make(py::robj src) {
   // "iterable" is a very generic interface, so it must come close to last
   // in the resolution sequence
   if (src.is_iterable()) {
-
+    return new multislice_in(src);
   }
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as an `i` expression";
   }
   return nullptr;  // for now
 }
-
-
-
-
-
-/*******
-
-    if isinstance(rows, (list, tuple, set)):
-        bases = []
-        counts = []
-        steps = []
-        for i, elem in enumerate(rows):
-            if isinstance(elem, int):
-                if -nrows <= elem < nrows:
-                    # `elem % nrows` forces the row number to become positive
-                    bases.append(elem % nrows)
-                else:
-                    raise TValueError(
-                        "Row `%d` is invalid for datatable with %s"
-                        % (elem, plural(nrows, "row")))
-            elif isinstance(elem, (range, slice)):
-                if not all(x is None or isinstance(x, int)
-                           for x in (elem.start, elem.stop, elem.step)):
-                    raise TValueError("%r is not integer-valued" % elem)
-                if isinstance(elem, range):
-                    res = normalize_range(elem, nrows)
-                    if res is None:
-                        raise TValueError(
-                            "Invalid %r for a datatable with %s"
-                            % (elem, plural(nrows, "row")))
-                else:
-                    res = normalize_slice(elem, nrows)
-                start, count, step = res
-                assert count >= 0
-                if count == 0:
-                    pass  # don't do anything
-                elif count == 1:
-                    bases.append(start)
-                else:
-                    if len(counts) < len(bases):
-                        counts += [1] * (len(bases) - len(counts))
-                        steps += [1] * (len(bases) - len(steps))
-                    bases.append(start)
-                    counts.append(count)
-                    steps.append(step)
-            else:
-                if from_generator:
-                    raise TValueError(
-                        "Invalid row selector %r generated at position %d"
-                        % (elem, i))
-                else:
-                    raise TValueError(
-                        "Invalid row selector %r at element %d of the "
-                        "`rows` list" % (elem, i))
-        if not counts:
-            if len(bases) == 1:
-                if bases[0] == 0 and nrows == 1:
-                    return AllRFNode(ee)
-                return SliceRFNode(ee, bases[0], 1, 1)
-            else:
-                return ArrayRFNode(ee, bases)
-        elif len(bases) == 1:
-            if bases[0] == 0 and counts[0] == nrows and steps[0] == 1:
-                return AllRFNode(ee)
-            else:
-                return SliceRFNode(ee, bases[0], counts[0], steps[0])
-        else:
-            return MultiSliceRFNode(ee, bases, counts, steps)
-
- *******/
 
 
 

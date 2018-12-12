@@ -84,7 +84,7 @@ void Frame::cbind(const PKArgs& args) {
       dts.push_back(idt);
     }
     else if (va.is_iterable()) {
-      for (auto item : va.to_pyiter()) {
+      for (auto item : va.to_oiter()) {
         if (item.is_frame()) {
           DataTable* idt = item.to_frame();
           if (idt->ncols == 0 || idt->nrows == 0) continue;

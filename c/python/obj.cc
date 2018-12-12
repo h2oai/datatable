@@ -588,7 +588,7 @@ py::orange _obj::to_orange(const error_manager& em) const {
 }
 
 
-py::oiter _obj::to_pyiter(const error_manager& em) const {
+py::oiter _obj::to_oiter(const error_manager& em) const {
   if (is_none()) return py::oiter();
   if (is_iterable()) return py::oiter(v);
   throw em.error_not_iterable(v);
