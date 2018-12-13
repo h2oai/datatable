@@ -23,7 +23,6 @@
 #include "utils/parallel.h"
 #include "extras/dt_ftrl.h"
 #include "extras/murmurhash.h"
-#include "extras/py_validator.h"
 
 namespace dt {
 
