@@ -300,35 +300,35 @@ def test_ftrl_set_wrong_alpha_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = 0.0
-    assert ("Float value should be positive" == str(e.value))
+    assert ("Value should be positive: 0.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = -1.0
-    assert ("Float value cannot be negative" == str(e.value))
+    assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = -1.0
-    assert ("Float value cannot be negative" == str(e.value))
+    assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = -1.0
-    assert ("Float value cannot be negative" == str(e.value))
+    assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_d_value():
     ft = core.Ftrl()
     with pytest.raises(ValueError) as e:
         ft.d = 0
-    assert ("Integer value should be positive" == str(e.value))
+    assert ("Value should be positive: 0" == str(e.value))
 
 
 def test_ftrl_set_wrong_n_epochs_value():

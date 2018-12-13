@@ -26,45 +26,99 @@
 
 namespace py {
 
-class ObjValidator {
+template <typename T>
+class Validator {
   public :
-    struct verror_manager {
-      verror_manager() = default;
-      verror_manager(const verror_manager&) = default;
-      virtual ~verror_manager() {}
-      virtual Error error_int_not_positive    (PyObject*, const std::string& name = "") const;
-      virtual Error error_double_not_positive (PyObject*, const std::string& name = "") const;
-      virtual Error error_double_negative     (PyObject*, const std::string& name = "") const;
+    struct error_manager {
+      error_manager() = default;
+      error_manager(const error_manager&) = default;
+      Error error_not_positive (PyObject*, const std::string&) const;
+      Error error_negative     (PyObject*, const std::string&) const;
     };
-    static size_t to_size_t_positive(const py::_obj& o,
-                                     const _obj::error_manager& em = _em0,
-                                     const verror_manager& vm = _vm0,
-                                     const std::string& name = "");
-    static double to_double_positive(const py::_obj& o,
-                                     const _obj::error_manager& em = _em0,
-                                     const verror_manager& vm = _vm0,
-                                     const std::string& name = "");
-    static double to_double_not_negative(const py::_obj& o,
-                                         const _obj::error_manager& em = _em0,
-                                         const verror_manager& vm = _vm0,
-                                         const std::string& name = "");
+
+    // py::_obj validators
+    static void check_positive(T value,
+                               const py::_obj&,
+                               const std::string& name = _name,
+                               error_manager& em = _em);
+    static void check_not_negative(T value,
+                                   const py::_obj&,
+                                   const std::string& name = _name,
+                                   error_manager& em = _em);
+
+    // py::Arg validators
+    static void check_positive(T value,
+                               const py::Arg&,
+                               error_manager& em = _em);
+    static void check_not_negative(T value,
+                                   const py::Arg&,
+                                   error_manager& em = _em);
 
   protected :
-    static verror_manager _vm0;
-    static _obj::error_manager _em0;
+    static std::string _name;
+    static error_manager _em;
 };
 
+template <typename T>
+typename Validator<T>::error_manager Validator<T>::_em;
 
-class ArgValidator : ObjValidator::verror_manager {
-  public:
-    size_t to_size_t_positive(const py::Arg&) const;
-    double to_double_positive(const py::Arg&) const;
-    double to_double_not_negative(const py::Arg&) const;
+template <typename T>
+std::string Validator<T>::_name = "Value";
 
-    virtual Error error_int_not_positive    (PyObject*, const std::string&) const override;
-    virtual Error error_double_not_positive (PyObject*, const std::string&) const override;
-    virtual Error error_double_negative     (PyObject*, const std::string&) const override;
-};
+// py::_obj validators
+template <typename T>
+void Validator<T>::check_positive(T value,
+                                  const py::_obj& o,
+                                  const std::string& name,
+                                  error_manager& em)
+{
+  if (value <= 0) {
+    throw em.error_not_positive(o.v, name);
+  }
+}
+
+template <typename T>
+void Validator<T>::check_not_negative(T value,
+                                      const py::_obj& o,
+                                      const std::string& name,
+                                      error_manager& em)
+{
+  if (value < 0) {
+    throw em.error_negative(o.v, name);
+  }
+}
+
+// py::Arg validators
+template <typename T>
+void Validator<T>::check_positive(T value,
+                                  const py::Arg& arg,
+                                  error_manager& em)
+{
+  Validator<T>::check_positive(value, arg.pyobj, arg.name(), em);
+}
+
+template <typename T>
+void Validator<T>::check_not_negative(T value,
+                                      const py::Arg& arg,
+                                      error_manager& em)
+{
+  Validator<T>::check_not_negative(value, arg.pyobj, arg.name(), em);
+}
+
+// Error messages
+template <typename T>
+Error Validator<T>::error_manager::error_not_positive(PyObject* src,
+                                                      const std::string& name
+) const {
+  return ValueError() << name << " should be positive: " << src;
+}
+
+template <typename T>
+Error Validator<T>::error_manager::error_negative(PyObject* src,
+                                                  const std::string& name
+) const {
+  return ValueError() << name << " cannot be negative: " << src;
+}
 
 } // namespace py
 

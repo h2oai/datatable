@@ -70,6 +70,9 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_n_epochs = !args[6].is_none_or_undefined();
   bool defined_inter    = !args[7].is_none_or_undefined();
 
+  py::Validator<double> dvalidator;
+  py::Validator<uint64_t> uvalidator;
+
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
         defined_d || defined_n_epochs || defined_inter) {
@@ -87,35 +90,45 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_n_epochs = py_params.get_attr("n_epochs");
     py::oobj py_inter = py_params.get_attr("inter");
 
-    dt_params.alpha = py::ObjValidator::to_double_positive(py_alpha);
-    dt_params.beta = py::ObjValidator::to_double_not_negative(py_beta);
-    dt_params.lambda1 = py::ObjValidator::to_double_not_negative(py_lambda1);
-    dt_params.lambda2 = py::ObjValidator::to_double_not_negative(py_lambda2);
-    dt_params.d = static_cast<uint64_t>(py::ObjValidator::to_size_t_positive(py_d));
+    dt_params.alpha = py_alpha.to_double();
+    dt_params.beta = py_beta.to_double();
+    dt_params.lambda1 = py_lambda1.to_double();
+    dt_params.lambda2 = py_lambda2.to_double();
+    dt_params.d = static_cast<uint64_t>(py_d.to_size_t());
     dt_params.n_epochs = py_n_epochs.to_size_t();
     dt_params.inter = py_inter.to_bool_strict();
 
+    dvalidator.check_positive(dt_params.alpha, py_alpha);
+    dvalidator.check_not_negative(dt_params.beta, py_beta);
+    dvalidator.check_not_negative(dt_params.lambda1, py_lambda1);
+    dvalidator.check_not_negative(dt_params.lambda2, py_lambda2);
+    uvalidator.check_positive(dt_params.d, py_d);
+
   } else {
-    py::ArgValidator argval;
 
     if (defined_alpha) {
-      dt_params.alpha = argval.to_double_positive(args[1]);
+      dt_params.alpha = args[1].to_double();
+      dvalidator.check_positive(dt_params.alpha, args[1]);
     }
 
     if (defined_beta) {
-      dt_params.beta = argval.to_double_not_negative(args[2]);
+      dt_params.beta = args[2].to_double();
+      dvalidator.check_not_negative(dt_params.beta, args[2]);
     }
 
     if (defined_lambda1) {
-      dt_params.lambda1 = argval.to_double_not_negative(args[3]);
+      dt_params.lambda1 = args[3].to_double();
+      dvalidator.check_not_negative(dt_params.lambda1, args[3]);
     }
 
     if (defined_lambda2) {
-      dt_params.lambda2 = argval.to_double_not_negative(args[4]);
+      dt_params.lambda2 = args[4].to_double();
+      dvalidator.check_not_negative(dt_params.lambda2, args[4]);
     }
 
     if (defined_d) {
-      dt_params.d = static_cast<uint64_t>(argval.to_size_t_positive(args[5]));
+      dt_params.d = static_cast<uint64_t>(args[5].to_size_t());
+      uvalidator.check_positive(dt_params.d, args[5]);
     }
 
     if (defined_n_epochs) {
@@ -468,33 +481,43 @@ void Ftrl::set_params(robj params) {
 }
 
 
-void Ftrl::set_alpha(robj alpha_in) {
-  double alpha = py::ObjValidator::to_double_positive(alpha_in);
+void Ftrl::set_alpha(robj py_alpha) {
+  py::Validator<double> dvalidator;
+  double alpha = py_alpha.to_double();
+  dvalidator.check_positive(alpha, py_alpha);
   dtft->set_alpha(alpha);
 }
 
 
-void Ftrl::set_beta(robj beta_in) {
-  double beta = py::ObjValidator::to_double_not_negative(beta_in);
+void Ftrl::set_beta(robj py_beta) {
+  py::Validator<double> dvalidator;
+  double beta = py_beta.to_double();
+  dvalidator.check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
 }
 
 
-void Ftrl::set_lambda1(robj lambda1_in) {
-  double lambda1 = py::ObjValidator::to_double_not_negative(lambda1_in);
+void Ftrl::set_lambda1(robj py_lambda1) {
+  py::Validator<double> dvalidator;
+  double lambda1 = py_lambda1.to_double();
+  dvalidator.check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
 }
 
 
-void Ftrl::set_lambda2(robj lambda2_in) {
-  double lambda2 = py::ObjValidator::to_double_not_negative(lambda2_in);
+void Ftrl::set_lambda2(robj py_lambda2) {
+  py::Validator<double> dvalidator;
+  double lambda2 = py_lambda2.to_double();
+  dvalidator.check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
 }
 
 
-void Ftrl::set_d(robj d) {
-  size_t d_in = py::ObjValidator::to_size_t_positive(d);
-  dtft->set_d(static_cast<uint64_t>(d_in));
+void Ftrl::set_d(robj py_d) {
+  py::Validator<uint64_t> uvalidator;
+  uint64_t d = static_cast<uint64_t>(py_d.to_size_t());
+  uvalidator.check_positive(d, py_d);
+  dtft->set_d(d);
 }
 
 
