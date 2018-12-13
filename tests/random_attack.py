@@ -292,7 +292,7 @@ class Frame0:
         assert self.df.ncols == len(self.data)
         assert self.df.names == tuple(self.names)
         self.check_types()
-        assert self.df.topython() == self.data
+        assert self.df.to_list() == self.data
 
     def check_shape(self):
         df_nrows = self.df.nrows

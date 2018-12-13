@@ -212,8 +212,8 @@ def test_fread_1206FUT():
     assert d0.shape == d1.shape == (308, 21)
     assert d0.names == d1.names
     assert d0.stypes == d1.stypes
-    p0 = d0.topython()
-    p1 = d1.topython()
+    p0 = d0.to_list()
+    p1 = d1.to_list()
     assert p0[:-1] == p1[:-1]
     assert p0[-1] == [""] * 10 + ["A"] * 298
     assert p1[-1] == [" "] * 10 + ["A"] * 298

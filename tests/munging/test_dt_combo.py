@@ -18,14 +18,14 @@ def test_columns_rows():
     df2 = df0[::2, :][:, f.A + f.B]
     df1.internal.check()
     df2.internal.check()
-    assert df1.topython() == [[0, 6, 12, 18, 24]]
-    assert df2.topython() == [[0, 6, 12, 18, 24]]
+    assert df1.to_list() == [[0, 6, 12, 18, 24]]
+    assert df2.to_list() == [[0, 6, 12, 18, 24]]
 
     df3 = df0[::-2, {"res": f.A * f.B}]
     df4 = df0[::2, :][::-1, :][:, f.A * f.B]
     df3.internal.check()
     df4.internal.check()
-    assert df3.topython() == [[162, 98, 50, 18, 2]]
+    assert df3.to_list() == [[162, 98, 50, 18, 2]]
 
 
 def test_issue1225():
@@ -35,4 +35,4 @@ def test_issue1225():
     # assert f1.internal.isview
     f1.materialize()
     assert f1.stypes == (stype.float64, stype.int8)
-    assert f1.topython() == [[3.0, 2.0, 1.0], [8, 6, 5]]
+    assert f1.to_list() == [[3.0, 2.0, 1.0], [8, 6, 5]]

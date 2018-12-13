@@ -64,7 +64,7 @@ def test_min(src):
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
-    assert dtr.topython() == [[t_min(src)]]
+    assert dtr.to_list() == [[t_min(src)]]
     assert dtr.scalar() == dt0.min1()
 
 
@@ -72,7 +72,7 @@ def test_dt_str():
     dt0 = dt.Frame([[1, 5, 3, 9, -2], list("abcde")])
     dtr = dt0.min()
     dtr.internal.check()
-    assert dtr.topython() == [[-2], [None]]
+    assert dtr.to_list() == [[-2], [None]]
 
 
 
@@ -96,7 +96,7 @@ def test_max(src):
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
-    assert dtr.topython() == [[t_max(src)]]
+    assert dtr.to_list() == [[t_max(src)]]
     assert dtr.scalar() == dt0.max1()
 
 
@@ -125,7 +125,7 @@ def test_sum(src):
     assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [[t_sum(src)]])
+    assert list_equals(dtr.to_list(), [[t_sum(src)]])
     assert list_equals([dtr.scalar()], [dt0.sum1()])
 
 
@@ -149,7 +149,7 @@ def test_dt_mean(src):
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
-    assert list_equals(dtr.topython(), [[t_mean(src)]])
+    assert list_equals(dtr.to_list(), [[t_mean(src)]])
     assert list_equals([dtr.scalar()], [dt0.mean1()])
 
 
@@ -173,7 +173,7 @@ def test_dt_mean_special_cases(src, res):
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
-    assert list_equals(dtr.topython(), [[res]])
+    assert list_equals(dtr.to_list(), [[res]])
 
 
 
@@ -200,7 +200,7 @@ def test_dt_sd(src):
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [[t_sd(src)]])
+    assert list_equals(dtr.to_list(), [[t_sd(src)]])
     assert list_equals([dtr.scalar()], [dt0.sd1()])
 
 
@@ -218,7 +218,7 @@ def test_dt_sd_special_cases(src, res):
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [[res]])
+    assert list_equals(dtr.to_list(), [[res]])
 
 
 
@@ -244,7 +244,7 @@ def test_dt_count_na(src):
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert dtr.topython() == [[ans]]
+    assert dtr.to_list() == [[ans]]
     assert dtr.scalar() == dt0.countna1()
 
 
@@ -427,34 +427,34 @@ def test_stats_bool_large(numpy):
     n = 12345678
     a = numpy.random.randint(2, size=n, dtype=numpy.bool8)
     dt0 = dt.Frame(a)
-    assert dt0.sum().topython() == [[a.sum()]]
-    assert dt0.countna().topython() == [[0]]
-    assert list_equals(dt0.mean().topython(), [[a.mean()]])
-    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+    assert dt0.sum().to_list() == [[a.sum()]]
+    assert dt0.countna().to_list() == [[0]]
+    assert list_equals(dt0.mean().to_list(), [[a.mean()]])
+    assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
 
 
 def test_stats_int_large(numpy):
     n = 12345678
     a = numpy.random.randint(2**20, size=n, dtype=numpy.int32)
     dt0 = dt.Frame(a)
-    assert dt0.min().topython() == [[a.min()]]
-    assert dt0.max().topython() == [[a.max()]]
-    assert dt0.sum().topython() == [[a.sum()]]
-    assert dt0.countna().topython() == [[0]]
-    assert list_equals(dt0.mean().topython(), [[a.mean()]])
-    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+    assert dt0.min().to_list() == [[a.min()]]
+    assert dt0.max().to_list() == [[a.max()]]
+    assert dt0.sum().to_list() == [[a.sum()]]
+    assert dt0.countna().to_list() == [[0]]
+    assert list_equals(dt0.mean().to_list(), [[a.mean()]])
+    assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
 
 
 def test_stats_float_large(numpy):
     n = 12345678
     a = numpy.random.random(size=n) * 1e6
     dt0 = dt.Frame(a)
-    assert dt0.min().topython() == [[a.min()]]
-    assert dt0.max().topython() == [[a.max()]]
-    assert dt0.countna().topython() == [[0]]
-    assert list_equals(dt0.sum().topython(), [[a.sum()]])
-    assert list_equals(dt0.mean().topython(), [[a.mean()]])
-    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+    assert dt0.min().to_list() == [[a.min()]]
+    assert dt0.max().to_list() == [[a.max()]]
+    assert dt0.countna().to_list() == [[0]]
+    assert list_equals(dt0.sum().to_list(), [[a.sum()]])
+    assert list_equals(dt0.mean().to_list(), [[a.mean()]])
+    assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])

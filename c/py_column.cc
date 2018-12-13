@@ -166,7 +166,7 @@ PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
 }
 
 
-PyObject* topython(pycolumn::obj* self, PyObject*) {
+PyObject* to_list(pycolumn::obj* self, PyObject*) {
   Column* col = self->ref;
 
   int itype = static_cast<int>(col->stype());
@@ -215,7 +215,7 @@ static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
   METHODv(ungroup),
   METHODv(replace_rowindex),
-  METHOD0(topython),
+  METHOD0(to_list),
   {nullptr, nullptr, 0, nullptr}
 };
 

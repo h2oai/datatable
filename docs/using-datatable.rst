@@ -115,9 +115,9 @@ Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame, or a p
 
 ::
 
-   nparr = df1.tonumpy()
-   pddfr = df1.topandas()
-   pyobj = df1.topython()
+   nparr = df1.to_numpy()
+   pddfr = df1.to_pandas()
+   pyobj = df1.to_list()
 
 Parse Text (csv) Files
 ----------------------

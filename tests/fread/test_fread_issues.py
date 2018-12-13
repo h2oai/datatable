@@ -27,15 +27,15 @@ def test_issue_R1113():
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
                          dt.ltype.real)
-    assert d0.topython() == [[-11000, -10999, -10998],
-                             [-2.5, -24.9853, 0.195957],
-                             [2.3, 379.270, 4.16522],
-                             [345678.20255, -195780.43911, 7937.13048]]
+    assert d0.to_list() == [[-11000, -10999, -10998],
+                            [-2.5, -24.9853, 0.195957],
+                            [2.3, 379.270, 4.16522],
+                            [345678.20255, -195780.43911, 7937.13048]]
     # `strip_whitespace` has no effect when `sep == ' '`
     d1 = dt.fread(txt, strip_whitespace=False)
     d1.internal.check()
     assert d1.names == d0.names
-    assert d1.topython() == d0.topython()
+    assert d1.to_list() == d0.to_list()
     # Check that whitespace is not removed from column names either
     d2 = dt.fread(text=" ITER,    THETA1,       THETA2", strip_whitespace=False)
     d3 = dt.fread(text=" ITER  ,  THETA1   ,    THETA2", strip_whitespace=False)
@@ -61,11 +61,11 @@ def test_issue_R2106():
     d2.internal.check()
     d3.internal.check()
     d4.internal.check()
-    assert d0.topython() == [[1, 5, None, 12, 18, None]]
-    assert d1.topython() == [[1, 5, 12, 18]]
-    assert d2.topython() == [[1, 5, 12, 18]]
-    assert d3.topython() == [["1", "5", "NA", "12", "18", "NA"]]
-    assert d4.topython() == [[1, 5, None, 12, 18, None]]
+    assert d0.to_list() == [[1, 5, None, 12, 18, None]]
+    assert d1.to_list() == [[1, 5, 12, 18]]
+    assert d2.to_list() == [[1, 5, 12, 18]]
+    assert d3.to_list() == [["1", "5", "NA", "12", "18", "NA"]]
+    assert d4.to_list() == [[1, 5, None, 12, 18, None]]
 
 
 def test_issue_R2196():
@@ -75,7 +75,7 @@ def test_issue_R2196():
     d0 = dt.fread('1,2,"3,a"\n4,5,"6,b"')
     d0.internal.check()
     assert d0.shape == (2, 3)
-    assert d0.topython() == [[1, 4], [2, 5], ["3,a", "6,b"]]
+    assert d0.to_list() == [[1, 4], [2, 5], ["3,a", "6,b"]]
 
 
 def test_issue_R2222():
@@ -84,10 +84,10 @@ def test_issue_R2222():
     d2 = dt.fread("A,B\n999,5\n999,999\n", na_strings=["999", "NA"])
     d3 = dt.fread("A,B\n999,1\n999,2\n", na_strings=["99", "NA"])
     d0.internal.check()
-    assert d0.topython() == [[None, None], [1, 2]]
-    assert d1.topython() == [[None, 4], [1, 2]]
-    assert d2.topython() == [[None, None], [5, None]]
-    assert d3.topython() == [[999, 999], [1, 2]]
+    assert d0.to_list() == [[None, None], [1, 2]]
+    assert d1.to_list() == [[None, 4], [1, 2]]
+    assert d2.to_list() == [[None, None], [5, None]]
+    assert d3.to_list() == [[999, 999], [1, 2]]
 
 
 @pytest.mark.parametrize("v", ["%", "%d", "%s", "%.*s"])
@@ -122,13 +122,13 @@ def test_issue_R2351(tempfile):
         o.write(text)
     d0 = dt.fread(tempfile)
     d0.internal.check()
-    assert d0[:2, :].topython() == [["id0", "id1"], [0, 38]]
-    assert d0[-2:, :].topython() == [["id99998", "id99999"], [92, 130]]
+    assert d0[:2, :].to_list() == [["id0", "id1"], [0, 38]]
+    assert d0[-2:, :].to_list() == [["id99998", "id99999"], [92, 130]]
     with open(tempfile, "ab") as o:
         o.write(b"foo,1000")
     d0 = dt.fread(tempfile)
     d0.internal.check()
-    assert d0[-2:, :].topython() == [["id99999", "foo"], [130, 1000]]
+    assert d0[-2:, :].to_list() == [["id99999", "foo"], [130, 1000]]
 
 
 def test_issue_R2404():
@@ -140,10 +140,10 @@ def test_issue_R2404():
     assert d0.names == ("A", "B", "C", "D")
     assert d0.shape == (1000, 4)
     inp[111][2] = '"a"'
-    assert d0.topython() == [[row[0] for row in inp],
-                             [row[1] for row in inp],
-                             [row[2][1:-1] for row in inp],  # unescape
-                             [row[3] for row in inp]]
+    assert d0.to_list() == [[row[0] for row in inp],
+                            [row[1] for row in inp],
+                            [row[2][1:-1] for row in inp],  # unescape
+                            [row[3] for row in inp]]
 
 
 @pytest.mark.parametrize("sep", [" ", ",", ";"])
@@ -157,7 +157,7 @@ def test_issue_R2322(sep):
     d0.internal.check()
     assert d0.shape == (3, 1)
     assert d0.names == (name, )
-    assert d0.topython() == [[2, 3, 4]]
+    assert d0.to_list() == [[2, 3, 4]]
 
 
 def test_issue_R2464():
@@ -167,7 +167,7 @@ def test_issue_R2464():
     f = dt.fread('A,B,C\n1,2,"a,b"', columns={'A', 'B'})
     f.internal.check()
     assert f.names == ("A", "B")
-    assert f.topython() == [[1], [2]]
+    assert f.to_list() == [[1], [2]]
 
 
 def test_issue_R2535():
@@ -180,11 +180,11 @@ def test_issue_R2535():
     d0.internal.check()
     d1.internal.check()
     d2.internal.check()
-    assert d0.topython() == [list("ace"), list("bdf"), [2, 3, 4]]
-    assert d1.topython() == [list("ace"), list("bdf"), [2, 3, 4]]
-    assert d2.topython() == [["a", "c", None, "e"],
-                             ["b", "d", None, "f"],
-                             [2, 3, None, 4]]
+    assert d0.to_list() == [list("ace"), list("bdf"), [2, 3, 4]]
+    assert d1.to_list() == [list("ace"), list("bdf"), [2, 3, 4]]
+    assert d2.to_list() == [["a", "c", None, "e"],
+                            ["b", "d", None, "f"],
+                            [2, 3, None, 4]]
 
 
 @pytest.mark.skip(reason="Issue #804")
@@ -194,13 +194,13 @@ def test_issue_R2535x():
     # passing explicitly `fill=False` value.
     src = "a b 2\nc d 3\n\ne f 4\n"
     d3 = dt.fread(src, skip_blank_lines=False, fill=False)
-    assert d3.topython() == [list("ac"), list("bd"), [2, 3]]
+    assert d3.to_list() == [list("ac"), list("bd"), [2, 3]]
 
 
 def test_issue_R2542():
     d0 = dt.fread("A\r1\r\r\r2\r")
     d0.internal.check()
-    assert d0.topython() == [[1, None, None, 2]]
+    assert d0.to_list() == [[1, None, None, 2]]
 
 
 def test_issue_R2666():
@@ -209,10 +209,10 @@ def test_issue_R2666():
     d1 = dt.fread("1;2;3\n4\n5",   sep=";", fill=True)
     d2 = dt.fread("1;2;3\n;4\n5",  sep=";", fill=True)
     d3 = dt.fread("1;2;3\n4\n;5",  sep=";", fill=True)
-    assert d0.topython() == [[1, 4, 5],    [2, None, 6],    [3, None, None]]
-    assert d1.topython() == [[1, 4, 5],    [2, None, None], [3, None, None]]
-    assert d2.topython() == [[1, None, 5], [2, 4, None],    [3, None, None]]
-    assert d3.topython() == [[1, 4, None], [2, None, 5],    [3, None, None]]
+    assert d0.to_list() == [[1, 4, 5],    [2, None, 6],    [3, None, None]]
+    assert d1.to_list() == [[1, 4, 5],    [2, None, None], [3, None, None]]
+    assert d2.to_list() == [[1, None, 5], [2, 4, None],    [3, None, None]]
+    assert d3.to_list() == [[1, 4, None], [2, None, 5],    [3, None, None]]
 
 
 
@@ -227,7 +227,7 @@ def test_issue_527():
     d0 = dt.fread(text=inp)
     d0.internal.check()
     assert d0.names == ("A", "Bÿ", "C")
-    assert d0.topython() == [[1], [2], ["3ª"]]
+    assert d0.to_list() == [[1], [2], ["3ª"]]
 
 
 def test_issue_594():
@@ -259,17 +259,17 @@ def test_issue_606():
     d0 = dt.fread(text="A\n23     ")
     d0.internal.check()
     assert d0.names == ("A",)
-    assert d0.topython() == [[23]]
+    assert d0.to_list() == [[23]]
     d1 = dt.fread("A B C \n10 11 12 \n")
     d1.internal.check()
     assert d1.names == ("A", "B", "C")
-    assert d1.topython() == [[10], [11], [12]]
+    assert d1.to_list() == [[10], [11], [12]]
     d2 = dt.fread("a  b  c\nfoo  bar  baz\noof  bam  \nnah  aye  l8r")
     d2.internal.check()
     assert d2.names == ("a", "b", "c")
-    assert d2.topython() == [["foo", "oof", "nah"],
-                             ["bar", "bam", "aye"],
-                             ["baz", None,  "l8r"]]  # should this be ""?
+    assert d2.to_list() == [["foo", "oof", "nah"],
+                            ["bar", "bam", "aye"],
+                            ["baz", None,  "l8r"]]  # should this be ""?
 
 
 def test_issue_615():
@@ -277,16 +277,16 @@ def test_issue_615():
                   "NaNaNa,Infinity-3,nanny,0x1.5p+12@boo,23ba,2.5e-4q,"
                   "Truely,Falsely,1\n")
     d0.internal.check()
-    assert d0.topython() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
-                             ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
-                             ["Truely"], ["Falsely"], [1]]
+    assert d0.to_list() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
+                            ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
+                            ["Truely"], ["Falsely"], [1]]
 
 
 def test_issue_628():
     """Similar to #594 but read in verbose mode."""
     d0 = dt.fread(b"a,\x80\n11,2\n", verbose=True)
     d0.internal.check()
-    assert d0.topython() == [[11], [2]]
+    assert d0.to_list() == [[11], [2]]
     # The interpretation of byte \x80 as symbol € is not set in stone: we may
     # alter it in the future, or make it platform-dependent?
     assert d0.names == ("a", "€")
@@ -300,7 +300,7 @@ def test_issue_641():
     f.internal.check()
     assert f.names == ("A", "B", "C")
     assert f.ltypes == (dt.ltype.int, dt.ltype.str, dt.ltype.str)
-    assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
+    assert f.to_list() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
 
 
 def test_issue_643():
@@ -308,7 +308,7 @@ def test_issue_643():
     d0.internal.check()
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
-    assert d0.topython() == [[1, 3, 5, 6], [2, 4, 6, 7]]
+    assert d0.to_list() == [[1, 3, 5, 6], [2, 4, 6, 7]]
 
 
 def test_issue_664(capsys):
@@ -320,16 +320,16 @@ def test_issue_664(capsys):
     assert "we know nrows=3 exactly" in out
     f.internal.check()
     assert f.shape == (3, 3)
-    assert f.topython() == [["x", "A", "y"],
-                            [None, "B", None],
-                            [None, 2, None]]
+    assert f.to_list() == [["x", "A", "y"],
+                           [None, "B", None],
+                           [None, 2, None]]
 
 
 def test_issue_670():
     d0 = dt.fread("A\n1\n\n\n2\n", skip_blank_lines=True)
     d0.internal.check()
     assert d0.shape == (2, 1)
-    assert d0.topython() == [[1, 2]]
+    assert d0.to_list() == [[1, 2]]
 
 
 @pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
@@ -404,7 +404,7 @@ def test_issue720(seed):
     d0.internal.check()
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.str, dt.ltype.str)
-    assert d0.topython() == [src0, src1]
+    assert d0.to_list() == [src0, src1]
 
 
 def test_issuee786():
@@ -412,7 +412,7 @@ def test_issuee786():
     df.internal.check()
     assert df.shape == (0, 1)
     assert df.names == ('"A","B"',)
-    assert df.topython() == [[]]
+    assert df.to_list() == [[]]
 
 
 def test_issue939(capsys):
@@ -460,7 +460,7 @@ def test_issue998():
     assert f0.names == tuple("C%d" % i for i in range(f0.ncols))
     assert f0.stypes == (dt.stype.float64,) * f0.ncols
     assert same_iterables(
-        f0.sum().topython(),
+        f0.sum().to_list(),
         [[1058818.0], [1981919.6107614636], [701.7858121241807],
          [-195.48500674014213], [1996390.3476011853], [-1759.5364254778178],
          [1980743.446578741], [-1108.7512905876065], [1712.947751407064],
@@ -489,4 +489,4 @@ def test_issue1233():
     # strictly linear, we end up type-bumping the column more than once,
     # which means the re-read has to happen more than once too...
     d0 = dt.fread("NaN\n2\n")
-    assert d0.topython() == [[None, 2.0]]
+    assert d0.to_list() == [[None, 2.0]]
