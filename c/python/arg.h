@@ -17,7 +17,6 @@
 namespace py {
 
 class PKArgs;
-template <typename T> class Validator;
 
 
 /**
@@ -111,9 +110,6 @@ class Arg : public _obj::error_manager {
   private:
     void _check_list_or_tuple() const;
     void _check_missing() const;
-
-    friend Validator<double>;
-    friend Validator<uint64_t>;
 };
 
 
