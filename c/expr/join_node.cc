@@ -19,35 +19,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_I_NODE_h
-#define dt_EXPR_I_NODE_h
-#include <memory>             // std::unique_ptr
-#include "expr/workframe.h"   // dt::workframe
-#include "python/_all.h"      // py::robj, ...
-namespace dt {
-
-
-class i_node;
-using iptr = std::unique_ptr<dt::i_node>;
-
-/**
- * Base class for all "Row Filter" nodes. A row filter node represents the
- * `i` part in a `DT[i, j, ...]` call.
- *
- * When executed, this class will compute a RowIndex and apply it to the
- * provided workframe `wf`.
- */
-class i_node {
-  public:
-    static iptr make(py::robj src);
-
-    virtual ~i_node();
-    virtual void post_init_check(workframe& wf);
-    virtual void execute(workframe& wf) = 0;
-};
+#include "expr/join_node.h"
+#include "datatable.h"
+#include "python/arg.h"
 
 
 
+py::PKArgs py::join::Type::args___init__(
+    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
 
-}  // namespace dt
-#endif
+const char* py::join::Type::classname() {
+  return "datatable.join";
+}
+
+const char* py::join::Type::classdoc() {
+  return "join() clause for use in DT[i, j, ...]";
+}
+
+
+void py::join::m__init__(py::PKArgs& args) {
+  join_frame = args[0].to_oobj();
+  if (!join_frame.is_frame()) {
+    throw TypeError() << "The argument to join() must be a Frame";
+  }
+  DataTable* jdt = join_frame.to_frame();
+  if (jdt->get_nkeys() == 0) {
+    throw ValueError() << "The join frame is not keyed";
+  }
+}
+
+
+void py::join::m__dealloc__() {
+  join_frame = nullptr;  // Releases the stored oobj
+}
+
+
+void py::join::Type::init_methods_and_getsets(
+    py::ExtType<py::join>::Methods&,
+    py::ExtType<py::join>::GetSetters& gs)
+{
+  gs.add<&py::join::get_frame>("joinframe");
+}
+
+
+py::oobj py::join::get_frame() const {
+  return join_frame;
+}

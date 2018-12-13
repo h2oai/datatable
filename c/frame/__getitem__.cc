@@ -30,9 +30,7 @@ namespace py {
 
 // Sentinel value for __getitem__() mode
 static robj GETITEM(reinterpret_cast<PyObject*>(-1));
-
-using iptr = std::unique_ptr<dt::i_node>;
-using jptr = std::unique_ptr<dt::j_node>;
+static robj DELITEM(reinterpret_cast<PyObject*>(0));
 
 
 
@@ -96,10 +94,13 @@ oobj Frame::_main_getset(robj item, robj value) {
   if (targs) {
     size_t nargs = targs.size();
     if (nargs == 2 && value == GETITEM) {
-      auto iexpr = iptr(dt::i_node::make(targs[0]));
-      auto jexpr = jptr(dt::j_node::make(targs[1]));
+      dt::workframe wf(dt);
+      wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
+                  value == DELITEM? dt::EvalMode::DELETE :
+                                    dt::EvalMode::UPDATE);
+      auto iexpr = dt::i_node::make(targs[0]);
+      auto jexpr = dt::j_node::make(targs[1]);
       if (iexpr && jexpr) {
-        dt::workframe wf(dt);
         iexpr->post_init_check(wf);
         iexpr->execute(wf);
         DataTable* res = jexpr->execute(wf);

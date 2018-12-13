@@ -13,12 +13,7 @@ __all__ = ("join",)
 
 
 
-class join:
-
-    def __init__(self, frame):
-        self.joinframe = frame
-        if not frame.key:
-            raise ValueError("The join frame is not keyed")
+class join(core.join):
 
     def execute(self, ee):
         dt = ee.dt

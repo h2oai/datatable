@@ -27,6 +27,12 @@ workframe::workframe(const DataTable* dt) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
+  mode = EvalMode::SELECT;
+}
+
+
+void workframe::set_mode(EvalMode m) {
+  mode = m;
 }
 
 
