@@ -24,34 +24,9 @@
 #include "datatable.h"
 #include "expr/base_expr.h"
 #include "expr/py_expr.h"
-
+#include "expr/workframe.h"
 
 namespace dt {
-
-
-
-//------------------------------------------------------------------------------
-// workframe
-//------------------------------------------------------------------------------
-
-class workframe {
-  private:
-    std::vector<DataTable*> dts;
-    std::vector<RowIndex> rowindexes;
-
-  public:
-    workframe() = default;
-    workframe(const workframe&) = delete;
-    workframe(workframe&&) = delete;
-
-    DataTable* get_datatable(size_t id) const {
-      return dts[id];
-    }
-
-    const RowIndex& get_rowindex(size_t id) const {
-      return rowindexes[id];
-    }
-};
 
 
 
@@ -59,12 +34,6 @@ class workframe {
 // base_expr
 //------------------------------------------------------------------------------
 
-class base_expr {
-  public:
-    virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual Column* evaluate_eager(const workframe&) = 0;
-};
 
 using base_expr_ptr = std::unique_ptr<base_expr>;
 
@@ -72,10 +41,10 @@ base_expr::~base_expr() {}
 
 
 
+
 //------------------------------------------------------------------------------
 // expr_column
 //------------------------------------------------------------------------------
-
 
 class expr_column : public base_expr {
   private:
@@ -95,7 +64,7 @@ expr_column::expr_column(size_t dfid, const py::robj& col)
 
 
 SType expr_column::resolve(const workframe& wf) {
-  DataTable* dt = wf.get_datatable(frame_id);
+  const DataTable* dt = wf.get_datatable(frame_id);
   if (col_selector.is_int()) {
     int64_t icolid = col_selector.to_int64_strict();
     int64_t incols = static_cast<int64_t>(dt->ncols);
@@ -115,8 +84,8 @@ SType expr_column::resolve(const workframe& wf) {
 
 
 Column* expr_column::evaluate_eager(const workframe& wf) {
-  DataTable* dt = wf.get_datatable(frame_id);
-  Column* rcol = dt->columns[col_id];
+  const DataTable* dt = wf.get_datatable(frame_id);
+  const Column* rcol = dt->columns[col_id];
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
   const RowIndex& col_ri = rcol->rowindex();
 
@@ -184,8 +153,23 @@ static void init_binops() {
   binop_rules[bin_id(binopCode::LOGICAL_OR, bool8, bool8)] = bool8;
 
   binop_names.resize(18);
-  binop_names[size_t(binopCode::PLUS)] = "+";
-  binop_names[size_t(binopCode::MINUS)] = "-";
+  binop_names[static_cast<size_t>(binopCode::PLUS)] = "+";
+  binop_names[static_cast<size_t>(binopCode::MINUS)] = "-";
+  binop_names[static_cast<size_t>(binopCode::MULTIPLY)] = "*";
+  binop_names[static_cast<size_t>(binopCode::DIVIDE)] = "/";
+  binop_names[static_cast<size_t>(binopCode::INT_DIVIDE)] = "//";
+  binop_names[static_cast<size_t>(binopCode::POWER)] = "**";
+  binop_names[static_cast<size_t>(binopCode::MODULO)] = "%";
+  binop_names[static_cast<size_t>(binopCode::LOGICAL_AND)] = "&";
+  binop_names[static_cast<size_t>(binopCode::LOGICAL_OR)] = "|";
+  binop_names[static_cast<size_t>(binopCode::LEFT_SHIFT)] = "<<";
+  binop_names[static_cast<size_t>(binopCode::RIGHT_SHIFT)] = ">>";
+  binop_names[static_cast<size_t>(binopCode::REL_EQ)] = "==";
+  binop_names[static_cast<size_t>(binopCode::REL_NE)] = "!=";
+  binop_names[static_cast<size_t>(binopCode::REL_GT)] = ">";
+  binop_names[static_cast<size_t>(binopCode::REL_LT)] = "<";
+  binop_names[static_cast<size_t>(binopCode::REL_GE)] = ">=";
+  binop_names[static_cast<size_t>(binopCode::REL_LE)] = "<=";
 }
 
 
@@ -211,9 +195,9 @@ SType expr_binaryop::resolve(const workframe& wf) {
   SType rhs_stype = rhs->resolve(wf);
   size_t triple = bin_id(static_cast<binopCode>(binop_code),
                          lhs_stype, rhs_stype);
-  if (binop_rules.count(triple)) {
+  if (binop_rules.count(triple) == 0) {
     throw TypeError() << "Binary operator `" << binop_names[binop_code]
-        << "` cannot be applied to column with stypes `" << lhs_stype
+        << "` cannot be applied to columns with stypes `" << lhs_stype
         << "` and `" << rhs_stype << "`";
   }
   return binop_rules.at(triple);
@@ -266,6 +250,39 @@ Column* expr_literal::evaluate_eager(const workframe&) {
 
 
 
+//------------------------------------------------------------------------------
+// expr_unaryop
+//------------------------------------------------------------------------------
+
+class expr_unaryop : public base_expr {
+  private:
+    base_expr* arg;
+    size_t unop_code;
+
+  public:
+    expr_unaryop(size_t opcode, base_expr* a);
+    SType resolve(const workframe& wf) override;
+    Column* evaluate_eager(const workframe& wf) override;
+};
+
+
+expr_unaryop::expr_unaryop(size_t opcode, base_expr* a)
+  : arg(a), unop_code(opcode) {}
+
+
+SType expr_unaryop::resolve(const workframe& wf) {
+  SType arg_stype = arg->resolve(wf);
+  // ???
+  return arg_stype;
+}
+
+
+Column* expr_unaryop::evaluate_eager(const workframe& wf) {
+  Column* arg_res = arg->evaluate_eager(wf);
+  return expr::unaryop(int(unop_code), arg_res);
+}
+
+
 
 };
 
@@ -296,7 +313,7 @@ static dt::base_expr* to_base_expr(const py::robj& arg) {
   PyObject* v = arg.to_borrowed_ref();
   if (Py_TYPE(v) == &py::base_expr::Type::type) {
     auto vv = reinterpret_cast<py::base_expr*>(v);
-    return vv->expr;
+    return vv->release();
   }
   throw TypeError() << "Expected a base_expr object, but got " << arg.typeobj();
 }
@@ -329,6 +346,13 @@ void py::base_expr::m__init__(py::PKArgs& args) {
       expr = new dt::expr_literal(va[0]);
       break;
     }
+    case dt::exprCode::UNOP: {
+      check_args_count(va, 2);
+      size_t unop_code = va[0].to_size_t();
+      dt::base_expr* arg = to_base_expr(va[1]);
+      expr = new dt::expr_unaryop(unop_code, arg);
+      break;
+    }
   }
 }
 
@@ -337,9 +361,23 @@ void py::base_expr::m__dealloc__() {
 }
 
 
+dt::base_expr* py::base_expr::release() {
+  dt::base_expr* res = expr;
+  expr = nullptr;
+  return res;
+}
+
+
 void py::base_expr::Type::init_methods_and_getsets(
     py::ExtType<py::base_expr>::Methods&,
     py::ExtType<py::base_expr>::GetSetters&)
 {
   dt::init_binops();
+}
+
+
+bool is_PyBaseExpr(const py::_obj& obj) {
+  static auto BaseExprType = py::oobj::import("datatable.graph", "BaseExpr");
+  return PyObject_IsInstance(obj.to_borrowed_ref(),
+                             BaseExprType.to_borrowed_ref());
 }

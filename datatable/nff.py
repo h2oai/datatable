@@ -50,8 +50,8 @@ def save(self, dest=None, format="jay", _strategy="auto"):
         return
 
     self.materialize()
-    mins = self.min().topython()
-    maxs = self.max().topython()
+    mins = self.min().to_list()
+    maxs = self.max().to_list()
 
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:

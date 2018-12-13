@@ -205,6 +205,14 @@ class RowIndex {
 };
 
 
+// hashing support
+namespace std {
+  template <> struct hash<RowIndex> {
+    std::size_t operator()(const RowIndex& ri) const {
+      return reinterpret_cast<size_t>(ri.ptr());
+    }
+  };
+}
 
 
 //==============================================================================

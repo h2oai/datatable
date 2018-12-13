@@ -131,6 +131,8 @@ class _obj {
     oobj get_attr(const char* attr) const;
     bool has_attr(const char* attr) const;
     oobj get_item(const py::_obj& key) const;
+    oobj invoke(const char* fn) const;
+    oobj invoke(const char* fn, const otuple& args) const;
     oobj invoke(const char* fn, const char* format, ...) const;
     oobj call(otuple args) const;
     oobj call(otuple args, odict kws) const;
@@ -193,8 +195,8 @@ class _obj {
     py::olist   to_pylist         (const error_manager& = _em0) const;
     py::odict   to_pydict         (const error_manager& = _em0) const;
     py::rdict   to_rdict          (const error_manager& = _em0) const;
-    py::orange  to_pyrange        (const error_manager& = _em0) const;
-    py::oiter   to_pyiter         (const error_manager& = _em0) const;
+    py::orange  to_orange         (const error_manager& = _em0) const;
+    py::oiter   to_oiter          (const error_manager& = _em0) const;
     py::oslice  to_oslice         (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;

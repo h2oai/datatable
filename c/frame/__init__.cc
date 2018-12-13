@@ -25,8 +25,6 @@
 #include <vector>
 #include "python/_all.h"
 #include "python/list.h"
-#include "python/oiter.h"
-#include "python/orange.h"
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
@@ -399,7 +397,7 @@ class FrameInitializationManager {
       py::robj pdsrc = src.to_pyobj();
       py::olist colnames(0);
       if (src.is_pandas_frame()) {
-        py::oiter pdcols = pdsrc.get_attr("columns").to_pyiter();
+        py::oiter pdcols = pdsrc.get_attr("columns").to_oiter();
         size_t ncols = pdcols.size();
         if (ncols != size_t(-1)) {
           check_names_count(ncols);
@@ -596,7 +594,7 @@ class FrameInitializationManager {
         col = Column::from_pylist(colsrc.to_pylist(), int(s));
       }
       else if (colsrc.is_range()) {
-        auto r = colsrc.to_pyrange();
+        auto r = colsrc.to_orange();
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else {

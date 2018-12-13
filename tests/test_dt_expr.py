@@ -140,12 +140,12 @@ def test_dt_invert(src):
     df2 = dt0(select=~f[0], engine="eager")
     df2.internal.check()
     assert df2.stypes == dt0.stypes
-    assert df2.topython() == [[inv(x) for x in src]]
+    assert df2.to_list() == [[inv(x) for x in src]]
     if has_llvm():
         df1 = dt0(select=~f[0], engine="llvm")
         df1.internal.check()
         assert df1.stypes == dt0.stypes
-        assert df1.topython() == [[inv(x) for x in src]]
+        assert df1.to_list() == [[inv(x) for x in src]]
 
 
 @pytest.mark.parametrize("src", dt_float)
@@ -176,7 +176,7 @@ def test_dt_neg(src):
     dtr = dt0(select=lambda f: -f[0])
     dtr.internal.check()
     assert dtr.stypes == dt0.stypes
-    assert list_equals(dtr.topython()[0], [neg(x) for x in src])
+    assert list_equals(dtr.to_list()[0], [neg(x) for x in src])
 
 
 @pytest.mark.parametrize("src", dt_bool)
@@ -199,7 +199,7 @@ def test_dt_pos(src):
     dtr = dt0(select=lambda f: +f[0])
     dtr.internal.check()
     assert dtr.stypes == dt0.stypes
-    assert list_equals(dtr.topython()[0], list(src))
+    assert list_equals(dtr.to_list()[0], list(src))
 
 
 @pytest.mark.parametrize("src", dt_bool)
@@ -223,12 +223,12 @@ def test_dt_isna(src):
     dt1.internal.check()
     assert dt1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
-    assert dt1.topython()[0] == pyans
+    assert dt1.to_list()[0] == pyans
     if has_llvm():
         dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
         dt2.internal.check()
         assert dt2.stypes == (stype.bool8,)
-        assert dt2.topython()[0] == pyans
+        assert dt2.to_list()[0] == pyans
 
 
 
@@ -251,7 +251,7 @@ def test_abs_srcs(src):
     dt1.internal.check()
     assert dt0.stypes == dt1.stypes
     pyans = [None if x is None else abs(x) for x in src]
-    assert dt1.topython()[0] == pyans
+    assert dt1.to_list()[0] == pyans
 
 
 def test_abs_all_stypes():
@@ -263,7 +263,7 @@ def test_abs_all_stypes():
     dt0 = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
     dt1 = dt0[:, [abs(f[i]) for i in range(4)]]
     dt1.internal.check()
-    assert dt1.topython() == [[abs(x) for x in col] for col in src]
+    assert dt1.to_list() == [[abs(x) for x in col] for col in src]
 
 
 
@@ -297,7 +297,7 @@ def test_exp_srcs(src):
                 pyans.append(exp(x))
             except OverflowError:
                 pyans.append(inf)
-    assert dt1.topython()[0] == pyans
+    assert dt1.to_list()[0] == pyans
 
 
 def test_exp_all_stypes():
@@ -322,7 +322,7 @@ def test_exp_all_stypes():
                 except OverflowError:
                     l.append(math.inf)
         pyans.append(l)
-    assert dt1.topython() == pyans
+    assert dt1.to_list() == pyans
 
 
 
@@ -337,7 +337,7 @@ def test_cast_to_float32(src):
     dt1.internal.check()
     assert dt1.stypes == (dt.float32,) * dt0.ncols
     pyans = [float(x) if x is not None else None for x in src]
-    assert list_equals(dt1.topython()[0], pyans)
+    assert list_equals(dt1.to_list()[0], pyans)
 
 
 @pytest.mark.parametrize("stype0", ltype.int.stypes)
@@ -349,8 +349,8 @@ def test_cast_int_to_str(stype0):
     assert dt1.stypes == (dt.str32, dt.str64)
     assert dt1.shape == (dt0.nrows, 2)
     ans = [None if v is None else str(v)
-           for v in dt0.topython()[0]]
-    assert dt1.topython()[0] == ans
+           for v in dt0.to_list()[0]]
+    assert dt1.to_list()[0] == ans
 
 
 @pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_obj)
@@ -368,7 +368,7 @@ def test_cast_to_str(src):
     dt2.internal.check()
     assert dt1.stypes == (dt.str32,) * dt0.ncols
     assert dt2.stypes == (dt.str64,) * dt0.ncols
-    assert dt1.topython()[0] == [to_str(x) for x in src]
+    assert dt1.to_list()[0] == [to_str(x) for x in src]
 
 
 def test_cast_view():
@@ -376,7 +376,7 @@ def test_cast_view():
     df1 = df0[::-1, :][:, dt.float32(f.A)]
     df1.internal.check()
     assert df1.stypes == (dt.float32,)
-    assert df1.topython() == [[3.0, 2.0, 1.0]]
+    assert df1.to_list() == [[3.0, 2.0, 1.0]]
 
 
 
@@ -392,8 +392,8 @@ def test_logical_and1():
 
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[(f.A < 10) & (f.B == 1), [f.A, f.B]]
-    assert df1.topython() == [[src1[i] for i in ans],
-                              [src2[i] for i in ans]]
+    assert df1.to_list() == [[src1[i] for i in ans],
+                             [src2[i] for i in ans]]
 
 
 def test_logical_or1():
@@ -404,8 +404,8 @@ def test_logical_or1():
 
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[(f.A < 10) | (f.B == 1), [f.A, f.B]]
-    assert df1.topython() == [[src1[i] for i in ans],
-                              [src2[i] for i in ans]]
+    assert df1.to_list() == [[src1[i] for i in ans],
+                             [src2[i] for i in ans]]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(63)])
@@ -417,7 +417,7 @@ def test_logical_and2(seed):
 
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[:, f.A & f.B]
-    assert df1.topython()[0] == \
+    assert df1.to_list()[0] == \
         [None if (src1[i] is None or src2[i] is None) else
          src1[i] and src2[i]
          for i in range(n)]
@@ -432,7 +432,7 @@ def test_logical_or2(seed):
 
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[:, f.A | f.B]
-    assert df1.topython()[0] == \
+    assert df1.to_list()[0] == \
         [None if (src1[i] is None or src2[i] is None) else
          src1[i] or src2[i]
          for i in range(n)]
@@ -452,7 +452,7 @@ def test_div_mod(seed):
 
     df0 = dt.Frame(x=src1, y=src2)
     df1 = df0[:, [f.x // f.y, f.x % f.y]]
-    assert df1.topython() == [
+    assert df1.to_list() == [
         [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
         [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)]
     ]
@@ -475,7 +475,7 @@ def test_expr_reuse():
     df1.internal.check()
     assert df1.names == ("A", )
     assert df1.stypes == (stype.bool8, )
-    assert df1.topython() == [[True, False, False, False, False]]
+    assert df1.to_list() == [[True, False, False, False, False]]
     df2 = df1[:, expr]
     df2.internal.check()
-    assert df2.topython() == [[False, True, True, True, True]]
+    assert df2.to_list() == [[False, True, True, True, True]]

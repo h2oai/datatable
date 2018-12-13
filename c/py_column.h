@@ -110,8 +110,8 @@ DECLARE_METHOD(
   "does not affect the Frame from which this Column was extracted.\n")
 
 DECLARE_METHOD(
-  topython,
-  "topython()\n\n"
+  to_list,
+  "to_list()\n\n"
   "Return the contents of the Column as a plain Python list.\n")
 
 

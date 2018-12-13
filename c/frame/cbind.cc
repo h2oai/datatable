@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "datatable.h"
 #include "frame/py_frame.h"
-#include "python/oiter.h"
+#include "python/_all.h"
 #include "utils/assert.h"
 
 namespace py {
@@ -84,7 +84,7 @@ void Frame::cbind(const PKArgs& args) {
       dts.push_back(idt);
     }
     else if (va.is_iterable()) {
-      for (auto item : va.to_pyiter()) {
+      for (auto item : va.to_oiter()) {
         if (item.is_frame()) {
           DataTable* idt = item.to_frame();
           if (idt->ncols == 0 || idt->nrows == 0) continue;

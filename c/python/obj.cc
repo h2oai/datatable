@@ -14,8 +14,6 @@
 #include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
-#include "python/oiter.h"
-#include "python/orange.h"
 #include "python/string.h"
 
 namespace py {
@@ -556,14 +554,14 @@ py::rdict _obj::to_rdict(const error_manager& em) const {
 }
 
 
-py::orange _obj::to_pyrange(const error_manager& em) const {
+py::orange _obj::to_orange(const error_manager& em) const {
   if (is_none()) return py::orange(nullptr);
   if (is_range()) return py::orange(v);
   throw em.error_not_range(v);
 }
 
 
-py::oiter _obj::to_pyiter(const error_manager& em) const {
+py::oiter _obj::to_oiter(const error_manager& em) const {
   if (is_none()) return py::oiter();
   if (is_iterable()) return py::oiter(v);
   throw em.error_not_iterable(v);
@@ -602,6 +600,22 @@ oobj _obj::get_item(const py::_obj& key) const {
 }
 
 
+oobj _obj::invoke(const char* fn) const {
+  oobj method = get_attr(fn);
+  PyObject* res = PyObject_CallObject(method.v, nullptr);  // new ref
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::invoke(const char* fn, const py::otuple& args) const {
+  oobj method = get_attr(fn);
+  PyObject* res = PyObject_CallObject(method.v, args.v);  // new ref
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
+
 oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* callable = nullptr;
   PyObject* args = nullptr;
@@ -624,15 +638,14 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 
 
 oobj _obj::call(otuple args) const {
-  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(), nullptr);
+  PyObject* res = PyObject_Call(v, args.v, nullptr);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
 
 
 oobj _obj::call(otuple args, odict kws) const {
-  PyObject* res = PyObject_Call(v, args.to_borrowed_ref(),
-                                kws.to_borrowed_ref());
+  PyObject* res = PyObject_Call(v, args.v, kws.v);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }

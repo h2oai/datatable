@@ -19,11 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#ifndef dt_EXPR_I_NODE_h
+#define dt_EXPR_I_NODE_h
+#include <memory>             // std::unique_ptr
+#include "expr/workframe.h"   // dt::workframe
+#include "python/_all.h"      // py::robj, ...
+namespace dt {
+
+
+
+/**
+ * Base class for all "Row Filter" nodes. A row filter node represents the
+ * `i` part in a `DT[i, j, ...]` call.
+ *
+ * When executed, this class will compute a RowIndex and apply it to the
+ * provided workframe `wf`.
+ */
+class i_node {
+  public:
+    static i_node* make(py::robj src);
+
+    virtual ~i_node();
+    virtual void post_init_check(workframe& wf);
+    virtual void execute(workframe& wf) = 0;
+};
+
+
+
+}  // namespace dt
+#endif

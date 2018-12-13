@@ -525,7 +525,7 @@ def test_ftrl_fit_unique():
     df_target = dt.Frame([[True for i in range(ft.d)]])
     ft.fit(df_train, df_target)
     model = [[-0.5 for i in range(ft.d)], [0.25 for i in range(ft.d)]]
-    assert ft.model.topython() == model
+    assert ft.model.to_list() == model
 
 
 def test_ftrl_fit_predict_bool():

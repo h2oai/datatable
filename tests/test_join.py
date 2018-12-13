@@ -38,7 +38,7 @@ def test_join_simple():
     res.internal.check()
     assert res.shape == (7, 3)
     assert res.names == ("A", "B", "V")
-    assert res.topython() == [
+    assert res.to_list() == [
         [1, 3, 2, 1, 1, 2, 0],
         ["a", "b", "c", "d", "e", "f", "g"],
         ["one", "three", "two", "one", "one", "two", "zero"]]
@@ -52,7 +52,7 @@ def test_join_strings():
     res.internal.check()
     assert res.shape == (7, 3)
     assert res.names == ("A", "B", "V")
-    assert res.topython() == [
+    assert res.to_list() == [
         [1, 3, 2, 1, 1, 2, 0],
         ["c", "a", "b", "d", "a", "b", "b"],
         [10, 0, 5, 15, 0, 5, 5]]
@@ -64,7 +64,7 @@ def test_join_missing_levels():
     d1.key = "A"
     res = d0[:, :, join(d1)]
     res.internal.check()
-    assert res.topython() == [[1, 2, 3], [True, False, None]]
+    assert res.to_list() == [[1, 2, 3], [True, False, None]]
 
 
 def test_join_errors():
@@ -103,7 +103,7 @@ def test_join_random(seed, lt):
     elif lt == ltype.real:
         keys = [random.random() for _ in range(nkeys)]
         if st == stype.float32:
-            keys = list(set(dt.Frame(keys, stype=st).topython()[0]))
+            keys = list(set(dt.Frame(keys, stype=st).to_list()[0]))
         else:
             keys = list(set(keys))
     else:
@@ -113,7 +113,7 @@ def test_join_random(seed, lt):
 
     dkey = dt.Frame(KEY=keys, VAL=range(nkeys), stypes={"KEY": st})
     dkey.key = "KEY"
-    keys, vals = dkey.topython()
+    keys, vals = dkey.to_list()
     main = [random.choice(keys) for i in range(ndata)]
     dmain = dt.Frame(KEY=main, stype=st)
     res = [vals[keys.index(main[i])] for i in range(ndata)]
@@ -122,7 +122,7 @@ def test_join_random(seed, lt):
     djoined.internal.check()
     assert djoined.shape == (ndata, 2)
     assert djoined.names == ("KEY", "VAL")
-    assert djoined.topython() == [main, res]
+    assert djoined.to_list() == [main, res]
 
 
 
@@ -134,9 +134,9 @@ def test_join_update():
     assert d0.names == ("A", "B", "AA")
     a = 4.75
     b = 14.0 / 3
-    assert d0.topython() == [[1, 2, 3, 2, 3, 1, 3, 2, 2, 1],
-                             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                             [b, a, 4, a, 4, b, 4, a, a, b]]
+    assert d0.to_list() == [[1, 2, 3, 2, 3, 1, 3, 2, 2, 1],
+                            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                            [b, a, 4, a, 4, b, 4, a, a, b]]
 
 
 def test_join_and_select_g_col():
@@ -150,7 +150,7 @@ def test_join_and_select_g_col():
     assert R.shape == (3, 1)
     assert R.stypes == (stype.str32,)
     # assert R.names == ("c",)   # not working yet
-    assert R.topython() == [[None, "bar", "foo"]]
+    assert R.to_list() == [[None, "bar", "foo"]]
 
 
 def test_join_multi():

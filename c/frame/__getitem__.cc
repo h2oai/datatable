@@ -19,6 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/i_node.h"
+#include "expr/j_node.h"
+#include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -28,6 +31,8 @@ namespace py {
 // Sentinel value for __getitem__() mode
 static robj GETITEM(reinterpret_cast<PyObject*>(-1));
 
+using iptr = std::unique_ptr<dt::i_node>;
+using jptr = std::unique_ptr<dt::j_node>;
 
 
 
@@ -58,35 +63,55 @@ oobj Frame::_fast_getset(robj item, robj value) {
       int64_t irow = arg0.to_int64_strict();
       int64_t nrows = static_cast<int64_t>(dt->nrows);
       int64_t ncols = static_cast<int64_t>(dt->ncols);
-      if (irow < 0) irow += nrows;
-      if (irow < 0 || irow >= nrows) {
-        if (irow < 0) irow -= nrows;
+      if (irow < -nrows || irow >= nrows) {
         throw ValueError() << "Row `" << irow << "` is invalid for a frame "
             "with " << nrows << " row" << (nrows == 1? "" : "s");
       }
-      size_t col_index;
+      if (irow < 0) irow += nrows;
+      size_t zrow = static_cast<size_t>(irow);
+      size_t zcol;
       if (a1int) {
         int64_t icol = arg1.to_int64_strict();
-        if (icol < 0) icol += ncols;
-        if (icol < 0 || icol >= ncols) {
-          if (icol < 0) icol -= ncols;
+        if (icol < -ncols || icol >= ncols) {
           throw ValueError() << "Column index `" << icol << "` is invalid "
               "for a frame with " << ncols << " column" <<
               (ncols == 1? "" : "s");
         }
-        col_index = static_cast<size_t>(icol);
+        if (icol < 0) icol += ncols;
+        zcol = static_cast<size_t>(icol);
       } else {
-        col_index = dt->xcolindex(arg1);
+        zcol = dt->xcolindex(arg1);
       }
-      Column* col = dt->columns[col_index];
-      return col->get_value_at_index(static_cast<size_t>(irow));
+      Column* col = dt->columns[zcol];
+      return col->get_value_at_index(zrow);
     }
+    // otherwise fall-through to _main_getset
   }
   return _main_getset(item, value);
 }
 
 
 oobj Frame::_main_getset(robj item, robj value) {
+  rtuple targs = item.to_rtuple_lax();
+  if (targs) {
+    size_t nargs = targs.size();
+    if (nargs == 2 && value == GETITEM) {
+      auto iexpr = iptr(dt::i_node::make(targs[0]));
+      auto jexpr = jptr(dt::j_node::make(targs[1]));
+      if (iexpr && jexpr) {
+        dt::workframe wf(dt);
+        iexpr->post_init_check(wf);
+        iexpr->execute(wf);
+        DataTable* res = jexpr->execute(wf);
+        return oobj::from_new_reference(py::Frame::from_datatable(res));
+      }
+    }
+
+  } else {
+    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
+        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
+        "will be interpreted as a row selector instead.";
+  }
   return _fallback_getset(item, value);
 }
 
@@ -109,12 +134,6 @@ oobj Frame::_fallback_getset(robj item, robj value) {
     } else {
       throw ValueError() << "Invalid selector " << item;
     }
-  } else {
-    args.set(1, py::None());
-    args.set(2, item);
-    DeprecationWarning() << "Single-item selectors `DT[col]` are deprecated "
-        "since 0.7.0; please use `DT[:, col]` instead. This message will "
-        "become an error in version 0.8.0";
   }
   if (!args[3]) args.set(3, py::None());
   if (!args[4]) args.set(4, py::None());

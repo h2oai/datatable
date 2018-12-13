@@ -19,11 +19,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#include "expr/workframe.h"
+namespace dt {
+
+
+workframe::workframe(const DataTable* dt) {
+  // The source frame must have flag `natural=false` so that `allcols_jn`
+  // knows to select all columns from it.
+  frames.push_back(subframe {dt, RowIndex(), false});
+}
+
+
+const DataTable* workframe::get_datatable(size_t i) const {
+  return frames[i].dt;
+}
+
+
+const RowIndex& workframe::get_rowindex(size_t i) const {
+  return frames[i].ri;
+}
+
+
+bool workframe::is_naturally_joined(size_t i) const {
+  return frames[i].natural;
+}
+
+
+size_t workframe::nframes() const {
+  return frames.size();
+}
+
+
+size_t workframe::nrows() const {
+  const RowIndex& ri0 = frames[0].ri;
+  return ri0? ri0.size() : frames[0].dt->nrows;
+}
+
+
+void workframe::apply_rowindex(const RowIndex& ri) {
+  for (size_t i = 0; i < frames.size(); ++i) {
+    frames[i].ri = ri * frames[i].ri;
+  }
+}
+
+
+
+} // namespace dt

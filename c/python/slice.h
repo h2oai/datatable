@@ -50,6 +50,7 @@ namespace py {
  */
 class oslice : public oobj {
   public:
+    static constexpr int64_t MAX = 9223372036854775807LL;
     static constexpr int64_t NA = -9223372036854775807LL - 1;
 
     oslice() = default;
@@ -60,6 +61,9 @@ class oslice : public oobj {
 
     oslice(int64_t start, int64_t stop, int64_t step);
 
+    // Return true if all components of the slice are None
+    bool is_trivial() const;
+
     bool is_numeric() const;
     int64_t start() const;
     int64_t stop() const;
@@ -69,8 +73,13 @@ class oslice : public oobj {
     oobj start_obj() const;
     oobj stop_obj() const;
 
-    void normalize(size_t len,
-                   size_t* start, size_t* count, size_t* step) const;
+    void normalize(
+        size_t len, size_t* pstart, size_t* pcount, size_t* pstep) const;
+
+    static void normalize(
+        size_t len,
+        int64_t istart, int64_t istop, int64_t istep,
+        size_t* ostart, size_t* ocount, size_t* ostep);
 
   private:
     // Private constructor, used from `_obj`. If you need to construct

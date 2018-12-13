@@ -73,11 +73,11 @@ Examples
 --------
 >>> df = dt.Frame([1, 2, 3] * 3)
 >>> df.replace(1, -1)
->>> df.topython()
+>>> df.to_list()
 [[-1, 2, 3, -1, 2, 3, -1, 2, 3]]
 
 >>> df.replace({-1: 100, 2: 200, "foo": None})
->>> df.topython()
+>>> df.to_list()
 [[100, 200, 3, 100, 200, 3, 100, 200, 3]]
 )");
 

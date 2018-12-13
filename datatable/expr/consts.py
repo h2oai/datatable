@@ -163,4 +163,5 @@ baseexpr_opcodes = {
     "col": 1,
     "binop": 2,
     "literal": 3,
+    "unop": 4,
 }

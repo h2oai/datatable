@@ -19,11 +19,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#ifndef dt_EXPR_J_NODE_h
+#define dt_EXPR_J_NODE_h
+namespace dt {
+
+
+
+/**
+ * This class handles the `j` part of the `DT[i, j, ...]` expression.
+ */
+class j_node {
+  public:
+    static j_node* make(py::robj src);
+
+    virtual ~j_node();
+    virtual DataTable* execute(workframe& wf) = 0;
+};
+
+
+
+}  // namespace dt
+#endif
