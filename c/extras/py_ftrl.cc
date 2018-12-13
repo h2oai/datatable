@@ -40,7 +40,7 @@ static const char* doc_lambda1  = "L1 regularization parameter";
 static const char* doc_lambda2  = "L2 regularization parameter";
 static const char* doc_d        = "Number of bins to be used for the hashing trick";
 static const char* doc_n_epochs = "Number of epochs to train a model";
-static const char* doc_inter    = "If feature interactions to be used or not";
+static const char* doc_inter    = "Switch to enabled second order feature interaction";
 
 static onamedtupletype& _get_params_namedtupletype() {
   static onamedtupletype ntt(
@@ -151,6 +151,7 @@ const char* Ftrl::Type::classname() {
 }
 
 
+// TODO: use the above doc strings here.
 const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
 
@@ -172,7 +173,7 @@ d : int
 n_epochs : int
     Number of epochs to train for.
 inter : bool
-    If feature interactions to be used or not.
+    Switch to enabled second order feature interaction.
 )";
 }
 
@@ -192,7 +193,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   gs.add<&Ftrl::get_colnames_hashes>(
     "colnames_hashes",
-    "Column name hashes.\n"
+    "Column name hashes\n"
   );
 
   gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>("alpha", doc_alpha);
