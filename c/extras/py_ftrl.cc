@@ -40,7 +40,7 @@ static const char* doc_lambda1  = "L1 regularization parameter";
 static const char* doc_lambda2  = "L2 regularization parameter";
 static const char* doc_d        = "Number of bins to be used for the hashing trick";
 static const char* doc_n_epochs = "Number of epochs to train a model";
-static const char* doc_inter    = "Switch to enabled second order feature interaction";
+static const char* doc_inter    = "Switch to enable second order feature interaction";
 
 static onamedtupletype& _get_params_namedtupletype() {
   static onamedtupletype ntt(
@@ -173,7 +173,7 @@ d : int
 n_epochs : int
     Number of epochs to train for.
 inter : bool
-    Switch to enabled second order feature interaction.
+    Switch to enable second order feature interaction.
 )";
 }
 
