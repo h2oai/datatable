@@ -19,10 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <extras/dt_ftrl.h>
-
 #include "frame/py_frame.h"
 #include "utils/parallel.h"
+#include "extras/dt_ftrl.h"
 #include "extras/murmurhash.h"
 
 namespace dt {
@@ -181,7 +180,7 @@ double Ftrl::predict_row(const uint64ptr& x) {
       w[j] = 0;
     } else {
       w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
-                 ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
+             ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
     }
     wTx += w[j];
   }
