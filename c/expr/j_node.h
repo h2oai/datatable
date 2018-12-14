@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_J_NODE_h
 #define dt_EXPR_J_NODE_h
+#include "expr/workframe.h"
 namespace dt {
 
 
@@ -32,7 +33,7 @@ using jptr = std::unique_ptr<dt::j_node>;
  */
 class j_node {
   public:
-    static jptr make(py::robj src);
+    static jptr make(py::robj src, workframe& wf);
 
     virtual ~j_node();
     virtual DataTable* execute(workframe& wf) = 0;

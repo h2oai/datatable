@@ -110,7 +110,7 @@ oobj Frame::_main_getset(robj item, robj value) {
         }
       }
       auto iexpr = dt::i_node::make(targs[0]);
-      auto jexpr = dt::j_node::make(targs[1]);
+      auto jexpr = dt::j_node::make(targs[1], wf);
       if (iexpr && jexpr) {
         iexpr->post_init_check(wf);
         iexpr->execute(wf);

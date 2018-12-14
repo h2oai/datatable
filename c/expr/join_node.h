@@ -68,6 +68,4 @@ class ojoin : public oobj
 
 
 }  // namespace py
-
-
 #endif

@@ -57,6 +57,19 @@ class col_set {
 };
 
 
+static size_t resolve_column(int64_t i, workframe& wf) {
+  const DataTable* dt = wf.get_datatable(0);
+  int64_t incols = static_cast<int64_t>(dt->ncols);
+  if (i < -incols || i >= incols) {
+    throw ValueError() << "Column index `" << i << "` is invalid for a Frame "
+        "with " << incols << " column" << (incols == 1? "" : "s");
+  }
+  if (i < 0) i += incols;
+  return static_cast<size_t>(i);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // allcols_jn
@@ -66,7 +79,7 @@ class col_set {
  * j_node representing selection of all columns (i.e. `:`). This is roughly
  * the equivalent of SQL's "*".
  *
- * In the simplest case, this j node selects all columns from the source Frame.
+ * In the simplest case, this node selects all columns from the source Frame.
  * The groupby field, if present, is ignored and the columns are selected as-is,
  * applying the RowIndex that was already computed. The names of the selected
  * columns will be exactly the same as in the source Frame.
@@ -119,8 +132,38 @@ DataTable* allcols_jn::execute(workframe& wf) {
 
 class collist_jn : public j_node {
   private:
+    std::vector<size_t> indices;
+
   public:
+    collist_jn(std::vector<size_t>&& cols);
+    DataTable* execute(workframe& wf) override;
 };
+
+collist_jn::collist_jn(std::vector<size_t>&& cols)
+  : indices(std::move(cols)) {}
+
+
+static collist_jn* collist_from_int(py::robj src, workframe& wf) {
+  int64_t v = src.to_int64_strict();
+  size_t i = resolve_column(v, wf);
+  return new collist_jn({ i });
+}
+
+
+DataTable* collist_jn::execute(workframe& wf) {
+  const DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  const strvec& dt0_names = dt0->get_names();
+  col_set cols;
+  strvec names;
+  cols.reserve_extra(indices.size());
+  names.reserve(indices.size());
+  for (size_t i : indices) {
+    cols.add_column(dt0->columns[i], ri0);
+    names.push_back(dt0_names[i]);
+  }
+  return new DataTable(cols.release(), std::move(names));
+}
 
 
 
@@ -128,7 +171,7 @@ class collist_jn : public j_node {
 // j_node factory function
 //------------------------------------------------------------------------------
 
-static j_node* _make(py::robj src) {
+static j_node* _make(py::robj src, workframe& wf) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
@@ -141,6 +184,9 @@ static j_node* _make(py::robj src) {
   // if (is_PyBaseExpr(src)) {
   //   return new expr_jn(src);
   // }
+  if (src.is_int()) {
+    return collist_from_int(src, wf);
+  }
   if (src.is_none() || src.is_ellipsis()) {
     return new allcols_jn();
   }
@@ -150,8 +196,8 @@ static j_node* _make(py::robj src) {
   return nullptr;  // for now
 }
 
-jptr j_node::make(py::robj src) {
-  return jptr(_make(src));
+jptr j_node::make(py::robj src, workframe& wf) {
+  return jptr(_make(src, wf));
 }
 
 
