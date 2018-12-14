@@ -596,6 +596,7 @@ def test_ftrl_fit_predict_from_setters():
     assert_equals(ft.model, ft2.model)
     assert_equals(target1, target2)
 
+
 #-------------------------------------------------------------------------------
 # Test pickling
 #-------------------------------------------------------------------------------
@@ -606,7 +607,7 @@ def test_ftrl_pickling():
     df_target = dt.Frame([[True for i in range(ft.d)]])
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
-    ft_unpickled = pickle.loads(ft_pickled)  
+    ft_unpickled = pickle.loads(ft_pickled)
     ft_unpickled.model.internal.check()
     assert ft_unpickled.model.names == ('z', 'n')
     assert ft_unpickled.model.stypes == (stype.float64, stype.float64)
