@@ -165,6 +165,45 @@ DataTable* collist_jn::execute(workframe& wf) {
 }
 
 
+static collist_jn* _collist_from_slice(py::oslice src, workframe& wf) {
+  size_t len = wf.get_datatable(0)->ncols;
+  size_t start, count, step;
+  src.normalize(len, &start, &count, &step);
+  std::vector<size_t> indices;
+  indices.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    indices.push_back(start + i * step);
+  }
+  return new collist_jn(std::move(indices));
+}
+
+
+// Note that the end in `start:end` is considered inclusive in a
+// string slice
+static collist_jn* _collist_from_string_slice(py::oslice src, workframe& wf) {
+  const DataTable* dt = wf.get_datatable(0);
+  py::oobj ostart = src.start_obj();
+  py::oobj ostop = src.stop_obj();
+  size_t start = ostart.is_none()? 0 : dt->xcolindex(ostart);
+  size_t end = ostop.is_none()? dt->ncols - 1 : dt->xcolindex(ostop);
+  size_t len = start <= end? end - start + 1 : start - end + 1;
+  std::vector<size_t> indices;
+  indices.reserve(len);
+  if (start <= end) {
+    for (size_t i = start; i <= end; ++i) {
+      indices.push_back(i);
+    }
+  } else {
+    // Careful with the case when `end = 0`. In this case a regular for-loop
+    // `(i = start; i >= end; --i)` will become infinite.
+    size_t i = start;
+    do {
+      indices.push_back(i);
+    } while (i-- != end);
+  }
+  return new collist_jn(std::move(indices));
+}
+
 
 
 
@@ -177,10 +216,13 @@ static j_node* _make(py::robj src, workframe& wf) {
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
     if (ssrc.is_trivial()) return new allcols_jn();
-    // if (ssrc.is_numeric()) {
-    //   return new slice_jn(ssrc.start(), ssrc.stop(), ssrc.step());
-    // }
-    // throw TypeError() << src << " is not integer-valued";
+    if (ssrc.is_numeric()) {
+      return _collist_from_slice(ssrc, wf);
+    }
+    if (ssrc.is_string()) {
+      return _collist_from_string_slice(ssrc, wf);
+    }
+    throw TypeError() << src << " is neither integer- nor string-valued";
   }
   // if (is_PyBaseExpr(src)) {
   //   return new expr_jn(src);
@@ -212,7 +254,7 @@ j_node::~j_node() {}
 
 /*******************************
 
-    if isinstance(arg, (int, str, slice, BaseExpr)):
+    if isinstance(arg, (BaseExpr)):
 
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(arg, dt, new_cols_allowed)

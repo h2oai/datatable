@@ -102,6 +102,12 @@ void oslice::normalize(
     int64_t istart, int64_t istop, int64_t istep,
     size_t* ostart, size_t* ocount, size_t* ostep)
 {
+  if (len == 0) {
+    *ostart = 0;
+    *ocount = 0;
+    *ostep = 1;
+    return;
+  }
   int64_t ilen = static_cast<int64_t>(len);
   if (istep == oslice::NA) istep = 1;
 
