@@ -68,6 +68,12 @@ static size_t resolve_column(int64_t i, workframe& wf) {
   return static_cast<size_t>(i);
 }
 
+// `name` must be a py::ostring
+static size_t resolve_column(py::robj name, workframe& wf) {
+  const DataTable* dt = wf.get_datatable(0);
+  return dt->xcolindex(name);
+}
+
 
 
 
@@ -143,13 +149,6 @@ collist_jn::collist_jn(std::vector<size_t>&& cols)
   : indices(std::move(cols)) {}
 
 
-static collist_jn* collist_from_int(py::robj src, workframe& wf) {
-  int64_t v = src.to_int64_strict();
-  size_t i = resolve_column(v, wf);
-  return new collist_jn({ i });
-}
-
-
 DataTable* collist_jn::execute(workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
@@ -164,6 +163,8 @@ DataTable* collist_jn::execute(workframe& wf) {
   }
   return new DataTable(cols.release(), std::move(names));
 }
+
+
 
 
 
@@ -185,7 +186,12 @@ static j_node* _make(py::robj src, workframe& wf) {
   //   return new expr_jn(src);
   // }
   if (src.is_int()) {
-    return collist_from_int(src, wf);
+    size_t i = resolve_column(src.to_int64_strict(), wf);
+    return new collist_jn({ i });
+  }
+  if (src.is_string()) {
+    size_t i = resolve_column(src, wf);
+    return new collist_jn({ i });
   }
   if (src.is_none() || src.is_ellipsis()) {
     return new allcols_jn();
