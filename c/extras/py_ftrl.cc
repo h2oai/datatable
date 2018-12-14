@@ -34,6 +34,10 @@ PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
                                  "lambda2", "d", "n_epochs", "inter"},
                                  "__init__", nullptr);
 
+static NoArgs fn___getstate__("__getstate__", nullptr);
+static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
+                              "__setstate__", nullptr);
+
 static const char* doc_alpha    = "`alpha` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_beta     = "`beta` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_lambda1  = "L1 regularization parameter";
@@ -147,7 +151,7 @@ void Ftrl::m__dealloc__() {
 
 
 const char* Ftrl::Type::classname() {
-  return "datatable.core.Ftrl";
+  return "datatable.models.Ftrl";
 }
 
 
@@ -179,6 +183,9 @@ inter : bool
 
 
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
+  mm.add<&Ftrl::m__getstate__, fn___getstate__>();
+  mm.add<&Ftrl::m__setstate__, fn___setstate__>();
+
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
     "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
@@ -186,7 +193,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "must be `float64`"
   );
 
-  gs.add<&Ftrl::get_params, &Ftrl::set_params>(
+  gs.add<&Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple>(
     "params",
     "FTRL model parameters"
   );
@@ -358,7 +365,7 @@ oobj Ftrl::get_model() const {
 }
 
 
-oobj Ftrl::get_params() const {
+oobj Ftrl::get_params_namedtuple() const {
   py::onamedtuple params(_get_params_namedtupletype());
   params.set(0, get_alpha());
   params.set(1, get_beta());
@@ -370,6 +377,18 @@ oobj Ftrl::get_params() const {
   return std::move(params);
 }
 
+
+oobj Ftrl::get_params_tuple() const {
+  py::otuple params(7);
+  params.set(0, get_alpha());
+  params.set(1, get_beta());
+  params.set(2, get_lambda1());
+  params.set(3, get_lambda2());
+  params.set(4, get_d());
+  params.set(5, get_n_epochs());
+  params.set(6, get_inter());
+  return std::move(params);
+}
 
 
 oobj Ftrl::get_alpha() const {
@@ -467,7 +486,7 @@ void Ftrl::set_model(robj model) {
 }
 
 
-void Ftrl::set_params(robj params) {
+void Ftrl::set_params_namedtuple(robj params) {
   set_alpha(params.get_attr("alpha"));
   set_beta(params.get_attr("beta"));
   set_lambda1(params.get_attr("lambda1"));
@@ -476,6 +495,23 @@ void Ftrl::set_params(robj params) {
   set_n_epochs(params.get_attr("n_epochs"));
   set_inter(params.get_attr("inter"));
   // TODO: check that there are no unknown parameters
+}
+
+
+void Ftrl::set_params_tuple(robj params) {
+  py::otuple params_tuple = params.to_otuple();
+  size_t n_params = params_tuple.size();
+  if (n_params != 7) {
+    throw ValueError() << "Tuple of FTRL parameters should have 7 elements, "
+                       << "got: " << n_params;
+  }
+  set_alpha(params_tuple[0]);
+  set_beta(params_tuple[1]);
+  set_lambda1(params_tuple[2]);
+  set_lambda2(params_tuple[3]);
+  set_d(params_tuple[4]);
+  set_n_epochs(params_tuple[5]);
+  set_inter(params_tuple[6]);
 }
 
 
@@ -537,5 +573,29 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
   }
   return false;
 }
+
+
+/*
+*  Pickling / unpickling methods.
+*/
+oobj Ftrl::m__getstate__(const NoArgs&) {
+  py::otuple pickle(2);
+  py::oobj params = get_params_tuple();
+  py::oobj model = get_model();
+  pickle.set(0, params);
+  pickle.set(1, model);
+  return std::move(pickle);
+}
+
+void Ftrl::m__setstate__(const PKArgs& args) {
+  m__dealloc__();
+  py::otuple pickle = args[0].to_otuple();
+  py::oobj params = pickle[0];
+  py::oobj model = pickle[1];
+  dtft = new dt::Ftrl(dt::Ftrl::params_default);
+  set_params_tuple(params);
+  set_model(model);
+}
+
 
 } // namespace py

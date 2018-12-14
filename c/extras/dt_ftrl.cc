@@ -37,7 +37,6 @@ const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
 *  Set up FTRL parameters and initialize weights.
 */
 Ftrl::Ftrl(FtrlParams params_in) :
-  dt_model(nullptr),
   z(nullptr),
   n(nullptr),
   params(params_in),
@@ -49,11 +48,10 @@ Ftrl::Ftrl(FtrlParams params_in) :
 
 
 void Ftrl::create_model() {
-  w = doubleptr(new double[params.d]());
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
-  init_zn();
+  init_weights();
   reset_model();
 }
 
@@ -65,9 +63,10 @@ void Ftrl::reset_model() {
 }
 
 
-void Ftrl::init_zn() {
+void Ftrl::init_weights() {
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
+  w = doubleptr(new double[params.d]());
 }
 
 
@@ -383,7 +382,7 @@ size_t Ftrl::get_n_epochs() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_d(dt_model->nrows);
-  init_zn();
+  init_weights();
   n_features = 0;
   model_trained = true;
 }
