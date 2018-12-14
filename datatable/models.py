@@ -21,3 +21,5 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from datatable.lib._datatable import Ftrl
+
+__all__ = ("Ftrl",)
