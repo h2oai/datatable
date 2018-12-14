@@ -43,17 +43,17 @@ Ftrl::Ftrl(FtrlParams params_in) :
   params(params_in),
   n_features(0),
   n_inter_features(0),
+  w(nullptr),
   model_trained(false)
 {
 }
 
 
 void Ftrl::create_model() {
-  w = doubleptr(new double[params.d]());
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_cols));
-  init_zn();
+  init_weights();
   reset_model();
 }
 
@@ -65,9 +65,10 @@ void Ftrl::reset_model() {
 }
 
 
-void Ftrl::init_zn() {
+void Ftrl::init_weights() {
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
+  w = doubleptr(new double[params.d]());
 }
 
 
@@ -383,7 +384,7 @@ size_t Ftrl::get_n_epochs() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_d(dt_model->nrows);
-  init_zn();
+  init_weights();
   n_features = 0;
   model_trained = true;
 }

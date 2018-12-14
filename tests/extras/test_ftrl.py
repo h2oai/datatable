@@ -25,9 +25,10 @@
 # Test FTRL modeling capabilities
 #
 #-------------------------------------------------------------------------------
+import pickle
 import datatable as dt
-from datatable.lib import core
-from datatable import f
+from datatable.models import Ftrl
+from datatable import f, stype
 import pytest
 import collections
 import random
@@ -59,56 +60,56 @@ epsilon = 0.01
 
 def test_ftrl_construct_wrong_alpha_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(alpha = "1.0"))
+        noop(Ftrl(alpha = "1.0"))
     assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_beta_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(beta = "1.0"))
+        noop(Ftrl(beta = "1.0"))
     assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(lambda1 = "1.0"))
+        noop(Ftrl(lambda1 = "1.0"))
     assert ("Argument `lambda1` in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(lambda2 = "1.0"))
+        noop(Ftrl(lambda2 = "1.0"))
     assert ("Argument `lambda2` in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_d_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(d = 1000000.0))
+        noop(Ftrl(d = 1000000.0))
     assert ("Argument `d` in Ftrl() constructor should be an integer, instead "
             "got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_n_epochs_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(n_epochs = 10.0))
+        noop(Ftrl(n_epochs = 10.0))
     assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, "
             "instead got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_inter_type():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(inter = 2))
+        noop(Ftrl(inter = 2))
     assert ("Argument `inter` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(params=tparams, alpha = tparams.alpha))
+        noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
             "`lambda2`, `d`, `n_epochs` or `inter` to Ftrl constructor, "
@@ -117,7 +118,7 @@ def test_ftrl_construct_wrong_combination():
 
 def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
-        noop(core.Ftrl(c = 1.0))
+        noop(Ftrl(c = 1.0))
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
             str(e.value))
 
@@ -129,42 +130,42 @@ def test_ftrl_construct_unknown_arg():
 
 def test_ftrl_construct_wrong_alpha_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(alpha = 0.0))
+        noop(Ftrl(alpha = 0.0))
     assert ("Argument `alpha` in Ftrl() constructor should be positive: 0.0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_beta_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(beta = -1.0))
+        noop(Ftrl(beta = -1.0))
     assert ("Argument `beta` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(lambda1 = -1.0))
+        noop(Ftrl(lambda1 = -1.0))
     assert ("Argument `lambda1` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(lambda2 = -1.0))
+        noop(Ftrl(lambda2 = -1.0))
     assert ("Argument `lambda2` in Ftrl() constructor cannot be negative: -1.0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_d_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(d = 0))
+        noop(Ftrl(d = 0))
     assert ("Argument `d` in Ftrl() constructor should be positive: 0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_n_epochs_value():
     with pytest.raises(ValueError) as e:
-        noop(core.Ftrl(n_epochs = -1))
+        noop(Ftrl(n_epochs = -1))
     assert ("Argument `n_epochs` in Ftrl() constructor cannot be negative: -1"
             == str(e.value))
 
@@ -174,17 +175,17 @@ def test_ftrl_construct_wrong_n_epochs_value():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_create_default():
-    ft = core.Ftrl()
+    ft = Ftrl()
     assert ft.params == default_params
 
 
 def test_ftrl_create_params():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     assert ft.params == tparams
 
 
 def test_ftrl_create_individual():
-    ft = core.Ftrl(alpha = tparams.alpha, beta = tparams.beta,
+    ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
                    d = tparams.d, n_epochs = tparams.n_epochs,
                    inter = tparams.inter)
@@ -198,14 +199,14 @@ def test_ftrl_create_individual():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_get_parameters():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
             ft.d, ft.n_epochs, ft.inter) == tparams
 
 
 def test_ftrl_set_individual():
-    ft = core.Ftrl()
+    ft = Ftrl()
     ft.alpha = tparams.alpha
     ft.beta = tparams.beta
     ft.lambda1 = tparams.lambda1
@@ -217,7 +218,7 @@ def test_ftrl_set_individual():
 
 
 def test_ftrl_set_params():
-    ft = core.Ftrl()
+    ft = Ftrl()
     ft.params = tparams
     assert ft.params == tparams
 
@@ -227,7 +228,7 @@ def test_ftrl_set_params():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_set_wrong_params_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     params = tparams._replace(alpha = "1.0")
     with pytest.raises(TypeError) as e:
         ft.params = params
@@ -235,7 +236,7 @@ def test_ftrl_set_wrong_params_type():
 
 
 def test_ftrl_set_wrong_params_name():
-    ft = core.Ftrl()
+    ft = Ftrl()
     WrongParams = collections.namedtuple("WrongParams",["alpha", "inter"])
     wrong_params = WrongParams(alpha = 1, inter = True)
     with pytest.raises(AttributeError) as e:
@@ -244,49 +245,49 @@ def test_ftrl_set_wrong_params_name():
 
 
 def test_ftrl_set_wrong_alpha_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.alpha = "0.0"
     assert ("Expected a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.beta = "-1.0"
     assert ("Expected a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda1 = "-1.0"
     assert ("Expected a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda2 = "-1.0"
     assert ("Expected a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_d_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.d = "0"
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_n_epochs_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.n_epochs = "-10.0"
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_inter_type():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.inter = 2
     assert ("Expected a boolean, instead got <class 'int'>" == str(e.value))
@@ -297,42 +298,42 @@ def test_ftrl_set_wrong_inter_type():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_set_wrong_alpha_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = 0.0
     assert ("Value should be positive: 0.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = -1.0
     assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = -1.0
     assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = -1.0
     assert ("Value cannot be negative: -1.0" == str(e.value))
 
 
 def test_ftrl_set_wrong_d_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.d = 0
     assert ("Value should be positive: 0" == str(e.value))
 
 
 def test_ftrl_set_wrong_n_epochs_value():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.n_epochs = -10
     assert ("Integer value cannot be negative" == str(e.value))
@@ -342,19 +343,19 @@ def test_ftrl_set_wrong_n_epochs_value():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_model_untrained():
-    ft = core.Ftrl()
+    ft = Ftrl()
     assert ft.model == None
 
 
 def test_ftrl_set_negative_n_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']]
     assert ("Values in column `n` cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_shape_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = tmodel[:, 'n']
     assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
@@ -363,7 +364,7 @@ def test_ftrl_set_wrong_shape_model():
 
 
 def test_ftrl_set_wrong_type_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     model = dt.Frame([["foo" for i in range(tparams.d)],
                       [random.random() for i in range(tparams.d)]],
                       names=['z', 'n'])
@@ -375,20 +376,20 @@ def test_ftrl_set_wrong_type_model():
 
 
 def test_ftrl_get_set_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     ft.model = tmodel
     assert_equals(ft.model, tmodel)
 
 
 def test_ftrl_reset_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     ft.model = tmodel
     ft.reset()
     assert ft.model == None
 
 
 def test_ftrl_none_model():
-    ft = core.Ftrl(tparams)
+    ft = Ftrl(tparams)
     ft.model = None
     assert ft.model == None
 
@@ -398,7 +399,7 @@ def test_ftrl_none_model():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_wrong_empty_training():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame()
     df_target = dt.Frame([True])
     with pytest.raises(ValueError) as e:
@@ -408,7 +409,7 @@ def test_ftrl_fit_wrong_empty_training():
 
 
 def test_ftrl_fit_wrong_empty_target():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([1.0, 2.0])
     df_target = dt.Frame()
     with pytest.raises(ValueError) as e:
@@ -418,7 +419,7 @@ def test_ftrl_fit_wrong_empty_target():
 
 
 def test_ftrl_fit_wrong_target_integer():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([1, 2, 3])
     df_target = dt.Frame([4, 5, 6])
     with pytest.raises(ValueError) as e:
@@ -428,7 +429,7 @@ def test_ftrl_fit_wrong_target_integer():
 
 
 def test_ftrl_fit_wrong_target_real():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([1, 2, 3])
     df_target = dt.Frame([4.0, 5.0, 6.0])
     with pytest.raises(ValueError) as e:
@@ -438,7 +439,7 @@ def test_ftrl_fit_wrong_target_real():
 
 
 def test_ftrl_fit_wrong_target_string():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([1, 2, 3])
     df_target = dt.Frame(["Monday", "Tuesday", "Wedenesday"])
     with pytest.raises(ValueError) as e:
@@ -458,7 +459,7 @@ def test_ftrl_col_hashes():
                           10071734010655191393,  6063711047550005084,
                            4309007444360962581,  4517980897659475069,
                           17871586791652695964, 15779814813469047786)
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([[0]] * ncols)
     df_target = dt.Frame([[True]])
     ft.fit(df_train, df_target)
@@ -471,7 +472,7 @@ def test_ftrl_col_hashes():
 
 
 def test_ftrl_fit_no_frame():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.fit()
     assert ("Training frame parameter is missing"
@@ -479,7 +480,7 @@ def test_ftrl_fit_no_frame():
 
 
 def test_ftrl_fit_no_target():
-    ft = core.Ftrl()
+    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.fit(None)
     assert ("Target frame parameter is missing"
@@ -487,14 +488,14 @@ def test_ftrl_fit_no_target():
 
 
 def test_ftrl_fit_predict_nones():
-    ft = core.Ftrl()
+    ft = Ftrl()
     ft.fit(None, None)
     df_target = ft.predict(None)
     assert df_target == None
 
 
 def test_ftrl_predict_not_trained():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([[1, 2, 3], [True, False, True]])
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
@@ -503,7 +504,7 @@ def test_ftrl_predict_not_trained():
 
 
 def test_ftrl_predict_wrong_frame():
-    ft = core.Ftrl()
+    ft = Ftrl()
     df_train = dt.Frame([[1, 2, 3]])
     df_target = dt.Frame([[True, False, True]])
     df_predict = dt.Frame([[1, 2, 3], [4, 5, 6]])
@@ -520,7 +521,7 @@ def test_ftrl_predict_wrong_frame():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_unique():
-    ft = core.Ftrl(d = 10)
+    ft = Ftrl(d = 10)
     df_train = dt.Frame([[i for i in range(ft.d)]])
     df_target = dt.Frame([[True for i in range(ft.d)]])
     ft.fit(df_train, df_target)
@@ -529,7 +530,7 @@ def test_ftrl_fit_unique():
 
 
 def test_ftrl_fit_predict_bool():
-    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
     df_train = dt.Frame([[True, False]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -541,7 +542,7 @@ def test_ftrl_fit_predict_bool():
 
 
 def test_ftrl_fit_predict_int():
-    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
     df_train = dt.Frame([[0, 1]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -553,7 +554,7 @@ def test_ftrl_fit_predict_int():
 
 
 def test_ftrl_fit_predict_float():
-    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
     df_train = dt.Frame([[0.0, 1.0]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -565,7 +566,7 @@ def test_ftrl_fit_predict_float():
 
 
 def test_ftrl_fit_predict_string():
-    ft = core.Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
     df_train = dt.Frame([["Monday", "Tuesday"]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -574,3 +575,40 @@ def test_ftrl_fit_predict_string():
     assert df_target[0, 0] >= 1 - epsilon
     assert df_target[1, 0] >= 0
     assert df_target[1, 0] < epsilon
+
+
+def test_ftrl_fit_predict_from_setters():
+    ft = Ftrl(d = 10)
+    df_train = dt.Frame([[i for i in range(ft.d)]])
+    df_target = dt.Frame([[True for i in range(ft.d)]])
+    # Train `ft` to get a model
+    ft.fit(df_train, df_target)
+    # Set this model and parameters to `ft2`
+    ft2 = Ftrl()
+    ft2.params = ft.params
+    ft2.model = ft.model
+    # Train `ft2` and make predictions
+    ft2.fit(df_train, df_target)
+    target2 = ft2.predict(df_train)
+    # Train `ft` and make predictions
+    ft.fit(df_train, df_target)
+    target1 = ft.predict(df_train)
+    assert_equals(ft.model, ft2.model)
+    assert_equals(target1, target2)
+
+#-------------------------------------------------------------------------------
+# Test pickling
+#-------------------------------------------------------------------------------
+
+def test_ftrl_pickling():
+    ft = Ftrl(d = 10)
+    df_train = dt.Frame([[i for i in range(ft.d)]])
+    df_target = dt.Frame([[True for i in range(ft.d)]])
+    ft.fit(df_train, df_target)
+    ft_pickled = pickle.dumps(ft)
+    ft_unpickled = pickle.loads(ft_pickled)  
+    ft_unpickled.model.internal.check()
+    assert ft_unpickled.model.names == ('z', 'n')
+    assert ft_unpickled.model.stypes == (stype.float64, stype.float64)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert ft.params == ft_unpickled.params

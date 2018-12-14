@@ -80,7 +80,7 @@ class Ftrl {
     bool is_trained();
     void create_model();
     void reset_model();
-    void init_zn();
+    void init_weights();
 
     // Learning helper methods.
     static double logloss(double, bool);

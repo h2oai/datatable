@@ -46,6 +46,8 @@ class Ftrl : public PyObject {
 
     void m__init__(PKArgs&);
     void m__dealloc__();
+    oobj m__getstate__(const NoArgs&);  // pickling support
+    void m__setstate__(const PKArgs&);
 
    // Learning and predicting methods.
     void fit(const PKArgs&);
@@ -55,7 +57,8 @@ class Ftrl : public PyObject {
     // Getters and setters.
     oobj get_model() const;
     oobj get_colnames_hashes() const;
-    oobj get_params() const;
+    oobj get_params_namedtuple() const;
+    oobj get_params_tuple() const;
     oobj get_alpha() const;
     oobj get_beta() const;
     oobj get_lambda1() const;
@@ -64,7 +67,8 @@ class Ftrl : public PyObject {
     oobj get_inter() const;
     oobj get_n_epochs() const;
     void set_model(robj);
-    void set_params(robj);
+    void set_params_namedtuple(robj);
+    void set_params_tuple(robj);
     void set_alpha(robj);
     void set_beta(robj);
     void set_lambda1(robj);
