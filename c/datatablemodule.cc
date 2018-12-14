@@ -239,7 +239,7 @@ PyInit__datatable()
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
-    py::join::Type::init(m);
+    py::ojoin::init(m);
 
   } catch (const std::exception& e) {
     exception_to_python(e);

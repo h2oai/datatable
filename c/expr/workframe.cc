@@ -36,6 +36,11 @@ void workframe::set_mode(EvalMode m) {
 }
 
 
+void workframe::add_subframe(const DataTable* dt) {
+  frames.push_back(subframe {dt, RowIndex(), true});
+}
+
+
 const DataTable* workframe::get_datatable(size_t i) const {
   return frames[i].dt;
 }

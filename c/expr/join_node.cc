@@ -22,22 +22,39 @@
 #include "expr/join_node.h"
 #include "datatable.h"
 #include "python/arg.h"
+namespace py {
 
 
+//------------------------------------------------------------------------------
+// ojoin::pyobj::Type
+//------------------------------------------------------------------------------
 
-py::PKArgs py::join::Type::args___init__(
+PKArgs ojoin::pyobj::Type::args___init__(
     1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
 
-const char* py::join::Type::classname() {
+const char* ojoin::pyobj::Type::classname() {
   return "datatable.join";
 }
 
-const char* py::join::Type::classdoc() {
+const char* ojoin::pyobj::Type::classdoc() {
   return "join() clause for use in DT[i, j, ...]";
 }
 
+bool ojoin::pyobj::Type::is_subclassable() {
+  return true;  // TODO: make false
+}
 
-void py::join::m__init__(py::PKArgs& args) {
+void ojoin::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+  gs.add<&pyobj::get_joinframe>("joinframe");
+}
+
+
+
+//------------------------------------------------------------------------------
+// ojoin::pyobj
+//------------------------------------------------------------------------------
+
+void ojoin::pyobj::m__init__(PKArgs& args) {
   join_frame = args[0].to_oobj();
   if (!join_frame.is_frame()) {
     throw TypeError() << "The argument to join() must be a Frame";
@@ -49,19 +66,43 @@ void py::join::m__init__(py::PKArgs& args) {
 }
 
 
-void py::join::m__dealloc__() {
+void ojoin::pyobj::m__dealloc__() {
   join_frame = nullptr;  // Releases the stored oobj
 }
 
 
-void py::join::Type::init_methods_and_getsets(
-    py::ExtType<py::join>::Methods&,
-    py::ExtType<py::join>::GetSetters& gs)
-{
-  gs.add<&py::join::get_frame>("joinframe");
-}
-
-
-py::oobj py::join::get_frame() const {
+oobj ojoin::pyobj::get_joinframe() const {
   return join_frame;
 }
+
+
+
+//------------------------------------------------------------------------------
+// ojoin
+//------------------------------------------------------------------------------
+
+ojoin::ojoin(const robj& src) : oobj(src) {}
+
+
+const DataTable* ojoin::get_datatable() const {
+  auto w = static_cast<pyobj*>(v);
+  return w->join_frame.to_frame();
+}
+
+
+bool ojoin::check(PyObject* v) {
+  if (!v) return false;
+  auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
+  int ret = PyObject_IsInstance(v, typeptr);
+  if (ret == -1) PyErr_Clear();
+  return (ret == 1);
+}
+
+
+void ojoin::init(PyObject* m) {
+  pyobj::Type::init(m);
+}
+
+
+
+}  // namespace py

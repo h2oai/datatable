@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/i_node.h"
 #include "expr/j_node.h"
+#include "expr/join_node.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
@@ -94,10 +95,20 @@ oobj Frame::_main_getset(robj item, robj value) {
   if (targs) {
     size_t nargs = targs.size();
     if (nargs == 2 && value == GETITEM) {
+      // 1. Create the workframe
       dt::workframe wf(dt);
       wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
                   value == DELITEM? dt::EvalMode::DELETE :
                                     dt::EvalMode::UPDATE);
+      // 2. Check if `j` is an `update()` and if so change the mode.
+      // 3. Search for join nodes in order to bind all aliases and
+      //    to know which frames participate in DT[...]
+      for (size_t k = 2; k < nargs; ++k) {
+        auto oj = targs[k].to_ojoin_lax();
+        if (oj) {
+          wf.add_subframe(oj.get_datatable());
+        }
+      }
       auto iexpr = dt::i_node::make(targs[0]);
       auto jexpr = dt::j_node::make(targs[1]);
       if (iexpr && jexpr) {

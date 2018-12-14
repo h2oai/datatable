@@ -63,7 +63,8 @@ class col_set {
 //------------------------------------------------------------------------------
 
 /**
- * j_node representing selection of all columns (i.e. `:`).
+ * j_node representing selection of all columns (i.e. `:`). This is roughly
+ * the equivalent of SQL's "*".
  *
  * In the simplest case, this j node selects all columns from the source Frame.
  * The groupby field, if present, is ignored and the columns are selected as-is,

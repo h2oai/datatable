@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include <cstdint>         // INT32_MAX
+#include "expr/join_node.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
@@ -147,6 +148,10 @@ bool _obj::is_frame() const noexcept {
   int ret = PyObject_IsInstance(v, typeptr);
   if (ret == -1) PyErr_Clear();
   return (ret == 1);
+}
+
+bool _obj::is_join_node() const noexcept {
+  return py::ojoin::check(v);
 }
 
 bool _obj::is_pandas_frame() const noexcept {
@@ -559,6 +564,14 @@ SType _obj::to_stype(const error_manager& em) const {
     throw em.error_not_stype(v);
   }
   return static_cast<SType>(s);
+}
+
+
+py::ojoin _obj::to_ojoin_lax() const {
+  if (is_join_node()) {
+    return ojoin(robj(v));
+  }
+  return ojoin();
 }
 
 

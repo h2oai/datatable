@@ -27,24 +27,44 @@
 namespace py {
 
 
-class join : public PyObject {
-  private:
-    oobj join_frame;
+
+class ojoin : public oobj
+{
+  class pyobj : public PyObject {
+    public:
+      oobj join_frame;
+
+      class Type : public ExtType<pyobj> {
+        public:
+          static PKArgs args___init__;
+          static const char* classname();
+          static const char* classdoc();
+          static bool is_subclassable();
+          static void init_methods_and_getsets(Methods&, GetSetters&);
+      };
+
+      void m__init__(PKArgs&);
+      void m__dealloc__();
+      oobj get_joinframe() const;
+  };
 
   public:
-    class Type : public ExtType<join> {
-      public:
-        static PKArgs args___init__;
-        static const char* classname();
-        static const char* classdoc();
-        static bool is_subclassable() { return true; }
-        static void init_methods_and_getsets(Methods&, GetSetters&);
-    };
+    ojoin() = default;
+    ojoin(const ojoin&) = default;
+    ojoin(ojoin&&) = default;
+    ojoin& operator=(const ojoin&) = default;
+    ojoin& operator=(ojoin&&) = default;
 
-    void m__init__(PKArgs&);
-    void m__dealloc__();
-    oobj get_frame() const;
+    const DataTable* get_datatable() const;
+
+    static bool check(PyObject* v);
+    static void init(PyObject* m);
+
+  private:
+    friend class _obj;
+    ojoin(const robj&);
 };
+
 
 
 }  // namespace py
