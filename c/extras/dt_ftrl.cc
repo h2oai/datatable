@@ -37,13 +37,11 @@ const FtrlParams Ftrl::params_default = {0.005, 1.0, 0.0, 1.0,
 *  Set up FTRL parameters and initialize weights.
 */
 Ftrl::Ftrl(FtrlParams params_in) :
-  dt_model(nullptr),
   z(nullptr),
   n(nullptr),
   params(params_in),
   n_features(0),
   n_inter_features(0),
-  w(nullptr),
   model_trained(false)
 {
 }

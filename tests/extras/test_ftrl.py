@@ -43,9 +43,9 @@ Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
                      n_epochs = 6, inter = True)
 
-tmodel = dt.Frame([[random.random() for i in range(tparams.d)],
-                      [random.random() for i in range(tparams.d)]],
-                      names=['z', 'n'])
+tmodel = dt.Frame([[random.random()] * tparams.d,
+                   [random.random()] * tparams.d],
+                   names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
                         d = 1000000, n_epochs = 1, inter = False)
@@ -365,8 +365,8 @@ def test_ftrl_set_wrong_shape_model():
 
 def test_ftrl_set_wrong_type_model():
     ft = Ftrl(tparams)
-    model = dt.Frame([["foo" for i in range(tparams.d)],
-                      [random.random() for i in range(tparams.d)]],
+    model = dt.Frame([["foo"] * tparams.d,
+                      [random.random()] * tparams.d],
                       names=['z', 'n'])
     with pytest.raises(ValueError) as e:
         ft.model = model
@@ -522,10 +522,10 @@ def test_ftrl_predict_wrong_frame():
 
 def test_ftrl_fit_unique():
     ft = Ftrl(d = 10)
-    df_train = dt.Frame([[i for i in range(ft.d)]])
-    df_target = dt.Frame([[True for i in range(ft.d)]])
+    df_train = dt.Frame(range(ft.d))
+    df_target = dt.Frame([True] * ft.d)
     ft.fit(df_train, df_target)
-    model = [[-0.5 for i in range(ft.d)], [0.25 for i in range(ft.d)]]
+    model = [[-0.5] * ft.d, [0.25] * ft.d]
     assert ft.model.to_list() == model
 
 
@@ -579,8 +579,8 @@ def test_ftrl_fit_predict_string():
 
 def test_ftrl_fit_predict_from_setters():
     ft = Ftrl(d = 10)
-    df_train = dt.Frame([[i for i in range(ft.d)]])
-    df_target = dt.Frame([[True for i in range(ft.d)]])
+    df_train = dt.Frame(range(ft.d))
+    df_target = dt.Frame([True] * ft.d)
     # Train `ft` to get a model
     ft.fit(df_train, df_target)
     # Set this model and parameters to `ft2`
@@ -603,8 +603,8 @@ def test_ftrl_fit_predict_from_setters():
 
 def test_ftrl_pickling():
     ft = Ftrl(d = 10)
-    df_train = dt.Frame([[i for i in range(ft.d)]])
-    df_target = dt.Frame([[True for i in range(ft.d)]])
+    df_train = dt.Frame(range(ft.d))
+    df_target = dt.Frame([True] * ft.d)
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
