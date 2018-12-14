@@ -43,8 +43,8 @@ Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
                      n_epochs = 6, inter = True)
 
-tmodel = dt.Frame([[random.random()] * tparams.d,
-                   [random.random()] * tparams.d],
+tmodel = dt.Frame([[random.random() for _ in range(tparams.d)],
+                   [random.random() for _ in range(tparams.d)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
@@ -366,7 +366,7 @@ def test_ftrl_set_wrong_shape_model():
 def test_ftrl_set_wrong_type_model():
     ft = Ftrl(tparams)
     model = dt.Frame([["foo"] * tparams.d,
-                      [random.random()] * tparams.d],
+                      [random.random() for _ in range(tparams.d)]],
                       names=['z', 'n'])
     with pytest.raises(ValueError) as e:
         ft.model = model
