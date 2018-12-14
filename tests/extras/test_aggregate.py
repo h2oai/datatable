@@ -495,7 +495,7 @@ def aggregate_nd(nd):
     matrix = [column] * nd
     out_types = [ltype.int] * nd + [ltype.int]
     out_value = [list(range(div))] * nd + \
-                [[nrows // div for i in range(div)]]
+                [[nrows // div] * div]
 
     d_in = dt.Frame(matrix)
     d_members = aggregate(d_in, min_rows=0, nd_max_bins=div, seed=1,
