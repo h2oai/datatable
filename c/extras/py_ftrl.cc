@@ -31,7 +31,7 @@ namespace py {
 
 PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
                                  {"params", "alpha", "beta", "lambda1",
-                                 "lambda2", "d", "n_epochs", "inter"},
+                                 "lambda2", "d", "nepochs", "inter"},
                                  "__init__", nullptr);
 
 static NoArgs fn___getstate__("__getstate__", nullptr);
@@ -43,7 +43,7 @@ static const char* doc_beta     = "`beta` in per-coordinate FTRL-Proximal algori
 static const char* doc_lambda1  = "L1 regularization parameter";
 static const char* doc_lambda2  = "L2 regularization parameter";
 static const char* doc_d        = "Number of bins to be used for the hashing trick";
-static const char* doc_n_epochs = "Number of epochs to train a model";
+static const char* doc_nepochs  = "Number of epochs to train a model";
 static const char* doc_inter    = "Switch to enable second order feature interaction";
 
 static onamedtupletype& _get_params_namedtupletype() {
@@ -55,7 +55,7 @@ static onamedtupletype& _get_params_namedtupletype() {
      {"lambda1",  doc_lambda1},
      {"lambda2",  doc_lambda2},
      {"d",        doc_d},
-     {"n_epochs", doc_n_epochs},
+     {"nepochs",  doc_nepochs},
      {"inter",    doc_inter}}
   );
   return ntt;
@@ -63,7 +63,7 @@ static onamedtupletype& _get_params_namedtupletype() {
 
 
 void Ftrl::m__init__(PKArgs& args) {
-  dt::FtrlParams dt_params = dt::Ftrl::params_default;
+  dt::FtrlParams dt_params = dt::Ftrl::default_params;
 
   bool defined_params   = !args[0].is_none_or_undefined();
   bool defined_alpha    = !args[1].is_none_or_undefined();
@@ -71,15 +71,15 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_lambda1  = !args[3].is_none_or_undefined();
   bool defined_lambda2  = !args[4].is_none_or_undefined();
   bool defined_d        = !args[5].is_none_or_undefined();
-  bool defined_n_epochs = !args[6].is_none_or_undefined();
+  bool defined_nepochs = !args[6].is_none_or_undefined();
   bool defined_inter    = !args[7].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_d || defined_n_epochs || defined_inter) {
+        defined_d || defined_nepochs || defined_inter) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `d`, `n_epochs` or `inter` to "
+            << "`beta`, `lambda1`, `lambda2`, `d`, `nepochs` or `inter` to "
             << "Ftrl constructor, but not both at the same time";
     }
     py::otuple py_params = args[0].to_otuple();
@@ -88,7 +88,7 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_lambda1 = py_params.get_attr("lambda1");
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
     py::oobj py_d = py_params.get_attr("d");
-    py::oobj py_n_epochs = py_params.get_attr("n_epochs");
+    py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_inter = py_params.get_attr("inter");
 
     dt_params.alpha = py_alpha.to_double();
@@ -96,7 +96,7 @@ void Ftrl::m__init__(PKArgs& args) {
     dt_params.lambda1 = py_lambda1.to_double();
     dt_params.lambda2 = py_lambda2.to_double();
     dt_params.d = static_cast<uint64_t>(py_d.to_size_t());
-    dt_params.n_epochs = py_n_epochs.to_size_t();
+    dt_params.nepochs = py_nepochs.to_size_t();
     dt_params.inter = py_inter.to_bool_strict();
 
     py::Validator::check_positive<double>(dt_params.alpha, py_alpha);
@@ -132,8 +132,8 @@ void Ftrl::m__init__(PKArgs& args) {
       py::Validator::check_positive<uint64_t>(dt_params.d, args[5]);
     }
 
-    if (defined_n_epochs) {
-      dt_params.n_epochs = args[6].to_size_t();
+    if (defined_nepochs) {
+      dt_params.nepochs = args[6].to_size_t();
     }
 
     if (defined_inter) {
@@ -174,7 +174,7 @@ lambda2 : float
     L2 regularization parameter.
 d : int
     Number of bins to be used after the hashing trick.
-n_epochs : int
+nepochs : int
     Number of epochs to train for.
 inter : bool
     Switch to enable second order feature interaction.
@@ -193,13 +193,20 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
     "must be `float64`"
   );
 
+  gs.add<&Ftrl::get_fi>(
+    "fi",
+    "One-column frame with the overall weight contributions calculated\n"
+    "feature-wise during training and predicting. It can be interpreted as\n"
+    "a feature importance information."
+  );
+
   gs.add<&Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple>(
     "params",
     "FTRL model parameters"
   );
 
-  gs.add<&Ftrl::get_colnames_hashes>(
-    "colnames_hashes",
+  gs.add<&Ftrl::get_colname_hashes>(
+    "colname_hashes",
     "Column name hashes\n"
   );
 
@@ -208,7 +215,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
   gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
   gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", doc_d);
-  gs.add<&Ftrl::get_n_epochs, &Ftrl::set_n_epochs>("n_epochs", doc_n_epochs);
+  gs.add<&Ftrl::get_nepochs, &Ftrl::set_nepochs>("nepochs", doc_nepochs);
   gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", doc_inter);
 
   mm.add<&Ftrl::fit, args_fit>();
@@ -311,10 +318,10 @@ oobj Ftrl::predict(const PKArgs& args) {
                        << "the model first";
   }
 
-  size_t n_features = dtft->get_n_features();
-  if (dt_X->ncols != n_features && n_features != 0) {
-    throw ValueError() << "Can only predict on a frame that has " << n_features
-                       << " column" << (n_features == 1? "" : "s")
+  size_t ncols = dtft->get_ncols();
+  if (dt_X->ncols != ncols && ncols != 0) {
+    throw ValueError() << "Can only predict on a frame that has " << ncols
+                       << " column" << (ncols == 1? "" : "s")
                        << ", i.e. has the same number of features as "
                           "was used for model training";
   }
@@ -365,6 +372,19 @@ oobj Ftrl::get_model() const {
 }
 
 
+oobj Ftrl::get_fi() const {
+  if (dtft->is_trained()) {
+    DataTable* dt_fi = dtft->get_fi();
+    py::oobj df_fi = py::oobj::from_new_reference(
+                          py::Frame::from_datatable(dt_fi)
+                     );
+    return df_fi;
+  } else {
+    return py::None();
+  }
+}
+
+
 oobj Ftrl::get_params_namedtuple() const {
   py::onamedtuple params(_get_params_namedtupletype());
   params.set(0, get_alpha());
@@ -372,7 +392,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
   params.set(4, get_d());
-  params.set(5, get_n_epochs());
+  params.set(5, get_nepochs());
   params.set(6, get_inter());
   return std::move(params);
 }
@@ -385,7 +405,7 @@ oobj Ftrl::get_params_tuple() const {
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
   params.set(4, get_d());
-  params.set(5, get_n_epochs());
+  params.set(5, get_nepochs());
   params.set(6, get_inter());
   return std::move(params);
 }
@@ -416,8 +436,8 @@ oobj Ftrl::get_d() const {
 }
 
 
-oobj Ftrl::get_n_epochs() const {
-  return py::oint(dtft->get_n_epochs());
+oobj Ftrl::get_nepochs() const {
+  return py::oint(dtft->get_nepochs());
 }
 
 
@@ -426,16 +446,16 @@ oobj Ftrl::get_inter() const {
 }
 
 
-oobj Ftrl::get_colnames_hashes() const {
+oobj Ftrl::get_colname_hashes() const {
   if (dtft->is_trained()) {
-    size_t n_features = dtft->get_n_features();
-    py::otuple py_colnames_hashes(n_features);
-    std::vector<uint64_t> colnames_hashes = dtft->get_colnames_hashes();
-    for (size_t i = 0; i < n_features; ++i) {
-      size_t h = static_cast<size_t>(colnames_hashes[i]);
-      py_colnames_hashes.set(i, py::oint(h));
+    size_t ncols = dtft->get_ncols();
+    py::otuple py_colname_hashes(ncols);
+    std::vector<uint64_t> colname_hashes = dtft->get_colnames_hashes();
+    for (size_t i = 0; i < ncols; ++i) {
+      size_t h = static_cast<size_t>(colname_hashes[i]);
+      py_colname_hashes.set(i, py::oint(h));
     }
-    return std::move(py_colnames_hashes);
+    return std::move(py_colname_hashes);
   } else {
     return py::None();
   }
@@ -462,7 +482,7 @@ void Ftrl::set_model(robj model) {
 
   }
 
-  if (model_cols_in != dt::Ftrl::model_cols) {
+  if (model_cols_in != dt::Ftrl::model_colnames) {
     throw ValueError() << "FTRL model frame must have columns named `z` and "
                        << "`n`, whereas your frame has the following column "
                        << "names: `" << model_cols_in[0]
@@ -492,7 +512,7 @@ void Ftrl::set_params_namedtuple(robj params) {
   set_lambda1(params.get_attr("lambda1"));
   set_lambda2(params.get_attr("lambda2"));
   set_d(params.get_attr("d"));
-  set_n_epochs(params.get_attr("n_epochs"));
+  set_nepochs(params.get_attr("nepochs"));
   set_inter(params.get_attr("inter"));
   // TODO: check that there are no unknown parameters
 }
@@ -510,7 +530,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_lambda1(params_tuple[2]);
   set_lambda2(params_tuple[3]);
   set_d(params_tuple[4]);
-  set_n_epochs(params_tuple[5]);
+  set_nepochs(params_tuple[5]);
   set_inter(params_tuple[6]);
 }
 
@@ -550,15 +570,15 @@ void Ftrl::set_d(robj py_d) {
 }
 
 
-void Ftrl::set_n_epochs(robj n_epochs) {
-  size_t n_epochs_in = n_epochs.to_size_t();
-  dtft->set_n_epochs(n_epochs_in);
+void Ftrl::set_nepochs(robj py_nepochs) {
+  size_t nepochs = py_nepochs.to_size_t();
+  dtft->set_nepochs(nepochs);
 }
 
 
-void Ftrl::set_inter(robj inter) {
-  bool inter_in = inter.to_bool_strict();
-  dtft->set_inter(inter_in);
+void Ftrl::set_inter(robj py_inter) {
+  bool inter = py_inter.to_bool_strict();
+  dtft->set_inter(inter);
 }
 
 
@@ -592,7 +612,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::oobj params = pickle[0];
   py::oobj model = pickle[1];
-  dtft = new dt::Ftrl(dt::Ftrl::params_default);
+  dtft = new dt::Ftrl(dt::Ftrl::default_params);
   set_params_tuple(params);
   set_model(model);
 }

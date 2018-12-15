@@ -39,16 +39,16 @@ from tests import assert_equals, noop
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "d", "n_epochs", "inter"])
+                                          "d", "nepochs", "inter"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
-                     n_epochs = 6, inter = True)
+                     nepochs = 6, inter = True)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.d)],
                    [random.random() for _ in range(tparams.d)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
-                        d = 1000000, n_epochs = 1, inter = False)
+                        d = 1000000, nepochs = 1, inter = False)
 
 epsilon = 0.01
 
@@ -93,10 +93,10 @@ def test_ftrl_construct_wrong_d_type():
             "got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_construct_wrong_n_epochs_type():
+def test_ftrl_construct_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
-        noop(Ftrl(n_epochs = 10.0))
-    assert ("Argument `n_epochs` in Ftrl() constructor should be an integer, "
+        noop(Ftrl(nepochs = 10.0))
+    assert ("Argument `nepochs` in Ftrl() constructor should be an integer, "
             "instead got <class 'float'>" == str(e.value))
 
 
@@ -112,7 +112,7 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `d`, `n_epochs` or `inter` to Ftrl constructor, "
+            "`lambda2`, `d`, `nepochs` or `inter` to Ftrl constructor, "
             "but not both at the same time" == str(e.value))
 
 
@@ -163,10 +163,10 @@ def test_ftrl_construct_wrong_d_value():
             == str(e.value))
 
 
-def test_ftrl_construct_wrong_n_epochs_value():
+def test_ftrl_construct_wrong_nepochs_value():
     with pytest.raises(ValueError) as e:
-        noop(Ftrl(n_epochs = -1))
-    assert ("Argument `n_epochs` in Ftrl() constructor cannot be negative: -1"
+        noop(Ftrl(nepochs = -1))
+    assert ("Argument `nepochs` in Ftrl() constructor cannot be negative: -1"
             == str(e.value))
 
 
@@ -187,11 +187,11 @@ def test_ftrl_create_params():
 def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
-                   d = tparams.d, n_epochs = tparams.n_epochs,
+                   d = tparams.d, nepochs = tparams.nepochs,
                    inter = tparams.inter)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.d, tparams.n_epochs, tparams.inter)
+                         tparams.d, tparams.nepochs, tparams.inter)
 
 
 #-------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
-            ft.d, ft.n_epochs, ft.inter) == tparams
+            ft.d, ft.nepochs, ft.inter) == tparams
 
 
 def test_ftrl_set_individual():
@@ -212,7 +212,7 @@ def test_ftrl_set_individual():
     ft.lambda1 = tparams.lambda1
     ft.lambda2 = tparams.lambda2
     ft.d = tparams.d
-    ft.n_epochs = tparams.n_epochs
+    ft.nepochs = tparams.nepochs
     ft.inter = tparams.inter
     assert ft.params == tparams
 
@@ -279,10 +279,10 @@ def test_ftrl_set_wrong_d_type():
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_set_wrong_n_epochs_type():
+def test_ftrl_set_wrong_nepochs_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
-        ft.n_epochs = "-10.0"
+        ft.nepochs = "-10.0"
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
@@ -332,10 +332,10 @@ def test_ftrl_set_wrong_d_value():
     assert ("Value should be positive: 0" == str(e.value))
 
 
-def test_ftrl_set_wrong_n_epochs_value():
+def test_ftrl_set_wrong_nepochs_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.n_epochs = -10
+        ft.nepochs = -10
     assert ("Integer value cannot be negative" == str(e.value))
 
 #-------------------------------------------------------------------------------
@@ -463,7 +463,7 @@ def test_ftrl_col_hashes():
     df_train = dt.Frame([[0]] * ncols)
     df_target = dt.Frame([[True]])
     ft.fit(df_train, df_target)
-    assert col_hashes_murmur2 == ft.colnames_hashes
+    assert col_hashes_murmur2 == ft.colname_hashes
 
 
 #-------------------------------------------------------------------------------
@@ -530,7 +530,7 @@ def test_ftrl_fit_unique():
 
 
 def test_ftrl_fit_predict_bool():
-    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[True, False]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -542,7 +542,7 @@ def test_ftrl_fit_predict_bool():
 
 
 def test_ftrl_fit_predict_int():
-    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0, 1]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -554,7 +554,7 @@ def test_ftrl_fit_predict_int():
 
 
 def test_ftrl_fit_predict_float():
-    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0.0, 1.0]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -566,7 +566,7 @@ def test_ftrl_fit_predict_float():
 
 
 def test_ftrl_fit_predict_string():
-    ft = Ftrl(alpha = 0.1, n_epochs = 10000)
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([["Monday", "Tuesday"]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
@@ -595,6 +595,23 @@ def test_ftrl_fit_predict_from_setters():
     target1 = ft.predict(df_train)
     assert_equals(ft.model, ft2.model)
     assert_equals(target1, target2)
+
+
+#-------------------------------------------------------------------------------
+# Test feature importance
+#-------------------------------------------------------------------------------
+
+def test_ftrl_feature_importance():
+    ft = Ftrl(d = 100)
+    df_train = dt.Frame([range(ft.d),
+                         [i % 2 for i in range(ft.d)],
+                         [i % 3 for i in range(ft.d)]
+                        ])
+    df_target = dt.Frame([False, True] * (ft.d // 2))
+    ft.fit(df_train, df_target)
+    fi = ft.fi
+    assert fi[0, 0] < fi[2, 0]
+    assert fi[2, 0] < fi[1, 0]
 
 
 #-------------------------------------------------------------------------------
