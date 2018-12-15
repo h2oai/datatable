@@ -208,6 +208,58 @@ static collist_jn* _collist_from_string_slice(py::oslice src, workframe& wf) {
 
 
 //------------------------------------------------------------------------------
+// exprlist_jn
+//------------------------------------------------------------------------------
+using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
+
+class exprlist_jn : public j_node {
+  private:
+    exprvec exprs;
+
+  public:
+    exprlist_jn(exprvec&& cols);
+    DataTable* execute(workframe& wf) override;
+};
+
+exprlist_jn::exprlist_jn(exprvec&& cols)
+  : exprs(std::move(cols)) {}
+
+
+DataTable* exprlist_jn::execute(workframe& wf) {
+  col_set cols;
+  strvec names;
+  cols.reserve_extra(exprs.size());
+  names.reserve(exprs.size());
+  for (auto& expr : exprs) {
+    expr->resolve(wf);
+  }
+  RowIndex ri0;  // empty rowindex
+  for (auto& expr : exprs) {
+    cols.add_column(expr->evaluate_eager(wf), ri0);
+    names.push_back("");
+  }
+  return new DataTable(cols.release(), std::move(names));
+}
+
+
+static j_node* _from_base_expr(py::robj src, workframe& wf) {
+  py::oobj res = src.invoke("_core");
+  xassert(res.typeobj() == &py::base_expr::Type::type);
+  auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
+  auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
+  if (expr->is_primary_col_selector()) {
+    size_t i = expr->get_primary_col_index(wf);
+    return new collist_jn({ i });
+  }
+  exprvec exprs;
+  exprs.push_back(std::move(expr));
+  return new exprlist_jn(std::move(exprs));
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // j_node factory function
 //------------------------------------------------------------------------------
 
@@ -224,9 +276,9 @@ static j_node* _make(py::robj src, workframe& wf) {
     }
     throw TypeError() << src << " is neither integer- nor string-valued";
   }
-  // if (is_PyBaseExpr(src)) {
-  //   return new expr_jn(src);
-  // }
+  if (is_PyBaseExpr(src)) {
+    return _from_base_expr(src, wf);
+  }
   if (src.is_int()) {
     size_t i = resolve_column(src.to_int64_strict(), wf);
     return new collist_jn({ i });
@@ -253,20 +305,6 @@ j_node::~j_node() {}
 
 
 /*******************************
-
-    if isinstance(arg, (BaseExpr)):
-
-        # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
-        pcol = process_column(arg, dt, new_cols_allowed)
-        if isinstance(pcol, int):
-            return SliceCSNode(ee, pcol, 1, 1)
-        elif isinstance(pcol, tuple):
-            return SliceCSNode(ee, *pcol)
-        elif isinstance(pcol, NewColumnExpr):
-            return ArrayCSNode(ee, [-1], [arg])
-        else:
-            assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
-            return MixedCSNode(ee, [pcol], names=["V0"])
 
     if isinstance(arg, (types.GeneratorType, list, tuple)):
         isarray = True

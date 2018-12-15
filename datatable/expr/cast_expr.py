@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 
 from .base_expr import BaseExpr
+from .consts import baseexpr_opcodes
 from datatable.lib import core
 
 __all__ = ("CastExpr", )
@@ -32,3 +33,8 @@ class CastExpr(BaseExpr):
     def evaluate_eager(self, ee):
         col = self._arg.evaluate_eager(ee)
         return core.expr_cast(col, self._stype.value)
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["cast"],
+                              self._arg._core(),
+                              self._stype.value)

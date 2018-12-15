@@ -81,6 +81,7 @@ class workframe {
 
     const DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
+    const Groupby& get_groupby() const;
     bool is_naturally_joined(size_t i) const;
     size_t nframes() const;
     size_t nrows() const;

@@ -7,7 +7,7 @@
 # mean_expr, sd_expr, minmax_expr can eventually be merged into here too
 
 from .base_expr import BaseExpr
-from .consts import reduce_opcodes, ops_rules
+from .consts import reduce_opcodes, ops_rules, baseexpr_opcodes
 from datatable.lib import core
 from datatable.types import stype
 
@@ -35,8 +35,8 @@ def first(iterable):
     else:
         for x in iterable:
             return x
-              
-              
+
+
 class CountExpr(BaseExpr):
     def is_reduce_expr(self, ee):
         return True
@@ -49,6 +49,9 @@ class CountExpr(BaseExpr):
 
     def __str__(self):
         return "count()"
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["nureduce"], 0)
 
 
 
@@ -80,4 +83,10 @@ class ReduceExpr(BaseExpr):
 
     def __str__(self):
         return "%s(%s)" % (self._op, self._expr)
+
+
+    def _core(self):
+        return core.base_expr(baseexpr_opcodes["unreduce"],
+                              reduce_opcodes[self._op],
+                              self._expr._core())
 

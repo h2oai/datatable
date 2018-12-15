@@ -164,4 +164,7 @@ baseexpr_opcodes = {
     "binop": 2,
     "literal": 3,
     "unop": 4,
+    "cast": 5,
+    "unreduce": 6,
+    "nureduce": 7,
 }

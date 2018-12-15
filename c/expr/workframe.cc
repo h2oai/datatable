@@ -51,6 +51,11 @@ const RowIndex& workframe::get_rowindex(size_t i) const {
 }
 
 
+const Groupby& workframe::get_groupby() const {
+  return gb;
+}
+
+
 bool workframe::is_naturally_joined(size_t i) const {
   return frames[i].natural;
 }

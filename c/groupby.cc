@@ -44,6 +44,10 @@ size_t Groupby::ngroups() const {
   return n;
 }
 
+Groupby::operator bool() const {
+  return n != 0;
+}
+
 
 const RowIndex& Groupby::ungroup_rowindex() {
   if (!ungroup_ri) compute_ungroup_rowindex();
