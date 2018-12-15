@@ -629,4 +629,7 @@ def test_ftrl_pickling():
     assert ft_unpickled.model.names == ('z', 'n')
     assert ft_unpickled.model.stypes == (stype.float64, stype.float64)
     assert_equals(ft.model, ft_unpickled.model)
+    assert ft_unpickled.fi.names == ('feature_importance',)
+    assert ft_unpickled.fi.stypes == (stype.float64,)
+    assert_equals(ft.fi, ft_unpickled.fi)
     assert ft.params == ft_unpickled.params

@@ -188,6 +188,7 @@ void Ftrl::create_model() {
 
 
 void Ftrl::reset_model() {
+  if (z == nullptr || n == nullptr) return;
   std::memset(z, 0, params.d * sizeof(double));
   std::memset(n, 0, params.d * sizeof(double));
   model_trained = false;
@@ -195,6 +196,7 @@ void Ftrl::reset_model() {
 
 
 void Ftrl::init_weights() {
+  if (dt_model == nullptr) return;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
   w = doubleptr(new double[params.d]());
@@ -204,7 +206,19 @@ void Ftrl::init_weights() {
 void Ftrl::create_fi() {
   Column* col_fi = Column::new_data_column(SType::FLOAT64, nfeatures);
   dt_fi = dtptr(new DataTable({col_fi}, {"feature_importance"}));
+  init_fi();
+  reset_fi();
+}
+
+
+void Ftrl::init_fi() {
+  if (dt_fi == nullptr) return;
   fi = static_cast<double*>(dt_fi->columns[0]->data_w());
+}
+
+
+void Ftrl::reset_fi() {
+  if (fi == nullptr) return;
   std::memset(fi, 0, nfeatures * sizeof(double));
 }
 
@@ -432,6 +446,13 @@ void Ftrl::set_model(DataTable* dt_model_in) {
   ncols = 0;
   nfeatures = 0;
   model_trained = true;
+}
+
+
+void Ftrl::set_fi(DataTable* dt_fi_in) {
+  dt_fi = dtptr(dt_fi_in->copy());
+  nfeatures = dt_fi->nrows;
+  init_fi();
 }
 
 

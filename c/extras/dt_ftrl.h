@@ -88,6 +88,8 @@ class Ftrl {
     void reset_model();
     void init_weights();
     void create_fi();
+    void reset_fi();
+    void init_fi();
     void define_features(size_t);
 
     // Hashing methods
@@ -121,6 +123,7 @@ class Ftrl {
 
     // Setters
     void set_model(DataTable*);
+    void set_fi(DataTable*);
     void set_alpha(double);
     void set_beta(double);
     void set_lambda1(double);

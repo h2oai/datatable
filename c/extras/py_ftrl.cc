@@ -353,6 +353,7 @@ Returns
 
 void Ftrl::reset(const NoArgs&) {
   dtft->reset_model();
+  dtft->reset_fi();
 }
 
 
@@ -599,11 +600,13 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 *  Pickling / unpickling methods.
 */
 oobj Ftrl::m__getstate__(const NoArgs&) {
-  py::otuple pickle(2);
+  py::otuple pickle(3);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
+  py::oobj fi = get_fi();
   pickle.set(0, params);
   pickle.set(1, model);
+  pickle.set(2, fi);
   return std::move(pickle);
 }
 
@@ -612,9 +615,11 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::oobj params = pickle[0];
   py::oobj model = pickle[1];
+  py::oobj fi = pickle[2];
   dtft = new dt::Ftrl(dt::Ftrl::default_params);
   set_params_tuple(params);
   set_model(model);
+  dtft->set_fi(fi.to_frame());
 }
 
 
