@@ -435,7 +435,7 @@ def test_aggregate_3d_categorical():
     nd_max_bins_in = rows
     a_in = [["blue"] * rows, ["orange"] * rows, ["yellow"] * rows]
     members_count = [[1] * rows]
-    exemplar_id = list(range(rows))
+    exemplar_id = [i for i in range(rows)]
     d_in = dt.Frame(a_in)
 
     d_members = aggregate(d_in, nd_max_bins=nd_max_bins_in,
@@ -492,10 +492,10 @@ def aggregate_nd(nd):
     nrows = 1000
     div = 50
     column = [i % div for i in range(nrows)]
-    matrix = [column] * nd
+    matrix = [column for i in range(nd)]
     out_types = [ltype.int] * nd + [ltype.int]
-    out_value = [list(range(div))] * nd + \
-                [[nrows // div] * div]
+    out_value = [[i for i in range(div)]] * nd + \
+                [[nrows // div for i in range(div)]]
 
     d_in = dt.Frame(matrix)
     d_members = aggregate(d_in, min_rows=0, nd_max_bins=div, seed=1,
