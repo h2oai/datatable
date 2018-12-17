@@ -35,6 +35,12 @@ struct subframe {
   size_t : 56;
 };
 
+enum class EvalMode {
+  SELECT,
+  UPDATE,
+  DELETE
+};
+
 
 /**
  * This is a main class used to evaluate the expression `DT[i, j, ...]`. This
@@ -61,6 +67,8 @@ class workframe {
   private:
     std::vector<subframe> frames;
     Groupby gb;
+    EvalMode mode;
+    size_t : 64 - sizeof(EvalMode) * 8;
 
   public:
     workframe() = delete;
@@ -68,9 +76,12 @@ class workframe {
     workframe(workframe&&) = delete;
 
     explicit workframe(const DataTable*);
+    void set_mode(EvalMode);
+    void add_subframe(const DataTable*);
 
     const DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
+    const Groupby& get_groupby() const;
     bool is_naturally_joined(size_t i) const;
     size_t nframes() const;
     size_t nrows() const;

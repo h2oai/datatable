@@ -21,16 +21,19 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_J_NODE_h
 #define dt_EXPR_J_NODE_h
+#include "expr/workframe.h"
 namespace dt {
 
 
+class j_node;
+using jptr = std::unique_ptr<dt::j_node>;
 
 /**
  * This class handles the `j` part of the `DT[i, j, ...]` expression.
  */
 class j_node {
   public:
-    static j_node* make(py::robj src);
+    static jptr make(py::robj src, workframe& wf);
 
     virtual ~j_node();
     virtual DataTable* execute(workframe& wf) = 0;

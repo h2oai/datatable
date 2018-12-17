@@ -34,10 +34,17 @@ namespace dt {
 // base_expr
 //------------------------------------------------------------------------------
 
-
 using base_expr_ptr = std::unique_ptr<base_expr>;
 
 base_expr::~base_expr() {}
+
+bool base_expr::is_primary_col_selector() {
+  return false;
+}
+
+size_t base_expr::get_primary_col_index(const workframe&) {
+  return size_t(-1);
+}
 
 
 
@@ -54,6 +61,8 @@ class expr_column : public base_expr {
 
   public:
     expr_column(size_t dfid, const py::robj& col);
+    bool is_primary_col_selector() override;
+    size_t get_primary_col_index(const workframe&) override;
     SType resolve(const workframe&) override;
     Column* evaluate_eager(const workframe&) override;
 };
@@ -63,23 +72,36 @@ expr_column::expr_column(size_t dfid, const py::robj& col)
   : frame_id(dfid), col_id(size_t(-1)), col_selector(col) {}
 
 
-SType expr_column::resolve(const workframe& wf) {
-  const DataTable* dt = wf.get_datatable(frame_id);
-  if (col_selector.is_int()) {
-    int64_t icolid = col_selector.to_int64_strict();
-    int64_t incols = static_cast<int64_t>(dt->ncols);
-    if (icolid < -incols || icolid >= incols) {
-      throw ValueError() << "Column index " << icolid << " is invalid for "
-          "a Frame with " << incols << " column" << (incols == 1? "" : "s");
+bool expr_column::is_primary_col_selector() {
+  return (frame_id == 0);
+}
+
+size_t expr_column::get_primary_col_index(const workframe& wf) {
+  if (col_id == size_t(-1)) {
+    const DataTable* dt = wf.get_datatable(frame_id);
+    if (col_selector.is_int()) {
+      int64_t icolid = col_selector.to_int64_strict();
+      int64_t incols = static_cast<int64_t>(dt->ncols);
+      if (icolid < -incols || icolid >= incols) {
+        throw ValueError() << "Column index " << icolid << " is invalid for "
+            "a Frame with " << incols << " column" << (incols == 1? "" : "s");
+      }
+      if (icolid < 0) icolid += incols;
+      col_id = static_cast<size_t>(icolid);
     }
-    if (icolid < 0) icolid += incols;
-    col_id = static_cast<size_t>(icolid);
+    else if (col_selector.is_string()) {
+      col_id = dt->xcolindex(col_selector);
+    }
+    xassert(col_id < dt->ncols);
   }
-  else if (col_selector.is_string()) {
-    col_id = dt->xcolindex(col_selector);
-  }
-  xassert(col_id < dt->ncols);
-  return dt->columns[col_id]->stype();
+  return col_id;
+}
+
+
+SType expr_column::resolve(const workframe& wf) {
+  size_t i = get_primary_col_index(wf);
+  const DataTable* dt = wf.get_datatable(frame_id);
+  return dt->columns[i]->stype();
 }
 
 
@@ -284,9 +306,128 @@ Column* expr_unaryop::evaluate_eager(const workframe& wf) {
 
 
 
+
+//------------------------------------------------------------------------------
+// expr_cast
+//------------------------------------------------------------------------------
+
+class expr_cast : public base_expr {
+  private:
+    base_expr* arg;
+    SType stype;
+    size_t : 56;
+
+  public:
+    expr_cast(base_expr* a, SType s);
+    SType resolve(const workframe& wf) override;
+    Column* evaluate_eager(const workframe& wf) override;
 };
 
 
+expr_cast::expr_cast(base_expr* a, SType s)
+  : arg(a), stype(s) {}
+
+
+SType expr_cast::resolve(const workframe& wf) {
+  (void) arg->resolve(wf);
+  return stype;
+}
+
+
+Column* expr_cast::evaluate_eager(const workframe& wf) {
+  Column* arg_col = arg->evaluate_eager(wf);
+  arg_col->reify();
+  return arg_col->cast(stype);
+}
+
+
+
+//------------------------------------------------------------------------------
+// expr_reduce
+//------------------------------------------------------------------------------
+
+class expr_reduce : public base_expr {
+  private:
+    base_expr* arg;
+    size_t opcode;
+
+  public:
+    expr_reduce(base_expr* a, size_t op);
+    SType resolve(const workframe& wf) override;
+    Column* evaluate_eager(const workframe& wf) override;
+};
+
+
+expr_reduce::expr_reduce(base_expr* a, size_t op)
+  : arg(a), opcode(op) {}
+
+
+SType expr_reduce::resolve(const workframe& wf) {
+  (void) arg->resolve(wf);
+  return SType::INT32;  // FIXME
+}
+
+
+Column* expr_reduce::evaluate_eager(const workframe& wf) {
+  Column* arg_col = arg->evaluate_eager(wf);
+  const Groupby& grby = wf.get_groupby();
+  int op = static_cast<int>(opcode);
+  if (grby) {
+    return expr::reduceop(op, arg_col, grby);
+  } else {
+    return expr::reduceop(op, arg_col, Groupby::single_group(wf.nrows()));
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// expr_reduce_nullary
+//------------------------------------------------------------------------------
+
+class expr_reduce_nullary : public base_expr {
+  private:
+    size_t opcode;
+
+  public:
+    expr_reduce_nullary(size_t op);
+    SType resolve(const workframe& wf) override;
+    Column* evaluate_eager(const workframe& wf) override;
+};
+
+
+expr_reduce_nullary::expr_reduce_nullary(size_t op) : opcode(op) {}
+
+
+SType expr_reduce_nullary::resolve(const workframe&) {
+  return SType::INT64;
+}
+
+
+Column* expr_reduce_nullary::evaluate_eager(const workframe& wf) {
+  const Groupby& grpby = wf.get_groupby();
+  Column* res = nullptr;
+  if (opcode == 0) {  // COUNT
+    if (grpby) {
+      size_t ng = grpby.ngroups();
+      const int32_t* offsets = grpby.offsets_r();
+      res = Column::new_data_column(SType::INT32, ng);
+      auto d_res = static_cast<int32_t*>(res->data_w());
+      for (size_t i = 0; i < ng; ++i) {
+        d_res[i] = offsets[i + 1] - offsets[i];
+      }
+    } else {
+      res = Column::new_data_column(SType::INT64, 1);
+      auto d_res = static_cast<int64_t*>(res->data_w());
+      d_res[0] = static_cast<int64_t>(wf.nrows());
+    }
+  }
+  return res;
+}
+
+
+
+};
 //------------------------------------------------------------------------------
 // py::base_expr
 //------------------------------------------------------------------------------
@@ -351,6 +492,27 @@ void py::base_expr::m__init__(py::PKArgs& args) {
       size_t unop_code = va[0].to_size_t();
       dt::base_expr* arg = to_base_expr(va[1]);
       expr = new dt::expr_unaryop(unop_code, arg);
+      break;
+    }
+    case dt::exprCode::CAST: {
+      check_args_count(va, 2);
+      dt::base_expr* arg = to_base_expr(va[0]);
+      SType stype = static_cast<SType>(va[1].to_size_t());
+      expr = new dt::expr_cast(arg, stype);
+      break;
+    }
+    case dt::exprCode::UNREDUCE: {
+      check_args_count(va, 2);
+      size_t op = va[0].to_size_t();
+      dt::base_expr* arg = to_base_expr(va[1]);
+      expr = new dt::expr_reduce(arg, op);
+      break;
+    }
+    case dt::exprCode::NUREDUCE: {
+      check_args_count(va, 1);
+      size_t op = va[0].to_size_t();
+      xassert(op == 0);
+      expr = new dt::expr_reduce_nullary(op);
       break;
     }
   }

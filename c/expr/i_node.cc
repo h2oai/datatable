@@ -454,7 +454,7 @@ i_node::~i_node() {}
 void i_node::post_init_check(workframe&) {}
 
 
-i_node* i_node::make(py::robj src) {
+static i_node* _make(py::robj src) {
   // The most common case is `:`, a trivial slice
   if (src.is_slice()) {
     auto ssrc = src.to_oslice();
@@ -495,6 +495,10 @@ i_node* i_node::make(py::robj src) {
   return nullptr;  // for now
 }
 
+
+iptr i_node::make(py::robj src) {
+  return iptr(_make(src));
+}
 
 
 }  // namespace dt

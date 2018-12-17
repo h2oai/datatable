@@ -26,6 +26,7 @@ class odict;
 class ofloat;
 class oint;
 class oiter;
+class ojoin;
 class olist;
 class oslice;
 class ostring;
@@ -164,6 +165,7 @@ class _obj {
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
     bool is_frame()         const noexcept;
+    bool is_join_node()     const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
     bool is_numpy_array()   const noexcept;
@@ -206,6 +208,7 @@ class _obj {
     RowIndex    to_rowindex       (const error_manager& = _em0) const;
     DataTable*  to_frame          (const error_manager& = _em0) const;
     SType       to_stype          (const error_manager& = _em0) const;
+    py::ojoin   to_ojoin_lax      () const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }

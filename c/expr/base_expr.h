@@ -33,6 +33,9 @@ enum exprCode : size_t {
   BINOP = 2,
   LITERAL = 3,
   UNOP = 4,
+  CAST = 5,
+  UNREDUCE = 6,
+  NUREDUCE = 7,
 };
 
 enum class binopCode : size_t {
@@ -59,6 +62,8 @@ enum class binopCode : size_t {
 class base_expr {
   public:
     virtual ~base_expr();
+    virtual bool is_primary_col_selector();
+    virtual size_t get_primary_col_index(const workframe&);
     virtual SType resolve(const workframe&) = 0;
     virtual Column* evaluate_eager(const workframe&) = 0;
 };

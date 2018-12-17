@@ -19,35 +19,53 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_I_NODE_h
-#define dt_EXPR_I_NODE_h
-#include <memory>             // std::unique_ptr
-#include "expr/workframe.h"   // dt::workframe
-#include "python/_all.h"      // py::robj, ...
-namespace dt {
+#ifndef dt_EXPR_JOIN_NODE_h
+#define dt_EXPR_JOIN_NODE_h
+#include "python/ext_type.h"
+#include "python/obj.h"
+
+namespace py {
 
 
-class i_node;
-using iptr = std::unique_ptr<dt::i_node>;
 
-/**
- * Base class for all "Row Filter" nodes. A row filter node represents the
- * `i` part in a `DT[i, j, ...]` call.
- *
- * When executed, this class will compute a RowIndex and apply it to the
- * provided workframe `wf`.
- */
-class i_node {
+class ojoin : public oobj
+{
+  class pyobj : public PyObject {
+    public:
+      oobj join_frame;
+
+      class Type : public ExtType<pyobj> {
+        public:
+          static PKArgs args___init__;
+          static const char* classname();
+          static const char* classdoc();
+          static bool is_subclassable();
+          static void init_methods_and_getsets(Methods&, GetSetters&);
+      };
+
+      void m__init__(PKArgs&);
+      void m__dealloc__();
+      oobj get_joinframe() const;
+  };
+
   public:
-    static iptr make(py::robj src);
+    ojoin() = default;
+    ojoin(const ojoin&) = default;
+    ojoin(ojoin&&) = default;
+    ojoin& operator=(const ojoin&) = default;
+    ojoin& operator=(ojoin&&) = default;
 
-    virtual ~i_node();
-    virtual void post_init_check(workframe& wf);
-    virtual void execute(workframe& wf) = 0;
+    const DataTable* get_datatable() const;
+
+    static bool check(PyObject* v);
+    static void init(PyObject* m);
+
+  private:
+    friend class _obj;
+    ojoin(const robj&);
 };
 
 
 
-
-}  // namespace dt
+}  // namespace py
 #endif

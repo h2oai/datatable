@@ -28,6 +28,7 @@ class Groupby {
 
     const int32_t* offsets_r() const;
     size_t ngroups() const;
+    explicit operator bool() const;
 
     // Return a RowIndex which can be used to perform "ungrouping" operation.
     // More specifically, it is a RowIndex with the following data:

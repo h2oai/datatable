@@ -27,6 +27,17 @@ workframe::workframe(const DataTable* dt) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
+  mode = EvalMode::SELECT;
+}
+
+
+void workframe::set_mode(EvalMode m) {
+  mode = m;
+}
+
+
+void workframe::add_subframe(const DataTable* dt) {
+  frames.push_back(subframe {dt, RowIndex(), true});
 }
 
 
@@ -37,6 +48,11 @@ const DataTable* workframe::get_datatable(size_t i) const {
 
 const RowIndex& workframe::get_rowindex(size_t i) const {
   return frames[i].ri;
+}
+
+
+const Groupby& workframe::get_groupby() const {
+  return gb;
 }
 
 
