@@ -371,10 +371,11 @@ SType expr_reduce::resolve(const workframe& wf) {
 Column* expr_reduce::evaluate_eager(const workframe& wf) {
   Column* arg_col = arg->evaluate_eager(wf);
   const Groupby& grby = wf.get_groupby();
+  int op = static_cast<int>(opcode);
   if (grby) {
-    return expr::reduceop(opcode, arg_col, grby);
+    return expr::reduceop(op, arg_col, grby);
   } else {
-    return expr::reduceop(opcode, arg_col, Groupby::single_group(wf.nrows()));
+    return expr::reduceop(op, arg_col, Groupby::single_group(wf.nrows()));
   }
 }
 

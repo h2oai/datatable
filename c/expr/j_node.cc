@@ -257,6 +257,53 @@ static j_node* _from_base_expr(py::robj src, workframe& wf) {
 }
 
 
+enum list_type {
+  UNKNOWN, BOOL, INT, STR, EXPR
+};
+
+static void _check_list_type(size_t k, list_type prev, list_type curr) {
+  if (prev == curr) return;
+  static const char* names[] = {"?", "boolean", "integer", "string", "expr"};
+  throw TypeError() << "Mixed selector types in `j` are not allowed. "
+      "Element " << k << " is of type " << names[curr] << ", whereas the "
+      "previous elements were of type " << names[prev];
+}
+
+
+static j_node* _from_list(py::robj src, workframe& wf) {
+  const DataTable* dt0 = wf.get_datatable(0);
+  list_type type = UNKNOWN;
+  std::vector<size_t> indices;
+  size_t k = 0;
+  for (auto elem : src.to_oiter()) {
+    if (elem.is_int()) {
+      if (type == UNKNOWN) type = INT;
+      _check_list_type(k, type, INT);
+      int64_t i = elem.to_int64_strict();
+      size_t j = resolve_column(i, wf);
+      indices.push_back(j);
+    }
+    else if (elem.is_bool()) {
+      if (type == UNKNOWN) type = BOOL;
+      _check_list_type(k, type, BOOL);
+      int t = elem.to_bool_strict();
+      if (t) indices.push_back(k);
+    }
+    else if (elem.is_string()) {
+      if (type == UNKNOWN) type = STR;
+      _check_list_type(k, type, STR);
+      size_t j = dt0->xcolindex(elem);
+      indices.push_back(j);
+    }
+    else /*if (is_PyBaseExpr(elem))*/ {
+      return nullptr;
+    }
+    ++k;
+  }
+  return new collist_jn(std::move(indices));
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -286,6 +333,15 @@ static j_node* _make(py::robj src, workframe& wf) {
   if (src.is_string()) {
     size_t i = resolve_column(src, wf);
     return new collist_jn({ i });
+  }
+  if (src.is_list_or_tuple()) {
+    return _from_list(src, wf);
+  }
+  if (src.is_dict()) {
+    return nullptr;
+  }
+  if (src.is_iterable()) {
+    return _from_list(src, wf);
   }
   if (src.is_none() || src.is_ellipsis()) {
     return new allcols_jn();
