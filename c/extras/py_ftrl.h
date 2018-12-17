@@ -46,17 +46,20 @@ class Ftrl : public PyObject {
 
     void m__init__(PKArgs&);
     void m__dealloc__();
-    oobj m__getstate__(const NoArgs&);  // pickling support
+
+    // Pickling support
+    oobj m__getstate__(const NoArgs&);
     void m__setstate__(const PKArgs&);
 
-   // Learning and predicting methods.
+    // Learning and predicting methods
     void fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);
 
-    // Getters and setters.
+    // Getters and setters
+    oobj get_fi() const;
     oobj get_model() const;
-    oobj get_colnames_hashes() const;
+    oobj get_colname_hashes() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;
     oobj get_alpha() const;
@@ -65,7 +68,7 @@ class Ftrl : public PyObject {
     oobj get_lambda2() const;
     oobj get_d() const;
     oobj get_inter() const;
-    oobj get_n_epochs() const;
+    oobj get_nepochs() const;
     void set_model(robj);
     void set_params_namedtuple(robj);
     void set_params_tuple(robj);
@@ -74,10 +77,10 @@ class Ftrl : public PyObject {
     void set_lambda1(robj);
     void set_lambda2(robj);
     void set_d(robj);
-    void set_n_epochs(robj);
+    void set_nepochs(robj);
     void set_inter(robj);
 
-    // Model validation methods.
+    // Model validation methods
     bool has_negative_n(DataTable*) const;
 };
 

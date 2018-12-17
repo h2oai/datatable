@@ -38,7 +38,7 @@ struct FtrlParams {
     double lambda1;
     double lambda2;
     uint64_t d;
-    size_t n_epochs;
+    size_t nepochs;
     bool inter;
     size_t : 56;
 };
@@ -46,29 +46,36 @@ struct FtrlParams {
 
 class Ftrl {
   private:
+    // Model datatable, column pointers and weight vector
     dtptr dt_model;
     double* z;
     double* n;
+    doubleptr w;
 
-    // Input to the model.
+    // Feature importance datatable and column pointer
+    dtptr dt_fi;
+    double* fi;
+
+    // Input parameters
     FtrlParams params;
 
-    // Calculated during the learning process.
-    size_t n_features;
-    size_t n_inter_features;
-    doubleptr w;
+    // Number of columns in a training datatable and total number of features
+    size_t ncols;
+    size_t nfeatures;
+
+    // Set this to `True` in `train` and `set_model` methods
     bool model_trained;
     size_t : 56;
 
-    // Hashed column names and column hashers
-    std::vector<uint64_t> colnames_hashes;
+    // Hashers and hashed column names
     std::vector<hashptr> hashers;
+    std::vector<uint64_t> colnames_hashes;
 
   public:
     Ftrl(FtrlParams);
 
-    static const std::vector<std::string> model_cols;
-    static const FtrlParams params_default;
+    static const std::vector<std::string> model_colnames;
+    static const FtrlParams default_params;
 
     // Learning and predicting methods.
     void fit(const DataTable*, const DataTable*);
@@ -76,41 +83,53 @@ class Ftrl {
     double predict_row(const uint64ptr&);
     void update(const uint64ptr&, double, bool);
 
-    // Model handling methods.
-    bool is_trained();
+    // Model and feature importance handling methods
     void create_model();
     void reset_model();
     void init_weights();
+    void create_fi();
+    void reset_fi();
+    void init_fi();
+    void define_features(size_t);
 
-    // Learning helper methods.
+    // Hashing methods
+    void create_hashers(const DataTable*);
+    static hashptr create_colhasher(const Column*);
+    void hash_row(uint64ptr&, size_t);
+
+    // Model validation methods
+    static bool is_dt_valid(const dtptr&t, size_t, size_t);
+    bool is_trained();
+
+    // Learning helper methods
     static double logloss(double, bool);
     static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);
 
-    // Hashing methods.
-    void create_hashers(const DataTable*);
-    void hash_row(uint64ptr&, size_t);
-
-    // Getters and setters, some will invalidate the learning results.
+    // Getters
     DataTable* get_model();
-    size_t get_n_features();
+    DataTable* get_fi();
+    size_t get_nfeatures();
+    size_t get_ncols();
     std::vector<uint64_t> get_colnames_hashes();
     double get_alpha();
     double get_beta();
     double get_lambda1();
     double get_lambda2();
     uint64_t get_d();
-    size_t get_n_epochs();
+    size_t get_nepochs();
     bool get_inter();
 
+    // Setters
     void set_model(DataTable*);
+    void set_fi(DataTable*);
     void set_alpha(double);
     void set_beta(double);
     void set_lambda1(double);
     void set_lambda2(double);
     void set_d(uint64_t);
-    void set_n_epochs(size_t);
+    void set_nepochs(size_t);
     void set_inter(bool);
 };
 
