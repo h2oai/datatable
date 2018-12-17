@@ -7,7 +7,7 @@
 import pytest
 import datatable as dt
 from datatable import stype, ltype, f
-from tests import same_iterables, has_llvm
+from tests import same_iterables, has_llvm, noop
 
 
 #-------------------------------------------------------------------------------
@@ -394,6 +394,29 @@ def test_rows_int_column_nas(dt0):
     with pytest.raises(ValueError) as e:
         dt0(rows=col)
     assert "RowIndex source column contains NA values" in str(e.value)
+
+
+
+#-------------------------------------------------------------------------------
+# Numpy-array selectors
+#-------------------------------------------------------------------------------
+
+def test_rows_numpy_array(numpy):
+    DT = dt.Frame(range(1000))
+    idx = numpy.arange(0, 1000, 5)
+    res = DT[idx, :]
+    res.internal.check()
+    assert res.shape == (200, 1)
+    assert res.to_list() == [list(range(0, 1000, 5))]
+
+
+def test_rows_numpy_array_big(numpy):
+    DT = dt.Frame(range(1000))
+    idx = numpy.arange(900, 1200, 5)
+    with pytest.raises(ValueError) as e:
+        noop(DT[idx, :])
+    assert ("An integer column used as an `i` selector contains index 1195 "
+            "which is not valid for a Frame with 1000 rows" in str(e.value))
 
 
 
