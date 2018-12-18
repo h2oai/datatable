@@ -58,6 +58,16 @@ enum class biop : size_t {
   REL_LE       = 17,  // <=
 };
 
+enum class unop : size_t {
+  ISNA   = 1,
+  MINUS  = 2,
+  PLUS   = 3,
+  INVERT = 4,
+  ABS    = 5,
+  EXP    = 6,
+};
+
+
 
 class base_expr {
   public:

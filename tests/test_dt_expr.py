@@ -235,8 +235,9 @@ def test_dt_pos_invalid(src):
 
 @pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_str)
 def test_dt_isna(src):
+    from datatable import isna
     dt0 = dt.Frame(src)
-    dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
+    dt1 = dt0[:, isna(f[0])]
     dt1.internal.check()
     assert dt1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
@@ -246,6 +247,17 @@ def test_dt_isna(src):
         dt2.internal.check()
         assert dt2.stypes == (stype.bool8,)
         assert dt2.to_list()[0] == pyans
+
+
+def test_dt_isna2():
+    from datatable import isna
+    from math import nan
+    dt0 = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
+    dt1 = dt0[~isna(f.A), :]
+    assert dt1.stypes == dt0.stypes
+    assert dt1.names == dt0.names
+    assert dt1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
+
 
 
 
