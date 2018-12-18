@@ -376,8 +376,8 @@ multislice_in::multislice_in(py::robj src) {
 
 void multislice_in::post_init_check(workframe& wf) {
   if (wf.nrows() < min_nrows) {
-    throw ValueError() << "`i` selector is valid for a Frame with at least "
-        << min_nrows << " row" << (min_nrows == 1? "" : "s");
+    throw ValueError() << "`i` selector is not valid for a Frame with "
+        << wf.nrows() << " row" << (wf.nrows() == 1? "" : "s");
   }
 }
 

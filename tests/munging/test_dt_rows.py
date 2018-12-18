@@ -234,9 +234,9 @@ def test_rows_generator(dt0):
 
 
 def test_rows_generator_bad(dt0):
-    assert_valueerror(
+    assert_typeerror(
         dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
-        "Invalid row selector '-2' generated at position 2")
+        "Invalid item '-2' at index 2 in the `i` selector list")
 
 
 
@@ -276,10 +276,12 @@ def test_rows_multislice2(dt0):
 
 
 def test_rows_multislice3(dt0):
-    assert_valueerror(
+    assert_typeerror(
         dt0, [1, "hey"],
-        "Invalid row selector 'hey' at element 1 of the `rows` list")
-    assert_valueerror(dt0, [1, -1, 5, -11], "Row `-11` is invalid")
+        "Invalid item 'hey' at index 1 in the `i` selector list")
+    assert_valueerror(
+        dt0, [1, -1, 5, -11],
+        "`i` selector is not valid for a Frame with 10 rows")
 
 
 
@@ -310,31 +312,15 @@ def test_rows_bool_column_error(dt0):
         "`i` selector has 20 rows, but applied to a Frame with 10 rows")
 
 
-def test_rows_bool_numpy_array(dt0, numpy):
-    arr = numpy.array([True, False, True, True, False,
-                       False, True, False, False, True])
-    dt1 = dt0[arr, :]
-    dt1.internal.check()
-    assert dt1.shape == (5, 3)
-    assert dt1.names == ("colA", "colB", "colC")
-    assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-    assert as_list(dt1)[1] == [7, 9, 10000, 0, None]
-
-
-def test_rows_bool_numpy_array_error(dt0, numpy):
-    assert_valueerror(
-        dt0, numpy.array([True, False, False]),
-        "Cannot apply a boolean numpy array of length 3 to a Frame with "
-        "10 rows")
-
-
 def test_rows_bad_column(dt0):
     assert_valueerror(
         dt0, dt0,
-        "`i` selector should be a single-column Frame")
+        "Only a single-column Frame may be used as `i` selector, instead got "
+        "a Frame with 3 columns")
     assert_typeerror(
         dt0, dt.Frame([0.3, 1, 1.5]),
-        "`i` selector should be either a boolean or an integer column")
+        "A Frame which is used as an `i` selector should be either boolean or "
+        "integer, instead got `float64`")
 
 
 
@@ -397,30 +383,18 @@ def test_rows_numpy_array_big(numpy):
             "which is not valid for a Frame with 1000 rows" in str(e.value))
 
 
-def test_rows_int_numpy_array1(dt0, numpy):
-    arr = numpy.array([7, 1, 0, 3])
-    dt1 = dt0[arr, :]
-    dt1.internal.check()
-    assert dt1.shape == (4, 3)
-    assert dt1.ltypes == dt0.ltypes
-    assert dt1.to_list() == [[None, 1, 0, None],
-                             [-1, -11, 7, 10000],
-                             [-14, 1, 5, 0.1]]
-
-
-def test_rows_int_numpy_array2(dt0, numpy):
+def test_rows_int_numpy_array_shapes(dt0, numpy):
+    arr1 = numpy.array([7, 1, 0, 3])
     arr2 = numpy.array([[7, 1, 0, 3]])
-    dt2 = dt0[arr2, :]
-    dt2.internal.check()
-    assert dt1.shape == dt2.shape
-    assert dt1.to_list() == dt2.to_list()
-
-
-def test_rows_int_numpy_array3(dt0, numpy):
-    dt3 = dt0[numpy.array([[7], [1], [0], [3]]), :]
-    dt3.internal.check()
-    assert dt3.shape == dt2.shape
-    assert dt3.to_list() == dt2.to_list()
+    arr3 = numpy.array([[7], [1], [0], [3]])
+    for arr in [arr1, arr2, arr3]:
+        dt1 = dt0[arr, :]
+        dt1.internal.check()
+        assert dt1.shape == (4, 3)
+        assert dt1.ltypes == dt0.ltypes
+        assert dt1.to_list() == [[None, 1, 0, None],
+                                 [-1, -11, 7, 10000],
+                                 [-14, 1, 5, 0.1]]
 
 
 def test_rows_int_numpy_array_errors(dt0, numpy):
@@ -434,6 +408,24 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
         dt0, numpy.array([5, 11, 3]),
         "An integer column used as an `i` selector contains index 11 which is "
         "not valid for a Frame with 10 rows")
+
+
+def test_rows_bool_numpy_array(dt0, numpy):
+    arr = numpy.array([True, False, True, True, False,
+                       False, True, False, False, True])
+    dt1 = dt0[arr, :]
+    dt1.internal.check()
+    assert dt1.shape == (5, 3)
+    assert dt1.names == ("colA", "colB", "colC")
+    assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
+    assert as_list(dt1)[1] == [7, 9, 10000, 0, None]
+
+
+def test_rows_bool_numpy_array_error(dt0, numpy):
+    assert_valueerror(
+        dt0, numpy.array([True, False, False]),
+        "A boolean column used as `i` selector has 3 rows, but applied to "
+        "a Frame with 10 rows")
 
 
 
