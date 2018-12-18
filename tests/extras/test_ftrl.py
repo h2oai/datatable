@@ -610,7 +610,6 @@ def test_ftrl_feature_importance():
     df_target = dt.Frame([False, True] * (ft.d // 2))
     ft.fit(df_train, df_target)
     fi = ft.fi
-    print(ft.fi.to_list())
     assert fi[0, 0] < fi[2, 0]
     assert fi[2, 0] < fi[1, 0]
 
