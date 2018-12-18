@@ -512,6 +512,14 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
       }
       break;
 
+    case SType::STR64:
+      switch (rhs_type) {
+        case SType::STR32: return resolve1str<uint64_t, uint32_t>(opcode, params, nrows, mode);
+        case SType::STR64: return resolve1str<uint64_t, uint64_t>(opcode, params, nrows, mode);
+        default: break;
+      }
+      break;
+
     default:
       break;
   }
