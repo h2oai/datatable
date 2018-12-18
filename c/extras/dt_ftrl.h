@@ -103,7 +103,6 @@ class Ftrl {
 
     // Learning helper methods
     static double logloss(double, bool);
-    static double signum(double);
     static double sigmoid(double);
     static double bsigmoid(double, double);
 
