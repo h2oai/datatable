@@ -67,19 +67,15 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
   // Do training for `nepochs`.
   for (size_t i = 0; i < params.nepochs; ++i) {
     double total_loss = 0;
-    int32_t nth = config::nthreads;
 
-    #pragma omp parallel num_threads(nth)
+    #pragma omp parallel num_threads(config::nthreads)
     {
       // Array to store hashed column values and their interactions.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      int32_t ith = omp_get_thread_num();
-      nth = omp_get_num_threads();
+      size_t ith = static_cast<size_t>(omp_get_thread_num());
+      size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-      for (size_t j = static_cast<size_t>(ith);
-           j < dt_X->nrows;
-           j+= static_cast<size_t>(nth)) {
-
+      for (size_t j = ith; j < dt_X->nrows; j += nth) {
         bool y = d_y[j];
         hash_row(x, j);
         double p = predict_row(x);
@@ -119,18 +115,13 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
   dt_y = dtptr(new DataTable({col_target}, {"target"}));
   auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
 
-  int32_t nth = config::nthreads;
-  #pragma omp parallel num_threads(nth)
+  #pragma omp parallel num_threads(config::nthreads)
   {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-    int32_t ith = omp_get_thread_num();
-    nth = omp_get_num_threads();
+    size_t ith = static_cast<size_t>(omp_get_thread_num());
+    size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-    for (size_t j = static_cast<size_t>(ith);
-         j < dt_X->nrows;
-         j+= static_cast<size_t>(nth))
-   {
-
+    for (size_t j = ith; j < dt_X->nrows; j += nth) {
       hash_row(x, j);
       d_y[j] = predict_row(x);
       if ((j+1) % REPORT_FREQUENCY == 0) {
@@ -147,17 +138,16 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
 */
 double Ftrl::predict_row(const uint64ptr& x) {
   double wTx = 0;
+  double l1 = params.lambda1;
+  double ia = 1 / params.alpha;
+  double r = params.beta / params.alpha + params.lambda2;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    // TODO: refactor this if
-    if (fabs(z[j]) <= params.lambda1) {
-      w[j] = 0;
-    } else {
-      w[j] = (signum(z[j]) * params.lambda1 - z[j]) /
-             ((params.beta + sqrt(n[j])) / params.alpha + params.lambda2);
-    }
+    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
+                  (std::sqrt(n[j]) * ia + r);
+    w[j] = -std::copysign(absw, z[j]);
     wTx += w[j];
-    fi[i] += fabs(w[j]); // Update feature importance vector
+    fi[i] += absw; // Update feature importance vector
   }
   return sigmoid(wTx);
 }
@@ -167,13 +157,15 @@ double Ftrl::predict_row(const uint64ptr& x) {
 *  Update weights based on prediction `p` and the actual target `y`.
 */
 void Ftrl::update(const uint64ptr& x, double p, bool y) {
+  double ia = 1 / params.alpha;
   double g = p - y;
+  double gsq = g * g;
 
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    double sigma = (sqrt(n[j] + g * g) - sqrt(n[j])) / params.alpha;
+    double sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
     z[j] += g - sigma * w[j];
-    n[j] += g * g;
+    n[j] += gsq;
   }
 }
 
@@ -321,7 +313,7 @@ bool Ftrl::is_trained() {
 *  Sigmoid function.
 */
 inline double Ftrl::sigmoid(double x) {
-  return 1.0 / (1.0 + exp(-x));
+  return 1.0 / (1.0 + std::exp(-x));
 }
 
 
@@ -329,7 +321,7 @@ inline double Ftrl::sigmoid(double x) {
 *  Bounded sigmoid function.
 */
 inline double Ftrl::bsigmoid(double x, double b) {
-  double res = 1 / (1 + exp(-std::max(std::min(x, b), -b)));
+  double res = 1 / (1 + std::exp(-std::max(std::min(x, b), -b)));
   return res;
 }
 
@@ -341,20 +333,10 @@ double Ftrl::logloss(double p, bool y) {
   double epsilon = std::numeric_limits<double>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   if (y) {
-    return -log(p);
+    return -std::log(p);
   } else {
-    return -log(1 - p);
+    return -std::log(1 - p);
   }
-}
-
-
-/*
-*  Calculate signum.
-*/
-inline double Ftrl::signum(double x) {
-  if (x > 0) return 1;
-  if (x < 0) return -1;
-  return 0;
 }
 
 
