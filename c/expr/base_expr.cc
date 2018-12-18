@@ -292,6 +292,62 @@ Column* expr_literal::evaluate_eager(const workframe&) {
 // expr_unaryop
 //------------------------------------------------------------------------------
 
+static std::vector<std::string> unop_names;
+static std::unordered_map<size_t, SType> unop_rules;
+
+static size_t id(unop opcode) {
+  return static_cast<size_t>(opcode);
+}
+static size_t id(unop opcode, SType st1) {
+  return (static_cast<size_t>(opcode) << 8) + static_cast<size_t>(st1);
+}
+
+static void init_unops() {
+  constexpr SType bool8 = SType::BOOL;
+  constexpr SType int8  = SType::INT8;
+  constexpr SType int16 = SType::INT16;
+  constexpr SType int32 = SType::INT32;
+  constexpr SType int64 = SType::INT64;
+  constexpr SType flt32 = SType::FLOAT32;
+  constexpr SType flt64 = SType::FLOAT64;
+  constexpr SType str32 = SType::STR32;
+  constexpr SType str64 = SType::STR64;
+
+  using styvec = std::vector<SType>;
+  styvec integer_stypes = {int8, int16, int32, int64};
+  styvec numeric_stypes = {bool8, int8, int16, int32, int64, flt32, flt64};
+  styvec string_types = {str32, str64};
+  styvec all_stypes = {bool8, int8, int16, int32, int64,
+                       flt32, flt64, str32, str64};
+
+  for (SType st : all_stypes) {
+    unop_rules[id(unop::ISNA, st)] = bool8;
+  }
+  for (SType st : integer_stypes) {
+    unop_rules[id(unop::INVERT, st)] = st;
+  }
+  for (SType st : numeric_stypes) {
+    unop_rules[id(unop::MINUS, st)] = st;
+    unop_rules[id(unop::PLUS, st)] = st;
+    unop_rules[id(unop::ABS, st)] = st;
+    unop_rules[id(unop::EXP, st)] = flt64;
+  }
+  unop_rules[id(unop::MINUS, bool8)] = int8;
+  unop_rules[id(unop::PLUS, bool8)] = int8;
+  unop_rules[id(unop::ABS, bool8)] = int8;
+  unop_rules[id(unop::INVERT, bool8)] = bool8;
+
+  unop_names.resize(7);
+  unop_names[id(unop::ISNA)]   = "isna";
+  unop_names[id(unop::MINUS)]  = "-";
+  unop_names[id(unop::PLUS)]   = "+";
+  unop_names[id(unop::INVERT)] = "~";
+  unop_names[id(unop::ABS)]    = "abs";
+  unop_names[id(unop::EXP)]    = "exp";
+}
+
+
+
 class expr_unaryop : public base_expr {
   private:
     base_expr* arg;
@@ -310,8 +366,12 @@ expr_unaryop::expr_unaryop(size_t opcode, base_expr* a)
 
 SType expr_unaryop::resolve(const workframe& wf) {
   SType arg_stype = arg->resolve(wf);
-  // ???
-  return arg_stype;
+  size_t op_id = id(static_cast<unop>(unop_code), arg_stype);
+  if (unop_rules.count(op_id) == 0) {
+    throw TypeError() << "Unary operator `" << unop_names[unop_code]
+        << "` cannot be applied to a column with stype `" << arg_stype << "`";
+  }
+  return unop_rules.at(op_id);
 }
 
 
@@ -550,6 +610,7 @@ void py::base_expr::Type::init_methods_and_getsets(
     py::ExtType<py::base_expr>::Methods&,
     py::ExtType<py::base_expr>::GetSetters&)
 {
+  dt::init_unops();
   dt::init_binops();
 }
 
