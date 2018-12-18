@@ -488,6 +488,10 @@ static i_node* _make(py::robj src) {
     auto ss = src.to_orange();
     return new slice_in(ss.start(), ss.stop(), ss.step(), false);
   }
+  // String is iterable, therefore this check must come before .is_iterable()
+  if (src.is_string()) {
+    throw TypeError() << "String value cannot be used as an `i` expression";
+  }
   // "iterable" is a very generic interface, so it must come close to last
   // in the resolution sequence
   if (src.is_iterable()) {

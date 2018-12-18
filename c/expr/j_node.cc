@@ -359,6 +359,12 @@ jptr j_node::make(py::robj src, workframe& wf) {
 
 j_node::~j_node() {}
 
+void j_node::delete_(workframe&) {}
+
+void j_node::update(workframe&) {}
+
+
+
 
 /*******************************
 
