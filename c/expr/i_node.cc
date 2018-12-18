@@ -184,7 +184,11 @@ void expr_in::execute(workframe& wf) {
 
 class frame_in : public i_node {
   private:
-    const DataTable* dt;  // borrowed ref
+    // Must hold onto a reference to the underlying `py::Frame` object.
+    // Otherwise, selectors that create temporary Frames (such as a numpy array)
+    // may have those Frames destroyed before the main expression is computed.
+    py::oobj dtobj;
+    const DataTable* dt;  // ref to `dtobj`
 
   public:
     explicit frame_in(py::robj src);
@@ -193,7 +197,7 @@ class frame_in : public i_node {
 };
 
 
-frame_in::frame_in(py::robj src) {
+frame_in::frame_in(py::robj src) : dtobj(src) {
   dt = src.to_frame();
   if (dt->ncols != 1) {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
