@@ -140,11 +140,11 @@ double Ftrl::predict_row(const uint64ptr& x) {
   double wTx = 0;
   double l1 = params.lambda1;
   double ia = 1 / params.alpha;
-  double r = params.beta / params.alpha + params.lambda2;
+  double rr = params.beta * ia + params.lambda2;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
     double absw = std::max(std::abs(z[j]) - l1, 0.0) /
-                  (std::sqrt(n[j]) * ia + r);
+                  (std::sqrt(n[j]) * ia + rr);
     w[j] = -std::copysign(absw, z[j]);
     wTx += w[j];
     fi[i] += absw; // Update feature importance vector
@@ -326,17 +326,14 @@ inline double Ftrl::bsigmoid(double x, double b) {
 }
 
 
-/*
-*  Calculate logloss based on a prediction `p` and the actual target `y`.
-*/
+/**
+ * Calculate logloss based on a prediction `p` and the actual target `y`.
+ *     log-loss = -log(p * y + (1 - p) * (1 - y))
+ */
 double Ftrl::logloss(double p, bool y) {
   double epsilon = std::numeric_limits<double>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
-  if (y) {
-    return -std::log(p);
-  } else {
-    return -std::log(1 - p);
-  }
+  return -std::log(p * (2*y - 1) + 1 - y);
 }
 
 
