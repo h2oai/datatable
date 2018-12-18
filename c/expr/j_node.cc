@@ -97,11 +97,11 @@ static size_t resolve_column(py::robj name, workframe& wf) {
 class allcols_jn : public j_node {
   public:
     allcols_jn() = default;
-    DataTable* execute(workframe&) override;
+    DataTable* select(workframe&) override;
 };
 
 
-DataTable* allcols_jn::execute(workframe& wf) {
+DataTable* allcols_jn::select(workframe& wf) {
   col_set cols;
   strvec names;
   for (size_t i = 0; i < wf.nframes(); ++i) {
@@ -142,14 +142,14 @@ class collist_jn : public j_node {
 
   public:
     collist_jn(std::vector<size_t>&& cols);
-    DataTable* execute(workframe& wf) override;
+    DataTable* select(workframe& wf) override;
 };
 
 collist_jn::collist_jn(std::vector<size_t>&& cols)
   : indices(std::move(cols)) {}
 
 
-DataTable* collist_jn::execute(workframe& wf) {
+DataTable* collist_jn::select(workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   const strvec& dt0_names = dt0->get_names();
@@ -218,14 +218,14 @@ class exprlist_jn : public j_node {
 
   public:
     exprlist_jn(exprvec&& cols);
-    DataTable* execute(workframe& wf) override;
+    DataTable* select(workframe& wf) override;
 };
 
 exprlist_jn::exprlist_jn(exprvec&& cols)
   : exprs(std::move(cols)) {}
 
 
-DataTable* exprlist_jn::execute(workframe& wf) {
+DataTable* exprlist_jn::select(workframe& wf) {
   col_set cols;
   strvec names;
   cols.reserve_extra(exprs.size());

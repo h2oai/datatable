@@ -94,27 +94,27 @@ oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
   if (targs) {
     size_t nargs = targs.size();
-    if (nargs == 2 && value == GETITEM) {
-      // 1. Create the workframe
-      dt::workframe wf(dt);
-      wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
-                  value == DELITEM? dt::EvalMode::DELETE :
-                                    dt::EvalMode::UPDATE);
-      // 2. Check if `j` is an `update()` and if so change the mode.
-      // 3. Search for join nodes in order to bind all aliases and
-      //    to know which frames participate in DT[...]
-      for (size_t k = 2; k < nargs; ++k) {
-        auto oj = targs[k].to_ojoin_lax();
-        if (oj) {
-          wf.add_subframe(oj.get_datatable());
-        }
+    // 1. Create the workframe
+    dt::workframe wf(dt);
+    wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
+                value == DELITEM? dt::EvalMode::DELETE :
+                                  dt::EvalMode::UPDATE);
+    // 2. Check if `j` is an `update()` and if so change the mode.
+    // 3. Search for join nodes in order to bind all aliases and
+    //    to know which frames participate in DT[...]
+    for (size_t k = 2; k < nargs; ++k) {
+      auto oj = targs[k].to_ojoin_lax();
+      if (oj) {
+        wf.add_subframe(oj.get_datatable());
       }
+    }
+    if (nargs == 2 && value == GETITEM) {
       auto iexpr = dt::i_node::make(targs[0]);
       auto jexpr = dt::j_node::make(targs[1], wf);
       if (iexpr && jexpr) {
         iexpr->post_init_check(wf);
         iexpr->execute(wf);
-        DataTable* res = jexpr->execute(wf);
+        DataTable* res = jexpr->select(wf);
         return oobj::from_new_reference(py::Frame::from_datatable(res));
       }
     }
