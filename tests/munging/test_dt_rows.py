@@ -155,6 +155,13 @@ def test_rows_slice1(dt0, sliceobj, nrows):
     assert dt1.to_list() == [col[sliceobj] for col in dt0.to_list()]
 
 
+def test_rows_0step_slice():
+    DT = dt.Frame(range(5))
+    res = DT[3:100:0, :]
+    res.internal.check()
+    assert res.to_list() == [[3] * 100]
+
+
 def test_rows_slice2(dt0):
     assert dt0[:5, :].to_list()[0] == [0, 1, 1, None, 0]
     assert dt0[::-1, :].to_list()[1] == \
@@ -275,13 +282,44 @@ def test_rows_multislice2(dt0):
             [0.1, 1, 5, 1, 1.3, 0.1, 100000, 0, -2.6, 2, 2, 2])
 
 
-def test_rows_multislice3(dt0):
+def test_rows_multislice4():
+    DT = dt.Frame(range(20))
+    res = DT[[range(5), 3, -1, range(8, -2, -2)], :]
+    res.internal.check()
+    assert res.ncols == 1
+    assert res.to_list()[0] == [0, 1, 2, 3, 4, 3, 19, 8, 6, 4, 2, 0]
+
+
+def test_rows_multislice5():
+    DT = dt.Frame(range(20))
+    res = DT[[range(3), slice(4, 105, 0)], :]
+    res.internal.check()
+    assert res.ncols == 1
+    assert res.to_list()[0] == [0, 1, 2] + [4] * 105
+
+
+def test_rows_multislice_invalid1(dt0):
     assert_typeerror(
         dt0, [1, "hey"],
         "Invalid item 'hey' at index 1 in the `i` selector list")
+
+
+def test_rows_multislice_invalid2(dt0):
     assert_valueerror(
         dt0, [1, -1, 5, -11],
         "`i` selector is not valid for a Frame with 10 rows")
+
+
+def test_rows_multislice_invalid3(dt0):
+    assert_valueerror(
+        dt0, [0, range(4, -4, -1)],
+        "Invalid wrap-around range(4, -4, -1) for an `i` selector")
+
+
+def test_rows_multislice_invalid4(dt0):
+    assert_typeerror(
+        dt0, [slice("A", "Z")],
+        "Only integer-valued slices are allowed")
 
 
 

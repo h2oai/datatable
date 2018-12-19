@@ -394,27 +394,33 @@ void multislice_in::execute(workframe& wf) {
         break;
       }
       case item_kind::RANGE: {
-        if (item.start < 0) item.start += inrows;
-        if (item.stop < 0) item.stop += inrows;
+        if (item.start < 0) {
+          item.start += inrows;
+          item.stop += inrows;
+        }
         int64_t icount = (item.stop - item.start) / item.step;
         total_count += static_cast<size_t>(icount);
         break;
       }
       case item_kind::SLICE: {
-        if (item.start < 0) item.start += inrows;
-        if (item.start < 0) item.start = 0;
-        if (item.start > inrows) continue;
-        if (item.stop < 0) item.stop += inrows;
-        if (item.stop < 0) item.stop = -1;
-        if (item.stop > inrows) item.stop = inrows;
-        int64_t icount = 0;
-        if (item.step > 0 && item.stop > item.start) {
-          icount = (item.stop - item.start + item.step - 1) / item.step;
+        if (item.step != 0) {
+          if (item.start < 0) item.start += inrows;
+          if (item.start < 0) item.start = 0;
+          if (item.start > inrows) continue;
+          if (item.stop < 0) item.stop += inrows;
+          if (item.stop < 0) item.stop = -1;
+          if (item.stop > inrows) item.stop = inrows;
+          int64_t icount = 0;
+          if (item.step > 0 && item.stop > item.start) {
+            icount = (item.stop - item.start + item.step - 1) / item.step;
+          }
+          if (item.step < 0 && item.stop < item.start) {
+            icount = (item.start - item.stop - item.step - 1) / (-item.step);
+          }
+          total_count += static_cast<size_t>(icount);
+        } else {
+          total_count += static_cast<size_t>(item.stop);
         }
-        if (item.step < 0 && item.stop < item.start) {
-          icount = (item.start - item.stop - item.step - 1) / (-item.step);
-        }
-        total_count += static_cast<size_t>(icount);
         break;
       }
     }
@@ -442,6 +448,7 @@ void multislice_in::execute(workframe& wf) {
       }
     }
   }
+  xassert(j == total_count);
   RowIndex ri(std::move(indices), false);
   wf.apply_rowindex(ri);
 }
