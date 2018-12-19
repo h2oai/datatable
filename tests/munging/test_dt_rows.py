@@ -26,14 +26,14 @@ def _dt0():
 
 def assert_valueerror(df, rows, error_message):
     with pytest.raises(ValueError) as e:
-        df[rows, :]
+        noop(df[rows, :])
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
 
 def assert_typeerror(df, rows, error_message):
     with pytest.raises(TypeError) as e:
-        df[rows, :]
+        noop(df[rows, :])
     assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
@@ -439,9 +439,10 @@ def test_rows_int_column_large(dt0):
 
 def test_rows_int_column_nas(dt0):
     col = dt.Frame([3, None, 2, 4])
-    with pytest.raises(ValueError) as e:
-        dt0[col, :]
-    assert "RowIndex source column contains NA values" in str(e.value)
+    assert_valueerror(
+        dt0, col,
+        "RowIndex source column contains NA values")
+
 
 
 
@@ -461,10 +462,10 @@ def test_rows_numpy_array(numpy):
 def test_rows_numpy_array_big(numpy):
     DT = dt.Frame(range(1000))
     idx = numpy.arange(900, 1200, 5)
-    with pytest.raises(ValueError) as e:
-        noop(DT[idx, :])
-    assert ("An integer column used as an `i` selector contains index 1195 "
-            "which is not valid for a Frame with 1000 rows" in str(e.value))
+    assert_valueerror(
+        DT, idx,
+        "An integer column used as an `i` selector contains index 1195 "
+        "which is not valid for a Frame with 1000 rows")
 
 
 def test_rows_int_numpy_array_shapes(dt0, numpy):
