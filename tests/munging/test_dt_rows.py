@@ -298,6 +298,21 @@ def test_rows_multislice5():
     assert res.to_list()[0] == [0, 1, 2] + [4] * 105
 
 
+def test_rows_multislice6():
+    DT = dt.Frame(range(20))
+    res = DT[[slice(100), slice(4, None, -2)], :]
+    res.internal.check()
+    assert res.ncols == 1
+    assert res.to_list()[0] == list(range(20)) + [4, 2, 0]
+
+
+def test_rows_multislice7():
+    DT = dt.Frame(range(20))
+    res = DT[[range(-5, 0, 2)], :]
+    res.internal.check()
+    assert res.to_list() == [[15, 17, 19]]
+
+
 def test_rows_multislice_invalid1(dt0):
     assert_typeerror(
         dt0, [1, "hey"],
@@ -320,6 +335,18 @@ def test_rows_multislice_invalid4(dt0):
     assert_typeerror(
         dt0, [slice("A", "Z")],
         "Only integer-valued slices are allowed")
+
+
+def test_rows_multislice_invalid5(dt0):
+    s = "when step is 0, both start and stop must " \
+        "be present, and stop must be non-negative"
+    assert_valueerror(
+        dt0, [slice(3, -1, 0)], "Invalid slice(3, -1, 0): " + s)
+    assert_valueerror(
+        dt0, [slice(3, None, 0)], "Invalid slice(3, None, 0): " + s)
+    assert_valueerror(
+        dt0, [slice(None, 6, 0)], "Invalid slice(None, 6, 0): " + s)
+
 
 
 
