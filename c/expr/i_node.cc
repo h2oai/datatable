@@ -167,7 +167,7 @@ expr_in::~expr_in() {
 void expr_in::execute(workframe& wf) {
   SType st = expr->resolve(wf);
   if (st != SType::BOOL) {
-    throw TypeError() << "Filter expression must be of `bool8` type, instead it "
+    throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
   Column* col = expr->evaluate_eager(wf);
@@ -226,7 +226,7 @@ void frame_in::post_init_check(workframe& wf) {
     int64_t max = col->max_int64();
     if (min < -1) {
       throw ValueError() << "An integer column used as an `i` selector "
-          "contains invalid negative indices: " << min;
+          "contains an invalid negative index: " << min;
     }
     if (max >= static_cast<int64_t>(nrows)) {
       throw ValueError() << "An integer column used as an `i` selector "
@@ -268,8 +268,8 @@ static i_node* _from_nparray(py::oobj src) {
   }
   py::ostring dtype = src.get_attr("dtype").to_pystring_force();
   std::string dtype_str { PyUnicode_AsUTF8(dtype.to_borrowed_ref()) };
-  bool is_bool = dtype_str.compare(0, 4, "bool");
-  bool is_int = dtype_str.compare(0, 3, "int");
+  bool is_bool = dtype_str.compare(0, 4, "bool") == 0;
+  bool is_int = dtype_str.compare(0, 3, "int") == 0;
   if (!(is_bool || is_int)) {
     throw TypeError() << "Either a boolean or an integer numpy array expected "
         "for an `i` selector, got array of dtype `" << dtype_str << "`";
@@ -376,8 +376,8 @@ multislice_in::multislice_in(py::robj src) {
 
 void multislice_in::post_init_check(workframe& wf) {
   if (wf.nrows() < min_nrows) {
-    throw ValueError() << "`i` selector is valid for a Frame with at least "
-        << min_nrows << " row" << (min_nrows == 1? "" : "s");
+    throw ValueError() << "`i` selector is not valid for a Frame with "
+        << wf.nrows() << " row" << (wf.nrows() == 1? "" : "s");
   }
 }
 
@@ -394,27 +394,33 @@ void multislice_in::execute(workframe& wf) {
         break;
       }
       case item_kind::RANGE: {
-        if (item.start < 0) item.start += inrows;
-        if (item.stop < 0) item.stop += inrows;
+        if (item.start < 0) {
+          item.start += inrows;
+          item.stop += inrows;
+        }
         int64_t icount = (item.stop - item.start) / item.step;
         total_count += static_cast<size_t>(icount);
         break;
       }
       case item_kind::SLICE: {
-        if (item.start < 0) item.start += inrows;
-        if (item.start < 0) item.start = 0;
-        if (item.start > inrows) continue;
-        if (item.stop < 0) item.stop += inrows;
-        if (item.stop < 0) item.stop = -1;
-        if (item.stop > inrows) item.stop = inrows;
-        int64_t icount = 0;
-        if (item.step > 0 && item.stop > item.start) {
-          icount = (item.stop - item.start + item.step - 1) / item.step;
+        if (item.step != 0) {
+          if (item.start < 0) item.start += inrows;
+          if (item.start < 0) item.start = 0;
+          if (item.start > inrows) continue;
+          if (item.stop < 0) item.stop += inrows;
+          if (item.stop < 0) item.stop = -1;
+          if (item.stop > inrows) item.stop = inrows;
+          int64_t icount = 0;
+          if (item.step > 0 && item.stop > item.start) {
+            icount = (item.stop - item.start + item.step - 1) / item.step;
+          }
+          if (item.step < 0 && item.stop < item.start) {
+            icount = (item.start - item.stop - item.step - 1) / (-item.step);
+          }
+          total_count += static_cast<size_t>(icount);
+        } else {
+          total_count += static_cast<size_t>(item.stop);
         }
-        if (item.step < 0 && item.stop < item.start) {
-          icount = (item.start - item.stop - item.step - 1) / (-item.step);
-        }
-        total_count += static_cast<size_t>(icount);
         break;
       }
     }
@@ -442,6 +448,7 @@ void multislice_in::execute(workframe& wf) {
       }
     }
   }
+  xassert(j == total_count);
   RowIndex ri(std::move(indices), false);
   wf.apply_rowindex(ri);
 }
@@ -487,6 +494,10 @@ static i_node* _make(py::robj src) {
   if (src.is_range()) {
     auto ss = src.to_orange();
     return new slice_in(ss.start(), ss.stop(), ss.step(), false);
+  }
+  // String is iterable, therefore this check must come before .is_iterable()
+  if (src.is_string()) {
+    throw TypeError() << "String value cannot be used as an `i` expression";
   }
   // "iterable" is a very generic interface, so it must come close to last
   // in the resolution sequence
