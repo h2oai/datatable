@@ -346,11 +346,30 @@ def test_rows_int_column(dt0):
                              [5, 0.1, 5, 1]]
 
 
+@pytest.mark.skip(reason="See #1496")
+def test_rows_int_column2():
+    DT = dt.Frame(range(10))
+    col = dt.Frame([3, 4, -1, 0, -1])
+    res = DT[col, :]
+    res.internal.check()
+    assert res.shape == (5, 1)
+    assert res.to_list() == [[3, 4, None, 0, None]]
+
+
 def test_rows_int_column_negative(dt0):
-    col = dt.Frame([3, 7, -1, 4])
-    with pytest.raises(ValueError) as e:
-        dt0[col, :]
-    assert "Row indices in integer column cannot be negative" in str(e.value)
+    col = dt.Frame([3, 7, -3, 4])
+    assert_valueerror(
+        dt0, col,
+        "An integer column used as an `i` selector contains an invalid negative "
+        "index: -3")
+
+
+def test_rows_int_column_large(dt0):
+    col = dt.Frame([3, 7, 93, 4])
+    assert_valueerror(
+        dt0, col,
+        "An integer column used as an `i` selector contains index 93 which is "
+        "not valid for a Frame with 10 rows")
 
 
 def test_rows_int_column_nas(dt0):
@@ -428,6 +447,12 @@ def test_rows_bool_numpy_array_error(dt0, numpy):
         "a Frame with 10 rows")
 
 
+def test_rows_bool_numpy_array_error2(dt0, numpy):
+    assert_typeerror(
+        dt0, numpy.array([1.7, 3.4, 0.5] + [0.0] * 7),
+        "Either a boolean or an integer numpy array expected for an `i` "
+        "selector, got array of dtype `float64`")
+
 
 
 #-------------------------------------------------------------------------------
@@ -437,30 +462,25 @@ def test_rows_bool_numpy_array_error(dt0, numpy):
 #     dt[f.colA < f.colB, :]
 #-------------------------------------------------------------------------------
 
-def test_rows_function1(dt0):
+def test_rows_expr1(dt0):
     dt2 = dt0[f.colA, :]
     dt2.internal.check()
     assert dt2.shape == (5, 3)
     assert dt2.to_list()[1] == [-11, 9, 0, 1, None]
 
 
-def test_rows_function3(dt0):
+def test_rows_expr3(dt0):
     dt2 = dt0[f.colA < f.colB, :]
     dt2.internal.check()
     assert dt2.shape == (2, 3)
     assert dt2.to_list() == [[0, 1], [7, 9], [5, 1.3]]
 
 
-def test_rows_function4(dt0):
+def test_rows_expr4(dt0):
     dt1 = dt0[f.colB == 0, :]
     dt1.internal.check()
     assert dt1.shape == (2, 3)
     assert dt1.to_list() == [[0, 1], [0, 0], [0, -2.6]]
-
-
-def test_rows_function_invalid(dt0):
-    assert_typeerror(dt0, lambda g: "boooo!",
-                     "Unexpected result produced by the `rows` function")
 
 
 def test_0rows_frame():
@@ -474,6 +494,13 @@ def test_0rows_frame():
     dt2.internal.check()
     assert dt2.shape == (0, 1)
     assert dt2.ltypes == (ltype.int, )
+
+
+def test_select_wrong_stype():
+    dt0 = dt.Frame(A=range(5), B=range(5))
+    assert_typeerror(
+        dt0, f.A + f.B,
+        "Filter expression must be boolean, instead it was of type int32")
 
 
 

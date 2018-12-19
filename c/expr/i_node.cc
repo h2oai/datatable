@@ -167,7 +167,7 @@ expr_in::~expr_in() {
 void expr_in::execute(workframe& wf) {
   SType st = expr->resolve(wf);
   if (st != SType::BOOL) {
-    throw TypeError() << "Filter expression must be of `bool8` type, instead it "
+    throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
   Column* col = expr->evaluate_eager(wf);
@@ -226,7 +226,7 @@ void frame_in::post_init_check(workframe& wf) {
     int64_t max = col->max_int64();
     if (min < -1) {
       throw ValueError() << "An integer column used as an `i` selector "
-          "contains invalid negative indices: " << min;
+          "contains an invalid negative index: " << min;
     }
     if (max >= static_cast<int64_t>(nrows)) {
       throw ValueError() << "An integer column used as an `i` selector "
@@ -268,8 +268,8 @@ static i_node* _from_nparray(py::oobj src) {
   }
   py::ostring dtype = src.get_attr("dtype").to_pystring_force();
   std::string dtype_str { PyUnicode_AsUTF8(dtype.to_borrowed_ref()) };
-  bool is_bool = dtype_str.compare(0, 4, "bool");
-  bool is_int = dtype_str.compare(0, 3, "int");
+  bool is_bool = dtype_str.compare(0, 4, "bool") == 0;
+  bool is_int = dtype_str.compare(0, 3, "int") == 0;
   if (!(is_bool || is_int)) {
     throw TypeError() << "Either a boolean or an integer numpy array expected "
         "for an `i` selector, got array of dtype `" << dtype_str << "`";
