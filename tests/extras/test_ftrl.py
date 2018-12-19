@@ -602,10 +602,10 @@ def test_ftrl_fit_predict_from_setters():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_feature_importance():
-    ft = Ftrl(d = 100)
+    ft = Ftrl(d = 200)
     df_train = dt.Frame([range(ft.d),
                          [i % 2 for i in range(ft.d)],
-                         [i % 3 for i in range(ft.d)]
+                         [i % 20 for i in range(ft.d)]
                         ])
     df_target = dt.Frame([False, True] * (ft.d // 2))
     ft.fit(df_train, df_target)
