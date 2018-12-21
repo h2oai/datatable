@@ -266,7 +266,7 @@ static void _check_list_type(size_t k, list_type prev, list_type curr) {
   static const char* names[] = {"?", "boolean", "integer", "string", "expr"};
   throw TypeError() << "Mixed selector types in `j` are not allowed. "
       "Element " << k << " is of type " << names[curr] << ", whereas the "
-      "previous elements were of type " << names[prev];
+      "previous element(s) were of type " << names[prev];
 }
 
 
@@ -274,6 +274,7 @@ static j_node* _from_list(py::robj src, workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   list_type type = UNKNOWN;
   std::vector<size_t> indices;
+  exprvec exprs;
   size_t k = 0;
   for (auto elem : src.to_oiter()) {
     if (elem.is_int()) {
@@ -295,10 +296,38 @@ static j_node* _from_list(py::robj src, workframe& wf) {
       size_t j = dt0->xcolindex(elem);
       indices.push_back(j);
     }
-    else /*if (is_PyBaseExpr(elem))*/ {
-      return nullptr;
+    else if (is_PyBaseExpr(elem)) {
+      if (type == UNKNOWN) type = EXPR;
+      _check_list_type(k, type, EXPR);
+      py::oobj res = elem.invoke("_core");
+      xassert(res.typeobj() == &py::base_expr::Type::type);
+      auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
+      auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
+      if (expr->is_primary_col_selector()) {
+        size_t i = expr->get_primary_col_index(wf);
+        indices.push_back(i);
+      }
+      exprs.push_back(std::move(expr));
+    }
+    else {
+      throw TypeError() << "Element " << k << " in the `j` selector list has "
+          "type `" << elem.typeobj() << "`, which is not a proper column "
+          "selector";
     }
     ++k;
+  }
+  if (type == BOOL && k != dt0->ncols) {
+    throw ValueError() << "The length of boolean list `j` does not match the "
+        "number of columns in the Frame: " << k << " vs " << dt0->ncols;
+  }
+  // A list of "EXPR" type may be either a list of plain column selectors
+  // (such as `f.A`), or a list of more complicated expressions. In the former
+  // case the vector of `indices` will be the same size as `exprs`, and we
+  // return a `collist_jn` node. In the latter case, the `exprlist_jn` node is
+  // created.
+  if (exprs.size() > indices.size()) {
+    xassert(type == EXPR);
+    return new exprlist_jn(std::move(exprs));
   }
   return new collist_jn(std::move(indices));
 }
@@ -368,32 +397,6 @@ void j_node::update(workframe&) {}
 
 /*******************************
 
-    if isinstance(arg, (types.GeneratorType, list, tuple)):
-        isarray = True
-        outcols = []
-        colnames = []
-        for col in arg:
-            pcol = process_column(col, dt)
-            if isinstance(pcol, int):
-                outcols.append(pcol)
-                colnames.append(dt.names[pcol])
-            elif isinstance(pcol, tuple):
-                start, count, step = pcol
-                for i in range(count):
-                    j = start + i * step
-                    outcols.append(j)
-                    colnames.append(dt.names[j])
-            else:
-                assert isinstance(pcol, BaseExpr)
-                pcol.resolve()
-                isarray = False
-                outcols.append(pcol)
-                colnames.append(str(col))
-        if isarray:
-            return ArrayCSNode(ee, outcols, colnames)
-        else:
-            return MixedCSNode(ee, outcols, colnames)
-
     if isinstance(arg, dict):
         isarray = True
         outcols = []
@@ -417,10 +420,6 @@ void j_node::update(workframe&) {}
             return ArrayCSNode(ee, outcols, colnames)
         else:
             return MixedCSNode(ee, outcols, colnames)
-
-    if isinstance(arg, types.FunctionType):
-        res = arg(f)
-        return make_columnset(res, ee)
 
     if isinstance(arg, (type, ltype)):
         ltypes = dt.ltypes
@@ -447,32 +446,6 @@ void j_node::update(workframe&) {}
 
 
 def process_column(col, df, new_cols_allowed=False):
-    """
-    Helper function to verify the validity of a single column selector.
-
-    Given frame `df` and a column description `col`, this function returns:
-      * either the numeric index of the column
-      * a numeric slice, as a triple (start, count, step)
-      * or a `BaseExpr` object
-    """
-    if isinstance(col, int):
-        ncols = df.ncols
-        if -ncols <= col < ncols:
-            return col % ncols
-        else:
-            raise TValueError(
-                "Column index `{col}` is invalid for a frame with {ncolumns}"
-                .format(col=col, ncolumns=plural(ncols, "column")))
-
-    if isinstance(col, str):
-        if new_cols_allowed:
-            try:
-                # This raises an exception if `col` cannot be found
-                return df.colindex(col)
-            except TValueError:
-                return NewColumnExpr(col)
-        else:
-            return df.colindex(col)
 
     if isinstance(col, slice):
         start = col.start
@@ -501,14 +474,6 @@ def process_column(col, df, new_cols_allowed=False):
         else:
             raise TValueError("%r is not integer-valued" % col)
 
-    if isinstance(col, ColSelectorExpr) and col._dtexpr.get_datatable() == df:
-        col.resolve()
-        return col.col_index
-
-    if isinstance(col, BaseExpr):
-        return col
-
-    raise TTypeError("Unknown column selector: %r" % col)
 
  *******************************/
 
