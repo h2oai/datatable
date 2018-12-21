@@ -217,12 +217,6 @@ def test_cols_dict(dt0, tbl0):
     assert same_iterables(dt1.names, ("x", "y"))
     assert not dt1.internal.isview
     assert same_iterables(dt1.to_list(), [tbl0[0], tbl0[3]])
-    dt2 = dt0[:, {"_": slice(None)}]
-    dt2.internal.check()
-    assert dt2.shape == (6, 4)
-    assert dt2.names == ("_", "_1", "_2", "_3")
-    assert not dt2.internal.isview
-    assert dt2.to_list() == tbl0
 
 
 def test_cols_colselector(dt0, tbl0):
@@ -231,7 +225,7 @@ def test_cols_colselector(dt0, tbl0):
     the column:
         dt[:, f.A]
     """
-    dt1 = dt0(select=lambda f: f.B)
+    dt1 = dt0[:, f.B]
     dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.names == ("B", )
@@ -284,17 +278,17 @@ def test_cols_expression2():
     from collections import OrderedDict
     selector = OrderedDict([("foo", f.A), ("bar", -f.A)])
     f0 = dt.Frame({"A": range(10)})
-    f1 = f0(select=selector, engine="eager")
+    f1 = f0[:, selector]
     f1.internal.check()
     assert f1.names == ("foo", "bar")
     assert f1.stypes == f0.stypes * 2
     assert f1.to_list() == [list(range(10)), list(range(0, -10, -1))]
-    if has_llvm():
-        f2 = f0(select=selector, engine="llvm")
-        f2.internal.check()
-        assert f2.stypes == f1.stypes
-        assert f2.names == f1.names
-        assert f2.to_list() == f1.to_list()
+    # if has_llvm():
+    #     f2 = f0(select=selector, engine="llvm")
+    #     f2.internal.check()
+    #     assert f2.stypes == f1.stypes
+    #     assert f2.names == f1.names
+    #     assert f2.to_list() == f1.to_list()
 
 
 def test_cols_bad_arguments(dt0):

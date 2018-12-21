@@ -289,7 +289,7 @@ static void _check_list_type(size_t k, list_type prev, list_type curr) {
 }
 
 
-static j_node* _from_list(py::robj src, workframe& wf) {
+static j_node* _from_iterable(py::robj src, workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   list_type type = UNKNOWN;
   std::vector<size_t> indices;
@@ -406,14 +406,8 @@ static j_node* _make(py::robj src, workframe& wf) {
     size_t i = resolve_column(src, wf);
     return new collist_jn({ i });
   }
-  if (src.is_list_or_tuple() || src.is_dict()) {
-    return _from_list(src, wf);
-  }
-  if (src.is_dict()) {
-    return nullptr;
-  }
   if (src.is_iterable()) {
-    return _from_list(src, wf);
+    return _from_iterable(src, wf);
   }
   if (src.is_none() || src.is_ellipsis()) {
     return new allcols_jn();
@@ -440,30 +434,6 @@ void j_node::update(workframe&) {}
 
 /*******************************
 
-    if isinstance(arg, dict):
-        isarray = True
-        outcols = []
-        colnames = []
-        for name, col in arg.items():
-            pcol = process_column(col, dt)
-            colnames.append(name)
-            if isinstance(pcol, int):
-                outcols.append(pcol)
-            elif isinstance(pcol, tuple):
-                start, count, step = pcol
-                for i in range(count):
-                    j = start + i * step
-                    outcols.append(j)
-                    if i > 0:
-                        colnames.append(name + str(i))
-            else:
-                isarray = False
-                outcols.append(pcol)
-        if isarray:
-            return ArrayCSNode(ee, outcols, colnames)
-        else:
-            return MixedCSNode(ee, outcols, colnames)
-
     if isinstance(arg, (type, ltype)):
         ltypes = dt.ltypes
         lt = ltype(arg)
@@ -485,7 +455,6 @@ void j_node::update(workframe&) {}
                 colnames.append(dt.names[i])
         return ArrayCSNode(ee, outcols, colnames)
 
-    raise TValueError("Unknown `select` argument: %r" % arg)
 
 
 def process_column(col, df, new_cols_allowed=False):
