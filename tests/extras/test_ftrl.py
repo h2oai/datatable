@@ -529,6 +529,15 @@ def test_ftrl_fit_unique():
     assert ft.model.to_list() == model
 
 
+def test_ftrl_fit_unique_ignore_none():
+    ft = Ftrl(d = 10)
+    df_train = dt.Frame(range(2 * ft.d))
+    df_target = dt.Frame([True] * ft.d + [None] * ft.d)
+    ft.fit(df_train, df_target)
+    model = [[-0.5] * ft.d, [0.25] * ft.d]
+    assert ft.model.to_list() == model
+
+
 def test_ftrl_fit_predict_bool():
     ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[True, False]])

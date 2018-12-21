@@ -36,7 +36,9 @@ class j_node {
     static jptr make(py::robj src, workframe& wf);
 
     virtual ~j_node();
-    virtual DataTable* select(workframe& wf) = 0;
+    virtual DataTable* select(workframe&) = 0;
+    virtual void delete_(workframe&);
+    virtual void update(workframe&);
 };
 
 

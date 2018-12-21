@@ -403,7 +403,7 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
   }
   int64_t imin = col->min_int64();
   int64_t imax = col->max_int64();
-  if (imin < 0) {
+  if (imin < -1) {
     throw ValueError() << "Row indices in integer column cannot be negative";
   }
   min = static_cast<size_t>(imin);
