@@ -76,6 +76,7 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
       size_t nth = static_cast<size_t>(omp_get_num_threads());
 
       for (size_t j = ith; j < dt_X->nrows; j += nth) {
+        if (ISNA<int8_t>(d_y[j])) continue;
         bool y = d_y[j];
         hash_row(x, j);
         double p = predict_row(x);
