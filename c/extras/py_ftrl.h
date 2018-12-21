@@ -27,9 +27,12 @@
 
 namespace py {
 
+using dtftptr = std::unique_ptr<dt::Ftrl>;
+
 class Ftrl : public PyObject {
   private:
-    dt::Ftrl* dtft;
+    std::vector<dtftptr> dtft;
+    py::olist labels;
 
   public:
     class Type : public ExtType<Ftrl> {

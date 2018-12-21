@@ -23,14 +23,15 @@
 #include "python/float.h"
 #include "python/int.h"
 #include "python/tuple.h"
+#include "str/py_str.h"
 #include "extras/py_ftrl.h"
 #include <extras/py_validator.h>
 
 namespace py {
 
 
-PKArgs Ftrl::Type::args___init__(1, 0, 7, false, false,
-                                 {"params", "alpha", "beta", "lambda1",
+PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
+                                 {"params", "labels", "alpha", "beta", "lambda1",
                                  "lambda2", "d", "nepochs", "inter"},
                                  "__init__", nullptr);
 
@@ -66,13 +67,14 @@ void Ftrl::m__init__(PKArgs& args) {
   dt::FtrlParams dt_params = dt::Ftrl::default_params;
 
   bool defined_params   = !args[0].is_none_or_undefined();
-  bool defined_alpha    = !args[1].is_none_or_undefined();
-  bool defined_beta     = !args[2].is_none_or_undefined();
-  bool defined_lambda1  = !args[3].is_none_or_undefined();
-  bool defined_lambda2  = !args[4].is_none_or_undefined();
-  bool defined_d        = !args[5].is_none_or_undefined();
-  bool defined_nepochs = !args[6].is_none_or_undefined();
-  bool defined_inter    = !args[7].is_none_or_undefined();
+  bool defined_labels   = !args[1].is_none_or_undefined();
+  bool defined_alpha    = !args[2].is_none_or_undefined();
+  bool defined_beta     = !args[3].is_none_or_undefined();
+  bool defined_lambda1  = !args[4].is_none_or_undefined();
+  bool defined_lambda2  = !args[5].is_none_or_undefined();
+  bool defined_d        = !args[6].is_none_or_undefined();
+  bool defined_nepochs  = !args[7].is_none_or_undefined();
+  bool defined_inter    = !args[8].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
@@ -108,45 +110,57 @@ void Ftrl::m__init__(PKArgs& args) {
   } else {
 
     if (defined_alpha) {
-      dt_params.alpha = args[1].to_double();
-      py::Validator::check_positive<double>(dt_params.alpha, args[1]);
+      dt_params.alpha = args[2].to_double();
+      py::Validator::check_positive<double>(dt_params.alpha, args[2]);
     }
 
     if (defined_beta) {
-      dt_params.beta = args[2].to_double();
-      py::Validator::check_not_negative<double>(dt_params.beta, args[2]);
+      dt_params.beta = args[3].to_double();
+      py::Validator::check_not_negative<double>(dt_params.beta, args[3]);
     }
 
     if (defined_lambda1) {
-      dt_params.lambda1 = args[3].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda1, args[3]);
+      dt_params.lambda1 = args[4].to_double();
+      py::Validator::check_not_negative<double>(dt_params.lambda1, args[4]);
     }
 
     if (defined_lambda2) {
-      dt_params.lambda2 = args[4].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda2, args[4]);
+      dt_params.lambda2 = args[5].to_double();
+      py::Validator::check_not_negative<double>(dt_params.lambda2, args[5]);
     }
 
     if (defined_d) {
-      dt_params.d = static_cast<uint64_t>(args[5].to_size_t());
-      py::Validator::check_positive<uint64_t>(dt_params.d, args[5]);
+      dt_params.d = static_cast<uint64_t>(args[6].to_size_t());
+      py::Validator::check_positive<uint64_t>(dt_params.d, args[6]);
     }
 
     if (defined_nepochs) {
-      dt_params.nepochs = args[6].to_size_t();
+      dt_params.nepochs = args[7].to_size_t();
     }
 
     if (defined_inter) {
-      dt_params.inter = args[7].to_bool_strict();
+      dt_params.inter = args[8].to_bool_strict();
     }
   }
 
-  dtft = new dt::Ftrl(dt_params);
+  size_t nlabels = 1;
+  if (defined_labels) {
+    labels = args[1].to_pylist();
+    nlabels = labels.size();
+    if (nlabels < 2) {
+      throw ValueError() << "Number of labels should be more than one";
+    }
+    dtft.reserve(nlabels);
+  }
+
+  for (size_t i = 0; i < nlabels; ++i) {
+    dtft.push_back(dtftptr(new dt::Ftrl(dt_params)));
+  }
 }
 
 
 void Ftrl::m__dealloc__() {
-  delete dtft;
+//  delete dtft;
 }
 
 
@@ -272,16 +286,30 @@ void Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame must have exactly one column";
   }
 
-  if (dt_y->columns[0]->stype() != SType::BOOL ) {
-    throw ValueError() << "Target column must be of a `bool` type";
-  }
-
   if (dt_X->nrows != dt_y->nrows) {
     throw ValueError() << "Target column must have the same number of rows "
                        << "as the training frame";
   }
 
-  dtft->fit(dt_X, dt_y);
+  std::vector<DataTable*> dti_y;
+  dti_y.reserve(dtft.size());
+
+  if (dt_y->columns[0]->stype() == SType::BOOL ) {
+    dti_y.push_back(dt_y);
+  } else {
+    DataTable* dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
+    xassert(dt_yy->ncols == dtft.size());
+
+    for (size_t i = 0; i < dtft.size(); ++i) {
+      DataTable* dt_temp = new DataTable({dt_yy->columns[i]}, {"target"});
+      dti_y.push_back(dt_temp);
+    }
+//    throw ValueError() << "Target column must be of a `bool` type";
+  }
+
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->fit(dt_X, dti_y[i]);
+  }
 }
 
 
@@ -313,12 +341,12 @@ oobj Ftrl::predict(const PKArgs& args) {
 
   if (dt_X == nullptr) return Py_None;
 
-  if (!dtft->is_trained()) {
+  if (!dtft[0]->is_trained()) {
     throw ValueError() << "Cannot make any predictions, train or set "
                        << "the model first";
   }
 
-  size_t ncols = dtft->get_ncols();
+  size_t ncols = dtft[0]->get_ncols();
   if (dt_X->ncols != ncols && ncols != 0) {
     throw ValueError() << "Can only predict on a frame that has " << ncols
                        << " column" << (ncols == 1? "" : "s")
@@ -326,7 +354,18 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
-  DataTable* dt_y = dtft->predict(dt_X).release();
+  DataTable* dt_y = dtft[0]->predict(dt_X).release();
+
+  std::vector<DataTable*> dti_y;
+  size_t nlabels = dtft.size();
+  dti_y.reserve(nlabels - 1);
+  for (size_t i = 1; i < nlabels; ++i) {
+    dti_y.push_back(dtft[i]->predict(dt_X).release());
+  }
+
+  dt_y->cbind(dti_y);
+  dt_y->set_names(labels);
+
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
                   );
@@ -339,7 +378,8 @@ NoArgs Ftrl::Type::args_reset("reset",
 R"(reset(self)
 --
 
-Reset an FTRL model, i.e. initialize all the weights to zero.
+Reset FTRL model and feature importance information,
+i.e. initialize model and importance frames with zeros.
 
 Parameters
 ----------
@@ -352,8 +392,10 @@ Returns
 
 
 void Ftrl::reset(const NoArgs&) {
-  dtft->reset_model();
-  dtft->reset_fi();
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->reset_model();
+    dtft[i]->reset_fi();
+  }
 }
 
 
@@ -361,8 +403,8 @@ void Ftrl::reset(const NoArgs&) {
 *  Getters and setters.
 */
 oobj Ftrl::get_model() const {
-  if (dtft->is_trained()) {
-    DataTable* dt_model = dtft->get_model();
+  if (dtft[0]->is_trained()) {
+    DataTable* dt_model = dtft[0]->get_model();
     py::oobj df_model = py::oobj::from_new_reference(
                           py::Frame::from_datatable(dt_model)
                         );
@@ -374,8 +416,8 @@ oobj Ftrl::get_model() const {
 
 
 oobj Ftrl::get_fi() const {
-  if (dtft->is_trained()) {
-    DataTable* dt_fi = dtft->get_fi();
+  if (dtft[0]->is_trained()) {
+    DataTable* dt_fi = dtft[0]->get_fi();
     py::oobj df_fi = py::oobj::from_new_reference(
                           py::Frame::from_datatable(dt_fi)
                      );
@@ -413,45 +455,45 @@ oobj Ftrl::get_params_tuple() const {
 
 
 oobj Ftrl::get_alpha() const {
-  return py::ofloat(dtft->get_alpha());
+  return py::ofloat(dtft[0]->get_alpha());
 }
 
 
 oobj Ftrl::get_beta() const {
-  return py::ofloat(dtft->get_beta());
+  return py::ofloat(dtft[0]->get_beta());
 }
 
 
 oobj Ftrl::get_lambda1() const {
-  return py::ofloat(dtft->get_lambda1());
+  return py::ofloat(dtft[0]->get_lambda1());
 }
 
 
 oobj Ftrl::get_lambda2() const {
-  return py::ofloat(dtft->get_lambda2());
+  return py::ofloat(dtft[0]->get_lambda2());
 }
 
 
 oobj Ftrl::get_d() const {
-  return py::oint(static_cast<size_t>(dtft->get_d()));
+  return py::oint(static_cast<size_t>(dtft[0]->get_d()));
 }
 
 
 oobj Ftrl::get_nepochs() const {
-  return py::oint(dtft->get_nepochs());
+  return py::oint(dtft[0]->get_nepochs());
 }
 
 
 oobj Ftrl::get_inter() const {
-  return dtft->get_inter()? True() : False();
+  return dtft[0]->get_inter()? True() : False();
 }
 
 
 oobj Ftrl::get_colname_hashes() const {
-  if (dtft->is_trained()) {
-    size_t ncols = dtft->get_ncols();
+  if (dtft[0]->is_trained()) {
+    size_t ncols = dtft[0]->get_ncols();
     py::otuple py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = dtft->get_colnames_hashes();
+    std::vector<uint64_t> colname_hashes = dtft[0]->get_colnames_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
@@ -468,14 +510,14 @@ void Ftrl::set_model(robj model) {
 
   // Reset model when it was assigned `None` in Python
   if (dt_model_in == nullptr) {
-    if (dtft->is_trained()) dtft->reset_model();
+    if (dtft[0]->is_trained()) dtft[0]->reset_model();
     return;
   }
 
   const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-  if (dt_model_in->nrows != dtft->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << dtft->get_d()
+  if (dt_model_in->nrows != dtft[0]->get_d() || dt_model_in->ncols != 2) {
+    throw ValueError() << "FTRL model frame must have " << dtft[0]->get_d()
                        << " rows, and 2 columns, whereas your frame has "
                        << dt_model_in->nrows << " rows and "
                        << dt_model_in->ncols << " column"
@@ -503,7 +545,7 @@ void Ftrl::set_model(robj model) {
     throw ValueError() << "Values in column `n` cannot be negative";
   }
 
-  dtft->set_model(dt_model_in);
+  dtft[0]->set_model(dt_model_in);
 }
 
 
@@ -539,47 +581,61 @@ void Ftrl::set_params_tuple(robj params) {
 void Ftrl::set_alpha(robj py_alpha) {
   double alpha = py_alpha.to_double();
   py::Validator::check_positive(alpha, py_alpha);
-  dtft->set_alpha(alpha);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_alpha(alpha);
+  }
 }
 
 
 void Ftrl::set_beta(robj py_beta) {
   double beta = py_beta.to_double();
   py::Validator::check_not_negative(beta, py_beta);
-  dtft->set_beta(beta);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_beta(beta);
+  }
 }
 
 
 void Ftrl::set_lambda1(robj py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_not_negative(lambda1, py_lambda1);
-  dtft->set_lambda1(lambda1);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_lambda1(lambda1);
+  }
 }
 
 
 void Ftrl::set_lambda2(robj py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_not_negative(lambda2, py_lambda2);
-  dtft->set_lambda2(lambda2);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_lambda2(lambda2);
+  }
 }
 
 
 void Ftrl::set_d(robj py_d) {
   uint64_t d = static_cast<uint64_t>(py_d.to_size_t());
   py::Validator::check_positive(d, py_d);
-  dtft->set_d(d);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_d(d);
+  }
 }
 
 
 void Ftrl::set_nepochs(robj py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
-  dtft->set_nepochs(nepochs);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_nepochs(nepochs);
+  }
 }
 
 
 void Ftrl::set_inter(robj py_inter) {
   bool inter = py_inter.to_bool_strict();
-  dtft->set_inter(inter);
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_inter(inter);
+  }
 }
 
 
@@ -616,10 +672,10 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::oobj params = pickle[0];
   py::oobj model = pickle[1];
   py::oobj fi = pickle[2];
-  dtft = new dt::Ftrl(dt::Ftrl::default_params);
+  dtft.push_back(dtftptr(new dt::Ftrl(dt::Ftrl::default_params)));
   set_params_tuple(params);
   set_model(model);
-  dtft->set_fi(fi.to_frame());
+  dtft[0]->set_fi(fi.to_frame());
 }
 
 
