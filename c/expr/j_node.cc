@@ -139,27 +139,38 @@ DataTable* allcols_jn::select(workframe& wf) {
 class collist_jn : public j_node {
   private:
     std::vector<size_t> indices;
+    strvec names;
 
   public:
     collist_jn(std::vector<size_t>&& cols);
+    collist_jn(std::vector<size_t>&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
 };
 
 collist_jn::collist_jn(std::vector<size_t>&& cols)
   : indices(std::move(cols)) {}
 
+collist_jn::collist_jn(std::vector<size_t>&& cols, strvec&& names_)
+  : indices(std::move(cols)), names(std::move(names_))
+{
+  xassert(names.empty() || names.size() == indices.size());
+}
+
 
 DataTable* collist_jn::select(workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
-  const strvec& dt0_names = dt0->get_names();
+  if (names.empty()) {
+    const strvec& dt0_names = dt0->get_names();
+    names.reserve(indices.size());
+    for (size_t i : indices) {
+      names.push_back(dt0_names[i]);
+    }
+  }
   col_set cols;
-  strvec names;
   cols.reserve_extra(indices.size());
-  names.reserve(indices.size());
   for (size_t i : indices) {
     cols.add_column(dt0->columns[i], ri0);
-    names.push_back(dt0_names[i]);
   }
   return new DataTable(cols.release(), std::move(names));
 }
@@ -215,28 +226,36 @@ using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
 class exprlist_jn : public j_node {
   private:
     exprvec exprs;
+    strvec names;
 
   public:
     exprlist_jn(exprvec&& cols);
+    exprlist_jn(exprvec&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
 };
 
 exprlist_jn::exprlist_jn(exprvec&& cols)
   : exprs(std::move(cols)) {}
 
+exprlist_jn::exprlist_jn(exprvec&& cols, strvec&& names_)
+  : exprs(std::move(cols)), names(std::move(names_))
+{
+  xassert(names.empty() || names.size() == exprs.size());
+}
+
 
 DataTable* exprlist_jn::select(workframe& wf) {
+  if (names.empty()) {
+    names.resize(exprs.size());
+  }
   col_set cols;
-  strvec names;
   cols.reserve_extra(exprs.size());
-  names.reserve(exprs.size());
   for (auto& expr : exprs) {
     expr->resolve(wf);
   }
   RowIndex ri0;  // empty rowindex
   for (auto& expr : exprs) {
     cols.add_column(expr->evaluate_eager(wf), ri0);
-    names.push_back("");
   }
   return new DataTable(cols.release(), std::move(names));
 }
@@ -274,9 +293,10 @@ static j_node* _from_list(py::robj src, workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   list_type type = UNKNOWN;
   std::vector<size_t> indices;
+  std::vector<std::string> names;
   exprvec exprs;
   size_t k = 0;
-  for (auto elem : src.to_oiter()) {
+  auto process_element = [&](py::robj elem) {
     if (elem.is_int()) {
       if (type == UNKNOWN) type = INT;
       _check_list_type(k, type, INT);
@@ -315,7 +335,30 @@ static j_node* _from_list(py::robj src, workframe& wf) {
           "selector";
     }
     ++k;
+  };
+
+  if (src.is_list_or_tuple()) {
+    py::olist srclist = src.to_pylist();
+    size_t nelems = srclist.size();
+    for (size_t i = 0; i < nelems; ++i) {
+      process_element(srclist[i]);
+    }
+  } else if (src.is_dict()) {
+    py::odict srcdict = src.to_pydict();
+    type = EXPR;
+    for (auto kv : srcdict) {
+      if (!kv.first.is_string()) {
+        throw TypeError() << "Keys in `j` selector dictionary must be strings";
+      }
+      names.push_back(kv.first.to_string());
+      process_element(kv.second);
+    }
+  } else {
+    for (auto elem : src.to_oiter()) {
+      process_element(elem);
+    }
   }
+
   if (type == BOOL && k != dt0->ncols) {
     throw ValueError() << "The length of boolean list `j` does not match the "
         "number of columns in the Frame: " << k << " vs " << dt0->ncols;
@@ -327,9 +370,9 @@ static j_node* _from_list(py::robj src, workframe& wf) {
   // created.
   if (exprs.size() > indices.size()) {
     xassert(type == EXPR);
-    return new exprlist_jn(std::move(exprs));
+    return new exprlist_jn(std::move(exprs), std::move(names));
   }
-  return new collist_jn(std::move(indices));
+  return new collist_jn(std::move(indices), std::move(names));
 }
 
 
@@ -363,7 +406,7 @@ static j_node* _make(py::robj src, workframe& wf) {
     size_t i = resolve_column(src, wf);
     return new collist_jn({ i });
   }
-  if (src.is_list_or_tuple()) {
+  if (src.is_list_or_tuple() || src.is_dict()) {
     return _from_list(src, wf);
   }
   if (src.is_dict()) {
