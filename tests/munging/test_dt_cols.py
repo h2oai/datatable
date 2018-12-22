@@ -295,9 +295,9 @@ def test_cols_bad_arguments(dt0):
     """
     Check certain arguments that would be invalid as column selectors
     """
-    assert_valueerror(
+    assert_typeerror(
         dt0, 1.000001,
-        "Unknown `select` argument: 1.000001")
+        "Unsupported `j` selector of type <class 'float'>")
     assert_typeerror(dt0,
         slice(1, 2, "A"),
         "slice(1, 2, 'A') is neither integer- nor string-valued")
@@ -306,10 +306,10 @@ def test_cols_bad_arguments(dt0):
         "Element 1 in the `j` selector list has type `<class 'float'>`")
     assert_typeerror(
         dt0, True,
-        "Boolean value cannot be used as a `j` expression")
+        "Unsupported `j` selector of type <class 'bool'>")
     assert_typeerror(
         dt0, False,
-        "Boolean value cannot be used as a `j` expression")
+        "Unsupported `j` selector of type <class 'bool'>")
 
 
 def test_cols_from_view(dt0):

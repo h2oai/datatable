@@ -131,6 +131,9 @@ bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
 bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
 bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
+bool _obj::is_type()          const noexcept { return v && PyType_Check(v); }
+bool _obj::is_ltype()         const noexcept { return v && Py_TYPE(v) == py_ltype; }
+bool _obj::is_stype()         const noexcept { return v && Py_TYPE(v) == py_stype; }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }

@@ -57,24 +57,6 @@ class col_set {
 };
 
 
-static size_t resolve_column(int64_t i, workframe& wf) {
-  const DataTable* dt = wf.get_datatable(0);
-  int64_t incols = static_cast<int64_t>(dt->ncols);
-  if (i < -incols || i >= incols) {
-    throw ValueError() << "Column index `" << i << "` is invalid for a Frame "
-        "with " << incols << " column" << (incols == 1? "" : "s");
-  }
-  if (i < 0) i += incols;
-  return static_cast<size_t>(i);
-}
-
-// `name` must be a py::ostring
-static size_t resolve_column(py::robj name, workframe& wf) {
-  const DataTable* dt = wf.get_datatable(0);
-  return dt->xcolindex(name);
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -147,6 +129,7 @@ class collist_jn : public j_node {
     DataTable* select(workframe& wf) override;
 };
 
+
 collist_jn::collist_jn(std::vector<size_t>&& cols)
   : indices(std::move(cols)) {}
 
@@ -173,46 +156,6 @@ DataTable* collist_jn::select(workframe& wf) {
     cols.add_column(dt0->columns[i], ri0);
   }
   return new DataTable(cols.release(), std::move(names));
-}
-
-
-static collist_jn* _collist_from_slice(py::oslice src, workframe& wf) {
-  size_t len = wf.get_datatable(0)->ncols;
-  size_t start, count, step;
-  src.normalize(len, &start, &count, &step);
-  std::vector<size_t> indices;
-  indices.reserve(count);
-  for (size_t i = 0; i < count; ++i) {
-    indices.push_back(start + i * step);
-  }
-  return new collist_jn(std::move(indices));
-}
-
-
-// Note that the end in `start:end` is considered inclusive in a
-// string slice
-static collist_jn* _collist_from_string_slice(py::oslice src, workframe& wf) {
-  const DataTable* dt = wf.get_datatable(0);
-  py::oobj ostart = src.start_obj();
-  py::oobj ostop = src.stop_obj();
-  size_t start = ostart.is_none()? 0 : dt->xcolindex(ostart);
-  size_t end = ostop.is_none()? dt->ncols - 1 : dt->xcolindex(ostop);
-  size_t len = start <= end? end - start + 1 : start - end + 1;
-  std::vector<size_t> indices;
-  indices.reserve(len);
-  if (start <= end) {
-    for (size_t i = start; i <= end; ++i) {
-      indices.push_back(i);
-    }
-  } else {
-    // Careful with the case when `end = 0`. In this case a regular for-loop
-    // `(i = start; i >= end; --i)` will become infinite.
-    size_t i = start;
-    do {
-      indices.push_back(i);
-    } while (i-- != end);
-  }
-  return new collist_jn(std::move(indices));
 }
 
 
@@ -261,64 +204,158 @@ DataTable* exprlist_jn::select(workframe& wf) {
 }
 
 
-static j_node* _from_base_expr(py::robj src, workframe& wf) {
-  py::oobj res = src.invoke("_core");
-  xassert(res.typeobj() == &py::base_expr::Type::type);
-  auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-  auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
-  if (expr->is_primary_col_selector()) {
-    size_t i = expr->get_primary_col_index(wf);
-    return new collist_jn({ i });
-  }
-  exprvec exprs;
-  exprs.push_back(std::move(expr));
-  return new exprlist_jn(std::move(exprs));
-}
 
 
-enum list_type {
-  UNKNOWN, BOOL, INT, STR, EXPR
-};
+//------------------------------------------------------------------------------
+// j_node factory functions
+//------------------------------------------------------------------------------
+using intvec = std::vector<size_t>;
+using stypevec = std::vector<SType>;
 
-static void _check_list_type(size_t k, list_type prev, list_type curr) {
-  if (prev == curr) return;
-  static const char* names[] = {"?", "boolean", "integer", "string", "expr"};
-  throw TypeError() << "Mixed selector types in `j` are not allowed. "
-      "Element " << k << " is of type " << names[curr] << ", whereas the "
-      "previous element(s) were of type " << names[prev];
-}
+static const strvec typenames =
+  {"?", "boolean", "integer", "string", "expr", "type"};
+
+static stypevec stBOOL = {SType::BOOL};
+static stypevec stINT = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
+static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
+static stypevec stSTR = {SType::STR32, SType::STR64};
+static stypevec stOBJ = {SType::OBJ};
 
 
-static j_node* _from_iterable(py::robj src, workframe& wf) {
-  const DataTable* dt0 = wf.get_datatable(0);
-  list_type type = UNKNOWN;
-  std::vector<size_t> indices;
-  std::vector<std::string> names;
-  exprvec exprs;
-  size_t k = 0;
-  auto process_element = [&](py::robj elem) {
-    if (elem.is_int()) {
-      if (type == UNKNOWN) type = INT;
-      _check_list_type(k, type, INT);
+class jnode_maker {
+  private:
+    enum class list_type : size_t {
+      UNKNOWN, BOOL, INT, STR, EXPR, TYPE
+    };
+
+    workframe& wf;
+    const DataTable* dt0;
+    list_type type;
+    intvec  indices;
+    exprvec exprs;
+    strvec  names;
+    size_t  k;  // The index of the current element
+
+  public:
+    jnode_maker(py::robj src, workframe& wf_) : wf(wf_)
+    {
+      dt0 = wf.get_datatable(0);
+      type = list_type::UNKNOWN;
+      k = 0;
+
+      if (is_PyBaseExpr(src))   _process_element_expr(src);
+      else if (src.is_int())    _process_element_int(src);
+      else if (src.is_string()) _process_element_string(src);
+      else if (src.is_slice())  _process_element_slice(src);
+      else if (src.is_type())   _process_element_type(src);
+      else if (src.is_ltype())  _process_element_ltype(src);
+      else if (src.is_stype())  _process_element_stype(src);
+
+      else if (src.is_list_or_tuple()) {
+        py::olist srclist = src.to_pylist();
+        size_t nelems = srclist.size();
+        for (size_t i = 0; i < nelems; ++i) {
+          _process_element(srclist[i]);
+        }
+      }
+      else if (src.is_dict()) {
+        type = list_type::EXPR;
+        for (auto kv : src.to_pydict()) {
+          if (!kv.first.is_string()) {
+            throw TypeError() << "Keys in `j` selector dictionary must be strings";
+          }
+          names.push_back(kv.first.to_string());
+          _process_element(kv.second);
+        }
+      }
+      else if (src.is_iterable()) {
+        for (auto elem : src.to_oiter()) {
+          _process_element(elem);
+        }
+      }
+      else {
+        throw TypeError()
+          << "Unsupported `j` selector of type " << src.typeobj();
+      }
+    }
+
+    j_node* get_node() {
+      if (type == list_type::BOOL && k != dt0->ncols) {
+        throw ValueError()
+            << "The length of boolean list in `j` does not match the "
+               "number of columns in the Frame: "
+            << k << " vs " << dt0->ncols;
+      }
+      // A list of "EXPR" type may be either a list of plain column selectors
+      // (such as `f.A`), or a list of more complicated expressions. In the
+      // former case the vector of `indices` will be the same size as `exprs`,
+      // and we return a `collist_jn` node. In the latter case, the
+      // `exprlist_jn` node is created.
+      if (exprs.size() > indices.size()) {
+        xassert(type == list_type::EXPR);
+        return new exprlist_jn(std::move(exprs), std::move(names));
+      }
+      return new collist_jn(std::move(indices), std::move(names));
+    }
+
+  private:
+    void _set_type(list_type t) {
+      if (type == list_type::UNKNOWN) type = t;
+      if (type == t) return;
+      throw TypeError()
+          << "Mixed selector types in `j` are not allowed. Element "
+          << k << " is of type "
+          << typenames[static_cast<size_t>(t)]
+          << ", whereas the previous element(s) were of type "
+          << typenames[static_cast<size_t>(type)];
+    }
+
+    void _process_element(py::robj elem) {
+      if (is_PyBaseExpr(elem))   _process_element_expr(elem);
+      else if (elem.is_int())    _process_element_int(elem);
+      else if (elem.is_bool())   _process_element_bool(elem);
+      else if (elem.is_string()) _process_element_string(elem);
+      else if (elem.is_slice())  _process_element_slice(elem);
+      else if (elem.is_type())   _process_element_type(elem);
+      else if (elem.is_ltype())  _process_element_ltype(elem);
+      else if (elem.is_stype())  _process_element_stype(elem);
+      else {
+        throw TypeError()
+            << "Element " << k << " in the `j` selector list has type `"
+            << elem.typeobj() << "`, which is not supported";
+      }
+      ++k;
+    }
+
+    void _process_element_int(py::robj elem) {
+      _set_type(list_type::INT);
       int64_t i = elem.to_int64_strict();
-      size_t j = resolve_column(i, wf);
-      indices.push_back(j);
+      int64_t icols = static_cast<int64_t>(dt0->ncols);
+      if (i < -icols || i >= icols) {
+        throw ValueError()
+            << "Column index `" << i << "` is invalid for a Frame with "
+            << icols << " column" << (icols == 1? "" : "s");
+      }
+      if (i < 0) i += icols;
+      indices.push_back(static_cast<size_t>(i));
     }
-    else if (elem.is_bool()) {
-      if (type == UNKNOWN) type = BOOL;
-      _check_list_type(k, type, BOOL);
-      int t = elem.to_bool_strict();
-      if (t) indices.push_back(k);
+
+    void _process_element_bool(py::robj elem) {
+      _set_type(list_type::BOOL);
+      int8_t t = elem.to_bool_strict();
+      if (t) {
+        indices.push_back(k);
+      }
     }
-    else if (elem.is_string()) {
-      if (type == UNKNOWN) type = STR;
-      _check_list_type(k, type, STR);
+
+    void _process_element_string(py::robj elem) {
+      _set_type(list_type::STR);
       size_t j = dt0->xcolindex(elem);
       indices.push_back(j);
     }
-    else if (is_PyBaseExpr(elem)) {
-      if (type == UNKNOWN) type = EXPR;
-      _check_list_type(k, type, EXPR);
+
+    void _process_element_expr(py::robj elem) {
+      _set_type(list_type::EXPR);
       py::oobj res = elem.invoke("_core");
       xassert(res.typeobj() == &py::base_expr::Type::type);
       auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
@@ -329,165 +366,121 @@ static j_node* _from_iterable(py::robj src, workframe& wf) {
       }
       exprs.push_back(std::move(expr));
     }
-    else {
-      throw TypeError() << "Element " << k << " in the `j` selector list has "
-          "type `" << elem.typeobj() << "`, which is not a proper column "
-          "selector";
-    }
-    ++k;
-  };
 
-  if (src.is_list_or_tuple()) {
-    py::olist srclist = src.to_pylist();
-    size_t nelems = srclist.size();
-    for (size_t i = 0; i < nelems; ++i) {
-      process_element(srclist[i]);
+    void _process_element_slice(py::robj elem) {
+      py::oslice ssrc = elem.to_oslice();
+      if (ssrc.is_numeric()) return _process_element_numslice(ssrc);
+      if (ssrc.is_string())  return _process_element_strslice(ssrc);
+      throw TypeError() << ssrc << " is neither integer- nor string-valued";
     }
-  } else if (src.is_dict()) {
-    py::odict srcdict = src.to_pydict();
-    type = EXPR;
-    for (auto kv : srcdict) {
-      if (!kv.first.is_string()) {
-        throw TypeError() << "Keys in `j` selector dictionary must be strings";
+
+    void _process_element_numslice(py::oslice ssrc) {
+      _set_type(list_type::INT);
+      size_t len = dt0->ncols;
+      size_t start, count, step;
+      ssrc.normalize(len, &start, &count, &step);
+      indices.reserve(indices.size() + count);
+      for (size_t i = 0; i < count; ++i) {
+        indices.push_back(start + i * step);
       }
-      names.push_back(kv.first.to_string());
-      process_element(kv.second);
     }
-  } else {
-    for (auto elem : src.to_oiter()) {
-      process_element(elem);
+
+    void _process_element_strslice(py::oslice ssrc) {
+      _set_type(list_type::STR);
+      py::oobj ostart = ssrc.start_obj();
+      py::oobj ostop = ssrc.stop_obj();
+      size_t start = ostart.is_none()? 0 : dt0->xcolindex(ostart);
+      size_t end = ostop.is_none()? dt0->ncols - 1 : dt0->xcolindex(ostop);
+      size_t len = start <= end? end - start + 1 : start - end + 1;
+      indices.reserve(len);
+      if (start <= end) {
+        for (size_t i = start; i <= end; ++i) {
+          indices.push_back(i);
+        }
+      } else {
+        // Careful with the case when `end = 0`. In this case a regular for-loop
+        // `(i = start; i >= end; --i)` becomes infinite.
+        size_t i = start;
+        do {
+          indices.push_back(i);
+        } while (i-- != end);
+      }
     }
-  }
 
-  if (type == BOOL && k != dt0->ncols) {
-    throw ValueError() << "The length of boolean list `j` does not match the "
-        "number of columns in the Frame: " << k << " vs " << dt0->ncols;
-  }
-  // A list of "EXPR" type may be either a list of plain column selectors
-  // (such as `f.A`), or a list of more complicated expressions. In the former
-  // case the vector of `indices` will be the same size as `exprs`, and we
-  // return a `collist_jn` node. In the latter case, the `exprlist_jn` node is
-  // created.
-  if (exprs.size() > indices.size()) {
-    xassert(type == EXPR);
-    return new exprlist_jn(std::move(exprs), std::move(names));
-  }
-  return new collist_jn(std::move(indices), std::move(names));
-}
+    void _process_element_type(py::robj elem) {
+      _set_type(list_type::TYPE);
+      PyTypeObject* et = reinterpret_cast<PyTypeObject*>(elem.to_borrowed_ref());
+      if (et == &PyLong_Type)            _select_types(stINT);
+      else if (et == &PyFloat_Type)      _select_types(stFLOAT);
+      else if (et == &PyUnicode_Type)    _select_types(stSTR);
+      else if (et == &PyBool_Type)       _select_types(stBOOL);
+      else if (et == &PyBaseObject_Type) _select_types(stOBJ);
+      else {
+        throw ValueError()
+            << "Unknown type " << elem << " used as a `j` selector";
+      }
+    }
 
+    void _process_element_ltype(py::robj elem) {
+      _set_type(list_type::TYPE);
+      size_t lt = elem.get_attr("value").to_size_t();
+      switch (static_cast<LType>(lt)) {
+        case LType::BOOL:   _select_types(stBOOL); break;
+        case LType::INT:    _select_types(stINT); break;
+        case LType::REAL:   _select_types(stFLOAT); break;
+        case LType::STRING: _select_types(stSTR); break;
+        case LType::OBJECT: _select_types(stOBJ); break;
+        default:
+          throw TypeError() << "Unknown ltype value " << lt;
+      }
+    }
 
+    void _process_element_stype(py::robj elem) {
+      _set_type(list_type::TYPE);
+      size_t st = elem.get_attr("value").to_size_t();
+      _select_types({static_cast<SType>(st)});
+    }
 
+    void _select_types(const std::vector<SType>& stypes) {
+      size_t ncols = dt0->ncols;
+      for (size_t i = 0; i < ncols; ++i) {
+        SType st = dt0->columns[i]->stype();
+        for (SType s : stypes) {
+          if (s == st) {
+            indices.push_back(i);
+            break;
+          }
+        }
+      }
+    }
+};
 
-//------------------------------------------------------------------------------
-// j_node factory function
-//------------------------------------------------------------------------------
 
 static j_node* _make(py::robj src, workframe& wf) {
-  // The most common case is `:`, a trivial slice
-  if (src.is_slice()) {
-    auto ssrc = src.to_oslice();
-    if (ssrc.is_trivial()) return new allcols_jn();
-    if (ssrc.is_numeric()) {
-      return _collist_from_slice(ssrc, wf);
-    }
-    if (ssrc.is_string()) {
-      return _collist_from_string_slice(ssrc, wf);
-    }
-    throw TypeError() << src << " is neither integer- nor string-valued";
-  }
-  if (is_PyBaseExpr(src)) {
-    return _from_base_expr(src, wf);
-  }
-  if (src.is_int()) {
-    size_t i = resolve_column(src.to_int64_strict(), wf);
-    return new collist_jn({ i });
-  }
-  if (src.is_string()) {
-    size_t i = resolve_column(src, wf);
-    return new collist_jn({ i });
-  }
-  if (src.is_iterable()) {
-    return _from_iterable(src, wf);
-  }
-  if (src.is_none() || src.is_ellipsis()) {
+  // The most common case is ":", a trivial slice
+  if ((src.is_slice() && src.to_oslice().is_trivial())
+      || src.is_none() || src.is_ellipsis()) {
     return new allcols_jn();
   }
-  if (src.is_bool()) {
-    throw TypeError() << "Boolean value cannot be used as a `j` expression";
-  }
-  return nullptr;  // for now
+  return jnode_maker(src, wf).get_node();
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// j_node
+//------------------------------------------------------------------------------
 
 jptr j_node::make(py::robj src, workframe& wf) {
   return jptr(_make(src, wf));
 }
-
 
 j_node::~j_node() {}
 
 void j_node::delete_(workframe&) {}
 
 void j_node::update(workframe&) {}
-
-
-
-
-/*******************************
-
-    if isinstance(arg, (type, ltype)):
-        ltypes = dt.ltypes
-        lt = ltype(arg)
-        outcols = []
-        colnames = []
-        for i in range(dt.ncols):
-            if ltypes[i] == lt:
-                outcols.append(i)
-                colnames.append(dt.names[i])
-        return ArrayCSNode(ee, outcols, colnames)
-
-    if isinstance(arg, stype):
-        stypes = dt.stypes
-        outcols = []
-        colnames = []
-        for i in range(dt.ncols):
-            if stypes[i] == arg:
-                outcols.append(i)
-                colnames.append(dt.names[i])
-        return ArrayCSNode(ee, outcols, colnames)
-
-
-
-def process_column(col, df, new_cols_allowed=False):
-
-    if isinstance(col, slice):
-        start = col.start
-        stop = col.stop
-        step = col.step
-        if isinstance(start, str) or isinstance(stop, str):
-            col0 = None
-            col1 = None
-            if start is None:
-                col0 = 0
-            elif isinstance(start, str):
-                col0 = df.colindex(start)
-            if stop is None:
-                col1 = df.ncols - 1
-            elif isinstance(stop, str):
-                col1 = df.colindex(stop)
-            if col0 is None or col1 is None:
-                raise TValueError("Slice %r is invalid: cannot mix numeric and "
-                                  "string column names" % col)
-            if step is not None:
-                raise TValueError("Column name slices cannot use strides: %r"
-                                  % col)
-            return (col0, abs(col1 - col0) + 1, 1 if col1 >= col0 else -1)
-        elif all(x is None or isinstance(x, int) for x in (start, stop, step)):
-            return normalize_slice(col, df.ncols)
-        else:
-            raise TValueError("%r is not integer-valued" % col)
-
-
- *******************************/
 
 
 

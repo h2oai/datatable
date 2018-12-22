@@ -12,7 +12,8 @@
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 static PyObject* py_stype_objs[DT_STYPES_COUNT];
-static PyObject* py_stype;
+PyTypeObject* py_ltype;
+PyTypeObject* py_stype;
 
 
 
@@ -251,7 +252,9 @@ SType stype_from_string(const std::string& str)
 
 
 int stype_from_pyobject(PyObject* s) {
-  PyObject* res = PyObject_CallFunction(py_stype, "O", s);
+  PyObject* res = PyObject_CallFunction(
+      reinterpret_cast<PyObject*>(py_stype), "O", s
+  );
   if (res == nullptr) {
     PyErr_Clear();
     return -1;
@@ -267,7 +270,8 @@ SType common_stype_for_buffer(SType stype1, SType stype2) {
 
 
 void init_py_stype_objs(PyObject* stype_enum) {
-  py_stype = stype_enum;
+  Py_INCREF(stype_enum);
+  py_stype = reinterpret_cast<PyTypeObject*>(stype_enum);
   for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
@@ -280,6 +284,8 @@ void init_py_stype_objs(PyObject* stype_enum) {
 
 void init_py_ltype_objs(PyObject* ltype_enum)
 {
+  Py_INCREF(ltype_enum);
+  py_ltype = reinterpret_cast<PyTypeObject*>(ltype_enum);
   for (size_t i = 0; i < DT_LTYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
