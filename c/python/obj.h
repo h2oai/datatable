@@ -156,6 +156,7 @@ class _obj {
     bool is_float()         const noexcept;
     bool is_numeric()       const noexcept;
     bool is_string()        const noexcept;
+    bool is_bytes()        const noexcept;
     bool is_type()          const noexcept;
     bool is_ltype()         const noexcept;
     bool is_stype()         const noexcept;

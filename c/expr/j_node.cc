@@ -124,14 +124,9 @@ class collist_jn : public j_node {
     strvec names;
 
   public:
-    collist_jn(std::vector<size_t>&& cols);
     collist_jn(std::vector<size_t>&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
 };
-
-
-collist_jn::collist_jn(std::vector<size_t>&& cols)
-  : indices(std::move(cols)) {}
 
 collist_jn::collist_jn(std::vector<size_t>&& cols, strvec&& names_)
   : indices(std::move(cols)), names(std::move(names_))
@@ -172,13 +167,9 @@ class exprlist_jn : public j_node {
     strvec names;
 
   public:
-    exprlist_jn(exprvec&& cols);
     exprlist_jn(exprvec&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
 };
-
-exprlist_jn::exprlist_jn(exprvec&& cols)
-  : exprs(std::move(cols)) {}
 
 exprlist_jn::exprlist_jn(exprvec&& cols, strvec&& names_)
   : exprs(std::move(cols)), names(std::move(names_))
@@ -262,13 +253,14 @@ class jnode_maker {
         type = list_type::EXPR;
         for (auto kv : src.to_pydict()) {
           if (!kv.first.is_string()) {
-            throw TypeError() << "Keys in `j` selector dictionary must be strings";
+            throw TypeError()
+                << "Keys in the `j` selector dictionary must be strings";
           }
           names.push_back(kv.first.to_string());
           _process_element(kv.second);
         }
       }
-      else if (src.is_iterable()) {
+      else if (src.is_iterable() && !src.is_bytes()) {
         for (auto elem : src.to_oiter()) {
           _process_element(elem);
         }
@@ -302,12 +294,19 @@ class jnode_maker {
     void _set_type(list_type t) {
       if (type == list_type::UNKNOWN) type = t;
       if (type == t) return;
-      throw TypeError()
-          << "Mixed selector types in `j` are not allowed. Element "
-          << k << " is of type "
-          << typenames[static_cast<size_t>(t)]
-          << ", whereas the previous element(s) were of type "
-          << typenames[static_cast<size_t>(type)];
+      if (k) {
+        throw TypeError()
+            << "Mixed selector types in `j` are not allowed. Element "
+            << k << " is of type "
+            << typenames[static_cast<size_t>(t)]
+            << ", whereas the previous element(s) were of type "
+            << typenames[static_cast<size_t>(type)];
+      } else {
+        throw TypeError()
+            << "The values in the `j` selector dictionary must be "
+               "expressions, not "
+            << typenames[static_cast<size_t>(t)] << 's';
+      }
     }
 
     void _process_element(py::robj elem) {
