@@ -47,8 +47,10 @@ class Ftrl : public PyObject {
         static void init_methods_and_getsets(Methods&, GetSetters&);
     };
 
+    // Initializers and destructor
     void m__init__(PKArgs&);
     void m__dealloc__();
+    void init_dtft(dt::FtrlParams);
 
     // Pickling support
     oobj m__getstate__(const NoArgs&);
@@ -60,6 +62,7 @@ class Ftrl : public PyObject {
     void reset(const NoArgs&);
 
     // Getters and setters
+    oobj get_labels() const;
     oobj get_fi() const;
     oobj get_model() const;
     oobj get_colname_hashes() const;
@@ -72,6 +75,7 @@ class Ftrl : public PyObject {
     oobj get_d() const;
     oobj get_inter() const;
     oobj get_nepochs() const;
+    void set_labels(robj);
     void set_model(robj);
     void set_params_namedtuple(robj);
     void set_params_tuple(robj);

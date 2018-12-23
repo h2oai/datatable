@@ -78,7 +78,7 @@ class Ftrl {
     static const FtrlParams default_params;
 
     // Learning and predicting methods.
-    void fit(const DataTable*, const DataTable*);
+    void fit(const DataTable*, const BoolColumn*);
     dtptr predict(const DataTable*);
     double predict_row(const uint64ptr&);
     void update(const uint64ptr&, double, bool);
@@ -119,6 +119,7 @@ class Ftrl {
     uint64_t get_d();
     size_t get_nepochs();
     bool get_inter();
+    FtrlParams get_params();
 
     // Setters
     void set_model(DataTable*);

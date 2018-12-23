@@ -23,6 +23,7 @@
 #include "python/float.h"
 #include "python/int.h"
 #include "python/tuple.h"
+#include "python/string.h"
 #include "str/py_str.h"
 #include "extras/py_ftrl.h"
 #include <extras/py_validator.h>
@@ -143,16 +144,26 @@ void Ftrl::m__init__(PKArgs& args) {
     }
   }
 
-  size_t nlabels = 1;
   if (defined_labels) {
-    labels = args[1].to_pylist();
-    nlabels = labels.size();
-    if (nlabels < 2) {
-      throw ValueError() << "Number of labels should be more than one";
-    }
-    dtft.reserve(nlabels);
+    // When there is a list of labels, do multinomial regression
+    // for which we need `nlabels` classifiers
+    set_labels(args[1]);
+  } else {
+    // If there is no labels argument, do binary regression
+    // for which we only need one classifier
+    py::olist labels_in(1);
+    labels_in.set(0, py::ostring("target"));
+    labels = labels_in;
+    set_labels(labels);
   }
+  init_dtft(dt_params);
+}
 
+
+void Ftrl::init_dtft(dt::FtrlParams dt_params) {
+  size_t nlabels = labels.size();
+  dtft.clear();
+  dtft.reserve(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
     dtft.push_back(dtftptr(new dt::Ftrl(dt_params)));
   }
@@ -160,7 +171,6 @@ void Ftrl::m__init__(PKArgs& args) {
 
 
 void Ftrl::m__dealloc__() {
-//  delete dtft;
 }
 
 
@@ -200,18 +210,23 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   mm.add<&Ftrl::m__getstate__, fn___getstate__>();
   mm.add<&Ftrl::m__setstate__, fn___setstate__>();
 
+  gs.add<&Ftrl::get_labels, &Ftrl::set_labels>(
+    "labels",
+    R"(List of labels for multinomial regression.)"
+  );
+
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
-    "Frame having two columns, i.e. `z` and `n`, and `d` rows,\n"
-    "where `d` is a number of bins set for modeling. Both column types\n"
-    "must be `float64`"
+    R"(Frame having two columns, i.e. `z` and `n`, and `d` rows,
+    where `d` is a number of bins set for modeling. Both column types
+    must be `float64`.)"
   );
 
   gs.add<&Ftrl::get_fi>(
     "fi",
-    "One-column frame with the overall weight contributions calculated\n"
-    "feature-wise during training and predicting. It can be interpreted as\n"
-    "a feature importance information."
+    R"(One-column frame with the overall weight contributions calculated
+    feature-wise during training and predicting. It can be interpreted as
+    a feature importance information.)"
   );
 
   gs.add<&Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple>(
@@ -221,7 +236,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   gs.add<&Ftrl::get_colname_hashes>(
     "colname_hashes",
-    "Column name hashes\n"
+    "Column name hashes"
   );
 
   gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>("alpha", doc_alpha);
@@ -254,7 +269,7 @@ y: Frame
     This column must have a `bool` type.
 
 Returns
-----------
+-------
     None
 )");
 
@@ -291,25 +306,42 @@ void Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
-  std::vector<DataTable*> dti_y;
-  dti_y.reserve(dtft.size());
+  DataTable* dt_yy = nullptr;
+  std::vector<BoolColumn*> c_y;
+  c_y.reserve(dtft.size());
+  if (dtft.size() > 1) {
+    xassert(labels.size() == dtft.size());
+    dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
+    const strvec& colnames = dt_yy->get_names();
 
-  if (dt_y->columns[0]->stype() == SType::BOOL ) {
-    dti_y.push_back(dt_y);
-  } else {
-    DataTable* dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
-    xassert(dt_yy->ncols == dtft.size());
+    for (size_t i = 0; i < labels.size(); ++i) {
+      BoolColumn* col;
+      std::string label = labels[i].to_string();
+      auto it = std::find(colnames.begin(), colnames.end(), label);
 
-    for (size_t i = 0; i < dtft.size(); ++i) {
-      DataTable* dt_temp = new DataTable({dt_yy->columns[i]}, {"target"});
-      dti_y.push_back(dt_temp);
+      if (it == colnames.end()) {
+        col = static_cast<BoolColumn*>(Column::new_data_column(SType::BOOL, dt_y->nrows));
+        auto d_y = static_cast<bool*>(col->data_w());
+        for (size_t j = 0; j < col->nrows; ++j) d_y[j] = false;
+      } else {
+        size_t pos = static_cast<size_t>(it - colnames.begin());
+        col = static_cast<BoolColumn*>(dt_yy->columns[pos]);
+      }
+      c_y.push_back(col);
     }
-//    throw ValueError() << "Target column must be of a `bool` type";
+  } else {
+    if (dt_y->columns[0]->stype() != SType::BOOL) {
+      throw ValueError() << "Target column must be of a `bool` type, "
+                         << "unless a list of labels is provided";
+    }
+    c_y.push_back(static_cast<BoolColumn*>(dt_y->columns[0]));
   }
 
   for (size_t i = 0; i < dtft.size(); ++i) {
-    dtft[i]->fit(dt_X, dti_y[i]);
+    dtft[i]->fit(dt_X, c_y[i]);
   }
+
+  if (dt_yy != nullptr) delete dt_yy;
 }
 
 
@@ -354,6 +386,7 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
+  dt_X->reify();
   DataTable* dt_y = dtft[0]->predict(dt_X).release();
 
   std::vector<DataTable*> dti_y;
@@ -402,6 +435,11 @@ void Ftrl::reset(const NoArgs&) {
 /*
 *  Getters and setters.
 */
+oobj Ftrl::get_labels() const {
+  return py::olist(labels);
+}
+
+
 oobj Ftrl::get_model() const {
   if (dtft[0]->is_trained()) {
     DataTable* dt_model = dtft[0]->get_model();
@@ -501,6 +539,25 @@ oobj Ftrl::get_colname_hashes() const {
     return std::move(py_colname_hashes);
   } else {
     return py::None();
+  }
+}
+
+
+void Ftrl::set_labels(robj py_labels) {
+  py::olist labels_in = py_labels.to_pylist();
+  size_t nlabels = labels_in.size();
+//  if (nlabels < 2) {
+//    throw ValueError() << "Number of labels should be at least two";
+//  }
+
+  // TODO: check this out.
+  labels = labels_in;
+  if (nlabels != dtft.size()) {
+    dt::FtrlParams dt_params = dt::Ftrl::default_params;
+    if (dtft.size() > 0) {
+      dt_params = dtft[0]->get_params();
+    }
+    init_dtft(dt_params);
   }
 }
 

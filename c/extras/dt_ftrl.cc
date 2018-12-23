@@ -51,7 +51,7 @@ Ftrl::Ftrl(FtrlParams params_in) :
 /*
 *  Train FTRL model on a dataset.
 */
-void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
+void Ftrl::fit(const DataTable* dt_X, const BoolColumn* c_y) {
   define_features(dt_X->ncols);
 
   if (!is_dt_valid(dt_model, params.d, 2)) create_model();
@@ -61,7 +61,6 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
   create_hashers(dt_X);
 
   // Get the target column.
-  auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
   auto d_y = c_y->elements_r();
 
   // Do training for `nepochs`.
@@ -111,7 +110,7 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
   create_hashers(dt_X);
 
   // Create a target datatable.
-  dtptr dt_y = nullptr;
+  dtptr dt_y;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
   dt_y = dtptr(new DataTable({col_target}, {"target"}));
   auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
@@ -413,6 +412,11 @@ bool Ftrl::get_inter() {
 
 size_t Ftrl::get_nepochs() {
   return params.nepochs;
+}
+
+
+FtrlParams Ftrl::get_params() {
+  return params;
 }
 
 
