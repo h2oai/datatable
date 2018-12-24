@@ -62,6 +62,7 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
 
   // Get the target column.
   auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
+  auto d_y = c_y->elements_r();
 
   RowIndex ri_X = dt_X->rowindex;
   RowIndex ri_y = dt_y->rowindex;
@@ -77,8 +78,8 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
 
       ri_X.iterate(ith, dt_X->nrows, nth,
         [&](size_t i, size_t j) {
-          if (!ISNA<int8_t>(c_y->get_elem(i))) {
-            bool y = c_y->get_elem(ri_y[i]);
+          if (!ISNA<int8_t>(d_y[ri_y[i]])) {
+            bool y = d_y[ri_y[i]];
             hash_row(x, j);
             double p = predict_row(x);
             update(x, p, y);
