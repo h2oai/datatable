@@ -110,13 +110,13 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
   dt_y = dtptr(new DataTable({col_target}, {"target"}));
   auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
+  const RowIndex ri = dt_X->rowindex;
 
   #pragma omp parallel num_threads(config::nthreads)
   {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
-    RowIndex ri = dt_X->rowindex;
 
     ri.iterate(ith, dt_X->nrows, nth,
       [&](size_t i, size_t j) {
