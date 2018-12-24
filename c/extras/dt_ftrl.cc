@@ -64,8 +64,8 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
   auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
   auto d_y = c_y->elements_r();
 
-  RowIndex ri_X = dt_X->rowindex;
-  RowIndex ri_y = dt_y->rowindex;
+  const RowIndex ri_X = dt_X->rowindex;
+  const RowIndex ri_y = c_y->rowindex();
 
   // Do training for `nepochs`.
   for (size_t e = 0; e < params.nepochs; ++e) {
