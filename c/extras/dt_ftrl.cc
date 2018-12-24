@@ -62,12 +62,12 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
 
   // Get the target column.
   auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
-  auto d_y = c_y->elements_r();
+
+  RowIndex ri_X = dt_X->rowindex;
+  RowIndex ri_y = dt_y->rowindex;
 
   // Do training for `nepochs`.
-  for (size_t i = 0; i < params.nepochs; ++i) {
-    double total_loss = 0;
-
+  for (size_t e = 0; e < params.nepochs; ++e) {
     #pragma omp parallel num_threads(config::nthreads)
     {
       // Array to store hashed column values and their interactions.
@@ -75,22 +75,16 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-      for (size_t j = ith; j < dt_X->nrows; j += nth) {
-        if (ISNA<int8_t>(d_y[j])) continue;
-        bool y = d_y[j];
-        hash_row(x, j);
-        double p = predict_row(x);
-        update(x, p, y);
-
-        double loss = logloss(p, y);
-        #pragma omp atomic update
-        total_loss += loss;
-        if ((j+1) % REPORT_FREQUENCY == 0) {
-          printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
-                 "Current loss: %f\tAverage loss: %f\n",
-                 i, j+1, p, loss, total_loss / (j+1));
+      ri_X.iterate(ith, dt_X->nrows, nth,
+        [&](size_t i, size_t j) {
+          if (!ISNA<int8_t>(c_y->get_elem(i))) {
+            bool y = c_y->get_elem(ri_y[i]);
+            hash_row(x, j);
+            double p = predict_row(x);
+            update(x, p, y);
+          }
         }
-      }
+      );
     }
   }
   model_trained = true;
@@ -121,14 +115,14 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
+    RowIndex ri = dt_X->rowindex;
 
-    for (size_t j = ith; j < dt_X->nrows; j += nth) {
-      hash_row(x, j);
-      d_y[j] = predict_row(x);
-      if ((j+1) % REPORT_FREQUENCY == 0) {
-        printf("Row: %zu\tPrediction: %f\n", j+1, d_y[j]);
+    ri.iterate(ith, dt_X->nrows, nth,
+      [&](size_t i, size_t j) {
+        hash_row(x, j);
+        d_y[i] = predict_row(x);
       }
-    }
+    );
   }
   return dt_y;
 }
