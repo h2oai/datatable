@@ -28,7 +28,6 @@
 using hashptr = std::unique_ptr<Hash>;
 using doubleptr = std::unique_ptr<double[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
-#define REPORT_FREQUENCY 1000
 
 namespace dt {
 
