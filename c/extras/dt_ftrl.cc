@@ -54,8 +54,8 @@ Ftrl::Ftrl(FtrlParams params_in) :
 void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
   define_features(dt_X->ncols);
 
-  if (!is_dt_valid(dt_model, params.d, 2)) create_model();
-  if (!is_dt_valid(dt_fi, nfeatures, 1)) create_fi();
+  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Create column hashers.
   create_hashers(dt_X);
@@ -96,7 +96,8 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
 dtptr Ftrl::predict(const DataTable* dt_X) {
   xassert(model_trained);
   define_features(dt_X->ncols);
-  if (is_dt_valid(dt_fi, nfeatures, 1)) create_fi();
+  init_weights();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Re-create hashers as stypes for training dataset and predictions
   // may be different
@@ -164,12 +165,13 @@ void Ftrl::create_model() {
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
-  init_weights();
+  w = doubleptr(new double[params.d]());
   reset_model();
 }
 
 
 void Ftrl::reset_model() {
+  init_weights();
   if (z == nullptr || n == nullptr) return;
   std::memset(z, 0, params.d * sizeof(double));
   std::memset(n, 0, params.d * sizeof(double));
@@ -181,14 +183,12 @@ void Ftrl::init_weights() {
   if (dt_model == nullptr) return;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
-  w = doubleptr(new double[params.d]());
 }
 
 
 void Ftrl::create_fi() {
   Column* col_fi = Column::new_data_column(SType::FLOAT64, nfeatures);
   dt_fi = dtptr(new DataTable({col_fi}, {"feature_importance"}));
-  init_fi();
   reset_fi();
 }
 
@@ -200,6 +200,7 @@ void Ftrl::init_fi() {
 
 
 void Ftrl::reset_fi() {
+  init_fi();
   if (fi == nullptr) return;
   std::memset(fi, 0, nfeatures * sizeof(double));
 }
@@ -411,6 +412,7 @@ size_t Ftrl::get_nepochs() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_d(dt_model->nrows);
+  w = doubleptr(new double[params.d]());
   init_weights();
   ncols = 0;
   nfeatures = 0;
