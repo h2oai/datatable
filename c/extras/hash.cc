@@ -21,15 +21,17 @@
 //------------------------------------------------------------------------------
 #include "extras/hash.h"
 
+Hash::Hash(const Column* col) : ri(col->rowindex()) {}
 Hash::~Hash() {}
 
-
-HashBool::HashBool(const Column* col) {
+HashBool::HashBool(const Column* col) : Hash(col) {
   values = dynamic_cast<const BoolColumn*>(col)->elements_r();
 }
 
 
 uint64_t HashBool::hash(size_t row) const {
-  uint64_t h = static_cast<uint64_t>(values[row]);
+  size_t i = ri[row];
+  bool value = (i == RowIndex::NA)? GETNA<int8_t>() : values[i];
+  uint64_t h = static_cast<uint64_t>(value);
   return h;
 }

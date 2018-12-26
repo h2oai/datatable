@@ -576,8 +576,8 @@ def test_ftrl_fit_predict_float():
 
 def test_ftrl_fit_predict_string():
     ft = Ftrl(alpha = 0.1, nepochs = 10000)
-    df_train = dt.Frame([["Monday", "Tuesday"]])
-    df_target = dt.Frame([[True, False]])
+    df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
+    df_target = dt.Frame([[True, False, False, True]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert df_target[0, 0] <= 1

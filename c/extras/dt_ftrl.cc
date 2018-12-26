@@ -63,8 +63,6 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
   // Get the target column.
   auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
   auto d_y = c_y->elements_r();
-
-  const RowIndex ri_X = dt_X->rowindex;
   const RowIndex ri_y = c_y->rowindex();
 
   // Do training for `nepochs`.
@@ -76,16 +74,15 @@ void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-      ri_X.iterate(ith, dt_X->nrows, nth,
-        [&](size_t i, size_t j) {
-          if (!ISNA<int8_t>(d_y[ri_y[i]])) {
-            bool y = d_y[ri_y[i]];
-            hash_row(x, j);
+      for (size_t i = ith; i < dt_X->nrows; i += nth) {
+          size_t j = ri_y[i];
+          if (j != RowIndex::NA && !ISNA<int8_t>(d_y[j])) {
+            bool y = d_y[j];
+            hash_row(x, i);
             double p = predict_row(x);
             update(x, p, y);
           }
-        }
-      );
+      }
     }
   }
   model_trained = true;
@@ -110,7 +107,6 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
   dt_y = dtptr(new DataTable({col_target}, {"target"}));
   auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
-  const RowIndex ri = dt_X->rowindex;
 
   #pragma omp parallel num_threads(config::nthreads)
   {
@@ -118,12 +114,10 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-    ri.iterate(ith, dt_X->nrows, nth,
-      [&](size_t i, size_t j) {
-        hash_row(x, j);
-        d_y[i] = predict_row(x);
-      }
-    );
+    for (size_t i = ith; i < dt_X->nrows; i += nth) {
+      hash_row(x, i);
+      d_y[i] = predict_row(x);
+    }
   }
   return dt_y;
 }
