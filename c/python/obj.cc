@@ -31,6 +31,9 @@ static void init_numpy();
 //------------------------------------------------------------------------------
 _obj::error_manager _obj::_em0;
 
+robj::robj() {
+  v = nullptr;
+}
 
 robj::robj(const PyObject* p) {
   v = const_cast<PyObject*>(p);
@@ -614,6 +617,19 @@ oobj _obj::get_item(const py::_obj& key) const {
   PyObject* res = PyObject_GetItem(v, key.v);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
+}
+
+
+oobj _obj::get_iter() const {
+  // PyObject_GetIter(v)
+  //   This is equivalent to the Python expression iter(o). It returns a new
+  //   iterator for the object argument, or the object itself if the object is
+  //   already an iterator. Raises TypeError and returns NULL if the object
+  //   cannot be iterated.
+  //     Return value: New reference.
+  PyObject* iter = PyObject_GetIter(v);
+  if (!iter) throw PyError();
+  return oobj::from_new_reference(iter);
 }
 
 

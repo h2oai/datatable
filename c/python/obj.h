@@ -131,6 +131,7 @@ class _obj {
     oobj get_attr(const char* attr) const;
     bool has_attr(const char* attr) const;
     oobj get_item(const py::_obj& key) const;
+    oobj get_iter() const;
     oobj invoke(const char* fn) const;
     oobj invoke(const char* fn, const otuple& args) const;
     oobj invoke(const char* fn, const char* format, ...) const;
@@ -253,11 +254,12 @@ class _obj {
     // `oobj` objects instead.
     _obj() = default;
 
-    friend robj;
-    friend oobj;
-    friend odict;
-    friend rdict;
-    friend Arg;
+    friend class robj;
+    friend class oobj;
+    friend class odict;
+    friend class rdict;
+    friend class dict_iterator;
+    friend class Arg;
     friend oobj get_module(const char* name);
 };
 
@@ -265,6 +267,7 @@ class _obj {
 
 class robj : public _obj {
   public:
+    robj();
     robj(const PyObject* p);
     robj(const Arg&);
     robj(const robj&);
