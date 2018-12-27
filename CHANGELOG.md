@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `DT.ncols`. The True/False entries in this list will indicate whether to
   select the corresponding column or not. This can be used to implement a
   simple column filter, for example:
-    ```
+    ```python
     del DT[:, (name.endswith("_tmp") for name in DT.names)]
     ```
 

@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, has_llvm
+from tests import same_iterables, has_llvm, noop
 from datatable import ltype, stype, f
 
 
@@ -55,15 +55,15 @@ def dt1():
     )
 
 
-def assert_valueerror(datatable, cols, error_message):
+def assert_valueerror(frame, cols, error_message):
     with pytest.raises(ValueError) as e:
-        datatable[:, cols]
+        noop(frame[:, cols])
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
-def assert_typeerror(datatable, cols, error_message):
+def assert_typeerror(frame, cols, error_message):
     with pytest.raises(TypeError) as e:
-        datatable[:, cols]
+        noop(frame[:, cols])
     assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
