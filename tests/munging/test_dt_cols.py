@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, has_llvm, noop
+from tests import same_iterables, noop
 from datatable import ltype, stype, f
 
 
