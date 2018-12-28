@@ -126,3 +126,14 @@ def test_split_into_nhot_long(seed, st):
     assert set(f1.names) == set(fr.names)
     f1 = f1[..., fr.names]
     assert f1.to_list() == fr.to_list()
+
+
+def test_split_into_nhot_view():
+  f0 = dt.Frame(A=["cat,dog,mouse", "mouse", None, "dog, cat"])
+  f1 = dt.split_into_nhot(f0[::-1, :])
+  f2 = dt.split_into_nhot(f0[3, :])
+  assert set(f1.names) == {"cat", "dog", "mouse"}
+  assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
+         [[1, 0, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]]
+  assert set(f2.names) == {"cat", "dog"}
+  assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
