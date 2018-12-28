@@ -125,6 +125,9 @@ class rdict : public robj {
 
 /**
  * Helper class for iterating over a `py::odict`.
+ *
+ * The standard constructor takes a dictionary PyObject* `d`, and a "position"
+ * argument `i0` which must be either 0 for `begin()`, or -1 for `end()`.
  */
 class dict_iterator {
   public:
@@ -132,7 +135,7 @@ class dict_iterator {
     using category_type = std::input_iterator_tag;
 
   private:
-    PyObject*  dict;
+    py::oobj   iter;
     Py_ssize_t pos;
     value_type curr_value;
 

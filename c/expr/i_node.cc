@@ -475,6 +475,7 @@ static i_node* _make(py::robj src) {
     }
     throw TypeError() << src << " is not integer-valued";
   }
+  // The second most-common case is an expression
   if (is_PyBaseExpr(src)) {
     return new expr_in(src);
   }

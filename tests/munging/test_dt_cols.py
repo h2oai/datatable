@@ -1,13 +1,30 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, has_llvm
-from datatable import ltype, f
+from tests import same_iterables, noop
+from datatable import ltype, stype, f
 
 
 #-------------------------------------------------------------------------------
@@ -27,27 +44,29 @@ def tbl0():
 def dt0(tbl0):
     return dt.Frame(tbl0, names=["A", "B", "C", "D"])
 
-def as_list(datatable):
-    nrows, ncols = datatable.shape
-    return datatable.internal.window(0, nrows, 0, ncols).data
 
-def assert_valueerror(datatable, cols, error_message):
+@pytest.fixture()
+def dt1():
+    return dt.Frame(
+        [[None]] * 10, names=list("ABCDEFGHIJ"),
+        stypes=[stype.bool8, stype.int8, stype.int16, stype.int32,
+                stype.int64, stype.float32, stype.float64,
+                stype.str32, stype.str64, stype.obj64]
+    )
+
+
+def assert_valueerror(frame, cols, error_message):
     with pytest.raises(ValueError) as e:
-        datatable(select=cols)
+        noop(frame[:, cols])
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
-def assert_typeerror(datatable, cols, error_message):
+def assert_typeerror(frame, cols, error_message):
     with pytest.raises(TypeError) as e:
-        datatable(select=cols)
+        noop(frame[:, cols])
     assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
-
-
-#-------------------------------------------------------------------------------
-# Run the tests
-#-------------------------------------------------------------------------------
 
 def test_dt_properties(dt0):
     assert dt0.shape == (6, 4)
@@ -55,173 +74,407 @@ def test_dt_properties(dt0):
     assert dt0.ltypes == (ltype.int, ltype.int, ltype.real, ltype.bool)
 
 
-def test_cols_ellipsis(dt0):
-    dt1 = dt0(select=...)
+
+#-------------------------------------------------------------------------------
+# Basic tests
+#-------------------------------------------------------------------------------
+
+def test_j_ellipsis(dt0):
+    dt1 = dt0[:, ...]
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.stypes == dt0.stypes
     assert not dt1.internal.isview
 
 
-def test_cols_none(dt0):
-    dt1 = dt0(select=None)
+def test_j_none(dt0):
+    dt1 = dt0[:, None]
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.stypes == dt0.stypes
     assert not dt1.internal.isview
 
 
-def test_cols_integer(dt0, tbl0):
-    """
-    Test column selectors which are simple integers, eg:
-        dt(-3)
-    should select the 3rd column from the end
-    """
+def test_j_function(dt0):
+    assert_typeerror(
+        dt0, lambda r: r.A,
+        "Unsupported `j` selector of type <class 'function'>")
+
+
+
+#-------------------------------------------------------------------------------
+# Integer-valued `j`
+#
+# Test column selectors which are simple integers, eg:
+#     DT[:, -3]
+# should select the 3rd column from the end
+#-------------------------------------------------------------------------------
+
+def test_j_integer(dt0, tbl0):
     for i in range(-4, 4):
         dt1 = dt0[:, i]
         assert dt1.shape == (6, 1)
         assert dt1.names == ("ABCD"[i], )
         assert not dt1.internal.isview
-        assert as_list(dt1)[0] == tbl0[i]
-    assert_valueerror(dt0, 4, "Column index `4` is invalid for a frame "
-                              "with 4 columns")
-    assert_valueerror(dt0, -5, "Column index `-5` is invalid")
+        assert dt1.to_list()[0] == tbl0[i]
 
 
-def test_cols_string(dt0, tbl0):
+def test_j_integer_wrong(dt0):
+    assert_valueerror(
+        dt0, 4,
+        "Column index `4` is invalid for a Frame with 4 columns")
+    assert_valueerror(
+        dt0, -5,
+        "Column index `-5` is invalid for a Frame with 4 columns")
+    assert_valueerror(
+        dt0, 10**30,
+        "Value is too large to fit in an int64")
+
+
+
+#-------------------------------------------------------------------------------
+# String-valued `j`
+#-------------------------------------------------------------------------------
+
+def test_j_string(dt0, tbl0):
     for s in "ABCD":
         dt1 = dt0[:, s]
         assert dt1.shape == (6, 1)
         assert dt1.names == (s, )
         assert not dt1.internal.isview
-        assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
-    assert_valueerror(dt0, "Z", "Column `Z` does not exist in the Frame")
+        assert dt1.to_list()[0] == tbl0["ABCD".index(s)]
 
 
-def test_cols_intslice(dt0, tbl0):
-    """
-    Test selector in the form of an integer slice:
-        dt[2:5]
-        dt[::-1]
-    Such slice should select columns according to the standard Python's semantic
-    as if it was applied to a list or a string. Note that using out-of-bounds
-    indices is allowed, since that's Python's semantic too:
-        dt[:1000]
-    """
-    assert as_list(dt0[:, :]) == tbl0
-    assert as_list(dt0[:, :3]) == tbl0[:3]
-    assert as_list(dt0[:, :-3]) == tbl0[:-3]
-    assert as_list(dt0[:, 1:]) == tbl0[1:]
-    assert as_list(dt0[:, -2:]) == tbl0[-2:]
-    assert as_list(dt0[:, ::2]) == tbl0[::2]
-    assert as_list(dt0[:, ::-2]) == tbl0[::-2]
-    for s in [slice(-1), slice(1, 4), slice(2, 2), slice(None, None, 2),
-              slice(1000), slice(100, None), slice(-100, None), slice(-100),
-              slice(1, None, -1), slice(None, None, -2), slice(None, None, -3)]:
-        dt1 = dt0[:, s]
-        assert as_list(dt1) == tbl0[s]
-        assert dt1.names == dt0.names[s]
-        assert dt1.stypes == dt0.stypes[s]
-        assert not dt1.internal.isview
+def test_j_string_error(dt0):
+    assert_valueerror(
+        dt0, "Z",
+        "Column `Z` does not exist in the Frame; did you mean `A`, `B` or `C`?")
 
 
-def test_cols_strslice(dt0, tbl0):
-    """
-    Test column selector in the form of a string slice:
-        dt["B":]
-        dt["D":"A"]
-    These slices use the last column *inclusive* (i.e. `dt["A":"C"]` would
-    select columns "A", "B" and "C"). Strided column selection is not allowed
-    for string slices.
-    """
-    assert as_list(dt0[:, "A":"D"]) == tbl0
-    assert as_list(dt0[:, "D":"A"]) == tbl0[::-1]
-    assert as_list(dt0[:, "B":]) == tbl0[1:]
-    assert as_list(dt0[:, :"C"]) == tbl0[:3]
-    assert_valueerror(dt0, slice("a", "D"), "Column `a` does not exist")
-    assert_valueerror(dt0, slice("A", "D", 2),
-                      "Column name slices cannot use strides")
-    assert_valueerror(dt0, slice("A", 3),
-                      "cannot mix numeric and string column names")
+def test_j_bytes_error(dt0):
+    assert_typeerror(
+        dt0, b'A',
+        "Unsupported `j` selector of type <class 'bytes'>")
 
 
-def test_cols_list(dt0, tbl0):
-    """
-    Test selecting multiple columns using a list of selectors:
-        dt[[0, 3, 1, 2]]
-    """
-    dt1 = dt0[:, [3, 1, 0]]
-    assert dt1.shape == (6, 3)
-    assert dt1.names == ("D", "B", "A")
+
+#-------------------------------------------------------------------------------
+# Integer slice
+#
+# Test selector in the form of an integer slice:
+#     DT[:, 2:5]
+#     DT[:, ::-1]
+# Such slice should select columns according to the standard Python's semantic
+# as if it was applied to a list or a string. Note that using out-of-bounds
+# indices is allowed, since that's Python's semantic too:
+#     DT[:, :1000]
+#-------------------------------------------------------------------------------
+
+def test_j_intslice1(dt0, tbl0):
+    assert dt0[:, :].to_list() == tbl0
+    assert dt0[:, :3].to_list() == tbl0[:3]
+    assert dt0[:, :-3].to_list() == tbl0[:-3]
+    assert dt0[:, 1:].to_list() == tbl0[1:]
+    assert dt0[:, -2:].to_list() == tbl0[-2:]
+    assert dt0[:, ::2].to_list() == tbl0[::2]
+    assert dt0[:, ::-2].to_list() == tbl0[::-2]
+
+
+@pytest.mark.parametrize('s', [slice(-1), slice(1, 4), slice(2, 2),
+                               slice(None, None, 2), slice(1000),
+                               slice(100, None), slice(-100, None), slice(-100),
+                               slice(1, None, -1), slice(None, None, -2),
+                               slice(None, None, -3)])
+def test_j_intslice2(dt0, tbl0, s):
+    dt1 = dt0[:, s]
+    assert dt1.to_list() == tbl0[s]
+    assert dt1.names == dt0.names[s]
+    assert dt1.stypes == dt0.stypes[s]
     assert not dt1.internal.isview
-    assert as_list(dt1) == [tbl0[3], tbl0[1], tbl0[0]]
-    dt2 = dt0(select=("D", "C", "B", "A"))
-    assert dt2.shape == (6, 4)
-    assert dt2.names == tuple("DCBA")
-    assert not dt2.internal.isview
-    assert as_list(dt2) == tbl0[::-1]
-    dt3 = dt0(select=[slice(None, None, 2), slice(1, None, 2)])
-    assert dt3.shape == (6, 4)
-    assert dt3.names == tuple("ACBD")
-    assert not dt3.internal.isview
-    assert as_list(dt3) == [tbl0[0], tbl0[2], tbl0[1], tbl0[3]]
 
 
-def test_cols_select_by_type(dt0):
+
+#-------------------------------------------------------------------------------
+# String slice
+#
+# Test column selector in the form of a string slice:
+#     dt[:, "B":]
+#     dt[:, "D":"A"]
+# These slices use the last column *inclusive* (i.e. `dt["A":"C"]` would
+# select columns "A", "B" and "C"). Strided column selection is not allowed
+# for string slices.
+#-------------------------------------------------------------------------------
+
+def test_j_strslice1(dt0, tbl0):
+    assert dt0[:, "A":"D"].to_list() == tbl0
+    assert dt0[:, "D":"A"].to_list() == tbl0[::-1]
+    assert dt0[:, "B":].to_list() == tbl0[1:]
+    assert dt0[:, :"C"].to_list() == tbl0[:3]
+
+
+def test_j_slice_error1(dt0):
+    assert_valueerror(
+        dt0, slice("a", "D"),
+        "Column `a` does not exist in the Frame; did you mean `A`")
+
+
+@pytest.mark.parametrize("s", [slice("A", "D", 2), slice("A", 3),
+                               slice(0, 3, "A"), slice(0, 2, 0.5),
+                               slice(None, None, "B")])
+def test_j_slice_error2(dt0, s):
+    assert_typeerror(
+        dt0, s,
+        str(s) + " is neither integer- nor string-valued")
+
+
+
+#-------------------------------------------------------------------------------
+# Type selector
+#-------------------------------------------------------------------------------
+
+def test_j_select_by_type1(dt0):
     dt1 = dt0[:, int]
     assert dt1.shape == (6, 2)
     assert dt1.ltypes == (dt.ltype.int, dt.ltype.int)
     assert dt1.names == ("A", "B")
+
+
+def test_j_select_by_type2(dt0):
     dt2 = dt0[:, float]
     assert dt2.shape == (6, 1)
     assert dt2.stypes == (dt.stype.float64, )
     assert dt2.names == ("C", )
+
+
+def test_j_select_by_type3(dt0):
     dt3 = dt0[:, dt.ltype.str]
     assert dt3.shape == (0, 0)
     assert dt3.to_list() == []
+
+
+def test_j_select_by_type4(dt0):
     dt4 = dt0[:, dt.stype.bool8]
     assert dt4.shape == (6, 1)
     assert dt4.stypes == (dt.stype.bool8, )
     assert dt4.names == ("D", )
 
 
-def test_cols_dict(dt0, tbl0):
-    """
-    Test selecting multiple columns using a dictionary:
-        dt[{"x": "A", "y": "B"}]
-    """
-    dt1 = dt0(select={"x": 0, "y": "D"})
+@pytest.mark.parametrize("t", [bool, int, float, str, object])
+def test_j_type(t, dt1):
+    DT2 = dt1[:, t]
+    sl2 = (slice(0, 1) if t == bool else
+           slice(1, 5) if t == int else
+           slice(5, 7) if t == float else
+           slice(7, 9) if t == str else
+           slice(9, 10))
+    assert DT2.names == dt1.names[sl2]
+    assert DT2.stypes == dt1.stypes[sl2]
+
+
+@pytest.mark.parametrize("t", ltype)
+def test_j_ltype(t, dt1):
+    if t == ltype.time:
+        return
+    DT2 = dt1[:, t]
+    sl2 = (slice(0, 1) if t == ltype.bool else
+           slice(1, 5) if t == ltype.int else
+           slice(5, 7) if t == ltype.real else
+           slice(7, 9) if t == ltype.str else
+           slice(9, 10) if t == ltype.obj else slice(0, 0))
+    assert DT2.names == dt1.names[sl2]
+    assert DT2.stypes == dt1.stypes[sl2]
+
+
+@pytest.mark.parametrize("t", stype)
+def test_j_stype(t, dt1):
+    DT2 = dt1[:, t]
+    if t in dt1.stypes:
+        i = dt1.stypes.index(t)
+        assert DT2.names == (dt1.names[i],)
+        assert DT2.stypes == (t,)
+    else:
+        assert DT2.ncols == 0
+
+
+def test_j_type_bad(dt0):
+    assert_valueerror(
+        dt0, type,
+        "Unknown type <class 'type'> used as a `j` selector")
+    assert_typeerror(
+        dt0, ltype.time, "Unknown ltype value")
+
+
+
+#-------------------------------------------------------------------------------
+# List[int] selector
+#
+# Test selecting multiple columns using a list/tuple of integers or integer
+# slices:
+#     dt[:, [0, 3, 1, 2]]
+#-------------------------------------------------------------------------------
+
+def test_j_intlist1(dt0, tbl0):
+    dt1 = dt0[:, [3, 1, 0]]
+    assert dt1.shape == (6, 3)
+    assert dt1.names == ("D", "B", "A")
+    assert not dt1.internal.isview
+    assert dt1.to_list() == [tbl0[3], tbl0[1], tbl0[0]]
+
+
+def test_j_intlist2(dt0, tbl0):
+    df1 = dt0[:, [slice(None, None, 2), slice(1, None, 2)]]
+    assert df1.shape == (6, 4)
+    assert df1.names == tuple("ACBD")
+    assert not df1.internal.isview
+    assert df1.to_list() == [tbl0[0], tbl0[2], tbl0[1], tbl0[3]]
+
+
+def test_j_intlist3(dt0, tbl0):
+    df1 = dt0[:, [3, 1, slice(None, None, 2)]]
+    assert df1.shape == (6, 4)
+    assert df1.names == ("D", "B", "A", "C")
+    assert df1.to_list() == [tbl0[3], tbl0[1], tbl0[0], tbl0[2]]
+
+
+def test_j_intlist_mixed(dt0):
+    assert_typeerror(
+        dt0, [2, "A"],
+        "Mixed selector types in `j` are not allowed. Element 1 is of type "
+        "string, whereas the previous element(s) were of type integer")
+
+
+
+
+#-------------------------------------------------------------------------------
+# List[str] selector
+#-------------------------------------------------------------------------------
+
+def test_j_strlist1(dt0, tbl0):
+    df1 = dt0[:, ("D", "C", "B", "A")]
+    assert df1.shape == (6, 4)
+    assert df1.names == tuple("DCBA")
+    assert not df1.internal.isview
+    assert df1.to_list() == tbl0[::-1]
+
+
+def test_j_strlist2(dt0, tbl0):
+    df1 = dt0[:, (a.upper() for a in 'cda')]
+    assert df1.shape == (6, 3)
+    assert df1.names == ("C", "D", "A")
+    assert df1.to_list() == [tbl0[2], tbl0[3], tbl0[0]]
+
+
+def test_j_strlist_mixed(dt0):
+    assert_typeerror(
+        dt0, ["A", f.B],
+        "Mixed selector types in `j` are not allowed. Element 1 is of type "
+        "expr, whereas the previous element(s) were of type string")
+
+
+
+#-------------------------------------------------------------------------------
+# List[bool] selector
+#-------------------------------------------------------------------------------
+
+def test_j_list_bools(dt0, tbl0):
+    df1 = dt0[:, [True, False, False, True]]
+    assert df1.shape == (6, 2)
+    assert df1.names == ("A", "D")
+    assert df1.to_list() == [tbl0[0], tbl0[3]]
+
+
+def test_j_list_bools_error1(dt0):
+    assert_valueerror(
+        dt0, [True] * 5,
+        "The length of boolean list in `j` does not match the number of "
+        "columns in the Frame")
+
+
+def test_j_list_bools_mixed(dt0):
+    assert_typeerror(
+        dt0, [True, False, None, True],
+        "Element 2 in the `j` selector list has type `<class 'NoneType'>`, "
+        "which is not supported")
+
+
+
+#-------------------------------------------------------------------------------
+# List[type] selector
+#-------------------------------------------------------------------------------
+
+def test_j_list_types(dt0, tbl0):
+    df1 = dt0[:, [int, float]]
+    assert df1.shape == (6, 3)
+    assert df1.names == ("A", "B", "C")
+    assert df1.to_list() == tbl0[:3]
+
+
+def test_j_list_types2(dt0, tbl0):
+    df1 = dt0[:, [stype.bool8, float]]
+    assert df1.shape == (6, 2)
+    assert df1.names == ("D", "C")
+    assert df1.to_list() == [tbl0[3], tbl0[2]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Dict selector
+#
+# Test selecting multiple columns using a dictionary:
+#     dt[:, {"x": f.A, "y": f.B}]
+#-------------------------------------------------------------------------------
+
+def test_j_dict(dt0, tbl0):
+    dt1 = dt0[:, {"x": f[0], "y": f["D"]}]
     dt1.internal.check()
     assert dt1.shape == (6, 2)
     assert same_iterables(dt1.names, ("x", "y"))
     assert not dt1.internal.isview
-    assert same_iterables(as_list(dt1), [tbl0[0], tbl0[3]])
-    dt2 = dt0[:, {"_": slice(None)}]
-    dt2.internal.check()
-    assert dt2.shape == (6, 4)
-    assert dt2.names == ("_", "_1", "_2", "_3")
-    assert not dt2.internal.isview
-    assert as_list(dt2) == tbl0
+    assert same_iterables(dt1.to_list(), [tbl0[0], tbl0[3]])
 
 
-def test_cols_colselector(dt0, tbl0):
-    """
-    Check that a "column selector" expression is equivalent to directly indexing
-    the column:
-        dt[lambda f: f.A]
-    """
-    dt1 = dt0(select=lambda f: f.B)
+def test_j_dict_bad1(dt0):
+    assert_typeerror(
+        dt0, {1: f.A, 2: f.B + f.C},
+        "Keys in the `j` selector dictionary must be strings")
+
+
+def test_j_dict_bad2(dt0):
+    assert_typeerror(
+        dt0, {"a": "A", "b": "B"},
+        "The values in the `j` selector dictionary must be expressions, not "
+        "strings")
+
+
+
+
+#-------------------------------------------------------------------------------
+# Expr selector
+#
+# Check that it is possible to select computed columns:
+#     dt[:, [f.A + f.B]]
+#-------------------------------------------------------------------------------
+
+def test_j_colselector1(dt0, tbl0):
+    dt1 = dt0[:, f.B]
     dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.names == ("B", )
     assert not dt1.internal.isview
-    assert as_list(dt1) == [tbl0[1]]
+    assert dt1.to_list() == [tbl0[1]]
+
+
+def test_j_colselector2(dt0, tbl0):
     dt2 = dt0[:, [f.A, f.C]]
     dt2.internal.check()
     assert dt2.shape == (6, 2)
     assert dt2.names == ("A", "C")
     assert not dt2.internal.isview
-    assert as_list(dt2) == [tbl0[0], tbl0[2]]
+    assert dt2.to_list() == [tbl0[0], tbl0[2]]
+
+
+def test_j_colselector3(dt0, tbl0):
     dt3 = dt0[:, {"x": f.A, "y": f.D}]
     dt3.internal.check()
     assert dt3.shape == (6, 2)
@@ -229,67 +482,71 @@ def test_cols_colselector(dt0, tbl0):
     assert not dt3.internal.isview
 
 
-def test_cols_expression(dt0, tbl0):
-    """
-    Check that it is possible to select computed columns:
-        dt[lambda f: [f.A + f.B]]
-    """
+def test_j_expression(dt0, tbl0):
     dt1 = dt0[:, f.A + f.B]
     dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.ltypes == (ltype.int, )
-    assert as_list(dt1) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
+    assert dt1.to_list() == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
     dt2 = dt0[:, [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
     dt2.internal.check()
     assert dt2.shape == (6, 4)
     assert dt2.ltypes == (ltype.int, ltype.real, ltype.real, ltype.int)
-    assert as_list(dt2) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)],
+    assert dt2.to_list() == [[tbl0[0][i] + tbl0[1][i] for i in range(6)],
                             [tbl0[2][i] - tbl0[3][i] for i in range(6)],
                             [tbl0[0][i] / tbl0[2][i] for i in range(6)],
                             [tbl0[1][i] * tbl0[3][i] for i in range(6)]]
-    dt3 = dt0[:, {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": 1, "c": 2}]
+    dt3 = dt0[:, {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": f[1], "c": f[2]}]
     dt3.internal.check()
     assert dt3.shape == (6, 4)
     assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
     assert same_iterables(dt3.ltypes,
                           (ltype.real, ltype.int, ltype.int, ltype.real))
     assert not dt3.internal.isview
-    assert as_list(dt3[:, "foo"]) == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
-                                      for i in range(6)]]
+    assert dt3[:, "foo"].to_list() == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
+                                       for i in range(6)]]
 
 
-def test_cols_expression2():
+def test_j_expression2():
     # In Py3.6+ we could have used a regular dictionary here...
     from collections import OrderedDict
     selector = OrderedDict([("foo", f.A), ("bar", -f.A)])
     f0 = dt.Frame({"A": range(10)})
-    f1 = f0(select=selector, engine="eager")
+    f1 = f0[:, selector]
     f1.internal.check()
     assert f1.names == ("foo", "bar")
     assert f1.stypes == f0.stypes * 2
     assert f1.to_list() == [list(range(10)), list(range(0, -10, -1))]
-    if has_llvm():
-        f2 = f0(select=selector, engine="llvm")
-        f2.internal.check()
-        assert f2.stypes == f1.stypes
-        assert f2.names == f1.names
-        assert f2.to_list() == f1.to_list()
+    # if has_llvm():
+    #     f2 = f0(select=selector, engine="llvm")
+    #     f2.internal.check()
+    #     assert f2.stypes == f1.stypes
+    #     assert f2.names == f1.names
+    #     assert f2.to_list() == f1.to_list()
 
 
-def test_cols_bad_arguments(dt0):
+def test_j_bad_arguments(dt0):
     """
     Check certain arguments that would be invalid as column selectors
     """
-    assert_valueerror(dt0, 1.000001, "Unknown `select` argument: 1.000001")
-    assert_valueerror(dt0, slice(1, 2, "A"),
-                      "slice(1, 2, 'A') is not integer-valued")
-    assert_typeerror(dt0, [0, 0.5, 1], "Unknown column selector: 0.5")
-    assert_typeerror(dt0, True, "A boolean cannot be used as a column selector")
-    assert_typeerror(dt0, False,
-                     "A boolean cannot be used as a column selector")
+    assert_typeerror(
+        dt0, 1.000001,
+        "Unsupported `j` selector of type <class 'float'>")
+    assert_typeerror(dt0,
+        slice(1, 2, "A"),
+        "slice(1, 2, 'A') is neither integer- nor string-valued")
+    assert_typeerror(
+        dt0, [0, 0.5, 1],
+        "Element 1 in the `j` selector list has type `<class 'float'>`")
+    assert_typeerror(
+        dt0, True,
+        "Unsupported `j` selector of type <class 'bool'>")
+    assert_typeerror(
+        dt0, False,
+        "Unsupported `j` selector of type <class 'bool'>")
 
 
-def test_cols_from_view(dt0):
+def test_j_from_view(dt0):
     d1 = dt0[:3, :]
     assert d1.internal.isview
     d2 = d1[:, "B"]
@@ -297,7 +554,7 @@ def test_cols_from_view(dt0):
     assert d2.to_list() == [[2, 3, 2]]
 
 
-def test_cols_on_empty_frame():
+def test_j_on_empty_frame():
     df = dt.Frame()
     d1 = df[:, :]
     d2 = df[::-1, :5]

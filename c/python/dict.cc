@@ -134,11 +134,50 @@ dict_iterator rdict::end() const {
 // dict_iterator
 //------------------------------------------------------------------------------
 
-dict_iterator::dict_iterator(PyObject* p, Py_ssize_t i0)
-  : dict(p), pos(i0), curr_value(robj(nullptr), robj(nullptr))
-{
-  advance();
-}
+#if PY_VERSION_HEX >= 0x03060000
+
+  dict_iterator::dict_iterator(PyObject* p, Py_ssize_t i0) {
+    iter = oobj(p);
+    pos = i0;
+    advance();
+  }
+
+  void dict_iterator::advance() {
+    if (pos == -1) return;
+    PyObject *key, *value;
+    if (PyDict_Next(iter.v, &pos, &key, &value)) {
+      curr_value = value_type(py::robj(key), py::robj(value));
+    } else {
+      pos = -1;
+    }
+  }
+
+#else
+  // In Python3.5 we have to use the iterator interface, if not, an
+  // OrderedDict would not be iterated in proper order.
+
+  dict_iterator::dict_iterator(PyObject* p, Py_ssize_t i0) {
+    iter = robj(p).invoke("items").get_iter();
+    pos = i0;
+    advance();
+  }
+
+  void dict_iterator::advance() {
+    if (pos == -1) return;
+    PyObject* item = PyIter_Next(iter.v);  // new ref
+    if (item) {
+      PyObject* key = PyTuple_GetItem(item, 0);  // borrowed ref
+      PyObject* val = PyTuple_GetItem(item, 1);
+      curr_value = value_type(robj(key), robj(val));
+      Py_DECREF(item);
+    } else {
+      pos = -1;
+      curr_value = value_type();
+    }
+  }
+
+#endif
+
 
 dict_iterator& dict_iterator::operator++() {
   advance();
@@ -155,16 +194,6 @@ bool dict_iterator::operator==(const dict_iterator& other) const {
 
 bool dict_iterator::operator!=(const dict_iterator& other) const {
   return (pos != other.pos);
-}
-
-void dict_iterator::advance() {
-  if (pos == -1) return;
-  PyObject *key, *value;
-  if (PyDict_Next(dict, &pos, &key, &value)) {
-    curr_value = value_type(py::robj(key), py::robj(value));
-  } else {
-    pos = -1;
-  }
 }
 
 
