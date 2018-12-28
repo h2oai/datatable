@@ -62,6 +62,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - installation from source distribution (#1451).
 
+- Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
+
 
 ### Changed
 
