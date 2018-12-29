@@ -24,6 +24,7 @@
 import datatable as dt
 import pytest
 import random
+import sys
 from math import inf, nan
 from tests import list_equals
 
@@ -182,6 +183,31 @@ def test_replace_infs():
     df.internal.check()
     assert df.to_list() == [[1.0, None, None]] * 2
     assert df.stypes == (dt.float32, dt.float64)
+
+
+def test_replace_infs2():
+    df = dt.Frame([[1.0, inf, -inf]] * 2,
+                  stypes=[dt.float32, dt.float64], names=["A", "B"])
+    assert df.stypes == (dt.float32, dt.float64)
+    df.replace(inf, None)
+    df.internal.check()
+    assert df.to_list() == [[1.0, None, -inf]] * 2
+    assert df.stypes == (dt.float32, dt.float64)
+    df.replace(-inf, 3.5)
+    df.internal.check()
+    assert df.to_list() == [[1.0, None, 3.5]] * 2
+    assert df.stypes == (dt.float32, dt.float64)
+
+
+def test_replace_almost_inf():
+    maxfloat = sys.float_info.max
+    df = dt.Frame([10.0, maxfloat, -maxfloat, inf, -inf, None])
+    df.replace(maxfloat, -maxfloat)
+    df.internal.check()
+    assert df.to_list() == [[10.0, -maxfloat, -maxfloat, inf, -inf, None]]
+    df.replace(-maxfloat, 0.0)
+    assert df.to_list() == [[10.0, 0.0, 0.0, inf, -inf, None]]
+
 
 
 def test_replace_float_with_upcast():
