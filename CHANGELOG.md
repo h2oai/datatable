@@ -64,6 +64,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
 
+- `DT.replace()` now works correctly when the replacement list is `[+inf]` or
+  `[1.7976931348623157e+308]` (#1510).
+
 
 ### Changed
 
