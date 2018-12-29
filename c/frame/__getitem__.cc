@@ -108,14 +108,21 @@ oobj Frame::_main_getset(robj item, robj value) {
         wf.add_subframe(oj.get_datatable());
       }
     }
-    if (nargs == 2 && value == GETITEM) {
+    if (nargs == 2) {
       auto iexpr = dt::i_node::make(targs[0]);
       auto jexpr = dt::j_node::make(targs[1], wf);
       if (iexpr && jexpr) {
         iexpr->post_init_check(wf);
         iexpr->execute(wf);
-        DataTable* res = jexpr->select(wf);
-        return oobj::from_new_reference(py::Frame::from_datatable(res));
+        if (value == GETITEM) {
+          DataTable* res = jexpr->select(wf);
+          return oobj::from_new_reference(py::Frame::from_datatable(res));
+        }
+        if (value == DELITEM) {
+          jexpr->delete_(wf);
+          _clear_types();
+          return py::None();
+        }
       }
     }
 

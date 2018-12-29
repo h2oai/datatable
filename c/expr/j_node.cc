@@ -67,19 +67,31 @@ class col_set {
  * j_node representing selection of all columns (i.e. `:`). This is roughly
  * the equivalent of SQL's "*".
  *
- * In the simplest case, this node selects all columns from the source Frame.
- * The groupby field, if present, is ignored and the columns are selected as-is,
- * applying the RowIndex that was already computed. The names of the selected
- * columns will be exactly the same as in the source Frame.
+ * select()
+ *   In the simplest case, this node selects all columns from the source Frame.
+ *   The groupby field, if present, is ignored and the columns are selected
+ *   as-is, applying the RowIndex that was already computed. The names of the
+ *   selected columns will be exactly the same as in the source Frame.
  *
- * However, when 2 or more Frames are joined, this selector will select all
- * columns from all joined Frames. The exception to this are natural joins,
- * where the key columns of joined Frames will be excluded from the result.
+ *   However, when 2 or more Frames are joined, this selector will select all
+ *   columns from all joined Frames. The exception to this are natural joins,
+ *   where the key columns of joined Frames will be excluded from the result.
+ *
+ * delete()
+ *   Even if several frames are joined, the delete() operator applies only to
+ *   the "main" subframe.
+ *   When `j` expression selects all columns, the delete() operator removes
+ *   the rows from a Frame. This is achieved by computing the Rowindex implied
+ *   by the `i` expression, then negating that Rowindex and applying it to the
+ *   source frame.
+ *   However, when `i` is "all rows", then deleting all rows + all columns
+ *   completely empties the Frame: its shape becomes [0 x 0].
  */
 class allcols_jn : public j_node {
   public:
     allcols_jn() = default;
     DataTable* select(workframe&) override;
+    void delete_(workframe&) override;
 };
 
 
@@ -112,12 +124,41 @@ DataTable* allcols_jn::select(workframe& wf) {
 }
 
 
+void allcols_jn::delete_(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    RowIndex ri_neg = ri0.inverse(dt0->nrows);
+    dt0->apply_rowindex(ri_neg);
+  } else {
+    dt0->delete_all();
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
 // collist_jn
 //------------------------------------------------------------------------------
 
+/**
+ * This is a j node representing a plain selection of columns from the source
+ * Frame. This node cannot be used to select columns from any joined frames
+ * (although those are still allowed in the evaluation graph).
+ *
+ * select()
+ *   The columns at stored indices are selected into a new DataTable. The
+ *   RowIndex, if any, is applied to all these columns. The joined frames are
+ *   ignored, as well as any groupby information.
+ *
+ * delete()
+ *   When `i` node is `allrows_in`, then the columns at given indices are
+ *   deleted (the indices should also be deduplicated). Otherwise, the
+ *   deletion region is a subset of rows/columns, and we just set the values
+ *   at those places to NA.
+ *
+ */
 class collist_jn : public j_node {
   private:
     std::vector<size_t> indices;
@@ -126,7 +167,9 @@ class collist_jn : public j_node {
   public:
     collist_jn(std::vector<size_t>&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
+    void delete_(workframe&) override;
 };
+
 
 collist_jn::collist_jn(std::vector<size_t>&& cols, strvec&& names_)
   : indices(std::move(cols)), names(std::move(names_))
@@ -153,6 +196,16 @@ DataTable* collist_jn::select(workframe& wf) {
   return new DataTable(cols.release(), std::move(names));
 }
 
+
+void collist_jn::delete_(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    // ???
+  } else {
+    dt0->delete_columns(indices);
+  }
+}
 
 
 

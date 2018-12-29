@@ -55,7 +55,7 @@ class ojoin : public oobj
     ojoin& operator=(const ojoin&) = default;
     ojoin& operator=(ojoin&&) = default;
 
-    const DataTable* get_datatable() const;
+    DataTable* get_datatable() const;
 
     static bool check(PyObject* v);
     static void init(PyObject* m);

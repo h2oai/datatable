@@ -403,10 +403,10 @@ def test_delitem_invalid_selectors():
     invalidating other tests.
     """
     d0 = smalldt()
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         del d0[:, 0.5]
-    assert "Unknown `select` argument: 0.5" in str(e.value)
-    with pytest.raises(ValueError):
+    assert "Unsupported `j` selector of type <class 'float'>" in str(e.value)
+    with pytest.raises(TypeError):
         del d0[:, d0]
     with pytest.raises(TypeError):
         del d0[:, [1, 2, 1, 0.7]]

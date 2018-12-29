@@ -23,7 +23,7 @@
 namespace dt {
 
 
-workframe::workframe(const DataTable* dt) {
+workframe::workframe(DataTable* dt) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
@@ -36,12 +36,12 @@ void workframe::set_mode(EvalMode m) {
 }
 
 
-void workframe::add_subframe(const DataTable* dt) {
+void workframe::add_subframe(DataTable* dt) {
   frames.push_back(subframe {dt, RowIndex(), true});
 }
 
 
-const DataTable* workframe::get_datatable(size_t i) const {
+DataTable* workframe::get_datatable(size_t i) const {
   return frames[i].dt;
 }
 
