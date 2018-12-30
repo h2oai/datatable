@@ -190,6 +190,9 @@ public:
    * The values are replaced in-place, if possible (if reference count is 1),
    * or otherwise the copy of a column is created and returned, and the
    * current Column object is deleted.
+   *
+   * If the `replace_with` column is nullptr, then the values will be replaced
+   * with NAs.
    */
   virtual void replace_values(
     RowIndex replace_at, const Column* replace_with) = 0;

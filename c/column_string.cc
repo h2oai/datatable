@@ -322,9 +322,14 @@ void StringColumn<T>::reify() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex /*replace_at*/, const Column* /*replace_with*/)
+    RowIndex replace_at, const Column* replace_with)
 {
-  // TODO
+  reify();
+  if (!replace_with) {
+    ri = replace_at.inverse(nrows);
+    return;
+  }
+  throw NotImplError() << "StringColumn::replace_values() not implemented";
 }
 
 

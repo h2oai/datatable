@@ -201,7 +201,9 @@ void collist_jn::delete_(workframe& wf) {
   DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
-    // ???
+    for (size_t i : indices) {
+      dt0->columns[i]->replace_values(ri0, nullptr);
+    }
   } else {
     dt0->delete_columns(indices);
   }
@@ -222,7 +224,9 @@ class exprlist_jn : public j_node {
   public:
     exprlist_jn(exprvec&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
+    void delete_(workframe&) override;
 };
+
 
 exprlist_jn::exprlist_jn(exprvec&& cols, strvec&& names_)
   : exprs(std::move(cols)), names(std::move(names_))
@@ -245,6 +249,20 @@ DataTable* exprlist_jn::select(workframe& wf) {
     cols.add_column(expr->evaluate_eager(wf), ri0);
   }
   return new DataTable(cols.release(), std::move(names));
+}
+
+
+void exprlist_jn::delete_(workframe&) {
+  if (exprs.size() == 1) {
+    throw TypeError() << "Cannot delete a computed expression";
+  }
+  for (size_t i = 0; i < exprs.size(); ++i) {
+    if (!exprs[i]->is_primary_col_selector()) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+        "computed expression and cannot be deleted";
+    }
+  }
+  xassert(false);
 }
 
 
