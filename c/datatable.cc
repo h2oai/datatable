@@ -232,6 +232,10 @@ DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
  * Equivalent of ``DT = DT[ri, :]``.
  */
 void DataTable::apply_rowindex(const RowIndex& ri) {
+  // If RowIndex is empty, no need to do anything. Also, the expression
+  // `ri.size()` cannot be computed.
+  if (!ri) return;
+
   auto rc = _split_columns_by_rowindices(this);
   auto& rowindices = rc.first;
   auto& colindices = rc.second;

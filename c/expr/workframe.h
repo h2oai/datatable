@@ -77,6 +77,7 @@ class workframe {
 
     explicit workframe(DataTable*);
     void set_mode(EvalMode);
+    EvalMode get_mode() const;
     void add_subframe(DataTable*);
 
     DataTable* get_datatable(size_t i) const;

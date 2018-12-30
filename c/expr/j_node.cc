@@ -266,7 +266,8 @@ static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
 
 
-class jnode_maker {
+class jnode_maker
+{
   private:
     enum class list_type : size_t {
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
@@ -279,10 +280,14 @@ class jnode_maker {
     exprvec exprs;
     strvec  names;
     size_t  k;  // The index of the current element
+    bool is_update;
+    bool has_new_columns;
+    size_t : 48;
 
   public:
     jnode_maker(py::robj src, workframe& wf_) : wf(wf_)
     {
+      is_update = (wf.get_mode() == EvalMode::UPDATE);
       dt0 = wf.get_datatable(0);
       type = list_type::UNKNOWN;
       k = 0;
@@ -402,8 +407,18 @@ class jnode_maker {
 
     void _process_element_string(py::robj elem) {
       _set_type(list_type::STR);
-      size_t j = dt0->xcolindex(elem);
-      indices.push_back(j);
+      if (is_update) {
+        int64_t j = dt0->colindex(elem);
+        if (j == -1) {
+          has_new_columns = true;
+          names.resize(indices.size());
+          names.push_back(elem.to_string());
+        }
+        indices.push_back(static_cast<size_t>(j));
+      } else {
+        size_t j = dt0->xcolindex(elem);
+        indices.push_back(j);
+      }
     }
 
     void _process_element_expr(py::robj elem) {
