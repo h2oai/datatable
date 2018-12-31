@@ -130,6 +130,13 @@ def test_del_cols_strlist():
     assert_equals(d0, d1)
 
 
+def test_del_cols_boollist():
+    d0 = smalldt()
+    del d0[:, [i % 3 == 1 for i in range(16)]]
+    d1 = smalldt()[:, [i % 3 != 1 for i in range(16)]]
+    assert_equals(d0, d1)
+
+
 def test_del_cols_multislice():
     d0 = smalldt()
     del d0[:, [slice(10), 12, -1]]
@@ -159,7 +166,7 @@ def test_delcols_invalid_selector1():
     assert "Unsupported `j` selector of type <class 'float'>" in str(e.value)
 
 
-def test_delcols_invalid_selector2():
+def test_del_cols_invalid_selector2():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, d0]
@@ -167,7 +174,7 @@ def test_delcols_invalid_selector2():
             in str(e.value))
 
 
-def test_delcols_invalid_selector3():
+def test_del_cols_invalid_selector3():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, [1, 2, 1, 0.7]]
@@ -175,14 +182,15 @@ def test_delcols_invalid_selector3():
             "which is not supported" in str(e.value))
 
 
-def test_delcols_computed1():
+def test_del_cols_computed1():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, f.A + f.B]
-    assert "Cannot delete a computed expression" == str(e.value)
+    assert ("Item 0 in the `j` selector list is a computed expression and "
+            "cannot be deleted" == str(e.value))
 
 
-def test_delcols_computed2():
+def test_del_cols_computed2():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, [f.A, f.B, f.A + f.B]]
@@ -190,7 +198,7 @@ def test_delcols_computed2():
             "cannot be deleted" == str(e.value))
 
 
-def test_delcols_dict():
+def test_del_cols_dict():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, {"X": f.A}]
@@ -198,11 +206,19 @@ def test_delcols_dict():
             "dictionary" in str(e.value))
 
 
-def test_delcols_g():
+def test_del_cols_g1():
     d0 = smalldt()
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(ValueError) as e:
         del d0[:, g[1]]
-    assert ("Cannot delete a computed expression" in str(e.value))
+    assert ("Item 0 of the `j` selector list references a non-existing join "
+            "frame" == str(e.value))
+
+
+# def test_del_cols_g2():
+#     d0 = dt.Frame(A=range(10), G=[True, False] * 5)
+#     d1 = dt.Frame(A=[1, 5, 7], B=["moo", None, "kewt"])
+#     d1.key = "A"
+#     del d0[:, [f.G, g.B], dt.join(d1)]
 
 
 
@@ -239,17 +255,13 @@ def test_del_rows_slice1():
 def test_del_rows_slice2():
     d0 = dt.Frame(range(10))
     del d0[2:6, :]
-    d0.internal.check()
-    assert d0.shape == (6, 1)
-    assert d0.to_list() == [[0, 1, 6, 7, 8, 9]]
+    assert_equals(d0, dt.Frame([0, 1, 6, 7, 8, 9], stype="int32"))
 
 
 def test_del_rows_slice_empty():
     d0 = dt.Frame(range(10))
     del d0[4:4, :]
-    d0.internal.check()
-    assert d0.shape == (10, 1)
-    assert d0.to_list() == [list(range(10))]
+    assert_equals(d0, dt.Frame(range(10)))
 
 
 def test_del_rows_slice_reverse():
@@ -319,3 +331,8 @@ def test_del_rows_from_view2():
     del f1[isna(f[0]), :]
     assert f1.to_list() == [[2]]
 
+
+
+#-------------------------------------------------------------------------------
+# Delete rows & columns
+#-------------------------------------------------------------------------------

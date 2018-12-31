@@ -253,9 +253,6 @@ DataTable* exprlist_jn::select(workframe& wf) {
 
 
 void exprlist_jn::delete_(workframe&) {
-  if (exprs.size() == 1) {
-    throw TypeError() << "Cannot delete a computed expression";
-  }
   for (size_t i = 0; i < exprs.size(); ++i) {
     auto colexpr = dynamic_cast<dt::expr_column*>(exprs[i].get());
     if (!colexpr) {
@@ -264,7 +261,7 @@ void exprlist_jn::delete_(workframe&) {
     }
     if (colexpr->get_frame_id() > 0) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
-        "column from a joined frame, it cannot be deleted";
+        "column from a joined frame and cannot be deleted";
     }
   }
   xassert(false);
@@ -459,9 +456,16 @@ class jnode_maker
       auto expr = std::unique_ptr<dt::base_expr>(pexpr);
 
       dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(pexpr);
-      if (colexpr && colexpr->get_frame_id() == 0) {
-        size_t i = colexpr->get_col_index(wf);
-        indices.push_back(i);
+      if (colexpr) {
+        size_t frid = colexpr->get_frame_id();
+        if (frid == 0) {
+          size_t i = colexpr->get_col_index(wf);
+          indices.push_back(i);
+        }
+        else if (frid >= wf.nframes()) {
+          throw ValueError() << "Item " << k << " of the `j` selector list "
+              "references a non-existing join frame";
+        }
       }
       exprs.push_back(std::move(expr));
     }
