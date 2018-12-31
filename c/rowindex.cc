@@ -235,7 +235,7 @@ RowIndex operator *(const RowIndex& ri1, const RowIndex& ri2) {
   return RowIndex(ri1.impl->uplift_from(ri2.impl));
 }
 
-RowIndex RowIndex::inverse(size_t nrows) const {
+RowIndex RowIndex::negate(size_t nrows) const {
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows. The inverse
     // of that is a 0-length RowIndex.
@@ -246,11 +246,11 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // return as an empty RowIndex object.
     return RowIndex();
   }
-  if (nrows < max()) {
+  if (nrows <= max()) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
                           "largest index " << max();
   }
-  return RowIndex(impl->inverse(nrows));
+  return RowIndex(impl->negate(nrows));
 }
 
 

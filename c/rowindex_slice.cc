@@ -136,7 +136,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
 
 
 
-RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
+RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
   xassert(nrows >= length);
   size_t newcount = nrows - length;
   size_t tstart = start;

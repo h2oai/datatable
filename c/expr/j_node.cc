@@ -128,7 +128,7 @@ void allcols_jn::delete_(workframe& wf) {
   DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
-    RowIndex ri_neg = ri0.inverse(dt0->nrows);
+    RowIndex ri_neg = ri0.negate(dt0->nrows);
     dt0->apply_rowindex(ri_neg);
   } else {
     dt0->delete_all();

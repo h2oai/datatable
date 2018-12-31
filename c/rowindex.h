@@ -144,7 +144,16 @@ class RowIndex {
 
     void extract_into(arr32_t&) const;
 
-    RowIndex inverse(size_t nrows) const;
+    /**
+     * Return a RowIndex which is the negation of the current, when applied
+     * to an array of `nrows` elements. That is, the returned RowIndex
+     * contains all elements in the `range(nrows)` which are *not* selected
+     * by the current RowIndex.
+     *
+     * The parameter `nrows` must be greater than the largest entry in the
+     * current RowIndex.
+     */
+    RowIndex negate(size_t nrows) const;
 
     /**
      * Return the RowIndex which is the result of applying RowIndex `ab` to
