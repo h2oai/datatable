@@ -257,9 +257,14 @@ void exprlist_jn::delete_(workframe&) {
     throw TypeError() << "Cannot delete a computed expression";
   }
   for (size_t i = 0; i < exprs.size(); ++i) {
-    if (!exprs[i]->is_primary_col_selector()) {
+    auto colexpr = dynamic_cast<dt::expr_column*>(exprs[i].get());
+    if (!colexpr) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "computed expression and cannot be deleted";
+    }
+    if (colexpr->get_frame_id() > 0) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+        "column from a joined frame, it cannot be deleted";
     }
   }
   xassert(false);
@@ -299,13 +304,15 @@ class jnode_maker
     strvec  names;
     size_t  k;  // The index of the current element
     bool is_update;
+    bool is_delete;
     bool has_new_columns;
-    size_t : 48;
+    size_t : 40;
 
   public:
     jnode_maker(py::robj src, workframe& wf_) : wf(wf_)
     {
       is_update = (wf.get_mode() == EvalMode::UPDATE);
+      is_delete = (wf.get_mode() == EvalMode::DELETE);
       dt0 = wf.get_datatable(0);
       type = list_type::UNKNOWN;
       k = 0;
@@ -326,6 +333,10 @@ class jnode_maker
         }
       }
       else if (src.is_dict()) {
+        if (is_delete) {
+          throw TypeError() << "When del operator is applied, the `j` selector "
+              "cannot be a dictionary";
+        }
         type = list_type::EXPR;
         for (auto kv : src.to_pydict()) {
           if (!kv.first.is_string()) {
@@ -444,9 +455,12 @@ class jnode_maker
       py::oobj res = elem.invoke("_core");
       xassert(res.typeobj() == &py::base_expr::Type::type);
       auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-      auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
-      if (expr->is_primary_col_selector()) {
-        size_t i = expr->get_primary_col_index(wf);
+      dt::base_expr* pexpr = pybe->release();
+      auto expr = std::unique_ptr<dt::base_expr>(pexpr);
+
+      dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(pexpr);
+      if (colexpr && colexpr->get_frame_id() == 0) {
+        size_t i = colexpr->get_col_index(wf);
         indices.push_back(i);
       }
       exprs.push_back(std::move(expr));

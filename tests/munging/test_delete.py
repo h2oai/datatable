@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-from datatable import f, isna, ltype
+from datatable import f, g, isna, ltype
 from tests import assert_equals
 
 
@@ -190,11 +190,33 @@ def test_delcols_computed2():
             "cannot be deleted" == str(e.value))
 
 
+def test_delcols_dict():
+    d0 = smalldt()
+    with pytest.raises(TypeError) as e:
+        del d0[:, {"X": f.A}]
+    assert ("When del operator is applied, the `j` selector cannot be a "
+            "dictionary" in str(e.value))
+
+
+def test_delcols_g():
+    d0 = smalldt()
+    with pytest.raises(TypeError) as e:
+        del d0[:, g[1]]
+    assert ("Cannot delete a computed expression" in str(e.value))
+
+
 
 
 #-------------------------------------------------------------------------------
 # Delete rows
 #-------------------------------------------------------------------------------
+
+def test_del_rows_all():
+    d0 = dt.Frame(range(10))
+    del d0[:, :]
+    d0.internal.check()
+    assert d0.shape == (0, 0)
+
 
 def test_del_rows_single():
     d0 = dt.Frame(range(10))
@@ -244,13 +266,6 @@ def test_del_rows_slice_all():
     del d0[::-1, :]
     d0.internal.check()
     assert d0.shape == (0, 1)
-
-
-def test_del_all():
-    d0 = dt.Frame(range(10))
-    del d0[:, :]
-    d0.internal.check()
-    assert d0.shape == (0, 0)
 
 
 def test_del_rows_slice_step():

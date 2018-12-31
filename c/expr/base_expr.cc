@@ -38,14 +38,6 @@ using base_expr_ptr = std::unique_ptr<base_expr>;
 
 base_expr::~base_expr() {}
 
-bool base_expr::is_primary_col_selector() {
-  return false;
-}
-
-size_t base_expr::get_primary_col_index(const workframe&) {
-  return size_t(-1);
-}
-
 
 
 
@@ -53,30 +45,16 @@ size_t base_expr::get_primary_col_index(const workframe&) {
 // expr_column
 //------------------------------------------------------------------------------
 
-class expr_column : public base_expr {
-  private:
-    size_t frame_id;
-    size_t col_id;
-    py::oobj col_selector;
-
-  public:
-    expr_column(size_t dfid, const py::robj& col);
-    bool is_primary_col_selector() override;
-    size_t get_primary_col_index(const workframe&) override;
-    SType resolve(const workframe&) override;
-    Column* evaluate_eager(const workframe&) override;
-};
-
-
 expr_column::expr_column(size_t dfid, const py::robj& col)
   : frame_id(dfid), col_id(size_t(-1)), col_selector(col) {}
 
 
-bool expr_column::is_primary_col_selector() {
-  return (frame_id == 0);
+size_t expr_column::get_frame_id() const noexcept {
+  return frame_id;
 }
 
-size_t expr_column::get_primary_col_index(const workframe& wf) {
+
+size_t expr_column::get_col_index(const workframe& wf) {
   if (col_id == size_t(-1)) {
     const DataTable* dt = wf.get_datatable(frame_id);
     if (col_selector.is_int()) {
@@ -99,7 +77,7 @@ size_t expr_column::get_primary_col_index(const workframe& wf) {
 
 
 SType expr_column::resolve(const workframe& wf) {
-  size_t i = get_primary_col_index(wf);
+  size_t i = get_col_index(wf);
   const DataTable* dt = wf.get_datatable(frame_id);
   return dt->columns[i]->stype();
 }
