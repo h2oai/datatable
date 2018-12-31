@@ -326,8 +326,17 @@ void StringColumn<T>::replace_values(
 {
   reify();
   if (!replace_with) {
-    ri = replace_at.inverse(nrows);
-    return;
+    // ???
+    // const T* offs = offsets();
+    // const char* data = strdata();
+
+    // MemoryRange new_offsets = MemoryRange::mem(mbuf.size());
+    // MemoryRange new_strbuf = MemoryRange::mem(strbuf.size());
+    // T* new_offs = new_offsets.wptr();
+    // ri.iterate(0, nrows, 1,
+    //   [&](size_t j) {
+
+    //   });
   }
   throw NotImplError() << "StringColumn::replace_values() not implemented";
 }

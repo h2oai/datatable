@@ -199,18 +199,6 @@ RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
 }
 
 
-void SliceRowIndexImpl::shrink(size_t n) {
-  length = n;
-  min = start;
-  max = start + step*(n - 1);
-  if (!ascending) std::swap(min, max);
-}
-
-RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
-  return new SliceRowIndexImpl(start, n, step);
-}
-
-
 void SliceRowIndexImpl::resize(size_t n) {
   xassert(n <= length);
   length = n;

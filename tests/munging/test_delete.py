@@ -221,6 +221,13 @@ def test_del_cols_g1():
 #     del d0[:, [f.G, g.B], dt.join(d1)]
 
 
+def test_del_cols_from_view():
+    d0 = dt.Frame(A=[1, 2, 3, 4], B=[7.5] * 4, C=[True, False, None, True])
+    d1 = d0[::2, ["A", "B", "C"]]
+    del d1[:, "B"]
+    assert_equals(d1, dt.Frame([[1, 3], [True, None]], names=["A", "C"]))
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -333,6 +340,22 @@ def test_del_rows_from_view2():
 
 
 
+
 #-------------------------------------------------------------------------------
 # Delete rows & columns
 #-------------------------------------------------------------------------------
+
+@pytest.mark.skip()
+def test_del_rows_and_cols():
+    from math import inf
+    d0 = dt.Frame(A=[1, 3, 4, 7, 9990],
+                  B=[3.1, 7.4178, inf, .2999, -13.5e23],
+                  C=["what", "if not", "trusca", None, "zaqve"])
+    del d0[2, ["A", "B", "C"]]
+    assert_equals(d0, dt.Frame(A=[1, 3, None, 7, 9990],
+                               B=[3.1, 7.4178, None, .2999, -13.5e23],
+                               C=["what", "if not", None, None, "zaqve"]))
+    del d0[[-1, 0], "A":"B"]
+    assert_equals(d0, dt.Frame(A=[None, 3, None, 7, None],
+                               B=[None, 7.4178, None, .2999, None],
+                               C=["what", "if not", None, None, "zaqve"]))

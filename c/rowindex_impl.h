@@ -75,8 +75,6 @@ class RowIndexImpl {
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(size_t nrows) const = 0;
 
-    virtual void shrink(size_t n) = 0;
-    virtual RowIndexImpl* shrunk(size_t n) = 0;
     virtual void resize(size_t n) = 0;
     virtual RowIndexImpl* resized(size_t n) = 0;
 
@@ -102,8 +100,6 @@ class SliceRowIndexImpl : public RowIndexImpl {
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
 
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 
@@ -152,8 +148,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
     RowIndexImpl* inverse(size_t nrows) const override;
 
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 

@@ -186,20 +186,6 @@ void RowIndex::clear() {
 }
 
 
-// void RowIndex::shrink(size_t nrows, size_t ncols) {
-//   xassert(impl && static_cast<size_t>(impl->refcount) >= ncols + 1);
-//   if (static_cast<size_t>(impl->refcount) == ncols + 1) {
-//     impl->shrink(nrows);
-//   } else {
-//     auto newimpl = impl->shrunk(nrows);
-//     xassert(newimpl->refcount == 0);
-//     impl->release();
-//     impl = newimpl;
-//     impl->acquire();
-//   }
-// }
-
-
 void RowIndex::resize(size_t nrows) {
   xassert(impl);
   if (impl->refcount > 1 || (impl->type == RowIndexType::SLICE &&

@@ -577,27 +577,6 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(size_t nrows) const {
 }
 
 
-void ArrayRowIndexImpl::shrink(size_t n) {
-  xassert(n < length);
-  length = n;
-  _resize_data();
-  set_min_max();
-}
-
-RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
-  xassert(n < length);
-  if (type == RowIndexType::ARR32) {
-    arr32_t new_ind32(n);
-    std::memcpy(new_ind32.data(), data, n * sizeof(int32_t));
-    return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
-  } else {
-    arr64_t new_ind64(n);
-    std::memcpy(new_ind64.data(), data, n * sizeof(int64_t));
-    return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
-  }
-}
-
-
 void ArrayRowIndexImpl::resize(size_t n) {
   size_t oldlen = length;
   length = n;
