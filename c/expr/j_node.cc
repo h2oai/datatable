@@ -264,7 +264,9 @@ void exprlist_jn::delete_(workframe&) {
         "column from a joined frame and cannot be deleted";
     }
   }
-  xassert(false);
+  // An `exprlist_jn` cannot contain all exprs that are `expr_column`s and their
+  // frame_id is 0. Such node should have been created as `collist_jn` instead.
+  xassert(false);  // LCOV_EXCL_LINE
 }
 
 
@@ -580,8 +582,6 @@ jptr j_node::make(py::robj src, workframe& wf) {
 }
 
 j_node::~j_node() {}
-
-void j_node::delete_(workframe&) {}
 
 void j_node::update(workframe&) {}
 
