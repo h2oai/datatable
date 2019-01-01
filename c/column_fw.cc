@@ -296,6 +296,16 @@ template <typename T>
 void FwColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
+  reify();
+  if (!replace_with) {
+    T* data_dest = elements_w();
+    replace_at.iterate(0, replace_at.size(), 1,
+      [&](size_t, size_t j) {
+        xassert(j != RowIndex::NA);
+        data_dest[j] = GETNA<T>();
+      });
+    return;
+  }
   if (replace_with->stype() != stype()) {
     replace_with = replace_with->cast(stype());
   }

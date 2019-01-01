@@ -84,7 +84,7 @@ oobj ojoin::pyobj::get_joinframe() const {
 ojoin::ojoin(const robj& src) : oobj(src) {}
 
 
-const DataTable* ojoin::get_datatable() const {
+DataTable* ojoin::get_datatable() const {
   auto w = static_cast<pyobj*>(v);
   return w->join_frame.to_frame();
 }

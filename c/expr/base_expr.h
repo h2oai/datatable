@@ -69,19 +69,36 @@ enum class unop : size_t {
 
 
 
+//------------------------------------------------------------------------------
+// dt::base_expr
+//------------------------------------------------------------------------------
+
 class base_expr {
   public:
     virtual ~base_expr();
-    virtual bool is_primary_col_selector();
-    virtual size_t get_primary_col_index(const workframe&);
     virtual SType resolve(const workframe&) = 0;
     virtual Column* evaluate_eager(const workframe&) = 0;
 };
 
 
+class expr_column : public base_expr {
+  private:
+    size_t frame_id;
+    size_t col_id;
+    py::oobj col_selector;
+
+  public:
+    expr_column(size_t dfid, const py::robj& col);
+
+    size_t get_frame_id() const noexcept;
+    size_t get_col_index(const workframe&);
+    SType resolve(const workframe&) override;
+    Column* evaluate_eager(const workframe&) override;
+};
+
+
+
 }
-
-
 namespace py {
 
 

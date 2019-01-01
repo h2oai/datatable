@@ -67,19 +67,31 @@ class col_set {
  * j_node representing selection of all columns (i.e. `:`). This is roughly
  * the equivalent of SQL's "*".
  *
- * In the simplest case, this node selects all columns from the source Frame.
- * The groupby field, if present, is ignored and the columns are selected as-is,
- * applying the RowIndex that was already computed. The names of the selected
- * columns will be exactly the same as in the source Frame.
+ * select()
+ *   In the simplest case, this node selects all columns from the source Frame.
+ *   The groupby field, if present, is ignored and the columns are selected
+ *   as-is, applying the RowIndex that was already computed. The names of the
+ *   selected columns will be exactly the same as in the source Frame.
  *
- * However, when 2 or more Frames are joined, this selector will select all
- * columns from all joined Frames. The exception to this are natural joins,
- * where the key columns of joined Frames will be excluded from the result.
+ *   However, when 2 or more Frames are joined, this selector will select all
+ *   columns from all joined Frames. The exception to this are natural joins,
+ *   where the key columns of joined Frames will be excluded from the result.
+ *
+ * delete()
+ *   Even if several frames are joined, the delete() operator applies only to
+ *   the "main" subframe.
+ *   When `j` expression selects all columns, the delete() operator removes
+ *   the rows from a Frame. This is achieved by computing the Rowindex implied
+ *   by the `i` expression, then negating that Rowindex and applying it to the
+ *   source frame.
+ *   However, when `i` is "all rows", then deleting all rows + all columns
+ *   completely empties the Frame: its shape becomes [0 x 0].
  */
 class allcols_jn : public j_node {
   public:
     allcols_jn() = default;
     DataTable* select(workframe&) override;
+    void delete_(workframe&) override;
 };
 
 
@@ -112,12 +124,41 @@ DataTable* allcols_jn::select(workframe& wf) {
 }
 
 
+void allcols_jn::delete_(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    RowIndex ri_neg = ri0.negate(dt0->nrows);
+    dt0->apply_rowindex(ri_neg);
+  } else {
+    dt0->delete_all();
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
 // collist_jn
 //------------------------------------------------------------------------------
 
+/**
+ * This is a j node representing a plain selection of columns from the source
+ * Frame. This node cannot be used to select columns from any joined frames
+ * (although those are still allowed in the evaluation graph).
+ *
+ * select()
+ *   The columns at stored indices are selected into a new DataTable. The
+ *   RowIndex, if any, is applied to all these columns. The joined frames are
+ *   ignored, as well as any groupby information.
+ *
+ * delete()
+ *   When `i` node is `allrows_in`, then the columns at given indices are
+ *   deleted (the indices should also be deduplicated). Otherwise, the
+ *   deletion region is a subset of rows/columns, and we just set the values
+ *   at those places to NA.
+ *
+ */
 class collist_jn : public j_node {
   private:
     std::vector<size_t> indices;
@@ -126,7 +167,9 @@ class collist_jn : public j_node {
   public:
     collist_jn(std::vector<size_t>&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
+    void delete_(workframe&) override;
 };
+
 
 collist_jn::collist_jn(std::vector<size_t>&& cols, strvec&& names_)
   : indices(std::move(cols)), names(std::move(names_))
@@ -154,6 +197,18 @@ DataTable* collist_jn::select(workframe& wf) {
 }
 
 
+void collist_jn::delete_(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    for (size_t i : indices) {
+      dt0->columns[i]->replace_values(ri0, nullptr);
+    }
+  } else {
+    dt0->delete_columns(indices);
+  }
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -169,7 +224,9 @@ class exprlist_jn : public j_node {
   public:
     exprlist_jn(exprvec&& cols, strvec&& names_);
     DataTable* select(workframe& wf) override;
+    void delete_(workframe&) override;
 };
+
 
 exprlist_jn::exprlist_jn(exprvec&& cols, strvec&& names_)
   : exprs(std::move(cols)), names(std::move(names_))
@@ -195,6 +252,24 @@ DataTable* exprlist_jn::select(workframe& wf) {
 }
 
 
+void exprlist_jn::delete_(workframe&) {
+  for (size_t i = 0; i < exprs.size(); ++i) {
+    auto colexpr = dynamic_cast<dt::expr_column*>(exprs[i].get());
+    if (!colexpr) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+        "computed expression and cannot be deleted";
+    }
+    if (colexpr->get_frame_id() > 0) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+        "column from a joined frame and cannot be deleted";
+    }
+  }
+  // An `exprlist_jn` cannot contain all exprs that are `expr_column`s and their
+  // frame_id is 0. Such node should have been created as `collist_jn` instead.
+  xassert(false);  // LCOV_EXCL_LINE
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -213,7 +288,8 @@ static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
 
 
-class jnode_maker {
+class jnode_maker
+{
   private:
     enum class list_type : size_t {
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
@@ -226,10 +302,16 @@ class jnode_maker {
     exprvec exprs;
     strvec  names;
     size_t  k;  // The index of the current element
+    bool is_update;
+    bool is_delete;
+    bool has_new_columns;
+    size_t : 40;
 
   public:
     jnode_maker(py::robj src, workframe& wf_) : wf(wf_)
     {
+      is_update = (wf.get_mode() == EvalMode::UPDATE);
+      is_delete = (wf.get_mode() == EvalMode::DELETE);
       dt0 = wf.get_datatable(0);
       type = list_type::UNKNOWN;
       k = 0;
@@ -250,6 +332,10 @@ class jnode_maker {
         }
       }
       else if (src.is_dict()) {
+        if (is_delete) {
+          throw TypeError() << "When del operator is applied, the `j` selector "
+              "cannot be a dictionary";
+        }
         type = list_type::EXPR;
         for (auto kv : src.to_pydict()) {
           if (!kv.first.is_string()) {
@@ -349,8 +435,18 @@ class jnode_maker {
 
     void _process_element_string(py::robj elem) {
       _set_type(list_type::STR);
-      size_t j = dt0->xcolindex(elem);
-      indices.push_back(j);
+      if (is_update) {
+        int64_t j = dt0->colindex(elem);
+        if (j == -1) {
+          has_new_columns = true;
+          names.resize(indices.size());
+          names.push_back(elem.to_string());
+        }
+        indices.push_back(static_cast<size_t>(j));
+      } else {
+        size_t j = dt0->xcolindex(elem);
+        indices.push_back(j);
+      }
     }
 
     void _process_element_expr(py::robj elem) {
@@ -358,10 +454,20 @@ class jnode_maker {
       py::oobj res = elem.invoke("_core");
       xassert(res.typeobj() == &py::base_expr::Type::type);
       auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-      auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
-      if (expr->is_primary_col_selector()) {
-        size_t i = expr->get_primary_col_index(wf);
-        indices.push_back(i);
+      dt::base_expr* pexpr = pybe->release();
+      auto expr = std::unique_ptr<dt::base_expr>(pexpr);
+
+      dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(pexpr);
+      if (colexpr) {
+        size_t frid = colexpr->get_frame_id();
+        if (frid == 0) {
+          size_t i = colexpr->get_col_index(wf);
+          indices.push_back(i);
+        }
+        else if (frid >= wf.nframes()) {
+          throw ValueError() << "Item " << k << " of the `j` selector list "
+              "references a non-existing join frame";
+        }
       }
       exprs.push_back(std::move(expr));
     }
@@ -476,8 +582,6 @@ jptr j_node::make(py::robj src, workframe& wf) {
 }
 
 j_node::~j_node() {}
-
-void j_node::delete_(workframe&) {}
 
 void j_node::update(workframe&) {}
 

@@ -100,9 +100,8 @@ DataTable* DataTable::copy() const {
 
 
 
-DataTable* DataTable::delete_columns(std::vector<size_t>& cols_to_remove)
-{
-  if (cols_to_remove.empty()) return this;
+void DataTable::delete_columns(std::vector<size_t>& cols_to_remove) {
+  if (cols_to_remove.empty()) return;
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
 
   size_t next_col_to_remove = cols_to_remove[0];
@@ -110,6 +109,7 @@ DataTable* DataTable::delete_columns(std::vector<size_t>& cols_to_remove)
   for (size_t i = 0, k = 0; i < ncols; ++i) {
     if (i == next_col_to_remove) {
       delete columns[i];
+      // "delete" names[i];
       while (next_col_to_remove == i) {
         ++k;
         next_col_to_remove = k < cols_to_remove.size()
@@ -118,13 +118,30 @@ DataTable* DataTable::delete_columns(std::vector<size_t>& cols_to_remove)
       }
     } else {
       columns[j] = columns[i];
+      std::swap(names[j], names[i]);
       ++j;
     }
   }
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
   columns.resize(j);
-  return this;
+  names.resize(j);
+  py_names  = py::otuple();
+  py_inames = py::odict();
+}
+
+
+void DataTable::delete_all() {
+  for (size_t i = 0; i < ncols; ++i) {
+    delete columns[i];
+  }
+  ncols = 0;
+  nrows = 0;
+  nkeys = 0;
+  columns.resize(0);
+  names.resize(0);
+  py_names  = py::otuple();
+  py_inames = py::odict();
 }
 
 
@@ -193,7 +210,7 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 
 
 /**
- * Equivalent of ``dt[ri, :]``.
+ * Equivalent of ``DT[ri, :]``.
  */
 DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
   auto rc = _split_columns_by_rowindices(dt);
@@ -208,6 +225,28 @@ DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
     }
   }
   return new DataTable(std::move(newcols), dt);
+}
+
+
+/**
+ * Equivalent of ``DT = DT[ri, :]``.
+ */
+void DataTable::apply_rowindex(const RowIndex& ri) {
+  // If RowIndex is empty, no need to do anything. Also, the expression
+  // `ri.size()` cannot be computed.
+  if (!ri) return;
+
+  auto rc = _split_columns_by_rowindices(this);
+  auto& rowindices = rc.first;
+  auto& colindices = rc.second;
+
+  for (size_t j = 0; j < rowindices.size(); ++j) {
+    RowIndex newri = ri * rowindices[j];
+    for (size_t i : colindices[j]) {
+      columns[i]->replace_rowindex(newri);
+    }
+  }
+  nrows = ri.size();
 }
 
 

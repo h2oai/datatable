@@ -98,16 +98,29 @@ def list_equals(a, b):
 
 
 
-def assert_equals(datatable1, datatable2):
+def assert_equals(frame1, frame2):
     """
-    Helper function to assert that 2 datatables are equal to each other.
+    Helper function to assert that 2 frames are equal to each other.
     """
-    datatable1.internal.check()
-    datatable2.internal.check()
-    assert datatable1.shape == datatable2.shape
-    assert same_iterables(datatable1.names, datatable2.names)
-    assert same_iterables(datatable1.stypes, datatable2.stypes)
-    assert same_iterables(datatable1.to_list(), datatable2.to_list())
+    frame1.internal.check()
+    frame2.internal.check()
+    assert frame1.shape == frame2.shape, (
+        "The left frame has shape %r, while the right has shape %r"
+        % (frame1.shape, frame2.shape))
+
+    if sys.version_info >= (3, 6):
+        assert frame1.names == frame2.names, (
+            "The left frame has names %r, while the right has names %r"
+            % (frame1.names, frame2.names))
+        assert frame1.stypes == frame2.stypes, (
+            "The left frame has stypes %r, while the right has stypes %r"
+            % (frame1.stypes, frame2.stypes))
+        assert frame1.to_list() == frame2.to_list()
+    else:
+        assert frame1.shape == frame2.shape
+        assert same_iterables(frame1.names, frame2.names)
+        assert same_iterables(frame1.stypes, frame2.stypes)
+        assert same_iterables(frame1.to_list(), frame2.to_list())
 
 
 

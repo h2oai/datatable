@@ -73,10 +73,8 @@ class RowIndexImpl {
 
     virtual size_t nth(size_t i) const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) = 0;
-    virtual RowIndexImpl* inverse(size_t nrows) const = 0;
+    virtual RowIndexImpl* negate(size_t nrows) const = 0;
 
-    virtual void shrink(size_t n) = 0;
-    virtual RowIndexImpl* shrunk(size_t n) = 0;
     virtual void resize(size_t n) = 0;
     virtual RowIndexImpl* resized(size_t n) = 0;
 
@@ -100,10 +98,8 @@ class SliceRowIndexImpl : public RowIndexImpl {
 
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
-    RowIndexImpl* inverse(size_t nrows) const override;
+    RowIndexImpl* negate(size_t nrows) const override;
 
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 
@@ -150,10 +146,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) override;
-    RowIndexImpl* inverse(size_t nrows) const override;
+    RowIndexImpl* negate(size_t nrows) const override;
 
-    void shrink(size_t n) override;
-    RowIndexImpl* shrunk(size_t n) override;
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 
@@ -174,9 +168,9 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     void init_from_integer_column(const Column* col);
     void compactify();
 
-    // Helper for `inverse()`
+    // Helper for `negate()`
     template <typename TI, typename TO>
-    RowIndexImpl* inverse_impl(size_t nrows) const;
+    RowIndexImpl* negate_impl(size_t nrows) const;
 };
 
 

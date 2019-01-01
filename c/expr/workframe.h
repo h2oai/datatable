@@ -29,7 +29,7 @@ namespace dt {
 
 
 struct subframe {
-  const DataTable* dt;
+  DataTable* dt;
   RowIndex ri;
   bool natural;  // was this frame joined naturally?
   size_t : 56;
@@ -75,11 +75,12 @@ class workframe {
     workframe(const workframe&) = delete;
     workframe(workframe&&) = delete;
 
-    explicit workframe(const DataTable*);
+    explicit workframe(DataTable*);
     void set_mode(EvalMode);
-    void add_subframe(const DataTable*);
+    EvalMode get_mode() const;
+    void add_subframe(DataTable*);
 
-    const DataTable* get_datatable(size_t i) const;
+    DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
     bool is_naturally_joined(size_t i) const;

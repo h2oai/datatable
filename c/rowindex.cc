@@ -186,20 +186,6 @@ void RowIndex::clear() {
 }
 
 
-// void RowIndex::shrink(size_t nrows, size_t ncols) {
-//   xassert(impl && static_cast<size_t>(impl->refcount) >= ncols + 1);
-//   if (static_cast<size_t>(impl->refcount) == ncols + 1) {
-//     impl->shrink(nrows);
-//   } else {
-//     auto newimpl = impl->shrunk(nrows);
-//     xassert(newimpl->refcount == 0);
-//     impl->release();
-//     impl = newimpl;
-//     impl->acquire();
-//   }
-// }
-
-
 void RowIndex::resize(size_t nrows) {
   xassert(impl);
   if (impl->refcount > 1 || (impl->type == RowIndexType::SLICE &&
@@ -249,7 +235,26 @@ RowIndex operator *(const RowIndex& ri1, const RowIndex& ri2) {
   return RowIndex(ri1.impl->uplift_from(ri2.impl));
 }
 
-RowIndex RowIndex::inverse(size_t nrows) const {
+
+MemoryRange RowIndex::as_boolean_mask(size_t nrows) const {
+  MemoryRange res = MemoryRange::mem(nrows);
+  int8_t* data = static_cast<int8_t*>(res.xptr());
+  if (isabsent()) {
+    // No RowIndex is equivalent to having RowIndex over all rows, i.e. we
+    // should return an array of all 1's.
+    std::memset(data, 1, nrows);
+  } else {
+    std::memset(data, 0, nrows);
+    iterate(0, size(), 1,
+      [&](size_t, size_t j) {
+        data[j] = 1;
+      });
+  }
+  return res;
+}
+
+
+RowIndex RowIndex::negate(size_t nrows) const {
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows. The inverse
     // of that is a 0-length RowIndex.
@@ -260,11 +265,11 @@ RowIndex RowIndex::inverse(size_t nrows) const {
     // return as an empty RowIndex object.
     return RowIndex();
   }
-  if (nrows < max()) {
+  if (nrows <= max()) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
                           "largest index " << max();
   }
-  return RowIndex(impl->inverse(nrows));
+  return RowIndex(impl->negate(nrows));
 }
 
 

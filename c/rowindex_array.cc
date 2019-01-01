@@ -534,7 +534,7 @@ void ArrayRowIndexImpl::compactify()
 
 
 template <typename TI, typename TO>
-RowIndexImpl* ArrayRowIndexImpl::inverse_impl(size_t nrows) const
+RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
 {
   auto inputs = static_cast<const TI*>(data);
   size_t newsize = nrows - length;
@@ -561,39 +561,18 @@ RowIndexImpl* ArrayRowIndexImpl::inverse_impl(size_t nrows) const
 }
 
 
-RowIndexImpl* ArrayRowIndexImpl::inverse(size_t nrows) const {
+RowIndexImpl* ArrayRowIndexImpl::negate(size_t nrows) const {
   xassert(nrows >= length);
   if (type == RowIndexType::ARR32) {
     if (nrows <= INT32_MAX)
-      return inverse_impl<int32_t, int32_t>(nrows);
+      return negate_impl<int32_t, int32_t>(nrows);
     else
-      return inverse_impl<int32_t, int64_t>(nrows);
+      return negate_impl<int32_t, int64_t>(nrows);
   } else {
     if (nrows <= INT32_MAX)
-      return inverse_impl<int64_t, int32_t>(nrows);
+      return negate_impl<int64_t, int32_t>(nrows);
     else
-      return inverse_impl<int64_t, int64_t>(nrows);
-  }
-}
-
-
-void ArrayRowIndexImpl::shrink(size_t n) {
-  xassert(n < length);
-  length = n;
-  _resize_data();
-  set_min_max();
-}
-
-RowIndexImpl* ArrayRowIndexImpl::shrunk(size_t n) {
-  xassert(n < length);
-  if (type == RowIndexType::ARR32) {
-    arr32_t new_ind32(n);
-    std::memcpy(new_ind32.data(), data, n * sizeof(int32_t));
-    return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
-  } else {
-    arr64_t new_ind64(n);
-    std::memcpy(new_ind64.data(), data, n * sizeof(int64_t));
-    return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
+      return negate_impl<int64_t, int64_t>(nrows);
   }
 }
 
