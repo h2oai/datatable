@@ -347,9 +347,10 @@ def test_del_rows_from_view2():
 
 def test_del_rows_and_cols():
     from math import inf
-    d0 = dt.Frame(A=[1, 3, 4, 7, 9990],
-                  B=[3.1, 7.4178, inf, .2999, -13.5e23],
-                  C=["what", "if not", "trusca", None, "zaqve"])
+    d0 = dt.Frame([[1, 3, 4, 7, 9990],
+                   [3.1, 7.4178, inf, .2999, -13.5e23],
+                   ["what", "if not", "trusca", None, "zaqve"]],
+                  names=["A", "B", "C"])
     del d0[2, ["A", "B", "C"]]
     assert_equals(d0, dt.Frame(A=[1, 3, None, 7, 9990],
                                B=[3.1, 7.4178, None, .2999, -13.5e23],
