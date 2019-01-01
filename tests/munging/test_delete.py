@@ -345,7 +345,6 @@ def test_del_rows_from_view2():
 # Delete rows & columns
 #-------------------------------------------------------------------------------
 
-@pytest.mark.skip()
 def test_del_rows_and_cols():
     from math import inf
     d0 = dt.Frame(A=[1, 3, 4, 7, 9990],
@@ -358,4 +357,5 @@ def test_del_rows_and_cols():
     del d0[[-1, 0], "A":"B"]
     assert_equals(d0, dt.Frame(A=[None, 3, None, 7, None],
                                B=[None, 7.4178, None, .2999, None],
-                               C=["what", "if not", None, None, "zaqve"]))
+                               C=["what", "if not", None, None, "zaqve"],
+                               stypes={"A": "int16"}))

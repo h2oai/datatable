@@ -145,6 +145,13 @@ class RowIndex {
     void extract_into(arr32_t&) const;
 
     /**
+     * Convert the RowIndex into an array `int8_t[nrows]`, where each entry
+     * is either 1 or 0 depending whether that element is selected by the
+     * current RowIndex or not.
+     */
+    MemoryRange as_boolean_mask(size_t nrows) const;
+
+    /**
      * Return a RowIndex which is the negation of the current, when applied
      * to an array of `nrows` elements. That is, the returned RowIndex
      * contains all elements in the `range(nrows)` which are *not* selected

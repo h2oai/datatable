@@ -13,6 +13,7 @@
 #include "py_utils.h"
 #include "utils.h"
 #include "utils/assert.h"
+#include "utils/parallel.h"
 
 // Returns the expected path of the string data file given
 // the path to the offsets
@@ -326,17 +327,22 @@ void StringColumn<T>::replace_values(
 {
   reify();
   if (!replace_with) {
-    // ???
-    // const T* offs = offsets();
-    // const char* data = strdata();
-
-    // MemoryRange new_offsets = MemoryRange::mem(mbuf.size());
-    // MemoryRange new_strbuf = MemoryRange::mem(strbuf.size());
-    // T* new_offs = new_offsets.wptr();
-    // ri.iterate(0, nrows, 1,
-    //   [&](size_t j) {
-
-    //   });
+    MemoryRange mask = replace_at.as_boolean_mask(nrows);
+    auto mask_indices = static_cast<const int8_t*>(mask.rptr());
+    Column* t = dt::map_str2str(this,
+      [=](size_t i, CString& value, dt::fhbuf& sb) {
+        if (mask_indices[i]) {
+          sb.write_na();
+        } else {
+          sb.write(value);
+        }
+      });
+    StringColumn<T>* scol = static_cast<StringColumn<T>*>(t);
+    std::swap(mbuf, scol->mbuf);
+    std::swap(strbuf, scol->strbuf);
+    delete scol;
+    if (stats) stats->reset();
+    return;
   }
   throw NotImplError() << "StringColumn::replace_values() not implemented";
 }
