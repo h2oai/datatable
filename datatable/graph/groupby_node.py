@@ -13,11 +13,9 @@ from datatable.graph.dtproxy import f
 class SimpleGroupbyNode:
 
     def __init__(self, ee, col):
-        self._engine = ee
         self._col = col
 
-    def execute(self):
-        ee = self._engine
+    def execute(self, ee):
         df = ee.dt.internal
         col = self._col
         if ee.rowindex:
@@ -56,16 +54,12 @@ def make_groupby(grby, ee):
 class by:
     def __init__(self, *args):
         self._cols = list(args)
-        self._engine = None
 
     def resolve_columns(self, ee):
-        self._engine = ee
-        dt = self._engine.dt
         for i, col in enumerate(self._cols):
-            self._cols[i] = process_column(col, dt)
+            self._cols[i] = process_column(col, ee.dt)
 
-    def execute(self):
-        ee = self._engine
+    def execute(self, ee):
         df = ee.dt.internal
         rowindex, groupby = df.sort(*self._cols, True)
         f.set_rowindex(rowindex)

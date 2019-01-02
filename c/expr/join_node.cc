@@ -55,6 +55,9 @@ void ojoin::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
 //------------------------------------------------------------------------------
 
 void ojoin::pyobj::m__init__(PKArgs& args) {
+  if (!args[0]) {
+    throw TypeError() << "join() is missing the required parameter `frame`";
+  }
   join_frame = args[0].to_oobj();
   if (!join_frame.is_frame()) {
     throw TypeError() << "The argument to join() must be a Frame";
