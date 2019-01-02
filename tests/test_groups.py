@@ -137,12 +137,14 @@ def test_groups_autoexpand():
                             [2, 7, 0, 5, 13]]
 
 
+@pytest.mark.skip(reason="Issue #1348")
 def test_groupby_with_filter1():
     f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
     f1 = f0[f.X > 0, sum(f.X), f.KEY]
     assert f1.to_list() == [[1, 2], [4, 2]]
 
 
+@pytest.mark.skip(reason="Issue #1348")
 def test_groupby_with_filter2():
     # Check that rowindex works even when applied to a view
     n = 10000
