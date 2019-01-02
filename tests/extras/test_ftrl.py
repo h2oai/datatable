@@ -634,7 +634,7 @@ def test_ftrl_fit_predict_view():
     df_train_range.materialize()
     df_target_range.materialize()
     ft.fit(df_train_range, df_target_range)
-    predictions_rage = ft.predict(df_train_range)
+    predictions_range = ft.predict(df_train_range)
 
     assert_equals(model, ft.model)
     assert_equals(predictions, predictions_range)
