@@ -130,7 +130,7 @@ def test_groups_multiple():
 def test_groups_autoexpand():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
-    f1 = f0[:, [mean(f.size), "size"], f.color]
+    f1 = f0[:, [mean(f.size), f.size], f.color]
     f1.internal.check()
     assert f1.to_list() == [["blue", "green", "green", "red", "red"],
                             [2.0, 3.5, 3.5, 9.0, 9.0],

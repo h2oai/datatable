@@ -59,9 +59,9 @@ def patched_terminal(monkeypatch):
     dt.utils.terminal.term.disable_styling()
 
 
-def assert_valueerror(datatable, rows, error_message):
+def assert_valueerror(frame, rows, error_message):
     with pytest.raises(ValueError) as e:
-        datatable(rows=rows)
+        noop(frame[rows, :])
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
@@ -219,10 +219,10 @@ def test_dt_getitem(dt0):
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         dt0[tuple()]
-    assert "Invalid selector ()" == str(e.value)
+    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0[(None,)]
-    assert "Invalid selector (None,)" == str(e.value)
+    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
 
 
 
