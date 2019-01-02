@@ -23,7 +23,7 @@ In the lists below each person is listed with their GitHub id in parentheses.
 - Michal Malohlava (mmalohlava)
 - Michal Raška (michal-raska)
 - Nishant Kalonia (nkalonia1)
-- Oleksiy Kononenko (oleksiykononenko)
+- Oleksiy Kononenko (oleksiyskononenko)
 - Tom Kraljevic (tomkraljevic)
 
 

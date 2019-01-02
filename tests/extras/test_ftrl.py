@@ -394,6 +394,15 @@ def test_ftrl_none_model():
     assert ft.model == None
 
 
+def test_ftrl_model_shallowcopy():
+    model = dt.Frame(tmodel)
+    ft = Ftrl(tparams)
+    ft.model = tmodel
+    ft.reset()
+    assert ft.model == None
+    assert_equals(tmodel, model)
+
+
 #-------------------------------------------------------------------------------
 # Test wrong training frame
 #-------------------------------------------------------------------------------
@@ -616,17 +625,19 @@ def test_ftrl_fit_predict_view():
     # Train model and predict on a view
     ft.fit(df_train[rows,:], df_target[rows,:])
     predictions = ft.predict(df_train[rows,:])
-    model = dt.Frame(ft.model.to_dict())
+    model = ft.model
 
     # Train model and predict on a frame
     ft.reset()
-    df_train_range = dt.Frame(df_train[rows,:].to_list())
-    df_target_range = dt.Frame(df_target[rows,:].to_list())
+    df_train_range = df_train[rows,:]
+    df_target_range = df_target[rows,:]
+    df_train_range.materialize()
+    df_target_range.materialize()
     ft.fit(df_train_range, df_target_range)
-    predictions_half = ft.predict(df_train_range)
+    predictions_rage = ft.predict(df_train_range)
 
     assert_equals(model, ft.model)
-    assert_equals(predictions, predictions_half)
+    assert_equals(predictions, predictions_range)
 
 
 #-------------------------------------------------------------------------------
@@ -644,6 +655,17 @@ def test_ftrl_feature_importance():
     fi = ft.fi
     assert fi[0, 0] < fi[2, 0]
     assert fi[2, 0] < fi[1, 0]
+
+def test_ftrl_fi_shallowcopy():
+    ft = Ftrl(tparams)
+    df_train = dt.Frame(random.sample(range(ft.d), ft.d))
+    df_target = dt.Frame([bool(random.getrandbits(1)) for _ in range(ft.d)])
+    ft.fit(df_train, df_target)
+    fi1 = ft.fi
+    fi2 = dt.Frame(ft.fi.to_dict())
+    ft.reset()
+    assert ft.fi == None
+    assert_equals(fi1, fi2)
 
 
 #-------------------------------------------------------------------------------

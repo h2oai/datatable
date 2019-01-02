@@ -133,13 +133,13 @@ template <typename T>
 uint64_t HashString<T>::hash(size_t row) const {
   size_t i = ri[row];
   if (i == RowIndex::NA) {
-    return 0; // Return 0 hash for NA rowindex
+    return static_cast<uint64_t>(GETNA<T>());
   } else {
+    if (ISNA<T>(offsets[i])) {
+      return static_cast<uint64_t>(GETNA<T>());
+    }
     const T strstart = offsets[i - 1] & ~GETNA<T>();
     const char* c_str = strdata + strstart;
-    if (ISNA<T>(offsets[i])) {
-      return 0; // Return 0 hash for NA strings
-    }
     T len = offsets[i] - strstart;
     return hash_murmur2(c_str, len * sizeof(char), 0);
   }
