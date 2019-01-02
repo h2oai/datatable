@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_JOIN_NODE_h
-#define dt_EXPR_JOIN_NODE_h
+#ifndef dt_EXPR_BY_NODE_h
+#define dt_EXPR_BY_NODE_h
 #include "python/ext_type.h"
 #include "python/obj.h"
 
@@ -28,11 +28,11 @@ namespace py {
 
 
 
-class ojoin : public oobj
+class oby : public oobj
 {
   class pyobj : public PyObject {
     public:
-      oobj join_frame;
+      oobj cols;
 
       class Type : public ExtType<pyobj> {
         public:
@@ -45,30 +45,24 @@ class ojoin : public oobj
 
       void m__init__(PKArgs&);
       void m__dealloc__();
-      oobj get_joinframe() const;
-
-    private:
-      // The class does not use traditional constructor/destructor mechanism.
-      // Instead, the objects are created/deleted by Python C backend.
-      pyobj();
-      ~pyobj();
+      oobj get_cols() const;
   };
 
   public:
-    ojoin() = default;
-    ojoin(const ojoin&) = default;
-    ojoin(ojoin&&) = default;
-    ojoin& operator=(const ojoin&) = default;
-    ojoin& operator=(ojoin&&) = default;
+    oby() = default;
+    oby(const oby&) = default;
+    oby(oby&&) = default;
+    oby& operator=(const oby&) = default;
+    oby& operator=(oby&&) = default;
 
-    DataTable* get_datatable() const;
+    // DataTable* get_datatable() const;
 
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
   private:
     friend class _obj;
-    ojoin(const robj&);
+    oby(const robj&);
 };
 
 

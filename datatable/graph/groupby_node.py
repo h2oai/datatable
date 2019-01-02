@@ -21,9 +21,7 @@ def make_groupby(grby, ee):
 
 
 
-class by:
-    def __init__(self, *args):
-        self._cols = list(args)
+class by(core.by):
 
     def resolve_columns(self, ee):
         for i, col in enumerate(self._cols):
