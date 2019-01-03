@@ -553,10 +553,8 @@ void Ftrl::set_labels(robj py_labels) {
   // TODO: check this out.
   labels = labels_in;
   if (nlabels != dtft.size()) {
-    dt::FtrlParams dt_params = dt::Ftrl::default_params;
-    if (dtft.size() > 0) {
-      dt_params = dtft[0]->get_params();
-    }
+    dt::FtrlParams dt_params = dtft.size() > 0? dtft[0]->get_params() :
+                                                dt::Ftrl::default_params;
     init_dtft(dt_params);
   }
 }

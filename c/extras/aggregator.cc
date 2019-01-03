@@ -600,6 +600,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           for (size_t j = 0; j < exemplars.size(); ++j) {
+          // for (size_t j = exemplars.size(); j-- > 0; ) {
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
