@@ -45,14 +45,6 @@ void Frame::m__setitem__(robj item, robj value) {
 }
 
 
-/**
- * "Fast" get/set only handles the case of the form `DT[i, j]` where
- * `i` is integer, and `j` is either an integer or a string. These cases
- * are special in that they return a scalar python value, instead of a
- * Frame object.
- * This case should also be handled first, to ensure that it has maximum
- * performance.
- */
 oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
   size_t nargs = targs? targs.size() : 0;
@@ -62,7 +54,13 @@ oobj Frame::_main_getset(robj item, robj value) {
         "will be interpreted as a row selector instead.";
   }
 
-  if (nargs == 2 && value == GETITEM) {
+  // "Fast" get/set only handles the case of the form `DT[i, j]` where
+  // `i` is integer, and `j` is either an integer or a string. These cases
+  // are special in that they return a scalar python value, instead of a
+  // Frame object.
+  // This case should also be handled first, to ensure that it has maximum
+  // performance.
+  if (nargs == 2 && value == GETITEM) {  // TODO: handle SETITEM too
     robj arg0 = targs[0], arg1 = targs[1];
     bool a0int = arg0.is_int();
     bool a1int = arg1.is_int();
@@ -100,7 +98,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
               value == DELITEM? dt::EvalMode::DELETE :
                                 dt::EvalMode::UPDATE);
-  // 2. Check if `j` is an `update()` and if so change the mode.
+  // 2. TODO: Check if `j` is an `update()` and if so change the mode.
   // 3. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in DT[...]
   for (size_t k = 2; k < nargs; ++k) {
@@ -111,7 +109,8 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
   auto iexpr = dt::i_node::make(targs[0]);
   auto jexpr = dt::j_node::make(targs[1], wf);
-  if (iexpr && jexpr && nargs == 2) {
+  xassert(iexpr && jexpr);
+  if (nargs == 2) {
     iexpr->post_init_check(wf);
     iexpr->execute(wf);
     if (value == GETITEM) {

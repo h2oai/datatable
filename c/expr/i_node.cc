@@ -508,7 +508,7 @@ static i_node* _make(py::robj src) {
   if (src.is_bool()) {
     throw TypeError() << "Boolean value cannot be used as an `i` expression";
   }
-  return nullptr;  // for now
+  throw TypeError() << "Unsupported `i` selector of type " << src.typeobj();
 }
 
 
