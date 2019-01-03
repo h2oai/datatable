@@ -37,7 +37,7 @@ class j_node {
 
     virtual ~j_node();
     virtual DataTable* select(workframe&) = 0;
-    virtual void delete_(workframe&);
+    virtual void delete_(workframe&) = 0;
     virtual void update(workframe&);
 };
 

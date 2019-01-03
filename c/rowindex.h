@@ -143,15 +143,32 @@ class RowIndex {
     size_t slice_step() const noexcept;
 
     void extract_into(arr32_t&) const;
-    RowIndex inverse(size_t nrows) const;
+
+    /**
+     * Convert the RowIndex into an array `int8_t[nrows]`, where each entry
+     * is either 1 or 0 depending whether that element is selected by the
+     * current RowIndex or not.
+     */
+    MemoryRange as_boolean_mask(size_t nrows) const;
+
+    /**
+     * Return a RowIndex which is the negation of the current, when applied
+     * to an array of `nrows` elements. That is, the returned RowIndex
+     * contains all elements in the `range(nrows)` which are *not* selected
+     * by the current RowIndex.
+     *
+     * The parameter `nrows` must be greater than the largest entry in the
+     * current RowIndex.
+     */
+    RowIndex negate(size_t nrows) const;
 
     /**
      * Return the RowIndex which is the result of applying RowIndex `ab` to
      * RowIndex `bc`. More specifically, suppose there are 2 frames A and B,
-     * with A being a subset of B, and that `this` RowIndex describes which
+     * with A being a subset of B, and that RowIndex `ab` describes which
      * rows in B are selected into A. Furthermore, suppose B itself is a
-     * subframe of C, and RowIndex `other` describes which rows from C are
-     * selected into B. Then `AB * BC` will return a new RowIndex
+     * subframe of C, and RowIndex `bc` describes which rows from C are
+     * selected into B. Then `ab * bc` will produce a new RowIndex
      * object describing how the rows of A can be obtained from C.
      *
      * Note that the product is not commutative: `ab * bc` != `bc * ab`.
@@ -159,15 +176,6 @@ class RowIndex {
     friend RowIndex operator *(const RowIndex& ab, const RowIndex& bc);
 
     void clear();
-
-    /**
-     * Reduce the size of the RowIndex to `nrows` elements. The second parameter
-     * indicates the number of columns in the DataTable to which the RowIndex
-     * belongs. Since each Column in the DataTable carries a copy of the
-     * RowIndex. Knowing the number of columns allows us to know when the
-     * RowIndex can be safely modified in-place, and when it cannot.
-     */
-    void shrink(size_t nrows, size_t ncols);
 
     /**
      * Modifies the RowIndex so that its new size becomes `nrows`. This will
@@ -179,11 +187,9 @@ class RowIndex {
      * impl will be replaced with an "array" impl if `nrows` is greater than
      * the current size of the RowIndex.
      *
-     * This method should not be evoked on an "empty" RowIndex.
+     * This method should not be called on an "empty" RowIndex.
      */
     void resize(size_t nrows);
-
-    size_t memory_footprint() const;
 
     /**
      * Template function that allows looping through the RowIndex. This
@@ -195,9 +201,10 @@ class RowIndex {
      *
      * Function `f` is expected to have a signature `void(size_t i, size_t j)`.
      */
-    template<typename F> void iterate(
-        size_t istart, size_t iend, size_t istep, F f) const;
+    template<typename F>
+    void iterate(size_t istart, size_t iend, size_t istep, F f) const;
 
+    size_t memory_footprint() const;
     void verify_integrity() const;
 
   private:

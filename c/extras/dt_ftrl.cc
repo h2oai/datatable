@@ -54,19 +54,18 @@ Ftrl::Ftrl(FtrlParams params_in) :
 void Ftrl::fit(const DataTable* dt_X, const BoolColumn* c_y) {
   define_features(dt_X->ncols);
 
-  if (!is_dt_valid(dt_model, params.d, 2)) create_model();
-  if (!is_dt_valid(dt_fi, nfeatures, 1)) create_fi();
+  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Create column hashers.
   create_hashers(dt_X);
 
   // Get the target column.
   auto d_y = c_y->elements_r();
+  const RowIndex ri_y = c_y->rowindex();
 
   // Do training for `nepochs`.
-  for (size_t i = 0; i < params.nepochs; ++i) {
-    double total_loss = 0;
-
+  for (size_t e = 0; e < params.nepochs; ++e) {
     #pragma omp parallel num_threads(config::nthreads)
     {
       // Array to store hashed column values and their interactions.
@@ -74,21 +73,14 @@ void Ftrl::fit(const DataTable* dt_X, const BoolColumn* c_y) {
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-      for (size_t j = ith; j < dt_X->nrows; j += nth) {
-        if (ISNA<int8_t>(d_y[j])) continue;
-        bool y = d_y[j];
-        hash_row(x, j);
-        double p = predict_row(x);
-        update(x, p, y);
-
-        double loss = logloss(p, y);
-        #pragma omp atomic update
-        total_loss += loss;
-        if ((j+1) % REPORT_FREQUENCY == 0) {
-          printf("Training epoch: %zu\tRow: %zu\tPrediction: %f\t"
-                 "Current loss: %f\tAverage loss: %f\n",
-                 i, j+1, p, loss, total_loss / (j+1));
-        }
+      for (size_t i = ith; i < dt_X->nrows; i += nth) {
+          size_t j = ri_y[i];
+          if (j != RowIndex::NA && !ISNA<int8_t>(d_y[j])) {
+            bool y = d_y[j];
+            hash_row(x, i);
+            double p = predict_row(x);
+            update(x, p, y);
+          }
       }
     }
   }
@@ -103,7 +95,8 @@ void Ftrl::fit(const DataTable* dt_X, const BoolColumn* c_y) {
 dtptr Ftrl::predict(const DataTable* dt_X) {
   xassert(model_trained);
   define_features(dt_X->ncols);
-  if (is_dt_valid(dt_fi, nfeatures, 1)) create_fi();
+  init_weights();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Re-create hashers as stypes for training dataset and predictions
   // may be different
@@ -121,12 +114,9 @@ dtptr Ftrl::predict(const DataTable* dt_X) {
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
 
-    for (size_t j = ith; j < dt_X->nrows; j += nth) {
-      hash_row(x, j);
-      d_y[j] = predict_row(x);
-      if ((j+1) % REPORT_FREQUENCY == 0) {
-        printf("Row: %zu\tPrediction: %f\n", j+1, d_y[j]);
-      }
+    for (size_t i = ith; i < dt_X->nrows; i += nth) {
+      hash_row(x, i);
+      d_y[i] = predict_row(x);
     }
   }
   return dt_y;
@@ -174,12 +164,13 @@ void Ftrl::create_model() {
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
-  init_weights();
+  w = doubleptr(new double[params.d]());
   reset_model();
 }
 
 
 void Ftrl::reset_model() {
+  init_weights();
   if (z == nullptr || n == nullptr) return;
   std::memset(z, 0, params.d * sizeof(double));
   std::memset(n, 0, params.d * sizeof(double));
@@ -191,14 +182,12 @@ void Ftrl::init_weights() {
   if (dt_model == nullptr) return;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
-  w = doubleptr(new double[params.d]());
 }
 
 
 void Ftrl::create_fi() {
   Column* col_fi = Column::new_data_column(SType::FLOAT64, nfeatures);
   dt_fi = dtptr(new DataTable({col_fi}, {"feature_importance"}));
-  init_fi();
   reset_fi();
 }
 
@@ -210,6 +199,7 @@ void Ftrl::init_fi() {
 
 
 void Ftrl::reset_fi() {
+  init_fi();
   if (fi == nullptr) return;
   std::memset(fi, 0, nfeatures * sizeof(double));
 }
@@ -426,6 +416,7 @@ FtrlParams Ftrl::get_params() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_d(dt_model->nrows);
+  w = doubleptr(new double[params.d]());
   init_weights();
   ncols = 0;
   nfeatures = 0;

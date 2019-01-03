@@ -79,9 +79,11 @@ class DataTable {
     DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
 
-    DataTable* delete_columns(std::vector<size_t>&);
+    void delete_columns(std::vector<size_t>&);
+    void delete_all();
     void resize_rows(size_t n);
     void replace_rowindex(const RowIndex& newri);
+    void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
     void reify();
     void rbind(std::vector<DataTable*>, std::vector<std::vector<size_t>>);

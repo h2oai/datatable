@@ -94,6 +94,7 @@ DataTable* split_into_nhot(Column* col, char sep) {
   std::vector<int8_t*> outdata;
   std::vector<std::string> outnames;
   dt::shared_mutex shmutex;
+  const RowIndex& ri = col->rowindex();
 
   OmpExceptionManager oem;
   #pragma omp parallel
@@ -105,14 +106,16 @@ DataTable* split_into_nhot(Column* col, char sep) {
 
       for (size_t irow = ith; irow < nrows; irow += nth) {
         const char* strstart, *strend;
+        size_t jrow = ri[irow];
+        if (jrow == RowIndex::NA) continue;
         if (is32) {
-          if (ISNA(offsets32[irow])) continue;
-          strstart = strdata + (offsets32[irow - 1] & ~GETNA<uint32_t>());
-          strend = strdata + offsets32[irow];
+          if (ISNA(offsets32[jrow])) continue;
+          strstart = strdata + (offsets32[jrow - 1] & ~GETNA<uint32_t>());
+          strend = strdata + offsets32[jrow];
         } else {
-          if (ISNA(offsets64[irow])) continue;
-          strstart = strdata + (offsets64[irow - 1] & ~GETNA<uint64_t>());
-          strend = strdata + offsets64[irow];
+          if (ISNA(offsets64[jrow])) continue;
+          strstart = strdata + (offsets64[jrow - 1] & ~GETNA<uint64_t>());
+          strend = strdata + offsets64[jrow];
         }
         if (strstart == strend) continue;
         char chfirst = *strstart;

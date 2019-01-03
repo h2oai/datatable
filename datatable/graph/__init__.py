@@ -59,25 +59,7 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
             assert grbynode is None
             allcols = colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
-            if delete_mode:
-                if allrows:
-                    if allcols:
-                        dt.__init__(None)
-                        return
-                    if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-                        colslist = sorted(set(colsnode.get_list()))
-                        dt._delete_columns(colslist)
-                        return
-                    raise TValueError("Cannot delete non-existing columns")
-                elif allcols:
-                    rowsnode.negate()
-                    rowsnode.execute()
-                    dt.internal.replace_rowindex(ee.rowindex)
-                    return
-                else:
-                    update_mode = True
-                    replacement = None
-                    # fall-through to the update_mode
+            assert not delete_mode
             if update_mode:
                 # Without `materialize`, when an update is applied to a view,
                 # `rowsnode.execute()` will merge the rowindex implied by

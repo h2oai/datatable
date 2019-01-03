@@ -13,6 +13,7 @@
 #include "py_utils.h"
 #include "utils.h"
 #include "utils/assert.h"
+#include "utils/parallel.h"
 
 // Returns the expected path of the string data file given
 // the path to the offsets
@@ -322,9 +323,28 @@ void StringColumn<T>::reify() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex /*replace_at*/, const Column* /*replace_with*/)
+    RowIndex replace_at, const Column* replace_with)
 {
-  // TODO
+  reify();
+  if (!replace_with) {
+    MemoryRange mask = replace_at.as_boolean_mask(nrows);
+    auto mask_indices = static_cast<const int8_t*>(mask.rptr());
+    Column* t = dt::map_str2str(this,
+      [=](size_t i, CString& value, dt::fhbuf& sb) {
+        if (mask_indices[i]) {
+          sb.write_na();
+        } else {
+          sb.write(value);
+        }
+      });
+    StringColumn<T>* scol = static_cast<StringColumn<T>*>(t);
+    std::swap(mbuf, scol->mbuf);
+    std::swap(strbuf, scol->strbuf);
+    delete scol;
+    if (stats) stats->reset();
+    return;
+  }
+  throw NotImplError() << "StringColumn::replace_values() not implemented";
 }
 
 

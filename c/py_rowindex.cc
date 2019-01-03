@@ -248,7 +248,7 @@ PyObject* inverse(obj* self, PyObject* args) {
   size_t nrows;
   if (!PyArg_ParseTuple(args, "n:RowIndex.inverse", &nrows))
     return nullptr;
-  RowIndex res = ri.inverse(nrows);
+  RowIndex res = ri.negate(nrows);
   return wrap(res);
 }
 

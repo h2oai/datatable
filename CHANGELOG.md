@@ -42,6 +42,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `datatable` now exposes C API, to allow other C/C++ libraries interact
   with datatable Frames directly (#1469).
 
+- The column selector in `DT[i, j]` can now be a list of booleans of length
+  `DT.ncols`. The True/False entries in this list will indicate whether to
+  select the corresponding column or not. This can be used to implement a
+  simple column filter, for example:
+    ```python
+    del DT[:, (name.endswith("_tmp") for name in DT.names)]
+    ```
+
 
 #### Fixed
 
@@ -53,6 +61,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - rendering of "view" Frames in Jupyter notebook (#1448).
 
 - installation from source distribution (#1451).
+
+- Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
+
+- `DT.replace()` now works correctly when the replacement list is `[+inf]` or
+  `[1.7976931348623157e+308]` (#1510).
 
 
 ### Changed

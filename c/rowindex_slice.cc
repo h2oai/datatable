@@ -136,7 +136,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
 
 
 
-RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
+RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
   xassert(nrows >= length);
   size_t newcount = nrows - length;
   size_t tstart = start;
@@ -196,18 +196,6 @@ RowIndexImpl* SliceRowIndexImpl::inverse(size_t nrows) const {
     xassert(j == newcount);
     return new ArrayRowIndexImpl(std::move(indices), true);
   }
-}
-
-
-void SliceRowIndexImpl::shrink(size_t n) {
-  length = n;
-  min = start;
-  max = start + step*(n - 1);
-  if (!ascending) std::swap(min, max);
-}
-
-RowIndexImpl* SliceRowIndexImpl::shrunk(size_t n) {
-  return new SliceRowIndexImpl(start, n, step);
 }
 
 

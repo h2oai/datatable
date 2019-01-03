@@ -30,7 +30,10 @@
 */
 class Hash {
   public:
+    explicit Hash(const Column*);
     virtual ~Hash();
+
+    const RowIndex ri;
     virtual uint64_t hash(size_t row) const = 0;
 };
 
@@ -61,14 +64,16 @@ class HashInt : public Hash {
 
 
 template <typename T>
-HashInt<T>::HashInt(const Column* col) {
+HashInt<T>::HashInt(const Column* col) : Hash(col) {
   values = dynamic_cast<const IntColumn<T>*>(col)->elements_r();
 }
 
 
 template <typename T>
 uint64_t HashInt<T>::hash(size_t row) const {
-  uint64_t h = static_cast<uint64_t>(values[row]);
+  size_t i = ri[row];
+  T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
+  uint64_t h = static_cast<uint64_t>(value);
   return h;
 }
 
@@ -87,14 +92,16 @@ class HashFloat : public Hash {
 
 
 template <typename T>
-HashFloat<T>::HashFloat(const Column* col) {
+HashFloat<T>::HashFloat(const Column* col) : Hash(col){
   values = dynamic_cast<const RealColumn<T>*>(col)->elements_r();
 }
 
 
 template <typename T>
 uint64_t HashFloat<T>::hash(size_t row) const {
-  auto x = static_cast<double>(values[row]);
+  size_t i = ri[row];
+  T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
+  auto x = static_cast<double>(value);
   uint64_t* h = reinterpret_cast<uint64_t*>(&x);
   return *h;
 }
@@ -115,7 +122,7 @@ class HashString : public Hash {
 
 
 template <typename T>
-HashString<T>::HashString(const Column* col) {
+HashString<T>::HashString(const Column* col) : Hash(col){
   auto scol = dynamic_cast<const StringColumn<T>*>(col);
   strdata = scol->strdata();
   offsets = scol->offsets();
@@ -124,11 +131,18 @@ HashString<T>::HashString(const Column* col) {
 
 template <typename T>
 uint64_t HashString<T>::hash(size_t row) const {
-  const T strstart = offsets[row - 1] & ~GETNA<T>();
-  const char* c_str = strdata + strstart;
-  T len = offsets[row] - strstart;
-  uint64_t h = hash_murmur2(c_str, len * sizeof(char), 0);
-  return h;
+  size_t i = ri[row];
+  if (i == RowIndex::NA) {
+    return static_cast<uint64_t>(GETNA<T>());
+  } else {
+    if (ISNA<T>(offsets[i])) {
+      return static_cast<uint64_t>(GETNA<T>());
+    }
+    const T strstart = offsets[i - 1] & ~GETNA<T>();
+    const char* c_str = strdata + strstart;
+    T len = offsets[i] - strstart;
+    return hash_murmur2(c_str, len * sizeof(char), 0);
+  }
 }
 
 #endif
