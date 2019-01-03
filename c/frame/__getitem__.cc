@@ -30,18 +30,18 @@
 
 namespace py {
 
-// Sentinel value for __getitem__() mode
+// Sentinel values for __getitem__() mode
 static robj GETITEM(reinterpret_cast<PyObject*>(-1));
 static robj DELITEM(reinterpret_cast<PyObject*>(0));
 
 
 
 oobj Frame::m__getitem__(robj item) {
-  return _fast_getset(item, GETITEM);
+  return _main_getset(item, GETITEM);
 }
 
 void Frame::m__setitem__(robj item, robj value) {
-  _fast_getset(item, value);
+  _main_getset(item, value);
 }
 
 
@@ -53,9 +53,16 @@ void Frame::m__setitem__(robj item, robj value) {
  * This case should also be handled first, to ensure that it has maximum
  * performance.
  */
-oobj Frame::_fast_getset(robj item, robj value) {
+oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
-  if (targs && targs.size() == 2 && value == GETITEM) {
+  size_t nargs = targs? targs.size() : 0;
+  if (nargs <= 1) {
+    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
+        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
+        "will be interpreted as a row selector instead.";
+  }
+
+  if (nargs == 2 && value == GETITEM) {
     robj arg0 = targs[0], arg1 = targs[1];
     bool a0int = arg0.is_int();
     bool a1int = arg1.is_int();
@@ -85,21 +92,9 @@ oobj Frame::_fast_getset(robj item, robj value) {
       Column* col = dt->columns[zcol];
       return col->get_value_at_index(zrow);
     }
-    // otherwise fall-through to _main_getset
-  }
-  return _main_getset(item, value);
-}
-
-
-oobj Frame::_main_getset(robj item, robj value) {
-  rtuple targs = item.to_rtuple_lax();
-  if (!(targs && targs.size() >= 2)) {
-    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
-        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
-        "will be interpreted as a row selector instead.";
+    // otherwise fall-through
   }
 
-  size_t nargs = targs.size();
   // 1. Create the workframe
   dt::workframe wf(dt);
   wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
