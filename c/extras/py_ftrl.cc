@@ -145,23 +145,19 @@ void Ftrl::m__init__(PKArgs& args) {
   }
 
   if (defined_labels) {
-    // When there is a list of labels, do multinomial regression
-    // for which we need `nlabels` classifiers
     set_labels(args[1]);
   } else {
-    // If there is no labels argument, do binary regression
-    // for which we only need one classifier
-    py::olist labels_in(1);
-    labels_in.set(0, py::ostring("target"));
-    labels = labels_in;
-    set_labels(labels);
+    py::olist py_list(0);
+    set_labels(py::robj(py_list));
   }
+
   init_dtft(dt_params);
 }
 
 
 void Ftrl::init_dtft(dt::FtrlParams dt_params) {
   size_t nlabels = labels.size();
+  xassert(nlabels > 0);
   dtft.clear();
   dtft.reserve(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
@@ -306,13 +302,21 @@ void Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
+  // Due to `m__init__()` calling `init_dtft()`, number of classifiers
+  // is consistent with the number of labels from the very beginning.
+  // If number of labels changes afterwards with `set_labels()`,
+  // we need to re-initialize classifiers.
+  if (labels.size() != dtft.size()) {
+    init_dtft(dtft[0]->get_params());
+  }
+
   DataTable* dt_yy = nullptr;
   std::vector<BoolColumn*> c_y;
   c_y.reserve(dtft.size());
   if (dtft.size() > 1) {
-    xassert(labels.size() == dtft.size());
     dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
     const strvec& colnames = dt_yy->get_names();
+    size_t nmissing = 0;
 
     for (size_t i = 0; i < labels.size(); ++i) {
       BoolColumn* col;
@@ -320,6 +324,9 @@ void Ftrl::fit(const PKArgs& args) {
       auto it = std::find(colnames.begin(), colnames.end(), label);
 
       if (it == colnames.end()) {
+        nmissing++;
+        Warning w = DatatableWarning();
+        w << "Label '" << label << "' was not found in a target frame";
         col = static_cast<BoolColumn*>(Column::new_data_column(SType::BOOL, dt_y->nrows));
         auto d_y = static_cast<bool*>(col->data_w());
         for (size_t j = 0; j < col->nrows; ++j) d_y[j] = false;
@@ -328,6 +335,11 @@ void Ftrl::fit(const PKArgs& args) {
         col = static_cast<BoolColumn*>(dt_yy->columns[pos]);
       }
       c_y.push_back(col);
+    }
+
+    if (labels.size() != dt_yy->ncols + nmissing) {
+    	 // TODO: make this message more user friendly.
+       throw ValueError() << "Target column contains unknown labels";
     }
   } else {
     if (dt_y->columns[0]->stype() != SType::BOOL) {
@@ -386,7 +398,20 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
-  dt_X->reify();
+  if (labels.size() != dtft.size()) {
+    if (dtft.size() == 1) {
+      // Binomial
+     throw ValueError() << "Cannot make any predictions with the labels "
+                           "supplied, as the model was trained in "
+                           "a binomial mode";
+    } else {
+      // Multinomial
+     throw ValueError() << "Can only make predictions for " << dtft.size()
+                        << " labels, i.e. the same number of labels as "
+                        << "was used for model training";
+    }
+  }
+
   DataTable* dt_y = dtft[0]->predict(dt_X).release();
 
   std::vector<DataTable*> dti_y;
@@ -442,11 +467,17 @@ oobj Ftrl::get_labels() const {
 
 oobj Ftrl::get_model() const {
   if (dtft[0]->is_trained()) {
-    DataTable* dt_model = dtft[0]->get_model();
-    py::oobj df_model = py::oobj::from_new_reference(
-                          py::Frame::from_datatable(dt_model)
-                        );
-    return df_model;
+    size_t ndtft = dtft.size();
+    py::otuple models(ndtft);
+
+    for (size_t i = 0; i < ndtft; ++i) {
+      DataTable* dt_model = dtft[i]->get_model();
+      py::oobj df_model = py::oobj::from_new_reference(
+                            py::Frame::from_datatable(dt_model)
+                          );
+      models.set(i, df_model);
+    }
+    return std::move(models);
   } else {
     return py::None();
   }
@@ -455,11 +486,16 @@ oobj Ftrl::get_model() const {
 
 oobj Ftrl::get_fi() const {
   if (dtft[0]->is_trained()) {
-    DataTable* dt_fi = dtft[0]->get_fi();
-    py::oobj df_fi = py::oobj::from_new_reference(
-                          py::Frame::from_datatable(dt_fi)
-                     );
-    return df_fi;
+    size_t ndtft = dtft.size();
+    py::otuple fi(ndtft);
+    for (size_t i = 0; i < ndtft; ++i) {
+      DataTable* dt_fi = dtft[i]->get_fi();
+      py::oobj df_fi = py::oobj::from_new_reference(
+                            py::Frame::from_datatable(dt_fi)
+                       );
+      fi.set(i, df_fi);
+    }
+    return std::move(fi);
   } else {
     return py::None();
   }
@@ -546,61 +582,76 @@ oobj Ftrl::get_colname_hashes() const {
 void Ftrl::set_labels(robj py_labels) {
   py::olist labels_in = py_labels.to_pylist();
   size_t nlabels = labels_in.size();
-//  if (nlabels < 2) {
-//    throw ValueError() << "Number of labels should be at least two";
-//  }
-
-  // TODO: check this out.
-  labels = labels_in;
-  if (nlabels != dtft.size()) {
-    dt::FtrlParams dt_params = dtft.size() > 0? dtft[0]->get_params() :
-                                                dt::Ftrl::default_params;
-    init_dtft(dt_params);
+  if (nlabels == 1) {
+    throw ValueError() << "List of labels can not have one element";
   }
+  // This ensures that we always have at least one classifier
+  if (nlabels == 0) {
+    labels_in.append(py::ostring("target"));
+  }
+  labels = labels_in;
 }
 
 
 void Ftrl::set_model(robj model) {
-  DataTable* dt_model_in = model.to_frame();
-
-  // Reset model when it was assigned `None` in Python
-  if (dt_model_in == nullptr) {
-    if (dtft[0]->is_trained()) dtft[0]->reset_model();
+  size_t ndtft = dtft.size();
+  // Reset model if it was assigned `None` in Python
+  if (model.is_none()) {
+    if (dtft[0]->is_trained()) {
+      for (size_t i = 0; i < ndtft; ++i) {
+        dtft[i]->reset_model();
+      }
+    }
     return;
   }
 
-  const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
-
-  if (dt_model_in->nrows != dtft[0]->get_d() || dt_model_in->ncols != 2) {
-    throw ValueError() << "FTRL model frame must have " << dtft[0]->get_d()
-                       << " rows, and 2 columns, whereas your frame has "
-                       << dt_model_in->nrows << " rows and "
-                       << dt_model_in->ncols << " column"
-                       << (dt_model_in->ncols == 1? "": "s");
+  size_t nlabels = labels.size();
+  py::otuple py_model = model.to_otuple();
+  if (py_model.size() != nlabels) {
+    throw ValueError() << "Number of models should be the same as number "
+                       << "of labels, i.e. " << nlabels << ", got "
+                       << py_model.size();
 
   }
 
-  if (model_cols_in != dt::Ftrl::model_colnames) {
-    throw ValueError() << "FTRL model frame must have columns named `z` and "
-                       << "`n`, whereas your frame has the following column "
-                       << "names: `" << model_cols_in[0]
-                       << "` and `" << model_cols_in[1] << "`";
-  }
+  // Initialize classifiers
+  init_dtft(dtft[0]->get_params());
 
-  if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
-    dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-    throw ValueError() << "FTRL model frame must have both column types as "
-                       << "`float64`, whereas your frame has the following "
-                       << "column types: `"
-                       << dt_model_in->columns[0]->stype()
-                       << "` and `" << dt_model_in->columns[1]->stype() << "`";
-  }
+  for (size_t i = 0; i < nlabels; ++i) {
+    DataTable* dt_model_in = py_model[i].to_frame();
+    const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-  if (has_negative_n(dt_model_in)) {
-    throw ValueError() << "Values in column `n` cannot be negative";
-  }
+    if (dt_model_in->nrows != dtft[0]->get_d() || dt_model_in->ncols != 2) {
+      throw ValueError() << "FTRL model frame must have " << dtft[0]->get_d()
+                         << " rows, and 2 columns, whereas your frame has "
+                         << dt_model_in->nrows << " rows and "
+                         << dt_model_in->ncols << " column"
+                         << (dt_model_in->ncols == 1? "": "s");
 
-  dtft[0]->set_model(dt_model_in);
+    }
+
+    if (model_cols_in != dt::Ftrl::model_colnames) {
+      throw ValueError() << "FTRL model frame must have columns named `z` and "
+                         << "`n`, whereas your frame has the following column "
+                         << "names: `" << model_cols_in[0]
+                         << "` and `" << model_cols_in[1] << "`";
+    }
+
+    if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
+      dt_model_in->columns[1]->stype() != SType::FLOAT64) {
+      throw ValueError() << "FTRL model frame must have both column types as "
+                         << "`float64`, whereas your frame has the following "
+                         << "column types: `"
+                         << dt_model_in->columns[0]->stype()
+                         << "` and `" << dt_model_in->columns[1]->stype() << "`";
+    }
+
+    if (has_negative_n(dt_model_in)) {
+      throw ValueError() << "Values in column `n` cannot be negative";
+    }
+
+    dtft[i]->set_model(dt_model_in);
+  }
 }
 
 
@@ -711,13 +762,14 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 *  Pickling / unpickling methods.
 */
 oobj Ftrl::m__getstate__(const NoArgs&) {
-  py::otuple pickle(3);
+  py::otuple pickle(4);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_fi();
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
+  pickle.set(3, labels);
   return std::move(pickle);
 }
 
@@ -727,10 +779,15 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::oobj params = pickle[0];
   py::oobj model = pickle[1];
   py::oobj fi = pickle[2];
+  labels = pickle[3].to_pylist();
   dtft.push_back(dtftptr(new dt::Ftrl(dt::Ftrl::default_params)));
   set_params_tuple(params);
   set_model(model);
-  dtft[0]->set_fi(fi.to_frame());
+
+  py::otuple fi_tuple = fi.to_otuple();
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    dtft[i]->set_fi(fi_tuple[i].to_frame());
+  }
 }
 
 

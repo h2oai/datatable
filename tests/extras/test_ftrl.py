@@ -28,11 +28,12 @@
 import pickle
 import datatable as dt
 from datatable.models import Ftrl
-from datatable import f, stype
+from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
 from tests import assert_equals, noop
+
 
 
 #-------------------------------------------------------------------------------
@@ -350,14 +351,14 @@ def test_ftrl_model_untrained():
 def test_ftrl_set_negative_n_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
-        ft.model = tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']]
+        ft.model = (tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']],)
     assert ("Values in column `n` cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_shape_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
-        ft.model = tmodel[:, 'n']
+        ft.model = (tmodel[:, 'n'],)
     assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
             "frame has %d rows and 1 column" % (tparams.d, tparams.d)
             == str(e.value))
@@ -365,9 +366,9 @@ def test_ftrl_set_wrong_shape_model():
 
 def test_ftrl_set_wrong_type_model():
     ft = Ftrl(tparams)
-    model = dt.Frame([["foo"] * tparams.d,
+    model = (dt.Frame([["foo"] * tparams.d,
                       [random.random() for _ in range(tparams.d)]],
-                      names=['z', 'n'])
+                      names=['z', 'n']),)
     with pytest.raises(ValueError) as e:
         ft.model = model
     assert ("FTRL model frame must have both column types as `float64`, whereas"
@@ -377,13 +378,13 @@ def test_ftrl_set_wrong_type_model():
 
 def test_ftrl_get_set_model():
     ft = Ftrl(tparams)
-    ft.model = tmodel
-    assert_equals(ft.model, tmodel)
+    ft.model = (tmodel,)
+    assert_equals(ft.model[0], tmodel)
 
 
 def test_ftrl_reset_model():
     ft = Ftrl(tparams)
-    ft.model = tmodel
+    ft.model = (tmodel,)
     ft.reset()
     assert ft.model == None
 
@@ -397,7 +398,7 @@ def test_ftrl_none_model():
 def test_ftrl_model_shallowcopy():
     model = dt.Frame(tmodel)
     ft = Ftrl(tparams)
-    ft.model = tmodel
+    ft.model = (tmodel,)
     ft.reset()
     assert ft.model == None
     assert_equals(tmodel, model)
@@ -538,7 +539,7 @@ def test_ftrl_fit_unique():
     df_target = dt.Frame([True] * ft.d)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.d, [0.25] * ft.d]
-    assert ft.model.to_list() == model
+    assert ft.model[0].to_list() == model
 
 
 def test_ftrl_fit_unique_ignore_none():
@@ -547,7 +548,7 @@ def test_ftrl_fit_unique_ignore_none():
     df_target = dt.Frame([True] * ft.d + [None] * ft.d)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.d, [0.25] * ft.d]
-    assert ft.model.to_list() == model
+    assert ft.model[0].to_list() == model
 
 
 def test_ftrl_fit_predict_bool():
@@ -614,7 +615,7 @@ def test_ftrl_fit_predict_from_setters():
     # Train `ft` and make predictions
     ft.fit(df_train, df_target)
     target1 = ft.predict(df_train)
-    assert_equals(ft.model, ft2.model)
+    assert_equals(ft.model[0], ft2.model[0])
     assert_equals(target1, target2)
 
 
@@ -639,7 +640,7 @@ def test_ftrl_fit_predict_view():
     ft.fit(df_train_range, df_target_range)
     predictions_range = ft.predict(df_train_range)
 
-    assert_equals(model, ft.model)
+    assert_equals(model[0], ft.model[0])
     assert_equals(predictions, predictions_range)
 
 
@@ -647,18 +648,40 @@ def test_ftrl_fit_predict_view():
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
+def test_ftrl_fit_multinomial_missing_labels():
+    ft = Ftrl(d = 10)
+    ft.labels = ["a", "b"]
+    df_train = dt.Frame(range(ft.d))
+    df_target = dt.Frame(["b"] * 10)
+    with pytest.warns(DatatableWarning) as ws:
+        ft.fit(df_train, df_target)
+    assert len(ws) == 1
+    assert "Label 'a' was not found in a target frame" in ws[0].message.args[0]
+
+
+def test_ftrl_fit_multinomial_unknown_labels():
+    ft = Ftrl(d = 10)
+    ft.labels = ["a", "b"]
+    df_train = dt.Frame(range(ft.d))
+    df_target = dt.Frame((ft.labels + ["c"] + ft.labels) * 2)
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train, df_target)
+    assert ("Target column contains unknown labels"
+            == str(e.value))
+
+
 def test_ftrl_fit_multinomial_vs_binomial():
-    ft1 = Ftrl(d = 10)
+    ft1 = Ftrl(d = 10, nepochs = 5)
     df_train1 = dt.Frame(range(ft1.d))
     df_target1 = dt.Frame([True, False] * 5)
     ft1.fit(df_train1, df_target1)
     
-    ft2 = Ftrl(d = 10)
+    ft2 = Ftrl(d = 10, nepochs = 5)
     ft2.labels = ["a", "b"]
     df_train2 = dt.Frame(range(ft2.d))
     df_target2 = dt.Frame(ft2.labels * 5)
     ft2.fit(df_train2, df_target2)
-    assert_equals(ft1.model, ft2.model)
+    assert_equals(ft1.model[0], ft2.model[0])
 
 
 #-------------------------------------------------------------------------------
@@ -674,19 +697,23 @@ def test_ftrl_feature_importance():
     df_target = dt.Frame([False, True] * (ft.d // 2))
     ft.fit(df_train, df_target)
     fi = ft.fi
-    assert fi[0, 0] < fi[2, 0]
-    assert fi[2, 0] < fi[1, 0]
+    assert fi[0][0, 0] < fi[0][2, 0]
+    assert fi[0][2, 0] < fi[0][1, 0]
+
 
 def test_ftrl_fi_shallowcopy():
+    import copy
     ft = Ftrl(tparams)
     df_train = dt.Frame(random.sample(range(ft.d), ft.d))
     df_target = dt.Frame([bool(random.getrandbits(1)) for _ in range(ft.d)])
     ft.fit(df_train, df_target)
     fi1 = ft.fi
-    fi2 = dt.Frame(ft.fi.to_dict())
+    fi2 = copy.deepcopy(ft.fi)
     ft.reset()
     assert ft.fi == None
-    assert_equals(fi1, fi2)
+    assert len(fi1) == len(fi2)
+    assert len(fi1) == 1
+    assert_equals(fi1[0], fi2[0])
 
 
 #-------------------------------------------------------------------------------
@@ -700,11 +727,13 @@ def test_ftrl_pickling():
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model.internal.check()
-    assert ft_unpickled.model.names == ('z', 'n')
-    assert ft_unpickled.model.stypes == (stype.float64, stype.float64)
-    assert_equals(ft.model, ft_unpickled.model)
-    assert ft_unpickled.fi.names == ('feature_importance',)
-    assert ft_unpickled.fi.stypes == (stype.float64,)
-    assert_equals(ft.fi, ft_unpickled.fi)
+    ft_unpickled.model[0].internal.check()
+    assert len(ft_unpickled.model) == 1
+    assert len(ft_unpickled.fi) == 1
+    assert ft_unpickled.model[0].names == ('z', 'n')
+    assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
+    assert_equals(ft.model[0], ft_unpickled.model[0])
+    assert ft_unpickled.fi[0].names == ('feature_importance',)
+    assert ft_unpickled.fi[0].stypes == (stype.float64,)
+    assert_equals(ft.fi[0], ft_unpickled.fi[0])
     assert ft.params == ft_unpickled.params
