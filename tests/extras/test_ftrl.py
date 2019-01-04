@@ -352,14 +352,15 @@ def test_ftrl_set_negative_n_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = (tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']],)
-    assert ("Values in column `n` cannot be negative" == str(e.value))
+    assert ("Element 0: Values in column `n` cannot be negative" == str(e.value))
 
 
 def test_ftrl_set_wrong_shape_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
         ft.model = (tmodel[:, 'n'],)
-    assert ("FTRL model frame must have %d rows, and 2 columns, whereas your "
+    assert ("Element 0: "
+            "FTRL model frame must have %d rows, and 2 columns, whereas your "
             "frame has %d rows and 1 column" % (tparams.d, tparams.d)
             == str(e.value))
 
@@ -371,7 +372,8 @@ def test_ftrl_set_wrong_type_model():
                       names=['z', 'n']),)
     with pytest.raises(ValueError) as e:
         ft.model = model
-    assert ("FTRL model frame must have both column types as `float64`, whereas"
+    assert ("Element 0: "
+            "FTRL model frame must have both column types as `float64`, whereas"
             " your frame has the following column types: `str32` and `float64`"
             == str(e.value))
 
@@ -682,6 +684,7 @@ def test_ftrl_fit_multinomial_vs_binomial():
     df_target2 = dt.Frame(ft2.labels * 5)
     ft2.fit(df_train2, df_target2)
     assert_equals(ft1.model[0], ft2.model[0])
+    
 
 
 #-------------------------------------------------------------------------------

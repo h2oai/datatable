@@ -622,7 +622,8 @@ void Ftrl::set_model(robj model) {
     const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
     if (dt_model_in->nrows != dtft[0]->get_d() || dt_model_in->ncols != 2) {
-      throw ValueError() << "FTRL model frame must have " << dtft[0]->get_d()
+      throw ValueError() << "Element " << i << ": "
+                         << "FTRL model frame must have " << dtft[0]->get_d()
                          << " rows, and 2 columns, whereas your frame has "
                          << dt_model_in->nrows << " rows and "
                          << dt_model_in->ncols << " column"
@@ -631,7 +632,8 @@ void Ftrl::set_model(robj model) {
     }
 
     if (model_cols_in != dt::Ftrl::model_colnames) {
-      throw ValueError() << "FTRL model frame must have columns named `z` and "
+      throw ValueError() << "Element " << i << ": "
+                         << "FTRL model frame must have columns named `z` and "
                          << "`n`, whereas your frame has the following column "
                          << "names: `" << model_cols_in[0]
                          << "` and `" << model_cols_in[1] << "`";
@@ -639,7 +641,8 @@ void Ftrl::set_model(robj model) {
 
     if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
       dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-      throw ValueError() << "FTRL model frame must have both column types as "
+      throw ValueError() << "Element " << i << ": "
+                         << "FTRL model frame must have both column types as "
                          << "`float64`, whereas your frame has the following "
                          << "column types: `"
                          << dt_model_in->columns[0]->stype()
@@ -647,7 +650,8 @@ void Ftrl::set_model(robj model) {
     }
 
     if (has_negative_n(dt_model_in)) {
-      throw ValueError() << "Values in column `n` cannot be negative";
+      throw ValueError() << "Element " << i << ": "
+                         << "Values in column `n` cannot be negative";
     }
 
     dtft[i]->set_model(dt_model_in);
@@ -779,8 +783,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::oobj params = pickle[0];
   py::oobj model = pickle[1];
   py::oobj fi = pickle[2];
+
   labels = pickle[3].to_pylist();
-  dtft.push_back(dtftptr(new dt::Ftrl(dt::Ftrl::default_params)));
+  init_dtft(dt::Ftrl::default_params);
   set_params_tuple(params);
   set_model(model);
 
