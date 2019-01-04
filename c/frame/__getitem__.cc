@@ -98,13 +98,19 @@ oobj Frame::_main_getset(robj item, robj value) {
   wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
               value == DELITEM? dt::EvalMode::DELETE :
                                 dt::EvalMode::UPDATE);
-  // 2. TODO: Check if `j` is an `update()` and if so change the mode.
-  // 3. Search for join nodes in order to bind all aliases and
-  //    to know which frames participate in DT[...]
+
+  // 2. Search for join nodes in order to bind all aliases and
+  //    to know which frames participate in `DT[...]`.
   for (size_t k = 2; k < nargs; ++k) {
-    auto oj = targs[k].to_ojoin_lax();
-    if (oj) {
-      wf.add_subframe(oj.get_datatable());
+    auto arg_join = targs[k].to_ojoin_lax();
+    if (arg_join) {
+      wf.add_subframe(arg_join.get_datatable());
+      continue;
+    }
+    auto arg_by = targs[k].to_oby_lax();
+    if (arg_by) {
+      wf.add_groupby(arg_by);
+      continue;
     }
   }
   auto iexpr = dt::i_node::make(targs[0]);

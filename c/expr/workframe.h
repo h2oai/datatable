@@ -78,7 +78,9 @@ class workframe {
     explicit workframe(DataTable*);
     void set_mode(EvalMode);
     EvalMode get_mode() const;
+
     void add_subframe(DataTable*);
+    void add_groupby(py::oby);
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
