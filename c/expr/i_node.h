@@ -39,7 +39,7 @@ using iptr = std::unique_ptr<dt::i_node>;
  */
 class i_node {
   public:
-    static iptr make(py::robj src);
+    static iptr make(py::robj src, workframe& wf);
 
     virtual ~i_node();
     virtual void post_init_check(workframe& wf);

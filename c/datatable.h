@@ -162,6 +162,8 @@ DataTable* open_jay_from_mbuf(const MemoryRange&);
 
 DataTable* apply_rowindex(const DataTable*, const RowIndex& ri);
 
+RowIndex natural_join(const DataTable* xdt, const DataTable* jdt);
+
 
 //==============================================================================
 

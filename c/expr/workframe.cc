@@ -41,9 +41,26 @@ EvalMode workframe::get_mode() const {
 }
 
 
-void workframe::add_subframe(DataTable* dt) {
+void workframe::add_join(py::ojoin oj) {
+  DataTable* dt = oj.get_datatable();
   frames.push_back(subframe {dt, RowIndex(), true});
 }
+
+
+void workframe::add_groupby(py::oby og) {
+  by_node = og;
+}
+
+
+void workframe::compute_joins() {
+  if (frames.size() <= 1) return;
+  DataTable* xdt = frames[0].dt;
+  for (size_t i = 1; i < frames.size(); ++i) {
+    DataTable* jdt = frames[i].dt;
+    frames[i].ri = natural_join(xdt, jdt);
+  }
+}
+
 
 
 DataTable* workframe::get_datatable(size_t i) const {

@@ -512,8 +512,10 @@ static i_node* _make(py::robj src) {
 }
 
 
-iptr i_node::make(py::robj src) {
-  return iptr(_make(src));
+iptr i_node::make(py::robj src, workframe& wf) {
+  iptr res(_make(src));
+  res->post_init_check(wf);
+  return res;
 }
 
 

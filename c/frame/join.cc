@@ -274,6 +274,7 @@ static void _init_comparators() {
       cmps[i][j] = nullptr;
     }
   }
+  size_t bool8 = static_cast<size_t>(SType::BOOL);
   size_t int08 = static_cast<size_t>(SType::INT8);
   size_t int16 = static_cast<size_t>(SType::INT16);
   size_t int32 = static_cast<size_t>(SType::INT32);
@@ -282,36 +283,49 @@ static void _init_comparators() {
   size_t flt64 = static_cast<size_t>(SType::FLOAT64);
   size_t str32 = static_cast<size_t>(SType::STR32);
   size_t str64 = static_cast<size_t>(SType::STR64);
+  cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
+  cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
+  cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;
+  cmps[bool8][int32] = FwCmp<int8_t, int32_t>::make;
+  cmps[bool8][int64] = FwCmp<int8_t, int64_t>::make;
+  cmps[bool8][flt32] = FwCmp<int8_t, float>::make;
+  cmps[bool8][flt64] = FwCmp<int8_t, double>::make;
+  cmps[int08][bool8] = FwCmp<int8_t, int8_t>::make;
   cmps[int08][int08] = FwCmp<int8_t, int8_t>::make;
   cmps[int08][int16] = FwCmp<int8_t, int16_t>::make;
   cmps[int08][int32] = FwCmp<int8_t, int32_t>::make;
   cmps[int08][int64] = FwCmp<int8_t, int64_t>::make;
   cmps[int08][flt32] = FwCmp<int8_t, float>::make;
   cmps[int08][flt64] = FwCmp<int8_t, double>::make;
+  cmps[int16][bool8] = FwCmp<int16_t, int8_t>::make;
   cmps[int16][int08] = FwCmp<int16_t, int8_t>::make;
   cmps[int16][int16] = FwCmp<int16_t, int16_t>::make;
   cmps[int16][int32] = FwCmp<int16_t, int32_t>::make;
   cmps[int16][int64] = FwCmp<int16_t, int64_t>::make;
   cmps[int16][flt32] = FwCmp<int16_t, float>::make;
   cmps[int16][flt64] = FwCmp<int16_t, double>::make;
+  cmps[int32][bool8] = FwCmp<int32_t, int8_t>::make;
   cmps[int32][int08] = FwCmp<int32_t, int8_t>::make;
   cmps[int32][int16] = FwCmp<int32_t, int16_t>::make;
   cmps[int32][int32] = FwCmp<int32_t, int32_t>::make;
   cmps[int32][int64] = FwCmp<int32_t, int64_t>::make;
   cmps[int32][flt32] = FwCmp<int32_t, float>::make;
   cmps[int32][flt64] = FwCmp<int32_t, double>::make;
+  cmps[int64][bool8] = FwCmp<int64_t, int8_t>::make;
   cmps[int64][int08] = FwCmp<int64_t, int8_t>::make;
   cmps[int64][int16] = FwCmp<int64_t, int16_t>::make;
   cmps[int64][int32] = FwCmp<int64_t, int32_t>::make;
   cmps[int64][int64] = FwCmp<int64_t, int64_t>::make;
   cmps[int64][flt32] = FwCmp<int64_t, float>::make;
   cmps[int64][flt64] = FwCmp<int64_t, double>::make;
+  cmps[flt32][bool8] = FwCmp<float, int8_t>::make;
   cmps[flt32][int08] = FwCmp<float, int8_t>::make;
   cmps[flt32][int16] = FwCmp<float, int16_t>::make;
   cmps[flt32][int32] = FwCmp<float, int32_t>::make;
   cmps[flt32][int64] = FwCmp<float, int64_t>::make;
   cmps[flt32][flt32] = FwCmp<float, float>::make;
   cmps[flt32][flt64] = FwCmp<float, double>::make;
+  cmps[flt64][bool8] = FwCmp<double, int8_t>::make;
   cmps[flt64][int08] = FwCmp<double, int8_t>::make;
   cmps[flt64][int16] = FwCmp<double, int16_t>::make;
   cmps[flt64][int32] = FwCmp<double, int32_t>::make;
@@ -361,20 +375,8 @@ static size_t binsearch(Cmp* cmp, size_t nrows) {
 
 
 
-static py::PKArgs fn_natural_join(
-    2, 0, 0,
-    false, false,
-    {"xdt", "jdt"},
-    "natural_join",
-R"(natural_join(xdt, jdt)
---
-
-Join two Frames `xdt` and `jdt` on the keys of `jdt`.
-)",
-
-[](const py::PKArgs& args) -> py::oobj {
-  DataTable* xdt = args[0].to_frame();
-  DataTable* jdt = args[1].to_frame();
+// declared in datatable.h
+RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   size_t k = jdt->get_nkeys();  // Number of join columns
   xassert(k > 0);
 
@@ -396,24 +398,55 @@ Join two Frames `xdt` and `jdt` on the keys of `jdt`.
   size_t nchunks = std::min(xdt->nrows / 200,
                             static_cast<size_t>(config::nthreads));
 
+  OmpExceptionManager oem;
   #pragma omp parallel num_threads(nchunks)
   {
-    MultiCmp comparator(xcols, jcols);
+    try {
+      // Creating the comparator may fail if xcols and jcols are incompatible
+      MultiCmp comparator(xcols, jcols);
 
-    #pragma omp for
-    for (size_t i = 0; i < xdt->nrows; ++i) {
-      int r = comparator.set_xrow(i);
-      if (r == 0) {
-        size_t j = binsearch(&comparator, jdt->nrows);
-        result_indices[i] = static_cast<int32_t>(j);
-      } else {
-        result_indices[i] = -1;
+      #pragma omp for
+      for (size_t i = 0; i < xdt->nrows; ++i) {
+        int r = comparator.set_xrow(i);
+        if (r == 0) {
+          size_t j = binsearch(&comparator, jdt->nrows);
+          result_indices[i] = static_cast<int32_t>(j);
+        } else {
+          result_indices[i] = -1;
+        }
       }
+
+    } catch (...) {
+      oem.capture_exception();
     }
   }
 
-  RowIndex res = RowIndex(std::move(arr_result_indices));
-  return py::oobj::from_new_reference(pyrowindex::wrap(res));
+  oem.rethrow_exception_if_any();
+  return RowIndex(std::move(arr_result_indices));
+}
+
+
+
+
+// TODO: remove these functions
+
+static py::PKArgs fn_natural_join(
+    2, 0, 0,
+    false, false,
+    {"xdt", "jdt"},
+    "natural_join",
+R"(natural_join(xdt, jdt)
+--
+
+Join two Frames `xdt` and `jdt` on the keys of `jdt`.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  DataTable* xdt = args[0].to_frame();
+  DataTable* jdt = args[1].to_frame();
+  return py::oobj::from_new_reference(pyrowindex::wrap(
+           natural_join(xdt, jdt)
+         ));
 });
 
 

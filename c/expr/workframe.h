@@ -21,10 +21,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_WORKFRAME_h
 #define dt_EXPR_WORKFRAME_h
-#include <vector>        // std::vector
-#include "datatable.h"   // DataTable
-#include "groupby.h"     // Groupby
-#include "rowindex.h"    // RowIndex
+#include <vector>            // std::vector
+#include "expr/by_node.h"    // py::oby
+#include "expr/join_node.h"  // py::ojoin
+#include "datatable.h"       // DataTable
+#include "groupby.h"         // Groupby
+#include "rowindex.h"        // RowIndex
 namespace dt {
 
 
@@ -67,6 +69,7 @@ class workframe {
   private:
     std::vector<subframe> frames;
     Groupby gb;
+    py::oby by_node;
     EvalMode mode;
     size_t : 64 - sizeof(EvalMode) * 8;
 
@@ -79,8 +82,9 @@ class workframe {
     void set_mode(EvalMode);
     EvalMode get_mode() const;
 
-    void add_subframe(DataTable*);
+    void add_join(py::ojoin);
     void add_groupby(py::oby);
+    void compute_joins();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
