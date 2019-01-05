@@ -90,6 +90,7 @@ class workframe {
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
     bool is_naturally_joined(size_t i) const;
+    bool has_groupby() const;
     size_t nframes() const;
     size_t nrows() const;
 

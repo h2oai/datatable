@@ -22,6 +22,7 @@
 #include <limits>
 #include <memory>
 #include <type_traits>
+#include <vector>
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -34,9 +35,10 @@
 #include "utils/assert.h"
 
 class Cmp;
+using indvec = std::vector<size_t>;
 using cmpptr = std::unique_ptr<Cmp>;
 using comparator_maker = cmpptr (*)(const Column*, const Column*);
-static cmpptr make_comparator(const Column* col1, const Column* col2);
+static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 
 
@@ -88,16 +90,32 @@ class MultiCmp : public Cmp {
     std::vector<cmpptr> col_cmps;
 
   public:
-    MultiCmp(const colvec& Xcols, const colvec& Jcols);
+    MultiCmp(const indvec& Xindices, const indvec& Jindices,
+             const DataTable* Xdt, const DataTable* Jdt);
     int set_xrow(size_t row) override;
     int cmp_jrow(size_t row) const override;
 };
 
 
-MultiCmp::MultiCmp(const colvec& Xcols, const colvec& Jcols) {
-  xassert(Xcols.size() == Jcols.size());
-  for (size_t i = 0; i < Xcols.size(); ++i) {
-    col_cmps.push_back(make_comparator(Xcols[i], Jcols[i]));
+MultiCmp::MultiCmp(const indvec& Xindices, const indvec& Jindices,
+                   const DataTable* Xdt, const DataTable* Jdt)
+{
+  xassert(Xindices.size() == Jindices.size());
+  for (size_t i = 0; i < Xindices.size(); ++i) {
+    size_t xi = Xindices[i];
+    size_t ji = Jindices[i];
+    const Column* col1 = Xdt->columns[xi];
+    const Column* col2 = Jdt->columns[ji];
+    size_t st1 = static_cast<size_t>(col1->stype());
+    size_t st2 = static_cast<size_t>(col2->stype());
+    auto cmp = cmps[st1][st2];
+    if (!cmp) {
+      throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
+          << col1->stype() << " in the left Frame cannot be joined to column `"
+          << Jdt->get_names()[ji] << "` of incompatible type " << col2->stype()
+          << " in the right Frame";
+    }
+    col_cmps.push_back(cmp(col1, col2));
   }
 }
 
@@ -264,9 +282,8 @@ int StringCmp<TX, TJ>::set_xrow(size_t row) {
 
 
 //------------------------------------------------------------------------------
-// Cmp factory function
+// Comparators for different stypes
 //------------------------------------------------------------------------------
-static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 static void _init_comparators() {
   for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
@@ -339,18 +356,6 @@ static void _init_comparators() {
 }
 
 
-static cmpptr make_comparator(const Column* col1, const Column* col2) {
-  size_t st1 = static_cast<size_t>(col1->stype());
-  size_t st2 = static_cast<size_t>(col2->stype());
-  if (cmps[st1][st2] == nullptr) {
-    throw TypeError() << "Incompatible column types: "
-        << col1->stype() << " and " << col2->stype();
-  }
-  return cmps[st1][st2](col1, col2);
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // Join functionality
@@ -380,7 +385,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   size_t k = jdt->get_nkeys();  // Number of join columns
   xassert(k > 0);
 
-  colvec xcols, jcols;
+  indvec xcols, jcols;
   py::otuple jnames = jdt->get_pynames();
   for (size_t i = 0; i < k; ++i) {
     int64_t index = xdt->colindex(jnames[i]);
@@ -388,8 +393,8 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
       throw ValueError() << "Key column `" << jnames[i].to_string() << "` does "
           "not exist in the left Frame";
     }
-    xcols.push_back(xdt->columns[static_cast<size_t>(index)]);
-    jcols.push_back(jdt->columns[i]);
+    xcols.push_back(static_cast<size_t>(index));
+    jcols.push_back(i);
   }
 
   arr32_t arr_result_indices(xdt->nrows);
@@ -403,7 +408,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   {
     try {
       // Creating the comparator may fail if xcols and jcols are incompatible
-      MultiCmp comparator(xcols, jcols);
+      MultiCmp comparator(xcols, jcols, xdt, jdt);
 
       #pragma omp for
       for (size_t i = 0; i < xdt->nrows; ++i) {

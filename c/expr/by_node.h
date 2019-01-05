@@ -55,14 +55,20 @@ class oby : public oobj
     oby& operator=(const oby&) = default;
     oby& operator=(oby&&) = default;
 
-    // DataTable* get_datatable() const;
+    // This static constructor is the equivalent of python call `by(r)`.
+    // It creates a new `by` object from the column descriptor `r`.
+    static oby make(const robj& r);
 
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
   private:
+    // This private constructor will reinterpret the object `r` as an
+    // `oby` object. This constructor does not create any new python objects,
+    // as opposed to the static `oby::make(r)` constructor.
+    oby(const robj& r);
+    oby(const oobj&);
     friend class _obj;
-    oby(const robj&);
 };
 
 

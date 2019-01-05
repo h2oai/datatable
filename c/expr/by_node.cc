@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/by_node.h"
 #include "python/arg.h"
+#include "python/tuple.h"
 namespace py {
 
 
@@ -82,6 +83,15 @@ oobj oby::pyobj::get_cols() const {
 //------------------------------------------------------------------------------
 
 oby::oby(const robj& src) : oobj(src) {}
+oby::oby(const oobj& src) : oobj(src) {}
+
+
+oby oby::make(const robj& r) {
+  robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
+  otuple args(1);
+  args.set(0, r);
+  return oby(oby_type.call(args));
+}
 
 
 bool oby::check(PyObject* v) {

@@ -207,9 +207,9 @@ def test_dt_getitem(dt0):
     assert dt1.names == ("E", )
     elem2 = dt0[0, 1]
     assert elem2 is True
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         dt0[0, 1, 2, 3]
-    assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+    assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
     with pytest.raises(ValueError) as e:
         dt0["A"]
     assert ("Single-item selectors `DT[col]` are prohibited"

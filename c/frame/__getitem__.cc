@@ -57,6 +57,7 @@
 // each subframe's RowIndex).
 //
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/by_node.h"
 #include "expr/i_node.h"
 #include "expr/j_node.h"
@@ -140,16 +141,25 @@ oobj Frame::_main_getset(robj item, robj value) {
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.
   for (size_t k = 2; k < nargs; ++k) {
-    auto arg_join = targs[k].to_ojoin_lax();
+    robj arg = targs[k];
+    auto arg_join = arg.to_ojoin_lax();
     if (arg_join) {
       wf.add_join(arg_join);
       continue;
     }
-    auto arg_by = targs[k].to_oby_lax();
+    auto arg_by = arg.to_oby_lax();
     if (arg_by) {
       wf.add_groupby(arg_by);
       continue;
     }
+    if (arg.is_none()) continue;
+    if (k == 2 && (arg.is_string() || is_PyBaseExpr(arg))) {
+      oby byexpr = oby::make(arg);
+      wf.add_groupby(byexpr);
+      continue;
+    }
+    throw TypeError() << "Invalid item at position " << k
+        << " in DT[i, j, ...] call";
   }
 
   // 3. Instantiate `i_node` and `j_node`.
@@ -160,7 +170,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   // 4. Perform joins.
   wf.compute_joins();
 
-  if (nargs == 2) {
+  if (!wf.has_groupby()) {
     iexpr->execute(wf);
     if (value == GETITEM) {
       DataTable* res = jexpr->select(wf);

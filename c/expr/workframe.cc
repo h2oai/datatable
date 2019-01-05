@@ -82,6 +82,10 @@ bool workframe::is_naturally_joined(size_t i) const {
   return frames[i].natural;
 }
 
+bool workframe::has_groupby() const {
+  return bool(by_node);
+}
+
 
 size_t workframe::nframes() const {
   return frames.size();
