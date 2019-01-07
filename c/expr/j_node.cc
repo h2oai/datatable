@@ -47,11 +47,11 @@ class col_set {
   private:
     RowIndex& rowindex_product(const RowIndex& ra, const RowIndex& rb) {
       for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-        if (it->first == rb) {
+        if (it->first == ra) {
           return it->second;
         }
       }
-      all_ri.push_back(std::make_pair(rb, ra * rb));
+      all_ri.push_back(std::make_pair(ra, ra * rb));
       return all_ri.back().second;
     }
 };
@@ -106,7 +106,7 @@ DataTable* allcols_jn::select(workframe& wf) {
     cols.reserve_extra(dti->ncols - j0);
     if (wf.nframes() > 1) {
       const strvec& dti_names = dti->get_names();
-      names.insert(names.end(), dti_names.begin(), dti_names.end());
+      names.insert(names.end(), dti_names.begin() + j0, dti_names.end());
     }
 
     for (size_t j = j0; j < dti->ncols; ++j) {

@@ -872,7 +872,7 @@ def test_rows_bad_arguments(dt0):
     Test row selectors that are invalid (i.e. not of the types listed above).
     """
     assert_typeerror(
-        dt0, 0.5, "Unexpected `rows` argument: 0.5")
+        dt0, 0.5, "Unsupported `i` selector of type <class 'float'>")
     assert_typeerror(
         dt0, "59", "String value cannot be used as an `i` expression")
     assert_typeerror(

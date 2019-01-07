@@ -69,7 +69,7 @@ def test_join_missing_levels():
 
 def test_join_errors():
     d0 = dt.Frame(A=[1, 2, 3])
-    d1 = dt.Frame(B=range(10), stype=dt.float64)
+    d1 = dt.Frame(B=[str(x) for x in range(10)])
     with pytest.raises(ValueError) as e:
         d0[:, :, join(d1)]
     assert "The join frame is not keyed" in str(e.value)
@@ -80,8 +80,9 @@ def test_join_errors():
     d1.names = ("A",)
     with pytest.raises(TypeError) as e:
         d0[:, :, join(d1)]
-    assert ("Join column `A` has type int in the left Frame, and type real "
-            "in the right Frame" in str(e.value))
+    assert ("Column `A` of type int8 in the left Frame cannot be joined to "
+            "column `A` of incompatible type str32 in the right Frame"
+            in str(e.value))
 
 
 @pytest.mark.parametrize("seed,lt", [(random.getrandbits(32), ltype.bool),

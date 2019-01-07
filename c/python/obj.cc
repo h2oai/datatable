@@ -1,12 +1,27 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include <cstdint>         // INT32_MAX
+#include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
@@ -159,6 +174,10 @@ bool _obj::is_frame() const noexcept {
 
 bool _obj::is_join_node() const noexcept {
   return py::ojoin::check(v);
+}
+
+bool _obj::is_by_node() const noexcept {
+  return py::oby::check(v);
 }
 
 bool _obj::is_pandas_frame() const noexcept {
@@ -552,6 +571,14 @@ py::ojoin _obj::to_ojoin_lax() const {
     return ojoin(robj(v));
   }
   return ojoin();
+}
+
+
+py::oby _obj::to_oby_lax() const {
+  if (is_by_node()) {
+    return oby(robj(v));
+  }
+  return oby();
 }
 
 

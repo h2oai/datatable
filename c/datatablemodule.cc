@@ -12,6 +12,7 @@
 #include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/base_expr.h"
+#include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/py_expr.h"
 #include "extras/aggregator.h"
@@ -239,6 +240,7 @@ PyInit__datatable()
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
+    py::oby::init(m);
     py::ojoin::init(m);
 
   } catch (const std::exception& e) {
