@@ -56,6 +56,10 @@ size_t expr_column::get_frame_id() const noexcept {
 
 size_t expr_column::get_col_index(const workframe& wf) {
   if (col_id == size_t(-1)) {
+    if (frame_id >= wf.nframes()) {
+      throw ValueError()
+          << "Column expression references a non-existing join frame";
+    }
     const DataTable* dt = wf.get_datatable(frame_id);
     if (col_selector.is_int()) {
       int64_t icolid = col_selector.to_int64_strict();
