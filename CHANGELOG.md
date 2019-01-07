@@ -67,6 +67,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DT.replace()` now works correctly when the replacement list is `[+inf]` or
   `[1.7976931348623157e+308]` (#1510).
 
+- When a `g.`-column is used but there is no join frame, an appropriate
+  error message is now emitted (#1481).
+
 
 ### Changed
 
