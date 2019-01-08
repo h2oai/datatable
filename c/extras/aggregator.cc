@@ -599,11 +599,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
-          // direct-order-search, may result in larger first and tiny last exemplars
-          // for (size_t j = 0; j < exemplars.size(); ++j) {
-
-          // reverse-order-search, better in terms of balance in the `member_counts`
-          for (size_t j = exemplars.size(); j-- > 0; ) {
+          for (size_t j = 0; j < exemplars.size(); ++j) {
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
