@@ -159,9 +159,12 @@ void Ftrl::m__init__(PKArgs& args) {
 void Ftrl::init_dtft(dt::FtrlParams dt_params) {
   size_t nlabels = labels.size();
   xassert(nlabels > 0);
+  // If there is only two labels provided, we only need 
+  // one classifier.
+  size_t ndtft = nlabels - (nlabels == 2);
   dtft.clear();
-  dtft.reserve(nlabels);
-  for (size_t i = 0; i < nlabels; ++i) {
+  dtft.reserve(ndtft);
+  for (size_t i = 0; i < ndtft; ++i) {
     dtft.push_back(dtftptr(new dt::Ftrl(dt_params)));
   }
 }
@@ -355,20 +358,20 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
   // is consistent with the number of labels from the very beginning.
   // If number of labels changes afterwards with `set_labels()`,
   // we need to re-initialize classifiers.
-  if (labels.size() != dtft.size()) {
+  size_t nlabels = labels.size();
+  if (nlabels != dtft.size()) {
     init_dtft(dtft[0]->get_params());
   }
 
-  size_t nclasses = labels.size();
   DataTable* dt_yy = nullptr;
   std::vector<BoolColumn*> c_y;
   c_y.reserve(dtft.size());
-  if (nclasses > 1) {
+  if (nlabels > 1) {
     dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
     const strvec& colnames = dt_yy->get_names();
     size_t nmissing = 0;
 
-    for (size_t i = 0; i < nclasses; ++i) {
+    for (size_t i = 0; i < nlabels; ++i) {
       BoolColumn* col;
       std::string label = labels[i].to_string();
       auto it = std::find(colnames.begin(), colnames.end(), label);
@@ -387,19 +390,20 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
       c_y.push_back(col);
     }
 
-    if (nclasses != dt_yy->ncols + nmissing) {
+    if (nlabels != dt_yy->ncols + nmissing) {
        // TODO: make this message more user friendly.
        throw ValueError() << "Target column contains unknown labels";
     }
   } else {
-    if (dt_y->columns[0]->stype() != SType::BOOL) {
-      throw ValueError() << "Target column must be of a `bool` type, "
-                         << "unless a list of labels is provided";
-    }
-    c_y.push_back(static_cast<BoolColumn*>(dt_y->columns[0]));
+    throw ValueError() << "For multinomial regression a list of labels "
+                          "should be provided";
   }
 
-  for (size_t i = 0; i < nclasses; ++i) {
+  // Train all the classifiers. NB: when there is two labels,
+  // `init_dtft()` creates only one classifier, just like in a 
+  // binomial case.
+  size_t ndtft = dtft.size();
+  for (size_t i = 0; i < ndtft; ++i) {
     dtft[i]->fit<BoolColumn, int8_t>(dt_X, c_y[i], sigmoid);
   }
 
@@ -471,12 +475,18 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
-  if (labels.size() != dtft.size()) {
-    if (dtft.size() == 1) {
+  size_t nlabels = labels.size();
+  size_t ndtft = dtft.size();
+
+	// If number of labels is different from the number of classifiers,
+	// then there is something wrong. Unless we do a multinomial
+	// regression with only two labels.
+  if (nlabels != ndtft && !(nlabels == 2 && ndtft == 1)) {
+    if (ndtft == 1) {
       // Binomial and regression cases
-     throw ValueError() << "Cannot make any predictions with the labels "
-                           "supplied, as the model was trained in "
-                           "a binomial/regression mode";
+      throw ValueError() << "Cannot make any predictions with the labels "
+                            "supplied, as the model was trained in "
+                            "a binomial/regression mode";
     } else {
       // Multinomial case
      throw ValueError() << "Can only make predictions for " << dtft.size()
@@ -489,22 +499,21 @@ oobj Ftrl::predict(const PKArgs& args) {
   switch (reg_type) {
     case RegType::REGRESSION  : f = identity; break;
     case RegType::BINOMIAL    : f = sigmoid; break;
-    case RegType::MULTINOMIAL : f = exp; break;
+    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = exp; break;
     // If this error is thrown, it means that `fit()` and `reg_type`
     // went out of sync, so there is a bug in the code.
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
   }
-  size_t nlabels = labels.size();
 
   DataTable* dt_y = dtft[0]->predict(dt_X, f).release();
   std::vector<std::string> name;
   name.push_back(labels[0].to_string());
   dt_y->set_names(name);
 
-  // For multinomial case we need to cbind all the targets
-  // and apply a `softmax` function
-  if (nlabels > 1) {
+  // For multinomial case, when there is more than two labels,
+  // we need to cbind all the targets and apply a `softmax` function.
+  if (nlabels > 2) {
     std::vector<DataTable*> dti_y;
     dti_y.reserve(nlabels - 1);
     for (size_t i = 1; i < nlabels; ++i) {
@@ -964,7 +973,6 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   for (size_t i = 0; i < dtft.size(); ++i) {
     dtft[i]->set_fi(fi_tuple[i].to_frame());
   }
-
 
   // Set regression type
   reg_type = static_cast<RegType>(pickle[4].to_int32());
