@@ -416,15 +416,6 @@ double Ftrl::sigmoid(double x) {
 
 
 /*
-*  Bounded sigmoid function.
-*/
-double Ftrl::bsigmoid(double x, double b) {
-  double res = 1 / (1 + std::exp(-std::max(std::min(x, b), -b)));
-  return res;
-}
-
-
-/*
 *  Identity function.
 */
 double Ftrl::identity(double x) {
