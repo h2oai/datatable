@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
-## [Unreleased]
+## [Unreleased][]
 
 ### Added
 
@@ -67,30 +67,30 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed rendering of "view" Frames in a Jupyter notebook (#1448). This bug
   caused the frame to display wrong data when viewed in a notebook. Thanks to
-  [mfrasco] and [CarlosThinkBig] for reporting.
+  [Michael Frasco][] and [CarlosThinkBig][] for reporting.
 
 - Fixed crash when an int-column `i` selector is applied to a Frame which
-  already had another row filter applied (#1437). Thanks to [Arno Candel] for
+  already had another row filter applied (#1437). Thanks to [Arno Candel][] for
   reporting.
 
 - `Frame.copy()` now retains the frame's key, if any (#1443).
 
 - Installation from source distribution now works as expected (#1451). Thanks to
-  [Jonathan McKinney] for reporting.
+  [Jonathan McKinney][] for reporting.
 
 - When a `g.`-column is used but there is no join frame, an appropriate
   error message is now emitted (#1481).
 
 - The equality operators `==` / `!=` can now be applied to string columns too
-  (#1491). Thanks to [Arno Candel] for reporting.
+  (#1491). Thanks to [Arno Candel][] for reporting.
 
 - Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
 
 - `DT.replace()` now works correctly when the replacement list is `[+inf]` or
-  `[1.7976931348623157e+308]` (#1510). Thanks to [Arno Candel] for reporting.
+  `[1.7976931348623157e+308]` (#1510). Thanks to [Arno Candel][] for reporting.
 
 - FTRL algorithm now works correctly with view frames (#1502). Thanks to
-  [Olivier] for reporting this issue.
+  [Olivier][] for reporting this issue.
 
 
 ### Changed
@@ -123,14 +123,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   to keep track of code quality and potential errors.
 
 - This release was prepared by:
-  - [Pasha Stetsenko] - core functionality improvements, bug fixes, refactoring;
-  - [Oleksiy Kononenko] - FTRL algo implementation, fixes in the Aggregator;
-  - [mfrasco] - documentation fixes;
-  - [Michal Raška] - build system.
+
+  - [Pasha Stetsenko][] - core functionality improvements, bug fixes,
+    refactoring;
+
+  - [Oleksiy Kononenko][] - FTRL algo implementation, fixes in the Aggregator;
+
+  - [Michael Frasco][] - documentation fixes;
+
+  - [Michal Raška][] - build system maintenance.
 
 
 
-## [0.7.0] — 2018-11-16
+## [0.7.0][] — 2018-11-16
 
 ### Added
 
@@ -314,7 +319,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.6.0] — 2018-06-05
+## [0.6.0][] — 2018-06-05
 
 ### Added
 
@@ -352,7 +357,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - frame view will no longer get stuck in a Jupyter notebook.
 
 
-## [0.5.0] — 2018-05-25
+## [0.5.0][] — 2018-05-25
 
 ### Added
 
@@ -381,7 +386,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.4.0] — 2018-05-07
+## [0.4.0][] — 2018-05-07
 
 ### Added
 
@@ -394,7 +399,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.3.2] — 2018-04-25
+## [0.3.2][] — 2018-04-25
 
 ### Added
 
@@ -421,7 +426,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.3.1] — 2018-04-20
+## [0.3.1][] — 2018-04-20
 
 ### Added
 
@@ -499,7 +504,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.3.0] — 2018-03-19
+## [0.3.0][] — 2018-03-19
 
 ### Added
 
@@ -693,7 +698,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.2.2] — 2017-10-18
+## [0.2.2][] — 2017-10-18
 
 ### Added
 
@@ -756,7 +761,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.2.1] — 2017-09-11
+## [0.2.1][] — 2017-09-11
 
 ### Added
 
@@ -789,15 +794,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.2.0] — 2017-08-30
+## [0.2.0][] — 2017-08-30
 
 
 
-## [0.1.0] — 2017-04-13
+## [0.1.0][] — 2017-04-13
 
 
 
-[Unreleased]: https://github.com/h2oai/datatable/compare/HEAD...v0.7.0
+[unreleased]: https://github.com/h2oai/datatable/compare/HEAD...v0.7.0
 [0.7.0]: https://github.com/h2oai/datatable/compare/v0.7.0...v0.6.0
 [0.6.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0
 [0.5.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0
@@ -811,12 +816,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.1.0]: https://github.com/h2oai/datatable/tree/v0.1.0
 
 
-[Arno Candel]: https://github.com/arnocandel
-[CarlosThinkBig]: https://github.com/CarlosThinkBig
-[Jonathan McKinney]: https://github.com/pseudotensor
-[mfrasco]: https://github.com/mfrasco
-[Michal Raška]: https://github.com/michal-raska
-[Oleksiy Kononenko]: https://github.com/oleksiyskononenko
-[Olivier]: https://github.com/goldentom42
-[Pasha Stetsenko]: https://github.com/st-pasha
-[Qiang Kou]: https://github.com/thirdwing
+[arno candel]: https://github.com/arnocandel
+[carlosthinkbig]: https://github.com/CarlosThinkBig
+[jonathan mckinney]: https://github.com/pseudotensor
+[michael frasco]: https://github.com/mfrasco
+[michal raška]: https://github.com/michal-raska
+[oleksiy kononenko]: https://github.com/oleksiyskononenko
+[olivier]: https://github.com/goldentom42
+[pasha stetsenko]: https://github.com/st-pasha
+[qiang kou]: https://github.com/thirdwing
