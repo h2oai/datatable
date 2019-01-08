@@ -20,47 +20,60 @@
   IN THE SOFTWARE.
 -->
 
-## Changelog
+# Changelog
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.7.0)
+## [Unreleased]
 
-#### Added
+### Added
 
-- methods `Frame.to_tuples()` and `Frame.to_dict()` (#1400).
+- Method `frame.to_tuples()` converts a Frame into a list of tuples, each
+  tuple representing a single row (#1439).
 
-- methods `Frame.head(n)` and `Frame.tail(n)` to return the first/last
-  `n` rows correspondingly (#1307).
+- Method `frame.to_dict()` converts the Frame into a dictionary where the
+  keys are column names and values are lists of elements in each column
+  (#1439).
 
-- `Frame` objects can now pickled (#1442).
+- Methods `frame.head(n)` and `frame.tail(n)` added, returning the first/last
+  `n` rows of the Frame respectively (#1307).
 
-- function `dt.repeat(frame, n)` that creates a Frame by row-binding `n`
-  copies of the `frame`.
+- Frame objects can now be pickled using the standard Python `pickle`
+  interface (#1444). This also has an added benefit of reducing the potential
+  for a deadlock when using the `multiprocessing` module.
 
-- `datatable` now exposes C API, to allow other C/C++ libraries interact
-  with datatable Frames directly (#1469).
+- Added function `repeat(frame, n)` that creates a new Frame by row-binding
+  `n` copies of the `frame` (#1459).
 
-- The column selector in `DT[i, j]` can now be a list of booleans of length
-  `DT.ncols`. The True/False entries in this list will indicate whether to
-  select the corresponding column or not. This can be used to implement a
-  simple column filter, for example:
+- Module `datatable` now exposes C API, to allow other C/C++ libraries interact
+  with datatable Frames natively (#1469). See "datatable/include/datatable.h"
+  for the description of the API functions.
+
+- The column selector `j` in `DT[i, j]` can now be a list/iterator of booleans.
+  This list should have length `DT.ncols`, and the entries in this list will
+  indicate whether to select the corresponding column of the Frame or not
+  (#1503). This can be used to implement a simple column filter, for example:
     ```python
     del DT[:, (name.endswith("_tmp") for name in DT.names)]
     ```
 
+- Added ability to train and fit an FTRL-Proximal (Follow The Regularized
+  Leader) online learning algorithm on a data frame (#1389). The implementation
+  is multi-threaded and has high performance.
 
-#### Fixed
 
-- crash when an int-column row selector is applied to a Frame which already
-  had another row filter applied (#1437).
+### Fixed
 
-- Frame.copy() now retains the key (#1443).
+- Fixed rendering of "view" Frames in a Jupyter notebook (#1448). This bug
+  caused the frame to display wrong data when viewed in a notebook.
 
-- rendering of "view" Frames in Jupyter notebook (#1448).
+- Fixed crash when an int-column `i` selector is applied to a Frame which
+  already had another row filter applied (#1437).
 
-- installation from source distribution (#1451).
+- `Frame.copy()` now retains the frame's key, if any (#1443).
+
+- Installation from source distribution now works as expected (#1451).
 
 - Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
 
@@ -74,24 +87,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Setting `frame.nrows` now always pads the Frame with NAs, even if the Frame
-  had only 1 row originally. Use `frame.repeat()` in order to expand the Frame
+  has only 1 row. Previously changing `.nrows` on a 1-row Frame caused its
+  value to be repeated. Use `frame.repeat()` in order to expand the Frame
   by copying its values.
 
 - Improved the performance of setting `frame.nrows`. Now if the frame has
   multiple columns, a view will be created.
 
-- Single-item Frame selectors are prohibited: `DT[col]` is now an error. In
-  0.9.0 this will be interpreted as a row selector instead.
+
+### Deprecated
 
 - Frame methods `.topython()`, `.topandas()` and `.tonumpy()` are now
   deprecated, they will be removed in 0.9.0. Please use `.to_list()`,
   `.to_pandas()` and `.to_numpy()` instead.
 
 
+### Removed
 
-### [v0.7.0](https://github.com/h2oai/datatable/compare/0.7.0...v0.6.0) — 2018-11-16
+- Single-item Frame selectors are now prohibited: `DT[col]` is an error. In
+  the future this expression will be interpreted as a row selector instead.
 
-#### Added
+
+
+## [0.7.0] — 2018-11-16
+
+### Added
 
 - Frame can now be created from a list/dict of numpy arrays.
 
@@ -175,7 +195,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   given by the number of dots (#1428).
 
 
-#### Changed
+### Changed
 
 - `names` argument in `Frame()` constructor can no longer be a string --
   use a list or tuple of strings instead.
@@ -210,7 +230,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - default format for `Frame.save()` is now "jay".
 
 
-#### Fixed
+### Fixed
 
 - bug in dt.cbind() where the first Frame in the list was ignored.
 
@@ -273,9 +293,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
+## [0.6.0] — 2018-06-05
 
-#### Added
+### Added
 
 - fread will detect feather file and issue an appropriate error message.
 
@@ -298,7 +318,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improved performance of groupby operations.
 
 
-#### Fixed
+### Fixed
 
 - fread will no longer emit an error if there is an NA string in the header.
 
@@ -311,9 +331,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - frame view will no longer get stuck in a Jupyter notebook.
 
 
-### [v0.5.0](https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0) — 2018-05-25
+## [0.5.0] — 2018-05-25
 
-#### Added
+### Added
 
 - rbind()-ing now works on columns of all types (including between any types).
 
@@ -330,7 +350,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ability to read .bz2 compressed files with fread.
 
 
-#### Fixed
+### Fixed
 
 - Ensure that fread only emits messages to Python from the master thread.
 - Fread can now properly recognize quoted NA strings.
@@ -340,9 +360,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.4.0](https://github.com/h2oai/datatable/compare/0.4.0...v0.3.2) — 2018-05-07
+## [0.4.0] — 2018-05-07
 
-#### Added
+### Added
 
 - Fread now parses integers with thousands separator (e.g. "1,000").
 
@@ -353,9 +373,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.3.2](https://github.com/h2oai/datatable/compare/0.3.2...v0.3.1) — 2018-04-25
+## [0.3.2] — 2018-04-25
 
-#### Added
+### Added
 
 - Implemented sorting for `str64` columns.
 
@@ -369,7 +389,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Save per-column min/max information in the NFF format.
 
 
-#### Fixed
+### Fixed
 
 - Fix the source distribution (`sdist`) by including all the files that are
   required for building from source.
@@ -380,9 +400,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
+## [0.3.1] — 2018-04-20
 
-#### Added
+### Added
 
 - Added ability to delete rows from a view Frame.
 
@@ -410,7 +430,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   generation in a Frame.
 
 
-#### Changed
+### Changed
 
 - When creating a column of "object" type, we will now coerce float "nan"
   values into `None`s.
@@ -430,7 +450,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   the columns name and stype, in the future `format` field will also be added.
 
 
-#### Fixed
+### Fixed
 
 - fread will no longer consume excessive amounts of memory when reading a file
   with too many columns and few rows.
@@ -458,9 +478,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) — 2018-03-19
+## [0.3.0] — 2018-03-19
 
-#### Added
+### Added
 
 - Method `df.tonumpy()` now has argument `stype` which will force conversion
   into a numpy array of the specific stype.
@@ -555,7 +575,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added stats functions `.mode()` and `.nmodal()`.
 
 
-#### Changed
+### Changed
 
 - When writing "round" doubles/floats to CSV, they'll now always have trailing
   zero. For example, `[0.0, 1.0, 1e23]` now produces `"0.0,1.0,1.0e+23"`
@@ -595,7 +615,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   frames to an empty frame: `dt.Frame().rbind(df1, df2)`.
 
 
-#### Fixed
+### Fixed
 
 - `datatable` will no longer cause the C locale settings to change upon
   importing.
@@ -652,9 +672,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
+## [0.2.2] — 2017-10-18
 
-#### Added
+### Added
 
 - Ability to write DataTable into a CSV file: the `.to_csv()` method. The CSV
   writer is multi-threaded and extremely fast.
@@ -691,7 +711,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   turned on automatically.
 
 
-#### Changed
+### Changed
 
 - `datatable` will no longer attempt to distinguish between NA and NAN
   floating-point values.
@@ -708,16 +728,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - The internal `_datatable` module was moved to `datatable.lib._datatable`.
 
 
-#### Fixed
+### Fixed
 
 - `datatable` will now convert huge integers into double `inf` values instead
   of raising an exception.
 
 
 
-### [v0.2.1](https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0) — 2017-09-11
+## [0.2.1] — 2017-09-11
 
-#### Added
+### Added
 
 - This CHANGELOG file.
 
@@ -742,14 +762,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   without OpenMP support.
 
 
-#### Fixed
+### Fixed
 
 - Filter function when applied to a view DataTable now produces correct result.
 
 
 
-### [v0.2.0](https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0) — 2017-08-30
+## [0.2.0] — 2017-08-30
 
 
 
-### [v0.1.0](https://github.com/h2oai/datatable/tree/v0.1.0) — 2017-04-13
+## [0.1.0] — 2017-04-13
+
+
+
+[Unreleased]: https://github.com/h2oai/datatable/compare/HEAD...v0.7.0
+[0.7.0]: https://github.com/h2oai/datatable/compare/v0.7.0...v0.6.0
+[0.6.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0
+[0.5.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0
+[0.4.0]: https://github.com/h2oai/datatable/compare/v0.4.0...v0.3.2
+[0.3.2]: https://github.com/h2oai/datatable/compare/v0.3.2...v0.3.1
+[0.3.1]: https://github.com/h2oai/datatable/compare/v0.3.1...v0.3.0
+[0.3.0]: https://github.com/h2oai/datatable/compare/v0.3.0...v0.2.2
+[0.2.2]: https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1
+[0.2.1]: https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0
+[0.2.0]: https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0
+[0.1.0]: https://github.com/h2oai/datatable/tree/v0.1.0
