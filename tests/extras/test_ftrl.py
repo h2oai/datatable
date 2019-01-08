@@ -649,7 +649,7 @@ def test_ftrl_fit_multinomial_unknown_labels():
             == str(e.value))
 
 
-def test_ftrl_fit_multinomial_vs_binomial():
+def test_ftrl_fit_predict_multinomial_vs_binomial():
     ft1 = Ftrl(d = 10, nepochs = 2)
     df_train1 = dt.Frame(range(ft1.d))
     df_target1 = dt.Frame([True, False] * 5)
@@ -662,8 +662,35 @@ def test_ftrl_fit_multinomial_vs_binomial():
     df_target2 = dt.Frame(ft2.labels * 5)
     ft2.fit(df_train2, df_target2)
     p2 = ft2.predict(df_train2)
+    
     assert_equals(ft1.model[0], ft2.model[0])
     assert_equals(p1, p2[:, 0])
+
+
+def test_ftrl_fit_predict_multinomial():
+    ft = Ftrl(alpha = 0.2, nepochs = 10000)
+    labels = ("red", "green", "blue")
+    ft.labels = labels
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
+    ft.fit(df_train, df_target)
+    ft.model[0].internal.check()
+    ft.model[1].internal.check()
+    ft.model[2].internal.check()
+    p = ft.predict(df_train)
+    p.internal.check()
+    p_list = p.to_list()
+    sum_p =[sum(row) for row in zip(*p_list)]
+    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
+    delta_red =   [abs(i - j) for i, j in zip(p_list[0], [0, 1, 1, 0, 0, 0.33, 0])]
+    delta_green = [abs(i - j) for i, j in zip(p_list[1], [1, 0, 0, 0, 1, 0.33, 0])]
+    delta_blue =  [abs(i - j) for i, j in zip(p_list[2], [0, 0, 0, 1, 0, 0.33, 1])]    
+    assert max(delta_sum)   < 1e-12
+    assert max(delta_red)   < epsilon
+    assert max(delta_green) < epsilon
+    assert max(delta_blue)  < epsilon
+    assert ft.labels == labels
+    assert p.names == labels
 
 
 #-------------------------------------------------------------------------------
