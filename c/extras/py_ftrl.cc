@@ -423,6 +423,14 @@ double Ftrl::identity(double x) {
 }
 
 
+/*
+*  Exponent function.
+*/
+double Ftrl::exp(double x) {
+  return std::exp(x);
+}
+
+
 PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
@@ -477,21 +485,25 @@ oobj Ftrl::predict(const PKArgs& args) {
     }
   }
 
-  if (reg_type == RegType::NONE) {
+  double (*f)(double);
+  switch (reg_type) {
+    case RegType::REGRESSION  : f = identity; break;
+    case RegType::BINOMIAL    : f = sigmoid; break;
+    case RegType::MULTINOMIAL : f = exp; break;
     // If this error is thrown, it means that `fit()` and `reg_type`
     // went out of sync, so there is a bug in the code.
-    throw ValueError() << "Cannot make any predictions, "
-                       << "the model was trained in an unknown mode";
+    default : throw ValueError() << "Cannot make any predictions, "
+                                 << "the model was trained in an unknown mode";
   }
-
   size_t nlabels = labels.size();
-  bool is_regression = (reg_type == RegType::REGRESSION);
-  DataTable* dt_y = dtft[0]->predict(dt_X, is_regression? identity : sigmoid).release();
+
+  DataTable* dt_y = dtft[0]->predict(dt_X, f).release();
   std::vector<std::string> name;
   name.push_back(labels[0].to_string());
   dt_y->set_names(name);
 
   // For multinomial case we need to cbind all the targets
+  // and apply a `softmax` function
   if (nlabels > 1) {
     std::vector<DataTable*> dti_y;
     dti_y.reserve(nlabels - 1);
@@ -501,6 +513,7 @@ oobj Ftrl::predict(const PKArgs& args) {
       dti_y[i - 1]->set_names(name);
     }
     dt_y->cbind(dti_y);
+    softmax(dt_y);
   }
 
   py::oobj df_y = py::oobj::from_new_reference(
@@ -508,6 +521,25 @@ oobj Ftrl::predict(const PKArgs& args) {
                   );
 
   return df_y;
+}
+
+
+void Ftrl::softmax(DataTable* dt) {
+  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols;
+
+  std::vector<double*> d_cs;
+  d_cs.reserve(ncols);
+  for (size_t j = 0; j < ncols; ++j) {
+    double* d_c = static_cast<double*>(dt->columns[j]->data_w());
+    d_cs.push_back(d_c);
+  }
+
+  for (size_t i = 0; i < nrows; ++i) {
+    double denom = 0.0;
+    for (size_t j = 0; j < ncols; ++j) denom += d_cs[j][i];
+    for (size_t j = 0; j < ncols; ++j) d_cs[j][i] = d_cs[j][i] / denom;
+  }
 }
 
 
