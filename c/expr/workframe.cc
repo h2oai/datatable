@@ -62,6 +62,10 @@ void workframe::compute_joins() {
 }
 
 
+void workframe::compute_groupby() {
+
+}
+
 
 DataTable* workframe::get_datatable(size_t i) const {
   return frames[i].dt;

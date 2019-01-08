@@ -85,6 +85,7 @@ class workframe {
     void add_join(py::ojoin);
     void add_groupby(py::oby);
     void compute_joins();
+    void compute_groupby();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;

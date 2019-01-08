@@ -24,11 +24,31 @@
 #include "python/ext_type.h"
 #include "python/obj.h"
 
-namespace py {
+namespace dt {
+  class workframe;
+  class by_node;
+}
+using by_node_ptr = std::unique_ptr<dt::by_node>;
+
+
+//------------------------------------------------------------------------------
+// dt::by_node
+//------------------------------------------------------------------------------
+
+class dt::by_node {
+  public:
+    virtual ~by_node();
+    virtual void execute(dt::workframe&);
+};
 
 
 
-class oby : public oobj
+
+//------------------------------------------------------------------------------
+// py::oby
+//------------------------------------------------------------------------------
+
+class py::oby : public oobj
 {
   class pyobj : public PyObject {
     public:
@@ -62,6 +82,8 @@ class oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
+    by_node_ptr to_by_node(dt::workframe&) const;
+
   private:
     // This private constructor will reinterpret the object `r` as an
     // `oby` object. This constructor does not create any new python objects,
@@ -73,5 +95,4 @@ class oby : public oobj
 
 
 
-}  // namespace py
 #endif

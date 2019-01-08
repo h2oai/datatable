@@ -20,32 +20,68 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/by_node.h"
+#include "expr/collist.h"
 #include "python/arg.h"
 #include "python/tuple.h"
-namespace py {
-
 
 
 //------------------------------------------------------------------------------
-// oby::pyobj::Type
+// dt::by_node
+//------------------------------------------------------------------------------
+namespace dt {
+
+class collist_bn : public by_node {
+  intvec indices;
+  strvec names;
+
+  public:
+    collist_bn(cols_intlist*);
+    void execute(workframe& wf) override;
+};
+
+class exprlist_bn : public by_node {
+  exprvec exprs;
+  strvec names;
+
+  public:
+    exprlist_bn(cols_exprlist*);
+    void execute(workframe& wf) override;
+};
+
+
+by_node::~by_node() {}
+
+collist_bn::collist_bn(cols_intlist* cl)
+  : indices(std::move(cl->indices)), names(std::move(cl->names)) {}
+
+exprlist_bn::exprlist_bn(cols_exprlist* cl)
+  : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
+
+
+
+}  // namespace dt
+
+
+//------------------------------------------------------------------------------
+// py::oby::pyobj::Type
 //------------------------------------------------------------------------------
 
-PKArgs oby::pyobj::Type::args___init__(
+py::PKArgs py::oby::pyobj::Type::args___init__(
     0, 0, 0, true, false, {}, "__init__", nullptr);
 
-const char* oby::pyobj::Type::classname() {
+const char* py::oby::pyobj::Type::classname() {
   return "datatable.by";
 }
 
-const char* oby::pyobj::Type::classdoc() {
+const char* py::oby::pyobj::Type::classdoc() {
   return "by() clause for use in DT[i, j, ...]";
 }
 
-bool oby::pyobj::Type::is_subclassable() {
+bool py::oby::pyobj::Type::is_subclassable() {
   return true;  // TODO: make false
 }
 
-void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+void py::oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
   gs.add<&pyobj::get_cols>("_cols");
 }
 
@@ -53,10 +89,10 @@ void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
 
 
 //------------------------------------------------------------------------------
-// oby::pyobj
+// py::oby::pyobj
 //------------------------------------------------------------------------------
 
-void oby::pyobj::m__init__(PKArgs& args) {
+void py::oby::pyobj::m__init__(PKArgs& args) {
   olist colslist(args.num_vararg_args());
   size_t i = 0;
   for (robj arg : args.varargs()) {
@@ -66,12 +102,12 @@ void oby::pyobj::m__init__(PKArgs& args) {
 }
 
 
-void oby::pyobj::m__dealloc__() {
+void py::oby::pyobj::m__dealloc__() {
   cols = nullptr;  // Releases the stored oobj
 }
 
 
-oobj oby::pyobj::get_cols() const {
+py::oobj py::oby::pyobj::get_cols() const {
   return cols;
 }
 
@@ -79,14 +115,14 @@ oobj oby::pyobj::get_cols() const {
 
 
 //------------------------------------------------------------------------------
-// oby
+// py::oby
 //------------------------------------------------------------------------------
 
-oby::oby(const robj& src) : oobj(src) {}
-oby::oby(const oobj& src) : oobj(src) {}
+py::oby::oby(const robj& src) : oobj(src) {}
+py::oby::oby(const oobj& src) : oobj(src) {}
 
 
-oby oby::make(const robj& r) {
+py::oby py::oby::make(const robj& r) {
   robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
   otuple args(1);
   args.set(0, r);
@@ -94,7 +130,7 @@ oby oby::make(const robj& r) {
 }
 
 
-bool oby::check(PyObject* v) {
+bool py::oby::check(PyObject* v) {
   if (!v) return false;
   auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
   int ret = PyObject_IsInstance(v, typeptr);
@@ -103,12 +139,17 @@ bool oby::check(PyObject* v) {
 }
 
 
-void oby::init(PyObject* m) {
+void py::oby::init(PyObject* m) {
   pyobj::Type::init(m);
 }
 
 
-
-
-
+by_node_ptr py::oby::to_by_node(dt::workframe& wf) const {
+  robj cols = reinterpret_cast<const pyobj*>(v)->cols;
+  auto cl = dt::collist::make(wf, cols, "`by`");
+  auto cl_int = dynamic_cast<dt::cols_intlist*>(cl.get());
+  auto cl_expr = dynamic_cast<dt::cols_exprlist*>(cl.get());
+  xassert(cl_int || cl_expr);
+  return cl_int? by_node_ptr(new dt::collist_bn(cl_int))
+               : by_node_ptr(new dt::exprlist_bn(cl_expr));
 }

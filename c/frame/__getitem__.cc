@@ -167,8 +167,9 @@ oobj Frame::_main_getset(robj item, robj value) {
   auto jexpr = dt::j_node::make(targs[1], wf);
   xassert(iexpr && jexpr);
 
-  // 4. Perform joins.
+  // 4. Perform joins & groupby.
   wf.compute_joins();
+  wf.compute_groupby();
 
   if (!wf.has_groupby()) {
     iexpr->execute(wf);
