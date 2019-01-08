@@ -29,10 +29,20 @@ namespace py {
 
 using dtftptr = std::unique_ptr<dt::Ftrl>;
 
+enum class RegType : uint8_t {
+  NONE        = 0,
+  REGRESSION  = 1,
+  BINOMIAL    = 2,
+  MULTINOMIAL = 3
+};
+
+
 class Ftrl : public PyObject {
   private:
     std::vector<dtftptr> dtft;
     py::olist labels;
+    RegType reg_type;
+    size_t : 56;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -58,12 +68,17 @@ class Ftrl : public PyObject {
 
     // Learning and predicting methods
     void fit(const PKArgs&);
+    void fit_binomial(DataTable*, DataTable*);
+    void fit_multinomial(DataTable*, DataTable*);
+    template <class T1, typename T2>
+    void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);
 
     // Getters and setters
     oobj get_labels() const;
     oobj get_fi() const;
+    oobj get_fi_tuple() const;
     oobj get_model() const;
     oobj get_colname_hashes() const;
     oobj get_params_namedtuple() const;
@@ -89,6 +104,10 @@ class Ftrl : public PyObject {
 
     // Model validation methods
     bool has_negative_n(DataTable*) const;
+
+    // Link functions
+    static double sigmoid(double);
+    static double identity(double);
 };
 
 } // namespace py

@@ -430,36 +430,13 @@ def test_ftrl_fit_wrong_empty_target():
             str(e.value))
 
 
-def test_ftrl_fit_wrong_target_integer():
+def test_ftrl_fit_wrong_target_obj64():
     ft = Ftrl()
-    df_train = dt.Frame([1, 2, 3])
-    df_target = dt.Frame([4, 5, 6])
-    with pytest.raises(ValueError) as e:
+    df_train = dt.Frame(list(range(8)))
+    df_target = dt.Frame([3, "point", None, None, 14, 15, 92, "6"])
+    with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
-    assert ("Target column must be of a `bool` type, "
-            "unless a list of labels is provided" ==
-            str(e.value))
-
-
-def test_ftrl_fit_wrong_target_real():
-    ft = Ftrl()
-    df_train = dt.Frame([1, 2, 3])
-    df_target = dt.Frame([4.0, 5.0, 6.0])
-    with pytest.raises(ValueError) as e:
-        ft.fit(df_train, df_target)
-    assert ("Target column must be of a `bool` type, "
-            "unless a list of labels is provided" ==
-            str(e.value))
-
-
-def test_ftrl_fit_wrong_target_string():
-    ft = Ftrl()
-    df_train = dt.Frame([1, 2, 3])
-    df_target = dt.Frame(["Monday", "Tuesday", "Wedenesday"])
-    with pytest.raises(ValueError) as e:
-        ft.fit(df_train, df_target)
-    assert ("Target column must be of a `bool` type, "
-            "unless a list of labels is provided" ==
+    assert ("Cannot predict for a column of type `obj64`" ==
             str(e.value))
 
 
@@ -673,18 +650,35 @@ def test_ftrl_fit_multinomial_unknown_labels():
 
 
 def test_ftrl_fit_multinomial_vs_binomial():
-    ft1 = Ftrl(d = 10, nepochs = 5)
+    ft1 = Ftrl(d = 10, nepochs = 2)
     df_train1 = dt.Frame(range(ft1.d))
     df_target1 = dt.Frame([True, False] * 5)
     ft1.fit(df_train1, df_target1)
-    
-    ft2 = Ftrl(d = 10, nepochs = 5)
-    ft2.labels = ["a", "b"]
+    p1 = ft1.predict(df_train1)
+        
+    ft2 = Ftrl(d = 10, nepochs = 2)
+    ft2.labels = ["target", "target2"]
     df_train2 = dt.Frame(range(ft2.d))
     df_target2 = dt.Frame(ft2.labels * 5)
     ft2.fit(df_train2, df_target2)
+    p2 = ft2.predict(df_train2)
     assert_equals(ft1.model[0], ft2.model[0])
-    
+    assert_equals(p1, p2[:, 0])
+
+
+#-------------------------------------------------------------------------------
+# Test regression
+#-------------------------------------------------------------------------------
+
+def test_ftrl_regression():
+    ft = Ftrl(alpha = 0.5, d = 10, nepochs = 1000)
+    r = range(ft.d)
+    df_train = dt.Frame(r)
+    df_target = dt.Frame(r)
+    ft.fit(df_train, df_target)
+    p = ft.predict(df_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert max(delta) < epsilon
 
 
 #-------------------------------------------------------------------------------
@@ -700,8 +694,8 @@ def test_ftrl_feature_importance():
     df_target = dt.Frame([False, True] * (ft.d // 2))
     ft.fit(df_train, df_target)
     fi = ft.fi
-    assert fi[0][0, 0] < fi[0][2, 0]
-    assert fi[0][2, 0] < fi[0][1, 0]
+    assert fi[0, 0] < fi[2, 0]
+    assert fi[2, 0] < fi[1, 0]
 
 
 def test_ftrl_fi_shallowcopy():
@@ -714,9 +708,7 @@ def test_ftrl_fi_shallowcopy():
     fi2 = copy.deepcopy(ft.fi)
     ft.reset()
     assert ft.fi == None
-    assert len(fi1) == len(fi2)
-    assert len(fi1) == 1
-    assert_equals(fi1[0], fi2[0])
+    assert_equals(fi1, fi2)
 
 
 #-------------------------------------------------------------------------------
@@ -732,11 +724,10 @@ def test_ftrl_pickling():
     ft_unpickled = pickle.loads(ft_pickled)
     ft_unpickled.model[0].internal.check()
     assert len(ft_unpickled.model) == 1
-    assert len(ft_unpickled.fi) == 1
     assert ft_unpickled.model[0].names == ('z', 'n')
     assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
     assert_equals(ft.model[0], ft_unpickled.model[0])
-    assert ft_unpickled.fi[0].names == ('feature_importance',)
-    assert ft_unpickled.fi[0].stypes == (stype.float64,)
-    assert_equals(ft.fi[0], ft_unpickled.fi[0])
+    assert ft_unpickled.fi.names == ('feature_importance',)
+    assert ft_unpickled.fi.stypes == (stype.float64,)
+    assert_equals(ft.fi, ft_unpickled.fi)
     assert ft.params == ft_unpickled.params

@@ -151,6 +151,7 @@ void Ftrl::m__init__(PKArgs& args) {
     set_labels(py::robj(py_list));
   }
 
+  reg_type = RegType::NONE;
   init_dtft(dt_params);
 }
 
@@ -279,10 +280,8 @@ void Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame parameter is missing";
   }
 
-
   DataTable* dt_X = args[0].to_frame();
   DataTable* dt_y = args[1].to_frame();
-
   if (dt_X == nullptr || dt_y == nullptr) return;
 
   if (dt_X->ncols == 0) {
@@ -302,6 +301,56 @@ void Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
+  SType stype_y = dt_y->columns[0]->stype();
+  switch (stype_y) {
+    case SType::BOOL:    fit_binomial(dt_X, dt_y); break;
+    case SType::INT8:    fit_regression<IntColumn<int8_t>, int8_t>(dt_X, dt_y); break;
+    case SType::INT16:   fit_regression<IntColumn<int16_t>, int16_t>(dt_X, dt_y); break;
+    case SType::INT32:   fit_regression<IntColumn<int32_t>, int32_t>(dt_X, dt_y); break;
+    case SType::INT64:   fit_regression<IntColumn<int64_t>, int64_t>(dt_X, dt_y); break;
+    case SType::FLOAT32: fit_regression<RealColumn<float>, float>(dt_X, dt_y); break;
+    case SType::FLOAT64: fit_regression<RealColumn<double>, double>(dt_X, dt_y); break;
+    case SType::STR32:   [[clang::fallthrough]];
+    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
+    default:             throw TypeError() << "Cannot predict for a column "
+                                           << "of type `" << stype_y << "`";
+  }
+}
+
+
+void Ftrl::fit_binomial(DataTable* dt_X, DataTable* dt_y) {
+  if (reg_type != RegType::NONE && reg_type != RegType::BINOMIAL) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from binomial. To train it "
+                         "in a binomial mode this model should be reset.";
+  }
+  reg_type = RegType::BINOMIAL;
+  auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
+  dtft[0]->fit<BoolColumn, int8_t>(dt_X, c_y, sigmoid);
+}
+
+
+template <class T1, typename T2>
+void Ftrl::fit_regression(DataTable* dt_X, DataTable* dt_y) {
+  if (reg_type != RegType::NONE && reg_type != RegType::REGRESSION) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from regression. To train it "
+                         "in a binomial mode this model should be reset.";
+  }
+  reg_type = RegType::REGRESSION;
+  auto c_y = static_cast<T1*>(dt_y->columns[0]);
+  dtft[0]->fit<T1, T2>(dt_X, c_y, identity);
+}
+
+
+void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
+  if (reg_type != RegType::NONE && reg_type != RegType::MULTINOMIAL) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from multinomial. To train it "
+                         "in a binomial mode this model should be reset.";
+  }
+  reg_type = RegType::MULTINOMIAL;
+
   // Due to `m__init__()` calling `init_dtft()`, number of classifiers
   // is consistent with the number of labels from the very beginning.
   // If number of labels changes afterwards with `set_labels()`,
@@ -310,15 +359,16 @@ void Ftrl::fit(const PKArgs& args) {
     init_dtft(dtft[0]->get_params());
   }
 
+  size_t nclasses = labels.size();
   DataTable* dt_yy = nullptr;
   std::vector<BoolColumn*> c_y;
   c_y.reserve(dtft.size());
-  if (dtft.size() > 1) {
+  if (nclasses > 1) {
     dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
     const strvec& colnames = dt_yy->get_names();
     size_t nmissing = 0;
 
-    for (size_t i = 0; i < labels.size(); ++i) {
+    for (size_t i = 0; i < nclasses; ++i) {
       BoolColumn* col;
       std::string label = labels[i].to_string();
       auto it = std::find(colnames.begin(), colnames.end(), label);
@@ -337,8 +387,8 @@ void Ftrl::fit(const PKArgs& args) {
       c_y.push_back(col);
     }
 
-    if (labels.size() != dt_yy->ncols + nmissing) {
-    	 // TODO: make this message more user friendly.
+    if (nclasses != dt_yy->ncols + nmissing) {
+       // TODO: make this message more user friendly.
        throw ValueError() << "Target column contains unknown labels";
     }
   } else {
@@ -349,11 +399,36 @@ void Ftrl::fit(const PKArgs& args) {
     c_y.push_back(static_cast<BoolColumn*>(dt_y->columns[0]));
   }
 
-  for (size_t i = 0; i < dtft.size(); ++i) {
-    dtft[i]->fit(dt_X, c_y[i]);
+  for (size_t i = 0; i < nclasses; ++i) {
+    dtft[i]->fit<BoolColumn, int8_t>(dt_X, c_y[i], sigmoid);
   }
 
   if (dt_yy != nullptr) delete dt_yy;
+}
+
+
+/*
+*  Sigmoid function.
+*/
+double Ftrl::sigmoid(double x) {
+  return 1.0 / (1.0 + std::exp(-x));
+}
+
+
+/*
+*  Bounded sigmoid function.
+*/
+double Ftrl::bsigmoid(double x, double b) {
+  double res = 1 / (1 + std::exp(-std::max(std::min(x, b), -b)));
+  return res;
+}
+
+
+/*
+*  Identity function.
+*/
+double Ftrl::identity(double x) {
+  return x;
 }
 
 
@@ -382,7 +457,6 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
   DataTable* dt_X = args[0].to_frame();
-
   if (dt_X == nullptr) return Py_None;
 
   if (!dtft[0]->is_trained()) {
@@ -400,29 +474,43 @@ oobj Ftrl::predict(const PKArgs& args) {
 
   if (labels.size() != dtft.size()) {
     if (dtft.size() == 1) {
-      // Binomial
+      // Binomial and regression cases
      throw ValueError() << "Cannot make any predictions with the labels "
                            "supplied, as the model was trained in "
-                           "a binomial mode";
+                           "a binomial/regression mode";
     } else {
-      // Multinomial
+      // Multinomial case
      throw ValueError() << "Can only make predictions for " << dtft.size()
                         << " labels, i.e. the same number of labels as "
                         << "was used for model training";
     }
   }
 
-  DataTable* dt_y = dtft[0]->predict(dt_X).release();
-
-  std::vector<DataTable*> dti_y;
-  size_t nlabels = dtft.size();
-  dti_y.reserve(nlabels - 1);
-  for (size_t i = 1; i < nlabels; ++i) {
-    dti_y.push_back(dtft[i]->predict(dt_X).release());
+  if (reg_type == RegType::NONE) {
+    // If this error is thrown, it means that `fit()` and `reg_type`
+    // went out of sync, so there is a bug in the code.
+    throw ValueError() << "Cannot make any predictions, "
+                       << "the model was trained in an unknown mode";
   }
 
-  dt_y->cbind(dti_y);
-  dt_y->set_names(labels);
+  size_t nlabels = labels.size();
+  bool is_regression = (reg_type == RegType::REGRESSION);
+  DataTable* dt_y = dtft[0]->predict(dt_X, is_regression? identity : sigmoid).release();
+  std::vector<std::string> name;
+  name.push_back(labels[0].to_string());
+  dt_y->set_names(name);
+
+  // For multinomial case we need to cbind all the targets
+  if (nlabels > 1) {
+    std::vector<DataTable*> dti_y;
+    dti_y.reserve(nlabels - 1);
+    for (size_t i = 1; i < nlabels; ++i) {
+      dti_y.push_back(dtft[i]->predict(dt_X, sigmoid).release());
+      name[0] = labels[i].to_string();
+      dti_y[i - 1]->set_names(name);
+    }
+    dt_y->cbind(dti_y);
+  }
 
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
@@ -450,6 +538,7 @@ Returns
 
 
 void Ftrl::reset(const NoArgs&) {
+  reg_type = RegType::NONE;
   for (size_t i = 0; i < dtft.size(); ++i) {
     dtft[i]->reset_model();
     dtft[i]->reset_fi();
@@ -485,6 +574,48 @@ oobj Ftrl::get_model() const {
 
 
 oobj Ftrl::get_fi() const {
+  // If model was trained, return feature importance info.
+  if (dtft[0]->is_trained()) {
+    size_t ndtft = dtft.size();
+    DataTable* dt_fi;
+    // If there is more than one classifier, average feature importance row-wise.
+    if (ndtft > 1) {
+      // Create datatable for averaged feature importance info.
+      size_t fi_nrows = dtft[0]->get_fi()->nrows;
+      Column* col_fi = Column::new_data_column(SType::FLOAT64, fi_nrows);
+      dt_fi = new DataTable({col_fi}, {"feature_importance"});
+      auto d_fi = static_cast<double*>(dt_fi->columns[0]->data_w());
+
+      std::vector<double*> d_fis;
+      d_fis.reserve(ndtft);
+      for (size_t j = 0; j < ndtft; ++j) {
+        DataTable* dt_fi_j = dtft[j]->get_fi();
+        double* d_fi_j = static_cast<double*>(dt_fi_j->columns[0]->data_w());
+        d_fis.push_back(d_fi_j);
+      }
+
+      for (size_t i = 0; i < fi_nrows; ++i) {
+        double fi = 0.0;
+        for (size_t j = 0; j < ndtft; ++j) fi += d_fis[j][i];
+        fi /= ndtft;
+        d_fi[i] = fi;
+      }
+    } else {
+    	// If there is just one classifier, simply return `fi`.
+      dt_fi = dtft[0]->get_fi();
+    }
+    py::oobj df_fi = py::oobj::from_new_reference(
+                       py::Frame::from_datatable(dt_fi)
+                     );
+    return df_fi;
+  } else {
+  	// If model was not trained, return `None`.
+    return py::None();
+  }
+}
+
+
+oobj Ftrl::get_fi_tuple() const {
   if (dtft[0]->is_trained()) {
     size_t ndtft = dtft.size();
     py::otuple fi(ndtft);
@@ -597,6 +728,7 @@ void Ftrl::set_model(robj model) {
   size_t ndtft = dtft.size();
   // Reset model if it was assigned `None` in Python
   if (model.is_none()) {
+    reg_type = RegType::NONE;
     if (dtft[0]->is_trained()) {
       for (size_t i = 0; i < ndtft; ++i) {
         dtft[i]->reset_model();
@@ -612,6 +744,17 @@ void Ftrl::set_model(robj model) {
                        << "of labels, i.e. " << nlabels << ", got "
                        << py_model.size();
 
+  }
+
+  if (nlabels > 1) {
+    reg_type = RegType::MULTINOMIAL;
+  } else {
+    // This could either be `RegType::REGRESSION` or `RegType::BINOMIAL`,
+    // however, there is no way to check it by just looking at the model.
+    // May need to disable model setter or have an explicit getter/setter
+    // for `reg_type`. For the moment we default this case to
+    // `RegType::BINOMIAL`.
+    reg_type = RegType::BINOMIAL;
   }
 
   // Initialize classifiers
@@ -766,33 +909,42 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 *  Pickling / unpickling methods.
 */
 oobj Ftrl::m__getstate__(const NoArgs&) {
-  py::otuple pickle(4);
+  py::otuple pickle(5);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
-  py::oobj fi = get_fi();
+  py::oobj fi = get_fi_tuple();
+  py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
   pickle.set(3, labels);
+  pickle.set(4, py_reg_type);
   return std::move(pickle);
 }
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
   py::otuple pickle = args[0].to_otuple();
-  py::oobj params = pickle[0];
-  py::oobj model = pickle[1];
-  py::oobj fi = pickle[2];
 
+  // Set labels and initialize classifiers
   labels = pickle[3].to_pylist();
   init_dtft(dt::Ftrl::default_params);
-  set_params_tuple(params);
-  set_model(model);
 
-  py::otuple fi_tuple = fi.to_otuple();
+  // Set FTRL parameters
+  set_params_tuple(pickle[0]);
+
+  // Set model weights
+  set_model(pickle[1]);
+
+  // Set feature importance info
+  py::otuple fi_tuple = pickle[2].to_otuple();
   for (size_t i = 0; i < dtft.size(); ++i) {
     dtft[i]->set_fi(fi_tuple[i].to_frame());
   }
+
+
+  // Set regression type
+  reg_type = static_cast<RegType>(pickle[4].to_int32());
 }
 
 

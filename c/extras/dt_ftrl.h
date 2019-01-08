@@ -22,6 +22,7 @@
 #ifndef dt_EXTRAS_FTRL_h
 #define dt_EXTRAS_FTRL_h
 #include "py_datatable.h"
+#include "utils/parallel.h"
 #include "extras/hash.h"
 
 
@@ -77,10 +78,11 @@ class Ftrl {
     static const FtrlParams default_params;
 
     // Learning and predicting methods.
-    void fit(const DataTable*, const BoolColumn*);
-    dtptr predict(const DataTable*);
-    double predict_row(const uint64ptr&);
-    void update(const uint64ptr&, double, bool);
+    template <class T1, typename T2>
+    void fit(const DataTable*, const T1*, double (*f)(double));
+    dtptr predict(const DataTable*, double (*f)(double));
+    double predict_row(const uint64ptr&, double (*f)(double));
+    void update(const uint64ptr&, double, double);
 
     // Model and feature importance handling methods
     void create_model();
@@ -102,8 +104,6 @@ class Ftrl {
 
     // Learning helper methods
     static double logloss(double, bool);
-    static double sigmoid(double);
-    static double bsigmoid(double, double);
 
     // Getters
     DataTable* get_model();
@@ -131,6 +131,47 @@ class Ftrl {
     void set_nepochs(size_t);
     void set_inter(bool);
 };
+
+
+/*
+*  Train FTRL model on a dataset.
+*/
+template <class T1, typename T2>
+void Ftrl::fit(const DataTable* dt_X, const T1* c_y, double (*f)(double)) {
+  define_features(dt_X->ncols);
+
+  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+
+  // Create column hashers.
+  create_hashers(dt_X);
+
+  // Get the target column.
+  auto d_y = c_y->elements_r();
+  const RowIndex ri_y = c_y->rowindex();
+
+  // Do training for `nepochs`.
+  for (size_t e = 0; e < params.nepochs; ++e) {
+    #pragma omp parallel num_threads(config::nthreads)
+    {
+      // Array to store hashed column values and their interactions.
+      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      size_t ith = static_cast<size_t>(omp_get_thread_num());
+      size_t nth = static_cast<size_t>(omp_get_num_threads());
+
+      for (size_t i = ith; i < dt_X->nrows; i += nth) {
+          size_t j = ri_y[i];
+          if (j != RowIndex::NA && !ISNA<T2>(d_y[j])) {
+            hash_row(x, i);
+            double p = predict_row(x, f);
+            double y = static_cast<double>(d_y[j]);
+            update(x, p, y);
+          }
+      }
+    }
+  }
+  model_trained = true;
+}
 
 } // namespace dt
 
