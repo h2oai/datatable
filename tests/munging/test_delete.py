@@ -178,7 +178,7 @@ def test_del_cols_invalid_selector3():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, [1, 2, 1, 0.7]]
-    assert ("Element 3 in the `j` selector list has type `<class 'float'>`, "
+    assert ("Element 3 in `j` selector list has type `<class 'float'>`, "
             "which is not supported" in str(e.value))
 
 
@@ -202,7 +202,7 @@ def test_del_cols_dict():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, {"X": f.A}]
-    assert ("When del operator is applied, the `j` selector cannot be a "
+    assert ("When del operator is applied, `j` selector cannot be a "
             "dictionary" in str(e.value))
 
 
@@ -210,8 +210,8 @@ def test_del_cols_g1():
     d0 = smalldt()
     with pytest.raises(ValueError) as e:
         del d0[:, g[1]]
-    assert ("Item 0 of the `j` selector list references a non-existing join "
-            "frame" == str(e.value))
+    assert ("Item 0 of `j` selector list references a non-existing join frame"
+            == str(e.value))
 
 
 # def test_del_cols_g2():

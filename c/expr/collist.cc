@@ -52,6 +52,7 @@ class collist_maker
 
     workframe& wf;
     const DataTable* dt0;
+    const char* srcname;
     list_type type;
     intvec  indices;
     exprvec exprs;
@@ -63,16 +64,19 @@ class collist_maker
     size_t : 40;
 
   public:
-    collist_maker(workframe& wf_, EvalMode mode) : wf(wf_) {
+    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_)
+      : wf(wf_)
+    {
       is_update = (mode == EvalMode::UPDATE);
       is_delete = (mode == EvalMode::DELETE);
       dt0 = wf.get_datatable(0);
       type = list_type::UNKNOWN;
       k = 0;
-  	}
+      srcname = srcname_;
+    }
 
 
-  	void process(py::robj src) {
+    void process(py::robj src) {
       if (is_PyBaseExpr(src))   _process_element_expr(src);
       else if (src.is_int())    _process_element_int(src);
       else if (src.is_string()) _process_element_string(src);
@@ -90,14 +94,14 @@ class collist_maker
       }
       else if (src.is_dict()) {
         if (is_delete) {
-          throw TypeError() << "When del operator is applied, the `j` selector "
-              "cannot be a dictionary";
+          throw TypeError() << "When del operator is applied, "
+              << srcname << " cannot be a dictionary";
         }
         type = list_type::EXPR;
         for (auto kv : src.to_pydict()) {
           if (!kv.first.is_string()) {
             throw TypeError()
-                << "Keys in the `j` selector dictionary must be strings";
+                << "Keys in " << srcname << " dictionary must be strings";
           }
           names.push_back(kv.first.to_string());
           _process_element(kv.second);
@@ -110,7 +114,7 @@ class collist_maker
       }
       else {
         throw TypeError()
-          << "Unsupported `j` selector of type " << src.typeobj();
+          << "Unsupported " << srcname << " of type " << src.typeobj();
       }
     }
 
@@ -118,8 +122,8 @@ class collist_maker
     collist_ptr get() {
       if (type == list_type::BOOL && k != dt0->ncols) {
         throw ValueError()
-            << "The length of boolean list in `j` does not match the "
-               "number of columns in the Frame: "
+            << "The length of boolean list in " << srcname
+            << " does not match the number of columns in the Frame: "
             << k << " vs " << dt0->ncols;
       }
       // A list of "EXPR" type may be either a list of plain column selectors
@@ -144,15 +148,15 @@ class collist_maker
       if (type == t) return;
       if (k) {
         throw TypeError()
-            << "Mixed selector types in `j` are not allowed. Element "
-            << k << " is of type "
+            << "Mixed selector types in " << srcname
+            << " are not allowed. Element " << k << " is of type "
             << typenames[static_cast<size_t>(t)]
             << ", whereas the previous element(s) were of type "
             << typenames[static_cast<size_t>(type)];
       } else {
         throw TypeError()
-            << "The values in the `j` selector dictionary must be "
-               "expressions, not "
+            << "The values in " << srcname
+            << " dictionary must be expressions, not "
             << typenames[static_cast<size_t>(t)] << 's';
       }
     }
@@ -168,7 +172,7 @@ class collist_maker
       else if (elem.is_stype())  _process_element_stype(elem);
       else {
         throw TypeError()
-            << "Element " << k << " in the `j` selector list has type `"
+            << "Element " << k << " in " << srcname << " list has type `"
             << elem.typeobj() << "`, which is not supported";
       }
       ++k;
@@ -227,7 +231,7 @@ class collist_maker
           indices.push_back(i);
         }
         else if (frid >= wf.nframes()) {
-          throw ValueError() << "Item " << k << " of the `j` selector list "
+          throw ValueError() << "Item " << k << " of " << srcname << " list "
               "references a non-existing join frame";
         }
       }
@@ -284,7 +288,7 @@ class collist_maker
       else if (et == &PyBaseObject_Type) _select_types(stOBJ);
       else {
         throw ValueError()
-            << "Unknown type " << elem << " used as a `j` selector";
+            << "Unknown type " << elem << " used as " << srcname;
       }
     }
 
@@ -334,15 +338,15 @@ cols_exprlist::~cols_exprlist() {}
 
 
 cols_intlist::cols_intlist(intvec&& indices_, strvec&& names_)
-	: indices(std::move(indices_)), names(std::move(names_)) {}
+  : indices(std::move(indices_)), names(std::move(names_)) {}
 
 
 cols_exprlist::cols_exprlist(exprvec&& exprs_, strvec&& names_)
   : exprs(std::move(exprs_)), names(std::move(names_)) {}
 
 
-collist_ptr make_collist(py::robj src, workframe& wf) {
-  collist_maker maker(wf, wf.get_mode());
+collist_ptr collist::make(workframe& wf, py::robj src, const char* srcname) {
+  collist_maker maker(wf, wf.get_mode(), srcname);
   maker.process(src);
   return maker.get();
 }

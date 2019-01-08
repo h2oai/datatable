@@ -37,6 +37,7 @@ using collist_ptr = std::unique_ptr<collist>;
 
 
 struct collist {
+  static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
   virtual ~collist();
 };
 
@@ -61,8 +62,6 @@ struct cols_exprlist : public collist {
 };
 
 
-
-collist_ptr make_collist(py::robj src, workframe& wf);
 
 
 }  // namespace dt

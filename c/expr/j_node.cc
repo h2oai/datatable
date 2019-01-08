@@ -285,7 +285,7 @@ jptr j_node::make(py::robj src, workframe& wf) {
       || src.is_none() || src.is_ellipsis()) {
     return jptr(new allcols_jn());
   }
-  collist_ptr cl = make_collist(src, wf);
+  collist_ptr cl = collist::make(wf, src, "`j` selector");
   auto cl_int = dynamic_cast<cols_intlist*>(cl.get());
   auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
   xassert(cl_int || cl_expr);

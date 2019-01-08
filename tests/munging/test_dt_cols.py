@@ -299,7 +299,7 @@ def test_j_stype(t, dt1):
 def test_j_type_bad(dt0):
     assert_valueerror(
         dt0, type,
-        "Unknown type <class 'type'> used as a `j` selector")
+        "Unknown type <class 'type'> used as `j` selector")
     assert_typeerror(
         dt0, ltype.time, "Unknown ltype value")
 
@@ -339,8 +339,8 @@ def test_j_intlist3(dt0, tbl0):
 def test_j_intlist_mixed(dt0):
     assert_typeerror(
         dt0, [2, "A"],
-        "Mixed selector types in `j` are not allowed. Element 1 is of type "
-        "string, whereas the previous element(s) were of type integer")
+        "Mixed selector types in `j` selector are not allowed. Element 1 is "
+        "of type string, whereas the previous element(s) were of type integer")
 
 
 
@@ -367,8 +367,8 @@ def test_j_strlist2(dt0, tbl0):
 def test_j_strlist_mixed(dt0):
     assert_typeerror(
         dt0, ["A", f.B],
-        "Mixed selector types in `j` are not allowed. Element 1 is of type "
-        "expr, whereas the previous element(s) were of type string")
+        "Mixed selector types in `j` selector are not allowed. Element 1 is "
+        "of type expr, whereas the previous element(s) were of type string")
 
 
 
@@ -386,14 +386,14 @@ def test_j_list_bools(dt0, tbl0):
 def test_j_list_bools_error1(dt0):
     assert_valueerror(
         dt0, [True] * 5,
-        "The length of boolean list in `j` does not match the number of "
-        "columns in the Frame")
+        "The length of boolean list in `j` selector does not match the number "
+        "of columns in the Frame")
 
 
 def test_j_list_bools_mixed(dt0):
     assert_typeerror(
         dt0, [True, False, None, True],
-        "Element 2 in the `j` selector list has type `<class 'NoneType'>`, "
+        "Element 2 in `j` selector list has type `<class 'NoneType'>`, "
         "which is not supported")
 
 
@@ -437,13 +437,13 @@ def test_j_dict(dt0, tbl0):
 def test_j_dict_bad1(dt0):
     assert_typeerror(
         dt0, {1: f.A, 2: f.B + f.C},
-        "Keys in the `j` selector dictionary must be strings")
+        "Keys in `j` selector dictionary must be strings")
 
 
 def test_j_dict_bad2(dt0):
     assert_typeerror(
         dt0, {"a": "A", "b": "B"},
-        "The values in the `j` selector dictionary must be expressions, not "
+        "The values in `j` selector dictionary must be expressions, not "
         "strings")
 
 
@@ -537,7 +537,7 @@ def test_j_bad_arguments(dt0):
         "slice(1, 2, 'A') is neither integer- nor string-valued")
     assert_typeerror(
         dt0, [0, 0.5, 1],
-        "Element 1 in the `j` selector list has type `<class 'float'>`")
+        "Element 1 in `j` selector list has type `<class 'float'>`")
     assert_typeerror(
         dt0, True,
         "Unsupported `j` selector of type <class 'bool'>")
