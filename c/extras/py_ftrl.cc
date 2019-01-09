@@ -414,7 +414,7 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
 /*
 *  Sigmoid function.
 */
-double Ftrl::sigmoid(double x) {
+inline double Ftrl::sigmoid(double x) {
   return 1.0 / (1.0 + std::exp(-x));
 }
 
@@ -422,16 +422,8 @@ double Ftrl::sigmoid(double x) {
 /*
 *  Identity function.
 */
-double Ftrl::identity(double x) {
+inline double Ftrl::identity(double x) {
   return x;
-}
-
-
-/*
-*  Exponent function.
-*/
-double Ftrl::exp(double x) {
-  return std::exp(x);
 }
 
 
@@ -499,31 +491,29 @@ oobj Ftrl::predict(const PKArgs& args) {
   switch (reg_type) {
     case RegType::REGRESSION  : f = identity; break;
     case RegType::BINOMIAL    : f = sigmoid; break;
-    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = exp; break;
+    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = identity; break;
     // If this error is thrown, it means that `fit()` and `reg_type`
     // went out of sync, so there is a bug in the code.
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
   }
 
-  DataTable* dt_y = dtft[0]->predict(dt_X, f).release();
-  std::vector<std::string> name;
-  name.push_back(labels[0].to_string());
-  dt_y->set_names(name);
+  DataTable* dt_y = nullptr;
+  std::vector<std::string> names(1);
+  std::vector<DataTable*> dt(1);
+
+  for (size_t i = 0; i < dtft.size(); ++i) {
+    DataTable* dt_yi = dtft[i]->predict(dt_X, f).release();
+    names[0] = labels[i].to_string();
+    dt_yi->set_names(names);
+    dt[0] = dt_yi;
+    if (i) dt_y->cbind(dt);
+    else dt_y = dt_yi;
+  }
 
   // For multinomial case, when there is more than two labels,
-  // we need to cbind all the targets and apply a `softmax` function.
-  if (nlabels > 2) {
-    std::vector<DataTable*> dti_y;
-    dti_y.reserve(nlabels - 1);
-    for (size_t i = 1; i < nlabels; ++i) {
-      dti_y.push_back(dtft[i]->predict(dt_X, sigmoid).release());
-      name[0] = labels[i].to_string();
-      dti_y[i - 1]->set_names(name);
-    }
-    dt_y->cbind(dti_y);
-    softmax(dt_y);
-  }
+  // apply `softmax` function to normalize probabilities.
+  if (nlabels > 2) softmax(dt_y);
 
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
@@ -546,8 +536,8 @@ void Ftrl::softmax(DataTable* dt) {
 
   for (size_t i = 0; i < nrows; ++i) {
     double denom = 0.0;
-    for (size_t j = 0; j < ncols; ++j) denom += d_cs[j][i];
-    for (size_t j = 0; j < ncols; ++j) d_cs[j][i] = d_cs[j][i] / denom;
+    for (size_t j = 0; j < ncols; ++j) denom += std::exp(d_cs[j][i]);
+    for (size_t j = 0; j < ncols; ++j) d_cs[j][i] = std::exp(d_cs[j][i]) / denom;
   }
 }
 

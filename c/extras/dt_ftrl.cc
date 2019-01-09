@@ -48,61 +48,6 @@ Ftrl::Ftrl(FtrlParams params_in) :
 
 
 /*
-*  Make predictions for a test dataset and return targets as a new datatable.
-*  We assume that all the validation is done in `py_ftrl.cc`.
-*/
-dtptr Ftrl::predict(const DataTable* dt_X, double (*f)(double)) {
-  xassert(model_trained);
-  define_features(dt_X->ncols);
-  init_weights();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
-
-  // Re-create hashers as stypes for training dataset and predictions
-  // may be different
-  create_hashers(dt_X);
-
-  // Create a target datatable.
-  dtptr dt_y;
-  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
-  dt_y = dtptr(new DataTable({col_target}, {"target"}));
-  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
-
-  #pragma omp parallel num_threads(config::nthreads)
-  {
-    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-    for (size_t i = ith; i < dt_X->nrows; i += nth) {
-      hash_row(x, i);
-      d_y[i] = predict_row(x, f);
-    }
-  }
-  return dt_y;
-}
-
-
-/*
-*  Make a prediction for an array of hashed features.
-*/
-double Ftrl::predict_row(const uint64ptr& x, double (*f)(double)) {
-  double wTx = 0;
-  double l1 = params.lambda1;
-  double ia = 1 / params.alpha;
-  double rr = params.beta * ia + params.lambda2;
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
-                  (std::sqrt(n[j]) * ia + rr);
-    w[j] = -std::copysign(absw, z[j]);
-    wTx += w[j];
-    fi[i] += absw; // Update feature importance vector
-  }
-  return f(wTx);
-}
-
-
-/*
 *  Update weights based on prediction `p` and the actual target `y`.
 */
 void Ftrl::update(const uint64ptr& x, double p, double y) {

@@ -78,10 +78,10 @@ class Ftrl {
     static const FtrlParams default_params;
 
     // Learning and predicting methods.
-    template <class T1, typename T2>
-    void fit(const DataTable*, const T1*, double (*f)(double));
-    dtptr predict(const DataTable*, double (*f)(double));
-    double predict_row(const uint64ptr&, double (*f)(double));
+    template <class T1, typename T2, typename F>
+    void fit(const DataTable*, const T1*, F);
+    template<typename F> dtptr predict(const DataTable*, F f);
+    template<typename F> double predict_row(const uint64ptr&, F f);
     void update(const uint64ptr&, double, double);
 
     // Model and feature importance handling methods
@@ -136,8 +136,8 @@ class Ftrl {
 /*
 *  Train FTRL model on a dataset.
 */
-template <class T1, typename T2>
-void Ftrl::fit(const DataTable* dt_X, const T1* c_y, double (*f)(double)) {
+template <class T1, typename T2, typename F>
+void Ftrl::fit(const DataTable* dt_X, const T1* c_y, F f) {
   define_features(dt_X->ncols);
 
   is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
@@ -171,6 +171,63 @@ void Ftrl::fit(const DataTable* dt_X, const T1* c_y, double (*f)(double)) {
     }
   }
   model_trained = true;
+}
+
+
+/*
+*  Make predictions for a test dataset and return targets as a new datatable.
+*  We assume that all the validation is done in `py_ftrl.cc`.
+*/
+template<typename F>
+dtptr Ftrl::predict(const DataTable* dt_X, F f) {
+  xassert(model_trained);
+  define_features(dt_X->ncols);
+  init_weights();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+
+  // Re-create hashers as stypes for training dataset and predictions
+  // may be different
+  create_hashers(dt_X);
+
+  // Create a target datatable.
+  dtptr dt_y;
+  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
+  dt_y = dtptr(new DataTable({col_target}, {"target"}));
+  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
+
+  #pragma omp parallel num_threads(config::nthreads)
+  {
+    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+    size_t ith = static_cast<size_t>(omp_get_thread_num());
+    size_t nth = static_cast<size_t>(omp_get_num_threads());
+
+    for (size_t i = ith; i < dt_X->nrows; i += nth) {
+      hash_row(x, i);
+      d_y[i] = predict_row(x, f);
+    }
+  }
+  return dt_y;
+}
+
+
+/*
+*  Make a prediction for an array of hashed features.
+*/
+template<typename F>
+double Ftrl::predict_row(const uint64ptr& x, F f) {
+  double wTx = 0;
+  double l1 = params.lambda1;
+  double ia = 1 / params.alpha;
+  double rr = params.beta * ia + params.lambda2;
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
+                  (std::sqrt(n[j]) * ia + rr);
+    w[j] = -std::copysign(absw, z[j]);
+    wTx += w[j];
+    fi[i] += absw; // Update feature importance vector
+  }
+  return f(wTx);
 }
 
 } // namespace dt
