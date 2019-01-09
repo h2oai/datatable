@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
-#include "utils/parallel.h"
 #include "extras/dt_ftrl.h"
 #include "extras/murmurhash.h"
 
@@ -49,82 +48,6 @@ Ftrl::Ftrl(FtrlParams params_in) :
 
 
 /*
-*  Train FTRL model on a dataset.
-*/
-void Ftrl::fit(const DataTable* dt_X, const DataTable* dt_y) {
-  define_features(dt_X->ncols);
-
-  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
-
-  // Create column hashers.
-  create_hashers(dt_X);
-
-  // Get the target column.
-  auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
-  auto d_y = c_y->elements_r();
-  const RowIndex ri_y = c_y->rowindex();
-
-  // Do training for `nepochs`.
-  for (size_t e = 0; e < params.nepochs; ++e) {
-    #pragma omp parallel num_threads(config::nthreads)
-    {
-      // Array to store hashed column values and their interactions.
-      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      size_t ith = static_cast<size_t>(omp_get_thread_num());
-      size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-      for (size_t i = ith; i < dt_X->nrows; i += nth) {
-          size_t j = ri_y[i];
-          if (j != RowIndex::NA && !ISNA<int8_t>(d_y[j])) {
-            bool y = d_y[j];
-            hash_row(x, i);
-            double p = predict_row(x);
-            update(x, p, y);
-          }
-      }
-    }
-  }
-  model_trained = true;
-}
-
-
-/*
-*  Make predictions for a test dataset and return targets as a new datatable.
-*  We assume that all the validation is done in `py_ftrl.cc`.
-*/
-dtptr Ftrl::predict(const DataTable* dt_X) {
-  xassert(model_trained);
-  define_features(dt_X->ncols);
-  init_weights();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
-
-  // Re-create hashers as stypes for training dataset and predictions
-  // may be different
-  create_hashers(dt_X);
-
-  // Create a target datatable.
-  dtptr dt_y = nullptr;
-  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
-  dt_y = dtptr(new DataTable({col_target}, {"target"}));
-  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
-
-  #pragma omp parallel num_threads(config::nthreads)
-  {
-    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-    for (size_t i = ith; i < dt_X->nrows; i += nth) {
-      hash_row(x, i);
-      d_y[i] = predict_row(x);
-    }
-  }
-  return dt_y;
-}
-
-
-/*
 *  Make a prediction for an array of hashed features.
 */
 double Ftrl::predict_row(const uint64ptr& x) {
@@ -140,14 +63,14 @@ double Ftrl::predict_row(const uint64ptr& x) {
     wTx += w[j];
     fi[i] += absw; // Update feature importance vector
   }
-  return sigmoid(wTx);
+  return wTx;
 }
 
 
 /*
 *  Update weights based on prediction `p` and the actual target `y`.
 */
-void Ftrl::update(const uint64ptr& x, double p, bool y) {
+void Ftrl::update(const uint64ptr& x, double p, double y) {
   double ia = 1 / params.alpha;
   double g = p - y;
   double gsq = g * g;
@@ -249,7 +172,7 @@ hashptr Ftrl::create_colhasher(const Column* col) {
     case SType::FLOAT64: return hashptr(new HashFloat<double>(col));
     case SType::STR32:   return hashptr(new HashString<uint32_t>(col));
     case SType::STR64:   return hashptr(new HashString<uint64_t>(col));
-    default:             throw ValueError() << "Cannot hash column of type "
+    default:             throw TypeError() << "Cannot hash column of type "
                                             << stype;
   }
 }
@@ -297,23 +220,6 @@ bool Ftrl::is_dt_valid(const dtptr& dt, size_t nrows_in, size_t ncols_in) {
 
 bool Ftrl::is_trained() {
   return model_trained;
-}
-
-
-/*
-*  Sigmoid function.
-*/
-inline double Ftrl::sigmoid(double x) {
-  return 1.0 / (1.0 + std::exp(-x));
-}
-
-
-/*
-*  Bounded sigmoid function.
-*/
-inline double Ftrl::bsigmoid(double x, double b) {
-  double res = 1 / (1 + std::exp(-std::max(std::min(x, b), -b)));
-  return res;
 }
 
 
@@ -403,6 +309,11 @@ bool Ftrl::get_inter() {
 
 size_t Ftrl::get_nepochs() {
   return params.nepochs;
+}
+
+
+FtrlParams Ftrl::get_params() {
+  return params;
 }
 
 

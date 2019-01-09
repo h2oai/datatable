@@ -59,7 +59,7 @@ class olist : public oobj {
 
   private:
     // Wrap an existing PyObject* into an `olist`. This constructor is private,
-    // use `py::org(src).to_pylist()` instead.
+    // use `py::robj(src).to_pylist()` instead.
     olist(PyObject* src);
 
     friend class _obj;
