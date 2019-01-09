@@ -38,7 +38,7 @@ using by_node_ptr = std::unique_ptr<dt::by_node>;
 class dt::by_node {
   public:
     virtual ~by_node();
-    virtual void execute(dt::workframe&);
+    virtual void execute(dt::workframe&) = 0;
 };
 
 

@@ -23,6 +23,7 @@
 #include "expr/collist.h"
 #include "python/arg.h"
 #include "python/tuple.h"
+#include "utils/exceptions.h"
 
 
 //------------------------------------------------------------------------------
@@ -57,6 +58,21 @@ collist_bn::collist_bn(cols_intlist* cl)
 exprlist_bn::exprlist_bn(cols_exprlist* cl)
   : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
 
+
+void collist_bn::execute(workframe& wf) {
+  const DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    // TODO
+  }
+  RowIndex ri = dt0->sortby(indices, &wf.get_groupby_ref());
+  wf.apply_rowindex(ri);
+}
+
+
+void exprlist_bn::execute(workframe&) {
+  throw NotImplError();
+}
 
 
 }  // namespace dt

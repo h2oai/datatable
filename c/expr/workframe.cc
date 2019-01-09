@@ -48,7 +48,7 @@ void workframe::add_join(py::ojoin oj) {
 
 
 void workframe::add_groupby(py::oby og) {
-  by_node = og;
+  by_node = og.to_by_node(*this);
 }
 
 
@@ -63,7 +63,7 @@ void workframe::compute_joins() {
 
 
 void workframe::compute_groupby() {
-
+  // by_node->execute(*this);
 }
 
 
@@ -78,6 +78,10 @@ const RowIndex& workframe::get_rowindex(size_t i) const {
 
 
 const Groupby& workframe::get_groupby() const {
+  return gb;
+}
+
+Groupby& workframe::get_groupby_ref() {
   return gb;
 }
 
