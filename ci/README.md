@@ -37,17 +37,16 @@ update applies.
 - In the `__version__.py` modify the version to `{MAJOR}.{MINOR+1}.0` (call
   this `MN0` for short).
 
-- Update the `CHANGELOG.md`: the
+- Update the `CHANGELOG.md`: add line
     ```md
-    ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v{MMM})
+    ## [{MN0}][] — {DATE}
     ```
-  line at the top of the file should become
-    ```md
-    ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v{MN0})
-    ### [v{MN0}](https://github.com/h2oai/datatable/compare/v{MN0}...v{MMM} — {DATE})
-    ```
-  where `DATE` is the today's date. Note that the date is separated from the
-  version by an em-dash (—), not the simple dash (-).
+  below the line `## [Unreleased][]`. Here `DATE` is the today's date. Note
+  that the date is separated from the version by an em-dash (—), not the
+  simple dash (-).
+
+- Scroll to the bottom of the file and add a line with the definition of the
+  `[{MN0}]` link.
 
 - Look through the changelog entries being released, and fix any grammar,
   style or spelling mistakes, also check for omissions.
@@ -110,11 +109,13 @@ version with some bug fixes. Do not add new functionality into a patch release
 
 - Update the `CHANGELOG.md` by adding a new line with
     ```md
-    ### [v{MMN}](https://github.com/h2oai/datatable/compare/v{MMN}...v{MMM} — {DATE})
+    ### [{MMN}][] — {DATE}
     ```
   where `DATE` is the current date. This line should be at the top of the file
-  immediately preceding the `[v{MMM}] ...` line. Add a description of the
+  immediately preceding the `[{MMM}] ...` line. Add a description of the
   changes being introduced in this patch.
+
+- Scroll to the bottom of the file and add the definition of the `[{MMN}]` link.
 
 - Commit the changes, and push the commit to GitHub.
 
