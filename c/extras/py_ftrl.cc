@@ -306,15 +306,23 @@ void Ftrl::fit(const PKArgs& args) {
 
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y); break;
-    case SType::INT8:    fit_regression<IntColumn<int8_t>, int8_t>(dt_X, dt_y); break;
-    case SType::INT16:   fit_regression<IntColumn<int16_t>, int16_t>(dt_X, dt_y); break;
-    case SType::INT32:   fit_regression<IntColumn<int32_t>, int32_t>(dt_X, dt_y); break;
-    case SType::INT64:   fit_regression<IntColumn<int64_t>, int64_t>(dt_X, dt_y); break;
-    case SType::FLOAT32: fit_regression<RealColumn<float>, float>(dt_X, dt_y); break;
-    case SType::FLOAT64: fit_regression<RealColumn<double>, double>(dt_X, dt_y); break;
+    case SType::BOOL:    fit_binomial(dt_X, dt_y);
+                         break;
+    case SType::INT8:    fit_regression<IntColumn<int8_t>, int8_t>(dt_X, dt_y);
+                         break;
+    case SType::INT16:   fit_regression<IntColumn<int16_t>, int16_t>(dt_X, dt_y);
+                         break;
+    case SType::INT32:   fit_regression<IntColumn<int32_t>, int32_t>(dt_X, dt_y);
+                         break;
+    case SType::INT64:   fit_regression<IntColumn<int64_t>, int64_t>(dt_X, dt_y);
+                         break;
+    case SType::FLOAT32: fit_regression<RealColumn<float>, float>(dt_X, dt_y);
+                         break;
+    case SType::FLOAT64: fit_regression<RealColumn<double>, double>(dt_X, dt_y);
+                         break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
+    case SType::STR64:   fit_multinomial(dt_X, dt_y);
+                         break;
     default:             throw TypeError() << "Cannot predict for a column "
                                            << "of type `" << stype_y << "`";
   }
@@ -363,12 +371,12 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
     init_dtft(dtft[0]->get_params());
   }
 
-  DataTable* dt_yy = nullptr;
+  dtptr dt_ys;
   std::vector<BoolColumn*> c_y;
   c_y.reserve(dtft.size());
   if (nlabels > 1) {
-    dt_yy = dt::split_into_nhot(dt_y->columns[0], ',');
-    const strvec& colnames = dt_yy->get_names();
+    dt_ys = dtptr(dt::split_into_nhot(dt_y->columns[0], ','));
+    const strvec& colnames = dt_ys->get_names();
     size_t nmissing = 0;
 
     for (size_t i = 0; i < nlabels; ++i) {
@@ -385,12 +393,12 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
         for (size_t j = 0; j < col->nrows; ++j) d_y[j] = false;
       } else {
         size_t pos = static_cast<size_t>(it - colnames.begin());
-        col = static_cast<BoolColumn*>(dt_yy->columns[pos]);
+        col = static_cast<BoolColumn*>(dt_ys->columns[pos]);
       }
       c_y.push_back(col);
     }
 
-    if (nlabels != dt_yy->ncols + nmissing) {
+    if (nlabels != dt_ys->ncols + nmissing) {
        // TODO: make this message more user friendly.
        throw ValueError() << "Target column contains unknown labels";
     }
@@ -406,24 +414,6 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
   for (size_t i = 0; i < ndtft; ++i) {
     dtft[i]->fit<BoolColumn, int8_t>(dt_X, c_y[i], sigmoid);
   }
-
-  if (dt_yy != nullptr) delete dt_yy;
-}
-
-
-/*
-*  Sigmoid function.
-*/
-inline double Ftrl::sigmoid(double x) {
-  return 1.0 / (1.0 + std::exp(-x));
-}
-
-
-/*
-*  Identity function.
-*/
-inline double Ftrl::identity(double x) {
-  return x;
 }
 
 
@@ -470,9 +460,9 @@ oobj Ftrl::predict(const PKArgs& args) {
   size_t nlabels = labels.size();
   size_t ndtft = dtft.size();
 
-	// If number of labels is different from the number of classifiers,
-	// then there is something wrong. Unless we do a multinomial
-	// regression with only two labels.
+  // If number of labels is different from the number of classifiers,
+  // then there is something wrong. Unless we do a multinomial
+  // regression with only two labels.
   if (nlabels != ndtft && !(nlabels == 2 && ndtft == 1)) {
     if (ndtft == 1) {
       // Binomial and regression cases
@@ -481,27 +471,28 @@ oobj Ftrl::predict(const PKArgs& args) {
                             "a binomial/regression mode";
     } else {
       // Multinomial case
-     throw ValueError() << "Can only make predictions for " << dtft.size()
+      throw ValueError() << "Can only make predictions for " << dtft.size()
                         << " labels, i.e. the same number of labels as "
                         << "was used for model training";
     }
   }
 
+  // Determine which link function we should use.
   double (*f)(double);
   switch (reg_type) {
     case RegType::REGRESSION  : f = identity; break;
     case RegType::BINOMIAL    : f = sigmoid; break;
-    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = identity; break;
+    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = std::exp; break;
     // If this error is thrown, it means that `fit()` and `reg_type`
     // went out of sync, so there is a bug in the code.
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
   }
 
+  // Make predictions and `cbind` targets.
   DataTable* dt_y = nullptr;
   std::vector<std::string> names(1);
   std::vector<DataTable*> dt(1);
-
   for (size_t i = 0; i < dtft.size(); ++i) {
     DataTable* dt_yi = dtft[i]->predict(dt_X, f).release();
     names[0] = labels[i].to_string();
@@ -512,8 +503,9 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
   // For multinomial case, when there is more than two labels,
-  // apply `softmax` function to normalize probabilities.
-  if (nlabels > 2) softmax(dt_y);
+  // apply `softmax` function. NB: we already applied `std::exp`
+  // function to predictions, so only need to normalize probabilities here.
+  if (nlabels > 2) normalize(dt_y);
 
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
@@ -523,7 +515,23 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-void Ftrl::softmax(DataTable* dt) {
+/*
+*  Sigmoid function.
+*/
+inline double Ftrl::sigmoid(double x) {
+  return 1.0 / (1.0 + std::exp(-x));
+}
+
+
+/*
+*  Identity function.
+*/
+inline double Ftrl::identity(double x) {
+  return x;
+}
+
+
+void Ftrl::normalize(DataTable* dt) {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
 
@@ -534,10 +542,15 @@ void Ftrl::softmax(DataTable* dt) {
     d_cs.push_back(d_c);
   }
 
+  #pragma omp parallel for num_threads(config::nthreads)
   for (size_t i = 0; i < nrows; ++i) {
     double denom = 0.0;
-    for (size_t j = 0; j < ncols; ++j) denom += std::exp(d_cs[j][i]);
-    for (size_t j = 0; j < ncols; ++j) d_cs[j][i] = std::exp(d_cs[j][i]) / denom;
+    for (size_t j = 0; j < ncols; ++j) {
+      denom += d_cs[j][i];
+    }
+    for (size_t j = 0; j < ncols; ++j) {
+      d_cs[j][i] = d_cs[j][i] / denom;
+    }
   }
 }
 
@@ -617,10 +630,9 @@ oobj Ftrl::get_fi() const {
       }
 
       for (size_t i = 0; i < fi_nrows; ++i) {
-        double fi = 0.0;
-        for (size_t j = 0; j < ndtft; ++j) fi += d_fis[j][i];
-        fi /= ndtft;
-        d_fi[i] = fi;
+        d_fi[i] = 0.0;
+        for (size_t j = 0; j < ndtft; ++j) d_fi[i] += d_fis[j][i];
+        d_fi[i] /= ndtft;
       }
     } else {
     	// If there is just one classifier, simply return `fi`.

@@ -108,7 +108,7 @@ class Ftrl : public PyObject {
     // Link functions
     static double sigmoid(double);
     static double identity(double);
-    static void softmax(DataTable*);
+    static void normalize(DataTable*);
 };
 
 } // namespace py

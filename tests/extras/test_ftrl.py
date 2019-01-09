@@ -654,15 +654,13 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
     df_train1 = dt.Frame(range(ft1.d))
     df_target1 = dt.Frame([True, False] * 5)
     ft1.fit(df_train1, df_target1)
-    p1 = ft1.predict(df_train1)
-        
+    p1 = ft1.predict(df_train1)        
     ft2 = Ftrl(d = 10, nepochs = 2)
     ft2.labels = ["target", "target2"]
     df_train2 = dt.Frame(range(ft2.d))
     df_target2 = dt.Frame(ft2.labels * 5)
     ft2.fit(df_train2, df_target2)
-    p2 = ft2.predict(df_train2)
-    
+    p2 = ft2.predict(df_train2)    
     assert_equals(ft1.model[0], ft2.model[0])
     assert_equals(p1, p2[:, 0])
 
