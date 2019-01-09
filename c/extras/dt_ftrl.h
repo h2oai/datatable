@@ -78,10 +78,10 @@ class Ftrl {
     static const FtrlParams default_params;
 
     // Learning and predicting methods.
-    template <class T1, typename T2, typename F>
-    void fit(const DataTable*, const T1*, F);
+    template <typename T, typename F>
+    void fit(const DataTable*, const Column*, F);
     template<typename F> dtptr predict(const DataTable*, F f);
-    template<typename F> double predict_row(const uint64ptr&, F f);
+    double predict_row(const uint64ptr&);
     void update(const uint64ptr&, double, double);
 
     // Model and feature importance handling methods
@@ -136,8 +136,8 @@ class Ftrl {
 /*
 *  Train FTRL model on a dataset.
 */
-template <class T1, typename T2, typename F>
-void Ftrl::fit(const DataTable* dt_X, const T1* c_y, F f) {
+template <typename T, typename F>
+void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   define_features(dt_X->ncols);
 
   is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
@@ -147,7 +147,7 @@ void Ftrl::fit(const DataTable* dt_X, const T1* c_y, F f) {
   create_hashers(dt_X);
 
   // Get the target column.
-  auto d_y = c_y->elements_r();
+  auto d_y = static_cast<const T*>(c_y->data());
   const RowIndex ri_y = c_y->rowindex();
 
   // Do training for `nepochs`.
@@ -161,9 +161,9 @@ void Ftrl::fit(const DataTable* dt_X, const T1* c_y, F f) {
 
       for (size_t i = ith; i < dt_X->nrows; i += nth) {
           size_t j = ri_y[i];
-          if (j != RowIndex::NA && !ISNA<T2>(d_y[j])) {
+          if (j != RowIndex::NA && !ISNA<T>(d_y[j])) {
             hash_row(x, i);
-            double p = predict_row(x, f);
+            double p = f(predict_row(x));
             double y = static_cast<double>(d_y[j]);
             update(x, p, y);
           }
@@ -203,32 +203,12 @@ dtptr Ftrl::predict(const DataTable* dt_X, F f) {
 
     for (size_t i = ith; i < dt_X->nrows; i += nth) {
       hash_row(x, i);
-      d_y[i] = predict_row(x, f);
+      d_y[i] = f(predict_row(x));
     }
   }
   return dt_y;
 }
 
-
-/*
-*  Make a prediction for an array of hashed features.
-*/
-template<typename F>
-double Ftrl::predict_row(const uint64ptr& x, F f) {
-  double wTx = 0;
-  double l1 = params.lambda1;
-  double ia = 1 / params.alpha;
-  double rr = params.beta * ia + params.lambda2;
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
-                  (std::sqrt(n[j]) * ia + rr);
-    w[j] = -std::copysign(absw, z[j]);
-    wTx += w[j];
-    fi[i] += absw; // Update feature importance vector
-  }
-  return f(wTx);
-}
 
 } // namespace dt
 

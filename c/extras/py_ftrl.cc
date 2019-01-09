@@ -308,17 +308,17 @@ void Ftrl::fit(const PKArgs& args) {
   switch (stype_y) {
     case SType::BOOL:    fit_binomial(dt_X, dt_y);
                          break;
-    case SType::INT8:    fit_regression<IntColumn<int8_t>, int8_t>(dt_X, dt_y);
+    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y);
                          break;
-    case SType::INT16:   fit_regression<IntColumn<int16_t>, int16_t>(dt_X, dt_y);
+    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y);
                          break;
-    case SType::INT32:   fit_regression<IntColumn<int32_t>, int32_t>(dt_X, dt_y);
+    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y);
                          break;
-    case SType::INT64:   fit_regression<IntColumn<int64_t>, int64_t>(dt_X, dt_y);
+    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y);
                          break;
-    case SType::FLOAT32: fit_regression<RealColumn<float>, float>(dt_X, dt_y);
+    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y);
                          break;
-    case SType::FLOAT64: fit_regression<RealColumn<double>, double>(dt_X, dt_y);
+    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y);
                          break;
     case SType::STR32:   [[clang::fallthrough]];
     case SType::STR64:   fit_multinomial(dt_X, dt_y);
@@ -336,12 +336,11 @@ void Ftrl::fit_binomial(DataTable* dt_X, DataTable* dt_y) {
                          "in a binomial mode this model should be reset.";
   }
   reg_type = RegType::BINOMIAL;
-  auto c_y = static_cast<BoolColumn*>(dt_y->columns[0]);
-  dtft[0]->fit<BoolColumn, int8_t>(dt_X, c_y, sigmoid);
+  dtft[0]->fit<int8_t>(dt_X, dt_y->columns[0], sigmoid);
 }
 
 
-template <class T1, typename T2>
+template <typename T>
 void Ftrl::fit_regression(DataTable* dt_X, DataTable* dt_y) {
   if (reg_type != RegType::NONE && reg_type != RegType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
@@ -349,8 +348,7 @@ void Ftrl::fit_regression(DataTable* dt_X, DataTable* dt_y) {
                          "in a binomial mode this model should be reset.";
   }
   reg_type = RegType::REGRESSION;
-  auto c_y = static_cast<T1*>(dt_y->columns[0]);
-  dtft[0]->fit<T1, T2>(dt_X, c_y, identity);
+  dtft[0]->fit<T>(dt_X, dt_y->columns[0], identity);
 }
 
 
@@ -388,7 +386,9 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
         nmissing++;
         Warning w = DatatableWarning();
         w << "Label '" << label << "' was not found in a target frame";
-        col = static_cast<BoolColumn*>(Column::new_data_column(SType::BOOL, dt_y->nrows));
+        col = static_cast<BoolColumn*>(
+                Column::new_data_column(SType::BOOL, dt_y->nrows)
+              );
         auto d_y = static_cast<bool*>(col->data_w());
         for (size_t j = 0; j < col->nrows; ++j) d_y[j] = false;
       } else {
@@ -412,7 +412,7 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
   // binomial case.
   size_t ndtft = dtft.size();
   for (size_t i = 0; i < ndtft; ++i) {
-    dtft[i]->fit<BoolColumn, int8_t>(dt_X, c_y[i], sigmoid);
+    dtft[i]->fit<int8_t>(dt_X, c_y[i], sigmoid);
   }
 }
 

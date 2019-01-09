@@ -70,7 +70,7 @@ class Ftrl : public PyObject {
     void fit(const PKArgs&);
     void fit_binomial(DataTable*, DataTable*);
     void fit_multinomial(DataTable*, DataTable*);
-    template <class T1, typename T2>
+    template <typename T>
     void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);

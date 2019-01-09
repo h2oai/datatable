@@ -48,6 +48,26 @@ Ftrl::Ftrl(FtrlParams params_in) :
 
 
 /*
+*  Make a prediction for an array of hashed features.
+*/
+double Ftrl::predict_row(const uint64ptr& x) {
+  double wTx = 0;
+  double l1 = params.lambda1;
+  double ia = 1 / params.alpha;
+  double rr = params.beta * ia + params.lambda2;
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
+                  (std::sqrt(n[j]) * ia + rr);
+    w[j] = -std::copysign(absw, z[j]);
+    wTx += w[j];
+    fi[i] += absw; // Update feature importance vector
+  }
+  return wTx;
+}
+
+
+/*
 *  Update weights based on prediction `p` and the actual target `y`.
 */
 void Ftrl::update(const uint64ptr& x, double p, double y) {
