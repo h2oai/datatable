@@ -164,25 +164,17 @@ oobj Frame::_main_getset(robj item, robj value) {
 
   // 3. Instantiate `i_node` and `j_node`.
   wf.add_i(targs[0]);
-  auto jexpr = dt::j_node::make(targs[1], wf);
-  xassert(jexpr);
+  wf.add_j(targs[1]);
 
-  // 4. Perform joins & groupby.
-  wf.evaluate();
-
-  if (!wf.has_groupby()) {
-    if (wf.get_mode() == dt::EvalMode::SELECT) {
-      DataTable* res = jexpr->select(wf);
-      return oobj::from_new_reference(py::Frame::from_datatable(res));
-    }
-    if (wf.get_mode() == dt::EvalMode::DELETE) {
-      jexpr->delete_(wf);
-      _clear_types();
-      return py::None();
-    }
+  if (wf.has_groupby() || wf.get_mode() == dt::EvalMode::UPDATE) {
+    return _fallback_getset(item, value);
   }
 
-  return _fallback_getset(item, value);
+  wf.evaluate();
+  if (wf.get_mode() != dt::EvalMode::SELECT) {
+    _clear_types();
+  }
+  return wf.get_result();
 }
 
 

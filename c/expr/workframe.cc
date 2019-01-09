@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/workframe.h"
+#include "frame/py_frame.h"
 namespace dt {
 
 
@@ -28,6 +29,7 @@ workframe::workframe(DataTable* dt) {
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
   mode = EvalMode::SELECT;
+  result = nullptr;
 }
 
 
@@ -57,6 +59,11 @@ void workframe::add_i(py::oobj oi) {
 }
 
 
+void workframe::add_j(py::oobj oj) {
+  jexpr = j_node::make(oj, *this);
+}
+
+
 void workframe::evaluate() {
   // Compute joins
   if (frames.size() > 1) {
@@ -73,7 +80,19 @@ void workframe::evaluate() {
   // Compute i expression
   if (!by_node) {
     iexpr->execute(*this);
+    if (mode == EvalMode::SELECT) {
+      result = jexpr->select(*this);
+    }
+    if (mode == EvalMode::DELETE) {
+      jexpr->delete_(*this);
+    }
   }
+}
+
+
+py::oobj workframe::get_result() const {
+  return result? py::oobj::from_new_reference(py::Frame::from_datatable(result))
+               : py::None();
 }
 
 

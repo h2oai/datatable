@@ -24,6 +24,7 @@
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
 #include "expr/i_node.h"     // i_node_ptr
+#include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "datatable.h"       // DataTable
 #include "groupby.h"         // Groupby
@@ -37,6 +38,7 @@ struct subframe {
   bool natural;  // was this frame joined naturally?
   size_t : 56;
 };
+using frvec = std::vector<subframe>;
 
 enum class EvalMode {
   SELECT,
@@ -68,11 +70,13 @@ enum class EvalMode {
  */
 class workframe {
   private:
-    std::vector<subframe> frames;
-    Groupby gb;
+    frvec       frames;
+    Groupby     gb;
     by_node_ptr by_node;
     i_node_ptr  iexpr;
-    EvalMode mode;
+    j_node_ptr  jexpr;
+    DataTable*  result;
+    EvalMode    mode;
     size_t : 64 - sizeof(EvalMode) * 8;
 
   public:
@@ -87,8 +91,10 @@ class workframe {
     void add_join(py::ojoin);
     void add_groupby(py::oby);
     void add_i(py::oobj);
+    void add_j(py::oobj);
 
     void evaluate();
+    py::oobj get_result() const;
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;

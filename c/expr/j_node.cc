@@ -279,18 +279,18 @@ void exprlist_jn::delete_(workframe&) {
 // j_node
 //------------------------------------------------------------------------------
 
-jptr j_node::make(py::robj src, workframe& wf) {
+j_node_ptr j_node::make(py::robj src, workframe& wf) {
   // The most common case is ":", a trivial slice
   if ((src.is_slice() && src.to_oslice().is_trivial())
       || src.is_none() || src.is_ellipsis()) {
-    return jptr(new allcols_jn());
+    return j_node_ptr(new allcols_jn());
   }
   collist_ptr cl = collist::make(wf, src, "`j` selector");
   auto cl_int = dynamic_cast<cols_intlist*>(cl.get());
   auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
   xassert(cl_int || cl_expr);
-  return cl_int? jptr(new collist_jn(cl_int))
-               : jptr(new exprlist_jn(cl_expr));
+  return cl_int? j_node_ptr(new collist_jn(cl_int))
+               : j_node_ptr(new exprlist_jn(cl_expr));
 }
 
 
