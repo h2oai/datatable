@@ -163,21 +163,19 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 3. Instantiate `i_node` and `j_node`.
-  auto iexpr = dt::i_node::make(targs[0], wf);
+  wf.add_i(targs[0]);
   auto jexpr = dt::j_node::make(targs[1], wf);
-  xassert(iexpr && jexpr);
+  xassert(jexpr);
 
   // 4. Perform joins & groupby.
-  wf.compute_joins();
-  wf.compute_groupby();
+  wf.evaluate();
 
   if (!wf.has_groupby()) {
-    iexpr->execute(wf);
-    if (value == GETITEM) {
+    if (wf.get_mode() == dt::EvalMode::SELECT) {
       DataTable* res = jexpr->select(wf);
       return oobj::from_new_reference(py::Frame::from_datatable(res));
     }
-    if (value == DELITEM) {
+    if (wf.get_mode() == dt::EvalMode::DELETE) {
       jexpr->delete_(wf);
       _clear_types();
       return py::None();

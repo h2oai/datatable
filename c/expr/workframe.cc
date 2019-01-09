@@ -52,18 +52,28 @@ void workframe::add_groupby(py::oby og) {
 }
 
 
-void workframe::compute_joins() {
-  if (frames.size() <= 1) return;
-  DataTable* xdt = frames[0].dt;
-  for (size_t i = 1; i < frames.size(); ++i) {
-    DataTable* jdt = frames[i].dt;
-    frames[i].ri = natural_join(xdt, jdt);
-  }
+void workframe::add_i(py::oobj oi) {
+  iexpr = i_node::make(oi, *this);
 }
 
 
-void workframe::compute_groupby() {
-  // by_node->execute(*this);
+void workframe::evaluate() {
+  // Compute joins
+  if (frames.size() > 1) {
+    DataTable* xdt = frames[0].dt;
+    for (size_t i = 1; i < frames.size(); ++i) {
+      DataTable* jdt = frames[i].dt;
+      frames[i].ri = natural_join(xdt, jdt);
+    }
+  }
+  // Compute groupby
+  if (by_node) {
+    by_node->execute(*this);
+  }
+  // Compute i expression
+  if (!by_node) {
+    iexpr->execute(*this);
+  }
 }
 
 

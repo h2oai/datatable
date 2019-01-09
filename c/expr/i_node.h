@@ -22,13 +22,13 @@
 #ifndef dt_EXPR_I_NODE_h
 #define dt_EXPR_I_NODE_h
 #include <memory>             // std::unique_ptr
-#include "expr/workframe.h"   // dt::workframe
 #include "python/_all.h"      // py::robj, ...
 namespace dt {
 
 
 class i_node;
-using iptr = std::unique_ptr<dt::i_node>;
+class workframe;
+using i_node_ptr = std::unique_ptr<dt::i_node>;
 
 /**
  * Base class for all "Row Filter" nodes. A row filter node represents the
@@ -39,7 +39,7 @@ using iptr = std::unique_ptr<dt::i_node>;
  */
 class i_node {
   public:
-    static iptr make(py::robj src, workframe& wf);
+    static i_node_ptr make(py::robj src, workframe& wf);
 
     virtual ~i_node();
     virtual void post_init_check(workframe& wf);

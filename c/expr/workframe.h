@@ -23,6 +23,7 @@
 #define dt_EXPR_WORKFRAME_h
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
+#include "expr/i_node.h"     // i_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "datatable.h"       // DataTable
 #include "groupby.h"         // Groupby
@@ -70,6 +71,7 @@ class workframe {
     std::vector<subframe> frames;
     Groupby gb;
     by_node_ptr by_node;
+    i_node_ptr  iexpr;
     EvalMode mode;
     size_t : 64 - sizeof(EvalMode) * 8;
 
@@ -84,8 +86,9 @@ class workframe {
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
-    void compute_joins();
-    void compute_groupby();
+    void add_i(py::oobj);
+
+    void evaluate();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
