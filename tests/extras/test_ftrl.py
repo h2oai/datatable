@@ -682,11 +682,11 @@ def test_ftrl_fit_predict_multinomial():
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
-    delta_red =   [abs(i - j) for i, j in 
+    delta_red =   [abs(i - j) for i, j in
                    zip(p_list[0], [0, 1, 1, 0, 0, 0.33, 0])]
-    delta_green = [abs(i - j) for i, j in 
+    delta_green = [abs(i - j) for i, j in
                    zip(p_list[1], [1, 0, 0, 0, 1, 0.33, 0])]
-    delta_blue =  [abs(i - j) for i, j in 
+    delta_blue =  [abs(i - j) for i, j in
                    zip(p_list[2], [0, 0, 0, 1, 0, 0.33, 1])]
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
