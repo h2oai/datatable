@@ -70,3 +70,20 @@ def test_assign_frame():
     f0[:, "A"] = f1[:10, :]
     assert f0.names == ("A",)
     assert f0.ltypes == (dt.ltype.real,)
+
+
+def test_assign_string_columns():
+    f0 = dt.Frame(A=["One", "two", "three", None, "five"])
+    f0[dt.isna(f.A), f.A] = dt.Frame(["FOUR"])
+    assert f0.names == ("A", )
+    assert f0.stypes == (dt.stype.str32,)
+    assert f0.to_list() == [["One", "two", "three", "FOUR", "five"]]
+
+
+def test_assign_string_columns2():
+    f0 = dt.Frame(A=["One", "two", "three", None, "five"])
+    f0[[2, 0, 4], "A"] = dt.Frame([None, "Oh my!", "infinity"])
+    f0[1, "A"] = dt.Frame([None], stype=dt.str32)
+    assert f0.names == ("A", )
+    assert f0.stypes == (dt.stype.str32,)
+    assert f0.to_list() == [["Oh my!", None, None, None, "infinity"]]

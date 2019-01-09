@@ -326,25 +326,58 @@ void StringColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
   reify();
-  if (!replace_with) {
+  Column* rescol = nullptr;
+
+  if (replace_with && replace_with->stype() != stype()){
+    replace_with = replace_with->cast(stype());
+  }
+  // This could be nullptr too
+  auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
+
+  if (!replace_with || replace_with->nrows == 1) {
+    CString repl_value;  // Default constructor creates an NA string
+    if (replace_with) {
+      T off0 = repl_col->offsets()[0];
+      if (!ISNA<T>(off0)) {
+        repl_value = CString(repl_col->strdata(), static_cast<int64_t>(off0));
+      }
+    }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
-    Column* t = dt::map_str2str(this,
+    rescol = dt::map_str2str(this,
       [=](size_t i, CString& value, dt::fhbuf& sb) {
-        if (mask_indices[i]) {
-          sb.write_na();
-        } else {
+        sb.write(mask_indices[i]? repl_value : value);
+      });
+  }
+  else {
+    const char* repl_strdata = repl_col->strdata();
+    const T* repl_offsets = repl_col->offsets();
+
+    MemoryRange mask = replace_at.as_integer_mask(nrows);
+    auto mask_indices = static_cast<const int32_t*>(mask.rptr());
+    rescol = dt::map_str2str(this,
+      [=](size_t i, CString& value, dt::fhbuf& sb) {
+        int ir = mask_indices[i];
+        if (ir == -1) {
           sb.write(value);
+        } else {
+          T offstart = repl_offsets[ir - 1] & ~GETNA<T>();
+          T offend = repl_offsets[ir];
+          if (ISNA<T>(offend)) {
+            sb.write_na();
+          } else {
+            sb.write(repl_strdata + offstart, offend - offstart);
+          }
         }
       });
-    StringColumn<T>* scol = static_cast<StringColumn<T>*>(t);
-    std::swap(mbuf, scol->mbuf);
-    std::swap(strbuf, scol->strbuf);
-    delete scol;
-    if (stats) stats->reset();
-    return;
   }
-  throw NotImplError() << "StringColumn::replace_values() not implemented";
+
+  xassert(rescol);
+  StringColumn<T>* scol = static_cast<StringColumn<T>*>(rescol);
+  std::swap(mbuf, scol->mbuf);
+  std::swap(strbuf, scol->strbuf);
+  delete rescol;
+  if (stats) stats->reset();
 }
 
 

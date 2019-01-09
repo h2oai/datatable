@@ -48,7 +48,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Module `datatable` now exposes C API, to allow other C/C++ libraries interact
   with datatable Frames natively (#1469). See "datatable/include/datatable.h"
-  for the description of the API functions.
+  for the description of the API functions. Thanks [Qiang Kou][] for testing
+  this functionality.
 
 - The column selector `j` in `DT[i, j]` can now be a list/iterator of booleans.
   This list should have length `DT.ncols`, and the entries in this list will
@@ -91,6 +92,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - FTRL algorithm now works correctly with view frames (#1502). Thanks to
   [Olivier][] for reporting this issue.
+
+- Partial column update (i.e. expression of the form `DT[i, j] = R`) now works
+  for string columns as well (#1523).
 
 
 ### Changed
@@ -196,13 +200,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - function `abs()` to find the absolute value of elements in the frame.
 
 - improved handling of Excel files by fread:
-  * sheet name can now be used as a path component in the file name,
+  - sheet name can now be used as a path component in the file name,
     causing only that particular sheet to be parsed;
 
-  * further, a cell range can be specified as a path component after the
+  - further, a cell range can be specified as a path component after the
     sheet name, forcing fread to consider only the provided cell range;
 
-  * fread can now handle the situation when a spreadsheet has multiple
+  - fread can now handle the situation when a spreadsheet has multiple
     separate tables in the same sheet. They will now be detected automatically
     and returned to the user as separate Frame objects (the name of each
     frame will contain the sheet name and cell range from where the data was

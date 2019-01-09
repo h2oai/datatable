@@ -152,6 +152,13 @@ class RowIndex {
     MemoryRange as_boolean_mask(size_t nrows) const;
 
     /**
+     * Convert the RowIndex into an array `int32_t[nrows]`, where entries not
+     * selected by this RowIndex are -1, and the selected entries are
+     * consecutive integers 0, 1, ..., size()-1.
+     */
+    MemoryRange as_integer_mask(size_t nrows) const;
+
+    /**
      * Return a RowIndex which is the negation of the current, when applied
      * to an array of `nrows` elements. That is, the returned RowIndex
      * contains all elements in the `range(nrows)` which are *not* selected
