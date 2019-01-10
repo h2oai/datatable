@@ -96,6 +96,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Partial column update (i.e. expression of the form `DT[i, j] = R`) now works
   for string columns as well (#1523).
 
+- `DT.replace()` now throws an error if called with 0 or 1 argument (#1525).
+  Thanks to [Arno Candel][] for discovering this issue.
+
 
 ### Changed
 
