@@ -254,6 +254,19 @@ MemoryRange RowIndex::as_boolean_mask(size_t nrows) const {
 }
 
 
+MemoryRange RowIndex::as_integer_mask(size_t nrows) const {
+  MemoryRange res = MemoryRange::mem(nrows * 4);
+  int32_t* data = static_cast<int32_t*>(res.xptr());
+  // NA index is -1 in byte, and also -1 in int32
+  std::memset(data, -1, nrows * 4);
+  iterate(0, size(), 1,
+    [&](size_t i, size_t j) {
+      data[j] = static_cast<int32_t>(i);
+    });
+  return res;
+}
+
+
 RowIndex RowIndex::negate(size_t nrows) const {
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows. The inverse

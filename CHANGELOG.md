@@ -48,7 +48,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Module `datatable` now exposes C API, to allow other C/C++ libraries interact
   with datatable Frames natively (#1469). See "datatable/include/datatable.h"
-  for the description of the API functions.
+  for the description of the API functions. Thanks [Qiang Kou][] for testing
+  this functionality.
 
 - The column selector `j` in `DT[i, j]` can now be a list/iterator of booleans.
   This list should have length `DT.ncols`, and the entries in this list will
@@ -91,6 +92,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - FTRL algorithm now works correctly with view frames (#1502). Thanks to
   [Olivier][] for reporting this issue.
+
+- Partial column update (i.e. expression of the form `DT[i, j] = R`) now works
+  for string columns as well (#1523).
+
+- `DT.replace()` now throws an error if called with 0 or 1 argument (#1525).
+  Thanks to [Arno Candel][] for discovering this issue.
+
+- Fixed crash when viewing a frame obtained by resizing a 0-row frame (#1527).
+  Thanks to [Nishant Kalonia][] for reporting.
 
 
 ### Changed
@@ -196,13 +206,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - function `abs()` to find the absolute value of elements in the frame.
 
 - improved handling of Excel files by fread:
-  * sheet name can now be used as a path component in the file name,
+  - sheet name can now be used as a path component in the file name,
     causing only that particular sheet to be parsed;
 
-  * further, a cell range can be specified as a path component after the
+  - further, a cell range can be specified as a path component after the
     sheet name, forcing fread to consider only the provided cell range;
 
-  * fread can now handle the situation when a spreadsheet has multiple
+  - fread can now handle the situation when a spreadsheet has multiple
     separate tables in the same sheet. They will now be detected automatically
     and returned to the user as separate Frame objects (the name of each
     frame will contain the sheet name and cell range from where the data was
@@ -802,17 +812,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-[unreleased]: https://github.com/h2oai/datatable/compare/HEAD...v0.7.0
-[0.7.0]: https://github.com/h2oai/datatable/compare/v0.7.0...v0.6.0
-[0.6.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0
-[0.5.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0
-[0.4.0]: https://github.com/h2oai/datatable/compare/v0.4.0...v0.3.2
-[0.3.2]: https://github.com/h2oai/datatable/compare/v0.3.2...v0.3.1
-[0.3.1]: https://github.com/h2oai/datatable/compare/v0.3.1...v0.3.0
-[0.3.0]: https://github.com/h2oai/datatable/compare/v0.3.0...v0.2.2
-[0.2.2]: https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1
-[0.2.1]: https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0
-[0.2.0]: https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0
+[unreleased]: https://github.com/h2oai/datatable/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/h2oai/datatable/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/h2oai/datatable/compare/v0.3.2...v0.4.0
+[0.3.2]: https://github.com/h2oai/datatable/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/h2oai/datatable/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/h2oai/datatable/compare/v0.2.2...v0.3.0
+[0.2.2]: https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/h2oai/datatable/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/h2oai/datatable/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/h2oai/datatable/tree/v0.1.0
 
 
@@ -821,6 +831,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [jonathan mckinney]: https://github.com/pseudotensor
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
+[nishant kalonia]: https://github.com/nkalonia1
 [oleksiy kononenko]: https://github.com/oleksiyskononenko
 [olivier]: https://github.com/goldentom42
 [pasha stetsenko]: https://github.com/st-pasha

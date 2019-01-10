@@ -386,3 +386,19 @@ def test_replace_nonunique():
         df0.replace([0, 9, 11, 0], -1)
     assert ("Replacement target `0` was specified more than once in "
             "Frame.replace()" == str(e.value))
+
+
+def test_issue1525_1():
+    with pytest.raises(TypeError) as e:
+        df0 = dt.Frame(["foo"])
+        df0.replace()
+    assert ("Missing the required argument `replace_what` in method "
+            "Frame.replace()" == str(e.value))
+
+
+def test_issue1525_2():
+    with pytest.raises(TypeError) as e:
+        df0 = dt.Frame(["foo"])
+        df0.replace("foo")
+    assert ("Missing the required argument `replace_with` in method "
+            "Frame.replace()" == str(e.value))

@@ -136,6 +136,10 @@ class ReplaceAgent {
 void Frame::replace(const PKArgs& args) {
   const Arg& x = args[0];  // replace what
   const Arg& y = args[1];  // replace with
+  if (!x) {
+    throw TypeError() << "Missing the required argument `replace_what` in "
+        "method Frame.replace()";
+  }
 
   ReplaceAgent ra(dt);
   ra.parse_x_y(x, y);
@@ -183,6 +187,10 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
     return;
   }
   else {
+    if (!y) {
+      throw TypeError() << "Missing the required argument `replace_with` in "
+          "method Frame.replace()";
+    }
     if (x.is_list_or_tuple()) {
       olist xl = x.to_pylist();
       for (size_t i = 0; i < xl.size(); ++i) {

@@ -27,9 +27,22 @@
 
 namespace py {
 
+using dtftptr = std::unique_ptr<dt::Ftrl>;
+
+enum class RegType : uint8_t {
+  NONE        = 0,
+  REGRESSION  = 1,
+  BINOMIAL    = 2,
+  MULTINOMIAL = 3
+};
+
+
 class Ftrl : public PyObject {
   private:
-    dt::Ftrl* dtft;
+    std::vector<dtftptr> dtft;
+    py::olist labels;
+    RegType reg_type;
+    size_t : 56;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -44,8 +57,10 @@ class Ftrl : public PyObject {
         static void init_methods_and_getsets(Methods&, GetSetters&);
     };
 
+    // Initializers and destructor
     void m__init__(PKArgs&);
     void m__dealloc__();
+    void init_dtft(dt::FtrlParams);
 
     // Pickling support
     oobj m__getstate__(const NoArgs&);
@@ -53,11 +68,17 @@ class Ftrl : public PyObject {
 
     // Learning and predicting methods
     void fit(const PKArgs&);
+    void fit_binomial(DataTable*, DataTable*);
+    void fit_multinomial(DataTable*, DataTable*);
+    template <typename T>
+    void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);
 
     // Getters and setters
+    oobj get_labels() const;
     oobj get_fi() const;
+    oobj get_fi_tuple() const;
     oobj get_model() const;
     oobj get_colname_hashes() const;
     oobj get_params_namedtuple() const;
@@ -69,6 +90,7 @@ class Ftrl : public PyObject {
     oobj get_d() const;
     oobj get_inter() const;
     oobj get_nepochs() const;
+    void set_labels(robj);
     void set_model(robj);
     void set_params_namedtuple(robj);
     void set_params_tuple(robj);
@@ -82,6 +104,11 @@ class Ftrl : public PyObject {
 
     // Model validation methods
     bool has_negative_n(DataTable*) const;
+
+    // Link functions
+    static double sigmoid(double);
+    static double identity(double);
+    static void normalize(DataTable*);
 };
 
 } // namespace py

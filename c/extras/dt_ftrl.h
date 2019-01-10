@@ -22,6 +22,7 @@
 #ifndef dt_EXTRAS_FTRL_h
 #define dt_EXTRAS_FTRL_h
 #include "py_datatable.h"
+#include "utils/parallel.h"
 #include "extras/hash.h"
 
 
@@ -77,10 +78,11 @@ class Ftrl {
     static const FtrlParams default_params;
 
     // Learning and predicting methods.
-    void fit(const DataTable*, const DataTable*);
-    dtptr predict(const DataTable*);
+    template <typename T, typename F>
+    void fit(const DataTable*, const Column*, F);
+    template<typename F> dtptr predict(const DataTable*, F f);
     double predict_row(const uint64ptr&);
-    void update(const uint64ptr&, double, bool);
+    void update(const uint64ptr&, double, double);
 
     // Model and feature importance handling methods
     void create_model();
@@ -102,8 +104,6 @@ class Ftrl {
 
     // Learning helper methods
     static double logloss(double, bool);
-    static double sigmoid(double);
-    static double bsigmoid(double, double);
 
     // Getters
     DataTable* get_model();
@@ -118,6 +118,7 @@ class Ftrl {
     uint64_t get_d();
     size_t get_nepochs();
     bool get_inter();
+    FtrlParams get_params();
 
     // Setters
     void set_model(DataTable*);
@@ -130,6 +131,84 @@ class Ftrl {
     void set_nepochs(size_t);
     void set_inter(bool);
 };
+
+
+/*
+*  Train FTRL model on a dataset.
+*/
+template <typename T, typename F>
+void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
+  define_features(dt_X->ncols);
+
+  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+
+  // Create column hashers.
+  create_hashers(dt_X);
+
+  // Get the target column.
+  auto d_y = static_cast<const T*>(c_y->data());
+  const RowIndex ri_y = c_y->rowindex();
+
+  // Do training for `nepochs`.
+  for (size_t e = 0; e < params.nepochs; ++e) {
+    #pragma omp parallel num_threads(config::nthreads)
+    {
+      // Array to store hashed column values and their interactions.
+      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      size_t ith = static_cast<size_t>(omp_get_thread_num());
+      size_t nth = static_cast<size_t>(omp_get_num_threads());
+
+      for (size_t i = ith; i < dt_X->nrows; i += nth) {
+          size_t j = ri_y[i];
+          if (j != RowIndex::NA && !ISNA<T>(d_y[j])) {
+            hash_row(x, i);
+            double p = f(predict_row(x));
+            double y = static_cast<double>(d_y[j]);
+            update(x, p, y);
+          }
+      }
+    }
+  }
+  model_trained = true;
+}
+
+
+/*
+*  Make predictions for a test dataset and return targets as a new datatable.
+*  We assume that all the validation is done in `py_ftrl.cc`.
+*/
+template<typename F>
+dtptr Ftrl::predict(const DataTable* dt_X, F f) {
+  xassert(model_trained);
+  define_features(dt_X->ncols);
+  init_weights();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+
+  // Re-create hashers as stypes for training dataset and predictions
+  // may be different
+  create_hashers(dt_X);
+
+  // Create a target datatable.
+  dtptr dt_y;
+  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
+  dt_y = dtptr(new DataTable({col_target}, {"target"}));
+  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
+
+  #pragma omp parallel num_threads(config::nthreads)
+  {
+    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+    size_t ith = static_cast<size_t>(omp_get_thread_num());
+    size_t nth = static_cast<size_t>(omp_get_num_threads());
+
+    for (size_t i = ith; i < dt_X->nrows; i += nth) {
+      hash_row(x, i);
+      d_y[i] = f(predict_row(x));
+    }
+  }
+  return dt_y;
+}
+
 
 } // namespace dt
 
