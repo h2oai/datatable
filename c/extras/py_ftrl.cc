@@ -867,7 +867,7 @@ void Ftrl::set_params_tuple(robj params) {
 
 void Ftrl::set_alpha(robj py_alpha) {
   if (py_alpha.is_none()) {
-    throw ValueError() << "Parameter `alpha` should be numeric, and cannot "
+    throw ValueError() << "Parameter `alpha` should be numeric, so cannot "
                           "be set to `None`";
   }
   double alpha = py_alpha.to_double();
@@ -880,7 +880,7 @@ void Ftrl::set_alpha(robj py_alpha) {
 
 void Ftrl::set_beta(robj py_beta) {
   if (py_beta.is_none()) {
-    throw ValueError() << "Parameter `beta` should be numeric, and cannot "
+    throw ValueError() << "Parameter `beta` should be numeric, so cannot "
                           "be set to `None`";
   }
   double beta = py_beta.to_double();
@@ -893,7 +893,7 @@ void Ftrl::set_beta(robj py_beta) {
 
 void Ftrl::set_lambda1(robj py_lambda1) {
   if (py_lambda1.is_none()) {
-    throw ValueError() << "Parameter `lambda1` should be numeric, and cannot "
+    throw ValueError() << "Parameter `lambda1` should be numeric, so cannot "
                           "be set to `None`";
   }
   double lambda1 = py_lambda1.to_double();
@@ -906,7 +906,7 @@ void Ftrl::set_lambda1(robj py_lambda1) {
 
 void Ftrl::set_lambda2(robj py_lambda2) {
   if (py_lambda2.is_none()) {
-    throw ValueError() << "Parameter `lambda2` should be numeric, and cannot "
+    throw ValueError() << "Parameter `lambda2` should be numeric, so cannot "
                           "be set to `None`";
   }
   double lambda2 = py_lambda2.to_double();
