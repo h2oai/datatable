@@ -14,7 +14,6 @@
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_columnset.h"
-#include "py_datawindow.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
@@ -187,20 +186,6 @@ PyObject* get_alloc_size(obj* self) {
 
 void _clear_types(obj* self) {
   if (self->_frame) self->_frame->_clear_types();
-}
-
-
-PyObject* window(obj* self, PyObject* args) {
-  int64_t row0, row1, col0, col1;
-  if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
-    return nullptr;
-
-  PyObject* dwtype = reinterpret_cast<PyObject*>(&pydatawindow::type);
-  PyObject* nargs = Py_BuildValue("Ollll", self, row0, row1, col0, col1);
-  PyObject* res = PyObject_CallObject(dwtype, nargs);
-  Py_XDECREF(nargs);
-
-  return res;
 }
 
 
@@ -623,7 +608,6 @@ static void dealloc(obj* self) {
 //==============================================================================
 
 static PyMethodDef datatable_methods[] = {
-  METHODv(window),
   METHOD0(to_scalar),
   METHOD0(check),
   METHODv(column),

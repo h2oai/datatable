@@ -92,11 +92,6 @@ DECLARE_GETTER(
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  window,
-  "window(row0, row1, col0, col1)\n\n"
-  "Retrieve DataTable's data within a window")
-
-DECLARE_METHOD(
   to_scalar,
   "to_scalar()\n\n"
   "For a 1x1 DataTable return its data as a Python scalar value. This in \n"
