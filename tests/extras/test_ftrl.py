@@ -32,6 +32,7 @@ from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
+import math
 from tests import assert_equals, noop
 
 
@@ -139,22 +140,22 @@ def test_ftrl_construct_wrong_alpha_value():
 def test_ftrl_construct_wrong_beta_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(beta = -1.0))
-    assert ("Argument `beta` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `beta` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda1 = -1.0))
-    assert ("Argument `lambda1` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `lambda1` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda2 = -1.0))
-    assert ("Argument `lambda2` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `lambda2` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_d_value():
@@ -298,32 +299,97 @@ def test_ftrl_set_wrong_inter_type():
 # Test getters and setters for wrong values of individual FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_set_wrong_alpha_value():
+def test_ftrl_set_zero_alpha_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = 0.0
     assert ("Value should be positive: 0.0" == str(e.value))
 
 
-def test_ftrl_set_wrong_beta_value():
+def test_ftrl_set_None_alpha_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.alpha = None
+    assert ("Value should be positive: None" == str(e.value))
+
+
+def test_ftrl_set_nan_alpha_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.alpha = math.nan
+    assert ("Value should be positive: nan" == str(e.value))
+
+
+def test_ftrl_set_negative_beta_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+    assert ("Value should be greater than or equal to zero: -1.0"
+            == str(e.value))
 
 
-def test_ftrl_set_wrong_lambda1_value():
+def test_ftrl_set_None_beta_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.beta = None
+    assert ("Value should be greater than or equal to zero: None"
+            == str(e.value))
+
+
+def test_ftrl_set_nan_beta_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.beta = math.nan
+    assert ("Value should be greater than or equal to zero: nan"
+            == str(e.value))
+
+
+def test_ftrl_set_negative_lambda1_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+    assert ("Value should be greater than or equal to zero: -1.0"
+            == str(e.value))
 
 
-def test_ftrl_set_wrong_lambda2_value():
+def test_ftrl_set_None_lambda1_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda1 = None
+    assert ("Value should be greater than or equal to zero: None"
+            == str(e.value))
+
+
+def test_ftrl_set_nan_lambda1_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda1 = math.nan
+    assert ("Value should be greater than or equal to zero: nan"
+            == str(e.value))
+
+
+def test_ftrl_set_negative_lambda2_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+    assert ("Value should be greater than or equal to zero: -1.0"
+            == str(e.value))
+
+
+def test_ftrl_set_None_lambda2_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda2 = None
+    assert ("Value should be greater than or equal to zero: None"
+            == str(e.value))
+
+
+def test_ftrl_set_nan_lambda2_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda2 = math.nan
+    assert ("Value should be greater than or equal to zero: nan"
+            == str(e.value))
 
 
 def test_ftrl_set_wrong_d_value():

@@ -31,5 +31,6 @@ Error py::Validator::error_manager::error_not_positive(PyObject* src,
 Error py::Validator::error_manager::error_negative(PyObject* src,
                                                    const std::string& name
 ) const {
-  return ValueError() << name << " cannot be negative: " << src;
+  return ValueError() << name << " should be greater than or equal to zero: "
+                      << src;
 }
