@@ -59,9 +59,9 @@ def patched_terminal(monkeypatch):
     dt.utils.terminal.term.disable_styling()
 
 
-def assert_valueerror(datatable, rows, error_message):
+def assert_valueerror(frame, rows, error_message):
     with pytest.raises(ValueError) as e:
-        datatable(rows=rows)
+        noop(frame[rows, :])
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
@@ -207,9 +207,9 @@ def test_dt_getitem(dt0):
     assert dt1.names == ("E", )
     elem2 = dt0[0, 1]
     assert elem2 is True
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         dt0[0, 1, 2, 3]
-    assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+    assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
     with pytest.raises(ValueError) as e:
         dt0["A"]
     assert ("Single-item selectors `DT[col]` are prohibited"
@@ -219,10 +219,10 @@ def test_dt_getitem(dt0):
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         dt0[tuple()]
-    assert "Invalid selector ()" == str(e.value)
+    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
     with pytest.raises(ValueError) as e:
         dt0[(None,)]
-    assert "Invalid selector (None,)" == str(e.value)
+    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
 
 
 
@@ -411,6 +411,20 @@ def test_resize_bad():
         f0.nrows = (10, 2)
     assert ("Number of rows must be an integer, not <class 'tuple'>"
             in str(e.value))
+
+
+def test_resize_issue1527():
+    f0 = dt.Frame(A=[])
+    assert f0.nrows == 0
+    f0.nrows = 10
+    assert f0.nrows == 10
+    assert f0.to_list() == [[None] * 10]
+    assert f0._data_viewer(0, f0.nrows, 0, f0.ncols) == \
+            {'names': ('A',),
+             'types': (ltype.bool,),
+             'stypes': (stype.bool8,),
+             'columns': [[None] * 10],
+             'rownumbers': [' 0', ' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9']}
 
 
 

@@ -119,7 +119,6 @@ class Frame : public PyObject {
     void _replace_names_from_map(py::odict);
 
     // getitem / setitem support
-    oobj _fast_getset(robj item, robj value);
     oobj _main_getset(robj item, robj value);
     oobj _fallback_getset(robj item, robj value);
 

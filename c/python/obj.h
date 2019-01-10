@@ -22,6 +22,7 @@ namespace py {
 
 // Forward declarations
 class Arg;
+class oby;
 class odict;
 class ofloat;
 class oint;
@@ -170,6 +171,7 @@ class _obj {
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
     bool is_frame()         const noexcept;
+    bool is_by_node()       const noexcept;
     bool is_join_node()     const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
@@ -214,6 +216,7 @@ class _obj {
     DataTable*  to_frame          (const error_manager& = _em0) const;
     SType       to_stype          (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
+    py::oby     to_oby_lax        () const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }

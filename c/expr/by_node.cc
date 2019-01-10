@@ -19,81 +19,82 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/join_node.h"
-#include "datatable.h"
+#include "expr/by_node.h"
 #include "python/arg.h"
+#include "python/tuple.h"
 namespace py {
 
 
+
 //------------------------------------------------------------------------------
-// ojoin::pyobj::Type
+// oby::pyobj::Type
 //------------------------------------------------------------------------------
 
-PKArgs ojoin::pyobj::Type::args___init__(
-    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
+PKArgs oby::pyobj::Type::args___init__(
+    0, 0, 0, true, false, {}, "__init__", nullptr);
 
-const char* ojoin::pyobj::Type::classname() {
-  return "datatable.join";
+const char* oby::pyobj::Type::classname() {
+  return "datatable.by";
 }
 
-const char* ojoin::pyobj::Type::classdoc() {
-  return "join() clause for use in DT[i, j, ...]";
+const char* oby::pyobj::Type::classdoc() {
+  return "by() clause for use in DT[i, j, ...]";
 }
 
-bool ojoin::pyobj::Type::is_subclassable() {
+bool oby::pyobj::Type::is_subclassable() {
   return true;  // TODO: make false
 }
 
-void ojoin::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
-  gs.add<&pyobj::get_joinframe>("joinframe");
+void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+  gs.add<&pyobj::get_cols>("_cols");
 }
 
 
 
+
 //------------------------------------------------------------------------------
-// ojoin::pyobj
+// oby::pyobj
 //------------------------------------------------------------------------------
 
-void ojoin::pyobj::m__init__(PKArgs& args) {
-  if (!args[0]) {
-    throw TypeError() << "join() is missing the required parameter `frame`";
+void oby::pyobj::m__init__(PKArgs& args) {
+  olist colslist(args.num_vararg_args());
+  size_t i = 0;
+  for (robj arg : args.varargs()) {
+    colslist.set(i++, arg);
   }
-  join_frame = args[0].to_oobj();
-  if (!join_frame.is_frame()) {
-    throw TypeError() << "The argument to join() must be a Frame";
-  }
-  DataTable* jdt = join_frame.to_frame();
-  if (jdt->get_nkeys() == 0) {
-    throw ValueError() << "The join frame is not keyed";
-  }
+  cols = std::move(colslist);
 }
 
 
-void ojoin::pyobj::m__dealloc__() {
-  join_frame = nullptr;  // Releases the stored oobj
+void oby::pyobj::m__dealloc__() {
+  cols = nullptr;  // Releases the stored oobj
 }
 
 
-oobj ojoin::pyobj::get_joinframe() const {
-  return join_frame;
+oobj oby::pyobj::get_cols() const {
+  return cols;
 }
+
 
 
 
 //------------------------------------------------------------------------------
-// ojoin
+// oby
 //------------------------------------------------------------------------------
 
-ojoin::ojoin(const robj& src) : oobj(src) {}
+oby::oby(const robj& src) : oobj(src) {}
+oby::oby(const oobj& src) : oobj(src) {}
 
 
-DataTable* ojoin::get_datatable() const {
-  auto w = static_cast<pyobj*>(v);
-  return w->join_frame.to_frame();
+oby oby::make(const robj& r) {
+  robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
+  otuple args(1);
+  args.set(0, r);
+  return oby(oby_type.call(args));
 }
 
 
-bool ojoin::check(PyObject* v) {
+bool oby::check(PyObject* v) {
   if (!v) return false;
   auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
   int ret = PyObject_IsInstance(v, typeptr);
@@ -102,10 +103,12 @@ bool ojoin::check(PyObject* v) {
 }
 
 
-void ojoin::init(PyObject* m) {
+void oby::init(PyObject* m) {
   pyobj::Type::init(m);
 }
 
 
 
-}  // namespace py
+
+
+}

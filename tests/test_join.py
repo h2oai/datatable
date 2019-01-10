@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from tests import random_string
+from tests import random_string, noop
 from datatable import join, ltype, stype, f, g, mean
 
 
@@ -67,21 +67,32 @@ def test_join_missing_levels():
     assert res.to_list() == [[1, 2, 3], [True, False, None]]
 
 
-def test_join_errors():
+def test_join_error_nokey():
     d0 = dt.Frame(A=[1, 2, 3])
-    d1 = dt.Frame(B=range(10), stype=dt.float64)
+    d1 = dt.Frame(A=range(10))
     with pytest.raises(ValueError) as e:
-        d0[:, :, join(d1)]
+        noop(d0[:, :, join(d1)])
     assert "The join frame is not keyed" in str(e.value)
+
+
+def test_join_error_no_left_column():
+    d0 = dt.Frame(A=[1, 2, 3])
+    d1 = dt.Frame(B=range(10))
     d1.key = "B"
     with pytest.raises(ValueError) as e:
-        d0[:, :, join(d1)]
+        noop(d0[:, :, join(d1)])
     assert "Key column `B` does not exist in the left Frame" in str(e.value)
-    d1.names = ("A",)
+
+
+def test_join_error_type_mismatch():
+    d0 = dt.Frame(A=[1, 2, 3])
+    d1 = dt.Frame(A=[str(x) for x in range(10)])
+    d1.key = "A"
     with pytest.raises(TypeError) as e:
-        d0[:, :, join(d1)]
-    assert ("Join column `A` has type int in the left Frame, and type real "
-            "in the right Frame" in str(e.value))
+        noop(d0[:, :, join(d1)])
+    assert ("Column `A` of type int8 in the left Frame cannot be joined to "
+            "column `A` of incompatible type str32 in the right Frame"
+            in str(e.value))
 
 
 @pytest.mark.parametrize("seed,lt", [(random.getrandbits(32), ltype.bool),
@@ -205,3 +216,27 @@ def test_join_multi_random(seed):
 
     joinframe = xframe[:, :, join(jframe)]
     assert joinframe[:, "V"].to_list()[0] == rescol
+
+
+def test_issue1481():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError) as e:
+        noop(DT[:, [f.A, g.A]])
+    assert ("Item 1 of the `j` selector list references a non-existing "
+            "join frame" == str(e.value))
+
+
+def test_issue1481_2():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError) as e:
+        noop(DT[g.X > 0, :])
+    assert ("Column expression references a non-existing join frame"
+            == str(e.value))
+
+
+def test_issue1481_3():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError) as e:
+        noop(DT[:, g.A + 1])
+    assert ("Column expression references a non-existing join frame"
+            == str(e.value))

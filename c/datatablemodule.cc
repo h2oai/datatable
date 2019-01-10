@@ -12,6 +12,7 @@
 #include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/base_expr.h"
+#include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/py_expr.h"
 #include "extras/aggregator.h"
@@ -21,7 +22,6 @@
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
-#include "py_datawindow.h"
 #include "py_encodings.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
@@ -227,7 +227,6 @@ PyInit__datatable()
   try {
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
-    if (!pydatawindow::static_init(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
     if (!pycolumnset::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
@@ -239,6 +238,7 @@ PyInit__datatable()
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
+    py::oby::init(m);
     py::ojoin::init(m);
 
   } catch (const std::exception& e) {

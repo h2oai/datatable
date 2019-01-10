@@ -130,19 +130,21 @@ def test_groups_multiple():
 def test_groups_autoexpand():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
-    f1 = f0[:, [mean(f.size), "size"], f.color]
+    f1 = f0[:, [mean(f.size), f.size], f.color]
     f1.internal.check()
     assert f1.to_list() == [["blue", "green", "green", "red", "red"],
                             [2.0, 3.5, 3.5, 9.0, 9.0],
                             [2, 7, 0, 5, 13]]
 
 
+@pytest.mark.skip(reason="Issue #1348")
 def test_groupby_with_filter1():
     f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
     f1 = f0[f.X > 0, sum(f.X), f.KEY]
     assert f1.to_list() == [[1, 2], [4, 2]]
 
 
+@pytest.mark.skip(reason="Issue #1348")
 def test_groupby_with_filter2():
     # Check that rowindex works even when applied to a view
     n = 10000

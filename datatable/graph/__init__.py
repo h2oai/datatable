@@ -84,7 +84,7 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
 
         rowsnode.execute()
         if grbynode:
-            grbynode.execute()
+            grbynode.execute(ee)
 
         colsnode.execute()
         res_dt = ee.columns.to_frame(colsnode.column_names)

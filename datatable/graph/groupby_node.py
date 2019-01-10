@@ -10,62 +10,24 @@ from datatable.utils.typechecks import TTypeError
 from datatable.graph.dtproxy import f
 
 
-class SimpleGroupbyNode:
-
-    def __init__(self, ee, col):
-        self._engine = ee
-        self._col = col
-
-    def execute(self):
-        ee = self._engine
-        df = ee.dt.internal
-        col = self._col
-        if ee.rowindex:
-            cf = core.columns_from_slice(df, ee.rowindex, col, 1, 1)
-            df = cf.to_frame(None).internal
-            col = 0
-        rowindex, groupby = df.sort(col, True)
-        f.set_rowindex(rowindex)
-        ee.set_source_rowindex(rowindex)
-        ee.clear_final_rowindex()
-        if ee.rowindex:
-            ee.set_final_rowindex(rowindex, ee.rowindex)
-        ee.rowindex = rowindex
-        ee.groupby = groupby
-        ee.groupby_cols = [self._col]
-
-
-
 def make_groupby(grby, ee):
     if grby is None:
         return None
-    if isinstance(grby, by):
-        grby.resolve_columns(ee)
-        return grby
+    if not isinstance(grby, by):
+        grby = by(grby)
 
-    # TODO: change to ee.make_columnset() when we can do multi-col sorts
-    grbycol = process_column(grby, ee.dt)
-    if not isinstance(grbycol, int):
-        raise TTypeError("Currently only single-column group-bys are "
-                         "supported")
-
-    return SimpleGroupbyNode(ee, grbycol)
+    grby.resolve_columns(ee)
+    return grby
 
 
 
-class by:
-    def __init__(self, *args):
-        self._cols = list(args)
-        self._engine = None
+class by(core.by):
 
     def resolve_columns(self, ee):
-        self._engine = ee
-        dt = self._engine.dt
         for i, col in enumerate(self._cols):
-            self._cols[i] = process_column(col, dt)
+            self._cols[i] = process_column(col, ee.dt)
 
-    def execute(self):
-        ee = self._engine
+    def execute(self, ee):
         df = ee.dt.internal
         rowindex, groupby = df.sort(*self._cols, True)
         f.set_rowindex(rowindex)
