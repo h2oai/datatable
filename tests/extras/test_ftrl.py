@@ -320,6 +320,13 @@ def test_ftrl_set_nan_alpha_value():
     assert ("Value should be positive: nan" == str(e.value))
 
 
+def test_ftrl_set_inf_alpha_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.alpha = math.inf
+    assert ("Value should be positive: inf" == str(e.value))
+
+
 def test_ftrl_set_negative_beta_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
@@ -341,6 +348,14 @@ def test_ftrl_set_nan_beta_value():
     with pytest.raises(ValueError) as e:
         ft.beta = math.nan
     assert ("Value should be greater than or equal to zero: nan"
+            == str(e.value))
+
+
+def test_ftrl_set_inf_beta_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.beta = math.inf
+    assert ("Value should be greater than or equal to zero: inf"
             == str(e.value))
 
 
@@ -368,6 +383,14 @@ def test_ftrl_set_nan_lambda1_value():
             == str(e.value))
 
 
+def test_ftrl_set_inf_lambda1_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda1 = math.inf
+    assert ("Value should be greater than or equal to zero: inf"
+            == str(e.value))
+
+
 def test_ftrl_set_negative_lambda2_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
@@ -389,6 +412,14 @@ def test_ftrl_set_nan_lambda2_value():
     with pytest.raises(ValueError) as e:
         ft.lambda2 = math.nan
     assert ("Value should be greater than or equal to zero: nan"
+            == str(e.value))
+
+
+def test_ftrl_set_inf_lambda2_value():
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.lambda2 = math.inf
+    assert ("Value should be greater than or equal to zero: inf"
             == str(e.value))
 
 
