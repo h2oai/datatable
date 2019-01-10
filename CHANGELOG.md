@@ -99,6 +99,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DT.replace()` now throws an error if called with 0 or 1 argument (#1525).
   Thanks to [Arno Candel][] for discovering this issue.
 
+- Fixed crash when viewing a frame obtained by resizing a 0-row frame (#1527).
+  Thanks to [Nishant Kalonia][] for reporting.
+
 
 ### Changed
 
@@ -828,6 +831,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [jonathan mckinney]: https://github.com/pseudotensor
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
+[nishant kalonia]: https://github.com/nkalonia1
 [oleksiy kononenko]: https://github.com/oleksiyskononenko
 [olivier]: https://github.com/goldentom42
 [pasha stetsenko]: https://github.com/st-pasha

@@ -22,7 +22,6 @@
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
-#include "py_datawindow.h"
 #include "py_encodings.h"
 #include "py_groupby.h"
 #include "py_rowindex.h"
@@ -228,7 +227,6 @@ PyInit__datatable()
   try {
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
-    if (!pydatawindow::static_init(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
     if (!pycolumnset::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;

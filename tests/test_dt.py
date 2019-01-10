@@ -413,6 +413,20 @@ def test_resize_bad():
             in str(e.value))
 
 
+def test_resize_issue1527():
+    f0 = dt.Frame(A=[])
+    assert f0.nrows == 0
+    f0.nrows = 10
+    assert f0.nrows == 10
+    assert f0.to_list() == [[None] * 10]
+    assert f0._data_viewer(0, f0.nrows, 0, f0.ncols) == \
+            {'names': ('A',),
+             'types': (ltype.bool,),
+             'stypes': (stype.bool8,),
+             'columns': [[None] * 10],
+             'rownumbers': [' 0', ' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9']}
+
+
 
 #-------------------------------------------------------------------------------
 # Frame.repeat()

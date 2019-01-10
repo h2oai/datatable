@@ -58,14 +58,14 @@ class Frame(core.Frame):
             self.view()
 
     def _data_viewer(self, row0, row1, col0, col1):
-        view = self._dt.window(row0, row1, col0, col1)
+        view = self[row0:row1, col0:col1]
         length = max(2, len(str(row1)))
         nk = len(self.key)
         return {
             "names": self.names[:nk] + self.names[col0 + nk:col1 + nk],
-            "types": view.types,
+            "types": view.ltypes,
             "stypes": view.stypes,
-            "columns": view.data,
+            "columns": view.to_list(),
             "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
         }
 
@@ -303,7 +303,7 @@ class Frame(core.Frame):
                 #   ValueError: cannot create an OBJECT array from memory buffer
                 # Thus, the only alternative remaining is to convert such column
                 # into plain Python list and pass it to Pandas like that.
-                x = srcdt.window(0, self.nrows, i, i + 1).data[0]
+                x = self[:, i].to_list()[0]
             else:
                 x = numpy.frombuffer(column, dtype=dtype)
                 na = nas.get(self.stypes[i])
