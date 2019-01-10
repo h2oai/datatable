@@ -78,14 +78,12 @@ void workframe::evaluate() {
     by_node->execute(*this);
   }
   // Compute i expression
-  if (!by_node) {
-    iexpr->execute(*this);
-    if (mode == EvalMode::SELECT) {
-      result = jexpr->select(*this);
-    }
-    if (mode == EvalMode::DELETE) {
-      jexpr->delete_(*this);
-    }
+  iexpr->execute(*this);
+
+  switch (mode) {
+    case EvalMode::SELECT: result = jexpr->select(*this); break;
+    case EvalMode::DELETE: jexpr->delete_(*this); break;
+    case EvalMode::UPDATE: jexpr->update(*this); break;
   }
 }
 
