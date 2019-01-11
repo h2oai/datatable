@@ -50,7 +50,7 @@ void check_positive(T value,
                     const std::string& name = _name,
                     error_manager& em = _em)
 {
-  if (value > 0 && !isinf(value)) return;
+  if (!isinf(value) && value > 0) return;
   throw em.error_not_positive(o.to_borrowed_ref(), name);
 }
 
@@ -65,7 +65,7 @@ void check_not_negative(T value,
                         const std::string& name = _name,
                         error_manager& em = _em)
 {
-  if (value >= 0 && !isinf(value)) return;
+  if (!isinf(value) && value >= 0) return;
   throw em.error_negative(o.to_borrowed_ref(), name);
 }
 

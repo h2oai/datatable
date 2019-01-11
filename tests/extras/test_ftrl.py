@@ -299,127 +299,38 @@ def test_ftrl_set_wrong_inter_type():
 # Test getters and setters for wrong values of individual FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_set_zero_alpha_value():
+@pytest.mark.parametrize('value', [0.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_alpha_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.alpha = 0.0
-    assert ("Value should be positive: 0.0" == str(e.value))
+        ft.alpha = value
+    assert ("Value should be positive: %s" % str(value) == str(e.value))
 
 
-def test_ftrl_set_None_alpha_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_beta_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.alpha = None
-    assert ("Value should be positive: None" == str(e.value))
-
-
-def test_ftrl_set_nan_alpha_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.alpha = math.nan
-    assert ("Value should be positive: nan" == str(e.value))
-
-
-def test_ftrl_set_inf_alpha_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.alpha = math.inf
-    assert ("Value should be positive: inf" == str(e.value))
-
-
-def test_ftrl_set_negative_beta_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.beta = -1.0
-    assert ("Value should be greater than or equal to zero: -1.0"
+        ft.beta = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
-def test_ftrl_set_None_beta_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_lambda1_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.beta = None
-    assert ("Value should be greater than or equal to zero: None"
+        ft.lambda1 = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
-def test_ftrl_set_nan_beta_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_lambda2_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.beta = math.nan
-    assert ("Value should be greater than or equal to zero: nan"
-            == str(e.value))
-
-
-def test_ftrl_set_inf_beta_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.beta = math.inf
-    assert ("Value should be greater than or equal to zero: inf"
-            == str(e.value))
-
-
-def test_ftrl_set_negative_lambda1_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda1 = -1.0
-    assert ("Value should be greater than or equal to zero: -1.0"
-            == str(e.value))
-
-
-def test_ftrl_set_None_lambda1_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda1 = None
-    assert ("Value should be greater than or equal to zero: None"
-            == str(e.value))
-
-
-def test_ftrl_set_nan_lambda1_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda1 = math.nan
-    assert ("Value should be greater than or equal to zero: nan"
-            == str(e.value))
-
-
-def test_ftrl_set_inf_lambda1_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda1 = math.inf
-    assert ("Value should be greater than or equal to zero: inf"
-            == str(e.value))
-
-
-def test_ftrl_set_negative_lambda2_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda2 = -1.0
-    assert ("Value should be greater than or equal to zero: -1.0"
-            == str(e.value))
-
-
-def test_ftrl_set_None_lambda2_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda2 = None
-    assert ("Value should be greater than or equal to zero: None"
-            == str(e.value))
-
-
-def test_ftrl_set_nan_lambda2_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda2 = math.nan
-    assert ("Value should be greater than or equal to zero: nan"
-            == str(e.value))
-
-
-def test_ftrl_set_inf_lambda2_value():
-    ft = Ftrl()
-    with pytest.raises(ValueError) as e:
-        ft.lambda2 = math.inf
-    assert ("Value should be greater than or equal to zero: inf"
+        ft.lambda2 = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
