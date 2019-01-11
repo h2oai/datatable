@@ -40,7 +40,6 @@ workframe::workframe(DataTable* dt) {
   frames.push_back(subframe {dt, RowIndex(), false});
   mode = EvalMode::SELECT;
   groupby_mode = GroupbyMode::NONE;
-  result = nullptr;
 }
 
 
@@ -77,31 +76,34 @@ void workframe::add_j(py::oobj oj) {
 
 void workframe::evaluate() {
   // Compute joins
-  if (frames.size() > 1) {
-    DataTable* xdt = frames[0].dt;
-    for (size_t i = 1; i < frames.size(); ++i) {
-      DataTable* jdt = frames[i].dt;
-      frames[i].ri = natural_join(xdt, jdt);
-    }
+  DataTable* xdt = frames[0].dt;
+  for (size_t i = 1; i < frames.size(); ++i) {
+    DataTable* jdt = frames[i].dt;
+    frames[i].ri = natural_join(xdt, jdt);
   }
+
   // Compute groupby
   if (by_node) {
     by_node->execute(*this);
   }
-  // Compute i expression
+
+  // Compute i filter
   iexpr->execute(*this);
 
   switch (mode) {
-    case EvalMode::SELECT: result = jexpr->select(*this); break;
+    case EvalMode::SELECT: jexpr->select(*this); break;
     case EvalMode::DELETE: jexpr->delete_(*this); break;
     case EvalMode::UPDATE: jexpr->update(*this); break;
   }
 }
 
 
-py::oobj workframe::get_result() const {
-  return result? py::oobj::from_new_reference(py::Frame::from_datatable(result))
-               : py::None();
+py::oobj workframe::get_result() {
+  if (mode == EvalMode::SELECT) {
+    DataTable* result = new DataTable(std::move(columns), std::move(colnames));
+    return py::oobj::from_new_reference(py::Frame::from_datatable(result));
+  }
+  return py::None();
 }
 
 
@@ -150,6 +152,43 @@ void workframe::apply_rowindex(const RowIndex& ri) {
   for (size_t i = 0; i < frames.size(); ++i) {
     frames[i].ri = ri * frames[i].ri;
   }
+}
+
+
+
+
+//---- Construct the resulting frame -------------
+
+size_t workframe::size() const noexcept {
+  return columns.size();
+}
+
+
+void workframe::reserve(size_t n) {
+  size_t nn = n + columns.size();
+  columns.reserve(nn);
+  colnames.reserve(nn);
+}
+
+
+void workframe::add_column(
+  const Column* col, const RowIndex& ri, std::string&& name)
+{
+  const RowIndex& ricol = col->rowindex();
+  Column* newcol = col->shallowcopy(_product(ri, ricol));
+  columns.push_back(newcol);
+  colnames.push_back(std::move(name));
+}
+
+
+RowIndex& workframe::_product(const RowIndex& ra, const RowIndex& rb) {
+  for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
+    if (it->first == ra) {
+      return it->second;
+    }
+  }
+  all_ri.push_back(std::make_pair(ra, ra * rb));
+  return all_ri.back().second;
 }
 
 

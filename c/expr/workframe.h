@@ -82,10 +82,15 @@ class workframe {
     by_node_ptr by_node;
     i_node_ptr  iexpr;
     j_node_ptr  jexpr;
-    DataTable*  result;
     EvalMode    mode;
     GroupbyMode groupby_mode;
     size_t : 48;
+
+    // Result
+    colvec columns;
+    strvec colnames;
+    using ripair = std::pair<RowIndex, RowIndex>;
+    std::vector<ripair> all_ri;
 
   public:
     workframe() = delete;
@@ -102,7 +107,7 @@ class workframe {
     void add_j(py::oobj);
 
     void evaluate();
-    py::oobj get_result() const;
+    py::oobj get_result();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
@@ -114,7 +119,15 @@ class workframe {
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
+
+    size_t size() const noexcept;
+    void reserve(size_t n);
+    void add_column(const Column*, const RowIndex&, std::string&&);
+
+  private:
+    RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
 };
+
 
 
 }  // namespace dt

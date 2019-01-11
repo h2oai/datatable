@@ -26,38 +26,6 @@
 namespace dt {
 
 
-class col_set {
-  private:
-    using ripair = std::pair<RowIndex, RowIndex>;
-    colvec columns;
-    std::vector<ripair> all_ri;
-
-  public:
-    void reserve_extra(size_t n) {
-      columns.reserve(columns.size() + n);
-    }
-    void add_column(const Column* col, const RowIndex& ri) {
-      const RowIndex& ricol = col->rowindex();
-      Column* newcol = col->shallowcopy(rowindex_product(ri, ricol));
-      columns.push_back(newcol);
-    }
-    colvec&& release() {
-      return std::move(columns);
-    }
-
-  private:
-    RowIndex& rowindex_product(const RowIndex& ra, const RowIndex& rb) {
-      for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-        if (it->first == ra) {
-          return it->second;
-        }
-      }
-      all_ri.push_back(std::make_pair(ra, ra * rb));
-      return all_ri.back().second;
-    }
-};
-
-
 
 
 //------------------------------------------------------------------------------
@@ -91,38 +59,22 @@ class col_set {
 class allcols_jn : public j_node {
   public:
     allcols_jn() = default;
-    DataTable* select(workframe&) override;
+    void select(workframe&) override;
     void delete_(workframe&) override;
 };
 
 
-DataTable* allcols_jn::select(workframe& wf) {
-  col_set cols;
-  strvec names;
+void allcols_jn::select(workframe& wf) {
   for (size_t i = 0; i < wf.nframes(); ++i) {
     const DataTable* dti = wf.get_datatable(i);
     const RowIndex& rii = wf.get_rowindex(i);
+    const strvec& dti_names = dti->get_names();
 
     size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
-    cols.reserve_extra(dti->ncols - j0);
-    if (wf.nframes() > 1) {
-      const strvec& dti_names = dti->get_names();
-      names.insert(names.end(),
-                   dti_names.begin() + static_cast<long>(j0),
-                   dti_names.end());
-    }
-
+    wf.reserve(dti->ncols - j0);
     for (size_t j = j0; j < dti->ncols; ++j) {
-      cols.add_column(dti->columns[j], rii);
+      wf.add_column(dti->columns[j], rii, std::string(dti_names[j]));
     }
-  }
-  if (wf.nframes() == 1) {
-    // Copy names from the source DataTable
-    return new DataTable(cols.release(), wf.get_datatable(0));
-  }
-  else {
-    // Otherwise the names must be potentially de-duplicated
-    return new DataTable(cols.release(), std::move(names));
   }
 }
 
@@ -169,8 +121,11 @@ class collist_jn : public j_node {
 
   public:
     collist_jn(cols_intlist*);
-    DataTable* select(workframe& wf) override;
+    void select(workframe& wf) override;
     void delete_(workframe&) override;
+
+  private:
+    void _init_names(workframe&);
 };
 
 
@@ -181,22 +136,19 @@ collist_jn::collist_jn(cols_intlist* x)
 }
 
 
-DataTable* collist_jn::select(workframe& wf) {
+void collist_jn::select(workframe& wf) {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
-  if (names.empty()) {
-    const strvec& dt0_names = dt0->get_names();
-    names.reserve(indices.size());
-    for (size_t i : indices) {
-      names.push_back(dt0_names[i]);
-    }
+  size_t n = indices.size();
+
+  _init_names(wf);
+  xassert(names.size() == n);
+
+  wf.reserve(n);
+  for (size_t i = 0; i < n; ++i) {
+    size_t j = indices[i];
+    wf.add_column(dt0->columns[j], ri0, std::move(names[i]));
   }
-  col_set cols;
-  cols.reserve_extra(indices.size());
-  for (size_t i : indices) {
-    cols.add_column(dt0->columns[i], ri0);
-  }
-  return new DataTable(cols.release(), std::move(names));
 }
 
 
@@ -213,6 +165,17 @@ void collist_jn::delete_(workframe& wf) {
 }
 
 
+void collist_jn::_init_names(workframe& wf) {
+  if (!names.empty()) return;
+  const strvec& dt0_names = wf.get_datatable(0)->get_names();
+  names.reserve(indices.size());
+  for (size_t i : indices) {
+    names.push_back(dt0_names[i]);
+  }
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // exprlist_jn
@@ -226,8 +189,11 @@ class exprlist_jn : public j_node {
 
   public:
     exprlist_jn(cols_exprlist*);
-    DataTable* select(workframe& wf) override;
+    void select(workframe& wf) override;
     void delete_(workframe&) override;
+
+  private:
+    void _init_names(workframe&);
 };
 
 
@@ -238,20 +204,25 @@ exprlist_jn::exprlist_jn(cols_exprlist* x)
 }
 
 
-DataTable* exprlist_jn::select(workframe& wf) {
-  if (names.empty()) {
-    names.resize(exprs.size());
-  }
-  col_set cols;
-  cols.reserve_extra(exprs.size());
+void exprlist_jn::select(workframe& wf) {
+  _init_names(wf);
   for (auto& expr : exprs) {
     expr->resolve(wf);
   }
+  size_t n = exprs.size();
+  xassert(names.size() == n);
+
+  wf.reserve(n);
   RowIndex ri0;  // empty rowindex
-  for (auto& expr : exprs) {
-    cols.add_column(expr->evaluate_eager(wf), ri0);
+  for (size_t i = 0; i < n; ++i) {
+    wf.add_column(exprs[i]->evaluate_eager(wf), ri0, std::move(names[i]));
   }
-  return new DataTable(cols.release(), std::move(names));
+  // if (wf.has_groupby()) {
+  //   GroupbyMode groupby_mode = GroupbyMode::GtoONE;
+  //   for (auto& expr : exprs) {
+  //     groupby_mode = common_mode(groupby_mode, expr->get_groupby_mode(wf));
+  //   }
+  // }
 }
 
 
@@ -270,6 +241,13 @@ void exprlist_jn::delete_(workframe&) {
   // An `exprlist_jn` cannot contain all exprs that are `expr_column`s and their
   // frame_id is 0. Such node should have been created as `collist_jn` instead.
   xassert(false);  // LCOV_EXCL_LINE
+}
+
+
+void exprlist_jn::_init_names(workframe&) {
+  if (!names.empty()) return;
+  // For now, use empty names. TODO: do something smarter?
+  names.resize(exprs.size());
 }
 
 
