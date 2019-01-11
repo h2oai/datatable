@@ -600,11 +600,14 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           size_t nexemplars = exemplars.size();
-          // direct-order-search, may result in larger first and tiny last exemplars
-          // for (size_t j = 0; j < nexemplars; ++j) {
 
-          // reverse-order-search, better in terms of balance in the `member_counts`
-          for (size_t j = nexemplars - 1; j < nexemplars; --j) {
+          std::vector<size_t> sample;
+          sample.reserve(nexemplars);
+          for (size_t k = 0; k < nexemplars; ++k) sample.push_back(k);
+          std::random_shuffle(sample.begin(), sample.end());
+
+          for (size_t k = 0; k < nexemplars; ++k) {
+            size_t j = sample[k];
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
