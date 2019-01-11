@@ -32,6 +32,7 @@ from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
+import math
 from tests import assert_equals, noop
 
 
@@ -139,22 +140,22 @@ def test_ftrl_construct_wrong_alpha_value():
 def test_ftrl_construct_wrong_beta_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(beta = -1.0))
-    assert ("Argument `beta` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `beta` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda1 = -1.0))
-    assert ("Argument `lambda1` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `lambda1` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda2 = -1.0))
-    assert ("Argument `lambda2` in Ftrl() constructor cannot be negative: -1.0"
-            == str(e.value))
+    assert ("Argument `lambda2` in Ftrl() constructor should be greater than "
+            "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_d_value():
@@ -298,32 +299,39 @@ def test_ftrl_set_wrong_inter_type():
 # Test getters and setters for wrong values of individual FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_set_wrong_alpha_value():
+@pytest.mark.parametrize('value', [0.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_alpha_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.alpha = 0.0
-    assert ("Value should be positive: 0.0" == str(e.value))
+        ft.alpha = value
+    assert ("Value should be positive: %s" % str(value) == str(e.value))
 
 
-def test_ftrl_set_wrong_beta_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_beta_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.beta = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+        ft.beta = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
+            == str(e.value))
 
 
-def test_ftrl_set_wrong_lambda1_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_lambda1_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.lambda1 = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+        ft.lambda1 = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
+            == str(e.value))
 
 
-def test_ftrl_set_wrong_lambda2_value():
+@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
+def test_ftrl_set_bad_lambda2_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
-        ft.lambda2 = -1.0
-    assert ("Value cannot be negative: -1.0" == str(e.value))
+        ft.lambda2 = value
+    assert ("Value should be greater than or equal to zero: %s" % str(value)
+            == str(e.value))
 
 
 def test_ftrl_set_wrong_d_value():

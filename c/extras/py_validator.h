@@ -39,31 +39,39 @@ static error_manager _em;
 
 
 // py::_obj validators
+
+/*
+*  Positive check. Will emit an error, when `value` is not positive, `NaN`
+*  or infinity.
+*/
 template <typename T>
 void check_positive(T value,
                     const py::_obj& o,
                     const std::string& name = _name,
                     error_manager& em = _em)
 {
-  if (value <= 0) {
-    throw em.error_not_positive(o.to_borrowed_ref(), name);
-  }
+  if (!isinf(value) && value > 0) return;
+  throw em.error_not_positive(o.to_borrowed_ref(), name);
 }
 
 
+/*
+*  Not negative check. Will emit an error, when `value` is negative, `NaN`
+*  or infinity.
+*/
 template <typename T>
 void check_not_negative(T value,
                         const py::_obj& o,
                         const std::string& name = _name,
                         error_manager& em = _em)
 {
-  if (value < 0) {
-    throw em.error_negative(o.to_borrowed_ref(), name);
-  }
+  if (!isinf(value) && value >= 0) return;
+  throw em.error_negative(o.to_borrowed_ref(), name);
 }
 
 
 // py::Arg validators
+
 template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
   check_positive<T>(value, arg.to_pyobj(), arg.name(), em);
