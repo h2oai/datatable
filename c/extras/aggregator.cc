@@ -40,12 +40,14 @@ namespace py {
        py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
        unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
 
-       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
-                      seed, progress_fn, nthreads);
+       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+                      max_dimensions, seed, progress_fn, nthreads);
 
        // dt changes in-place with a new column added to the end of it
        DataTable* dt_members = agg.aggregate(dt).release();
-       py::oobj df_members = py::oobj::from_new_reference(py::Frame::from_datatable(dt_members));
+       py::oobj df_members = py::oobj::from_new_reference(
+                               py::Frame::from_datatable(dt_members)
+                             );
 
        return df_members;
      }
@@ -579,7 +581,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
-  srand(seed);
+//  srand(seed);
 
   #pragma omp parallel num_threads(nth0)
   {
@@ -589,6 +591,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     double distance;
     doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
+    std::mt19937 generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
@@ -601,7 +604,12 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           size_t nexemplars = exemplars.size();
-          size_t from_exemplar = static_cast<size_t>(rand()) % (nexemplars? nexemplars : 1);
+
+          // This ensures b = 0, when nexemplars = 0
+          size_t b = std::min(nexemplars, nexemplars - 1);
+          std::uniform_int_distribution<size_t> distribution(0, b);
+          size_t from_exemplar = distribution(generator);
+
           for (size_t k = from_exemplar; k < nexemplars + from_exemplar; ++k) {
             size_t j = k % nexemplars;
             // Note, this distance will depend on delta, because
