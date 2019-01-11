@@ -578,7 +578,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   // Exemplar counter, if doesn't match thread local value, it means
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
-  size_t ecounter;
+  size_t ecounter = 0;
 
   #pragma omp parallel num_threads(nth0)
   {
@@ -588,6 +588,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     double distance;
     doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
+    std::vector<size_t> sample;
 
     try {
       // Main loop over all the rows
@@ -600,10 +601,12 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           size_t nexemplars = exemplars.size();
+          if (sample.size() != nexemplars) {
+            sample.clear();
+            sample.reserve(nexemplars);
+            for (size_t k = 0; k < nexemplars; ++k) sample.push_back(k);
+          }
 
-          std::vector<size_t> sample;
-          sample.reserve(nexemplars);
-          for (size_t k = 0; k < nexemplars; ++k) sample.push_back(k);
           std::random_shuffle(sample.begin(), sample.end());
 
           for (size_t k = 0; k < nexemplars; ++k) {
