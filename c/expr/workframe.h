@@ -27,7 +27,6 @@
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "datatable.h"       // DataTable
-#include "groupby.h"         // Groupby
 #include "rowindex.h"        // RowIndex
 namespace dt {
 
@@ -40,11 +39,20 @@ struct subframe {
 };
 using frvec = std::vector<subframe>;
 
-enum class EvalMode {
+enum class EvalMode : uint8_t {
   SELECT,
   UPDATE,
   DELETE
 };
+
+enum class GroupbyMode : uint8_t {
+  NONE   = 0,
+  GtoONE = 1,
+  GtoALL = 2,
+  GtoANY = 3
+};
+GroupbyMode common_mode(GroupbyMode, GroupbyMode);
+
 
 
 /**
@@ -71,13 +79,13 @@ enum class EvalMode {
 class workframe {
   private:
     frvec       frames;
-    Groupby     gb;
     by_node_ptr by_node;
     i_node_ptr  iexpr;
     j_node_ptr  jexpr;
     DataTable*  result;
     EvalMode    mode;
-    size_t : 64 - sizeof(EvalMode) * 8;
+    GroupbyMode groupby_mode;
+    size_t : 48;
 
   public:
     workframe() = delete;
@@ -99,7 +107,7 @@ class workframe {
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
-    Groupby& get_groupby_ref();
+    const by_node_ptr& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
     size_t nframes() const;

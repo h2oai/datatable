@@ -24,11 +24,22 @@
 namespace dt {
 
 
+GroupbyMode common_mode(GroupbyMode x, GroupbyMode y) {
+  return static_cast<uint8_t>(x) > static_cast<uint8_t>(y)? x : y;
+}
+
+
+
+//------------------------------------------------------------------------------
+// workframe
+//------------------------------------------------------------------------------
+
 workframe::workframe(DataTable* dt) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
   mode = EvalMode::SELECT;
+  groupby_mode = GroupbyMode::NONE;
   result = nullptr;
 }
 
@@ -105,11 +116,13 @@ const RowIndex& workframe::get_rowindex(size_t i) const {
 
 
 const Groupby& workframe::get_groupby() const {
-  return gb;
+  xassert(by_node);
+  return by_node->gb;
 }
 
-Groupby& workframe::get_groupby_ref() {
-  return gb;
+
+const by_node_ptr& workframe::get_by_node() const {
+  return by_node;
 }
 
 

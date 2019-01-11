@@ -23,6 +23,7 @@
 #define dt_EXPR_BY_NODE_h
 #include "python/ext_type.h"
 #include "python/obj.h"
+#include "groupby.h"         // Groupby
 
 namespace dt {
   class workframe;
@@ -37,8 +38,11 @@ using by_node_ptr = std::unique_ptr<dt::by_node>;
 
 class dt::by_node {
   public:
+    Groupby gb;
+
     virtual ~by_node();
     virtual void execute(dt::workframe&) = 0;
+    virtual bool has_column(size_t i) const = 0;
 };
 
 
