@@ -579,6 +579,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
+  srand(seed);
 
   #pragma omp parallel num_threads(nth0)
   {
@@ -588,7 +589,6 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     double distance;
     doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
-    std::vector<size_t> sample;
 
     try {
       // Main loop over all the rows
@@ -601,16 +601,9 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           size_t nexemplars = exemplars.size();
-          if (sample.size() != nexemplars) {
-            sample.clear();
-            sample.reserve(nexemplars);
-            for (size_t k = 0; k < nexemplars; ++k) sample.push_back(k);
-          }
-
-          std::random_shuffle(sample.begin(), sample.end());
-
-          for (size_t k = 0; k < nexemplars; ++k) {
-            size_t j = sample[k];
+          size_t from_exemplar = static_cast<size_t>(rand()) % (nexemplars? nexemplars : 1);
+          for (size_t k = from_exemplar; k < nexemplars + from_exemplar; ++k) {
+            size_t j = k % nexemplars;
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
@@ -624,7 +617,6 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         if (is_exemplar) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ true);
-
           if (ecounter_local == ecounter) {
             ecounter++;
             ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
