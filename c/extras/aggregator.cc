@@ -568,6 +568,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   size_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
   std::vector<size_t> ids;
+  std::vector<size_t> coprimes;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   doubleptr pmatrix = nullptr;
   if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
@@ -604,14 +605,18 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
           size_t nexemplars = exemplars.size();
+          size_t ncoprimes = coprimes.size();
 
           // This ensures b = 0, when nexemplars = 0
-          size_t b = std::min(nexemplars, nexemplars - 1);
-          std::uniform_int_distribution<size_t> distribution(0, b);
-          size_t from_exemplar = distribution(generator);
+          size_t ncoprimes_1 = std::min(ncoprimes, ncoprimes - 1);
+          size_t nexemplars_1 = std::min(nexemplars, nexemplars - 1);
+          std::uniform_int_distribution<size_t> distribution_coprimes(0, ncoprimes_1);
+          std::uniform_int_distribution<size_t> distribution_exemplars(0, nexemplars_1);
+          size_t coprime_index = distribution_coprimes(generator);
+          size_t exemplar_index = distribution_exemplars(generator);
 
-          for (size_t k = from_exemplar; k < nexemplars + from_exemplar; ++k) {
-            size_t j = k % nexemplars;
+          for (size_t k = 0; k < nexemplars; ++k) {
+            size_t j = (k * coprimes[coprime_index] + exemplar_index) % nexemplars;
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
@@ -635,6 +640,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
             if (exemplars.size() > nd_max_bins) {
               adjust_delta(delta, exemplars, ids, ndims);
             }
+            calc_coprimes(coprimes, exemplars.size());
           } else {
             goto test_member;
           }
@@ -649,6 +655,29 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   }
   oem.rethrow_exception_if_any();
   adjust_members(ids, dt_members);
+}
+
+
+void Aggregator::calc_coprimes(std::vector<size_t>& coprimes, size_t n) {
+  coprimes.clear();
+  if (n > 1) {
+    for (size_t i = 2; i < n; ++i) {
+      if (gcd(i, n) == 1) coprimes.push_back(i);
+    }
+  } else {
+    coprimes.push_back(0);
+  }
+}
+
+
+size_t Aggregator::gcd(size_t a, size_t b) {
+  size_t x;
+  while (b) {
+    x = a % b;
+    a = b;
+    b = x;
+  }
+  return a;
 }
 
 
