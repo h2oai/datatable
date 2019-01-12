@@ -102,6 +102,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash when viewing a frame obtained by resizing a 0-row frame (#1527).
   Thanks to [Nishant Kalonia][] for reporting.
 
+- Function `count()` now returns correct result within the `DT[i, j]` expression
+  with non-trivial `i` (#1316).
+
 
 ### Changed
 
