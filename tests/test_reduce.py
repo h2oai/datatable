@@ -125,6 +125,15 @@ def test_count_dt_integer_large(numpy):
     assert df_reduce.to_list() == [[n]]
 
 
+def test_count_with_i():
+    # See issue 1316
+    DT = dt.Frame(A=range(100))
+    assert DT[:5, count()][0, 0] == 5
+    assert DT[-12:, count()][0, 0] == 12
+    assert DT[::3, count()][0, 0] == 34
+
+
+
 
 #-------------------------------------------------------------------------------
 # First
