@@ -36,6 +36,7 @@ class j_node {
     static j_node_ptr make(py::robj src, workframe& wf);
 
     virtual ~j_node();
+    virtual GroupbyMode get_groupby_mode(workframe&) = 0;
     virtual void select(workframe&) = 0;
     virtual void delete_(workframe&) = 0;
     virtual void update(workframe&);

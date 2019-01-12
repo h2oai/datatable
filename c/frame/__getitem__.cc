@@ -166,7 +166,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   wf.add_i(targs[0]);
   wf.add_j(targs[1]);
 
-  if (wf.has_groupby() || wf.get_mode() == dt::EvalMode::UPDATE) {
+  if (wf.get_mode() == dt::EvalMode::UPDATE) {
     return _fallback_getset(item, value);
   }
 

@@ -59,9 +59,15 @@ namespace dt {
 class allcols_jn : public j_node {
   public:
     allcols_jn() = default;
+    GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
 };
+
+
+GroupbyMode allcols_jn::get_groupby_mode(workframe&) {
+  return GroupbyMode::GtoALL;
+}
 
 
 void allcols_jn::select(workframe& wf) {
@@ -121,7 +127,8 @@ class collist_jn : public j_node {
 
   public:
     collist_jn(cols_intlist*);
-    void select(workframe& wf) override;
+    GroupbyMode get_groupby_mode(workframe&) override;
+    void select(workframe&) override;
     void delete_(workframe&) override;
 
   private:
@@ -133,6 +140,11 @@ collist_jn::collist_jn(cols_intlist* x)
   : indices(std::move(x->indices)), names(std::move(x->names))
 {
   xassert(names.empty() || names.size() == indices.size());
+}
+
+
+GroupbyMode collist_jn::get_groupby_mode(workframe&) {
+  return GroupbyMode::GtoALL;
 }
 
 
@@ -189,7 +201,8 @@ class exprlist_jn : public j_node {
 
   public:
     exprlist_jn(cols_exprlist*);
-    void select(workframe& wf) override;
+    GroupbyMode get_groupby_mode(workframe&) override;
+    void select(workframe&) override;
     void delete_(workframe&) override;
 
   private:
@@ -201,6 +214,15 @@ exprlist_jn::exprlist_jn(cols_exprlist* x)
   : exprs(std::move(x->exprs)), names(std::move(x->names))
 {
   xassert(names.empty() || names.size() == exprs.size());
+}
+
+
+GroupbyMode exprlist_jn::get_groupby_mode(workframe& wf) {
+  for (auto& expr : exprs) {
+    GroupbyMode gm = expr->get_groupby_mode(wf);
+    if (gm == GroupbyMode::GtoALL) return gm;
+  }
+  return GroupbyMode::GtoONE;
 }
 
 
@@ -217,12 +239,6 @@ void exprlist_jn::select(workframe& wf) {
   for (size_t i = 0; i < n; ++i) {
     wf.add_column(exprs[i]->evaluate_eager(wf), ri0, std::move(names[i]));
   }
-  // if (wf.has_groupby()) {
-  //   GroupbyMode groupby_mode = GroupbyMode::GtoONE;
-  //   for (auto& expr : exprs) {
-  //     groupby_mode = common_mode(groupby_mode, expr->get_groupby_mode(wf));
-  //   }
-  // }
 }
 
 

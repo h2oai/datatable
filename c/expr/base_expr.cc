@@ -234,8 +234,9 @@ SType expr_binaryop::resolve(const workframe& wf) {
 
 
 GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
-  return common_mode(lhs->get_groupby_mode(wf),
-                     rhs->get_groupby_mode(wf));
+  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(wf));
+  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(wf));
+  return static_cast<GroupbyMode>(std::max(lmode, rmode));
 }
 
 

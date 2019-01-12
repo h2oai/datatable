@@ -24,12 +24,6 @@
 namespace dt {
 
 
-GroupbyMode common_mode(GroupbyMode x, GroupbyMode y) {
-  return static_cast<uint8_t>(x) > static_cast<uint8_t>(y)? x : y;
-}
-
-
-
 //------------------------------------------------------------------------------
 // workframe
 //------------------------------------------------------------------------------
@@ -53,6 +47,11 @@ EvalMode workframe::get_mode() const {
 }
 
 
+GroupbyMode workframe::get_groupby_mode() const {
+  return groupby_mode;
+}
+
+
 void workframe::add_join(py::ojoin oj) {
   DataTable* dt = oj.get_datatable();
   frames.push_back(subframe {dt, RowIndex(), true});
@@ -65,11 +64,13 @@ void workframe::add_groupby(py::oby og) {
 
 
 void workframe::add_i(py::oobj oi) {
+  xassert(!iexpr);
   iexpr = i_node::make(oi, *this);
 }
 
 
 void workframe::add_j(py::oobj oj) {
+  xassert(!jexpr);
   jexpr = j_node::make(oj, *this);
 }
 
@@ -84,6 +85,7 @@ void workframe::evaluate() {
 
   // Compute groupby
   if (by_node) {
+    groupby_mode = jexpr->get_groupby_mode(*this);
     by_node->execute(*this);
   }
 
@@ -91,9 +93,44 @@ void workframe::evaluate() {
   iexpr->execute(*this);
 
   switch (mode) {
-    case EvalMode::SELECT: jexpr->select(*this); break;
-    case EvalMode::DELETE: jexpr->delete_(*this); break;
-    case EvalMode::UPDATE: jexpr->update(*this); break;
+    case EvalMode::SELECT:
+      if (by_node) {
+        by_node->create_columns(*this);
+      }
+      jexpr->select(*this);
+      fix_columns();
+      break;
+
+    case EvalMode::DELETE:
+      jexpr->delete_(*this);
+      break;
+
+    case EvalMode::UPDATE:
+      jexpr->update(*this);
+      break;
+  }
+}
+
+
+// After evaluation of the j node, the columns in `columns` may have different
+// sizes: some are aggregated to group level, others have same number of rows
+// as dt0. If this happens, we need to expand the "short" columns to the full
+// size.
+void workframe::fix_columns() {
+  if (groupby_mode != GroupbyMode::GtoALL) return;
+  xassert(by_node);
+  size_t nrows0 = get_datatable(0)->nrows;
+  size_t ngrps = by_node->gb.ngroups();
+  RowIndex ungroup_ri;
+
+  for (size_t i = 0; i < columns.size(); ++i) {
+    if (columns[i]->nrows == nrows0) continue;
+    xassert(columns[i]->nrows == ngrps);
+    if (!ungroup_ri) {
+      ungroup_ri = by_node->gb.ungroup_rowindex();
+    }
+    const RowIndex& col_rowindex = columns[i]->rowindex();
+    columns[i]->replace_rowindex(_product(ungroup_ri, col_rowindex));
   }
 }
 

@@ -45,14 +45,6 @@ enum class EvalMode : uint8_t {
   DELETE
 };
 
-enum class GroupbyMode : uint8_t {
-  NONE   = 0,
-  GtoONE = 1,
-  GtoALL = 2,
-  GtoANY = 3
-};
-GroupbyMode common_mode(GroupbyMode, GroupbyMode);
-
 
 
 /**
@@ -100,6 +92,7 @@ class workframe {
     explicit workframe(DataTable*);
     void set_mode(EvalMode);
     EvalMode get_mode() const;
+    GroupbyMode get_groupby_mode() const;
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
@@ -126,6 +119,7 @@ class workframe {
 
   private:
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
+    void fix_columns();
 };
 
 
