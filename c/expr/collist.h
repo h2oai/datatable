@@ -19,31 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_I_NODE_h
-#define dt_EXPR_I_NODE_h
-#include <memory>             // std::unique_ptr
-#include "python/_all.h"      // py::robj, ...
+#ifndef dt_EXPR_COLLIST_h
+#define dt_EXPR_COLLIST_h
+#include <vector>
+#include "expr/base_expr.h"
+#include "expr/workframe.h"
+#include "python/obj.h"
+
 namespace dt {
+struct collist;
 
 
-class i_node;
-class workframe;
-using i_node_ptr = std::unique_ptr<dt::i_node>;
+using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
+using intvec = std::vector<size_t>;
+using collist_ptr = std::unique_ptr<collist>;
 
-/**
- * Base class for all "Row Filter" nodes. A row filter node represents the
- * `i` part in a `DT[i, j, ...]` call.
- *
- * When executed, this class will compute a RowIndex and apply it to the
- * provided workframe `wf`.
- */
-class i_node {
-  public:
-    static i_node_ptr make(py::robj src, workframe& wf);
 
-    virtual ~i_node();
-    virtual void post_init_check(workframe&);
-    virtual void execute(workframe&) = 0;
+
+struct collist {
+  static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
+  virtual ~collist();
+};
+
+
+
+struct cols_intlist : public collist {
+  intvec indices;
+  strvec names;
+
+  cols_intlist(intvec&& indices_, strvec&& names_);
+  ~cols_intlist() override;
+};
+
+
+
+struct cols_exprlist : public collist {
+  exprvec exprs;
+  strvec  names;
+
+	cols_exprlist(exprvec&& exprs_, strvec&& names_);
+  ~cols_exprlist() override;
 };
 
 

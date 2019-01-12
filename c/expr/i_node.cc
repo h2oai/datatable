@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
+#include "expr/workframe.h"   // dt::workframe
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -512,8 +513,8 @@ static i_node* _make(py::robj src) {
 }
 
 
-iptr i_node::make(py::robj src, workframe& wf) {
-  iptr res(_make(src));
+i_node_ptr i_node::make(py::robj src, workframe& wf) {
+  i_node_ptr res(_make(src));
   res->post_init_check(wf);
   return res;
 }

@@ -141,7 +141,7 @@ def test_join_update():
     d0 = dt.Frame([[1, 2, 3, 2, 3, 1, 3, 2, 2, 1], range(10)], names=("A", "B"))
     d1 = d0[:, mean(f.B), f.A]
     d1.key = "A"
-    d0[:, "AA", join(d1)] = g.V0
+    d0[:, "AA", join(d1)] = g.C0
     assert d0.names == ("A", "B", "AA")
     a = 4.75
     b = 14.0 / 3
@@ -222,8 +222,8 @@ def test_issue1481():
     DT = dt.Frame(A=range(5))
     with pytest.raises(ValueError) as e:
         noop(DT[:, [f.A, g.A]])
-    assert ("Item 1 of the `j` selector list references a non-existing "
-            "join frame" == str(e.value))
+    assert ("Item 1 of `j` selector list references a non-existing join frame"
+            == str(e.value))
 
 
 def test_issue1481_2():
