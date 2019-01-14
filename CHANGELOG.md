@@ -107,6 +107,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed groupby when it is applied to a Frame with view columns (#1542).
 
+- When replacing an empty set of columns, the replacement frame can now be
+  also empty (i.e. have shape [0 x 0]) (#1544).
+
 
 ### Changed
 
@@ -117,6 +120,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Improved the performance of setting `frame.nrows`. Now if the frame has
   multiple columns, a view will be created.
+
+- When no columns are selected in `DT[i, j]`, the returned frame will now
+  have the same number of rows as if at least 1 column was selected. Previously
+  an empty [0 x 0] frame was returned.
 
 
 ### Deprecated

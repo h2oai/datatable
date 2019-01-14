@@ -315,17 +315,19 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg5).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
+  size_t lrows = rows_ri? rows_ri.size() : dt->nrows;
+  size_t lcols = count;
 
   if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
     throw ValueError() << "Invalid slice " << start << "/" << count
                        << "/" << step << " for a Frame with " << dt->ncols
                        << " columns";
   }
-  bool ok = (rrows == rrows2 || rrows == 1) && (rcols == count || rcols == 1);
+  bool ok = ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1))
+            || (rrows == 0 && rcols == 0 && lcols == 0);
   if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected [" <<
-      rrows2 << " x " << count << "], but received [" << rrows <<
+      lrows << " x " << lcols << "], but received [" << rrows <<
       " x " << rcols << "]";
   }
 
@@ -357,13 +359,14 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   DataTable* repl = py::robj(arg3).to_frame();
   size_t rrows = repl->nrows;
   size_t rcols = repl->ncols;
-  size_t rrows2 = rows_ri? rows_ri.size() : dt->nrows;
+  size_t lrows = rows_ri? rows_ri.size() : dt->nrows;
+  size_t lcols = cols.size();
 
-  bool ok = (rrows == rrows2 || rrows == 1) &&
-            (rcols == cols.size() || rcols == 1);
+  bool ok = ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1))
+            || (rrows == 0 && rcols == 0 && lcols == 0);
   if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected [" <<
-      rrows2 << " x " << cols.size() << "], but received [" << rrows <<
+      lrows << " x " << cols.size() << "], but received [" << rrows <<
       " x " << rcols << "]";
   }
 
