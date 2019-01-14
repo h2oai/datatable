@@ -108,6 +108,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed `Frame.replace()` in view string columns (#1549).
 
+- A 0-row integer column can now be used as `i` in `DT[i, j]` (#1551).
+
 
 ### Changed
 
@@ -156,7 +158,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Additional thanks to people who helped make `datatable` more stable by
   discovering and reporting bugs that were fixed in this release:
 
-  [Pasha Stetsenko][] (#1316, #1443, #1481, #1542),
+  [Pasha Stetsenko][] (#1316, #1443, #1481, #1542, #1551),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451),

@@ -223,6 +223,7 @@ void frame_in::post_init_check(workframe& wf) {
            << nrows << " row" << (nrows == 1? "" : "s");
     }
   } else {
+    if (col->nrows == 0) return;
     int64_t min = col->min_int64();
     int64_t max = col->max_int64();
     if (min < -1) {
