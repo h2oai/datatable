@@ -146,6 +146,11 @@ void Frame::replace(const PKArgs& args) {
   ra.split_x_y_by_type();
 
   for (size_t i = 0; i < dt->ncols; ++i) {
+    // If a column is a view, then: for a fixed-width column it gets
+    // materialized when we request `col->elements_w()`; on the other hand,
+    // a string column remains a view, however the iterator `dt::map_str2str`
+    // takes the rowindex into account when iterating.
+    //
     Column* col = dt->columns[i];
     switch (col->stype()) {
       case SType::BOOL:    ra.process_bool_column(i); break;

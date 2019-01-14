@@ -17,6 +17,7 @@
 #define dt_UTILS_PARALLEL_h
 #include <functional>     // std::function
 #include <memory>         // std::unique_ptr
+#include "rowindex.h"
 #include "wstringcol.h"
 
 
@@ -169,18 +170,19 @@ class mapper_str2str : private ordered_job {
       CString curr_str;
       const T* offsets = inpcol->offsets();
       const char* strdata = inpcol->strdata();
-      T offstart = offsets[i0 - 1] & ~GETNA<T>();
+      const RowIndex& rowindex = inpcol->rowindex();
       for (size_t i = i0; i < i1; ++i) {
-        T offend = offsets[i];
-        if (ISNA<T>(offend)) {
+        size_t j = rowindex[i];
+        if (j == RowIndex::NA || ISNA<T>(offsets[j])) {
           curr_str.ch = nullptr;
           curr_str.size = 0;
         } else {
+          T offstart = offsets[j - 1] & ~GETNA<T>();
+          T offend = offsets[j];
           curr_str.ch = strdata + offstart;
           curr_str.size = static_cast<int64_t>(offend - offstart);
-          offstart = offend;
         }
-        f(i, curr_str, sb);
+        f(j, curr_str, sb);
       }
     }
 
