@@ -335,6 +335,33 @@ def test_replace_do_nothing2(numpy):
     assert df.to_list() == [[1., 1.], [2., None], [3., 4.], [None, 5.]]
 
 
+def test_replace_in_view1():
+    DT = dt.Frame([str(x) for x in range(10)])[::2, :]
+    assert DT.to_list()[0] == ['0', '2', '4', '6', '8']
+    DT.replace('6', "boo!")
+    assert DT.to_list()[0] == ['0', '2', '4', 'boo!', '8']
+
+
+def test_replace_in_view2():
+    names = ["Renegade", "Barack", "Renaissance", "Michelle",
+             "Radiance", "Malia", "Rosebud", "Sasha"]
+    DT = dt.Frame(N=names)
+    DT2 = DT[::2, :]
+    DT3 = DT[1::2, :]
+    assert DT2.to_list()[0] == names[::2]
+    assert DT3.to_list()[0] == names[1::2]
+    DT2.replace("Renaissance", "Revival")
+    assert DT2.to_list()[0] == ["Renegade", "Revival", "Radiance", "Rosebud"]
+    DT2.replace("Radiance", "Brilliance")
+    assert DT2.to_list()[0] == ["Renegade", "Revival", "Brilliance", "Rosebud"]
+    DT3.replace("Sasha", "Natasha")
+    assert DT3.to_list()[0] == ["Barack", "Michelle", "Malia", "Natasha"]
+    DT3.replace("Malia", "Malia Ann")
+    assert DT3.to_list()[0] == ["Barack", "Michelle", "Malia Ann", "Natasha"]
+    assert DT.to_list() == [names]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test bad arguments

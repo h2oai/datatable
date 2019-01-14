@@ -106,6 +106,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed join results when join is applied to a view frame (#1540).
 
+- Fixed `Frame.replace()` in view string columns (#1549).
+
 
 ### Changed
 
@@ -155,7 +157,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1542),
-  [Arno Candel][] (#1437, #1491, #1510, #1525),
+  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451),
   [CarlosThinkBig][] (#1475),
