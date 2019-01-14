@@ -105,6 +105,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Function `count()` now returns correct result within the `DT[i, j]` expression
   with non-trivial `i` (#1316).
 
+- Fixed groupby when it is applied to a Frame with view columns (#1542).
+
 
 ### Changed
 
