@@ -571,7 +571,8 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   std::vector<size_t> coprimes;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   doubleptr pmatrix = nullptr;
-  if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
+  bool do_projection = ncols > max_dimensions;
+  if (do_projection) pmatrix = generate_pmatrix(dt);
 
   // Figuring out how many threads to use.
   size_t nth0 = get_nthreads(dt);
@@ -592,14 +593,14 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     double distance;
     doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
-    std::mt19937 generator(seed + static_cast<unsigned int>(ith));
+    // Each thread gets its own seed
+    std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
       for (size_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
-        if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
-        else normalize_row(dt, member, i);
+        do_projection? project_row(dt, member, i, pmatrix) : normalize_row(dt, member, i);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -607,14 +608,23 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           size_t nexemplars = exemplars.size();
           size_t ncoprimes = coprimes.size();
 
-          // This ensures b = 0, when nexemplars = 0
-          size_t ncoprimes_1 = std::min(ncoprimes, ncoprimes - 1);
-          size_t nexemplars_1 = std::min(nexemplars, nexemplars - 1);
-          std::uniform_int_distribution<size_t> distribution_coprimes(0, ncoprimes_1);
-          std::uniform_int_distribution<size_t> distribution_exemplars(0, nexemplars_1);
-          size_t coprime_index = distribution_coprimes(generator);
-          size_t exemplar_index = distribution_exemplars(generator);
+          // Generate random exemplar and coprime vector indices.
+          // When `nexemplars` is zero, this may generate any `size_t` number,
+          // however, since we do not do any testing in this case, this is
+          // not an issue.
+          std::uniform_int_distribution<size_t> exemplars_dist(0, nexemplars - 1);
+          std::uniform_int_distribution<size_t> coprimes_dist(0, ncoprimes - 1);
+          size_t exemplar_index = exemplars_dist(generator);
+          size_t coprime_index = coprimes_dist(generator);
 
+          // Instead of traversing exemplars in the order they appear
+          // in the `exemplars` vector, we use modular quasi-random
+          // paths. This ensures we get more uniform member distribution
+          // across the clusters. Since `coprimes[coprime_index]` and
+          // `nexemplars` are coprimes, `j` will take all the integer values
+          // in the range [0; nexemplars - 1], where
+          // - `exemplar_index` determines at which exemplar we start testing;
+          // - `coprime_index` is a "seed" to the modular generator.
           for (size_t k = 0; k < nexemplars; ++k) {
             size_t j = (k * coprimes[coprime_index] + exemplar_index) % nexemplars;
             // Note, this distance will depend on delta, because
@@ -640,7 +650,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
             if (exemplars.size() > nd_max_bins) {
               adjust_delta(delta, exemplars, ids, ndims);
             }
-            calc_coprimes(coprimes, exemplars.size());
+            fill_coprimes(exemplars.size(), coprimes);
           } else {
             goto test_member;
           }
@@ -658,14 +668,10 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 }
 
 
-void Aggregator::calc_coprimes(std::vector<size_t>& coprimes, size_t n) {
+void Aggregator::fill_coprimes(size_t n, std::vector<size_t>& coprimes) {
   coprimes.clear();
-  if (n > 1) {
-    for (size_t i = 2; i < n; ++i) {
-      if (gcd(i, n) == 1) coprimes.push_back(i);
-    }
-  } else {
-    coprimes.push_back(0);
+  for (size_t i = 1; i <= n; ++i) {
+    if (gcd(i, n) == 1) coprimes.push_back(i);
   }
 }
 

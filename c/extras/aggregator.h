@@ -63,6 +63,10 @@ class Aggregator {
     bool random_sampling(dtptr&, size_t, size_t);
     void aggregate_exemplars(DataTable*, dtptr&, bool);
 
+    // Methods for modular quasi-random generator
+    static void fill_coprimes(size_t, std::vector<size_t>&);
+    static size_t gcd(size_t, size_t);
+
     // Helper methods
     size_t get_nthreads(const dtptr&);
     doubleptr generate_pmatrix(const dtptr&);
@@ -75,8 +79,4 @@ class Aggregator {
     void adjust_members(std::vector<size_t>&, dtptr&);
     size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(double, int status_code=0);
-
-    // Randomization methods
-    static void calc_coprimes(std::vector<size_t>&, size_t);
-    static size_t gcd(size_t, size_t);
 };
