@@ -583,7 +583,6 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
-//  srand(seed);
 
   #pragma omp parallel num_threads(nth0)
   {
