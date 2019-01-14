@@ -217,13 +217,13 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
-    R"(Frame having two columns, i.e. `z` and `n`, and `d` rows,
-    where `d` is a number of bins set for modeling. Both column types
-    must be `float64`.)"
+    R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
+    and `d` rows, where `d` is a number of bins set for the hashing trick.
+    Both column types are `float64`.)"
   );
 
   gs.add<&Ftrl::get_fi>(
-    "fi",
+    "feature_importances",
     R"(One-column frame with the overall weight contributions calculated
     feature-wise during training and predicting. It can be interpreted as
     a feature importance information.)"
