@@ -1,5 +1,5 @@
 blessed
-llvmlight
+llvmlite
 numpy
 pandas
 psutil
