@@ -609,9 +609,9 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
           size_t ncoprimes = coprimes.size();
 
           // Generate random exemplar and coprime vector indices.
-          // When `nexemplars` is zero, this may generate any `size_t` number,
-          // however, since we do not do any testing in this case, this is
-          // not an issue.
+          // When `nexemplars` is zero, this may be any `size_t` number,
+          // however, since we do not do any member testing in this case,
+          // this is not an issue.
           std::uniform_int_distribution<size_t> exemplars_dist(0, nexemplars - 1);
           std::uniform_int_distribution<size_t> coprimes_dist(0, ncoprimes - 1);
           size_t exemplar_index = exemplars_dist(generator);
