@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable import f
+from tests import assert_equals
 
 
 
@@ -87,3 +88,13 @@ def test_assign_string_columns2():
     assert f0.names == ("A", )
     assert f0.stypes == (dt.stype.str32,)
     assert f0.to_list() == [["Oh my!", None, None, None, "infinity"]]
+
+
+def test_assign_empty_frame():
+    # See issue #1544
+    X = dt.Frame(A=range(10))
+    X[:, []] = X[:, []]
+    X.internal.check()
+    X[:, []] = dt.Frame()
+    X.internal.check()
+    assert_equals(X, dt.Frame(A=range(10)))

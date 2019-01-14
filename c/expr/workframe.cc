@@ -138,6 +138,12 @@ void workframe::fix_columns() {
 py::oobj workframe::get_result() {
   if (mode == EvalMode::SELECT) {
     DataTable* result = new DataTable(std::move(columns), std::move(colnames));
+    if (result->ncols == 0) {
+      // When selecting a 0-column subset, make sure the number of rows is the
+      // same as if some of the columns were selected.
+      result->nrows = frames[0].ri? frames[0].ri.size()
+                                  : frames[0].dt->nrows;
+    }
     return py::oobj::from_new_reference(py::Frame::from_datatable(result));
   }
   return py::None();
