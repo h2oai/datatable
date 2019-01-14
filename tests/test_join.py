@@ -240,3 +240,15 @@ def test_issue1481_3():
         noop(DT[:, g.A + 1])
     assert ("Column expression references a non-existing join frame"
             == str(e.value))
+
+
+def test_join_view():
+    # See issue #1540
+    x = dt.Frame(A=[1,2,3,1,2,3], B=[3,6,2,4,3,1], C=list("bdbbdb"))
+    a = x[f.A == 1, ['A', 'B', 'C']]
+    r = dt.Frame(C=['b', 'z'], BB=[2, 1000])
+    r.key = 'C'
+    res = a[:, :, join(r)]
+    assert res.shape == (2, 4)
+    assert res.names == ("A", "B", "C", "BB")
+    assert res.to_list() == [[1, 1], [3, 4], ['b', 'b'], [2, 2]]
