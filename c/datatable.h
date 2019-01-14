@@ -21,8 +21,20 @@ class Stats;
 class DataTable;
 class NameProvider;
 
+struct sort_spec {
+  size_t col_index;
+  bool descending;
+  bool na_last;
+  bool sort_only;
+  size_t : 40;
+
+  sort_spec(size_t i)
+    : col_index(i), descending(false), na_last(false), sort_only(false) {}
+};
+
 typedef Column* (Column::*colmakerfn)(void) const;
 using colvec = std::vector<Column*>;
+using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
 
@@ -79,14 +91,14 @@ class DataTable {
     DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
 
-    void delete_columns(std::vector<size_t>&);
+    void delete_columns(intvec&);
     void delete_all();
     void resize_rows(size_t n);
     void replace_rowindex(const RowIndex& newri);
     void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(std::vector<DataTable*>, std::vector<std::vector<size_t>>);
+    void rbind(std::vector<DataTable*>, std::vector<intvec>);
     DataTable* cbind(std::vector<DataTable*>);
     DataTable* copy() const;
     size_t memory_footprint() const;
@@ -94,14 +106,16 @@ class DataTable {
     /**
      * Sort the DataTable by specified columns, and return the corresponding
      * RowIndex. The array `colindices` provides the indices of columns to
-     * sort on. If an index is negative, it indicates that the column must be
-     * sorted in descending order instead of default ascending.
+     * sort on.
      *
      * If `make_groups` is true, then in addition to sorting, the grouping
      * information will be computed and stored with the RowIndex.
      */
-    RowIndex sortby(const std::vector<size_t>& colindices,
-                    Groupby* out_grps) const;
+    // TODO: remove
+    RowIndex sortby(const intvec& colindices, Groupby* out_grps) const;
+
+    std::pair<RowIndex, Groupby>
+    group(const std::vector<sort_spec>& spec, bool as_view = false) const;
 
     // Names
     const strvec& get_names() const;
@@ -111,13 +125,13 @@ class DataTable {
     void copy_names_from(const DataTable* other);
     void set_names_to_default();
     void set_names(const py::olist& names_list);
-    void set_names(const std::vector<std::string>& names_list);
+    void set_names(const strvec& names_list);
     void replace_names(py::odict replacements);
-    void reorder_names(const std::vector<size_t>& col_indices);
+    void reorder_names(const intvec& col_indices);
 
     // Key
     size_t get_nkeys() const;
-    void set_key(std::vector<size_t>& col_indices);
+    void set_key(intvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);
 

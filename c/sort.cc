@@ -428,17 +428,18 @@ class SortContext {
   }
 
 
-  RowIndex get_result(Groupby* out_grps) {
-    RowIndex res = RowIndex(
-        arr32_t(n, static_cast<int32_t*>(container_o.release()), true)
-    );
-    if (out_grps) {
-      size_t ngrps = gg.size();
-      xassert(groups.size() > ngrps);
-      groups.resize(ngrps + 1);
-      *out_grps = Groupby(ngrps, groups.to_memoryrange());
-    }
-    return res;
+  RowIndex get_result_rowindex() {
+    auto data = static_cast<int32_t*>(container_o.release());
+    return RowIndex(arr32_t(n, data, true));
+  }
+
+
+  std::pair<RowIndex, Groupby> get_result_groups() {
+    size_t ng = gg.size();
+    xassert(groups.size() > ng);
+    groups.resize(ng + 1);
+    return std::pair<RowIndex, Groupby>(get_result_rowindex(),
+                                        Groupby(ng, groups.to_memoryrange()));
   }
 
 
@@ -1173,26 +1174,54 @@ class SortContext {
 //==============================================================================
 // Main sorting routines
 //==============================================================================
+using RiGb = std::pair<RowIndex, Groupby>;
+
+
+RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const {
+  size_t nsortcols = spec.size();
+  Column* col0 = columns[spec[0].col_index];
+  if (as_view) {
+    // Check that the sorted columns have consistent rowindices.
+    for (size_t j = 1; j < nsortcols; ++j) {
+      xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
+    }
+  } else {
+    for (size_t j = 0; j < nsortcols; ++j) {
+      columns[spec[j].col_index]->reify();
+    }
+  }
+
+  if (nrows <= 1) {
+    size_t i = col0->rowindex()[0];
+    return RiGb(RowIndex(i, nrows, 1),
+                Groupby::single_group(nrows));
+  }
+
+  SortContext sc(nrows, col0->rowindex(), true);
+  sc.start_sort(col0);
+  for (size_t j = 1; j < nsortcols; ++j) {
+    sc.continue_sort(columns[spec[j].col_index], true);
+  }
+  return sc.get_result_groups();
+}
+
 
 /**
- * Sort the column, and return its ordering as a RowIndex object. This function
- * will choose the most appropriate algorithm for sorting. The data in column
- * `col` will not be modified.
- *
- * The function returns nullptr if there is a runtime error (for example an
- * intermediate buffer cannot be allocated).
+ * Sort the Frame by columns at the specified positions `colindices`, and return
+ * their ordering as a RowIndex object. The data in the current Frame will not
+ * be modified.
  */
 RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
                            Groupby* out_grps) const
 {
   size_t nsortcols = colindices.size();
   if (nrows > INT32_MAX) {
-    throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
+    throw NotImplError() << "Cannot sort a Frame with " << nrows << " rows";
   }
   if (rowindex.isarr64() || rowindex.size() > INT32_MAX ||
       (rowindex.max() > INT32_MAX && rowindex.max() != RowIndex::NA)) {
-    throw NotImplError() << "Cannot sort a datatable which is based on a "
-                            "datatable with >2**31 rows";
+    throw NotImplError() << "Cannot sort a Frame which is a view on another "
+                            "Frame with more than 2**31 rows";
   }
   // TODO: fix for the multi-rowindex case (#1188)
   // A frame can be sorted by columns col1, ..., colN if and only if all these
@@ -1224,7 +1253,13 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
     sc.continue_sort(columns[colindices[j]],
                      (out_grps != nullptr) || (j < nsortcols - 1));
   }
-  return sc.get_result(out_grps);
+  if (out_grps) {
+    auto res = sc.get_result_groups();
+    *out_grps = std::move(res.second);
+    return res.first;
+  } else {
+    return sc.get_result_rowindex();
+  }
 }
 
 
@@ -1249,5 +1284,11 @@ RowIndex Column::sort(Groupby* out_grps) const {
   }
   SortContext sc(nrows, rowindex(), (out_grps != nullptr));
   sc.start_sort(this);
-  return sc.get_result(out_grps);
+  if (out_grps) {
+    auto res = sc.get_result_groups();
+    *out_grps = std::move(res.second);
+    return res.first;
+  } else {
+    return sc.get_result_rowindex();
+  }
 }
