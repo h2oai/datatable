@@ -197,6 +197,7 @@ def test_rows_slice_errors(dt0):
 
 @pytest.mark.parametrize("rangeobj", [range(5),
                                       range(2, 3),
+                                      range(1, 1),
                                       range(-5, -2),
                                       range(7, -1),
                                       range(9, -1, -1)])
@@ -443,6 +444,14 @@ def test_rows_int_column_nas(dt0):
         dt0, col,
         "RowIndex source column contains NA values")
 
+
+def test_rows_int_column_0rows(dt0):
+    col = dt.Frame([[]], stype="int64")
+    assert col.shape == (0, 1)
+    assert col.stypes == (stype.int64,)
+    res = dt0[col, :]
+    res.internal.check()
+    assert res.shape == (0, dt0.ncols)
 
 
 

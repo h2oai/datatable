@@ -401,13 +401,17 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
   if (col->countna()) {
     throw ValueError() << "RowIndex source column contains NA values.";
   }
-  int64_t imin = col->min_int64();
-  int64_t imax = col->max_int64();
-  if (imin < -1) {
-    throw ValueError() << "Row indices in integer column cannot be negative";
+  if (col->nrows == 0) {
+    min = max = RowIndex::NA;
+  } else {
+    int64_t imin = col->min_int64();
+    int64_t imax = col->max_int64();
+    if (imin < -1) {
+      throw ValueError() << "Row indices in integer column cannot be negative";
+    }
+    min = static_cast<size_t>(imin);
+    max = static_cast<size_t>(imax);
   }
-  min = static_cast<size_t>(imin);
-  max = static_cast<size_t>(imax);
   Column* col2 = col->shallowcopy();
   col2->reify();  // noop if col has no rowindex
 

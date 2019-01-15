@@ -64,8 +64,13 @@ void collist_bn::execute(workframe& wf) {
   if (ri0) {
     throw NotImplError();
   }
-  RowIndex ri = dt0->sortby(indices, &gb);
-  wf.apply_rowindex(ri);
+  std::vector<sort_spec> spec;
+  for (size_t i : indices) {
+    spec.push_back(sort_spec(i));
+  }
+  auto res = dt0->group(spec);
+  gb = std::move(res.second);
+  wf.apply_rowindex(res.first);
 }
 
 

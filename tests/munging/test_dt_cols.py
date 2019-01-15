@@ -248,7 +248,7 @@ def test_j_select_by_type2(dt0):
 
 def test_j_select_by_type3(dt0):
     dt3 = dt0[:, dt.ltype.str]
-    assert dt3.shape == (0, 0)
+    assert dt3.shape == (6, 0)
     assert dt3.to_list() == []
 
 
@@ -525,6 +525,12 @@ def test_j_expression2():
     #     assert f2.to_list() == f1.to_list()
 
 
+
+
+#-------------------------------------------------------------------------------
+# Special cases
+#-------------------------------------------------------------------------------
+
 def test_j_bad_arguments(dt0):
     """
     Check certain arguments that would be invalid as column selectors
@@ -562,3 +568,17 @@ def test_j_on_empty_frame():
     d2.internal.check()
     assert d1.shape == (0, 0)
     assert d2.shape == (0, 0)
+
+
+def test_empty_selector1(dt0):
+    d1 = dt0[:, []]
+    d1.internal.check()
+    assert d1.nrows == dt0.nrows
+    assert d1.ncols == 0
+
+
+def test_empty_selector2(dt0):
+    d1 = dt0[-3:, []]
+    d1.internal.check()
+    assert d1.nrows == 3
+    assert d1.ncols == 0

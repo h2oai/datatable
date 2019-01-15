@@ -67,43 +67,48 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Fixed rendering of "view" Frames in a Jupyter notebook (#1448). This bug
-  caused the frame to display wrong data when viewed in a notebook. Thanks to
-  [Michael Frasco][] and [CarlosThinkBig][] for reporting.
+  caused the frame to display wrong data when viewed in a notebook.
 
 - Fixed crash when an int-column `i` selector is applied to a Frame which
-  already had another row filter applied (#1437). Thanks to [Arno Candel][] for
-  reporting.
+  already had another row filter applied (#1437).
 
 - `Frame.copy()` now retains the frame's key, if any (#1443).
 
-- Installation from source distribution now works as expected (#1451). Thanks to
-  [Jonathan McKinney][] for reporting.
+- Installation from source distribution now works as expected (#1451).
 
 - When a `g.`-column is used but there is no join frame, an appropriate
   error message is now emitted (#1481).
 
 - The equality operators `==` / `!=` can now be applied to string columns too
-  (#1491). Thanks to [Arno Candel][] for reporting.
+  (#1491).
 
 - Function `dt.split_into_nhot()` now works correctly with view Frames (#1507).
 
 - `DT.replace()` now works correctly when the replacement list is `[+inf]` or
-  `[1.7976931348623157e+308]` (#1510). Thanks to [Arno Candel][] for reporting.
+  `[1.7976931348623157e+308]` (#1510).
 
-- FTRL algorithm now works correctly with view frames (#1502). Thanks to
-  [Olivier][] for reporting this issue.
+- FTRL algorithm now works correctly with view frames (#1502).
 
 - Partial column update (i.e. expression of the form `DT[i, j] = R`) now works
   for string columns as well (#1523).
 
 - `DT.replace()` now throws an error if called with 0 or 1 argument (#1525).
-  Thanks to [Arno Candel][] for discovering this issue.
 
 - Fixed crash when viewing a frame obtained by resizing a 0-row frame (#1527).
-  Thanks to [Nishant Kalonia][] for reporting.
 
 - Function `count()` now returns correct result within the `DT[i, j]` expression
   with non-trivial `i` (#1316).
+
+- Fixed groupby when it is applied to a Frame with view columns (#1542).
+
+- When replacing an empty set of columns, the replacement frame can now be
+  also empty (i.e. have shape [0 x 0]) (#1544).
+
+- Fixed join results when join is applied to a view frame (#1540).
+
+- Fixed `Frame.replace()` in view string columns (#1549).
+
+- A 0-row integer column can now be used as `i` in `DT[i, j]` (#1551).
 
 
 ### Changed
@@ -115,6 +120,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Improved the performance of setting `frame.nrows`. Now if the frame has
   multiple columns, a view will be created.
+
+- When no columns are selected in `DT[i, j]`, the returned frame will now
+  have the same number of rows as if at least 1 column was selected. Previously
+  an empty [0 x 0] frame was returned.
 
 
 ### Deprecated
@@ -145,6 +154,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [Michael Frasco][] - documentation fixes;
 
   - [Michal Raška][] - build system maintenance.
+
+- Additional thanks to people who helped make `datatable` more stable by
+  discovering and reporting bugs that were fixed in this release:
+
+  [Pasha Stetsenko][] (#1316, #1443, #1481, #1542, #1551),
+  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549),
+  [Michael Frasco][] (#1448),
+  [Jonathan McKinney][] (#1451),
+  [CarlosThinkBig][] (#1475),
+  [Olivier][] (#1502),
+  [Oleksiy Kononenko][] (#1507),
+  [Nishant Kalonia][] (#1527, #1540),
+  [Megan Kurka][] (#1544).
 
 
 
@@ -832,6 +854,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
 [jonathan mckinney]: https://github.com/pseudotensor
+[megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
 [nishant kalonia]: https://github.com/nkalonia1

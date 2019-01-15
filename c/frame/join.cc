@@ -385,6 +385,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   size_t k = jdt->get_nkeys();  // Number of join columns
   xassert(k > 0);
 
+  // Determine how key columns in `jdt` match the columns in `xdt`
   indvec xcols, jcols;
   py::otuple jnames = jdt->get_pynames();
   for (size_t i = 0; i < k; ++i) {
@@ -396,6 +397,17 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
     xcols.push_back(static_cast<size_t>(index));
     jcols.push_back(i);
   }
+
+  // For now, we materialize the join columns. Later, we can add an ability
+  // to operate on the view columns as well, via the `as_view` flag (similar
+  // to the `group()` function). A frame can only be joined as a view if all
+  // its columns have the same rowindex (or at least all columns needed to
+  // compute the result).
+  for (size_t j : xcols) {
+    xdt->columns[j]->reify();
+  }
+  // TODO: remove in #1188
+  for (auto col : xdt->columns) col->reify();
 
   arr32_t arr_result_indices(xdt->nrows);
   int32_t* result_indices = arr_result_indices.data();
