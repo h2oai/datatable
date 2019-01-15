@@ -252,3 +252,14 @@ def test_join_view():
     assert res.shape == (2, 4)
     assert res.names == ("A", "B", "C", "BB")
     assert res.to_list() == [[1, 1], [3, 4], ['b', 'b'], [2, 2]]
+
+
+def test_issue1556():
+    X = dt.Frame(A=['Ahoy ye matey!', 'hey'])
+    J = dt.Frame(A=['hey'], B=['Avast'])
+    J.key = 'A'
+    R = X[:, :, join(J)]
+    R.internal.check()
+    assert R.shape == (2, 2)
+    assert R.to_dict() == {"A": ["Ahoy ye matey!", "hey"],
+                           "B": [None, "Avast"]}
