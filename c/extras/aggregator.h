@@ -65,7 +65,6 @@ class Aggregator {
 
     // Methods for modular quasi-random generator
     static void fill_coprimes(size_t, std::vector<size_t>&);
-    static size_t gcd(size_t, size_t);
 
     // Helper methods
     size_t get_nthreads(const dtptr&);

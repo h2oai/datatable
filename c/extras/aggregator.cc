@@ -669,20 +669,28 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
 void Aggregator::fill_coprimes(size_t n, std::vector<size_t>& coprimes) {
   coprimes.clear();
-  for (size_t i = 1; i <= n; ++i) {
-    if (gcd(i, n) == 1) coprimes.push_back(i);
+  if (n == 1) {
+    coprimes.push_back(1);
+    return;
   }
-}
 
-
-size_t Aggregator::gcd(size_t a, size_t b) {
-  size_t x;
-  while (b) {
-    x = a % b;
-    a = b;
-    b = x;
+  std::vector<bool> mask(n - 1, false);
+  for (size_t i = 2; i <= n / 2; ++i) {
+    if (mask[i - 1]) continue;
+    if (n % i == 0) {
+      size_t j = 1;
+      while (j * i < n) {
+        mask[j * i - 1] = true;
+        j++;
+      }
+    }
   }
-  return a;
+
+  for (size_t i = 1; i < n; ++i) {
+    if (mask[i - 1] == 0) {
+      coprimes.push_back(i);
+    }
+  }
 }
 
 
