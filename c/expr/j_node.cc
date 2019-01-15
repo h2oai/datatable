@@ -22,6 +22,7 @@
 #include "expr/base_expr.h"
 #include "expr/collist.h"
 #include "expr/j_node.h"
+#include "expr/repl_node.h"
 #include "expr/workframe.h"   // dt::workframe
 namespace dt {
 
@@ -130,6 +131,7 @@ class collist_jn : public j_node {
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
+    void update(workframe&, repl_node*) override;
 
   private:
     void _init_names(workframe&);
@@ -187,6 +189,11 @@ void collist_jn::_init_names(workframe& wf) {
 }
 
 
+void collist_jn::update(workframe& wf, repl_node* repl) {
+
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -204,6 +211,7 @@ class exprlist_jn : public j_node {
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
+    void update(workframe&, repl_node*) override;
 
   private:
     void _init_names(workframe&);
@@ -267,6 +275,11 @@ void exprlist_jn::_init_names(workframe&) {
 }
 
 
+void exprlist_jn::update(workframe&, repl_node*) {
+  throw ValueError() << "Cannot execute an update on computed columns";
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -290,7 +303,9 @@ j_node_ptr j_node::make(py::robj src, workframe& wf) {
 
 j_node::~j_node() {}
 
-void j_node::update(workframe&) {}
+void j_node::update(workframe&, repl_node*) {
+  throw NotImplError();
+}
 
 
 

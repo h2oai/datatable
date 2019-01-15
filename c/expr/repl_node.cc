@@ -35,8 +35,26 @@ class frame_rn : public repl_node {
 
   public:
     frame_rn(DataTable* dt_) : dt(dt_) {}
+    void check_compatibility(size_t lrows, size_t lcols) const;
 };
 
+
+void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
+  size_t rrows = dt->nrows;
+  size_t rcols = dt->ncols;
+  if ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1)) return;
+  if (rcols == 0 && lcols == 0 && rrows == 0) return;
+  throw ValueError() << "Invalid replacement Frame: expected [" <<
+      lrows << " x " << lcols << "], but received [" << rrows <<
+      " x " << rcols << "]";
+
+}
+
+
+
+//------------------------------------------------------------------------------
+// scalar_rn
+//------------------------------------------------------------------------------
 
 class scalar_na_rn : public repl_node {
 };
