@@ -110,6 +110,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - A 0-row integer column can now be used as `i` in `DT[i, j]` (#1551).
 
+- A string column produced from a partial join now materializes correctly
+  (#1556).
+
 
 ### Changed
 
@@ -159,7 +162,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1542, #1551),
-  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549),
+  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451),
   [CarlosThinkBig][] (#1475),

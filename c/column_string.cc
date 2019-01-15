@@ -225,7 +225,7 @@ void StringColumn<T>::reify() {
   // If our rowindex is null, then we're already done
   if (ri.isabsent()) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending    = ri.isslice() && ri.slice_step() > 0;
+  bool ascending_slice = ri.isslice() && ri.slice_step() > 0;
 
   size_t new_mbuf_size = (ri.size() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
@@ -249,7 +249,7 @@ void StringColumn<T>::reify() {
       offs_dest[i] = data_src[i] - off0;
     }
 
-  } else if (ascending) {
+  } else if (ascending_slice) {
     // Special case: We can still do this in-place
     // (assuming the buffers are not read-only)
     if (!strbuf.is_writable())
@@ -289,6 +289,7 @@ void StringColumn<T>::reify() {
     T strs_size = 0;
     ri.iterate(0, nrows, 1,
       [&](size_t, size_t j) {
+        if (j == RowIndex::NA) return;
         strs_size += offs1[j] - offs0[j];
       });
     strs_size &= ~GETNA<T>();
