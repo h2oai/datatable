@@ -40,12 +40,14 @@ namespace py {
        py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
        unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
 
-       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions,
-                      seed, progress_fn, nthreads);
+       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+                      max_dimensions, seed, progress_fn, nthreads);
 
        // dt changes in-place with a new column added to the end of it
        DataTable* dt_members = agg.aggregate(dt).release();
-       py::oobj df_members = py::oobj::from_new_reference(py::Frame::from_datatable(dt_members));
+       py::oobj df_members = py::oobj::from_new_reference(
+                               py::Frame::from_datatable(dt_members)
+                             );
 
        return df_members;
      }
@@ -566,9 +568,11 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   size_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
   std::vector<size_t> ids;
+  std::vector<size_t> coprimes;
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   doubleptr pmatrix = nullptr;
-  if (ncols > max_dimensions) pmatrix = generate_pmatrix(dt);
+  bool do_projection = ncols > max_dimensions;
+  if (do_projection) pmatrix = generate_pmatrix(dt);
 
   // Figuring out how many threads to use.
   size_t nth0 = get_nthreads(dt);
@@ -578,7 +582,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   // Exemplar counter, if doesn't match thread local value, it means
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
-  size_t ecounter;
+  size_t ecounter = 0;
 
   #pragma omp parallel num_threads(nth0)
   {
@@ -588,18 +592,40 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
     double distance;
     doubleptr member = doubleptr(new double[ndims]);
     size_t ecounter_local;
+    // Each thread gets its own seed
+    std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
       for (size_t i = ith; i < dt->nrows; i += nth) {
         bool is_exemplar = true;
-        if (ncols > max_dimensions) project_row(dt, member, i, pmatrix);
-        else normalize_row(dt, member, i);
+        do_projection? project_row(dt, member, i, pmatrix) : normalize_row(dt, member, i);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
-          for (size_t j = 0; j < exemplars.size(); ++j) {
+          size_t nexemplars = exemplars.size();
+          size_t ncoprimes = coprimes.size();
+
+          // Generate random exemplar and coprime vector indices.
+          // When `nexemplars` is zero, this may be any `size_t` number,
+          // however, since we do not do any member testing in this case,
+          // this is not an issue.
+          std::uniform_int_distribution<size_t> exemplars_dist(0, nexemplars - 1);
+          std::uniform_int_distribution<size_t> coprimes_dist(0, ncoprimes - 1);
+          size_t exemplar_index = exemplars_dist(generator);
+          size_t coprime_index = coprimes_dist(generator);
+
+          // Instead of traversing exemplars in the order they appear
+          // in the `exemplars` vector, we use modular quasi-random
+          // paths. This ensures we get more uniform member distribution
+          // across the clusters. Since `coprimes[coprime_index]` and
+          // `nexemplars` are coprimes, `j` will take all the integer values
+          // in the range [0; nexemplars - 1], where
+          // - `exemplar_index` determines at which exemplar we start testing;
+          // - `coprime_index` is a "seed" to the modular generator.
+          for (size_t k = 0; k < nexemplars; ++k) {
+            size_t j = (k * coprimes[coprime_index] + exemplar_index) % nexemplars;
             // Note, this distance will depend on delta, because
             // `early_exit = true` by default
             distance = calculate_distance(member, exemplars[j]->coords, ndims, delta);
@@ -613,7 +639,6 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
 
         if (is_exemplar) {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ true);
-
           if (ecounter_local == ecounter) {
             ecounter++;
             ExPtr e = ExPtr(new ex{ids.size(), std::move(member)});
@@ -624,6 +649,7 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
             if (exemplars.size() > nd_max_bins) {
               adjust_delta(delta, exemplars, ids, ndims);
             }
+            fill_coprimes(exemplars.size(), coprimes);
           } else {
             goto test_member;
           }
@@ -638,6 +664,33 @@ void Aggregator::group_nd(const dtptr& dt, dtptr& dt_members) {
   }
   oem.rethrow_exception_if_any();
   adjust_members(ids, dt_members);
+}
+
+
+void Aggregator::fill_coprimes(size_t n, std::vector<size_t>& coprimes) {
+  coprimes.clear();
+  if (n == 1) {
+    coprimes.push_back(1);
+    return;
+  }
+
+  std::vector<bool> mask(n - 1, false);
+  for (size_t i = 2; i <= n / 2; ++i) {
+    if (mask[i - 1]) continue;
+    if (n % i == 0) {
+      size_t j = 1;
+      while (j * i < n) {
+        mask[j * i - 1] = true;
+        j++;
+      }
+    }
+  }
+
+  for (size_t i = 1; i < n; ++i) {
+    if (mask[i - 1] == 0) {
+      coprimes.push_back(i);
+    }
+  }
 }
 
 
