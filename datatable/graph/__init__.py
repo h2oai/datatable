@@ -55,32 +55,30 @@ def make_datatable(dt, rows, select, groupby=None, join=None, sort=None,
                     "Cannot yet apply sort argument to a view datatable or "
                     "combine with rows / groupby argument.")
 
-        if delete_mode or update_mode:
+        assert not delete_mode
+        if update_mode:
             assert grbynode is None
-            allcols = colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
-            assert not delete_mode
-            if update_mode:
-                # Without `materialize`, when an update is applied to a view,
-                # `rowsnode.execute()` will merge the rowindex implied by
-                # `rowsnode` with its parent's rowindex. This will cause the
-                # parent's data to be updated, which is wrong.
-                dt.materialize()
-                if isinstance(replacement, (int, float, str, type(None))):
-                    replacement = datatable.Frame([replacement])
-                    if allrows:
-                        replacement = datatable.repeat(replacement, dt.nrows)
-                elif isinstance(replacement, datatable.Frame):
-                    pass
-                elif isinstance(replacement, BaseExpr):
-                    _col = replacement.evaluate_eager(ee)
-                    _colset = core.columns_from_columns([_col])
-                    replacement = _colset.to_frame(None)
-                else:
-                    replacement = datatable.Frame(replacement)
-                rowsnode.execute()
-                colsnode.execute_update(dt, replacement)
-                return
+            # Without `materialize`, when an update is applied to a view,
+            # `rowsnode.execute()` will merge the rowindex implied by
+            # `rowsnode` with its parent's rowindex. This will cause the
+            # parent's data to be updated, which is wrong.
+            dt.materialize()
+            if isinstance(replacement, (int, float, str, type(None))):
+                replacement = datatable.Frame([replacement])
+                if allrows:
+                    replacement = datatable.repeat(replacement, dt.nrows)
+            elif isinstance(replacement, datatable.Frame):
+                pass
+            elif isinstance(replacement, BaseExpr):
+                _col = replacement.evaluate_eager(ee)
+                _colset = core.columns_from_columns([_col])
+                replacement = _colset.to_frame(None)
+            else:
+                replacement = datatable.Frame(replacement)
+            rowsnode.execute()
+            colsnode.execute_update(dt, replacement)
+            return
 
         rowsnode.execute()
         if grbynode:

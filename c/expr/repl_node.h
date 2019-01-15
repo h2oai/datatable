@@ -33,7 +33,7 @@ using repl_node_ptr = std::unique_ptr<repl_node>;
 class repl_node {
   public:
     virtual ~repl_node();
-    static repl_node_ptr make(py::oobj src);
+    static repl_node_ptr make(py::oobj src, workframe&);
 };
 
 

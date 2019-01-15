@@ -365,6 +365,7 @@ public:
   bool is_fixedwidth() const override;
   virtual void reify() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
 
 protected:
