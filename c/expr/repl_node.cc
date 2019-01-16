@@ -428,9 +428,27 @@ void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
-void exprlist_rn::replace_columns(workframe&, const intvec&) const {
-  throw NotImplError() << "exprlist_rn::replace_columns()";
+void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
+  DataTable* dt0 = wf.get_datatable(0);
+  size_t lcols = indices.size();
+  size_t rcols = exprs.size();
+  xassert(lcols == rcols || rcols == 1);
+
+  for (auto& expr : exprs) {
+    expr->resolve(wf);
+  }
+
+  for (size_t i = 0; i < lcols; ++i) {
+    size_t j = indices[i];
+    Column* col = i < rcols? exprs[i]->evaluate_eager(wf)
+                           : dt0->columns[indices[0]]->shallowcopy();
+    xassert(col->nrows == dt0->nrows);
+    delete dt0->columns[j];
+    dt0->columns[j] = col;
+  }
 }
+
+
 void exprlist_rn::replace_values(workframe&, const intvec&) const {
   throw NotImplError() << "exprlist_rn::replace_values()";
 }
