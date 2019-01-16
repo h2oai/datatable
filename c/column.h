@@ -118,6 +118,7 @@ public:
   virtual SType stype() const noexcept = 0;
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
+  LType ltype() const noexcept { return info(stype()).ltype(); }
 
   const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
@@ -149,6 +150,7 @@ public:
    * column.
    */
   virtual void resize_and_fill(size_t nrows) = 0;
+  Column* repeat(size_t nreps);
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
@@ -365,6 +367,7 @@ public:
   bool is_fixedwidth() const override;
   virtual void reify() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
 
 protected:

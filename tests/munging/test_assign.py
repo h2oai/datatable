@@ -14,10 +14,10 @@ def test_assign_column_slice():
     src = [[1, 5, 10, 100], [7.3, 14, -2, 1.2e5], ["foo", None, None, "g"]]
     f0 = dt.Frame(src)
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
-    f0[:, 1:] = -1
+    f0[:, :-1] = -1
     assert f0.shape == (4, 3)
-    assert f0.to_list() == [src[0], [-1] * 4, [-1] * 4]
-    assert f0.ltypes == (dt.ltype.int, ) * 3
+    assert f0.to_list() == [[-1] * 4, [-1.0] * 4, src[2]]
+    assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
 
 
 def test_assign_column_array():
@@ -30,11 +30,12 @@ def test_assign_column_array():
     f0[:, "C"] = "foo"
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     assert f0.to_list() == [list(range(10)), [3.5] * 10, ["foo"] * 10]
-    f0[:, ["B", "C"]] = False
-    assert f0.ltypes == (dt.ltype.int, dt.ltype.bool, dt.ltype.bool)
-    assert f0.to_list() == [list(range(10)), [False] * 10, [False] * 10]
+    f0[:, ["B", "A"]] = False
+    assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
+    assert f0.to_list() == [[0] * 10, [0.0] * 10, ["foo"] * 10]
     f0[:, "A"] = None
-    assert f0.ltypes == (dt.ltype.bool,) * 3
+    assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
+    assert f0.to_list() == [[None] * 10, [0.0] * 10, ["foo"] * 10]
 
 
 def test_assign_single_cell():

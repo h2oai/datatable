@@ -167,7 +167,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   wf.add_j(targs[1]);
 
   if (wf.get_mode() == dt::EvalMode::UPDATE) {
-    return _fallback_getset(item, value);
+    wf.add_replace(value);
   }
 
   wf.evaluate();
@@ -175,38 +175,6 @@ oobj Frame::_main_getset(robj item, robj value) {
     _clear_types();
   }
   return wf.get_result();
-}
-
-
-oobj Frame::_fallback_getset(robj item, robj value) {
-  odict kwargs;
-  otuple args(5);
-  args.set(0, py::robj(this));
-  if (item.is_tuple()) {
-    otuple argslist = item.to_otuple();
-    size_t n = argslist.size();
-    if (n >= 2) {
-      args.set(1, argslist[0]);
-      args.set(2, argslist[1]);
-      if (n == 3) {
-        args.set(3, argslist[2]);
-      } else if (n >= 4) {
-        throw ValueError() << "Selector " << item << " is not supported";
-      }
-    } else {
-      throw ValueError() << "Invalid selector " << item;
-    }
-  }
-  if (!args[3]) args.set(3, py::None());
-  if (!args[4]) args.set(4, py::None());
-  if (value == GETITEM) {}
-  else if (value) {
-    kwargs.set(ostring("mode"), ostring("update"));
-    kwargs.set(ostring("replacement"), value);
-  } else {
-    kwargs.set(ostring("mode"), ostring("delete"));
-  }
-  return robj(py::fallback_makedatatable).call(args, kwargs);
 }
 
 

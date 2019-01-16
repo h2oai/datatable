@@ -75,6 +75,12 @@ void workframe::add_j(py::oobj oj) {
 }
 
 
+void workframe::add_replace(py::oobj obj) {
+  xassert(!repl);
+  repl = repl_node::make(*this, obj);
+}
+
+
 void workframe::evaluate() {
   // Compute joins
   DataTable* xdt = frames[0].dt;
@@ -106,7 +112,7 @@ void workframe::evaluate() {
       break;
 
     case EvalMode::UPDATE:
-      jexpr->update(*this);
+      jexpr->update(*this, repl.get());
       break;
   }
 }

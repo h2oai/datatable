@@ -26,6 +26,7 @@
 #include "expr/i_node.h"     // i_node_ptr
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
+#include "expr/repl_node.h"  // repl_node_ptr
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
@@ -70,12 +71,13 @@ enum class EvalMode : uint8_t {
  */
 class workframe {
   private:
-    frvec       frames;
-    by_node_ptr by_node;
-    i_node_ptr  iexpr;
-    j_node_ptr  jexpr;
-    EvalMode    mode;
-    GroupbyMode groupby_mode;
+    frvec         frames;
+    by_node_ptr   by_node;
+    i_node_ptr    iexpr;
+    j_node_ptr    jexpr;
+    repl_node_ptr repl;
+    EvalMode      mode;
+    GroupbyMode   groupby_mode;
     size_t : 48;
 
     // Result
@@ -98,6 +100,7 @@ class workframe {
     void add_groupby(py::oby);
     void add_i(py::oobj);
     void add_j(py::oobj);
+    void add_replace(py::oobj);
 
     void evaluate();
     py::oobj get_result();

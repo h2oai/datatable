@@ -116,6 +116,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- The primary datatable expression `DT[i, j, ...]` is now evaluated entirely
+  in C++, improving performance and reliability.
+
 - Setting `frame.nrows` now always pads the Frame with NAs, even if the Frame
   has only 1 row. Previously changing `.nrows` on a 1-row Frame caused its
   value to be repeated. Use `frame.repeat()` in order to expand the Frame
@@ -127,6 +130,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - When no columns are selected in `DT[i, j]`, the returned frame will now
   have the same number of rows as if at least 1 column was selected. Previously
   an empty [0 x 0] frame was returned.
+
+- It is no longer possible to assign a value of an incompatible logical type to
+  an existing column. For example, an assignment `DT[:, 'A'] = 3` is now legal
+  only if column A is of integer or real type, but will raise an exception if A
+  is a boolean or string. With this change, logical types of existing columns
+  are always preserved.
 
 
 ### Deprecated

@@ -293,34 +293,37 @@ void FwColumn<T>::fill_na() {
 
 
 template <typename T>
+void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
+  T* data = elements_w();  // This will materialize the column if necessary
+  replace_at.iterate(0, replace_at.size(), 1,
+    [&](size_t, size_t j) {
+      data[j] = replace_with;
+    });
+  if (stats) stats->reset();
+}
+
+
+template <typename T>
 void FwColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
   reify();
   if (!replace_with) {
-    T* data_dest = elements_w();
-    replace_at.iterate(0, replace_at.size(), 1,
-      [&](size_t, size_t j) {
-        xassert(j != RowIndex::NA);
-        data_dest[j] = GETNA<T>();
-      });
-    return;
+    return replace_values(replace_at, GETNA<T>());
   }
   if (replace_with->stype() != stype()) {
     replace_with = replace_with->cast(stype());
   }
 
-  size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(replace_with->data());
-  T* data_dest = elements_w();
   if (replace_with->nrows == 1) {
-    T value = *data_src;
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t, size_t j) {
-        xassert(j != RowIndex::NA);
-        data_dest[j] = value;
-      });
-  } else {
+    auto rcol = dynamic_cast<const FwColumn<T>*>(replace_with);
+    xassert(rcol);
+    replace_values(replace_at, rcol->get_elem(0));
+  }
+  else {
+    size_t replace_n = replace_at.size();
+    const T* data_src = static_cast<const T*>(replace_with->data());
+    T* data_dest = elements_w();
     xassert(replace_with->nrows == replace_n);
     replace_at.iterate(0, replace_n, 1,
       [&](size_t i, size_t j) {

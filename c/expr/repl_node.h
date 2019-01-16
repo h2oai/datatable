@@ -19,31 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_J_NODE_h
-#define dt_EXPR_J_NODE_h
+#ifndef dt_EXPR_REPL_NODE_h
+#define dt_EXPR_REPL_NODE_h
+#include <memory>
+#include "python/obj.h"
 namespace dt {
 
 
-class j_node;
 class repl_node;
-class workframe;
-using j_node_ptr = std::unique_ptr<dt::j_node>;
+using repl_node_ptr = std::unique_ptr<repl_node>;
 
-/**
- * This class handles the `j` part of the `DT[i, j, ...]` expression.
- */
-class j_node {
+
+class repl_node {
   public:
-    static j_node_ptr make(py::robj src, workframe& wf);
+    virtual ~repl_node();
+    static repl_node_ptr make(workframe& wf, py::oobj src);
 
-    virtual ~j_node();
-    virtual GroupbyMode get_groupby_mode(workframe&) = 0;
-    virtual void select(workframe&) = 0;
-    virtual void delete_(workframe&) = 0;
-    virtual void update(workframe&, repl_node*) = 0;
+    /**
+     * Check whether this replacement node is valid for replacing a rectangular
+     * subset of data of shape [lrows x lcols]. If valid, this function simply
+     * returns, otherwise an exception is raised.
+     */
+    virtual void check_compatibility(size_t lrows, size_t lcols) const = 0;
+
+    /**
+     * Replace the columns of `dt0` (taken from the workframe) at indices
+     * `ind` with the values from this replacement node. The columns are
+     * replaced as whole.
+     *
+     * This method is used when `ri0` from the workframe is empty (meaning
+     * all rows should be used).
+     */
+    virtual void replace_columns(workframe& wf, const intvec& ind) const = 0;
+
+    /**
+     * Replace the values in `dt0[ri0, ind]` with the values from this
+     * replacement node. Thus, only a subset of data in the Frame will be
+     * modified. Here `dt0` and `ri0` are taken from the workframe.
+     *
+     * This method is used when `ri0` is not empty.
+     */
+    virtual void replace_values(workframe&, const intvec&) const = 0;
 };
 
 
 
-}  // namespace dt
+}
 #endif

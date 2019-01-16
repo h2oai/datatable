@@ -90,20 +90,6 @@ class Frame(core.Frame):
         return res
 
 
-    def _delete_columns(self, cols):
-        # `cols` must be a sorted list of positive integer indices
-        if not cols:
-            return
-        old_ncols = self.ncols
-        self._dt.delete_columns(cols)
-        assert self.ncols == old_ncols - len(cols)
-        newnames = self.names[:cols[0]]
-        for i in range(1, len(cols)):
-            newnames += self.names[(cols[i - 1] + 1):cols[i]]
-        newnames += self.names[cols[-1] + 1:]
-        self.names = newnames
-
-
     # Methods defined externally
     append = _rbind
     rbind = _rbind
