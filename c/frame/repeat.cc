@@ -57,23 +57,23 @@ static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
 }
 
 
-static Column* repeat_column(const Column* col, size_t nreps) {
-  size_t elemsize = col->elemsize();
-  size_t nrows = col->nrows;
+Column* Column::repeat(size_t nreps) {
+  xassert(is_fixedwidth());
+  xassert(!ri);
+  size_t esize = elemsize();
   size_t new_nrows = nrows * nreps;
-  xassert(!col->rowindex());
 
-  Column* newcol = Column::new_data_column(col->stype(), new_nrows);
-  const void* olddata = col->data();
+  Column* newcol = Column::new_data_column(stype(), new_nrows);
+  const void* olddata = data();
   void* newdata = newcol->data_w();
 
-  std::memcpy(newdata, olddata, nrows * elemsize);
+  std::memcpy(newdata, olddata, nrows * esize);
   size_t nrows_filled = nrows;
   while (nrows_filled < new_nrows) {
     size_t nrows_copy = std::min(new_nrows - nrows_filled, nrows_filled);
-    std::memcpy(static_cast<char*>(newdata) + nrows_filled * elemsize,
+    std::memcpy(static_cast<char*>(newdata) + nrows_filled * esize,
                 newdata,
-                nrows_copy * elemsize);
+                nrows_copy * esize);
     nrows_filled += nrows_copy;
     xassert(nrows_filled % nrows == 0);
   }
@@ -115,14 +115,16 @@ This is equivalent to ``dt.rbind([self] * n)``.
       !info(col0->stype()).is_varwidth() &&
       !col0->rowindex())
   {
-    Column* newcol = repeat_column(col0, n);
+    Column* newcol = col0->repeat(n);
     DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
     return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
   }
 
-  RowIndex ri = (dt->nrows * n < std::numeric_limits<int32_t>::max())
-      ? _make_repeat_rowindex<int32_t>(dt->nrows, n)
-      : _make_repeat_rowindex<int64_t>(dt->nrows, n);
+  constexpr size_t MAX32 = std::numeric_limits<int32_t>::max();
+  size_t nn = dt->nrows * n;
+  RowIndex ri = nn == n    ? RowIndex(size_t(0), n, 0) :
+                nn < MAX32 ? _make_repeat_rowindex<int32_t>(dt->nrows, n)
+                           : _make_repeat_rowindex<int64_t>(dt->nrows, n);
 
   DataTable* newdt = apply_rowindex(dt, ri);
   return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
