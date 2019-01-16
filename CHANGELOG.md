@@ -125,6 +125,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   have the same number of rows as if at least 1 column was selected. Previously
   an empty [0 x 0] frame was returned.
 
+- It is no longer possible to assign of an incompatible logical type to an
+  existing column. For example, an assignment `DT[:, 'A'] = 3` is now legal only
+  if column A is of integer or real type, but will raise an exception if A is
+  a boolean or string. With this change, logical types of existing columns are
+  always preserved.
+
 
 ### Deprecated
 

@@ -111,7 +111,7 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
 using colptr = std::unique_ptr<Column>;
 struct EnumClassHash {
   template <typename T>
-  size_t operator()(T t) const { return static_cast<size_t>(t); }
+  size_t operator()(T t) const noexcept { return static_cast<size_t>(t); }
 };
 
 class scalar_rn : public repl_node {
@@ -121,18 +121,19 @@ class scalar_rn : public repl_node {
     void replace_values(workframe&, const intvec&) const override;
 
   protected:
+    void check_column_types(const DataTable*, const intvec&) const;
     virtual const char* value_type() const noexcept = 0;
     virtual bool valid_ltype(LType lt) const noexcept = 0;
     virtual colptr make_column(SType st, size_t nrows) const = 0;
 };
 
+
 void scalar_rn::check_compatibility(size_t, size_t) const {}
 
 
-void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
-
-  // Check types of all columns beforehand
+void scalar_rn::check_column_types(
+  const DataTable* dt0, const intvec& indices) const
+{
   for (size_t j : indices) {
     Column* col = dt0->columns[j];
     if (col && !valid_ltype(col->ltype())) {
@@ -141,6 +142,12 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
         << "` of type " << col->stype();
     }
   }
+}
+
+
+void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
+  DataTable* dt0 = wf.get_datatable(0);
+  check_column_types(dt0, indices);
 
   std::unordered_map<SType, colptr, EnumClassHash> new_columns;
   for (size_t j : indices) {
@@ -155,8 +162,21 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
 }
 
 
-void scalar_rn::replace_values(workframe&, const intvec&) const {
-  throw NotImplError() << "scalar_rn::replace_values()";
+void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  check_column_types(dt0, indices);
+
+  for (size_t j : indices) {
+    Column* col = dt0->columns[j];
+    SType st = col? col->stype() : SType::VOID;
+    colptr replcol = make_column(st, 1);
+    if (!col) {
+      col = Column::new_na_column(st, dt0->nrows);
+      dt0->columns[j] = col;
+    }
+    col->replace_values(ri0, replcol.get());
+  }
 }
 
 
