@@ -177,6 +177,7 @@ void Ftrl::m__dealloc__() {
   Py_XDECREF(py_labels);
   if (dtft != nullptr) {
     delete dtft;
+    dtft = nullptr;
   }
 }
 
