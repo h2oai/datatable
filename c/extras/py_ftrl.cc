@@ -65,8 +65,8 @@ static onamedtupletype& _get_params_namedtupletype() {
 
 
 void Ftrl::m__init__(PKArgs& args) {
-  dt::FtrlParams dt_params = dt::Ftrl::default_params;
   dtft = nullptr;
+  dt::FtrlParams dt_params = dt::Ftrl::default_params;
 
   bool defined_params   = !args[0].is_none_or_undefined();
   bool defined_labels   = !args[1].is_none_or_undefined();
@@ -153,8 +153,8 @@ void Ftrl::m__init__(PKArgs& args) {
   }
 
   dtft = new std::vector<dtftptr>;
-  reg_type = RegType::NONE;
   init_dtft(dt_params);
+  reg_type = RegType::NONE;
 }
 
 
