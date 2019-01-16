@@ -195,7 +195,7 @@ inline static VT op_div(LT x, RT y) {
   VT vx = static_cast<VT>(x);
   VT vy = static_cast<VT>(y);
   VT res = vx / vy;
-  if ((vx < 0) != (vy < 0) && vx != res * vy) {
+  if (std::is_integral<VT>::value && (vx < 0) != (vy < 0) && vx != res * vy) {
     --res;
   }
   return res;

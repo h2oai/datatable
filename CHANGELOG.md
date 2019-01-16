@@ -113,6 +113,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - A string column produced from a partial join now materializes correctly
   (#1556).
 
+- Fixed incorrect result during "true division" of integer columns, when one
+  of the values was negative and the other positive (#1562).
+
 
 ### Changed
 
@@ -171,7 +174,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1542, #1551),
-  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556),
+  [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451),
   [CarlosThinkBig][] (#1475),
