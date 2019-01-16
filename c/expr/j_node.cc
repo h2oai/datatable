@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <numeric>            // std::iota
 #include "expr/base_expr.h"
 #include "expr/collist.h"
 #include "expr/j_node.h"
@@ -63,6 +64,7 @@ class allcols_jn : public j_node {
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
+    void update(workframe&, repl_node*) override;
 };
 
 
@@ -94,6 +96,23 @@ void allcols_jn::delete_(workframe& wf) {
     dt0->apply_rowindex(ri_neg);
   } else {
     dt0->delete_all();
+  }
+}
+
+
+void allcols_jn::update(workframe& wf, repl_node* repl) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  size_t ncols = dt0->ncols;
+  size_t nrows = ri0? ri0.size() : dt0->nrows;
+  repl->check_compatibility(ncols, nrows);
+
+  std::vector<size_t> indices(ncols);
+  std::iota(indices.begin(), indices.end(), 0);
+  if (ri0) {
+    repl->replace_values(wf, indices);
+  } else {
+    repl->replace_columns(wf, indices);
   }
 }
 
@@ -190,7 +209,34 @@ void collist_jn::_init_names(workframe& wf) {
 
 
 void collist_jn::update(workframe& wf, repl_node* repl) {
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  size_t lcols = indices.size();
+  size_t lrows = ri0? ri0.size() : dt0->nrows;
+  repl->check_compatibility(lcols, lrows);
 
+  size_t num_new_columns = 0;
+  for (size_t j : indices) {
+    num_new_columns += (j == size_t(-1));
+  }
+  if (num_new_columns) {
+    strvec new_names = dt0->get_names();  // copy names
+    new_names.reserve(dt0->ncols + num_new_columns);
+    dt0->columns.resize(dt0->ncols + num_new_columns);
+    for (size_t i = 0; i < indices.size(); ++i) {
+      if (indices[i] == size_t(-1)) {
+        indices[i] = dt0->ncols++;
+        new_names.push_back(names[i]);
+      }
+    }
+    dt0->set_names(new_names);
+  }
+
+  if (ri0) {
+    repl->replace_values(wf, indices);
+  } else {
+    repl->replace_columns(wf, indices);
+  }
 }
 
 
@@ -303,9 +349,6 @@ j_node_ptr j_node::make(py::robj src, workframe& wf) {
 
 j_node::~j_node() {}
 
-void j_node::update(workframe&, repl_node*) {
-  throw NotImplError();
-}
 
 
 

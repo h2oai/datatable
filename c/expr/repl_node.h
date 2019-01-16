@@ -33,9 +33,34 @@ using repl_node_ptr = std::unique_ptr<repl_node>;
 class repl_node {
   public:
     virtual ~repl_node();
-    static repl_node_ptr make(py::oobj src, workframe&);
-};
+    static repl_node_ptr make(workframe& wf, py::oobj src);
 
+    /**
+     * Check whether this replacement node is valid for replacing a rectangular
+     * subset of data of shape [lrows x lcols]. If valid, this function simply
+     * returns, otherwise an exception is raised.
+     */
+    virtual void check_compatibility(size_t lrows, size_t lcols) const = 0;
+
+    /**
+     * Replace the columns of `dt0` (taken from the workframe) at indices
+     * `ind` with the values from this replacement node. The columns are
+     * replaced as whole.
+     *
+     * This method is used when `ri0` from the workframe is empty (meaning
+     * all rows should be used).
+     */
+    virtual void replace_columns(workframe& wf, const intvec& ind) const = 0;
+
+    /**
+     * Replace the values in `dt0[ri0, ind]` with the values from this
+     * replacement node. Thus, only a subset of data in the Frame will be
+     * modified. Here `dt0` and `ri0` are taken from the workframe.
+     *
+     * This method is used when `ri0` is not empty.
+     */
+    virtual void replace_values(workframe&, const intvec&) const = 0;
+};
 
 
 

@@ -40,7 +40,7 @@ class j_node {
     virtual GroupbyMode get_groupby_mode(workframe&) = 0;
     virtual void select(workframe&) = 0;
     virtual void delete_(workframe&) = 0;
-    virtual void update(workframe&, repl_node*);
+    virtual void update(workframe&, repl_node*) = 0;
 };
 
 

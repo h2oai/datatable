@@ -77,7 +77,7 @@ void workframe::add_j(py::oobj oj) {
 
 void workframe::add_replace(py::oobj obj) {
   xassert(!repl);
-  repl = repl_node::make(obj, *this);
+  repl = repl_node::make(*this, obj);
 }
 
 

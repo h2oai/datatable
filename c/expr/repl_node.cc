@@ -31,24 +31,67 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 class frame_rn : public repl_node {
-  DataTable* dt;
+  DataTable* dtr;
 
   public:
-    frame_rn(DataTable* dt_) : dt(dt_) {}
-    void check_compatibility(size_t lrows, size_t lcols) const;
+    frame_rn(DataTable* dt_) : dtr(dt_) {}
+    void check_compatibility(size_t lrows, size_t lcols) const override;
+    void replace_columns(workframe&, const intvec&) const override;
+    void replace_values(workframe&, const intvec&) const override;
 };
 
 
 void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
-  size_t rrows = dt->nrows;
-  size_t rcols = dt->ncols;
+  size_t rrows = dtr->nrows;
+  size_t rcols = dtr->ncols;
   if ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1)) return;
   if (rcols == 0 && lcols == 0 && rrows == 0) return;
   throw ValueError() << "Invalid replacement Frame: expected [" <<
       lrows << " x " << lcols << "], but received [" << rrows <<
       " x " << rcols << "]";
-
 }
+
+
+void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
+  size_t rcols = dtr->ncols;
+  size_t rrows = dtr->nrows;
+  if (rcols == 0) return;
+
+  DataTable* dt0 = wf.get_datatable(0);
+  size_t lcols = indices.size();
+  size_t lrows = dt0->nrows;
+
+  if (rcols == 1) {
+    Column* col0 = dtr->columns[0]->shallowcopy();
+    if (rrows == 1) {
+      col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+    }
+    xassert(col0->nrows == lrows);
+    for (size_t j : indices) {
+      delete dt0->columns[j];
+      dt0->columns[j] = col0->shallowcopy();
+    }
+    delete col0;
+  }
+  else {
+    xassert(rcols == lcols);  // enforced in `check_compatibility()`
+    for (size_t i = 0; i < lcols; ++i) {
+      size_t j = indices[i];
+      Column* coli = dtr->columns[i]->shallowcopy();
+      if (rrows == 1) {
+        coli->resize_and_fill(lrows);
+      }
+      delete dt0->columns[j];
+      dt0->columns[j] = coli;
+    }
+  }
+}
+
+
+void frame_rn::replace_values(workframe&, const intvec&) const {
+  throw NotImplError();
+}
+
 
 
 
@@ -56,11 +99,28 @@ void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
 // scalar_rn
 //------------------------------------------------------------------------------
 
-class scalar_na_rn : public repl_node {
+class scalar_rn : public repl_node {
+  public:
+    void check_compatibility(size_t lrows, size_t lcols) const override;
+    void replace_columns(workframe&, const intvec&) const override;
+    void replace_values(workframe&, const intvec&) const override;
+};
+
+void scalar_rn::check_compatibility(size_t, size_t) const {}
+
+void scalar_rn::replace_columns(workframe&, const intvec&) const {
+  throw NotImplError();
+}
+void scalar_rn::replace_values(workframe&, const intvec&) const {
+  throw NotImplError();
+}
+
+
+class scalar_na_rn : public scalar_rn {
 };
 
 
-class scalar_int_rn : public repl_node {
+class scalar_int_rn : public scalar_rn {
   int64_t value;
 
   public:
@@ -68,7 +128,7 @@ class scalar_int_rn : public repl_node {
 };
 
 
-class scalar_float_rn : public repl_node {
+class scalar_float_rn : public scalar_rn {
   double value;
 
   public:
@@ -76,7 +136,7 @@ class scalar_float_rn : public repl_node {
 };
 
 
-class scalar_string_rn : public repl_node {
+class scalar_string_rn : public scalar_rn {
   std::string value;
 
   public:
@@ -95,7 +155,27 @@ class collist_rn : public repl_node {
 
   public:
     collist_rn(cols_intlist* cl) : indices(std::move(cl->indices)) {}
+    void check_compatibility(size_t lrows, size_t lcols) const override;
+    void replace_columns(workframe&, const intvec&) const override;
+    void replace_values(workframe&, const intvec&) const override;
 };
+
+
+void collist_rn::check_compatibility(size_t, size_t lcols) const {
+  size_t rcols = indices.size();
+  if (rcols == 1 || rcols == lcols) return;
+  throw ValueError() << "Cannot replace "
+      << lcols << " column" << (lcols==1? "s" : "") << " with"
+      << rcols << " column" << (rcols==1? "s" : "");
+}
+
+
+void collist_rn::replace_columns(workframe&, const intvec&) const {
+  throw NotImplError();
+}
+void collist_rn::replace_values(workframe&, const intvec&) const {
+  throw NotImplError();
+}
 
 
 
@@ -109,7 +189,27 @@ class exprlist_rn : public repl_node {
 
   public:
     exprlist_rn(cols_exprlist* cl) : exprs(std::move(cl->exprs)) {}
+    void check_compatibility(size_t lrows, size_t lcols) const override;
+    void replace_columns(workframe&, const intvec&) const override;
+    void replace_values(workframe&, const intvec&) const override;
 };
+
+
+void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
+  size_t rcols = exprs.size();
+  if (rcols == 1 || rcols == lcols) return;
+  throw ValueError() << "Cannot replace "
+      << lcols << " column" << (lcols==1? "s" : "") << " with"
+      << rcols << " column" << (rcols==1? "s" : "");
+}
+
+
+void exprlist_rn::replace_columns(workframe&, const intvec&) const {
+  throw NotImplError();
+}
+void exprlist_rn::replace_values(workframe&, const intvec&) const {
+  throw NotImplError();
+}
 
 
 
@@ -121,7 +221,7 @@ class exprlist_rn : public repl_node {
 repl_node::~repl_node() {}
 
 
-repl_node_ptr repl_node::make(py::oobj src, workframe& wf) {
+repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   repl_node* res = nullptr;
 
   if (src.is_frame())       res = new frame_rn(src.to_frame());
