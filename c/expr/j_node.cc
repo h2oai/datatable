@@ -105,7 +105,7 @@ void allcols_jn::update(workframe& wf, repl_node* repl) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   size_t ncols = dt0->ncols;
   size_t nrows = ri0? ri0.size() : dt0->nrows;
-  repl->check_compatibility(ncols, nrows);
+  repl->check_compatibility(nrows, ncols);
 
   std::vector<size_t> indices(ncols);
   std::iota(indices.begin(), indices.end(), 0);
@@ -213,7 +213,7 @@ void collist_jn::update(workframe& wf, repl_node* repl) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   size_t lcols = indices.size();
   size_t lrows = ri0? ri0.size() : dt0->nrows;
-  repl->check_compatibility(lcols, lrows);
+  repl->check_compatibility(lrows, lcols);
 
   size_t num_new_columns = 0;
   for (size_t j : indices) {

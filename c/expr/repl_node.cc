@@ -60,36 +60,45 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   DataTable* dt0 = wf.get_datatable(0);
   size_t lcols = indices.size();
   size_t lrows = dt0->nrows;
+  xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
+  Column* col0 = nullptr;
   if (rcols == 1) {
-    Column* col0 = dtr->columns[0]->shallowcopy();
+    col0 = dtr->columns[0]->shallowcopy();
+    // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
       col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
-    xassert(col0->nrows == lrows);
-    for (size_t j : indices) {
-      delete dt0->columns[j];
-      dt0->columns[j] = col0->shallowcopy();
-    }
-    delete col0;
   }
-  else {
-    xassert(rcols == lcols);  // enforced in `check_compatibility()`
-    for (size_t i = 0; i < lcols; ++i) {
-      size_t j = indices[i];
-      Column* coli = dtr->columns[i]->shallowcopy();
-      if (rrows == 1) {
-        coli->resize_and_fill(lrows);
-      }
-      delete dt0->columns[j];
-      dt0->columns[j] = coli;
+  for (size_t i = 0; i < lcols; ++i) {
+    size_t j = indices[i];
+    Column* coli = rcols == 1? col0->shallowcopy()
+                             : dtr->columns[i]->shallowcopy();
+    if (coli->nrows == 1) {
+      coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
+    delete dt0->columns[j];
+    dt0->columns[j] = coli;
   }
+  delete col0;
 }
 
 
-void frame_rn::replace_values(workframe&, const intvec&) const {
-  throw NotImplError();
+void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
+  size_t rcols = dtr->ncols;
+  size_t rrows = dtr->nrows;
+  if (rcols == 0 || rrows == 0) return;
+
+  DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  size_t lcols = indices.size();
+
+  xassert(rcols == 1 || rcols == lcols);
+  for (size_t i = 0; i < lcols; ++i) {
+    size_t j = indices[i];
+    Column* coli = dtr->columns[rcols == 1? 0 : i];
+    dt0->columns[j]->replace_values(ri0, coli);
+  }
 }
 
 
@@ -109,10 +118,10 @@ class scalar_rn : public repl_node {
 void scalar_rn::check_compatibility(size_t, size_t) const {}
 
 void scalar_rn::replace_columns(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "scalar_rn::replace_columns()";
 }
 void scalar_rn::replace_values(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "scalar_rn::replace_values()";
 }
 
 
@@ -171,10 +180,10 @@ void collist_rn::check_compatibility(size_t, size_t lcols) const {
 
 
 void collist_rn::replace_columns(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "collist_rn::replace_columns()";
 }
 void collist_rn::replace_values(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "collist_rn::replace_values()";
 }
 
 
@@ -205,10 +214,10 @@ void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
 
 
 void exprlist_rn::replace_columns(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "exprlist_rn::replace_columns()";
 }
 void exprlist_rn::replace_values(workframe&, const intvec&) const {
-  throw NotImplError();
+  throw NotImplError() << "exprlist_rn::replace_values()";
 }
 
 

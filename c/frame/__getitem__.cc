@@ -168,7 +168,7 @@ oobj Frame::_main_getset(robj item, robj value) {
 
   if (wf.get_mode() == dt::EvalMode::UPDATE) {
     wf.add_replace(value);
-    return _fallback_getset(item, value);
+    // return _fallback_getset(item, value);
   }
 
   wf.evaluate();
