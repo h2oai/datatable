@@ -505,7 +505,7 @@ oobj Ftrl::predict(const PKArgs& args) {
   // For multinomial case, when there is more than two labels,
   // apply `softmax` function. NB: we already applied `std::exp`
   // function to predictions, so only need to normalize probabilities here.
-  if (nlabels > 2) normalize(dt_y);
+  if (nlabels > 2) normalize_rows(dt_y);
 
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
@@ -531,7 +531,7 @@ inline double Ftrl::identity(double x) {
 }
 
 
-void Ftrl::normalize(DataTable* dt) {
+void Ftrl::normalize_rows(DataTable* dt) {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
 
@@ -638,6 +638,7 @@ oobj Ftrl::get_fi() const {
     	// If there is just one classifier, simply return `fi`.
       dt_fi = dtft[0]->get_fi();
     }
+    normalize_col(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
     py::oobj df_fi = py::oobj::from_new_reference(
                        py::Frame::from_datatable(dt_fi)
                      );
@@ -646,6 +647,27 @@ oobj Ftrl::get_fi() const {
   	// If model was not trained, return `None`.
     return py::None();
   }
+}
+
+
+void Ftrl::normalize_col(RealColumn<double>* col) {
+  double max = col->max();
+  double min = col->min();
+  double epsilon = std::numeric_limits<double>::epsilon();
+  double* data = col->elements_w();
+
+  // If min = max, all the values will be normalized to 0.5
+  double norm_factor = 0.0;
+  double norm_shift = 0.5;
+  if (fabs(max - min) > epsilon) {
+    norm_factor = 1 / (max - min);
+    norm_shift = - min * norm_factor;
+  }
+
+  for (size_t i = 0; i < col->nrows; ++i) {
+    data[i] = data[i] * norm_factor + norm_shift;
+  }
+  col->get_stats()->reset();
 }
 
 

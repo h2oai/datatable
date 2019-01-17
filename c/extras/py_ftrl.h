@@ -108,7 +108,10 @@ class Ftrl : public PyObject {
     // Link functions
     static double sigmoid(double);
     static double identity(double);
-    static void normalize(DataTable*);
+    static void normalize_rows(DataTable*);
+
+    // Helper functions
+    static void normalize_col(RealColumn<double>*);
 };
 
 } // namespace py
