@@ -297,7 +297,7 @@ def test_save_strings():
             "\x01\x02\x03\x04\x05\x06\x07", '"""""', None]
     src2 = ["", "empty", "None", None, "   with whitespace ", "with,commas",
             "\twith tabs\t", '"oh-no', "single'quote", "'squoted'",
-            "\0bwahaha!", "?", "here be dragons"]
+            "\x00bwahaha!", "?", "here be dragons"]
     d = dt.Frame([src1, src2], names=["A", "B"])
     assert d.stypes == (stype.str32, stype.str32)
     d.internal.check()
@@ -338,3 +338,18 @@ def test_issue_1278():
     a = f0.to_csv()
     # Header + \n + 2 byte per value (0/1 + sep)
     assert len(a) == len(",".join(f0.names)) + 1 + f0.ncols * f0.nrows * 2
+
+
+def test_save_empty_frame():
+    """
+    Check that empty frame of sizes (0 x 0), (0 x k), or (n x 0) can be
+    written safely without any crashes... See issue #1565
+    """
+    DT = dt.Frame()
+    assert DT.to_csv() == ''
+    DT.nrows = 5
+    assert DT.to_csv() == ''
+    DT[:, "A"] = None
+    assert DT.to_csv() == "A" + "\n" * 6
+    DT.nrows = 0
+    assert DT.to_csv() == "A\n"
