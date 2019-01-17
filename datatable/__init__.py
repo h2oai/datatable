@@ -7,7 +7,8 @@
 from .__version__ import version as __version__
 from .dt_append import rbind, cbind
 from .frame import Frame
-from .expr import mean, min, max, sd, isna, sum, count, first, abs, exp
+from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
+                   log, log10)
 from .fread import fread, GenericReader, FreadWarning
 from .graph import f, g, join, by
 from .lib._datatable import (
@@ -30,7 +31,7 @@ except:
 __all__ = ("__version__", "__git_revision__",
            "Frame", "max", "mean", "min", "open", "sd", "sum", "count", "first",
            "isna", "fread", "GenericReader", "save", "stype", "ltype", "f", "g",
-           "join", "by", "abs", "exp",
+           "join", "by", "abs", "exp", "log", "log10",
            "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
            "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",

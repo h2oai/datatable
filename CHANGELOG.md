@@ -63,6 +63,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Leader) online learning algorithm on a data frame (#1389). The implementation
   is multi-threaded and has high performance.
 
+- Added functions `log` and `log10` for computing the natural and base-10
+  logarithms of a column (#1558).
+
 
 ### Fixed
 

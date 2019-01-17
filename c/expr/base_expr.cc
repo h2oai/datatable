@@ -335,19 +335,23 @@ static void init_unops() {
     unop_rules[id(unop::PLUS, st)] = st;
     unop_rules[id(unop::ABS, st)] = st;
     unop_rules[id(unop::EXP, st)] = flt64;
+    unop_rules[id(unop::LOGE, st)] = flt64;
+    unop_rules[id(unop::LOG10, st)] = flt64;
   }
   unop_rules[id(unop::MINUS, bool8)] = int8;
   unop_rules[id(unop::PLUS, bool8)] = int8;
   unop_rules[id(unop::ABS, bool8)] = int8;
   unop_rules[id(unop::INVERT, bool8)] = bool8;
 
-  unop_names.resize(7);
+  unop_names.resize(1 + id(unop::LOG10));
   unop_names[id(unop::ISNA)]   = "isna";
   unop_names[id(unop::MINUS)]  = "-";
   unop_names[id(unop::PLUS)]   = "+";
   unop_names[id(unop::INVERT)] = "~";
   unop_names[id(unop::ABS)]    = "abs";
   unop_names[id(unop::EXP)]    = "exp";
+  unop_names[id(unop::LOGE)]   = "log";
+  unop_names[id(unop::LOG10)]  = "log10";
 }
 
 

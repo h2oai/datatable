@@ -20,7 +20,7 @@ from datatable.graph.dtproxy import f
 from datatable.lib import core
 import math
 
-__all__ = ("exp",)
+__all__ = ("exp", "log", "log10")
 
 
 def exp(x):
@@ -35,3 +35,31 @@ def exp(x):
         return math.exp(x)
     except OverflowError:
         return math.inf
+
+
+def log(x):
+    if isinstance(x, BaseExpr):
+        return UnaryOpExpr("log", x)
+    if isinstance(x, core.Frame):
+        return x[:, {col: UnaryOpExpr("log", f[col])
+                     for col in x.names}]
+    if x is None or x < 0:
+        return None
+    elif x == 0:
+        return -math.inf
+    else:
+        return math.log(x)
+
+
+def log10(x):
+    if isinstance(x, BaseExpr):
+        return UnaryOpExpr("log10", x)
+    if isinstance(x, core.Frame):
+        return x[:, {col: UnaryOpExpr("log10", f[col])
+                     for col in x.names}]
+    if x is None or x < 0:
+        return None
+    elif x == 0:
+        return -math.inf
+    else:
+        return math.log10(x)

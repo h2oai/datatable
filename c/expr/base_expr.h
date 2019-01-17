@@ -65,6 +65,8 @@ enum class unop : size_t {
   INVERT = 4,
   ABS    = 5,
   EXP    = 6,
+  LOGE   = 7,
+  LOG10  = 8,
 };
 
 

@@ -18,6 +18,8 @@ enum OpCode {
   Invert = 4,
   Abs    = 5,
   Exp    = 6,
+  LogE   = 7,
+  Log10  = 8,
 };
 
 
@@ -73,7 +75,21 @@ inline static T op_abs(T x) {
 
 template <typename T>
 inline static double op_exp(T x) {
-  return ISNA<T>(x) ? GETNA<double>() : exp(static_cast<double>(x));
+  return ISNA<T>(x) ? GETNA<double>() : std::exp(static_cast<double>(x));
+}
+
+
+template <typename T>
+inline static double op_loge(T x) {
+  return ISNA<T>(x) || x < 0 ? GETNA<double>()
+                             : std::log(static_cast<double>(x));
+}
+
+
+template <typename T>
+inline static double op_log10(T x) {
+  return ISNA<T>(x) || x < 0 ? GETNA<double>()
+                             : std::log10(static_cast<double>(x));
 }
 
 
@@ -111,6 +127,8 @@ static mapperfn resolve1(int opcode) {
     case Minus:   return map_n<IT, IT, op_minus<IT>>;
     case Abs:     return map_n<IT, IT, op_abs<IT>>;
     case Exp:     return map_n<IT, double, op_exp<IT>>;
+    case LogE:    return map_n<IT, double, op_loge<IT>>;
+    case Log10:   return map_n<IT, double, op_log10<IT>>;
     case Invert:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
@@ -157,7 +175,8 @@ Column* unaryop(int opcode, Column* arg)
     res_type = SType::BOOL;
   } else if (arg_type == SType::BOOL && opcode == OpCode::Minus) {
     res_type = SType::INT8;
-  } else if (opcode == OpCode::Exp) {
+  } else if (opcode == OpCode::Exp || opcode == OpCode::LogE ||
+             opcode == OpCode::Log10) {
     res_type = SType::FLOAT64;
   }
   void* params[2];
