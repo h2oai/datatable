@@ -119,6 +119,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed incorrect result during "true division" of integer columns, when one
   of the values was negative and the other positive (#1562).
 
+- `Frame.to_csv()` no longer crashes on Unix when writing an empty frame
+  (#1565).
+
 
 ### Changed
 
@@ -182,7 +185,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1542, #1551),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
-  [Jonathan McKinney][] (#1451),
+  [Jonathan McKinney][] (#1451, #1565),
   [CarlosThinkBig][] (#1475),
   [Olivier][] (#1502),
   [Oleksiy Kononenko][] (#1507),

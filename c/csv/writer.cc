@@ -302,18 +302,21 @@ CsvWriter::~CsvWriter()
 
 void CsvWriter::write()
 {
+  OmpExceptionManager oem;
+  checkpoint();
+  size_t nstrcols32 = 0;
+  size_t nstrcols64 = 0;
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
+  if (nrows == 0 || ncols == 0) goto finalize;
+
   determine_chunking_strategy(bytes_total, nrows);
   create_column_writers(ncols);
-  size_t nstrcols32 = strcolumns32.size();
-  size_t nstrcols64 = strcolumns64.size();
-  if (nthreads > nchunks) nthreads = nchunks;
-
-  OmpExceptionManager oem;
+  nstrcols32 = strcolumns32.size();
+  nstrcols64 = strcolumns64.size();
 
   // Start writing the CSV
   #pragma omp parallel num_threads(nthreads)
@@ -412,6 +415,7 @@ void CsvWriter::write()
       oem.capture_exception();
     }
   }
+  finalize:
   oem.rethrow_exception_if_any();
   t_write_data = checkpoint();
 
@@ -535,15 +539,14 @@ void CsvWriter::write_column_names()
  */
 void CsvWriter::determine_chunking_strategy(size_t bytes_total, size_t nrows)
 {
-  static const size_t max_chunk_size = 1024 * 1024;
-  static const size_t min_chunk_size = 1024;
+  xassert(nrows > 0);
+  static constexpr size_t max_chunk_size = 1024 * 1024;
+  static constexpr size_t min_chunk_size = 1024;
 
-  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
-  size_t min_nchunks = nthreads == 1 ? 1 : nthreads*2;
-  nchunks = 1 + (bytes_total - 1) / max_chunk_size;
-  if (nchunks < min_nchunks) nchunks = min_nchunks;
-  int attempts = 5;
-  while (attempts--) {
+  nchunks = std::max(1 + (bytes_total - 1) / max_chunk_size,
+                     nthreads == 1 ? 1 : nthreads*2);
+  const double bytes_per_row = 1.0 * bytes_total / nrows;
+  for (int i = 0; i < 5; ++i) {
     rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
     bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
     if (rows_per_chunk < 1.0) {
@@ -558,6 +561,7 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, size_t nrows)
       nchunks = bytes_total / min_chunk_size;
       if (nchunks < 1) nchunks = 1;
     } else {
+      if (nthreads > nchunks) nthreads = nchunks;
       return;
     }
   }
@@ -581,7 +585,7 @@ void CsvWriter::create_column_writers(size_t ncols)
   columns.reserve(ncols);
   writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
   writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     Column* dtcol = dt->columns[i];
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
