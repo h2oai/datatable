@@ -261,3 +261,22 @@ def test_groupby_multi_large(seed):
     DT1 = DT0[:, sum(f.D), by(f.A, f.B, f.C)]
     DT2 = dt.Frame(grouped)
     assert same_iterables(DT1.to_list(), DT2.to_list())
+
+
+def test_groupby_on_view():
+    # See issue #1542
+    DT = dt.Frame(A=[1, 2, 3, 1, 2, 3],
+                  B=[3, 6, 2, 4, 3, 1],
+                  C=['b', 'd', 'b', 'b', 'd', 'b'])
+    V = DT[f.A != 1, :]
+    assert V.internal.isview
+    assert V.shape == (4, 3)
+    assert V.to_dict() == {'A': [2, 3, 2, 3],
+                           'B': [6, 2, 3, 1],
+                           'C': ['d', 'b', 'd', 'b']}
+    RES = V[:, max(f.B), by(f.C)]
+    assert RES.shape == (2, 2)
+    assert RES.to_dict() == {'C': ['b', 'd'],
+                             'C0': [2, 6]}
+
+

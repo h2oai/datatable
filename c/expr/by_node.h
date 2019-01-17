@@ -23,12 +23,46 @@
 #define dt_EXPR_BY_NODE_h
 #include "python/ext_type.h"
 #include "python/obj.h"
+#include "datatable.h"
+#include "groupby.h"         // Groupby
 
-namespace py {
+namespace dt
+{
+class workframe;
+class by_node;
+using by_node_ptr = std::unique_ptr<dt::by_node>;
+
+enum class GroupbyMode : uint8_t {
+  NONE   = 0,
+  GtoONE = 1,
+  GtoALL = 2,
+  GtoANY = 3
+};
+
+
+//------------------------------------------------------------------------------
+// dt::by_node
+//------------------------------------------------------------------------------
+
+class by_node {
+  public:
+    Groupby gb;
+
+    virtual ~by_node();
+    virtual void execute(workframe&) = 0;
+    virtual bool has_column(size_t i) const = 0;
+
+    virtual void create_columns(workframe&) = 0;
+};
 
 
 
-class oby : public oobj
+}
+//------------------------------------------------------------------------------
+// py::oby
+//------------------------------------------------------------------------------
+
+class py::oby : public oobj
 {
   class pyobj : public PyObject {
     public:
@@ -62,6 +96,8 @@ class oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
+    dt::by_node_ptr to_by_node(dt::workframe&) const;
+
   private:
     // This private constructor will reinterpret the object `r` as an
     // `oby` object. This constructor does not create any new python objects,
@@ -73,5 +109,4 @@ class oby : public oobj
 
 
 
-}  // namespace py
 #endif

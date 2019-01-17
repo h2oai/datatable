@@ -63,6 +63,9 @@ class Aggregator {
     bool random_sampling(dtptr&, size_t, size_t);
     void aggregate_exemplars(DataTable*, dtptr&, bool);
 
+    // Methods for modular quasi-random generator
+    static void fill_coprimes(size_t, std::vector<size_t>&);
+
     // Helper methods
     size_t get_nthreads(const dtptr&);
     doubleptr generate_pmatrix(const dtptr&);

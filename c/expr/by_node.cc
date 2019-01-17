@@ -20,15 +20,132 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/by_node.h"
+#include "expr/collist.h"
+#include "expr/py_expr.h"
 #include "python/arg.h"
 #include "python/tuple.h"
+#include "utils/exceptions.h"
+
+
+//------------------------------------------------------------------------------
+// dt::by_node
+//------------------------------------------------------------------------------
+namespace dt {
+
+
+by_node::~by_node() {}
+
+
+
+
+//------------------------------------------------------------------------------
+// dt::collist_bn
+//------------------------------------------------------------------------------
+
+class collist_bn : public by_node {
+  intvec indices;
+  strvec names;
+
+  public:
+    collist_bn(cols_intlist* cl);
+    void execute(workframe& wf) override;
+    bool has_column(size_t i) const override;
+    void create_columns(workframe&) override;
+};
+
+
+collist_bn::collist_bn(cols_intlist* cl)
+  : indices(std::move(cl->indices)), names(std::move(cl->names)) {}
+
+
+void collist_bn::execute(workframe& wf) {
+  const DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    throw NotImplError();
+  }
+  std::vector<sort_spec> spec;
+  for (size_t i : indices) {
+    spec.push_back(sort_spec(i));
+  }
+  auto res = dt0->group(spec);
+  gb = std::move(res.second);
+  wf.apply_rowindex(res.first);
+}
+
+
+bool collist_bn::has_column(size_t i) const {
+  return std::find(indices.begin(), indices.end(), i) != indices.end();
+}
+
+
+void collist_bn::create_columns(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  if (names.empty()) {
+    auto dt0_names = dt0->get_names();
+    for (size_t i : indices) {
+      names.push_back(dt0_names[i]);
+    }
+  }
+  RowIndex ri0 = wf.get_rowindex(0);
+  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
+    ri0 = RowIndex(arr32_t(gb.ngroups(), gb.offsets_r()), true) * ri0;
+  }
+
+  size_t n = indices.size();
+  for (size_t i = 0; i < n; ++i) {
+    size_t j = indices[i];
+    Column* colj = dt0->columns[j]->shallowcopy();
+    wf.add_column(colj, ri0, std::move(names[i]));
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// dt::exprlist_bn
+//------------------------------------------------------------------------------
+
+class exprlist_bn : public by_node {
+  exprvec exprs;
+  strvec names;
+
+  public:
+    exprlist_bn(cols_exprlist*);
+    void execute(workframe& wf) override;
+    bool has_column(size_t i) const override;
+    void create_columns(workframe&) override;
+};
+
+
+exprlist_bn::exprlist_bn(cols_exprlist* cl)
+  : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
+
+
+void exprlist_bn::execute(workframe&) {
+  throw NotImplError();
+}
+
+
+bool exprlist_bn::has_column(size_t) const {
+  return false;
+}
+
+
+void exprlist_bn::create_columns(workframe&) {
+  throw NotImplError();
+}
+
+
+
+
+}  // namespace dt
+//------------------------------------------------------------------------------
+// py::oby::pyobj::Type
+//------------------------------------------------------------------------------
 namespace py {
 
-
-
-//------------------------------------------------------------------------------
-// oby::pyobj::Type
-//------------------------------------------------------------------------------
 
 PKArgs oby::pyobj::Type::args___init__(
     0, 0, 0, true, false, {}, "__init__", nullptr);
@@ -53,7 +170,7 @@ void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
 
 
 //------------------------------------------------------------------------------
-// oby::pyobj
+// py::oby::pyobj
 //------------------------------------------------------------------------------
 
 void oby::pyobj::m__init__(PKArgs& args) {
@@ -79,7 +196,7 @@ oobj oby::pyobj::get_cols() const {
 
 
 //------------------------------------------------------------------------------
-// oby
+// py::oby
 //------------------------------------------------------------------------------
 
 oby::oby(const robj& src) : oobj(src) {}
@@ -108,7 +225,15 @@ void oby::init(PyObject* m) {
 }
 
 
-
-
-
+dt::by_node_ptr oby::to_by_node(dt::workframe& wf) const {
+  robj cols = reinterpret_cast<const pyobj*>(v)->cols;
+  auto cl = dt::collist::make(wf, cols, "`by`");
+  auto cl_int = dynamic_cast<dt::cols_intlist*>(cl.get());
+  auto cl_expr = dynamic_cast<dt::cols_exprlist*>(cl.get());
+  xassert(cl_int || cl_expr);
+  return cl_int? dt::by_node_ptr(new dt::collist_bn(cl_int))
+               : dt::by_node_ptr(new dt::exprlist_bn(cl_expr));
 }
+
+
+}  // namespace py

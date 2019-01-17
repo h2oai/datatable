@@ -22,10 +22,11 @@
 #ifndef dt_EXPR_WORKFRAME_h
 #define dt_EXPR_WORKFRAME_h
 #include <vector>            // std::vector
-#include "expr/by_node.h"    // py::oby
+#include "expr/by_node.h"    // py::oby, by_node_ptr
+#include "expr/i_node.h"     // i_node_ptr
+#include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "datatable.h"       // DataTable
-#include "groupby.h"         // Groupby
 #include "rowindex.h"        // RowIndex
 namespace dt {
 
@@ -36,12 +37,14 @@ struct subframe {
   bool natural;  // was this frame joined naturally?
   size_t : 56;
 };
+using frvec = std::vector<subframe>;
 
-enum class EvalMode {
+enum class EvalMode : uint8_t {
   SELECT,
   UPDATE,
   DELETE
 };
+
 
 
 /**
@@ -67,11 +70,19 @@ enum class EvalMode {
  */
 class workframe {
   private:
-    std::vector<subframe> frames;
-    Groupby gb;
-    py::oby by_node;
-    EvalMode mode;
-    size_t : 64 - sizeof(EvalMode) * 8;
+    frvec       frames;
+    by_node_ptr by_node;
+    i_node_ptr  iexpr;
+    j_node_ptr  jexpr;
+    EvalMode    mode;
+    GroupbyMode groupby_mode;
+    size_t : 48;
+
+    // Result
+    colvec columns;
+    strvec colnames;
+    using ripair = std::pair<RowIndex, RowIndex>;
+    std::vector<ripair> all_ri;
 
   public:
     workframe() = delete;
@@ -81,21 +92,36 @@ class workframe {
     explicit workframe(DataTable*);
     void set_mode(EvalMode);
     EvalMode get_mode() const;
+    GroupbyMode get_groupby_mode() const;
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
-    void compute_joins();
+    void add_i(py::oobj);
+    void add_j(py::oobj);
+
+    void evaluate();
+    py::oobj get_result();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
+    const by_node_ptr& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
     size_t nframes() const;
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
+
+    size_t size() const noexcept;
+    void reserve(size_t n);
+    void add_column(const Column*, const RowIndex&, std::string&&);
+
+  private:
+    RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
+    void fix_columns();
 };
+
 
 
 }  // namespace dt

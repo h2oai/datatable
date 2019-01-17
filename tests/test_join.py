@@ -141,7 +141,7 @@ def test_join_update():
     d0 = dt.Frame([[1, 2, 3, 2, 3, 1, 3, 2, 2, 1], range(10)], names=("A", "B"))
     d1 = d0[:, mean(f.B), f.A]
     d1.key = "A"
-    d0[:, "AA", join(d1)] = g.V0
+    d0[:, "AA", join(d1)] = g.C0
     assert d0.names == ("A", "B", "AA")
     a = 4.75
     b = 14.0 / 3
@@ -222,8 +222,8 @@ def test_issue1481():
     DT = dt.Frame(A=range(5))
     with pytest.raises(ValueError) as e:
         noop(DT[:, [f.A, g.A]])
-    assert ("Item 1 of the `j` selector list references a non-existing "
-            "join frame" == str(e.value))
+    assert ("Item 1 of `j` selector list references a non-existing join frame"
+            == str(e.value))
 
 
 def test_issue1481_2():
@@ -240,3 +240,26 @@ def test_issue1481_3():
         noop(DT[:, g.A + 1])
     assert ("Column expression references a non-existing join frame"
             == str(e.value))
+
+
+def test_join_view():
+    # See issue #1540
+    x = dt.Frame(A=[1,2,3,1,2,3], B=[3,6,2,4,3,1], C=list("bdbbdb"))
+    a = x[f.A == 1, ['A', 'B', 'C']]
+    r = dt.Frame(C=['b', 'z'], BB=[2, 1000])
+    r.key = 'C'
+    res = a[:, :, join(r)]
+    assert res.shape == (2, 4)
+    assert res.names == ("A", "B", "C", "BB")
+    assert res.to_list() == [[1, 1], [3, 4], ['b', 'b'], [2, 2]]
+
+
+def test_issue1556():
+    X = dt.Frame(A=['Ahoy ye matey!', 'hey'])
+    J = dt.Frame(A=['hey'], B=['Avast'])
+    J.key = 'A'
+    R = X[:, :, join(J)]
+    R.internal.check()
+    assert R.shape == (2, 2)
+    assert R.to_dict() == {"A": ["Ahoy ye matey!", "hey"],
+                           "B": [None, "Avast"]}

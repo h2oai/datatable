@@ -87,6 +87,14 @@ SType expr_column::resolve(const workframe& wf) {
 }
 
 
+GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
+  return (frame_id == 0 &&
+          wf.has_groupby() &&
+          wf.get_by_node()->has_column(col_id))? GroupbyMode::GtoONE
+                                               : GroupbyMode::GtoALL;
+}
+
+
 Column* expr_column::evaluate_eager(const workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
   const Column* rcol = dt->columns[col_id];
@@ -203,6 +211,7 @@ class expr_binaryop : public base_expr {
   public:
     expr_binaryop(size_t opcode, base_expr* l, base_expr* r);
     SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe& wf) override;
 };
 
@@ -221,6 +230,13 @@ SType expr_binaryop::resolve(const workframe& wf) {
         << "` and `" << rhs_stype << "`";
   }
   return binop_rules.at(triple);
+}
+
+
+GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
+  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(wf));
+  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(wf));
+  return static_cast<GroupbyMode>(std::max(lmode, rmode));
 }
 
 
@@ -244,6 +260,7 @@ class expr_literal : public base_expr {
     explicit expr_literal(const py::robj&);
     ~expr_literal() override;
     SType resolve(const workframe&) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe&) override;
 };
 
@@ -261,6 +278,11 @@ expr_literal::~expr_literal() {
 
 SType expr_literal::resolve(const workframe&) {
   return col->stype();
+}
+
+
+GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
 }
 
 
@@ -338,6 +360,7 @@ class expr_unaryop : public base_expr {
   public:
     expr_unaryop(size_t opcode, base_expr* a);
     SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe& wf) override;
 };
 
@@ -354,6 +377,11 @@ SType expr_unaryop::resolve(const workframe& wf) {
         << "` cannot be applied to a column with stype `" << arg_stype << "`";
   }
   return unop_rules.at(op_id);
+}
+
+
+GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
+  return arg->get_groupby_mode(wf);
 }
 
 
@@ -378,6 +406,7 @@ class expr_cast : public base_expr {
   public:
     expr_cast(base_expr* a, SType s);
     SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe& wf) override;
 };
 
@@ -389,6 +418,11 @@ expr_cast::expr_cast(base_expr* a, SType s)
 SType expr_cast::resolve(const workframe& wf) {
   (void) arg->resolve(wf);
   return stype;
+}
+
+
+GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
+  return arg->get_groupby_mode(wf);
 }
 
 
@@ -412,6 +446,7 @@ class expr_reduce : public base_expr {
   public:
     expr_reduce(base_expr* a, size_t op);
     SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe& wf) override;
 };
 
@@ -426,11 +461,16 @@ SType expr_reduce::resolve(const workframe& wf) {
 }
 
 
+GroupbyMode expr_reduce::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
+}
+
+
 Column* expr_reduce::evaluate_eager(const workframe& wf) {
   Column* arg_col = arg->evaluate_eager(wf);
-  const Groupby& grby = wf.get_groupby();
   int op = static_cast<int>(opcode);
-  if (grby) {
+  if (wf.has_groupby()) {
+    const Groupby& grby = wf.get_groupby();
     return expr::reduceop(op, arg_col, grby);
   } else {
     return expr::reduceop(op, arg_col, Groupby::single_group(wf.nrows()));
@@ -450,6 +490,7 @@ class expr_reduce_nullary : public base_expr {
   public:
     expr_reduce_nullary(size_t op);
     SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(const workframe& wf) override;
 };
 
@@ -462,11 +503,16 @@ SType expr_reduce_nullary::resolve(const workframe&) {
 }
 
 
+GroupbyMode expr_reduce_nullary::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
+}
+
+
 Column* expr_reduce_nullary::evaluate_eager(const workframe& wf) {
-  const Groupby& grpby = wf.get_groupby();
   Column* res = nullptr;
   if (opcode == 0) {  // COUNT
-    if (grpby) {
+    if (wf.has_groupby()) {
+      const Groupby& grpby = wf.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
       res = Column::new_data_column(SType::INT32, ng);

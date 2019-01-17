@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/base_expr.h"
 #include "expr/i_node.h"
+#include "expr/workframe.h"   // dt::workframe
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -222,6 +223,7 @@ void frame_in::post_init_check(workframe& wf) {
            << nrows << " row" << (nrows == 1? "" : "s");
     }
   } else {
+    if (col->nrows == 0) return;
     int64_t min = col->min_int64();
     int64_t max = col->max_int64();
     if (min < -1) {
@@ -512,8 +514,8 @@ static i_node* _make(py::robj src) {
 }
 
 
-iptr i_node::make(py::robj src, workframe& wf) {
-  iptr res(_make(src));
+i_node_ptr i_node::make(py::robj src, workframe& wf) {
+  i_node_ptr res(_make(src));
   res->post_init_check(wf);
   return res;
 }
