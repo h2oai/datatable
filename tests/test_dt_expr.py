@@ -503,11 +503,17 @@ def test_div_mod(seed):
     src2 = [random.randint(-10, 10) for _ in range(n)]
 
     df0 = dt.Frame(x=src1, y=src2)
-    df1 = df0[:, [f.x // f.y, f.x % f.y]]
+    df1 = df0[:, [f.x // f.y, f.x % f.y, f.x / f.y]]
     assert df1.to_list() == [
         [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
-        [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)]
+        [None if src2[i] == 0 else src1[i] % src2[i] for i in range(n)],
+        [None if src2[i] == 0 else src1[i] / src2[i] for i in range(n)]
     ]
+
+
+def test_issue1562():
+    DT = dt.Frame(A=[-8], B=[1677])
+    assert DT[:, f.A / f.B][0, 0] == -(8.0 / 1677.0)
 
 
 
