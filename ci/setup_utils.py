@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import os
 import re
@@ -25,6 +42,7 @@ __all__ = (
     "ismacos",
     "iswindows",
     "make_git_version_file",
+    "monkey_patch_compiler",
     "required_link_libraries",
     "TaskContext",
 )
@@ -614,6 +632,102 @@ def find_linked_dynamic_libraries():
                 log.fatal("`locate` command returned the following error:\n%s"
                           % stderr.decode())
         return resolved
+
+
+
+#-------------------------------------------------------------------------------
+# Augmented compiler
+#-------------------------------------------------------------------------------
+
+def monkey_patch_compiler():
+    from distutils.ccompiler import new_compiler
+    from subprocess import check_output as run
+    cc = new_compiler().__class__
+
+    class NewCC(cc):
+        """
+        Extension of the standard compiler from distutils. This class
+        adds a post-link stage where the dependencies of the dynamic
+        library are verified, and fixed if necessary.
+        """
+
+        def get_load_dylib_entries(self, executable, log):
+            otool_result = run(["otool", "-L", executable]).decode()
+            log.info("Checking dependencies of %s"
+                     % os.path.basename(executable))
+            log.info("  $ otool -L %s" % executable)
+            execname = os.path.basename(executable)
+            dylibs = []
+            for libinfo in otool_result.split('\n')[1:]:
+                lib = libinfo.strip().split(' ', 1)[0]
+                if lib and os.path.basename(lib) != execname:
+                    dylibs.append(lib)
+                    log.info("    %s" % lib)
+            return dylibs
+
+
+        def find_recursive_dependencies(self, out, executable, log):
+            dylibs = self.get_load_dylib_entries(executable, log)
+            for lib in dylibs:
+                if lib in out:
+                    continue
+                out.append(lib)
+                if lib.startswith("/usr/lib/"):
+                    continue
+                if lib.startswith("@rpath/"):
+                    resolved_name = os.path.join("datatable", "lib",
+                                                 lib[len("@rpath/"):])
+                    if not os.path.isfile(resolved_name):
+                        raise SystemExit("Dependency %s does not exist"
+                                         % resolved_name)
+                else:
+                    resolved_name = lib
+                if resolved_name == executable:
+                    continue
+                self.find_recursive_dependencies(out, resolved_name, log)
+
+
+        def relocate_dependencies(self, executable, log):
+            dylibs = self.get_load_dylib_entries(executable, log)
+            for lib in dylibs:
+                if lib.startswith("/usr/lib/") or lib.startswith("@rpath/"):
+                    continue
+                libname = os.path.basename(lib)
+                newname = "@rpath/" + libname
+                log.info("Relocating dependency %s"
+                         % os.path.basename(libname))
+                log.info("  $ install_name_tool -change %s %s %s"
+                         % (lib, newname, executable))
+                run(["install_name_tool", "-change",
+                     lib, newname, executable])
+                destname = os.path.join("datatable", "lib", libname)
+                if not os.path.exists(destname):
+                    log.info("Copying %s -> %s" % (lib, destname))
+                    shutil.copyfile(lib, destname)
+
+
+        def link(self, *args, **kwargs):
+            super().link(*args, **kwargs)
+            outname = args[2] if len(args) >= 3 else kwargs["output_filename"]
+            outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
+            if outdir is not None:
+                outname = os.path.join(outdir, outname)
+            self.postlink(outname)
+
+
+        def postlink(self, outname):
+            print()
+            with TaskContext("Post-link processing") as log:
+                log.info("Output file: %s" % outname)
+                self.relocate_dependencies(outname, log)
+                dylibs = []
+                self.find_recursive_dependencies(dylibs, outname, log)
+                log.info("Resolved list of dependencies:")
+                for lib in sorted(dylibs):
+                    log.info("  " + lib)
+
+
+    vars(sys.modules[cc.__module__])[cc.__name__] = NewCC
 
 
 
