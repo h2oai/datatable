@@ -11,7 +11,7 @@ from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .cast_expr import CastExpr
 from .column_expr import ColSelectorExpr, NewColumnExpr
-from .exp_expr import exp
+from .exp_expr import exp, log, log10
 from .isna_expr import isna
 from .literal_expr import LiteralExpr
 from .mean_expr import MeanReducer, mean
@@ -23,20 +23,22 @@ from .unary_expr import UnaryOpExpr
 
 __all__ = (
     "abs",
+    "count",
+    "exp",
+    "f",
+    "first",
+    "isna",
+    "log",
+    "log10",
     "max",
     "mean",
     "min",
     "sd",
     "sum",
-    "exp",
-    "count",
-    "first",
-    "isna",
     "BinaryOpExpr",
     "CastExpr",
     "ColSelectorExpr",
     "NewColumnExpr",
-    "f",
     "BaseExpr",
     "LiteralExpr",
     "MeanReducer",

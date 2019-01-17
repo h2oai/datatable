@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import math
 import pytest
 import random
 import datatable as dt
@@ -331,7 +332,6 @@ def test_exp_srcs(src):
 
 def test_exp_all_stypes():
     from datatable import exp
-    import math
     src = [[-127, -5, -1, 0, 2, 127],
            [-32767, -299, -7, 32767, 12, -543],
            [-2147483647, -1000, 3, -589, 2147483647, 0],
@@ -352,6 +352,43 @@ def test_exp_all_stypes():
                     l.append(math.inf)
         pyans.append(l)
     assert dt1.to_list() == pyans
+
+
+
+
+#-------------------------------------------------------------------------------
+# log(), log10()
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("fn", ["log", "log10"])
+def test_log(fn):
+    dtlog = getattr(dt, fn)
+    mathlog = getattr(math, fn)
+    assert dtlog(None) is None
+    assert dtlog(-1) is None
+    assert dtlog(0) == -math.inf
+    assert dtlog(1) == 0.0
+    assert dtlog(5) == mathlog(5)
+    assert dtlog(10) == mathlog(10)
+    assert dtlog(793.54) == mathlog(793.54)
+    assert dtlog(math.inf) == math.inf
+
+
+@pytest.mark.parametrize("src", dt_int + dt_float)
+@pytest.mark.parametrize("fn", ["log", "log10"])
+def test_log_srcs(src, fn):
+    dtlog = getattr(dt, fn)
+    mathlog = getattr(math, fn)
+    dt0 = dt.Frame(src)
+    dt1 = dtlog(dt0)
+    dt1.internal.check()
+    assert all([st == stype.float64 for st in dt1.stypes])
+    pyans = [None if x is None or x < 0 else
+             -math.inf if x == 0 else
+             mathlog(x)
+             for x in src]
+    assert dt1.to_list()[0] == pyans
+
 
 
 
