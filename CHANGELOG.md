@@ -137,11 +137,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   have the same number of rows as if at least 1 column was selected. Previously
   an empty [0 x 0] frame was returned.
 
+- Assigning a value to a column `DT[:, 'A'] = x` will attempt to preserve the
+  column's stype; or if not possible, the column will be upcasted within its
+  logical type.
+
 - It is no longer possible to assign a value of an incompatible logical type to
   an existing column. For example, an assignment `DT[:, 'A'] = 3` is now legal
   only if column A is of integer or real type, but will raise an exception if A
-  is a boolean or string. With this change, logical types of existing columns
-  are always preserved.
+  is a boolean or string.
 
 
 ### Deprecated
