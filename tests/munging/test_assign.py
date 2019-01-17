@@ -1,10 +1,28 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import math
 from datatable import f
 from tests import assert_equals
 
@@ -99,3 +117,35 @@ def test_assign_empty_frame():
     X[:, []] = dt.Frame()
     X.internal.check()
     assert_equals(X, dt.Frame(A=range(10)))
+
+
+def test_assign_none_all():
+    DT = dt.Frame([[True, False], [1, 5], [999, -12], [34.2, math.inf],
+                   [0.001, 1e-100], ['foo', 'bar'], ['buzz', '?']],
+                  names=list("ABCDEFG"),
+                  stypes=['bool', 'int8', 'int64', 'float32', 'float64',
+                          'str32', 'str64'])
+    DT[:, :] = None
+    DT.internal.check()
+    assert DT.shape == (2, 7)
+    assert DT.names == tuple("ABCDEFG")
+    assert DT.stypes == (dt.bool8, dt.int8, dt.int64, dt.float32, dt.float64,
+                         dt.str32, dt.str64)
+    assert DT.to_list() == [[None, None]] * 7
+
+
+def test_assign_none_single():
+    DT = dt.Frame(A=range(5))
+    DT[:, f.A] = None
+    DT.internal.check()
+    assert DT.stypes == (dt.int32,)
+    assert DT.to_list() == [[None] * 5]
+
+
+def test_assign_none_new():
+    DT = dt.Frame(A=range(5))
+    DT[:, "B"] = None
+    DT.internal.check()
+    assert DT.names == ("A", "B")
+    assert DT.stypes == (dt.int32, dt.bool8)
+    assert DT.to_list() == [[0, 1, 2, 3, 4], [None] * 5]
