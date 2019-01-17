@@ -52,7 +52,7 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
    :maxdepth: 2
    :caption: Models
 
-   models.rst
+   ftrl.rst
 
 
 
