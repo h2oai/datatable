@@ -85,6 +85,23 @@ and ``y`` is a frame of shape ``(nrows, 1)`` having a ``bool`` type
 of the target column.
 
 
+Reseting a Model
+----------------
+
+To reset a model ``reset()`` method should be used as
+
+::
+
+  ftrl_model.reset()
+
+This will reset model weights, but will not affect learning parameters.
+To reset parameters to default values one can do
+
+::
+
+  ftrl_model.params = Ftrl().params
+  
+
 Making predictions
 ------------------
 
