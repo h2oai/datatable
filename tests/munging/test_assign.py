@@ -23,7 +23,8 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import math
-from datatable import f
+import pytest
+from datatable import f, DatatableWarning
 from tests import assert_equals
 
 
@@ -149,3 +150,23 @@ def test_assign_none_new():
     assert DT.names == ("A", "B")
     assert DT.stypes == (dt.int32, dt.bool8)
     assert DT.to_list() == [[0, 1, 2, 3, 4], [None] * 5]
+
+
+def test_assign_list_of_exprs():
+    DT = dt.Frame(A=range(5))
+    DT[:, ["B", "C"]] = [f.A + 1, f.A * 2]
+    DT.internal.check()
+    assert DT.names == ("A", "B", "C")
+    assert DT.stypes == (dt.int32,) * 3
+    assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [0, 2, 4, 6, 8]]
+
+
+def test_assign_list_duplicates():
+    DT = dt.Frame(A=range(5))
+    with pytest.warns(DatatableWarning) as ws:
+        DT[:, ["B", "B"]] = [f.A + 1, f.A + 2]
+    DT.internal.check()
+    assert DT.names == ("A", "B", "B.1")
+    assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
+    assert len(ws) == 1
+    assert "Duplicate column name 'B' found" in ws[0].message.args[0]
