@@ -229,7 +229,7 @@ void oby::init(PyObject* m) {
 
 dt::by_node_ptr oby::to_by_node(dt::workframe& wf) const {
   robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  auto cl = dt::collist::make(wf, cols, "`by`");
+  std::unique_ptr<dt::collist> cl = dt::collist::make(wf, cols, "`by`");
   auto cl_int = dynamic_cast<dt::cols_intlist*>(cl.get());
   auto cl_expr = dynamic_cast<dt::cols_exprlist*>(cl.get());
   xassert(cl_int || cl_expr);

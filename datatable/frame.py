@@ -84,7 +84,17 @@ class Frame(core.Frame):
                  ):
         """DEPRECATED"""
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select, groupby, join, sort, engine)
+        function = type(lambda: None)
+        if isinstance(rows, function):
+            rows = rows(datatable.f)
+        if isinstance(select, function):
+            select = select(datatable.f)
+        if sort:
+            res = self.sort(sort)
+        else:
+            res = self
+        res = res[rows, select, datatable.by(groupby)]
+        # res = make_datatable(self, rows, select, groupby, join, sort, engine)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
