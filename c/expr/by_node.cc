@@ -68,9 +68,11 @@ void collist_bn::execute(workframe& wf) {
   for (size_t i : indices) {
     spec.push_back(sort_spec(i));
   }
-  auto res = dt0->group(spec);
-  gb = std::move(res.second);
-  wf.apply_rowindex(res.first);
+  if (!spec.empty()) {
+    auto res = dt0->group(spec);
+    gb = std::move(res.second);
+    wf.apply_rowindex(res.first);
+  }
 }
 
 
