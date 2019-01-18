@@ -105,7 +105,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed groupby when it is applied to a Frame with view columns (#1542).
 
 - When replacing an empty set of columns, the replacement frame can now be
-  also empty (i.e. have shape [0 x 0]) (#1544).
+  also empty (i.e. have shape `[0 x 0]`) (#1544).
 
 - Fixed join results when join is applied to a view frame (#1540).
 
@@ -121,6 +121,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `Frame.to_csv()` no longer crashes on Unix when writing an empty frame
   (#1565).
+
+- The build process on MacOS now ensures that the `libomp.dylib` is properly
+  referenced via `@rpath`. This prevents installation problems caused by the
+  dynamic dependencies referenced by their absolute paths which are not valid
+  outside of the build machine (#1559).
 
 
 ### Changed
@@ -138,7 +143,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - When no columns are selected in `DT[i, j]`, the returned frame will now
   have the same number of rows as if at least 1 column was selected. Previously
-  an empty [0 x 0] frame was returned.
+  an empty `[0 x 0]` frame was returned.
 
 - Assigning a value to a column `DT[:, 'A'] = x` will attempt to preserve the
   column's stype; or if not possible, the column will be upcasted within its
@@ -190,7 +195,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   [Olivier][] (#1502),
   [Oleksiy Kononenko][] (#1507),
   [Nishant Kalonia][] (#1527, #1540),
-  [Megan Kurka][] (#1544).
+  [Megan Kurka][] (#1544),
+  [Joseph Granados][] (#1559).
 
 
 
@@ -878,6 +884,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
 [jonathan mckinney]: https://github.com/pseudotensor
+[joseph granados]: https://github.com/g-eoj
 [megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
