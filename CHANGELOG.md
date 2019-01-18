@@ -195,7 +195,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   [Olivier][] (#1502),
   [Oleksiy Kononenko][] (#1507),
   [Nishant Kalonia][] (#1527, #1540),
-  [Megan Kurka][] (#1544).
+  [Megan Kurka][] (#1544),
+  [Joseph Granados][] (#1559).
 
 
 
@@ -883,6 +884,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
 [jonathan mckinney]: https://github.com/pseudotensor
+[joseph granados]: https://github.com/g-eoj
 [megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
