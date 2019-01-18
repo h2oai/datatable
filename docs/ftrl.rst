@@ -14,7 +14,7 @@ for binomial logistic regression. It uses a
 for feature vectorization and the
 `Hogwild approach 
 <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`__
-for parallelization. FTRL for `m` classification and continuous 
+for parallelization. FTRL for multinomial classification and continuous 
 targets are implemented experimentally.
 
 Create an FTRL Model
@@ -40,13 +40,13 @@ FTRL Model Parameters
 The FTRL model requires a list of parameters for training and making predictions,
 namely:
 
--  ``alpha`` — Learning rate. This value defaults to 0.005.
--  ``beta`` — Beta parameter. This value defaults to 1.0.
--  ``lambda1`` — L1 regularization parameter. This value defaults to 0.0.
--  ``lambda2`` — L2 regularization parameter. This value defaults to 1.0.
--  ``d`` - The number of bins for the hashing trick. This value defaults to 1000000.
--  ``n_epochs`` — The number of epochs to train the model for. This value defaults to 1.
--  ``inter`` — Whether to enable second order feature interactions. This value defaults to False
+-  ``alpha`` — Learning rate. This value defaults to ``0.005``.
+-  ``beta`` — Beta parameter. This value defaults to ``1.0``.
+-  ``lambda1`` — L1 regularization parameter. This value defaults to ``0.0``.
+-  ``lambda2`` — L2 regularization parameter. This value defaults to ``1.0``.
+-  ``d`` - The number of bins for the hashing trick. This value defaults to ``1000000``.
+-  ``nepochs`` — The number of epochs to train the model for. This value defaults to ``1``.
+-  ``inter`` — Whether to enable second order feature interactions. This value defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
