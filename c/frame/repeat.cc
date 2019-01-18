@@ -64,6 +64,9 @@ Column* Column::repeat(size_t nreps) {
   size_t new_nrows = nrows * nreps;
 
   Column* newcol = Column::new_data_column(stype(), new_nrows);
+  if (!new_nrows) {
+    return newcol;
+  }
   const void* olddata = data();
   void* newdata = newcol->data_w();
 

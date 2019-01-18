@@ -171,8 +171,15 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
     Column* col = dt0->columns[j];
     SType st = col? col->stype() : SType::VOID;
     colptr replcol = make_column(st, 1);
-    if (!col) {
-      col = Column::new_na_column(st, dt0->nrows);
+    if (col) {
+      SType res_stype = replcol->stype();
+      if (col->stype() != res_stype) {
+        dt0->columns[j] = col->cast(res_stype);
+        delete col;
+        col = dt0->columns[j];
+      }
+    } else {
+      col = Column::new_na_column(replcol->stype(), dt0->nrows);
       dt0->columns[j] = col;
     }
     col->replace_values(ri0, replcol.get());
@@ -194,7 +201,7 @@ class scalar_na_rn : public scalar_rn {
 };
 
 const char* scalar_na_rn::value_type() const noexcept {
-  return "None";
+  return "None";  // LCOV_EXCL_LINE
 }
 
 
