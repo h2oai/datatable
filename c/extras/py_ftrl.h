@@ -111,7 +111,7 @@ class Ftrl : public PyObject {
     static void normalize_rows(DataTable*);
 
     // Helper functions
-    static void normalize_col(RealColumn<double>*);
+    static void normalize_fi(RealColumn<double>*);
 };
 
 } // namespace py

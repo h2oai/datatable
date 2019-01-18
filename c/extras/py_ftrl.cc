@@ -646,7 +646,8 @@ oobj Ftrl::get_fi() const {
     	// If there is just one classifier, simply return `fi`.
       dt_fi = (*dtft)[0]->get_fi();
     }
-    normalize_col(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
+    normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
+    // TODO: memoize `df_fi`
     py::oobj df_fi = py::oobj::from_new_reference(
                        py::Frame::from_datatable(dt_fi)
                      );
@@ -658,22 +659,26 @@ oobj Ftrl::get_fi() const {
 }
 
 
-void Ftrl::normalize_col(RealColumn<double>* col) {
+
+/*
+* Normalize a column of feature importances to [0; 1]
+* This column has only positive values, so we simply divide its
+* content by `col->max()`. Another option is to do min-max normalization,
+* but this may lead to some features having zero importance,
+* while in reality they don't.
+*/
+void Ftrl::normalize_fi(RealColumn<double>* col) {
   double max = col->max();
-  double min = col->min();
   double epsilon = std::numeric_limits<double>::epsilon();
   double* data = col->elements_w();
 
-  // If min = max, all the values will be normalized to 0.5
-  double norm_factor = 0.0;
-  double norm_shift = 0.5;
-  if (fabs(max - min) > epsilon) {
-    norm_factor = 1 / (max - min);
-    norm_shift = - min * norm_factor;
+  double norm_factor = 1.0;
+  if (fabs(max) > epsilon) {
+    norm_factor = 1 / max;
   }
 
   for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] = data[i] * norm_factor + norm_shift;
+    data[i] = data[i] * norm_factor;
   }
   col->get_stats()->reset();
 }
