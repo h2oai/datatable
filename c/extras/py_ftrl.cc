@@ -673,12 +673,10 @@ void Ftrl::normalize_fi(RealColumn<double>* col) {
   double* data = col->elements_w();
 
   double norm_factor = 1.0;
-  if (fabs(max) > epsilon) {
-    norm_factor = 1 / max;
-  }
+  if (fabs(max) > epsilon) norm_factor = 1 / max;
 
   for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] = data[i] * norm_factor;
+    data[i] *= norm_factor;
   }
   col->get_stats()->reset();
 }
