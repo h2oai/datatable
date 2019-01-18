@@ -282,5 +282,5 @@ def test_groupby_on_view():
 
 def test_groupby_empty():
     DT = dt.Frame(A=range(5))
-    DT[:, :, by()]
-    assert_equals(DT, dt.Frame(A=range(5)))
+    res = DT[:, :, by()]
+    assert_equals(res, DT)
