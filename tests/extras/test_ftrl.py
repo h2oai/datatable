@@ -41,16 +41,16 @@ from tests import assert_equals, noop
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "d", "nepochs", "inter"])
+                                          "d", "nepochs", "interactions"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, d = 5,
-                     nepochs = 6, inter = True)
+                     nepochs = 6, interactions = True)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.d)],
                    [random.random() for _ in range(tparams.d)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
-                        d = 1000000, nepochs = 1, inter = False)
+                        d = 1000000, nepochs = 1, interactions = False)
 
 epsilon = 0.01
 
@@ -102,10 +102,10 @@ def test_ftrl_construct_wrong_nepochs_type():
             "instead got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_construct_wrong_inter_type():
+def test_ftrl_construct_wrong_interactions_type():
     with pytest.raises(TypeError) as e:
-        noop(Ftrl(inter = 2))
-    assert ("Argument `inter` in Ftrl() constructor should be a boolean, "
+        noop(Ftrl(interactions = 2))
+    assert ("Argument `interactions` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
 
@@ -114,7 +114,7 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `d`, `nepochs` or `inter` to Ftrl constructor, "
+            "`lambda2`, `d`, `nepochs` or `interactions` to Ftrl constructor, "
             "but not both at the same time" == str(e.value))
 
 
@@ -190,10 +190,10 @@ def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
                    d = tparams.d, nepochs = tparams.nepochs,
-                   inter = tparams.inter)
+                   interactions = tparams.interactions)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.d, tparams.nepochs, tparams.inter)
+                         tparams.d, tparams.nepochs, tparams.interactions)
 
 
 #-------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
-            ft.d, ft.nepochs, ft.inter) == tparams
+            ft.d, ft.nepochs, ft.interactions) == tparams
 
 
 def test_ftrl_set_individual():
@@ -215,7 +215,7 @@ def test_ftrl_set_individual():
     ft.lambda2 = tparams.lambda2
     ft.d = tparams.d
     ft.nepochs = tparams.nepochs
-    ft.inter = tparams.inter
+    ft.interactions = tparams.interactions
     assert ft.params == tparams
 
 
@@ -239,8 +239,8 @@ def test_ftrl_set_wrong_params_type():
 
 def test_ftrl_set_wrong_params_name():
     ft = Ftrl()
-    WrongParams = collections.namedtuple("WrongParams",["alpha", "inter"])
-    wrong_params = WrongParams(alpha = 1, inter = True)
+    WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
+    wrong_params = WrongParams(alpha = 1, interactions = True)
     with pytest.raises(AttributeError) as e:
         ft.params = wrong_params
     assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
@@ -288,10 +288,10 @@ def test_ftrl_set_wrong_nepochs_type():
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
-def test_ftrl_set_wrong_inter_type():
+def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
-        ft.inter = 2
+        ft.interactions = 2
     assert ("Expected a boolean, instead got <class 'int'>" == str(e.value))
 
 

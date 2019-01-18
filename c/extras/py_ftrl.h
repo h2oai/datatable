@@ -88,7 +88,7 @@ class Ftrl : public PyObject {
     oobj get_lambda1() const;
     oobj get_lambda2() const;
     oobj get_d() const;
-    oobj get_inter() const;
+    oobj get_interactions() const;
     oobj get_nepochs() const;
     void set_labels(robj);
     void set_model(robj);
@@ -100,7 +100,7 @@ class Ftrl : public PyObject {
     void set_lambda2(robj);
     void set_d(robj);
     void set_nepochs(robj);
-    void set_inter(robj);
+    void set_interactions(robj);
 
     // Model validation methods
     bool has_negative_n(DataTable*) const;

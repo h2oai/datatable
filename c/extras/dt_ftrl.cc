@@ -131,7 +131,7 @@ void Ftrl::reset_fi() {
 
 void Ftrl::define_features(size_t ncols_in) {
   ncols = ncols_in;
-  size_t n_inter_features = (params.inter)? ncols * (ncols - 1) / 2 : 0;
+  size_t n_inter_features = (params.interactions)? ncols * (ncols - 1) / 2 : 0;
   nfeatures = ncols + n_inter_features;
 }
 
@@ -179,7 +179,7 @@ hashptr Ftrl::create_colhasher(const Column* col) {
 
 
 /*
-*  Hash each element of the datatable row, do feature interaction if requested.
+*  Hash each element of the datatable row, do feature interactionsaction if requested.
 */
 void Ftrl::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < ncols; ++i) {
@@ -188,10 +188,10 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
     x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % params.d;
   }
 
-  // Do feature interaction if required. We may also want to test
-  // just a simple `h = x[i+1] + x[j+1]` approach.
+  // Do feature interactions if required. We may also want to test
+  // just a simple `h = x[i+1] + x[j+1]` approach here.
   size_t count = 0;
-  if (params.inter) {
+  if (params.interactions) {
     for (size_t i = 0; i < ncols - 1; ++i) {
       for (size_t j = i + 1; j < ncols; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
@@ -302,8 +302,8 @@ uint64_t Ftrl::get_d() {
 }
 
 
-bool Ftrl::get_inter() {
-  return params.inter;
+bool Ftrl::get_interactions() {
+  return params.interactions;
 }
 
 
@@ -363,8 +363,8 @@ void Ftrl::set_d(uint64_t d_in) {
 }
 
 
-void Ftrl::set_inter(bool inter_in) {
-  params.inter = inter_in;
+void Ftrl::set_interactions(bool interactions_in) {
+  params.interactions = interactions_in;
 }
 
 

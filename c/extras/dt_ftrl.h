@@ -39,7 +39,7 @@ struct FtrlParams {
     double lambda2;
     uint64_t d;
     size_t nepochs;
-    bool inter;
+    bool interactions;
     size_t : 56;
 };
 
@@ -117,7 +117,7 @@ class Ftrl {
     double get_lambda2();
     uint64_t get_d();
     size_t get_nepochs();
-    bool get_inter();
+    bool get_interactions();
     FtrlParams get_params();
 
     // Setters
@@ -129,7 +129,7 @@ class Ftrl {
     void set_lambda2(double);
     void set_d(uint64_t);
     void set_nepochs(size_t);
-    void set_inter(bool);
+    void set_interactions(bool);
 };
 
 
