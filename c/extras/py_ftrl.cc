@@ -33,7 +33,7 @@ namespace py {
 
 PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  {"params", "labels", "alpha", "beta", "lambda1",
-                                 "lambda2", "d", "nepochs", "interactions"},
+                                 "lambda2", "nbins", "nepochs", "interactions"},
                                  "__init__", nullptr);
 
 static NoArgs fn___getstate__("__getstate__", nullptr);
@@ -44,7 +44,7 @@ static const char* doc_alpha        = "`alpha` in per-coordinate FTRL-Proximal a
 static const char* doc_beta         = "`beta` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_lambda1      = "L1 regularization parameter";
 static const char* doc_lambda2      = "L2 regularization parameter";
-static const char* doc_d            = "Number of bins to be used for the hashing trick";
+static const char* doc_nbins        = "Number of bins to be used for the hashing trick";
 static const char* doc_nepochs      = "Number of epochs to train a model";
 static const char* doc_interactions = "Switch to enable second order feature interactions";
 
@@ -52,13 +52,13 @@ static onamedtupletype& _get_params_namedtupletype() {
   static onamedtupletype ntt(
     "FtrlParams",
     "FTRL model parameters",
-    {{"alpha",    doc_alpha},
-     {"beta",     doc_beta},
-     {"lambda1",  doc_lambda1},
-     {"lambda2",  doc_lambda2},
-     {"d",        doc_d},
-     {"nepochs",  doc_nepochs},
-     {"interactions",    doc_interactions}}
+    {{"alpha",        doc_alpha},
+     {"beta",         doc_beta},
+     {"lambda1",      doc_lambda1},
+     {"lambda2",      doc_lambda2},
+     {"nbins",        doc_nbins},
+     {"nepochs",      doc_nepochs},
+     {"interactions", doc_interactions}}
   );
   return ntt;
 }
@@ -74,24 +74,25 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_beta     = !args[3].is_none_or_undefined();
   bool defined_lambda1  = !args[4].is_none_or_undefined();
   bool defined_lambda2  = !args[5].is_none_or_undefined();
-  bool defined_d        = !args[6].is_none_or_undefined();
+  bool defined_nbins    = !args[6].is_none_or_undefined();
   bool defined_nepochs  = !args[7].is_none_or_undefined();
   bool defined_interactions    = !args[8].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_d || defined_nepochs || defined_interactions) {
+        defined_nbins || defined_nepochs || defined_interactions) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `d`, `nepochs` or `interactions` to "
-            << "Ftrl constructor, but not both at the same time";
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` or "
+            << "`interactions` to Ftrl constructor, but not both at the "
+            << "same time";
     }
     py::otuple py_params = args[0].to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
     py::oobj py_beta = py_params.get_attr("beta");
     py::oobj py_lambda1 = py_params.get_attr("lambda1");
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
-    py::oobj py_d = py_params.get_attr("d");
+    py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_interactions = py_params.get_attr("interactions");
 
@@ -99,7 +100,7 @@ void Ftrl::m__init__(PKArgs& args) {
     dt_params.beta = py_beta.to_double();
     dt_params.lambda1 = py_lambda1.to_double();
     dt_params.lambda2 = py_lambda2.to_double();
-    dt_params.d = static_cast<uint64_t>(py_d.to_size_t());
+    dt_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     dt_params.nepochs = py_nepochs.to_size_t();
     dt_params.interactions = py_interactions.to_bool_strict();
 
@@ -107,7 +108,7 @@ void Ftrl::m__init__(PKArgs& args) {
     py::Validator::check_not_negative<double>(dt_params.beta, py_beta);
     py::Validator::check_not_negative<double>(dt_params.lambda1, py_lambda1);
     py::Validator::check_not_negative<double>(dt_params.lambda2, py_lambda2);
-    py::Validator::check_not_negative<double>(dt_params.d, py_d);
+    py::Validator::check_not_negative<double>(dt_params.nbins, py_nbins);
 
   } else {
 
@@ -131,9 +132,9 @@ void Ftrl::m__init__(PKArgs& args) {
       py::Validator::check_not_negative<double>(dt_params.lambda2, args[5]);
     }
 
-    if (defined_d) {
-      dt_params.d = static_cast<uint64_t>(args[6].to_size_t());
-      py::Validator::check_positive<uint64_t>(dt_params.d, args[6]);
+    if (defined_nbins) {
+      dt_params.nbins = static_cast<uint64_t>(args[6].to_size_t());
+      py::Validator::check_positive<uint64_t>(dt_params.nbins, args[6]);
     }
 
     if (defined_nepochs) {
@@ -226,7 +227,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
     R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
-    and `d` rows, where `d` is a number of bins set for the hashing trick.
+    and `nbins` rows, where `nbins` is a number of bins for the hashing trick.
     Both column types are `float64`.)"
   );
 
@@ -251,7 +252,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_beta, &Ftrl::set_beta>("beta", doc_beta);
   gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
   gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
-  gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", doc_d);
+  gs.add<&Ftrl::get_nbins, &Ftrl::set_nbins>("nbins", doc_nbins);
   gs.add<&Ftrl::get_nepochs, &Ftrl::set_nepochs>("nepochs", doc_nepochs);
   gs.add<&Ftrl::get_interactions, &Ftrl::set_interactions>("interactions", doc_interactions);
 
@@ -706,7 +707,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(1, get_beta());
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
-  params.set(4, get_d());
+  params.set(4, get_nbins());
   params.set(5, get_nepochs());
   params.set(6, get_interactions());
   return std::move(params);
@@ -719,7 +720,7 @@ oobj Ftrl::get_params_tuple() const {
   params.set(1, get_beta());
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
-  params.set(4, get_d());
+  params.set(4, get_nbins());
   params.set(5, get_nepochs());
   params.set(6, get_interactions());
   return std::move(params);
@@ -746,8 +747,8 @@ oobj Ftrl::get_lambda2() const {
 }
 
 
-oobj Ftrl::get_d() const {
-  return py::oint(static_cast<size_t>((*dtft)[0]->get_d()));
+oobj Ftrl::get_nbins() const {
+  return py::oint(static_cast<size_t>((*dtft)[0]->get_nbins()));
 }
 
 
@@ -831,9 +832,9 @@ void Ftrl::set_model(robj model) {
     DataTable* dt_model_in = py_model[i].to_frame();
     const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-    if (dt_model_in->nrows != (*dtft)[0]->get_d() || dt_model_in->ncols != 2) {
+    if (dt_model_in->nrows != (*dtft)[0]->get_nbins() || dt_model_in->ncols != 2) {
       throw ValueError() << "Element " << i << ": "
-                         << "FTRL model frame must have " << (*dtft)[0]->get_d()
+                         << "FTRL model frame must have " << (*dtft)[0]->get_nbins()
                          << " rows, and 2 columns, whereas your frame has "
                          << dt_model_in->nrows << " rows and "
                          << dt_model_in->ncols << " column"
@@ -874,7 +875,7 @@ void Ftrl::set_params_namedtuple(robj params) {
   set_beta(params.get_attr("beta"));
   set_lambda1(params.get_attr("lambda1"));
   set_lambda2(params.get_attr("lambda2"));
-  set_d(params.get_attr("d"));
+  set_nbins(params.get_attr("nbins"));
   set_nepochs(params.get_attr("nepochs"));
   set_interactions(params.get_attr("interactions"));
   // TODO: check that there are no unknown parameters
@@ -892,7 +893,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_beta(params_tuple[1]);
   set_lambda1(params_tuple[2]);
   set_lambda2(params_tuple[3]);
-  set_d(params_tuple[4]);
+  set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
   set_interactions(params_tuple[6]);
 }
@@ -934,11 +935,11 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 }
 
 
-void Ftrl::set_d(robj py_d) {
-  uint64_t d = static_cast<uint64_t>(py_d.to_size_t());
-  py::Validator::check_positive(d, py_d);
+void Ftrl::set_nbins(robj py_nbins) {
+  uint64_t nbins = static_cast<uint64_t>(py_nbins.to_size_t());
+  py::Validator::check_positive(nbins, py_nbins);
   for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_d(d);
+    (*dtft)[i]->set_nbins(nbins);
   }
 }
 

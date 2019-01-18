@@ -85,10 +85,10 @@ void Ftrl::update(const uint64ptr& x, double p, double y) {
 
 
 void Ftrl::create_model() {
-  Column* col_z = Column::new_data_column(SType::FLOAT64, params.d);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, params.d);
+  Column* col_z = Column::new_data_column(SType::FLOAT64, params.nbins);
+  Column* col_n = Column::new_data_column(SType::FLOAT64, params.nbins);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
-  w = doubleptr(new double[params.d]());
+  w = doubleptr(new double[params.nbins]());
   reset_model();
 }
 
@@ -96,8 +96,8 @@ void Ftrl::create_model() {
 void Ftrl::reset_model() {
   init_weights();
   if (z == nullptr || n == nullptr) return;
-  std::memset(z, 0, params.d * sizeof(double));
-  std::memset(n, 0, params.d * sizeof(double));
+  std::memset(z, 0, params.nbins * sizeof(double));
+  std::memset(n, 0, params.nbins * sizeof(double));
   model_trained = false;
 }
 
@@ -185,7 +185,7 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < ncols; ++i) {
     // Hash a value adding a column name hash to it, so that the same value
     // in different columns results in different hashes.
-    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % params.d;
+    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % params.nbins;
   }
 
   // Do feature interactions if required. We may also want to test
@@ -196,7 +196,7 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
       for (size_t j = i + 1; j < ncols; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
-        x[ncols + count] = h % params.d;
+        x[ncols + count] = h % params.nbins;
         count++;
       }
     }
@@ -297,8 +297,8 @@ double Ftrl::get_lambda2() {
 }
 
 
-uint64_t Ftrl::get_d() {
-  return params.d;
+uint64_t Ftrl::get_nbins() {
+  return params.nbins;
 }
 
 
@@ -322,8 +322,8 @@ FtrlParams Ftrl::get_params() {
 */
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
-  set_d(dt_model->nrows);
-  w = doubleptr(new double[params.d]());
+  set_nbins(dt_model->nrows);
+  w = doubleptr(new double[params.nbins]());
   init_weights();
   ncols = 0;
   nfeatures = 0;
@@ -358,8 +358,8 @@ void Ftrl::set_lambda2(double lambda2_in) {
 }
 
 
-void Ftrl::set_d(uint64_t d_in) {
-  params.d = d_in;
+void Ftrl::set_nbins(uint64_t nbins_in) {
+  params.nbins = nbins_in;
 }
 
 

@@ -87,7 +87,7 @@ class Ftrl : public PyObject {
     oobj get_beta() const;
     oobj get_lambda1() const;
     oobj get_lambda2() const;
-    oobj get_d() const;
+    oobj get_nbins() const;
     oobj get_interactions() const;
     oobj get_nepochs() const;
     void set_labels(robj);
@@ -98,7 +98,7 @@ class Ftrl : public PyObject {
     void set_beta(robj);
     void set_lambda1(robj);
     void set_lambda2(robj);
-    void set_d(robj);
+    void set_nbins(robj);
     void set_nepochs(robj);
     void set_interactions(robj);
 
