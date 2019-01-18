@@ -1,27 +1,27 @@
 FTRL
 ====
 
-This section describes FTRL model as implemented in DataTable.
+This section describes the FTRL (Follow the Regularized Leader) model as implemented in DataTable.
 
 FTRL Model Information
 ----------------------
 
-Follow the Regularized Leader (FTRL) model is a DataTable implementation of 
-FTRL-Proximal online learning 
+The Follow the Regularized Leader (FTRL) model is a DataTable implementation of 
+the FTRL-Proximal online learning 
 `algorithm <https://research.google.com/pubs/archive/41159.pdf>`__
 for binomial logistic regression. It uses a
 `hashing trick <https://en.wikipedia.org/wiki/Feature_hashing>`__
-for feature vectorization and
+for feature vectorization and the
 `Hogwild approach 
 <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`__
-for parallelization. FTRL for m classification and continuous 
+for parallelization. FTRL for `m` classification and continuous 
 targets are implemented experimentally.
 
-Create FTRL Model
------------------
+Create an FTRL Model
+--------------------
 
-FTRL model is implemented as an ``Ftrl`` Python class, a part of
-``datatable.models``, so to use the model one should first do
+The FTRL model is implemented as the ``Ftrl`` Python class, which is a part of
+``datatable.models``, so to use the model you should first do
 
 ::
 
@@ -37,27 +37,19 @@ and then create a model as
 FTRL Model Parameters
 ---------------------
 
-FTRL model requires a list of parameters for training and making predictions,
+The FTRL model requires a list of parameters for training and making predictions,
 namely:
 
--  ``alpha`` — learning rate;
--  ``beta`` — beta parameter;
--  ``lambda1`` — L1 regularization parameter;
--  ``lambda2`` — L2 regularization parameter;
--  ``d`` number — of bins for the hashing trick;
--  ``nepochs`` — number of epochs to train the model for;
--  ``inter`` — switch to enable second order feature interactions.
-
-If no parameters are passed to ``Ftrl`` constructor, 
-the following default parameters will be used to create a model
-
-::
-
-  >>> Ftrl().params
-  FtrlParams(alpha=0.005, beta=1.0, lambda1=0.0, lambda2=1.0, d=1000000, n_epochs=1, inter=False)
+-  ``alpha`` — Learning rate. This value defaults to 0.005.
+-  ``beta`` — Beta parameter. This value defaults to 1.0.
+-  ``lambda1`` — L1 regularization parameter. This value defaults to 0.0.
+-  ``lambda2`` — L2 regularization parameter. This value defaults to 1.0.
+-  ``d`` - The number of bins for the hashing trick. This value defaults to 1000000.
+-  ``n_epochs`` — The number of epochs to train the model for. This value defaults to 1.
+-  ``inter`` — Whether to enable second order feature interactions. This value defaults to False
 
 If some parameters need to be changed, this can be done either
-when creating the model
+when creating the model, as
 
 ::
 
@@ -71,15 +63,14 @@ or, if the model already exists, as
   ftrl_model.d = 100
   ftrl_model.inter = False
 
-If some parameters were not set explicitely, they will be assigned default
+If some parameters were not set explicitely, they will be assigned the default
 values.
 
 
 Training a Model
 ----------------
 
-To train a model for binomial logistic regression problem, ``fit()`` method should be
-used
+Use the ``fit()`` method to train a model for a binomial logistic regression problem:
 
 ::
 
@@ -90,17 +81,17 @@ and ``y`` is a frame of shape ``(nrows, 1)`` having a ``bool`` type
 of the target column.
 
 
-Reseting a Model
-----------------
+Resetting a Model
+-----------------
 
-To reset a model ``reset()`` method should be used as
+Use the ``reset()`` method to reset a model:
 
 ::
 
   ftrl_model.reset()
 
-This will reset model weights, but will not affect learning parameters.
-To reset parameters to default values one can do
+This will reset model weights, but it will not affect learning parameters.
+To reset parameters to default values, you can do
 
 ::
 
@@ -110,15 +101,15 @@ To reset parameters to default values one can do
 Making Predictions
 ------------------
 
-To make predictions ``predict()`` method should be used
+Use the ``predict()`` method to make predictions:
 
 ::
 
   targets = ftrl_model.predict(X)
   
 where ``X`` is a frame of shape ``(nrows, ncols)`` to make predictions for.
-It should have the same number of columns as the training frame had.
-``predict()`` method returns a new frame of shape ``(nrows, 1)`` with
+``X`` should have the same number of columns as the training frame.
+The ``predict()`` method returns a new frame of shape ``(nrows, 1)`` with
 the predicted probability for each row of frame ``X``.
 
 
@@ -133,11 +124,11 @@ can be accessed as
 
   ftrl_model.feature_importances
   
-that returns a frame of shape ``(nfeatures, 1)`` containing
+This returns a frame of shape ``(nfeatures, 1)`` containing
 importance information, that is normalized to [0; 1] range.
 
 
 Further Reading
 ---------------
 
-For detailed help please also refer to ``help(Ftrl)``.
+For detailed help, please also refer to ``help(Ftrl)``.
