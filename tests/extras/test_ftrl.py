@@ -723,7 +723,7 @@ def test_ftrl_regression():
 # Test feature importance
 #-------------------------------------------------------------------------------
 
-def test_ftrl_feature_importance():
+def test_ftrl_feature_importances():
     ft = Ftrl(d = 200)
     df_train = dt.Frame([range(ft.d),
                          [i % 2 for i in range(ft.d)],
@@ -731,7 +731,7 @@ def test_ftrl_feature_importance():
                         ])
     df_target = dt.Frame([False, True] * (ft.d // 2))
     ft.fit(df_train, df_target)
-    fi = ft.fi
+    fi = ft.feature_importances
     assert fi[0, 0] < fi[2, 0]
     assert fi[2, 0] < fi[1, 0]
 
@@ -742,10 +742,10 @@ def test_ftrl_fi_shallowcopy():
     df_train = dt.Frame(random.sample(range(ft.d), ft.d))
     df_target = dt.Frame([bool(random.getrandbits(1)) for _ in range(ft.d)])
     ft.fit(df_train, df_target)
-    fi1 = ft.fi
-    fi2 = copy.deepcopy(ft.fi)
+    fi1 = ft.feature_importances
+    fi2 = copy.deepcopy(ft.feature_importances)
     ft.reset()
-    assert ft.fi == None
+    assert ft.feature_importances == None
     assert_equals(fi1, fi2)
 
 
@@ -765,7 +765,7 @@ def test_ftrl_pickling():
     assert ft_unpickled.model[0].names == ('z', 'n')
     assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
     assert_equals(ft.model[0], ft_unpickled.model[0])
-    assert ft_unpickled.fi.names == ('feature_importance',)
-    assert ft_unpickled.fi.stypes == (stype.float64,)
-    assert_equals(ft.fi, ft_unpickled.fi)
+    assert ft_unpickled.feature_importances.names == ('feature_importance',)
+    assert ft_unpickled.feature_importances.stypes == (stype.float64,)
+    assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
