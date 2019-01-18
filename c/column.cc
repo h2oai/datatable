@@ -40,6 +40,7 @@ Column* Column::new_column(SType stype) {
 
 
 Column* Column::new_data_column(SType stype, size_t nrows) {
+  xassert(stype != SType::VOID);
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->init_data();
