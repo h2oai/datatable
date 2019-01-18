@@ -8,7 +8,7 @@ import datatable as dt
 import pytest
 import random
 from datatable import f, mean, min, max, sum, by
-from tests import same_iterables
+from tests import same_iterables, assert_equals
 
 
 def test_groups_internal0():
@@ -280,3 +280,7 @@ def test_groupby_on_view():
                              'C0': [2, 6]}
 
 
+def test_groupby_empty():
+    DT = dt.Frame(A=range(5))
+    res = DT[:, :, by()]
+    assert_equals(res, DT)
