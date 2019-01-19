@@ -30,34 +30,102 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// dt::collist_bn
+// dt::by_node
 //------------------------------------------------------------------------------
 
-class collist_bn : public by_node::impl {
-  intvec indices;
-  strvec names;
-
-  public:
-    collist_bn(cols_intlist* cl);
-    void execute(workframe&) const override;
-    bool has_column(size_t) const override;
-    void create_columns(workframe&) override;
-};
+by_node::by_node() {
+  n_group_columns = 0;
+}
 
 
-collist_bn::collist_bn(cols_intlist* cl)
-  : indices(std::move(cl->indices)), names(std::move(cl->names)) {}
+void by_node::add_groupby_columns(collist_ptr&& cl) {
+  _add_columns(std::move(cl), true);
+}
 
 
-void collist_bn::execute(workframe& wf) const {
+void by_node::add_sortby_columns(collist_ptr&& cl) {
+  _add_columns(std::move(cl), false);
+}
+
+
+void by_node::_add_columns(collist_ptr&& cl, bool group_columns) {
+  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
+  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
+  xassert(cl_int || cl_expr);
+  if (cl_int) {
+    bool has_names = !cl_int->names.empty();
+    size_t n = cl_int->indices.size();
+    for (size_t i = 0; i < n; ++i) {
+      _add_column(cl_int->indices[i],
+                  has_names? std::move(cl_int->names[i]) : std::string(),
+                  group_columns);
+    }
+  }
+  if (cl_expr) {
+    bool has_names = !cl_expr->names.empty();
+    size_t n = cl_expr->exprs.size();
+    for (size_t i = 0; i < n; ++i) {
+      _add_column(std::move(cl_expr->exprs[i]),
+                  has_names? std::move(cl_expr->names[i]) : std::string(),
+                  group_columns);
+    }
+    throw NotImplError() << "Computed columns cannot be used in groupby/sort";
+  }
+}
+
+
+void by_node::_add_column(size_t index, std::string&& name, bool grp) {
+  cols.push_back({index, nullptr, std::move(name), grp, false});
+  n_group_columns += grp;
+}
+
+
+void by_node::_add_column(exprptr&& expr, std::string&& name, bool grp) {
+  cols.push_back({size_t(-1), std::move(expr), std::move(name), grp, false});
+  n_group_columns += grp;
+}
+
+
+by_node::operator bool() const {
+  return (n_group_columns > 0);
+}
+
+
+bool by_node::has_column(size_t i) const {
+  for (auto& col : cols) {
+    if (col.index == i) return true;
+  }
+  return false;
+}
+
+
+void by_node::create_columns(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  RowIndex ri0 = wf.get_rowindex(0);
+  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
+    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
+  }
+
+  auto dt0_names = dt0->get_names();
+  for (auto& col : cols) {
+    size_t j = col.index;
+    xassert(j != size_t(-1));
+    Column* colj = dt0->columns[j]->shallowcopy();
+    wf.add_column(colj, ri0, col.name.empty()? dt0_names[j]
+                                             : std::move(col.name));
+  }
+}
+
+
+void by_node::execute(workframe& wf) const {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
-    throw NotImplError();
+    throw NotImplError() << "Groupby/sort cannot be combined with i expression";
   }
   std::vector<sort_spec> spec;
-  for (size_t i : indices) {
-    spec.push_back(sort_spec(i));
+  for (auto& col : cols) {
+    spec.push_back(sort_spec(col.index));
   }
   if (!spec.empty()) {
     auto res = dt0->group(spec);
@@ -67,117 +135,15 @@ void collist_bn::execute(workframe& wf) const {
 }
 
 
-bool collist_bn::has_column(size_t i) const {
-  return std::find(indices.begin(), indices.end(), i) != indices.end();
-}
-
-
-void collist_bn::create_columns(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  if (names.empty()) {
-    auto dt0_names = dt0->get_names();
-    for (size_t i : indices) {
-      names.push_back(dt0_names[i]);
-    }
-  }
-  RowIndex ri0 = wf.get_rowindex(0);
-  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
-  }
-
-  size_t n = indices.size();
-  for (size_t i = 0; i < n; ++i) {
-    size_t j = indices[i];
-    Column* colj = dt0->columns[j]->shallowcopy();
-    wf.add_column(colj, ri0, std::move(names[i]));
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// dt::exprlist_bn
-//------------------------------------------------------------------------------
-
-class exprlist_bn : public by_node::impl {
-  exprvec exprs;
-  strvec names;
-
-  public:
-    exprlist_bn(cols_exprlist*);
-    void execute(workframe&) const override;
-    bool has_column(size_t) const override;
-    void create_columns(workframe&) override;
-};
-
-
-exprlist_bn::exprlist_bn(cols_exprlist* cl)
-  : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
-
-
-void exprlist_bn::execute(workframe&) const {
-  throw NotImplError();
-}
-
-
-bool exprlist_bn::has_column(size_t) const {
-  return false;
-}
-
-
-void exprlist_bn::create_columns(workframe&) {
-  throw NotImplError();
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// dt::by_node
-//------------------------------------------------------------------------------
-
-by_node::impl::~impl(){}
-
-
-void by_node::add_groupby_columns(collist_ptr&& cl) {
-  xassert(!pimpl);
-  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  pimpl = cl_int? std::unique_ptr<impl>(new collist_bn(cl_int))
-                : std::unique_ptr<impl>(new exprlist_bn(cl_expr));
-}
-
-
-by_node::operator bool() const {
-  return bool(pimpl);
-}
-
-
-bool by_node::has_column(size_t i) const {
-  return pimpl->has_column(i);
-}
-
-
-void by_node::create_columns(workframe& wf) {
-  pimpl->create_columns(wf);
-}
-
-
-void by_node::execute(workframe& wf) const {
-  pimpl->execute(wf);
-}
-
-
 
 
 }  // namespace dt
+namespace py {
+
+
 //------------------------------------------------------------------------------
 // py::oby::pyobj::Type
 //------------------------------------------------------------------------------
-namespace py {
-
 
 PKArgs oby::pyobj::Type::args___init__(
     0, 0, 0, true, false, {}, "__init__", nullptr);

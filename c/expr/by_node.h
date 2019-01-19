@@ -29,6 +29,7 @@
 
 namespace dt
 {
+class base_expr;
 class by_node;
 class collist;
 class workframe;
@@ -49,25 +50,33 @@ enum class GroupbyMode : uint8_t {
 
 class by_node {
   private:
-    class impl {
-      public:
-        virtual ~impl();
-        virtual void execute(workframe&) const = 0;
-        virtual bool has_column(size_t i) const = 0;
-        virtual void create_columns(workframe&) = 0;
+    using exprptr = std::unique_ptr<dt::base_expr>;
+    struct column_descriptor {
+      size_t      index;
+      exprptr     expr;
+      std::string name;
+      bool        is_group_column;
+      bool        ascending;
+      size_t : 48;
     };
-    std::unique_ptr<impl> pimpl;
-    friend class collist_bn;
-    friend class exprlist_bn;
+
+    std::vector<column_descriptor> cols;
+    size_t n_group_columns;
 
   public:
-    by_node() = default;
+    by_node();
     void add_groupby_columns(collist_ptr&&);
+    void add_sortby_columns(collist_ptr&&);
 
     explicit operator bool() const;
     bool has_column(size_t i) const;
     void create_columns(workframe&);
     void execute(workframe&) const;
+
+  private:
+    void _add_columns(collist_ptr&& cl, bool group_columns);
+    void _add_column(size_t index, std::string&& name, bool is_group_column);
+    void _add_column(exprptr&& expr, std::string&& name, bool is_group_column);
 };
 
 

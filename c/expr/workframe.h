@@ -71,13 +71,15 @@ enum class EvalMode : uint8_t {
  */
 class workframe {
   private:
-    frvec         frames;
-    Groupby       gb;
-
+    // Inputs
     by_node       byexpr;
     i_node_ptr    iexpr;
     j_node_ptr    jexpr;
     repl_node_ptr repl;
+
+    // Runtime
+    frvec         frames;
+    Groupby       gb;
     EvalMode      mode;
     GroupbyMode   groupby_mode;
     size_t : 48;
@@ -126,8 +128,7 @@ class workframe {
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
 
-    friend class collist_bn;
-    friend class exprlist_bn;
+    friend class by_node;  // Allow access to `gb`
 };
 
 
