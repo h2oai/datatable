@@ -21,16 +21,19 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
-#include "python/ext_type.h"
-#include "python/obj.h"
+#include <memory>            // std::unique_ptr
 #include "datatable.h"
 #include "groupby.h"         // Groupby
+#include "python/ext_type.h"
+#include "python/obj.h"
 
 namespace dt
 {
-class workframe;
 class by_node;
-using by_node_ptr = std::unique_ptr<dt::by_node>;
+class collist;
+class workframe;
+using by_node_ptr = std::unique_ptr<by_node>;
+using collist_ptr = std::unique_ptr<collist>;
 
 enum class GroupbyMode : uint8_t {
   NONE   = 0,
@@ -45,19 +48,31 @@ enum class GroupbyMode : uint8_t {
 //------------------------------------------------------------------------------
 
 class by_node {
+  private:
+    class impl {
+      public:
+        virtual ~impl();
+        virtual void execute(workframe&) const = 0;
+        virtual bool has_column(size_t i) const = 0;
+        virtual void create_columns(workframe&) = 0;
+    };
+    std::unique_ptr<impl> pimpl;
+    friend class collist_bn;
+    friend class exprlist_bn;
+
   public:
-    Groupby gb;
+    by_node() = default;
+    void add_groupby_columns(collist_ptr&&);
 
-    virtual ~by_node();
-    virtual void execute(workframe&) = 0;
-    virtual bool has_column(size_t i) const = 0;
-
-    virtual void create_columns(workframe&) = 0;
+    explicit operator bool() const;
+    bool has_column(size_t i) const;
+    void create_columns(workframe&);
+    void execute(workframe&) const;
 };
 
 
 
-}
+}  // namespace dt
 //------------------------------------------------------------------------------
 // py::oby
 //------------------------------------------------------------------------------
@@ -96,7 +111,7 @@ class py::oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::by_node_ptr to_by_node(dt::workframe&) const;
+    dt::collist_ptr cols(dt::workframe&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

@@ -27,7 +27,7 @@
 #include "python/obj.h"
 
 namespace dt {
-struct collist;
+class collist;
 
 
 using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
@@ -36,9 +36,10 @@ using collist_ptr = std::unique_ptr<collist>;
 
 
 
-struct collist {
-  static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
-  virtual ~collist();
+class collist {
+  public:
+    static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
+    virtual ~collist();
 };
 
 

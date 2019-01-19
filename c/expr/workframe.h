@@ -72,7 +72,9 @@ enum class EvalMode : uint8_t {
 class workframe {
   private:
     frvec         frames;
-    by_node_ptr   by_node;
+    Groupby       gb;
+
+    by_node       byexpr;
     i_node_ptr    iexpr;
     j_node_ptr    jexpr;
     repl_node_ptr repl;
@@ -108,7 +110,7 @@ class workframe {
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
-    const by_node_ptr& get_by_node() const;
+    const by_node& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
     size_t nframes() const;
@@ -123,6 +125,9 @@ class workframe {
   private:
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
+
+    friend class collist_bn;
+    friend class exprlist_bn;
 };
 
 

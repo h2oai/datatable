@@ -26,30 +26,21 @@
 #include "python/tuple.h"
 #include "utils/exceptions.h"
 
-
-//------------------------------------------------------------------------------
-// dt::by_node
-//------------------------------------------------------------------------------
 namespace dt {
-
-
-by_node::~by_node() {}
-
-
 
 
 //------------------------------------------------------------------------------
 // dt::collist_bn
 //------------------------------------------------------------------------------
 
-class collist_bn : public by_node {
+class collist_bn : public by_node::impl {
   intvec indices;
   strvec names;
 
   public:
     collist_bn(cols_intlist* cl);
-    void execute(workframe& wf) override;
-    bool has_column(size_t i) const override;
+    void execute(workframe&) const override;
+    bool has_column(size_t) const override;
     void create_columns(workframe&) override;
 };
 
@@ -58,7 +49,7 @@ collist_bn::collist_bn(cols_intlist* cl)
   : indices(std::move(cl->indices)), names(std::move(cl->names)) {}
 
 
-void collist_bn::execute(workframe& wf) {
+void collist_bn::execute(workframe& wf) const {
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
@@ -70,7 +61,7 @@ void collist_bn::execute(workframe& wf) {
   }
   if (!spec.empty()) {
     auto res = dt0->group(spec);
-    gb = std::move(res.second);
+    wf.gb = std::move(res.second);
     wf.apply_rowindex(res.first);
   }
 }
@@ -91,7 +82,7 @@ void collist_bn::create_columns(workframe& wf) {
   }
   RowIndex ri0 = wf.get_rowindex(0);
   if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(gb.ngroups(), gb.offsets_r()), true) * ri0;
+    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
   }
 
   size_t n = indices.size();
@@ -109,14 +100,14 @@ void collist_bn::create_columns(workframe& wf) {
 // dt::exprlist_bn
 //------------------------------------------------------------------------------
 
-class exprlist_bn : public by_node {
+class exprlist_bn : public by_node::impl {
   exprvec exprs;
   strvec names;
 
   public:
     exprlist_bn(cols_exprlist*);
-    void execute(workframe& wf) override;
-    bool has_column(size_t i) const override;
+    void execute(workframe&) const override;
+    bool has_column(size_t) const override;
     void create_columns(workframe&) override;
 };
 
@@ -125,7 +116,7 @@ exprlist_bn::exprlist_bn(cols_exprlist* cl)
   : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
 
 
-void exprlist_bn::execute(workframe&) {
+void exprlist_bn::execute(workframe&) const {
   throw NotImplError();
 }
 
@@ -137,6 +128,45 @@ bool exprlist_bn::has_column(size_t) const {
 
 void exprlist_bn::create_columns(workframe&) {
   throw NotImplError();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// dt::by_node
+//------------------------------------------------------------------------------
+
+by_node::impl::~impl(){}
+
+
+void by_node::add_groupby_columns(collist_ptr&& cl) {
+  xassert(!pimpl);
+  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
+  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
+  xassert(cl_int || cl_expr);
+  pimpl = cl_int? std::unique_ptr<impl>(new collist_bn(cl_int))
+                : std::unique_ptr<impl>(new exprlist_bn(cl_expr));
+}
+
+
+by_node::operator bool() const {
+  return bool(pimpl);
+}
+
+
+bool by_node::has_column(size_t i) const {
+  return pimpl->has_column(i);
+}
+
+
+void by_node::create_columns(workframe& wf) {
+  pimpl->create_columns(wf);
+}
+
+
+void by_node::execute(workframe& wf) const {
+  pimpl->execute(wf);
 }
 
 
@@ -227,15 +257,11 @@ void oby::init(PyObject* m) {
 }
 
 
-dt::by_node_ptr oby::to_by_node(dt::workframe& wf) const {
+dt::collist_ptr oby::cols(dt::workframe& wf) const {
   robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  auto cl = dt::collist::make(wf, cols, "`by`");
-  auto cl_int = dynamic_cast<dt::cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<dt::cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  return cl_int? dt::by_node_ptr(new dt::collist_bn(cl_int))
-               : dt::by_node_ptr(new dt::exprlist_bn(cl_expr));
+  return dt::collist::make(wf, cols, "`by`");
 }
+
 
 
 }  // namespace py
