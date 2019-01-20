@@ -433,6 +433,21 @@ class SortContext {
     return RowIndex(arr32_t(n, data, true));
   }
 
+  Groupby extract_groups() {
+    size_t ng = gg.size();
+    xassert(groups.size() > ng);
+    groups.resize(ng + 1);
+    return Groupby(ng, groups.to_memoryrange());
+  }
+
+  Groupby copy_groups() {
+    size_t ng = gg.size();
+    xassert(groups.size() > ng);
+    size_t memsize = (ng + 1) * sizeof(int32_t);
+    MemoryRange mr = MemoryRange::mem(memsize);
+    std::memcpy(mr.xptr(), groups.data(), memsize);
+    return Groupby(ng, std::move(mr));
+  }
 
   std::pair<RowIndex, Groupby> get_result_groups() {
     size_t ng = gg.size();
@@ -1177,32 +1192,61 @@ class SortContext {
 using RiGb = std::pair<RowIndex, Groupby>;
 
 
-RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const {
-  size_t nsortcols = spec.size();
+RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
+{
+  RiGb result;
+  size_t n = spec.size();
+  xassert(n > 0);
+
   Column* col0 = columns[spec[0].col_index];
-  if (as_view) {
-    // Check that the sorted columns have consistent rowindices.
-    for (size_t j = 1; j < nsortcols; ++j) {
-      xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
-    }
-  } else {
-    for (size_t j = 0; j < nsortcols; ++j) {
-      columns[spec[j].col_index]->reify();
-    }
-  }
-
   if (nrows <= 1) {
-    size_t i = col0->rowindex()[0];
-    return RiGb(RowIndex(i, nrows, 1),
-                Groupby::single_group(nrows));
+    arr32_t indices(nrows);
+    if (nrows) {
+      size_t i = col0->rowindex()[0];
+      indices[0] = static_cast<int32_t>(i);
+    }
+    result.first = RowIndex(std::move(indices), true);
+    if (!spec[0].sort_only) {
+      result.second = Groupby::single_group(nrows);
+    }
+    return result;
   }
 
-  SortContext sc(nrows, col0->rowindex(), true);
-  sc.start_sort(col0);
-  for (size_t j = 1; j < nsortcols; ++j) {
-    sc.continue_sort(columns[spec[j].col_index], true);
+  #ifndef NDEBUG
+    if (as_view) {
+      // Check that the sorted columns have consistent rowindices.
+      for (size_t j = 1; j < spec.size(); ++j) {
+        xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
+      }
+    }
+  #endif
+  if (!as_view) {
+    for (auto& s : spec) {
+      columns[s.col_index]->reify();
+    }
   }
-  return sc.get_result_groups();
+
+  bool do_groups = n > 1 || !spec[0].sort_only;
+  SortContext sc(nrows, col0->rowindex(), do_groups);
+  sc.start_sort(col0);
+  for (size_t j = 1; j < n; ++j) {
+    if (j < n - 1) {
+      xassert(do_groups);
+      if (spec[j + 1].sort_only && !spec[j].sort_only) {
+        result.second = sc.copy_groups();
+      }
+    } else {
+      do_groups = !spec[j].sort_only;
+    }
+    sc.continue_sort(columns[spec[j].col_index], do_groups);
+  }
+  result.first = sc.get_result_rowindex();
+  if (do_groups) {
+    xassert(!result.second);
+    result.second = sc.extract_groups();
+  }
+  xassert(spec[0].sort_only == !result.second);
+  return result;
 }
 
 

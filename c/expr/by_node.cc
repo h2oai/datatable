@@ -33,6 +33,16 @@ namespace dt {
 // dt::by_node
 //------------------------------------------------------------------------------
 
+by_node::column_descriptor::column_descriptor(
+    size_t i, std::string&& name_, bool desc, bool sort)
+  : index(i), name(std::move(name_)), descending(desc), sort_only(sort) {}
+
+by_node::column_descriptor::column_descriptor(
+    exprptr&& e, std::string&& name_, bool desc, bool sort)
+  : index(size_t(-1)), expr(std::move(e)), name(std::move(name_)),
+    descending(desc), sort_only(sort) {}
+
+
 by_node::by_node() {
   n_group_columns = 0;
 }
@@ -41,7 +51,6 @@ by_node::by_node() {
 void by_node::add_groupby_columns(collist_ptr&& cl) {
   _add_columns(std::move(cl), true);
 }
-
 
 void by_node::add_sortby_columns(collist_ptr&& cl) {
   _add_columns(std::move(cl), false);
@@ -56,33 +65,29 @@ void by_node::_add_columns(collist_ptr&& cl, bool group_columns) {
     bool has_names = !cl_int->names.empty();
     size_t n = cl_int->indices.size();
     for (size_t i = 0; i < n; ++i) {
-      _add_column(cl_int->indices[i],
-                  has_names? std::move(cl_int->names[i]) : std::string(),
-                  group_columns);
+      cols.emplace_back(
+          cl_int->indices[i],
+          has_names? std::move(cl_int->names[i]) : std::string(),
+          false,          // descending
+          !group_columns  // sort_only
+      );
     }
+    n_group_columns += group_columns * n;
   }
   if (cl_expr) {
     bool has_names = !cl_expr->names.empty();
     size_t n = cl_expr->exprs.size();
     for (size_t i = 0; i < n; ++i) {
-      _add_column(std::move(cl_expr->exprs[i]),
-                  has_names? std::move(cl_expr->names[i]) : std::string(),
-                  group_columns);
+      cols.emplace_back(
+          std::move(cl_expr->exprs[i]),
+          has_names? std::move(cl_expr->names[i]) : std::string(),
+          false,          // descending
+          !group_columns  // sort_only
+      );
     }
+    n_group_columns += group_columns * n;
     throw NotImplError() << "Computed columns cannot be used in groupby/sort";
   }
-}
-
-
-void by_node::_add_column(size_t index, std::string&& name, bool grp) {
-  cols.push_back({index, nullptr, std::move(name), grp, false});
-  n_group_columns += grp;
-}
-
-
-void by_node::_add_column(exprptr&& expr, std::string&& name, bool grp) {
-  cols.push_back({size_t(-1), std::move(expr), std::move(name), grp, false});
-  n_group_columns += grp;
 }
 
 
@@ -91,9 +96,9 @@ by_node::operator bool() const {
 }
 
 
-bool by_node::has_column(size_t i) const {
+bool by_node::has_group_column(size_t i) const {
   for (auto& col : cols) {
-    if (col.index == i) return true;
+    if (col.index == i && !col.sort_only) return true;
   }
   return false;
 }
@@ -108,6 +113,7 @@ void by_node::create_columns(workframe& wf) {
 
   auto dt0_names = dt0->get_names();
   for (auto& col : cols) {
+    if (col.sort_only) continue;
     size_t j = col.index;
     xassert(j != size_t(-1));
     Column* colj = dt0->columns[j]->shallowcopy();
@@ -118,20 +124,34 @@ void by_node::create_columns(workframe& wf) {
 
 
 void by_node::execute(workframe& wf) const {
+  if (cols.empty()) return;
   const DataTable* dt0 = wf.get_datatable(0);
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
     throw NotImplError() << "Groupby/sort cannot be combined with i expression";
   }
   std::vector<sort_spec> spec;
-  for (auto& col : cols) {
-    spec.push_back(sort_spec(col.index));
+  spec.reserve(cols.size());
+  if (n_group_columns > 0) {
+    for (auto& col : cols) {
+      if (col.sort_only) continue;
+      spec.emplace_back(col.index, col.descending, false, false);
+    }
   }
-  if (!spec.empty()) {
+  if (n_group_columns < cols.size()) {
+    for (auto& col : cols) {
+      if (!col.sort_only) continue;
+      spec.emplace_back(col.index, col.descending, false, true);
+    }
+  }
+  // if (n_group_columns) {
     auto res = dt0->group(spec);
     wf.gb = std::move(res.second);
     wf.apply_rowindex(res.first);
-  }
+  // } else {
+  //   auto res = dt0->sort(spec);
+  //   wf.apply_rowindex(res);
+  // }
 }
 
 

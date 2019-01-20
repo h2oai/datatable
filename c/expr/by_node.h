@@ -55,9 +55,12 @@ class by_node {
       size_t      index;
       exprptr     expr;
       std::string name;
-      bool        is_group_column;
-      bool        ascending;
+      bool        descending;
+      bool        sort_only;
       size_t : 48;
+
+      column_descriptor(size_t i, std::string&& name_, bool desc, bool sort);
+      column_descriptor(exprptr&& e, std::string&& name_, bool desc, bool sort);
     };
 
     std::vector<column_descriptor> cols;
@@ -69,14 +72,12 @@ class by_node {
     void add_sortby_columns(collist_ptr&&);
 
     explicit operator bool() const;
-    bool has_column(size_t i) const;
+    bool has_group_column(size_t i) const;
     void create_columns(workframe&);
     void execute(workframe&) const;
 
   private:
     void _add_columns(collist_ptr&& cl, bool group_columns);
-    void _add_column(size_t index, std::string&& name, bool is_group_column);
-    void _add_column(exprptr&& expr, std::string&& name, bool is_group_column);
 };
 
 
