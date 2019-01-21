@@ -27,6 +27,7 @@
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "expr/repl_node.h"  // repl_node_ptr
+#include "expr/sort_node.h"  // py::osort
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
@@ -102,6 +103,7 @@ class workframe {
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
+    void add_sortby(py::osort);
     void add_i(py::oobj);
     void add_j(py::oobj);
     void add_replace(py::oobj);

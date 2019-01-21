@@ -62,6 +62,7 @@
 #include "expr/i_node.h"
 #include "expr/j_node.h"
 #include "expr/join_node.h"
+#include "expr/sort_node.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
@@ -140,16 +141,21 @@ oobj Frame::_main_getset(robj item, robj value) {
 
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.
+  py::oby arg_by;
+  py::ojoin arg_join;
+  py::osort arg_sort;
   for (size_t k = 2; k < nargs; ++k) {
     robj arg = targs[k];
-    auto arg_join = arg.to_ojoin_lax();
-    if (arg_join) {
+    if ((arg_join = arg.to_ojoin_lax())) {
       wf.add_join(arg_join);
       continue;
     }
-    auto arg_by = arg.to_oby_lax();
-    if (arg_by) {
+    if ((arg_by = arg.to_oby_lax())) {
       wf.add_groupby(arg_by);
+      continue;
+    }
+    if ((arg_sort = arg.to_osort_lax())) {
+      wf.add_sortby(arg_sort);
       continue;
     }
     if (arg.is_none()) continue;

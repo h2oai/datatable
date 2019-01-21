@@ -1241,11 +1241,9 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     sc.continue_sort(columns[spec[j].col_index], do_groups);
   }
   result.first = sc.get_result_rowindex();
-  if (do_groups) {
-    xassert(!result.second);
+  if (!spec[0].sort_only && !result.second) {
     result.second = sc.extract_groups();
   }
-  xassert(spec[0].sort_only == !result.second);
   return result;
 }
 

@@ -64,6 +64,11 @@ void workframe::add_groupby(py::oby og) {
 }
 
 
+void workframe::add_sortby(py::osort obj) {
+  byexpr.add_sortby_columns(obj.cols(*this));
+}
+
+
 void workframe::add_i(py::oobj oi) {
   xassert(!iexpr);
   iexpr = i_node::make(oi, *this);
@@ -93,8 +98,8 @@ void workframe::evaluate() {
   // Compute groupby
   if (byexpr) {
     groupby_mode = jexpr->get_groupby_mode(*this);
-    byexpr.execute(*this);
   }
+  byexpr.execute(*this);
 
   // Compute i filter
   iexpr->execute(*this);
