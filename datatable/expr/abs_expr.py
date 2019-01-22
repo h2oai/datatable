@@ -15,8 +15,8 @@
 # limitations under the License.
 #-------------------------------------------------------------------------------
 from .base_expr import BaseExpr
+from .dtproxy import f
 from .unary_expr import UnaryOpExpr
-from datatable.graph.dtproxy import f
 from datatable.lib import core
 
 __all__ = ("abs", )

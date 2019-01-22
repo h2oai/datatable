@@ -50,7 +50,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 ::
 
   import pandas as pd
-  dt.Frame(pd.DataFrame({"A": range(1000)}))
+  pf = pd.DataFrame({"A": range(1000)})
+  dt.Frame(pf)
 
 .. raw:: html
 
@@ -154,8 +155,8 @@ Save a Frame into a binary format on disk, then open it later instantly, regardl
 
 ::
 
-   df.save("out.nff")
-   df2 = dt.open("out.nff")
+   df.save("out.jay")
+   df2 = dt.open("out.jay")
 
 Basic Frame Properties
 ----------------------
@@ -232,6 +233,8 @@ Sort columns using:
 ::
 
     df.sort("A")
+    df[:, :, sort(f.A)]
+
 
 Perform Groupby Calculations
 ----------------------------
@@ -240,7 +243,8 @@ Perform groupby calculations using:
 
 ::
 
-    df(select=mean(f.x), groupby="y")
+    df[:, mean(f.x), by("y")]
+
 
 Append Rows/Columns
 -------------------

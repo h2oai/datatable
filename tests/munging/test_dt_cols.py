@@ -392,9 +392,9 @@ def test_j_list_bools_error1(dt0):
 
 def test_j_list_bools_mixed(dt0):
     assert_typeerror(
-        dt0, [True, False, None, True],
-        "Element 2 in `j` selector list has type `<class 'NoneType'>`, "
-        "which is not supported")
+        dt0, [True, False, [], True],
+        "Element 2 in `j` selector list has type `<class 'list'>`, which is "
+        "not supported")
 
 
 
@@ -517,12 +517,6 @@ def test_j_expression2():
     assert f1.names == ("foo", "bar")
     assert f1.stypes == f0.stypes * 2
     assert f1.to_list() == [list(range(10)), list(range(0, -10, -1))]
-    # if has_llvm():
-    #     f2 = f0(select=selector, engine="llvm")
-    #     f2.internal.check()
-    #     assert f2.stypes == f1.stypes
-    #     assert f2.names == f1.names
-    #     assert f2.to_list() == f1.to_list()
 
 
 

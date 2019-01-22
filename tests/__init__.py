@@ -144,11 +144,6 @@ def find_file(*nameparts):
         return filename
 
 
-def has_llvm():
-    import datatable as dt
-    return dt.graph.llvm.llvm.available
-
-
 def noop(x):
     """
     Use this function to discard the result of some calculation, e.g:

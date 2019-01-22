@@ -173,6 +173,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   deprecated, they will be removed in 0.9.0. Please use `.to_list()`,
   `.to_pandas()` and `.to_numpy()` instead.
 
+- Calling a frame object `DT(rows=i, select=j, groupby=g, join=z, sort=s)` is
+  now deprecated. Use the expression `DT[i, j, by(g), join(z), sort(s)]`
+  instead, where symbols `by()`, `join()` and `sort()` can all be imported
+  from the `datatable` namespace (#1579).
+
 
 ### Removed
 

@@ -1,8 +1,24 @@
-#!/usr/bin/env python3
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#!/usr/bin/env python
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import collections
 import time
@@ -18,7 +34,6 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.terminal import term
 from datatable.utils.typechecks import (TTypeError, TValueError)
-from datatable.graph import make_datatable
 from datatable.csv import write_csv
 from datatable.options import options
 from datatable.types import stype
@@ -82,9 +97,22 @@ class Frame(core.Frame):
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
                  groupby=None, join=None, sort=None, engine=None
                  ):
-        """DEPRECATED"""
+        """DEPRECATED, use DT[i, j, ...] instead."""
+        warnings.warn(
+            "`DT(rows, select, ...)` is deprecated and will be removed in "
+            "version 0.9.0. Please use `DT[i, j, ...]` instead",
+            category=FutureWarning)
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select, groupby, join, sort, engine)
+        function = type(lambda: None)
+        if isinstance(rows, function):
+            rows = rows(datatable.f)
+        if isinstance(select, function):
+            select = select(datatable.f)
+
+        res = self[rows, select,
+                   datatable.join(join),
+                   datatable.by(groupby),
+                   datatable.sort(sort)]
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
@@ -394,7 +422,6 @@ class Frame(core.Frame):
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(7, Frame)
-core.register_function(9, make_datatable)
 core.install_buffer_hooks(Frame())
 
 

@@ -35,7 +35,6 @@ extern void init_jay();
 
 namespace py {
   PyObject* fread_fn = nullptr;
-  PyObject* fallback_makedatatable = nullptr;
 }
 
 
@@ -106,7 +105,6 @@ PyObject* register_function(PyObject*, PyObject *args) {
   else if (n == 6) replace_dtWarning(fnref);
   else if (n == 7) py::Frame_Type = fnref;
   else if (n == 8) py::fread_fn = fnref;
-  else if (n == 9) py::fallback_makedatatable = fnref;
   else {
     throw ValueError() << "Incorrect function index: " << n;
   }
@@ -194,12 +192,6 @@ void DatatableModule::init_methods() {
   add(METHODv(register_function));
   add(METHOD0(get_internal_function_ptrs));
   add(METHOD0(get_integer_sizes));
-  add(METHODv(expr_binaryop));
-  add(METHODv(expr_cast));
-  add(METHODv(expr_column));
-  add(METHODv(expr_reduceop));
-  add(METHODv(expr_count));
-  add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
 

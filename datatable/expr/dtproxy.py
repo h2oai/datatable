@@ -5,7 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 
-from datatable.expr.column_expr import ColSelectorExpr
+from .column_expr import ColSelectorExpr
 
 __all__ = ("f", "g")
 

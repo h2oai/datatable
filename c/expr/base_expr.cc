@@ -648,7 +648,7 @@ void py::base_expr::Type::init_methods_and_getsets(
 
 
 bool is_PyBaseExpr(const py::_obj& obj) {
-  static auto BaseExprType = py::oobj::import("datatable.graph", "BaseExpr");
+  static auto BaseExprType = py::oobj::import("datatable.expr", "BaseExpr");
   return PyObject_IsInstance(obj.to_borrowed_ref(),
                              BaseExprType.to_borrowed_ref());
 }

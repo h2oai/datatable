@@ -19,7 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/collist.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
 
@@ -112,7 +114,7 @@ class collist_maker
           _process_element(elem);
         }
       }
-      else {
+      else if (!src.is_none()) {
         throw TypeError()
           << "Unsupported " << srcname << " of type " << src.typeobj();
       }
@@ -170,6 +172,7 @@ class collist_maker
       else if (elem.is_type())   _process_element_type(elem);
       else if (elem.is_ltype())  _process_element_ltype(elem);
       else if (elem.is_stype())  _process_element_stype(elem);
+      else if (elem.is_none()) return;
       else {
         throw TypeError()
             << "Element " << k << " in " << srcname << " list has type `"

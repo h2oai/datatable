@@ -12,47 +12,6 @@
 #include "groupby.h"
 
 
-DECLARE_FUNCTION(
-  expr_binaryop,
-  "expr_binaryop(op, lhs, rhs)\n\n"
-  "\n",
-  dt_EXPR_PY_EXPR_CC)
-
-DECLARE_FUNCTION(
-  expr_cast,
-  "expr_cast(col, stype)\n\n"
-  "Convert column into new stype.\n",
-  dt_EXPR_PY_EXPR_CC)
-
-DECLARE_FUNCTION(
-  expr_column,
-  "expr_column(dt, i, rowindex)\n\n"
-  "Retrieve column `i` from the DataTable `dt`, replacing its rowindex with\n"
-  "the provided one and then materializing.\n",
-  dt_EXPR_PY_EXPR_CC)
-
-DECLARE_FUNCTION(
-  expr_reduceop,
-  "expr_reduceop(op, col, groupby)\n\n"
-  "Compute a reduction over the provided column, using the provided Groupby\n"
-  "object.\n",
-  dt_EXPR_PY_EXPR_CC)
-
-DECLARE_FUNCTION(
-  expr_unaryop,
-  "expr_unaryop(op, col)\n\n"
-  "Apply unary operator `op` to the column `col` and return the resulting \n"
-  "column.\n",
-  dt_EXPR_PY_EXPR_CC)
-
-DECLARE_FUNCTION(
-  expr_count,
-  "expr_count(dt, groupby)\n\n"
-  "Compute number of rows in each group if the Groupby object is provided, otherwise simply\n"
-  "return number of rows in dataframe.\n",
-  dt_EXPR_PY_EXPR_CC)
-
-
 namespace expr {
 
 typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);

@@ -1,13 +1,30 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum, by
+from datatable import f, mean, min, max, sum, count, by
 from tests import same_iterables, assert_equals
 
 
@@ -30,34 +47,35 @@ def test_groups_internal2():
     d0 = dt.DataTable([[1,   5,   3,   2,   1,    3,   1,   1,   None],
                        ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
                       names=["A", "B"])
-    d1 = d0(groupby="A")
-    d1.internal.check()
-    gb = d1.internal.groupby
-    assert gb.ngroups == 5
-    assert gb.group_sizes == [1, 4, 1, 2, 1]
-    assert d1.to_list() == [[None, 1, 1, 1, 1, 2, 3, 3, 5],
-                            ["d", "a", None, "b", "h", "a", "c", "f", "b"]]
-    d2 = d0(groupby="B")
-    d2.internal.check()
-    gb = d2.internal.groupby
-    assert gb.ngroups == 7
-    assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
-    assert d2.to_list() == [[1, 1, 2, 5, 1, 3, None, 3, 1],
-                            [None, "a", "a", "b", "b", "c", "d", "f", "h"]]
+    d1 = d0[:, :, by("A")]
+    # gb = d1.internal.groupby
+    # assert gb.ngroups == 5
+    # assert gb.group_sizes == [1, 4, 1, 2, 1]
+    assert_equals(
+        d1, dt.Frame(A=[None, 1, 1, 1, 1, 2, 3, 3, 5],
+                     B=["d", "a", None, "b", "h", "a", "c", "f", "b"]))
+    d2 = d0[:, :, by("B")]
+    # gb = d2.internal.groupby
+    # assert gb.ngroups == 7
+    # assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
+    assert_equals(
+        d2, dt.Frame(B=[None, "a", "a", "b", "b", "c", "d", "f", "h"],
+                     A=[1, 1, 2, 5, 1, 3, None, 3, 1]))
 
 
+@pytest.mark.xfail(reason="Issue #1578")
 def test_groups_internal3():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
-    f1 = f0(select=["B", f.A + f.B], groupby="A")
+    f1 = f0[:, [f.B, f.A + f.B], by(f.A)]
     f1.internal.check()
     assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
                             [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
-    gb = f1.internal.groupby
-    assert gb
-    assert gb.ngroups == 3
-    assert gb.group_sizes == [4, 4, 2]
-    assert gb.group_offsets == [0, 4, 8, 10]
+    # gb = f1.internal.groupby
+    # assert gb
+    # assert gb.ngroups == 3
+    # assert gb.group_sizes == [4, 4, 2]
+    # assert gb.group_offsets == [0, 4, 8, 10]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -66,19 +84,19 @@ def test_groups_internal4(seed):
     n = 100000
     src = [random.getrandbits(10) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
-    gb = f1.internal.groupby
+    f1 = f0[:, :, by("A")]
     f1.internal.check()
-    assert gb
-    grp_offsets = gb.group_offsets
-    ssrc = sorted(src)
-    x_prev = -1
-    for i in range(gb.ngroups):
-        s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
-        assert len(s) == 1
-        x = list(s)[0]
-        assert x != x_prev
-        x_prev = x
+    # gb = f1.internal.groupby
+    # assert gb
+    # grp_offsets = gb.group_offsets
+    # ssrc = sorted(src)
+    # x_prev = -1
+    # for i in range(gb.ngroups):
+    #     s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
+    #     assert len(s) == 1
+    #     x = list(s)[0]
+    #     assert x != x_prev
+    #     x_prev = x
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -87,20 +105,20 @@ def test_groups_internal5_strs(seed):
     n = 1000
     src = ["%x" % random.getrandbits(8) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
-    gb = f1.internal.groupby
+    f1 = f0[:, :, by("A")]
     f1.internal.check()
-    assert gb
-    grp_offsets = gb.group_offsets
-    ssrc = sorted(src)
-    assert f1.to_list() == [ssrc]
-    x_prev = None
-    for i in range(gb.ngroups):
-        s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
-        assert len(s) == 1
-        x = list(s)[0]
-        assert x != x_prev
-        x_prev = x
+    # gb = f1.internal.groupby
+    # assert gb
+    # grp_offsets = gb.group_offsets
+    # ssrc = sorted(src)
+    # assert f1.to_list() == [ssrc]
+    # x_prev = None
+    # for i in range(gb.ngroups):
+    #     s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
+    #     assert len(s) == 1
+    #     x = list(s)[0]
+    #     assert x != x_prev
+    #     x_prev = x
 
 
 
@@ -111,7 +129,7 @@ def test_groups_internal5_strs(seed):
 def test_groups1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
-    f1 = f0(select=mean(f.B), groupby=f.A)
+    f1 = f0[:, mean(f.B), by(f.A)]
     assert f1.stypes == (dt.int8, dt.float64,)
     assert f1.to_list() == [[1, 2, 3], [3.8, 2.0, 5.0]]
     f2 = f0[:, mean(f.B), "A"]
@@ -184,9 +202,8 @@ def test_groups_large1():
     n = 251 * 4000
     xs = [(i * 19) % 251 for i in range(n)]
     f0 = dt.Frame({"A": xs})
-    f1 = f0(groupby="A")
-    assert f1.internal.groupby.ngroups == 251
-    assert f1.internal.groupby.group_sizes == [4000] * 251
+    f1 = f0[:, count(), by("A")]
+    assert f1.to_list() == [list(range(251)), [4000] * 251]
 
 
 @pytest.mark.parametrize("n,seed", [(x, random.getrandbits(32))
@@ -197,9 +214,9 @@ def test_groups_large2_str(n, seed):
         n = int(random.expovariate(0.0005))
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
+    f1 = f0[:, count(), by("A")]
     f1.internal.check()
-    assert f1.internal.groupby.ngroups == len(set(src))
+    assert f1.nrows == len(set(src))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])

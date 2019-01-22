@@ -5,12 +5,12 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 
-from datatable.graph.dtproxy import f
 from .abs_expr import abs
 from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .cast_expr import CastExpr
 from .column_expr import ColSelectorExpr, NewColumnExpr
+from .dtproxy import f, g
 from .exp_expr import exp, log, log10
 from .isna_expr import isna
 from .literal_expr import LiteralExpr

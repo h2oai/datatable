@@ -130,7 +130,6 @@ class Frame : public PyObject {
 
 extern PyObject* Frame_Type;
 extern PyObject* fread_fn;
-extern PyObject* fallback_makedatatable;
 
 }  // namespace py
 

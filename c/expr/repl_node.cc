@@ -20,8 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "datatable.h"
+#include "expr/base_expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 
 namespace dt {
