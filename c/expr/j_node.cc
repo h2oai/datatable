@@ -81,7 +81,9 @@ void allcols_jn::select(workframe& wf) {
 
     size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
     wf.reserve(dti->ncols - j0);
+    const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
+      if (by.has_group_column(j)) continue;
       wf.add_column(dti->columns[j], rii, std::string(dti_names[j]));
     }
   }

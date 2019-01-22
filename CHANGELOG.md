@@ -136,6 +136,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed crash when an empty `by()` condition was used in `DT[i, j, by]` (#1572).
 
+- Expression `DT[:, :, by(...)]` no longer produces duplicates of columns used
+  in the by-clause (#1576).
+
 
 ### Changed
 
@@ -196,7 +199,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Additional thanks to people who helped make `datatable` more stable by
   discovering and reporting bugs that were fixed in this release:
 
-  [Pasha Stetsenko][] (#1316, #1443, #1481, #1539, #1542, #1551, #1572),
+  [Pasha Stetsenko][] (#1316, #1443, #1481, #1539, #1542, #1551, #1572, #1576),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451, #1565),

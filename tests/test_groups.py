@@ -284,3 +284,12 @@ def test_groupby_empty():
     DT = dt.Frame(A=range(5))
     res = DT[:, :, by()]
     assert_equals(res, DT)
+
+
+def test_groupby_select_all_columns():
+    # Check that when selecting all columns, the result has the same number
+    # of columns as the original.
+    DT = dt.Frame(id2=[1, 2] * 3, id4=[1] * 6, v3=[1, 3, 2, 3, 3, 3])
+    res = DT[:, :, by(f.id2, f.id4)]
+    assert_equals(res, dt.Frame(id2=[1, 1, 1, 2, 2, 2], id4=[1] * 6,
+                                v3=[1, 2, 3, 3, 3, 3]))
