@@ -10,6 +10,7 @@ from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .cast_expr import CastExpr
 from .column_expr import ColSelectorExpr, NewColumnExpr
+from .dtproxy import f, g
 from .exp_expr import exp, log, log10
 from .isna_expr import isna
 from .literal_expr import LiteralExpr
@@ -19,7 +20,6 @@ from .reduce_expr import ReduceExpr, sum, count, first
 from .relop_expr import RelationalOpExpr
 from .sd_expr import StdevReducer, sd
 from .unary_expr import UnaryOpExpr
-from datatable.graph.dtproxy import f
 
 __all__ = (
     "abs",

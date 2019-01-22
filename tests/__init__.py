@@ -145,8 +145,7 @@ def find_file(*nameparts):
 
 
 def has_llvm():
-    import datatable as dt
-    return dt.graph.llvm.llvm.available
+    return False
 
 
 def noop(x):

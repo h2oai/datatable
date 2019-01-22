@@ -16,7 +16,7 @@
 #-------------------------------------------------------------------------------
 from .base_expr import BaseExpr
 from .unary_expr import UnaryOpExpr
-from datatable.graph.dtproxy import f
+from .dtproxy import f
 from datatable.lib import core
 import math
 
