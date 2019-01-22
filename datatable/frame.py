@@ -10,7 +10,6 @@ import warnings
 
 from datatable.lib import core
 import datatable
-import datatable.graph
 from .widget import DataFrameWidget
 
 from datatable.dt_append import _rbind

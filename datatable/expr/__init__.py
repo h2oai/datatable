@@ -5,7 +5,6 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 
-from datatable.graph.dtproxy import f
 from .abs_expr import abs
 from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
@@ -20,6 +19,7 @@ from .reduce_expr import ReduceExpr, sum, count, first
 from .relop_expr import RelationalOpExpr
 from .sd_expr import StdevReducer, sd
 from .unary_expr import UnaryOpExpr
+from datatable.graph.dtproxy import f
 
 __all__ = (
     "abs",

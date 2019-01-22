@@ -16,7 +16,6 @@
 #-------------------------------------------------------------------------------
 from .base_expr import BaseExpr
 from .unary_expr import UnaryOpExpr
-from datatable.graph.dtproxy import f
 from datatable.lib import core
 
 __all__ = ("abs", )
@@ -27,6 +26,7 @@ def abs(x):
     if isinstance(x, BaseExpr):
         return UnaryOpExpr("abs", x)
     if isinstance(x, core.Frame):
+        from datatable.graph.dtproxy import f
         return x[:, {col: UnaryOpExpr("abs", f[col])
                      for col in x.names}]
     if x is None:
