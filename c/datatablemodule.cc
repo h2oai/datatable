@@ -192,12 +192,6 @@ void DatatableModule::init_methods() {
   add(METHODv(register_function));
   add(METHOD0(get_internal_function_ptrs));
   add(METHOD0(get_integer_sizes));
-  add(METHODv(expr_binaryop));
-  add(METHODv(expr_cast));
-  add(METHODv(expr_column));
-  add(METHODv(expr_reduceop));
-  add(METHODv(expr_count));
-  add(METHODv(expr_unaryop));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
 
