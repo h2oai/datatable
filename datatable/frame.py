@@ -10,6 +10,7 @@ import warnings
 
 from datatable.lib import core
 import datatable
+import datatable.graph
 from .widget import DataFrameWidget
 
 from datatable.dt_append import _rbind
@@ -18,7 +19,6 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.terminal import term
 from datatable.utils.typechecks import (TTypeError, TValueError)
-from datatable.graph import make_datatable
 from datatable.csv import write_csv
 from datatable.options import options
 from datatable.types import stype
@@ -89,12 +89,8 @@ class Frame(core.Frame):
             rows = rows(datatable.f)
         if isinstance(select, function):
             select = select(datatable.f)
-        # if sort:
-        #     res = self.sort(sort)
-        # else:
-        #     res = self
+
         res = self[rows, select, datatable.by(groupby), datatable.sort(sort)]
-        # res = make_datatable(self, rows, select, groupby, join, sort, engine)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
@@ -404,7 +400,6 @@ class Frame(core.Frame):
 core.register_function(4, TTypeError)
 core.register_function(5, TValueError)
 core.register_function(7, Frame)
-core.register_function(9, make_datatable)
 core.install_buffer_hooks(Frame())
 
 
