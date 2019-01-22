@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum, by
+from datatable import f, mean, min, max, sum, count, by
 from tests import same_iterables, assert_equals
 
 
@@ -202,9 +202,8 @@ def test_groups_large1():
     n = 251 * 4000
     xs = [(i * 19) % 251 for i in range(n)]
     f0 = dt.Frame({"A": xs})
-    f1 = f0[:, :, by("A")]
-    # assert f1.internal.groupby.ngroups == 251
-    # assert f1.internal.groupby.group_sizes == [4000] * 251
+    f1 = f0[:, count(), by("A")]
+    assert f1.to_list() == [list(range(251)), [4000] * 251]
 
 
 @pytest.mark.parametrize("n,seed", [(x, random.getrandbits(32))
@@ -215,9 +214,9 @@ def test_groups_large2_str(n, seed):
         n = int(random.expovariate(0.0005))
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0[:, :, by("A")]
+    f1 = f0[:, count(), by("A")]
     f1.internal.check()
-    # assert f1.internal.groupby.ngroups == len(set(src))
+    assert f1.nrows == len(set(src))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
