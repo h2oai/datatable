@@ -1,13 +1,30 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
 from datatable import stype, ltype, f
-from tests import same_iterables, has_llvm, noop
+from tests import same_iterables, noop
 
 
 #-------------------------------------------------------------------------------
@@ -599,11 +616,6 @@ def test_rows_equal(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[3, 4, None, 9], [3, 4, None, 9]]
-    # if has_llvm():
-    #     dt2 = df1(f.A == f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_not_equal(df1):
@@ -612,11 +624,6 @@ def test_rows_not_equal(df1):
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 2, 5, 6, 7, None],
                              [3, 2, 1, 0, 2, None, 8]]
-    # if has_llvm():
-    #     dt2 = df1(f.A != f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_less_than(df1):
@@ -624,11 +631,6 @@ def test_rows_less_than(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1], [3, 2]]
-    # if has_llvm():
-    #     dt2 = df1(f.A < f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_greater_than(df1):
@@ -636,11 +638,6 @@ def test_rows_greater_than(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[2, 5, 6], [1, 0, 2]]
-    # if has_llvm():
-    #     dt2 = df1(f.A > f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_less_than_or_equal(df1):
@@ -648,11 +645,6 @@ def test_rows_less_than_or_equal(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 3, 4, None, 9], [3, 2, 3, 4, None, 9]]
-    # if has_llvm():
-    #     dt2 = df1(f.A <= f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_greater_than_or_equal(df1):
@@ -661,11 +653,6 @@ def test_rows_greater_than_or_equal(df1):
     assert dt1.names == df1.names
     assert dt1.to_list() == [[2, 3, 4, 5, 6, None, 9],
                              [1, 3, 4, 0, 2, None, 9]]
-    # if has_llvm():
-    #     dt2 = df1(f.A >= f.B, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_compare_to_scalar_gt(df1):
@@ -673,11 +660,6 @@ def test_rows_compare_to_scalar_gt(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
-    # if has_llvm():
-    #     dt2 = df1(f.A > 3, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_compare_to_scalar_lt(df1):
@@ -685,11 +667,6 @@ def test_rows_compare_to_scalar_lt(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 2], [3, 2, 1]]
-    # if has_llvm():
-    #     dt2 = df1(f.A < 3, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 # noinspection PyComparisonWithNone
@@ -698,11 +675,6 @@ def test_rows_compare_to_scalar_eq(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[None, None], [None, 8]]
-    # if has_llvm():
-    #     dt2 = df1(f.A == None, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_unary_minus(df1):
@@ -710,11 +682,6 @@ def test_rows_unary_minus(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
-    # if has_llvm():
-    #     dt2 = df1(-f.A < -3, engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_isna(df1):
@@ -723,11 +690,6 @@ def test_rows_isna(df1):
     dt1.internal.check()
     assert dt1.names == df1.names
     assert dt1.to_list() == [[None, None], [None, 8]]
-    # if has_llvm():
-    #     dt2 = df1(isna(f.A), engine="llvm")
-    #     dt2.internal.check()
-    #     assert dt1.names == dt2.names
-    #     assert dt1.to_list() == dt2.to_list()
 
 
 def test_rows_mean():
@@ -804,10 +766,6 @@ def test_filter_on_view3():
     df2 = df1[f.A <= 10, :]
     df2.internal.check()
     assert df2.to_list() == [[0, 5, 10]]
-    # if has_llvm():
-    #     df3 = df1(f.A <= 10, engine="llvm")
-    #     df3.internal.check()
-    #     assert df3.to_list() == [[0, 5, 10]]
 
 
 def test_chained_slice0(dt0):

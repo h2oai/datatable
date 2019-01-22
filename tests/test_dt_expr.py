@@ -26,7 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, stype, ltype
-from tests import list_equals, has_llvm, assert_equals, noop
+from tests import list_equals, assert_equals, noop
 
 
 # Sets of tuples containing test columns of each type

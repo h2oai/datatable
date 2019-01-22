@@ -144,10 +144,6 @@ def find_file(*nameparts):
         return filename
 
 
-def has_llvm():
-    return False
-
-
 def noop(x):
     """
     Use this function to discard the result of some calculation, e.g:

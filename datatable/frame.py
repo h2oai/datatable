@@ -109,7 +109,10 @@ class Frame(core.Frame):
         if isinstance(select, function):
             select = select(datatable.f)
 
-        res = self[rows, select, datatable.by(groupby), datatable.sort(sort)]
+        res = self[rows, select,
+                   datatable.join(join),
+                   datatable.by(groupby),
+                   datatable.sort(sort)]
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
