@@ -19,9 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
 #include "expr/py_expr.h"
+#include "expr/workframe.h"
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"

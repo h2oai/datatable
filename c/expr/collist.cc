@@ -19,7 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/collist.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
 

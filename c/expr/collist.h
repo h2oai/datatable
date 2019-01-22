@@ -21,15 +21,17 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_COLLIST_h
 #define dt_EXPR_COLLIST_h
+#include <memory>
+#include <string>
 #include <vector>
-#include "expr/base_expr.h"
-#include "expr/workframe.h"
 #include "python/obj.h"
 
 namespace dt {
 class collist;
+class base_expr;
+class workframe;
 
-
+using strvec = std::vector<std::string>;
 using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
 using intvec = std::vector<size_t>;
 using collist_ptr = std::unique_ptr<collist>;
