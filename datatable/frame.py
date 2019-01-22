@@ -97,7 +97,11 @@ class Frame(core.Frame):
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
                  groupby=None, join=None, sort=None, engine=None
                  ):
-        """DEPRECATED"""
+        """DEPRECATED, use DT[i, j, ...] instead."""
+        warnings.warn(
+            "`DT(rows, select, ...)` is deprecated and will be removed in "
+            "version 0.9.0. Please use `DT[i, j, ...]` instead",
+            category=FutureWarning)
         time0 = time.time() if timeit else 0
         function = type(lambda: None)
         if isinstance(rows, function):

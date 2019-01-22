@@ -170,19 +170,6 @@ def test_internal():
         core.test_internal()
 
 
-
-def test_dt_call(dt0, capsys):
-    print("before computing dt1")
-    dt1 = dt0(timeit=True)
-    print("dt1 computed")
-    dt1.internal.check()
-    assert dt1.shape == dt0.shape
-    assert not dt1.internal.isview
-    out, err = capsys.readouterr()
-    assert err == ""
-    assert "Time taken:" in out
-
-
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()

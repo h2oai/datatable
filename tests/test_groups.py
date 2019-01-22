@@ -47,14 +47,14 @@ def test_groups_internal2():
     d0 = dt.DataTable([[1,   5,   3,   2,   1,    3,   1,   1,   None],
                        ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
                       names=["A", "B"])
-    d1 = d0(groupby="A")
+    d1 = d0[:, :, by("A")]
     # gb = d1.internal.groupby
     # assert gb.ngroups == 5
     # assert gb.group_sizes == [1, 4, 1, 2, 1]
     assert_equals(
         d1, dt.Frame(A=[None, 1, 1, 1, 1, 2, 3, 3, 5],
                      B=["d", "a", None, "b", "h", "a", "c", "f", "b"]))
-    d2 = d0(groupby="B")
+    d2 = d0[:, :, by("B")]
     # gb = d2.internal.groupby
     # assert gb.ngroups == 7
     # assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
@@ -66,7 +66,7 @@ def test_groups_internal2():
 @pytest.mark.xfail(reason="Issue #1578")
 def test_groups_internal3():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
-    f1 = f0(select=[f.B, f.A + f.B], groupby="A")
+    f1 = f0[:, [f.B, f.A + f.B], by(f.A)]
     f1.internal.check()
     assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
@@ -84,7 +84,7 @@ def test_groups_internal4(seed):
     n = 100000
     src = [random.getrandbits(10) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
+    f1 = f0[:, :, by("A")]
     f1.internal.check()
     # gb = f1.internal.groupby
     # assert gb
@@ -105,7 +105,7 @@ def test_groups_internal5_strs(seed):
     n = 1000
     src = ["%x" % random.getrandbits(8) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
+    f1 = f0[:, :, by("A")]
     f1.internal.check()
     # gb = f1.internal.groupby
     # assert gb
@@ -129,7 +129,7 @@ def test_groups_internal5_strs(seed):
 def test_groups1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
-    f1 = f0(select=mean(f.B), groupby=f.A)
+    f1 = f0[:, mean(f.B), by(f.A)]
     assert f1.stypes == (dt.int8, dt.float64,)
     assert f1.to_list() == [[1, 2, 3], [3.8, 2.0, 5.0]]
     f2 = f0[:, mean(f.B), "A"]
@@ -202,7 +202,7 @@ def test_groups_large1():
     n = 251 * 4000
     xs = [(i * 19) % 251 for i in range(n)]
     f0 = dt.Frame({"A": xs})
-    f1 = f0(groupby="A")
+    f1 = f0[:, :, by("A")]
     # assert f1.internal.groupby.ngroups == 251
     # assert f1.internal.groupby.group_sizes == [4000] * 251
 
@@ -215,7 +215,7 @@ def test_groups_large2_str(n, seed):
         n = int(random.expovariate(0.0005))
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
-    f1 = f0(groupby="A")
+    f1 = f0[:, :, by("A")]
     f1.internal.check()
     # assert f1.internal.groupby.ngroups == len(set(src))
 

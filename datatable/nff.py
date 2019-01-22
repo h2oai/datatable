@@ -111,7 +111,7 @@ def open(path):
             nff_version = 2
         if nff_version:
             assert len(info) == 2
-            mm = re.match("nrows\s*=\s*(\d+)", info[1])
+            mm = re.match(r"nrows\s*=\s*(\d+)", info[1])
             if mm:
                 nrows = int(mm.group(1))
             else:
@@ -124,7 +124,7 @@ def open(path):
     if nff_version > 1:
         coltypes += [None] * 2
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
-    f1 = f0(select=["filename", "stype"])
+    f1 = f0[:, ["filename", "stype"]]
     colnames = f0[:, "colname"].to_list()[0]
     df = core.datatable_load(f1.internal, nrows, path, nff_version < 2,
                              colnames)

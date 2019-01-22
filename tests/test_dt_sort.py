@@ -1,8 +1,24 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#-------------------------------------------------------------------------------
+# Copyright 2018 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import math
 import os
@@ -55,14 +71,12 @@ def test_sort_len2():
     assert d1.to_list() == d2.to_list()
 
 
-def test_sort_with_engine():
+def test_sort_simple():
     d0 = dt.Frame([random.randint(0, 20) for _ in range(100)])
-    d1 = d0(sort=0, engine="llvm")
-    d2 = d0(sort=0, engine="eager")
+    d1 = d0[:, :, sort(0)]
     d1.internal.check()
-    d2.internal.check()
-    assert d1.shape == d2.shape == d0.shape
-    assert d1.to_list() == d2.to_list() == [sorted(d0.to_list()[0])]
+    assert d1.shape == d0.shape
+    assert d1.to_list() == [sorted(d0.to_list()[0])]
 
 
 def test_nonfirst_column():
@@ -128,7 +142,7 @@ def test_int32_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
     d0 = dt.Frame([src, range(n)], names=["A", "B"])
     assert d0.stypes[0] == stype.int32
-    d1 = d0(sort="A", select="B")
+    d1 = d0[:, "B", sort("A")]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(1, n, 3)) +
                             list(range(2, n, 3))]
@@ -217,7 +231,7 @@ def test_int8_small_stable():
         [5, 3, 5, None, 100, None, 3, None],
         [1, 5, 10, 20, 50, 100, 200, 500]
     ], names=["A", "B"])
-    d1 = d0(sort="A")
+    d1 = d0[:, :, sort(f.A)]
     d1.internal.check()
     assert d1.to_list() == [
         [None, None, None, 3, 3, 5, 5, 100],
@@ -238,7 +252,7 @@ def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
     d0 = dt.Frame([src, range(n)], names=("A", "B"))
     assert d0.stypes[0] == stype.int8
-    d1 = d0(sort="A", select="B")
+    d1 = d0[:, f.B, sort(f.A)]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(2, n, 3)) +
                             list(range(1, n, 3))]
@@ -250,7 +264,7 @@ def test_int8_large_stable(n):
 def test_bool8_small():
     d0 = dt.Frame([True, False, False, None, True, True, None])
     assert d0.stypes == (stype.bool8, )
-    d1 = d0(sort="C0")
+    d1 = d0[:, :, sort("C0")]
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
     d1.internal.check()
@@ -261,7 +275,7 @@ def test_bool8_small_stable():
     d0 = dt.Frame([[True, False, False, None, True, True, None],
                    [1, 2, 3, 4, 5, 6, 7]])
     assert d0.stypes == (stype.bool8, stype.int8)
-    d1 = d0(sort="C0")
+    d1 = d0[:, :, sort("C0")]
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview
@@ -288,7 +302,7 @@ def test_bool8_large(n):
 def test_bool8_large_stable(n):
     d0 = dt.Frame([[True, False, None] * n, range(3 * n)], names=["A", "B"])
     assert d0.stypes[0] == stype.bool8
-    d1 = d0(sort="A", select="B")
+    d1 = d0[:, f.B, sort(f.A)]
     assert d1.internal.isview
     d1.internal.check()
     assert d1.to_list() == [list(range(2, 3 * n, 3)) +
@@ -330,7 +344,7 @@ def test_int16_large_stable(n):
     d0 = dt.Frame([[-5, None, 5, -999, 1000] * n, range(n * 5)],
                   names=["A", "B"])
     assert d0.stypes[0] == stype.int16
-    d1 = d0(sort="A", select="B")
+    d1 = d0[:, f.B, sort(f.A)]
     d1.internal.check()
     assert d1.to_list() == [list(range(1, 5 * n, 5)) +
                             list(range(3, 5 * n, 5)) +
@@ -354,7 +368,7 @@ def test_int64_small():
 def test_int64_small_stable():
     d0 = dt.Frame([[0, None, -1000, 11**11] * 3, range(12)])
     assert d0.stypes == (stype.int64, stype.int32)
-    d1 = d0(sort=0, select=1)
+    d1 = d0[:, 1, sort(0)]
     d1.internal.check()
     assert d1.to_list() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
 
@@ -478,11 +492,11 @@ def test_float64_random(numpy, n):
 
 def test_sort_view1():
     d0 = dt.Frame([5, 10])
-    d1 = d0(rows=[i % 2 for i in range(10)])
+    d1 = d0[[i % 2 for i in range(10)], :]
     assert d1.shape == (10, 1)
     d1.internal.check()
     assert d1.internal.isview
-    d2 = d1(sort=0)
+    d2 = d1[:, :, sort(0)]
     assert d2.shape == d1.shape
     d2.internal.check()
     assert d2.internal.isview
@@ -492,7 +506,7 @@ def test_sort_view1():
 def test_sort_view2():
     d0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
     d1 = d0.sort(0)
-    d2 = d1(sort=0)
+    d2 = d1[:, :, sort(0)]
     d2.internal.check()
     assert d2.to_list() == d1.to_list()
 
@@ -500,7 +514,7 @@ def test_sort_view2():
 def test_sort_view3():
     d0 = dt.Frame(range(1000))
     d1 = d0[::-5, :]
-    d2 = d1(sort=0)
+    d2 = d1[:, :, sort(0)]
     d2.internal.check()
     assert d2.shape == (200, 1)
     assert d2.to_list() == [list(range(4, 1000, 5))]
@@ -655,7 +669,7 @@ def test_strXX_large5(st):
     random.shuffle(src)
     dt0 = dt.Frame(src, stype=st)
     assert dt0.stypes == (st, )
-    dt1 = dt0(sort=0)
+    dt1 = dt0[:, :, sort(0)]
     dt1.internal.check()
     assert dt1.to_list()[0] == sorted(src)
 
@@ -672,7 +686,7 @@ def test_strXX_large6(st):
             words.extend(txt.split())
     dt0 = dt.Frame(words, stype=st)
     assert dt0.stypes == (st, )
-    dt1 = dt0(sort=0)
+    dt1 = dt0.sort(0)
     dt1.internal.check()
     assert dt1.to_list()[0] == sorted(words)
 

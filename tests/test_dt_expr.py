@@ -26,7 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, stype, ltype
-from tests import list_equals, has_llvm, assert_equals
+from tests import list_equals, has_llvm, assert_equals, noop
 
 
 # Sets of tuples containing test columns of each type
@@ -155,27 +155,19 @@ def inv(t):
 @pytest.mark.parametrize("src", dt_bool + dt_int)
 def test_dt_invert(src):
     dt0 = dt.Frame(src)
-    df2 = dt0(select=~f[0], engine="eager")
+    df2 = dt0[:, ~f[0]]
     df2.internal.check()
     assert df2.stypes == dt0.stypes
     assert df2.to_list() == [[inv(x) for x in src]]
-    if has_llvm():
-        df1 = dt0(select=~f[0], engine="llvm")
-        df1.internal.check()
-        assert df1.stypes == dt0.stypes
-        assert df1.to_list() == [[inv(x) for x in src]]
 
 
 @pytest.mark.parametrize("src", dt_float)
 def test_dt_invert_invalid(src):
     dt0 = dt.Frame(src)
-    for engine in ["llvm", "eager"]:
-        if engine == "llvm" and not has_llvm():
-            continue
-        with pytest.raises(TypeError) as e:
-            dt0(select=~f[0], engine=engine)
-        assert ("Unary operator `~` cannot be applied to a column with stype "
-                "`%s`" % dt0.stypes[0].name == str(e.value))
+    with pytest.raises(TypeError) as e:
+        noop(dt0[:, ~f[0]])
+    assert ("Unary operator `~` cannot be applied to a column with stype "
+            "`%s`" % dt0.stypes[0].name == str(e.value))
 
 
 
@@ -191,9 +183,10 @@ def neg(t):
 @pytest.mark.parametrize("src", dt_int + dt_float + dt_bool)
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
-    dtr = dt0(select=lambda f: -f[0])
+    dtr = dt0[:, -f[0]]
     dtr.internal.check()
-    # assert dtr.stypes == dt0.stypes
+    assert dtr.stypes == ((dt.int8,) if dt0.stypes[0] == dt.bool8 else
+                          dt0.stypes)
     assert_equals(dtr, dt.Frame([neg(x) for x in src]))
 
 
@@ -201,7 +194,7 @@ def test_dt_neg(src):
 def test_dt_neg_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
-        dt0(select=lambda f: -f[0])
+        noop(dt0[:, -f[0]])
     assert ("Unary operator `-` cannot be applied to a column with stype "
             "`%s`" % dt0.stypes[0].name == str(e.value))
 
@@ -214,7 +207,7 @@ def test_dt_neg_invalid(src):
 @pytest.mark.parametrize("src", dt_int + dt_float + dt_bool)
 def test_dt_pos(src):
     dt0 = dt.Frame(src)
-    dtr = dt0(select=lambda f: +f[0])
+    dtr = dt0[:, +f[0]]
     dtr.internal.check()
     assert dtr.stypes == dt0.stypes
     assert list_equals(dtr.to_list()[0], list(src))
@@ -224,7 +217,7 @@ def test_dt_pos(src):
 def test_dt_pos_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
-        dt0(select=lambda f: +f[0])
+        noop(dt0[:, +f[0]])
     assert ("Unary operator `+` cannot be applied to a column with stype "
             "`%s`" % dt0.stypes[0].name == str(e.value))
 
@@ -243,11 +236,6 @@ def test_dt_isna(src):
     assert dt1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
     assert dt1.to_list()[0] == pyans
-    if has_llvm():
-        dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
-        dt2.internal.check()
-        assert dt2.stypes == (stype.bool8,)
-        assert dt2.to_list()[0] == pyans
 
 
 def test_dt_isna2():
