@@ -13,7 +13,7 @@ from .fread import fread, GenericReader, FreadWarning
 from .graph import f, g, join, by
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
-    repeat
+    repeat, sort
 )
 from .nff import save, open
 from .options import options
@@ -36,7 +36,7 @@ __all__ = ("__version__", "__git_revision__",
            "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64",
-           "cbind", "rbind", "repeat",
+           "cbind", "rbind", "repeat", "sort",
            "unique", "union", "intersect", "setdiff", "symdiff",
            "split_into_nhot")
 

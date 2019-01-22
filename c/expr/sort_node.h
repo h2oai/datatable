@@ -19,51 +19,59 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_COLLIST_h
-#define dt_EXPR_COLLIST_h
-#include <vector>
-#include "expr/base_expr.h"
-#include "expr/workframe.h"
+#ifndef dt_EXPR_SORT_NODE_h
+#define dt_EXPR_SORT_NODE_h
+#include <memory>
+#include "expr/collist.h"
+#include "python/ext_type.h"
 #include "python/obj.h"
-
-namespace dt {
-class collist;
+namespace py {
 
 
-using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
-using intvec = std::vector<size_t>;
-using collist_ptr = std::unique_ptr<collist>;
+class _sort : public PyObject {
+  private:
+    oobj cols;
+    friend class osort;
 
-
-
-class collist {
   public:
-    static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
-    virtual ~collist();
+    class Type : public ExtType<_sort> {
+      public:
+        static PKArgs args___init__;
+        static const char* classname();
+        static const char* classdoc();
+        static bool is_subclassable();
+        static void init_methods_and_getsets(Methods&, GetSetters&);
+    };
+
+    void m__init__(PKArgs&);
+    void m__dealloc__();
+    oobj get_cols() const;
 };
 
 
 
-struct cols_intlist : public collist {
-  intvec indices;
-  strvec names;
+class osort : public oobj {
+  public:
+    osort() = default;
+    osort(const osort&) = default;
+    osort(osort&&) = default;
+    osort& operator=(const osort&) = default;
+    osort& operator=(osort&&) = default;
 
-  cols_intlist(intvec&& indices_, strvec&& names_);
-  ~cols_intlist() override;
+    static bool check(PyObject* v);
+    static void init(PyObject* m);
+
+    dt::collist_ptr cols(dt::workframe&) const;
+
+  private:
+    // This private constructor will reinterpret the object `r` as an
+    // `osort` object.
+    osort(const robj& r);
+    osort(const oobj& r);
+    friend class _obj;
 };
 
 
 
-struct cols_exprlist : public collist {
-  exprvec exprs;
-  strvec  names;
-
-	cols_exprlist(exprvec&& exprs_, strvec&& names_);
-  ~cols_exprlist() override;
-};
-
-
-
-
-}  // namespace dt
+}  // namespace py
 #endif

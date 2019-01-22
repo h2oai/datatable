@@ -21,16 +21,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
-#include "python/ext_type.h"
-#include "python/obj.h"
+#include <memory>            // std::unique_ptr
 #include "datatable.h"
 #include "groupby.h"         // Groupby
+#include "python/ext_type.h"
+#include "python/obj.h"
 
 namespace dt
 {
-class workframe;
+class base_expr;
 class by_node;
-using by_node_ptr = std::unique_ptr<dt::by_node>;
+class collist;
+class workframe;
+using by_node_ptr = std::unique_ptr<by_node>;
+using collist_ptr = std::unique_ptr<collist>;
 
 enum class GroupbyMode : uint8_t {
   NONE   = 0,
@@ -45,19 +49,40 @@ enum class GroupbyMode : uint8_t {
 //------------------------------------------------------------------------------
 
 class by_node {
+  private:
+    using exprptr = std::unique_ptr<dt::base_expr>;
+    struct column_descriptor {
+      size_t      index;
+      exprptr     expr;
+      std::string name;
+      bool        descending;
+      bool        sort_only;
+      size_t : 48;
+
+      column_descriptor(size_t i, std::string&& name_, bool desc, bool sort);
+      column_descriptor(exprptr&& e, std::string&& name_, bool desc, bool sort);
+    };
+
+    std::vector<column_descriptor> cols;
+    size_t n_group_columns;
+
   public:
-    Groupby gb;
+    by_node();
+    void add_groupby_columns(collist_ptr&&);
+    void add_sortby_columns(collist_ptr&&);
 
-    virtual ~by_node();
-    virtual void execute(workframe&) = 0;
-    virtual bool has_column(size_t i) const = 0;
+    explicit operator bool() const;
+    bool has_group_column(size_t i) const;
+    void create_columns(workframe&);
+    void execute(workframe&) const;
 
-    virtual void create_columns(workframe&) = 0;
+  private:
+    void _add_columns(collist_ptr&& cl, bool group_columns);
 };
 
 
 
-}
+}  // namespace dt
 //------------------------------------------------------------------------------
 // py::oby
 //------------------------------------------------------------------------------
@@ -96,7 +121,7 @@ class py::oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::by_node_ptr to_by_node(dt::workframe&) const;
+    dt::collist_ptr cols(dt::workframe&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

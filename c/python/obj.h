@@ -32,6 +32,7 @@ class olist;
 class oslice;
 class ostring;
 class orange;
+class osort;
 class otuple;
 class rtuple;
 class robj;
@@ -173,6 +174,7 @@ class _obj {
     bool is_frame()         const noexcept;
     bool is_by_node()       const noexcept;
     bool is_join_node()     const noexcept;
+    bool is_sort_node()     const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
     bool is_numpy_array()   const noexcept;
@@ -217,6 +219,7 @@ class _obj {
     SType       to_stype          (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
+    py::osort   to_osort_lax      () const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }

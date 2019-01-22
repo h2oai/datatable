@@ -27,6 +27,7 @@
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "expr/repl_node.h"  // repl_node_ptr
+#include "expr/sort_node.h"  // py::osort
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
@@ -71,11 +72,15 @@ enum class EvalMode : uint8_t {
  */
 class workframe {
   private:
-    frvec         frames;
-    by_node_ptr   by_node;
+    // Inputs
+    by_node       byexpr;
     i_node_ptr    iexpr;
     j_node_ptr    jexpr;
     repl_node_ptr repl;
+
+    // Runtime
+    frvec         frames;
+    Groupby       gb;
     EvalMode      mode;
     GroupbyMode   groupby_mode;
     size_t : 48;
@@ -98,6 +103,7 @@ class workframe {
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
+    void add_sortby(py::osort);
     void add_i(py::oobj);
     void add_j(py::oobj);
     void add_replace(py::oobj);
@@ -108,7 +114,7 @@ class workframe {
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby() const;
-    const by_node_ptr& get_by_node() const;
+    const by_node& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
     size_t nframes() const;
@@ -123,6 +129,8 @@ class workframe {
   private:
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
+
+    friend class by_node;  // Allow access to `gb`
 };
 
 

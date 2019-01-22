@@ -48,6 +48,12 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
 
    frame.rst
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Models
+
+   ftrl.rst
+
 
 
 Indices and tables

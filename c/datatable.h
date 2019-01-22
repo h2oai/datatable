@@ -30,6 +30,8 @@ struct sort_spec {
 
   sort_spec(size_t i)
     : col_index(i), descending(false), na_last(false), sort_only(false) {}
+  sort_spec(size_t i, bool desc, bool nalast, bool sort)
+    : col_index(i), descending(desc), na_last(nalast), sort_only(sort) {}
 };
 
 typedef Column* (Column::*colmakerfn)(void) const;

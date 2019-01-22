@@ -90,8 +90,8 @@ SType expr_column::resolve(const workframe& wf) {
 GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
   return (frame_id == 0 &&
           wf.has_groupby() &&
-          wf.get_by_node()->has_column(col_id))? GroupbyMode::GtoONE
-                                               : GroupbyMode::GtoALL;
+          wf.get_by_node().has_group_column(col_id))? GroupbyMode::GtoONE
+                                                    : GroupbyMode::GtoALL;
 }
 
 

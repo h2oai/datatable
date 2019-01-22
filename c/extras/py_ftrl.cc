@@ -225,13 +225,13 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
 
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
-    R"(Frame having two columns, i.e. `z` and `n`, and `d` rows,
-    where `d` is a number of bins set for modeling. Both column types
-    must be `float64`.)"
+    R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
+    and `d` rows, where `d` is a number of bins set for the hashing trick.
+    Both column types are `float64`.)"
   );
 
   gs.add<&Ftrl::get_fi>(
-    "fi",
+    "feature_importances",
     R"(One-column frame with the overall weight contributions calculated
     feature-wise during training and predicting. It can be interpreted as
     a feature importance information.)"
@@ -513,7 +513,7 @@ oobj Ftrl::predict(const PKArgs& args) {
   // For multinomial case, when there is more than two labels,
   // apply `softmax` function. NB: we already applied `std::exp`
   // function to predictions, so only need to normalize probabilities here.
-  if (nlabels > 2) normalize(dt_y);
+  if (nlabels > 2) normalize_rows(dt_y);
 
   py::oobj df_y = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_y)
@@ -539,7 +539,7 @@ inline double Ftrl::identity(double x) {
 }
 
 
-void Ftrl::normalize(DataTable* dt) {
+void Ftrl::normalize_rows(DataTable* dt) {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
 
@@ -646,6 +646,8 @@ oobj Ftrl::get_fi() const {
     	// If there is just one classifier, simply return `fi`.
       dt_fi = (*dtft)[0]->get_fi();
     }
+    normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
+    // TODO: memoize `df_fi`
     py::oobj df_fi = py::oobj::from_new_reference(
                        py::Frame::from_datatable(dt_fi)
                      );
@@ -654,6 +656,29 @@ oobj Ftrl::get_fi() const {
   	// If model was not trained, return `None`.
     return py::None();
   }
+}
+
+
+
+/*
+* Normalize a column of feature importances to [0; 1]
+* This column has only positive values, so we simply divide its
+* content by `col->max()`. Another option is to do min-max normalization,
+* but this may lead to some features having zero importance,
+* while in reality they don't.
+*/
+void Ftrl::normalize_fi(RealColumn<double>* col) {
+  double max = col->max();
+  double epsilon = std::numeric_limits<double>::epsilon();
+  double* data = col->elements_w();
+
+  double norm_factor = 1.0;
+  if (fabs(max) > epsilon) norm_factor = 1 / max;
+
+  for (size_t i = 0; i < col->nrows; ++i) {
+    data[i] *= norm_factor;
+  }
+  col->get_stats()->reset();
 }
 
 
