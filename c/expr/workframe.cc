@@ -238,12 +238,12 @@ void workframe::add_column(
 
 RowIndex& workframe::_product(const RowIndex& ra, const RowIndex& rb) {
   for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-    if (it->first == ra) {
-      return it->second;
+    if (it->ab == ra && it->bc == rb) {
+      return it->ac;
     }
   }
-  all_ri.push_back(std::make_pair(ra, ra * rb));
-  return all_ri.back().second;
+  all_ri.push_back({ra, rb, ra * rb});
+  return all_ri.back().ac;
 }
 
 

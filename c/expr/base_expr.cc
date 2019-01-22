@@ -95,18 +95,14 @@ GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_column::evaluate_eager(const workframe& wf) {
+Column* expr_column::evaluate_eager(workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
   const Column* rcol = dt->columns[col_id];
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
   const RowIndex& col_ri = rcol->rowindex();
 
-  if (dt_ri && col_ri) {
-    // TODO: implement rowindex cache in the workframe
-    return rcol->shallowcopy(dt_ri * col_ri);
-  }
-  else if (dt_ri /* && !col_ri */) {
-    return rcol->shallowcopy(dt_ri);
+  if (dt_ri) {
+    return rcol->shallowcopy(wf._product(dt_ri, col_ri));
   }
   else {
     return rcol->shallowcopy();
@@ -212,7 +208,7 @@ class expr_binaryop : public base_expr {
     expr_binaryop(size_t opcode, base_expr* l, base_expr* r);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe& wf) override;
+    Column* evaluate_eager(workframe& wf) override;
 };
 
 
@@ -240,7 +236,7 @@ GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_binaryop::evaluate_eager(const workframe& wf) {
+Column* expr_binaryop::evaluate_eager(workframe& wf) {
   Column* lhs_res = lhs->evaluate_eager(wf);
   Column* rhs_res = rhs->evaluate_eager(wf);
   return expr::binaryop(binop_code, lhs_res, rhs_res);
@@ -261,7 +257,7 @@ class expr_literal : public base_expr {
     ~expr_literal() override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe&) override;
+    Column* evaluate_eager(workframe&) override;
 };
 
 
@@ -286,7 +282,7 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_literal::evaluate_eager(const workframe&) {
+Column* expr_literal::evaluate_eager(workframe&) {
   return col->shallowcopy();
 }
 
@@ -365,7 +361,7 @@ class expr_unaryop : public base_expr {
     expr_unaryop(size_t opcode, base_expr* a);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe& wf) override;
+    Column* evaluate_eager(workframe& wf) override;
 };
 
 
@@ -389,7 +385,7 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_unaryop::evaluate_eager(const workframe& wf) {
+Column* expr_unaryop::evaluate_eager(workframe& wf) {
   Column* arg_res = arg->evaluate_eager(wf);
   return expr::unaryop(int(unop_code), arg_res);
 }
@@ -411,7 +407,7 @@ class expr_cast : public base_expr {
     expr_cast(base_expr* a, SType s);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe& wf) override;
+    Column* evaluate_eager(workframe& wf) override;
 };
 
 
@@ -430,7 +426,7 @@ GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_cast::evaluate_eager(const workframe& wf) {
+Column* expr_cast::evaluate_eager(workframe& wf) {
   Column* arg_col = arg->evaluate_eager(wf);
   arg_col->reify();
   return arg_col->cast(stype);
@@ -451,7 +447,7 @@ class expr_reduce : public base_expr {
     expr_reduce(base_expr* a, size_t op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe& wf) override;
+    Column* evaluate_eager(workframe& wf) override;
 };
 
 
@@ -470,7 +466,7 @@ GroupbyMode expr_reduce::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_reduce::evaluate_eager(const workframe& wf) {
+Column* expr_reduce::evaluate_eager(workframe& wf) {
   Column* arg_col = arg->evaluate_eager(wf);
   int op = static_cast<int>(opcode);
   if (wf.has_groupby()) {
@@ -495,7 +491,7 @@ class expr_reduce_nullary : public base_expr {
     expr_reduce_nullary(size_t op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe& wf) override;
+    Column* evaluate_eager(workframe& wf) override;
 };
 
 
@@ -512,7 +508,7 @@ GroupbyMode expr_reduce_nullary::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_reduce_nullary::evaluate_eager(const workframe& wf) {
+Column* expr_reduce_nullary::evaluate_eager(workframe& wf) {
   Column* res = nullptr;
   if (opcode == 0) {  // COUNT
     if (wf.has_groupby()) {

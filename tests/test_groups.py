@@ -63,7 +63,6 @@ def test_groups_internal2():
                      A=[1, 1, 2, 5, 1, 3, None, 3, 1]))
 
 
-@pytest.mark.xfail(reason="Issue #1578")
 def test_groups_internal3():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
     f1 = f0[:, [f.B, f.A + f.B], by(f.A)]

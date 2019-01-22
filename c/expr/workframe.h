@@ -88,7 +88,7 @@ class workframe {
     // Result
     colvec columns;
     strvec colnames;
-    using ripair = std::pair<RowIndex, RowIndex>;
+    struct ripair { RowIndex ab, bc, ac; };
     std::vector<ripair> all_ri;
 
   public:
@@ -130,6 +130,7 @@ class workframe {
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
 
+    friend class expr_column;  // Use _product
     friend class by_node;  // Allow access to `gb`
 };
 
