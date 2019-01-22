@@ -80,7 +80,7 @@ class base_expr {
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column* evaluate_eager(const workframe&) = 0;
+    virtual Column* evaluate_eager(workframe&) = 0;
 };
 
 
@@ -97,7 +97,7 @@ class expr_column : public base_expr {
     size_t get_col_index(const workframe&);
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(const workframe&) override;
+    Column* evaluate_eager(workframe&) override;
 };
 
 
