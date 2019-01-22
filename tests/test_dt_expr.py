@@ -26,7 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, stype, ltype
-from tests import list_equals, has_llvm
+from tests import list_equals, has_llvm, assert_equals
 
 
 # Sets of tuples containing test columns of each type
@@ -174,8 +174,8 @@ def test_dt_invert_invalid(src):
             continue
         with pytest.raises(TypeError) as e:
             dt0(select=~f[0], engine=engine)
-        assert str(e.value) == ("Operator `~` cannot be applied to a `%s` "
-                                "column" % dt0.stypes[0].name)
+        assert ("Unary operator `~` cannot be applied to a column with stype "
+                "`%s`" % dt0.stypes[0].name == str(e.value))
 
 
 
@@ -188,22 +188,22 @@ def neg(t):
     return -t
 
 
-@pytest.mark.parametrize("src", dt_int + dt_float)
+@pytest.mark.parametrize("src", dt_int + dt_float + dt_bool)
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: -f[0])
     dtr.internal.check()
-    assert dtr.stypes == dt0.stypes
-    assert list_equals(dtr.to_list()[0], [neg(x) for x in src])
+    # assert dtr.stypes == dt0.stypes
+    assert_equals(dtr, dt.Frame([neg(x) for x in src]))
 
 
-@pytest.mark.parametrize("src", dt_bool)
+@pytest.mark.parametrize("src", dt_str)
 def test_dt_neg_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: -f[0])
-    assert str(e.value) == ("Operator `-` cannot be applied to a `%s` column"
-                            % dt0.stypes[0].name)
+    assert ("Unary operator `-` cannot be applied to a column with stype "
+            "`%s`" % dt0.stypes[0].name == str(e.value))
 
 
 
@@ -211,7 +211,7 @@ def test_dt_neg_invalid(src):
 # Unary plus (__pos__)
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("src", dt_int + dt_float)
+@pytest.mark.parametrize("src", dt_int + dt_float + dt_bool)
 def test_dt_pos(src):
     dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: +f[0])
@@ -220,13 +220,13 @@ def test_dt_pos(src):
     assert list_equals(dtr.to_list()[0], list(src))
 
 
-@pytest.mark.parametrize("src", dt_bool)
+@pytest.mark.parametrize("src", dt_str)
 def test_dt_pos_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: +f[0])
-    assert str(e.value) == ("Operator `+` cannot be applied to a `%s` column"
-                            % dt0.stypes[0].name)
+    assert ("Unary operator `+` cannot be applied to a column with stype "
+            "`%s`" % dt0.stypes[0].name == str(e.value))
 
 
 
