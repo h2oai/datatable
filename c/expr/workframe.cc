@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/collist.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 namespace dt {
@@ -59,7 +60,12 @@ void workframe::add_join(py::ojoin oj) {
 
 
 void workframe::add_groupby(py::oby og) {
-  by_node = og.to_by_node(*this);
+  byexpr.add_groupby_columns(og.cols(*this));
+}
+
+
+void workframe::add_sortby(py::osort obj) {
+  byexpr.add_sortby_columns(obj.cols(*this));
 }
 
 
@@ -90,18 +96,18 @@ void workframe::evaluate() {
   }
 
   // Compute groupby
-  if (by_node) {
+  if (byexpr) {
     groupby_mode = jexpr->get_groupby_mode(*this);
-    by_node->execute(*this);
   }
+  byexpr.execute(*this);
 
   // Compute i filter
   iexpr->execute(*this);
 
   switch (mode) {
     case EvalMode::SELECT:
-      if (by_node) {
-        by_node->create_columns(*this);
+      if (byexpr) {
+        byexpr.create_columns(*this);
       }
       jexpr->select(*this);
       fix_columns();
@@ -124,16 +130,16 @@ void workframe::evaluate() {
 // size.
 void workframe::fix_columns() {
   if (groupby_mode != GroupbyMode::GtoALL) return;
-  xassert(by_node);
+  xassert(byexpr);
   size_t nrows0 = get_datatable(0)->nrows;
-  size_t ngrps = by_node->gb.ngroups();
+  size_t ngrps = gb.ngroups();
   RowIndex ungroup_ri;
 
   for (size_t i = 0; i < columns.size(); ++i) {
     if (columns[i]->nrows == nrows0) continue;
     xassert(columns[i]->nrows == ngrps);
     if (!ungroup_ri) {
-      ungroup_ri = by_node->gb.ungroup_rowindex();
+      ungroup_ri = gb.ungroup_rowindex();
     }
     const RowIndex& col_rowindex = columns[i]->rowindex();
     columns[i]->replace_rowindex(_product(ungroup_ri, col_rowindex));
@@ -167,13 +173,12 @@ const RowIndex& workframe::get_rowindex(size_t i) const {
 
 
 const Groupby& workframe::get_groupby() const {
-  xassert(by_node);
-  return by_node->gb;
+  return gb;
 }
 
 
-const by_node_ptr& workframe::get_by_node() const {
-  return by_node;
+const by_node& workframe::get_by_node() const {
+  return byexpr;
 }
 
 
@@ -182,7 +187,7 @@ bool workframe::is_naturally_joined(size_t i) const {
 }
 
 bool workframe::has_groupby() const {
-  return bool(by_node);
+  return bool(byexpr);
 }
 
 

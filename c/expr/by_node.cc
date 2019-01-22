@@ -26,128 +26,144 @@
 #include "python/tuple.h"
 #include "utils/exceptions.h"
 
+namespace dt {
+
 
 //------------------------------------------------------------------------------
 // dt::by_node
 //------------------------------------------------------------------------------
-namespace dt {
+
+by_node::column_descriptor::column_descriptor(
+    size_t i, std::string&& name_, bool desc, bool sort)
+  : index(i), name(std::move(name_)), descending(desc), sort_only(sort) {}
+
+by_node::column_descriptor::column_descriptor(
+    exprptr&& e, std::string&& name_, bool desc, bool sort)
+  : index(size_t(-1)), expr(std::move(e)), name(std::move(name_)),
+    descending(desc), sort_only(sort) {}
 
 
-by_node::~by_node() {}
-
-
-
-
-//------------------------------------------------------------------------------
-// dt::collist_bn
-//------------------------------------------------------------------------------
-
-class collist_bn : public by_node {
-  intvec indices;
-  strvec names;
-
-  public:
-    collist_bn(cols_intlist* cl);
-    void execute(workframe& wf) override;
-    bool has_column(size_t i) const override;
-    void create_columns(workframe&) override;
-};
-
-
-collist_bn::collist_bn(cols_intlist* cl)
-  : indices(std::move(cl->indices)), names(std::move(cl->names)) {}
-
-
-void collist_bn::execute(workframe& wf) {
-  const DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
-  if (ri0) {
-    throw NotImplError();
-  }
-  std::vector<sort_spec> spec;
-  for (size_t i : indices) {
-    spec.push_back(sort_spec(i));
-  }
-  if (!spec.empty()) {
-    auto res = dt0->group(spec);
-    gb = std::move(res.second);
-    wf.apply_rowindex(res.first);
-  }
+by_node::by_node() {
+  n_group_columns = 0;
 }
 
 
-bool collist_bn::has_column(size_t i) const {
-  return std::find(indices.begin(), indices.end(), i) != indices.end();
+void by_node::add_groupby_columns(collist_ptr&& cl) {
+  _add_columns(std::move(cl), true);
+}
+
+void by_node::add_sortby_columns(collist_ptr&& cl) {
+  _add_columns(std::move(cl), false);
 }
 
 
-void collist_bn::create_columns(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  if (names.empty()) {
-    auto dt0_names = dt0->get_names();
-    for (size_t i : indices) {
-      names.push_back(dt0_names[i]);
+void by_node::_add_columns(collist_ptr&& cl, bool group_columns) {
+  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
+  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
+  xassert(cl_int || cl_expr);
+  if (cl_int) {
+    bool has_names = !cl_int->names.empty();
+    size_t n = cl_int->indices.size();
+    for (size_t i = 0; i < n; ++i) {
+      cols.emplace_back(
+          cl_int->indices[i],
+          has_names? std::move(cl_int->names[i]) : std::string(),
+          false,          // descending
+          !group_columns  // sort_only
+      );
     }
+    n_group_columns += group_columns * n;
   }
-  RowIndex ri0 = wf.get_rowindex(0);
-  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(gb.ngroups(), gb.offsets_r()), true) * ri0;
-  }
-
-  size_t n = indices.size();
-  for (size_t i = 0; i < n; ++i) {
-    size_t j = indices[i];
-    Column* colj = dt0->columns[j]->shallowcopy();
-    wf.add_column(colj, ri0, std::move(names[i]));
+  if (cl_expr) {
+    bool has_names = !cl_expr->names.empty();
+    size_t n = cl_expr->exprs.size();
+    for (size_t i = 0; i < n; ++i) {
+      cols.emplace_back(
+          std::move(cl_expr->exprs[i]),
+          has_names? std::move(cl_expr->names[i]) : std::string(),
+          false,          // descending
+          !group_columns  // sort_only
+      );
+    }
+    n_group_columns += group_columns * n;
+    throw NotImplError() << "Computed columns cannot be used in groupby/sort";
   }
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// dt::exprlist_bn
-//------------------------------------------------------------------------------
-
-class exprlist_bn : public by_node {
-  exprvec exprs;
-  strvec names;
-
-  public:
-    exprlist_bn(cols_exprlist*);
-    void execute(workframe& wf) override;
-    bool has_column(size_t i) const override;
-    void create_columns(workframe&) override;
-};
-
-
-exprlist_bn::exprlist_bn(cols_exprlist* cl)
-  : exprs(std::move(cl->exprs)), names(std::move(cl->names)) {}
-
-
-void exprlist_bn::execute(workframe&) {
-  throw NotImplError();
+by_node::operator bool() const {
+  return (n_group_columns > 0);
 }
 
 
-bool exprlist_bn::has_column(size_t) const {
+bool by_node::has_group_column(size_t i) const {
+  for (auto& col : cols) {
+    if (col.index == i && !col.sort_only) return true;
+  }
   return false;
 }
 
 
-void exprlist_bn::create_columns(workframe&) {
-  throw NotImplError();
+void by_node::create_columns(workframe& wf) {
+  DataTable* dt0 = wf.get_datatable(0);
+  RowIndex ri0 = wf.get_rowindex(0);
+  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
+    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
+  }
+
+  auto dt0_names = dt0->get_names();
+  for (auto& col : cols) {
+    if (col.sort_only) continue;
+    size_t j = col.index;
+    xassert(j != size_t(-1));
+    Column* colj = dt0->columns[j]->shallowcopy();
+    wf.add_column(colj, ri0, col.name.empty()? dt0_names[j]
+                                             : std::move(col.name));
+  }
+}
+
+
+void by_node::execute(workframe& wf) const {
+  if (cols.empty()) return;
+  const DataTable* dt0 = wf.get_datatable(0);
+  const RowIndex& ri0 = wf.get_rowindex(0);
+  if (ri0) {
+    throw NotImplError() << "Groupby/sort cannot be combined with i expression";
+  }
+  std::vector<sort_spec> spec;
+  spec.reserve(cols.size());
+  if (n_group_columns > 0) {
+    for (auto& col : cols) {
+      if (col.sort_only) continue;
+      spec.emplace_back(col.index, col.descending, false, false);
+    }
+  }
+  if (n_group_columns < cols.size()) {
+    for (auto& col : cols) {
+      if (!col.sort_only) continue;
+      spec.emplace_back(col.index, col.descending, false, true);
+    }
+  }
+  // if (n_group_columns) {
+    auto res = dt0->group(spec);
+    wf.gb = std::move(res.second);
+    wf.apply_rowindex(res.first);
+  // } else {
+  //   auto res = dt0->sort(spec);
+  //   wf.apply_rowindex(res);
+  // }
 }
 
 
 
 
 }  // namespace dt
+namespace py {
+
+
 //------------------------------------------------------------------------------
 // py::oby::pyobj::Type
 //------------------------------------------------------------------------------
-namespace py {
-
 
 PKArgs oby::pyobj::Type::args___init__(
     0, 0, 0, true, false, {}, "__init__", nullptr);
@@ -227,15 +243,11 @@ void oby::init(PyObject* m) {
 }
 
 
-dt::by_node_ptr oby::to_by_node(dt::workframe& wf) const {
+dt::collist_ptr oby::cols(dt::workframe& wf) const {
   robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  auto cl = dt::collist::make(wf, cols, "`by`");
-  auto cl_int = dynamic_cast<dt::cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<dt::cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  return cl_int? dt::by_node_ptr(new dt::collist_bn(cl_int))
-               : dt::by_node_ptr(new dt::exprlist_bn(cl_expr));
+  return dt::collist::make(wf, cols, "`by`");
 }
+
 
 
 }  // namespace py

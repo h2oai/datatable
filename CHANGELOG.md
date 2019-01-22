@@ -66,6 +66,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added functions `log` and `log10` for computing the natural and base-10
   logarithms of a column (#1558).
 
+- Sorting functionality is now integrated into the `DT[i, j, ...]` call via
+  the function `sort()`. If sorting is specified alongside a groupby, the
+  values will be sorted within each group (#1531).
+
 
 ### Fixed
 

@@ -23,6 +23,7 @@
 #include <cstdint>         // INT32_MAX
 #include "expr/by_node.h"
 #include "expr/join_node.h"
+#include "expr/sort_node.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
@@ -178,6 +179,10 @@ bool _obj::is_join_node() const noexcept {
 
 bool _obj::is_by_node() const noexcept {
   return py::oby::check(v);
+}
+
+bool _obj::is_sort_node() const noexcept {
+  return py::osort::check(v);
 }
 
 bool _obj::is_pandas_frame() const noexcept {
@@ -579,6 +584,11 @@ py::oby _obj::to_oby_lax() const {
     return oby(robj(v));
   }
   return oby();
+}
+
+
+py::osort _obj::to_osort_lax() const {
+  return is_sort_node()? osort(robj(v)) : osort();
 }
 
 

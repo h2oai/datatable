@@ -9,8 +9,8 @@ import os
 import pytest
 import random
 import datatable as dt
-from datatable import stype, ltype
-from tests import list_equals, random_string
+from datatable import stype, ltype, sort, by, f
+from tests import list_equals, random_string, assert_equals
 
 
 
@@ -822,3 +822,13 @@ def test_issue1401():
     DT = dt.Frame([['a'] * 65, col], names=["A", "B"])
     res = DT.sort("A", "B")
     assert res.to_list()[1] == sorted(col)
+
+
+def test_sort_expr():
+    df = dt.Frame(A=[1, 2, 1, 2], B=[3.9, 2.7, 0.1, 4.5])
+    assert_equals(df[:, :, sort("A")],
+                  dt.Frame(A=[1, 1, 2, 2], B=[3.9, 0.1, 2.7, 4.5]))
+    assert_equals(df[:, :, sort(f.B)],
+                  dt.Frame(A=[1, 2, 1, 2], B=[0.1, 2.7, 3.9, 4.5]))
+    assert_equals(df[:, 'B', by("A"), sort("B")],
+                  dt.Frame(A=[1, 1, 2, 2], B=[0.1, 3.9, 2.7, 4.5]))

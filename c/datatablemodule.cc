@@ -15,6 +15,7 @@
 #include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/py_expr.h"
+#include "expr/sort_node.h"
 #include "extras/aggregator.h"
 #include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
@@ -240,6 +241,7 @@ PyInit__datatable()
     py::base_expr::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
+    py::osort::init(m);
 
   } catch (const std::exception& e) {
     exception_to_python(e);
