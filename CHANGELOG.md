@@ -173,6 +173,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   deprecated, they will be removed in 0.9.0. Please use `.to_list()`,
   `.to_pandas()` and `.to_numpy()` instead.
 
+- Calling a frame object `DT(rows=..., select=..., ...)` is now deprecated. Use
+  the selector expression `DT[i, j, ...]` instead.
+
 
 ### Removed
 
