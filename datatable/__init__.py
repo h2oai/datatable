@@ -10,10 +10,11 @@ from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    log, log10)
 from .fread import fread, GenericReader, FreadWarning
-from .graph import f, g, join, by
+from .graph.dtproxy import f, g
+from .graph.llvm import llvm
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
-    repeat, sort
+    repeat, by, join, sort
 )
 from .nff import save, open
 from .options import options
