@@ -23,8 +23,8 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from datatable import stype, ltype, f
-from tests import same_iterables, noop
+from datatable import stype, ltype, f, by
+from tests import same_iterables, noop, assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -869,3 +869,18 @@ def test_issue1437(st):
     d2.internal.check()
     assert d2.to_list() == [list(range(10))]
 
+
+
+
+#-------------------------------------------------------------------------------
+# (i=slice) + by
+#-------------------------------------------------------------------------------
+
+def test_grouped_slice_simple():
+    DT = dt.Frame(A=[1,2,3,1,2,3], B=[3,4,3,4,3,4])
+    res1 = DT[1:, :, by("B")]
+    res2 = DT[:2, :, by("B")]
+    res3 = DT[::-1, :, by("B")]
+    assert_equals(res1, dt.Frame(B=[3, 3, 4, 4], A=[3, 2, 1, 3]))
+    assert_equals(res2, dt.Frame(B=[3, 3, 4, 4], A=[1, 3, 2, 1]))
+    assert_equals(res3, dt.Frame(B=[3, 3, 3, 4, 4, 4], A=[2, 3, 1, 3, 1, 2]))

@@ -185,21 +185,25 @@ void slice_in::execute_grouped(workframe& wf) {
     }
   }
   else if (step < 0) {
-    if (istart == py::oslice::NA) istart = static_cast<int64_t>(wf.nrows());
+    int32_t start, stop;
     for (size_t g = 0; g < ng; ++g) {
       int32_t off0 = group_offsets[g - 1];
       int32_t off1 = group_offsets[g];
       int32_t n = off1 - off0;
-      int32_t start = istart == py::oslice::NA || istart >= n
-                      ? n - 1 : static_cast<int32_t>(istart);
+      start = istart == py::oslice::NA || istart >= n
+              ? n - 1 : static_cast<int32_t>(istart);
       if (start < 0) start += n;
-      int32_t stop = -1;  // if istop==NA
-      if (istop != py::oslice::NA) {
+      start += off0;
+      if (istop == py::oslice::NA) {
+        stop = off0 - 1;
+      } else {
         stop = static_cast<int32_t>(istop);
         if (stop < 0) stop += n;
+        if (stop < 0) stop = -1;
+        stop += off0;
       }
       if (start > stop) {
-        for (int32_t i = start; i > stop; ++i) {
+        for (int32_t i = start; i > stop; i += step) {
           out_rowindices[j++] = i;
         }
         out_offsets[k++] = static_cast<int32_t>(j);
