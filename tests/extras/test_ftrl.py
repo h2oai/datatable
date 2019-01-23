@@ -773,8 +773,6 @@ def test_ftrl_interactions():
     assert fi[:, 0].to_list() == [feature_names + feature_interactions]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
-    assert fi[4, 1] < fi[3, 1]
-    assert fi[4, 1] < fi[5, 1]
 
 
 #-------------------------------------------------------------------------------
