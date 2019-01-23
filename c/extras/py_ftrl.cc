@@ -180,6 +180,10 @@ void Ftrl::m__dealloc__() {
     delete dtft;
     dtft = nullptr;
   }
+  if (feature_names != nullptr) {
+    delete feature_names;
+    feature_names = nullptr;
+  }
 }
 
 
@@ -335,6 +339,33 @@ void Ftrl::fit(const PKArgs& args) {
     default:             throw TypeError() << "Cannot predict for a column "
                                            << "of type `" << stype_y << "`";
   }
+
+  if (feature_names == nullptr) {
+    size_t nfeatures = (*dtft)[0]->get_nfeatures();
+    size_t ncols = dt_X->ncols;
+    std::vector<std::string> column_names = dt_X->get_names();
+
+    dt::fixed_height_string_col scol(nfeatures);
+    dt::fixed_height_string_col::buffer sb(scol);
+    sb.commit_and_start_new_chunk(0);
+    for (auto feature_name : column_names) {
+      sb.write(feature_name);
+    }
+
+    if ((*dtft)[0]->get_params().interactions) {
+      for (size_t i = 0; i < ncols - 1; ++i) {
+        for (size_t j = i + 1; j < ncols; ++j) {
+          std::string feature_name = column_names[i] + ":" + column_names[j];
+          sb.write(feature_name);
+        }
+      }
+    }
+
+    sb.order();
+    sb.commit_and_start_new_chunk(nfeatures);
+    feature_names = new DataTable({std::move(scol).to_column()}, {"feature_name"});
+  }
+
 }
 
 
@@ -587,6 +618,7 @@ void Ftrl::reset(const NoArgs&) {
     (*dtft)[i]->reset_model();
     (*dtft)[i]->reset_fi();
   }
+  // Do we need to clear feature_names here?
 }
 
 
@@ -621,6 +653,7 @@ oobj Ftrl::get_fi() const {
   // If model was trained, return feature importance info.
   if ((*dtft)[0]->is_trained()) {
     size_t ndtft = dtft->size();
+    DataTable* dt_feature_importances;
     DataTable* dt_fi;
     // If there is more than one classifier, average feature importance row-wise.
     if (ndtft > 1) {
@@ -648,9 +681,13 @@ oobj Ftrl::get_fi() const {
       dt_fi = (*dtft)[0]->get_fi();
     }
     normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
-    // TODO: memoize `df_fi`
+    // TODO: memoize `dt_feature_importances`
+    dt_feature_importances = feature_names->copy();
+    std::vector<DataTable*> dt(1);
+    dt[0] = dt_fi;
+    dt_feature_importances->cbind(dt);
     py::oobj df_fi = py::oobj::from_new_reference(
-                       py::Frame::from_datatable(dt_fi)
+                       py::Frame::from_datatable(dt_feature_importances)
                      );
     return df_fi;
   } else {
@@ -977,16 +1014,20 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 *  Pickling / unpickling methods.
 */
 oobj Ftrl::m__getstate__(const NoArgs&) {
-  py::otuple pickle(5);
+  py::otuple pickle(6);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_fi_tuple();
   py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
+  py::oobj df_feature_names = py::oobj::from_new_reference(
+                                py::Frame::from_datatable(feature_names->copy())
+                              );
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
   pickle.set(3, labels);
   pickle.set(4, py_reg_type);
+  pickle.set(5, df_feature_names);
   return std::move(pickle);
 }
 
@@ -1013,6 +1054,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   // Set regression type
   reg_type = static_cast<RegType>(pickle[4].to_int32());
+  // Set feature names
+  feature_names = pickle[5].to_frame()->copy();
 }
 
 

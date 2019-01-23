@@ -40,6 +40,7 @@ enum class RegType : uint8_t {
 class Ftrl : public PyObject {
   private:
     std::vector<dtftptr>* dtft;
+    DataTable* feature_names;
     py::olist labels;
     RegType reg_type;
     size_t : 56;
