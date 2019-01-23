@@ -771,9 +771,10 @@ def test_ftrl_interactions():
     assert fi.stypes == (stype.str32, stype.float64)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names + feature_interactions]
+    print(fi.to_dict())
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
-    assert fi[3, 1] < fi[5, 1]
+    assert fi[3, 1] < fi[4, 1]
     assert fi[4, 1] < fi[5, 1]
 
 
