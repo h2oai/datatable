@@ -179,7 +179,7 @@ hashptr Ftrl::create_colhasher(const Column* col) {
 
 
 /*
-*  Hash each element of the datatable row, do feature interactionsaction if requested.
+*  Hash each element of the datatable row, do feature interactions if requested.
 */
 void Ftrl::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < ncols; ++i) {

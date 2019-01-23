@@ -319,23 +319,15 @@ void Ftrl::fit(const PKArgs& args) {
 
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y);
-                         break;
-    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y);
-                         break;
-    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y);
-                         break;
-    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y);
-                         break;
-    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y);
-                         break;
-    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y);
-                         break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y);
-                         break;
+    case SType::BOOL:    fit_binomial(dt_X, dt_y); break;
+    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y); break;
+    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y); break;
+    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y); break;
+    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y); break;
+    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y); break;
+    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y); break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y);
-                         break;
+    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
     default:             throw TypeError() << "Cannot predict for a column "
                                            << "of type `" << stype_y << "`";
   }
@@ -343,12 +335,12 @@ void Ftrl::fit(const PKArgs& args) {
   if (feature_names == nullptr) {
     size_t nfeatures = (*dtft)[0]->get_nfeatures();
     size_t ncols = dt_X->ncols;
-    std::vector<std::string> column_names = dt_X->get_names();
+    const std::vector<std::string>& column_names = dt_X->get_names();
 
     dt::fixed_height_string_col scol(nfeatures);
     dt::fixed_height_string_col::buffer sb(scol);
     sb.commit_and_start_new_chunk(0);
-    for (auto feature_name : column_names) {
+    for (const auto& feature_name : column_names) {
       sb.write(feature_name);
     }
 
