@@ -754,6 +754,30 @@ def test_ftrl_fi_shallowcopy():
 
 
 #-------------------------------------------------------------------------------
+# Test feature interactions
+#-------------------------------------------------------------------------------
+
+def test_ftrl_interactions():
+    feature_names = ['f1', 'f2', 'f3']
+    feature_interactions = ['f1:f2', 'f1:f3', 'f2:f3']
+    ft = Ftrl(nbins = 200, interactions = True)
+    df_train = dt.Frame([range(ft.nbins),
+                         [i % 2 for i in range(ft.nbins)],
+                         [i % 20 for i in range(ft.nbins)]
+                        ], names = feature_names)
+    df_target = dt.Frame([False, True] * (ft.nbins // 2))
+    ft.fit(df_train, df_target)
+    fi = ft.feature_importances
+    assert fi.stypes == (stype.str32, stype.float64)
+    assert fi.names == ("feature_name", "feature_importance")
+    assert fi[:, 0].to_list() == [feature_names + feature_interactions]
+    assert fi[0, 1] < fi[2, 1]
+    assert fi[2, 1] < fi[1, 1]
+    assert fi[3, 1] < fi[5, 1]
+    assert fi[4, 1] < fi[5, 1]
+
+
+#-------------------------------------------------------------------------------
 # Test pickling
 #-------------------------------------------------------------------------------
 
