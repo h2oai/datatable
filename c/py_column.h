@@ -96,13 +96,6 @@ DECLARE_METHOD(
   "writing strategy.\n")
 
 DECLARE_METHOD(
-  ungroup,
-  "ungroup(groupby)\n\n"
-  "Return this Column expanded with each row repeated as many times as there\n"
-  "are elements in the corresponding group of the `groupby`. The number of\n"
-  "rows in the current Column must be equal to the number of groups.\n")
-
-DECLARE_METHOD(
   replace_rowindex,
   "replace_rowindex(new_rowindex)\n\n"
   "Replaces rowindex of the current Column with the provided one. The new\n"

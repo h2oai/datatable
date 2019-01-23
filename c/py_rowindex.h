@@ -88,19 +88,6 @@ DECLARE_METHOD(
   "tolist()\n\n"
   "Return RowIndex's indices as a list of integers.")
 
-DECLARE_METHOD(
-  uplift,
-  "uplift(parent_rowindex)\n\n"
-  "Returns a new RowIndex which is a result of applying this rowindex to the\n"
-  "parent rowindex.")
-
-DECLARE_METHOD(
-  inverse,
-  "inverse(nrows)\n\n"
-  "Return a new RowIndex which is the negation of this rowindex when applied\n"
-  "to a Frame with `nrows` rows. By \"negation\" we mean that the new\n"
-  "RowIndex will select all those rows that this rowindex doesn't.")
-
 
 
 //---- Python API --------------------------------------------------------------

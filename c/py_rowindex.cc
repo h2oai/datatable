@@ -233,26 +233,6 @@ PyObject* tolist(obj* self, PyObject*)
 }
 
 
-PyObject* uplift(obj* self, PyObject* args) {
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:RowIndex.uplift", &arg1)) return nullptr;
-  RowIndex& r1 = *(self->ref);
-  RowIndex  r2 = py::robj(arg1).to_rowindex();
-  RowIndex res = r1 * r2;
-  return wrap(res);
-}
-
-
-PyObject* inverse(obj* self, PyObject* args) {
-  RowIndex& ri = *(self->ref);
-  size_t nrows;
-  if (!PyArg_ParseTuple(args, "n:RowIndex.inverse", &nrows))
-    return nullptr;
-  RowIndex res = ri.negate(nrows);
-  return wrap(res);
-}
-
-
 
 //==============================================================================
 // DataTable type definition
@@ -268,8 +248,6 @@ static PyGetSetDef rowindex_getsetters[] = {
 
 static PyMethodDef rowindex_methods[] = {
   METHOD0(tolist),
-  METHODv(uplift),
-  METHODv(inverse),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

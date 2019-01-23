@@ -372,7 +372,7 @@ def test_rows_multislice_invalid5(dt0):
 # Boolean column selector
 #
 # Test the use of a boolean column as a filter:
-#     dt(rows=dt2[0])
+#     dt[dt2[0], :]
 #
 # The boolean column can be either a 1-column Frame, or a 1-dimensional
 # numpy array.

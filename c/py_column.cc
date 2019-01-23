@@ -132,25 +132,6 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
 }
 
 
-PyObject* ungroup(pycolumn::obj* self, PyObject* args)
-{
-  PyObject* arg1 = nullptr;
-  if (!PyArg_ParseTuple(args, "O:ungroup", &arg1)) return nullptr;
-  py::robj pygby(arg1);
-
-  Column* col = self->ref;
-  Groupby* groupby = pygby.to_groupby();
-  if (col->nrows != groupby->ngroups()) {
-    throw ValueError() << "Cannot 'ungroup' a Column with " << col->nrows
-      << " rows using a Groupby with " << groupby->ngroups() << " groups";
-  }
-  const RowIndex& ungroup_ri = groupby->ungroup_rowindex();
-  Column* ucol = col->shallowcopy(ungroup_ri);
-  ucol->reify();
-  return from_column(ucol, nullptr, 0);
-}
-
-
 PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
@@ -213,7 +194,6 @@ static PyGetSetDef column_getseters[] = {
 
 static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
-  METHODv(ungroup),
   METHODv(replace_rowindex),
   METHOD0(to_list),
   {nullptr, nullptr, 0, nullptr}

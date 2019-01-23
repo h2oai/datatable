@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import math
 from .base_expr import BaseExpr
+from .dtproxy import f
 from .unary_expr import unary_op_codes, baseexpr_opcodes
 from ..utils.typechecks import TTypeError, Frame_t, is_type
 from ..types import stype
@@ -63,7 +64,7 @@ def isna(x):
     if is_type(x, Frame_t):
         if x.ncols != 1:
             raise TTypeError("Frame must have a single column")
-        return x(select=lambda f: isna(f[0]))
+        return x[:, isna(f[0])]
     if x is None or (isinstance(x, float) and math.isnan(x)):
         return True
     return False
