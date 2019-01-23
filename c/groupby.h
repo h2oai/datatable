@@ -15,7 +15,6 @@ class Groupby {
   private:
     MemoryRange offsets;
     size_t n;
-    RowIndex ungroup_ri;
 
   public:
     Groupby();
@@ -39,10 +38,7 @@ class Groupby {
     // This RowIndex will be cached within the Groupby, so that it can be
     // reused across multiple calls.
     //
-    const RowIndex& ungroup_rowindex();
-
-  private:
-    void compute_ungroup_rowindex();
+    RowIndex ungroup_rowindex();
 };
 
 

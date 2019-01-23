@@ -49,13 +49,7 @@ Groupby::operator bool() const {
 }
 
 
-const RowIndex& Groupby::ungroup_rowindex() {
-  if (!ungroup_ri) compute_ungroup_rowindex();
-  return ungroup_ri;
-}
-
-
-void Groupby::compute_ungroup_rowindex() {
+RowIndex Groupby::ungroup_rowindex() {
   const int32_t* offs = offsets_r();
   int32_t nrows = offs[n];
   arr32_t indices(static_cast<size_t>(nrows));
@@ -66,5 +60,5 @@ void Groupby::compute_ungroup_rowindex() {
     int32_t ii = static_cast<int32_t>(i);
     while (j < upto) data[j++] = ii;
   }
-  ungroup_ri = RowIndex(std::move(indices), /* sorted = */ true);
+  return RowIndex(std::move(indices), /* sorted = */ true);
 }
