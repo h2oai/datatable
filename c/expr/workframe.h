@@ -113,7 +113,7 @@ class workframe {
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
-    const Groupby& get_groupby() const;
+    const Groupby& get_groupby();
     const by_node& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
@@ -121,6 +121,7 @@ class workframe {
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
+    void apply_groupby(const Groupby& gb_);
 
     size_t size() const noexcept;
     void reserve(size_t n);

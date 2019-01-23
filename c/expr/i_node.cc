@@ -45,11 +45,13 @@ class allrows_in : public i_node {
   public:
     allrows_in() = default;
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
 // All rows are selected, so no need to change the workframe.
 void allrows_in::execute(workframe&) {}
+void allrows_in::execute_grouped(workframe&) {}
 
 
 
@@ -66,6 +68,7 @@ class onerow_in : public i_node {
     onerow_in(int64_t i);
     void post_init_check(workframe&) override;
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
@@ -88,6 +91,11 @@ void onerow_in::execute(workframe& wf) {
 }
 
 
+void onerow_in::execute_grouped(workframe&) {
+  throw NotImplError() << "onerow_in::execute_grouped() not implemented yet";
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -103,6 +111,7 @@ class slice_in : public i_node {
   public:
     slice_in(int64_t, int64_t, int64_t, bool);
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
@@ -134,6 +143,97 @@ void slice_in::execute(workframe& wf) {
 }
 
 
+// Apply slice to each group, and then update the RowIndexes of all
+// subframes in `wf`, as well as the groupby offsets `gb`.
+//
+void slice_in::execute_grouped(workframe& wf) {
+  const Groupby& gb = wf.get_groupby();
+  size_t ng = gb.ngroups();
+  const int32_t* group_offsets = gb.offsets_r() + 1;
+
+  arr32_t out_ri_array(wf.nrows());
+  MemoryRange out_groups = MemoryRange::mem((ng + 1) * sizeof(int32_t));
+  int32_t* out_rowindices = out_ri_array.data();
+  int32_t* out_offsets = static_cast<int32_t*>(out_groups.xptr()) + 1;
+  out_offsets[-1] = 0;
+  size_t j = 0;  // Counter for the row indices
+  size_t k = 0;  // Counter for the number of groups written
+
+  if (istep == py::oslice::NA) istep = 1;
+  int32_t step = static_cast<int32_t>(istep);
+  if (step > 0) {
+    if (istart == py::oslice::NA) istart = 0;
+    if (istop == py::oslice::NA) istop = static_cast<int64_t>(wf.nrows());
+    for (size_t g = 0; g < ng; ++g) {
+      int32_t off0 = group_offsets[g - 1];
+      int32_t off1 = group_offsets[g];
+      int32_t n = off1 - off0;
+      int32_t start = static_cast<int32_t>(istart);
+      int32_t stop  = static_cast<int32_t>(istop);
+      if (start < 0) start += n;
+      if (start < 0) start = 0;
+      start += off0;
+      if (stop < 0) stop += n;
+      stop += off0;
+      if (stop > off1) stop = off1;
+      if (start < stop) {
+        for (int32_t i = start; i < stop; i += step) {
+          out_rowindices[j++] = i;
+        }
+        out_offsets[k++] = static_cast<int32_t>(j);
+      }
+    }
+  }
+  else if (step < 0) {
+    if (istart == py::oslice::NA) istart = static_cast<int64_t>(wf.nrows());
+    for (size_t g = 0; g < ng; ++g) {
+      int32_t off0 = group_offsets[g - 1];
+      int32_t off1 = group_offsets[g];
+      int32_t n = off1 - off0;
+      int32_t start = istart == py::oslice::NA || istart >= n
+                      ? n - 1 : static_cast<int32_t>(istart);
+      if (start < 0) start += n;
+      int32_t stop = -1;  // if istop==NA
+      if (istop != py::oslice::NA) {
+        stop = static_cast<int32_t>(istop);
+        if (stop < 0) stop += n;
+      }
+      if (start > stop) {
+        for (int32_t i = start; i > stop; ++i) {
+          out_rowindices[j++] = i;
+        }
+        out_offsets[k++] = static_cast<int32_t>(j);
+      }
+    }
+  }
+  else {
+    xassert(istep == 0);
+    xassert(istart != py::oslice::NA);
+    xassert(istop != py::oslice::NA && istop > 0);
+    for (size_t g = 0; g < ng; ++g) {
+      int32_t off0 = group_offsets[g - 1];
+      int32_t off1 = group_offsets[g];
+      int32_t n = off1 - off0;
+      int32_t start = static_cast<int32_t>(istart);
+      if (start < 0) start += n;
+      if (start < 0 || start >= n) continue;
+      start += off0;
+      for (int t = 0; t < istop; ++t) {
+        out_rowindices[j++] = start;
+      }
+      out_offsets[k++] = static_cast<int32_t>(j);
+    }
+  }
+
+  out_ri_array.resize(j);
+  out_groups.resize((k + 1) * sizeof(int32_t));
+  RowIndex newri(std::move(out_ri_array), /* sorted = */ true);
+  Groupby newgb(k, std::move(out_groups));
+  wf.apply_rowindex(newri);
+  wf.apply_groupby(newgb);
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -148,6 +248,7 @@ class expr_in : public i_node {
     explicit expr_in(py::robj src);
     ~expr_in() override;
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
@@ -178,6 +279,12 @@ void expr_in::execute(workframe& wf) {
 }
 
 
+void expr_in::execute_grouped(workframe&) {
+  throw NotImplError() << "expr_in::execute_grouped() not implemented yet";
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // frame_in
@@ -195,6 +302,7 @@ class frame_in : public i_node {
     explicit frame_in(py::robj src);
     void post_init_check(workframe&) override;
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
@@ -243,6 +351,13 @@ void frame_in::execute(workframe& wf) {
   RowIndex ri { dt->columns[0] };
   wf.apply_rowindex(ri);
 }
+
+
+void frame_in::execute_grouped(workframe&) {
+  throw ValueError() << "When a `by()` node is specified, the `i` selector "
+      "cannot be a Frame or a numpy array";
+}
+
 
 
 
@@ -307,6 +422,7 @@ class multislice_in : public i_node {
     explicit multislice_in(py::robj src);
     void post_init_check(workframe&) override;
     void execute(workframe&) override;
+    void execute_grouped(workframe&) override;
 };
 
 
@@ -453,6 +569,11 @@ void multislice_in::execute(workframe& wf) {
   xassert(j == total_count);
   RowIndex ri(std::move(indices), false);
   wf.apply_rowindex(ri);
+}
+
+
+void multislice_in::execute_grouped(workframe&) {
+  throw NotImplError() << "multislice_in::execute_grouped() not available yet";
 }
 
 
