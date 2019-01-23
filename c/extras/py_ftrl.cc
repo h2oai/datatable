@@ -618,7 +618,10 @@ void Ftrl::reset(const NoArgs&) {
     (*dtft)[i]->reset_model();
     (*dtft)[i]->reset_fi();
   }
-  // Do we need to clear feature_names here?
+  if (feature_names != nullptr) {
+    delete feature_names;
+    feature_names = nullptr;
+  }
 }
 
 
