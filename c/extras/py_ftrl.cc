@@ -1025,9 +1025,9 @@ oobj Ftrl::m__getstate__(const NoArgs&) {
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
-  pickle.set(3, labels);
-  pickle.set(4, py_reg_type);
-  pickle.set(5, df_feature_names);
+  pickle.set(3, df_feature_names);
+  pickle.set(4, labels);
+  pickle.set(5, py_reg_type);
   return std::move(pickle);
 }
 
@@ -1036,8 +1036,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   dtft = new std::vector<dtftptr>;
   py::otuple pickle = args[0].to_otuple();
 
-  // Set labels and initialize classifiers
-  labels = pickle[3].to_pylist();
+  // Set labels and initialize classifiers, this has to be done first.
+  labels = pickle[4].to_pylist();
   init_dtft(dt::Ftrl::default_params);
 
   // Set FTRL parameters
@@ -1052,10 +1052,12 @@ void Ftrl::m__setstate__(const PKArgs& args) {
     (*dtft)[i]->set_fi(fi_tuple[i].to_frame());
   }
 
-  // Set regression type
-  reg_type = static_cast<RegType>(pickle[4].to_int32());
   // Set feature names
-  feature_names = pickle[5].to_frame()->copy();
+  feature_names = pickle[3].to_frame()->copy();
+
+  // Set regression type
+  reg_type = static_cast<RegType>(pickle[5].to_int32());
+
 }
 
 
