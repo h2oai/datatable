@@ -724,13 +724,14 @@ def test_ftrl_regression():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_feature_importances():
-    feature_names = ['f1', 'f2', 'f3']
-    ft = Ftrl(nbins = 200)
-    df_train = dt.Frame([range(ft.nbins),
-                         [i % 2 for i in range(ft.nbins)],
-                         [i % 20 for i in range(ft.nbins)]
+    nrows = 200
+    feature_names = ['unique', 'boolean', 'mod10']
+    ft = Ftrl()
+    df_train = dt.Frame([range(nrows),
+                         [i % 2 for i in range(nrows)],
+                         [i % 10 for i in range(nrows)]
                         ], names = feature_names)
-    df_target = dt.Frame([False, True] * (ft.nbins // 2))
+    df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
     assert fi.stypes == (stype.str32, stype.float64)
@@ -758,14 +759,15 @@ def test_ftrl_fi_shallowcopy():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_interactions():
-    feature_names = ['f1', 'f2', 'f3']
-    feature_interactions = ['f1:f2', 'f1:f3', 'f2:f3']
-    ft = Ftrl(nbins = 200, interactions = True)
-    df_train = dt.Frame([range(ft.nbins),
-                         [i % 2 for i in range(ft.nbins)],
-                         [i % 20 for i in range(ft.nbins)]
+    nrows = 200
+    feature_names = ['unique', 'boolean', 'mod10']
+    feature_interactions = ['unique:boolean', 'unique:mod10', 'boolean:mod10']
+    ft = Ftrl(interactions = True)
+    df_train = dt.Frame([range(nrows),
+                         [i % 2 for i in range(nrows)],
+                         [i % 10 for i in range(nrows)]
                         ], names = feature_names)
-    df_target = dt.Frame([False, True] * (ft.nbins // 2))
+    df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
     assert fi.stypes == (stype.str32, stype.float64)

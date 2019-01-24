@@ -209,7 +209,7 @@ lambda1 : float
     L1 regularization parameter.
 lambda2 : float
     L2 regularization parameter.
-d : int
+nbins : int
     Number of bins to be used after the hashing trick.
 nepochs : int
     Number of epochs to train for.
