@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 // Sorting/ordering functions.
 //
@@ -359,7 +373,8 @@ class SortContext {
     uint8_t shift;
     uint8_t strtype;
     bool use_order;
-    int : 16;
+    bool descending;
+    int : 8;
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
@@ -367,6 +382,7 @@ class SortContext {
     next_o = nullptr;
     strdata = nullptr;
     use_order = false;
+    descending = false;
 
     nth = static_cast<size_t>(config::sort_nthreads);
     n = nrows;
@@ -388,8 +404,9 @@ class SortContext {
   SortContext(SortContext&&) = delete;
 
 
-  void start_sort(const Column* col, bool descending) {
-    if (descending) {
+  void start_sort(const Column* col, bool desc) {
+    descending = desc;
+    if (desc) {
       _prepare_data_for_column<false>(col);
     } else {
       _prepare_data_for_column<true>(col);
@@ -407,12 +424,13 @@ class SortContext {
   }
 
 
-  void continue_sort(const Column* col, bool descending, bool make_groups) {
+  void continue_sort(const Column* col, bool desc, bool make_groups) {
     nradixes = gg.size();
     use_order = true;
+    descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
-    if (descending) {
+    if (desc) {
       _prepare_data_for_column<false>(col);
     } else {
       _prepare_data_for_column<true>(col);
@@ -518,8 +536,8 @@ class SortContext {
    * transform      | -128  0   1
    * (x + 191) >> 6 |   0   2   3   NA first, ASC
    * (x + 63) >> 6  |   2   0   1   NA last,  ASC
-   * (64 - x) >> 6  |   3   1   0   NA first, DESC
-   * (128 - x) >> 6 |   0   2   1   NA last,  DESC
+   * (64 - x) >> 6  |   3   1   0   NA last,  DESC
+   * (128 - x) >> 6 |   0   2   1   NA first, DESC
    */
   template <bool ASC>
   void _initB(const Column* col) {
@@ -533,7 +551,7 @@ class SortContext {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
-                   : static_cast<uint8_t>(64 - xi[o[j]]) >> 6;
+                   : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
       }
     } else {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -541,7 +559,7 @@ class SortContext {
         // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
         // to int, which leads to wrong results after shift by 6.
         xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
-                   : static_cast<uint8_t>(64 - xi[j]) >> 6;
+                   : static_cast<uint8_t>(128 - xi[j]) >> 6;
       }
     }
   }
@@ -826,8 +844,13 @@ class SortContext {
     if (!next_o) allocate_oo();
     if (strtype) {
       if (xx) {
-        if (strtype == 1) _reorder_str<uint32_t>();
-        else              _reorder_str<uint64_t>();
+        if (descending) {
+          if (strtype == 1) _reorder_str<false, uint32_t>();
+          else              _reorder_str<false, uint64_t>();
+        } else {
+          if (strtype == 1) _reorder_str<true, uint32_t>();
+          else              _reorder_str<true, uint64_t>();
+        }
       } else _reorder_impl<uint8_t, char, false>();
     } else {
       switch (elemsize) {
@@ -858,7 +881,8 @@ class SortContext {
     use_order = true;
   }
 
-  template<typename TI, typename TO, bool OUT> void _reorder_impl() {
+  template<typename TI, typename TO, bool OUT>
+  void _reorder_impl() {
     TI* xi = x.data<TI>();
     TO* xo = nullptr;
     TI mask = 0;
@@ -883,7 +907,8 @@ class SortContext {
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
-  template <typename T> void _reorder_str() {
+  template <bool ASC, typename T>
+  void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
     const T sstart = static_cast<T>(strstart) + 1;
@@ -905,11 +930,12 @@ class SortContext {
         if (ISNA<T>(offend)) {
           xo[k] = 0;
         } else if (offend > offstart) {
-          xo[k] = strdata[offstart] + 2;
+          xo[k] = ASC? strdata[offstart] + 2
+                     : 0xFE - strdata[offstart];
           T len = offend - offstart;
           if (len > maxlen) maxlen = len;
         } else {
-          xo[k] = 1;  // string is shorter than sstart
+          xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
         }
         next_o[k] = w;
       }
@@ -1117,11 +1143,11 @@ class SortContext {
           } else if (strtype == 1) {
             const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
             uint32_t ss = static_cast<uint32_t>(_strstart + 1);
-            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
+            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
           } else {
             const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
             uint64_t ss = static_cast<uint64_t>(_strstart + 1);
-            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
+            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
           }
           if (make_groups) {
             rrmap[i].size = static_cast<size_t>(tgg.size());
@@ -1160,10 +1186,10 @@ class SortContext {
       }
     } else if (strtype == 1) {
       const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg);
+      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg, descending);
     } else {
       const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg);
+      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg, descending);
     }
   }
 
@@ -1178,11 +1204,11 @@ class SortContext {
     } else if (strtype == 1) {
       int32_t nn = static_cast<int32_t>(n);
       const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg);
+      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg, descending);
     } else {
       int32_t nn = static_cast<int32_t>(n);
       const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg);
+      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg, descending);
     }
   }
 

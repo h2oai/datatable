@@ -61,12 +61,12 @@ void workframe::add_join(py::ojoin oj) {
 
 
 void workframe::add_groupby(py::oby og) {
-  byexpr.add_groupby_columns(og.cols(*this));
+  byexpr.add_groupby_columns(*this, og.cols(*this));
 }
 
 
 void workframe::add_sortby(py::osort obj) {
-  byexpr.add_sortby_columns(obj.cols(*this));
+  byexpr.add_sortby_columns(*this, obj.cols(*this));
 }
 
 

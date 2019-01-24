@@ -69,6 +69,8 @@ enum class unop : size_t {
   LOG10  = 8,
 };
 
+class base_expr;
+using pexpr = std::unique_ptr<base_expr>;
 
 
 //------------------------------------------------------------------------------
@@ -81,6 +83,11 @@ class base_expr {
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
     virtual Column* evaluate_eager(workframe&) = 0;
+
+    virtual bool is_column_expr() const;
+    virtual bool is_negated_expr() const;
+    virtual pexpr get_negated_expr();
+    virtual size_t get_col_index(const workframe&);
 };
 
 
@@ -94,7 +101,8 @@ class expr_column : public base_expr {
     expr_column(size_t dfid, const py::robj& col);
 
     size_t get_frame_id() const noexcept;
-    size_t get_col_index(const workframe&);
+    size_t get_col_index(const workframe&) override;
+    bool is_column_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(workframe&) override;

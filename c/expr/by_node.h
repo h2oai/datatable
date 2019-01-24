@@ -68,8 +68,8 @@ class by_node {
 
   public:
     by_node();
-    void add_groupby_columns(collist_ptr&&);
-    void add_sortby_columns(collist_ptr&&);
+    void add_groupby_columns(workframe&, collist_ptr&&);
+    void add_sortby_columns(workframe&, collist_ptr&&);
 
     explicit operator bool() const;
     bool has_group_column(size_t i) const;
@@ -77,7 +77,7 @@ class by_node {
     void execute(workframe&) const;
 
   private:
-    void _add_columns(collist_ptr&& cl, bool group_columns);
+    void _add_columns(workframe& wf, collist_ptr&& cl, bool isgrp);
 };
 
 
