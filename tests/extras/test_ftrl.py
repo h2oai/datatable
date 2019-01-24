@@ -728,7 +728,7 @@ def test_ftrl_feature_importances():
     ft = Ftrl(nbins = 200)
     df_train = dt.Frame([range(ft.nbins),
                          [i % 2 for i in range(ft.nbins)],
-                         [i % 20 for i in range(ft.nbins)]
+                         [i % 10 for i in range(ft.nbins)]
                         ], names = feature_names)
     df_target = dt.Frame([False, True] * (ft.nbins // 2))
     ft.fit(df_train, df_target)
@@ -763,7 +763,7 @@ def test_ftrl_interactions():
     ft = Ftrl(nbins = 200, interactions = True)
     df_train = dt.Frame([range(ft.nbins),
                          [i % 2 for i in range(ft.nbins)],
-                         [i % 20 for i in range(ft.nbins)]
+                         [i % 10 for i in range(ft.nbins)]
                         ], names = feature_names)
     df_target = dt.Frame([False, True] * (ft.nbins // 2))
     ft.fit(df_train, df_target)
