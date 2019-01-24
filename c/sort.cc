@@ -494,8 +494,8 @@ class SortContext {
       case SType::INT64:   _initI<ASC, int64_t, uint64_t>(col); break;
       case SType::FLOAT32: _initF<ASC, uint32_t>(col); break;
       case SType::FLOAT64: _initF<ASC, uint64_t>(col); break;
-      case SType::STR32:   _initS<uint32_t>(col); break;
-      case SType::STR64:   _initS<uint64_t>(col); break;
+      case SType::STR32:   _initS<ASC, uint32_t>(col); break;
+      case SType::STR64:   _initS<ASC, uint64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -654,7 +654,7 @@ class SortContext {
 
 
   /**
-   * For strings, we fill array `x` with the values of the first 2 characters in
+   * For strings, we fill array `x` with the values of the first character in
    * each string. We also set up auxiliary variables `strdata`, `stroffs`,
    * `strstart` and `strtype`.
    *
@@ -663,7 +663,7 @@ class SortContext {
    * where `ch[i]` is the i-th character of the string. This doesn't overflow
    * because in UTF-8 the largest legal byte is 0xF7.
    */
-  template <typename T>
+  template <bool ASC, typename T>
   void _initS(const Column* col) {
     auto scol = static_cast<const StringColumn<T>*>(col);
     strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
@@ -687,11 +687,12 @@ class SortContext {
       } else {
         T offstart = offs[k - 1] & ~GETNA<T>();
         if (offend > offstart) {
-          xo[j] = strdata[offstart] + 2;
+          xo[j] = ASC? strdata[offstart] + 2
+                     : 0xFE - strdata[offstart];
           T len = offend - offstart;
           if (len > maxlen) maxlen = len;
         } else {
-          xo[j] = 1;  // empty string
+          xo[j] = ASC? 1 : 0xFF;  // empty string
         }
       }
     }
