@@ -33,32 +33,32 @@ namespace py {
 
 PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  {"params", "labels", "alpha", "beta", "lambda1",
-                                 "lambda2", "d", "nepochs", "inter"},
+                                 "lambda2", "nbins", "nepochs", "interactions"},
                                  "__init__", nullptr);
 
 static NoArgs fn___getstate__("__getstate__", nullptr);
 static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
                               "__setstate__", nullptr);
 
-static const char* doc_alpha    = "`alpha` in per-coordinate FTRL-Proximal algorithm";
-static const char* doc_beta     = "`beta` in per-coordinate FTRL-Proximal algorithm";
-static const char* doc_lambda1  = "L1 regularization parameter";
-static const char* doc_lambda2  = "L2 regularization parameter";
-static const char* doc_d        = "Number of bins to be used for the hashing trick";
-static const char* doc_nepochs  = "Number of epochs to train a model";
-static const char* doc_inter    = "Switch to enable second order feature interaction";
+static const char* doc_alpha        = "`alpha` in per-coordinate FTRL-Proximal algorithm";
+static const char* doc_beta         = "`beta` in per-coordinate FTRL-Proximal algorithm";
+static const char* doc_lambda1      = "L1 regularization parameter";
+static const char* doc_lambda2      = "L2 regularization parameter";
+static const char* doc_nbins        = "Number of bins to be used for the hashing trick";
+static const char* doc_nepochs      = "Number of epochs to train a model";
+static const char* doc_interactions = "Switch to enable second order feature interactions";
 
 static onamedtupletype& _get_params_namedtupletype() {
   static onamedtupletype ntt(
     "FtrlParams",
     "FTRL model parameters",
-    {{"alpha",    doc_alpha},
-     {"beta",     doc_beta},
-     {"lambda1",  doc_lambda1},
-     {"lambda2",  doc_lambda2},
-     {"d",        doc_d},
-     {"nepochs",  doc_nepochs},
-     {"inter",    doc_inter}}
+    {{"alpha",        doc_alpha},
+     {"beta",         doc_beta},
+     {"lambda1",      doc_lambda1},
+     {"lambda2",      doc_lambda2},
+     {"nbins",        doc_nbins},
+     {"nepochs",      doc_nepochs},
+     {"interactions", doc_interactions}}
   );
   return ntt;
 }
@@ -74,40 +74,41 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_beta     = !args[3].is_none_or_undefined();
   bool defined_lambda1  = !args[4].is_none_or_undefined();
   bool defined_lambda2  = !args[5].is_none_or_undefined();
-  bool defined_d        = !args[6].is_none_or_undefined();
+  bool defined_nbins    = !args[6].is_none_or_undefined();
   bool defined_nepochs  = !args[7].is_none_or_undefined();
-  bool defined_inter    = !args[8].is_none_or_undefined();
+  bool defined_interactions    = !args[8].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_d || defined_nepochs || defined_inter) {
+        defined_nbins || defined_nepochs || defined_interactions) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `d`, `nepochs` or `inter` to "
-            << "Ftrl constructor, but not both at the same time";
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` or "
+            << "`interactions` to Ftrl constructor, but not both at the "
+            << "same time";
     }
     py::otuple py_params = args[0].to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
     py::oobj py_beta = py_params.get_attr("beta");
     py::oobj py_lambda1 = py_params.get_attr("lambda1");
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
-    py::oobj py_d = py_params.get_attr("d");
+    py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
-    py::oobj py_inter = py_params.get_attr("inter");
+    py::oobj py_interactions = py_params.get_attr("interactions");
 
     dt_params.alpha = py_alpha.to_double();
     dt_params.beta = py_beta.to_double();
     dt_params.lambda1 = py_lambda1.to_double();
     dt_params.lambda2 = py_lambda2.to_double();
-    dt_params.d = static_cast<uint64_t>(py_d.to_size_t());
+    dt_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     dt_params.nepochs = py_nepochs.to_size_t();
-    dt_params.inter = py_inter.to_bool_strict();
+    dt_params.interactions = py_interactions.to_bool_strict();
 
     py::Validator::check_positive<double>(dt_params.alpha, py_alpha);
     py::Validator::check_not_negative<double>(dt_params.beta, py_beta);
     py::Validator::check_not_negative<double>(dt_params.lambda1, py_lambda1);
     py::Validator::check_not_negative<double>(dt_params.lambda2, py_lambda2);
-    py::Validator::check_not_negative<double>(dt_params.d, py_d);
+    py::Validator::check_not_negative<double>(dt_params.nbins, py_nbins);
 
   } else {
 
@@ -131,17 +132,17 @@ void Ftrl::m__init__(PKArgs& args) {
       py::Validator::check_not_negative<double>(dt_params.lambda2, args[5]);
     }
 
-    if (defined_d) {
-      dt_params.d = static_cast<uint64_t>(args[6].to_size_t());
-      py::Validator::check_positive<uint64_t>(dt_params.d, args[6]);
+    if (defined_nbins) {
+      dt_params.nbins = static_cast<uint64_t>(args[6].to_size_t());
+      py::Validator::check_positive<uint64_t>(dt_params.nbins, args[6]);
     }
 
     if (defined_nepochs) {
       dt_params.nepochs = args[7].to_size_t();
     }
 
-    if (defined_inter) {
-      dt_params.inter = args[8].to_bool_strict();
+    if (defined_interactions) {
+      dt_params.interactions = args[8].to_bool_strict();
     }
   }
 
@@ -179,6 +180,10 @@ void Ftrl::m__dealloc__() {
     delete dtft;
     dtft = nullptr;
   }
+  if (feature_names != nullptr) {
+    delete feature_names;
+    feature_names = nullptr;
+  }
 }
 
 
@@ -208,8 +213,8 @@ d : int
     Number of bins to be used after the hashing trick.
 nepochs : int
     Number of epochs to train for.
-inter : bool
-    Switch to enable second order feature interaction.
+interactions : bool
+    Switch to enable second order feature interactions.
 )";
 }
 
@@ -226,7 +231,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_model, &Ftrl::set_model>(
     "model",
     R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
-    and `d` rows, where `d` is a number of bins set for the hashing trick.
+    and `nbins` rows, where `nbins` is a number of bins for the hashing trick.
     Both column types are `float64`.)"
   );
 
@@ -251,9 +256,9 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   gs.add<&Ftrl::get_beta, &Ftrl::set_beta>("beta", doc_beta);
   gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
   gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
-  gs.add<&Ftrl::get_d, &Ftrl::set_d>("d", doc_d);
+  gs.add<&Ftrl::get_nbins, &Ftrl::set_nbins>("nbins", doc_nbins);
   gs.add<&Ftrl::get_nepochs, &Ftrl::set_nepochs>("nepochs", doc_nepochs);
-  gs.add<&Ftrl::get_inter, &Ftrl::set_inter>("inter", doc_inter);
+  gs.add<&Ftrl::get_interactions, &Ftrl::set_interactions>("interactions", doc_interactions);
 
   mm.add<&Ftrl::fit, args_fit>();
   mm.add<&Ftrl::predict, args_predict>();
@@ -314,26 +319,45 @@ void Ftrl::fit(const PKArgs& args) {
 
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y);
-                         break;
-    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y);
-                         break;
-    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y);
-                         break;
-    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y);
-                         break;
-    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y);
-                         break;
-    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y);
-                         break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y);
-                         break;
+    case SType::BOOL:    fit_binomial(dt_X, dt_y); break;
+    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y); break;
+    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y); break;
+    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y); break;
+    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y); break;
+    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y); break;
+    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y); break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y);
-                         break;
+    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
     default:             throw TypeError() << "Cannot predict for a column "
                                            << "of type `" << stype_y << "`";
   }
+
+  if (feature_names == nullptr) {
+    size_t nfeatures = (*dtft)[0]->get_nfeatures();
+    size_t ncols = dt_X->ncols;
+    const std::vector<std::string>& column_names = dt_X->get_names();
+
+    dt::fixed_height_string_col scol(nfeatures);
+    dt::fixed_height_string_col::buffer sb(scol);
+    sb.commit_and_start_new_chunk(0);
+    for (const auto& feature_name : column_names) {
+      sb.write(feature_name);
+    }
+
+    if ((*dtft)[0]->get_params().interactions) {
+      for (size_t i = 0; i < ncols - 1; ++i) {
+        for (size_t j = i + 1; j < ncols; ++j) {
+          std::string feature_name = column_names[i] + ":" + column_names[j];
+          sb.write(feature_name);
+        }
+      }
+    }
+
+    sb.order();
+    sb.commit_and_start_new_chunk(nfeatures);
+    feature_names = new DataTable({std::move(scol).to_column()}, {"feature_name"});
+  }
+
 }
 
 
@@ -586,6 +610,10 @@ void Ftrl::reset(const NoArgs&) {
     (*dtft)[i]->reset_model();
     (*dtft)[i]->reset_fi();
   }
+  if (feature_names != nullptr) {
+    delete feature_names;
+    feature_names = nullptr;
+  }
 }
 
 
@@ -620,6 +648,7 @@ oobj Ftrl::get_fi() const {
   // If model was trained, return feature importance info.
   if ((*dtft)[0]->is_trained()) {
     size_t ndtft = dtft->size();
+    DataTable* dt_feature_importances;
     DataTable* dt_fi;
     // If there is more than one classifier, average feature importance row-wise.
     if (ndtft > 1) {
@@ -647,9 +676,13 @@ oobj Ftrl::get_fi() const {
       dt_fi = (*dtft)[0]->get_fi();
     }
     normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
-    // TODO: memoize `df_fi`
+    // TODO: memoize `dt_feature_importances`
+    dt_feature_importances = feature_names->copy();
+    std::vector<DataTable*> dt(1);
+    dt[0] = dt_fi;
+    dt_feature_importances->cbind(dt);
     py::oobj df_fi = py::oobj::from_new_reference(
-                       py::Frame::from_datatable(dt_fi)
+                       py::Frame::from_datatable(dt_feature_importances)
                      );
     return df_fi;
   } else {
@@ -706,9 +739,9 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(1, get_beta());
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
-  params.set(4, get_d());
+  params.set(4, get_nbins());
   params.set(5, get_nepochs());
-  params.set(6, get_inter());
+  params.set(6, get_interactions());
   return std::move(params);
 }
 
@@ -719,9 +752,9 @@ oobj Ftrl::get_params_tuple() const {
   params.set(1, get_beta());
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
-  params.set(4, get_d());
+  params.set(4, get_nbins());
   params.set(5, get_nepochs());
-  params.set(6, get_inter());
+  params.set(6, get_interactions());
   return std::move(params);
 }
 
@@ -746,8 +779,8 @@ oobj Ftrl::get_lambda2() const {
 }
 
 
-oobj Ftrl::get_d() const {
-  return py::oint(static_cast<size_t>((*dtft)[0]->get_d()));
+oobj Ftrl::get_nbins() const {
+  return py::oint(static_cast<size_t>((*dtft)[0]->get_nbins()));
 }
 
 
@@ -756,8 +789,8 @@ oobj Ftrl::get_nepochs() const {
 }
 
 
-oobj Ftrl::get_inter() const {
-  return (*dtft)[0]->get_inter()? True() : False();
+oobj Ftrl::get_interactions() const {
+  return (*dtft)[0]->get_interactions()? True() : False();
 }
 
 
@@ -831,9 +864,9 @@ void Ftrl::set_model(robj model) {
     DataTable* dt_model_in = py_model[i].to_frame();
     const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
-    if (dt_model_in->nrows != (*dtft)[0]->get_d() || dt_model_in->ncols != 2) {
+    if (dt_model_in->nrows != (*dtft)[0]->get_nbins() || dt_model_in->ncols != 2) {
       throw ValueError() << "Element " << i << ": "
-                         << "FTRL model frame must have " << (*dtft)[0]->get_d()
+                         << "FTRL model frame must have " << (*dtft)[0]->get_nbins()
                          << " rows, and 2 columns, whereas your frame has "
                          << dt_model_in->nrows << " rows and "
                          << dt_model_in->ncols << " column"
@@ -874,9 +907,9 @@ void Ftrl::set_params_namedtuple(robj params) {
   set_beta(params.get_attr("beta"));
   set_lambda1(params.get_attr("lambda1"));
   set_lambda2(params.get_attr("lambda2"));
-  set_d(params.get_attr("d"));
+  set_nbins(params.get_attr("nbins"));
   set_nepochs(params.get_attr("nepochs"));
-  set_inter(params.get_attr("inter"));
+  set_interactions(params.get_attr("interactions"));
   // TODO: check that there are no unknown parameters
 }
 
@@ -892,9 +925,9 @@ void Ftrl::set_params_tuple(robj params) {
   set_beta(params_tuple[1]);
   set_lambda1(params_tuple[2]);
   set_lambda2(params_tuple[3]);
-  set_d(params_tuple[4]);
+  set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
-  set_inter(params_tuple[6]);
+  set_interactions(params_tuple[6]);
 }
 
 
@@ -934,11 +967,11 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 }
 
 
-void Ftrl::set_d(robj py_d) {
-  uint64_t d = static_cast<uint64_t>(py_d.to_size_t());
-  py::Validator::check_positive(d, py_d);
+void Ftrl::set_nbins(robj py_nbins) {
+  uint64_t nbins = static_cast<uint64_t>(py_nbins.to_size_t());
+  py::Validator::check_positive(nbins, py_nbins);
   for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_d(d);
+    (*dtft)[i]->set_nbins(nbins);
   }
 }
 
@@ -951,10 +984,10 @@ void Ftrl::set_nepochs(robj py_nepochs) {
 }
 
 
-void Ftrl::set_inter(robj py_inter) {
-  bool inter = py_inter.to_bool_strict();
+void Ftrl::set_interactions(robj py_interactions) {
+  bool interactions = py_interactions.to_bool_strict();
   for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_inter(inter);
+    (*dtft)[i]->set_interactions(interactions);
   }
 }
 
@@ -976,16 +1009,20 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 *  Pickling / unpickling methods.
 */
 oobj Ftrl::m__getstate__(const NoArgs&) {
-  py::otuple pickle(5);
+  py::otuple pickle(6);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_fi_tuple();
   py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
+  py::oobj df_feature_names = py::oobj::from_new_reference(
+                                py::Frame::from_datatable(feature_names->copy())
+                              );
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
-  pickle.set(3, labels);
-  pickle.set(4, py_reg_type);
+  pickle.set(3, df_feature_names);
+  pickle.set(4, labels);
+  pickle.set(5, py_reg_type);
   return std::move(pickle);
 }
 
@@ -994,8 +1031,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   dtft = new std::vector<dtftptr>;
   py::otuple pickle = args[0].to_otuple();
 
-  // Set labels and initialize classifiers
-  labels = pickle[3].to_pylist();
+  // Set labels and initialize classifiers, this has to be done first.
+  labels = pickle[4].to_pylist();
   init_dtft(dt::Ftrl::default_params);
 
   // Set FTRL parameters
@@ -1010,8 +1047,12 @@ void Ftrl::m__setstate__(const PKArgs& args) {
     (*dtft)[i]->set_fi(fi_tuple[i].to_frame());
   }
 
+  // Set feature names
+  feature_names = pickle[3].to_frame()->copy();
+
   // Set regression type
-  reg_type = static_cast<RegType>(pickle[4].to_int32());
+  reg_type = static_cast<RegType>(pickle[5].to_int32());
+
 }
 
 

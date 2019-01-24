@@ -44,23 +44,23 @@ namely:
 -  ``beta`` — Beta parameter. This value defaults to ``1.0``.
 -  ``lambda1`` — L1 regularization parameter. This value defaults to ``0.0``.
 -  ``lambda2`` — L2 regularization parameter. This value defaults to ``1.0``.
--  ``d`` - The number of bins for the hashing trick. This value defaults to ``1000000``.
+-  ``nbins`` - The number of bins for the hashing trick. This value defaults to ``1000000``.
 -  ``nepochs`` — The number of epochs to train the model for. This value defaults to ``1``.
--  ``inter`` — Whether to enable second order feature interactions. This value defaults to ``False``.
+-  ``interactions`` — Whether to enable second order feature interactions. This value defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
 
 ::
 
-  ftrl_model = Ftrl(alpha = 0.1, d = 100, inter = False)
+  ftrl_model = Ftrl(alpha = 0.1, nbins = 100, inter = False)
   
 or, if the model already exists, as
 
 ::
 
   ftrl_model.alpha = 0.1
-  ftrl_model.d = 100
+  ftrl_model.nbins = 100
   ftrl_model.inter = False
 
 If some parameters were not set explicitely, they will be assigned the default
@@ -122,10 +122,10 @@ can be accessed as
 
 ::
 
-  ftrl_model.feature_importances
+  fi = ftrl_model.feature_importances
   
-This returns a frame of shape ``(nfeatures, 1)`` containing
-importance information, that is normalized to [0; 1] range.
+where ``fi`` will be a frame of shape ``(nfeatures, 2)`` containing
+feature names and their importances, that are normalized to [0; 1] range.
 
 
 Further Reading

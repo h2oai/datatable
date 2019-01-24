@@ -40,6 +40,7 @@ enum class RegType : uint8_t {
 class Ftrl : public PyObject {
   private:
     std::vector<dtftptr>* dtft;
+    DataTable* feature_names;
     py::olist labels;
     RegType reg_type;
     size_t : 56;
@@ -87,8 +88,8 @@ class Ftrl : public PyObject {
     oobj get_beta() const;
     oobj get_lambda1() const;
     oobj get_lambda2() const;
-    oobj get_d() const;
-    oobj get_inter() const;
+    oobj get_nbins() const;
+    oobj get_interactions() const;
     oobj get_nepochs() const;
     void set_labels(robj);
     void set_model(robj);
@@ -98,9 +99,9 @@ class Ftrl : public PyObject {
     void set_beta(robj);
     void set_lambda1(robj);
     void set_lambda2(robj);
-    void set_d(robj);
+    void set_nbins(robj);
     void set_nepochs(robj);
-    void set_inter(robj);
+    void set_interactions(robj);
 
     // Model validation methods
     bool has_negative_n(DataTable*) const;

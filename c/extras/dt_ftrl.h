@@ -37,9 +37,9 @@ struct FtrlParams {
     double beta;
     double lambda1;
     double lambda2;
-    uint64_t d;
+    uint64_t nbins;
     size_t nepochs;
-    bool inter;
+    bool interactions;
     size_t : 56;
 };
 
@@ -115,9 +115,9 @@ class Ftrl {
     double get_beta();
     double get_lambda1();
     double get_lambda2();
-    uint64_t get_d();
+    uint64_t get_nbins();
     size_t get_nepochs();
-    bool get_inter();
+    bool get_interactions();
     FtrlParams get_params();
 
     // Setters
@@ -127,9 +127,9 @@ class Ftrl {
     void set_beta(double);
     void set_lambda1(double);
     void set_lambda2(double);
-    void set_d(uint64_t);
+    void set_nbins(uint64_t);
     void set_nepochs(size_t);
-    void set_inter(bool);
+    void set_interactions(bool);
 };
 
 
@@ -140,7 +140,7 @@ template <typename T, typename F>
 void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   define_features(dt_X->ncols);
 
-  is_dt_valid(dt_model, params.d, 2)? init_weights() : create_model();
+  is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
   is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Create column hashers.
