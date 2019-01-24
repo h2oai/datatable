@@ -121,6 +121,17 @@ slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step, bool _slice)
   istop = _stop;
   istep = _step;
   is_slice = _slice;
+  if (istep == py::oslice::NA) istep = 1;
+  if (istep == 0) {
+    if (istart == py::oslice::NA || istop == py::oslice::NA) {
+      throw ValueError() << "When a slice's step is 0, the `start` and `stop` "
+          "parameters may not be missing";
+    }
+    if (istop <= 0) {
+      throw ValueError() << "When a slice's step is 0, the `stop` parameter "
+          "must be positive";
+    }
+  }
 }
 
 
@@ -151,7 +162,8 @@ void slice_in::execute_grouped(workframe& wf) {
   size_t ng = gb.ngroups();
   const int32_t* group_offsets = gb.offsets_r() + 1;
 
-  arr32_t out_ri_array(wf.nrows());
+  size_t ri_size = istep == 0? ng * static_cast<size_t>(istop) : wf.nrows();
+  arr32_t out_ri_array(ri_size);
   MemoryRange out_groups = MemoryRange::mem((ng + 1) * sizeof(int32_t));
   int32_t* out_rowindices = out_ri_array.data();
   int32_t* out_offsets = static_cast<int32_t*>(out_groups.xptr()) + 1;
@@ -159,7 +171,6 @@ void slice_in::execute_grouped(workframe& wf) {
   size_t j = 0;  // Counter for the row indices
   size_t k = 0;  // Counter for the number of groups written
 
-  if (istep == py::oslice::NA) istep = 1;
   int32_t step = static_cast<int32_t>(istep);
   if (step > 0) {
     if (istart == py::oslice::NA) istart = 0;
@@ -229,6 +240,7 @@ void slice_in::execute_grouped(workframe& wf) {
     }
   }
 
+  xassert(j <= ri_size);
   out_ri_array.resize(j);
   out_groups.resize((k + 1) * sizeof(int32_t));
   RowIndex newri(std::move(out_ri_array), /* sorted = */ true);

@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+import random
 from datatable import stype, ltype, f, by
 from tests import same_iterables, noop, assert_equals
 
@@ -201,6 +202,21 @@ def test_rows_slice_errors(dt0):
     # noinspection PyTypeChecker
     assert_typeerror(dt0, slice("colA", "colC"),
                      "slice('colA', 'colC', None) is not integer-valued")
+
+
+def test_slice_errors2(dt0):
+    assert_valueerror(dt0, slice(None, 2, 0),
+                      "When a slice's step is 0, the `start` and `stop` "
+                      "parameters may not be missing")
+    assert_valueerror(dt0, slice(-1, None, 0),
+                      "When a slice's step is 0, the `start` and `stop` "
+                      "parameters may not be missing")
+    assert_valueerror(dt0, slice(0, 0, 0),
+                      "When a slice's step is 0, the `stop` parameter "
+                      "must be positive")
+    assert_valueerror(dt0, slice(1, -2, 0),
+                      "When a slice's step is 0, the `stop` parameter "
+                      "must be positive")
 
 
 
@@ -884,3 +900,59 @@ def test_grouped_slice_simple():
     assert_equals(res1, dt.Frame(B=[3, 3, 4, 4], A=[3, 2, 1, 3]))
     assert_equals(res2, dt.Frame(B=[3, 3, 4, 4], A=[1, 3, 2, 1]))
     assert_equals(res3, dt.Frame(B=[3, 3, 3, 4, 4, 4], A=[2, 3, 1, 3, 1, 2]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+def test_grouped_slice_random(seed):
+    random.seed(seed)
+
+    # Construct a slice
+    a = random.randint(-5, 10)
+    if a > 5:
+        a = None
+    b = random.randint(-10, 30)
+    if b > 20:
+        b = None
+    c = random.randint(-3, 5)
+    if c == 0:
+        if a is None:
+            a = 0
+        if b is None:
+            b = 5
+        if b <= 0:
+            b = -b + 1
+    if c > 3:
+        c = None
+    s = slice(a, b, c)
+
+    # Construct the grouped data, and the result
+    data_grouped = []
+    result = []
+    ngroups = random.randint(2, 20)
+    j0 = 0
+    for i in range(ngroups):
+        groupsize = 1 + int(random.expovariate(0.1))
+        group = [(i, j + j0) for j in range(groupsize)]
+        j0 += groupsize
+        data_grouped.append(group)
+        if c == 0:
+            if -groupsize <= a < groupsize:
+                result.extend([group[a]] * b)
+        else:
+            result.extend(group[s])
+
+    # Shuffle the rows of the grouped data
+    source_data = []
+    while data_grouped:
+        g = random.randint(0, len(data_grouped) - 1)
+        elem = data_grouped[g].pop(0)
+        source_data.append(elem)
+        if len(data_grouped[g]) == 0:
+            del data_grouped[g]
+
+    # Compute the result using datatable
+    DT = dt.Frame(source_data, names=["G", "X"], stype=dt.int32)
+    RES = DT[s, :, by("G")]
+    EXP = dt.Frame(result, names=["G", "X"], stype=dt.int32)
+
+    assert_equals(RES, EXP)
