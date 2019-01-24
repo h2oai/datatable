@@ -770,7 +770,6 @@ def test_ftrl_interactions():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    print(fi.to_list())
     assert fi.stypes == (stype.str32, stype.float64)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names + feature_interactions]
