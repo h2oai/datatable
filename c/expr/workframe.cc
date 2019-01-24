@@ -103,7 +103,11 @@ void workframe::evaluate() {
   byexpr.execute(*this);
 
   // Compute i filter
-  iexpr->execute(*this);
+  if (has_groupby()) {
+    iexpr->execute_grouped(*this);
+  } else {
+    iexpr->execute(*this);
+  }
 
   switch (mode) {
     case EvalMode::SELECT:
@@ -132,13 +136,12 @@ void workframe::evaluate() {
 void workframe::fix_columns() {
   if (groupby_mode != GroupbyMode::GtoALL) return;
   xassert(byexpr);
-  size_t nrows0 = get_datatable(0)->nrows;
+  // size_t nrows0 = get_datatable(0)->nrows;
   size_t ngrps = gb.ngroups();
   RowIndex ungroup_ri;
 
   for (size_t i = 0; i < columns.size(); ++i) {
-    if (columns[i]->nrows == nrows0) continue;
-    xassert(columns[i]->nrows == ngrps);
+    if (columns[i]->nrows != ngrps) continue;
     if (!ungroup_ri) {
       ungroup_ri = gb.ungroup_rowindex();
     }
@@ -173,7 +176,7 @@ const RowIndex& workframe::get_rowindex(size_t i) const {
 }
 
 
-const Groupby& workframe::get_groupby() const {
+const Groupby& workframe::get_groupby() {
   return gb;
 }
 
@@ -209,6 +212,11 @@ void workframe::apply_rowindex(const RowIndex& ri) {
   }
 }
 
+
+void workframe::apply_groupby(const Groupby& gb_) {
+  xassert(static_cast<size_t>(gb_.offsets_r()[gb_.ngroups()]) == nrows());
+  gb = gb_;
+}
 
 
 

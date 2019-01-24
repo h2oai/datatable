@@ -44,6 +44,7 @@ class i_node {
     virtual ~i_node();
     virtual void post_init_check(workframe&);
     virtual void execute(workframe&) = 0;
+    virtual void execute_grouped(workframe&) = 0;
 };
 
 

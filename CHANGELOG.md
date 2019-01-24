@@ -70,6 +70,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   the function `sort()`. If sorting is specified alongside a groupby, the
   values will be sorted within each group (#1531).
 
+- A slice-valued `i` expression can now be combined with a `by()` operator
+  in `DT[i, j, by()]`. The result is that the slice `i` is applied to each
+  group produced by `by()`, before the `j` is evaluated (#1585).
+
 
 ### Fixed
 

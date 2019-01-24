@@ -115,7 +115,9 @@ def assert_equals(frame1, frame2):
         assert frame1.stypes == frame2.stypes, (
             "The left frame has stypes %r, while the right has stypes %r"
             % (frame1.stypes, frame2.stypes))
-        assert frame1.to_list() == frame2.to_list()
+        assert frame1.to_list() == frame2.to_list(), (
+            "The frames have different data:\n"
+            "LHS = %r\nRHS = %r" % (frame1.to_list(), frame2.to_list()))
     else:
         assert frame1.shape == frame2.shape
         assert same_iterables(frame1.names, frame2.names)
