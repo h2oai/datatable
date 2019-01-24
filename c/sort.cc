@@ -492,8 +492,8 @@ class SortContext {
       case SType::INT16:   _initI<ASC, int16_t, uint16_t>(col); break;
       case SType::INT32:   _initI<ASC, int32_t, uint32_t>(col); break;
       case SType::INT64:   _initI<ASC, int64_t, uint64_t>(col); break;
-      case SType::FLOAT32: _initF<uint32_t>(col); break;
-      case SType::FLOAT64: _initF<uint64_t>(col); break;
+      case SType::FLOAT32: _initF<ASC, uint32_t>(col); break;
+      case SType::FLOAT64: _initF<ASC, uint64_t>(col); break;
       case SType::STR32:   _initS<uint32_t>(col); break;
       case SType::STR64:   _initS<uint64_t>(col); break;
       default:
@@ -604,7 +604,7 @@ class SortContext {
    *      1 01 000000 - 1 FE 7FFFFF    -1*2^-126 .. -1.7FFFFF*2^+126
    *      1 FF 000000                  -Inf
    *      1 FF 000001 - 1 FF 7FFFFF    NaNs (negative)
-   * In order to put these values into correct order, we'll do the following
+   * In order to put these values into ascending order, we'll do the following
    * transform:
    *      (1) numbers with sign bit = 0 will turn the sign bit on.
    *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
@@ -617,7 +617,7 @@ class SortContext {
    *      https://en.wikipedia.org/wiki/Float32
    *      https://en.wikipedia.org/wiki/Float64
    */
-  template <typename TO>
+  template <bool ASC, typename TO>
   void _initF(const Column* col) {
     const TO* xi = static_cast<const TO*>(col->data());
     elemsize = sizeof(TO);
@@ -637,15 +637,17 @@ class SortContext {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TO t = xi[o[j]];
-        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
-                ? 0 : t ^ (SBT | -(t>>SHIFT));
+        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                ASC? t ^ (SBT | -(t>>SHIFT))
+                   : t ^ (~SBT & ((t>>SHIFT) - 1));
       }
     } else {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TO t = xi[j];
-        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
-                ? 0 : t ^ (SBT | -(t>>SHIFT));
+        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                ASC? t ^ (SBT | -(t>>SHIFT))
+                   : t ^ (~SBT & ((t>>SHIFT) - 1));
       }
     }
   }
