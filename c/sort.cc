@@ -389,7 +389,7 @@ class SortContext {
 
 
   void start_sort(const Column* col) {
-    _prepare_data_for_column(col, true);
+    _prepare_data_for_column<true>(col);
     if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
@@ -408,7 +408,8 @@ class SortContext {
     use_order = true;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
-    _prepare_data_for_column(col, false);
+    _prepare_data_for_column<true>(col);
+    if (strtype) strstart--;
     // Make sure that `xx` has enough storage capacity. Previous column may
     // have had smaller `elemsize` than this, in which case `xx` will need
     // to be expanded.
@@ -478,27 +479,25 @@ class SortContext {
     next_o = static_cast<int*>(container_oo.ptr);
   }
 
-  void _prepare_data_for_column(const Column* col, bool firstcol) {
+  template <bool ASC>
+  void _prepare_data_for_column(const Column* col) {
     strtype = 0;
     strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = col->stype();
     switch (stype) {
-      case SType::BOOL:    _initB(col); break;
-      case SType::INT8:    _initI<int8_t,  uint8_t>(col); break;
-      case SType::INT16:   _initI<int16_t, uint16_t>(col); break;
-      case SType::INT32:   _initI<int32_t, uint32_t>(col); break;
-      case SType::INT64:   _initI<int64_t, uint64_t>(col); break;
+      case SType::BOOL:    _initB<ASC>(col); break;
+      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;
+      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(col); break;
+      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(col); break;
+      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(col); break;
       case SType::FLOAT32: _initF<uint32_t>(col); break;
       case SType::FLOAT64: _initF<uint64_t>(col); break;
       case SType::STR32:   _initS<uint32_t>(col); break;
       case SType::STR64:   _initS<uint64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
-    }
-    if (strtype && !firstcol) {
-      strstart--;
     }
   }
 
@@ -514,6 +513,7 @@ class SortContext {
    * (64 - x) >> 6  |   3   1   0   NA first, DESC
    * (128 - x) >> 6 |   0   2   1   NA last,  DESC
    */
+  template <bool ASC>
   void _initB(const Column* col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
     elemsize = 1;
@@ -524,16 +524,16 @@ class SortContext {
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
-        uint8_t t = xi[o[j]] + 0xBF;
-        xo[j] = t >> 6;
+        xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
+                   : static_cast<uint8_t>(64 - xi[o[j]]) >> 6;
       }
     } else {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
-        // xi[j]+0xBF should be computed as uint8_t; by default C++ upcasts it
+        // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
         // to int, which leads to wrong results after shift by 6.
-        uint8_t t = xi[j] + 0xBF;
-        xo[j] = t >> 6;
+        xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+                   : static_cast<uint8_t>(64 - xi[j]) >> 6;
       }
     }
   }
@@ -544,7 +544,7 @@ class SortContext {
    * unsigned. Depending on the range of the values (max - min + 1), we cast
    * the data into an appropriate smaller type.
    */
-  template <typename T, typename TU>
+  template <bool ASC, typename T, typename TU>
   void _initI(const Column* col) {
     auto icol = static_cast<const IntColumn<T>*>(col);
     xassert(sizeof(T) == sizeof(TU));
@@ -552,16 +552,17 @@ class SortContext {
     T max = icol->max();
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
-    if (nsigbits > 32)      _initI_impl<T, TU, uint64_t>(icol, min);
-    else if (nsigbits > 16) _initI_impl<T, TU, uint32_t>(icol, min);
-    else if (nsigbits > 8)  _initI_impl<T, TU, uint16_t>(icol, min);
-    else                    _initI_impl<T, TU, uint8_t >(icol, min);
+    T edge = ASC? min : max;
+    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(icol, edge);
+    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(icol, edge);
+    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(icol, edge);
+    else                    _initI_impl<ASC, T, TU, uint8_t >(icol, edge);
   }
 
-  template <typename T, typename TI, typename TO>
-  void _initI_impl(const Column* col, T min) {
+  template <bool ASC, typename T, typename TI, typename TO>
+  void _initI_impl(const Column* col, T edge) {
     TI una = static_cast<TI>(GETNA<T>());
-    TI umin = static_cast<TI>(min);
+    TI uedge = static_cast<TI>(edge);
     const TI* xi = static_cast<const TI*>(col->data());
     elemsize = sizeof(TO);
     allocate_x();
@@ -571,13 +572,17 @@ class SortContext {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; ++j) {
         TI t = xi[o[j]];
-        xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
+        xo[j] = t == una? 0 :
+                ASC? static_cast<TO>(t - uedge + 1)
+                   : static_cast<TO>(uedge - t + 1);
       }
     } else {
       #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TI t = xi[j];
-        xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
+        xo[j] = t == una? 0 :
+                ASC? static_cast<TO>(t - uedge + 1)
+                   : static_cast<TO>(uedge - t + 1);
       }
     }
   }
