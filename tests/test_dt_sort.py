@@ -854,6 +854,18 @@ def test_sort_strings_reverse(st):
     assert_equals(DT[:, :, sort(-f.A)], RES)
 
 
+def test_sort_strings_reverse_large():
+    src = ['klein', 'nim', 'toapr', 'f', '', 'zleu', '?34', '.............']
+    src *= 10
+    src += ['adferg', 'reneeas', 'ldodls', 'qu', 'zleuss', 'ni'] * 7
+    src *= 25
+    src += ['shoo!', 'zzZzzZ' * 5]
+    DT = dt.Frame(A=src)
+    RES = dt.Frame(A=sorted(src, reverse=True))
+    assert_equals(DT[:, :, sort(-f.A)], RES)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Misc issues
