@@ -388,8 +388,12 @@ class SortContext {
   SortContext(SortContext&&) = delete;
 
 
-  void start_sort(const Column* col) {
-    _prepare_data_for_column<true>(col);
+  void start_sort(const Column* col, bool descending) {
+    if (descending) {
+      _prepare_data_for_column<false>(col);
+    } else {
+      _prepare_data_for_column<true>(col);
+    }
     if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
@@ -403,12 +407,16 @@ class SortContext {
   }
 
 
-  void continue_sort(const Column* col, bool make_groups) {
+  void continue_sort(const Column* col, bool descending, bool make_groups) {
     nradixes = gg.size();
     use_order = true;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
-    _prepare_data_for_column<true>(col);
+    if (descending) {
+      _prepare_data_for_column<false>(col);
+    } else {
+      _prepare_data_for_column<true>(col);
+    }
     if (strtype) strstart--;
     // Make sure that `xx` has enough storage capacity. Previous column may
     // have had smaller `elemsize` than this, in which case `xx` will need
@@ -1236,7 +1244,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
 
   bool do_groups = n > 1 || !spec[0].sort_only;
   SortContext sc(nrows, col0->rowindex(), do_groups);
-  sc.start_sort(col0);
+  sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (j < n - 1) {
       xassert(do_groups);
@@ -1246,7 +1254,8 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     } else {
       do_groups = !spec[j].sort_only;
     }
-    sc.continue_sort(columns[spec[j].col_index], do_groups);
+    sc.continue_sort(columns[spec[j].col_index],
+                     spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
   if (!spec[0].sort_only && !result.second) {
@@ -1298,9 +1307,9 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   }
   SortContext sc(nrows, col0->rowindex(),
                  (out_grps != nullptr) || (nsortcols > 1));
-  sc.start_sort(col0);
+  sc.start_sort(col0, false);
   for (size_t j = 1; j < nsortcols; ++j) {
-    sc.continue_sort(columns[colindices[j]],
+    sc.continue_sort(columns[colindices[j]], false,
                      (out_grps != nullptr) || (j < nsortcols - 1));
   }
   if (out_grps) {
@@ -1333,7 +1342,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
     return sort_tiny(this, out_grps);
   }
   SortContext sc(nrows, rowindex(), (out_grps != nullptr));
-  sc.start_sort(this);
+  sc.start_sort(this, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
     *out_grps = std::move(res.second);
