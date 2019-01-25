@@ -38,6 +38,13 @@ using base_expr_ptr = std::unique_ptr<base_expr>;
 
 base_expr::~base_expr() {}
 
+bool base_expr::is_column_expr() const { return false; }
+
+bool base_expr::is_negated_expr() const { return false; }
+
+pexpr base_expr::get_negated_expr() { return pexpr(); }
+
+size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
 
 
 
@@ -51,6 +58,11 @@ expr_column::expr_column(size_t dfid, const py::robj& col)
 
 size_t expr_column::get_frame_id() const noexcept {
   return frame_id;
+}
+
+
+bool expr_column::is_column_expr() const {
+  return true;
 }
 
 
@@ -354,11 +366,13 @@ static void init_unops() {
 
 class expr_unaryop : public base_expr {
   private:
-    base_expr* arg;
-    size_t unop_code;
+    std::unique_ptr<base_expr> arg;
+    unop unop_code;
 
   public:
     expr_unaryop(size_t opcode, base_expr* a);
+    bool is_negated_expr() const override;
+    pexpr get_negated_expr() override;
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(workframe& wf) override;
@@ -366,14 +380,28 @@ class expr_unaryop : public base_expr {
 
 
 expr_unaryop::expr_unaryop(size_t opcode, base_expr* a)
-  : arg(a), unop_code(opcode) {}
+  : arg(std::move(a)), unop_code(static_cast<unop>(opcode)) {}
+
+
+bool expr_unaryop::is_negated_expr() const {
+  return unop_code == unop::MINUS;
+}
+
+pexpr expr_unaryop::get_negated_expr() {
+  pexpr res;
+  if (unop_code == unop::MINUS) {
+    res = std::move(arg);
+  }
+  return res;
+}
 
 
 SType expr_unaryop::resolve(const workframe& wf) {
   SType arg_stype = arg->resolve(wf);
-  size_t op_id = id(static_cast<unop>(unop_code), arg_stype);
+  size_t op_id = id(unop_code, arg_stype);
   if (unop_rules.count(op_id) == 0) {
-    throw TypeError() << "Unary operator `" << unop_names[unop_code]
+    throw TypeError() << "Unary operator `"
+        << unop_names[static_cast<size_t>(unop_code)]
         << "` cannot be applied to a column with stype `" << arg_stype << "`";
   }
   return unop_rules.at(op_id);

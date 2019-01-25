@@ -50,16 +50,16 @@ by_node::by_node() {
 }
 
 
-void by_node::add_groupby_columns(collist_ptr&& cl) {
-  _add_columns(std::move(cl), true);
+void by_node::add_groupby_columns(workframe& wf, collist_ptr&& cl) {
+  _add_columns(wf, std::move(cl), true);
 }
 
-void by_node::add_sortby_columns(collist_ptr&& cl) {
-  _add_columns(std::move(cl), false);
+void by_node::add_sortby_columns(workframe& wf, collist_ptr&& cl) {
+  _add_columns(wf, std::move(cl), false);
 }
 
 
-void by_node::_add_columns(collist_ptr&& cl, bool group_columns) {
+void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
   auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
   auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
   xassert(cl_int || cl_expr);
@@ -71,24 +71,45 @@ void by_node::_add_columns(collist_ptr&& cl, bool group_columns) {
           cl_int->indices[i],
           has_names? std::move(cl_int->names[i]) : std::string(),
           false,          // descending
-          !group_columns  // sort_only
+          !isgrp  // sort_only
       );
     }
-    n_group_columns += group_columns * n;
+    n_group_columns += isgrp * n;
   }
   if (cl_expr) {
     bool has_names = !cl_expr->names.empty();
     size_t n = cl_expr->exprs.size();
+    size_t n_computed = 0;
     for (size_t i = 0; i < n; ++i) {
+      bool descending = false;
+      pexpr cexpr = std::move(cl_expr->exprs[i]);
+      pexpr neg = cexpr->get_negated_expr();
+      if (neg) {
+        size_t j = neg->get_col_index(wf);
+        if (j != size_t(-1)) {
+          cols.emplace_back(
+              j,
+              has_names? std::move(cl_expr->names[i]) : std::string(),
+              true,   // descending
+              !isgrp  // sort_only
+          );
+          continue;
+        }
+        cexpr = std::move(neg);
+        descending = true;
+      }
       cols.emplace_back(
-          std::move(cl_expr->exprs[i]),
+          std::move(cexpr),
           has_names? std::move(cl_expr->names[i]) : std::string(),
-          false,          // descending
-          !group_columns  // sort_only
+          descending,
+          !isgrp  // sort_only
       );
+      n_computed++;
     }
-    n_group_columns += group_columns * n;
-    throw NotImplError() << "Computed columns cannot be used in groupby/sort";
+    n_group_columns += isgrp * n;
+    if (n_computed) {
+      throw NotImplError() << "Computed columns cannot be used in groupby/sort";
+    }
   }
 }
 

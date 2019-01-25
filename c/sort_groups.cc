@@ -47,16 +47,19 @@ void GroupGatherer::from_data(const T* data, V* o, size_t n) {
 
 template <typename T, typename V>
 void GroupGatherer::from_data(
-  const uint8_t* strdata, const T* stroffs, T start, V* o, size_t n)
-{
+  const uint8_t* strdata, const T* stroffs, T start, V* o, size_t n,
+  bool descending
+) {
   if (n == 0) return;
+  auto compfn = descending? compare_offstrings<-1, T>
+                          : compare_offstrings<1, T>;
   T olast0 = (stroffs[o[0] - 1] & ~GETNA<T>()) + start;
   T olast1 = stroffs[o[0]];
   size_t lasti = 0;
   for (size_t i = 1; i < n; ++i) {
     T ocurr0 = (stroffs[o[i] - 1] & ~GETNA<T>()) + start;
     T ocurr1 = stroffs[o[i]];
-    if (compare_offstrings(strdata, olast0, olast1, ocurr0, ocurr1)) {
+    if (compfn(strdata, olast0, olast1, ocurr0, ocurr1)) {
       push(i - lasti);
       olast0 = ocurr0;
       olast1 = ocurr1;
@@ -107,5 +110,5 @@ template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
-template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t);
-template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t);
+template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t, bool);
+template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t, bool);

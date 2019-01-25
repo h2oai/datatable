@@ -86,9 +86,15 @@ class GroupGatherer {
     operator bool() const { return !!groups; }
 
     void push(size_t grp);
-    template <typename T, typename V> void from_data(const T*, V*, size_t);
-    template <typename T, typename V> void from_data(const uint8_t*, const T*, T, V*, size_t);
+
+    template <typename T, typename V>
+    void from_data(const T*, V*, size_t);
+
+    template <typename T, typename V>
+    void from_data(const uint8_t*, const T*, T, V*, size_t, bool descending);
+
     void from_chunks(radix_range* rrmap, size_t nradixes);
+
     void from_histogram(size_t* histogram, size_t nchunks, size_t nradixes);
 };
 
@@ -105,12 +111,12 @@ template <typename T, typename V>
 void insert_sort_values(const T* x, V* o, int n, GroupGatherer& gg);
 
 template <typename T, typename V>
-void insert_sort_keys_str(const uint8_t*, const T*, T, V*, V*, int, GroupGatherer&);
+void insert_sort_keys_str(const uint8_t*, const T*, T, V*, V*, int, GroupGatherer&, bool);
 
 template <typename T, typename V>
-void insert_sort_values_str(const uint8_t*, const T*, T, V*, int, GroupGatherer&);
+void insert_sort_values_str(const uint8_t*, const T*, T, V*, int, GroupGatherer&, bool);
 
-template <typename T>
+template <int R, typename T>
 int compare_offstrings(const uint8_t*, T, T, T, T);
 
 
@@ -125,20 +131,22 @@ extern template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGat
 extern template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-extern template void insert_sort_keys_str(  const uint8_t*, const uint32_t*, uint32_t, int32_t*, int32_t*, int, GroupGatherer&);
-extern template void insert_sort_values_str(const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&);
-extern template void insert_sort_keys_str(  const uint8_t*, const uint64_t*, uint64_t, int32_t*, int32_t*, int, GroupGatherer&);
-extern template void insert_sort_values_str(const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&);
+extern template void insert_sort_keys_str(  const uint8_t*, const uint32_t*, uint32_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_values_str(const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_keys_str(  const uint8_t*, const uint64_t*, uint64_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_values_str(const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
 
-extern template int compare_offstrings(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
-extern template int compare_offstrings(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
+extern template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
+extern template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
+extern template int compare_offstrings<-1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
+extern template int compare_offstrings<-1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
 
 extern template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t, bool);
+extern template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t, bool);
 
 
 #endif

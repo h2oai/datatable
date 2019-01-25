@@ -74,6 +74,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   in `DT[i, j, by()]`. The result is that the slice `i` is applied to each
   group produced by `by()`, before the `j` is evaluated (#1585).
 
+- Implemented sorting in reverse direction, via `sort(-col)`, where `col` is
+  any regular column selector such as `f.A` or `f[column]`. The `-` sign is
+  symbolic, no actual negation occurs. As such, this works even for string
+  columns (#792).
+
 
 ### Fixed
 
@@ -212,7 +217,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1539, #1542, #1551, #1572, #1576,
-    #1578),
+  #1578),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451, #1565),

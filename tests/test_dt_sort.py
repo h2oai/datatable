@@ -26,10 +26,13 @@ import pytest
 import random
 import datatable as dt
 from datatable import stype, ltype, sort, by, f
+from math import inf, nan
 from tests import list_equals, random_string, assert_equals
 
 
 
+#-------------------------------------------------------------------------------
+# Simple sort
 #-------------------------------------------------------------------------------
 
 def test_sort_len0():
@@ -126,7 +129,7 @@ def test_int32_small_stable():
 
 def test_int32_large():
     # p1, p2 should both be prime, with p1 < p2. Here we rely on the fact that
-    # a multiplicative group of integers module n is cyclic with order n-1 when
+    # a multiplicative group of integers modulo n is cyclic with order n-1 when
     # n is prime.
     p1 = 1000003
     p2 = 2000003
@@ -158,7 +161,7 @@ def test_int32_constant(n):
     assert d1.to_list() == tbl0
 
 
-def test_int32_reverse():
+def test_int32_reverse_list():
     step = 10
     d0 = dt.Frame(range(1000000, 0, -step))
     assert d0.stypes[0] == stype.int32
@@ -214,6 +217,8 @@ def test_int32_issue220():
 
 
 
+#-------------------------------------------------------------------------------
+# Int8
 #-------------------------------------------------------------------------------
 
 def test_int8_small():
@@ -404,7 +409,6 @@ def test_int64_large_random(seed):
 #-------------------------------------------------------------------------------
 
 def test_float32_small():
-    from math import inf, nan
     d0 = dt.Frame([0, .4, .9, .2, .1, nan, -inf, -5, 3, 11, inf, 5.2],
                   stype="float32")
     assert d0.stypes == (stype.float32, )
@@ -414,7 +418,6 @@ def test_float32_small():
 
 
 def test_float32_nans():
-    from math import nan
     d0 = dt.Frame([nan, 0.5, nan, nan, -3, nan, 0.2, nan, nan, 1],
                   stype="float32")
     d1 = d0.sort(0)
@@ -445,7 +448,6 @@ def test_float32_random(numpy, n):
 #-------------------------------------------------------------------------------
 
 def test_float64_small():
-    from math import inf
     d0 = dt.Frame([0.1, -0.5, 1.6, 0, None, -inf, inf, 3.3, 1e100])
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
@@ -466,7 +468,6 @@ def test_float64_zeros():
 
 @pytest.mark.parametrize("n", [20, 100, 500, 2500, 20000])
 def test_float64_large(n):
-    from math import inf
     d0 = dt.Frame([12.6, .3, inf, -5.1, 0, -inf, None] * n)
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
@@ -805,6 +806,63 @@ def test_sort_random_multi(seed):
     # dt.Frame(sorted_data).save("test.jay", format="jay")
     d1 = d0.sort("B", "C", "D")
     assert d1.to_list() == sorted_data
+
+
+
+#-------------------------------------------------------------------------------
+# Sort in reverse order
+#-------------------------------------------------------------------------------
+
+def test_sort_bools_reverse():
+    DT = dt.Frame(A=[True, None, False, None, True, None], B=list('abcdef'))
+    assert_equals(DT[:, :, sort(-f.A)],
+                  dt.Frame(A=[None, None, None, True, True, False],
+                           B=['b', 'd', 'f', 'a', 'e', 'c']))
+
+
+@pytest.mark.parametrize("st", dt.ltype.int.stypes)
+def test_sort_ints_reverse(st):
+    DT = dt.Frame(A=[5, 17, 9, -12, 0, 111, 3, 5], B=list('abcdefgh'),
+                  stypes={"A": st, "B": dt.str32})
+    assert_equals(DT[:, :, sort(-f.A)],
+                  dt.Frame(A=[111, 17, 9, 5, 5, 3, 0, -12],
+                           B=list('fbcahged'),
+                           stypes={"A": st, "B": dt.str32}))
+
+
+def test_sort_doubles_reverse():
+    DT = dt.Frame(A=[0.0, 0.1, -0.5, 1.6, -0.0, None, -inf, inf, 3.3, 1e100])
+    assert_equals(DT[:, :, sort(-f.A)],
+                  dt.Frame(A=[None, inf, 1e100, 3.3, 1.6, 0.1, 0.0, -0.0,
+                              -0.5, -inf]))
+
+
+def test_sort_double_stable_nans():
+    DT = dt.Frame(A=[nan, -nan, nan, -inf, None, inf, 9.99, None],
+                  B=list('abcdefgh'))
+    assert_equals(DT[:, :, sort(-f.A)],
+                  dt.Frame(A=[None] * 5 + [inf, 9.99, -inf],
+                           B=list('abcehfgd')))
+
+
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_sort_strings_reverse(st):
+    DT = dt.Frame(A=['aye', '', 'zebra', 'zulu', 'nautilus', None, 'oxen'],
+                  stype=st)
+    RES = dt.Frame(A=[None, 'zulu', 'zebra', 'oxen', 'nautilus', 'aye', ''],
+                   stype=st)
+    assert_equals(DT[:, :, sort(-f.A)], RES)
+
+
+def test_sort_strings_reverse_large():
+    src = ['klein', 'nim', 'toapr', 'f', '', 'zleu', '?34', '.............']
+    src *= 10
+    src += ['adferg', 'reneeas', 'ldodls', 'qu', 'zleuss', 'ni'] * 7
+    src *= 25
+    src += ['shoo!', 'zzZzzZ' * 5]
+    DT = dt.Frame(A=src)
+    RES = dt.Frame(A=sorted(src, reverse=True))
+    assert_equals(DT[:, :, sort(-f.A)], RES)
 
 
 
