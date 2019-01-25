@@ -243,7 +243,7 @@ void slice_in::execute_grouped(workframe& wf) {
   xassert(j <= ri_size);
   out_ri_array.resize(j);
   out_groups.resize((k + 1) * sizeof(int32_t));
-  RowIndex newri(std::move(out_ri_array), /* sorted = */ true);
+  RowIndex newri(std::move(out_ri_array), /* sorted = */ (step >= 0));
   Groupby newgb(k, std::move(out_groups));
   wf.apply_rowindex(newri);
   wf.apply_groupby(newgb);

@@ -313,10 +313,7 @@ class Frame0:
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         self.df.nrows = nrows
-        if curr_nrows == 1:
-            for i, elem in enumerate(self.data):
-                self.data[i] = elem * nrows
-        elif curr_nrows < nrows:
+        if curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
             for i, elem in enumerate(self.data):
                 self.data[i] = elem + append

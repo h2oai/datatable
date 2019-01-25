@@ -30,6 +30,14 @@
 #include "utils/assert.h"
 #include "utils/parallel.h"
 
+static void test(ArrayRowIndexImpl* o) {
+  #ifndef NDEBUG
+    o->refcount++;
+    o->verify_integrity();
+    o->refcount--;
+  #endif
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -44,6 +52,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted) {
   owned = array.data_owned();
   data = array.release();
   set_min_max();
+  test(this);
 }
 
 
@@ -54,6 +63,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
   owned = array.data_owned();
   data = array.release();
   set_min_max();
+  test(this);
 }
 
 
@@ -67,6 +77,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, size_t _min, size_t _max)
   data = array.release();
   min = _min;
   max = _max;
+  test(this);
 }
 
 
@@ -79,6 +90,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, size_t _min, size_t _max)
   data = array.release();
   min = _min;
   max = _max;
+  test(this);
 }
 
 
@@ -144,6 +156,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     }
     xassert(rowsptr == static_cast<int64_t*>(data) + length);
   }
+  test(this);
 }
 
 
@@ -164,6 +177,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
     default:
       throw ValueError() << "Column is not of boolean or integer type";
   }
+  test(this);
 }
 
 
@@ -253,6 +267,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
   length = out_length;
   _resize_data();
   set_min_max();
+  test(this);
 }
 
 
@@ -299,6 +314,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
   length = out_length;
   _resize_data();
   set_min_max();
+  test(this);
 }
 
 
@@ -320,30 +336,29 @@ void ArrayRowIndexImpl::set_min_max() {
 
 template <typename T>
 void ArrayRowIndexImpl::_set_min_max() {
+  constexpr T TMAX = std::numeric_limits<T>::max();
   const T* idata = static_cast<const T*>(data);
   if (length == 1) ascending = true;
   if (length == 0) {
     min = max = RowIndex::NA;
-  } else if (length == 1) {
-    min = static_cast<size_t>(idata[0]);
-    max = static_cast<size_t>(idata[length - 1]);
-    if (min == RowIndex::NA || max == RowIndex::NA) {
-      if (min == RowIndex::NA && max == RowIndex::NA) {
-        min = max = 0;
-      } else if (min == RowIndex::NA) {
-        size_t j = 1;
-        while (j < length && idata[j] == -1) ++j;
-        min = static_cast<size_t>(idata[j]);
-      } else {
-        size_t j = length - 2;
-        while (j < length && idata[j] == -1) --j;
+  }
+  else if (ascending) {
+    for (size_t j = 0; j < length; ++j) {
+      min = static_cast<size_t>(idata[j]);
+      if (min != RowIndex::NA) break;
+    }
+    if (min == RowIndex::NA) {
+      max = min;
+    } else {
+      for (size_t j = length - 1; j < length; --j) {
         max = static_cast<size_t>(idata[j]);
+        if (max != RowIndex::NA) break;
       }
     }
-    if (min > max) std::swap(min, max);
-  } else {
-    T tmin = std::numeric_limits<T>::max();
-    T tmax = -std::numeric_limits<T>::max();
+  }
+  else {
+    T tmin = TMAX;
+    T tmax = -TMAX;
     #pragma omp parallel for schedule(static) \
         reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < length; ++j) {
@@ -352,13 +367,13 @@ void ArrayRowIndexImpl::_set_min_max() {
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
-    if (tmin == std::numeric_limits<T>::max() &&
-        tmax == -std::numeric_limits<T>::max()) tmin = tmax = -1;
+    if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
     min = static_cast<size_t>(tmin);
     max = static_cast<size_t>(tmax);
   }
-  xassert(max >= min && (max == RowIndex::NA || max <= RowIndex::MAX)
-                     && (min == RowIndex::NA || min <= RowIndex::MAX));
+  xassert(max >= min);
+  xassert(max == RowIndex::NA || max <= RowIndex::MAX);
+  xassert(min == RowIndex::NA || min <= RowIndex::MAX);
 }
 
 
@@ -449,7 +464,7 @@ const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
 
 
 
-RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
+RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   RowIndexType uptype = rii->type;
   if (uptype == RowIndexType::SLICE) {
     size_t start = slice_rowindex_get_start(rii);
@@ -629,9 +644,10 @@ template <typename T>
 static void verify_integrity_helper(
     void* data, size_t len, size_t min, size_t max, bool sorted)
 {
+  constexpr T TMAX = std::numeric_limits<T>::max();
   auto ind = static_cast<const T*>(data);
-  T tmin = std::numeric_limits<T>::max();
-  T tmax = 0;
+  T tmin = TMAX;
+  T tmax = -TMAX;
   bool check_sorted = sorted;
   for (size_t i = 0; i < len; ++i) {
     T x = ind[i];
@@ -644,16 +660,16 @@ static void verify_integrity_helper(
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
-  if (!len) tmin = tmax = -1;
+  if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
+  if (check_sorted != sorted) {
+    throw AssertionError()
+        << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
+  }
   if (static_cast<size_t>(tmin) != min || static_cast<size_t>(tmax) != max) {
     throw AssertionError()
         << "Mismatching min/max values in the ArrayRowIndex min=" << min
         << "/max=" << max << " compared to the computed min=" << tmin
         << "/max=" << tmax;
-  }
-  if (check_sorted != sorted) {
-    throw AssertionError()
-        << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
   }
 }
 

@@ -50,10 +50,10 @@ struct sort_result {
 // helper functions
 //------------------------------------------------------------------------------
 
-static py::oobj make_pyframe(
-    sort_result& sr, arr32_t&& arr, bool arr_sorted = true
-) {
-  RowIndex out_ri = RowIndex(std::move(arr), arr_sorted);
+static py::oobj make_pyframe(sort_result& sr, arr32_t&& arr) {
+  // The array of rowindices `arr` is typically shuffled because the values
+  // in the input are sorted before they are compared.
+  RowIndex out_ri = RowIndex(std::move(arr), false);
   Column* out_col = sr.col->shallowcopy(out_ri);
   out_col->reify();
   DataTable* dt = new DataTable({out_col}, {sr.colname});
@@ -420,8 +420,7 @@ static py::oobj _symdiff(ccolvec&& cc) {
     }
   }
   arr.resize(j);
-  // symdiff() is the only method that can produce potentially unsorted `arr`.
-  return make_pyframe(sr, std::move(arr), false);
+  return make_pyframe(sr, std::move(arr));
 }
 
 
