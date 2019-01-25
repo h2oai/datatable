@@ -1051,7 +1051,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   if (pickle[2].is_tuple()) {
     py::otuple fi_tuple = pickle[2].to_otuple();
     for (size_t i = 0; i < fi_tuple.size(); ++i) {
-      (*dtft)[i]->set_fi(fi_tuple[i].to_frame());
+      (*dtft)[i]->set_fi(fi_tuple[i].to_frame()->copy());
     }
   }
 
