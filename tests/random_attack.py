@@ -14,6 +14,23 @@ import warnings
 
 exhaustive_checks = False
 
+def repr_row(row, j):
+    assert 0 <= j < len(row)
+    if len(row) <= 20 or j <= 12:
+        out = str(row[:j])[:-1]
+        if j > 0:
+            out += ",   " + str(row[j])
+        if len(row) > 20:
+            out += ",   " + str(row[j+1:20])[1:-1] + ", ...]"
+        elif j < len(row) - 1:
+            out += ",   " + str(row[j+1:])[1:]
+        else:
+            out += "]"
+    else:
+        out = str(row[:10])[:-1] + ", ..., " + str(row[j]) + ", ...]"
+    return out
+
+
 
 #-------------------------------------------------------------------------------
 # Attacker
@@ -321,25 +338,20 @@ class Frame0:
         py_data = self.data
         if df_data != py_data:
             assert len(df_data) == len(py_data), "Shape check failed..."
-            for i in range(len(df_data)):
-                dfcol = df_data[i]
+            for i, dfcol in enumerate(df_data):
                 pycol = py_data[i]
-                if dfcol != pycol:
-                    print("ERROR: data mismatch in column %d (%r)"
-                          % (i, self.df.names[i]))
-                    for j in range(len(dfcol)):
-                        if dfcol[j] != pycol[j]:
-                            print("  first difference: dt[%d]=%r != py[%d]=%r"
-                                  % (j, dfcol[j], j, pycol[j]))
-                            if j <= 10:
-                                dtstr = str(dfcol[:20])[:-1] + ", ...]"
-                                pystr = str(pycol[:20])[:-1] + ", ...]"
-                            else:
-                                dtstr = str(dfcol[:10])[:-1] + ", ..., " + str(dfcol[j]) + ", ...]"
-                                pystr = str(pycol[:10])[:-1] + ", ..., " + str(pycol[j]) + ", ...]"
-                            print("  dt data: %s" % dtstr)
-                            print("  py data: %s" % pystr)
-                            break
+                if dfcol == pycol:
+                    continue
+                print("ERROR: data mismatch in column %d (%r)"
+                      % (i, self.df.names[i]))
+                for j, dfval in enumerate(dfcol):
+                    pyval = pycol[j]
+                    if dfval == pyval:
+                        continue
+                    print("  first difference: dt[%d]=%r != py[%d]=%r"
+                          % (j, dfval, j, pyval))
+                    print("  dt data: %s" % repr_row(dfcol, j))
+                    print("  py data: %s" % repr_row(pycol, j))
                     sys.exit(1)
             assert False, "Data check failed..."
 
