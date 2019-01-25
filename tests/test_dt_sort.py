@@ -823,11 +823,11 @@ def test_sort_bools_reverse():
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_sort_ints_reverse(st):
     DT = dt.Frame(A=[5, 17, 9, -12, 0, 111, 3, 5], B=list('abcdefgh'),
-                  stypes=[st, dt.str32])
+                  stypes={"A": st, "B": dt.str32})
     assert_equals(DT[:, :, sort(-f.A)],
                   dt.Frame(A=[111, 17, 9, 5, 5, 3, 0, -12],
                            B=list('fbcahged'),
-                           stypes=[st, dt.str32]))
+                           stypes={"A": st, "B": dt.str32}))
 
 
 def test_sort_doubles_reverse():
