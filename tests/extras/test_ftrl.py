@@ -801,7 +801,6 @@ def test_ftrl_reuse_pickled_empty_model():
     ft_unpickled.fit(df_train, df_target)
     model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
     fi = dt.Frame([["id"], [0.0]], names = ["feature_name", "feature_importance"])
-    print(ft_unpickled.feature_importances.to_dict())
     assert ft_unpickled.model[0].to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)
 
