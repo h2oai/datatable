@@ -784,6 +784,28 @@ def test_ftrl_interactions():
 # Test pickling
 #-------------------------------------------------------------------------------
 
+def test_ftrl_pickling_empty_model():
+    ft_pickled = pickle.dumps(Ftrl())
+    ft_unpickled = pickle.loads(ft_pickled)
+    assert ft_unpickled.model == None
+    assert ft_unpickled.feature_importances == None
+    assert ft_unpickled.params == Ftrl().params
+
+
+def test_ftrl_reuse_pickled_empty_model():
+    ft_pickled = pickle.dumps(Ftrl())
+    ft_unpickled = pickle.loads(ft_pickled)
+    ft_unpickled.nbins = 10
+    df_train = dt.Frame({"id" : range(ft_unpickled.nbins)})
+    df_target = dt.Frame([True] * ft_unpickled.nbins)
+    ft_unpickled.fit(df_train, df_target)
+    model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
+    fi = dt.Frame([["id"], [0.0]], names = ["feature_name", "feature_importance"])
+    print(ft_unpickled.feature_importances.to_dict())
+    assert ft_unpickled.model[0].to_list() == model
+    assert_equals(ft_unpickled.feature_importances, fi)
+
+
 def test_ftrl_pickling():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins), names = ["f1"])

@@ -1014,9 +1014,15 @@ oobj Ftrl::m__getstate__(const NoArgs&) {
   py::oobj model = get_model();
   py::oobj fi = get_fi_tuple();
   py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
-  py::oobj df_feature_names = py::oobj::from_new_reference(
-                                py::Frame::from_datatable(feature_names->copy())
-                              );
+  py::oobj df_feature_names;
+  if (feature_names == nullptr) {
+    df_feature_names = py::None();
+  } else {
+    df_feature_names = py::oobj::from_new_reference(
+                         py::Frame::from_datatable(feature_names->copy())
+                       );
+  }
+
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
@@ -1042,14 +1048,17 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_model(pickle[1]);
 
   // Set feature importance info
-  py::otuple fi_tuple = pickle[2].to_otuple();
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_fi(fi_tuple[i].to_frame());
+  if (pickle[2].is_tuple()) {
+    py::otuple fi_tuple = pickle[2].to_otuple();
+    for (size_t i = 0; i < fi_tuple.size(); ++i) {
+      (*dtft)[i]->set_fi(fi_tuple[i].to_frame());
+    }
   }
 
   // Set feature names
-  feature_names = pickle[3].to_frame()->copy();
-
+  if (pickle[3].is_frame()) {
+    feature_names = pickle[3].to_frame()->copy();
+  }
   // Set regression type
   reg_type = static_cast<RegType>(pickle[5].to_int32());
 
