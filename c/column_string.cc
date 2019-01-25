@@ -225,7 +225,8 @@ void StringColumn<T>::reify() {
   // If our rowindex is null, then we're already done
   if (ri.isabsent()) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending_slice = ri.isslice() && ri.slice_step() > 0;
+  bool ascending_slice = ri.isslice() &&
+                         static_cast<int64_t>(ri.slice_step()) > 0;
 
   size_t new_mbuf_size = (ri.size() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;

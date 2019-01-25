@@ -26,6 +26,7 @@ class Attacker:
             seed = random.getrandbits(64)
         self._seed = seed
         random.seed(seed)
+        print("Seed: %r\n" % seed)
 
     def attack(self, frame=None, rounds=None):
         t0 = time.time()
@@ -39,8 +40,9 @@ class Attacker:
             self.attack_frame(frame)
             if exhaustive_checks:
                 frame.check()
-        print("Attack end, checking the outcome")
+        print("\nAttack ended, checking the outcome")
         frame.check()
+        print("...ok.")
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 
@@ -283,22 +285,26 @@ class Frame0:
 
 
     #---------------------------------------------------------------------------
-    # Operations
+    # Validity checks
     #---------------------------------------------------------------------------
 
     def check(self):
         self.df.internal.check()
         self.check_shape()
-        assert self.df.ncols == len(self.data)
-        assert self.df.names == tuple(self.names)
         self.check_types()
-        assert self.df.to_list() == self.data
+        assert self.df.names == tuple(self.names)
+        self.check_data()
 
     def check_shape(self):
         df_nrows = self.df.nrows
         py_nrows = len(self.data[0]) if self.data else 0
         if df_nrows != py_nrows:
             print("ERROR: df.nrows=%r != py.nrows=%r" % (df_nrows, py_nrows))
+            sys.exit(1)
+        df_ncols = self.df.ncols
+        py_ncols = len(self.data)
+        if df_ncols != py_ncols:
+            print("ERROR: df.ncols=%r != py.ncols=%r" % (df_ncols, py_ncols))
             sys.exit(1)
 
     def check_types(self):
@@ -309,6 +315,38 @@ class Frame0:
             print("  dt types: %r" % (df_ltypes, ))
             print("  py types: %r" % (py_ltypes, ))
             sys.exit(1)
+
+    def check_data(self):
+        df_data = self.df.to_list()
+        py_data = self.data
+        if df_data != py_data:
+            assert len(df_data) == len(py_data), "Shape check failed..."
+            for i in range(len(df_data)):
+                dfcol = df_data[i]
+                pycol = py_data[i]
+                if dfcol != pycol:
+                    print("ERROR: data mismatch in column %d (%r)"
+                          % (i, self.df.names[i]))
+                    for j in range(len(dfcol)):
+                        if dfcol[j] != pycol[j]:
+                            print("  first difference: dt[%d]=%r != py[%d]=%r"
+                                  % (j, dfcol[j], j, pycol[j]))
+                            if j <= 10:
+                                dtstr = str(dfcol[:20])[:-1] + ", ...]"
+                                pystr = str(pycol[:20])[:-1] + ", ...]"
+                            else:
+                                dtstr = str(dfcol[:10])[:-1] + ", ..., " + str(dfcol[j]) + ", ...]"
+                                pystr = str(pycol[:10])[:-1] + ", ..., " + str(pycol[j]) + ", ...]"
+                            print("  dt data: %s" % dtstr)
+                            print("  py data: %s" % pystr)
+                            break
+                    sys.exit(1)
+            assert False, "Data check failed..."
+
+
+    #---------------------------------------------------------------------------
+    # Operations
+    #---------------------------------------------------------------------------
 
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
