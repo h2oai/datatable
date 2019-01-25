@@ -219,6 +219,16 @@ def test_slice_errors2(dt0):
                       "must be positive")
 
 
+def test_slice_after_resize():
+    """Issue #1592"""
+    DT = dt.Frame(A=['cat'])
+    DT.nrows = 3
+    RES = DT[2:, :]
+    RES.internal.check()
+    assert RES.to_list() == [[None]]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Range selector

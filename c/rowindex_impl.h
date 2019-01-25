@@ -36,7 +36,9 @@ class RowIndexImpl {
      *     The number of elements in the RowIndex.
      *
      * min, max
-     *     Smallest / largest entry in the RowIndex.
+     *     Smallest / largest entry in the RowIndex. If the RowIndex is empty
+     *     (length 0), or if all entries in the RowIndex are NAs, then
+     *     min = max = RowIndex::NA.
      *
      * refcount
      *     Ref-counter for this RowIndexImpl object. A RowIndexImpl* object
@@ -72,7 +74,7 @@ class RowIndexImpl {
     void release();
 
     virtual size_t nth(size_t i) const = 0;
-    virtual RowIndexImpl* uplift_from(const RowIndexImpl*) = 0;
+    virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;
     virtual RowIndexImpl* negate(size_t nrows) const = 0;
 
     virtual void resize(size_t n) = 0;
@@ -97,7 +99,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     SliceRowIndexImpl(size_t start, size_t count, size_t step);
 
     size_t nth(size_t i) const override;
-    RowIndexImpl* uplift_from(const RowIndexImpl*) override;
+    RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 
     void resize(size_t n) override;
@@ -145,7 +147,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int64_t* indices64() const noexcept;
 
     size_t nth(size_t i) const override;
-    RowIndexImpl* uplift_from(const RowIndexImpl*) override;
+    RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 
     void resize(size_t n) override;

@@ -81,7 +81,7 @@ size_t SliceRowIndexImpl::nth(size_t i) const {
 
 
 
-RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) {
+RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   RowIndexType uptype = rii->type;
 
   // Product of 2 slices is again a slice.
