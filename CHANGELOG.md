@@ -154,6 +154,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed an internal error which was occurring when multiple row filters were
   applied to a Frame in sequence (#1592).
 
+- Fixed rbinding of frames if one of them is a negative step slice (#1594).
+
+- Fixed a crash that occurred with the latest `pandas` 0.24.0 (#1600).
+
 
 ### Changed
 
@@ -220,13 +224,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1539, #1542, #1551, #1572, #1576,
-  #1578, #1592),
+  #1578, #1592, #1594),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451, #1565),
   [CarlosThinkBig][] (#1475),
   [Olivier][] (#1502),
-  [Oleksiy Kononenko][] (#1507),
+  [Oleksiy Kononenko][] (#1507, #1600),
   [Nishant Kalonia][] (#1527, #1540),
   [Megan Kurka][] (#1544),
   [Joseph Granados][] (#1559).

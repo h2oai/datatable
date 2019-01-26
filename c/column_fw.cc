@@ -141,7 +141,7 @@ void FwColumn<T>::reify() {
   // If the rowindex is absent, then the column is already materialized.
   if (!ri) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending    = ri.isslice() && ri.slice_step() > 0;
+  bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
 
   size_t elemsize = sizeof(T);
   size_t newsize = elemsize * nrows;

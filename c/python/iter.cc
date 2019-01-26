@@ -42,16 +42,21 @@ iter_iterator oiter::end() const noexcept {
 
 
 size_t oiter::size() const noexcept {
-  oobj method = get_attr("__length_hint__");
-  PyObject* mptr = method.to_borrowed_ref();
-  PyObject* res = PyObject_CallObject(mptr, nullptr);  // new ref
-  if (!res) {
-    PyErr_Clear();
-    return static_cast<size_t>(-1);
-  }
-  long long len = PyLong_AsLongLong(res);
-  Py_XDECREF(res);
-  return static_cast<size_t>(len);
+  size_t len = static_cast<size_t>(-1);
+  try {
+    // get_attr() may throw an exception if there is no such attribute
+    oobj method = get_attr("__length_hint__");
+    PyObject* mptr = method.to_borrowed_ref();
+    PyObject* res = PyObject_CallObject(mptr, nullptr);  // new ref
+    if (res) {
+      long long t = PyLong_AsLongLong(res);
+      Py_XDECREF(res);
+      len = static_cast<size_t>(t);
+    } else {
+      PyErr_Clear();
+    }
+  } catch (...) {}
+  return len;
 }
 
 
