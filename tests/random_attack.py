@@ -116,7 +116,7 @@ class Attacker:
         if frame.nrows == 0:
             return
         s = self.random_array(frame.nrows)
-        print("[06] Applying a row array -> nrows = %d" % len(s))
+        print("[06] Selecting a row list %r -> nrows = %d" % (s, len(s)))
         frame.slice_rows(s)
 
     def delete_rows_array(self, frame):
@@ -124,8 +124,8 @@ class Attacker:
             return
         s = self.random_array(frame.nrows, positive=True)
         s = sorted(set(s))
-        print("[07] Removing a list of rows -> nrows = %d"
-              % (frame.nrows - len(s)))
+        print("[07] Removing rows %r -> nrows = %d"
+              % (s, frame.nrows - len(s)))
         frame.delete_rows(s)
 
 
