@@ -74,12 +74,12 @@ force: boolean
 void Frame::cbind(const PKArgs& args) {
   bool force = args[0]? args[0].to_bool_strict() : false;
 
-  size_t nrows = dt->nrows;
+  size_t nrows = dt->nrows == 0 && dt->ncols == 0? size_t(-1) : dt->nrows;
   std::vector<DataTable*> dts;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
       DataTable* idt = va.to_frame();
-      if (idt->ncols == 0 || idt->nrows == 0) continue;
+      if (idt->ncols == 0) continue;
       if (!force) check_nrows(idt, &nrows);
       dts.push_back(idt);
     }
@@ -87,7 +87,7 @@ void Frame::cbind(const PKArgs& args) {
       for (auto item : va.to_oiter()) {
         if (item.is_frame()) {
           DataTable* idt = item.to_frame();
-          if (idt->ncols == 0 || idt->nrows == 0) continue;
+          if (idt->ncols == 0) continue;
           if (!force) check_nrows(idt, &nrows);
           dts.push_back(idt);
         } else {
@@ -106,7 +106,7 @@ void Frame::cbind(const PKArgs& args) {
 
 static void check_nrows(DataTable* dt, size_t* nrows) {
   size_t inrows = dt->nrows;
-  if (*nrows <= 1) *nrows = inrows;
+  if (*nrows == 1 || *nrows == size_t(-1)) *nrows = inrows;
   if (*nrows == inrows || inrows == 1) return;
   throw ValueError() << "Cannot merge frame with " << inrows << " rows to "
       "a frame with " << *nrows << " rows. Use `force=True` to disregard "
