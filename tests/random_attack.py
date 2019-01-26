@@ -411,11 +411,12 @@ class Frame0:
                 self.data[i] = [col[j] for j in s]
 
     def delete_rows(self, s):
+        nrows = self.nrows
         del self.df[s, :]
         if isinstance(s, slice):
-            s = list(range(self.nrows))[s]
+            s = list(range(nrows))[s]
         if isinstance(s, list):
-            index = sorted(set(range(self.nrows)) - set(s))
+            index = sorted(set(range(nrows)) - set(s))
             for i in range(self.ncols):
                 col = self.data[i]
                 self.data[i] = [col[j] for j in index]
