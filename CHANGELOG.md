@@ -156,6 +156,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed rbinding of frames if one of them is a negative step slice (#1594).
 
+- Fixed a crash that occurred with the latest `pandas` 0.24.0 (#1600).
+
 
 ### Changed
 
@@ -228,7 +230,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   [Jonathan McKinney][] (#1451, #1565),
   [CarlosThinkBig][] (#1475),
   [Olivier][] (#1502),
-  [Oleksiy Kononenko][] (#1507),
+  [Oleksiy Kononenko][] (#1507, #1600),
   [Nishant Kalonia][] (#1527, #1540),
   [Megan Kurka][] (#1544),
   [Joseph Granados][] (#1559).

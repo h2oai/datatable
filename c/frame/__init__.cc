@@ -407,6 +407,9 @@ class FrameInitializationManager {
           py::oobj colsrc = pdsrc.get_item(col).get_attr("values");
           make_column(colsrc, SType::VOID);
         }
+        if (ncols == size_t(-1)) {
+          check_names_count(cols.size());
+        }
       } else {
         xassert(src.is_pandas_series());
         check_names_count(1);
