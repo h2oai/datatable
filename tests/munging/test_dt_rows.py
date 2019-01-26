@@ -896,6 +896,16 @@ def test_issue1437(st):
     assert d2.to_list() == [list(range(10))]
 
 
+def test_issue1602():
+    # Note: the sequence of operations to cause the bug was very particular;
+    # none of these steps were optional.
+    DT = dt.Frame(A=range(4))
+    DT = DT[:2, :]
+    del DT[[0, 1], :]
+    DT = DT[::1, :]
+    DT.nrows = 1
+    assert DT.to_list() == [[None]]
+
 
 
 #-------------------------------------------------------------------------------
