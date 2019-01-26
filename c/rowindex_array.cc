@@ -618,7 +618,7 @@ RowIndexImpl* ArrayRowIndexImpl::resized(size_t n) {
     return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
   } else {
     arr64_t new_ind64(n);
-    std::memcpy(new_ind64.data(), data, n * 8);
+    std::memcpy(new_ind64.data(), data, ncopy * 8);
     std::memset(new_ind64.data() + ncopy, -1, (n - ncopy) * 8);
     return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
   }
