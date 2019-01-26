@@ -464,8 +464,6 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
-  xassert(mbuf.is_writable() || new_mbuf_size == 0);
-  xassert(strbuf.is_writable() || new_strbuf_size == 0);
   nrows = new_nrows;
   T* offs = offsets_w();
 
