@@ -393,3 +393,15 @@ def test_issue1594():
     DT.rbind(DT)
     assert DT.to_list() == [[4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
                             list("edcbaedcba")]
+
+
+def test_issue1607():
+    DT = dt.Frame([['eqjmvcgdriqmw', 'dih', 'ejm', 'gzrwhvbqi', 'bydqoss', 'loytilw', 'odswt']])
+    DT.nrows = 6
+    DT = DT[:5:3, :]
+    del DT[[0, 1], :]
+    with pytest.warns(DatatableWarning):
+        DT.cbind(DT, DT)
+    DT.rbind(DT, DT)
+    DT.internal.check()
+    assert DT.shape == (0, 3)
