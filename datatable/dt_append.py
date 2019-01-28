@@ -8,8 +8,12 @@ import datatable as dt
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, Frame_t, TValueError
 
+
 def rbind(*frames, force=False, bynames=True):
-    return _rbind(dt.Frame(), *frames, force=force, bynames=bynames)
+    r = dt.Frame()
+    r.rbind(*frames, force=force, bynames=bynames)
+    return r
+
 
 def cbind(*frames, force=False):
     r = dt.Frame()
@@ -142,4 +146,3 @@ def _rbind(self, *frames, force=False, bynames=True):
     _dt = self.internal
     _dt.rbind(len(final_names), spec)
     self.names = final_names
-    return self
