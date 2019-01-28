@@ -187,6 +187,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   only if column A is of integer or real type, but will raise an exception if A
   is a boolean or string.
 
+- `Frame.rbind()` method no longer has a return value. The method always updated
+  the frame in-place, so it was confusing to both update in-place and return the
+  original frame (#1610).
+
 
 ### Deprecated
 
