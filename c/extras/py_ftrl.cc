@@ -330,8 +330,9 @@ void Ftrl::fit(const PKArgs& args) {
   }
 
   size_t nfeatures = (*dtft)[0]->get_nfeatures();
-  // Second condition means `interactions` parameter was changed meanwhile
+  // Second condition means: `interactions` parameter was changed meanwhile
   if (feature_names == nullptr || feature_names->nrows != nfeatures) {
+    reset_feature_names();
     size_t ncols = dt_X->ncols;
     const std::vector<std::string>& column_names = dt_X->get_names();
 
