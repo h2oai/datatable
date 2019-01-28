@@ -367,7 +367,7 @@ def test_fread_from_glob(tempfile):
             f.internal.check()
             assert f.names == ("A", "B", "C")
             assert f.shape == (2, 3)
-        df = dt.Frame().rbind(*[res[f] for f in tempfiles])
+        df = dt.rbind(*[res[f] for f in tempfiles])
         df.internal.check()
         assert df.names == ("A", "B", "C")
         assert df.shape == (20, 3)

@@ -158,6 +158,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed a crash that occurred with the latest `pandas` 0.24.0 (#1600).
 
+- Fixed invalid result when cbinding several 0-row frames (#1604).
+
 
 ### Changed
 
@@ -184,6 +186,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   an existing column. For example, an assignment `DT[:, 'A'] = 3` is now legal
   only if column A is of integer or real type, but will raise an exception if A
   is a boolean or string.
+
+- `Frame.rbind()` method no longer has a return value. The method always updated
+  the frame in-place, so it was confusing to both update in-place and return the
+  original frame (#1610).
 
 
 ### Deprecated
@@ -224,7 +230,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   discovering and reporting bugs that were fixed in this release:
 
   [Pasha Stetsenko][] (#1316, #1443, #1481, #1539, #1542, #1551, #1572, #1576,
-  #1578, #1592, #1594),
+  #1578, #1592, #1594, #1602, #1604),
   [Arno Candel][] (#1437, #1491, #1510, #1525, #1549, #1556, #1562),
   [Michael Frasco][] (#1448),
   [Jonathan McKinney][] (#1451, #1565),

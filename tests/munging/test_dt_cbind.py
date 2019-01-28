@@ -183,7 +183,8 @@ def test_cbind_multiple():
     dr = dt.Frame({"A": [1, 2, 3, None],
                    "B": ["doo", "doo", "doo", "doo"],
                    "C": [True, False, None, None],
-                   "D": [10, 9, 8, 7]})
+                   "D": [10, 9, 8, 7],
+                   "E": [None] * 4})
     assert_equals(d0, dr)
 
 
@@ -244,3 +245,43 @@ def test_cbind_correct_stypes():
     l2 = f0.ltypes
     assert s2 == s1 * 3
     assert l2 == l1 * 3
+
+
+def test_cbind_0rows_1():
+    """Issue #1604."""
+    res = dt.cbind(dt.Frame(A=[]), dt.Frame(B=[]))
+    assert res.names == ("A", "B")
+    assert res.shape == (0, 2)
+
+
+def test_cbind_0rows_2():
+    DT = dt.Frame(A=[])
+    DT.cbind([dt.Frame(B=[]), dt.Frame(T=[])])
+    assert DT.names == ("A", "B", "T")
+    assert DT.shape == (0, 3)
+
+
+def test_cbind_error_1():
+    DT = dt.Frame(A=[1, 5])
+    with pytest.raises(ValueError) as e:
+        DT.cbind(dt.Frame(B=[]))
+    assert ("Cannot merge frame with 0 rows to a frame with 2 rows"
+            in str(e.value))
+
+
+def test_cbind_error_2():
+    DT = dt.Frame(A=[])
+    with pytest.raises(ValueError) as e:
+        DT.cbind(dt.Frame(B=[1, 5]))
+    assert ("Cannot merge frame with 2 rows to a frame with 0 rows"
+            in str(e.value))
+
+
+def test_cbind_error_3():
+    DT = dt.Frame()
+    DT.nrows = 5
+    assert DT.shape == (5, 0)
+    with pytest.raises(ValueError) as e:
+        DT.cbind(dt.Frame(B=[]))
+    assert ("Cannot merge frame with 0 rows to a frame with 5 rows"
+            in str(e.value))

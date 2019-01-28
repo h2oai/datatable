@@ -43,8 +43,9 @@ def test_rbind_exists():
 def test_rbind_simple():
     dt0 = dt.Frame([1, 2, 3])
     dt1 = dt.Frame([5, 9])
-    dt0.rbind(dt1)
+    q = dt0.rbind(dt1)
     assert_equals(dt0, dt.Frame([1, 2, 3, 5, 9]))
+    assert q is None
 
 
 def test_rbind_empty():
@@ -131,7 +132,7 @@ def test_rbind_bynames():
 def test_not_inplace():
     dt0 = dt.Frame({"A": [5, 1], "B": [4, 4]})
     dt1 = dt.Frame({"A": [22], "B": [11]})
-    dtr = dt.Frame().rbind(dt0, dt1)
+    dtr = dt.rbind(dt0, dt1)
     assert_equals(dtr, dt.Frame({"A": [5, 1, 22], "B": [4, 4, 11]}))
     assert_equals(dt0, dt.Frame({"A": [5, 1], "B": [4, 4]}))
 
@@ -357,7 +358,7 @@ def test_rbind_all_stypes():
         for st2 in all_stypes:
             f1 = dt.Frame(sources[st1], stype=st1)
             f2 = dt.Frame(sources[st2], stype=st2)
-            f3 = dt.Frame().rbind(f1, f2)
+            f3 = dt.rbind(f1, f2)
             f1.rbind(f2)
             f1.internal.check()
             f2.internal.check()
@@ -393,3 +394,15 @@ def test_issue1594():
     DT.rbind(DT)
     assert DT.to_list() == [[4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
                             list("edcbaedcba")]
+
+
+def test_issue1607():
+    DT = dt.Frame([['eqjmvcgdriqmw', 'dih', 'ejm', 'gzrwhvbqi', 'bydqoss', 'loytilw', 'odswt']])
+    DT.nrows = 6
+    DT = DT[:5:3, :]
+    del DT[[0, 1], :]
+    with pytest.warns(DatatableWarning):
+        DT.cbind(DT, DT)
+    DT.rbind(DT, DT)
+    DT.internal.check()
+    assert DT.shape == (0, 3)

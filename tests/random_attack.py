@@ -54,9 +54,13 @@ class Attacker:
             frame = Frame0()
         print("Launching an attack for %d rounds" % rounds)
         for i in range(rounds):
+            print(":", end='', flush=True)
             self.attack_frame(frame)
             if exhaustive_checks:
                 frame.check()
+            if time.time() - t0 > 60:
+                print(">>> Stopped early, taking too long <<<")
+                break
         print("\nAttack ended, checking the outcome")
         frame.check()
         print("...ok.")
@@ -97,16 +101,32 @@ class Attacker:
     def cbind_self(self, frame):
         if frame.ncols > 1000:
             return self.slice_cols(frame)
-        t = random.randint(1, min(5, 100 // frame.ncols) + 1)
+        t = random.randint(1, min(5, 100 // (1 + frame.ncols)) + 1)
         print("[04] Cbinding frame with itself %d times -> ncols = %d"
               % (t, frame.ncols * (t + 1)))
         frame.cbind([frame] * t)
 
     def rbind_self(self, frame):
-        t = random.randint(1, min(5, 1000 // frame.nrows) + 1)
+        t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
         print("[05] Rbinding frame with itself %d times -> nrows = %d"
               % (t, frame.nrows * (t + 1)))
         frame.rbind([frame] * t)
+
+    def select_rows_array(self, frame):
+        if frame.nrows == 0:
+            return
+        s = self.random_array(frame.nrows)
+        print("[06] Selecting a row list %r -> nrows = %d" % (s, len(s)))
+        frame.slice_rows(s)
+
+    def delete_rows_array(self, frame):
+        if frame.nrows == 0:
+            return
+        s = self.random_array(frame.nrows, positive=True)
+        s = sorted(set(s))
+        print("[07] Removing rows %r -> nrows = %d"
+              % (s, frame.nrows - len(s)))
+        frame.delete_rows(s)
 
 
     #---------------------------------------------------------------------------
@@ -127,8 +147,15 @@ class Attacker:
                 i0, i1 = i1, i0
             res = slice(i0, i1, step)
             newn = len(range(*res.indices(n)))
-            if newn > 0:
+            if newn > 0 or n == 0:
                 return res
+
+    def random_array(self, n, positive=False):
+        assert n > 0
+        newn = max(5, random.randint(n // 2, 3 * n // 2))
+        lb = 0 if positive else -n
+        ub = n - 1
+        return [random.randint(lb, ub) for i in range(newn)]
 
 
     ATTACK_METHODS = {
@@ -137,6 +164,8 @@ class Attacker:
         slice_cols: 0.5,
         cbind_self: 1,
         rbind_self: 1,
+        select_rows_array: 1,
+        delete_rows_array: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -373,8 +402,24 @@ class Frame0:
 
     def slice_rows(self, s):
         self.df = self.df[s, :]
-        for i in range(self.ncols):
-            self.data[i] = self.data[i][s]
+        if isinstance(s, slice):
+            for i in range(self.ncols):
+                self.data[i] = self.data[i][s]
+        else:
+            for i in range(self.ncols):
+                col = self.data[i]
+                self.data[i] = [col[j] for j in s]
+
+    def delete_rows(self, s):
+        nrows = self.nrows
+        del self.df[s, :]
+        if isinstance(s, slice):
+            s = list(range(nrows))[s]
+        if isinstance(s, list):
+            index = sorted(set(range(nrows)) - set(s))
+            for i in range(self.ncols):
+                col = self.data[i]
+                self.data[i] = [col[j] for j in index]
 
     def slice_cols(self, s):
         self.df = self.df[:, s]
