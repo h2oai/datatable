@@ -145,25 +145,25 @@ void DataTable::delete_all() {
 }
 
 
+
 // Split all columns into groups, by their `RowIndex`es
-static std::pair<std::vector<RowIndex>, std::vector<std::vector<size_t>>>
-_split_columns_by_rowindices(const DataTable* dt)
-{
-  std::vector<RowIndex> rowindices;
-  std::vector<std::vector<size_t>> colindices;
-  for (size_t i = 0; i < dt->ncols; ++i) {
-    RowIndex r = dt->columns[i]->rowindex();
-    size_t j = 0;
-    for (; j < rowindices.size(); ++j) {
-      if (rowindices[j] == r) break;
+std::vector<RowColIndex> DataTable::split_columns_by_rowindices() const {
+  std::vector<RowColIndex> res;
+  for (size_t i = 0; i < ncols; ++i) {
+    RowIndex r = columns[i]->rowindex();
+    bool found = false;
+    for (auto& item : res) {
+      if (item.rowindex == r) {
+        found = true;
+        item.colindices.push_back(i);
+        break;
+      }
     }
-    if (j == rowindices.size()) {
-      rowindices.push_back(std::move(r));
-      colindices.resize(j + 1);
+    if (!found) {
+      res.push_back({r, {i}});
     }
-    colindices[j].push_back(i);
   }
-  return std::make_pair(std::move(rowindices), std::move(colindices));
+  return res;
 }
 
 
@@ -210,17 +210,14 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 
 
 /**
- * Equivalent of ``DT[ri, :]``.
+ * Equivalent of ``return DT[ri, :]``.
  */
 DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
-  auto rc = _split_columns_by_rowindices(dt);
-  auto& rowindices = rc.first;
-  auto& colindices = rc.second;
-
+  auto rc = dt->split_columns_by_rowindices();
   colvec newcols(dt->ncols);
-  for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex newri = ri * rowindices[j];
-    for (size_t i : colindices[j]) {
+  for (auto& rcitem : rc) {
+    RowIndex newri = ri * rcitem.rowindex;
+    for (size_t i : rcitem.colindices) {
       newcols[i] = dt->columns[i]->shallowcopy(newri);
     }
   }
@@ -236,13 +233,10 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   // `ri.size()` cannot be computed.
   if (!ri) return;
 
-  auto rc = _split_columns_by_rowindices(this);
-  auto& rowindices = rc.first;
-  auto& colindices = rc.second;
-
-  for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex newri = ri * rowindices[j];
-    for (size_t i : colindices[j]) {
+  auto rc = split_columns_by_rowindices();
+  for (auto& rcitem : rc) {
+    RowIndex newri = ri * rcitem.rowindex;
+    for (size_t i : rcitem.colindices) {
       columns[i]->replace_rowindex(newri);
     }
   }

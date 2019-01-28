@@ -304,6 +304,10 @@ void CsvWriter::write()
 {
   OmpExceptionManager oem;
   checkpoint();
+  std::vector<RowColIndex> rcs = dt->split_columns_by_rowindices();
+  std::vector<size_t> js(dt->ncols);
+  RowIndex ri0 = rcs.size() == 1? rcs[0].rowindex : RowIndex();
+
   size_t nstrcols32 = 0;
   size_t nstrcols64 = 0;
   size_t nrows = dt->nrows;
@@ -382,15 +386,33 @@ void CsvWriter::write()
 
         // Write the data in rows row0..row1 and in all columns
         char* thch = thbuf;
-        dt->rowindex.iterate(row0, row1, 1,
-          [&](size_t, size_t row) {
-            if (row == RowIndex::NA) return;
-            for (size_t col = 0; col < ncols; col++) {
-              columns[col]->write(&thch, row);
+        if (rcs.size() == 1) {
+          ri0.iterate(row0, row1, 1,
+            [&](size_t, size_t j) {
+              if (j == RowIndex::NA) return;
+              for (size_t col = 0; col < ncols; ++col) {
+                columns[col]->write(&thch, j);
+                *thch++ = ',';
+              }
+              thch[-1] = '\n';
+            });
+        } else {
+          for (size_t row = row0; row < row1; ++row) {
+            // Determine row indices for each column
+            for (const auto& rcitem : rcs) {
+              size_t j = rcitem.rowindex[row];
+              for (size_t k : rcitem.colindices) {
+                js[k] = j;
+              }
+            }
+            // Run the serializer function
+            for (size_t col = 0; col < ncols; ++col) {
+              columns[col]->write(&thch, js[col]);
               *thch++ = ',';
             }
             thch[-1] = '\n';
-          });
+          }
+        }
         th_write_size = static_cast<size_t>(thch - thbuf);
         xassert(th_write_size <= thbufsize);
       } catch (...) {
