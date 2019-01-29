@@ -26,11 +26,6 @@
 namespace pydatatable
 {
 
-// Forward declarations
-static PyObject* strRowIndexTypeArr32;
-static PyObject* strRowIndexTypeArr64;
-static PyObject* strRowIndexTypeSlice;
-
 
 /**
  * Create a new `pydatatable::obj` by wrapping the provided DataTable `dt`.
@@ -124,22 +119,6 @@ PyObject* get_isview(obj* self) {
   return incref(Py_False);
 }
 
-
-
-
-PyObject* get_rowindex_type(obj* self) {
-  RowIndex& ri = self->ref->rowindex;
-  return ri.isabsent()? none() :
-         ri.isslice()? incref(strRowIndexTypeSlice) :
-         ri.isarr32()? incref(strRowIndexTypeArr32) :
-         ri.isarr64()? incref(strRowIndexTypeArr64) : none();
-}
-
-
-PyObject* get_rowindex(obj* self) {
-  RowIndex& ri = self->ref->rowindex;
-  return ri.isabsent()? none() : pyrowindex::wrap(ri);
-}
 
 
 PyObject* get_groupby(obj* self) {
@@ -546,17 +525,7 @@ PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Colum
 
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-
-  for (size_t i = 0; i < dt->ncols; ++i) {
-    Column* oldcol = dt->columns[i];
-    if (!oldcol->rowindex()) continue;
-    Column* newcol = oldcol->shallowcopy();
-    newcol->reify();
-    delete oldcol;
-    dt->columns[i] = newcol;
-  }
-  dt->rowindex.clear();
-
+  dt->reify();
   Py_RETURN_NONE;
 }
 
@@ -649,9 +618,7 @@ static PyMethodDef datatable_methods[] = {
 
 static PyGetSetDef datatable_getseters[] = {
   GETTER(isview),
-  GETTER(rowindex),
   GETSET(groupby),
-  GETTER(rowindex_type),
   GETTER(datatable_ptr),
   GETTER(alloc_size),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
@@ -717,9 +684,6 @@ int static_init(PyObject* module) {
   Py_INCREF(typeobj);
   PyModule_AddObject(module, "DataTable", typeobj);
 
-  strRowIndexTypeArr32 = PyUnicode_FromString("arr32");
-  strRowIndexTypeArr64 = PyUnicode_FromString("arr64");
-  strRowIndexTypeSlice = PyUnicode_FromString("slice");
   return 1;
 }
 

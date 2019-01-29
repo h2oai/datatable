@@ -169,12 +169,6 @@ const void* DtRowindex_ArrayData(PyObject* pyri);
 
 
 
-//-------- DEPRECATED ----------------------------------------------------------
-
-void* datatable_get_column_data(void* dt, size_t column);
-void  datatable_unpack_slicerowindex(void* dt, size_t* start, size_t* step);
-void  datatable_unpack_arrayrowindex(void* dt, void** indices);
-
 #ifdef __cplusplus
 }
 #endif

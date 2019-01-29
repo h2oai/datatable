@@ -80,11 +80,11 @@ class DataTable {
   public:
     size_t   nrows;
     size_t   ncols;
-    RowIndex rowindex;  // DEPRECATED (see #1188)
     Groupby  groupby;
     colvec   columns;
 
   private:
+    RowIndex rowindex;  // DEPRECATED (see #1188)
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names

@@ -67,14 +67,6 @@ DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
 
-DECLARE_GETTER(
-  rowindex_type,
-  "Type of the row index: 'slice' or 'array'")
-
-DECLARE_GETTER(
-  rowindex,
-  "Row index of the view Frame, or None if this is not a view Frame")
-
 DECLARE_GETSET(
   groupby,
   "Groupby applied to the Frame, or None if no groupby was applied")

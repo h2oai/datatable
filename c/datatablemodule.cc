@@ -49,11 +49,6 @@ DECLARE_FUNCTION(
   HOMEFLAG)
 
 DECLARE_FUNCTION(
-  get_internal_function_ptrs,
-  "get_internal_function_ptrs()\n\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   register_function,
   "register_function()\n\n",
   HOMEFLAG)
@@ -115,23 +110,6 @@ PyObject* register_function(PyObject*, PyObject *args) {
 #define ADD(f) \
   PyTuple_SetItem(res, i++, PyLong_FromSize_t(reinterpret_cast<size_t>(f)))
 
-PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
-  const int SIZE = 6;
-  int i = 0;
-  PyObject *res = PyTuple_New(SIZE);
-  if (!res) return nullptr;
-
-  ADD(dt::malloc<void>);
-  ADD(dt::realloc<void>);
-  ADD(dt::free);
-  ADD(datatable_get_column_data);
-  ADD(datatable_unpack_slicerowindex);
-  ADD(datatable_unpack_arrayrowindex);
-
-  xassert(i == SIZE);
-  return res;
-}
-
 
 PyObject* get_integer_sizes(PyObject*, PyObject*) {
   const int SIZE = 5;
@@ -168,6 +146,24 @@ PyObject* has_omp_support(PyObject*, PyObject*) {
 }
 
 
+static py::PKArgs fn_get_rowindex(
+    2, 0, 0, false, false, {"frame", "col"},
+    "get_rowindex", nullptr,
+
+[](const py::PKArgs& args) -> py::oobj {
+  if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
+  DataTable* dt = args[0].to_frame();
+  size_t col    = args[1].to_size_t();
+
+  if (!dt) throw TypeError() << "First parameter should be a Frame";
+  if (col >= dt->ncols) throw ValueError() << "Index out of bounds";
+
+  RowIndex ri = dt->columns[col]->rowindex();
+  return ri? py::oobj::from_new_reference(pyrowindex::wrap(ri))
+           : py::None();
+});
+
+
 
 //------------------------------------------------------------------------------
 // Module definition
@@ -190,10 +186,11 @@ void DatatableModule::init_methods() {
   add(METHODv(write_csv));
   add(METHODv(exec_function));
   add(METHODv(register_function));
-  add(METHOD0(get_internal_function_ptrs));
   add(METHOD0(get_integer_sizes));
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
+
+  ADDFN(fn_get_rowindex);
 
   init_methods_aggregate();
   init_methods_join();

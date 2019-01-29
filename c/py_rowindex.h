@@ -65,6 +65,10 @@ DECLARE_DESTRUCTOR()
 //---- Getters/setters ---------------------------------------------------------
 
 DECLARE_GETTER(
+  type,
+  "The type of the rowindex: 'slice', 'arr32' or 'arr64'.")
+
+DECLARE_GETTER(
   nrows,
   "Number of rows in the rowindex")
 
