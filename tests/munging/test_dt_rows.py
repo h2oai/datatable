@@ -25,6 +25,7 @@ import pytest
 import datatable as dt
 import random
 from datatable import stype, ltype, f, by
+from datatable.internal import get_rowindex
 from tests import same_iterables, noop, assert_equals
 
 
@@ -60,12 +61,20 @@ def as_list(df):
     return df.to_list()
 
 
-def is_slice(df):
-    return df.internal.isview and df.internal.rowindex_type == "slice"
+def is_slice(DT):
+    for i in range(DT.ncols):
+        r = get_rowindex(DT, i)
+        if r is None or r.type != "slice":
+            return False
+    return True
 
 
-def is_arr(df):
-    return df.internal.isview and df.internal.rowindex_type == "arr32"
+def is_arr(DT):
+    for i in range(DT.ncols):
+        r = get_rowindex(DT, i)
+        if r is None or r.type != "arr32":
+            return False
+    return True
 
 
 
@@ -84,7 +93,8 @@ def test_dt0_properties(dt0):
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
     assert dt0.internal.isview is False
-    assert dt0.internal.rowindex_type is None
+    for i in range(dt0.ncols):
+        assert get_rowindex(dt0, i) is None
     dt0.internal.check()
 
 
@@ -798,14 +808,14 @@ def test_chained_slice0(dt0):
     dt1 = dt0[::2, :]
     dt1.internal.check()
     assert dt1.shape == (5, 3)
-    assert dt1.internal.rowindex_type == "slice"
+    assert is_slice(dt1)
 
 
 def test_chained_slice1(dt0):
     dt2 = dt0[::2, :][::-1, :]
     dt2.internal.check()
     assert dt2.shape == (5, 3)
-    assert dt2.internal.rowindex_type == "slice"
+    assert is_slice(dt2)
     assert dt2.to_list()[1] == [1, 0, None, 9, 7]
 
 
@@ -813,7 +823,7 @@ def test_chained_slice2(dt0):
     dt3 = dt0[::2, :][2:4, :]
     dt3.internal.check()
     assert dt3.shape == (2, 3)
-    assert dt3.internal.rowindex_type == "slice"
+    assert is_slice(dt3)
     assert dt3.to_list() == [[0, 1], [None, 0], [100000, -2.6]]
 
 
@@ -821,7 +831,7 @@ def test_chained_slice3(dt0):
     dt4 = dt0[::2, :][[1, 0, 3, 2], :]
     dt4.internal.check()
     assert dt4.shape == (4, 3)
-    assert dt4.internal.rowindex_type == "arr32"
+    assert is_arr(dt4)
     assert dt4.to_list() == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
 
 
@@ -829,14 +839,14 @@ def test_chained_array0(dt0):
     dt1 = dt0[[2, 5, 1, 1, 1, 0], :]
     dt1.internal.check()
     assert dt1.shape == (6, 3)
-    assert dt1.internal.rowindex_type == "arr32"
+    assert is_arr(dt1)
 
 
 def test_chained_array1(dt0):
     dt2 = dt0[[2, 5, 1, 1, 1, 0], :][::2, :]
     dt2.internal.check()
     assert dt2.shape == (3, 3)
-    assert dt2.internal.rowindex_type == "arr32"
+    assert is_arr(dt2)
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
 
 
@@ -844,7 +854,7 @@ def test_chained_array2(dt0):
     dt3 = dt0[[2, 5, 1, 1, 1, 0], :][::-1, :]
     dt3.internal.check()
     assert dt3.shape == (6, 3)
-    assert dt3.internal.rowindex_type == "arr32"
+    assert is_arr(dt3)
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
 
 

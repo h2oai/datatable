@@ -29,6 +29,7 @@ import time
 import datatable as dt
 from collections import namedtuple
 from datatable import stype, ltype, f, isna
+from datatable.internal import get_rowindex
 from tests import same_iterables, list_equals, noop
 
 
@@ -1018,8 +1019,8 @@ def test_html_repr_slice():
 def test_internal_rowindex():
     d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
-    assert d0.internal.rowindex is None
-    assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
+    assert get_rowindex(d0, 0) is None
+    assert repr(get_rowindex(d1, 0)) == "_RowIndex(0/20/1)"
 
 
 def test_issue898():

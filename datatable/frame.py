@@ -127,7 +127,7 @@ class Frame(core.Frame):
 
     def sort(self, *cols):
         """
-        Sort datatable by the specified column(s).
+        Sort Frame by the specified column(s).
 
         Parameters
         ----------
@@ -137,18 +137,16 @@ class Frame(core.Frame):
 
         Returns
         -------
-        New datatable sorted by the provided column(s). The target datatable
+        New Frame sorted by the provided column(s). The target Frame
         remains unmodified.
         """
         if not cols:
-            indexes = list(range(self.ncols))
+            cols = list(range(self.ncols))
         elif len(cols) == 1 and isinstance(cols[0], list):
-            indexes = [self.colindex(col) for col in cols[0]]
+            cols = cols[0]
         else:
-            indexes = [self.colindex(col) for col in cols]
-        ri = self._dt.sort(*indexes)[0]
-        cs = core.columns_from_slice(self._dt, ri, 0, self.ncols, 1)
-        return cs.to_frame(self.names)
+            cols = list(cols)
+        return self[:, :, datatable.sort(*cols)]
 
 
     #---------------------------------------------------------------------------

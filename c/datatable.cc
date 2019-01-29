@@ -29,23 +29,13 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   ncols = columns.size();
   if (ncols > 0) {
     nrows = columns[0]->nrows;
-    rowindex = RowIndex(columns[0]->rowindex());
-
-    bool need_to_materialize = false;
     for (size_t i = 1; i < ncols; ++i) {
       Column* col = columns[i];
       if (!col) throw ValueError() << "Column " << i << " is NULL";
-      if (rowindex != col->rowindex()) {
-        need_to_materialize = true;
-      }
       if (col->nrows != nrows) {
         throw ValueError() << "Mismatched length in column " << i << ": "
                            << "found " << col->nrows << ", expected " << nrows;
       }
-    }
-    // TODO: remove in #1188
-    if (need_to_materialize) {
-      reify();
     }
   }
   set_names_to_default();
@@ -200,11 +190,9 @@ void DataTable::resize_rows(size_t new_nrows) {
 
 
 void DataTable::replace_rowindex(const RowIndex& newri) {
-  if (!newri && !rowindex) return;
-  rowindex = newri;
-  nrows = rowindex.size();
+  nrows = newri.size();
   for (size_t i = 0; i < ncols; ++i) {
-    columns[i]->replace_rowindex(rowindex);
+    columns[i]->replace_rowindex(newri);
   }
 }
 
@@ -261,11 +249,9 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * Do nothing if the DataTable is not a view.
  */
 void DataTable::reify() {
-  // if (rowindex.isabsent()) return;
-  for (size_t i = 0; i < ncols; ++i) {
-    columns[i]->reify();
+  for (auto col : columns) {
+    col->reify();
   }
-  rowindex.clear();
 }
 
 
@@ -274,13 +260,8 @@ size_t DataTable::memory_footprint() const {
   size_t sz = 0;
   sz += sizeof(*this);
   sz += (ncols + 1) * sizeof(Column*);
-  if (rowindex.isabsent()) {
-    for (size_t i = 0; i < ncols; ++i) {
-      sz += columns[i]->memory_footprint();
-    }
-  } else {
-    // If table is a view, then ignore sizes of each individual column.
-    sz += rowindex.memory_footprint();
+  for (size_t i = 0; i < ncols; ++i) {
+    sz += columns[i]->memory_footprint();
   }
   return sz;
 }

@@ -201,27 +201,4 @@ const void* DtRowindex_ArrayData(PyObject* pyri) {
 
 
 
-//------------------------------------------------------------------------------
-// Deprecated
-//------------------------------------------------------------------------------
-
-void* datatable_get_column_data(void* dt_, size_t column) {
-  DataTable *dt = static_cast<DataTable*>(dt_);
-  return dt->columns[column]->data_w();
-}
-
-void datatable_unpack_slicerowindex(void* dt_, size_t* start, size_t* step) {
-  DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndex ri(dt->rowindex);
-  *start = ri.slice_start();
-  *step  = ri.slice_step();
-}
-
-void datatable_unpack_arrayrowindex(void *dt_, void **indices) {
-  DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndex ri(dt->rowindex);
-  *indices = const_cast<int32_t*>(ri.indices32());
-}
-
-
 } // extern "C"

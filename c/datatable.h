@@ -80,7 +80,6 @@ class DataTable {
   public:
     size_t   nrows;
     size_t   ncols;
-    RowIndex rowindex;  // DEPRECATED (see #1188)
     Groupby  groupby;
     colvec   columns;
 

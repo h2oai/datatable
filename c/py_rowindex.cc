@@ -169,6 +169,16 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 // Getters/setters
 //==============================================================================
 
+PyObject* get_type(obj* self) {
+  static PyObject* tSlice = PyUnicode_FromString("slice");
+  static PyObject* tArr32 = PyUnicode_FromString("arr32");
+  static PyObject* tArr64 = PyUnicode_FromString("arr64");
+  RowIndexType rt = self->ref->type();
+  return incref(rt == RowIndexType::SLICE? tSlice :
+                rt == RowIndexType::ARR32? tArr32 :
+                rt == RowIndexType::ARR64? tArr64 : Py_None);
+}
+
 PyObject* get_nrows(obj* self) {
   return PyLong_FromSize_t(self->ref->size());
 }
@@ -239,6 +249,7 @@ PyObject* tolist(obj* self, PyObject*)
 //==============================================================================
 
 static PyGetSetDef rowindex_getsetters[] = {
+  GETTER(type),
   GETTER(nrows),
   GETTER(min),
   GETTER(max),
