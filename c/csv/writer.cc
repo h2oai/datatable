@@ -305,8 +305,13 @@ void CsvWriter::write()
   OmpExceptionManager oem;
   checkpoint();
   std::vector<RowColIndex> rcs = dt->split_columns_by_rowindices();
-  std::vector<size_t> js(dt->ncols);
   RowIndex ri0 = rcs.size() == 1? rcs[0].rowindex : RowIndex();
+  std::vector<size_t> colmapping(dt->ncols);
+  for (size_t k = 0; k < rcs.size(); ++k) {
+    for (size_t i : rcs[k].colindices) {
+      colmapping[i] = k;
+    }
+  }
 
   size_t nstrcols32 = 0;
   size_t nstrcols64 = 0;
@@ -347,6 +352,7 @@ void CsvWriter::write()
     } catch (...) {
       oem.capture_exception();
     }
+    std::vector<size_t> js(rcs.size());
 
     // Main data-writing loop
     #pragma omp for ordered schedule(dynamic)
@@ -398,16 +404,13 @@ void CsvWriter::write()
             });
         } else {
           for (size_t row = row0; row < row1; ++row) {
-            // Determine row indices for each column
-            for (const auto& rcitem : rcs) {
-              size_t j = rcitem.rowindex[row];
-              for (size_t k : rcitem.colindices) {
-                js[k] = j;
-              }
+            // Determine base row indices for the current row
+            for (size_t k = 0; k < rcs.size(); ++k) {
+              js[k] = rcs[k].rowindex[row];
             }
             // Run the serializer function
             for (size_t col = 0; col < ncols; ++col) {
-              columns[col]->write(&thch, js[col]);
+              columns[col]->write(&thch, js[colmapping[col]]);
               *thch++ = ',';
             }
             thch[-1] = '\n';
