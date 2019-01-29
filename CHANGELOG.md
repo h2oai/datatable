@@ -212,8 +212,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Notes
 
-- `datatable` now uses integration with [Codacy](https://app.codacy.com/project/st-pasha/datatable/dashboard)
+- `datatable` now uses integration with
+  [Codacy](https://app.codacy.com/project/st-pasha/datatable/dashboard)
   to keep track of code quality and potential errors.
+
+- Internally, we now allow each Column in a Frame to have its own separate
+  RowIndex. This will improve the performance, especially in join/cbind
+  operations. Applications that use the `datatable`'s C API may need to be
+  updated to account for this (#1188).
 
 - This release was prepared by:
 

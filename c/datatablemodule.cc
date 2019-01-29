@@ -147,8 +147,14 @@ PyObject* has_omp_support(PyObject*, PyObject*) {
 
 
 static py::PKArgs fn_get_rowindex(
-    2, 0, 0, false, false, {"frame", "col"},
-    "get_rowindex", nullptr,
+    2, 0, 0, false, false, {"frame", "i"},
+    "get_rowindex",
+R"(get_rowindex(frame, i)
+--
+
+Retrieve the RowIndex object of the `i`th column of the `frame`, or None
+if that column has no RowIndex.
+)",
 
 [](const py::PKArgs& args) -> py::oobj {
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
