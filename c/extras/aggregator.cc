@@ -147,9 +147,12 @@ dtptr Aggregator::aggregate(DataTable* dt) {
 */
 bool Aggregator::random_sampling(dtptr& dt_members, size_t max_bins, size_t n_na_bins) {
   bool was_sampled = false;
+
   // Sorting `dt_members` to calculate total number of exemplars.
-  Groupby gb_members;
-  RowIndex ri_members = dt_members->sortby({0}, &gb_members);
+  std::vector<sort_spec> spec = {sort_spec(0)};
+  auto res = dt_members->group(spec);
+  RowIndex ri_members = std::move(res.first);
+  Groupby gb_members = std::move(res.second);
 
   // Do random sampling if there is too many exemplars, `n_na_bins` accounts
   // for the additional N/A bins that may appear during grouping.
@@ -199,8 +202,11 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
                                      dtptr& dt_members,
                                      bool was_sampled) {
   // Setting up offsets and members row index.
-  Groupby gb_members;
-  RowIndex ri_members = dt_members->sortby({0}, &gb_members);
+  std::vector<sort_spec> spec = {sort_spec(0)};
+  auto res = dt_members->group(spec);
+  RowIndex ri_members = std::move(res.first);
+  Groupby gb_members = std::move(res.second);
+
   const int32_t* offsets = gb_members.offsets_r();
   size_t n_exemplars = gb_members.ngroups() - was_sampled;
   arr32_t exemplar_indices(n_exemplars);
@@ -259,9 +265,11 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
 */
 void Aggregator::group_0d(const DataTable* dt, dtptr& dt_members) {
   if (dt->ncols > 0) {
-    RowIndex ri_exemplars = dt->sortby({0}, nullptr);
-    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+    std::vector<sort_spec> spec = {sort_spec(0, false, false, true)};
+    auto res = dt->group(spec);
+    RowIndex ri_exemplars = std::move(res.first);
 
+    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
     ri_exemplars.iterate(0, dt->nrows, 1,
       [&](size_t i, size_t j) {
         d_members[j] = static_cast<int32_t>(i);
@@ -385,10 +393,12 @@ void Aggregator::group_2d_continuous(const dtptr& dt,
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
 void Aggregator::group_1d_categorical(const dtptr& dt, dtptr& dt_members) {
-  Groupby grpby0;
-  RowIndex ri0 = dt->sortby({0}, &grpby0);
-  const int32_t* group_indices_0 = ri0.indices32();
+  std::vector<sort_spec> spec = {sort_spec(0)};
+  auto res = dt->group(spec);
+  RowIndex ri0 = std::move(res.first);
+  Groupby grpby0 = std::move(res.second);
 
+  const int32_t* group_indices_0 = ri0.indices32();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
@@ -439,12 +449,18 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   const T0* d_c0 = c0->offsets();
   const T1* d_c1 = c1->offsets();
 
-  Groupby grpby0;
-  RowIndex ri0 = dt->sortby({0}, &grpby0);
-  const int32_t* group_indices_0 = ri0.indices32();
+  // TODO: redo this in terms of multicolumn sorting.
+  std::vector<sort_spec> spec = {sort_spec(0)};
+  auto res = dt->group(spec);
+  RowIndex ri0 = std::move(res.first);
+  Groupby grpby0 = std::move(res.second);
 
-  Groupby grpby1;
-  RowIndex ri1 = dt->sortby({1}, &grpby1);
+  spec[0] = sort_spec(1);
+  res = dt->group(spec);
+  RowIndex ri1 = std::move(res.first);
+  Groupby grpby1 = std::move(res.second);
+
+  const int32_t* group_indices_0 = ri0.indices32();
   const int32_t* group_indices_1 = ri1.indices32();
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -505,15 +521,17 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
   auto c_cat = static_cast<const StringColumn<T>*>(dt->columns[!cont_index]);
   const T* d_cat = c_cat->offsets();
 
-  Groupby grpby;
-  RowIndex ri_cat = dt->sortby({!cont_index}, &grpby);
+  std::vector<sort_spec> spec = {sort_spec(!cont_index)};
+  auto res = dt->group(spec);
+  RowIndex ri_cat = std::move(res.first);
+  Groupby grpby = std::move(res.second);
+
   const int32_t* gi_cat = ri_cat.indices32();
 
   auto c_cont = static_cast<RealColumn<double>*>(dt->columns[cont_index]);
   auto d_cont = c_cont->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets_cat = grpby.offsets_r();
-
 
   double normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, c_cont->min(), c_cont->max(), nx_bins);
