@@ -75,6 +75,7 @@ class Ftrl : public PyObject {
     void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const NoArgs&);
+    void reset_feature_names();
 
     // Getters and setters
     oobj get_labels() const;

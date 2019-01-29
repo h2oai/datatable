@@ -780,6 +780,17 @@ def test_ftrl_interactions():
     assert fi[5, 1] < fi[1, 1]
 
 
+def test_ftrl_sync_fi_and_interactions():
+    X = dt.Frame([[3, None, 14, 15], [92, 6, 53, 59]], names = ['pi', 'more_pi'])
+    y = dt.Frame([None, False, True, True])
+    ft = Ftrl()
+    ft.fit(X, y)
+    ft.interactions = True
+    ft.fit(X, y)
+    assert (ft.feature_importances[:, 0].to_list() ==
+            [['pi', 'more_pi', 'pi:more_pi']])
+
+
 #-------------------------------------------------------------------------------
 # Test pickling
 #-------------------------------------------------------------------------------
@@ -817,7 +828,9 @@ def test_ftrl_pickling():
     assert ft_unpickled.model[0].names == ('z', 'n')
     assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
     assert_equals(ft.model[0], ft_unpickled.model[0])
-    assert ft_unpickled.feature_importances.names == ('feature_name', 'feature_importance',)
-    assert ft_unpickled.feature_importances.stypes == (stype.str32, stype.float64)
+    assert (ft_unpickled.feature_importances.names ==
+            ('feature_name', 'feature_importance',))
+    assert (ft_unpickled.feature_importances.stypes ==
+            (stype.str32, stype.float64))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params

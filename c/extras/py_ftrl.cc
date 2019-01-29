@@ -180,10 +180,7 @@ void Ftrl::m__dealloc__() {
     delete dtft;
     dtft = nullptr;
   }
-  if (feature_names != nullptr) {
-    delete feature_names;
-    feature_names = nullptr;
-  }
+  reset_feature_names();
 }
 
 
@@ -332,8 +329,10 @@ void Ftrl::fit(const PKArgs& args) {
                                            << "of type `" << stype_y << "`";
   }
 
-  if (feature_names == nullptr) {
-    size_t nfeatures = (*dtft)[0]->get_nfeatures();
+  size_t nfeatures = (*dtft)[0]->get_nfeatures();
+  // Second condition means: `interactions` parameter was changed meanwhile
+  if (feature_names == nullptr || feature_names->nrows != nfeatures) {
+    reset_feature_names();
     size_t ncols = dt_X->ncols;
     const std::vector<std::string>& column_names = dt_X->get_names();
 
@@ -587,6 +586,13 @@ void Ftrl::normalize_rows(DataTable* dt) {
 }
 
 
+void Ftrl::reset_feature_names() {
+  if (feature_names != nullptr) {
+    delete feature_names;
+    feature_names = nullptr;
+  }
+}
+
 NoArgs Ftrl::Type::args_reset("reset",
 R"(reset(self)
 --
@@ -610,10 +616,7 @@ void Ftrl::reset(const NoArgs&) {
     (*dtft)[i]->reset_model();
     (*dtft)[i]->reset_fi();
   }
-  if (feature_names != nullptr) {
-    delete feature_names;
-    feature_names = nullptr;
-  }
+  reset_feature_names();
 }
 
 

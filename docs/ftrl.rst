@@ -40,13 +40,13 @@ FTRL Model Parameters
 The FTRL model requires a list of parameters for training and making predictions,
 namely:
 
--  ``alpha`` — Learning rate. This value defaults to ``0.005``.
--  ``beta`` — Beta parameter. This value defaults to ``1.0``.
--  ``lambda1`` — L1 regularization parameter. This value defaults to ``0.0``.
--  ``lambda2`` — L2 regularization parameter. This value defaults to ``1.0``.
--  ``nbins`` - The number of bins for the hashing trick. This value defaults to ``1000000``.
--  ``nepochs`` — The number of epochs to train the model for. This value defaults to ``1``.
--  ``interactions`` — Whether to enable second order feature interactions. This value defaults to ``False``.
+-  ``alpha`` — Learning rate, defaults to ``0.005``.
+-  ``beta`` — Beta parameter, defaults to ``1.0``.
+-  ``lambda1`` — L1 regularization parameter, defaults to ``0.0``.
+-  ``lambda2`` — L2 regularization parameter, defaults to ``1.0``.
+-  ``nbins`` — The number of bins for the hashing trick, defaults to ``1000000``.
+-  ``nepochs`` — The number of epochs to train the model for, defaults to ``1``.
+-  ``interactions`` — Whether to enable second order feature interactions, defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
