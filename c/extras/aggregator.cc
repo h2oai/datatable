@@ -158,7 +158,6 @@ bool Aggregator::random_sampling(dtptr& dt_members, size_t max_bins, size_t n_na
   // for the additional N/A bins that may appear during grouping.
   if (gb_members.ngroups() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
-    const int32_t* ri_members_indices = ri_members.indices32();
     auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
     // First, set all `exemplar_id`s to `N/A`.
@@ -175,9 +174,11 @@ bool Aggregator::random_sampling(dtptr& dt_members, size_t max_bins, size_t n_na
     size_t k = 0;
     while (k < max_bins) {
       int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
-      if (ISNA<int32_t>(d_members[ri_members_indices[offsets[i]]])) {
-        for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
-          d_members[ri_members_indices[j]] = static_cast<int32_t>(k);
+      size_t off_i = static_cast<size_t>(offsets[i]);
+      if (ISNA<int32_t>(d_members[ri_members[off_i]])) {
+        size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
+        for (size_t j = off_i; j < off_i1; ++j) {
+          d_members[ri_members[j]] = static_cast<int32_t>(k);
         }
         k++;
       }
@@ -211,18 +212,6 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   size_t n_exemplars = gb_members.ngroups() - was_sampled;
   arr32_t exemplar_indices(n_exemplars);
 
-  const int32_t* ri_members_indices = nullptr;
-  arr32_t temp;
-  if (ri_members.isarr32()) {
-    ri_members_indices = ri_members.indices32();
-  } else if (ri_members.isslice()) {
-    temp.resize(dt_members->nrows);
-    ri_members.extract_into(temp);
-    ri_members_indices = temp.data();
-  } else if (ri_members.isarr64()){
-    throw ValueError() << "RowIndexType::ARR64 is not supported for the moment";
-  }
-
   // Setting up a table for counts
   DataTable* dt_counts;
   Column* col0 = Column::new_data_column(SType::INT32, n_exemplars);
@@ -233,7 +222,8 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   // Setting up exemplar indices and counts
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
-    exemplar_indices[i - was_sampled] = ri_members_indices[static_cast<size_t>(offsets[i])];
+    size_t off_i = static_cast<size_t>(offsets[i]);
+    exemplar_indices[i - was_sampled] = static_cast<int32_t>(ri_members[off_i]);
     d_counts[i - was_sampled] = offsets[i+1] - offsets[i];
   }
 
@@ -242,7 +232,7 @@ void Aggregator::aggregate_exemplars(DataTable* dt,
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     for (size_t j = 0; j < static_cast<size_t>(d_counts[i - was_sampled]); ++j) {
       size_t member_shift = static_cast<size_t>(offsets[i]) + j;
-      d_members[ri_members_indices[member_shift]] = static_cast<int32_t>(i - was_sampled);
+      d_members[ri_members[member_shift]] = static_cast<int32_t>(i - was_sampled);
     }
   }
   dt_members->columns[0]->get_stats()->reset();
@@ -398,14 +388,15 @@ void Aggregator::group_1d_categorical(const dtptr& dt, dtptr& dt_members) {
   RowIndex ri0 = std::move(res.first);
   Groupby grpby0 = std::move(res.second);
 
-  const int32_t* group_indices_0 = ri0.indices32();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_members[group_indices_0[j]] = static_cast<int32_t>(i);
+    size_t off_i = static_cast<size_t>(offsets0[i]);
+    size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
+    for (size_t j = off_i; j < off_i1; ++j) {
+      d_members[ri0[j]] = static_cast<int32_t>(i);
     }
   }
 }
@@ -460,9 +451,6 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   RowIndex ri1 = std::move(res.first);
   Groupby grpby1 = std::move(res.second);
 
-  const int32_t* group_indices_0 = ri0.indices32();
-  const int32_t* group_indices_1 = ri1.indices32();
-
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
@@ -470,8 +458,10 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
-    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      int32_t gi = group_indices_0[j];
+    size_t off_i = static_cast<size_t>(offsets0[i]);
+    size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
+    for (size_t j = off_i; j < off_i1; ++j) {
+      int32_t gi = static_cast<int32_t>(ri0[j]);
       if (ISNA<T0>(d_c0[gi])) {
         d_members[gi] = GETNA<int32_t>();
       } else {
@@ -483,8 +473,10 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
-    for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
-      int32_t gi = group_indices_1[j];
+    size_t off_i = static_cast<size_t>(offsets1[i]);
+    size_t off_i1 = static_cast<size_t>(offsets1[i+1]);
+    for (size_t j = off_i; j < off_i1; ++j) {
+      int32_t gi = static_cast<int32_t>(ri1[j]);
       int32_t na_case = ISNA<int32_t>(d_members[gi]) + 2 * ISNA<T1>(d_c1[gi]);
       if (na_case) {
         d_members[gi] = -na_case;
@@ -526,8 +518,6 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
   RowIndex ri_cat = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
-  const int32_t* gi_cat = ri_cat.indices32();
-
   auto c_cont = static_cast<RealColumn<double>*>(dt->columns[cont_index]);
   auto d_cont = c_cont->elements_r();
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -539,8 +529,10 @@ void Aggregator::group_2d_mixed_str (bool cont_index, const dtptr& dt,
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
     int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
-    for (int32_t j = offsets_cat[i]; j < offsets_cat[i+1]; ++j) {
-      int32_t gi = gi_cat[j];
+    size_t off_i = static_cast<size_t>(offsets_cat[i]);
+    size_t off_i1 = static_cast<size_t>(offsets_cat[i+1]);
+    for (size_t j = off_i; j < off_i1; ++j) {
+      int32_t gi = static_cast<int32_t>(ri_cat[j]);
       int32_t na_case = ISNA<double>(d_cont[gi]) + 2 * ISNA<T>(d_cat[gi]);
       if (na_case) {
         d_members[gi] = -na_case;
