@@ -53,7 +53,7 @@ when creating the model, as
 
 ::
 
-  ftrl_model = Ftrl(alpha = 0.1, nbins = 100, inter = False)
+  ftrl_model = Ftrl(alpha = 0.1, nbins = 100, interactions = False)
   
 or, if the model already exists, as
 
@@ -61,7 +61,7 @@ or, if the model already exists, as
 
   ftrl_model.alpha = 0.1
   ftrl_model.nbins = 100
-  ftrl_model.inter = False
+  ftrl_model.interactions = False
 
 If some parameters were not set explicitely, they will be assigned the default
 values.
