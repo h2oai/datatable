@@ -84,7 +84,6 @@ class DataTable {
     colvec   columns;
 
   private:
-    RowIndex rowindex;  // DEPRECATED (see #1188)
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names

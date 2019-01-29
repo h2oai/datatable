@@ -173,10 +173,10 @@ PyObject* get_type(obj* self) {
   static PyObject* tSlice = PyUnicode_FromString("slice");
   static PyObject* tArr32 = PyUnicode_FromString("arr32");
   static PyObject* tArr64 = PyUnicode_FromString("arr64");
-  RowIndexType type = self->ref->type();
-  return incref(type == RowIndexType::SLICE? tSlice :
-                type == RowIndexType::ARR32? tArr32 :
-                type == RowIndexType::ARR64? tArr64 : Py_None);
+  RowIndexType rt = self->ref->type();
+  return incref(rt == RowIndexType::SLICE? tSlice :
+                rt == RowIndexType::ARR32? tArr32 :
+                rt == RowIndexType::ARR64? tArr64 : Py_None);
 }
 
 PyObject* get_nrows(obj* self) {

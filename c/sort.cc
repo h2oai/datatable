@@ -1303,11 +1303,6 @@ RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
   if (nrows > INT32_MAX) {
     throw NotImplError() << "Cannot sort a Frame with " << nrows << " rows";
   }
-  if (rowindex.isarr64() || rowindex.size() > INT32_MAX ||
-      (rowindex.max() > INT32_MAX && rowindex.max() != RowIndex::NA)) {
-    throw NotImplError() << "Cannot sort a Frame which is a view on another "
-                            "Frame with more than 2**31 rows";
-  }
   // TODO: fix for the multi-rowindex case (#1188)
   // A frame can be sorted by columns col1, ..., colN if and only if all these
   // columns have the same rowindex. The resulting RowIndex can be applied to
