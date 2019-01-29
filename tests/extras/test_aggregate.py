@@ -452,7 +452,6 @@ def test_aggregate_3d_categorical():
     assert d_in.to_list() == a_in + members_count
 
 
-@pytest.mark.xfail()
 def test_aggregate_3d_real():
     d_in = dt.Frame([
         [0.95, 0.50, 0.55, 0.10, 0.90, 0.50, 0.90, 0.50, 0.90, 1.00],
@@ -482,13 +481,11 @@ def test_aggregate_3d_real():
                            [1, 4, 5]]
 
 
-@pytest.mark.xfail()
 def test_aggregate_nd_direct():
     args = get_default_args(aggregate)
     aggregate_nd(args["max_dimensions"] // 2)
 
 
-@pytest.mark.xfail()
 def test_aggregate_nd_projection():
     args = get_default_args(aggregate)
     aggregate_nd(args["max_dimensions"] * 2)
