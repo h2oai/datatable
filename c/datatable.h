@@ -34,6 +34,11 @@ struct sort_spec {
     : col_index(i), descending(desc), na_last(nalast), sort_only(sort) {}
 };
 
+struct RowColIndex {
+  RowIndex rowindex;
+  std::vector<size_t> colindices;
+};
+
 typedef Column* (Column::*colmakerfn)(void) const;
 using colvec = std::vector<Column*>;
 using intvec = std::vector<size_t>;
@@ -157,6 +162,27 @@ class DataTable {
     MemoryRange save_jay();
     void save_jay(const std::string& path, WritableBuffer::Strategy);
 
+    std::vector<RowColIndex> split_columns_by_rowindices() const;
+
+    /**
+     * `iterate_rows<F1, FN>(row0, row1)` is a helper function to iterate over
+     * the rows of a DataTable. It takes two functors as parameters:
+     *
+     *   - `void F1(size_t i, size_t j)` is used for iterating over a DataTable
+     *     that either has no rowindex, or a uniform (across all rows) rowindex.
+     *     This function takes two parameters: `i`, going from 0 to `nrows - 1`,
+     *     is the index of the current row; and `j` is the index within each
+     *     column where the data for row `i` is located.
+     *
+     *   - `void FN(size_t i, const intvec& js)` is used for iterating over a
+     *     more generic DataTable. Here `i` is again the index of the current
+     *     row, and the vector `js` contains indices for each column where the
+     *     value for that column has to be located.
+     */
+    template <void (*F1)(size_t i, size_t j),
+              void (*FN)(size_t i, const intvec& js)>
+    void iterate_rows(size_t row0 = 0, size_t row1 = size_t(-1));
+
   private:
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
@@ -182,5 +208,31 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt);
 
 
 //==============================================================================
+
+template <void (*F1)(size_t i, size_t j),
+          void (*FN)(size_t i, const intvec& js)>
+void DataTable::iterate_rows(size_t row0, size_t row1) {
+  if (row1 == size_t(-1)) {
+    row1 = nrows;
+  }
+  std::vector<RowColIndex> rcs = split_columns_by_rowindices();
+  if (rcs.size() == 1) {
+    RowIndex ri0 = rcs[0].rowindex;
+    ri0.iterate(row0, row1, 1, F1);
+  }
+  else {
+    std::vector<size_t> js(ncols);
+    for (size_t i = row0; i < row1; ++i) {
+      for (const auto& rcitem : rcs) {
+        size_t j = rcitem.rowindex[i];
+        for (size_t k : rcitem.colindices) {
+          js[k] = j;
+        }
+      }
+      FN(i, js);
+    }
+  }
+}
+
 
 #endif
