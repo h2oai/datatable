@@ -1244,8 +1244,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
-      size_t i = col0->rowindex()[0];
-      indices[0] = static_cast<int32_t>(i);
+      indices[0] = as_view? static_cast<int32_t>(col0->rowindex()[0]) : 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
