@@ -148,10 +148,6 @@ PyObject* append_columns(obj* self, PyObject* args) {
     throw TypeError() << "Expected argument of type Columnset";
   }
   obj* other = static_cast<obj*>(arg1);
-  // TODO: remove in #1188
-  for (size_t i = 0; i < other->ncols; ++i) {
-    other->columns[i]->reify();
-  }
 
   size_t newncols = self->ncols + other->ncols;
   Column** columns = self->columns;

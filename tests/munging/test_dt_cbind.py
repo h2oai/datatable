@@ -151,10 +151,8 @@ def test_bad_arguments():
 def test_cbind_views1():
     d0 = dt.Frame({"A": range(100)})
     d1 = d0[:5, :]
-    assert d1.internal.isview
     d2 = dt.Frame({"B": [3, 6, 9, 12, 15]}, stype=stype.int32)
     d1.cbind(d2)
-    assert not d1.internal.isview
     dr = dt.Frame({"A": range(5), "B": range(3, 18, 3)})
     assert_equals(d1, dr)
 
@@ -162,12 +160,9 @@ def test_cbind_views1():
 def test_cbind_views2():
     d0 = dt.Frame({"A": range(10)}, stype=stype.int8)
     d1 = d0[2:5, :]
-    assert d1.internal.isview
     d2 = dt.Frame({"B": list("abcdefghij")})
     d3 = d2[-3:, :]
-    assert d3.internal.isview
     d1.cbind(d3)
-    assert not d1.internal.isview
     dr = dt.Frame({"A": [2, 3, 4], "B": ["h", "i", "j"]})
     assert_equals(d1, dr)
 

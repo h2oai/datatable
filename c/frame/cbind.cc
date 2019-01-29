@@ -141,10 +141,6 @@ DataTable* DataTable::cbind(std::vector<DataTable*> dts)
     if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
   }
 
-  // First, materialize the "main" datatable if it is a view
-  // TODO: remove after #1188
-  reify();
-
   // Fix up the main datatable if it has too few rows
   if (nrows < t_nrows) {
     for (size_t i = 0; i < ncols; ++i) {

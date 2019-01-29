@@ -406,8 +406,6 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   for (size_t j : xcols) {
     xdt->columns[j]->reify();
   }
-  // TODO: remove in #1188
-  for (auto col : xdt->columns) col->reify();
 
   arr32_t arr_result_indices(xdt->nrows);
   int32_t* result_indices = arr_result_indices.data();
