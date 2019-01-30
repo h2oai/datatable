@@ -346,24 +346,22 @@ def test_aggregate_2d_categorical_sorted():
 
 
 def test_aggregate_2d_categorical_unsorted():
-    d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet",
-                      "red"],
-                     ["Monday", "Monday", "Wednesday", "Saturday", "Thursday",
-                      "Friday", "Wednesday"]])
+    d_in = dt.Frame([["blue", "indigo", "red", "violet", "yellow", "violet", "red"],
+                     ["Monday", "Monday", "Wednesday", "Saturday", "Thursday", "Friday", "Wednesday"]])
 
     d_members = aggregate(d_in, min_rows=0, progress_fn=report_progress)
     d_members.internal.check()
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.to_list() == [[1, 2, 5, 3, 4, 0, 5]]
+    assert d_members.to_list() == [[0, 1, 2, 4, 5, 3, 2]]
     d_in.internal.check()
     assert d_in.shape == (6, 3)
     assert d_in.ltypes == (ltype.str, ltype.str, ltype.int)
-    assert d_in.to_list() == [['violet', 'blue', 'indigo', 'violet', 'yellow',
-                               'red'],
-                              ['Friday', 'Monday', 'Monday', 'Saturday',
-                               'Thursday', 'Wednesday'],
-                              [1, 1, 1, 1, 1, 2]]
+    assert d_in.to_list() == [['blue', 'indigo', 'red', 'violet', 'violet',
+                               'yellow'],
+                              ['Monday', 'Monday', 'Wednesday', 'Friday',
+                               'Saturday', 'Thursday'],
+                              [1, 1, 2, 1, 1, 1]]
 
 
 # Disable some of the checks for the moment, as even with the same seed

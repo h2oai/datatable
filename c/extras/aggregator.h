@@ -48,7 +48,7 @@ class Aggregator {
 
     // Grouping and aggregating methods
     void aggregate_exemplars(DataTable*, dtptr&, bool);
-    void group_0d(DataTable*, dtptr&);
+    void group_0d(const DataTable*, dtptr&);
     void group_1d(const dtptr&, dtptr&);
     void group_1d_continuous(const dtptr&, dtptr&);
     void group_1d_categorical(const dtptr&, dtptr&);

@@ -440,48 +440,26 @@ void Aggregator::group_2d_categorical_str(const dtptr& dt,
   const T0* d_c0 = c0->offsets();
   const T1* d_c1 = c1->offsets();
 
-  // TODO: redo this in terms of multicolumn sorting.
-  std::vector<sort_spec> spec = {sort_spec(0)};
+  std::vector<sort_spec> spec = {sort_spec(0), sort_spec(1)};
   auto res = dt->group(spec);
-  RowIndex ri0 = std::move(res.first);
-  Groupby grpby0 = std::move(res.second);
-
-  spec[0] = sort_spec(1);
-  res = dt->group(spec);
-  RowIndex ri1 = std::move(res.first);
-  Groupby grpby1 = std::move(res.second);
+  RowIndex ri = std::move(res.first);
+  Groupby grpby = std::move(res.second);
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  const int32_t* offsets0 = grpby0.offsets_r();
-  const int32_t* offsets1 = grpby1.offsets_r();
+  const int32_t* offsets = grpby.offsets_r();
 
   #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
+  for (size_t i = 0; i < grpby.ngroups(); ++i) {
     auto group_id = static_cast<int32_t>(i);
-    size_t off_i = static_cast<size_t>(offsets0[i]);
-    size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
+    size_t off_i = static_cast<size_t>(offsets[i]);
+    size_t off_i1 = static_cast<size_t>(offsets[i+1]);
     for (size_t j = off_i; j < off_i1; ++j) {
-      int32_t gi = static_cast<int32_t>(ri0[j]);
-      if (ISNA<T0>(d_c0[gi])) {
-        d_members[gi] = GETNA<int32_t>();
-      } else {
-        d_members[gi] = group_id;
-      }
-    }
-  }
-
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < grpby1.ngroups(); ++i) {
-    auto group_id = static_cast<int32_t>(grpby0.ngroups() * i);
-    size_t off_i = static_cast<size_t>(offsets1[i]);
-    size_t off_i1 = static_cast<size_t>(offsets1[i+1]);
-    for (size_t j = off_i; j < off_i1; ++j) {
-      int32_t gi = static_cast<int32_t>(ri1[j]);
-      int32_t na_case = ISNA<int32_t>(d_members[gi]) + 2 * ISNA<T1>(d_c1[gi]);
+      int32_t gi = static_cast<int32_t>(ri[j]);
+      int32_t na_case = ISNA<T0>(d_c0[gi]) + 2 * ISNA<T1>(d_c1[gi]);
       if (na_case) {
         d_members[gi] = -na_case;
       } else {
-        d_members[gi] += group_id;
+        d_members[gi] = group_id;
       }
     }
   }
