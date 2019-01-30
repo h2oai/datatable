@@ -1271,13 +1271,11 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   SortContext sc(nrows, col0->rowindex(), do_groups);
   sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
-    if (j < n - 1) {
-      xassert(do_groups);
-      if (spec[j + 1].sort_only && !spec[j].sort_only) {
-        result.second = sc.copy_groups();
-      }
-    } else {
-      do_groups = !spec[j].sort_only;
+    if (spec[j].sort_only && !spec[j - 1].sort_only) {
+      result.second = sc.copy_groups();
+    }
+    if (j == n - 1 && spec[j].sort_only) {
+      do_groups = false;
     }
     sc.continue_sort(columns[spec[j].col_index],
                      spec[j].descending, do_groups);
