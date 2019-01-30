@@ -40,20 +40,20 @@ FTRL Model Parameters
 The FTRL model requires a list of parameters for training and making predictions,
 namely:
 
--  ``alpha`` — Learning rate, defaults to ``0.005``.
--  ``beta`` — Beta parameter, defaults to ``1.0``.
--  ``lambda1`` — L1 regularization parameter, defaults to ``0.0``.
--  ``lambda2`` — L2 regularization parameter, defaults to ``1.0``.
--  ``nbins`` — The number of bins for the hashing trick, defaults to ``1000000``.
--  ``nepochs`` — The number of epochs to train the model for, defaults to ``1``.
--  ``interactions`` — Whether to enable second order feature interactions, defaults to ``False``.
+-  ``alpha`` – learning rate, defaults to ``0.005``.
+-  ``beta`` – beta parameter, defaults to ``1.0``.
+-  ``lambda1`` – L1 regularization parameter, defaults to ``0.0``.
+-  ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
+-  ``nbins`` – the number of bins for the hashing trick, defaults to ``1000000``.
+-  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
+-  ``interactions`` – whether to enable second order feature interactions, defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
 
 ::
 
-  ftrl_model = Ftrl(alpha = 0.1, nbins = 100, inter = False)
+  ftrl_model = Ftrl(alpha = 0.1, nbins = 100, interactions = False)
   
 or, if the model already exists, as
 
@@ -61,7 +61,7 @@ or, if the model already exists, as
 
   ftrl_model.alpha = 0.1
   ftrl_model.nbins = 100
-  ftrl_model.inter = False
+  ftrl_model.interactions = False
 
 If some parameters were not set explicitely, they will be assigned the default
 values.
