@@ -47,23 +47,23 @@ class Aggregator {
     py::oobj progress_fn;
 
     // Grouping and aggregating methods
-    void group_0d(const DataTable*, dtptr&);
+    void aggregate_exemplars(DataTable*, dtptr&, bool);
+    void group_0d(DataTable*, dtptr&);
     void group_1d(const dtptr&, dtptr&);
-    void group_2d(const dtptr&, dtptr&);
-    void group_nd(const dtptr&, dtptr&);
     void group_1d_continuous(const dtptr&, dtptr&);
-    void group_2d_continuous(const dtptr&, dtptr&);
     void group_1d_categorical(const dtptr&, dtptr&);
+    void group_2d(const dtptr&, dtptr&);
+    void group_2d_continuous(const dtptr&, dtptr&);
     void group_2d_categorical(const dtptr&, dtptr&);
     template<typename T1, typename T2>
     void group_2d_categorical_str(const dtptr&, dtptr&);
     void group_2d_mixed(bool, const dtptr&, dtptr&);
     template<typename T>
     void group_2d_mixed_str(bool, const dtptr&, dtptr&);
-    bool random_sampling(dtptr&, size_t, size_t);
-    void aggregate_exemplars(DataTable*, dtptr&, bool);
+    void group_nd(const dtptr&, dtptr&);
 
-    // Methods for modular quasi-random generator
+    // Random sampling and modular quasi-random generator
+    bool random_sampling(dtptr&, size_t, size_t);
     static void fill_coprimes(size_t, std::vector<size_t>&);
 
     // Helper methods
