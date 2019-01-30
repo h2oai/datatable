@@ -10,12 +10,29 @@
 
 \
 
-Introduction to Datatable
-=========================
 
-H2O's ``datatable`` is a Python package for manipulating 2-dimensional tabular data structures (aka, data frames). It is close in spirit to `pandas <https://github.com/pandas-dev/pandas>`__ or `SFrame <https://github.com/turi-code/SFrame>`__; however we put specific emphasis on speed and big data support. As the name suggests, the package is closely related to R's `data.table <https://github.com/Rdatatable/data.table>`__ and attempts to mimic its core algorithms and API.
+Introduction
+============
 
-Currently ``datatable`` is in the Alpha stage and is undergoing active development. The API may be unstable; some of the core features are incomplete and/or missing.
+Data is everywhere. From the smallest photon interactions to galaxy collisions,
+from mouse movements on a screen to economic developments of countries, we are
+surrounded by the sea of information. Human mind cannot comprehend this data in
+all its complexity; since ancient times people found it much easier to reduce
+the dimensionality, to impose a strict order, to arrange the data points neatly
+on a rectangular grid: to make a **data table**.
+
+But once the data has been collected into a table, it has been tamed. It may
+still need some grooming and exercise, essentially it is no longer scary. Even
+if it is really Big Data, with the **right tools** you can approach it, play
+with it, bend to your will, *master*.
+
+Python ``datatable`` module is the right tool for the task. It is a library that
+implements a wide (and growing) range of operators for manipulating
+two-dimensional data frames. It focuses on: big data support, high performance,
+both in-memory and out-of-memory datasets, and multi-threaded algorithms. In
+addition, ``datatable`` strives to achieve good user experience, helpful error
+messages, and powerful API similar to R ``data.table``'s.
+
 
 **Contributing**
 

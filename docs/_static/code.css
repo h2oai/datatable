@@ -3,6 +3,14 @@ body {
   counter-reset: cc;
 }
 
+.rst-content code.literal {
+  background: none;
+  border-style: none;
+  color: #7795BD;
+  font-size: 85%;
+  padding: 0;
+}
+
 div.document div.notranslate {
   border: none;
   counter-increment: cc;
