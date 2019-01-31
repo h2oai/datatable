@@ -61,6 +61,8 @@ class Frame : public PyObject {
         static NoArgs args_to_tuples;
         static PKArgs fn_head;
         static PKArgs fn_tail;
+        static NoArgs fn___getstate__;
+        static PKArgs fn___setstate__;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
