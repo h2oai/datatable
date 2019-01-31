@@ -191,6 +191,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   the frame in-place, so it was confusing to both update in-place and return the
   original frame (#1610).
 
+- `min()` / `max()` over an empty or all-NA column now returns `None` instead of
+  +Inf / -Inf respectively (#1624).
+
 
 ### Deprecated
 
