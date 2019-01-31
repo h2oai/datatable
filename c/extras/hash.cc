@@ -31,7 +31,7 @@ HashBool::HashBool(const Column* col) : Hash(col) {
 
 uint64_t HashBool::hash(size_t row) const {
   size_t i = ri[row];
-  bool value = (i == RowIndex::NA)? GETNA<int8_t>() : values[i];
+  int8_t value = (i == RowIndex::NA)? GETNA<int8_t>() : values[i];
   uint64_t h = static_cast<uint64_t>(value);
   return h;
 }
