@@ -55,6 +55,9 @@ def max(*args, **kwds):
         return _builtin_max(*args, **kwds)
 
 
+min.__doc__ = _builtin_min.__doc__
+max.__doc__ = _builtin_max.__doc__
+
 
 class MinMaxReducer(BaseExpr):
 
