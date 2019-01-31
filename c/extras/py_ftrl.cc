@@ -36,9 +36,9 @@ PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  "lambda2", "nbins", "nepochs", "interactions"},
                                  "__init__", nullptr);
 
-static NoArgs fn___getstate__("__getstate__", nullptr);
-static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
-                              "__setstate__", nullptr);
+NoArgs Ftrl::Type::fn___getstate__("__getstate__", nullptr);
+PKArgs Ftrl::Type::fn___setstate__(1, 0, 0, false, false, {"state"},
+                                   "__setstate__", nullptr);
 
 static const char* doc_alpha        = "`alpha` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_beta         = "`beta` in per-coordinate FTRL-Proximal algorithm";
@@ -162,7 +162,7 @@ void Ftrl::m__init__(PKArgs& args) {
 void Ftrl::init_dtft(dt::FtrlParams dt_params) {
   size_t nlabels = labels.size();
   xassert(nlabels > 0);
-  // If there is only two labels provided, we only need 
+  // If there is only two labels provided, we only need
   // one classifier.
   size_t ndtft = nlabels - (nlabels == 2);
   dtft->clear();
@@ -439,7 +439,7 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
   }
 
   // Train all the classifiers. NB: when there is two labels,
-  // `init_dtft()` creates only one classifier, just like in a 
+  // `init_dtft()` creates only one classifier, just like in a
   // binomial case.
   size_t ndtft = dtft->size();
   for (size_t i = 0; i < ndtft; ++i) {
