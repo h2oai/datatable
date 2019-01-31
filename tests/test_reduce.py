@@ -22,6 +22,8 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import math
+import pytest
 from datatable import f, ltype, first, count
 
 
@@ -200,3 +202,46 @@ def test_first_2d_array():
             [0, 1, 0, 5, 3, 8, 1, 0, 2, 5, 8, None, 1]]
     a_reduce = first(a_in)
     assert a_reduce == [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]
+
+
+
+
+#-------------------------------------------------------------------------------
+# min/max
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("st", dt.ltype.int.stypes)
+def test_minmax_integer(mm, st):
+    src = [0, 23, 100, 99, -11, 24, -1]
+    DT = dt.Frame(A=src, stype=st)
+    assert DT[:, mm(f.A)].to_list() == [[mm(src)]]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+def test_minmax_real(mm):
+    src = [5.6, 12.99, 1e+12, -3.4e-22, math.nan, 0.0]
+    DT = dt.Frame(A=src)
+    assert DT[:, mm(f.A)].to_list() == [[mm(src)]]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+def test_minmax_infs(mm):
+    src = [math.nan, 1.0, 2.5, -math.inf, 3e199, math.inf]
+    answer = -math.inf if mm == dt.min else +math.inf
+    DT = dt.Frame(A=src)
+    assert DT[:, mm(f.A)].to_list() == [[answer]]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("st", dt.ltype.int.stypes + dt.ltype.real.stypes)
+def test_minmax_empty(mm, st):
+    DT1 = dt.Frame(A=[], stype=st)
+    assert DT1[:, mm(f.A)].to_list() == [[None]]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("st", dt.ltype.int.stypes + dt.ltype.real.stypes)
+def test_minmax_nas(mm, st):
+    DT2 = dt.Frame(B=[None]*3, stype=st)
+    assert DT2[:, mm(f.B)].to_list() == [[None]]

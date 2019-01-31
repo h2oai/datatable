@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum, count, by
+from datatable import f, mean, min, max, sum, count, by, sort
 from tests import same_iterables, assert_equals
 
 
@@ -309,3 +309,14 @@ def test_groupby_select_all_columns():
     res = DT[:, :, by(f.id2, f.id4)]
     assert_equals(res, dt.Frame(id2=[1, 1, 1, 2, 2, 2], id4=[1] * 6,
                                 v3=[1, 2, 3, 3, 3, 3]))
+
+
+def test_groupby_with_sort():
+    DT = dt.Frame(A=[1,2,3]*4, B=[1,2]*6, C=range(12))
+    R1 = DT[:, count(), by(f.A, f.B)]
+    R2 = DT[:, count(), by(f.A, f.B), sort(f.C)]
+    R0 = dt.Frame(A=[1, 1, 2, 2, 3, 3],
+                  B=[1, 2, 1, 2, 1, 2],
+                  C0=[2] * 6, stypes={"C0": dt.int32})
+    assert_equals(R1, R0)
+    assert_equals(R2, R0)

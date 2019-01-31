@@ -184,15 +184,16 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
   T res = infinity<T>();
   size_t row0 = static_cast<size_t>(groups[grp]);
   size_t row1 = static_cast<size_t>(groups[grp + 1]);
+  bool valid = false;
   col0->rowindex().iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
       T x = inputs[j];
-      if (!ISNA<T>(x) && x < res) {
-        res = x;
-      }
+      if (ISNA<T>(x)) return;
+      if (x < res) res = x;
+      valid = true;
     });
-  outputs[grp] = res;
+  outputs[grp] = valid? res : GETNA<T>();
 }
 
 
@@ -208,17 +209,18 @@ static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
   const T* inputs = static_cast<const T*>(col0->data());
   T* outputs = static_cast<T*>(col1->data_w());
   T res = -infinity<T>();
+  bool valid = false;
   size_t row0 = static_cast<size_t>(groups[grp]);
   size_t row1 = static_cast<size_t>(groups[grp + 1]);
   col0->rowindex().iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
       T x = inputs[j];
-      if (!ISNA<T>(x) && x > res) {
-        res = x;
-      }
+      if (ISNA<T>(x)) return;
+      if (x > res) res = x;
+      valid = true;
     });
-  outputs[grp] = res;
+  outputs[grp] = valid? res : GETNA<T>();
 }
 
 
