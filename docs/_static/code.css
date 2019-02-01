@@ -3,10 +3,48 @@ body {
   counter-reset: cc;
 }
 
-#dt-logo {
-  width: 100px;
-  float: right;
-  margin-top: -5px;
+#first-section { display: flex; }
+
+#first-section .part1 { padding-right: 32pt; }
+#first-section .part2 { flex-grow: 1; }
+#first-section #dt-logo { width: 100px; }
+
+#first-section .chyron { margin: 12pt 0 0 0; }
+
+div.main-toc {
+  display: flex;
+  margin: 8pt 0 30pt 0;
+}
+
+div.large-links {
+  flex-grow: 2;
+}
+
+div.large-links a {
+  display: block;
+  font-size: 150%;
+  margin: 5pt 24pt 0 16pt;
+  padding: 5pt 10pt;
+}
+
+div.large-links a:hover {
+  background-color: #E9EEF5;
+}
+
+div.large-links a i.fa {
+  font-size: 80%;
+  position: relative;
+  top: -1pt;
+  left: -2pt;
+}
+
+div.small-links {
+  flex-grow: 1;
+  padding-top: 16pt;
+}
+
+div.small-links div {
+  padding: 3pt 0;
 }
 
 .rst-content code.literal {

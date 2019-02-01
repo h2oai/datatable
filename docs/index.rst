@@ -1,7 +1,10 @@
 .. raw:: html
 
-  <img src="_static/py_datatable_logo.png" id="dt-logo"/>
-
+  <div id="first-section">
+    <div class="part1">
+      <img src="_static/py_datatable_logo.png" id="dt-logo" />
+    </div>
+    <div class="part2">
 
 .. image:: https://img.shields.io/pypi/v/datatable.svg
    :target: https://pypi.org/project/datatable/
@@ -12,7 +15,40 @@
 .. image:: https://travis-ci.org/h2oai/datatable.svg?branch=master
    :target: https://travis-ci.org/h2oai/datatable
 
-\
+.. raw:: html
+
+      <div class="chyron">
+        Python library for efficient multi-threaded data processing, with
+        the support for out-of-memory datasets.
+      </div>
+      <div class="main-toc">
+        <div class="large-links">
+          <a class="reference internal" href="quick-start.html">
+            <i class="fa fa-chevron-circle-right"></i> Getting Started
+          </a>
+          <a class="reference internal" href="user-guide.html">
+            <i class="fa fa-chevron-circle-right"></i> User Guide
+          </a>
+          <a class="reference internal" href="api-reference.html">
+            <i class="fa fa-chevron-circle-right"></i> API Reference
+          </a>
+        </div>
+
+        <div class="small-links">
+          <div><a class="reference internal" href="install.html">
+           &#x25AA; Installation
+          </a></div>
+          <div><a class="reference internal" href="contrib.html">
+           &#x25AA; Development
+          </a></div>
+          <div><a class="reference internal" href="genindex.html">
+           &#x25AA; Index
+          </a></div>
+        </div>
+      </div>
+    </div>  <!-- div.part2 -->
+    </div>  <!-- #first-section -->
+
 
 
 Introduction
@@ -74,12 +110,3 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
    :caption: Models
 
    ftrl.rst
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
