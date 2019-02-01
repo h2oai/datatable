@@ -631,6 +631,20 @@ def test_ftrl_fit_predict_view():
     assert_equals(predictions, predictions_range)
 
 
+def test_ftrl_disable_nbins_setter_after_fit():
+    ft = Ftrl(nbins = 10)
+    df_train = dt.Frame(range(ft.nbins))
+    df_target = dt.Frame([True] * ft.nbins)
+    ft.fit(df_train, df_target)
+    with pytest.raises(ValueError) as e:
+        ft.nbins = 100
+    assert ("Cannot set `nbins` for a trained model, "
+            "reset this model or create a new one"
+            == str(e.value))
+    ft.reset()
+    ft.nbins = 100
+
+
 #-------------------------------------------------------------------------------
 # Test multinomial regression
 #-------------------------------------------------------------------------------
