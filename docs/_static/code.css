@@ -3,12 +3,22 @@ body {
   counter-reset: cc;
 }
 
+#dt-logo {
+  width: 100px;
+  float: right;
+  margin-top: -5px;
+}
+
 .rst-content code.literal {
   background: none;
   border-style: none;
   color: #7795BD;
   font-size: 85%;
   padding: 0;
+}
+
+.rst-content.style-external-links a.reference.external.image-reference::after {
+  content: '';
 }
 
 div.document div.notranslate {

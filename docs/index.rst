@@ -1,3 +1,7 @@
+.. raw:: html
+
+  <img src="_static/py_datatable_logo.png" id="dt-logo"/>
+
 
 .. image:: https://img.shields.io/pypi/v/datatable.svg
    :target: https://pypi.org/project/datatable/
