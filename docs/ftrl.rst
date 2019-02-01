@@ -78,7 +78,8 @@ Use the ``fit()`` method to train a model for a binomial logistic regression pro
   
 where ``X`` is a frame of shape ``(nrows, ncols)`` to be trained on,
 and ``y`` is a frame of shape ``(nrows, 1)`` having a ``bool`` type
-of the target column.
+of the target column. The following DataTable column types are supported 
+for the ``X`` frame: ``bool``, ``int``, ``real`` and ``str``.
 
 
 Resetting a Model
