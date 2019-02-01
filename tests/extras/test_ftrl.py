@@ -643,6 +643,9 @@ def test_ftrl_disable_nbins_setter_after_fit():
             == str(e.value))
     ft.reset()
     ft.nbins = 100
+    ft.fit(df_train, df_target)
+    assert ft.model[0].nrows == 100
+    assert ft.model[0].ncols == 2
 
 
 #-------------------------------------------------------------------------------
