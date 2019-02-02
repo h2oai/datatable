@@ -1,5 +1,5 @@
 Build from Source
------------------
+=================
 
 The key component needed for building the ``datatable`` package from source is the `Clang/Llvm <https://releases.llvm.org/download.html>`__ distribution. The same distribution is also required for building the ``llvmlite`` package, which is a prerequisite for ``datatable``. Note that the ``clang`` compiler which is shipped with MacOS is too old, and in particular it doesn't have support for the OpenMP technology.
 
@@ -40,12 +40,12 @@ Building ``datatable``
 2. Build ``datatable``:
 
  ::
-  
+
    $ make build
    $ make install
    $ make test
 
-3. Additional commands you may find occasionally interesting: 
+3. Additional commands you may find occasionally interesting:
 
  ::
 

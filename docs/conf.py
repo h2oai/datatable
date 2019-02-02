@@ -101,7 +101,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     "canonical_url": "https://datatable.readthedocs.io/en/latest/",
     "style_external_links": True,
-    "collapse_navigation": True,
+    "collapse_navigation": False,
     "sticky_navigation": True,
     "titles_only": True,
 }

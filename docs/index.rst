@@ -88,8 +88,13 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Installation
+   :maxdepth: 3
+   :hidden:
+
+   quick-start
+
+.. toctree::
+   :hidden:
 
    install
 
