@@ -1,12 +1,12 @@
 FTRL
 ====
 
-This section describes the FTRL (Follow the Regularized Leader) model as implemented in DataTable.
+This section describes the FTRL (Follow the Regularized Leader) model as implemented in datatable.
 
 FTRL Model Information
 ----------------------
 
-The Follow the Regularized Leader (FTRL) model is a DataTable implementation of 
+The Follow the Regularized Leader (FTRL) model is a datatable implementation of 
 the FTRL-Proximal online learning 
 `algorithm <https://research.google.com/pubs/archive/41159.pdf>`__
 for binomial logistic regression. It uses a
@@ -78,7 +78,7 @@ Use the ``fit()`` method to train a model for a binomial logistic regression pro
   
 where ``X`` is a frame of shape ``(nrows, ncols)`` to be trained on,
 and ``y`` is a frame of shape ``(nrows, 1)`` having a ``bool`` type
-of the target column. The following DataTable column types are supported 
+of the target column. The following datatable column types are supported 
 for the ``X`` frame: ``bool``, ``int``, ``real`` and ``str``.
 
 
