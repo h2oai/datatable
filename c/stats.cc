@@ -189,7 +189,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 
     #pragma omp critical
     {
-      if (t_count_notna > 0) {
+      if (t_count_notna) {
         size_t nold = count_notna;
         count_notna += t_count_notna;
         sum += t_sum;

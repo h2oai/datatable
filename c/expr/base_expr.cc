@@ -516,7 +516,7 @@ class expr_reduce_nullary : public base_expr {
     size_t opcode;
 
   public:
-    expr_reduce_nullary(size_t op);
+    explicit expr_reduce_nullary(size_t op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(workframe& wf) override;

@@ -56,7 +56,7 @@ def get_file_list(*path, skip=None):
     else:
         rem = set()
     out = set()
-    for dirname, subdirs, files in os.walk(rootdir):
+    for dirname, _, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
             try:

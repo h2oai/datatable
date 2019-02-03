@@ -381,6 +381,7 @@ class SortContext {
     o = nullptr;
     next_o = nullptr;
     strdata = nullptr;
+    histogram = nullptr;
     use_order = false;
     descending = false;
 

@@ -138,7 +138,7 @@
       const char* name() const override { return "viewed"; }
 
     private:
-      ViewedMRI(const MemoryRange& src);
+      explicit ViewedMRI(const MemoryRange& src);
     };
 
 

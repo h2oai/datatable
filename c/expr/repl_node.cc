@@ -38,7 +38,7 @@ class frame_rn : public repl_node {
   DataTable* dtr;
 
   public:
-    frame_rn(DataTable* dt_) : dtr(dt_) {}
+    explicit frame_rn(DataTable* dt_) : dtr(dt_) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;
@@ -229,7 +229,7 @@ class scalar_int_rn : public scalar_rn {
   int64_t value;
 
   public:
-    scalar_int_rn(int64_t x) : value(x) {}
+    explicit scalar_int_rn(int64_t x) : value(x) {}
 
   protected:
     const char* value_type() const noexcept override;
@@ -290,7 +290,7 @@ class scalar_float_rn : public scalar_rn {
   double value;
 
   public:
-    scalar_float_rn(double x) : value(x) {}
+    explicit scalar_float_rn(double x) : value(x) {}
 
   protected:
     const char* value_type() const noexcept override;

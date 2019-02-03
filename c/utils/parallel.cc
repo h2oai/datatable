@@ -46,6 +46,7 @@ void run_interleaved(rangefn run, size_t nrows)
     if (nrows < min_nrows_per_thread * static_cast<size_t>(nth0)) {
       nth0 = static_cast<int>(nrows / min_nrows_per_thread);
     }
+    xassert(nth0 > 0);
     OmpExceptionManager oem;
     #pragma omp parallel num_threads(nth0)
     {

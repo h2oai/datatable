@@ -892,6 +892,7 @@ def test_fread_nthreads(capsys):
     dt.fread(text="A\n1\n2\n3", verbose=True, nthreads=1)
     out, err = capsys.readouterr()
     assert "Using 1 thread" in out
+    assert not err
 
 
 

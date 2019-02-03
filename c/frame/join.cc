@@ -408,35 +408,36 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   }
 
   arr32_t arr_result_indices(xdt->nrows);
-  int32_t* result_indices = arr_result_indices.data();
+  if (xdt->nrows) {
+    int32_t* result_indices = arr_result_indices.data();
+    size_t nchunks = std::min(xdt->nrows / 200,
+                              static_cast<size_t>(config::nthreads));
+    if (!nchunks) nchunks = 1;
 
-  size_t nchunks = std::min(xdt->nrows / 200,
-                            static_cast<size_t>(config::nthreads));
+    OmpExceptionManager oem;
+    #pragma omp parallel num_threads(nchunks)
+    {
+      try {
+        // Creating the comparator may fail if xcols and jcols are incompatible
+        MultiCmp comparator(xcols, jcols, xdt, jdt);
 
-  OmpExceptionManager oem;
-  #pragma omp parallel num_threads(nchunks)
-  {
-    try {
-      // Creating the comparator may fail if xcols and jcols are incompatible
-      MultiCmp comparator(xcols, jcols, xdt, jdt);
-
-      #pragma omp for
-      for (size_t i = 0; i < xdt->nrows; ++i) {
-        int r = comparator.set_xrow(i);
-        if (r == 0) {
-          size_t j = binsearch(&comparator, jdt->nrows);
-          result_indices[i] = static_cast<int32_t>(j);
-        } else {
-          result_indices[i] = -1;
+        #pragma omp for
+        for (size_t i = 0; i < xdt->nrows; ++i) {
+          int r = comparator.set_xrow(i);
+          if (r == 0) {
+            size_t j = binsearch(&comparator, jdt->nrows);
+            result_indices[i] = static_cast<int32_t>(j);
+          } else {
+            result_indices[i] = -1;
+          }
         }
+      } catch (...) {
+        oem.capture_exception();
       }
-
-    } catch (...) {
-      oem.capture_exception();
     }
+    oem.rethrow_exception_if_any();
   }
 
-  oem.rethrow_exception_if_any();
   return RowIndex(std::move(arr_result_indices));
 }
 

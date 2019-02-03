@@ -65,7 +65,7 @@ class onerow_in : public i_node {
     int64_t irow;
 
   public:
-    onerow_in(int64_t i);
+    explicit onerow_in(int64_t i);
     void post_init_check(workframe&) override;
     void execute(workframe&) override;
     void execute_grouped(workframe&) override;
@@ -196,11 +196,11 @@ void slice_in::execute_grouped(workframe& wf) {
     }
   }
   else if (step < 0) {
-    int32_t start, stop;
     for (size_t g = 0; g < ng; ++g) {
       int32_t off0 = group_offsets[g - 1];
       int32_t off1 = group_offsets[g];
       int32_t n = off1 - off0;
+      int32_t start, stop;
       start = istart == py::oslice::NA || istart >= n
               ? n - 1 : static_cast<int32_t>(istart);
       if (start < 0) start += n;
