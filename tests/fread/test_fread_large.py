@@ -165,6 +165,9 @@ def test_h2o3_bigdata(f):
         os.path.join("jira", "re0.wc.arff.txt.zip"),
         os.path.join("jira", "rotterdam.csv.zip"),
         os.path.join("parser", "hexdev_497", "milsongs_csv.zip"),
+        os.path.join("glm", "GLM_model_python_1543520565753_1.zip"),
+        os.path.join("glm", "GLM_model_python_1543520565753_3.zip"),
+        os.path.join("glm", "GLM_model_python_1544561074878_1.zip"),
         # requires `comment` parameter
         os.path.join("new-poker-hand.full.311M.txt"),
         # files with 36M columns
@@ -173,6 +176,7 @@ def test_h2o3_bigdata(f):
         # broken CRC zip files
         os.path.join("jira", "tenThousandCat50C.csv.zip"),
         os.path.join("jira", "tenThousandCat100C.csv.zip"),
+        os.path.join("parser", "year2005.csv.gz"),
     }
     filledna_files = {
         os.path.join("lending-club", "LoanStats3a.csv"),
