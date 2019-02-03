@@ -58,16 +58,18 @@ def same_iterables(a, b):
     in older Python versions the test will be weaker, taking into account the
     non-deterministic nature of the dictionary that created the datatable.
     """
-    if type(a) != type(b) or len(a) != len(b):
+    ta = type(a)
+    tb = type(b)
+    if ta != tb or len(a) != len(b):
         return False
     if sys.version_info >= (3, 6):
         return list_equals(a, b)
     else:
         js = set(range(len(a)))
-        for i in range(len(a)):
+        for i, ai in enumerate(a):
             found = False
             for j in js:
-                if list_equals(a[i], b[j]):
+                if list_equals(ai, b[j]):
                     found = True
                     js.remove(j)
                     break

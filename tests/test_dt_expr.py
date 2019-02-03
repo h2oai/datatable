@@ -291,7 +291,6 @@ def test_abs_all_stypes():
 
 def test_exp():
     from datatable import exp
-    import math
     assert exp(0) == math.exp(0)
     assert exp(1) == math.exp(1)
     assert exp(-2.5e12) == math.exp(-2.5e12)

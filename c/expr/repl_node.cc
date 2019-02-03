@@ -337,7 +337,7 @@ class scalar_string_rn : public scalar_rn {
   std::string value;
 
   public:
-    scalar_string_rn(std::string&& x) : value(std::move(x)) {}
+    explicit scalar_string_rn(std::string&& x) : value(std::move(x)) {}
 
   protected:
     const char* value_type() const noexcept override;
@@ -388,7 +388,7 @@ class collist_rn : public repl_node {
   intvec indices;
 
   public:
-    collist_rn(cols_intlist* cl) : indices(std::move(cl->indices)) {}
+    explicit collist_rn(cols_intlist* cl) : indices(std::move(cl->indices)) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;
@@ -422,7 +422,7 @@ class exprlist_rn : public repl_node {
   exprvec exprs;
 
   public:
-    exprlist_rn(cols_exprlist* cl) : exprs(std::move(cl->exprs)) {}
+    explicit exprlist_rn(cols_exprlist* cl) : exprs(std::move(cl->exprs)) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;

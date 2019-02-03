@@ -70,8 +70,8 @@ class RowIndexImpl {
     RowIndexImpl& operator=(RowIndexImpl&&) = delete;
     virtual ~RowIndexImpl();
 
-    void acquire();
-    void release();
+    RowIndexImpl* acquire();
+    RowIndexImpl* release();
 
     virtual size_t nth(size_t i) const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;

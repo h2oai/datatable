@@ -203,7 +203,7 @@ def _collapse_ranges(ranges, ja):
     and merge them into `ranges[ja]`. Finally, return the new index of the
     ja-th range within the `ranges` list.
     """
-    arow0, arow1, acol0, acol1 = ranges[ja]
+    arow0, _, acol0, acol1 = ranges[ja]
     jb = 0
     while jb < len(ranges):
         if jb == ja:

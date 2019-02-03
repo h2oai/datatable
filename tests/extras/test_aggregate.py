@@ -30,7 +30,6 @@ from datatable import ltype
 from datatable.extras.aggregate import aggregate
 from datatable.internal import get_rowindex
 import inspect
-import pytest
 
 
 #-------------------------------------------------------------------------------

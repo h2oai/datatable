@@ -307,8 +307,7 @@ void StringColumn<T>::reify() {
           T off0 = offs0[j] & ~GETNA<T>();
           T str_len = offs1[j] - off0;
           if (str_len != 0) {
-            std::memcpy(strs_dest, strs_src + off0, str_len);
-            strs_dest += str_len;
+            std::memcpy(strs_dest + prev_off, strs_src + off0, str_len);
             prev_off += str_len;
           }
           offs_dest[i] = prev_off;

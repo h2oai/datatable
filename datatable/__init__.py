@@ -39,7 +39,7 @@ from .utils.typechecks import TValueError as ValueError
 from .utils.typechecks import DatatableWarning
 try:
     from .__git__ import __git_revision__
-except:
+except ImportError:
     __git_revision__ = ""
 
 

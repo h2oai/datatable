@@ -969,6 +969,7 @@ def test_anonymize1(capsys):
         assert not err
         assert "На наші сльози сміючись." not in out
         assert "UU UUUU UUUUUU UUUUUUUU." in out
+        assert d1.shape == (4, 1)
     finally:
         dt.options.fread.anonymize = False
 

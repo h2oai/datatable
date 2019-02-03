@@ -148,7 +148,7 @@ class collist_jn : public j_node {
     strvec names;
 
   public:
-    collist_jn(cols_intlist*);
+    explicit collist_jn(cols_intlist*);
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;

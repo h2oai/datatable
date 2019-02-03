@@ -105,7 +105,9 @@ class ReplaceAgent {
     size_t : 56;
 
   public:
-    ReplaceAgent(DataTable* _dt) : dt(_dt), columns_cast(false) {}
+    ReplaceAgent(DataTable* _dt)
+      : dt(_dt), xmin_int(0), xmax_int(0), xmin_real(0), xmax_real(0),
+        columns_cast(false) {}
     void parse_x_y(const Arg& x, const Arg& y);
     void split_x_y_by_type();
     void process_bool_column(size_t i);

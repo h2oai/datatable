@@ -654,14 +654,14 @@ void FreadReader::detect_column_types()
     }
     if (nChunks == 1 && tch == eof) {
       if (header == 1) n_sample_lines--;
-      estnrow = allocnrow = n_sample_lines;
-      trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
+      allocnrow = n_sample_lines;
+      trace("All rows were sampled since file is small so we know nrows=%zd exactly", allocnrow);
     } else {
       xassert(n_sample_lines <= allocnrow);
     }
     if (max_nrows < allocnrow) {
       trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
-      estnrow = allocnrow = max_nrows;
+      allocnrow = max_nrows;
     }
   }
   fo.n_lines_sampled = n_sample_lines;

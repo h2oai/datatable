@@ -49,13 +49,13 @@
   struct MemoryRange::internal {
     std::unique_ptr<BaseMRI> impl;
 
-    internal(BaseMRI* _impl) : impl(std::move(_impl)) {}
+    explicit internal(BaseMRI* _impl) : impl(std::move(_impl)) {}
   };
 
 
   class MemoryMRI : public BaseMRI {
     public:
-      MemoryMRI(size_t n);
+      explicit MemoryMRI(size_t n);
       MemoryMRI(size_t n, void* ptr);
       ~MemoryMRI() override;
 
@@ -73,7 +73,7 @@
     public:
       ExternalMRI(size_t n, const void* ptr);
       ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
-      ExternalMRI(const char* str);
+      explicit ExternalMRI(const char* str);
       ~ExternalMRI() override;
 
       void resize(size_t n) override;
@@ -152,7 +152,7 @@
       int : 16;
 
     public:
-      MmapMRI(const std::string& path);
+      explicit MmapMRI(const std::string& path);
       MmapMRI(size_t n, const std::string& path, int fd);
       MmapMRI(size_t n, const std::string& path, int fd, bool create);
       virtual ~MmapMRI() override;

@@ -44,7 +44,7 @@ class pylistNP : public NameProvider {
     const py::olist& names;
 
   public:
-    pylistNP(const py::olist& arg) : names(arg) {}
+    explicit pylistNP(const py::olist& arg) : names(arg) {}
     virtual size_t size() const override;
     virtual CString item_as_cstring(size_t i) override;
     virtual py::oobj item_as_pyoobj(size_t i) override;
@@ -56,7 +56,7 @@ class strvecNP : public NameProvider {
     const strvec& names;
 
   public:
-    strvecNP(const std::vector<std::string>& arg) : names(arg) {}
+    explicit strvecNP(const std::vector<std::string>& arg) : names(arg) {}
     virtual size_t size() const override;
     virtual CString item_as_cstring(size_t i) override;
     virtual py::oobj item_as_pyoobj(size_t i) override;
@@ -747,6 +747,7 @@ namespace dttest {
     dt->names = { "foo", "foo" };
     test_assert(check1, "Duplicate name 'foo' for column 1");
     dt->names = { "foo", "f\x0A\x0D" };
+    xassert(dt->names.size() == 2);  // silence warning about unused dt->names
     test_assert(check1, "Invalid character '\\x0a' in column 1's name");
     dt->names = { "one", "two" };
 

@@ -28,7 +28,7 @@ import sys
 import time
 import datatable as dt
 from collections import namedtuple
-from datatable import stype, ltype, f, isna
+from datatable import stype, ltype
 from datatable.internal import get_rowindex
 from tests import same_iterables, list_equals, noop
 
@@ -207,10 +207,10 @@ def test_dt_getitem(dt0):
 
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
-        dt0[tuple()]
+        noop(dt0[tuple()])
     assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
     with pytest.raises(ValueError) as e:
-        dt0[(None,)]
+        noop(dt0[(None,)])
     assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
 
 

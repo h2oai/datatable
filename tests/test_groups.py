@@ -31,12 +31,14 @@ from tests import same_iterables, assert_equals
 def test_groups_internal0():
     d0 = dt.Frame([1, 2, 3])
     ri, gby = d0.internal.sort(0, False)
+    assert ri is not None
     assert gby is None
 
 
 def test_groups_internal1():
     d0 = dt.Frame([2, 7, 2, 3, 7, 2, 2, 0, None, 0])
     ri, gby = d0.internal.sort(0, True)
+    assert ri is not None
     assert d0.nrows == 10
     assert gby.ngroups == 5
     assert gby.group_sizes == [1, 2, 4, 1, 2]

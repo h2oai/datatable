@@ -34,16 +34,14 @@
 RowIndex::RowIndex() : impl(nullptr) {}
 
 // copy-constructor, performs shallow copying
-RowIndex::RowIndex(const RowIndex& other) {
-  impl = other.impl;
-  if (impl) impl->acquire();
+RowIndex::RowIndex(const RowIndex& other) : RowIndex() {
+  if (other.impl) impl = other.impl->acquire();
 }
 
 // assignment operator, performs shallow copying
 RowIndex& RowIndex::operator=(const RowIndex& other) {
-  if (impl) impl->release();
-  impl = other.impl;
-  if (impl) impl->acquire();
+  if (impl) impl = impl->release();
+  if (other.impl) impl = other.impl->acquire();
   return *this;
 }
 
@@ -54,62 +52,52 @@ RowIndex::RowIndex(RowIndex&& other) {
 }
 
 RowIndex::~RowIndex() {
-  if (impl) impl->release();
+  if (impl) impl = impl->release();
 }
 
 
 // Private constructor
 RowIndex::RowIndex(RowIndexImpl* rii) {
-  impl = rii;
-  if (impl) impl->acquire();
+  impl = rii? rii->acquire() : nullptr;
 }
 
 
 RowIndex::RowIndex(size_t start, size_t count, size_t step){
-  impl = new SliceRowIndexImpl(start, count, step);
-  impl->acquire();
+  impl = (new SliceRowIndexImpl(start, count, step))->acquire();
 }
 
 RowIndex::RowIndex(const arr64_t& starts,
                    const arr64_t& counts,
                    const arr64_t& steps) {
-  impl = new ArrayRowIndexImpl(starts, counts, steps);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(starts, counts, steps))->acquire();
 }
 
 RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
-  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
 }
 
 RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
-  impl = new ArrayRowIndexImpl(std::move(arr), sorted);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
 }
 
 RowIndex::RowIndex(arr32_t&& arr, size_t min, size_t max) {
-  impl = new ArrayRowIndexImpl(std::move(arr), min, max);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
 }
 
 RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
-  impl = new ArrayRowIndexImpl(std::move(arr), min, max);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
 }
 
 RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
-  impl = new ArrayRowIndexImpl(f, n, sorted);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
 }
 
 RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
-  impl = new ArrayRowIndexImpl(f, n, sorted);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
 }
 
 RowIndex::RowIndex(const Column* col) {
-  impl = new ArrayRowIndexImpl(col);
-  impl->acquire();
+  impl = (new ArrayRowIndexImpl(col))->acquire();
 }
 
 
@@ -313,13 +301,16 @@ RowIndexImpl::RowIndexImpl()
 RowIndexImpl::~RowIndexImpl() {}
 
 
-void RowIndexImpl::acquire() {
+RowIndexImpl* RowIndexImpl::acquire() {
   refcount++;
+  return this;
 }
 
-void RowIndexImpl::release() {
+RowIndexImpl* RowIndexImpl::release() {
   refcount--;
-  if (!refcount) delete this;
+  if (refcount) return this;
+  delete this;
+  return nullptr;
 }
 
 
