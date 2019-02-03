@@ -88,30 +88,26 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
 
 
 .. toctree::
-   :maxdepth: 3
+   :caption: Getting started
    :hidden:
 
    quick-start
-
-.. toctree::
-   :hidden:
-
-   install
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Common Tasks
-
    using-datatable
+
+.. toctree::
+  :maxdepth: 2
+  :hidden:
+
+  install
 
 .. toctree::
    :maxdepth: 2
    :caption: Python API
 
-   frame.rst
+   frame
 
 .. toctree::
    :maxdepth: 2
    :caption: Models
 
-   ftrl.rst
+   ftrl

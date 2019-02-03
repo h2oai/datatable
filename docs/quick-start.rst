@@ -2,6 +2,9 @@
 Getting started
 ===============
 
+Install datatable
+-----------------
+
 Let's begin by installing the latest stable version of ``datatable`` from PyPI:
 
 .. code-block:: bash
@@ -26,7 +29,8 @@ a JupyterLab notebook, or in Python console:
   </div></div>
 
 
-Loading the data
+
+Load the data
 ----------------
 
 The fundamental unit of analysis in datatable is a data ``Frame``. It is the
@@ -54,6 +58,7 @@ You can also load a CSV/text/Excel file, or open a previously saved binary
 The ``fread()`` function shown above is both powerful and extremely fast. It can
 automatically detect parse parameters for the majority of text files, load data
 from .zip archives or URLs, read Excel files, and much more.
+
 
 
 Data manipulation
@@ -137,6 +142,7 @@ of the Frame, then the elements in the subset ``[i, j]`` are replaced with
 NAs.
 
 
+
 What the f.?
 ------------
 
@@ -188,3 +194,6 @@ At some point you may notice that that datatable also exports symbol ``g``. This
 the evaluated expression. This second frame appears when you are *joining* two
 or more frames together (more on that later). When that happens, symbol ``g`` is
 used to refer to the columns of the joined frame.
+
+
+
