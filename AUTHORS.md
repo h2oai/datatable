@@ -7,7 +7,9 @@ of `datatable` is sponsored by H2O.ai.
 In the lists below each person is listed with their GitHub id in parentheses.
 
 ### Developers
+
 - Pasha Stetsenko (st-pasha)
+
 - Matt Dowle (mattdowle), the main author of R `data.table`, who
   - built the library which paved path for this project,
   - allowed to use the name "datatable",
@@ -45,7 +47,7 @@ a copy of those license terms to the end user. Such copies are listed below:
 
 <details>
     <summary>Apache License v2</summary>
-
+```text
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -222,12 +224,13 @@ a copy of those license terms to the end user. Such copies are listed below:
        of your accepting any such warranty or additional liability.
 
     END OF TERMS AND CONDITIONS
+```
 </details>
 
 
 <details>
     <summary>MIT license</summary>
-
+```text
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
@@ -245,4 +248,5 @@ a copy of those license terms to the end user. Such copies are listed below:
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
+```
 </details>

@@ -284,10 +284,10 @@ void GenericReader::init_overridecolumntypes() {
 
 
 //------------------------------------------------------------------------------
-// Main read() function
+// Main read_all() function
 //------------------------------------------------------------------------------
 
-std::unique_ptr<DataTable> GenericReader::read()
+std::unique_ptr<DataTable> GenericReader::read_all()
 {
   open_input();
   detect_and_skip_bom();
@@ -299,12 +299,12 @@ std::unique_ptr<DataTable> GenericReader::read()
   std::unique_ptr<DataTable> dt(nullptr);
   if (!dt) dt = read_empty_input();
   if (!dt) detect_improper_files();
-  if (!dt) dt = FreadReader(*this).read();
-  // if (!dt) dt = ArffReader(*this).read();
+  if (!dt) dt = FreadReader(*this).read_all();
+  // if (!dt) dt = ArffReader(*this).read_all();
   if (!dt) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
-  return dt;  // copy-elision
+  return dt;
 }
 
 

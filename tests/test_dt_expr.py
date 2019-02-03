@@ -124,16 +124,16 @@ def test_f_col_selector_bound2():
 
 def test_f_col_selector_invalid():
     with pytest.raises(TypeError) as e:
-        f[2.5]
+        noop(f[2.5])
     assert str(e.value) == ("Column selector should be an integer or a string, "
                             "not <class 'float'>")
     # Note: at some point we may start supporting all the expressions below:
     with pytest.raises(TypeError):
-        f[[7, 4]]
+        noop(f[[7, 4]])
     with pytest.raises(TypeError):
-        f[("A", "B", "C")]
+        noop(f[("A", "B", "C")])
     with pytest.raises(TypeError):
-        f[:3]
+        noop(f[:3])
 
 
 def test_f_expressions():

@@ -100,7 +100,7 @@ previous tests are passing.
 Clean and descriptive commit messages keep the maintainers happy, so please
 take a minute to polish yours.
 
-Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
+Preferable message structure (from: <http://git-scm.com/book/ch5-2.html>):
 
 > ```text
 > Short (50 chars or less) summary of changes

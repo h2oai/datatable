@@ -19,7 +19,7 @@ ArffReader::ArffReader(GenericReader& greader) : g(greader) {}
 
 ArffReader::~ArffReader() {}
 
-std::unique_ptr<DataTable> ArffReader::read() {
+std::unique_ptr<DataTable> ArffReader::read_all() {
   g.trace("[ARFF reader]");
   ch = g.dataptr();
   line = 1;

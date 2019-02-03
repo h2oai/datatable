@@ -14,19 +14,20 @@ from math import isnan
 # run any tests (which will all fail anyways). Additionally, we attempt to
 # resolve any obfuscated C++ names, for convenience.
 try:
-    from datatable.lib import core as c
-    assert c
+    from datatable.lib import core
+    assert core
 except ImportError as e:
     import re
-    import subprocess
+    from subprocess import check_output
     mm = re.search(r"dlopen\(.*\): Symbol not found: (\w+)", e.msg)
-    try:
-        symbol = mm.group(1)
-        decoded = subprocess.check_output(["c++filt", symbol]).decode().strip()
-        e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
-    except:
-        # mm is None, or subprocess fail to find c++filt, etc.
-        pass
+    if mm:
+        try:
+            symbol = mm.group(1)
+            decoded = check_output(["c++filt", symbol]).decode().strip()
+            e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
+        except FileNotFoundError:
+            # subprocess fail to find c++filt, etc.
+            pass
     raise e
 
 

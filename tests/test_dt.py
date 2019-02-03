@@ -174,6 +174,7 @@ def test_internal():
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()
+    assert not err
     assert ("      A   B   C     D   E   F  G    \n"
             "---  --  --  --  ----  --  --  -----\n"
             " 0    2   1   1   0.1       0  1    \n"
@@ -196,10 +197,10 @@ def test_dt_getitem(dt0):
     elem2 = dt0[0, 1]
     assert elem2 is True
     with pytest.raises(TypeError) as e:
-        dt0[0, 1, 2, 3]
+        noop(dt0[0, 1, 2, 3])
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
     with pytest.raises(ValueError) as e:
-        dt0["A"]
+        noop(dt0["A"])
     assert ("Single-item selectors `DT[col]` are prohibited"
             in str(e.value))
 
