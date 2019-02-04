@@ -15,7 +15,7 @@ If this didn't work for you, or if you want to install the bleeding edge
 version of the library, please check the :doc:`Installation </install>` page.
 
 Assuming the installation was successful, you can now import the library in
-a JupyterLab notebook, or in Python console:
+a JupyterLab notebook or in a Python console:
 
 ::
 
@@ -34,11 +34,11 @@ Loading data
 ------------
 
 The fundamental unit of analysis in datatable is a data ``Frame``. It is the
-same notion as a pandas DataFrame, or SQL table: data arranged in
+same notion as a pandas DataFrame or SQL table: data arranged in a
 two-dimensional array with rows and columns.
 
 You can create a ``Frame`` object from a variety of data sources: from a python
-list or dictionary, from numpy array, or from pandas DataFrame.
+list or dictionary, from a numpy array, or from a pandas DataFrame.
 
 ::
 
@@ -107,7 +107,7 @@ In short, almost all operations with a Frame can be expressed as
    :format: html
 
 where :raw-html:`<b class="i">i</b>` is the row selector,
-:raw-html:`<b class="j">j</b>` the column selector, and ``...`` indicates
+:raw-html:`<b class="j">j</b>` is the column selector, and ``...`` indicates
 that additional modifiers might be added. If this looks familiar to you,
 that's because it is. Exactly the same ``DT[i, j]`` notation is used in
 mathematics when indexing matrices, in C/C++, in R, in pandas, in numpy, etc.
@@ -118,11 +118,11 @@ a range, a list of integers, a list of slices, an expression, a boolean-valued
 Frame, an integer-valued Frame, an integer numpy array, a generator, and so on.
 
 The :raw-html:`<b class="j">j</b>` column selector is even more versatile.
-In simplest case you can select just a single column by its index or name. But
-also a list of columns, a slice, a string slice (of the form ``"A":"Z"``), a
+In the simplest case, you can select just a single column by its index or name. But
+also accepted are a list of columns, a slice, a string slice (of the form ``"A":"Z"``), a
 list of booleans indicating which columns to pick, an expression, a list of
-expressions, a dictionary of expressions (the keys will be used as new names
-for the columns being selected). The :raw-html:`<b class="j">j</b>`
+expressions, and a dictionary of expressions. (The keys will be used as new names
+for the columns being selected.) The :raw-html:`<b class="j">j</b>`
 expression can even be a python type (such as ``int`` or ``dt.float32``),
 selecting all columns matching that type.
 
@@ -152,7 +152,7 @@ What the f.?
 
 You may have noticed already that we mentioned several times the possibility
 of using expressions in :raw-html:`<span class="i">i</span>` or
-:raw-html:`<span class="j">j</span>`, and in other places. In the simplest form
+:raw-html:`<span class="j">j</span>` and in other places. In the simplest form
 an expression looks like
 
 ::
@@ -160,7 +160,7 @@ an expression looks like
   f.ColA
 
 which indicates a column ``ColA`` in some Frame. Here ``f`` is a variable that
-has to be imported from datatable module. This variable provides a convenient
+has to be imported from the datatable module. This variable provides a convenient
 way to reference any column in a Frame. In addition to the notation above, the
 following is also supported:
 
@@ -171,7 +171,7 @@ following is also supported:
 
 denoting the fourth column and the column ``ColB`` respectively.
 
-These f-expression support arithmetic operations, various mathematical and
+These f-expression support arithmetic operations as well as various mathematical and
 aggregate functions. For example, in order to select the values from column
 ``A`` normalized to range ``[0; 1]`` we can write the following:
 
@@ -189,12 +189,12 @@ This is equivalent to the following SQL query:
 So, what exactly is ``f``? We call it a "frame proxy", as it becomes a
 simple way to refer to the Frame that we currently operate on. More precisely,
 whenever ``DT[i, j]`` is evaluated and we encounter an ``f``-expression there,
-that ``f`` becomes replaced with the frame ``DT`` and the columns are looked
+that ``f`` becomes replaced with the frame ``DT``, and the columns are looked
 up on that Frame. The same expression can later on be applied to a different
 Frame, and it will refer to the columns in that other Frame.
 
 At some point you may notice that that datatable also exports symbol ``g``. This
-``g`` is also a frame proxy, however it already refers to the *second* frame in
+``g`` is also a frame proxy; however it already refers to the *second* frame in
 the evaluated expression. This second frame appears when you are *joining* two
 or more frames together (more on that later). When that happens, symbol ``g`` is
 used to refer to the columns of the joined frame.
@@ -204,7 +204,7 @@ used to refer to the columns of the joined frame.
 Groupbys / joins
 ----------------
 
-In the `Data Manipulation`_ section we mentioned that ``DT[i, j, ...]`` selector
+In the `Data Manipulation`_ section we mentioned that the ``DT[i, j, ...]`` selector
 can take zero or more modifiers, which we denoted as ``...``. The available
 modifiers are ``by()``, ``join()`` and ``sort()``. Thus, the full form of the
 square-bracket selector is:
@@ -226,7 +226,7 @@ This modifier splits the frame into groups by the provided column(s), and then
 applies :raw-html:`<b class="i">i</b>` and :raw-html:`<b class="j">j</b>` within
 each group. This mostly affects aggregator functions such as ``sum()``,
 ``min()`` or ``sd()``, but may also apply in other circumstances. For example,
-if :raw-html:`<b class="i">i</b>` is a slice that takes first 5 rows of a frame,
+if :raw-html:`<b class="i">i</b>` is a slice that takes the first 5 rows of a frame,
 then in the presence of the ``by()`` modifier it will take the first 5 rows of
 each group.
 
@@ -275,8 +275,8 @@ prefix, for example::
 
     DT[:, sum(f.quantity * g.price), join(products)]
 
-.. note:: In the future we will expand the syntax of the join operator to
-          allow other kinds of joins, and also to remove the limitation that
+.. note:: In the future, we will expand the syntax of the join operator to
+          allow other kinds of joins and also to remove the limitation that
           only keyed frames can be joined.
 
 
@@ -284,12 +284,12 @@ prefix, for example::
 Offloading data
 ---------------
 
-Just as our work has started with loading some data into datatable, eventually
+Just as our work has started with loading some data into ``datatable``, eventually
 you will want to do the opposite: store or move the data somewhere else. We
 support multiple mechanisms for this.
 
-First, the data can be converted into a pandas DataFrame or into a numpy array
-(obviously, you have to have pandas or numpy libraries installed)::
+First, the data can be converted into a pandas DataFrame or into a numpy array.
+(Obviously, you have to have pandas or numpy libraries installed.)::
 
     DT.to_pandas()
     DT.to_numpy()

@@ -56,15 +56,15 @@ Introduction
 
 Data is everywhere. From the smallest photon interactions to galaxy collisions,
 from mouse movements on a screen to economic developments of countries, we are
-surrounded by the sea of information. Human mind cannot comprehend this data in
+surrounded by the sea of information. The human mind cannot comprehend this data in
 all its complexity; since ancient times people found it much easier to reduce
 the dimensionality, to impose a strict order, to arrange the data points neatly
 on a rectangular grid: to make a **data table**.
 
 But once the data has been collected into a table, it has been tamed. It may
-still need some grooming and exercise, essentially it is no longer scary. Even
+still need some grooming and exercise, essentially so it is no longer scary. Even
 if it is really Big Data, with the **right tools** you can approach it, play
-with it, bend to your will, *master*.
+with it, bend it to your will, *master* it.
 
 Python ``datatable`` module is the right tool for the task. It is a library that
 implements a wide (and growing) range of operators for manipulating
