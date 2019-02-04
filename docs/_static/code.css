@@ -3,7 +3,87 @@ body {
   counter-reset: cc;
 }
 
-div.document div.notranslate {
+#first-section { display: flex; }
+
+#first-section .part1 { padding-right: 32pt; }
+#first-section .part2 { flex-grow: 1; }
+#first-section #dt-logo { width: 100px; }
+
+#first-section .chyron { margin: 12pt 0 0 0; }
+
+div.main-toc {
+  display: flex;
+  margin: 8pt 0 30pt 0;
+}
+
+div.large-links {
+  flex-grow: 2;
+}
+
+div.large-links a {
+  display: block;
+  font-size: 150%;
+  margin: 5pt 24pt 0 16pt;
+  padding: 5pt 10pt;
+}
+
+div.large-links a:hover {
+  background-color: #E9EEF5;
+}
+
+div.large-links a i.fa {
+  font-size: 80%;
+  position: relative;
+  top: -1pt;
+  left: -3pt;
+}
+
+div.small-links {
+  flex-grow: 1;
+  padding-top: 16pt;
+}
+
+div.small-links div {
+  padding: 3pt 0;
+}
+
+.rst-content code.literal {
+  background: none;
+  border-style: none;
+  color: #7795BD;
+  font-size: 85%;
+  padding: 0;
+}
+
+.rst-content.style-external-links a.reference.external.image-reference::after {
+  content: '';
+}
+
+
+/* ------- All code highlighting -------------------------------------------- */
+
+div.document p + div.notranslate {
+  margin-top: -12px;
+}
+
+
+
+/* ------- Shell code highlighting ------------------------------------------ */
+
+div.document div.notranslate.highlight-bash {
+  border-style: none;
+}
+
+div.document div.notranslate.highlight-bash .highlight {
+  background-color: #444;
+  color: #CCC;
+}
+
+
+
+/* ------- Python code highlighting ----------------------------------------- */
+
+div.document div.notranslate.highlight-default {
   border: none;
   counter-increment: cc;
   display: flex;
@@ -12,15 +92,11 @@ div.document div.notranslate {
   margin: 0 0 24px 0;
 }
 
-div.document p + div.notranslate {
-  margin-top: -12px;
-}
-
-div.document div.notranslate + div.output-cell {
+div.document div.notranslate.highlight-default + div.output-cell {
   margin-top: -16px;
 }
 
-div.document div.notranslate:before {
+div.document div.notranslate.highlight-default:before {
   color: #A6D2BB;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
@@ -31,17 +107,19 @@ div.document div.notranslate:before {
   text-align: right;
 }
 
-div.document div.notranslate div.highlight {
+div.document div.notranslate.highlight-default div.highlight {
   background: #F5F5F5;
   border: 1px solid #E0E0E0;
   border-radius: 3px;
   flex: 1 1 auto;
 }
 
-div.document div.notranslate div.highlight pre {
+div.document div.notranslate.highlight-default div.highlight pre {
   padding: .5em 1em;
 }
 
+
+/* ------- Output highlighting ---------------------------------------------- */
 
 div.document div.output-cell {
   border: none;
@@ -60,6 +138,16 @@ div.document div.output-cell:before {
   padding: .385em;
   text-align: right;
 }
+
+div.document div.output-cell .highlight {
+  background: none;
+  border: none;
+}
+
+div.document div.output-cell .highlight pre {
+  padding: 4pt 10pt;
+}
+
 
 .datatable table.frame {
   border: none;
