@@ -10,10 +10,6 @@ import random
 import sys
 from math import isnan
 
-def run_cmd(*args):
-    from subprocess import check_output as run
-    return run(args).decode().strip()
-
 
 # Try importing _datatable (core lib), so that if that doesn't work we don't
 # run any tests (which will all fail anyways). Additionally, we attempt to
@@ -26,11 +22,12 @@ except ImportError as e:
     mm = re.search(r"dlopen\(.*\): Symbol not found: (\w+)", e.msg)
     if mm:
         try:
+            from subprocess import check_output as run
             symbol = mm.group(1)
-            decoded = run_cmd("c++filt", symbol)
+            decoded = run(["/usr/bin/c++filt", symbol]).decode().strip()
             e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
         except FileNotFoundError:
-            # subprocess fail to find c++filt, etc.
+            # if /usr/bin/c++filt does not exist
             pass
     raise e
 
