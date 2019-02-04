@@ -216,7 +216,7 @@ void insert_sort_values_str(
 
 
 //==============================================================================
-// Explicitly instantate template functions
+// Explicitly instantiate template functions
 //==============================================================================
 
 template void insert_sort_keys(const uint8_t*,  int32_t*, int32_t*, int, GroupGatherer&);

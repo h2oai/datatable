@@ -971,6 +971,11 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 
 
 void Ftrl::set_nbins(robj py_nbins) {
+  if ((*dtft)[0]->is_trained()) {
+    throw ValueError() << "Cannot set `nbins` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+
   uint64_t nbins = static_cast<uint64_t>(py_nbins.to_size_t());
   py::Validator::check_positive(nbins, py_nbins);
   for (size_t i = 0; i < dtft->size(); ++i) {
