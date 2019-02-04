@@ -10,23 +10,25 @@ import random
 import sys
 from math import isnan
 
+
 # Try importing _datatable (core lib), so that if that doesn't work we don't
 # run any tests (which will all fail anyways). Additionally, we attempt to
 # resolve any obfuscated C++ names, for convenience.
 try:
-    from datatable.lib import core as c
-    assert c
+    from datatable.lib import core
+    assert core
 except ImportError as e:
     import re
-    import subprocess
     mm = re.search(r"dlopen\(.*\): Symbol not found: (\w+)", e.msg)
-    try:
-        symbol = mm.group(1)
-        decoded = subprocess.check_output(["c++filt", symbol]).decode().strip()
-        e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
-    except:
-        # mm is None, or subprocess fail to find c++filt, etc.
-        pass
+    if mm:
+        try:
+            from subprocess import check_output as run
+            symbol = mm.group(1)
+            decoded = run(["/usr/bin/c++filt", symbol]).decode().strip()
+            e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
+        except FileNotFoundError:
+            # if /usr/bin/c++filt does not exist
+            pass
     raise e
 
 
@@ -57,16 +59,18 @@ def same_iterables(a, b):
     in older Python versions the test will be weaker, taking into account the
     non-deterministic nature of the dictionary that created the datatable.
     """
-    if type(a) != type(b) or len(a) != len(b):
+    ta = type(a)
+    tb = type(b)
+    if ta != tb or len(a) != len(b):
         return False
     if sys.version_info >= (3, 6):
         return list_equals(a, b)
     else:
         js = set(range(len(a)))
-        for i in range(len(a)):
+        for ai in a:
             found = False
             for j in js:
-                if list_equals(a[i], b[j]):
+                if list_equals(ai, b[j]):
                     found = True
                     js.remove(j)
                     break

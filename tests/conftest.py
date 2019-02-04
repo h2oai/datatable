@@ -104,7 +104,4 @@ def tempfile():
 def tempdir():
     dirname = mod_tempfile.mkdtemp()
     yield dirname
-    try:
-        shutil.rmtree(dirname)
-    except:
-        pass
+    shutil.rmtree(dirname, ignore_errors=True)

@@ -87,7 +87,7 @@ PyObject* gread(PyObject*, PyObject* args)
   py::robj pyreader(arg1);
 
   GenericReader rdr(pyreader);
-  std::unique_ptr<DataTable> dtptr = rdr.read();
+  std::unique_ptr<DataTable> dtptr = rdr.read_all();
   return py::Frame::from_datatable(dtptr.release());
 }
 

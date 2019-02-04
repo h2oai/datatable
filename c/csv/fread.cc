@@ -30,7 +30,7 @@
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-std::unique_ptr<DataTable> FreadReader::read()
+std::unique_ptr<DataTable> FreadReader::read_all()
 {
   detect_lf();
   skip_preamble();

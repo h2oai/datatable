@@ -80,7 +80,7 @@ def test__range2d_to_excel():
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
 def test__excel_coords_to_range2d(seed):
     random.seed(seed)
-    for i in range(100):
+    for _ in range(100):
         row0 = int(random.expovariate(0.001))
         row1 = int(random.expovariate(0.001)) + row0 + 1
         col0 = int(random.expovariate(0.001))

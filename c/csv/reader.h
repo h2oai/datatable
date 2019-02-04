@@ -112,7 +112,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    dtptr read();
+    dtptr read_all();
 
     /**
      * Return the pointer to the input data buffer and its size. The method

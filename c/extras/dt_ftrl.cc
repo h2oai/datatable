@@ -190,8 +190,8 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
 
   // Do feature interactions if required. We may also want to test
   // just a simple `h = x[i+1] + x[j+1]` approach here.
-  size_t count = 0;
   if (params.interactions) {
+    size_t count = 0;
     for (size_t i = 0; i < ncols - 1; ++i) {
       for (size_t j = i + 1; j < ncols; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);

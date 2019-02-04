@@ -28,7 +28,7 @@ import sys
 import time
 import datatable as dt
 from collections import namedtuple
-from datatable import stype, ltype, f, isna
+from datatable import stype, ltype
 from datatable.internal import get_rowindex
 from tests import same_iterables, list_equals, noop
 
@@ -174,6 +174,7 @@ def test_internal():
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()
+    assert not err
     assert ("      A   B   C     D   E   F  G    \n"
             "---  --  --  --  ----  --  --  -----\n"
             " 0    2   1   1   0.1       0  1    \n"
@@ -196,20 +197,20 @@ def test_dt_getitem(dt0):
     elem2 = dt0[0, 1]
     assert elem2 is True
     with pytest.raises(TypeError) as e:
-        dt0[0, 1, 2, 3]
+        noop(dt0[0, 1, 2, 3])
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
     with pytest.raises(ValueError) as e:
-        dt0["A"]
+        noop(dt0["A"])
     assert ("Single-item selectors `DT[col]` are prohibited"
             in str(e.value))
 
 
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
-        dt0[tuple()]
+        noop(dt0[tuple()])
     assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
     with pytest.raises(ValueError) as e:
-        dt0[(None,)]
+        noop(dt0[(None,)])
     assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
 
 

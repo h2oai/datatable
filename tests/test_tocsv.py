@@ -96,10 +96,12 @@ def test_strategy(capsys, tempfile):
     d = dt.Frame({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
     d.to_csv(tempfile, _strategy="mmap", verbose=True)
     out, err = capsys.readouterr()
+    assert out
     assert err == ""
     # assert ("Creating and memory-mapping destination file " + tempfile) in out
     d.to_csv(tempfile, _strategy="write", verbose=True)
     out, err = capsys.readouterr()
+    assert out
     assert err == ""
     # assert ("Creating an empty destination file " + tempfile) in out
 

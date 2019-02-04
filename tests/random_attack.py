@@ -53,7 +53,7 @@ class Attacker:
         if frame is None:
             frame = Frame0()
         print("Launching an attack for %d rounds" % rounds)
-        for i in range(rounds):
+        for _ in range(rounds):
             print(":", end='', flush=True)
             self.attack_frame(frame)
             if exhaustive_checks:

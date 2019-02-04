@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from tests import noop
 
 
 def test_options_all():
@@ -41,7 +42,7 @@ def test_option_api():
 
 def test_option_bad():
     with pytest.raises(AttributeError):
-        dt.options.gooo
+        noop(dt.options.gooo)
 
     with pytest.raises(ValueError) as e:
         dt.options.register_option("gooo", str, 3, "??")

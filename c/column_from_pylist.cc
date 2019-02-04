@@ -33,7 +33,7 @@ class ilist : public iterable {
     const py::olist& list;
 
   public:
-    ilist(const py::olist& src);
+    explicit ilist(const py::olist& src);
     size_t size() const override;
     py::robj item(size_t i) const override;
 };
