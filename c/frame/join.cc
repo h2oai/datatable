@@ -410,7 +410,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   arr32_t arr_result_indices(xdt->nrows);
   if (xdt->nrows) {
     int32_t* result_indices = arr_result_indices.data();
-    size_t nchunks = std::min(std::max(xdt->nrows / 200, 1),
+    size_t nchunks = std::min(std::max(xdt->nrows / 200, size_t(1)),
                               static_cast<size_t>(config::nthreads));
     xassert(nchunks);
 
