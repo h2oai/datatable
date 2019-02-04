@@ -26,7 +26,7 @@
           <a class="reference internal" href="quick-start.html">
             <i class="fa fa-chevron-circle-right"></i> Getting Started
           </a>
-          <a class="reference internal" href="user-guide.html">
+          <a class="reference internal" href="using-datatable.html">
             <i class="fa fa-chevron-circle-right"></i> User Guide
           </a>
           <a class="reference internal" href="api-reference.html">
@@ -74,41 +74,33 @@ addition, ``datatable`` strives to achieve good user experience, helpful error
 messages, and powerful API similar to R ``data.table``'s.
 
 
-**Contributing**
-
-``datatable`` is an open source project released under the Mozilla Public Licence v2. Open Source projects live by their user and developer communities. We welcome and encourage your contributions of any kind!
-
-No matter what your skill set or level of engagement is with ``datatable``, you can help others by improving the ecosystem of documentation, bug report and feature request tickets, and code.
-
-We invite anyone who is interested to contribute, whether through pull requests, or tests, or GitHub issues, API suggestions, or generic discussion.
-
-**Have Questions?**
-
-If you have questions about using ``datatable``, post them on Stack Overflow using the ``[datatable] [python]`` tags at http://stackoverflow.com/questions/tagged/datatable+python.
-
 
 .. toctree::
-   :caption: Getting started
-   :maxdepth: 2
-   :hidden:
+    :caption: Getting started
+    :maxdepth: 2
+    :hidden:
 
-   quick-start
-   using-datatable
-
-.. toctree::
-  :maxdepth: 2
-  :hidden:
-
-  install
+    quick-start
+    using-datatable
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Python API
+    :maxdepth: 2
+    :hidden:
 
-   frame
+    install
+    contrib
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Models
+    :maxdepth: 2
+    :caption: API reference
+    :hidden:
 
-   ftrl
+    api/frame
+    api/ftrl
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Models
+    :hidden:
+
+    ftrl
