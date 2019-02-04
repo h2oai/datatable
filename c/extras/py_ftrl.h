@@ -52,6 +52,8 @@ class Ftrl : public PyObject {
         static PKArgs args_fit;
         static PKArgs args_predict;
         static NoArgs args_reset;
+        static NoArgs fn___getstate__;
+        static PKArgs fn___setstate__;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }

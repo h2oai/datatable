@@ -32,7 +32,7 @@ public:
   ArffReader(GenericReader&);
   ~ArffReader();
 
-  std::unique_ptr<DataTable> read();
+  std::unique_ptr<DataTable> read_all();
 
 private:
   // Read the comment lines at the beginning of the file, and store them in

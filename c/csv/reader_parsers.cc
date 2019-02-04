@@ -237,7 +237,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
   ch += (neg = (*ch=='-')) + (*ch=='+');
 
   if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
-      (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
+      (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
     ch += 3;
     uint32_t acc = 0;
     if (*ch == '.') {
@@ -376,7 +376,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
 
   // Now scan the "exponent" part of the number (if present)
   if (*ch == 'E' || *ch == 'e') {
-    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    ch += 1/*E*/ + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
     int_fast32_t exp = 0;
     if ((digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
       exp = digit;
@@ -522,7 +522,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       acc <<= (13 - ndigits) * 4;
     }
     if (*ch!='p' && *ch!='P') goto fail;
-    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    ch += 1 + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
     uint64_t E = 0;
     while ( (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
       E = 10*E + digit;

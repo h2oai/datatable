@@ -294,12 +294,11 @@ int decode_escaped_csv_string(
           }
           case 'x': case 'u': case 'U': {
             // Hex-sequence
-            uint8_t chd = 0;
             int32_t v = 0;
             int n = (c == 'x')? 2 : (c == 'u')? 4 : 8;
             for (int i = 0; i < n; i++) {
               if (ch >= end) break;
-              chd = hexdigits[*ch];
+              uint8_t chd = hexdigits[*ch];
               if (chd == 99) break;
               v = v * 16 + chd;
               ch++;

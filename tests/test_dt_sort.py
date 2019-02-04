@@ -680,7 +680,7 @@ def test_strXX_large6(st):
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
     words = []
-    for dirname, subdirs, files in os.walk(rootdir):
+    for dirname, _, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
             txt = open(f, "r", encoding="utf-8").read()

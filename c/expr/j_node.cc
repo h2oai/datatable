@@ -148,7 +148,7 @@ class collist_jn : public j_node {
     strvec names;
 
   public:
-    collist_jn(cols_intlist*);
+    explicit collist_jn(cols_intlist*);
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
@@ -255,7 +255,7 @@ class exprlist_jn : public j_node {
     strvec names;
 
   public:
-    exprlist_jn(cols_exprlist*);
+    explicit exprlist_jn(cols_exprlist*);
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;

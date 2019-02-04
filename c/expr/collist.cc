@@ -71,6 +71,7 @@ class collist_maker
     {
       is_update = (mode == EvalMode::UPDATE);
       is_delete = (mode == EvalMode::DELETE);
+      has_new_columns = false;
       dt0 = wf.get_datatable(0);
       type = list_type::UNKNOWN;
       k = 0;

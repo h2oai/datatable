@@ -110,7 +110,8 @@ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.7.
 pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.7.0/datatable-0.7.0-cp36-cp36m-linux_x86_64.whl
 ```
 
-On all other platforms a source distribution will be needed. For more information see [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions).
+On all other platforms a source distribution will be needed. For more
+information see [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions).
 
 
 ## See also

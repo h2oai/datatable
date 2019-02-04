@@ -892,6 +892,7 @@ def test_fread_nthreads(capsys):
     dt.fread(text="A\n1\n2\n3", verbose=True, nthreads=1)
     out, err = capsys.readouterr()
     assert "Using 1 thread" in out
+    assert not err
 
 
 
@@ -969,6 +970,7 @@ def test_anonymize1(capsys):
         assert not err
         assert "На наші сльози сміючись." not in out
         assert "UU UUUU UUUUUU UUUUUUUU." in out
+        assert d1.shape == (4, 1)
     finally:
         dt.options.fread.anonymize = False
 

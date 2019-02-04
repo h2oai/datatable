@@ -124,7 +124,7 @@ public:
   explicit FreadReader(const GenericReader&);
   virtual ~FreadReader() override;
 
-  std::unique_ptr<DataTable> read();
+  std::unique_ptr<DataTable> read_all();
 
   // Simple getters
   double get_mean_line_len() const { return meanLineLen; }

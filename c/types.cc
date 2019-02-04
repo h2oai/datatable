@@ -80,10 +80,9 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 struct STypeInfo {
   size_t      elemsize;
   const char* name;
-  char        code2[3];
   LType       ltype;
   bool        varwidth;
-  int : 24;  // padding
+  size_t : 48;  // padding
 };
 
 
@@ -93,7 +92,7 @@ static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 void init_types(void)
 {
   #define STI(T, code2, name, csize, vw, ltype) \
-      stype_info[int(T)] = STypeInfo{csize, name, code2, ltype, vw}
+      stype_info[int(T)] = STypeInfo{csize, name, ltype, vw}
   STI(SType::VOID,    "--", "void",    0, 0, LType::MU);
   STI(SType::BOOL,    "b1", "bool8",   1, 0, LType::BOOL);
   STI(SType::INT8,    "i1", "int8",    1, 0, LType::INT);
@@ -164,10 +163,6 @@ void init_types(void)
       char ch = static_cast<char>(i);
       xassert((ch >= '0' && ch <= '9') ==
               (static_cast<uint_fast8_t>(ch - '0') < 10));
-    }
-
-    for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
-      xassert(static_cast<SType>(i) == stype_from_string(stype_info[i].code2));
     }
   #endif
 }

@@ -161,7 +161,7 @@ def is_reallike(x):
     try:
         float(x)
         return True
-    except:
+    except (ValueError, TypeError):
         return False
 
 

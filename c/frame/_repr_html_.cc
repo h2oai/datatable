@@ -74,7 +74,7 @@ class HtmlWidget {
     static bool styles_emitted;
 
   public:
-    HtmlWidget(DataTable* dt_) {
+    explicit HtmlWidget(DataTable* dt_) {
       const size_t maxcols = 15;  // TODO: make configurable
       const size_t maxrows = 15;
       dt = dt_;

@@ -37,7 +37,7 @@ public:
   const char* strbuf;
   writer_fn writer;
 
-  CsvColumn(Column *col) {
+  explicit CsvColumn(Column* col) {
     data = col->data();
     strbuf = nullptr;
     writer = writers_per_stype[static_cast<int>(col->stype())];

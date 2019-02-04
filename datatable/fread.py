@@ -144,6 +144,8 @@ class GenericReader(object):
                 self._progress = progress
             else:
                 raise TTypeError("`progress_fn` argument should be a function")
+        else:
+            self._progress = self._progress_internal
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -664,7 +666,7 @@ class GenericReader(object):
         if not(hasattr(l, "debug") and callable(l.debug) and
                (hasattr(l.debug, "__func__") and
                 l.debug.__func__.__code__.co_argcount >= 2 or
-                type(l) is type and hasattr(l.debug, "__code__") and
+                isinstance(l, type) and hasattr(l.debug, "__code__") and
                 l.debug.__code__.co_argcount >= 1)):
             # Allow either an instance of a class with .debug(self, msg) method,
             # or the class itself, with static `.debug(msg)` method.
@@ -700,7 +702,7 @@ class GenericReader(object):
 
     #---------------------------------------------------------------------------
 
-    def _progress(self, progress, status):
+    def _progress_internal(self, progress, status):
         """
         Invoked from the C level to inform that the file reading progress has
         reached the specified level (expressed as a number from 0 to 1).
