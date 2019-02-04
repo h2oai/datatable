@@ -10,6 +10,11 @@ import random
 import sys
 from math import isnan
 
+def run_cmd(*args):
+    from subprocess import check_output as run
+    return run(args).decode().strip()
+
+
 # Try importing _datatable (core lib), so that if that doesn't work we don't
 # run any tests (which will all fail anyways). Additionally, we attempt to
 # resolve any obfuscated C++ names, for convenience.
@@ -18,12 +23,11 @@ try:
     assert core
 except ImportError as e:
     import re
-    from subprocess import check_output
     mm = re.search(r"dlopen\(.*\): Symbol not found: (\w+)", e.msg)
     if mm:
         try:
             symbol = mm.group(1)
-            decoded = check_output(["c++filt", symbol]).decode().strip()
+            decoded = run_cmd("c++filt", symbol)
             e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
         except FileNotFoundError:
             # subprocess fail to find c++filt, etc.
@@ -66,7 +70,7 @@ def same_iterables(a, b):
         return list_equals(a, b)
     else:
         js = set(range(len(a)))
-        for i, ai in enumerate(a):
+        for ai in a:
             found = False
             for j in js:
                 if list_equals(ai, b[j]):

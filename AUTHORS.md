@@ -47,6 +47,7 @@ a copy of those license terms to the end user. Such copies are listed below:
 
 <details>
     <summary>Apache License v2</summary>
+
 ```text
                                  Apache License
                            Version 2.0, January 2004
@@ -230,6 +231,7 @@ a copy of those license terms to the end user. Such copies are listed below:
 
 <details>
     <summary>MIT license</summary>
+
 ```text
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
