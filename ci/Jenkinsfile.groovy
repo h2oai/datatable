@@ -715,7 +715,7 @@ ansiColor('xterm') {
                                        """
                                 }
                             }
-                            docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init") {
+                            docker.image('harbor.h2o.ai/opsh2oai/hub').inside("--init --entrypoint /bin/bash") {
                                 withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
                                     def releaseMsg = """v${versionText}
