@@ -134,7 +134,7 @@ class HtmlWidget {
       for (size_t j = 0; j < ncols; ++j) {
         if (j == cols0) {
           j = ncols - cols1;
-          html << "<th class='vellipsis'>&hellip;</th>";
+          html << "<td></td>";
         }
         SType stype = dt->columns[j]->stype();
         size_t elemsize = info(stype).elemsize();
