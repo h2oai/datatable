@@ -709,7 +709,7 @@ ansiColor('xterm') {
                                         
                                         s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-linux_ppc64le.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-linux_ppc64le.whl
                                         s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-linux_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-linux_x86_64.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-macosx_10_7_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-macosx_10_7_x86_64.whl
+                                        #s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-macosx_10_7_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-macosx_10_7_x86_64.whl
                                         
                                         s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}.tar.gz ${S3_URL_LATEST_STABLE}/datable-0.latest.tar.gz
                                        """
