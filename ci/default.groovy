@@ -5,7 +5,7 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 
-GENERIC_VERSION_REGEX = /^### \[v(\d+\.)+\d\].*/
+GENERIC_VERSION_REGEX = /^## \[(\d+\.)+\d\].*/
 
 def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extraEnv) {
     dumpInfo()
@@ -148,7 +148,7 @@ def getChangelogPartForVersion(final version, final changelogPath = 'CHANGELOG.m
     def changelogLines = readFile(changelogPath).readLines()
 
     def startIndex = changelogLines.findIndexOf {
-        it ==~ /^### \[v${version}\].*/
+        it ==~ /^## \[${version}\].*/
     }
     if (startIndex == -1) {
         error 'Cannot find Changelog for this version'
