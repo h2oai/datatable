@@ -14,33 +14,6 @@
 
 
 /**
- * Create an array of columns by taking a slice from columns of DataTable `dt`.
- */
-Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
-                            int64_t start, int64_t count, int64_t step)
-{
-  if (dt == nullptr) return nullptr;
-  int64_t icols = static_cast<int64_t>(dt->ncols);
-  if ((count < 0 || start < 0 || start >= icols ||
-       start + step < 0 || start + step * (count - 1) >= icols) &&
-      !(count == 0 && start == 0)) {
-    throw ValueError() << "Invalid slice " << start << ":" << count << ":"
-                       << step << " for a DataTable with " << dt->ncols
-                       << " columns";
-  }
-
-  Column** columns = dt::amalloc<Column*>(count + 1);
-  columns[count] = nullptr;
-
-  for (int64_t i = 0, j = start; i < count; i++, j += step) {
-    columns[i] = dt->columns[static_cast<size_t>(j)]->shallowcopy(rowindex);
-  }
-  return columns;
-}
-
-
-
-/**
  * Create a list of columns from "mixed" sources: some columns are taken from
  * the datatable `dt` directly, others are computed with function `mapfn`.
  *

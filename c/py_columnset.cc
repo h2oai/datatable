@@ -54,21 +54,6 @@ int unwrap(PyObject* object, void* address) {
 
 //==============================================================================
 
-PyObject* columns_from_slice(PyObject*, PyObject *args) {
-  PyObject *arg1, *arg2;
-  int64_t start, count, step;
-  if (!PyArg_ParseTuple(args, "OOLLL:columns_from_slice",
-                        &arg1, &arg2, &start, &count, &step))
-    return nullptr;
-  DataTable* dt = py::robj(arg1).to_frame();
-  RowIndex rowindex = py::robj(arg2).to_rowindex();
-
-  Column** columns = columns_from_slice(dt, rowindex, start, count, step);
-  PyObject* res = wrap(columns, static_cast<size_t>(count));
-  return res;
-}
-
-
 PyObject* columns_from_mixed(PyObject*, PyObject *args)
 {
   PyObject* arg1, *arg2;

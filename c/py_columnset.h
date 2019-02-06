@@ -56,12 +56,6 @@ DECLARE_METHOD(
 //---- External API ------------------------------------------------------------
 
 DECLARE_FUNCTION(
-  columns_from_slice,
-  "columns_from_slice(dt, rowindex, start, count, step)\n\n"
-  "Retrieve set of columns as a slice of columns in DataTable `dt`.\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   columns_from_mixed,
   "columns_from_mixed()\n\n",
   HOMEFLAG)
