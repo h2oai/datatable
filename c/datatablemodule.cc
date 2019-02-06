@@ -21,7 +21,6 @@
 #include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
-#include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_groupby.h"
@@ -221,7 +220,6 @@ PyInit__datatable()
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
-    if (!pycolumnset::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
     if (!pygroupby::static_init(m)) return nullptr;
     if (!pyrowindex::static_init(m)) return nullptr;
