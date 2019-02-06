@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #define dt_PY_COLUMNSET_cc
 #include "py_columnset.h"
-#include "columnset.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
