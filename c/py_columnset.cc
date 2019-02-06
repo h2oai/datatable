@@ -54,33 +54,6 @@ int unwrap(PyObject* object, void* address) {
 
 //==============================================================================
 
-PyObject* columns_from_mixed(PyObject*, PyObject *args)
-{
-  PyObject* arg1, *arg2;
-  size_t nrows;
-  long long rawptr;
-  if (!PyArg_ParseTuple(args, "OOlL:columns_from_mixed",
-                        &arg1, &arg2, &nrows, &rawptr))
-    return nullptr;
-  py::olist pyspec = py::robj(arg1).to_pylist();
-  DataTable* dt = py::robj(arg2).to_frame();
-
-  columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
-  size_t ncols = pyspec.size();
-  int64_t* spec = dt::amalloc<int64_t>(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    auto elem = pyspec[i];
-    if (elem.is_int()) {
-      spec[i] = elem.to_int64_strict();
-      xassert(spec[i] >= 0);
-    } else {
-      spec[i] = -elem.get_attr("itype").to_int64_strict();
-    }
-  }
-  return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr), ncols);
-}
-
-
 PyObject* columns_from_columns(PyObject*, PyObject* args)
 {
   PyObject* col_list;

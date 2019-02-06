@@ -176,7 +176,6 @@ if that column has no RowIndex.
 //------------------------------------------------------------------------------
 
 void DatatableModule::init_methods() {
-  add(METHODv(pycolumnset::columns_from_mixed));
   add(METHODv(pycolumnset::columns_from_columns));
   add(METHODv(pycolumn::column_from_list));
   add(METHODv(pyrowindex::rowindex_from_slice));

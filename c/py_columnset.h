@@ -56,11 +56,6 @@ DECLARE_METHOD(
 //---- External API ------------------------------------------------------------
 
 DECLARE_FUNCTION(
-  columns_from_mixed,
-  "columns_from_mixed()\n\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   columns_from_columns,
   "columns_from_columns(cols)\n\n"
   "Create a ColumnSet from a Python list of columns.",
