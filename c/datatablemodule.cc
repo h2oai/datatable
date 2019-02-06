@@ -21,7 +21,6 @@
 #include "frame/py_frame.h"
 #include "options.h"
 #include "py_column.h"
-#include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_groupby.h"
@@ -176,9 +175,6 @@ if that column has no RowIndex.
 //------------------------------------------------------------------------------
 
 void DatatableModule::init_methods() {
-  add(METHODv(pycolumnset::columns_from_mixed));
-  add(METHODv(pycolumnset::columns_from_slice));
-  add(METHODv(pycolumnset::columns_from_columns));
   add(METHODv(pycolumn::column_from_list));
   add(METHODv(pyrowindex::rowindex_from_slice));
   add(METHODv(pyrowindex::rowindex_from_slicelist));
@@ -224,7 +220,6 @@ PyInit__datatable()
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
-    if (!pycolumnset::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
     if (!pygroupby::static_init(m)) return nullptr;
     if (!pyrowindex::static_init(m)) return nullptr;
