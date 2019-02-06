@@ -51,33 +51,6 @@ int unwrap(PyObject* object, void* address) {
 }
 
 
-//==============================================================================
-
-PyObject* columns_from_columns(PyObject*, PyObject* args)
-{
-  PyObject* col_list;
-  if (!PyArg_ParseTuple(args, "O!:columns_from_columns",
-                        &PyList_Type, &col_list))
-    return nullptr;
-
-  size_t ncols = static_cast<size_t>(PyList_Size(col_list));
-  Column** columns = dt::amalloc<Column*>(ncols + 1);
-  for (size_t i = 0; i < ncols; ++i) {
-    PyObject* elem = PyList_GET_ITEM(col_list, i);
-    int ret = pycolumn::unwrap(elem, columns + i);
-    if (!ret) {
-      for (size_t j = 0; j < i; ++j) delete columns[j];
-      dt::free(columns);
-      return nullptr;
-    }
-    reinterpret_cast<pycolumn::obj*>(elem)->ref = nullptr;
-  }
-  columns[ncols] = nullptr;
-
-  return wrap(columns, ncols);
-}
-
-
 
 //==============================================================================
 // Methods
