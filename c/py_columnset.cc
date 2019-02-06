@@ -19,17 +19,6 @@
 namespace pycolumnset
 {
 
-static PyObject* wrap(Column** columns, size_t ncols)
-{
-  if (!columns) return nullptr;
-  PyObject* pytype = reinterpret_cast<PyObject*>(&type);
-  PyObject* result = PyObject_CallObject(pytype, nullptr);
-  if (!result) return nullptr;
-  static_cast<obj*>(result)->columns = columns;
-  static_cast<obj*>(result)->ncols = ncols;
-  return result;
-}
-
 
 /**
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
