@@ -56,19 +56,6 @@ int unwrap(PyObject* object, void* address) {
 // Methods
 //==============================================================================
 
-PyObject* to_frame(obj* self, PyObject* args) {
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:to_frame", &arg1)) return nullptr;
-  py::olist names = py::robj(arg1).to_pylist();
-
-  std::vector<Column*> columns;
-  for (Column** pcol = self->columns; *pcol; pcol++) {
-    columns.push_back(*pcol);
-  }
-  self->columns = nullptr;
-  DataTable* dt = new DataTable(std::move(columns), names);
-  return py::Frame::from_datatable(dt);
-}
 
 
 PyObject* append_columns(obj* self, PyObject* args) {
@@ -125,7 +112,6 @@ static PyObject* repr(obj* self)
 //==============================================================================
 
 static PyMethodDef methods[] = {
-  METHODv(to_frame),
   METHODv(append_columns),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };

@@ -41,12 +41,6 @@ DECLARE_DESTRUCTOR()
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  to_frame,
-  "to_frame(self, names)\n"
-  "--\n\n"
-  "Convert this ColumnSet into a Frame, with the provided names.")
-
-DECLARE_METHOD(
   append_columns,
   "Add another ColumnSet to the current. This append uses move semantics:\n"
   "after this call, the other ColumnSet becomes empty.")
