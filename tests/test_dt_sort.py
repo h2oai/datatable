@@ -904,3 +904,14 @@ def test_sort_expr():
                   dt.Frame(A=[1, 2, 1, 2], B=[0.1, 2.7, 3.9, 4.5]))
     assert_equals(df[:, 'B', by("A"), sort("B")],
                   dt.Frame(A=[1, 1, 2, 2], B=[0.1, 3.9, 2.7, 4.5]))
+
+
+def test_h2oai7014(tempfile):
+    data = dt.Frame([[None, 't'], [3580, 1047]], names=["ID", "count"])
+    data.save(tempfile)
+    # The data has to be opened from file
+    counts = dt.open(tempfile)
+    counts = counts[1:, :]
+    counts = counts[:, :, sort("count")]
+    counts.materialize()
+    assert counts.to_list() == [['t'], [1047]]
