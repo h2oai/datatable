@@ -44,7 +44,7 @@ inline void htoa(char** pch, int16_t value)
     *ch++ = '-';
     value = -value;
   }
-  int r = (value < 1000)? 2 : 4;
+  unsigned int r = (value < 1000)? 2 : 4;
   for (; value < DIVS32[r]; r--);
   for (; r; r--) {
     int d = value / DIVS32[r];
