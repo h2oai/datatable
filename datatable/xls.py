@@ -259,7 +259,7 @@ def _excel_coords_to_range2d(ec):
             i = i * 26 + (ord(c) - ord('A')) + 1
         return i - 1
 
-    mm = re.match("([A-Z]+)(\d+):([A-Z]+)(\d+)", ec)
+    mm = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", ec)
     if not mm:
         return None
     row0 = int(mm.group(2)) - 1

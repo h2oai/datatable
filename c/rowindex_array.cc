@@ -30,13 +30,15 @@
 #include "utils/assert.h"
 #include "utils/parallel.h"
 
-static void test(ArrayRowIndexImpl* o) {
-  #ifndef NDEBUG
+#ifndef NDEBUG
+  inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
     o->verify_integrity();
     o->refcount--;
-  #endif
-}
+  }
+#else
+  inline static void test(ArrayRowIndexImpl*) {}
+#endif
 
 
 

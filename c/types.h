@@ -387,8 +387,8 @@ template<> inline bool ISNA(int32_t x)  { return x == NA_I4; }
 template<> inline bool ISNA(int64_t x)  { return x == NA_I8; }
 template<> inline bool ISNA(uint32_t x) { return (x & NA_S4); }
 template<> inline bool ISNA(uint64_t x) { return (x & NA_S8); }
-template<> inline bool ISNA(float x)    { return isnan(x); }
-template<> inline bool ISNA(double x)   { return isnan(x); }
+template<> inline bool ISNA(float x)    { return std::isnan(x); }
+template<> inline bool ISNA(double x)   { return std::isnan(x); }
 template<> inline bool ISNA(PyObject* x) { return x == Py_None; }
 
 /**
