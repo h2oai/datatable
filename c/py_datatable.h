@@ -67,10 +67,6 @@ DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
 
-DECLARE_GETSET(
-  groupby,
-  "Groupby applied to the Frame, or None if no groupby was applied")
-
 DECLARE_GETTER(
   datatable_ptr,
   "Get pointer (converted to an int) to the wrapped DataTable object")

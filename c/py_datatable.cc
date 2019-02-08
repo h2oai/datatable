@@ -13,7 +13,6 @@
 #include "datatable.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
-#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
@@ -118,18 +117,6 @@ PyObject* get_isview(obj* self) {
   return incref(Py_False);
 }
 
-
-
-PyObject* get_groupby(obj* self) {
-  Groupby& gb = self->ref->groupby;
-  return gb.ngroups()? pygroupby::wrap(gb) : none();
-}
-
-int set_groupby(obj* self, PyObject* value) {
-  Groupby* gb = pygroupby::unwrap(value);
-  self->ref->replace_groupby(gb? *gb : Groupby());
-  return 0;
-}
 
 
 PyObject* get_datatable_ptr(obj* self) {
@@ -596,7 +583,6 @@ static PyMethodDef datatable_methods[] = {
 
 static PyGetSetDef datatable_getseters[] = {
   GETTER(isview),
-  GETSET(groupby),
   GETTER(datatable_ptr),
   GETTER(alloc_size),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */

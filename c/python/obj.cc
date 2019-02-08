@@ -27,7 +27,6 @@
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
-#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
@@ -520,15 +519,6 @@ strvec _obj::to_stringlist(const error_manager&) const {
 //------------------------------------------------------------------------------
 // Object conversions
 //------------------------------------------------------------------------------
-
-Groupby* _obj::to_groupby(const error_manager& em) const {
-  if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pygroupby::type)) {
-    throw em.error_not_groupby(v);
-  }
-  return static_cast<pygroupby::obj*>(v)->ref;
-}
-
 
 RowIndex _obj::to_rowindex(const error_manager& em) const {
   if (v == Py_None) {

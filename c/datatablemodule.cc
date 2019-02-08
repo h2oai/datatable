@@ -23,7 +23,6 @@
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
-#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
@@ -221,7 +220,6 @@ PyInit__datatable()
     if (!init_py_types(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
-    if (!pygroupby::static_init(m)) return nullptr;
     if (!pyrowindex::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
     init_jay();
