@@ -220,19 +220,6 @@ PyObject* column(obj* self, PyObject* args) {
 
 
 
-PyObject* replace_rowindex(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
-    return nullptr;
-  RowIndex newri = py::robj(arg1).to_rowindex();
-
-  dt->replace_rowindex(newri);
-  Py_RETURN_NONE;
-}
-
-
-
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   size_t final_ncols;
@@ -403,7 +390,6 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
-  // METHODv(replace_rowindex),
   METHODv(rbind),
   METHODv(join),
   METHOD0(get_min),

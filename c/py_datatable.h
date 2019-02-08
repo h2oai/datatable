@@ -91,11 +91,6 @@ DECLARE_METHOD(
   "column(index)\n\n"
   "Get the requested column in the datatable")
 
-DECLARE_METHOD(
-  replace_rowindex,
-  "replace_rowindex(rowindex)\n\n"
-  "Replace the current rowindex on the datatable with the new one.")
-
 
 DECLARE_METHOD(
   rbind,
