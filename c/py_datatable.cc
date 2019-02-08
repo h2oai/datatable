@@ -220,28 +220,6 @@ PyObject* column(obj* self, PyObject* args) {
 
 
 
-PyObject* delete_columns(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:delete_columns", &arg1))
-    return nullptr;
-  py::olist list = py::robj(arg1).to_pylist();
-  size_t ncols = list.size();
-
-  std::vector<size_t> cols_to_remove;
-  cols_to_remove.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    cols_to_remove.push_back(list[i].to_size_t());
-  }
-  dt->delete_columns(cols_to_remove);
-
-  _clear_types(self);
-  Py_RETURN_NONE;
-}
-
-
-
-
 PyObject* replace_rowindex(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   PyObject* arg1;
@@ -369,7 +347,7 @@ PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   size_t final_ncols;
   PyObject* list;
-  if (!PyArg_ParseTuple(args, "lO!:delete_columns",
+  if (!PyArg_ParseTuple(args, "lO!:rbind",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
   size_t ndts = static_cast<size_t>(PyList_Size(list));
@@ -535,7 +513,6 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
-  METHODv(delete_columns),
   METHODv(replace_rowindex),
   METHODv(replace_column_slice),
   METHODv(replace_column_array),

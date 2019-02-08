@@ -92,10 +92,6 @@ DECLARE_METHOD(
   "Get the requested column in the datatable")
 
 DECLARE_METHOD(
-  delete_columns,
-  "Remove the specified list of columns from the datatable")
-
-DECLARE_METHOD(
   replace_rowindex,
   "replace_rowindex(rowindex)\n\n"
   "Replace the current rowindex on the datatable with the new one.")
