@@ -490,8 +490,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
     res->compactify();
     return res;
   }
-  xassert(min >= 0);
-  xassert(max < rii->length);
+  xassert(max < rii->length || max == RowIndex::NA);
   if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
     arr32_t rowsres(length);
