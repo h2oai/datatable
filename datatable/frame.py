@@ -376,10 +376,12 @@ class Frame(core.Frame):
     def scalar(self):
         """
         For a 1x1 Frame return its content as a python object.
-
-        Raises an error if the shape of the Frame is not 1x1.
         """
-        return self._dt.to_scalar()
+        warnings.warn(
+            "Method `Frame.scalar()` is deprecated (will be removed in 0.10.0),"
+            "please use `Frame[0, 0]` istead",
+            category=FutureWarning)
+        return self[0, 0]
 
 
     def materialize(self):

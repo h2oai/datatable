@@ -738,7 +738,7 @@ def test_create_from_pandas_issue1235(pandas):
     table = dt.Frame(df)
     table.internal.check()
     assert table.shape == (1, 1)
-    assert table.scalar() == "\U00010000" * 50
+    assert table[0, 0] == "\U00010000" * 50
 
 
 def test_create_from_pandas_with_stypes(pandas):
@@ -931,7 +931,7 @@ def test_ellipsis():
     d0 = dt.Frame(...)
     assert d0.names == ("?",)
     assert d0.shape == (1, 1)
-    assert d0.scalar() == 42
+    assert d0[0, 0] == 42
     with pytest.raises(TypeError):
         dt.Frame(..., stype=float)
     with pytest.raises(TypeError):

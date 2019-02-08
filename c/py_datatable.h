@@ -80,13 +80,6 @@ DECLARE_GETTER(
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  to_scalar,
-  "to_scalar()\n\n"
-  "For a 1x1 DataTable return its data as a Python scalar value. This in \n"
-  "contrast with `window(...)` method which returns a list-of-lists \n"
-  "regardless of the shape of the underlying DataTable.")
-
-DECLARE_METHOD(
   check,
   "check()\n\n"
   "Check the DataTable for internal consistency. Raises an AssertionError if\n"
