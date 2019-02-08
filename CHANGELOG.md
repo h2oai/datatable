@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Fixed
+
+- Fixed crash in certain circumstances when a key was applied after a
+  groupby (#1639).
+
+
+### Notes
+
+- Thanks to everyone who helped make `datatable` more stable by discovering
+  and reporting bugs that were fixed in this release:
+
+  [antorsae][] (#1639),
+
+
 
 ## [0.8.0][] — 2019-01-04
 
@@ -937,6 +951,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.1.0]: https://github.com/h2oai/datatable/tree/v0.1.0
 
 
+[antorsae]: https://github.com/antorsae
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
 [jonathan mckinney]: https://github.com/pseudotensor
