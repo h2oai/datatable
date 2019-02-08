@@ -20,13 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/tuple.h"
+#include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
 #include "extras/py_ftrl.h"
-#include <extras/py_validator.h>
+#include "extras/py_validator.h"
 
 namespace py {
 

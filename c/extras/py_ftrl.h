@@ -21,8 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXTRAS_PY_FTRL_h
 #define dt_EXTRAS_PY_FTRL_h
-#include "python/ext_type.h"
-#include "python/namedtuple.h"
 #include "extras/dt_ftrl.h"
 
 namespace py {
