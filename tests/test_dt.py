@@ -307,7 +307,7 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (1, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.scalar() == 0
+    assert f0[0, 0] == 0
     f0.nrows = 20
     f0.internal.check()
     assert f0.shape == (20, 1)
@@ -768,36 +768,28 @@ def test_tonumpy_with_stype(numpy):
 
 
 #-------------------------------------------------------------------------------
-# .scalar()
+# [0, 0] (conversion to scalar python variable)
 #-------------------------------------------------------------------------------
 
 def test_scalar1():
     d0 = dt.Frame([False])
-    assert d0.scalar() is False
+    assert d0[0, 0] is False
     d1 = dt.Frame([-32767])
-    assert d1.scalar() == -32767
+    assert d1[0, 0] == -32767
     d2 = dt.Frame([3.14159])
-    assert d2.scalar() == 3.14159
+    assert d2[0, 0] == 3.14159
     d3 = dt.Frame(["koo!"])
-    assert d3.scalar() == "koo!"
+    assert d3[0, 0] == "koo!"
     d4 = dt.Frame([None])
-    assert d4.scalar() is None
-
-
-def test_scalar_bad():
-    d0 = dt.Frame([100, 200])
-    with pytest.raises(ValueError) as e:
-        d0.scalar()
-    assert (".scalar() method cannot be applied to a Frame with shape "
-            "`[2 x 1]`" in str(e.value))
+    assert d4[0, 0] is None
 
 
 def test_scalar_on_view(dt0):
     assert dt0[1, 0] == 7
     assert dt0[3, 3] == 4.4
     assert dt0[2, 6] == "hello"
-    assert dt0[2::5, 3::7].scalar() == -4
-    assert dt0[[3], "G"].scalar() == "world"
+    assert dt0[2::5, 3::7][0, 0] == -4
+    assert dt0[[3], "G"][0, 0] == "world"
 
 
 

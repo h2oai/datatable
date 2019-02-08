@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   groupby (#1639).
 
 
+
+### Deprecated
+
+- Frame method `.scalar()` is now deprecated and will be removed in release
+  0.10.0. Please use `frame[0, 0]` instead.
+
+
+
 ### Notes
 
 - Thanks to everyone who helped make `datatable` more stable by discovering
@@ -42,7 +50,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.8.0][] — 2019-01-04
+
+## [0.8.0][] — 2019-02-04
 
 ### Added
 

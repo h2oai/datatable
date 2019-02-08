@@ -13,7 +13,6 @@
 #include "datatable.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
-#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
@@ -120,18 +119,6 @@ PyObject* get_isview(obj* self) {
 
 
 
-PyObject* get_groupby(obj* self) {
-  Groupby& gb = self->ref->groupby;
-  return gb.ngroups()? pygroupby::wrap(gb) : none();
-}
-
-int set_groupby(obj* self, PyObject* value) {
-  Groupby* gb = pygroupby::unwrap(value);
-  self->ref->replace_groupby(gb? *gb : Groupby());
-  return 0;
-}
-
-
 PyObject* get_datatable_ptr(obj* self) {
   return PyLong_FromLongLong(reinterpret_cast<long long int>(self->ref));
 }
@@ -166,19 +153,6 @@ void _clear_types(obj* self) {
   if (self->_frame) self->_frame->_clear_types();
 }
 
-
-PyObject* to_scalar(obj* self, PyObject*) {
-  DataTable* dt = self->ref;
-  if (dt->ncols == 1 && dt->nrows == 1) {
-    Column* col = dt->columns[0];
-    size_t i = col->rowindex()[0];
-    auto f = py_stype_formatters[static_cast<int>(col->stype())];
-    return f(col, i);
-  } else {
-    throw ValueError() << ".scalar() method cannot be applied to a Frame with "
-      "shape `[" << dt->nrows << " x " << dt->ncols << "]`";
-  }
-}
 
 
 PyObject* check(obj* self, PyObject*) {
@@ -246,156 +220,11 @@ PyObject* column(obj* self, PyObject* args) {
 
 
 
-PyObject* delete_columns(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:delete_columns", &arg1))
-    return nullptr;
-  py::olist list = py::robj(arg1).to_pylist();
-  size_t ncols = list.size();
-
-  std::vector<size_t> cols_to_remove;
-  cols_to_remove.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    cols_to_remove.push_back(list[i].to_size_t());
-  }
-  dt->delete_columns(cols_to_remove);
-
-  _clear_types(self);
-  Py_RETURN_NONE;
-}
-
-
-
-
-PyObject* replace_rowindex(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
-    return nullptr;
-  RowIndex newri = py::robj(arg1).to_rowindex();
-
-  dt->replace_rowindex(newri);
-  Py_RETURN_NONE;
-}
-
-
-
-PyObject* replace_column_slice(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  size_t start;
-  size_t count;
-  size_t step;
-  PyObject *arg4, *arg5;
-  if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
-                        &start, &count, &step, &arg4, &arg5)) return nullptr;
-  RowIndex rows_ri = py::robj(arg4).to_rowindex();
-  DataTable* repl = py::robj(arg5).to_frame();
-  size_t rrows = repl->nrows;
-  size_t rcols = repl->ncols;
-  size_t lrows = rows_ri? rows_ri.size() : dt->nrows;
-  size_t lcols = count;
-
-  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
-    throw ValueError() << "Invalid slice " << start << "/" << count
-                       << "/" << step << " for a Frame with " << dt->ncols
-                       << " columns";
-  }
-  bool ok = ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1))
-            || (rrows == 0 && rcols == 0 && lcols == 0);
-  if (!ok) {
-    throw ValueError() << "Invalid replacement Frame: expected [" <<
-      lrows << " x " << lcols << "], but received [" << rrows <<
-      " x " << rcols << "]";
-  }
-
-  dt->reify();  // noop if `dt` is not a view
-  repl->reify();
-
-  for (size_t i = 0; i < count; ++i) {
-    size_t j = start + i * step;
-    Column* replcol = repl->columns[i % rcols];
-    if (rows_ri) {
-      dt->columns[j]->replace_values(rows_ri, replcol);
-    } else {
-      delete dt->columns[j];
-      dt->columns[j] = replcol->shallowcopy();
-    }
-  }
-  _clear_types(self);
-  Py_RETURN_NONE;
-}
-
-
-PyObject* replace_column_array(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject *arg1, *arg2, *arg3;
-  if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
-      return nullptr;
-  py::olist cols = py::robj(arg1).to_pylist();
-  RowIndex rows_ri = py::robj(arg2).to_rowindex();
-  DataTable* repl = py::robj(arg3).to_frame();
-  size_t rrows = repl->nrows;
-  size_t rcols = repl->ncols;
-  size_t lrows = rows_ri? rows_ri.size() : dt->nrows;
-  size_t lcols = cols.size();
-
-  bool ok = ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1))
-            || (rrows == 0 && rcols == 0 && lcols == 0);
-  if (!ok) {
-    throw ValueError() << "Invalid replacement Frame: expected [" <<
-      lrows << " x " << cols.size() << "], but received [" << rrows <<
-      " x " << rcols << "]";
-  }
-
-  dt->reify();
-  repl->reify();
-
-  size_t num_new_cols = 0;
-  for (size_t i = 0; i < cols.size(); ++i) {
-    py::robj item = cols[i];
-    int64_t j = item.to_int64_strict();
-    num_new_cols += (j == -1);
-    if (j < -1 || j >= static_cast<int64_t>(dt->ncols)) {
-      throw ValueError() << "Invalid index for a replacement column: " << j;
-    }
-  }
-  if (num_new_cols) {
-    if (rows_ri) {
-      throw ValueError() << "Cannot assign to column(s) that are outside of "
-                            "the Frame: " << rows_ri;
-    }
-    size_t newsize = dt->ncols + num_new_cols;
-    dt->columns.resize(newsize);
-  }
-  for (size_t i = 0; i < cols.size(); ++i) {
-    py::robj item = cols[i];
-    int64_t j = item.to_int64_strict();
-    size_t zj = static_cast<size_t>(j);
-    Column* replcol = repl->columns[i % rcols];
-    if (rows_ri) {
-      dt->columns[zj]->replace_values(rows_ri, replcol);
-    } else {
-      if (j == -1) {
-        zj = dt->ncols++;
-      } else {
-        delete dt->columns[zj];
-      }
-      dt->columns[zj] = replcol->shallowcopy();
-    }
-  }
-
-  // Clear cached stypes/ltypes; No need to update names
-  _clear_types(self);
-  Py_RETURN_NONE;
-}
-
-
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   size_t final_ncols;
   PyObject* list;
-  if (!PyArg_ParseTuple(args, "lO!:delete_columns",
+  if (!PyArg_ParseTuple(args, "lO!:rbind",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
   size_t ndts = static_cast<size_t>(PyList_Size(list));
@@ -440,54 +269,6 @@ PyObject* rbind(obj* self, PyObject* args) {
   _clear_types(self);
 
   Py_RETURN_NONE;
-}
-
-
-
-PyObject* sort(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  py::olist arglist = py::robj(args).to_pylist();
-  size_t nargs = arglist.size();
-  bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
-  bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
-
-  std::vector<size_t> cols;
-  for (size_t i = 0; i < nargs - last_arg_bool; ++i) {
-    cols.push_back(arglist[i].to_size_t());
-  }
-  Groupby grpby;
-  RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
-  // return pyrowindex::wrap(ri);
-  return Py_BuildValue("NN", pyrowindex::wrap(ri),
-                             make_groups? pygroupby::wrap(grpby) : none());
-}
-
-
-
-PyObject* join(obj* self, PyObject* args) {
-  PyObject *arg1, *arg2, *arg3;
-  if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
-
-  DataTable* dt = self->ref;
-  DataTable* jdt = py::robj(arg2).to_frame();
-  RowIndex ri = py::robj(arg1).to_rowindex();
-  py::olist cols_arg = py::robj(arg3).to_pylist();
-
-  if (cols_arg.size() != 1) {
-    throw NotImplError() << "Only single-column joins are currently supported";
-  }
-  size_t i = cols_arg[0].to_size_t();
-  if (i >= dt->ncols) {
-    throw ValueError() << "Invalid index " << i << " for a Frame with "
-        << dt->ncols << " columns";
-  }
-
-  Column* col = dt->columns[i]->shallowcopy();
-  if (ri) col->replace_rowindex(ri);
-  RowIndex join_ri = col->join(jdt->columns[0]);
-  delete col;
-
-  return pyrowindex::wrap(join_ri);
 }
 
 
@@ -579,16 +360,9 @@ static void dealloc(obj* self) {
 //==============================================================================
 
 static PyMethodDef datatable_methods[] = {
-  METHOD0(to_scalar),
   METHOD0(check),
   METHODv(column),
-  METHODv(delete_columns),
-  METHODv(replace_rowindex),
-  METHODv(replace_column_slice),
-  METHODv(replace_column_array),
   METHODv(rbind),
-  METHODv(sort),
-  METHODv(join),
   METHOD0(get_min),
   METHOD0(get_max),
   METHOD0(get_mode),
@@ -617,7 +391,6 @@ static PyMethodDef datatable_methods[] = {
 
 static PyGetSetDef datatable_getseters[] = {
   GETTER(isview),
-  GETSET(groupby),
   GETTER(datatable_ptr),
   GETTER(alloc_size),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
