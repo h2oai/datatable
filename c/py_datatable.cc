@@ -444,26 +444,6 @@ PyObject* rbind(obj* self, PyObject* args) {
 
 
 
-PyObject* sort(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  py::olist arglist = py::robj(args).to_pylist();
-  size_t nargs = arglist.size();
-  bool last_arg_bool = nargs > 1 && arglist[nargs - 1].is_bool();
-  bool make_groups = last_arg_bool? arglist[nargs - 1].to_bool_strict() : false;
-
-  std::vector<size_t> cols;
-  for (size_t i = 0; i < nargs - last_arg_bool; ++i) {
-    cols.push_back(arglist[i].to_size_t());
-  }
-  Groupby grpby;
-  RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
-  // return pyrowindex::wrap(ri);
-  return Py_BuildValue("NN", pyrowindex::wrap(ri),
-                             make_groups? pygroupby::wrap(grpby) : none());
-}
-
-
-
 PyObject* join(obj* self, PyObject* args) {
   PyObject *arg1, *arg2, *arg3;
   if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
@@ -587,7 +567,6 @@ static PyMethodDef datatable_methods[] = {
   METHODv(replace_column_slice),
   METHODv(replace_column_array),
   METHODv(rbind),
-  METHODv(sort),
   METHODv(join),
   METHOD0(get_min),
   METHOD0(get_max),

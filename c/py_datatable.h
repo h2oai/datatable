@@ -137,13 +137,6 @@ DECLARE_METHOD(
   "Append rows of other datatables to the current")
 
 DECLARE_METHOD(
-  sort,
-  "sort(col, makegroups=False)\n\n"
-  "Sort datatable by the specified column and return the RowIndex object\n"
-  "corresponding to the col's ordering. If `makegroups` is True, then\n"
-  "grouping information will also be computed and stored in the RowIndex.")
-
-DECLARE_METHOD(
   materialize,
   "materialize()\n\n"
   "Convert DataTable from 'view' into 'data' representation.\n")
