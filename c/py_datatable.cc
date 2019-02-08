@@ -273,34 +273,6 @@ PyObject* rbind(obj* self, PyObject* args) {
 
 
 
-PyObject* join(obj* self, PyObject* args) {
-  PyObject *arg1, *arg2, *arg3;
-  if (!PyArg_ParseTuple(args, "OOO:join", &arg1, &arg2, &arg3)) return nullptr;
-
-  DataTable* dt = self->ref;
-  DataTable* jdt = py::robj(arg2).to_frame();
-  RowIndex ri = py::robj(arg1).to_rowindex();
-  py::olist cols_arg = py::robj(arg3).to_pylist();
-
-  if (cols_arg.size() != 1) {
-    throw NotImplError() << "Only single-column joins are currently supported";
-  }
-  size_t i = cols_arg[0].to_size_t();
-  if (i >= dt->ncols) {
-    throw ValueError() << "Invalid index " << i << " for a Frame with "
-        << dt->ncols << " columns";
-  }
-
-  Column* col = dt->columns[i]->shallowcopy();
-  if (ri) col->replace_rowindex(ri);
-  RowIndex join_ri = col->join(jdt->columns[0]);
-  delete col;
-
-  return pyrowindex::wrap(join_ri);
-}
-
-
-
 PyObject* get_min    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->min_datatable()); }
 PyObject* get_max    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->max_datatable()); }
 PyObject* get_mode   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->mode_datatable()); }
@@ -391,7 +363,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
   METHODv(rbind),
-  METHODv(join),
   METHOD0(get_min),
   METHOD0(get_max),
   METHOD0(get_mode),
