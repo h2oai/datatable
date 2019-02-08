@@ -403,7 +403,7 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
-  METHODv(replace_rowindex),
+  // METHODv(replace_rowindex),
   METHODv(rbind),
   METHODv(join),
   METHOD0(get_min),
