@@ -163,8 +163,7 @@ if that column has no RowIndex.
   if (col >= dt->ncols) throw ValueError() << "Index out of bounds";
 
   RowIndex ri = dt->columns[col]->rowindex();
-  return ri? py::oobj::from_new_reference(pyrowindex::wrap(ri))
-           : py::None();
+  return ri? py::orowindex(ri) : py::None();
 });
 
 
@@ -175,11 +174,6 @@ if that column has no RowIndex.
 
 void DatatableModule::init_methods() {
   add(METHODv(pycolumn::column_from_list));
-  add(METHODv(pyrowindex::rowindex_from_slice));
-  add(METHODv(pyrowindex::rowindex_from_slicelist));
-  add(METHODv(pyrowindex::rowindex_from_array));
-  add(METHODv(pyrowindex::rowindex_from_column));
-  add(METHODv(pyrowindex::rowindex_from_filterfn));
   add(METHODv(pydatatable::datatable_load));
   add(METHODv(pydatatable::open_jay));
   add(METHODv(pydatatable::install_buffer_hooks));
@@ -220,13 +214,13 @@ PyInit__datatable()
     if (!init_py_types(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
-    if (!pyrowindex::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
     init_jay();
 
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
+    py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);

@@ -1009,11 +1009,11 @@ def test_html_repr_slice():
 # Misc
 #-------------------------------------------------------------------------------
 
-def test_internal_rowindex():
-    d0 = dt.Frame(range(100))
-    d1 = d0[:20, :]
-    assert get_rowindex(d0, 0) is None
-    assert repr(get_rowindex(d1, 0)) == "_RowIndex(0/20/1)"
+# def test_internal_rowindex():
+#     d0 = dt.Frame(range(100))
+#     d1 = d0[:20, :]
+#     assert get_rowindex(d0, 0) is None
+#     assert repr(get_rowindex(d1, 0)) == "_RowIndex(0/20/1)"
 
 
 def test_issue898():

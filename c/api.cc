@@ -43,7 +43,7 @@ static DataTable* _extract_dt(PyObject* pydt) {
 
 static RowIndex* _extract_ri(PyObject* pyri) {
   if (pyri == Py_None) return nullptr;
-  return static_cast<pyrowindex::obj*>(pyri)->ref;
+  return static_cast<py::orowindex::pyobject*>(pyri)->ri;
 }
 
 
@@ -91,7 +91,7 @@ PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   const RowIndex& ri = dt->columns[i]->rowindex();  // rowindex() is noexcept
-  return ri? pyrowindex::wrap(ri) : py::None().release();
+  return (ri? py::orowindex(ri) : py::None()).release();
 }
 
 
@@ -146,15 +146,8 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
 //------------------------------------------------------------------------------
 
 int DtRowindex_Check(PyObject* ob) {
-  if (ob == nullptr) return 0;
   if (ob == Py_None) return 1;
-  auto typeptr = reinterpret_cast<PyObject*>(&pyrowindex::type);
-  int ret = PyObject_IsInstance(ob, typeptr);
-  if (ret == -1) {
-    PyErr_Clear();
-    ret = 0;
-  }
-  return ret;
+  return py::orowindex::check(ob);
 }
 
 

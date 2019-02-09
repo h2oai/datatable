@@ -520,18 +520,6 @@ strvec _obj::to_stringlist(const error_manager&) const {
 // Object conversions
 //------------------------------------------------------------------------------
 
-RowIndex _obj::to_rowindex(const error_manager& em) const {
-  if (v == Py_None) {
-    return RowIndex();
-  }
-  if (!PyObject_TypeCheck(v, &pyrowindex::type)) {
-    throw em.error_not_rowindex(v);
-  }
-  RowIndex* ref = static_cast<pyrowindex::obj*>(v)->ref;
-  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
-}
-
-
 DataTable* _obj::to_frame(const error_manager& em) const {
   if (v == Py_None) return nullptr;
   if (is_frame()) {
