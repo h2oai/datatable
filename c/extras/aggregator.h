@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
+#include <iostream>
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/obj.h"
@@ -28,11 +29,14 @@
 #include "py_utils.h"
 #include "rowindex.h"
 #include "datatablemodule.h"
-#include <extras/dt_ftrl.h>
+#include "extras/dt_ftrl.h"
+#include "extras/colconv.h"
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 #define PBSTEPS 100
+
+using colconvptr = std::unique_ptr<ColumnConvertor>;
 
 /*
 *  Aggregator template class.
@@ -63,6 +67,9 @@ class Aggregator {
     unsigned int seed;
     unsigned int nthreads;
     py::oobj progress_fn;
+    std::vector<colconvptr> colconvs;
+
+    colconvptr create_colconv(const Column*);
 
     // Grouping and aggregating methods
     void aggregate_exemplars(DataTable*, dtptr&, bool);
@@ -97,6 +104,23 @@ class Aggregator {
     size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(T, int status_code=0);
 };
+
+
+template <typename T>
+colconvptr Aggregator<T>::create_colconv(const Column* col) {
+  SType stype = col->stype();
+  switch (stype) {
+    case SType::BOOL:    return colconvptr(new ColumnConvertorT<int8_t, T>(col));
+    case SType::INT8:    return colconvptr(new ColumnConvertorT<int8_t, T>(col));
+    case SType::INT16:   return colconvptr(new ColumnConvertorT<int16_t, T>(col));
+    case SType::INT32:   return colconvptr(new ColumnConvertorT<int32_t, T>(col));
+    case SType::INT64:   return colconvptr(new ColumnConvertorT<int64_t, T>(col));
+    case SType::FLOAT32: return colconvptr(new ColumnConvertorT<float, T>(col));
+    case SType::FLOAT64: return colconvptr(new ColumnConvertorT<double, T>(col));
+    default:             throw TypeError() << "Cannot create a column convertor for type "
+                                            << stype;
+  }
+}
 
 
 /*
@@ -173,6 +197,8 @@ dtptr Aggregator<T>::aggregate(DataTable* dt) {
         case LType::BOOL:
         case LType::INT:
         case LType::REAL:  {
+                             Column* col = dt->columns[i];
+                             colconvs.push_back(create_colconv(col));
                              auto c = static_cast<RealColumn<T>*>(dt->columns[i]->cast(to_stype));
                              c->min(); // Pre-generating stats
                              cols_T.push_back(c);

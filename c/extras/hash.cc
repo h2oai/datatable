@@ -50,7 +50,7 @@ uint64_t HashBool::hash(size_t row) const {
 */
 template <typename T>
 HashInt<T>::HashInt(const Column* col) : Hash(col) {
-  values = dynamic_cast<const IntColumn<T>*>(col)->elements_r();
+  values = static_cast<const T*>(col->data());
 }
 
 
@@ -69,7 +69,7 @@ uint64_t HashInt<T>::hash(size_t row) const {
 */
 template <typename T>
 HashFloat<T>::HashFloat(const Column* col) : Hash(col){
-  values = dynamic_cast<const RealColumn<T>*>(col)->elements_r();
+  values = static_cast<const T*>(col->data());
 }
 
 

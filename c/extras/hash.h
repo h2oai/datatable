@@ -33,7 +33,7 @@ class Hash {
     explicit Hash(const Column*);
     virtual ~Hash();
 
-    const RowIndex ri;
+    const RowIndex& ri;
     virtual uint64_t hash(size_t row) const = 0;
 };
 
