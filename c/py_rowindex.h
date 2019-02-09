@@ -21,125 +21,53 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PY_ROWINDEX_h
 #define dt_PY_ROWINDEX_h
-#include <Python.h>
+#include "python/ext_type.h"
+#include "python/obj.h"
 #include "rowindex.h"
-#include "py_utils.h"
+namespace py {
 
 
-#define BASECLS pyrowindex::obj
-#define CLSNAME RowIndex
-#define HOMEFLAG dt_PY_ROWINDEX_cc
-namespace pyrowindex
-{
+class orowindex : public oobj {
+  public:
+    orowindex(const RowIndex& rowindex);
+    orowindex() = default;
+    orowindex(const orowindex&) = default;
+    orowindex(orowindex&&) = default;
+    orowindex& operator=(const orowindex&) = default;
+    orowindex& operator=(orowindex&&) = default;
 
-/**
- * Pythonic handle to a `RowIndex` object.
- *
- * The payload RowIndex is stored as a pointer rather than by value - only
- * because `pyrowindex::obj` is created/managed/destroyed from Python C,
- * circumventing traditional object construction/destruction.
- */
-struct obj : public PyObject {
-  RowIndex* ref;
+    static bool check(PyObject*);
+
+    // Declare class orowindex::pyobject
+    struct pyobject;
 };
 
-extern PyTypeObject type;
-
-// Internal helper functions
-int static_init(PyObject* module);
-PyObject* wrap(const RowIndex& src);
 
 
+struct orowindex::pyobject : public PyObject {
+  RowIndex* ri;  // owned ref
 
-//---- Generic info ------------------------------------------------------------
+  class Type : public ExtType<pyobject> {
+    public:
+      static PKArgs args___init__;
+      static NoArgs args_to_list;
+      static const char* classname();
+      static const char* classdoc();
+      static bool is_subclassable();
+      static void init_methods_and_getsets(Methods&, GetSetters&);
+  };
 
-DECLARE_INFO(
-  datatable.core.RowIndex,
-  "C-side RowIndex object.")
+  void m__init__(PKArgs&);
+  void m__dealloc__();
+  oobj get_type() const;
+  oobj get_nrows() const;
+  oobj get_min() const;
+  oobj get_max() const;
 
-DECLARE_REPR()
-DECLARE_DESTRUCTOR()
-
-
-
-//---- Getters/setters ---------------------------------------------------------
-
-DECLARE_GETTER(
-  type,
-  "The type of the rowindex: 'slice', 'arr32' or 'arr64'.")
-
-DECLARE_GETTER(
-  nrows,
-  "Number of rows in the rowindex")
-
-DECLARE_GETTER(
-  min,
-  "Smallest value in the rowindex")
-
-DECLARE_GETTER(
-  max,
-  "Largest value in the rowindex")
-
-DECLARE_GETTER(
-  ptr,
-  "Pointer to internal data, converted to int64_t.")
-
-
-//---- Methods -----------------------------------------------------------------
-
-DECLARE_METHOD(
-  tolist,
-  "tolist()\n\n"
-  "Return RowIndex's indices as a list of integers.")
+  oobj to_list(const NoArgs&);
+};
 
 
 
-//---- Python API --------------------------------------------------------------
-
-DECLARE_FUNCTION(
-  rowindex_from_slice,
-  "rowindex_from_slice(start, count, step)\n\n"
-  "Construct a RowIndex \"slice\" object given a tuple (start, count, \n"
-  "step). Neither first nor last referenced index may be negative.",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  rowindex_from_slicelist,
-  "rowindex_from_slicelist(starts, counts, steps)\n\n"
-  "Construct a RowIndex object from a list of tuples (start, count, step)\n"
-  "that are given in the form of 3 arrays `starts`, `counts`, and `steps`.\n"
-  "The arrays don't have to have the same length, however `starts` cannot\n"
-  "be shorter than the others. Missing elements in `counts` and `steps` are\n"
-  "assumed to be equal 1.",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  rowindex_from_array,
-  "rowindex_from_array(indices)\n\n"
-  "Construct RowIndex object from a list of integer indices.",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  rowindex_from_column,
-  "rowindex_from_column(col)\n\n"
-  "Construct a RowIndex object from a Column. The column can be either\n"
-  "boolean or integer. A boolean column is treated as a filter, and the\n"
-  "RowIndex is constructed with the indices that corresponds to the rows\n"
-  "where the column has true values (all false / NA cells are skipped).\n\n"
-  "An integer column on the other hand is assumed to provide the indices for\n"
-  "the RowIndex directly.",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  rowindex_from_filterfn,
-  "rowindex_from_filterfn(fptr, nrows)\n\n"
-  "Construct a RowIndex object given a pointer to a filtering function and\n"
-  "the number of rows that has to be filtered. ",
-  HOMEFLAG)
-
-
-};  // namespace pyrowindex
-#undef HOMEFLAG
-#undef BASECLS
-#undef CLSNAME
+}  // namespace py
 #endif

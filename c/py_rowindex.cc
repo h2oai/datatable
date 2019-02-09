@@ -19,311 +19,127 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#define dt_PY_ROWINDEX_cc
 #include "py_rowindex.h"
-#include "py_datatable.h"
-#include "py_column.h"
-#include "py_utils.h"
-#include "python/int.h"
-#include "python/list.h"
+#include "python/_all.h"
 #include "python/obj.h"
+#include "python/string.h"
 
-namespace pyrowindex
-{
+namespace py {
 
 
-/**
- * Create a new pyRowIndex object by wrapping the provided RowIndex.
- * The returned py-object will hold a shallow copy of source rowindex.
- */
-PyObject* wrap(const RowIndex& rowindex) {
-  PyObject* pytype = reinterpret_cast<PyObject*>(&pyrowindex::type);
-  PyObject* pyri = PyObject_CallObject(pytype, nullptr);
-  if (pyri) {
-    auto pypyri = static_cast<pyrowindex::obj*>(pyri);
-    pypyri->ref = new RowIndex(rowindex);
-  }
-  return pyri;
+//------------------------------------------------------------------------------
+// orowindex::pyobject::Type
+//------------------------------------------------------------------------------
+
+const char* orowindex::pyobject::Type::classname() {
+  return "datatable.internal.RowIndex";
 }
 
-
-
-//==============================================================================
-// Generic Python API
-//==============================================================================
-
-PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
-  size_t start, count, step;
-  if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
-                        &start, &count, &step)) return nullptr;
-  return wrap(RowIndex(start, count, step));
-}
-
-
-PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
-  PyObject* pystarts;
-  PyObject* pycounts;
-  PyObject* pysteps;
-  if (!PyArg_ParseTuple(args, "O!O!O!:rowindex_from_slicelist",
-                        &PyList_Type, &pystarts,
-                        &PyList_Type, &pycounts,
-                        &PyList_Type, &pysteps)) return nullptr;
-
-  int64_t n1 = PyList_Size(pystarts);
-  int64_t n2 = PyList_Size(pycounts);
-  int64_t n3 = PyList_Size(pysteps);
-  if (n1 < n2 || n1 < n3) {
-    throw ValueError() << "`starts` array cannot be shorter than `counts` or "
-                          "`steps` arrays";
-  }
-  size_t n = static_cast<size_t>(n1);
-  arr64_t starts(n);
-  arr64_t counts(n);
-  arr64_t steps(n);
-
-  // Convert Pythonic lists into regular C arrays of longs
-  for (int64_t i = 0; i < n1; ++i) {
-    int64_t start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
-    int64_t count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
-    int64_t step  = i < n3? PyLong_AsSsize_t(PyList_GET_ITEM(pysteps, i)) : 1;
-    if ((start == -1 || count  == -1 || step == -1) &&
-        PyErr_Occurred()) return nullptr;
-    size_t ii = static_cast<size_t>(i);
-    starts[ii] = start;
-    counts[ii] = count;
-    steps[ii] = step;
-  }
-  return wrap(RowIndex(starts, counts, steps));
-}
-
-
-PyObject* rowindex_from_array(PyObject*, PyObject* args) {
-  arr32_t data32;
-  arr64_t data64;
-  PyObject* list;
-  if (!PyArg_ParseTuple(args, "O!:rowindex_from_array",
-                        &PyList_Type, &list)) return nullptr;
-
-  // Convert Pythonic List into a regular C array of int32's/int64's
-  int64_t len = PyList_Size(list);
-  size_t zlen = static_cast<size_t>(len);
-  if (len <= INT32_MAX) {
-    data32.resize(zlen);
-  } else {
-    data64.resize(zlen);
-  }
-  for (size_t i = 0; i < zlen; ++i) {
-    int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
-    if (x == -1 && PyErr_Occurred()) return nullptr;
-    if (x < 0) {
-      throw ValueError() << "Negative indices not allowed: " << x;
-    }
-    if (data64) {
-      data64[i] = x;
-    } else if (x <= INT32_MAX) {
-      data32[i] = static_cast<int32_t>(x);
-    } else {
-      data64.resize(zlen);
-      for (size_t j = 0; j < i; ++j) {
-        data64[j] = static_cast<int64_t>(data32[j]);
-      }
-      data32.resize(0);
-      data64[i] = x;
-    }
-  }
-  // Construct and return the RowIndex object
-  return data32? wrap(RowIndex(std::move(data32)))
-               : wrap(RowIndex(std::move(data64)));
-}
-
-
-PyObject* rowindex_from_column(PyObject*, PyObject* args) {
-  Column* col;
-  if (!PyArg_ParseTuple(args, "O&:rowindex_from_column",
-                        &pycolumn::unwrap, &col)) return nullptr;
-  return wrap(RowIndex(col));
-}
-
-
-PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
-{
-  long long _fnptr;
-  long long _nrows;
-  if (!PyArg_ParseTuple(args, "LL:rowindex_from_filterfn",
-                        &_fnptr, &_nrows))
-      return nullptr;
-
-  size_t nrows = static_cast<size_t>(_nrows);
-  if (nrows <= INT32_MAX) {
-    filterfn32* fnptr = reinterpret_cast<filterfn32*>(_fnptr);
-    return wrap(RowIndex(fnptr, nrows, 0));
-  } else {
-    filterfn64* fnptr = reinterpret_cast<filterfn64*>(_fnptr);
-    return wrap(RowIndex(fnptr, nrows, 0));
-  }
-}
-
-
-
-//==============================================================================
-// Getters/setters
-//==============================================================================
-
-PyObject* get_type(obj* self) {
-  static PyObject* tSlice = PyUnicode_FromString("slice");
-  static PyObject* tArr32 = PyUnicode_FromString("arr32");
-  static PyObject* tArr64 = PyUnicode_FromString("arr64");
-  RowIndexType rt = self->ref->type();
-  return incref(rt == RowIndexType::SLICE? tSlice :
-                rt == RowIndexType::ARR32? tArr32 :
-                rt == RowIndexType::ARR64? tArr64 : Py_None);
-}
-
-PyObject* get_nrows(obj* self) {
-  return PyLong_FromSize_t(self->ref->size());
-}
-
-PyObject* get_min(obj* self) {
-  return PyLong_FromSize_t(self->ref->min());
-}
-
-PyObject* get_max(obj* self) {
-  return PyLong_FromSize_t(self->ref->max());
-}
-
-PyObject* get_ptr(obj* self) {
-  const void* ptr = self->ref->ptr();
-  return PyLong_FromSize_t(reinterpret_cast<size_t>(ptr));
-}
-
-
-
-
-//==============================================================================
-// Methods
-//==============================================================================
-
-static void dealloc(obj* self) {
-  delete self->ref;
-  self->ref = nullptr;
-  Py_TYPE(self)->tp_free(self);
-}
-
-
-static PyObject* repr(obj* self)
-{
-  RowIndex& rz = *(self->ref);
-  if (rz.isabsent())
-    return PyUnicode_FromString("_RowIndex(nullptr)");
-  if (rz.isarr32()) {
-    return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.size());
-  }
-  if (rz.isarr64()) {
-    return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.size());
-  }
-  if (rz.isslice()) {
-    return PyUnicode_FromFormat("_RowIndex(%ld/%ld/%ld)",
-        rz.slice_start(), rz.size(), rz.slice_step());
-  }
+const char* orowindex::pyobject::Type::classdoc() {
   return nullptr;
 }
 
+bool orowindex::pyobject::Type::is_subclassable() {
+  return false;
+}
 
-PyObject* tolist(obj* self, PyObject*)
-{
-  RowIndex& ri = *(self->ref);
-  size_t n = ri.size();
+void orowindex::pyobject::Type::init_methods_and_getsets(
+    Methods& mm, GetSetters& gs) {
+  gs.add<&orowindex::pyobject::get_type>("type");
+  gs.add<&orowindex::pyobject::get_nrows>("nrows");
+  gs.add<&orowindex::pyobject::get_min>("min");
+  gs.add<&orowindex::pyobject::get_max>("max");
+  mm.add<&orowindex::pyobject::to_list, args_to_list>();
+}
 
-  py::olist list(n);
-  ri.iterate(0, n, 1,
+
+PKArgs orowindex::pyobject::Type::args___init__(
+  0, 0, 0, false, false, {}, "__init__", nullptr);
+
+
+NoArgs orowindex::pyobject::Type::args_to_list("to_list",
+"to_list(self)\n"
+"--\n\n"
+"Convert this RowIndex into a python list of indices.\n");
+
+
+
+
+//------------------------------------------------------------------------------
+// orowindex::pyobject
+//------------------------------------------------------------------------------
+
+void orowindex::pyobject::m__init__(PKArgs&) {
+  ri = nullptr;
+}
+
+void orowindex::pyobject::m__dealloc__() {
+  delete ri;
+  ri = nullptr;
+}
+
+
+oobj orowindex::pyobject::get_type() const {
+  static oobj tSlice = ostring("slice");
+  static oobj tArr32 = ostring("arr32");
+  static oobj tArr64 = ostring("arr64");
+  RowIndexType rt = ri->type();
+  return rt == RowIndexType::SLICE? tSlice :
+         rt == RowIndexType::ARR32? tArr32 :
+         rt == RowIndexType::ARR64? tArr64 : None();
+}
+
+oobj orowindex::pyobject::get_nrows() const {
+  return oint(ri->size());
+}
+
+oobj orowindex::pyobject::get_min() const {
+  return oint(ri->min());
+}
+
+oobj orowindex::pyobject::get_max() const {
+  return oint(ri->max());
+}
+
+
+oobj orowindex::pyobject::to_list(const NoArgs&) {
+  size_t n = ri->size();
+  olist res(n);
+  ri->iterate(0, n, 1,
     [&](size_t i, size_t j) {
-      list.set(i, j == RowIndex::NA? py::None() : py::oint(j));
+      res.set(i, j == RowIndex::NA? None() : oint(j));
     });
-  return std::move(list).release();
+  return std::move(res);
 }
 
 
 
-//==============================================================================
-// DataTable type definition
-//==============================================================================
 
-static PyGetSetDef rowindex_getsetters[] = {
-  GETTER(type),
-  GETTER(nrows),
-  GETTER(min),
-  GETTER(max),
-  GETTER(ptr),
-  {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
-};
+//------------------------------------------------------------------------------
+// orowindex
+//------------------------------------------------------------------------------
 
-static PyMethodDef rowindex_methods[] = {
-  METHOD0(tolist),
-  {nullptr, nullptr, 0, nullptr}           /* sentinel */
-};
-
-
-PyTypeObject type = {
-  PyVarObject_HEAD_INIT(nullptr, 0)
-  "datatable.core.RowIndex",          /* tp_name */
-  sizeof(obj),                        /* tp_basicsize */
-  0,                                  /* tp_itemsize */
-  DESTRUCTOR,                         /* tp_dealloc */
-  nullptr,                            /* tp_print */
-  nullptr,                            /* tp_getattr */
-  nullptr,                            /* tp_setattr */
-  nullptr,                            /* tp_compare */
-  REPR,                               /* tp_repr */
-  nullptr,                            /* tp_as_number */
-  nullptr,                            /* tp_as_sequence */
-  nullptr,                            /* tp_as_mapping */
-  nullptr,                            /* tp_hash  */
-  nullptr,                            /* tp_call */
-  nullptr,                            /* tp_str */
-  nullptr,                            /* tp_getattro */
-  nullptr,                            /* tp_setattro */
-  nullptr,                            /* tp_as_buffer */
-  Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-  nullptr,                            /* tp_doc */
-  nullptr,                            /* tp_traverse */
-  nullptr,                            /* tp_clear */
-  nullptr,                            /* tp_richcompare */
-  0,                                  /* tp_weaklistoffset */
-  nullptr,                            /* tp_iter */
-  nullptr,                            /* tp_iternext */
-  rowindex_methods,                   /* tp_methods */
-  nullptr,                            /* tp_members */
-  rowindex_getsetters,                /* tp_getset */
-  nullptr,                            /* tp_base */
-  nullptr,                            /* tp_dict */
-  nullptr,                            /* tp_descr_get */
-  nullptr,                            /* tp_descr_set */
-  0,                                  /* tp_dictoffset */
-  nullptr,                            /* tp_init */
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr,
-  0,
-  nullptr,
-};
-
-
-// Add PyRowIndex object to the Python module
-int static_init(PyObject *module) {
-  type.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&type) < 0) return 0;
-  PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
-  Py_INCREF(typeobj);
-  PyModule_AddObject(module, "RowIndex", typeobj);
-  return 1;
+orowindex::orowindex(const RowIndex& rowindex) {
+  PyObject* pytype = reinterpret_cast<PyObject*>(&pyobject::Type::type);
+  v = PyObject_CallObject(pytype, nullptr);
+  if (!v) throw PyError();
+  auto p = static_cast<orowindex::pyobject*>(v);
+  p->ri = new RowIndex(rowindex);
 }
 
 
-};  // namespace pyrowindex
+bool orowindex::check(PyObject* v) {
+  if (v == nullptr) return false;
+  PyObject* pytype = reinterpret_cast<PyObject*>(&pyobject::Type::type);
+  int ret = PyObject_IsInstance(v, pytype);
+  if (ret == -1) {
+    PyErr_Clear();
+    return false;
+  }
+  return true;
+}
+
+
+
+
+}  // namespace py

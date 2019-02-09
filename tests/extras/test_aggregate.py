@@ -459,7 +459,7 @@ def test_aggregate_3d_real():
                           progress_fn=report_progress)
     a_members = d_members.to_list()[0]
     d = d_in.sort("C0")
-    ri = get_rowindex(d, 0).tolist()
+    ri = get_rowindex(d, 0).to_list()
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 
@@ -503,7 +503,7 @@ def aggregate_nd(nd):
 
     a_members = d_members.to_list()[0]
     d = d_in.sort("C0")
-    ri = get_rowindex(d, 0).tolist()
+    ri = get_rowindex(d, 0).to_list()
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 

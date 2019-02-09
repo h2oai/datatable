@@ -443,30 +443,6 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
 
 
 
-
-// TODO: remove these functions
-
-static py::PKArgs fn_natural_join(
-    2, 0, 0,
-    false, false,
-    {"xdt", "jdt"},
-    "natural_join",
-R"(natural_join(xdt, jdt)
---
-
-Join two Frames `xdt` and `jdt` on the keys of `jdt`.
-)",
-
-[](const py::PKArgs& args) -> py::oobj {
-  DataTable* xdt = args[0].to_frame();
-  DataTable* jdt = args[1].to_frame();
-  return py::oobj::from_new_reference(pyrowindex::wrap(
-           natural_join(xdt, jdt)
-         ));
-});
-
-
 void DatatableModule::init_methods_join() {
   _init_comparators();
-  ADDFN(fn_natural_join);
 }
