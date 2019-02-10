@@ -849,7 +849,6 @@ doubleptr Aggregator::generate_pmatrix(const dtptr& dt_exemplars) {
   generator.seed(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
 
-  #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < dt_exemplars->ncols * max_dimensions; ++i) {
     pmatrix[i] = distribution(generator);
   }
