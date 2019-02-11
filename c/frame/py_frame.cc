@@ -23,6 +23,8 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 
+extern SType force_stype;
+
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -62,6 +64,21 @@ R"(tail(self, n=10)
 --
 
 Return the last `n` rows of the Frame, same as ``self[-n:, :]``.
+)");
+
+PKArgs Frame::Type::fn_to_numpy(
+    0, 1, 0, false, false,
+    {"stype"}, "to_numpy",
+R"(to_numpy(self, stype=None)
+--
+
+Convert frame into a numpy array, optionally forcing it into a
+specific stype/dtype.
+
+Parameters
+----------
+stype: datatable.stype, numpy.dtype or str
+    Cast frame into this stype before converting it into a numpy array.
 )");
 
 
@@ -130,6 +147,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::to_tuples, args_to_tuples>();
   mm.add<&Frame::head, fn_head>();
   mm.add<&Frame::tail, fn_tail>();
+  mm.add<&Frame::to_numpy, fn_to_numpy>();
 }
 
 
@@ -205,6 +223,21 @@ oobj Frame::tail(const PKArgs& args) {
   aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
   aa.set(1, py::None());
   return m__getitem__(aa);
+}
+
+
+oobj Frame::to_numpy(const PKArgs& args) {
+  oobj numpy = oobj::import("numpy");
+  SType st = SType::VOID;
+  if (!args[0].is_undefined()) {
+    st = args[0].to_stype();
+  }
+  otuple call_args(1);
+  call_args.set(0, oobj(this));
+  force_stype = st;
+  oobj res = numpy.get_attr("array").call(call_args);
+  force_stype = SType::VOID;
+  return res;
 }
 
 

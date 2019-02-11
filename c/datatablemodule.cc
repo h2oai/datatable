@@ -244,6 +244,8 @@ PyInit__datatable()
   init_csvwrite_constants();
   init_exceptions();
 
+  force_stype = SType::VOID;
+
   static DatatableModule dtmod;
   PyObject* m = dtmod.init();
 

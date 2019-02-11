@@ -124,6 +124,20 @@ oobj oobj::import(const char* mod, const char* symbol) {
   return mod_obj.get_attr(symbol);
 }
 
+oobj oobj::import(const char* mod) {
+  PyObject* module = PyImport_ImportModule(mod);
+  if (!module) {
+    if (PyErr_ExceptionMatches(PyExc_ModuleNotFoundError)) {
+      PyErr_Clear();
+      throw ImportError() << "Module `" << mod << "` is not installed. "
+                             "It is required for running this function";
+    } else {
+      throw PyError();
+    }
+  }
+  return oobj::from_new_reference(module);
+}
+
 oobj::~oobj() {
   Py_XDECREF(v);
 }

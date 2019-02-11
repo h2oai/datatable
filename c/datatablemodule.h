@@ -41,4 +41,7 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
 };
 
 
+extern SType force_stype;  // Declared in py_buffers
+
+
 #endif

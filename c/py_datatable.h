@@ -13,6 +13,8 @@
 #include "py_utils.h"
 namespace py { class Frame; }
 
+extern SType force_stype;
+
 #define BASECLS pydatatable::obj
 #define CLSNAME DataTable
 #define HOMEFLAG dt_PY_DATATABLE_cc
@@ -37,8 +39,6 @@ namespace pydatatable
 struct obj : public PyObject {
   DataTable* ref;
   py::Frame* _frame;
-  SType use_stype_for_buffers;
-  int64_t : 56;
 };
 
 extern PyTypeObject type;

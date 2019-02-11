@@ -21,6 +21,8 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 
+SType force_stype;
+
 // Forward declarations
 static Column* try_to_resolve_object_column(Column* col);
 static SType stype_from_format(const char *format, int64_t itemsize);
@@ -426,7 +428,7 @@ static int getbuffer_DataTable(
   // copied -- in which case it should be possible to return the buffer
   // by-reference instead of copying the data into an intermediate buffer.
   if (ncols == 1 && !dt->columns[0]->rowindex() && !REQ_WRITABLE(flags) &&
-      dt->columns[0]->is_fixedwidth()) {
+      dt->columns[0]->is_fixedwidth() && force_stype == SType::VOID) {
     return dt_getbuffer_1_col(self, view, flags);
   }
 
@@ -436,7 +438,7 @@ static int getbuffer_DataTable(
   // "INDIRECT" buffer.
 
   // First, find the common stype for all columns in the DataTable.
-  SType stype = self->use_stype_for_buffers;
+  SType stype = force_stype;
   if (stype == SType::VOID) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;

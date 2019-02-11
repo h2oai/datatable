@@ -291,6 +291,7 @@ class oobj : public _obj {
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     static oobj import(const char* module, const char* symbol);
+    static oobj import(const char* module);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);
