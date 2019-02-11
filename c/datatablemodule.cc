@@ -144,27 +144,64 @@ PyObject* has_omp_support(PyObject*, PyObject*) {
 }
 
 
-static py::PKArgs fn_get_rowindex(
-    2, 0, 0, false, false, {"frame", "i"},
-    "get_rowindex",
-R"(get_rowindex(frame, i)
---
 
-Retrieve the RowIndex object of the `i`th column of the `frame`, or None
-if that column has no RowIndex.
-)",
+//------------------------------------------------------------------------------
+// These functions are exported as `datatable.internal.*`
+//------------------------------------------------------------------------------
 
-[](const py::PKArgs& args) -> py::oobj {
+static std::pair<DataTable*, size_t> _unpack_args(const py::PKArgs& args) {
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
   DataTable* dt = args[0].to_frame();
   size_t col    = args[1].to_size_t();
 
   if (!dt) throw TypeError() << "First parameter should be a Frame";
   if (col >= dt->ncols) throw ValueError() << "Index out of bounds";
+  return std::make_pair(dt, col);
+}
+
+
+static py::PKArgs fn_frame_column_rowindex(
+    2, 0, 0, false, false, {"frame", "i"},
+    "frame_column_rowindex",
+R"(frame_column_rowindex(frame, i)
+--
+
+Return the RowIndex of the `i`th column of the `frame`, or None if that column
+has no row index.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  auto u = _unpack_args(args);
+  DataTable* dt = u.first;
+  size_t col = u.second;
 
   RowIndex ri = dt->columns[col]->rowindex();
   return ri? py::orowindex(ri) : py::None();
 });
+
+
+static py::PKArgs fn_frame_column_data_r(
+    2, 0, 0, false, false, {"frame", "i"},
+    "frame_ColumnDataR",
+R"(frame_column_data_r(frame, i)
+--
+
+Return C pointer to the main data array of the column `frame[i]`. The pointer
+is returned as a `ctypes.c_void_p` object.
+)",
+
+[](const py::PKArgs& args) -> py::oobj {
+  static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
+
+  auto u = _unpack_args(args);
+  DataTable* dt = u.first;
+  size_t col = u.second;
+  const void* ptr = dt->columns[col]->data();
+  py::otuple init_args(1);
+  init_args.set(0, py::oint(reinterpret_cast<size_t>(ptr)));
+  return c_void_p.call(init_args);
+});
+
 
 
 
@@ -185,7 +222,8 @@ void DatatableModule::init_methods() {
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
 
-  ADDFN(fn_get_rowindex);
+  ADDFN(fn_frame_column_rowindex);
+  ADDFN(fn_frame_column_data_r);
 
   init_methods_aggregate();
   init_methods_join();

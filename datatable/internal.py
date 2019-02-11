@@ -21,6 +21,6 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from .lib._datatable import get_rowindex
+from .lib._datatable import frame_column_rowindex, frame_column_data_r
 
-__all__ = ["get_rowindex"]
+__all__ = ["frame_column_rowindex", "frame_column_data_r"]
