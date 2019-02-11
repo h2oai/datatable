@@ -95,17 +95,6 @@ class ColSelectorExpr(BaseExpr):
                 not name.isdigit())
 
 
-    #---------------------------------------------------------------------------
-    # Eager evaluation
-    #---------------------------------------------------------------------------
-
-    def evaluate_eager(self, ee):
-        self.resolve()
-        dt = self._dtexpr.get_datatable()
-        ri = self._dtexpr.get_rowindex()
-        return core.expr_column(dt.internal, self._colid, ri)
-
-
 
 
 class NewColumnExpr(BaseExpr):

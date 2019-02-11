@@ -45,9 +45,6 @@ class LiteralExpr(BaseExpr):
     def resolve(self):
         pass
 
-    def evaluate_eager(self, ee):
-        return core.column_from_list([self.arg])
-
     def _core(self):
         return core.base_expr(baseexpr_opcodes["literal"], self.arg)
 

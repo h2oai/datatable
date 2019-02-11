@@ -26,11 +26,6 @@ class Isna(BaseExpr):
         self._arg.resolve()
         self._stype = stype.bool8
 
-    def evaluate_eager(self, ee):
-        arg = self._arg.evaluate_eager(ee)
-        opcode = unary_op_codes["isna"]
-        return core.expr_unaryop(opcode, arg)
-
     def __str__(self):
         return "isna(%s)" % self._arg
 

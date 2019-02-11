@@ -48,21 +48,6 @@ class BinaryOpExpr(BaseExpr):
                               self._lhs._core(),
                               self._rhs._core())
 
-    #---------------------------------------------------------------------------
-    # Eager evaluation
-    #---------------------------------------------------------------------------
-
-    def evaluate_eager(self, ee):
-        lhs = self._lhs.evaluate_eager(ee)
-        rhs = self._rhs.evaluate_eager(ee)
-        nl = lhs.nrows
-        nr = rhs.nrows
-        if nl == nr or nl == 1 or nr == 1:
-            opcode = binary_op_codes[self._op]
-            return core.expr_binaryop(opcode, lhs, rhs)
-        else:
-            raise TValueError("Cannot apply op '%s' on incompatible columns "
-                              "of sizes %d and %d" % (self._op, nl, nr))
 
 
 #-------------------------------------------------------------------------------

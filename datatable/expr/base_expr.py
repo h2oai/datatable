@@ -56,8 +56,6 @@ class BaseExpr:
         """
         raise NotImplementedError
 
-    def evaluate_eager(self, ee):
-        raise NotImplementedError
 
     @property
     def stype(self):

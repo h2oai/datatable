@@ -41,9 +41,6 @@ class CountExpr(BaseExpr):
     def resolve(self):
         self._stype = stype.int64
 
-    def evaluate_eager(self, ee):
-        return core.expr_count(ee.dt.internal, ee.groupby)
-
     def __str__(self):
         return "count()"
 
@@ -68,11 +65,6 @@ class ReduceExpr(BaseExpr):
             raise ValueError(
                 "Cannot compute %s of a variable of type %s"
                 % (self._op, expr_stype))
-
-    def evaluate_eager(self, ee):
-        col = self._expr.evaluate_eager(ee)
-        opcode = reduce_opcodes[self._op]
-        return core.expr_reduceop(opcode, col, ee.groupby)
 
 
     def __str__(self):

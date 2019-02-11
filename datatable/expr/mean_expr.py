@@ -49,12 +49,6 @@ class MeanReducer(BaseExpr):
                 "Cannot compute mean of a variable of type %s" % expr_stype)
 
 
-    def evaluate_eager(self, ee):
-        col = self.expr.evaluate_eager(ee)
-        opcode = reduce_opcodes["mean"]
-        return core.expr_reduceop(opcode, col, ee.groupby)
-
-
     def __str__(self):
         return "mean%d(%s)" % (self.skipna, self.expr)
 
