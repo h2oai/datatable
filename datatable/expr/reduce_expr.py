@@ -38,9 +38,6 @@ def first(iterable):
 
 
 class CountExpr(BaseExpr):
-    def is_reduce_expr(self, ee):
-        return True
-
     def resolve(self):
         self._stype = stype.int64
 
@@ -62,9 +59,6 @@ class ReduceExpr(BaseExpr):
         super().__init__()
         self._op = op
         self._expr = expr
-
-    def is_reduce_expr(self, ee):
-        return True
 
     def resolve(self):
         self._expr.resolve()

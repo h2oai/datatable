@@ -42,9 +42,6 @@ class LiteralExpr(BaseExpr):
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
 
-    def is_reduce_expr(self, ee):
-        return True
-
     def resolve(self):
         pass
 

@@ -30,9 +30,6 @@ class RelationalOpExpr(BaseExpr):
     def __str__(self):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
 
-    def is_reduce_expr(self, ee):
-        return self._lhs.is_reduce_expr(ee) and self._rhs.is_reduce_expr(ee)
-
     def resolve(self):
         self._lhs.resolve()
         self._rhs.resolve()

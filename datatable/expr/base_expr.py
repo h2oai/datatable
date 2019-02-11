@@ -93,14 +93,6 @@ class BaseExpr:
         return self._stype.value
 
 
-    def is_reduce_expr(self, ee):
-        """
-        Returns True iff this expression is a reducer (i.e. produces as many
-        rows as there are groups in the groupby).
-        """
-        raise NotImplementedError
-
-
     def _core(self):
         """
         Converts this object into a ``_datatable.base_expr``.

@@ -37,9 +37,6 @@ class ColSelectorExpr(BaseExpr):
         self._colid = dt.colindex(self._colexpr)
         self._stype = self._dtexpr.stypes[self._colid]
 
-    def is_reduce_expr(self, ee):
-        return self._colid in ee.groupby_cols
-
     @property
     def col_index(self):
         return self._colid

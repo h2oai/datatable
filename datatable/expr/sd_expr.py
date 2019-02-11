@@ -38,9 +38,6 @@ class StdevReducer(BaseExpr):
         self.expr = expr
         self.skipna = skipna
 
-    def is_reduce_expr(self, ee):
-        return True
-
     def resolve(self):
         self.expr.resolve()
         self._stype = ops_rules.get(("sd", self.expr.stype), None)

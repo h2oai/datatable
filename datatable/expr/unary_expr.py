@@ -20,9 +20,6 @@ class UnaryOpExpr(BaseExpr):
         self._op = op
         self._arg = arg
 
-    def is_reduce_expr(self, ee):
-        return self._arg.is_reduce_expr(ee)
-
     def resolve(self):
         self._arg.resolve()
         self._stype = unary_ops_rules.get((self._op, self._arg.stype), None)

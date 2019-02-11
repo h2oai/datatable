@@ -182,7 +182,7 @@ has no row index.
 
 static py::PKArgs fn_frame_column_data_r(
     2, 0, 0, false, false, {"frame", "i"},
-    "frame_ColumnDataR",
+    "frame_column_data_r",
 R"(frame_column_data_r(frame, i)
 --
 

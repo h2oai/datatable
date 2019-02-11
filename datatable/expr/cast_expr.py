@@ -24,9 +24,6 @@ class CastExpr(BaseExpr):
     def __str__(self):
         return "%s(%s)" % (self._stype.name, str(self._arg))
 
-    def is_reduce_expr(self, ee):
-        return self._arg.is_reduce_expr(ee)
-
     def resolve(self):
         self._arg.resolve()
 

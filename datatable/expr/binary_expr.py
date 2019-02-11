@@ -42,9 +42,6 @@ class BinaryOpExpr(BaseExpr):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
 
 
-    def is_reduce_expr(self, ee):
-        return self._lhs.is_reduce_expr(ee) and self._rhs.is_reduce_expr(ee)
-
     def _core(self):
         return core.base_expr(baseexpr_opcodes["binop"],
                               binary_op_codes[self._op],
