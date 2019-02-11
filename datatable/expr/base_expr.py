@@ -41,46 +41,6 @@ class BaseExpr:
 
     This class is abstract and should not be instantiated explicitly.
     """
-    __slots__ = ["_stype"]
-
-
-    def __init__(self):
-        self._stype = None
-
-
-    @property
-    def stype(self):
-        """
-        "Storage type" of the column produced by this expression.
-
-        The stype is an enum declared in `types.py`.
-
-        Each class deriving from ``BaseExpr`` is expected to set the
-        ``self._stype`` property in its initializer.
-        """
-        assert self._stype is not None
-        return self._stype
-
-
-    @property
-    def ctype(self):
-        """
-        C type of an individual element produced by this expression.
-
-        This is a helper property useful for code generation. For the string
-        columns it will return the type of the element within the "offsets"
-        part of the data.
-        """
-        return ctypes_map[self._stype]
-
-
-    @property
-    def itype(self):
-        """
-        SType of the element, expressed as an integer (same as ST_* constants).
-        """
-        return self._stype.value
-
 
     def _core(self):
         """
