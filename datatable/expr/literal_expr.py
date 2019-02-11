@@ -42,32 +42,8 @@ class LiteralExpr(BaseExpr):
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
 
-    def is_reduce_expr(self, ee):
-        return True
-
-    def resolve(self):
-        pass
-
-    def evaluate_eager(self, ee):
-        return core.column_from_list([self.arg])
-
     def _core(self):
         return core.base_expr(baseexpr_opcodes["literal"], self.arg)
-
-    def _isna(self, key, inode):
-        return self.arg is None
-
-
-    def _notna(self, key, inode):
-        return str(self.arg)
-
-
-    def _value(self, key, inode):
-        if self.arg is None:
-            return nas_map[self.stype]
-        else:
-            return str(self.arg)
-
 
     def __str__(self):
         return self._value(None, None)

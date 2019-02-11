@@ -351,7 +351,7 @@ class Frame(core.Frame):
         return res
 
 
-    def topython(self):  # DEPRECATED
+    def topython(self):
         warnings.warn(
             "Method `Frame.topython()` is deprecated (will be removed in "
             "0.9.0), please use `Frame.to_list()` instead",
@@ -372,14 +372,10 @@ class Frame(core.Frame):
             category=FutureWarning)
         return self.to_numpy(stype)
 
-
     def scalar(self):
-        """
-        For a 1x1 Frame return its content as a python object.
-        """
         warnings.warn(
-            "Method `Frame.scalar()` is deprecated (will be removed in 0.10.0),"
-            "please use `Frame[0, 0]` istead",
+            "Method `Frame.scalar()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame[0, 0]` istead",
             category=FutureWarning)
         return self[0, 0]
 

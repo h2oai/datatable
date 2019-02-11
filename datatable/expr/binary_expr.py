@@ -25,25 +25,10 @@ class BinaryOpExpr(BaseExpr):
         self._lhs = lhs  # type: BaseExpr
         self._rhs = rhs  # type: BaseExpr
 
-    def resolve(self):
-        self._lhs.resolve()
-        self._rhs.resolve()
-        triple = (self._op, self._lhs.stype, self._rhs.stype)
-        self._stype = ops_rules.get(triple, None)
-        if self._stype is None:
-            raise TTypeError("Operation %s not allowed on operands of types "
-                             "%s and %s"
-                             % (self._op, self._lhs.stype, self._rhs.stype))
-        # if self._stype in stype_decimal:
-        #     self.scale = max(self.lhs.scale, self.rhs.scale)
-
 
     def __str__(self):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
 
-
-    def is_reduce_expr(self, ee):
-        return self._lhs.is_reduce_expr(ee) and self._rhs.is_reduce_expr(ee)
 
     def _core(self):
         return core.base_expr(baseexpr_opcodes["binop"],
@@ -51,52 +36,6 @@ class BinaryOpExpr(BaseExpr):
                               self._lhs._core(),
                               self._rhs._core())
 
-
-    #---------------------------------------------------------------------------
-    # LLVM evaluation
-    #---------------------------------------------------------------------------
-
-    def _isna(self, key, inode):
-        lhs_isna = self._lhs.isna(inode)
-        rhs_isna = self._rhs.isna(inode)
-        if lhs_isna is True or rhs_isna is True:
-            return True
-        conditions = []
-        if lhs_isna is not False:
-            conditions.append(lhs_isna)
-        if rhs_isna is not False:
-            conditions.append(rhs_isna)
-        if self._op in division_ops:
-            conditions.append("(%s == 0)" % self._rhs.notna(inode))
-        if not conditions:
-            return False
-        isna = inode.make_keyvar(key, "isna")
-        expr = "int %s = %s;" % (isna, " | ".join(conditions))
-        inode.addto_mainloop(expr)
-        return isna
-
-
-    def _notna(self, key, inode):
-        lhs = self._lhs.notna(inode)
-        rhs = self._rhs.notna(inode)
-        return "(%s %s %s)" % (lhs, self._op, rhs)
-
-
-    #---------------------------------------------------------------------------
-    # Eager evaluation
-    #---------------------------------------------------------------------------
-
-    def evaluate_eager(self, ee):
-        lhs = self._lhs.evaluate_eager(ee)
-        rhs = self._rhs.evaluate_eager(ee)
-        nl = lhs.nrows
-        nr = rhs.nrows
-        if nl == nr or nl == 1 or nr == 1:
-            opcode = binary_op_codes[self._op]
-            return core.expr_binaryop(opcode, lhs, rhs)
-        else:
-            raise TValueError("Cannot apply op '%s' on incompatible columns "
-                              "of sizes %d and %d" % (self._op, nl, nr))
 
 
 #-------------------------------------------------------------------------------

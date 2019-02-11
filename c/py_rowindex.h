@@ -59,6 +59,7 @@ struct orowindex::pyobject : public PyObject {
 
   void m__init__(PKArgs&);
   void m__dealloc__();
+  oobj m__repr__();
   oobj get_type() const;
   oobj get_nrows() const;
   oobj get_min() const;

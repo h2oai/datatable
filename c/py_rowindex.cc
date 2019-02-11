@@ -79,6 +79,19 @@ void orowindex::pyobject::m__dealloc__() {
 }
 
 
+oobj orowindex::pyobject::m__repr__() {
+  std::ostringstream out;
+  out << "datatable.internal.RowIndex(";
+  if (ri->isarr32()) out << "int32[" << ri->size() << "]";
+  if (ri->isarr64()) out << "int64[" << ri->size() << "]";
+  if (ri->isslice()) out << ri->slice_start() << '/' << ri->size() << '/'
+                        << ri->slice_step();
+  out << ")";
+  return ostring(out.str());
+}
+
+
+
 oobj orowindex::pyobject::get_type() const {
   static oobj tSlice = ostring("slice");
   static oobj tArr32 = ostring("arr32");
