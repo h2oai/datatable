@@ -24,9 +24,6 @@ class CastExpr(BaseExpr):
     def __str__(self):
         return "%s(%s)" % (self._stype.name, str(self._arg))
 
-    def resolve(self):
-        self._arg.resolve()
-
     def _core(self):
         return core.base_expr(baseexpr_opcodes["cast"],
                               self._arg._core(),

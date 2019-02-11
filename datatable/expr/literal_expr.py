@@ -42,9 +42,6 @@ class LiteralExpr(BaseExpr):
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
 
-    def resolve(self):
-        pass
-
     def _core(self):
         return core.base_expr(baseexpr_opcodes["literal"], self.arg)
 

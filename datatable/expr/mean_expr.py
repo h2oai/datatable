@@ -40,15 +40,6 @@ class MeanReducer(BaseExpr):
         self.skipna = skipna
 
 
-    def resolve(self):
-        self.expr.resolve()
-        expr_stype = self.expr.stype
-        self._stype = ops_rules.get(("mean", expr_stype), None)
-        if self._stype is None:
-            raise ValueError(
-                "Cannot compute mean of a variable of type %s" % expr_stype)
-
-
     def __str__(self):
         return "mean%d(%s)" % (self.skipna, self.expr)
 

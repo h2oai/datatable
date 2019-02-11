@@ -47,15 +47,6 @@ class BaseExpr:
     def __init__(self):
         self._stype = None
 
-    def resolve(self):
-        """
-        Part of initialization process: this method will be called once it is
-        known which Frame this expression should bind to. Derived classes
-        are expected to override this method and perform `_stype` resolution /
-        error checking.
-        """
-        raise NotImplementedError
-
 
     @property
     def stype(self):

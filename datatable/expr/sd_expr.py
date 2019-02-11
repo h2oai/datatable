@@ -38,15 +38,6 @@ class StdevReducer(BaseExpr):
         self.expr = expr
         self.skipna = skipna
 
-    def resolve(self):
-        self.expr.resolve()
-        self._stype = ops_rules.get(("sd", self.expr.stype), None)
-        if self.stype is None:
-            raise ValueError(
-                "Cannot compute standard deviation of a variable of type %s"
-                % self.expr.stype)
-
-
     def __str__(self):
         return "sd%d(%s)" % (self.skipna, self.expr)
 

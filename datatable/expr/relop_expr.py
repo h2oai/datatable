@@ -30,10 +30,6 @@ class RelationalOpExpr(BaseExpr):
     def __str__(self):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
 
-    def resolve(self):
-        self._lhs.resolve()
-        self._rhs.resolve()
-        self._stype = stype.bool8
 
     def _core(self):
         return core.base_expr(baseexpr_opcodes["binop"],

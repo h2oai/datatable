@@ -22,9 +22,6 @@ class Isna(BaseExpr):
         super().__init__()
         self._arg = arg
 
-    def resolve(self):
-        self._arg.resolve()
-        self._stype = stype.bool8
 
     def __str__(self):
         return "isna(%s)" % self._arg

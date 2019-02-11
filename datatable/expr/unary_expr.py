@@ -20,15 +20,6 @@ class UnaryOpExpr(BaseExpr):
         self._op = op
         self._arg = arg
 
-    def resolve(self):
-        self._arg.resolve()
-        self._stype = unary_ops_rules.get((self._op, self._arg.stype), None)
-        if self._stype is None:
-            raise TTypeError("Operator `%s` cannot be applied to a `%s` column"
-                             % (self._op, self._arg.stype.name))
-        if self._op == "~" and self._stype == stype.bool8:
-            self._op = "!"
-
 
     def __str__(self):
         return "(%s %s)" % (self._op, self._arg)

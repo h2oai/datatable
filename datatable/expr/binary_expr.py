@@ -25,18 +25,6 @@ class BinaryOpExpr(BaseExpr):
         self._lhs = lhs  # type: BaseExpr
         self._rhs = rhs  # type: BaseExpr
 
-    def resolve(self):
-        self._lhs.resolve()
-        self._rhs.resolve()
-        triple = (self._op, self._lhs.stype, self._rhs.stype)
-        self._stype = ops_rules.get(triple, None)
-        if self._stype is None:
-            raise TTypeError("Operation %s not allowed on operands of types "
-                             "%s and %s"
-                             % (self._op, self._lhs.stype, self._rhs.stype))
-        # if self._stype in stype_decimal:
-        #     self.scale = max(self.lhs.scale, self.rhs.scale)
-
 
     def __str__(self):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)

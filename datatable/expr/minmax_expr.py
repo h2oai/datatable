@@ -68,10 +68,6 @@ class MinMaxReducer(BaseExpr):
         self._op = "<" if ismin else ">"
         self._name = "min" if ismin else "max"
 
-    def resolve(self):
-        self._arg.resolve()
-        self._stype = self._arg.stype
-
 
     def __str__(self):
         return "%s%d(%s)" % (self._name, self._skipna, self._arg)

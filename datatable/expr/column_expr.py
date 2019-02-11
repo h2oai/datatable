@@ -32,11 +32,6 @@ class ColSelectorExpr(BaseExpr):
             raise TTypeError("Column selector should be an integer or "
                              "a string, not %r" % type(selector))
 
-    def resolve(self):
-        dt = self._dtexpr.get_datatable()
-        self._colid = dt.colindex(self._colexpr)
-        self._stype = self._dtexpr.stypes[self._colid]
-
     @property
     def col_index(self):
         return self._colid
@@ -105,6 +100,3 @@ class NewColumnExpr(BaseExpr):
 
     def __str__(self):
         return self._name
-
-    def resolve(self):
-        pass

@@ -38,8 +38,6 @@ def first(iterable):
 
 
 class CountExpr(BaseExpr):
-    def resolve(self):
-        self._stype = stype.int64
 
     def __str__(self):
         return "count()"
@@ -56,15 +54,6 @@ class ReduceExpr(BaseExpr):
         super().__init__()
         self._op = op
         self._expr = expr
-
-    def resolve(self):
-        self._expr.resolve()
-        expr_stype = self._expr.stype
-        self._stype = ops_rules.get((self._op, expr_stype))
-        if self._stype is None:
-            raise ValueError(
-                "Cannot compute %s of a variable of type %s"
-                % (self._op, expr_stype))
 
 
     def __str__(self):
