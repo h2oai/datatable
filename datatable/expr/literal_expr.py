@@ -51,20 +51,5 @@ class LiteralExpr(BaseExpr):
     def _core(self):
         return core.base_expr(baseexpr_opcodes["literal"], self.arg)
 
-    def _isna(self, key, inode):
-        return self.arg is None
-
-
-    def _notna(self, key, inode):
-        return str(self.arg)
-
-
-    def _value(self, key, inode):
-        if self.arg is None:
-            return nas_map[self.stype]
-        else:
-            return str(self.arg)
-
-
     def __str__(self):
         return self._value(None, None)

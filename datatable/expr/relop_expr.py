@@ -43,40 +43,6 @@ class RelationalOpExpr(BaseExpr):
 
 
     #---------------------------------------------------------------------------
-    # LLVM evaluation
-    #---------------------------------------------------------------------------
-
-    def _isna(self, key, inode):
-        return False
-
-
-    def _notna(self, key, inode):
-        lhs_notna = self._lhs.notna(inode)
-        rhs_notna = self._rhs.notna(inode)
-        lhs_isna = self._lhs.isna(inode)
-        rhs_isna = self._rhs.isna(inode)
-        if isinstance(lhs_isna, bool):
-            lhs_isna = int(lhs_isna)
-        if isinstance(rhs_isna, bool):
-            rhs_isna = int(rhs_isna)
-        if lhs_notna == "None":
-            lhs_notna = "0"
-        if rhs_notna == "None":
-            rhs_notna = "0"
-
-        if self._op == "!=":
-            teststr = ("({lhsna} || {rhsna} || ({lhs} != {rhs})) && "
-                       "!({lhsna} && {rhsna})")
-        else:
-            teststr = "(!{lhsna} && !{rhsna} && ({lhs} {op} {rhs}))"
-            if self._op[-1] == "=":
-                teststr += " || ({lhsna} && {rhsna})"
-        return teststr.format(lhsna=lhs_isna, rhsna=rhs_isna,
-                              lhs=lhs_notna, rhs=rhs_notna, op=self._op)
-
-
-
-    #---------------------------------------------------------------------------
     # Eager evaluation
     #---------------------------------------------------------------------------
 

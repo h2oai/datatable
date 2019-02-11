@@ -48,37 +48,6 @@ class BinaryOpExpr(BaseExpr):
                               self._lhs._core(),
                               self._rhs._core())
 
-
-    #---------------------------------------------------------------------------
-    # LLVM evaluation
-    #---------------------------------------------------------------------------
-
-    def _isna(self, key, inode):
-        lhs_isna = self._lhs.isna(inode)
-        rhs_isna = self._rhs.isna(inode)
-        if lhs_isna is True or rhs_isna is True:
-            return True
-        conditions = []
-        if lhs_isna is not False:
-            conditions.append(lhs_isna)
-        if rhs_isna is not False:
-            conditions.append(rhs_isna)
-        if self._op in division_ops:
-            conditions.append("(%s == 0)" % self._rhs.notna(inode))
-        if not conditions:
-            return False
-        isna = inode.make_keyvar(key, "isna")
-        expr = "int %s = %s;" % (isna, " | ".join(conditions))
-        inode.addto_mainloop(expr)
-        return isna
-
-
-    def _notna(self, key, inode):
-        lhs = self._lhs.notna(inode)
-        rhs = self._rhs.notna(inode)
-        return "(%s %s %s)" % (lhs, self._op, rhs)
-
-
     #---------------------------------------------------------------------------
     # Eager evaluation
     #---------------------------------------------------------------------------

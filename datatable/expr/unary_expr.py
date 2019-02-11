@@ -35,14 +35,6 @@ class UnaryOpExpr(BaseExpr):
         return core.expr_unaryop(opcode, arg)
 
 
-    def _isna(self, key, inode):
-        return self._arg.isna(inode)
-
-
-    def _notna(self, key, inode):
-        return "(%s %s)" % (self._op, self._arg.notna(inode))
-
-
     def __str__(self):
         return "(%s %s)" % (self._op, self._arg)
 
