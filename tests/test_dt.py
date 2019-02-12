@@ -21,12 +21,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import datatable as dt
+import math
 import pytest
+import random
 import re
 import subprocess
 import sys
 import time
-import datatable as dt
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex
@@ -764,6 +766,53 @@ def test_tonumpy_with_stype(numpy):
     assert a2.T.tolist() == src
     assert a1.dtype == numpy.dtype("float32")
     assert a2.dtype == numpy.dtype("float64")
+
+
+def test_tonumpy_with_NAs1(numpy):
+    src = [1, 5, None, 187, None, 103948]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == [src]
+
+
+def test_tonumpy_with_NAs2(numpy):
+    src = [[2.3, 11.89, None, math.inf], [4, None, None, -12]]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == src
+
+
+def test_tonumpy_with_NAs3(numpy):
+    src = ["faa", None, "", "hooray", None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == [src]
+
+
+def test_tonumpy_with_NAs4(numpy):
+    src = [True, False, None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.dtype == numpy.dtype("bool")
+    assert a0.T.tolist() == [src]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_tonumpy_with_NAs_random(seed, numpy):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 1)
+    m = int(random.expovariate(0.2) + 1)
+    data = [None] * m
+    for j in range(m):
+        threshold = 0.1 * (m + 1);
+        vec = [random.random() for i in range(n)]
+        for i, x in enumerate(vec):
+            if x < threshold:
+                vec[i] = None
+        data[j] = vec
+    DT = dt.Frame(data)
+    ar = DT.to_numpy()
+    assert ar.T.tolist() == data
 
 
 

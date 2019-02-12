@@ -372,6 +372,14 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
 }
 
 
+template <typename T>
+void FwColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
+  const T* tdata = elements_r();
+  for (size_t i = row0; i < row1; ++i) {
+    outmask[i] = ISNA<T>(tdata[i]);
+  }
+}
+
 
 // Explicit instantiations
 template class FwColumn<int8_t>;

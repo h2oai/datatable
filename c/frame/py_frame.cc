@@ -23,6 +23,8 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 
+extern SType force_stype;
+
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -130,6 +132,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::to_tuples, args_to_tuples>();
   mm.add<&Frame::head, fn_head>();
   mm.add<&Frame::tail, fn_tail>();
+  mm.add<&Frame::to_numpy, fn_to_numpy>();
 }
 
 
@@ -206,6 +209,7 @@ oobj Frame::tail(const PKArgs& args) {
   aa.set(1, py::None());
   return m__getitem__(aa);
 }
+
 
 
 

@@ -38,7 +38,6 @@ PyObject* wrap(DataTable* dt)
     auto pypydt = reinterpret_cast<pydatatable::obj*>(pydt);
     pypydt->ref = dt;
     pypydt->_frame = nullptr;
-    pypydt->use_stype_for_buffers = SType::VOID;
   }
   return pydt;
 }
@@ -310,11 +309,11 @@ PyObject* materialize(obj* self, PyObject*) {
 }
 
 
-PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
+PyObject* use_stype_for_buffers(obj*, PyObject* args) {
   int st = 0;
   if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st))
     return nullptr;
-  self->use_stype_for_buffers = static_cast<SType>(st);
+  force_stype = static_cast<SType>(st);
   Py_RETURN_NONE;
 }
 

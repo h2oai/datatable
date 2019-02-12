@@ -327,30 +327,6 @@ class Frame(core.Frame):
         return pd
 
 
-    def to_numpy(self, stype=None):
-        """
-        Convert Frame into a numpy array, optionally forcing it into a
-        specific stype/dtype.
-
-        Parameters
-        ----------
-        stype: datatable.stype, numpy.dtype or str
-            Cast datatable into this dtype before converting it into a numpy
-            array.
-        """
-        numpy = load_module("numpy")
-        if not hasattr(numpy, "array"):  # pragma: no cover
-            raise ImportError("Unsupported numpy version: `%s`"
-                              % (getattr(numpy, "__version__", "???"), ))
-        st = 0
-        if stype:
-            st = datatable.stype(stype).value
-        self.internal.use_stype_for_buffers(st)
-        res = numpy.array(self.internal)
-        self.internal.use_stype_for_buffers(0)
-        return res
-
-
     def topython(self):
         warnings.warn(
             "Method `Frame.topython()` is deprecated (will be removed in "

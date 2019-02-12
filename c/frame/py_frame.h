@@ -61,6 +61,7 @@ class Frame : public PyObject {
         static NoArgs args_to_tuples;
         static PKArgs fn_head;
         static PKArgs fn_tail;
+        static PKArgs fn_to_numpy;
         static NoArgs fn___getstate__;
         static PKArgs fn___setstate__;
         static const char* classname();
@@ -107,6 +108,7 @@ class Frame : public PyObject {
     oobj to_dict(const NoArgs&);
     oobj to_list(const NoArgs&);
     oobj to_tuples(const NoArgs&);
+    oobj to_numpy(const PKArgs&);
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);
     void repeat(const PKArgs&);
