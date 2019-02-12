@@ -35,70 +35,71 @@ namespace py {
 //------------------------------------------------------------------------------
 
 static PKArgs fn_kfold_simple(
-  0, 2, 0, false, false,
-  {"k", "n"}, "kfold",
+  0, 0, 2, false, false,
+  {"nrows", "nsplits"}, "kfold",
 
-R"(kfold(k, n)
+R"(kfold(nrows, nsplits)
 --
 
-Perform k-fold split of data with `n` rows into `k` train / test subsets.
+Perform k-fold split of data with `nrows` rows into `nsplits` train/test
+subsets.
 
-This function will return a list of `k` tuples `(train_rows, test_rows)`, where
-each component of the tuple is a rows selector that can be applied to a frame
-with `n` rows. Some of these row selectors will be simple python ranges, others
-will be single-column Frame objects.
+This function will return a list of `nsplits` tuples `(train_rows, test_rows)`,
+where each component of the tuple is a rows selector that can be applied to a
+frame with `nrows` rows. Some of these row selectors will be simple python
+ranges, others will be single-column Frame objects.
 
-The range `[0; n)` is split into `k` approximately equal parts (called "folds"),
-and then each `i`-th split will use the `i`-th fold as a test part, and all the
-remaining rows as the train part. Thus, `i`-th split is comprised of:
+The range `[0; nrows)` is split into `nsplits` approximately equal parts
+(called "folds"), and then each `i`-th split will use the `i`-th fold as a
+test part, and all the remaining rows as the train part. Thus, `i`-th split is
+comprised of:
 
-  - train: rows [0; i*n/k) + [(i+1)*n/k; n)
-  - test:  rows [i*n/k; (i+1)*n/k)
+  - train: rows [0; i*nrows/nsplits) + [(i+1)*nrows/nsplits; nrows)
+  - test:  rows [i*nrows/nsplits; (i+1)*nrows/nsplits)
 
 where integer division is assumed.
 
 Parameters
 ----------
-k: int
-    Number of folds, must be at least 2.
+nrows: int
+    The number of rows in the frame that you want to split.
 
-n: int
-    The number of rows in the frame that you want to split. This parameter
-    must be greater or equal to `k`.
+nsplits: int
+    Number of folds, must be at least 2, but not larger than `nrows`.
 )",
 
 [](const py::PKArgs& args) -> py::oobj {
-  if (!args[0]) throw TypeError() << "Required parameter `k` is missing";
-  if (!args[1]) throw TypeError() << "Required parameter `n` is missing";
-  size_t k = args[0].to_size_t();
-  size_t n = args[1].to_size_t();
-  if (k < 2) {
-    throw ValueError() << "The number of splits `k` cannot be less than 2";
+  if (!args[0]) throw TypeError() << "Required parameter `nrows` is missing";
+  if (!args[1]) throw TypeError() << "Required parameter `nsplits` is missing";
+  size_t nrows = args[0].to_size_t();
+  size_t nsplits = args[1].to_size_t();
+  if (nsplits < 2) {
+    throw ValueError() << "The number of splits cannot be less than two";
   }
-  if (k > n) {
-    throw ValueError() << "The number of splits `k` cannot exceed the number "
-        "of rows `n`";
+  if (nsplits > nrows) {
+    throw ValueError()
+      << "The number of splits cannot exceed the number of rows";
   }
 
-  int64_t ik = static_cast<int64_t>(k);
-  int64_t in = static_cast<int64_t>(n);
+  int64_t k = static_cast<int64_t>(nsplits);
+  int64_t n = static_cast<int64_t>(nrows);
 
-  olist res(k);
+  olist res(nsplits);
   otuple split_first(2);
-  split_first.set(0, orange(in/ik, in));
-  split_first.set(1, orange(0, in/ik));
+  split_first.set(0, orange(n/k, n));
+  split_first.set(1, orange(0, n/k));
   otuple split_last(2);
-  split_last.set(0, orange(0, (ik-1)*in/ik));
-  split_last.set(1, orange((ik-1)*in/ik, in));
+  split_last.set(0, orange(0, (k-1)*n/k));
+  split_last.set(1, orange((k-1)*n/k, n));
   res.set(0, split_first);
-  res.set(k-1, split_last);
+  res.set(nsplits-1, split_last);
 
   std::vector<int32_t*> data;
 
-  for (int64_t ii = 1; ii < ik-1; ++ii) {
-    int64_t b1 = ii*in/ik;
-    int64_t b2 = (ii+1)*in/ik;
-    size_t colsize = static_cast<size_t>(b1 + in - b2);
+  for (int64_t ii = 1; ii < k-1; ++ii) {
+    int64_t b1 = ii*n/k;
+    int64_t b2 = (ii+1)*n/k;
+    size_t colsize = static_cast<size_t>(b1 + n - b2);
     Column* col = Column::new_data_column(SType::INT32, colsize);
     DataTable* dt = new DataTable({col});
     data.push_back(static_cast<int32_t*>(col->data_w()));
@@ -109,14 +110,14 @@ n: int
     res.set(static_cast<size_t>(ii), split_i);
   }
 
-  for (int64_t t = 0; t < ik*(ik-2); ++t) {
-    int64_t j = t / ik;     // column index
-    int64_t i = t - j * ik; // block of rows
+  for (int64_t t = 0; t < k*(k-2); ++t) {
+    int64_t j = t / k;     // column index
+    int64_t i = t - j * k; // block of rows
     ++j;
     if (i == j) continue;
-    int64_t row0 = i * in / ik;
-    int64_t row1 = (i+1) * in / ik;
-    int64_t delta = i < j? 0 : (j+1)*in/ik - j*in/ik;
+    int64_t row0 = i * n / k;
+    int64_t row1 = (i+1) * n / k;
+    int64_t delta = i < j? 0 : (j+1)*n/k - j*n/k;
     int32_t* ptr = data[static_cast<size_t>(j) - 1] - delta;
     for (int64_t row = row0; row < row1; ++row) {
       ptr[row] = static_cast<int32_t>(row);

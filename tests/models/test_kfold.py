@@ -25,45 +25,49 @@ import datatable as dt
 import pytest
 import random
 from datatable.models import kfold
+from tests import assert_type_error, assert_value_error
 
-
-def assert_type_error(args, msg):
-    with pytest.raises(TypeError) as e:
-        kfold(*args)
-    assert msg in str(e.value)
-
-def assert_value_error(args, msg):
-    with pytest.raises(ValueError) as e:
-        kfold(*args)
-    assert msg in str(e.value)
-
-
-def test_bad_args1():
-    assert_type_error((), "Required parameter `k` is missing")
-    assert_type_error((5,), "Required parameter `n` is missing")
-    assert_type_error((5, 3.3), "Argument `n` in kfold() should be an integer")
-    assert_type_error((None, 7), "Argument `k` in kfold() should be an integer")
-    assert_type_error((1, 1, 1), "kfold() takes at most 2 positional arguments")
-
-
-def test_bad_args2():
-    assert_value_error((-1, 1), "Argument `k` in kfold() cannot be negative")
-    assert_value_error((3, -3), "Argument `n` in kfold() cannot be negative")
-    assert_value_error((0, 5), "The number of splits `k` cannot be less than 2")
-    assert_value_error((2, 1), "The number of splits `k` cannot exceed the "
-                               "number of rows `n`")
-
-def test_kfold_simple():
-    splits = kfold(2, 2)
-    assert splits == [(range(1, 2), range(0, 1)),
-                      (range(0, 1), range(1, 2))]
 
 
 def test_kfold_api():
-    splits1 = kfold(2, 3)
-    splits2 = kfold(2, n=3)
-    splits3 = kfold(k=2, n=3)
-    assert splits1 == splits2 == splits3
+    assert_type_error(lambda: kfold(),
+        "Required parameter `nrows` is missing")
+
+    assert_type_error(lambda: kfold(nrows=5),
+        "Required parameter `nsplits` is missing")
+
+    assert_type_error(lambda: kfold(nrows=5, nsplits=2, seed=12345),
+        "kfold() got an unexpected keyword argument `seed`")
+
+    assert_type_error(lambda: kfold(5, 2),
+        "kfold() takes no positional arguments, but 2 were given")
+
+    assert_type_error(lambda: kfold(nrows=5, nsplits=3.3),
+        "Argument `nsplits` in kfold() should be an integer")
+
+    assert_type_error(lambda: kfold(nrows=None, nsplits=7),
+        "Argument `nrows` in kfold() should be an integer")
+
+
+def test_bad_args2():
+    assert_value_error(lambda: kfold(nrows=-1, nsplits=1),
+        "Argument `nrows` in kfold() cannot be negative")
+
+    assert_value_error(lambda: kfold(nrows=3, nsplits=-3),
+        "Argument `nsplits` in kfold() cannot be negative")
+
+    assert_value_error(lambda: kfold(nrows=5, nsplits=0),
+        "The number of splits cannot be less than two")
+
+    assert_value_error(lambda: kfold(nrows=1, nsplits=2),
+        "The number of splits cannot exceed the number of rows")
+
+
+
+def test_kfold_simple():
+    splits = kfold(nrows=2, nsplits=2)
+    assert splits == [(range(1, 2), range(0, 1)),
+                      (range(0, 1), range(1, 2))]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -71,7 +75,7 @@ def test_kfold_k_2(seed):
     random.seed(seed)
     n = 2 + int(random.expovariate(0.01))
     h = n // 2
-    splits = kfold(2, n)
+    splits = kfold(nrows=n, nsplits=2)
     assert splits == [(range(h, n), range(0, h)),
                       (range(0, h), range(h, n))]
 
@@ -82,7 +86,7 @@ def test_kfold_k_3(seed):
     n = 3 + int(random.expovariate(0.01))
     h1 = n // 3
     h2 = 2 * n // 3
-    splits = kfold(3, n)
+    splits = kfold(nrows=n, nsplits=3)
     assert len(splits) == 3
     assert splits[0] == (range(h1, n), range(0, h1))
     assert splits[1][1] == range(h1, h2)
@@ -97,7 +101,7 @@ def test_kfold_k_any(seed):
     random.seed(seed)
     k = 2 + int(random.expovariate(0.01))
     n = k + int(random.expovariate(0.0001))
-    splits = kfold(k, n)
+    splits = kfold(nrows=n, nsplits=k)
     h1 = n // k
     h2 = n * (k-1) // k
     assert len(splits) == k
