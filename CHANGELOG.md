@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash in certain circumstances when a key was applied after a
   groupby (#1639).
 
+- `Frame.to_numpy()` now returns a numpy `masked_array` if the frame has
+  any NA values (#1619).
 
 
 ### Deprecated
@@ -47,7 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   and reporting bugs that were fixed in this release:
 
   [antorsae][] (#1639),
-
+  [arno candel][] (#1619)
 
 
 
