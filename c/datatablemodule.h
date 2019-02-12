@@ -28,12 +28,13 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
     }
 
     void init_methods();
-    void init_methods_aggregate();// extra/aggergate.cc
-    void init_methods_join();     // frame/join.cc
-    void init_methods_options();  // options.cc
-    void init_methods_repeat();   // frame/repeat.cc
-    void init_methods_sets();     // set_funcs.cc
-    void init_methods_str();      // str/py_str.cc
+    void init_methods_aggregate(); // extras/aggregate.cc
+    void init_methods_kfold();     // extras/kfold.cc
+    void init_methods_join();      // frame/join.cc
+    void init_methods_options();   // options.cc
+    void init_methods_repeat();    // frame/repeat.cc
+    void init_methods_sets();      // set_funcs.cc
+    void init_methods_str();       // str/py_str.cc
 
     #ifdef DTTEST
       void init_tests();
