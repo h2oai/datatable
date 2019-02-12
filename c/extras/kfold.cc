@@ -77,7 +77,7 @@ n: int
   }
   if (k > n) {
     throw ValueError() << "The number of splits `k` cannot exceed the number "
-        "of rows in the frame";
+        "of rows `n`";
   }
 
   int64_t ik = static_cast<int64_t>(k);

@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Added
+
+- Added function `dt.models.kfold(k, n)` to prepare indices for k-fold
+  splitting. This function will return `k` pairs of row selectors such that
+  when these selectors are applied to an `n`-rows frame, that frame will be
+  split into train and test part according to the K-fold splitting scheme.
+
+
 ### Fixed
 
 - Fixed crash in certain circumstances when a key was applied after a
