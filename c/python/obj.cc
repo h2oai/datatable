@@ -127,7 +127,7 @@ oobj oobj::import(const char* mod, const char* symbol) {
 oobj oobj::import(const char* mod) {
   PyObject* module = PyImport_ImportModule(mod);
   if (!module) {
-    if (PyErr_ExceptionMatches(PyExc_ModuleNotFoundError)) {
+    if (PyErr_ExceptionMatches(PyExc_ImportError)) {
       PyErr_Clear();
       throw ImportError() << "Module `" << mod << "` is not installed. "
                              "It is required for running this function";
