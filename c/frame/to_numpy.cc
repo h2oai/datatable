@@ -92,15 +92,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
   // If there are any columns with NAs, replace the numpy.array with
   // numpy.ma.masked_array
-  bool has_nas = false;
-  for (size_t i = 0; i < dt->ncols; ++i) {
-    if (dt->columns[i]->countna() > 0) {
-      has_nas = true;
-      break;
-    }
-  }
-
-  if (has_nas) {
+  if (datatable_has_nas(dt)) {
     size_t dtsize = dt->ncols * dt->nrows;
     Column* mask_col = Column::new_data_column(SType::BOOL, dtsize);
     int8_t* mask_data = static_cast<int8_t*>(mask_col->data_w());
