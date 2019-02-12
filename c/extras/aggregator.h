@@ -74,8 +74,6 @@ class Aggregator {
     unsigned int nthreads;
     py::oobj progress_fn;
 
-    ccptr<T> create_cc(const Column*);
-
     // Grouping and aggregating methods
     void aggregate_exemplars(DataTable*, dtptr&, bool);
     void group_0d(const DataTable*, dtptr&);
@@ -109,23 +107,6 @@ class Aggregator {
     size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(T, int status_code=0);
 };
-
-
-template <typename T>
-ccptr<T> Aggregator<T>::create_cc(const Column* col) {
-  SType stype = col->stype();
-  switch (stype) {
-    case SType::BOOL:    return ccptr<T>(new ColumnConvertorContinuous<int8_t, T, BoolColumn>(col));
-    case SType::INT8:    return ccptr<T>(new ColumnConvertorContinuous<int8_t, T, IntColumn<int8_t>>(col));
-    case SType::INT16:   return ccptr<T>(new ColumnConvertorContinuous<int16_t, T, IntColumn<int16_t>>(col));
-    case SType::INT32:   return ccptr<T>(new ColumnConvertorContinuous<int32_t, T, IntColumn<int32_t>>(col));
-    case SType::INT64:   return ccptr<T>(new ColumnConvertorContinuous<int64_t, T, IntColumn<int64_t>>(col));
-    case SType::FLOAT32: return ccptr<T>(new ColumnConvertorContinuous<float, T, RealColumn<float>>(col));
-    case SType::FLOAT64: return ccptr<T>(new ColumnConvertorContinuous<double, T, RealColumn<double>>(col));
-    default:             throw TypeError() << "Cannot create a column convertor for type "
-                                            << stype;
-  }
-}
 
 
 /*
@@ -172,18 +153,25 @@ dtptr Aggregator<T>::aggregate(DataTable* dt) {
     size_t n_na_bins = 0;
 
     for (size_t i = 0; i < dt->ncols; ++i) {
-      LType ltype = info(dt->columns[i]->stype()).ltype();
-      switch (ltype) {
-        case LType::BOOL:
-        case LType::INT:
-        case LType::REAL:  {
-                             Column* col = dt->columns[i];
-                             contconvs.push_back(create_cc(col));
-                             break;
-                           }
-        default:           if (dt->ncols < 3) {
-                             catcols.push_back(dt->columns[i]->shallowcopy());
-                           }
+      bool is_continuous = true;
+      Column* col = dt->columns[i];
+      SType stype = col->stype();
+      ccptr<T> contconv;
+      switch (stype) {
+        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorContinuous<int8_t, T, BoolColumn>(col)); break;
+        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorContinuous<int8_t, T, IntColumn<int8_t>>(col)); break;
+        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorContinuous<int16_t, T, IntColumn<int16_t>>(col)); break;
+        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorContinuous<int32_t, T, IntColumn<int32_t>>(col)); break;
+        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorContinuous<int64_t, T, IntColumn<int64_t>>(col)); break;
+        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorContinuous<float, T, RealColumn<float>>(col)); break;
+        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorContinuous<double, T, RealColumn<double>>(col)); break;
+        default:             if (dt->ncols < 3) {
+                               is_continuous = false;
+                               catcols.push_back(dt->columns[i]->shallowcopy());
+                             }
+      }
+      if (is_continuous && contconv != nullptr) {
+        contconvs.push_back(std::move(contconv));
       }
     }
 
