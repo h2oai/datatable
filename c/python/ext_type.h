@@ -176,26 +176,9 @@ struct ExtType {
   static PyTypeObject* baseclass() { return nullptr; }
   static bool is_subclassable() { return false; }
 
-  class GetSetters {
-    std::vector<PyGetSetDef> defs;
-    public:
-      using getter = oobj (T::*)() const;
-      using setter = void (T::*)(py::robj);
-      template <getter fg>            void add(const char* name, const char* doc = nullptr);
-      template <getter fg, setter fs> void add(const char* name, const char* doc = nullptr);
-      explicit operator bool() const;
-      PyGetSetDef* finalize();
-  };
-
+  class GetSetters;
   class Methods;
 };
-
-
-#define ADD_METHOD(MM, METHOD, ARGS)                                           \
-  MM.add(                                                                      \
-    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
-      return ARGS.exec_method(self, args, kwds, METHOD);                       \
-    }, ARGS)                                                                   \
 
 
 
@@ -469,43 +452,85 @@ void ExtType<T>::init(PyObject* module) {
 }
 
 
-//---- GetSetters ----
+
+
+//------------------------------------------------------------------------------
+// GetSetters
+//------------------------------------------------------------------------------
+
+class GSArgs {
+  public:
+    const char* name;
+    const char* doc;
+
+    template <typename T>
+    PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
+      try {
+        T* t = static_cast<T*>(obj);
+        oobj res = (t->*func)();
+        return std::move(res).release();
+      } catch (const std::exception& e) {
+        exception_to_python(e);
+        return nullptr;
+      }
+    }
+};
+
 
 template <class T>
-template <oobj (T::*gg)() const>
-void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
-  defs.push_back(PyGetSetDef {
-    const_cast<char*>(name),
-    &_impl::_safe_getter<T, gg>,
-    nullptr,
-    const_cast<char*>(doc),
-    nullptr  // closure
-  });
-}
+class ExtType<T>::GetSetters {
+  private:
+    std::vector<PyGetSetDef> defs;
 
-template <class T>
-template <oobj (T::*gg)() const, void (T::*ss)(py::robj)>
-void ExtType<T>::GetSetters::add(const char* name, const char* doc) {
-  defs.push_back(PyGetSetDef {
-    const_cast<char*>(name),
-    &_impl::_safe_getter<T, gg>,
-    &_impl::_safe_setter<T, ss>,
-    const_cast<char*>(doc),
-    nullptr  // closure
-  });
-}
+  public:
+    template <oobj (T::*fg)() const>
+    void add(const char* name, const char* doc = nullptr) {
+      defs.push_back(PyGetSetDef {
+        const_cast<char*>(name),
+        &_impl::_safe_getter<T, fg>,
+        nullptr,
+        const_cast<char*>(doc),
+        nullptr  // closure
+      });
+    }
 
-template <class T>
-ExtType<T>::GetSetters::operator bool() const {
-  return !defs.empty();
-}
+    template <oobj (T::*fg)() const, void (T::*fs)(py::robj)>
+    void add(const char* name, const char* doc = nullptr) {
+      defs.push_back(PyGetSetDef {
+        const_cast<char*>(name),
+        &_impl::_safe_getter<T, fg>,
+        &_impl::_safe_setter<T, fs>,
+        const_cast<char*>(doc),
+        nullptr  // closure
+      });
+    }
 
-template <class T>
-PyGetSetDef* ExtType<T>::GetSetters::finalize() {
-  PyGetSetDef* res = new PyGetSetDef[1 + defs.size()]();
-  std::memcpy(res, defs.data(), defs.size() * sizeof(PyGetSetDef));
-  return res;
-}
+    void add(getter func, GSArgs& args) {
+      defs.push_back(PyGetSetDef {
+        const_cast<char*>(args.name),
+        func, nullptr,
+        const_cast<char*>(args.doc),
+        nullptr  // closure
+      });
+    }
+
+    explicit operator bool() const {
+      return !defs.empty();
+    }
+
+    PyGetSetDef* finalize() {
+      PyGetSetDef* res = new PyGetSetDef[1 + defs.size()]();
+      std::memcpy(res, defs.data(), defs.size() * sizeof(PyGetSetDef));
+      return res;
+    }
+};
+
+
+#define ADD_GETTER(GS, GETTER, ARGS) \
+  GS.add( \
+    [](PyObject* self, void*) -> PyObject* { \
+      return ARGS.exec_getter(self, GETTER);  \
+    }, ARGS); \
 
 
 
@@ -540,6 +565,13 @@ class ExtType<T>::Methods {
       return res;
     }
 };
+
+
+#define ADD_METHOD(MM, METHOD, ARGS)                                           \
+  MM.add(                                                                      \
+    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
+      return ARGS.exec_method(self, args, kwds, METHOD);                       \
+    }, ARGS)                                                                   \
 
 
 
