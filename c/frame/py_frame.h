@@ -52,9 +52,6 @@ class Frame : public PyObject {
       public:
         static PKArgs args___init__;
         static NoArgs args__repr_html_;
-        static NoArgs args_to_dict;
-        static NoArgs args_to_list;
-        static NoArgs args_to_tuples;
         static PKArgs fn_to_numpy;
         static NoArgs fn___getstate__;
         static PKArgs fn___setstate__;
@@ -67,6 +64,7 @@ class Frame : public PyObject {
         static void _init_init(Methods&);
         static void _init_names(Methods&, GetSetters&);
         static void _init_replace(Methods&);
+        static void _init_topython(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -101,9 +99,9 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
     void replace(const PKArgs&);
-    oobj to_dict(const NoArgs&);
-    oobj to_list(const NoArgs&);
-    oobj to_tuples(const NoArgs&);
+    oobj to_dict(const PKArgs&);
+    oobj to_list(const PKArgs&);
+    oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);

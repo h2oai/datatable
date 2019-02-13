@@ -180,6 +180,11 @@ void Frame::replace(const PKArgs& args) {
 }
 
 
+void Frame::Type::_init_replace(Methods& mm) {
+  ADD_METHOD(mm, &Frame::replace, args_replace);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Step 1: parse input arguments
@@ -717,11 +722,6 @@ Column* ReplaceAgent::replace_strN(CString* x, CString* y,
     });
 }
 
-
-
-void Frame::Type::_init_replace(Methods& mm) {
-  ADD_METHOD(mm, &Frame::replace, args_replace);
-}
 
 
 #pragma clang diagnostic pop

@@ -137,6 +137,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   _init_init(mm);
   _init_names(mm, gs);
   _init_replace(mm);
+  _init_topython(mm);
 
   gs.add<&Frame::get_ncols>("ncols",
     "Number of columns in the Frame\n");
@@ -172,9 +173,6 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   gs.add<&Frame::get_internal>("_dt");
 
   mm.add<&Frame::_repr_html_, args__repr_html_>();
-  mm.add<&Frame::to_dict, args_to_dict>();
-  mm.add<&Frame::to_list, args_to_list>();
-  mm.add<&Frame::to_tuples, args_to_tuples>();
   mm.add<&Frame::to_numpy, fn_to_numpy>();
 
   ADD_METHOD(mm, &Frame::head, args_head);
