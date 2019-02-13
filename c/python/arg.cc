@@ -90,6 +90,10 @@ SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
 SType       Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
 DataTable*  Arg::to_frame()        const { return pyobj.to_frame(*this); }
 
+Arg::operator int32_t() const { return to_int32_strict(); }
+Arg::operator int64_t() const { return to_int64_strict(); }
+Arg::operator size_t()  const { return to_size_t(); }
+
 
 
 //------------------------------------------------------------------------------
