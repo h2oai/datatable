@@ -30,10 +30,66 @@
 namespace py {
 
 
-PKArgs Frame::Type::args_replace(
+//------------------------------------------------------------------------------
+// ReplaceAgent
+//------------------------------------------------------------------------------
+
+class ReplaceAgent {
+  private:
+    DataTable* dt;
+    // vx, vy are simple lists of source/target values for replacement
+    std::vector<py::robj> vx, vy;
+
+    std::vector<int8_t> x_bool, y_bool;
+    std::vector<int64_t> x_int, y_int;
+    std::vector<double> x_real, y_real;
+    std::vector<CString> x_str, y_str;
+    int64_t xmin_int, xmax_int;
+    double xmin_real, xmax_real;
+
+    bool columns_cast;
+    size_t : 56;
+
+  public:
+    explicit ReplaceAgent(DataTable* _dt)
+      : dt(_dt), xmin_int(0), xmax_int(0), xmin_real(0), xmax_real(0),
+        columns_cast(false) {}
+    void parse_x_y(const Arg& x, const Arg& y);
+    void split_x_y_by_type();
+    void process_bool_column(size_t i);
+    template <typename T> void process_int_column(size_t i);
+    template <typename T> void process_real_column(size_t i);
+    template <typename T> void process_str_column(size_t i);
+    template <typename T> void replace_fw(T* x, T* y, size_t nrows, T* data, size_t n);
+    template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
+    template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
+    template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
+    template <typename T> Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_str1(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_str2(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> Column* replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
+    bool types_changed() const { return columns_cast; }
+
+  private:
+    void split_x_y_bool();
+    void split_x_y_int();
+    void split_x_y_real();
+    void split_x_y_str();
+    template <typename T> void check_uniqueness(std::vector<T>&);
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Frame::replace()
+//------------------------------------------------------------------------------
+
+static PKArgs args_replace(
   2, 0, 0, false, false,
   {"to_replace", "replace_with"},
   "replace",
+
 R"(replace(self, replace_what, replace_with)
 --
 
@@ -86,53 +142,6 @@ Examples
 >>> df.to_list()
 [[100, 200, 3, 100, 200, 3, 100, 200, 3]]
 )");
-
-
-class ReplaceAgent {
-  private:
-    DataTable* dt;
-    // vx, vy are simple lists of source/target values for replacement
-    std::vector<py::robj> vx, vy;
-
-    std::vector<int8_t> x_bool, y_bool;
-    std::vector<int64_t> x_int, y_int;
-    std::vector<double> x_real, y_real;
-    std::vector<CString> x_str, y_str;
-    int64_t xmin_int, xmax_int;
-    double xmin_real, xmax_real;
-
-    bool columns_cast;
-    size_t : 56;
-
-  public:
-    explicit ReplaceAgent(DataTable* _dt)
-      : dt(_dt), xmin_int(0), xmax_int(0), xmin_real(0), xmax_real(0),
-        columns_cast(false) {}
-    void parse_x_y(const Arg& x, const Arg& y);
-    void split_x_y_by_type();
-    void process_bool_column(size_t i);
-    template <typename T> void process_int_column(size_t i);
-    template <typename T> void process_real_column(size_t i);
-    template <typename T> void process_str_column(size_t i);
-    template <typename T> void replace_fw(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
-    template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
-    template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str1(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str2(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
-    bool types_changed() const { return columns_cast; }
-
-  private:
-    void split_x_y_bool();
-    void split_x_y_int();
-    void split_x_y_real();
-    void split_x_y_str();
-    template <typename T> void check_uniqueness(std::vector<T>&);
-};
-
-
 
 
 void Frame::replace(const PKArgs& args) {
@@ -708,6 +717,11 @@ Column* ReplaceAgent::replace_strN(CString* x, CString* y,
     });
 }
 
+
+
+void Frame::Type::_init_replace(Methods& mm) {
+  ADD_METHOD(mm, &Frame::replace, args_replace);
+}
 
 
 #pragma clang diagnostic pop

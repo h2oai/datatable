@@ -33,7 +33,8 @@ static Error item_error(const py::_obj&);
 
 
 static PKArgs args_cbind(
-  0, 0, 1, true, false, {"force"}, "cbind",
+  0, 0, 1, true, false,
+  {"force"}, "cbind",
 
 R"(cbind(self, *frames, force=False)
 --
