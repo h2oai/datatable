@@ -264,30 +264,6 @@ namespace _impl {
     }
   }
 
-  template <typename T, oobj (T::*F)() const>
-  PyObject* _safe_getter(PyObject* self, void*) {
-    try {
-      T* t = static_cast<T*>(self);
-      oobj res = (t->*F)();
-      return std::move(res).release();
-    } catch (const std::exception& e) {
-      exception_to_python(e);
-      return nullptr;
-    }
-  }
-
-  template <typename T, void (T::*F)(py::robj)>
-  int _safe_setter(PyObject* self, PyObject* value, void*) {
-    try {
-      T* t = static_cast<T*>(self);
-      (t->*F)(py::robj(value));
-      return 0;
-    } catch (const std::exception& e) {
-      exception_to_python(e);
-      return -1;
-    }
-  }
-
 
   /**
    * SFINAE checker for the presence of various methods:
