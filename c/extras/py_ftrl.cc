@@ -36,10 +36,6 @@ PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  "lambda2", "nbins", "nepochs", "interactions"},
                                  "__init__", nullptr);
 
-NoArgs Ftrl::Type::fn___getstate__("__getstate__", nullptr);
-PKArgs Ftrl::Type::fn___setstate__(1, 0, 0, false, false, {"state"},
-                                   "__setstate__", nullptr);
-
 static const char* doc_alpha        = "`alpha` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_beta         = "`beta` in per-coordinate FTRL-Proximal algorithm";
 static const char* doc_lambda1      = "L1 regularization parameter";
@@ -216,54 +212,13 @@ interactions : bool
 }
 
 
-void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  mm.add<&Ftrl::m__getstate__, fn___getstate__>();
-  mm.add<&Ftrl::m__setstate__, fn___setstate__>();
-
-  gs.add<&Ftrl::get_labels, &Ftrl::set_labels>(
-    "labels",
-    R"(List of labels for multinomial regression.)"
-  );
-
-  gs.add<&Ftrl::get_model, &Ftrl::set_model>(
-    "model",
-    R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
-    and `nbins` rows, where `nbins` is a number of bins for the hashing trick.
-    Both column types are `float64`.)"
-  );
-
-  gs.add<&Ftrl::get_fi>(
-    "feature_importances",
-    R"(One-column frame with the overall weight contributions calculated
-    feature-wise during training and predicting. It can be interpreted as
-    a feature importance information.)"
-  );
-
-  gs.add<&Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple>(
-    "params",
-    "FTRL model parameters"
-  );
-
-  gs.add<&Ftrl::get_colname_hashes>(
-    "colname_hashes",
-    "Column name hashes"
-  );
-
-  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>("alpha", doc_alpha);
-  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>("beta", doc_beta);
-  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
-  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
-  gs.add<&Ftrl::get_nbins, &Ftrl::set_nbins>("nbins", doc_nbins);
-  gs.add<&Ftrl::get_nepochs, &Ftrl::set_nepochs>("nepochs", doc_nepochs);
-  gs.add<&Ftrl::get_interactions, &Ftrl::set_interactions>("interactions", doc_interactions);
-
-  mm.add<&Ftrl::fit, args_fit>();
-  mm.add<&Ftrl::predict, args_predict>();
-  mm.add<&Ftrl::reset, args_reset>();
-}
 
 
-PKArgs Ftrl::Type::args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
+//------------------------------------------------------------------------------
+// fit()
+//------------------------------------------------------------------------------
+
+static PKArgs args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
 R"(fit(self, X, y)
 --
 
@@ -448,7 +403,13 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
 }
 
 
-PKArgs Ftrl::Type::args_predict(1, 0, 0, false, false, {"X"}, "predict",
+
+
+//------------------------------------------------------------------------------
+// predict()
+//------------------------------------------------------------------------------
+
+static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
 
@@ -593,7 +554,14 @@ void Ftrl::reset_feature_names() {
   }
 }
 
-NoArgs Ftrl::Type::args_reset("reset",
+
+
+
+//------------------------------------------------------------------------------
+// reset()
+//------------------------------------------------------------------------------
+
+static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
 
@@ -610,7 +578,7 @@ Returns
 )");
 
 
-void Ftrl::reset(const NoArgs&) {
+void Ftrl::reset(const PKArgs&) {
   reg_type = RegType::NONE;
   for (size_t i = 0; i < dtft->size(); ++i) {
     (*dtft)[i]->reset_model();
@@ -618,6 +586,8 @@ void Ftrl::reset(const NoArgs&) {
   }
   reset_feature_names();
 }
+
+
 
 
 /*
@@ -1013,10 +983,16 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 }
 
 
-/*
-*  Pickling / unpickling methods.
-*/
-oobj Ftrl::m__getstate__(const NoArgs&) {
+
+
+//------------------------------------------------------------------------------
+// Pickling / unpickling methods.
+//------------------------------------------------------------------------------
+
+static PKArgs args___getstate__(
+    0, 0, 0, false, false, {}, "__getstate__", nullptr);
+
+oobj Ftrl::m__getstate__(const PKArgs&) {
   py::otuple pickle(6);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
@@ -1039,6 +1015,11 @@ oobj Ftrl::m__getstate__(const NoArgs&) {
   pickle.set(5, py_reg_type);
   return std::move(pickle);
 }
+
+
+
+static PKArgs args___setstate__(
+    1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
@@ -1072,5 +1053,53 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
 }
 
+
+
+
+
+void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
+  gs.add<&Ftrl::get_labels, &Ftrl::set_labels>(
+    "labels",
+    R"(List of labels for multinomial regression.)"
+  );
+
+  gs.add<&Ftrl::get_model, &Ftrl::set_model>(
+    "model",
+    R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
+    and `nbins` rows, where `nbins` is a number of bins for the hashing trick.
+    Both column types are `float64`.)"
+  );
+
+  gs.add<&Ftrl::get_fi>(
+    "feature_importances",
+    R"(One-column frame with the overall weight contributions calculated
+    feature-wise during training and predicting. It can be interpreted as
+    a feature importance information.)"
+  );
+
+  gs.add<&Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple>(
+    "params",
+    "FTRL model parameters"
+  );
+
+  gs.add<&Ftrl::get_colname_hashes>(
+    "colname_hashes",
+    "Column name hashes"
+  );
+
+  gs.add<&Ftrl::get_alpha, &Ftrl::set_alpha>("alpha", doc_alpha);
+  gs.add<&Ftrl::get_beta, &Ftrl::set_beta>("beta", doc_beta);
+  gs.add<&Ftrl::get_lambda1, &Ftrl::set_lambda1>("lambda1", doc_lambda1);
+  gs.add<&Ftrl::get_lambda2, &Ftrl::set_lambda2>("lambda2", doc_lambda2);
+  gs.add<&Ftrl::get_nbins, &Ftrl::set_nbins>("nbins", doc_nbins);
+  gs.add<&Ftrl::get_nepochs, &Ftrl::set_nepochs>("nepochs", doc_nepochs);
+  gs.add<&Ftrl::get_interactions, &Ftrl::set_interactions>("interactions", doc_interactions);
+
+  ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
+  ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
+  ADD_METHOD(mm, &Ftrl::fit, args_fit);
+  ADD_METHOD(mm, &Ftrl::predict, args_predict);
+  ADD_METHOD(mm, &Ftrl::reset, args_reset);
+}
 
 } // namespace py
