@@ -51,7 +51,6 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
-        static PKArgs fn_to_numpy;
         static NoArgs fn___getstate__;
         static PKArgs fn___setstate__;
         static const char* classname();
@@ -63,6 +62,7 @@ class Frame : public PyObject {
         static void _init_init(Methods&);
         static void _init_names(Methods&, GetSetters&);
         static void _init_replace(Methods&);
+        static void _init_tonumpy(Methods&);
         static void _init_topython(Methods&);
         static void _init_reprhtml(Methods&);
     };

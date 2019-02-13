@@ -138,6 +138,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   _init_names(mm, gs);
   _init_replace(mm);
   _init_reprhtml(mm);
+  _init_tonumpy(mm);
   _init_topython(mm);
 
   gs.add<&Frame::get_ncols>("ncols",
@@ -172,8 +173,6 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
-
-  mm.add<&Frame::to_numpy, fn_to_numpy>();
 
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);
