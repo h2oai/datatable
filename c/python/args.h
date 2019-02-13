@@ -1,9 +1,17 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARGS_h
 #define dt_PYTHON_ARGS_h
@@ -11,6 +19,7 @@
 #include <vector>          // std::vector
 #include <Python.h>
 #include "python/arg.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -42,7 +51,7 @@ class Args {
     void set_class_name(const char* name);
     virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
 
-    // Each `Args` object describes a certain function or method in a class.
+    // Each `Args` object describes a certain function, or method in a class.
     // This will return the name of that function/method, in the form "foo()"
     // or "Class.foo()".
     const char* get_long_name() const;
@@ -91,8 +100,8 @@ class PKArgs : public Args {
     size_t n_varkwds;
     PyObject* args_tuple;  // for var-args iteration
     PyObject* kwds_dict;   // for var-kwds iteration
-    void (*fn0)(const PKArgs&);
-    py::oobj (*fn1)(const PKArgs&);
+    void* fn0;  // function without a return value
+    void* fn1;  // function returning a py::oobj
 
   public:
     /**
@@ -113,6 +122,11 @@ class PKArgs : public Args {
     void bind(PyObject* _args, PyObject* _kws) override;
 
     PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
+
+    template <class T>
+    PyObject* exec_method(
+        PyObject* self, PyObject* args, PyObject* kwds,
+        oobj (T::*)(const PKArgs&)) const noexcept;
 
     /**
      * Returns the name of argument `i`, which will usually be in one of the
@@ -244,6 +258,23 @@ T PKArgs::get(size_t i, T default_value) const {
   return bound_args[i].is_undefined()
           ? default_value
           : static_cast<T>(bound_args[i]);
+}
+
+template <class T>
+PyObject* PKArgs::exec_method(
+    PyObject* self, PyObject* args, PyObject* kwds,
+    oobj (T::*fn)(const PKArgs&)) const noexcept
+{
+  try {
+    const_cast<PKArgs*>(this)->bind(args, kwds);
+    T* obj = reinterpret_cast<T*>(self);
+    oobj res = (obj->*fn)(*this);
+    return std::move(res).release();
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
 }
 
 

@@ -30,6 +30,53 @@ namespace py {
 PyObject* Frame_Type = nullptr;
 
 
+
+//------------------------------------------------------------------------------
+// Head & tail
+//------------------------------------------------------------------------------
+
+static PKArgs fn_head(
+    1, 0, 0, false, false,
+    {"n"}, "head",
+R"(head(self, n=10)
+--
+
+Return the first `n` rows of the frame, same as ``self[:n, :]``.
+)");
+
+oobj Frame::head(const PKArgs& args) {
+  size_t n = std::min(args.get<size_t>(0, 10),
+                      dt->nrows);
+  py::otuple aa(2);
+  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
+}
+
+
+
+static PKArgs fn_tail(
+    1, 0, 0, false, false,
+    {"n"}, "tail",
+R"(tail(self, n=10)
+--
+
+Return the last `n` rows of the frame, same as ``self[-n:, :]``.
+)");
+
+oobj Frame::tail(const PKArgs& args) {
+  size_t n = std::min(args.get<size_t>(0, 10),
+                      dt->nrows);
+  // Note: usual slice `-n::` doesn't work as expected when `n = 0`
+  py::otuple aa(2);
+  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
+}
+
+
+
+
 //------------------------------------------------------------------------------
 // Declare Frame's API
 //------------------------------------------------------------------------------
@@ -47,24 +94,6 @@ NoArgs Frame::Type::args_copy("copy",
 "any changes made to one of the Frames will not propagate to the other.\n"
 "Thus, for all intents and purposes the copied Frame will behave as if\n"
 "it was deep-copied.\n");
-
-PKArgs Frame::Type::fn_head(
-    1, 0, 0, false, false,
-    {"n"}, "head",
-R"(head(self, n=10)
---
-
-Return the first `n` rows of the Frame, same as ``self[:n, :]``.
-)");
-
-PKArgs Frame::Type::fn_tail(
-    1, 0, 0, false, false,
-    {"n"}, "tail",
-R"(tail(self, n=10)
---
-
-Return the last `n` rows of the Frame, same as ``self[-n:, :]``.
-)");
 
 
 
@@ -130,9 +159,10 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::to_dict, args_to_dict>();
   mm.add<&Frame::to_list, args_to_list>();
   mm.add<&Frame::to_tuples, args_to_tuples>();
-  mm.add<&Frame::head, fn_head>();
-  mm.add<&Frame::tail, fn_tail>();
   mm.add<&Frame::to_numpy, fn_to_numpy>();
+
+  ADD_METHOD(mm, &Frame::head, fn_head);
+  ADD_METHOD(mm, &Frame::tail, fn_tail);
 }
 
 
@@ -187,27 +217,6 @@ void Frame::_clear_types() const {
   Py_XDECREF(ltypes);
   stypes = nullptr;
   ltypes = nullptr;
-}
-
-
-oobj Frame::head(const PKArgs& args) {
-  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
-  if (n > dt->nrows) n = dt->nrows;
-  py::otuple aa(2);
-  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
-}
-
-
-oobj Frame::tail(const PKArgs& args) {
-  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
-  if (n > dt->nrows) n = dt->nrows;
-  py::otuple aa(2);
-  // Note: usual slice `-n::` doesn't work as expected when `n = 0`
-  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
 }
 
 

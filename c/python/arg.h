@@ -97,8 +97,9 @@ class Arg : public _obj::error_manager {
      * too large.
      * This method must not be called if the argument is undefined.
      */
-    // operator int32_t() const;
-    // operator int64_t() const;
+    operator int32_t() const;
+    operator int64_t() const;
+    operator size_t() const;
 
     /**
      * Convert argument to different list objects.

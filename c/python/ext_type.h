@@ -203,6 +203,8 @@ struct ExtType {
       template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
       template <void (T::*F)(const NoArgs&), NoArgs& ARGS> void add();
       template <void (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
+      void add(PyCFunctionWithKeywords func, PKArgs& args);
+
       explicit operator bool() const;
       PyMethodDef* finalize();
     private:
@@ -211,6 +213,12 @@ struct ExtType {
   };
 };
 
+
+#define ADD_METHOD(MM, METHOD, ARGS) \
+  MM.add(                                                                      \
+    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
+      return ARGS.exec_method(self, args, kwds, METHOD);                       \
+    }, ARGS)
 
 
 
@@ -598,6 +606,18 @@ template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
 void ExtType<T>::Methods::add() {
   add<PKArgs, F, ARGS>();
 }
+
+template <class T>
+void ExtType<T>::Methods::add(PyCFunctionWithKeywords func, PKArgs& args) {
+  args.set_class_name(T::Type::classname());
+  defs.push_back(PyMethodDef {
+    args.get_short_name(),
+    reinterpret_cast<PyCFunction>(func),
+    METH_VARARGS | METH_KEYWORDS,
+    args.get_docstring()
+  });
+}
+
 
 template <class T>
 ExtType<T>::Methods::operator bool() const {
