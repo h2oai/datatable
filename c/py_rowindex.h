@@ -50,7 +50,6 @@ struct orowindex::pyobject : public PyObject {
   class Type : public ExtType<pyobject> {
     public:
       static PKArgs args___init__;
-      static NoArgs args_to_list;
       static const char* classname();
       static const char* classdoc();
       static bool is_subclassable();
@@ -65,7 +64,7 @@ struct orowindex::pyobject : public PyObject {
   oobj get_min() const;
   oobj get_max() const;
 
-  oobj to_list(const NoArgs&);
+  oobj to_list(const PKArgs&);
 };
 
 

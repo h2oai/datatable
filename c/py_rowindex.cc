@@ -28,44 +28,6 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// orowindex::pyobject::Type
-//------------------------------------------------------------------------------
-
-const char* orowindex::pyobject::Type::classname() {
-  return "datatable.internal.RowIndex";
-}
-
-const char* orowindex::pyobject::Type::classdoc() {
-  return nullptr;
-}
-
-bool orowindex::pyobject::Type::is_subclassable() {
-  return false;
-}
-
-void orowindex::pyobject::Type::init_methods_and_getsets(
-    Methods& mm, GetSetters& gs) {
-  gs.add<&orowindex::pyobject::get_type>("type");
-  gs.add<&orowindex::pyobject::get_nrows>("nrows");
-  gs.add<&orowindex::pyobject::get_min>("min");
-  gs.add<&orowindex::pyobject::get_max>("max");
-  mm.add<&orowindex::pyobject::to_list, args_to_list>();
-}
-
-
-PKArgs orowindex::pyobject::Type::args___init__(
-  0, 0, 0, false, false, {}, "__init__", nullptr);
-
-
-NoArgs orowindex::pyobject::Type::args_to_list("to_list",
-"to_list(self)\n"
-"--\n\n"
-"Convert this RowIndex into a python list of indices.\n");
-
-
-
-
-//------------------------------------------------------------------------------
 // orowindex::pyobject
 //------------------------------------------------------------------------------
 
@@ -115,7 +77,16 @@ oobj orowindex::pyobject::get_max() const {
 }
 
 
-oobj orowindex::pyobject::to_list(const NoArgs&) {
+static PKArgs args_to_list(
+  0, 0, 0, false, false,
+  {}, "to_list",
+
+"to_list(self)\n"
+"--\n\n"
+"Convert this RowIndex into a python list of indices.\n"
+);
+
+oobj orowindex::pyobject::to_list(const PKArgs&) {
   size_t n = ri->size();
   olist res(n);
   ri->iterate(0, n, 1,
@@ -151,6 +122,38 @@ bool orowindex::check(PyObject* v) {
   }
   return true;
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// orowindex::pyobject::Type
+//------------------------------------------------------------------------------
+
+const char* orowindex::pyobject::Type::classname() {
+  return "datatable.internal.RowIndex";
+}
+
+const char* orowindex::pyobject::Type::classdoc() {
+  return nullptr;
+}
+
+bool orowindex::pyobject::Type::is_subclassable() {
+  return false;
+}
+
+void orowindex::pyobject::Type::init_methods_and_getsets(
+    Methods& mm, GetSetters& gs) {
+  gs.add<&orowindex::pyobject::get_type>("type");
+  gs.add<&orowindex::pyobject::get_nrows>("nrows");
+  gs.add<&orowindex::pyobject::get_min>("min");
+  gs.add<&orowindex::pyobject::get_max>("max");
+  ADD_METHOD(mm, &orowindex::pyobject::to_list, args_to_list);
+}
+
+
+PKArgs orowindex::pyobject::Type::args___init__(
+  0, 0, 0, false, false, {}, "__init__", nullptr);
 
 
 
