@@ -114,29 +114,26 @@ namespace py {
  * Getters / setters
  * -----------------
  * A property getter has generic signature `oobj (T::*)() const`, and a setter
- * has signature `void (T::*)(py::robj)`. These methods should be implemented in
- * your main class, and then declared in `Type::init_getsetters(GetSetters&)`.
- * Inside the `init_getsetters(gs)` you should call
- * `gs.add<getter, setter>(name, doc)` for each property in your class. Some
- * properties may not have setters, and the documentation string is optional
- * too: `gs.add<getter>(name)`.
+ * has signature `void (T::*)(robj)`. These methods should be implemented in
+ * your main class, and then declared in the static
+ * `Type::init_methods_and_getsets(Methods&, GetSetters&)` function.
  *
  * For example, in order to define property "pretty" for our class `Please`,
  * we would write the following:
  *
  *    class Please : public PyObject {
- *    public:
- *      oobj get_pretty() const;
- *      void set_pretty(py::robj);
- *      ...
- *      struct Type : py::ExtType<Please> {
- *        ...
- *        static void init_getsetters(GetSetters& gs) {
- *          gs.add<&Please::get_pretty, &Please::set_pretty>("please",
- *            "True for 'pretty please', or False otherwise");
- *        }
- *      };
+ *      public:
+ *        oobj get_pretty() const;
+ *        void set_pretty(robj);
  *    };
+ *
+ *    static GSArgs args_pretty(
+ *      "pretty",
+ *      "True for 'pretty please', or False otherwise");
+ *
+ *    void Please::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+ *      ADD_GETSET(gs, &Please::get_pretty, &Please::set_pretty, args_pretty);
+ *    }
  *
  *
  * Methods
@@ -463,7 +460,7 @@ class GSArgs {
     const char* name;
     const char* doc;
 
-    GSArgs(const char* name_, const char* doc_)
+    GSArgs(const char* name_, const char* doc_=nullptr)
       : name(name_), doc(doc_) {}
 
     template <typename T>
@@ -551,21 +548,21 @@ class ExtType<T>::GetSetters {
 };
 
 
-#define ADD_GETTER(GS, GETTER, ARGS) \
-  GS.add( \
-    [](PyObject* self, void*) -> PyObject* { \
-      return ARGS.exec_getter(self, GETTER);  \
-    }, ARGS); \
+#define ADD_GETTER(GS, GETTER, ARGS)                                           \
+  GS.add(                                                                      \
+    [](PyObject* self, void*) -> PyObject* {                                   \
+      return ARGS.exec_getter(self, GETTER);                                   \
+    }, ARGS);                                                                  \
 
-#define ADD_GETSET(GS, GETTER, SETTER, ARGS) \
-  GS.add( \
-    [](PyObject* self, void*) -> PyObject* { \
-      return ARGS.exec_getter(self, GETTER);  \
-    }, \
-    [](PyObject* self, PyObject* value, void*) -> int {\
-      return ARGS.exec_setter(self, value, SETTER); \
-    }, \
-    ARGS); \
+#define ADD_GETSET(GS, GETTER, SETTER, ARGS)                                   \
+  GS.add(                                                                      \
+    [](PyObject* self, void*) -> PyObject* {                                   \
+      return ARGS.exec_getter(self, GETTER);                                   \
+    },                                                                         \
+    [](PyObject* self, PyObject* value, void*) -> int {                        \
+      return ARGS.exec_setter(self, value, SETTER);                            \
+    },                                                                         \
+    ARGS);                                                                     \
 
 
 

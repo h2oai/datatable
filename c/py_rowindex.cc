@@ -54,6 +54,8 @@ oobj orowindex::pyobject::m__repr__() {
 
 
 
+static GSArgs args_type("type");
+
 oobj orowindex::pyobject::get_type() const {
   static oobj tSlice = ostring("slice");
   static oobj tArr32 = ostring("arr32");
@@ -64,13 +66,22 @@ oobj orowindex::pyobject::get_type() const {
          rt == RowIndexType::ARR64? tArr64 : None();
 }
 
+
+static GSArgs args_nrows("nrows");
+
 oobj orowindex::pyobject::get_nrows() const {
   return oint(ri->size());
 }
 
+
+static GSArgs args_min("min");
+
 oobj orowindex::pyobject::get_min() const {
   return oint(ri->min());
 }
+
+
+static GSArgs args_max("max");
 
 oobj orowindex::pyobject::get_max() const {
   return oint(ri->max());
@@ -143,11 +154,12 @@ bool orowindex::pyobject::Type::is_subclassable() {
 }
 
 void orowindex::pyobject::Type::init_methods_and_getsets(
-    Methods& mm, GetSetters& gs) {
-  gs.add<&orowindex::pyobject::get_type>("type");
-  gs.add<&orowindex::pyobject::get_nrows>("nrows");
-  gs.add<&orowindex::pyobject::get_min>("min");
-  gs.add<&orowindex::pyobject::get_max>("max");
+    Methods& mm, GetSetters& gs)
+{
+  ADD_GETTER(gs, &orowindex::pyobject::get_type, args_type);
+  ADD_GETTER(gs, &orowindex::pyobject::get_nrows, args_nrows);
+  ADD_GETTER(gs, &orowindex::pyobject::get_min, args_min);
+  ADD_GETTER(gs, &orowindex::pyobject::get_max, args_max);
   ADD_METHOD(mm, &orowindex::pyobject::to_list, args_to_list);
 }
 

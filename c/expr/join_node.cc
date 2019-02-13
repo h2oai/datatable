@@ -45,7 +45,8 @@ bool ojoin::pyobj::Type::is_subclassable() {
 }
 
 void ojoin::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
-  gs.add<&pyobj::get_joinframe>("joinframe");
+  static GSArgs args_joinframe("joinframe");
+  ADD_GETTER(gs, &pyobj::get_joinframe, args_joinframe);
 }
 
 

@@ -204,7 +204,8 @@ bool oby::pyobj::Type::is_subclassable() {
 }
 
 void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
-  gs.add<&pyobj::get_cols>("_cols");
+  static GSArgs args__cols("_cols");
+  ADD_GETTER(gs, &pyobj::get_cols, args__cols);
 }
 
 
