@@ -142,37 +142,28 @@ namespace py {
  * Methods
  * -------
  * It is common for an extension object to define multiple methods that act
- * on that object and return some results. Generally, such object have
- * signatures `oobj (T::*)(Args&)`, where the "Args" parameter encapsulates
- * python-style positional and keyword arguments. All methods that you define
- * must be declared in the static `Type::init_methods(Methods&)` procedure.
+ * on that object and return some results. These methods are allowed to have
+ * one of the followingsignatures:
+ *
+ *     oobj (T::*)(const PKArgs&);
+ *     void (T::*)(const PKArgs&);
+ *
+ * where the "PKArgs" parameter encapsulates python-style positional and
+ * keyword arguments. These methods must also be declared in the static
+ * `Type::init_methods_and_getsets(Methods&, GetSetters&)` procedure.
  * For example:
  *
  *    class Please : public PyObject {
- *    public:
- *      oobj say(py::NoArgs&);
- *      ...
- *      struct Type : py::ExtType<Please> {
- *        static py::NoArgs args_say;
- *        ...
- *        static void init_methods(Methods& mm) {
- *          mm.add<&Please::say, args_say>("say", "Say 'please'...");
- *        }
- *      };
+ *      public:
+ *        oobj say(const PKArgs&);
  *    };
- *    py::NoArgs Please::Type::args_say;
  *
- * The following method signatures are supported:
+ *    static PKArgs args_say(...);
+ *    oobj Please::say(const PKArgs&) { ... }
  *
- *    oobj meth1(NoArgs&);
- *    oobj meth2(PKArgs&);
- *    void meth3(NoArgs&);
- *    void meth4(PKArgs&);
- *
- * Note that for each method a dedicated static object of type `py::Args` must
- * be provided. This object at minimum stores the name of the method (so that
- * we can provide sensible error messages at runtime), but more generally the
- * complete function signature. See "python/args.h" for more details.
+ *    void Please::Type::init_methods_and_getsets(Methods& mm, GetSetters&) {
+ *      ADD_METHOD(mm, &Please::say, args_say);
+ *    }
  *
  */
 template <class T>
@@ -196,29 +187,15 @@ struct ExtType {
       PyGetSetDef* finalize();
   };
 
-  class Methods {
-    std::vector<PyMethodDef> defs;
-    public:
-      template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS> void add();
-      template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
-      template <void (T::*F)(const NoArgs&), NoArgs& ARGS> void add();
-      template <void (T::*F)(const PKArgs&), PKArgs& ARGS> void add();
-      void add(PyCFunctionWithKeywords func, PKArgs& args);
-
-      explicit operator bool() const;
-      PyMethodDef* finalize();
-    private:
-      template <typename A, oobj (T::*F)(const A&), A& ARGS> void add();
-      template <typename A, void (T::*F)(const A&), A& ARGS> void add();
-  };
+  class Methods;
 };
 
 
-#define ADD_METHOD(MM, METHOD, ARGS) \
+#define ADD_METHOD(MM, METHOD, ARGS)                                           \
   MM.add(                                                                      \
     [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
       return ARGS.exec_method(self, args, kwds, METHOD);                       \
-    }, ARGS)
+    }, ARGS)                                                                   \
 
 
 
@@ -328,32 +305,6 @@ namespace _impl {
     } catch (const std::exception& e) {
       exception_to_python(e);
       return -1;
-    }
-  }
-
-  template <typename T, typename A, oobj (T::*F)(const A&), A& ARGS>
-  PyObject* _safe_method1(PyObject* self, PyObject* args, PyObject* kwds) {
-    try {
-      T* tself = static_cast<T*>(self);
-      ARGS.bind(args, kwds);
-      oobj res = (tself->*F)(ARGS);
-      return std::move(res).release();
-    } catch (const std::exception& e) {
-      exception_to_python(e);
-      return nullptr;
-    }
-  }
-
-  template <typename T, typename A, void (T::*F)(const A&), A& ARGS>
-  PyObject* _safe_method2(PyObject* self, PyObject* args, PyObject* kwds) {
-    try {
-      T* tself = static_cast<T*>(self);
-      ARGS.bind(args, kwds);
-      (tself->*F)(ARGS);
-      Py_RETURN_NONE;
-    } catch (const std::exception& e) {
-      exception_to_python(e);
-      return nullptr;
     }
   }
 
@@ -557,81 +508,40 @@ PyGetSetDef* ExtType<T>::GetSetters::finalize() {
 }
 
 
-//---- Methods ----
+
+
+//------------------------------------------------------------------------------
+// Methods
+//------------------------------------------------------------------------------
 
 template <class T>
-template <typename A, oobj (T::*F)(const A&), A& ARGS>
-void ExtType<T>::Methods::add() {
-  ARGS.set_class_name(T::Type::classname());
-  defs.push_back(PyMethodDef {
-    ARGS.get_short_name(),
-    reinterpret_cast<PyCFunction>(&_impl::_safe_method1<T, A, F, ARGS>),
-    METH_VARARGS | METH_KEYWORDS,
-    ARGS.get_docstring()
-  });
-}
+class ExtType<T>::Methods {
+  private:
+    std::vector<PyMethodDef> defs;
 
-template <class T>
-template <typename A, void (T::*F)(const A&), A& ARGS>
-void ExtType<T>::Methods::add() {
-  ARGS.set_class_name(T::Type::classname());
-  defs.push_back(PyMethodDef {
-    ARGS.get_short_name(),
-    reinterpret_cast<PyCFunction>(&_impl::_safe_method2<T, A, F, ARGS>),
-    METH_VARARGS | METH_KEYWORDS,
-    ARGS.get_docstring()
-  });
-}
+  public:
+    void add(PyCFunctionWithKeywords func, PKArgs& args) {
+      args.set_class_name(T::Type::classname());
+      defs.push_back(PyMethodDef {
+        args.get_short_name(),
+        reinterpret_cast<PyCFunction>(func),
+        METH_VARARGS | METH_KEYWORDS,
+        args.get_docstring()
+      });
+    }
 
-template <class T>
-template <oobj (T::*F)(const NoArgs&), NoArgs& ARGS>
-void ExtType<T>::Methods::add() {
-  add<NoArgs, F, ARGS>();
-}
+    explicit operator bool() const {
+      return !defs.empty();
+    }
 
-template <class T>
-template <oobj (T::*F)(const PKArgs&), PKArgs& ARGS>
-void ExtType<T>::Methods::add() {
-  add<PKArgs, F, ARGS>();
-}
+    PyMethodDef* finalize() {
+      PyMethodDef* res = new PyMethodDef[1 + defs.size()]();
+      std::memcpy(res, defs.data(), defs.size() * sizeof(PyMethodDef));
+      return res;
+    }
+};
 
-template <class T>
-template <void (T::*F)(const NoArgs&), NoArgs& ARGS>
-void ExtType<T>::Methods::add() {
-  add<NoArgs, F, ARGS>();
-}
-
-template <class T>
-template <void (T::*F)(const PKArgs&), PKArgs& ARGS>
-void ExtType<T>::Methods::add() {
-  add<PKArgs, F, ARGS>();
-}
-
-template <class T>
-void ExtType<T>::Methods::add(PyCFunctionWithKeywords func, PKArgs& args) {
-  args.set_class_name(T::Type::classname());
-  defs.push_back(PyMethodDef {
-    args.get_short_name(),
-    reinterpret_cast<PyCFunction>(func),
-    METH_VARARGS | METH_KEYWORDS,
-    args.get_docstring()
-  });
-}
-
-
-template <class T>
-ExtType<T>::Methods::operator bool() const {
-  return !defs.empty();
-}
-
-template <class T>
-PyMethodDef* ExtType<T>::Methods::finalize() {
-  PyMethodDef* res = new PyMethodDef[1 + defs.size()]();
-  std::memcpy(res, defs.data(), defs.size() * sizeof(PyMethodDef));
-  return res;
-}
 
 
 }  // namespace py
-
 #endif
