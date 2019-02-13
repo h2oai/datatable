@@ -44,9 +44,10 @@ static bool datatable_has_nas(DataTable* dt) {
 namespace py {
 
 
-PKArgs Frame::Type::fn_to_numpy(
+static PKArgs args_to_numpy(
     0, 1, 0, false, false,
     {"stype"}, "to_numpy",
+
 R"(to_numpy(self, stype=None)
 --
 
@@ -131,6 +132,11 @@ oobj Frame::to_numpy(const PKArgs& args) {
   }
 
   return res;
+}
+
+
+void Frame::Type::_init_tonumpy(Methods& mm) {
+  ADD_METHOD(mm, &Frame::to_numpy, args_to_numpy);
 }
 
 

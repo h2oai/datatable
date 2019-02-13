@@ -51,24 +51,18 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
-        static NoArgs args__repr_html_;
-        static PKArgs args_cbind;
-        static PKArgs args_colindex;
-        static PKArgs args_replace;
-        static NoArgs args_copy;
-        static NoArgs args_to_dict;
-        static NoArgs args_to_list;
-        static NoArgs args_to_tuples;
-        static PKArgs fn_to_numpy;
-        static NoArgs fn___getstate__;
-        static PKArgs fn___setstate__;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
         static void init_methods_and_getsets(Methods&, GetSetters&);
       private:
+        static void _init_cbind(Methods&);
+        static void _init_init(Methods&);
         static void _init_names(Methods&, GetSetters&);
-        static void _init_init(Methods&, GetSetters&);
+        static void _init_replace(Methods&);
+        static void _init_tonumpy(Methods&);
+        static void _init_topython(Methods&);
+        static void _init_reprhtml(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -82,10 +76,10 @@ class Frame : public PyObject {
     void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
-    oobj m__getstate__(const NoArgs&);  // pickling support
+    oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
 
-    oobj _repr_html_(const NoArgs&);
+    oobj _repr_html_(const PKArgs&);
     oobj get_ncols() const;
     oobj get_nrows() const;
     oobj get_shape() const;
@@ -101,11 +95,11 @@ class Frame : public PyObject {
 
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
-    oobj copy(const NoArgs&);
+    oobj copy(const PKArgs&);
     void replace(const PKArgs&);
-    oobj to_dict(const NoArgs&);
-    oobj to_list(const NoArgs&);
-    oobj to_tuples(const NoArgs&);
+    oobj to_dict(const PKArgs&);
+    oobj to_list(const PKArgs&);
+    oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);

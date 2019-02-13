@@ -175,7 +175,10 @@ static convptr make_converter(const Column* col) {
 // Frame's API
 //------------------------------------------------------------------------------
 
-NoArgs Frame::Type::args_to_tuples("to_tuples",
+static PKArgs args_to_tuples(
+  0, 0, 0, false, false, {},
+  "to_tuples",
+
 R"(to_tuples(self)
 --
 
@@ -192,7 +195,7 @@ Examples
 )");
 
 
-oobj Frame::to_tuples(const NoArgs&) {
+oobj Frame::to_tuples(const PKArgs&) {
   std::vector<py::otuple> list_of_tuples;
   for (size_t i = 0; i < dt->nrows; ++i) {
     list_of_tuples.push_back(py::otuple(dt->ncols));
@@ -216,7 +219,10 @@ oobj Frame::to_tuples(const NoArgs&) {
 
 
 
-NoArgs Frame::Type::args_to_list("to_list",
+static PKArgs args_to_list(
+  0, 0, 0, false, false, {},
+  "to_list",
+
 R"(to_list(self)
 --
 
@@ -232,7 +238,7 @@ Examples
 [[1, 2, 3], ["aye", "nay", "tain"]]
 )");
 
-oobj Frame::to_list(const NoArgs&) {
+oobj Frame::to_list(const PKArgs&) {
   py::olist res(dt->ncols);
   for (size_t j = 0; j < dt->ncols; ++j) {
     py::olist pycol(dt->nrows);
@@ -251,7 +257,10 @@ oobj Frame::to_list(const NoArgs&) {
 
 
 
-NoArgs Frame::Type::args_to_dict("to_dict",
+static PKArgs args_to_dict(
+  0, 0, 0, false, false, {},
+  "to_dict",
+
 R"(to_dict(self)
 --
 
@@ -267,7 +276,7 @@ Examples
 {"A": [1, 2, 3], "B": ["aye", "nay", "tain"]}
 )");
 
-oobj Frame::to_dict(const NoArgs&) {
+oobj Frame::to_dict(const PKArgs&) {
   py::otuple names = dt->get_pynames();
   py::odict res;
   for (size_t j = 0; j < dt->ncols; ++j) {
@@ -285,6 +294,13 @@ oobj Frame::to_dict(const NoArgs&) {
   return std::move(res);
 }
 
+
+
+void Frame::Type::_init_topython(Methods& mm) {
+  ADD_METHOD(mm, &Frame::to_dict, args_to_dict);
+  ADD_METHOD(mm, &Frame::to_list, args_to_list);
+  ADD_METHOD(mm, &Frame::to_tuples, args_to_tuples);
+}
 
 
 };

@@ -128,6 +128,11 @@ class PKArgs : public Args {
         PyObject* self, PyObject* args, PyObject* kwds,
         oobj (T::*)(const PKArgs&)) const noexcept;
 
+    template <class T>
+    PyObject* exec_method(
+        PyObject* self, PyObject* args, PyObject* kwds,
+        void (T::*)(const PKArgs&)) const noexcept;
+
     /**
      * Returns the name of argument `i`, which will usually be in one of the
      * following forms (depending on whether the argument is positional or
@@ -277,6 +282,23 @@ PyObject* PKArgs::exec_method(
   }
 }
 
+template <class T>
+PyObject* PKArgs::exec_method(
+    PyObject* self, PyObject* args, PyObject* kwds,
+    void (T::*fn)(const PKArgs&)) const noexcept
+{
+  try {
+    const_cast<PKArgs*>(this)->bind(args, kwds);
+    T* obj = reinterpret_cast<T*>(self);
+    (obj->*fn)(*this);
+    Py_INCREF(Py_None);
+    return Py_None;
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
 
 
 }  // namespace py
