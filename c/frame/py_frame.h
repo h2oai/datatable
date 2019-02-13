@@ -51,8 +51,6 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
-        static NoArgs fn___getstate__;
-        static PKArgs fn___setstate__;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
@@ -78,7 +76,7 @@ class Frame : public PyObject {
     void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
-    oobj m__getstate__(const NoArgs&);  // pickling support
+    oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
 
     oobj _repr_html_(const PKArgs&);

@@ -685,13 +685,15 @@ void Frame::m__init__(PKArgs& args) {
 // pickling / unpickling
 //------------------------------------------------------------------------------
 
-NoArgs Frame::Type::fn___getstate__("__getstate__", nullptr);
-PKArgs Frame::Type::fn___setstate__(1, 0, 0, false, false, {"state"},
-                                    "__setstate__", nullptr);
+static PKArgs fn___getstate__(
+    0, 0, 0, false, false, {}, "__getstate__", nullptr);
+
+static PKArgs fn___setstate__(
+    1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
 
 // TODO: add py::obytes object
-oobj Frame::m__getstate__(const NoArgs&) {
+oobj Frame::m__getstate__(const PKArgs&) {
   MemoryRange mr = dt->save_jay();
   auto data = static_cast<const char*>(mr.xptr());
   auto size = static_cast<Py_ssize_t>(mr.size());
@@ -721,8 +723,8 @@ void Frame::m__setstate__(const PKArgs& args) {
 
 
 void Frame::Type::_init_init(Methods& mm) {
-  mm.add<&Frame::m__getstate__, fn___getstate__>();
-  mm.add<&Frame::m__setstate__, fn___setstate__>();
+  ADD_METHOD(mm, &Frame::m__getstate__, fn___getstate__);
+  ADD_METHOD(mm, &Frame::m__setstate__, fn___setstate__);
 }
 
 
