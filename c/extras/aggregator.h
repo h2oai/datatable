@@ -57,7 +57,7 @@ class Aggregator {
     };
     using ExPtr = std::unique_ptr<ex>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, py::oobj, unsigned int);
+               unsigned int, py::oobj, unsigned int, size_t);
     dtptr aggregate(DataTable*);
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
@@ -72,6 +72,7 @@ class Aggregator {
     size_t max_dimensions;
     unsigned int seed;
     unsigned int nthreads;
+    size_t buffer_rows;
     py::oobj progress_fn;
 
     // Grouping and aggregating methods
@@ -97,8 +98,8 @@ class Aggregator {
     // Helper methods
     size_t get_nthreads(size_t nrows);
     tptr<T> generate_pmatrix(size_t ncols);
-    void normalize_row(const ccptrvec<T>&, tptr<T>&, size_t);
-    void project_row(const ccptrvec<T>&, tptr<T>&, size_t, tptr<T>&);
+    void normalize_row(const std::vector<std::vector<T>>&, const ccptrvec<T>&, tptr<T>&, size_t);
+    void project_row(const std::vector<std::vector<T>>&, const ccptrvec<T>&, tptr<T>&, size_t, tptr<T>&);
     T calculate_distance(tptr<T>&, tptr<T>&, size_t, T,
                               bool early_exit=true);
     void adjust_delta(T&, std::vector<ExPtr>&, std::vector<size_t>&,
@@ -115,7 +116,8 @@ class Aggregator {
 template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
                        size_t ny_bins_in, size_t nd_max_bins_in, size_t max_dimensions_in,
-                       unsigned int seed_in, py::oobj progress_fn_in, unsigned int nthreads_in) :
+                       unsigned int seed_in, py::oobj progress_fn_in, unsigned int nthreads_in,
+                       size_t buffer_rows_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
@@ -124,6 +126,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_i
   max_dimensions(max_dimensions_in),
   seed(seed_in),
   nthreads(nthreads_in),
+  buffer_rows(buffer_rows_in),
   progress_fn(progress_fn_in)
 {
 }
@@ -659,14 +662,33 @@ void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
     T distance;
     auto member = tptr<T>(new T[ndims]);
     size_t ecounter_local;
+    // Initialize data buffer
+    size_t buffer_size = std::min<size_t>(buffer_rows, nrows/nth + (nrows%nth != 0));
+//    printf("[Setting] Thread #%zu: buffer_size = %zu\n", ith, buffer_size);
+    std::vector<std::vector<T>> data(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      data[i].resize(buffer_size);
+    }
     // Each thread gets its own seed
     std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
       for (size_t i = ith; i < nrows; i += nth) {
+        // Fill buffer if needed
+        size_t buffer_row = ((i - ith) / nth) % buffer_size;
+//        printf("[Checking] Thread #%zu: buffer_row = %zu\n", ith, buffer_row);
+        if (!buffer_row) {
+          printf("[Filling] Thread #%zu: from = %zu; step = %zu; count = %zu\n", ith, i, nth, buffer_size);
+          for (size_t col = 0; col < ncols; ++col) {
+//            printf("[Filling] Thread #%zu: col = %zu; from = %zu; step = %zu; count = %zu\n", ith, col, i, nth, buffer_size);
+            (*contconvs[col]).get_rows(data[col], i, nth, buffer_size);
+          }
+        }
+
+
         bool is_exemplar = true;
-        do_projection? project_row(contconvs, member, i, pmatrix) : normalize_row(contconvs, member, i);
+        do_projection? project_row(data, contconvs, member, buffer_row, pmatrix) : normalize_row(data, contconvs, member, buffer_row);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -906,7 +928,7 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 *  Normalize the row elements to [0,1).
 */
 template <typename T>
-void Aggregator<T>::normalize_row(const ccptrvec<T>& contconvs, tptr<T>& r, size_t row) {
+void Aggregator<T>::normalize_row(const std::vector<std::vector<T>>& data, const ccptrvec<T>& contconvs, tptr<T>& r, size_t row) {
   for (size_t i = 0; i < contconvs.size(); ++i) {
 //    Column* c = dt->columns[i];
 //    auto c_real = static_cast<RealColumn<T>*>(c);
@@ -914,7 +936,7 @@ void Aggregator<T>::normalize_row(const ccptrvec<T>& contconvs, tptr<T>& r, size
     T norm_factor, norm_shift;
 
     set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).min, (*contconvs[i]).max, 1);
-    r[i] =  norm_factor * (*contconvs[i])[row] + norm_shift;
+    r[i] =  norm_factor * data[i][row] + norm_shift;
   }
 }
 
@@ -948,20 +970,20 @@ std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
 *  Project a particular row on a subspace by using the projection matrix.
 */
 template <typename T>
-void Aggregator<T>::project_row(const ccptrvec<T>& contconvs, tptr<T>& r,
-                                size_t row_id, tptr<T>& pmatrix)
+void Aggregator<T>::project_row(const std::vector<std::vector<T>>& data, const ccptrvec<T>& contconvs, tptr<T>& r,
+                                size_t row, tptr<T>& pmatrix)
 {
   std::memset(r.get(), 0, max_dimensions * sizeof(T));
   int32_t n = 0;
-  for (size_t i = 0; i < contconvs.size(); ++i) {
+  for (size_t i = 0; i < data.size(); ++i) {
 //    Column* c = dt_exemplars->columns[i];
 //    auto c_real = static_cast<RealColumn<T>*> (c);
 //    auto d_real = c_real->elements_r();
 
-    if (!ISNA<T>((*contconvs[i])[row_id])) {
+    if (!ISNA<T>(data[i][row])) {
       T norm_factor, norm_shift;
       set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).min, (*contconvs[i]).max, 1);
-      T norm_row = norm_factor * (*contconvs[i])[row_id] + norm_shift;
+      T norm_row = norm_factor * data[i][row] + norm_shift;
       for (size_t j = 0; j < max_dimensions; ++j) {
         r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
       }

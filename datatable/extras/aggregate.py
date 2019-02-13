@@ -10,7 +10,7 @@ from datatable.lib import core
 
 def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
               nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
-              nthreads=0):
+              nthreads=0, buffer_rows = 10000):
     """
     Aggregate datatable in-place.
 
@@ -53,6 +53,6 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
 
     dt_members = core.aggregate(dt_in, min_rows, n_bins, nx_bins, ny_bins,
                                 nd_max_bins, max_dimensions, seed, progress_fn,
-                                nthreads)
+                                nthreads, buffer_rows)
 
     return dt_members

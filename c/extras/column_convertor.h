@@ -33,6 +33,7 @@ class ColumnConvertor {
     explicit ColumnConvertor(const Column*);
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
+    virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
     const RowIndex& ri;
     T min;
     T max;
@@ -57,6 +58,7 @@ class ColumnConvertorContinuous : public ColumnConvertor<T2> {
   public:
     explicit ColumnConvertorContinuous(const Column*);
     T2 operator[](size_t) const override;
+    void get_rows(std::vector<T2>&, size_t, size_t, size_t) const override;
 };
 
 template<typename T1, typename T2, typename T3>
@@ -76,5 +78,25 @@ T2 ColumnConvertorContinuous<T1, T2, T3>::operator[](size_t row) const {
     return static_cast<T2>(values[i]);
   }
 }
+
+
+template<typename T1, typename T2, typename T3>
+void ColumnConvertorContinuous<T1, T2, T3>::get_rows(std::vector<T2>& buffer, size_t from, size_t step, size_t count) const {
+  size_t last_row = from + (count - 1) * step;
+  if (last_row >= this->nrows) {
+    count = (this->nrows - 1 - from) / step + 1;
+  }
+
+  for (size_t j = 0; j < count; ++j) {
+    size_t i = this->ri[from + j * step];
+    if (i == RowIndex::NA || ISNA<T1>(values[i])) {
+      buffer[j] = GETNA<T2>();
+    } else {
+      buffer[j] = static_cast<T2>(values[i]);
+    }
+//    printf("from = %zu; step = %zu; count = %zu; buffer[%zu] = %f\n", from, step, count, j, buffer[j]);
+  }
+}
+
 
 #endif /* C_EXTRAS_COLUMN_CONVERTOR_H_ */
