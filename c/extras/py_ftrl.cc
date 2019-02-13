@@ -1082,6 +1082,7 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
 
+
 oobj Ftrl::m__getstate__(const PKArgs&) {
   py::otuple pickle(6);
   py::oobj params = get_params_tuple();
@@ -1105,7 +1106,6 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
   pickle.set(5, py_reg_type);
   return std::move(pickle);
 }
-
 
 
 static PKArgs args___setstate__(

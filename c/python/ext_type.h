@@ -455,68 +455,12 @@ void ExtType<T>::init(PyObject* module) {
 // GetSetters
 //------------------------------------------------------------------------------
 
-class GSArgs {
-  public:
-    const char* name;
-    const char* doc;
-
-    GSArgs(const char* name_, const char* doc_=nullptr)
-      : name(name_), doc(doc_) {}
-
-    template <typename T>
-    PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
-      try {
-        T* t = static_cast<T*>(obj);
-        oobj res = (t->*func)();
-        return std::move(res).release();
-      } catch (const std::exception& e) {
-        exception_to_python(e);
-        return nullptr;
-      }
-    }
-
-    template <typename T>
-    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(robj)) noexcept {
-      try {
-        T* t = static_cast<T*>(obj);
-        (t->*func)(robj(value));
-        return 0;
-      } catch (const std::exception& e) {
-        exception_to_python(e);
-        return -1;
-      }
-    }
-};
-
-
 template <class T>
 class ExtType<T>::GetSetters {
   private:
     std::vector<PyGetSetDef> defs;
 
   public:
-    template <oobj (T::*fg)() const>
-    void add(const char* name, const char* doc = nullptr) {
-      defs.push_back(PyGetSetDef {
-        const_cast<char*>(name),
-        &_impl::_safe_getter<T, fg>,
-        nullptr,
-        const_cast<char*>(doc),
-        nullptr  // closure
-      });
-    }
-
-    template <oobj (T::*fg)() const, void (T::*fs)(py::robj)>
-    void add(const char* name, const char* doc = nullptr) {
-      defs.push_back(PyGetSetDef {
-        const_cast<char*>(name),
-        &_impl::_safe_getter<T, fg>,
-        &_impl::_safe_setter<T, fs>,
-        const_cast<char*>(doc),
-        nullptr  // closure
-      });
-    }
-
     void add(getter func, GSArgs& args) {
       defs.push_back(PyGetSetDef {
         const_cast<char*>(args.name),
