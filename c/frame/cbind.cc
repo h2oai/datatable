@@ -32,7 +32,9 @@ static Error item_error(const py::_obj&);
 
 
 
-PKArgs Frame::Type::args_cbind(0, 0, 1, true, false, {"force"}, "cbind",
+static PKArgs args_cbind(
+  0, 0, 1, true, false, {"force"}, "cbind",
+
 R"(cbind(self, *frames, force=False)
 --
 
@@ -117,6 +119,12 @@ static Error item_error(const py::_obj& item) {
   return TypeError() << "Frame.cbind() expects a list or sequence of Frames, "
       "but got an argument of type " << item.typeobj();
 }
+
+
+void Frame::Type::_init_cbind(Methods& mm) {
+  ADD_METHOD(mm, &Frame::cbind, args_cbind);
+}
+
 
 
 }  // namespace py

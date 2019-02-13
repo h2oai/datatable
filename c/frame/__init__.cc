@@ -720,7 +720,7 @@ void Frame::m__setstate__(const PKArgs& args) {
 }
 
 
-void Frame::Type::_init_init(Methods& mm, GetSetters&) {
+void Frame::Type::_init_init(Methods& mm) {
   mm.add<&Frame::m__getstate__, fn___getstate__>();
   mm.add<&Frame::m__setstate__, fn___setstate__>();
 }
