@@ -181,7 +181,6 @@ oobj Frame::get_nrows() const {
   return py::oint(dt->nrows);
 }
 
-
 void Frame::set_nrows(py::robj nr) {
   if (!nr.is_int()) {
     throw TypeError() << "Number of rows must be an integer, not "
@@ -195,6 +194,10 @@ void Frame::set_nrows(py::robj nr) {
 }
 
 
+static GSArgs args_shape(
+  "shape",
+  "Tuple with (nrows, ncols) dimensions of the Frame\n");
+
 oobj Frame::get_shape() const {
   py::otuple shape(2);
   shape.set(0, get_nrows());
@@ -202,6 +205,10 @@ oobj Frame::get_shape() const {
   return std::move(shape);
 }
 
+
+static GSArgs args_stypes(
+  "stypes",
+  "The tuple of each column's stypes (\"storage types\")\n");
 
 oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
@@ -216,6 +223,10 @@ oobj Frame::get_stypes() const {
 }
 
 
+static GSArgs args_ltypes(
+  "ltypes",
+  "The tuple of each column's ltypes (\"logical types\")\n");
+
 oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols);
@@ -228,6 +239,9 @@ oobj Frame::get_ltypes() const {
   return oobj(ltypes);
 }
 
+
+static GSArgs args_internal("internal", "[DEPRECATED]");
+static GSArgs args__dt("_dt", "[DEPRECATED]");
 
 oobj Frame::get_internal() const {
   return oobj(core_dt);
@@ -262,9 +276,9 @@ const char* Frame::Type::classdoc() {
 }
 
 
-void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
-{
+void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   _init_cbind(mm);
+  _init_key(gs);
   _init_init(mm);
   _init_names(mm, gs);
   _init_replace(mm);
@@ -274,27 +288,11 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
   ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
   ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
-
-  gs.add<&Frame::get_shape>("shape",
-    "Tuple with (nrows, ncols) dimensions of the Frame\n");
-
-  gs.add<&Frame::get_stypes>("stypes",
-    "The tuple of each column's stypes (\"storage types\")\n");
-
-  gs.add<&Frame::get_ltypes>("ltypes",
-    "The tuple of each column's ltypes (\"logical types\")\n");
-
-  gs.add<&Frame::get_key, &Frame::set_key>("key",
-    "Tuple of column names that serve as a primary key for this Frame.\n"
-    "\n"
-    "If the Frame is not keyed, this will return an empty tuple.\n"
-    "\n"
-    "Assigning to this property will make the Frame keyed by the specified\n"
-    "column(s). The key columns will be moved to the front, and the Frame\n"
-    "will be sorted. The values in the key columns must be unique.\n");
-
-  gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
-  gs.add<&Frame::get_internal>("_dt");
+  ADD_GETTER(gs, &Frame::get_shape, args_shape);
+  ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
+  ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
+  ADD_GETTER(gs, &Frame::get_internal, args_internal);
+  ADD_GETTER(gs, &Frame::get_internal, args__dt);
 
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);
