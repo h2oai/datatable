@@ -70,37 +70,11 @@ ColumnConvertorContinuous<T1, T2, T3>::ColumnConvertorContinuous(const Column* c
 template<typename T1, typename T2, typename T3>
 T2 ColumnConvertorContinuous<T1, T2, T3>::operator[](size_t row) const {
   size_t i = this->ri[row];
-  T1 value = (i == RowIndex::NA)? GETNA<T1>() : values[i];
-  if (ISNA<T1>(value)) {
+  if (i == RowIndex::NA || ISNA<T1>(values[i])) {
     return GETNA<T2>();
   } else {
-    return static_cast<T2>(value);
+    return static_cast<T2>(values[i]);
   }
 }
-
-
-/*
-*  Helper template structures to convert float/double C++ types to
-*  FLOAT32/FLOAT64 datatable STypes, respectively.
-*/
-template<typename T> struct stype {
-  static void get_stype() {
-    throw TypeError() << "Only float and double types are supported";
-  }
-};
-
-
-template<> struct stype<float> {
-  static SType get_stype() {
-    return SType::FLOAT32;
-  }
-};
-
-
-template<> struct stype<double> {
-  static SType get_stype() {
-    return SType::FLOAT64;
-  }
-};
 
 #endif /* C_EXTRAS_COLUMN_CONVERTOR_H_ */
