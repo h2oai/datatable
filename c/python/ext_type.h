@@ -463,6 +463,9 @@ class GSArgs {
     const char* name;
     const char* doc;
 
+    GSArgs(const char* name_, const char* doc_)
+      : name(name_), doc(doc_) {}
+
     template <typename T>
     PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
       try {
@@ -472,6 +475,18 @@ class GSArgs {
       } catch (const std::exception& e) {
         exception_to_python(e);
         return nullptr;
+      }
+    }
+
+    template <typename T>
+    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(robj)) noexcept {
+      try {
+        T* t = static_cast<T*>(obj);
+        (t->*func)(robj(value));
+        return 0;
+      } catch (const std::exception& e) {
+        exception_to_python(e);
+        return -1;
       }
     }
 };
@@ -514,6 +529,16 @@ class ExtType<T>::GetSetters {
       });
     }
 
+    void add(getter gfunc, setter sfunc, GSArgs& args) {
+      defs.push_back(PyGetSetDef {
+        const_cast<char*>(args.name),
+        gfunc,
+        sfunc,
+        const_cast<char*>(args.doc),
+        nullptr  // closure
+      });
+    }
+
     explicit operator bool() const {
       return !defs.empty();
     }
@@ -531,6 +556,16 @@ class ExtType<T>::GetSetters {
     [](PyObject* self, void*) -> PyObject* { \
       return ARGS.exec_getter(self, GETTER);  \
     }, ARGS); \
+
+#define ADD_GETSET(GS, GETTER, SETTER, ARGS) \
+  GS.add( \
+    [](PyObject* self, void*) -> PyObject* { \
+      return ARGS.exec_getter(self, GETTER);  \
+    }, \
+    [](PyObject* self, PyObject* value, void*) -> int {\
+      return ARGS.exec_setter(self, value, SETTER); \
+    }, \
+    ARGS); \
 
 
 

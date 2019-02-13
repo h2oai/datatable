@@ -106,82 +106,6 @@ oobj Frame::copy(const PKArgs&) {
 
 
 //------------------------------------------------------------------------------
-// Declare Frame's API
-//------------------------------------------------------------------------------
-
-PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
-                                  {"src", "names", "stypes", "stype"},
-                                  "__init__", nullptr);
-
-
-const char* Frame::Type::classname() {
-  return "datatable.core.Frame";
-}
-
-const char* Frame::Type::classdoc() {
-  return
-    "Two-dimensional column-oriented table of data. Each column has its own\n"
-    "name and type. Types may vary across columns but cannot vary within\n"
-    "each column.\n"
-    "\n"
-    "Internally the data is stored as C primitives, and processed using\n"
-    "multithreaded native C++ code.\n"
-    "\n"
-    "This is a primary data structure for the `datatable` module.\n";
-}
-
-
-void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
-{
-  _init_cbind(mm);
-  _init_init(mm);
-  _init_names(mm, gs);
-  _init_replace(mm);
-  _init_reprhtml(mm);
-  _init_tonumpy(mm);
-  _init_topython(mm);
-
-  gs.add<&Frame::get_ncols>("ncols",
-    "Number of columns in the Frame\n");
-
-  gs.add<&Frame::get_nrows, &Frame::set_nrows>("nrows",
-    "Number of rows in the Frame.\n"
-    "\n"
-    "Assigning to this property will change the height of the Frame,\n"
-    "either by truncating if the new number of rows is smaller than the\n"
-    "current, or filling with NAs if the new number of rows is greater.\n"
-    "\n"
-    "Increasing the number of rows of a keyed Frame is not allowed.\n");
-
-  gs.add<&Frame::get_shape>("shape",
-    "Tuple with (nrows, ncols) dimensions of the Frame\n");
-
-  gs.add<&Frame::get_stypes>("stypes",
-    "The tuple of each column's stypes (\"storage types\")\n");
-
-  gs.add<&Frame::get_ltypes>("ltypes",
-    "The tuple of each column's ltypes (\"logical types\")\n");
-
-  gs.add<&Frame::get_key, &Frame::set_key>("key",
-    "Tuple of column names that serve as a primary key for this Frame.\n"
-    "\n"
-    "If the Frame is not keyed, this will return an empty tuple.\n"
-    "\n"
-    "Assigning to this property will make the Frame keyed by the specified\n"
-    "column(s). The key columns will be moved to the front, and the Frame\n"
-    "will be sorted. The values in the key columns must be unique.\n");
-
-  gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
-  gs.add<&Frame::get_internal>("_dt");
-
-  ADD_METHOD(mm, &Frame::head, args_head);
-  ADD_METHOD(mm, &Frame::tail, args_tail);
-  ADD_METHOD(mm, &Frame::copy, args_copy);
-}
-
-
-
-//------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
 bool Frame::internal_construction = false;
@@ -233,14 +157,30 @@ void Frame::_clear_types() const {
 // Getters / setters
 //------------------------------------------------------------------------------
 
+static GSArgs args_ncols(
+  "ncols",
+  "Number of columns in the Frame\n");
+
 oobj Frame::get_ncols() const {
   return py::oint(dt->ncols);
 }
 
 
+static GSArgs args_nrows(
+  "nrows",
+R"(Number of rows in the Frame.
+
+Assigning to this property will change the height of the Frame,
+either by truncating if the new number of rows is smaller than the
+current, or filling with NAs if the new number of rows is greater.
+
+Increasing the number of rows of a keyed Frame is not allowed.
+)");
+
 oobj Frame::get_nrows() const {
   return py::oint(dt->nrows);
 }
+
 
 void Frame::set_nrows(py::robj nr) {
   if (!nr.is_int()) {
@@ -292,6 +232,76 @@ oobj Frame::get_ltypes() const {
 oobj Frame::get_internal() const {
   return oobj(core_dt);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Declare Frame's API
+//------------------------------------------------------------------------------
+
+PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
+                                  {"src", "names", "stypes", "stype"},
+                                  "__init__", nullptr);
+
+
+const char* Frame::Type::classname() {
+  return "datatable.core.Frame";
+}
+
+const char* Frame::Type::classdoc() {
+  return
+    "Two-dimensional column-oriented table of data. Each column has its own\n"
+    "name and type. Types may vary across columns but cannot vary within\n"
+    "each column.\n"
+    "\n"
+    "Internally the data is stored as C primitives, and processed using\n"
+    "multithreaded native C++ code.\n"
+    "\n"
+    "This is a primary data structure for the `datatable` module.\n";
+}
+
+
+void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
+{
+  _init_cbind(mm);
+  _init_init(mm);
+  _init_names(mm, gs);
+  _init_replace(mm);
+  _init_reprhtml(mm);
+  _init_tonumpy(mm);
+  _init_topython(mm);
+
+  ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
+  ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
+
+  gs.add<&Frame::get_shape>("shape",
+    "Tuple with (nrows, ncols) dimensions of the Frame\n");
+
+  gs.add<&Frame::get_stypes>("stypes",
+    "The tuple of each column's stypes (\"storage types\")\n");
+
+  gs.add<&Frame::get_ltypes>("ltypes",
+    "The tuple of each column's ltypes (\"logical types\")\n");
+
+  gs.add<&Frame::get_key, &Frame::set_key>("key",
+    "Tuple of column names that serve as a primary key for this Frame.\n"
+    "\n"
+    "If the Frame is not keyed, this will return an empty tuple.\n"
+    "\n"
+    "Assigning to this property will make the Frame keyed by the specified\n"
+    "column(s). The key columns will be moved to the front, and the Frame\n"
+    "will be sorted. The values in the key columns must be unique.\n");
+
+  gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
+  gs.add<&Frame::get_internal>("_dt");
+
+  ADD_METHOD(mm, &Frame::head, args_head);
+  ADD_METHOD(mm, &Frame::tail, args_tail);
+  ADD_METHOD(mm, &Frame::copy, args_copy);
+}
+
+
 
 
 }  // namespace py
