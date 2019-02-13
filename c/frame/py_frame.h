@@ -51,7 +51,6 @@ class Frame : public PyObject {
     class Type : public ExtType<Frame> {
       public:
         static PKArgs args___init__;
-        static NoArgs args__repr_html_;
         static PKArgs fn_to_numpy;
         static NoArgs fn___getstate__;
         static PKArgs fn___setstate__;
@@ -65,6 +64,7 @@ class Frame : public PyObject {
         static void _init_names(Methods&, GetSetters&);
         static void _init_replace(Methods&);
         static void _init_topython(Methods&);
+        static void _init_reprhtml(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -81,7 +81,7 @@ class Frame : public PyObject {
     oobj m__getstate__(const NoArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
 
-    oobj _repr_html_(const NoArgs&);
+    oobj _repr_html_(const PKArgs&);
     oobj get_ncols() const;
     oobj get_nrows() const;
     oobj get_shape() const;

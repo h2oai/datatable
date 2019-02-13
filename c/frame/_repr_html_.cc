@@ -380,11 +380,17 @@ bool HtmlWidget::styles_emitted = false;
 //------------------------------------------------------------------------------
 namespace py {
 
-NoArgs Frame::Type::args__repr_html_("_repr_html_", nullptr);
+static PKArgs args__repr_html_(0, 0, 0, false, false, {}, "_repr_html_", "");
 
-oobj Frame::_repr_html_(const NoArgs&) {
+oobj Frame::_repr_html_(const PKArgs&) {
   HtmlWidget widget(dt);
   return widget.to_pystring();
+}
+
+
+
+void Frame::Type::_init_reprhtml(Methods& mm) {
+  ADD_METHOD(mm, &Frame::_repr_html_, args__repr_html_);
 }
 
 }
