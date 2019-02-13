@@ -32,10 +32,10 @@ PyObject* Frame_Type = nullptr;
 
 
 //------------------------------------------------------------------------------
-// Head & tail
+// head() & tail()
 //------------------------------------------------------------------------------
 
-static PKArgs fn_head(
+static PKArgs args_head(
     1, 0, 0, false, false,
     {"n"}, "head",
 R"(head(self, n=10)
@@ -55,7 +55,7 @@ oobj Frame::head(const PKArgs& args) {
 
 
 
-static PKArgs fn_tail(
+static PKArgs args_tail(
     1, 0, 0, false, false,
     {"n"}, "tail",
 R"(tail(self, n=10)
@@ -76,6 +76,34 @@ oobj Frame::tail(const PKArgs& args) {
 
 
 
+//------------------------------------------------------------------------------
+// copy()
+//------------------------------------------------------------------------------
+
+static PKArgs args_copy(
+  0, 0, 0, false, false,
+  {}, "copy",
+
+R"(copy(self)
+--
+
+Make a copy of this frame.
+
+This method creates a shallow copy of the current frame: only references
+are copied, not the data itself. However, due to copy-on-write semantics
+any changes made to one of the frames will not propagate to the other.
+Thus, for all intents and purposes the copied frame will behave as if
+it was deep-copied.)"
+);
+
+oobj Frame::copy(const PKArgs&) {
+  Frame* newframe = Frame::from_datatable(dt->copy());
+  newframe->stypes = stypes;  Py_XINCREF(stypes);
+  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  return py::oobj::from_new_reference(newframe);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Declare Frame's API
@@ -84,17 +112,6 @@ oobj Frame::tail(const PKArgs& args) {
 PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
                                   {"src", "names", "stypes", "stype"},
                                   "__init__", nullptr);
-NoArgs Frame::Type::args_copy("copy",
-"copy(self)\n"
-"--\n\n"
-"Make a copy of this Frame.\n"
-"\n"
-"This method creates a shallow copy of the current Frame: only references\n"
-"are copied, not the data itself. However, due to copy-on-write semantics\n"
-"any changes made to one of the Frames will not propagate to the other.\n"
-"Thus, for all intents and purposes the copied Frame will behave as if\n"
-"it was deep-copied.\n");
-
 
 
 const char* Frame::Type::classname() {
@@ -153,7 +170,6 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
   gs.add<&Frame::get_internal>("_dt");
 
-  mm.add<&Frame::copy, args_copy>();
   mm.add<&Frame::replace, args_replace>();
   mm.add<&Frame::_repr_html_, args__repr_html_>();
   mm.add<&Frame::to_dict, args_to_dict>();
@@ -161,8 +177,9 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   mm.add<&Frame::to_tuples, args_to_tuples>();
   mm.add<&Frame::to_numpy, fn_to_numpy>();
 
-  ADD_METHOD(mm, &Frame::head, fn_head);
-  ADD_METHOD(mm, &Frame::tail, fn_tail);
+  ADD_METHOD(mm, &Frame::head, args_head);
+  ADD_METHOD(mm, &Frame::tail, args_tail);
+  ADD_METHOD(mm, &Frame::copy, args_copy);
 }
 
 
@@ -204,13 +221,6 @@ void Frame::m__get_buffer__(Py_buffer*, int) const {
 void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
-
-oobj Frame::copy(const NoArgs&) {
-  Frame* newframe = Frame::from_datatable(dt->copy());
-  newframe->stypes = stypes;  Py_XINCREF(stypes);
-  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
-  return py::oobj::from_new_reference(newframe);
-}
 
 void Frame::_clear_types() const {
   Py_XDECREF(stypes);

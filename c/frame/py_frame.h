@@ -54,7 +54,6 @@ class Frame : public PyObject {
         static NoArgs args__repr_html_;
         static PKArgs args_colindex;
         static PKArgs args_replace;
-        static NoArgs args_copy;
         static NoArgs args_to_dict;
         static NoArgs args_to_list;
         static NoArgs args_to_tuples;
@@ -101,7 +100,7 @@ class Frame : public PyObject {
 
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
-    oobj copy(const NoArgs&);
+    oobj copy(const PKArgs&);
     void replace(const PKArgs&);
     oobj to_dict(const NoArgs&);
     oobj to_list(const NoArgs&);
