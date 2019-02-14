@@ -515,3 +515,22 @@ def aggregate_nd(nd):
     assert d_in.shape == (div, nd + 1)
     assert d_in.ltypes == tuple(out_types)
     assert d.to_list() == out_value
+
+
+#-------------------------------------------------------------------------------
+# Aggregate views
+#-------------------------------------------------------------------------------
+
+def test_aggregate_view_0d_continuous_integer():
+    d_in = dt.Frame([0, 1, None, 2, None, 3, 3, 4, 4, None, 5])
+    d_in_view = d_in[5:11, :]
+    d_members = aggregate(d_in_view, min_rows=100, n_bins=10,
+                          progress_fn=report_progress)
+    d_members.internal.check()
+    assert d_members.shape == (6, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.to_list() == [[1, 2, 3, 4, 0, 5]]
+    d_in_view.internal.check()
+    assert d_in_view.shape == (6, 2)
+    assert d_in_view.ltypes == (ltype.int, ltype.int)
+    assert d_in_view.to_list() == [[None, 3, 3, 4, 4, 5], [1, 1, 1, 1, 1, 1]]

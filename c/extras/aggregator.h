@@ -178,7 +178,6 @@ dtptr Aggregator<T>::aggregate(DataTable* dt) {
 
     dt_cat = dtptr(new DataTable(std::move(catcols)));
     ncols = contconvs.size() + dt_cat->ncols;
-
     switch (ncols) {
       case 0:  group_0d(dt, dt_members);
                max_bins = nd_max_bins;
@@ -362,9 +361,6 @@ void Aggregator<T>::group_1d(const dtptr& dt, const ccptrvec<T>& contconvs, dtpt
 */
 template <typename T>
 void Aggregator<T>::group_2d(const dtptr& dt, const ccptrvec<T>& contconvs, dtptr& dt_members) {
-//  LType ltype0 = info(dt->columns[0]->stype()).ltype();
-//  LType ltype1 = info(dt->columns[1]->stype()).ltype();
-
   size_t ncont = contconvs.size();
 
   switch (ncont) {
@@ -374,30 +370,6 @@ void Aggregator<T>::group_2d(const dtptr& dt, const ccptrvec<T>& contconvs, dtpt
     default: throw ValueError() << "2D aggregation can only support 0, 1 or 2 continuous columns, got "
                                 << ncont;
   }
-
-//  switch (ltype0) {
-//    case LType::BOOL:
-//    case LType::INT:
-//    case LType::REAL:    switch (ltype1) {
-//                           case LType::BOOL:
-//                           case LType::INT:
-//                           case LType::REAL:   group_2d_continuous(contconvs, dt_members); break;
-//                           case LType::STRING: group_2d_mixed(0, dt, dt_members); break;
-//                           default:            throw ValueError() << "Datatype is not supported";
-//                         }
-//                         break;
-//
-//    case LType::STRING:  switch (ltype1) {
-//                           case LType::BOOL:
-//                           case LType::INT:
-//                           case LType::REAL:   group_2d_mixed(1, dt, dt_members); break;
-//                           case LType::STRING: group_2d_categorical(dt, dt_members); break;
-//                           default:            throw ValueError() << "Datatype is not supported";
-//                         }
-//                         break;
-//
-//    default:             throw ValueError() << "Datatype is not supported";
-//  }
 }
 
 
