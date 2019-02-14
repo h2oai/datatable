@@ -36,42 +36,7 @@ namespace py {
 }
 
 
-PyMODINIT_FUNC PyInit__datatable(void);
-
-
-#define HOMEFLAG dt_DATATABLEMODULE_cc
-
-
-DECLARE_FUNCTION(
-  register_function,
-  "register_function()\n\n",
-  HOMEFLAG)
-
-
-
-PyObject* register_function(PyObject*, PyObject *args) {
-  int n = -1;
-  PyObject* fnref = nullptr;
-  if (!PyArg_ParseTuple(args, "iO:register_function", &n, &fnref))
-      return nullptr;
-
-  if (!PyCallable_Check(fnref)) {
-    throw TypeError() << "parameter `fn` must be callable";
-  }
-  Py_XINCREF(fnref);
-  if (n == 1) pycolumn::fn_hexview = fnref;
-  else if (n == 2) init_py_stype_objs(fnref);
-  else if (n == 3) init_py_ltype_objs(fnref);
-  else if (n == 4) replace_typeError(fnref);
-  else if (n == 5) replace_valueError(fnref);
-  else if (n == 6) replace_dtWarning(fnref);
-  else if (n == 7) py::Frame_Type = fnref;
-  else if (n == 8) py::fread_fn = fnref;
-  else {
-    throw ValueError() << "Incorrect function index: " << n;
-  }
-  return none();
-}
+PyMODINIT_FUNC PyInit__datatable(void) noexcept;
 
 
 
@@ -164,6 +129,27 @@ static py::oobj has_omp_support(const py::PKArgs&) {
 }
 
 
+static py::PKArgs args__register_function(
+    2, 0, 0, false, false, {"n", "fn"}, "_register_function", nullptr);
+
+static void _register_function(const py::PKArgs& args) {
+  size_t n = args.get<size_t>(0);
+  py::oobj fn = args[1].to_oobj();
+
+  PyObject* fnref = std::move(fn).release();
+  switch (n) {
+    case 2: init_py_stype_objs(fnref); break;
+    case 3: init_py_ltype_objs(fnref); break;
+    case 4: replace_typeError(fnref); break;
+    case 5: replace_valueError(fnref); break;
+    case 6: replace_dtWarning(fnref); break;
+    case 7: py::Frame_Type = fnref; break;
+    case 8: py::fread_fn = fnref; break;
+    default: throw ValueError() << "Unknown index: " << n;
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -176,8 +162,8 @@ void DatatableModule::init_methods() {
   add(METHODv(pydatatable::install_buffer_hooks));
   add(METHODv(gread));
   add(METHODv(write_csv));
-  add(METHODv(register_function));
 
+  ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
@@ -198,17 +184,19 @@ void DatatableModule::init_methods() {
 
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
-PyInit__datatable()
+PyInit__datatable() noexcept
 {
-  init_csvwrite_constants();
-  init_exceptions();
-
-  force_stype = SType::VOID;
-
   static DatatableModule dtmod;
-  PyObject* m = dtmod.init();
+  PyObject* m = nullptr;
 
   try {
+    init_csvwrite_constants();
+    init_exceptions();
+
+    force_stype = SType::VOID;
+
+    m = dtmod.init();
+
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
     if (!pycolumn::static_init(m)) return nullptr;
@@ -226,7 +214,7 @@ PyInit__datatable()
 
   } catch (const std::exception& e) {
     exception_to_python(e);
-    return nullptr;
+    m = nullptr;
   }
 
   return m;

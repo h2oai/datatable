@@ -351,5 +351,5 @@ def _init_value2members_from(iterator):
 
 _init_value2members_from(_additional_stype_members())
 
-core.register_function(2, stype)
-core.register_function(3, ltype)
+core._register_function(2, stype)
+core._register_function(3, ltype)

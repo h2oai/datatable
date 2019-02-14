@@ -14,8 +14,6 @@
 
 namespace pycolumn
 {
-PyObject* fn_hexview = nullptr;  // see datatablemodule.c/pyregister_function
-
 
 pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
 {

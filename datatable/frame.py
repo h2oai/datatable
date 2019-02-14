@@ -391,9 +391,9 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-core.register_function(4, TTypeError)
-core.register_function(5, TValueError)
-core.register_function(7, Frame)
+core._register_function(4, TTypeError)
+core._register_function(5, TValueError)
+core._register_function(7, Frame)
 core.install_buffer_hooks(Frame())
 
 
