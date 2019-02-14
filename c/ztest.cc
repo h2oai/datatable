@@ -13,17 +13,18 @@
 namespace dttest {
 
 
-static py::PKArgs fn_tests(
+static py::PKArgs arg_tests(
   0, 0, 0, false, false, {},
   "test_internal",
-  "Run internal tests that check functionality of some internal structures",
+  "Run internal tests that check functionality of some internal structures");
 
-[](const py::PKArgs&) -> py::oobj {
+static py::oobj tests(const py::PKArgs&) {
   cover_init_FrameInitializationManager_em();
   cover_names_FrameNameProviders();
   cover_names_integrity_checks();
   return py::None();
-});
+}
+
 
 
 /**
@@ -55,7 +56,7 @@ void test_assert(const std::function<void(void)>& f,
 
 
 void DatatableModule::init_tests() {
-  ADDFN(dttest::fn_tests);
+  ADD_FN(&dttest::tests, dttest::arg_tests);
 }
 
 #endif

@@ -91,7 +91,7 @@ Column* Column::repeat(size_t nreps) {
 // datatable.repeat()
 //------------------------------------------------------------------------------
 
-static py::PKArgs fn_repeat(
+static py::PKArgs args_repeat(
     2, 0, 0, false, false, {"frame", "n"},
     "repeat",
 R"(repeat(frame, n)
@@ -100,10 +100,10 @@ R"(repeat(frame, n)
 Concatenate `n` copies of the `frame` by rows and return the result.
 
 This is equivalent to ``dt.rbind([self] * n)``.
-)",
+)");
 
 
-[](const py::PKArgs& args) -> py::oobj {
+static py::oobj repeat(const py::PKArgs& args) {
   DataTable* dt = args[0].to_frame();
   size_t n = args[1].to_size_t();
 
@@ -131,10 +131,10 @@ This is equivalent to ``dt.rbind([self] * n)``.
 
   DataTable* newdt = apply_rowindex(dt, ri);
   return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
-});
+}
 
 
 
 void DatatableModule::init_methods_repeat() {
-  ADDFN(fn_repeat);
+  ADD_FN(&repeat, args_repeat);
 }

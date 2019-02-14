@@ -34,7 +34,7 @@ namespace py {
 // kfold()
 //------------------------------------------------------------------------------
 
-static PKArgs fn_kfold_simple(
+static PKArgs args_kfold_simple(
   0, 0, 2, false, false,
   {"nrows", "nsplits"}, "kfold",
 
@@ -66,9 +66,10 @@ nrows: int
 
 nsplits: int
     Number of folds, must be at least 2, but not larger than `nrows`.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static oobj kfold(const PKArgs& args) {
   if (!args[0]) throw TypeError() << "Required parameter `nrows` is missing";
   if (!args[1]) throw TypeError() << "Required parameter `nsplits` is missing";
   size_t nrows = args[0].to_size_t();
@@ -125,14 +126,11 @@ nsplits: int
   }
 
   return std::move(res);
-});
+}
 
 
-
-}  // namespace py
-
-
+} // namespace py
 
 void DatatableModule::init_methods_kfold() {
-  ADDFN(py::fn_kfold_simple);
+  ADD_FN(&py::kfold, py::args_kfold_simple);
 }

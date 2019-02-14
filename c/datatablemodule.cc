@@ -160,7 +160,7 @@ static std::pair<DataTable*, size_t> _unpack_args(const py::PKArgs& args) {
 }
 
 
-static py::PKArgs fn_frame_column_rowindex(
+static py::PKArgs args_frame_column_rowindex(
     2, 0, 0, false, false, {"frame", "i"},
     "frame_column_rowindex",
 R"(frame_column_rowindex(frame, i)
@@ -168,19 +168,19 @@ R"(frame_column_rowindex(frame, i)
 
 Return the RowIndex of the `i`th column of the `frame`, or None if that column
 has no row index.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+static py::oobj frame_column_rowindex(const py::PKArgs& args) {
   auto u = _unpack_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
 
   RowIndex ri = dt->columns[col]->rowindex();
   return ri? py::orowindex(ri) : py::None();
-});
+}
 
 
-static py::PKArgs fn_frame_column_data_r(
+static py::PKArgs args_frame_column_data_r(
     2, 0, 0, false, false, {"frame", "i"},
     "frame_column_data_r",
 R"(frame_column_data_r(frame, i)
@@ -188,9 +188,9 @@ R"(frame_column_data_r(frame, i)
 
 Return C pointer to the main data array of the column `frame[i]`. The pointer
 is returned as a `ctypes.c_void_p` object.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+static py::oobj frame_column_data_r(const py::PKArgs& args) {
   static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
 
   auto u = _unpack_args(args);
@@ -200,7 +200,7 @@ is returned as a `ctypes.c_void_p` object.
   py::otuple init_args(1);
   init_args.set(0, py::oint(reinterpret_cast<size_t>(ptr)));
   return c_void_p.call(init_args);
-});
+}
 
 
 
@@ -222,8 +222,8 @@ void DatatableModule::init_methods() {
   add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
 
-  ADDFN(fn_frame_column_rowindex);
-  ADDFN(fn_frame_column_data_r);
+  ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
+  ADD_FN(&frame_column_data_r, args_frame_column_data_r);
 
   init_methods_aggregate();
   init_methods_join();
