@@ -5,7 +5,6 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#define dt_DATATABLEMODULE_cc
 #include "datatablemodule.h"
 #include <Python.h>
 #include "../datatable/include/datatable.h"
@@ -25,19 +24,13 @@
 #include "py_encodings.h"
 #include "py_rowindex.h"
 #include "py_types.h"
-#include "py_utils.h"
 #include "utils/assert.h"
 #include "ztest.h"
 
-extern void init_jay();
 
 namespace py {
   PyObject* fread_fn = nullptr;
 }
-
-
-PyMODINIT_FUNC PyInit__datatable(void) noexcept;
-
 
 
 
@@ -183,8 +176,7 @@ void DatatableModule::init_methods() {
 
 
 /* Called when Python program imports the module */
-PyMODINIT_FUNC
-PyInit__datatable() noexcept
+PyMODINIT_FUNC PyInit__datatable() noexcept
 {
   static DatatableModule dtmod;
   PyObject* m = nullptr;
