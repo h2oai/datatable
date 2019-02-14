@@ -56,14 +56,6 @@ DECLARE_FUNCTION(
   "exec_function()\n\n",
   HOMEFLAG)
 
-DECLARE_FUNCTION(
-  has_omp_support,
-  "has_omp_support()\n\n"
-  "Returns True if datatable was built with OMP support, and False otherwise.\n"
-  "Without OMP datatable will be significantly slower, performing all\n"
-  "operations in single-threaded mode.\n",
-  HOMEFLAG)
-
 
 PyObject* exec_function(PyObject* self, PyObject* args) {
   void* fnptr;
@@ -121,14 +113,6 @@ PyObject* get_integer_sizes(PyObject*, PyObject*) {
 }
 #undef ADD
 
-
-PyObject* has_omp_support(PyObject*, PyObject*) {
-  #ifdef DTNOOPENMP
-    return incref(Py_False);
-  #else
-    return incref(Py_True);
-  #endif
-}
 
 
 
@@ -204,6 +188,23 @@ static py::oobj in_debug_mode(const py::PKArgs&) {
 
 
 
+static py::PKArgs args_has_omp_support(
+    0, 0, 0, false, false, {}, "has_omp_support",
+R"(Return True if datatable was built with OMP support, and False otherwise.
+Without OMP datatable will be significantly slower, performing all
+operations in single-threaded mode.
+)");
+
+static py::oobj has_omp_support(const py::PKArgs&) {
+  #ifdef DTNOOPENMP
+    return py::False();
+  #else
+    return py::True();
+  #endif
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Module definition
@@ -218,8 +219,8 @@ void DatatableModule::init_methods() {
   add(METHODv(exec_function));
   add(METHODv(register_function));
   add(METHOD0(get_integer_sizes));
-  add(METHOD0(has_omp_support));
 
+  ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
