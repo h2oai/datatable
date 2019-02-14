@@ -57,11 +57,6 @@ DECLARE_FUNCTION(
   HOMEFLAG)
 
 DECLARE_FUNCTION(
-  is_debug_mode,
-  "is_debug_mode()\n\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   has_omp_support,
   "has_omp_support()\n\n"
   "Returns True if datatable was built with OMP support, and False otherwise.\n"
@@ -126,14 +121,6 @@ PyObject* get_integer_sizes(PyObject*, PyObject*) {
 }
 #undef ADD
 
-
-PyObject* is_debug_mode(PyObject*, PyObject*) {
-  #ifdef DTDEBUG
-    return incref(Py_True);
-  #else
-    return incref(Py_False);
-  #endif
-}
 
 PyObject* has_omp_support(PyObject*, PyObject*) {
   #ifdef DTNOOPENMP
@@ -203,6 +190,19 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
 }
 
 
+static py::PKArgs args_in_debug_mode(
+    0, 0, 0, false, false, {}, "in_debug_mode",
+    "Return True if datatable was compiled in debug mode");
+
+static py::oobj in_debug_mode(const py::PKArgs&) {
+  #ifdef DTDEBUG
+    return py::True();
+  #else
+    return py::False();
+  #endif
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -218,9 +218,9 @@ void DatatableModule::init_methods() {
   add(METHODv(exec_function));
   add(METHODv(register_function));
   add(METHOD0(get_integer_sizes));
-  add(METHOD0(is_debug_mode));
   add(METHOD0(has_omp_support));
 
+  ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
 

@@ -24,11 +24,13 @@
 from .lib._datatable import (
 	frame_column_data_r,
 	frame_column_rowindex,
+	in_debug_mode,
 	RowIndex
 )
 
 __all__ = [
 	"frame_column_data_r",
 	"frame_column_rowindex",
+	"in_debug_mode",
 	"RowIndex",
 ]
