@@ -210,7 +210,6 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 void DatatableModule::init_methods() {
-  add(METHODv(pycolumn::column_from_list));
   add(METHODv(pydatatable::datatable_load));
   add(METHODv(pydatatable::open_jay));
   add(METHODv(pydatatable::install_buffer_hooks));

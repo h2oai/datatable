@@ -101,14 +101,6 @@ DECLARE_METHOD(
   "Return the contents of the Column as a plain Python list.\n")
 
 
-//---- Python API --------------------------------------------------------------
-
-DECLARE_FUNCTION(
-  column_from_list,
-  "column_from_list(list)\n\n"
-  "Convert a Python list into a Column object.",
-  HOMEFLAG)
-
 
 };  // namespace pycolumn
 #undef BASECLS
