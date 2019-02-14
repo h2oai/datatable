@@ -77,17 +77,6 @@ const char* Args::get_long_name() const {
 
 
 
-//------------------------------------------------------------------------------
-// NoArgs
-//------------------------------------------------------------------------------
-
-void NoArgs::bind(PyObject* _args, PyObject* _kwds) {
-  if ((_args && Py_SIZE(_args)) || (_kwds && PyDict_Size(_kwds))) {
-    throw TypeError() << get_long_name() << " accepts no arguments";
-  }
-}
-
-
 
 //------------------------------------------------------------------------------
 // PKArgs
