@@ -35,24 +35,51 @@ class ExtModule {
     PyObject* pymodule;
 
   public:
-    PyObject* init();
+    PyObject* init() {
+      T* self = static_cast<T*>(this);
 
-    void init_methods() {}
+      module_def = {
+        PyModuleDef_HEAD_INIT,
+        self->name(),  /* name of the module */
+        self->doc(),   /* module documentation */
+        -1,            /* size of per-interpreter state of the module, or -1
+                          if the module keeps state in global variables */
+        self->get_methods(),
 
-    template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS> void add();
-    template <void (*F)(const PKArgs&), PKArgs& ARGS> void add();
-    void add(PyMethodDef);
-    void add(PyCFunctionWithKeywords, PKArgs&);
+        // https://docs.python.org/3/c-api/module.html#multi-phase-initialization
+        nullptr,       /* m_slots */
+        nullptr,       /* m_traverse */
+        nullptr,       /* m_clear */
+        nullptr,       /* m_free */
+      };
+
+      pymodule = PyModule_Create(&module_def);
+      if (pymodule == nullptr) throw PyError();  // LCOV_EXCL_LINE
+      return pymodule;
+    }
+
+    void add(PyMethodDef def) {
+      methods.push_back(def);
+    }
+
+    void add(PyCFunctionWithKeywords F, PKArgs& args) {
+      methods.push_back(PyMethodDef {
+        args.get_short_name(),
+        reinterpret_cast<PyCFunction>(F),
+        METH_VARARGS | METH_KEYWORDS,
+        args.get_docstring()
+      });
+    }
 
   private:
-    PyMethodDef* get_methods();
+    PyMethodDef* get_methods() {
+      static_cast<T*>(this)->init_methods();
+      methods.push_back(PyMethodDef {nullptr, nullptr, 0, nullptr});
+      return methods.data();
+    }
+
 };
 
-
-#define ADDFN(ARGS)                                                            \
-  add([](PyObject*, PyObject* args, PyObject* kwds) -> PyObject* {             \
-        return ARGS.exec(args, kwds);                                          \
-      }, ARGS);                                                                \
 
 #define ADD_FN(FUNCTION, ARGS)                                                 \
   add(                                                                         \
@@ -61,106 +88,5 @@ class ExtModule {
     }, ARGS);                                                                  \
 
 
-
-template <typename A, void (*F)(const A&), A& ARGS>
-PyObject* _safe_function0(PyObject*, PyObject* args, PyObject* kwds) {
-  try {
-    ARGS.bind(args, kwds);
-    (*F)(ARGS);
-    Py_RETURN_NONE;
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
-}
-
-template <typename A, oobj (*F)(const A&), A& ARGS>
-PyObject* _safe_function1(PyObject*, PyObject* args, PyObject* kwds) {
-  try {
-    ARGS.bind(args, kwds);
-    oobj res = (*F)(ARGS);
-    return std::move(res).release();
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
-}
-
-
-template <class T>
-void ExtModule<T>::add(PyMethodDef def) {
-  methods.push_back(def);
-}
-
-template <class T>
-void ExtModule<T>::add(PyCFunctionWithKeywords F, PKArgs& args) {
-  methods.push_back(PyMethodDef {
-    args.get_short_name(),
-    reinterpret_cast<PyCFunction>(F),
-    METH_VARARGS | METH_KEYWORDS,
-    args.get_docstring()
-  });
-}
-
-
-template <class T>
-template <py::oobj (*F)(const PKArgs&), PKArgs& ARGS>
-void ExtModule<T>::add() {
-  ARGS.set_class_name(static_cast<T*>(this)->name());
-  methods.push_back(PyMethodDef {
-    ARGS.get_short_name(),
-    reinterpret_cast<PyCFunction>(&_safe_function1<PKArgs, F, ARGS>),
-    METH_VARARGS | METH_KEYWORDS,
-    ARGS.get_docstring()
-  });
-}
-
-template <class T>
-template <void (*F)(const PKArgs&), PKArgs& ARGS>
-void ExtModule<T>::add() {
-  ARGS.set_class_name(static_cast<T*>(this)->name());
-  methods.push_back(PyMethodDef {
-    ARGS.get_short_name(),
-    reinterpret_cast<PyCFunction>(&_safe_function0<PKArgs, F, ARGS>),
-    METH_VARARGS | METH_KEYWORDS,
-    ARGS.get_docstring()
-  });
-}
-
-
-template <class T>
-PyMethodDef* ExtModule<T>::get_methods() {
-  static_cast<T*>(this)->init_methods();
-  methods.push_back(PyMethodDef {nullptr, nullptr, 0, nullptr});
-  return methods.data();
-}
-
-
-template <class T>
-PyObject* ExtModule<T>::init() {
-  T* self = static_cast<T*>(this);
-
-  module_def = {
-    PyModuleDef_HEAD_INIT,
-    self->name(),  /* name of the module */
-    self->doc(),   /* module documentation */
-    -1,            /* size of per-interpreter state of the module, or -1
-                      if the module keeps state in global variables */
-    self->get_methods(),
-
-    // https://docs.python.org/3/c-api/module.html#multi-phase-initialization
-    nullptr,       /* m_slots */
-    nullptr,       /* m_traverse */
-    nullptr,       /* m_clear */
-    nullptr,       /* m_free */
-  };
-
-  pymodule = PyModule_Create(&module_def);
-  if (pymodule == nullptr) throw PyError();  // LCOV_EXCL_LINE
-  return pymodule;
-}
-
-
-}
-
+} // namespace py
 #endif
