@@ -13,35 +13,56 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// Args
+// PKArgs
 //------------------------------------------------------------------------------
 
-Args::Args(const char* name, const char* doc) {
-  cls_name = nullptr;
-  fun_name = name;
-  fun_doc = doc;
-  full_name = nullptr;
+PKArgs::PKArgs(
+    size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
+    std::initializer_list<const char*> _names,
+    const char* name, const char* doc, py::oobj (*f)(const PKArgs&)
+  )
+  : fun_name(name),
+    cls_name(nullptr),
+    fun_doc(doc),
+    full_name(nullptr),
+    n_posonly_args(npo),
+    n_pos_kwd_args(npk),
+    n_all_args(npo + npk + nko),
+    has_varargs(vargs),
+    has_varkwds(vkwds),
+    arg_names(_names),
+    n_varkwds(0),
+    fn0(nullptr),
+    fn1(reinterpret_cast<void*>(f))
+{
+  xassert(n_all_args == arg_names.size());
+  if (has_varargs) xassert(n_pos_kwd_args == 0);
+  bound_args.resize(n_all_args);
+  for (size_t i = 0; i < n_all_args; ++i) {
+    bound_args[i].init(i, this);
+  }
 }
 
-Args::~Args() {
+PKArgs::~PKArgs() {
   delete[] full_name;
 }
 
-void Args::set_class_name(const char* name) {
+
+void PKArgs::set_class_name(const char* name) {
   const char* p = std::strrchr(name, '.');
   cls_name = p? p + 1 : name;
 }
 
-const char* Args::get_short_name() const {
+const char* PKArgs::get_short_name() const {
   return fun_name;
 }
 
-const char* Args::get_docstring() const {
+const char* PKArgs::get_docstring() const {
   return fun_doc;
 }
 
 
-const char* Args::get_long_name() const {
+const char* PKArgs::get_long_name() const {
   if (full_name) return full_name;
   size_t len1 = cls_name? std::strlen(cls_name) : 0;
   size_t len2 = fun_name? std::strlen(fun_name) : 0;
@@ -75,36 +96,6 @@ const char* Args::get_long_name() const {
   return full_name;
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// PKArgs
-//------------------------------------------------------------------------------
-
-PKArgs::PKArgs(
-    size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
-    std::initializer_list<const char*> _names,
-    const char* name, const char* doc, py::oobj (*f)(const PKArgs&)
-  )
-  : Args(name, doc),
-    n_posonly_args(npo),
-    n_pos_kwd_args(npk),
-    n_all_args(npo + npk + nko),
-    has_varargs(vargs),
-    has_varkwds(vkwds),
-    arg_names(_names),
-    n_varkwds(0),
-    fn0(nullptr),
-    fn1(reinterpret_cast<void*>(f))
-{
-  xassert(n_all_args == arg_names.size());
-  if (has_varargs) xassert(n_pos_kwd_args == 0);
-  bound_args.resize(n_all_args);
-  for (size_t i = 0; i < n_all_args; ++i) {
-    bound_args[i].init(i, this);
-  }
-}
 
 
 void PKArgs::bind(PyObject* _args, PyObject* _kwds)

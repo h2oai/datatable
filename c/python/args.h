@@ -68,41 +68,6 @@ class GSArgs {
 
 
 
-//------------------------------------------------------------------------------
-// Args
-//------------------------------------------------------------------------------
-
-/**
- * Helper class for ExtType: it encapsulates arguments passed to a function
- * and helps verify / parse them. This is the base class for a family of
- * args-related functions, each designed to handle different calling
- * convention.
- */
-class Args {
-  private:
-    const char* cls_name;
-    const char* fun_name;
-    const char* fun_doc;
-    mutable const char* full_name;
-
-  public:
-    Args(const char* name, const char* doc);
-    virtual ~Args();
-
-    //---- API for ExtType<T> ----------
-    void set_class_name(const char* name);
-    virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
-
-    // Each `Args` object describes a certain function, or method in a class.
-    // This will return the name of that function/method, in the form "foo()"
-    // or "Class.foo()".
-    const char* get_long_name() const;
-
-    const char* get_short_name() const;
-    const char* get_docstring() const;
-};
-
-
 
 //------------------------------------------------------------------------------
 // PKArgs
@@ -113,8 +78,19 @@ class VarKwdsIterator;
 class VarKwdsIterable;
 
 
-class PKArgs : public Args {
+/**
+ * Helper class for ExtType: it encapsulates arguments passed to a function
+ * and helps verify / parse them. This is the base class for a family of
+ * args-related functions, each designed to handle different calling
+ * convention.
+ */
+class PKArgs {
   private:
+    const char* cls_name;
+    const char* fun_name;
+    const char* fun_doc;
+    mutable const char* full_name;
+
     const size_t n_posonly_args;
     const size_t n_pos_kwd_args;
     const size_t n_all_args;
@@ -148,8 +124,9 @@ class PKArgs : public Args {
            std::initializer_list<const char*> names,
            const char* name = nullptr, const char* doc = nullptr,
            py::oobj (*f)(const PKArgs&) = nullptr);
+    ~PKArgs();
 
-    void bind(PyObject* _args, PyObject* _kws) override;
+    void bind(PyObject* _args, PyObject* _kws);
 
     PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
 
@@ -162,6 +139,17 @@ class PKArgs : public Args {
     PyObject* exec_method(
         PyObject* self, PyObject* args, PyObject* kwds,
         void (T::*)(const PKArgs&)) const noexcept;
+
+    //---- API for ExtType<T> ----------
+    void set_class_name(const char* name);
+
+    // Each `Args` object describes a certain function, or method in a class.
+    // This will return the name of that function/method, in the form "foo()"
+    // or "Class.foo()".
+    const char* get_long_name() const;
+
+    const char* get_short_name() const;
+    const char* get_docstring() const;
 
     /**
      * Returns the name of argument `i`, which will usually be in one of the
