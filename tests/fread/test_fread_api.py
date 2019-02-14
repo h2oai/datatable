@@ -55,7 +55,7 @@ def test_fread_from_cmd2():
     assert d0.nrows >= 12
     d1 = dt.fread(cmd="cat LICENSE", sep="\n")
     d1.internal.check()
-    assert d1.nrows == 372
+    assert d1.nrows == 200
 
 
 def test_fread_from_cmd3(tempfile):
@@ -75,7 +75,7 @@ def test_fread_from_url2():
     path = os.path.abspath("LICENSE")
     d0 = dt.fread("file://" + path, sep="\n")
     d0.internal.check()
-    assert d0.shape == (372, 1)
+    assert d0.shape == (200, 1)
 
 
 def test_fread_from_anysource_as_text1(capsys):
