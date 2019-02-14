@@ -98,8 +98,8 @@ class Aggregator {
     // Helper methods
     size_t get_nthreads(size_t nrows);
     tptr<T> generate_pmatrix(size_t ncols);
-    void normalize_row(const std::vector<std::vector<T>>&, const ccptrvec<T>&, tptr<T>&, size_t);
-    void project_row(const std::vector<std::vector<T>>&, const ccptrvec<T>&, tptr<T>&, size_t, tptr<T>&);
+    void normalize_row(const ccptrvec<T>&, tptr<T>&, size_t);
+    void project_row(const ccptrvec<T>&, tptr<T>&, size_t, tptr<T>&);
     T calculate_distance(tptr<T>&, tptr<T>&, size_t, T,
                               bool early_exit=true);
     void adjust_delta(T&, std::vector<ExPtr>&, std::vector<size_t>&,
@@ -149,25 +149,23 @@ dtptr Aggregator<T>::aggregate(DataTable* dt) {
     colvec catcols;
     size_t ncols, max_bins;
     ccptrvec<T> contconvs;
+    contconvs.reserve(dt->ncols);
+    ccptr<T> contconv;
 
-    std::vector<Column*> cols_T;
-    cols_T.reserve(dt->ncols);
     // Number of possible `N/A` bins for a particular aggregator.
     size_t n_na_bins = 0;
 
     for (size_t i = 0; i < dt->ncols; ++i) {
       bool is_continuous = true;
       Column* col = dt->columns[i];
-      SType stype = col->stype();
-      ccptr<T> contconv;
-      switch (stype) {
-        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorContinuous<int8_t, T, BoolColumn>(col)); break;
-        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorContinuous<int8_t, T, IntColumn<int8_t>>(col)); break;
-        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorContinuous<int16_t, T, IntColumn<int16_t>>(col)); break;
-        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorContinuous<int32_t, T, IntColumn<int32_t>>(col)); break;
-        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorContinuous<int64_t, T, IntColumn<int64_t>>(col)); break;
-        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorContinuous<float, T, RealColumn<float>>(col)); break;
-        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorContinuous<double, T, RealColumn<double>>(col)); break;
+      switch (col->stype()) {
+        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, BoolColumn>(col)); break;
+        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, IntColumn<int8_t>>(col)); break;
+        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorReal<int16_t, T, IntColumn<int16_t>>(col)); break;
+        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorReal<int32_t, T, IntColumn<int32_t>>(col)); break;
+        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorReal<int64_t, T, IntColumn<int64_t>>(col)); break;
+        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorReal<float, T, RealColumn<float>>(col)); break;
+        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T, RealColumn<double>>(col)); break;
         default:             if (dt->ncols < 3) {
                                is_continuous = false;
                                catcols.push_back(dt->columns[i]->shallowcopy());
@@ -411,10 +409,10 @@ void Aggregator<T>::group_1d_continuous(const ccptrvec<T>& contconvs,
                                      dtptr& dt_members) {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   T norm_factor, norm_shift;
-  set_norm_coeffs(norm_factor, norm_shift, (*contconvs[0]).min, (*contconvs[0]).max, n_bins);
+  set_norm_coeffs(norm_factor, norm_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), n_bins);
 
   #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < (*contconvs[0]).nrows; ++i) {
+  for (size_t i = 0; i < (*contconvs[0]).get_nrows(); ++i) {
     T value = (*contconvs[0])[i];
     if (ISNA<T>(value)) {
       d_members[i] = GETNA<int32_t>();
@@ -435,11 +433,11 @@ void Aggregator<T>::group_2d_continuous(const ccptrvec<T>& contconvs,
 
   T normx_factor, normx_shift;
   T normy_factor, normy_shift;
-  set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).min, (*contconvs[0]).max, nx_bins);
-  set_norm_coeffs(normy_factor, normy_shift, (*contconvs[1]).min, (*contconvs[1]).max, ny_bins);
+  set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), nx_bins);
+  set_norm_coeffs(normy_factor, normy_shift, (*contconvs[1]).get_min(), (*contconvs[1]).get_max(), ny_bins);
 
   #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < (*contconvs[0]).nrows; ++i) {
+  for (size_t i = 0; i < (*contconvs[0]).get_nrows(); ++i) {
     T value0 = (*contconvs[0])[i];
     T value1 = (*contconvs[1])[i];
     int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
@@ -582,7 +580,7 @@ void Aggregator<T>::group_2d_mixed_str(const dtptr& dt, const ccptrvec<T>& contc
   const int32_t* offsets_cat = grpby.offsets_r();
 
   T normx_factor, normx_shift;
-  set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).min, (*contconvs[0]).max, nx_bins);
+  set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), nx_bins);
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < grpby.ngroups(); ++i) {
@@ -634,7 +632,7 @@ void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   size_t ncols = contconvs.size();
-  size_t nrows = (*contconvs[0]).nrows;
+  size_t nrows = (*contconvs[0]).get_nrows();
   size_t ndims = std::min(max_dimensions, ncols);
   std::vector<ExPtr> exemplars;
   std::vector<size_t> ids;
@@ -662,33 +660,15 @@ void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
     T distance;
     auto member = tptr<T>(new T[ndims]);
     size_t ecounter_local;
-    // Initialize data buffer
-    size_t buffer_size = std::min<size_t>(buffer_rows, nrows/nth + (nrows%nth != 0));
-//    printf("[Setting] Thread #%zu: buffer_size = %zu\n", ith, buffer_size);
-    std::vector<std::vector<T>> data(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
-      data[i].resize(buffer_size);
-    }
+
     // Each thread gets its own seed
     std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
       for (size_t i = ith; i < nrows; i += nth) {
-        // Fill buffer if needed
-        size_t buffer_row = ((i - ith) / nth) % buffer_size;
-//        printf("[Checking] Thread #%zu: buffer_row = %zu\n", ith, buffer_row);
-        if (!buffer_row) {
-          printf("[Filling] Thread #%zu: from = %zu; step = %zu; count = %zu\n", ith, i, nth, buffer_size);
-          for (size_t col = 0; col < ncols; ++col) {
-//            printf("[Filling] Thread #%zu: col = %zu; from = %zu; step = %zu; count = %zu\n", ith, col, i, nth, buffer_size);
-            (*contconvs[col]).get_rows(data[col], i, nth, buffer_size);
-          }
-        }
-
-
         bool is_exemplar = true;
-        do_projection? project_row(data, contconvs, member, buffer_row, pmatrix) : normalize_row(data, contconvs, member, buffer_row);
+        do_projection? project_row(contconvs, member, i, pmatrix) : normalize_row(contconvs, member, i);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -928,15 +908,39 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 *  Normalize the row elements to [0,1).
 */
 template <typename T>
-void Aggregator<T>::normalize_row(const std::vector<std::vector<T>>& data, const ccptrvec<T>& contconvs, tptr<T>& r, size_t row) {
+void Aggregator<T>::normalize_row(const ccptrvec<T>& contconvs, tptr<T>& r, size_t row) {
   for (size_t i = 0; i < contconvs.size(); ++i) {
-//    Column* c = dt->columns[i];
-//    auto c_real = static_cast<RealColumn<T>*>(c);
-//    const T* d_real = c_real->elements_r();
     T norm_factor, norm_shift;
+    T value = (*contconvs[i])[row];
+    set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).get_min(), (*contconvs[i]).get_max(), 1);
+    r[i] =  norm_factor * value + norm_shift;
+  }
+}
 
-    set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).min, (*contconvs[i]).max, 1);
-    r[i] =  norm_factor * data[i][row] + norm_shift;
+
+/*
+*  Project a particular row on a subspace by using the projection matrix.
+*/
+template <typename T>
+void Aggregator<T>::project_row(const ccptrvec<T>& contconvs, tptr<T>& r,
+                                size_t row, tptr<T>& pmatrix)
+{
+  std::memset(r.get(), 0, max_dimensions * sizeof(T));
+  int32_t n = 0;
+  for (size_t i = 0; i < contconvs.size(); ++i) {
+    T value = (*contconvs[i])[row];
+    if (!ISNA<T>(value)) {
+      T norm_factor, norm_shift;
+      set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).get_min(), (*contconvs[i]).get_max(), 1);
+      T norm_row = norm_factor * value + norm_shift;
+      for (size_t j = 0; j < max_dimensions; ++j) {
+        r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
+      }
+      ++n;
+    }
+  }
+  for (size_t j = 0; j < max_dimensions; ++j) {
+    r[j] /= n;
   }
 }
 
@@ -963,36 +967,6 @@ std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
   }
 
   return pmatrix;
-}
-
-
-/*
-*  Project a particular row on a subspace by using the projection matrix.
-*/
-template <typename T>
-void Aggregator<T>::project_row(const std::vector<std::vector<T>>& data, const ccptrvec<T>& contconvs, tptr<T>& r,
-                                size_t row, tptr<T>& pmatrix)
-{
-  std::memset(r.get(), 0, max_dimensions * sizeof(T));
-  int32_t n = 0;
-  for (size_t i = 0; i < data.size(); ++i) {
-//    Column* c = dt_exemplars->columns[i];
-//    auto c_real = static_cast<RealColumn<T>*> (c);
-//    auto d_real = c_real->elements_r();
-
-    if (!ISNA<T>(data[i][row])) {
-      T norm_factor, norm_shift;
-      set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).min, (*contconvs[i]).max, 1);
-      T norm_row = norm_factor * data[i][row] + norm_shift;
-      for (size_t j = 0; j < max_dimensions; ++j) {
-        r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
-      }
-      ++n;
-    }
-  }
-  for (size_t j = 0; j < max_dimensions; ++j) {
-    r[j] /= n;
-  }
 }
 
 

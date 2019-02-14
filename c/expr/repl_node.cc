@@ -111,7 +111,6 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
 //------------------------------------------------------------------------------
 // scalar_rn
 //------------------------------------------------------------------------------
-using colptr = std::unique_ptr<Column>;
 struct EnumClassHash {
   template <typename T>
   size_t operator()(T t) const noexcept { return static_cast<size_t>(t); }

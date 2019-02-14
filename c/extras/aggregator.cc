@@ -46,7 +46,7 @@ namespace py {
        unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
        size_t buffer_rows = args[10].to_size_t();
 
-       Aggregator<double> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+       Aggregator<float> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
                       max_dimensions, seed, progress_fn, nthreads, buffer_rows);
 
        // dt changes in-place with a new column added to the end of it

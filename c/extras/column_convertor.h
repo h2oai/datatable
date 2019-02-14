@@ -23,6 +23,32 @@
 #define C_EXTRAS_COLUMN_CONVERTOR_H_
 #include "py_datatable.h"
 
+
+/*
+*  Helper template structures to convert C++ float/double types to
+*  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
+*/
+template<typename T> struct stype {
+  static void get_stype() {
+    throw TypeError() << "Only float and double types are supported";
+  }
+};
+
+
+template<> struct stype<float> {
+  static SType get_stype() {
+    return SType::FLOAT32;
+  }
+};
+
+
+template<> struct stype<double> {
+  static SType get_stype() {
+    return SType::FLOAT64;
+  }
+};
+
+
 /*
 * An abstract base class for all the column convertors.
 * T is a destination type we are converting data to.
@@ -30,71 +56,132 @@
 template<typename T>
 class ColumnConvertor {
   public:
+    const RowIndex& ri;
     explicit ColumnConvertor(const Column*);
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
     virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
-    const RowIndex& ri;
+    size_t get_nrows();
+    T get_min();
+    T get_max();
+
+  protected:
     T min;
     T max;
     size_t nrows;
 };
 
+
+/*
+* Constructor for the base class, store rowindex and number of rows
+* to be used when the data are accessed.
+*/
 template<typename T>
-ColumnConvertor<T>::ColumnConvertor(const Column* col) : ri(col->rowindex()), nrows(col->nrows) {}
-template<typename T>
-ColumnConvertor<T>::~ColumnConvertor() {}
+ColumnConvertor<T>::ColumnConvertor(const Column* col) :
+  ri(col->rowindex()),
+  nrows(col->nrows)
+{}
 
 
 /*
-* Template class to convert numeric types.
-* T1 is a source data type, i.e. int8_t/int16_t/int32_t/int64_t/float/double.
-* T2 is a destination type, i.e. float/double
+* Virtual destructor.
+*/
+template<typename T>
+ColumnConvertor<T>::~ColumnConvertor() {}
+
+/*
+* Getters for min, max and nrows.
+*/
+template<typename T>
+T ColumnConvertor<T>::get_min() {
+  return min;
+}
+
+
+template<typename T>
+T ColumnConvertor<T>::get_max() {
+  return max;
+}
+
+
+template<typename T>
+size_t ColumnConvertor<T>::get_nrows() {
+  return nrows;
+}
+
+
+/*
+* Template class to convert continuous columns data from type T1 to T2, where
+* - T1 is a source data type, i.e. int8_t/int16_t/int32_t/int64_t/float/double;
+* - T2 is a destination type, i.e. float/double;
+* - T3 is a column type, i.e. BoolColumn/IntColumn<*>/RealColumn<*>.
 */
 template<typename T1, typename T2, typename T3>
-class ColumnConvertorContinuous : public ColumnConvertor<T2> {
+class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
-    const T1* values;
+    const /* T1 */ T2* values;
+    colptr column;
   public:
-    explicit ColumnConvertorContinuous(const Column*);
+    explicit ColumnConvertorReal(const Column*);
     T2 operator[](size_t) const override;
     void get_rows(std::vector<T2>&, size_t, size_t, size_t) const override;
 };
 
+
+/*
+* Constructor for the derived class. Pre-calculate stats, so that it is ready
+* for the multi-threaded ND aggregator.
+*/
 template<typename T1, typename T2, typename T3>
-ColumnConvertorContinuous<T1, T2, T3>::ColumnConvertorContinuous(const Column* col) : ColumnConvertor<T2>(col) {
-  auto colT = static_cast<const T3*>(col);
-  this->min = static_cast<T2>(colT->min());
-  this->max = static_cast<T2>(colT->max());
-  values = static_cast<const T1*>(col->data());
+ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
+  ColumnConvertor<T2>(column_in)
+{
+  SType to_stype = stype<T2>::get_stype();
+  column = colptr(column_in->cast(to_stype));
+  auto column_real = static_cast<RealColumn<T2>*>(column.get());
+  this->min = column_real->min();
+  this->max = column_real->max();
+  values = column_real->elements_r();
+//  auto columnT = static_cast<const T3*>(column_in);
+//  this->min = static_cast<T2>(columnT->min());
+//  this->max = static_cast<T2>(columnT->max());
+//  values = static_cast<const T1*>(column_in->data());
 }
 
+
+/*
+* operator[] to get a converted column value by
+* - casting it to T2;
+* - applying a rowindex;
+* - properly handling NA's.
+*/
 template<typename T1, typename T2, typename T3>
-T2 ColumnConvertorContinuous<T1, T2, T3>::operator[](size_t row) const {
+T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
   size_t i = this->ri[row];
-  if (i == RowIndex::NA || ISNA<T1>(values[i])) {
+  if (i == RowIndex::NA /* || ISNA<T1>(values[i]) */) {
     return GETNA<T2>();
   } else {
-    return static_cast<T2>(values[i]);
+    return values[i];
   }
 }
 
 
+/*
+* This method does the same as above just for a chunk of data.
+* No bound checks are performed.
+*/
 template<typename T1, typename T2, typename T3>
-void ColumnConvertorContinuous<T1, T2, T3>::get_rows(std::vector<T2>& buffer, size_t from, size_t step, size_t count) const {
-  size_t last_row = from + (count - 1) * step;
-  if (last_row >= this->nrows) {
-    count = (this->nrows - 1 - from) / step + 1;
-  }
-
+void ColumnConvertorReal<T1, T2, T3>::get_rows(std::vector<T2>& buffer,
+                                                     size_t from,
+                                                     size_t step,
+                                                     size_t count) const {
   for (size_t j = 0; j < count; ++j) {
     size_t i = this->ri[from + j * step];
-    if (i == RowIndex::NA || ISNA<T1>(values[i])) {
+    if (i == RowIndex::NA /*|| ISNA<T1>(values[i])*/) {
       buffer[j] = GETNA<T2>();
     } else {
-      buffer[j] = static_cast<T2>(values[i]);
+      buffer[j] = values[i];
     }
-//    printf("from = %zu; step = %zu; count = %zu; buffer[%zu] = %f\n", from, step, count, j, buffer[j]);
   }
 }
 
