@@ -47,20 +47,6 @@ DECLARE_FUNCTION(
   "register_function()\n\n",
   HOMEFLAG)
 
-DECLARE_FUNCTION(
-  exec_function,
-  "exec_function()\n\n",
-  HOMEFLAG)
-
-
-PyObject* exec_function(PyObject* self, PyObject* args) {
-  void* fnptr;
-  PyObject* fnargs = nullptr;
-  if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
-      return nullptr;
-
-  return reinterpret_cast<PyCFunction>(fnptr)(self, fnargs);
-}
 
 
 PyObject* register_function(PyObject*, PyObject *args) {
@@ -190,7 +176,6 @@ void DatatableModule::init_methods() {
   add(METHODv(pydatatable::install_buffer_hooks));
   add(METHODv(gread));
   add(METHODv(write_csv));
-  add(METHODv(exec_function));
   add(METHODv(register_function));
 
   ADD_FN(&has_omp_support, args_has_omp_support);
