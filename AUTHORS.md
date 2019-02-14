@@ -18,7 +18,7 @@ The `datatable` is an open-source Python library for manipulation of tabular
 data. It is primarily developed at H2O.ai, with the support of broader
 community.
 
-The `datatable` is a younger sibling of [R data.table][https://github.com/Rdatatable/data.table/wiki] project, and attempts
+The `datatable` is a younger sibling of [R data.table][] project, and attempts
 to mimic the core of its API. The R data.table project is primarily developed by
 [Matt Dowle][], who is its main author, and who blessed the development of
 Python `datatable` by allowing the use of name "data table" and providing the
