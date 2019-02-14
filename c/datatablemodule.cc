@@ -41,10 +41,6 @@ PyMODINIT_FUNC PyInit__datatable(void);
 
 #define HOMEFLAG dt_DATATABLEMODULE_cc
 
-DECLARE_FUNCTION(
-  get_integer_sizes,
-  "get_integer_sizes()\n\n",
-  HOMEFLAG)
 
 DECLARE_FUNCTION(
   register_function,
@@ -90,28 +86,6 @@ PyObject* register_function(PyObject*, PyObject *args) {
   }
   return none();
 }
-
-
-#define ADD(f) \
-  PyTuple_SetItem(res, i++, PyLong_FromSize_t(reinterpret_cast<size_t>(f)))
-
-
-PyObject* get_integer_sizes(PyObject*, PyObject*) {
-  const int SIZE = 5;
-  int i = 0;
-  PyObject *res = PyTuple_New(SIZE);
-  if (!res) return nullptr;
-
-  ADD(sizeof(short int));
-  ADD(sizeof(int));
-  ADD(sizeof(long int));
-  ADD(sizeof(long long int));
-  ADD(sizeof(size_t));
-
-  xassert(i == SIZE);
-  return res;
-}
-#undef ADD
 
 
 
@@ -218,7 +192,6 @@ void DatatableModule::init_methods() {
   add(METHODv(write_csv));
   add(METHODv(exec_function));
   add(METHODv(register_function));
-  add(METHOD0(get_integer_sizes));
 
   ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
