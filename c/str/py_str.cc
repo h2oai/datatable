@@ -19,14 +19,15 @@
 #include "types.h"
 #include "utils/exceptions.h"
 
-namespace py {
 
 
-static PKArgs split_into_nhot_args(
+static py::PKArgs args_split_into_nhot(
     1, 0, 1, false, false,
-    {"col", "sep"}, "split_into_nhot", "",
+    {"col", "sep"}, "split_into_nhot", nullptr
+);
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static py::oobj split_into_nhot(const py::PKArgs& args) {
   DataTable* dt = args[0].to_frame();
   std::string sep = args[1]? args[1].to_string() : ",";
 
@@ -49,12 +50,10 @@ static PKArgs split_into_nhot_args(
 
   DataTable* res = dt::split_into_nhot(col0, sep[0]);
   return py::Frame::from_datatable(res);
-});
+}
 
-
-} // namespace py
 
 
 void DatatableModule::init_methods_str() {
-  ADDFN(py::split_into_nhot_args);
+  ADD_FN(&split_into_nhot, args_split_into_nhot);
 }

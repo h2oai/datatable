@@ -130,6 +130,9 @@ class PKArgs {
 
     PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
 
+    PyObject* exec_function(
+        PyObject* args, PyObject* kwds, oobj (*)(const PKArgs&)) noexcept;
+
     template <class T>
     PyObject* exec_method(
         PyObject* self, PyObject* args, PyObject* kwds,

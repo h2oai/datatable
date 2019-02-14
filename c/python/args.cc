@@ -21,8 +21,8 @@ PKArgs::PKArgs(
     std::initializer_list<const char*> _names,
     const char* name, const char* doc, py::oobj (*f)(const PKArgs&)
   )
-  : fun_name(name),
-    cls_name(nullptr),
+  : cls_name(nullptr),
+    fun_name(name),
     fun_doc(doc),
     full_name(nullptr),
     n_posonly_args(npo),
@@ -171,6 +171,22 @@ PyObject* PKArgs::exec(PyObject* args, PyObject* kwds) noexcept {
     return nullptr;
   }
 }
+
+
+PyObject* PKArgs::exec_function(
+    PyObject* args, PyObject* kwds, oobj (*func)(const PKArgs&)) noexcept
+{
+  try {
+    bind(args, kwds);
+    oobj res = func(*this);
+    return std::move(res).release();
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
 
 
 std::string PKArgs::make_arg_name(size_t i) const {
