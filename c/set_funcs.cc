@@ -146,7 +146,7 @@ static py::oobj _union(ccolvec&& cols) {
 // unique()
 //------------------------------------------------------------------------------
 
-static py::PKArgs fn_unique(
+static py::PKArgs args_unique(
     1, 0, 0,        // Number of pos-only, pos/kw, and kw-only args
     false, false,   // varargs/varkws allowed?
     {"frame"},      // arg names
@@ -163,9 +163,10 @@ This methods sorts the values in order to find the uniques. Thus, the return
 values will be ordered. However, this should be considered an implementation
 detail: in the future we may use a different algorithm (such as hash-based),
 which may return the results in a different order.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static py::oobj unique(const py::PKArgs& args) {
   if (!args[0]) {
     throw ValueError() << "Function `unique()` expects a Frame as a parameter";
   }
@@ -179,7 +180,7 @@ which may return the results in a different order.
     cc.colname = dt->get_names()[0];
   }
   return _union(std::move(cc));
-});
+}
 
 
 
@@ -187,7 +188,7 @@ which may return the results in a different order.
 // union()
 //------------------------------------------------------------------------------
 
-static py::PKArgs fn_union(
+static py::PKArgs args_union(
     0, 0, 0,
     true, false,
     {},
@@ -205,12 +206,13 @@ which case they will be upcasted to the smallest common stype, similar to the
 functionality of ``rbind()``.
 
 This operation is equivalent to ``dt.unique(dt.rbind(*frames))``.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static py::oobj union_(const py::PKArgs& args) {
   ccolvec cc = columns_from_args(args);
   return _union(std::move(cc));
-});
+}
 
 
 
@@ -275,7 +277,7 @@ static py::oobj _intersect(ccolvec&& cc) {
 }
 
 
-static py::PKArgs fn_intersect(
+static py::PKArgs args_intersect(
     0, 0, 0,
     true, false,
     {},
@@ -294,9 +296,10 @@ functionality of ``rbind()``.
 
 The intersection operation returns those values that are present in each of
 the provided ``frames``.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static py::oobj intersect(const py::PKArgs& args) {
   ccolvec cc = columns_from_args(args);
   if (cc.cols.size() <= 1) {
     return _union(std::move(cc));
@@ -306,7 +309,7 @@ the provided ``frames``.
   } else {
     return _intersect<false>(std::move(cc));
   }
-});
+}
 
 
 
@@ -337,7 +340,7 @@ static py::oobj _setdiff(ccolvec&& cc) {
 }
 
 
-static py::PKArgs fn_setdiff(
+static py::PKArgs args_setdiff(
     0, 0, 0,
     true, false,
     {},
@@ -356,15 +359,15 @@ the smallest common stype, similar to the functionality of ``rbind()``.
 
 The "set difference" operation returns those values that are present in the
 first frame ``frame0``, but not present in any of the ``frames``.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+static py::oobj setdiff(const py::PKArgs& args) {
   ccolvec cc = columns_from_args(args);
   if (cc.cols.size() <= 1) {
     return _union(std::move(cc));
   }
   return _setdiff(std::move(cc));
-});
+}
 
 
 
@@ -424,7 +427,7 @@ static py::oobj _symdiff(ccolvec&& cc) {
 }
 
 
-static py::PKArgs fn_symdiff(
+static py::PKArgs args_symdiff(
     0, 0, 0,
     true, false,
     {},
@@ -444,9 +447,10 @@ similar to the functionality of ``rbind()``.
 The symmetric difference of two frames are those values that are present in
 either of the frames, but not in both. The symmetric difference of more than
 two frames are those values that are present in an odd number of frames.
-)",
+)");
 
-[](const py::PKArgs& args) -> py::oobj {
+
+static py::oobj symdiff(const py::PKArgs& args) {
   ccolvec cc = columns_from_args(args);
   if (cc.cols.size() <= 1) {
     return _union(std::move(cc));
@@ -456,7 +460,7 @@ two frames are those values that are present in an odd number of frames.
   } else {
     return _symdiff<false>(std::move(cc));
   }
-});
+}
 
 
 
@@ -465,9 +469,9 @@ two frames are those values that are present in an odd number of frames.
 
 
 void DatatableModule::init_methods_sets() {
-  ADDFN(dt::set::fn_unique);
-  ADDFN(dt::set::fn_union);
-  ADDFN(dt::set::fn_intersect);
-  ADDFN(dt::set::fn_setdiff);
-  ADDFN(dt::set::fn_symdiff);
+  ADD_FN(&dt::set::unique, dt::set::args_unique);
+  ADD_FN(&dt::set::union_, dt::set::args_union);
+  ADD_FN(&dt::set::intersect, dt::set::args_intersect);
+  ADD_FN(&dt::set::setdiff, dt::set::args_setdiff);
+  ADD_FN(&dt::set::symdiff, dt::set::args_symdiff);
 }

@@ -91,11 +91,11 @@ namespace py {
  * In addition to these static methods, the main class itself can declare
  * certain special instance methods:
  *
- *   void m__init__(py::Args& args)
+ *   void m__init__(const py::PKArgs& args)
  *      This is the python-facing "constructor", the equivalent of pythonic
  *      `__init__(self, ...)`. Note that the argument to this function is a
- *      `py::Args` instance which must be declared as a static variable inside
- *      the `Type` class and named `args___init__`.
+ *      `py::PKArgs` instance which must be declared as a static variable
+ *      inside the `Type` class and named `args___init__`.
  *
  *   void m__dealloc__()
  *      This is the python-facing "destructor". Its job is to release any

@@ -22,37 +22,40 @@
 *  Reading data from Python and passing it to the C++ aggregator.
 */
 namespace py {
-  static PKArgs aggregate(
-    10, 0, 0, false, false,
-    {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-     "max_dimensions", "seed", "progress_fn", "nthreads"}, "aggregate", "",
-     [](const py::PKArgs& args) -> py::oobj {
-       DataTable* dt = args[0].to_frame();
 
-       size_t min_rows = args[1].to_size_t();
-       size_t n_bins = args[2].to_size_t();
-       size_t nx_bins = args[3].to_size_t();
-       size_t ny_bins = args[4].to_size_t();
-       size_t nd_max_bins = args[5].to_size_t();
-       size_t max_dimensions = args[6].to_size_t();
+static PKArgs args_aggregate(
+  10, 0, 0, false, false,
+  {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
+   "max_dimensions", "seed", "progress_fn", "nthreads"}, "aggregate", nullptr);
 
-       unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
-       py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
-       unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
+static oobj aggregate(const PKArgs& args) {
+  DataTable* dt = args[0].to_frame();
 
-       Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
-                      max_dimensions, seed, progress_fn, nthreads);
+  size_t min_rows = args[1].to_size_t();
+  size_t n_bins = args[2].to_size_t();
+  size_t nx_bins = args[3].to_size_t();
+  size_t ny_bins = args[4].to_size_t();
+  size_t nd_max_bins = args[5].to_size_t();
+  size_t max_dimensions = args[6].to_size_t();
 
-       // dt changes in-place with a new column added to the end of it
-       DataTable* dt_members = agg.aggregate(dt).release();
-       py::oobj df_members = py::oobj::from_new_reference(
-                               py::Frame::from_datatable(dt_members)
-                             );
+  unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
+  oobj progress_fn = args[8].is_none()? None() : oobj(args[8]);
+  unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
 
-       return df_members;
-     }
-  );
+  Aggregator agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+                 max_dimensions, seed, progress_fn, nthreads);
+
+  // dt changes in-place with a new column added to the end of it
+  DataTable* dt_members = agg.aggregate(dt).release();
+  oobj df_members = oobj::from_new_reference(
+                      Frame::from_datatable(dt_members)
+                    );
+
+  return df_members;
 }
+
+
+}  // namespace py
 
 
 /*
@@ -940,5 +943,5 @@ void Aggregator::progress(double progress, int status_code /*= 0*/) {
 
 
 void DatatableModule::init_methods_aggregate() {
-  ADDFN(py::aggregate);
+  ADD_FN(&py::aggregate, py::args_aggregate);
 }
