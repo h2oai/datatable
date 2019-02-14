@@ -106,8 +106,6 @@ class PKArgs {
     size_t n_varkwds;
     PyObject* args_tuple;  // for var-args iteration
     PyObject* kwds_dict;   // for var-kwds iteration
-    void* fn0;  // function without a return value
-    void* fn1;  // function returning a py::oobj
 
   public:
     /**
@@ -122,16 +120,14 @@ class PKArgs {
      */
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
            std::initializer_list<const char*> names,
-           const char* name = nullptr, const char* doc = nullptr,
-           py::oobj (*f)(const PKArgs&) = nullptr);
+           const char* name = nullptr, const char* doc = nullptr);
     ~PKArgs();
 
     void bind(PyObject* _args, PyObject* _kws);
 
-    PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
-
     PyObject* exec_function(
-        PyObject* args, PyObject* kwds, oobj (*)(const PKArgs&)) noexcept;
+        PyObject* args, PyObject* kwds,
+        oobj (*fn)(const PKArgs&)) noexcept;
 
     template <class T>
     PyObject* exec_method(

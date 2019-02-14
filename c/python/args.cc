@@ -19,7 +19,7 @@ namespace py {
 PKArgs::PKArgs(
     size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
     std::initializer_list<const char*> _names,
-    const char* name, const char* doc, py::oobj (*f)(const PKArgs&)
+    const char* name, const char* doc
   )
   : cls_name(nullptr),
     fun_name(name),
@@ -31,9 +31,7 @@ PKArgs::PKArgs(
     has_varargs(vargs),
     has_varkwds(vkwds),
     arg_names(_names),
-    n_varkwds(0),
-    fn0(nullptr),
-    fn1(reinterpret_cast<void*>(f))
+    n_varkwds(0)
 {
   xassert(n_all_args == arg_names.size());
   if (has_varargs) xassert(n_pos_kwd_args == 0);
@@ -150,27 +148,6 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
   args_tuple = _args;
 }
 
-
-PyObject* PKArgs::exec(PyObject* args, PyObject* kwds) noexcept {
-  try {
-    bind(args, kwds);
-    if (fn1) {
-      using ptr1 = py::oobj (*)(const PKArgs&);
-      oobj res = reinterpret_cast<ptr1>(fn1)(*this);
-      return std::move(res).release();
-    }
-    else {
-      xassert(fn0);
-      using ptr0 = void (*)(const PKArgs&);
-      reinterpret_cast<ptr0>(fn0)(*this);
-      Py_INCREF(Py_None);
-      return Py_None;
-    }
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
-}
 
 
 PyObject* PKArgs::exec_function(
