@@ -46,7 +46,8 @@ bool _sort::Type::is_subclassable() {
 }
 
 void _sort::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
-  gs.add<&_sort::get_cols>("_cols");
+  static GSArgs args__cols("_cols");
+  ADD_GETTER(gs, &_sort::get_cols, args__cols);
 }
 
 

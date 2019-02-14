@@ -58,6 +58,7 @@ class Frame : public PyObject {
       private:
         static void _init_cbind(Methods&);
         static void _init_init(Methods&);
+        static void _init_key(GetSetters&);
         static void _init_names(Methods&, GetSetters&);
         static void _init_replace(Methods&);
         static void _init_tonumpy(Methods&);

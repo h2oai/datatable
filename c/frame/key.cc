@@ -28,10 +28,23 @@
 //------------------------------------------------------------------------------
 // py::Frame API
 //------------------------------------------------------------------------------
+namespace py {
 
-py::oobj py::Frame::get_key() const {
-  py::otuple key(dt->get_nkeys());
-  py::otuple names = get_names().to_otuple();
+static GSArgs args_key(
+  "key",
+R"(Tuple of column names that serve as a primary key for this Frame.
+
+If the Frame is not keyed, this will return an empty tuple.
+
+Assigning to this property will make the Frame keyed by the specified
+column(s). The key columns will be moved to the front, and the Frame
+will be sorted. The values in the key columns must be unique.
+)");
+
+
+oobj Frame::get_key() const {
+  otuple key(dt->get_nkeys());
+  otuple names = get_names().to_otuple();
   for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
   }
@@ -39,7 +52,7 @@ py::oobj py::Frame::get_key() const {
 }
 
 
-void py::Frame::set_key(py::robj val) {
+void Frame::set_key(robj val) {
   if (val.is_none()) {
     return dt->clear_key();
   }
@@ -49,9 +62,9 @@ void py::Frame::set_key(py::robj val) {
     col_indices.push_back(index);
   }
   else if (val.is_list_or_tuple()) {
-    py::olist vallist = val.to_pylist();
+    olist vallist = val.to_pylist();
     for (size_t i = 0; i < vallist.size(); ++i) {
-      py::robj item = vallist[i];
+      robj item = vallist[i];
       if (vallist[i].is_string()) {
         size_t index = dt->xcolindex(vallist[i]);
         col_indices.push_back(index);
@@ -71,6 +84,13 @@ void py::Frame::set_key(py::robj val) {
 
 
 
+void Frame::Type::_init_key(GetSetters& gs) {
+  ADD_GETSET(gs, &Frame::get_key, &Frame::set_key, args_key);
+}
+
+
+
+} // namespace py
 //------------------------------------------------------------------------------
 // DataTable API
 //------------------------------------------------------------------------------
