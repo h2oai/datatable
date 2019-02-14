@@ -166,6 +166,23 @@ PyObject* PKArgs::exec_function(
 
 
 
+PyObject* PKArgs::exec_function(
+    PyObject* args, PyObject* kwds, void (*func)(const PKArgs&)) noexcept
+{
+  try {
+    bind(args, kwds);
+    func(*this);
+    Py_INCREF(Py_None);
+    return Py_None;
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+
 std::string PKArgs::make_arg_name(size_t i) const {
   std::string res;
   if (i == 0 && n_posonly_args == 1 && n_all_args == 1 &&

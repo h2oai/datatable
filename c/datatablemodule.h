@@ -44,5 +44,8 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
 
 extern SType force_stype;  // Declared in py_buffers
 
+void init_jay();
+PyMODINIT_FUNC PyInit__datatable() noexcept;
+
 
 #endif

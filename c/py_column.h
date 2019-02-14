@@ -29,7 +29,6 @@ struct obj : public PyObject {
 
 extern PyTypeObject type;
 extern PyBufferProcs as_buffer;
-extern PyObject* fn_hexview;
 
 
 pycolumn::obj* from_column(Column*, pydatatable::obj*, int64_t);
