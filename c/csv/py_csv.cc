@@ -5,12 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#define CSV_PY_CSV_cc
-#include <exception>
 #include <vector>
-#include <stdbool.h>
 #include <stdlib.h>
-#include "csv/py_csv.h"
 #include "csv/reader.h"
 #include "csv/writer.h"
 #include "frame/py_frame.h"
@@ -19,9 +15,11 @@
 #include "datatablemodule.h"
 #include "options.h"
 #include "py_datatable.h"
-#include "py_utils.h"
-#include "utils.h"
 
+
+//------------------------------------------------------------------------------
+// write_csv()
+//------------------------------------------------------------------------------
 
 static py::PKArgs args_write_csv(
   1, 0, 0, false, false, {"csv_writer"}, "write_csv", nullptr);
@@ -78,16 +76,29 @@ static py::oobj write_csv(const py::PKArgs& args) {
 }
 
 
-// Python API function which is a wrapper around GenericReader's functionality.
-PyObject* gread(PyObject*, PyObject* args)
-{
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:gread", &arg1)) return nullptr;
-  py::robj pyreader(arg1);
 
+//------------------------------------------------------------------------------
+// read_csv()
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_read_csv(
+  1, 0, 0, false, false, {"reader"}, "gread",
+
+R"(gread(reader)
+--
+
+Generic read function, similar to `fread` but supports other
+file types, not just csv.
+)");
+
+
+static py::oobj read_csv(const py::PKArgs& args)
+{
+  py::robj pyreader = args[0];
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read_all();
-  return py::Frame::from_datatable(dtptr.release());
+  return py::oobj::from_new_reference(
+          py::Frame::from_datatable(dtptr.release()));
 }
 
 
@@ -111,4 +122,5 @@ void log_message(void *logger, const char *format, ...) {
 
 void DatatableModule::init_methods_csv() {
   ADD_FN(&write_csv, args_write_csv);
+  ADD_FN(&read_csv, args_read_csv);
 }

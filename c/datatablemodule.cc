@@ -8,7 +8,6 @@
 #include "datatablemodule.h"
 #include <Python.h>
 #include "../datatable/include/datatable.h"
-#include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/base_expr.h"
 #include "expr/by_node.h"
@@ -153,7 +152,6 @@ void DatatableModule::init_methods() {
   add(METHODv(pydatatable::datatable_load));
   add(METHODv(pydatatable::open_jay));
   add(METHODv(pydatatable::install_buffer_hooks));
-  add(METHODv(gread));
 
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
