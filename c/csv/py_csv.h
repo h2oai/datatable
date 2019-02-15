@@ -12,11 +12,6 @@
 
 #define CLSNAME dt
 
-DECLARE_FUNCTION(
-  write_csv,
-  "write_csv()\n\n",
-  CSV_PY_CSV_cc)
-
 
 DECLARE_FUNCTION(
   gread,

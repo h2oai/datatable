@@ -154,7 +154,6 @@ void DatatableModule::init_methods() {
   add(METHODv(pydatatable::open_jay));
   add(METHODv(pydatatable::install_buffer_hooks));
   add(METHODv(gread));
-  add(METHODv(write_csv));
 
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
@@ -162,6 +161,7 @@ void DatatableModule::init_methods() {
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
 
+  init_methods_csv();
   init_methods_aggregate();
   init_methods_join();
   init_methods_kfold();
