@@ -22,8 +22,11 @@
 #ifndef dt_EXTRAS_UTILS_h
 #define dt_EXTRAS_UTILS_h
 
-// note: this implementation does not disable this overload for array types
-// see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+
+/*
+* Note: this implementation does not disable this overload for array types,
+* see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+*/
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
@@ -31,8 +34,8 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
-
 void print_progress(float, int);
+
 void calculate_coprimes(size_t, std::vector<size_t>&);
 
 #endif

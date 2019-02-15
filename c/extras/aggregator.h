@@ -37,12 +37,11 @@
 // Number of steps for the aggregator progress bar
 #define PBSTEPS 100
 
+// Define templated types for Aggregator
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
-
 template <typename T>
 using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
-
 template <typename T>
 using ccptrvec = typename std::vector<ccptr<T>>;
 
