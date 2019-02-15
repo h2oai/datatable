@@ -652,6 +652,22 @@ def test_topandas_nas():
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
 
 
+@pytest.mark.usefixtures("pandas")
+def test_topandas_view_mixed():
+    d0 = dt.Frame(A=range(100))
+    d1 = d0[7:17, :]
+    d2 = dt.Frame(B=['foo', 'bar', 'buzz'] * 3 + ['finale'])
+    d3 = dt.Frame(V=[2.2222])
+    d3.nrows = 10
+    dd = dt.cbind(d1, d2, d3)
+    pp = dd.to_pandas()
+    assert pp.columns.tolist() == ["A", "B", "V"]
+    assert pp["A"].tolist() == list(range(7, 17))
+    assert pp["B"].tolist() == d2.to_list()[0]
+    assert pp["V"].tolist()[0] == 2.2222
+    assert all(math.isnan(x) for x in pp["V"].tolist()[1:])
+
+
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stypes == (stype.int8, )

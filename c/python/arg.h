@@ -92,12 +92,6 @@ class Arg : public _obj::error_manager {
     PyTypeObject* typeobj() const { return pyobj.typeobj(); }
     void print() const;
 
-    /**
-     * Convert argument to int32/int64. An exception will be thrown if the
-     * argument is None, or not of integer type, or if the integer value is
-     * too large.
-     * This method must not be called if the argument is undefined.
-     */
     operator int32_t() const;
     operator int64_t() const;
     operator size_t() const;
