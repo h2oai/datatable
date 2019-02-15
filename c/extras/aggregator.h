@@ -285,7 +285,6 @@ void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
     size_t off_i = static_cast<size_t>(offsets[i]);
     exemplar_indices[i - was_sampled] = static_cast<int32_t>(ri_members[off_i]);
     d_counts[i - was_sampled] = offsets[i+1] - offsets[i];
-//    printf("i = %zu; offsets[i] = %d; exemplar_indices = %d\n", i, offsets[i], exemplar_indices[i - was_sampled]);
   }
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
@@ -300,11 +299,6 @@ void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
 
   // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
-
-//    ri_exemplars.iterate(0, dt->nrows, 1,
-//      [&](size_t i, size_t j) {
-//        printf("i = %zu; j = %zu\n", i, j);
-//      });
 
   dt_exemplars->replace_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts.release() };

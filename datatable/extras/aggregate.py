@@ -12,12 +12,12 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
               nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
               nthreads=0):
     """
-    Aggregate datatable in-place.
+    Aggregate datatable.
 
     Parameters
     ----------
     dt_in: datatable
-        Frame to be aggregated in-place.
+        Frame to be aggregated.
     min_rows: int
         Minimum number of rows in a dataset to perform an aggregation on.
     n_bins: int
@@ -42,10 +42,11 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
 
     Returns
     -------
-    The target datatable is aggregated in-place and gets an additional
-    column `count` with the number of members for a particular exemplar.
-    The function returns a new one-column datatable that contains exemplar_ids
-    for each of the original rows.
+    A list `[dt_exemplars, dt_members]`, where 
+    - `dt_exemplars` is the aggregated frame with additional `members_count`
+      column, that specifies number of members for each exemplar.
+    - `dt_members` is a one-column frame contaiing `exemplar_id` for each of
+      the original rows in `dt_in`.
     """
 
     if progress_fn is not None and not callable(progress_fn):

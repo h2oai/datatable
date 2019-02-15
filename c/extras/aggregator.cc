@@ -46,20 +46,19 @@ namespace py {
        unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
 
        Aggregator<float> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
-                      max_dimensions, seed, progress_fn, nthreads);
+                             max_dimensions, seed, progress_fn, nthreads);
 
        dtptr dt_members, dt_exemplars;
        agg.aggregate(dt, dt_exemplars, dt_members);
        py::oobj df_exemplars = py::oobj::from_new_reference(
-                               py::Frame::from_datatable(dt_exemplars.release())
-                             );
+                                py::Frame::from_datatable(dt_exemplars.release())
+                               );
        py::oobj df_members = py::oobj::from_new_reference(
                                py::Frame::from_datatable(dt_members.release())
                              );
        py::olist list(2);
        list.set(0, df_exemplars);
        list.set(1, df_members);
-
        return std::move(list);
      }
   );
