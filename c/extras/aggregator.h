@@ -289,6 +289,7 @@ void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
   // this is also needed for ND due to re-mapping.
+  #pragma omp parallel for schedule(static)
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     for (size_t j = 0; j < static_cast<size_t>(d_counts[i - was_sampled]); ++j) {
       size_t member_shift = static_cast<size_t>(offsets[i]) + j;
