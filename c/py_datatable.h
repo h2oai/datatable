@@ -193,14 +193,6 @@ DECLARE_METHOD(
 
 
 
-//---- Python API --------------------------------------------------------------
-
-DECLARE_FUNCTION(
-  install_buffer_hooks,
-  "install_buffer_hooks(...)\n\n",
-  PY_BUFFERS_cc)
-
-
 };
 #undef BASECLS
 #undef CLSNAME

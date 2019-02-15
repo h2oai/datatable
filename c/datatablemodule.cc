@@ -149,8 +149,6 @@ static void _register_function(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 void DatatableModule::init_methods() {
-  add(METHODv(pydatatable::install_buffer_hooks));
-
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
@@ -158,6 +156,7 @@ void DatatableModule::init_methods() {
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
 
   init_methods_aggregate();
+  init_methods_buffers();
   init_methods_csv();
   init_methods_jay();
   init_methods_join();

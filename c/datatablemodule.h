@@ -29,6 +29,7 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
 
     void init_methods();
     void init_methods_aggregate(); // extras/aggregate.cc
+    void init_methods_buffers();   // py_buffers.cc
     void init_methods_csv();       // csv/py_csv.cc
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
