@@ -196,18 +196,6 @@ DECLARE_METHOD(
 //---- Python API --------------------------------------------------------------
 
 DECLARE_FUNCTION(
-  datatable_load,
-  "datatable_load(...)\n\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  open_jay,
-  "open_jay(file)\n--\n\n"
-  "Open a Frame from the provided .jay file.\n",
-  HOMEFLAG)
-
-
-DECLARE_FUNCTION(
   install_buffer_hooks,
   "install_buffer_hooks(...)\n\n",
   PY_BUFFERS_cc)

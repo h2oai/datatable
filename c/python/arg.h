@@ -39,23 +39,24 @@ class Arg : public _obj::error_manager {
     void set(PyObject* value);
 
     //---- Type checks -----------------
-    bool is_undefined() const;
+    bool is_bool() const;
+    bool is_bytes() const;
+    bool is_dict() const;
+    bool is_ellipsis() const;
+    bool is_float() const;
+    bool is_frame() const;
+    bool is_int() const;
+    bool is_list() const;
+    bool is_list_or_tuple() const;
     bool is_none() const;
     bool is_none_or_undefined() const;
-    bool is_ellipsis() const;
-    bool is_bool() const;
-    bool is_int() const;
-    bool is_float() const;
-    bool is_list() const;
-    bool is_tuple() const;
-    bool is_list_or_tuple() const;
-    bool is_dict() const;
-    bool is_string() const;
-    bool is_range() const;
-    bool is_frame() const;
+    bool is_numpy_array() const;
     bool is_pandas_frame() const;
     bool is_pandas_series() const;
-    bool is_numpy_array() const;
+    bool is_range() const;
+    bool is_string() const;
+    bool is_tuple() const;
+    bool is_undefined() const;
 
     //---- Type conversions ------------
     bool        to_bool_strict        () const;
