@@ -50,12 +50,19 @@ namespace py {
                       max_dimensions, seed, progress_fn, nthreads, buffer_rows);
 
        // dt changes in-place with a new column added to the end of it
-       DataTable* dt_members = agg.aggregate(dt).release();
-       py::oobj df_members = py::oobj::from_new_reference(
-                               py::Frame::from_datatable(dt_members)
+       dtptr dt_members, dt_exemplars;
+       agg.aggregate(dt, dt_exemplars, dt_members);
+       py::oobj df_exemplars = py::oobj::from_new_reference(
+                               py::Frame::from_datatable(dt_exemplars.release())
                              );
+       py::oobj df_members = py::oobj::from_new_reference(
+                               py::Frame::from_datatable(dt_members.release())
+                             );
+       py::olist list(2);
+       list.set(0, df_exemplars);
+       list.set(1, df_members);
 
-       return df_members;
+       return std::move(list);
      }
   );
 }

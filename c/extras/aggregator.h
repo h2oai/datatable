@@ -58,7 +58,7 @@ class Aggregator {
     using ExPtr = std::unique_ptr<ex>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
                unsigned int, py::oobj, unsigned int, size_t);
-    dtptr aggregate(DataTable*);
+    void aggregate(DataTable*, dtptr&, dtptr&);
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
     static void print_progress(T, int);
@@ -76,7 +76,7 @@ class Aggregator {
     py::oobj progress_fn;
 
     // Grouping and aggregating methods
-    void aggregate_exemplars(DataTable*, dtptr&, bool);
+    void aggregate_exemplars(dtptr&, dtptr&, bool);
     void group_0d(const DataTable*, dtptr&);
     void group_1d(const dtptr&, const ccptrvec<T>&, dtptr&);
     void group_1d_continuous(const ccptrvec<T>&, dtptr&);
@@ -136,10 +136,9 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_i
 *  Main method: convert all the numeric columns to FLOAT*, do grouping and aggregation.
 */
 template <typename T>
-dtptr Aggregator<T>::aggregate(DataTable* dt) {
+void Aggregator<T>::aggregate(DataTable* dt, dtptr& dt_exemplars, dtptr& dt_members) {
   bool was_sampled = false;
   progress(0.0);
-  dtptr dt_members;
 
   Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
   dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
@@ -198,9 +197,9 @@ dtptr Aggregator<T>::aggregate(DataTable* dt) {
     group_0d(dt, dt_members);
   }
 
-  aggregate_exemplars(dt, dt_members, was_sampled); // modify dt in place
+  dt_exemplars = dtptr(dt->copy());
+  aggregate_exemplars(dt_exemplars, dt_members, was_sampled); // modify dt_exemplars in place
   progress(1.0, 1);
-  return dt_members;
 }
 
 
@@ -264,7 +263,7 @@ bool Aggregator<T>::random_sampling(dtptr& dt_members, size_t max_bins, size_t n
 *  in the aggregated frame.
 */
 template <typename T>
-void Aggregator<T>::aggregate_exemplars(DataTable* dt,
+void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
                                      dtptr& dt_members,
                                      bool was_sampled) {
   // Setting up offsets and members row index.
@@ -278,9 +277,8 @@ void Aggregator<T>::aggregate_exemplars(DataTable* dt,
   arr32_t exemplar_indices(n_exemplars);
 
   // Setting up a table for counts
-  DataTable* dt_counts;
   Column* col0 = Column::new_data_column(SType::INT32, n_exemplars);
-  dt_counts = new DataTable({col0}, {"members_count"});
+  dtptr dt_counts = dtptr(new DataTable({col0}, {"members_count"}));
   auto d_counts = static_cast<int32_t*>(dt_counts->columns[0]->data_w());
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 
@@ -290,6 +288,7 @@ void Aggregator<T>::aggregate_exemplars(DataTable* dt,
     size_t off_i = static_cast<size_t>(offsets[i]);
     exemplar_indices[i - was_sampled] = static_cast<int32_t>(ri_members[off_i]);
     d_counts[i - was_sampled] = offsets[i+1] - offsets[i];
+//    printf("i = %zu; offsets[i] = %d; exemplar_indices = %d\n", i, offsets[i], exemplar_indices[i - was_sampled]);
   }
 
   // Replacing group ids with the actual exemplar ids for 1D and 2D aggregations,
@@ -304,14 +303,19 @@ void Aggregator<T>::aggregate_exemplars(DataTable* dt,
 
   // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
-  dt->replace_rowindex(ri_exemplars);
-  std::vector<DataTable*> dts = { dt_counts };
-  dt->cbind(dts);
 
-  for (size_t i = 0; i < dt->ncols-1; ++i) {
-    dt->columns[i]->get_stats()->reset();
+//    ri_exemplars.iterate(0, dt->nrows, 1,
+//      [&](size_t i, size_t j) {
+//        printf("i = %zu; j = %zu\n", i, j);
+//      });
+
+  dt_exemplars->replace_rowindex(ri_exemplars);
+  std::vector<DataTable*> dts = { dt_counts.release() };
+  dt_exemplars->cbind(dts);
+
+  for (size_t i = 0; i < dt_exemplars->ncols-1; ++i) {
+    dt_exemplars->columns[i]->get_stats()->reset();
   }
-  delete dt_counts;
 }
 
 

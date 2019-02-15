@@ -51,8 +51,8 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     if progress_fn is not None and not callable(progress_fn):
         raise dt.TypeError("`progress_fn` argument should be a function")
 
-    dt_members = core.aggregate(dt_in, min_rows, n_bins, nx_bins, ny_bins,
+    [dt_exemplars, dt_members] = core.aggregate(dt_in, min_rows, n_bins, nx_bins, ny_bins,
                                 nd_max_bins, max_dimensions, seed, progress_fn,
                                 nthreads, buffer_rows)
 
-    return dt_members
+    return [dt_exemplars, dt_members]
