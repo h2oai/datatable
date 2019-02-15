@@ -28,9 +28,9 @@
 */
 namespace py {
   static PKArgs aggregate(
-    11, 0, 0, false, false,
+    10, 0, 0, false, false,
     {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-     "max_dimensions", "seed", "progress_fn", "nthreads", "buffer_rows"}, "aggregate", "",
+     "max_dimensions", "seed", "progress_fn", "nthreads"}, "aggregate", "",
      [](const py::PKArgs& args) -> py::oobj {
        DataTable* dt = args[0].to_frame();
 
@@ -44,12 +44,10 @@ namespace py {
        unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
        py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
        unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
-       size_t buffer_rows = args[10].to_size_t();
 
        Aggregator<float> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
-                      max_dimensions, seed, progress_fn, nthreads, buffer_rows);
+                      max_dimensions, seed, progress_fn, nthreads);
 
-       // dt changes in-place with a new column added to the end of it
        dtptr dt_members, dt_exemplars;
        agg.aggregate(dt, dt_exemplars, dt_members);
        py::oobj df_exemplars = py::oobj::from_new_reference(

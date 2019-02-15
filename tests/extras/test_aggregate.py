@@ -581,3 +581,19 @@ def test_aggregate_view_0d_continuous_integer():
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, 3, 3, 4, 4, 5], [1, 1, 1, 1, 1, 1]]
     assert_equals(d_in, d_in_copy)
+
+def test_aggregate_view_1d_categorical():
+    d_in = dt.Frame(["alpha", "bravo", "delta", "charlie", "charlie", "echo"])
+    d_in_copy = dt.Frame(d_in)
+    d_in_view = d_in[2:5, :]
+    [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, progress_fn=report_progress)
+    d_members.internal.check()
+    assert d_members.shape == (3, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.to_list() == [[1, 0, 0]]
+    d_exemplars.internal.check()
+    assert d_exemplars.shape == (2, 2)
+    assert d_exemplars.ltypes == (ltype.str, ltype.int)
+    assert d_exemplars.to_list() == [["charlie", "delta"],
+                                     [2, 1]]
+    assert_equals(d_in, d_in_copy)

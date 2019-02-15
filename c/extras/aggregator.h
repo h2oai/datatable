@@ -57,7 +57,7 @@ class Aggregator {
     };
     using ExPtr = std::unique_ptr<ex>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, py::oobj, unsigned int, size_t);
+               unsigned int, py::oobj, unsigned int);
     void aggregate(DataTable*, dtptr&, dtptr&);
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
@@ -72,7 +72,6 @@ class Aggregator {
     size_t max_dimensions;
     unsigned int seed;
     unsigned int nthreads;
-    size_t buffer_rows;
     py::oobj progress_fn;
 
     // Grouping and aggregating methods
@@ -116,8 +115,7 @@ class Aggregator {
 template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_in,
                        size_t ny_bins_in, size_t nd_max_bins_in, size_t max_dimensions_in,
-                       unsigned int seed_in, py::oobj progress_fn_in, unsigned int nthreads_in,
-                       size_t buffer_rows_in) :
+                       unsigned int seed_in, py::oobj progress_fn_in, unsigned int nthreads_in) :
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
@@ -126,7 +124,6 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in, size_t nx_bins_i
   max_dimensions(max_dimensions_in),
   seed(seed_in),
   nthreads(nthreads_in),
-  buffer_rows(buffer_rows_in),
   progress_fn(progress_fn_in)
 {
 }
