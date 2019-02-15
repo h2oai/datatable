@@ -10,7 +10,7 @@ from datatable.lib import core
 
 def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
               nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
-              nthreads=0):
+              nthreads=0, double_precision = False):
     """
     Aggregate datatable.
 
@@ -39,6 +39,9 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     nthreads: int
         Number of OpenMP threads ND aggregator will use. Default is 0,
         i.e. automatically figure out the optimal number.
+    double_precision: boolean
+        Whether aggregator should use double precision arithmetics or not.
+        Default is `False`.
 
     Returns
     -------
@@ -53,6 +56,7 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
         raise dt.TypeError("`progress_fn` argument should be a function")
 
     [dt_exemplars, dt_members] = core.aggregate(dt_in, min_rows, n_bins, nx_bins, ny_bins,
-                                nd_max_bins, max_dimensions, seed, progress_fn, nthreads)
+                                nd_max_bins, max_dimensions, seed, progress_fn, nthreads,
+                                double_precision)
 
     return [dt_exemplars, dt_members]
