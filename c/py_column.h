@@ -29,7 +29,6 @@ struct obj : public PyObject {
 
 extern PyTypeObject type;
 extern PyBufferProcs as_buffer;
-extern PyObject* fn_hexview;
 
 
 pycolumn::obj* from_column(Column*, pydatatable::obj*, int64_t);
@@ -96,25 +95,10 @@ DECLARE_METHOD(
   "writing strategy.\n")
 
 DECLARE_METHOD(
-  replace_rowindex,
-  "replace_rowindex(new_rowindex)\n\n"
-  "Replaces rowindex of the current Column with the provided one. The new\n"
-  "rowindex should be compatible with the Column's data source. This method\n"
-  "does not affect the Frame from which this Column was extracted.\n")
-
-DECLARE_METHOD(
   to_list,
   "to_list()\n\n"
   "Return the contents of the Column as a plain Python list.\n")
 
-
-//---- Python API --------------------------------------------------------------
-
-DECLARE_FUNCTION(
-  column_from_list,
-  "column_from_list(list)\n\n"
-  "Convert a Python list into a Column object.",
-  HOMEFLAG)
 
 
 };  // namespace pycolumn

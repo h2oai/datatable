@@ -442,3 +442,4 @@ Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
 py::oobj VoidColumn::get_value_at_index(size_t) const { return py::oobj(); }
+void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}

@@ -22,30 +22,6 @@ class Isna(BaseExpr):
         super().__init__()
         self._arg = arg
 
-    def resolve(self):
-        self._arg.resolve()
-        self._stype = stype.bool8
-
-    def is_reduce_expr(self, ee):
-        return self._arg.is_reduce_expr(ee)
-
-    def evaluate_eager(self, ee):
-        arg = self._arg.evaluate_eager(ee)
-        opcode = unary_op_codes["isna"]
-        return core.expr_unaryop(opcode, arg)
-
-    def _isna(self, key, inode):
-        # The function always returns either True or False but never NA
-        return False
-
-
-    def _notna(self, key, inode):
-        return self._arg.isna(inode)
-
-
-    def _value(self, key, inode):
-        return self._arg.isna(inode)
-
 
     def __str__(self):
         return "isna(%s)" % self._arg

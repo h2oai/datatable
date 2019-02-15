@@ -19,55 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PY_ROWINDEX_h
-#define dt_PY_ROWINDEX_h
-#include "python/ext_type.h"
-#include "python/obj.h"
-#include "rowindex.h"
-namespace py {
+#include <vector>
+#include "extras/utils.h"
 
 
-class orowindex : public oobj {
-  public:
-    orowindex(const RowIndex& rowindex);
-    orowindex() = default;
-    orowindex(const orowindex&) = default;
-    orowindex(orowindex&&) = default;
-    orowindex& operator=(const orowindex&) = default;
-    orowindex& operator=(orowindex&&) = default;
+/*
+* For a given `n` calculate all the coprime numbers and return them
+* in a `coprimes` vector.
+*/
+void calculate_coprimes(size_t n, std::vector<size_t>& coprimes) {
+  coprimes.clear();
+  if (n == 1) {
+    coprimes.push_back(1);
+    return;
+  }
 
-    static bool check(PyObject*);
+  std::vector<bool> mask(n - 1, false);
+  for (size_t i = 2; i <= n / 2; ++i) {
+    if (mask[i - 1]) continue;
+    if (n % i == 0) {
+      size_t j = 1;
+      while (j * i < n) {
+        mask[j * i - 1] = true;
+        j++;
+      }
+    }
+  }
 
-    // Declare class orowindex::pyobject
-    struct pyobject;
-};
-
-
-
-struct orowindex::pyobject : public PyObject {
-  RowIndex* ri;  // owned ref
-
-  class Type : public ExtType<pyobject> {
-    public:
-      static PKArgs args___init__;
-      static const char* classname();
-      static const char* classdoc();
-      static bool is_subclassable();
-      static void init_methods_and_getsets(Methods&, GetSetters&);
-  };
-
-  void m__init__(PKArgs&);
-  void m__dealloc__();
-  oobj m__repr__();
-  oobj get_type() const;
-  oobj get_nrows() const;
-  oobj get_min() const;
-  oobj get_max() const;
-
-  oobj to_list(const PKArgs&);
-};
+  for (size_t i = 1; i < n; ++i) {
+    if (mask[i - 1] == 0) {
+      coprimes.push_back(i);
+    }
+  }
+}
 
 
-
-}  // namespace py
-#endif
+/*
+* Print a progress bar if `status_code == 0`, i.e. running;
+* clear the progress bar when `status_code != 0`, i.e. finished.
+*/
+void print_progress(float progress, int status_code) {
+  int val = static_cast<int>(progress * 100);
+  int lpad = static_cast<int>(progress * PBWIDTH);
+  int rpad = PBWIDTH - lpad;
+  printf("\rAggregating: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
+  if (status_code) printf("\33[2K\r");
+  fflush (stdout);
+}

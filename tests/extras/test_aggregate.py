@@ -28,8 +28,8 @@
 import datatable as dt
 from datatable import ltype
 from datatable.extras.aggregate import aggregate
-from datatable.internal import get_rowindex
 from tests import assert_equals
+from datatable.internal import frame_column_rowindex
 import inspect
 
 
@@ -502,7 +502,7 @@ def test_aggregate_3d_real():
                                          progress_fn=report_progress)
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
-    ri = get_rowindex(d, 0).tolist()
+    ri = frame_column_rowindex(d, 0).to_list()
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 
@@ -547,7 +547,7 @@ def aggregate_nd(nd):
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
-    ri = get_rowindex(d, 0).tolist()
+    ri = frame_column_rowindex(d, 0).to_list()
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 

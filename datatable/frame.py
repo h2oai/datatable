@@ -327,31 +327,7 @@ class Frame(core.Frame):
         return pd
 
 
-    def to_numpy(self, stype=None):
-        """
-        Convert Frame into a numpy array, optionally forcing it into a
-        specific stype/dtype.
-
-        Parameters
-        ----------
-        stype: datatable.stype, numpy.dtype or str
-            Cast datatable into this dtype before converting it into a numpy
-            array.
-        """
-        numpy = load_module("numpy")
-        if not hasattr(numpy, "array"):  # pragma: no cover
-            raise ImportError("Unsupported numpy version: `%s`"
-                              % (getattr(numpy, "__version__", "???"), ))
-        st = 0
-        if stype:
-            st = datatable.stype(stype).value
-        self.internal.use_stype_for_buffers(st)
-        res = numpy.array(self.internal)
-        self.internal.use_stype_for_buffers(0)
-        return res
-
-
-    def topython(self):  # DEPRECATED
+    def topython(self):
         warnings.warn(
             "Method `Frame.topython()` is deprecated (will be removed in "
             "0.9.0), please use `Frame.to_list()` instead",
@@ -372,14 +348,12 @@ class Frame(core.Frame):
             category=FutureWarning)
         return self.to_numpy(stype)
 
-
     def scalar(self):
-        """
-        For a 1x1 Frame return its content as a python object.
-
-        Raises an error if the shape of the Frame is not 1x1.
-        """
-        return self._dt.to_scalar()
+        warnings.warn(
+            "Method `Frame.scalar()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame[0, 0]` istead",
+            category=FutureWarning)
+        return self[0, 0]
 
 
     def materialize(self):
@@ -417,9 +391,9 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-core.register_function(4, TTypeError)
-core.register_function(5, TValueError)
-core.register_function(7, Frame)
+core._register_function(4, TTypeError)
+core._register_function(5, TValueError)
+core._register_function(7, Frame)
 core.install_buffer_hooks(Frame())
 
 

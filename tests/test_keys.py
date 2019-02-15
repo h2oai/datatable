@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-
+import random
 
 
 def test_keys_simple():
@@ -151,3 +151,13 @@ def test_key_save(tempfile):
     dt1 = dt.open(tempfile)
     assert dt1.key == ("A", "B")
     dt1.internal.check()
+
+
+def test_key_after_group():
+    n = 1000
+    DT = dt.Frame(A=[random.choice("abcd") for _ in range(n)])
+    tmp = DT[:, dt.count(), dt.by(0)]
+    tmp.internal.check()
+    tmp.key = "A"
+    assert tmp.to_list()[0] == ["a", "b", "c", "d"]
+    assert sum(tmp.to_list()[1]) == n

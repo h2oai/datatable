@@ -15,7 +15,6 @@
 
 class Column;
 class DataTable;
-class Groupby;
 class RowIndex;
 
 namespace py {
@@ -213,8 +212,6 @@ class _obj {
     py::rtuple  to_rtuple_lax     () const;
 
     Column*     to_column         (const error_manager& = _em0) const;
-    Groupby*    to_groupby        (const error_manager& = _em0) const;
-    RowIndex    to_rowindex       (const error_manager& = _em0) const;
     DataTable*  to_frame          (const error_manager& = _em0) const;
     SType       to_stype          (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
@@ -294,6 +291,7 @@ class oobj : public _obj {
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
     static oobj import(const char* module, const char* symbol);
+    static oobj import(const char* module);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);

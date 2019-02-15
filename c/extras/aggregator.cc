@@ -27,54 +27,55 @@
 *  Reading data from Python and passing it to the C++ aggregator.
 */
 namespace py {
-  static PKArgs aggregate(
-    11, 0, 0, false, false,
-    {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-     "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"}, "aggregate", "",
-     [](const py::PKArgs& args) -> py::oobj {
-       DataTable* dt = args[0].to_frame();
 
-       size_t min_rows = args[1].to_size_t();
-       size_t n_bins = args[2].to_size_t();
-       size_t nx_bins = args[3].to_size_t();
-       size_t ny_bins = args[4].to_size_t();
-       size_t nd_max_bins = args[5].to_size_t();
-       size_t max_dimensions = args[6].to_size_t();
+static PKArgs args_aggregate(
+  11, 0, 0, false, false,
+  {"dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
+   "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"}, "aggregate", nullptr);
 
-       unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
-       py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
-       unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
-       bool double_precision = args[10].to_bool_strict();
+static oobj aggregate(const PKArgs& args) {
+  DataTable* dt = args[0].to_frame();
 
-       dtptr dt_members, dt_exemplars;
-       std::unique_ptr<AggregatorBase> agg;
-       if (double_precision) {
-         agg = make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
-                               max_dimensions, seed, progress_fn, nthreads);
-       } else {
-         agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
-                               max_dimensions, seed, progress_fn, nthreads);
-       }
+  size_t min_rows = args[1].to_size_t();
+  size_t n_bins = args[2].to_size_t();
+  size_t nx_bins = args[3].to_size_t();
+  size_t ny_bins = args[4].to_size_t();
+  size_t nd_max_bins = args[5].to_size_t();
+  size_t max_dimensions = args[6].to_size_t();
 
-       agg->aggregate(dt, dt_exemplars, dt_members);
+  unsigned int seed = static_cast<unsigned int>(args[7].to_size_t());
+  py::oobj progress_fn = args[8].is_none()? py::None() : py::oobj(args[8]);
+  unsigned int nthreads = static_cast<unsigned int>(args[9].to_size_t());
+  bool double_precision = args[10].to_bool_strict();
 
-       py::oobj df_exemplars = py::oobj::from_new_reference(
-                                 py::Frame::from_datatable(dt_exemplars.release())
-                               );
-       py::oobj df_members = py::oobj::from_new_reference(
-                               py::Frame::from_datatable(dt_members.release())
-                             );
-       // Return a list of two frames: exemplars and members.
-       py::olist list(2);
-       list.set(0, df_exemplars);
-       list.set(1, df_members);
-       return std::move(list);
-     }
-  );
+  dtptr dt_members, dt_exemplars;
+  std::unique_ptr<AggregatorBase> agg;
+  if (double_precision) {
+    agg = make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+                          max_dimensions, seed, progress_fn, nthreads);
+  } else {
+    agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+                          max_dimensions, seed, progress_fn, nthreads);
+  }
+
+  agg->aggregate(dt, dt_exemplars, dt_members);
+  py::oobj df_exemplars = py::oobj::from_new_reference(
+                            py::Frame::from_datatable(dt_exemplars.release())
+                          );
+  py::oobj df_members = py::oobj::from_new_reference(
+                          py::Frame::from_datatable(dt_members.release())
+                        );
+  // Return a list of two frames: exemplars and members.
+  py::olist list(2);
+  list.set(0, df_exemplars);
+  list.set(1, df_members);
+  return std::move(list);
 }
+
+}  // namespace py
 
 AggregatorBase::~AggregatorBase() {}
 
 void DatatableModule::init_methods_aggregate() {
-  ADDFN(py::aggregate);
+  ADD_FN(&py::aggregate, py::args_aggregate);
 }

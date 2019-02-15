@@ -142,9 +142,9 @@ def test_float_decimal0(noppc64):
     # PPC64 platform doesn't have proper long doubles, which may cause loss of
     # precision in the last digit when converting double literals into double
     # values.
-    assert dt.fread("1.3485701e-303\n").scalar() == 1.3485701e-303
-    assert dt.fread("1.46761e-313\n").scalar() == 1.46761e-313
-    assert (dt.fread("A\n1.23456789123456789123456999\n").scalar() ==
+    assert dt.fread("1.3485701e-303\n")[0, 0] == 1.3485701e-303
+    assert dt.fread("1.46761e-313\n")[0, 0] == 1.46761e-313
+    assert (dt.fread("A\n1.23456789123456789123456999\n")[0, 0] ==
             1.23456789123456789123456999)
 
 

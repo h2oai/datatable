@@ -21,15 +21,17 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import datatable as dt
+import math
 import pytest
+import random
 import re
 import subprocess
 import sys
 import time
-import datatable as dt
 from collections import namedtuple
 from datatable import stype, ltype
-from datatable.internal import get_rowindex
+from datatable.internal import frame_column_rowindex
 from tests import same_iterables, list_equals, noop
 
 
@@ -307,7 +309,7 @@ def test_resize_rows0():
     f0.internal.check()
     assert f0.shape == (1, 1)
     assert f0.stypes == (dt.int32,)
-    assert f0.scalar() == 0
+    assert f0[0, 0] == 0
     f0.nrows = 20
     f0.internal.check()
     assert f0.shape == (20, 1)
@@ -766,38 +768,77 @@ def test_tonumpy_with_stype(numpy):
     assert a2.dtype == numpy.dtype("float64")
 
 
+def test_tonumpy_with_NAs1(numpy):
+    src = [1, 5, None, 187, None, 103948]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == [src]
+
+
+def test_tonumpy_with_NAs2(numpy):
+    src = [[2.3, 11.89, None, math.inf], [4, None, None, -12]]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == src
+
+
+def test_tonumpy_with_NAs3(numpy):
+    src = ["faa", None, "", "hooray", None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.T.tolist() == [src]
+
+
+def test_tonumpy_with_NAs4(numpy):
+    src = [True, False, None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.dtype == numpy.dtype("bool")
+    assert a0.T.tolist() == [src]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_tonumpy_with_NAs_random(seed, numpy):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 1)
+    m = int(random.expovariate(0.2) + 1)
+    data = [None] * m
+    for j in range(m):
+        threshold = 0.1 * (m + 1);
+        vec = [random.random() for i in range(n)]
+        for i, x in enumerate(vec):
+            if x < threshold:
+                vec[i] = None
+        data[j] = vec
+    DT = dt.Frame(data)
+    ar = DT.to_numpy()
+    assert ar.T.tolist() == data
+
+
 
 #-------------------------------------------------------------------------------
-# .scalar()
+# [0, 0] (conversion to scalar python variable)
 #-------------------------------------------------------------------------------
 
 def test_scalar1():
     d0 = dt.Frame([False])
-    assert d0.scalar() is False
+    assert d0[0, 0] is False
     d1 = dt.Frame([-32767])
-    assert d1.scalar() == -32767
+    assert d1[0, 0] == -32767
     d2 = dt.Frame([3.14159])
-    assert d2.scalar() == 3.14159
+    assert d2[0, 0] == 3.14159
     d3 = dt.Frame(["koo!"])
-    assert d3.scalar() == "koo!"
+    assert d3[0, 0] == "koo!"
     d4 = dt.Frame([None])
-    assert d4.scalar() is None
-
-
-def test_scalar_bad():
-    d0 = dt.Frame([100, 200])
-    with pytest.raises(ValueError) as e:
-        d0.scalar()
-    assert (".scalar() method cannot be applied to a Frame with shape "
-            "`[2 x 1]`" in str(e.value))
+    assert d4[0, 0] is None
 
 
 def test_scalar_on_view(dt0):
     assert dt0[1, 0] == 7
     assert dt0[3, 3] == 4.4
     assert dt0[2, 6] == "hello"
-    assert dt0[2::5, 3::7].scalar() == -4
-    assert dt0[[3], "G"].scalar() == "world"
+    assert dt0[2::5, 3::7][0, 0] == -4
+    assert dt0[[3], "G"][0, 0] == "world"
 
 
 
@@ -1020,8 +1061,10 @@ def test_html_repr_slice():
 def test_internal_rowindex():
     d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
-    assert get_rowindex(d0, 0) is None
-    assert repr(get_rowindex(d1, 0)) == "_RowIndex(0/20/1)"
+    ri0 = frame_column_rowindex(d0, 0)
+    ri1 = frame_column_rowindex(d1, 0)
+    assert ri0 is None
+    assert repr(ri1) == "datatable.internal.RowIndex(0/20/1)"
 
 
 def test_issue898():

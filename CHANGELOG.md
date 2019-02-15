@@ -27,8 +27,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Added
 
-## [0.8.0][] — 2019-01-04
+- Added function `dt.models.kfold(k, n)` to prepare indices for k-fold
+  splitting. This function will return `k` pairs of row selectors such that
+  when these selectors are applied to an `n`-rows frame, that frame will be
+  split into train and test part according to the K-fold splitting scheme.
+
+
+### Fixed
+
+- Fixed crash in certain circumstances when a key was applied after a
+  groupby (#1639).
+
+- `Frame.to_numpy()` now returns a numpy `masked_array` if the frame has
+  any NA values (#1619).
+
+
+### Deprecated
+
+- Frame method `.scalar()` is now deprecated and will be removed in release
+  0.10.0. Please use `frame[0, 0]` instead.
+
+
+
+### Notes
+
+- Thanks to everyone who helped make `datatable` more stable by discovering
+  and reporting bugs that were fixed in this release:
+
+  [antorsae][] (#1639),
+  [arno candel][] (#1619)
+
+
+
+## [0.8.0][] — 2019-02-04
 
 ### Added
 
@@ -937,6 +970,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.1.0]: https://github.com/h2oai/datatable/tree/v0.1.0
 
 
+[antorsae]: https://github.com/antorsae
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
 [jonathan mckinney]: https://github.com/pseudotensor

@@ -296,6 +296,8 @@ public:
   virtual Stats* get_stats() const = 0;
   Stats* get_stats_if_exist() const { return stats; }
 
+  virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
+
 protected:
   Column(size_t nrows = 0);
   virtual void init_data() = 0;
@@ -369,6 +371,7 @@ public:
   virtual void replace_values(RowIndex at, const Column* with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
+  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   void init_data() override;
@@ -676,6 +679,7 @@ public:
   void verify_integrity(const std::string& name) const override;
 
   py::oobj get_value_at_index(size_t i) const override;
+  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   StringColumn();
@@ -732,6 +736,7 @@ class VoidColumn : public Column {
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
     py::oobj get_value_at_index(size_t i) const override;
+    void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     VoidColumn();
     void init_data() override;

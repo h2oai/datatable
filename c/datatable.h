@@ -112,15 +112,8 @@ class DataTable {
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding
-     * RowIndex. The array `colindices` provides the indices of columns to
-     * sort on.
-     *
-     * If `make_groups` is true, then in addition to sorting, the grouping
-     * information will be computed and stored with the RowIndex.
+     * RowIndex+Groupby.
      */
-    // TODO: remove
-    RowIndex sortby(const intvec& colindices, Groupby* out_grps) const;
-
     std::pair<RowIndex, Groupby>
     group(const std::vector<sort_spec>& spec, bool as_view = false) const;
 

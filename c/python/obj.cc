@@ -27,7 +27,6 @@
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_datatable.h"
-#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
@@ -123,6 +122,20 @@ oobj oobj::import(const char* mod, const char* symbol) {
   auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
   if (!mod_obj) throw PyError();
   return mod_obj.get_attr(symbol);
+}
+
+oobj oobj::import(const char* mod) {
+  PyObject* module = PyImport_ImportModule(mod);
+  if (!module) {
+    if (PyErr_ExceptionMatches(PyExc_ImportError)) {
+      PyErr_Clear();
+      throw ImportError() << "Module `" << mod << "` is not installed. "
+                             "It is required for running this function";
+    } else {
+      throw PyError();
+    }
+  }
+  return oobj::from_new_reference(module);
 }
 
 oobj::~oobj() {
@@ -520,27 +533,6 @@ strvec _obj::to_stringlist(const error_manager&) const {
 //------------------------------------------------------------------------------
 // Object conversions
 //------------------------------------------------------------------------------
-
-Groupby* _obj::to_groupby(const error_manager& em) const {
-  if (v == Py_None) return nullptr;
-  if (!PyObject_TypeCheck(v, &pygroupby::type)) {
-    throw em.error_not_groupby(v);
-  }
-  return static_cast<pygroupby::obj*>(v)->ref;
-}
-
-
-RowIndex _obj::to_rowindex(const error_manager& em) const {
-  if (v == Py_None) {
-    return RowIndex();
-  }
-  if (!PyObject_TypeCheck(v, &pyrowindex::type)) {
-    throw em.error_not_rowindex(v);
-  }
-  RowIndex* ref = static_cast<pyrowindex::obj*>(v)->ref;
-  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
-}
-
 
 DataTable* _obj::to_frame(const error_manager& em) const {
   if (v == Py_None) return nullptr;

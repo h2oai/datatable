@@ -20,6 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from datatable.lib._datatable import Ftrl
+from datatable.lib._datatable import Ftrl, kfold
 
-__all__ = ("Ftrl",)
+__all__ = ("Ftrl", "kfold")

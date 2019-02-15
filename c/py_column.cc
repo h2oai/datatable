@@ -14,8 +14,6 @@
 
 namespace pycolumn
 {
-PyObject* fn_hexview = nullptr;  // see datatablemodule.c/pyregister_function
-
 
 pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
 {
@@ -38,17 +36,6 @@ int unwrap(PyObject* object, Column** address) {
   }
   *address = reinterpret_cast<pycolumn::obj*>(object)->ref;
   return 1;
-}
-
-
-PyObject* column_from_list(PyObject*, PyObject* args) {
-  PyObject* arg1;
-  int stype = 0;
-  if (!PyArg_ParseTuple(args, "O|i", &arg1, &stype)) return nullptr;
-  py::olist list = py::robj(arg1).to_pylist();
-
-  Column* col = Column::from_pylist(list, stype);
-  return from_column(col, nullptr, 0);
 }
 
 
@@ -89,7 +76,7 @@ PyObject* get_data_pointer(pycolumn::obj* self) {
 PyObject* get_rowindex(pycolumn::obj* self) {
   Column* col = self->ref;
   const RowIndex& ri = col->rowindex();
-  return ri? pyrowindex::wrap(ri) : none();
+  return (ri? py::orowindex(ri) : py::None()).release();
 }
 
 
@@ -128,21 +115,6 @@ PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
                                            WritableBuffer::Strategy::Auto;
 
   col->save_to_disk(filename, sstrategy);
-  Py_RETURN_NONE;
-}
-
-
-PyObject* replace_rowindex(pycolumn::obj* self, PyObject* args) {
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1)) return nullptr;
-  RowIndex newri = py::robj(arg1).to_rowindex();
-
-  Column* col = self->ref;
-  self->ref = col->shallowcopy(newri);
-  delete col;
-  self->pydt = nullptr;
-  self->colidx = GETNA<int64_t>();
-
   Py_RETURN_NONE;
 }
 
@@ -194,7 +166,6 @@ static PyGetSetDef column_getseters[] = {
 
 static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
-  METHODv(replace_rowindex),
   METHOD0(to_list),
   {nullptr, nullptr, 0, nullptr}
 };

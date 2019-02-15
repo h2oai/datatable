@@ -161,3 +161,15 @@ def noop(x):
     expression result.
     """
     pass
+
+
+def assert_type_error(f, msg):
+    with pytest.raises(TypeError) as e:
+        f()
+    assert msg in str(e.value)
+
+
+def assert_value_error(f, msg):
+    with pytest.raises(ValueError) as e:
+        f()
+    assert msg in str(e.value)

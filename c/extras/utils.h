@@ -19,55 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PY_ROWINDEX_h
-#define dt_PY_ROWINDEX_h
-#include "python/ext_type.h"
-#include "python/obj.h"
-#include "rowindex.h"
-namespace py {
+#ifndef dt_EXTRAS_UTILS_h
+#define dt_EXTRAS_UTILS_h
 
+// note: this implementation does not disable this overload for array types
+// see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
-class orowindex : public oobj {
-  public:
-    orowindex(const RowIndex& rowindex);
-    orowindex() = default;
-    orowindex(const orowindex&) = default;
-    orowindex(orowindex&&) = default;
-    orowindex& operator=(const orowindex&) = default;
-    orowindex& operator=(orowindex&&) = default;
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
 
-    static bool check(PyObject*);
+void print_progress(float, int);
+void calculate_coprimes(size_t, std::vector<size_t>&);
 
-    // Declare class orowindex::pyobject
-    struct pyobject;
-};
-
-
-
-struct orowindex::pyobject : public PyObject {
-  RowIndex* ri;  // owned ref
-
-  class Type : public ExtType<pyobject> {
-    public:
-      static PKArgs args___init__;
-      static const char* classname();
-      static const char* classdoc();
-      static bool is_subclassable();
-      static void init_methods_and_getsets(Methods&, GetSetters&);
-  };
-
-  void m__init__(PKArgs&);
-  void m__dealloc__();
-  oobj m__repr__();
-  oobj get_type() const;
-  oobj get_nrows() const;
-  oobj get_min() const;
-  oobj get_max() const;
-
-  oobj to_list(const PKArgs&);
-};
-
-
-
-}  // namespace py
 #endif

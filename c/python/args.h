@@ -1,9 +1,17 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARGS_h
 #define dt_PYTHON_ARGS_h
@@ -11,6 +19,7 @@
 #include <vector>          // std::vector
 #include <Python.h>
 #include "python/arg.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -18,50 +27,45 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// Args
+// GSArgs
 //------------------------------------------------------------------------------
 
 /**
- * Helper class for ExtType: it encapsulates arguments passed to a function
- * and helps verify / parse them. This is the base class for a family of
- * args-related functions, each designed to handle different calling
- * convention.
+ * Helper class for getters/setters in ExtType<T>::GetSetters.
  */
-class Args {
-  private:
-    const char* cls_name;
-    const char* fun_name;
-    const char* fun_doc;
-    mutable const char* full_name;
-
+class GSArgs {
   public:
-    Args(const char* name, const char* doc);
-    virtual ~Args();
+    const char* name;
+    const char* doc;
 
-    //---- API for ExtType<T> ----------
-    void set_class_name(const char* name);
-    virtual void bind(PyObject* _args, PyObject* _kwds) = 0;
+    GSArgs(const char* name_, const char* doc_=nullptr)
+      : name(name_), doc(doc_) {}
 
-    // Each `Args` object describes a certain function or method in a class.
-    // This will return the name of that function/method, in the form "foo()"
-    // or "Class.foo()".
-    const char* get_long_name() const;
+    template <typename T>
+    PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
+      try {
+        T* t = static_cast<T*>(obj);
+        oobj res = (t->*func)();
+        return std::move(res).release();
+      } catch (const std::exception& e) {
+        exception_to_python(e);
+        return nullptr;
+      }
+    }
 
-    const char* get_short_name() const;
-    const char* get_docstring() const;
+    template <typename T>
+    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(robj)) noexcept {
+      try {
+        T* t = static_cast<T*>(obj);
+        (t->*func)(robj(value));
+        return 0;
+      } catch (const std::exception& e) {
+        exception_to_python(e);
+        return -1;
+      }
+    }
 };
 
-
-
-//------------------------------------------------------------------------------
-// NoArgs
-//------------------------------------------------------------------------------
-
-class NoArgs : public Args {
-  public:
-    using Args::Args;
-    void bind(PyObject* _args, PyObject* _kwds) override;
-};
 
 
 
@@ -74,8 +78,19 @@ class VarKwdsIterator;
 class VarKwdsIterable;
 
 
-class PKArgs : public Args {
+/**
+ * Helper class for ExtType: it encapsulates arguments passed to a function
+ * and helps verify / parse them. This is the base class for a family of
+ * args-related functions, each designed to handle different calling
+ * convention.
+ */
+class PKArgs {
   private:
+    const char* cls_name;
+    const char* fun_name;
+    const char* fun_doc;
+    mutable const char* full_name;
+
     const size_t n_posonly_args;
     const size_t n_pos_kwd_args;
     const size_t n_all_args;
@@ -91,8 +106,6 @@ class PKArgs : public Args {
     size_t n_varkwds;
     PyObject* args_tuple;  // for var-args iteration
     PyObject* kwds_dict;   // for var-kwds iteration
-    void (*fn0)(const PKArgs&);
-    py::oobj (*fn1)(const PKArgs&);
 
   public:
     /**
@@ -107,12 +120,39 @@ class PKArgs : public Args {
      */
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
            std::initializer_list<const char*> names,
-           const char* name = nullptr, const char* doc = nullptr,
-           py::oobj (*f)(const PKArgs&) = nullptr);
+           const char* name = nullptr, const char* doc = nullptr);
+    ~PKArgs();
 
-    void bind(PyObject* _args, PyObject* _kws) override;
+    void bind(PyObject* _args, PyObject* _kws);
 
-    PyObject* exec(PyObject* args, PyObject* kwds) noexcept;
+    PyObject* exec_function(
+        PyObject* args, PyObject* kwds,
+        oobj (*fn)(const PKArgs&)) noexcept;
+
+    PyObject* exec_function(
+        PyObject* args, PyObject* kwds,
+        void (*fn)(const PKArgs&)) noexcept;
+
+    template <class T>
+    PyObject* exec_method(
+        PyObject* self, PyObject* args, PyObject* kwds,
+        oobj (T::*)(const PKArgs&)) const noexcept;
+
+    template <class T>
+    PyObject* exec_method(
+        PyObject* self, PyObject* args, PyObject* kwds,
+        void (T::*)(const PKArgs&)) const noexcept;
+
+    //---- API for ExtType<T> ----------
+    void set_class_name(const char* name);
+
+    // Each `Args` object describes a certain function, or method in a class.
+    // This will return the name of that function/method, in the form "foo()"
+    // or "Class.foo()".
+    const char* get_long_name() const;
+
+    const char* get_short_name() const;
+    const char* get_docstring() const;
 
     /**
      * Returns the name of argument `i`, which will usually be in one of the
@@ -246,6 +286,40 @@ T PKArgs::get(size_t i, T default_value) const {
           : static_cast<T>(bound_args[i]);
 }
 
+template <class T>
+PyObject* PKArgs::exec_method(
+    PyObject* self, PyObject* args, PyObject* kwds,
+    oobj (T::*fn)(const PKArgs&)) const noexcept
+{
+  try {
+    const_cast<PKArgs*>(this)->bind(args, kwds);
+    T* obj = reinterpret_cast<T*>(self);
+    oobj res = (obj->*fn)(*this);
+    return std::move(res).release();
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+template <class T>
+PyObject* PKArgs::exec_method(
+    PyObject* self, PyObject* args, PyObject* kwds,
+    void (T::*fn)(const PKArgs&)) const noexcept
+{
+  try {
+    const_cast<PKArgs*>(this)->bind(args, kwds);
+    T* obj = reinterpret_cast<T*>(self);
+    (obj->*fn)(*this);
+    Py_INCREF(Py_None);
+    return Py_None;
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
 
 
 }  // namespace py

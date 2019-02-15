@@ -13,6 +13,8 @@
 #include "py_utils.h"
 namespace py { class Frame; }
 
+extern SType force_stype;
+
 #define BASECLS pydatatable::obj
 #define CLSNAME DataTable
 #define HOMEFLAG dt_PY_DATATABLE_cc
@@ -37,8 +39,6 @@ namespace pydatatable
 struct obj : public PyObject {
   DataTable* ref;
   py::Frame* _frame;
-  SType use_stype_for_buffers;
-  int64_t : 56;
 };
 
 extern PyTypeObject type;
@@ -67,10 +67,6 @@ DECLARE_GETTER(
   isview,
   "Is the datatable view or now?")
 
-DECLARE_GETSET(
-  groupby,
-  "Groupby applied to the Frame, or None if no groupby was applied")
-
 DECLARE_GETTER(
   datatable_ptr,
   "Get pointer (converted to an int) to the wrapped DataTable object")
@@ -84,13 +80,6 @@ DECLARE_GETTER(
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  to_scalar,
-  "to_scalar()\n\n"
-  "For a 1x1 DataTable return its data as a Python scalar value. This in \n"
-  "contrast with `window(...)` method which returns a list-of-lists \n"
-  "regardless of the shape of the underlying DataTable.")
-
-DECLARE_METHOD(
   check,
   "check()\n\n"
   "Check the DataTable for internal consistency. Raises an AssertionError if\n"
@@ -102,46 +91,10 @@ DECLARE_METHOD(
   "column(index)\n\n"
   "Get the requested column in the datatable")
 
-DECLARE_METHOD(
-  delete_columns,
-  "Remove the specified list of columns from the datatable")
-
-DECLARE_METHOD(
-  replace_rowindex,
-  "replace_rowindex(rowindex)\n\n"
-  "Replace the current rowindex on the datatable with the new one.")
-
-DECLARE_METHOD(
-  replace_column_slice,
-  "replace_column_slice(start, count, step, repl_at, replacement)\n\n"
-  "Replace a slice of columns in the current DataTable with the columns\n"
-  "from the provided DataTable `replacement` (which must be conformant).\n"
-  "The values will be written at locations given by the RowIndex\n"
-  "`repl_at`. This RowIndex may be missing, indicating that all values\n"
-  "have to be replaced.\n")
-
-DECLARE_METHOD(
-  replace_column_array,
-  "replace_column_array(arr, repl_at, replacement)\n\n"
-  "Replace a selection of columns in the current DataTable with the columns\n"
-  "from the `replacement` DataTable. The array `arr` contains the list of\n"
-  "column indices to be replaced. It may also contain indices that are out\n"
-  "of bounds for the current DataTable -- those indicate columns that should\n"
-  "be appended rather than replaced.\n"
-  "The RowIndex `repl_at`, if present, specifies rows at which the values\n"
-  "have to be replaced. If `repl_at` is given, then `arr` cannot contain\n"
-  "out-of-bounds column indices.\n")
 
 DECLARE_METHOD(
   rbind,
   "Append rows of other datatables to the current")
-
-DECLARE_METHOD(
-  sort,
-  "sort(col, makegroups=False)\n\n"
-  "Sort datatable by the specified column and return the RowIndex object\n"
-  "corresponding to the col's ordering. If `makegroups` is True, then\n"
-  "grouping information will also be computed and stored in the RowIndex.")
 
 DECLARE_METHOD(
   materialize,
@@ -156,10 +109,6 @@ DECLARE_METHOD(
   save_jay,
   "save_jay(file, colnames)\n\n"
   "Save DataTable into a .jay file.\n")
-
-DECLARE_METHOD(
-  join,
-  "join(rowindex, join_frame, cols)\n\n")
 
 
 DECLARE_METHOD(

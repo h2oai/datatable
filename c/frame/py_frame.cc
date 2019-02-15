@@ -23,113 +23,84 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 
+extern SType force_stype;
+
 namespace py {
 
 PyObject* Frame_Type = nullptr;
 
 
+
 //------------------------------------------------------------------------------
-// Declare Frame's API
+// head() & tail()
 //------------------------------------------------------------------------------
 
-PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
-                                  {"src", "names", "stypes", "stype"},
-                                  "__init__", nullptr);
-NoArgs Frame::Type::args_copy("copy",
-"copy(self)\n"
-"--\n\n"
-"Make a copy of this Frame.\n"
-"\n"
-"This method creates a shallow copy of the current Frame: only references\n"
-"are copied, not the data itself. However, due to copy-on-write semantics\n"
-"any changes made to one of the Frames will not propagate to the other.\n"
-"Thus, for all intents and purposes the copied Frame will behave as if\n"
-"it was deep-copied.\n");
-
-PKArgs Frame::Type::fn_head(
+static PKArgs args_head(
     1, 0, 0, false, false,
     {"n"}, "head",
 R"(head(self, n=10)
 --
 
-Return the first `n` rows of the Frame, same as ``self[:n, :]``.
+Return the first `n` rows of the frame, same as ``self[:n, :]``.
 )");
 
-PKArgs Frame::Type::fn_tail(
+oobj Frame::head(const PKArgs& args) {
+  size_t n = std::min(args.get<size_t>(0, 10),
+                      dt->nrows);
+  py::otuple aa(2);
+  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
+}
+
+
+
+static PKArgs args_tail(
     1, 0, 0, false, false,
     {"n"}, "tail",
 R"(tail(self, n=10)
 --
 
-Return the last `n` rows of the Frame, same as ``self[-n:, :]``.
+Return the last `n` rows of the frame, same as ``self[-n:, :]``.
 )");
 
-
-
-const char* Frame::Type::classname() {
-  return "datatable.core.Frame";
-}
-
-const char* Frame::Type::classdoc() {
-  return
-    "Two-dimensional column-oriented table of data. Each column has its own\n"
-    "name and type. Types may vary across columns but cannot vary within\n"
-    "each column.\n"
-    "\n"
-    "Internally the data is stored as C primitives, and processed using\n"
-    "multithreaded native C++ code.\n"
-    "\n"
-    "This is a primary data structure for the `datatable` module.\n";
+oobj Frame::tail(const PKArgs& args) {
+  size_t n = std::min(args.get<size_t>(0, 10),
+                      dt->nrows);
+  // Note: usual slice `-n::` doesn't work as expected when `n = 0`
+  py::otuple aa(2);
+  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
+  aa.set(1, py::None());
+  return m__getitem__(aa);
 }
 
 
-void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
-{
-  _init_init(mm, gs);
-  _init_names(mm, gs);
 
-  gs.add<&Frame::get_ncols>("ncols",
-    "Number of columns in the Frame\n");
+//------------------------------------------------------------------------------
+// copy()
+//------------------------------------------------------------------------------
 
-  gs.add<&Frame::get_nrows, &Frame::set_nrows>("nrows",
-    "Number of rows in the Frame.\n"
-    "\n"
-    "Assigning to this property will change the height of the Frame,\n"
-    "either by truncating if the new number of rows is smaller than the\n"
-    "current, or filling with NAs if the new number of rows is greater.\n"
-    "\n"
-    "Increasing the number of rows of a keyed Frame is not allowed.\n");
+static PKArgs args_copy(
+  0, 0, 0, false, false,
+  {}, "copy",
 
-  gs.add<&Frame::get_shape>("shape",
-    "Tuple with (nrows, ncols) dimensions of the Frame\n");
+R"(copy(self)
+--
 
-  gs.add<&Frame::get_stypes>("stypes",
-    "The tuple of each column's stypes (\"storage types\")\n");
+Make a copy of this frame.
 
-  gs.add<&Frame::get_ltypes>("ltypes",
-    "The tuple of each column's ltypes (\"logical types\")\n");
+This method creates a shallow copy of the current frame: only references
+are copied, not the data itself. However, due to copy-on-write semantics
+any changes made to one of the frames will not propagate to the other.
+Thus, for all intents and purposes the copied frame will behave as if
+it was deep-copied.)"
+);
 
-  gs.add<&Frame::get_key, &Frame::set_key>("key",
-    "Tuple of column names that serve as a primary key for this Frame.\n"
-    "\n"
-    "If the Frame is not keyed, this will return an empty tuple.\n"
-    "\n"
-    "Assigning to this property will make the Frame keyed by the specified\n"
-    "column(s). The key columns will be moved to the front, and the Frame\n"
-    "will be sorted. The values in the key columns must be unique.\n");
-
-  gs.add<&Frame::get_internal>("internal", "[DEPRECATED]");
-  gs.add<&Frame::get_internal>("_dt");
-
-  mm.add<&Frame::cbind, args_cbind>();
-  mm.add<&Frame::copy, args_copy>();
-  mm.add<&Frame::replace, args_replace>();
-  mm.add<&Frame::_repr_html_, args__repr_html_>();
-  mm.add<&Frame::to_dict, args_to_dict>();
-  mm.add<&Frame::to_list, args_to_list>();
-  mm.add<&Frame::to_tuples, args_to_tuples>();
-  mm.add<&Frame::head, fn_head>();
-  mm.add<&Frame::tail, fn_tail>();
+oobj Frame::copy(const PKArgs&) {
+  Frame* newframe = Frame::from_datatable(dt->copy());
+  newframe->stypes = stypes;  Py_XINCREF(stypes);
+  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  return py::oobj::from_new_reference(newframe);
 }
 
 
@@ -172,13 +143,6 @@ void Frame::m__release_buffer__(Py_buffer*) const {
 }
 
 
-oobj Frame::copy(const NoArgs&) {
-  Frame* newframe = Frame::from_datatable(dt->copy());
-  newframe->stypes = stypes;  Py_XINCREF(stypes);
-  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
-  return py::oobj::from_new_reference(newframe);
-}
-
 void Frame::_clear_types() const {
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
@@ -187,36 +151,31 @@ void Frame::_clear_types() const {
 }
 
 
-oobj Frame::head(const PKArgs& args) {
-  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
-  if (n > dt->nrows) n = dt->nrows;
-  py::otuple aa(2);
-  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
-}
-
-
-oobj Frame::tail(const PKArgs& args) {
-  size_t n = args[0].is_undefined()? 10 : args[0].to_size_t();
-  if (n > dt->nrows) n = dt->nrows;
-  py::otuple aa(2);
-  // Note: usual slice `-n::` doesn't work as expected when `n = 0`
-  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
-}
-
 
 
 //------------------------------------------------------------------------------
 // Getters / setters
 //------------------------------------------------------------------------------
 
+static GSArgs args_ncols(
+  "ncols",
+  "Number of columns in the Frame\n");
+
 oobj Frame::get_ncols() const {
   return py::oint(dt->ncols);
 }
 
+
+static GSArgs args_nrows(
+  "nrows",
+R"(Number of rows in the Frame.
+
+Assigning to this property will change the height of the Frame,
+either by truncating if the new number of rows is smaller than the
+current, or filling with NAs if the new number of rows is greater.
+
+Increasing the number of rows of a keyed Frame is not allowed.
+)");
 
 oobj Frame::get_nrows() const {
   return py::oint(dt->nrows);
@@ -235,6 +194,10 @@ void Frame::set_nrows(py::robj nr) {
 }
 
 
+static GSArgs args_shape(
+  "shape",
+  "Tuple with (nrows, ncols) dimensions of the Frame\n");
+
 oobj Frame::get_shape() const {
   py::otuple shape(2);
   shape.set(0, get_nrows());
@@ -242,6 +205,10 @@ oobj Frame::get_shape() const {
   return std::move(shape);
 }
 
+
+static GSArgs args_stypes(
+  "stypes",
+  "The tuple of each column's stypes (\"storage types\")\n");
 
 oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
@@ -256,6 +223,10 @@ oobj Frame::get_stypes() const {
 }
 
 
+static GSArgs args_ltypes(
+  "ltypes",
+  "The tuple of each column's ltypes (\"logical types\")\n");
+
 oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols);
@@ -269,9 +240,66 @@ oobj Frame::get_ltypes() const {
 }
 
 
+static GSArgs args_internal("internal", "[DEPRECATED]");
+static GSArgs args__dt("_dt", "[DEPRECATED]");
+
 oobj Frame::get_internal() const {
   return oobj(core_dt);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Declare Frame's API
+//------------------------------------------------------------------------------
+
+PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
+                                  {"src", "names", "stypes", "stype"},
+                                  "__init__", nullptr);
+
+
+const char* Frame::Type::classname() {
+  return "datatable.core.Frame";
+}
+
+const char* Frame::Type::classdoc() {
+  return
+    "Two-dimensional column-oriented table of data. Each column has its own\n"
+    "name and type. Types may vary across columns but cannot vary within\n"
+    "each column.\n"
+    "\n"
+    "Internally the data is stored as C primitives, and processed using\n"
+    "multithreaded native C++ code.\n"
+    "\n"
+    "This is a primary data structure for the `datatable` module.\n";
+}
+
+
+void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
+  _init_cbind(mm);
+  _init_key(gs);
+  _init_init(mm);
+  _init_names(mm, gs);
+  _init_replace(mm);
+  _init_reprhtml(mm);
+  _init_tonumpy(mm);
+  _init_topython(mm);
+
+  ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
+  ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
+  ADD_GETTER(gs, &Frame::get_shape, args_shape);
+  ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
+  ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
+  ADD_GETTER(gs, &Frame::get_internal, args_internal);
+  ADD_GETTER(gs, &Frame::get_internal, args__dt);
+
+  ADD_METHOD(mm, &Frame::head, args_head);
+  ADD_METHOD(mm, &Frame::tail, args_tail);
+  ADD_METHOD(mm, &Frame::copy, args_copy);
+}
+
+
 
 
 }  // namespace py

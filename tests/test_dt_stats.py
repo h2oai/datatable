@@ -81,7 +81,7 @@ def test_min(src):
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_min(src)]]
-    assert dtr.scalar() == dt0.min1()
+    assert dtr[0, 0] == dt0.min1()
 
 
 def test_dt_str():
@@ -113,7 +113,7 @@ def test_max(src):
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_max(src)]]
-    assert dtr.scalar() == dt0.max1()
+    assert dtr[0, 0] == dt0.max1()
 
 
 
@@ -142,7 +142,7 @@ def test_sum(src):
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sum(src)]])
-    assert list_equals([dtr.scalar()], [dt0.sum1()])
+    assert list_equals([dtr[0, 0]], [dt0.sum1()])
 
 
 
@@ -166,7 +166,7 @@ def test_dt_mean(src):
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
     assert list_equals(dtr.to_list(), [[t_mean(src)]])
-    assert list_equals([dtr.scalar()], [dt0.mean1()])
+    assert list_equals([dtr[0, 0]], [dt0.mean1()])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 3),
@@ -217,7 +217,7 @@ def test_dt_sd(src):
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sd(src)]])
-    assert list_equals([dtr.scalar()], [dt0.sd1()])
+    assert list_equals([dtr[0, 0]], [dt0.sd1()])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 2.0),
@@ -261,7 +261,7 @@ def test_dt_count_na(src):
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
     assert dtr.to_list() == [[ans]]
-    assert dtr.scalar() == dt0.countna1()
+    assert dtr[0, 0] == dt0.countna1()
 
 
 
@@ -285,8 +285,8 @@ def test_dt_n_unique(src):
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dtr.names == dt0.names
-    assert dtr.scalar() == ans
-    assert dtr.scalar() == dt0.nunique1()
+    assert dtr[0, 0] == ans
+    assert dtr[0, 0] == dt0.nunique1()
 
 
 
@@ -326,14 +326,14 @@ def test_mode(src):
     assert dtm.stypes == f0.stypes
     assert dtn.stypes == (stype.int64, )
     if modal_count:
-        assert dtm.scalar() in modal_values
-        assert dtm.scalar() == f0.mode1()
-        assert dtn.scalar() == modal_count
+        assert dtm[0, 0] in modal_values
+        assert dtm[0, 0] == f0.mode1()
+        assert dtn[0, 0] == modal_count
         assert f0.nmodal1() == modal_count
     else:
-        assert dtm.scalar() is None
+        assert dtm[0, 0] is None
         assert f0.mode1() is None
-        assert dtn.scalar() == 0
+        assert dtn[0, 0] == 0
         assert f0.nmodal1() == 0
 
 
@@ -354,7 +354,7 @@ def test_stats_on_view(src, view, exp):
     dt0 = dt.Frame(src)
     dt_view = dt0[view, :]
     res = dt_view.min()
-    assert res.scalar() == exp
+    assert res[0, 0] == exp
 
 
 def test_bad_call():
@@ -405,27 +405,27 @@ def test_object_column2():
     f0 = df.countna()
     f0.internal.check()
     assert f0.stypes == (stype.int64, )
-    assert f0.scalar() == 2
+    assert f0[0, 0] == 2
     f1 = df.min()
     f1.internal.check()
     assert f1.stypes == (stype.obj64, )
-    assert f1.scalar() == None
+    assert f1[0, 0] == None
     f2 = df.max()
     f2.internal.check()
     assert f2.stypes == (stype.obj64, )
-    assert f2.scalar() == None
+    assert f2[0, 0] == None
     f3 = df.sum()
     f3.internal.check()
     assert f3.stypes == (stype.obj64, )
-    assert f3.scalar() == None
+    assert f3[0, 0] == None
     f4 = df.mean()
     f4.internal.check()
     assert f4.stypes == (stype.float64, )
-    assert f4.scalar() == None
+    assert f4[0, 0] == None
     f5 = df.sd()
     f5.internal.check()
     assert f5.stypes == (stype.float64, )
-    assert f5.scalar() == None
+    assert f5[0, 0] == None
     with pytest.raises(NotImplementedError):
         df.mode()
     with pytest.raises(NotImplementedError):

@@ -25,7 +25,7 @@ import pytest
 import datatable as dt
 import random
 from datatable import stype, ltype, f, by
-from datatable.internal import get_rowindex
+from datatable.internal import frame_column_rowindex
 from tests import same_iterables, noop, assert_equals
 
 
@@ -63,7 +63,7 @@ def as_list(df):
 
 def is_slice(DT):
     for i in range(DT.ncols):
-        r = get_rowindex(DT, i)
+        r = frame_column_rowindex(DT, i)
         if r is None or r.type != "slice":
             return False
     return True
@@ -71,7 +71,7 @@ def is_slice(DT):
 
 def is_arr(DT):
     for i in range(DT.ncols):
-        r = get_rowindex(DT, i)
+        r = frame_column_rowindex(DT, i)
         if r is None or r.type != "arr32":
             return False
     return True
@@ -94,7 +94,7 @@ def test_dt0_properties(dt0):
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
     assert dt0.internal.isview is False
     for i in range(dt0.ncols):
-        assert get_rowindex(dt0, i) is None
+        assert frame_column_rowindex(dt0, i) is None
     dt0.internal.check()
 
 

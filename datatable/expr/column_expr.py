@@ -32,14 +32,6 @@ class ColSelectorExpr(BaseExpr):
             raise TTypeError("Column selector should be an integer or "
                              "a string, not %r" % type(selector))
 
-    def resolve(self):
-        dt = self._dtexpr.get_datatable()
-        self._colid = dt.colindex(self._colexpr)
-        self._stype = self._dtexpr.stypes[self._colid]
-
-    def is_reduce_expr(self, ee):
-        return self._colid in ee.groupby_cols
-
     @property
     def col_index(self):
         return self._colid
@@ -99,66 +91,6 @@ class ColSelectorExpr(BaseExpr):
 
 
 
-    #---------------------------------------------------------------------------
-    # LLVM evaluation
-    #---------------------------------------------------------------------------
-
-    def _value(self, key, inode):
-        self.resolve()
-        v = inode.make_keyvar(key, key, exact=True)
-        inode.check_num_rows(self._dtexpr.nrows)
-        assert v == key
-        datavar = key + "_data"
-        inode.make_keyvar(datavar, datavar, exact=True)
-        inode.addto_preamble("{type}* {data} = "
-                             "({type}*) dt_column_data({dt}, {idx});"
-                             .format(type=self.ctype, data=datavar,
-                                     dt=self._get_dtvar(inode),
-                                     idx=self._colid))
-        if self.stype == stype.str32:
-            inode.addto_preamble("{data}++;".format(data=datavar))
-        inode.addto_mainloop("{type} {var} = {data}[i];"
-                             .format(type=self.ctype, var=v, data=datavar))
-        return v
-
-    def _isna(self, key, inode):
-        self.resolve()
-        # TODO: use rollup stats to determine if some variable is never NA
-        v = inode.make_keyvar(key, self.safe_name() + "_isna", exact=True)
-        if self.stype == stype.str32:
-            inode.addto_mainloop("int {var} = ({value} < 0);"
-                                 .format(var=v, value=self.value(inode)))
-        else:
-            isna_fn = "IS" + nas_map[self.stype]
-            inode.add_extern(isna_fn)
-            inode.addto_mainloop("int {var} = {isna}({value});"
-                                 .format(var=v, isna=isna_fn,
-                                         value=self.value(inode)))
-        return v
-
-    def notna(self, inode):
-        return self.value(inode)
-
-    def _notna(self, key, inode):
-        pass
-
-    def _get_dtvar(self, inode):
-        dt = self._dtexpr.get_datatable()
-        return inode.get_dtvar(dt)
-
-
-    #---------------------------------------------------------------------------
-    # Eager evaluation
-    #---------------------------------------------------------------------------
-
-    def evaluate_eager(self, ee):
-        self.resolve()
-        dt = self._dtexpr.get_datatable()
-        ri = self._dtexpr.get_rowindex()
-        return core.expr_column(dt.internal, self._colid, ri)
-
-
-
 
 class NewColumnExpr(BaseExpr):
     __slots__ = ["_name"]
@@ -168,6 +100,3 @@ class NewColumnExpr(BaseExpr):
 
     def __str__(self):
         return self._name
-
-    def resolve(self):
-        pass

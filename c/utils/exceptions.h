@@ -101,6 +101,7 @@ Error MemoryError();
 Error NotImplError();
 Error IOError();
 Error AssertionError();
+Error ImportError();
 
 void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);

@@ -1289,56 +1289,6 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
 }
 
 
-/**
- * Sort the Frame by columns at the specified positions `colindices`, and return
- * their ordering as a RowIndex object. The data in the current Frame will not
- * be modified.
- */
-RowIndex DataTable::sortby(const std::vector<size_t>& colindices,
-                           Groupby* out_grps) const
-{
-  size_t nsortcols = colindices.size();
-  if (nrows > INT32_MAX) {
-    throw NotImplError() << "Cannot sort a Frame with " << nrows << " rows";
-  }
-  // A frame can be sorted by columns col1, ..., colN if and only if all these
-  // columns have the same rowindex. The resulting RowIndex can be applied to
-  // to all columns in the frame iff one of the following holds: (1) all
-  // columns in the frame has the same rowindex; or (2) the sortby columns
-  // do not have any rowindex.
-  Column* col0 = columns[colindices[0]];
-  for (size_t i = 1; i < nsortcols; ++i) {
-    if (columns[colindices[i]]->rowindex() != col0->rowindex()) {
-      for (size_t j = 0; j < nsortcols; ++j) {
-        columns[colindices[j]]->reify();
-      }
-      break;
-    }
-  }
-
-  if (nrows <= 1) {
-    size_t i = col0->rowindex()[0];
-    if (out_grps) {
-      *out_grps = Groupby::single_group(col0->nrows);
-    }
-    return RowIndex(i, col0->nrows, 1);
-  }
-  SortContext sc(nrows, col0->rowindex(),
-                 (out_grps != nullptr) || (nsortcols > 1));
-  sc.start_sort(col0, false);
-  for (size_t j = 1; j < nsortcols; ++j) {
-    sc.continue_sort(columns[colindices[j]], false,
-                     (out_grps != nullptr) || (j < nsortcols - 1));
-  }
-  if (out_grps) {
-    auto res = sc.get_result_groups();
-    *out_grps = std::move(res.second);
-    return res.first;
-  } else {
-    return sc.get_result_rowindex();
-  }
-}
-
 
 static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   if (col->nrows == 0) {

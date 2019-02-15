@@ -106,73 +106,27 @@ py::oobj strvecNP::item_as_pyoobj(size_t i) {
 //------------------------------------------------------------------------------
 namespace py {
 
-PKArgs Frame::Type::args_colindex(1, 0, 0, false, false, {"name"},
-                                  "colindex",
-"colindex(self, name)\n"
-"--\n\n"
-"Return index of the column ``name``.\n"
-"\n"
-":param name: name of the column to find the index for. This can also\n"
-"    be an index of a column, in which case the index is checked that\n"
-"    it doesn't go out-of-bounds, and negative index is converted into\n"
-"    positive.\n"
-":raises ValueError: if the requested column does not exist.\n");
+static PKArgs args_colindex(
+    1, 0, 0, false, false,
+    {"name"}, "colindex",
 
-void Frame::Type::_init_names(Methods& mm, GetSetters& gs)
-{
-  mm.add<&Frame::colindex, args_colindex>();
+R"(colindex(self, name)
+--
 
-  gs.add<&Frame::get_names, &Frame::set_names>("names",
-    "Tuple of column names.\n"
-    "\n"
-    "You can rename the Frame's columns by assigning a new list/tuple of\n"
-    "names to this property. The length of the new list of names must be\n"
-    "the same as the number of columns in the Frame.\n"
-    "\n"
-    "It is also possible to rename just a few columns by assigning a\n"
-    "dictionary ``{oldname: newname, ...}``. Any column not listed in the\n"
-    "dictionary will retain its name.\n"
-    "\n"
-    "Examples\n"
-    "--------\n"
-    ">>> d0 = dt.Frame([[1], [2], [3]])\n"
-    ">>> d0.names = ['A', 'B', 'C']\n"
-    ">>> d0.names\n"
-    "('A', 'B', 'C')\n"
-    ">>> d0.names = {'B': 'middle'}\n"
-    ">>> d0.names\n"
-    "('A', 'middle', 'C')\n"
-    ">>> del d0.names\n"
-    ">>> d0.names\n"
-    "('C0', 'C1', 'C2')");
-}
+Return index of the column ``name``, or raises a `ValueError` if the requested
+column does not exist.
+
+Parameters
+----------
+name: str
+    The name of the column for which the index is sought. This can also
+    be an index of a column, in which case the index is checked that
+    it doesn't go out-of-bounds, and negative index is converted into
+    positive.
+)");
 
 
-
-oobj Frame::get_names() const {
-  return dt->get_pynames();
-}  // LCOV_EXCL_LINE
-
-
-void Frame::set_names(robj arg)
-{
-  if (arg.is_undefined() || arg.is_none()) {
-    dt->set_names_to_default();
-  }
-  else if (arg.is_list() || arg.is_tuple()) {
-    dt->set_names(arg.to_pylist());
-  }
-  else if (arg.is_dict()) {
-    dt->replace_names(arg.to_pydict());
-  }
-  else {
-    throw TypeError() << "Expected a list of strings, got " << arg.typeobj();
-  }
-}
-
-
-oobj Frame::colindex(const PKArgs& args)
-{
+oobj Frame::colindex(const PKArgs& args) {
   auto col = args[0];
 
   if (col.is_string()) {
@@ -197,6 +151,64 @@ oobj Frame::colindex(const PKArgs& args)
   throw TypeError() << "The argument to Frame.colindex() should be a string "
       "or an integer, not " << col.typeobj();
 }
+
+
+
+static GSArgs args_names(
+  "names",
+R"(Tuple of column names.
+
+You can rename the Frame's columns by assigning a new list/tuple of
+names to this property. The length of the new list of names must be
+the same as the number of columns in the Frame.
+
+It is also possible to rename just a few columns by assigning a
+dictionary ``{oldname: newname, ...}``. Any column not listed in the
+dictionary will retain its name.
+
+Examples
+--------
+>>> d0 = dt.Frame([[1], [2], [3]])
+>>> d0.names = ['A', 'B', 'C']
+>>> d0.names
+('A', 'B', 'C')
+>>> d0.names = {'B': 'middle'}
+>>> d0.names
+('A', 'middle', 'C')
+>>> del d0.names
+>>> d0.names
+('C0', 'C1', 'C2)
+)");
+
+
+oobj Frame::get_names() const {
+  return dt->get_pynames();
+}  // LCOV_EXCL_LINE
+
+
+void Frame::set_names(robj arg)
+{
+  if (arg.is_undefined() || arg.is_none()) {
+    dt->set_names_to_default();
+  }
+  else if (arg.is_list() || arg.is_tuple()) {
+    dt->set_names(arg.to_pylist());
+  }
+  else if (arg.is_dict()) {
+    dt->replace_names(arg.to_pydict());
+  }
+  else {
+    throw TypeError() << "Expected a list of strings, got " << arg.typeobj();
+  }
+}
+
+
+
+void Frame::Type::_init_names(Methods& mm, GetSetters& gs) {
+  ADD_METHOD(mm, &Frame::colindex, args_colindex);
+  ADD_GETSET(gs, &Frame::get_names, &Frame::set_names, args_names);
+}
+
 
 } // namespace py
 

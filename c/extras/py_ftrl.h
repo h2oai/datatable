@@ -47,11 +47,6 @@ class Ftrl : public PyObject {
     class Type : public ExtType<Ftrl> {
       public:
         static PKArgs args___init__;
-        static PKArgs args_fit;
-        static PKArgs args_predict;
-        static NoArgs args_reset;
-        static NoArgs fn___getstate__;
-        static PKArgs fn___setstate__;
         static const char* classname();
         static const char* classdoc();
         static bool is_subclassable() { return true; }
@@ -64,7 +59,7 @@ class Ftrl : public PyObject {
     void init_dtft(dt::FtrlParams);
 
     // Pickling support
-    oobj m__getstate__(const NoArgs&);
+    oobj m__getstate__(const PKArgs&);
     void m__setstate__(const PKArgs&);
 
     // Learning and predicting methods
@@ -74,7 +69,7 @@ class Ftrl : public PyObject {
     template <typename T>
     void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
-    void reset(const NoArgs&);
+    void reset(const PKArgs&);
     void reset_feature_names();
 
     // Getters and setters
