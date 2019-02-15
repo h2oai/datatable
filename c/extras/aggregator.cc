@@ -47,15 +47,16 @@ namespace py {
        bool double_precision = args[10].to_bool_strict();
 
        dtptr dt_members, dt_exemplars;
+       std::unique_ptr<AggregatorBase> agg;
        if (double_precision) {
-         Aggregator<double> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+         agg = make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
                                max_dimensions, seed, progress_fn, nthreads);
-         agg.aggregate(dt, dt_exemplars, dt_members);
        } else {
-         Aggregator<float> agg(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
+         agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins, nd_max_bins,
                                max_dimensions, seed, progress_fn, nthreads);
-         agg.aggregate(dt, dt_exemplars, dt_members);
        }
+
+       agg->aggregate(dt, dt_exemplars, dt_members);
 
        py::oobj df_exemplars = py::oobj::from_new_reference(
                                  py::Frame::from_datatable(dt_exemplars.release())
@@ -63,6 +64,7 @@ namespace py {
        py::oobj df_members = py::oobj::from_new_reference(
                                py::Frame::from_datatable(dt_members.release())
                              );
+       // Return a list of two frames: exemplars and members.
        py::olist list(2);
        list.set(0, df_exemplars);
        list.set(1, df_members);
@@ -71,6 +73,7 @@ namespace py {
   );
 }
 
+AggregatorBase::~AggregatorBase() {}
 
 void DatatableModule::init_methods_aggregate() {
   ADDFN(py::aggregate);

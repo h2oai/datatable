@@ -46,6 +46,17 @@ using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
 template <typename T>
 using ccptrvec = typename std::vector<ccptr<T>>;
 
+
+/*
+*  Aggregator base class.
+*/
+class AggregatorBase {
+  public :
+    virtual void aggregate(DataTable*, dtptr&, dtptr&) = 0;
+    virtual ~AggregatorBase();
+};
+
+
 /*
 *  Aggregator main template class, where `T` is a type used for all the distance
 *  calculations. Templated with either `float` or `double`, aggregator
@@ -53,7 +64,7 @@ using ccptrvec = typename std::vector<ccptr<T>>;
 *  At the same time, using `float` can reduce memory usage.
 */
 template <typename T>
-class Aggregator {
+class Aggregator : public AggregatorBase {
   public:
     struct exemplar {
       size_t id;
@@ -62,7 +73,7 @@ class Aggregator {
     using exptr = std::unique_ptr<exemplar>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
                unsigned int, py::oobj, unsigned int);
-    void aggregate(DataTable*, dtptr&, dtptr&);
+    void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
 

@@ -39,9 +39,6 @@ def aggregate(dt_in, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
     nthreads: int
         Number of OpenMP threads ND aggregator will use. Default is 0,
         i.e. automatically figure out the optimal number.
-    double_precision: boolean
-        Whether aggregator should use double precision arithmetics or not.
-        Default is `False`.
 
     Returns
     -------
