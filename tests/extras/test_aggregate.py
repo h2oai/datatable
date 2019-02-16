@@ -22,28 +22,14 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 #
-# Test aggregating different types of data
+# Test 0D, 1D, 2D and ND aggregators.
 #
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable import ltype
-from datatable.extras.aggregate import aggregate
+from datatable.extras import aggregate
 from tests import assert_equals
 from datatable.internal import frame_column_rowindex
-import inspect
-
-
-#-------------------------------------------------------------------------------
-# Get default arguments of a function
-#-------------------------------------------------------------------------------
-
-def get_default_args(func):
-    signature = inspect.signature(func)
-    return {
-        k: v.default
-        for k, v in signature.parameters.items()
-        if v.default is not inspect.Parameter.empty
-    }
 
 
 #-------------------------------------------------------------------------------
@@ -470,8 +456,8 @@ def test_aggregate_2d_mixed_random():
 #-------------------------------------------------------------------------------
 
 def test_aggregate_3d_categorical():
-    args = get_default_args(aggregate)
-    rows = args["min_rows"] * 2
+    min_rows = 500
+    rows = min_rows * 2
     nd_max_bins_in = rows
     a_in = [["blue"] * rows, ["orange"] * rows, ["yellow"] * rows]
     members_count = [[1] * rows]
@@ -522,13 +508,13 @@ def test_aggregate_3d_real():
 
 
 def test_aggregate_nd_direct():
-    args = get_default_args(aggregate)
-    aggregate_nd(args["max_dimensions"] // 2)
+    max_dimensions = 50
+    aggregate_nd(max_dimensions // 2)
 
 
 def test_aggregate_nd_projection():
-    args = get_default_args(aggregate)
-    aggregate_nd(args["max_dimensions"] * 2)
+    max_dimensions = 50
+    aggregate_nd(max_dimensions * 2)
 
 
 def aggregate_nd(nd):
