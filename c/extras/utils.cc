@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
+#include <stdio.h>
 #include "extras/utils.h"
 
 
