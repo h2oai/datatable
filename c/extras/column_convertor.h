@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef C_EXTRAS_COLUMN_CONVERTOR_H_
-#define C_EXTRAS_COLUMN_CONVERTOR_H_
+#ifndef dt_EXTRAS_COLUMN_CONVERTOR_h
+#define dt_EXTRAS_COLUMN_CONVERTOR_h
 #include "py_datatable.h"
 
 
@@ -186,4 +186,4 @@ void ColumnConvertorReal<T1, T2, T3>::get_rows(std::vector<T2>& buffer,
 }
 
 
-#endif /* C_EXTRAS_COLUMN_CONVERTOR_H_ */
+#endif
