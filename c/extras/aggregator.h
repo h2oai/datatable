@@ -76,6 +76,8 @@ class Aggregator : public AggregatorBase {
     static void set_norm_coeffs(T&, T&, T, T, size_t);
 
   private:
+    // Input parameters and datatable
+    const DataTable* dt;
     size_t min_rows;
     size_t n_bins;
     size_t nx_bins;
@@ -86,37 +88,43 @@ class Aggregator : public AggregatorBase {
     unsigned int nthreads;
     py::oobj progress_fn;
 
+    // Output exemplar and member datatables
+    dtptr dt_exemplars;
+    dtptr dt_members;
+
+    // Continuous column convertors and datatable with categorical columns
+    ccptrvec<T> contconvs;
+    dtptr dt_cat;
+
     // Final aggregation method
-    void aggregate_exemplars(dtptr&, dtptr&, bool);
+    void aggregate_exemplars(bool);
 
     // Grouping methods, `0d` means no grouping is done
-    void group_0d(const DataTable*, dtptr&);
-    void group_1d(const dtptr&, const ccptrvec<T>&, dtptr&);
-    void group_1d_continuous(const ccptrvec<T>&, dtptr&);
-    void group_1d_categorical(const dtptr&, dtptr&);
-    void group_2d(const dtptr&, const ccptrvec<T>&, dtptr&);
-    void group_2d_continuous(const ccptrvec<T>&, dtptr&);
-    void group_2d_categorical(const dtptr&, dtptr&);
+    void group_0d();
+    void group_1d();
+    void group_1d_continuous();
+    void group_1d_categorical();
+    void group_2d();
+    void group_2d_continuous();
+    void group_2d_categorical();
     template<typename U0, typename U1>
-    void group_2d_categorical_str(const dtptr&, dtptr&);
-    void group_2d_mixed(const dtptr&, const ccptrvec<T>&, dtptr&);
+    void group_2d_categorical_str();
+    void group_2d_mixed();
     template<typename U0>
-    void group_2d_mixed_str(const dtptr&, const ccptrvec<T>&, dtptr&);
-    void group_nd(const ccptrvec<T>&, dtptr&);
+    void group_2d_mixed_str();
+    void group_nd();
 
     // Random sampling and modular quasi-random generator
-    bool sample_exemplars(dtptr&, size_t, size_t);
+    bool sample_exemplars(size_t, size_t);
 
     // Helper methods
     size_t get_nthreads(size_t nrows);
-    void normalize_row(const ccptrvec<T>&, tptr<T>&, size_t);
-    void project_row(const ccptrvec<T>&, tptr<T>&, size_t, tptr<T>&);
+    void normalize_row(tptr<T>&, size_t);
+    void project_row(tptr<T>&, size_t, tptr<T>&);
     tptr<T> generate_pmatrix(size_t ncols);
-    T calculate_distance(tptr<T>&, tptr<T>&, size_t, T,
-                              bool early_exit=true);
-    void adjust_delta(T&, std::vector<exptr>&, std::vector<size_t>&,
-                      size_t);
-    void adjust_members(std::vector<size_t>&, dtptr&);
+    T calculate_distance(tptr<T>&, tptr<T>&, size_t, T, bool early_exit = true);
+    void adjust_delta(T&, std::vector<exptr>&, std::vector<size_t>&, size_t);
+    void adjust_members(std::vector<size_t>&);
     size_t calculate_map(std::vector<size_t>&, size_t);
     void progress(float, int status_code=0);
 };
@@ -153,21 +161,20 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 *     and the exemplars gathered in `dt_exemplars`.
 */
 template <typename T>
-void Aggregator<T>::aggregate(DataTable* dt,
-                              dtptr& dt_exemplars,
-                              dtptr& dt_members)
+void Aggregator<T>::aggregate(DataTable* dt_in, 
+                              dtptr& dt_exemplars_in,
+                              dtptr& dt_members_in)
 {
   progress(0.0, 0);
+  dt = dt_in;
   bool was_sampled = false;
 
   Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
   dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
-    dtptr dt_cat;
     colvec catcols;
     size_t ncols, max_bins;
-    ccptrvec<T> contconvs;
     contconvs.reserve(dt->ncols);
     ccptr<T> contconv;
 
@@ -204,30 +211,38 @@ void Aggregator<T>::aggregate(DataTable* dt,
     // If `dt` has too few rows, do not aggregate it, instead, just sort it by
     // the first column calling `group_0d()`.
     switch (ncols) {
-      case 0:  group_0d(dt, dt_members);
+      case 0:  group_0d();
                max_bins = nd_max_bins;
                break;
-      case 1:  group_1d(dt_cat, contconvs, dt_members);
+      case 1:  group_1d();
                max_bins = n_bins;
                n_na_bins = 1;
                break;
-      case 2:  group_2d(dt_cat, contconvs, dt_members);
+      case 2:  group_2d();
                max_bins = nx_bins * ny_bins;
                n_na_bins = 3;
                break;
-      default: group_nd(contconvs, dt_members);
+      default: group_nd();
                max_bins = nd_max_bins;
     }
     // Sample members if we gathered too many exempalrs.
-    was_sampled = sample_exemplars(dt_members, max_bins, n_na_bins);
+    was_sampled = sample_exemplars(max_bins, n_na_bins);
   } else {
-    group_0d(dt, dt_members);
+    group_0d();
   }
 
-  // Do not aggregate `dt` in place, instead, make a shallow copy
+  // Do not aggregate `dt` in-place, instead, make a shallow copy
   // and apply rowindex based on the `exemplar_id`s gathered in `dt_members`.
   dt_exemplars = dtptr(dt->copy());
-  aggregate_exemplars(dt_exemplars, dt_members, was_sampled);
+  aggregate_exemplars(was_sampled);
+  dt_exemplars_in = std::move(dt_exemplars);
+  dt_members_in = std::move(dt_members);
+
+  // We do not need a pointer to the original datatable anymore,
+  // also clear vector of column convertors and datatable with categoricals
+  dt = nullptr;
+  contconvs.clear();
+  dt_cat = nullptr;
   progress(1.0, 1);
 }
 
@@ -237,9 +252,7 @@ void Aggregator<T>::aggregate(DataTable* dt,
 *  (e.g. too many distinct categorical values) do random sampling.
 */
 template <typename T>
-bool Aggregator<T>::sample_exemplars(dtptr& dt_members,
-                                     size_t max_bins,
-                                     size_t n_na_bins)
+bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 {
   bool was_sampled = false;
 
@@ -295,9 +308,7 @@ bool Aggregator<T>::sample_exemplars(dtptr& dt_members,
 *  in the aggregated frame.
 */
 template <typename T>
-void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
-                                     dtptr& dt_members,
-                                     bool was_sampled) {
+void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // Setting up offsets and members row index.
   std::vector<sort_spec> spec = {sort_spec(0)};
   auto res = dt_members->group(spec);
@@ -348,7 +359,7 @@ void Aggregator<T>::aggregate_exemplars(dtptr& dt_exemplars,
 *  Do no grouping, i.e. all rows become exemplars sorted by the first column.
 */
 template <typename T>
-void Aggregator<T>::group_0d(const DataTable* dt, dtptr& dt_members) {
+void Aggregator<T>::group_0d() {
   if (dt->ncols > 0) {
     std::vector<sort_spec> spec = {sort_spec(0, false, false, true)};
     auto res = dt->group(spec);
@@ -367,11 +378,11 @@ void Aggregator<T>::group_0d(const DataTable* dt, dtptr& dt_members) {
 *  Call an appropriate function for 1D grouping.
 */
 template <typename T>
-void Aggregator<T>::group_1d(const dtptr& dt, const ccptrvec<T>& contconvs, dtptr& dt_members) {
+void Aggregator<T>::group_1d() {
   if (contconvs.size()) {
-    group_1d_continuous(contconvs, dt_members);
+    group_1d_continuous();
   } else {
-    group_1d_categorical(dt, dt_members);
+    group_1d_categorical();
   }
 }
 
@@ -389,15 +400,15 @@ void Aggregator<T>::group_1d(const dtptr& dt, const ccptrvec<T>& contconvs, dtpt
 *  of the exemplar data frame.
 */
 template <typename T>
-void Aggregator<T>::group_2d(const dtptr& dt, const ccptrvec<T>& contconvs, dtptr& dt_members) {
+void Aggregator<T>::group_2d() {
   size_t ncont = contconvs.size();
 
   switch (ncont) {
-    case 0:  group_2d_categorical(dt, dt_members); break;
-    case 1:  group_2d_mixed(dt, contconvs, dt_members); break;
-    case 2:  group_2d_continuous(contconvs, dt_members); break;
-    default: throw ValueError() << "2D aggregation can only support 0, 1 or 2 continuous columns, got "
-                                << ncont;
+    case 0:  group_2d_categorical(); break;
+    case 1:  group_2d_mixed(); break;
+    case 2:  group_2d_continuous(); break;
+    default: throw ValueError() << "Got datatable with too many columns "
+                                << "for 2D aggregation:  " << ncont;
   }
 }
 
@@ -406,8 +417,7 @@ void Aggregator<T>::group_2d(const dtptr& dt, const ccptrvec<T>& contconvs, dtpt
 *  Do 1D grouping for a continuous column, i.e. 1D binning.
 */
 template <typename T>
-void Aggregator<T>::group_1d_continuous(const ccptrvec<T>& contconvs,
-                                     dtptr& dt_members) {
+void Aggregator<T>::group_1d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   T norm_factor, norm_shift;
   set_norm_coeffs(norm_factor, norm_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), n_bins);
@@ -428,8 +438,7 @@ void Aggregator<T>::group_1d_continuous(const ccptrvec<T>& contconvs,
 *  Do 2D grouping for two continuous columns, i.e. 2D binning.
 */
 template <typename T>
-void Aggregator<T>::group_2d_continuous(const ccptrvec<T>& contconvs,
-                                     dtptr& dt_members) {
+void Aggregator<T>::group_2d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
 
   T normx_factor, normx_shift;
@@ -457,9 +466,9 @@ void Aggregator<T>::group_2d_continuous(const ccptrvec<T>& contconvs,
 *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
 */
 template <typename T>
-void Aggregator<T>::group_1d_categorical(const dtptr& dt, dtptr& dt_members) {
+void Aggregator<T>::group_1d_categorical() {
   std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt->group(spec);
+  auto res = dt_cat->group(spec);
   RowIndex ri0 = std::move(res.first);
   Groupby grpby0 = std::move(res.second);
 
@@ -482,24 +491,26 @@ void Aggregator<T>::group_1d_categorical(const dtptr& dt, dtptr& dt_members) {
 *  to `group_2d_mixed_str`.
 */
 template <typename T>
-void Aggregator<T>::group_2d_categorical (const dtptr& dt,
-                                       dtptr& dt_members) {
-  switch (dt->columns[0]->stype()) {
-    case SType::STR32:  switch (dt->columns[1]->stype()) {
-                          case SType::STR32:  group_2d_categorical_str<uint32_t, uint32_t>(dt, dt_members); break;
-                          case SType::STR64:  group_2d_categorical_str<uint32_t, uint64_t>(dt, dt_members); break;
-                          default:            throw ValueError() << "Column types must be either STR32 or STR64";
+void Aggregator<T>::group_2d_categorical () {
+  switch (dt_cat->columns[0]->stype()) {
+    case SType::STR32:  switch (dt_cat->columns[1]->stype()) {
+                          case SType::STR32:  group_2d_categorical_str<uint32_t, uint32_t>(); break;
+                          case SType::STR64:  group_2d_categorical_str<uint32_t, uint64_t>(); break;
+                          default:            throw ValueError() << "For 2D categorical aggregation, all column types"
+                                                                 << "should be either STR32 or STR64";
                         }
                         break;
 
-    case SType::STR64:  switch (dt->columns[1]->stype()) {
-                          case SType::STR32:  group_2d_categorical_str<uint64_t, uint32_t>(dt, dt_members); break;
-                          case SType::STR64:  group_2d_categorical_str<uint64_t, uint64_t>(dt, dt_members); break;
-                          default:            throw ValueError() << "Column types must be either STR32 or STR64";
+    case SType::STR64:  switch (dt_cat->columns[1]->stype()) {
+                          case SType::STR32:  group_2d_categorical_str<uint64_t, uint32_t>(); break;
+                          case SType::STR64:  group_2d_categorical_str<uint64_t, uint64_t>(); break;
+                          default:            throw ValueError() << "For 2D categorical aggregation, all column types"
+                                                                 << "should be either STR32 or STR64";
                         }
                         break;
 
-    default:            throw ValueError() << "Column types must be either STR32 or STR64";
+    default:            throw ValueError() << "In 2D categorical aggregator column types"
+                                           << "should be either STR32 or STR64";
   }
 }
 
@@ -510,16 +521,15 @@ void Aggregator<T>::group_2d_categorical (const dtptr& dt,
 */
 template <typename T>
 template <typename U0, typename U1>
-void Aggregator<T>::group_2d_categorical_str(const dtptr& dt,
-                                          dtptr& dt_members) {
+void Aggregator<T>::group_2d_categorical_str() {
 
   std::vector<sort_spec> spec = {sort_spec(0), sort_spec(1)};
-  auto res = dt->group(spec);
+  auto res = dt_cat->group(spec);
   RowIndex ri = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
-  auto c0 = static_cast<const StringColumn<U0>*>(dt->columns[0]);
-  auto c1 = static_cast<const StringColumn<U1>*>(dt->columns[1]);
+  auto c0 = static_cast<const StringColumn<U0>*>(dt_cat->columns[0]);
+  auto c1 = static_cast<const StringColumn<U1>*>(dt_cat->columns[1]);
   const U0* d_c0 = c0->offsets();
   const U1* d_c1 = c1->offsets();
 
@@ -549,12 +559,12 @@ void Aggregator<T>::group_2d_categorical_str(const dtptr& dt,
 *  to `group_2d_mixed_str`.
 */
 template <typename T>
-void Aggregator<T>::group_2d_mixed(const dtptr& dt, const ccptrvec<T>& contconvs,
-                                 dtptr& dt_members) {
-  switch (dt->columns[0]->stype()) {
-    case SType::STR32:  group_2d_mixed_str<uint32_t>(dt, contconvs, dt_members); break;
-    case SType::STR64:  group_2d_mixed_str<uint64_t>(dt, contconvs, dt_members); break;
-    default:            throw ValueError() << "Column type must be either STR32 or STR64";
+void Aggregator<T>::group_2d_mixed() {
+  switch (dt_cat->columns[0]->stype()) {
+    case SType::STR32:  group_2d_mixed_str<uint32_t>(); break;
+    case SType::STR64:  group_2d_mixed_str<uint64_t>(); break;
+    default:            throw ValueError() << "For 2D mixed aggretation, the categorical column "
+                                           << "type should be either STR32 or STR64";
   }
 }
 
@@ -566,13 +576,12 @@ void Aggregator<T>::group_2d_mixed(const dtptr& dt, const ccptrvec<T>& contconvs
 */
 template<typename T>
 template<typename U0>
-void Aggregator<T>::group_2d_mixed_str(const dtptr& dt, const ccptrvec<T>& contconvs,
-                                     dtptr& dt_members) {
-  auto c_cat = static_cast<const StringColumn<U0>*>(dt->columns[0]);
+void Aggregator<T>::group_2d_mixed_str() {
+  auto c_cat = static_cast<const StringColumn<U0>*>(dt_cat->columns[0]);
   const U0* d_cat = c_cat->offsets();
 
   std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt->group(spec);
+  auto res = dt_cat->group(spec);
   RowIndex ri_cat = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
@@ -628,7 +637,7 @@ void Aggregator<T>::group_2d_mixed_str(const dtptr& dt, const ccptrvec<T>& contc
 *  too few (e.g. just one) exemplars.
 */
 template <typename T>
-void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
+void Aggregator<T>::group_nd() {
   OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   size_t ncols = contconvs.size();
@@ -668,7 +677,7 @@ void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
       // Main loop over all the rows
       for (size_t i = ith; i < nrows; i += nth) {
         bool is_exemplar = true;
-        do_projection? project_row(contconvs, member, i, pmatrix) : normalize_row(contconvs, member, i);
+        do_projection? project_row(member, i, pmatrix) : normalize_row(member, i);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -732,7 +741,7 @@ void Aggregator<T>::group_nd(const ccptrvec<T>& contconvs, dtptr& dt_members) {
     }
   }
   oem.rethrow_exception_if_any();
-  adjust_members(ids, dt_members);
+  adjust_members(ids);
 }
 
 
@@ -762,7 +771,7 @@ size_t Aggregator<T>::get_nthreads(size_t nrows) {
 */
 template <typename T>
 void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
-                              std::vector<size_t>& ids, size_t ndims) {
+                                 std::vector<size_t>& ids, size_t ndims) {
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
@@ -772,10 +781,10 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       T distance = calculate_distance(exemplars[i]->coords,
-                                           exemplars[j]->coords,
-                                           ndims,
-                                           delta,
-                                           0);
+                                      exemplars[j]->coords,
+                                      ndims,
+                                      delta,
+                                      false);
       total_distance += sqrt(distance);
       deltas[k] = distance;
       k++;
@@ -816,8 +825,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
 *  i.e. set which exemplar they belong to.
 */
 template <typename T>
-void Aggregator<T>::adjust_members(std::vector<size_t>& ids,
-                                dtptr& dt_members) {
+void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
@@ -881,7 +889,7 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 *  Normalize the row elements to [0,1).
 */
 template <typename T>
-void Aggregator<T>::normalize_row(const ccptrvec<T>& contconvs, tptr<T>& r, size_t row) {
+void Aggregator<T>::normalize_row(tptr<T>& r, size_t row) {
   for (size_t i = 0; i < contconvs.size(); ++i) {
     T norm_factor, norm_shift;
     T value = (*contconvs[i])[row];
@@ -895,8 +903,7 @@ void Aggregator<T>::normalize_row(const ccptrvec<T>& contconvs, tptr<T>& r, size
 *  Project a particular row on a subspace by using the projection matrix.
 */
 template <typename T>
-void Aggregator<T>::project_row(const ccptrvec<T>& contconvs, tptr<T>& r,
-                                size_t row, tptr<T>& pmatrix)
+void Aggregator<T>::project_row(tptr<T>& r, size_t row, tptr<T>& pmatrix)
 {
   std::memset(r.get(), 0, max_dimensions * sizeof(T));
   int32_t n = 0;
@@ -957,7 +964,7 @@ std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
 */
 template <typename T>
 void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
-                                 T c_min, T c_max, size_t c_bins) {
+                                    T c_min, T c_max, size_t c_bins) {
   if (fabs(c_max - c_min) > epsilon) {
     norm_factor = c_bins * (1 - epsilon) / (c_max - c_min);
     norm_shift = -norm_factor * c_min;
