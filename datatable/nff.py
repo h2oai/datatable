@@ -62,8 +62,7 @@ def save(self, dest=None, format="jay", _strategy="auto"):
         for i in range(self.ncols):
             filename = "c%0*d" % (l, i + 1)
             colname = self.names[i].replace('"', '""')
-            _col = self.internal.column(i)
-            stype = _col.stype
+            stype = self.stypes[i]
             if stype == dt.stype.obj64:
                 dtwarn("Column %r of type obj64 was not saved" % self.names[i])
                 continue
@@ -72,7 +71,7 @@ def save(self, dest=None, format="jay", _strategy="auto"):
             out.write('%s,%s,,"%s",%s,%s\n'
                       % (filename, stype.code, colname, smin, smax))
             filename = os.path.join(dest, filename)
-            _col.save_to_disk(filename, _strategy)
+            core._column_save_to_disk(self, i, filename, _strategy)
 
 
 
@@ -126,7 +125,6 @@ def open(path):
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
     f1 = f0[:, ["filename", "stype"]]
     colnames = f0[:, "colname"].to_list()[0]
-    df = core.datatable_load(f1.internal, nrows, path, nff_version < 2,
-                             colnames)
+    df = core.open_nff(f1.internal, nrows, path, nff_version < 2, colnames)
     assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
     return df

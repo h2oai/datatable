@@ -7,8 +7,10 @@
 //------------------------------------------------------------------------------
 #include <string>
 #include <cstring>              // std::memcmp
+#include "frame/py_frame.h"
 #include "jay/jay_generated.h"
 #include "datatable.h"
+#include "datatablemodule.h"
 
 
 // Helper functions
@@ -154,4 +156,41 @@ static Column* column_from_jay(
   }
 
   return col;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Python open_jay()
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_open_jay(
+  1, 0, 0, false, false, {"file"}, "open_jay",
+  "open_jay(file)\n--\n\n"
+  "Open a Frame from the provided .jay file.\n");
+
+
+static py::oobj open_jay(const py::PKArgs& args) {
+  DataTable* dt = nullptr;
+  if (args[0].is_bytes()) {
+    // TODO: create & use class py::obytes
+    PyObject* arg1 = args[0].to_borrowed_ref();
+    const char* data = PyBytes_AS_STRING(arg1);
+    size_t length = static_cast<size_t>(PyBytes_GET_SIZE(arg1));
+    dt = open_jay_from_bytes(data, length);
+  }
+  else if (args[0].is_string()) {
+    std::string filename = args[0].to_string();
+    dt = open_jay_from_file(filename);
+  }
+  else {
+    throw TypeError() << "Invalid type of the argument to open_jay()";
+  }
+  py::Frame* frame = py::Frame::from_datatable(dt);
+  return py::oobj::from_new_reference(frame);
+}
+
+
+void DatatableModule::init_methods_jay() {
+  ADD_FN(&open_jay, args_open_jay);
 }

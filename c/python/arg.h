@@ -39,23 +39,24 @@ class Arg : public _obj::error_manager {
     void set(PyObject* value);
 
     //---- Type checks -----------------
-    bool is_undefined() const;
+    bool is_bool() const;
+    bool is_bytes() const;
+    bool is_dict() const;
+    bool is_ellipsis() const;
+    bool is_float() const;
+    bool is_frame() const;
+    bool is_int() const;
+    bool is_list() const;
+    bool is_list_or_tuple() const;
     bool is_none() const;
     bool is_none_or_undefined() const;
-    bool is_ellipsis() const;
-    bool is_bool() const;
-    bool is_int() const;
-    bool is_float() const;
-    bool is_list() const;
-    bool is_tuple() const;
-    bool is_list_or_tuple() const;
-    bool is_dict() const;
-    bool is_string() const;
-    bool is_range() const;
-    bool is_frame() const;
+    bool is_numpy_array() const;
     bool is_pandas_frame() const;
     bool is_pandas_series() const;
-    bool is_numpy_array() const;
+    bool is_range() const;
+    bool is_string() const;
+    bool is_tuple() const;
+    bool is_undefined() const;
 
     //---- Type conversions ------------
     bool        to_bool_strict        () const;
@@ -91,12 +92,6 @@ class Arg : public _obj::error_manager {
     PyTypeObject* typeobj() const { return pyobj.typeobj(); }
     void print() const;
 
-    /**
-     * Convert argument to int32/int64. An exception will be thrown if the
-     * argument is None, or not of integer type, or if the integer value is
-     * too large.
-     * This method must not be called if the argument is undefined.
-     */
     operator int32_t() const;
     operator int64_t() const;
     operator size_t() const;

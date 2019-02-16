@@ -9,17 +9,17 @@
 // See: https://www.python.org/dev/peps/pep-3118/
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
-#define PY_BUFFERS_cc
 #include <stdlib.h>  // atoi
+#include "python/obj.h"
+#include "utils/assert.h"
+#include "utils/exceptions.h"
 #include "column.h"
+#include "datatablemodule.h"
 #include "encodings.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_types.h"
 #include "py_utils.h"
-#include "python/obj.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
 
 SType force_stype;
 
@@ -606,13 +606,20 @@ DECLARE_RELEASE_BUFFER(PyObject, Frame)
 DECLARE_BUFFERS_STRUCT(static python_frame_as_buffer, Frame);
 
 
-PyObject* pydatatable::install_buffer_hooks(PyObject*, PyObject* args)
+static py::PKArgs args__install_buffer_hooks(
+  1, 0, 0, false, false, {"obj"}, "_install_buffer_hooks", nullptr);
+
+static void _install_buffer_hooks(const py::PKArgs& args)
 {
-  PyObject* obj = nullptr;
-  if (!PyArg_ParseTuple(args, "O", &obj)) return nullptr;
-  obj->ob_type->tp_as_buffer = &python_frame_as_buffer;
-  return none();
+  PyObject* obj = args[0].to_borrowed_ref();
+  if (obj) obj->ob_type->tp_as_buffer = &python_frame_as_buffer;
 }
+
+
+void DatatableModule::init_methods_buffers() {
+  ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
+}
+
 
 
 

@@ -8,7 +8,6 @@
 #include "datatablemodule.h"
 #include <Python.h>
 #include "../datatable/include/datatable.h"
-#include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "expr/base_expr.h"
 #include "expr/by_node.h"
@@ -144,27 +143,49 @@ static void _register_function(const py::PKArgs& args) {
 
 
 
+static py::PKArgs args__column_save_to_disk(
+  4, 0, 0, false, false,
+  {"frame", "i", "filename", "strategy"},
+  "_column_save_to_disk",
+  "Save `frame[i]` column's data into the file `filename`,\n"
+  "using the provided writing strategy.\n");
+
+static void _column_save_to_disk(const py::PKArgs& args) {
+  DataTable* dt        = args[0].to_frame();
+  size_t i             = args[1].to_size_t();
+  std::string filename = args[2].to_string();
+  std::string strategy = args[3].to_string();
+
+  Column* col = dt->columns[i];
+  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                   (strategy == "write") ? WritableBuffer::Strategy::Write :
+                                           WritableBuffer::Strategy::Auto;
+
+  col->save_to_disk(filename, sstrategy);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Module definition
 //------------------------------------------------------------------------------
 
 void DatatableModule::init_methods() {
-  add(METHODv(pydatatable::datatable_load));
-  add(METHODv(pydatatable::open_jay));
-  add(METHODv(pydatatable::install_buffer_hooks));
-  add(METHODv(gread));
-  add(METHODv(write_csv));
-
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
+  ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
 
   init_methods_aggregate();
+  init_methods_buffers();
+  init_methods_csv();
+  init_methods_jay();
   init_methods_join();
   init_methods_kfold();
+  init_methods_nff();
   init_methods_options();
   init_methods_repeat();
   init_methods_sets();

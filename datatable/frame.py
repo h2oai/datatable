@@ -290,40 +290,11 @@ class Frame(core.Frame):
         module is not installed.
         """
         pandas = load_module("pandas")
-        numpy = load_module("numpy")
-        if not hasattr(pandas, "DataFrame"):  # pragma: no cover
-            raise ImportError("Unsupported pandas version: `%s`"
-                              % (getattr(pandas, "__version__", "???"), ))
-        nas = {stype.bool8: -128,
-               stype.int8: -128,
-               stype.int16: -32768,
-               stype.int32: -2147483648,
-               stype.int64: -9223372036854775808}
-        self.materialize()
-        srcdt = self._dt
-        srccols = collections.OrderedDict()
-        for i in range(self.ncols):
-            name = self.names[i]
-            column = srcdt.column(i)
-            dtype = self.stypes[i].dtype
-            if dtype == numpy.bool:
-                dtype = numpy.int8
-            if dtype == numpy.dtype("object"):
-                # Variable-width types can only be represented in Numpy as
-                # dtype='object'. However Numpy cannot ingest a buffer of
-                # PyObject types -- getting error
-                #   ValueError: cannot create an OBJECT array from memory buffer
-                # Thus, the only alternative remaining is to convert such column
-                # into plain Python list and pass it to Pandas like that.
-                x = self[:, i].to_list()[0]
-            else:
-                x = numpy.frombuffer(column, dtype=dtype)
-                na = nas.get(self.stypes[i])
-                if na is not None:
-                    x = numpy.ma.masked_equal(x, na, copy=False)
-            srccols[name] = x
+        # self.materialize()
 
-        pd = pandas.DataFrame(srccols)
+        pd = pandas.DataFrame({name: self[:, i].to_numpy().ravel()
+                               for i, name in enumerate(self.names)},
+                              columns=self.names)
         return pd
 
 
@@ -394,7 +365,7 @@ class Frame(core.Frame):
 core._register_function(4, TTypeError)
 core._register_function(5, TValueError)
 core._register_function(7, Frame)
-core.install_buffer_hooks(Frame())
+core._install_buffer_hooks(Frame())
 
 
 options.register_option(

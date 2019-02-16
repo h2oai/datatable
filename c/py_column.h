@@ -89,12 +89,6 @@ DECLARE_GETTER(
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  save_to_disk,
-  "save_to_disk(filename, _strategy)\n\n"
-  "Save this column's data into the file `filename`, using the provided\n"
-  "writing strategy.\n")
-
-DECLARE_METHOD(
   to_list,
   "to_list()\n\n"
   "Return the contents of the Column as a plain Python list.\n")

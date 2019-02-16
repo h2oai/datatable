@@ -5,28 +5,28 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#define CSV_PY_CSV_cc
-#include "csv/py_csv.h"
+#include <vector>
+#include <stdlib.h>
 #include "csv/reader.h"
 #include "csv/writer.h"
-#include <exception>
-#include <vector>
-#include <stdbool.h>
-#include <stdlib.h>
 #include "frame/py_frame.h"
+#include "python/string.h"
+#include "utils/parallel.h"
+#include "datatablemodule.h"
 #include "options.h"
 #include "py_datatable.h"
-#include "py_utils.h"
-#include "utils.h"
-#include "utils/parallel.h"
 
 
-PyObject* write_csv(PyObject*, PyObject* args)
-{
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:write_csv", &arg1)) return nullptr;
-  py::robj pywr(arg1);
+//------------------------------------------------------------------------------
+// write_csv()
+//------------------------------------------------------------------------------
 
+static py::PKArgs args_write_csv(
+  1, 0, 0, false, false, {"csv_writer"}, "write_csv", nullptr);
+
+
+static py::oobj write_csv(const py::PKArgs& args) {
+  py::robj pywr = args[0];
   DataTable* dt = pywr.get_attr("datatable").to_frame();
   auto filename = pywr.get_attr("path").to_string();
   auto strategy = pywr.get_attr("_strategy").to_string();
@@ -36,7 +36,7 @@ PyObject* write_csv(PyObject*, PyObject* args)
 
   // Create the CsvWriter object
   CsvWriter cwriter(dt, filename);
-  cwriter.set_logger(arg1);
+  cwriter.set_logger(pywr.to_borrowed_ref());
   cwriter.set_verbose(pywr.get_attr("verbose").to_bool());
   cwriter.set_usehex(pywr.get_attr("hex").to_bool());
   cwriter.set_strategy(sstrategy);
@@ -59,7 +59,6 @@ PyObject* write_csv(PyObject*, PyObject* args)
   cwriter.write();
 
   // Post-process the result
-  PyObject* result = nullptr;
   if (filename.empty()) {
     WritableBuffer *wb = cwriter.get_output_buffer();
     MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
@@ -68,27 +67,38 @@ PyObject* write_csv(PyObject*, PyObject* args)
                               "MemoryWritableBuffer";
     }
     // -1 because the buffer also stores trailing \0
-    Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
-    char *str = static_cast<char*>(mb->get_cptr());
-    result = PyUnicode_FromStringAndSize(str, len);
-  } else {
-    result = none();
+    size_t len = mb->size() - 1;
+    char* str = static_cast<char*>(mb->get_cptr());
+    return py::ostring(str, len);
   }
 
-  return result;
+  return py::None();
 }
 
 
-// Python API function which is a wrapper around GenericReader's functionality.
-PyObject* gread(PyObject*, PyObject* args)
-{
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:gread", &arg1)) return nullptr;
-  py::robj pyreader(arg1);
 
+//------------------------------------------------------------------------------
+// read_csv()
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_read_csv(
+  1, 0, 0, false, false, {"reader"}, "gread",
+
+R"(gread(reader)
+--
+
+Generic read function, similar to `fread` but supports other
+file types, not just csv.
+)");
+
+
+static py::oobj read_csv(const py::PKArgs& args)
+{
+  py::robj pyreader = args[0];
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read_all();
-  return py::Frame::from_datatable(dtptr.release());
+  return py::oobj::from_new_reference(
+          py::Frame::from_datatable(dtptr.release()));
 }
 
 
@@ -106,4 +116,11 @@ void log_message(void *logger, const char *format, ...) {
   va_end(args);
   PyObject_CallMethod(reinterpret_cast<PyObject*>(logger),
                       "_vlog", "O", PyUnicode_FromString(msg));
+}
+
+
+
+void DatatableModule::init_methods_csv() {
+  ADD_FN(&write_csv, args_write_csv);
+  ADD_FN(&read_csv, args_read_csv);
 }

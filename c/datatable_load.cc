@@ -7,7 +7,10 @@
 //------------------------------------------------------------------------------
 #include <stdlib.h>  // abs
 #include <string>  // memcpy
+#include "frame/py_frame.h"
+#include "python/args.h"
 #include "datatable.h"
+#include "datatablemodule.h"
 #include "utils.h"
 
 
@@ -81,4 +84,28 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
     }
 
     return new DataTable(std::move(columns));
+}
+
+
+
+static py::PKArgs args_open_nff(
+  5, 0, 0, false, false,
+  {"colspec", "nrows", "path", "recode", "names"}, "open_nff", nullptr);
+
+static py::oobj open_nff(const py::PKArgs& args) {
+  DataTable* colspec = args[0].to_frame();
+  size_t nrows = args[1].to_size_t();
+  std::string path = args[2].to_string();
+  int recode = args[3].to_bool_strict();
+  py::oobj names = args[4].to_oobj();
+
+  DataTable* dt = DataTable::load(colspec, nrows, path, recode);
+  py::Frame* frame = py::Frame::from_datatable(dt);
+  frame->set_names(py::robj(names));
+  return py::oobj::from_new_reference(frame);
+}
+
+
+void DatatableModule::init_methods_nff() {
+  ADD_FN(&open_nff, args_open_nff);
 }

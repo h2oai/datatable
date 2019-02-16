@@ -62,46 +62,6 @@ int unwrap(PyObject* object, DataTable** address) {
 
 
 
-//==============================================================================
-// Generic Python API
-//==============================================================================
-
-PyObject* datatable_load(PyObject*, PyObject* args) {
-  DataTable* colspec;
-  size_t nrows;
-  const char* path;
-  int recode;
-  PyObject* names;
-  if (!PyArg_ParseTuple(args, "O&nsiO:datatable_load",
-                        &unwrap, &colspec, &nrows, &path, &recode, &names))
-    return nullptr;
-
-  DataTable* dt = DataTable::load(colspec, nrows, path, recode);
-  py::Frame* frame = py::Frame::from_datatable(dt);
-  frame->set_names(py::robj(names));
-  return frame;
-}
-
-
-PyObject* open_jay(PyObject*, PyObject* args) {
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
-
-  DataTable* dt = nullptr;
-  if (PyBytes_Check(arg1)) {
-    const char* data = PyBytes_AS_STRING(arg1);
-    size_t length = static_cast<size_t>(PyBytes_GET_SIZE(arg1));
-    dt = open_jay_from_bytes(data, length);
-  } else {
-    std::string filename = py::robj(arg1).to_string();
-    dt = open_jay_from_file(filename);
-  }
-  py::Frame* frame = py::Frame::from_datatable(dt);
-  return frame;
-}
-
-
-
 
 //==============================================================================
 // PyDatatable getters/setters

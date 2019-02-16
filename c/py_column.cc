@@ -99,26 +99,6 @@ PyObject* get_nrows(pycolumn::obj* self) {
 // Column methods
 //==============================================================================
 
-PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
-  PyObject* arg1 = nullptr;
-  PyObject* arg2 = nullptr;
-  if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
-    return nullptr;
-  py::robj pyfilename(arg1);
-  py::robj pystrategy(arg2);
-
-  Column* col = self->ref;
-  const char* filename = pyfilename.to_cstring().ch;
-  std::string strategy = pystrategy.to_string();
-  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                   (strategy == "write") ? WritableBuffer::Strategy::Write :
-                                           WritableBuffer::Strategy::Auto;
-
-  col->save_to_disk(filename, sstrategy);
-  Py_RETURN_NONE;
-}
-
-
 PyObject* to_list(pycolumn::obj* self, PyObject*) {
   Column* col = self->ref;
 
@@ -165,7 +145,6 @@ static PyGetSetDef column_getseters[] = {
 };
 
 static PyMethodDef column_methods[] = {
-  METHODv(save_to_disk),
   METHOD0(to_list),
   {nullptr, nullptr, 0, nullptr}
 };
