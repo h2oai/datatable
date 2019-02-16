@@ -64,9 +64,9 @@ static oobj aggregate(const PKArgs& args) {
                                          );
   } else {
     agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
-                                          nd_max_bins, max_dimensions, seed,
-                                          progress_fn, nthreads
-                                         );
+                                         nd_max_bins, max_dimensions, seed,
+                                         progress_fn, nthreads
+                                        );
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
