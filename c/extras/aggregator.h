@@ -139,6 +139,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nd_max_bins_in, size_t max_dimensions_in,
                           unsigned int seed_in, py::oobj progress_fn_in,
                           unsigned int nthreads_in) :
+  dt(nullptr),
   min_rows(min_rows_in),
   n_bins(n_bins_in),
   nx_bins(nx_bins_in),
