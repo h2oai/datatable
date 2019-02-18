@@ -272,18 +272,11 @@ struct XInfo {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
     stype = SType::VOID;
+    TRACK(this, sizeof(*this), "py-buffer");
   }
 
   ~XInfo() {
-    // if (mbuf.is_nonempty()) {
-      // if (mbuf->get_refcount() == 1 && stype == SType::OBJ) {
-      //   PyObject** elems = static_cast<PyObject**>(mbuf->get());
-      //   size_t nelems = mbuf->size() / sizeof(PyObject*);
-      //   for (size_t i = 0; i < nelems; ++i) {
-      //     Py_DECREF(elems[i]);
-      //   }
-      // }
-    // }
+    UNTRACK(this);
   }
 };
 
