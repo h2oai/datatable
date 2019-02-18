@@ -132,6 +132,7 @@
 
     public:
       static ViewedMRI* acquire_viewed(const MemoryRange& src);
+      ~ViewedMRI() override;
       void release();
 
       bool is_writable() const;
@@ -569,6 +570,7 @@
     pybufinfo = pybuf;
     resizable = false;
     writable = false;
+    TRACK(this, sizeof(*this), "ExternalMRI");
   }
 
   ExternalMRI::ExternalMRI(size_t n, const void* ptr)
@@ -587,6 +589,7 @@
     if (pybufinfo) {
       PyBuffer_Release(pybufinfo);
     }
+    UNTRACK(this);
   }
 
   void ExternalMRI::resize(size_t) {
@@ -613,11 +616,13 @@
     resizable = false;
     writable = base->is_writable();
     pyobjects = src.is_pyobjects();
+    TRACK(this, sizeof(*this), "ViewMRI");
   }
 
   ViewMRI::~ViewMRI() {
     base->release();
     pyobjects = false;
+    UNTRACK(this);
   }
 
   size_t ViewMRI::memory_footprint() const {
@@ -660,6 +665,11 @@
     pyobjects = implptr->pyobjects;
     writable = false;
     resizable = false;
+    TRACK(this, sizeof(*this), "ViewedMRI");
+  }
+
+  ViewedMRI::~ViewedMRI() {
+    UNTRACK(this);
   }
 
   ViewedMRI* ViewedMRI::acquire_viewed(const MemoryRange& src) {
@@ -709,6 +719,7 @@
     resizable = create;
     temporary_file = create;
     mmm_index = 0;
+    TRACK(this, sizeof(*this), "MmapMRI");
   }
 
   MmapMRI::~MmapMRI() {
@@ -716,6 +727,7 @@
     if (temporary_file) {
       File::remove(filename);
     }
+    UNTRACK(this);
   }
 
   void* MmapMRI::ptr() const {
@@ -911,6 +923,7 @@
       : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
   {
     writable = true;
+    // already TRACKed via MmapMRI constructor
   }
 
 

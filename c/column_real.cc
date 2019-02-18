@@ -138,7 +138,7 @@ inline static MemoryRange cast_str_helper(
   size_t exp_size = src->nrows * sizeof(IT) * 2;
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
-  TRACK(tmpbuf, sizeof(tmpbuf), "cast_str_helper::tmpbuf");
+  TRACK(tmpbuf, sizeof(tmpbuf), "RealColumn::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 0;

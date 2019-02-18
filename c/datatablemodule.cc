@@ -201,9 +201,10 @@ void TRACK(void* ptr, size_t size, const char* name) {
 
 void UNTRACK(void* ptr) {
   if (tracked_objects.count(ptr) == 0) {
-    // throw RuntimeError() << "Trying to remove pointer " << ptr << " which "
-    //     "is not tracked";
-    std::cout << "Trying to remove pointer " << ptr << " which is not tracked";
+    // UNTRACK() is usually called from a destructor, so cannot throw any
+    // exceptions there :(
+    std::cerr << "ERROR: Trying to remove pointer " << ptr
+              << " which is not tracked";
   }
   tracked_objects.erase(ptr);
 }
