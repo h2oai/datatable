@@ -5,8 +5,9 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <Python.h>
+#include "column.h"
+#include "datatablemodule.h"
 #include "utils/parallel.h"
 
 
@@ -109,6 +110,7 @@ inline static MemoryRange cast_str_helper(
   size_t exp_size = src->nrows;
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
+  TRACK(tmpbuf, sizeof(tmpbuf), "cast_str_helper::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   T offset = 0;
@@ -130,6 +132,7 @@ inline static MemoryRange cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
+  UNTRACK(tmpbuf);
   return wb->get_mbuf();
 }
 

@@ -18,9 +18,8 @@ namespace dt
 
 
 void* _realloc(void* ptr, size_t n) {
-  if (!n) {
-    std::free(ptr);
-    // if (ptr) untrack_object(ptr);
+  if (n == 0) {
+    dt::free(ptr);
     return nullptr;
   }
   int attempts = 3;
@@ -36,10 +35,8 @@ void* _realloc(void* ptr, size_t n) {
     // | C11 DR 400.
     void* newptr = std::realloc(ptr, n);
     if (newptr) {
-      if (ptr != newptr) {
-        // if (ptr) untrack_object(ptr);
-        // track_object(ptr, "_realloc");
-      }
+      // if (ptr) UNTRACK(ptr);
+      // TRACK(newptr, n, "malloc");
       return newptr;
     }
     if (errno == 12 && attempts--) {
@@ -57,8 +54,9 @@ void* _realloc(void* ptr, size_t n) {
 
 
 void free(void* ptr) {
+  if (!ptr) return;
   std::free(ptr);
-  // untrack_object(ptr);
+  // UNTRACK(ptr);
 }
 
 

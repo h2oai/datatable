@@ -5,17 +5,18 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "memrange.h"
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
 #ifndef _WIN32
 #include <sys/mman.h>          // mmap, munmap
 #endif
-#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
-#include "utils.h"             // malloc_size
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
+#include "datatablemodule.h"   // TRACK, UNTRACK, IS_TRACKED
+#include "memrange.h"
+#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
+#include "utils.h"             // malloc_size
 
 
 
@@ -511,19 +512,21 @@
   MemoryMRI::MemoryMRI(size_t n) {
     bufsize = n;
     bufdata = dt::malloc<void>(n);
+    TRACK(this, sizeof(*this), "MemoryMRI");
   }
 
   MemoryMRI::MemoryMRI(size_t n, void* ptr) {
-    if (n) {
-      if (!ptr) throw ValueError() << "Unallocated memory region provided";
-      bufsize = n;
-      bufdata = ptr;
-    }
+    if (n && !ptr) throw ValueError() << "Unallocated memory region provided";
+    // xassert(!ptr || IS_TRACKED(ptr));
+    bufsize = n;
+    bufdata = ptr;
+    TRACK(this, sizeof(*this), "MemoryMRI");
   }
 
   MemoryMRI::~MemoryMRI() {
     clear_pyobjects();
-    std::free(bufdata);
+    dt::free(bufdata);
+    UNTRACK(this);
   }
 
   size_t MemoryMRI::memory_footprint() const {

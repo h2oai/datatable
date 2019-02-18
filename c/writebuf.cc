@@ -5,16 +5,17 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "writebuf.h"
 #include <cstring>     // std::memcpy
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
-#include "memrange.h"
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
 #include "utils/parallel.h"
+#include "datatablemodule.h"
+#include "memrange.h"
 #include "utils.h"
+#include "writebuf.h"
 
 
 
@@ -69,10 +70,12 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
 
 FileWritableBuffer::FileWritableBuffer(const std::string& path) {
   file = new File(path, File::OVERWRITE);
+  TRACK(this, sizeof(*this), "FileWritableBuffer");
 }
 
 FileWritableBuffer::~FileWritableBuffer() {
   delete file;
+  UNTRACK(this);
 }
 
 
@@ -191,11 +194,13 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
   : ThreadsafeWritableBuffer()
 {
   this->realloc(size);
+  TRACK(this, sizeof(*this), "MemoryWritableBuffer");
 }
 
 
 MemoryWritableBuffer::~MemoryWritableBuffer() {
   dt::free(buffer);
+  UNTRACK(this);
 }
 
 
@@ -243,11 +248,13 @@ MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
     allocsize = size;
     map(file.descriptor(), size);
   }
+  TRACK(this, sizeof(*this), "MmapWritableBuffer");
 }
 
 
 MmapWritableBuffer::~MmapWritableBuffer() {
   unmap();
+  UNTRACK(this);
 }
 
 

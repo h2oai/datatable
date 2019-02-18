@@ -5,17 +5,18 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "csv/writer.h"
 #include <new>          // placement new
 #include <stdexcept>    // std::runtime_error
 #include <math.h>
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
-#include "column.h"
 #include "csv/toa.h"
+#include "csv/writer.h"
+#include "utils/alloc.h"
+#include "utils/parallel.h"
+#include "column.h"
 #include "datatable.h"
 #include "memrange.h"
-#include "utils/parallel.h"
 #include "types.h"
 #include "utils.h"
 
@@ -344,11 +345,7 @@ void CsvWriter::write()
     size_t th_write_size = 0;
     try {
       // Note: do not use new[] here, as it can't be safely realloced
-      thbuf = static_cast<char*>(malloc(thbufsize));
-      if (!thbuf) {
-        throw RuntimeError() << "Unable to allocate " << thbufsize
-                             << " bytes for thread-local buffer";
-      }
+      thbuf = dt::malloc<char>(thbufsize);
     } catch (...) {
       oem.capture_exception();
     }
@@ -435,7 +432,7 @@ void CsvWriter::write()
       if (th_write_size && !oem.exception_caught()) {
         wb->write_at(th_write_at, th_write_size, thbuf);
       }
-      free(thbuf);
+      dt::free(thbuf);
     } catch (...) {
       oem.capture_exception();
     }
