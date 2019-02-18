@@ -68,9 +68,10 @@ static char strB[] = "B";
 
 Column* Column::from_buffer(const py::robj& obuffer)
 {
+  using pybufptr = std::unique_ptr<Py_buffer>;
   PyObject* buffer = obuffer.to_borrowed_ref();
-  Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
-  if (!view) throw PyError();
+  pybufptr pview = pybufptr(new Py_buffer());
+  Py_buffer* view = pview.get();
 
   // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
   // the `view->format` field should be filled; and PyBUF_ND will fill the
@@ -99,7 +100,7 @@ Column* Column::from_buffer(const py::robj& obuffer)
   // If buffer is in float16 format, convert it to float32
   if (view->itemsize == 2 && std::strcmp(view->format, "e") == 0) {
     PyBuffer_Release(view);
-    py::oobj newbuf = py::robj(buffer).invoke("astype", "(s)", "float32");
+    py::oobj newbuf = obuffer.invoke("astype", "(s)", "float32");
     return Column::from_buffer(newbuf);
   }
 
@@ -110,7 +111,7 @@ Column* Column::from_buffer(const py::robj& obuffer)
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   } else if (view->strides == nullptr) {
-    res = Column::new_xbuf_column(stype, nrows, view);
+    res = Column::new_xbuf_column(stype, nrows, pview.release());
   } else {
     res = Column::new_data_column(stype, nrows);
     size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
