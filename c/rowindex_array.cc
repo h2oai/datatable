@@ -696,17 +696,5 @@ void ArrayRowIndexImpl::_resize_data() {
   }
   size_t elemsize = type == RowIndexType::ARR32? 4 : 8;
   size_t allocsize = length * elemsize;
-  if (allocsize) {
-    void* ptr = dt::realloc(data, allocsize);
-    if (!ptr) {
-      throw MemoryError() << "Cannot allocate " << allocsize << " bytes "
-          "for a RowIndex object";
-    }
-    data = ptr;
-  } else {
-    // If allocsize==0, the behavior of std::realloc is implementation-defined
-    // See https://en.cppreference.com/w/cpp/memory/c/realloc
-    std::free(data);
-    data = nullptr;
-  }
+  data = dt::realloc(data, allocsize);
 }

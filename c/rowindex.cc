@@ -20,18 +20,22 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
+#include "utils/assert.h"
+#include "utils/parallel.h"
+#include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
 #include "utils.h"
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 
 //------------------------------------------------------------------------------
 // Construction
 //------------------------------------------------------------------------------
 
-RowIndex::RowIndex() : impl(nullptr) {}
+RowIndex::RowIndex() {
+  impl = nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
+}
 
 // copy-constructor, performs shallow copying
 RowIndex::RowIndex(const RowIndex& other) : RowIndex() {
@@ -53,6 +57,7 @@ RowIndex::RowIndex(RowIndex&& other) {
 
 RowIndex::~RowIndex() {
   if (impl) impl = impl->release();
+  UNTRACK(this);
 }
 
 
