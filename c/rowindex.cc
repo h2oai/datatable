@@ -53,6 +53,7 @@ RowIndex& RowIndex::operator=(const RowIndex& other) {
 RowIndex::RowIndex(RowIndex&& other) {
   impl = other.impl;
   other.impl = nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::~RowIndex() {
@@ -64,45 +65,55 @@ RowIndex::~RowIndex() {
 // Private constructor
 RowIndex::RowIndex(RowIndexImpl* rii) {
   impl = rii? rii->acquire() : nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 
-RowIndex::RowIndex(size_t start, size_t count, size_t step){
+RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   impl = (new SliceRowIndexImpl(start, count, step))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(const arr64_t& starts,
                    const arr64_t& counts,
                    const arr64_t& steps) {
   impl = (new ArrayRowIndexImpl(starts, counts, steps))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr32_t&& arr, size_t min, size_t max) {
   impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
   impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
   impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
   impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(const Column* col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 

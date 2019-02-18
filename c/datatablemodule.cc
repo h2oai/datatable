@@ -204,7 +204,7 @@ void UNTRACK(void* ptr) {
     // UNTRACK() is usually called from a destructor, so cannot throw any
     // exceptions there :(
     std::cerr << "ERROR: Trying to remove pointer " << ptr
-              << " which is not tracked";
+              << " which is not tracked\n";
   }
   tracked_objects.erase(ptr);
 }
