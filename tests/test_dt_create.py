@@ -106,6 +106,16 @@ def test_wrong_source():
     assert ("Cannot create a column from <class 'int'>" == str(e.value))
 
 
+def test_wrong_source_heavy():
+    # Repeatedly try to fail the constructor; make sure that the internal state
+    # does not get corrupted in the process...
+    for i in range(100):
+        try:
+            dt.Frame(A=[1], B=2)
+        except TypeError:
+            pass
+
+
 def test_different_column_lengths():
     with pytest.raises(ValueError) as e:
         dt.Frame([range(10), [3, 4, 6]])

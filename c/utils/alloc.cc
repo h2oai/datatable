@@ -5,10 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "utils/alloc.h"
 #include <cerrno>              // errno
 #include <cstdlib>             // std::realloc, std::free
+#include <unordered_map>
+#include "utils/alloc.h"
 #include "utils/exceptions.h"  // MemoryError
+#include "datatablemodule.h"
 #include "mmm.h"               // MemoryMapManager
 
 namespace dt
@@ -18,6 +20,7 @@ namespace dt
 void* _realloc(void* ptr, size_t n) {
   if (!n) {
     std::free(ptr);
+    // if (ptr) untrack_object(ptr);
     return nullptr;
   }
   int attempts = 3;
@@ -33,6 +36,10 @@ void* _realloc(void* ptr, size_t n) {
     // | C11 DR 400.
     void* newptr = std::realloc(ptr, n);
     if (newptr) {
+      if (ptr != newptr) {
+        // if (ptr) untrack_object(ptr);
+        // track_object(ptr, "_realloc");
+      }
       return newptr;
     }
     if (errno == 12 && attempts--) {
@@ -51,6 +58,7 @@ void* _realloc(void* ptr, size_t n) {
 
 void free(void* ptr) {
   std::free(ptr);
+  // untrack_object(ptr);
 }
 
 

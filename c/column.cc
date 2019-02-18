@@ -5,8 +5,9 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <cstdlib>     // atoll
+#include "column.h"
+#include "datatablemodule.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -17,7 +18,16 @@
 
 Column::Column(size_t nrows_)
     : stats(nullptr),
-      nrows(nrows_) {}
+      nrows(nrows_)
+{
+  TRACK(this, sizeof(*this), "Column");
+}
+
+Column::~Column() {
+  delete stats;
+  UNTRACK(this);
+}
+
 
 
 Column* Column::new_column(SType stype) {
@@ -222,11 +232,6 @@ void Column::replace_rowindex(const RowIndex& newri) {
   nrows = ri.size();
 }
 
-
-
-Column::~Column() {
-  delete stats;
-}
 
 
 /**

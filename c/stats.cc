@@ -10,6 +10,7 @@
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
 #include "column.h"
+#include "datatablemodule.h"
 #include "rowindex.h"
 #include "utils.h"
 #include "utils/parallel.h"
@@ -47,6 +48,15 @@ static const char* stat_name(Stat s) {
 //==============================================================================
 // Base Stats
 //==============================================================================
+
+Stats::Stats() {
+  TRACK(this, sizeof(*this), "Stats");
+}
+
+Stats::~Stats() {
+  UNTRACK(this);
+}
+
 
 void Stats::reset() {
   _computed.reset();

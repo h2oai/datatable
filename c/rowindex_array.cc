@@ -697,7 +697,7 @@ void ArrayRowIndexImpl::_resize_data() {
   size_t elemsize = type == RowIndexType::ARR32? 4 : 8;
   size_t allocsize = length * elemsize;
   if (allocsize) {
-    void* ptr = std::realloc(data, allocsize);
+    void* ptr = dt::realloc(data, allocsize);
     if (!ptr) {
       throw MemoryError() << "Cannot allocate " << allocsize << " bytes "
           "for a RowIndex object";

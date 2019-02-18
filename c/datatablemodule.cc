@@ -5,7 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "datatablemodule.h"
+#include <iostream>
+#include <unordered_map>
 #include <Python.h>
 #include "../datatable/include/datatable.h"
 #include "csv/writer.h"
@@ -17,6 +18,9 @@
 #include "extras/aggregator.h"
 #include "extras/py_ftrl.h"
 #include "frame/py_frame.h"
+#include "python/_all.h"
+#include "python/string.h"
+#include "datatablemodule.h"
 #include "options.h"
 #include "py_column.h"
 #include "py_datatable.h"
@@ -166,6 +170,58 @@ static void _column_save_to_disk(const py::PKArgs& args) {
 
 
 
+//------------------------------------------------------------------------------
+// Support memory leak detection
+//------------------------------------------------------------------------------
+#ifdef DTDEBUG
+
+struct PtrInfo {
+  size_t alloc_size;
+  const char* name;
+
+  std::string to_string() {
+    std::ostringstream io;
+    io << name << "[" << alloc_size << "]";
+    return io.str();
+  }
+};
+
+static std::unordered_map<void*, PtrInfo> tracked_objects;
+
+
+void TRACK(void* ptr, size_t size, const char* name) {
+  if (tracked_objects.count(ptr)) {
+    throw RuntimeError() << "Pointer " << ptr << " is already tracked. Old "
+        "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
+        << (PtrInfo {size, name}).to_string();
+  }
+  tracked_objects.insert({ptr, PtrInfo {size, name}});
+}
+
+
+void UNTRACK(void* ptr) {
+  if (tracked_objects.count(ptr) == 0) {
+    throw RuntimeError() << "Trying to remove pointer " << ptr << " which "
+        "is not tracked";
+  }
+  tracked_objects.erase(ptr);
+}
+
+
+static py::PKArgs args_get_tracked_objects(
+    0, 0, 0, false, false, {}, "get_tracked_objects", nullptr);
+
+static py::oobj get_tracked_objects(const py::PKArgs&) {
+  py::odict res;
+  for (auto kv : tracked_objects) {
+    res.set(py::oint(reinterpret_cast<size_t>(kv.first)),
+            py::ostring(kv.second.to_string()));
+  }
+  return std::move(res);
+}
+
+#endif
+
 
 //------------------------------------------------------------------------------
 // Module definition
@@ -192,6 +248,9 @@ void DatatableModule::init_methods() {
   init_methods_str();
   #ifdef DTTEST
     init_tests();
+  #endif
+  #ifdef DTDEBUG
+    ADD_FN(&get_tracked_objects, args_get_tracked_objects);
   #endif
 }
 

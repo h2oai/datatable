@@ -77,8 +77,8 @@ class Stats {
     size_t _nmodal;
 
   public:
-    Stats() = default;
-    virtual ~Stats() {}
+    Stats();
+    virtual ~Stats();
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
 
