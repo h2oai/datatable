@@ -466,7 +466,7 @@ char** _obj::to_cstringlist(const error_manager&) const {
     Py_ssize_t count = Py_SIZE(v);
     char** res = nullptr;
     try {
-      res = new char*[count + 1];
+      res = new char*[count + 1]();
       for (Py_ssize_t i = 0; i <= count; ++i) res[i] = nullptr;
       for (Py_ssize_t i = 0; i < count; ++i) {
         PyObject* item = islist? PyList_GET_ITEM(v, i)
