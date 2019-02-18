@@ -25,6 +25,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "datatablemodule.h"
 namespace dt {
 
 
@@ -599,7 +600,13 @@ void multislice_in::execute_grouped(workframe&) {
 // i_node
 //------------------------------------------------------------------------------
 
-i_node::~i_node() {}
+i_node::i_node() {
+  TRACK(this, sizeof(*this), "i_node");
+}
+
+i_node::~i_node() {
+  UNTRACK(this);
+}
 
 void i_node::post_init_check(workframe&) {}
 

@@ -27,7 +27,7 @@
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"
-
+#include "datatablemodule.h"
 namespace dt {
 
 
@@ -47,6 +47,11 @@ by_node::column_descriptor::column_descriptor(
 
 by_node::by_node() {
   n_group_columns = 0;
+  TRACK(this, sizeof(*this), "by_node");
+}
+
+by_node::~by_node() {
+  UNTRACK(this);
 }
 
 

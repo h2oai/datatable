@@ -16,6 +16,7 @@
 #include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
+#include "datatablemodule.h"
 #include "memrange.h"
 #include "types.h"
 #include "utils.h"
@@ -53,6 +54,11 @@ public:
       strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
       data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
     }
+    TRACK(this, sizeof(*this), "write::CsvColumn");
+  }
+
+  ~CsvColumn() {
+    UNTRACK(this);
   }
 
   void write(char** pch, size_t row) {
@@ -536,6 +542,7 @@ void CsvWriter::write_column_names()
       maxsize += column_names[i].size()*2 + 2 + 1;
     }
     char *ch0 = new char[maxsize];
+    TRACK(ch0, maxsize, "CsvWriter.ch0");
     char *ch = ch0;
     for (size_t i = 0; i < ncolnames; i++) {
       write_string(&ch, column_names[i].data());
@@ -547,6 +554,7 @@ void CsvWriter::write_column_names()
     // Write this string buffer into the target.
     wb->write(static_cast<size_t>(ch - ch0), ch0);
     delete[] ch0;
+    UNTRACK(ch0);
   }
 }
 

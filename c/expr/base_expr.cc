@@ -22,6 +22,7 @@
 #include <memory>             // std::unique_ptr
 #include <stdlib.h>
 #include "datatable.h"
+#include "datatablemodule.h"
 #include "expr/base_expr.h"
 #include "expr/py_expr.h"
 #include "expr/workframe.h"
@@ -36,7 +37,13 @@ namespace dt {
 
 using base_expr_ptr = std::unique_ptr<base_expr>;
 
-base_expr::~base_expr() {}
+base_expr::base_expr() {
+  TRACK(this, sizeof(*this), "dt::base_expr");
+}
+
+base_expr::~base_expr() {
+  UNTRACK(this);
+}
 
 bool base_expr::is_column_expr() const { return false; }
 

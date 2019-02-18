@@ -25,6 +25,7 @@
 #include "expr/j_node.h"
 #include "expr/repl_node.h"
 #include "expr/workframe.h"   // dt::workframe
+#include "datatablemodule.h"
 namespace dt {
 
 
@@ -349,7 +350,13 @@ j_node_ptr j_node::make(py::robj src, workframe& wf) {
 }
 
 
-j_node::~j_node() {}
+j_node::j_node() {
+  TRACK(this, sizeof(*this), "j_node");
+}
+
+j_node::~j_node() {
+  UNTRACK(this);
+}
 
 
 
