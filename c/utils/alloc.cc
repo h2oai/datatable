@@ -35,8 +35,8 @@ void* _realloc(void* ptr, size_t n) {
     // | C11 DR 400.
     void* newptr = std::realloc(ptr, n);
     if (newptr) {
-      // if (ptr) UNTRACK(ptr);
-      // TRACK(newptr, n, "malloc");
+      if (ptr) UNTRACK(ptr);
+      TRACK(newptr, n, "malloc");
       return newptr;
     }
     if (errno == 12 && attempts--) {
@@ -56,7 +56,7 @@ void* _realloc(void* ptr, size_t n) {
 void free(void* ptr) {
   if (!ptr) return;
   std::free(ptr);
-  // UNTRACK(ptr);
+  UNTRACK(ptr);
 }
 
 

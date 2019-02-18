@@ -385,7 +385,7 @@ void CsvWriter::write()
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
         if (thbufsize < reqsize) {
-          thbuf = static_cast<char*>(realloc(thbuf, reqsize));
+          thbuf = dt::realloc<char>(thbuf, reqsize);
           thbufsize = reqsize;
           if (!thbuf) {
             throw RuntimeError() << "Unable to allocate " << thbufsize
