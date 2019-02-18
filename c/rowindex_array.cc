@@ -37,7 +37,7 @@
     o->refcount--;
   }
 #else
-  inline static void test(ArrayRowIndexImpl*) {}
+  #define test(ptr)
 #endif
 
 
