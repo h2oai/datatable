@@ -168,6 +168,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_csv_DTOA_H
 #define dt_csv_DTOA_H
+#include <cstring>   // std::memcpy
 #include <stdint.h>
 
 #ifndef _WIN32

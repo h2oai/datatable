@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/toa.h"
+#include "datatablemodule.h"
 #include "python/int.h"
 #include "py_types.h"
 #include "py_utils.h"
@@ -153,6 +154,7 @@ inline static MemoryRange cast_str_helper(
   size_t exp_size = nrows * sizeof(IT);
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
+  TRACK(tmpbuf, sizeof(tmpbuf), "IntColumn::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 0;
@@ -175,6 +177,7 @@ inline static MemoryRange cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
+  UNTRACK(tmpbuf);
   return wb->get_mbuf();
 }
 

@@ -79,6 +79,7 @@ using pexpr = std::unique_ptr<base_expr>;
 
 class base_expr {
   public:
+    base_expr();
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;

@@ -26,7 +26,6 @@ if [ ! -d ".asan" ]; then
     pip install colorama
     pip install typesentry
     pip install blessed
-    pip install llvmlite
     pip install pytest
     pip install pandas
 fi

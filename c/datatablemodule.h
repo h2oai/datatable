@@ -46,6 +46,17 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
 };
 
 
+#ifdef DTDEBUG
+  void TRACK(void* ptr, size_t size, const char* name);
+  void UNTRACK(void* ptr);
+  bool IS_TRACKED(void* ptr);
+#else
+  #define TRACK(ptr, size, name)
+  #define UNTRACK(ptr)
+  #define IS_TRACKED(ptr) 1
+#endif
+
+
 extern SType force_stype;  // Declared in py_buffers
 
 void init_jay();

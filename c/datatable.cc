@@ -5,10 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "datatable.h"
 #include <algorithm>
 #include <limits>
 #include "utils/parallel.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
@@ -20,7 +21,16 @@
 //------------------------------------------------------------------------------
 
 DataTable::DataTable()
-  : nrows(0), ncols(0), nkeys(0) {}
+  : nrows(0), ncols(0), nkeys(0)
+{
+  TRACK(this, sizeof(*this), "DataTable");
+}
+
+DataTable::~DataTable() {
+  for (auto col : columns) delete col;
+  columns.clear();
+  UNTRACK(this);
+}
 
 
 DataTable::DataTable(colvec&& cols) : DataTable()
@@ -58,11 +68,6 @@ DataTable::DataTable(colvec&& cols, const DataTable* nn)
   : DataTable(std::move(cols))
 {
   copy_names_from(nn);
-}
-
-DataTable::~DataTable() {
-  for (auto col : columns) delete col;
-  columns.clear();
 }
 
 
@@ -177,7 +182,8 @@ void DataTable::resize_rows(size_t new_nrows) {
   }
 
   for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex& r = rowindices[j];
+    RowIndex r = std::move(rowindices[j]);
+    xassert(!rowindices[j]);
     if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
     r.resize(new_nrows);
     for (size_t i : colindices[j]) {

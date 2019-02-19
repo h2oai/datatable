@@ -5,17 +5,18 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "memrange.h"
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
 #ifndef _WIN32
 #include <sys/mman.h>          // mmap, munmap
 #endif
-#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
-#include "utils.h"             // malloc_size
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
+#include "datatablemodule.h"   // TRACK, UNTRACK, IS_TRACKED
+#include "memrange.h"
+#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
+#include "utils.h"             // malloc_size
 
 
 
@@ -131,6 +132,7 @@
 
     public:
       static ViewedMRI* acquire_viewed(const MemoryRange& src);
+      ~ViewedMRI() override;
       void release();
 
       bool is_writable() const;
@@ -511,19 +513,21 @@
   MemoryMRI::MemoryMRI(size_t n) {
     bufsize = n;
     bufdata = dt::malloc<void>(n);
+    TRACK(this, sizeof(*this), "MemoryMRI");
   }
 
   MemoryMRI::MemoryMRI(size_t n, void* ptr) {
-    if (n) {
-      if (!ptr) throw ValueError() << "Unallocated memory region provided";
-      bufsize = n;
-      bufdata = ptr;
-    }
+    if (n && !ptr) throw ValueError() << "Unallocated memory region provided";
+    // xassert(!ptr || IS_TRACKED(ptr));
+    bufsize = n;
+    bufdata = ptr;
+    TRACK(this, sizeof(*this), "MemoryMRI");
   }
 
   MemoryMRI::~MemoryMRI() {
     clear_pyobjects();
-    std::free(bufdata);
+    dt::free(bufdata);
+    UNTRACK(this);
   }
 
   size_t MemoryMRI::memory_footprint() const {
@@ -566,6 +570,7 @@
     pybufinfo = pybuf;
     resizable = false;
     writable = false;
+    TRACK(this, sizeof(*this), "ExternalMRI");
   }
 
   ExternalMRI::ExternalMRI(size_t n, const void* ptr)
@@ -584,6 +589,7 @@
     if (pybufinfo) {
       PyBuffer_Release(pybufinfo);
     }
+    UNTRACK(this);
   }
 
   void ExternalMRI::resize(size_t) {
@@ -610,11 +616,13 @@
     resizable = false;
     writable = base->is_writable();
     pyobjects = src.is_pyobjects();
+    TRACK(this, sizeof(*this), "ViewMRI");
   }
 
   ViewMRI::~ViewMRI() {
     base->release();
     pyobjects = false;
+    UNTRACK(this);
   }
 
   size_t ViewMRI::memory_footprint() const {
@@ -657,6 +665,11 @@
     pyobjects = implptr->pyobjects;
     writable = false;
     resizable = false;
+    TRACK(this, sizeof(*this), "ViewedMRI");
+  }
+
+  ViewedMRI::~ViewedMRI() {
+    UNTRACK(this);
   }
 
   ViewedMRI* ViewedMRI::acquire_viewed(const MemoryRange& src) {
@@ -706,6 +719,7 @@
     resizable = create;
     temporary_file = create;
     mmm_index = 0;
+    TRACK(this, sizeof(*this), "MmapMRI");
   }
 
   MmapMRI::~MmapMRI() {
@@ -713,6 +727,7 @@
     if (temporary_file) {
       File::remove(filename);
     }
+    UNTRACK(this);
   }
 
   void* MmapMRI::ptr() const {
@@ -908,6 +923,7 @@
       : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
   {
     writable = true;
+    // already TRACKed via MmapMRI constructor
   }
 
 

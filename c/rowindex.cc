@@ -20,18 +20,22 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
+#include "utils/assert.h"
+#include "utils/parallel.h"
+#include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
 #include "utils.h"
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 
 //------------------------------------------------------------------------------
 // Construction
 //------------------------------------------------------------------------------
 
-RowIndex::RowIndex() : impl(nullptr) {}
+RowIndex::RowIndex() {
+  impl = nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
+}
 
 // copy-constructor, performs shallow copying
 RowIndex::RowIndex(const RowIndex& other) : RowIndex() {
@@ -49,55 +53,67 @@ RowIndex& RowIndex::operator=(const RowIndex& other) {
 RowIndex::RowIndex(RowIndex&& other) {
   impl = other.impl;
   other.impl = nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::~RowIndex() {
   if (impl) impl = impl->release();
+  UNTRACK(this);
 }
 
 
 // Private constructor
 RowIndex::RowIndex(RowIndexImpl* rii) {
   impl = rii? rii->acquire() : nullptr;
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 
-RowIndex::RowIndex(size_t start, size_t count, size_t step){
+RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   impl = (new SliceRowIndexImpl(start, count, step))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(const arr64_t& starts,
                    const arr64_t& counts,
                    const arr64_t& steps) {
   impl = (new ArrayRowIndexImpl(starts, counts, steps))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr32_t&& arr, size_t min, size_t max) {
   impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
   impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
   impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
   impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(const Column* col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
+  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 
@@ -181,8 +197,7 @@ void RowIndex::resize(size_t nrows) {
     auto newimpl = impl->resized(nrows);
     xassert(newimpl->refcount == 0);
     impl->release();
-    impl = newimpl;
-    impl->acquire();
+    impl = newimpl->acquire();
   } else {
     impl->resize(nrows);
   }

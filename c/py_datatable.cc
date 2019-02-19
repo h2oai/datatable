@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include "datatable.h"
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "py_column.h"
 #include "py_rowindex.h"
@@ -307,9 +308,15 @@ PyObject* save_jay(obj* self, PyObject* args) {
 // Misc
 //------------------------------------------------------------------------------
 
+static int __init__(PyObject* self, PyObject*, PyObject*) {
+  TRACK(self, sizeof(pydatatable::obj), "pydatatable::obj");
+  return 0;
+}
+
 static void dealloc(obj* self) {
   delete self->ref;
   Py_TYPE(self)->tp_free(self);
+  UNTRACK(self);
 }
 
 
@@ -391,7 +398,7 @@ PyTypeObject type = {
   nullptr,                            /* tp_descr_get */
   nullptr,                            /* tp_descr_set */
   0,                                  /* tp_dictoffset */
-  nullptr,                            /* tp_init */
+  __init__,                           /* tp_init */
   nullptr,                            /* tp_alloc */
   nullptr,                            /* tp_new */
   nullptr,                            /* tp_free */

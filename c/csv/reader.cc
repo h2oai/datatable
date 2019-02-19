@@ -208,6 +208,7 @@ void GenericReader::init_header() {
 }
 
 void GenericReader::init_nastrings() {
+  // TODO: `na_strings` should be properly destroyed in the end
   na_strings = freader.get_attr("na_strings").to_cstringlist();
   blank_is_na = false;
   number_is_na = false;

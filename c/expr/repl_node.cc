@@ -20,13 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
-#include "datatable.h"
 #include "expr/base_expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
-
+#include "datatable.h"
+#include "datatablemodule.h"
 namespace dt {
 
 
@@ -469,7 +469,13 @@ void exprlist_rn::replace_values(workframe&, const intvec&) const {
 // dt::repl_node
 //------------------------------------------------------------------------------
 
-repl_node::~repl_node() {}
+repl_node::repl_node() {
+  TRACK(this, sizeof(*this), "repl_node");
+}
+
+repl_node::~repl_node() {
+  UNTRACK(this);
+}
 
 
 repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {

@@ -85,7 +85,7 @@ class FrameInitializationManager {
     }
 
     ~FrameInitializationManager() {
-      for (auto col : cols) dt::free(col);
+      for (auto col : cols) delete col;
     }
 
 

@@ -68,6 +68,8 @@ class by_node {
 
   public:
     by_node();
+    ~by_node();
+
     void add_groupby_columns(workframe&, collist_ptr&&);
     void add_sortby_columns(workframe&, collist_ptr&&);
 

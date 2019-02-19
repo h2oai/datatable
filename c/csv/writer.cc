@@ -5,17 +5,19 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "csv/writer.h"
 #include <new>          // placement new
 #include <stdexcept>    // std::runtime_error
 #include <math.h>
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
-#include "column.h"
 #include "csv/toa.h"
-#include "datatable.h"
-#include "memrange.h"
+#include "csv/writer.h"
+#include "utils/alloc.h"
 #include "utils/parallel.h"
+#include "column.h"
+#include "datatable.h"
+#include "datatablemodule.h"
+#include "memrange.h"
 #include "types.h"
 #include "utils.h"
 
@@ -52,6 +54,11 @@ public:
       strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
       data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
     }
+    TRACK(this, sizeof(*this), "write::CsvColumn");
+  }
+
+  ~CsvColumn() {
+    UNTRACK(this);
   }
 
   void write(char** pch, size_t row) {
@@ -344,11 +351,7 @@ void CsvWriter::write()
     size_t th_write_size = 0;
     try {
       // Note: do not use new[] here, as it can't be safely realloced
-      thbuf = static_cast<char*>(malloc(thbufsize));
-      if (!thbuf) {
-        throw RuntimeError() << "Unable to allocate " << thbufsize
-                             << " bytes for thread-local buffer";
-      }
+      thbuf = dt::malloc<char>(thbufsize);
     } catch (...) {
       oem.capture_exception();
     }
@@ -382,7 +385,7 @@ void CsvWriter::write()
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
         if (thbufsize < reqsize) {
-          thbuf = static_cast<char*>(realloc(thbuf, reqsize));
+          thbuf = dt::realloc<char>(thbuf, reqsize);
           thbufsize = reqsize;
           if (!thbuf) {
             throw RuntimeError() << "Unable to allocate " << thbufsize
@@ -435,7 +438,7 @@ void CsvWriter::write()
       if (th_write_size && !oem.exception_caught()) {
         wb->write_at(th_write_at, th_write_size, thbuf);
       }
-      free(thbuf);
+      dt::free(thbuf);
     } catch (...) {
       oem.capture_exception();
     }
@@ -539,6 +542,7 @@ void CsvWriter::write_column_names()
       maxsize += column_names[i].size()*2 + 2 + 1;
     }
     char *ch0 = new char[maxsize];
+    TRACK(ch0, maxsize, "CsvWriter.ch0");
     char *ch = ch0;
     for (size_t i = 0; i < ncolnames; i++) {
       write_string(&ch, column_names[i].data());
@@ -550,6 +554,7 @@ void CsvWriter::write_column_names()
     // Write this string buffer into the target.
     wb->write(static_cast<size_t>(ch - ch0), ch0);
     delete[] ch0;
+    UNTRACK(ch0);
   }
 }
 

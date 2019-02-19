@@ -122,15 +122,16 @@
 //
 //
 //------------------------------------------------------------------------------
-#include "sort.h"
 #include <algorithm>  // std::min
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
 #include "column.h"
 #include "datatable.h"
+#include "datatablemodule.h"
 #include "options.h"
 #include "rowindex.h"
+#include "sort.h"
 #include "types.h"
 #include "utils.h"
 #include "utils/alloc.h"
@@ -1113,6 +1114,7 @@ class SortContext {
       // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nthreads];
+      TRACK(tmp, sizeof(tmp), "sort.tmp");
       // }
     }
     #pragma omp parallel num_threads(nthreads)
@@ -1165,7 +1167,10 @@ class SortContext {
       gg.from_chunks(rrmap, _nradixes);
     }
 
-    if (own_tmp) delete[] tmp;
+    if (own_tmp) {
+      delete[] tmp;
+      UNTRACK(tmp);
+    }
   }
 
 

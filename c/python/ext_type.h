@@ -213,6 +213,7 @@ namespace _impl {
     try {
       T* tself = static_cast<T*>(self);
       tself->m__dealloc__();
+      Py_TYPE(self)->tp_free(self);
     } catch (const std::exception& e) {
       exception_to_python(e);
     }
