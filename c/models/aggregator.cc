@@ -113,8 +113,8 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_double_precision = !args[10].is_none_or_undefined();
 
   if (undefined_dt) {
-    throw ValueError() << "`dt`, i.e. a datatable to aggregate, parameter is "
-                       << "missing";
+    throw ValueError() << "Required parameter `dt`, a datatable to aggregate, "
+                          "is missing";
   }
 
   DataTable* dt = args[0].to_frame();
