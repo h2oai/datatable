@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_HASH_h
-#define dt_EXTRAS_HASH_h
+#ifndef dt_MODELS_HASH_h
+#define dt_MODELS_HASH_h
 #include "py_datatable.h"
-#include "extras/murmurhash.h"
+#include "models/murmurhash.h"
 
 
 /*
@@ -33,7 +33,7 @@ class Hash {
     explicit Hash(const Column*);
     virtual ~Hash();
 
-    const RowIndex ri;
+    const RowIndex& ri;
     virtual uint64_t hash(size_t row) const = 0;
 };
 

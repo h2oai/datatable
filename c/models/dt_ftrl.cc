@@ -20,8 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
-#include "extras/dt_ftrl.h"
-#include "extras/murmurhash.h"
+#include "models/dt_ftrl.h"
+#include "models/murmurhash.h"
 
 namespace dt {
 

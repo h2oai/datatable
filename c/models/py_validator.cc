@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "extras/py_validator.h"
+#include "models/py_validator.h"
 
 // Error messages
 Error py::Validator::error_manager::error_not_positive(PyObject* src,

@@ -210,7 +210,7 @@ public:
    *
    *   column = column->rbind(columns_to_bind);
    *
-   * Individual entries in the `columns` array may be instances of `VoidColumn,
+   * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
   Column* rbind(std::vector<const Column*>& columns);
