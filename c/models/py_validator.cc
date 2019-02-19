@@ -19,23 +19,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_UTILS_h
-#define dt_EXTRAS_UTILS_h
+#include "models/py_validator.h"
 
-
-/*
-* Note: this implementation does not disable this overload for array types,
-* see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
-*/
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+// Error messages
+Error py::Validator::error_manager::error_not_positive(PyObject* src,
+                                                       const std::string& name
+) const {
+  return ValueError() << name << " should be positive: " << src;
 }
 
-#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define PBWIDTH 60
-void print_progress(float, int);
-
-void calculate_coprimes(size_t, std::vector<size_t>&);
-
-#endif
+Error py::Validator::error_manager::error_negative(PyObject* src,
+                                                   const std::string& name
+) const {
+  return ValueError() << name << " should be greater than or equal to zero: "
+                      << src;
+}

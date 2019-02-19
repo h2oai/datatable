@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_COLUMN_CONVERTOR_h
-#define dt_EXTRAS_COLUMN_CONVERTOR_h
+#ifndef dt_MODELS_COLUMN_CONVERTOR_h
+#define dt_MODELS_COLUMN_CONVERTOR_h
 #include "py_datatable.h"
 
 

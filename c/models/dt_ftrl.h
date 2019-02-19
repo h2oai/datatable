@@ -19,11 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_FTRL_h
-#define dt_EXTRAS_FTRL_h
+#ifndef dt_MODELS_FTRL_h
+#define dt_MODELS_FTRL_h
 #include "py_datatable.h"
 #include "utils/parallel.h"
-#include "extras/hash.h"
+#include "models/hash.h"
 
 
 using hashptr = std::unique_ptr<Hash>;

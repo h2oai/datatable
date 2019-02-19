@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
-#include "extras/aggregator.h"
+#include "models/aggregator.h"
 
 
 namespace py {

@@ -23,8 +23,8 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
-#include "extras/py_ftrl.h"
-#include "extras/py_validator.h"
+#include "models/py_ftrl.h"
+#include "models/py_validator.h"
 
 namespace py {
 

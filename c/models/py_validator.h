@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_PY_VALIDATOR_h
-#define dt_EXTRAS_PY_VALIDATOR_h
+#ifndef dt_MODELS_PY_VALIDATOR_h
+#define dt_MODELS_PY_VALIDATOR_h
 #include "python/obj.h"
 #include "python/arg.h"
 

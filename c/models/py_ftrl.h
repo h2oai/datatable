@@ -19,9 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXTRAS_PY_FTRL_h
-#define dt_EXTRAS_PY_FTRL_h
-#include "extras/dt_ftrl.h"
+#ifndef dt_MODELS_PY_FTRL_h
+#define dt_MODELS_PY_FTRL_h
+#include "models/dt_ftrl.h"
 
 namespace py {
 

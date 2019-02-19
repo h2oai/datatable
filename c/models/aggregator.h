@@ -29,9 +29,9 @@
 #include "python/obj.h"
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
-#include "extras/dt_ftrl.h"
-#include "extras/column_convertor.h"
-#include "extras/utils.h"
+#include "models/dt_ftrl.h"
+#include "models/column_convertor.h"
+#include "models/utils.h"
 
 // Number of steps for the aggregator progress bar
 #define PBSTEPS 100

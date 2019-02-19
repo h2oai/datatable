@@ -28,8 +28,8 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
     }
 
     void init_methods();
-    void init_methods_aggregate(); // extras/aggregate.cc
-    void init_methods_kfold();     // extras/kfold.cc
+    void init_methods_aggregate(); // models/aggregate.cc
+    void init_methods_kfold();     // models/kfold.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_options();   // options.cc
     void init_methods_repeat();    // frame/repeat.cc

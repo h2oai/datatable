@@ -27,7 +27,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable import ltype
-from datatable.extras import aggregate
+from datatable.models import aggregate
 from tests import assert_equals
 from datatable.internal import frame_column_rowindex
 
