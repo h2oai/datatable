@@ -148,36 +148,36 @@ class _obj {
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
-    bool is_undefined()     const noexcept;
-    bool is_none()          const noexcept;
-    bool is_ellipsis()      const noexcept;
-    bool is_true()          const noexcept;
-    bool is_false()         const noexcept;
     bool is_bool()          const noexcept;
-    bool is_int()           const noexcept;
-    bool is_float()         const noexcept;
-    bool is_numeric()       const noexcept;
-    bool is_string()        const noexcept;
-    bool is_bytes()        const noexcept;
-    bool is_type()          const noexcept;
-    bool is_ltype()         const noexcept;
-    bool is_stype()         const noexcept;
-    bool is_list()          const noexcept;
-    bool is_tuple()         const noexcept;
-    bool is_list_or_tuple() const noexcept;
-    bool is_iterable()      const noexcept;
-    bool is_dict()          const noexcept;
     bool is_buffer()        const noexcept;
-    bool is_range()         const noexcept;
-    bool is_slice()         const noexcept;
-    bool is_frame()         const noexcept;
     bool is_by_node()       const noexcept;
+    bool is_bytes()         const noexcept;
+    bool is_dict()          const noexcept;
+    bool is_ellipsis()      const noexcept;
+    bool is_false()         const noexcept;
+    bool is_float()         const noexcept;
+    bool is_frame()         const noexcept;
+    bool is_int()           const noexcept;
+    bool is_iterable()      const noexcept;
     bool is_join_node()     const noexcept;
-    bool is_sort_node()     const noexcept;
-    bool is_pandas_frame()  const noexcept;
-    bool is_pandas_series() const noexcept;
+    bool is_list()          const noexcept;
+    bool is_list_or_tuple() const noexcept;
+    bool is_ltype()         const noexcept;
+    bool is_none()          const noexcept;
+    bool is_numeric()       const noexcept;
     bool is_numpy_array()   const noexcept;
     bool is_numpy_marray()  const noexcept;
+    bool is_pandas_frame()  const noexcept;
+    bool is_pandas_series() const noexcept;
+    bool is_range()         const noexcept;
+    bool is_slice()         const noexcept;
+    bool is_sort_node()     const noexcept;
+    bool is_string()        const noexcept;
+    bool is_stype()         const noexcept;
+    bool is_true()          const noexcept;
+    bool is_tuple()         const noexcept;
+    bool is_type()          const noexcept;
+    bool is_undefined()     const noexcept;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;

@@ -56,6 +56,7 @@ bool Arg::is_none_or_undefined() const { return pyobj.is_none() ||
                                                 pyobj.is_undefined(); }
 bool Arg::is_ellipsis()          const { return pyobj.is_ellipsis(); }
 bool Arg::is_bool()              const { return pyobj.is_bool(); }
+bool Arg::is_bytes()             const { return pyobj.is_bytes(); }
 bool Arg::is_int()               const { return pyobj.is_int(); }
 bool Arg::is_float()             const { return pyobj.is_float(); }
 bool Arg::is_list()              const { return pyobj.is_list(); }
