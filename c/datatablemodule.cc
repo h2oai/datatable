@@ -190,23 +190,29 @@ static std::unordered_map<void*, PtrInfo> tracked_objects;
 
 
 void TRACK(void* ptr, size_t size, const char* name) {
-  if (tracked_objects.count(ptr)) {
-    throw RuntimeError() << "Pointer " << ptr << " is already tracked. Old "
-        "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
-        << (PtrInfo {size, name}).to_string();
+  #pragma omp critical
+  {
+    if (tracked_objects.count(ptr)) {
+      std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
+          "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
+          << (PtrInfo {size, name}).to_string();
+    }
+    tracked_objects.insert({ptr, PtrInfo {size, name}});
   }
-  tracked_objects.insert({ptr, PtrInfo {size, name}});
 }
 
 
 void UNTRACK(void* ptr) {
-  if (tracked_objects.count(ptr) == 0) {
-    // UNTRACK() is usually called from a destructor, so cannot throw any
-    // exceptions there :(
-    std::cerr << "ERROR: Trying to remove pointer " << ptr
-              << " which is not tracked\n";
+  #pragma omp critical
+  {
+    if (tracked_objects.count(ptr) == 0) {
+      // UNTRACK() is usually called from a destructor, so cannot throw any
+      // exceptions there :(
+      std::cerr << "ERROR: Trying to remove pointer " << ptr
+                << " which is not tracked\n";
+    }
+    tracked_objects.erase(ptr);
   }
-  tracked_objects.erase(ptr);
 }
 
 
