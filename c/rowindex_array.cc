@@ -322,7 +322,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
 
 ArrayRowIndexImpl::~ArrayRowIndexImpl() {
   if (data && owned) {
-    std::free(data);
+    dt::free(data);
   }
   data = nullptr;
 }

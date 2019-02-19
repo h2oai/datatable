@@ -197,8 +197,7 @@ void RowIndex::resize(size_t nrows) {
     auto newimpl = impl->resized(nrows);
     xassert(newimpl->refcount == 0);
     impl->release();
-    impl = newimpl;
-    impl->acquire();
+    impl = newimpl->acquire();
   } else {
     impl->resize(nrows);
   }

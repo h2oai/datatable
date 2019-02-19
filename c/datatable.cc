@@ -182,7 +182,8 @@ void DataTable::resize_rows(size_t new_nrows) {
   }
 
   for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex& r = rowindices[j];
+    RowIndex r = std::move(rowindices[j]);
+    xassert(!rowindices[j]);
     if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
     r.resize(new_nrows);
     for (size_t i : colindices[j]) {
