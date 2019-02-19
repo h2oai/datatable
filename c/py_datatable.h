@@ -13,8 +13,6 @@
 #include "py_utils.h"
 namespace py { class Frame; }
 
-extern SType force_stype;
-
 #define BASECLS pydatatable::obj
 #define CLSNAME DataTable
 #define HOMEFLAG dt_PY_DATATABLE_cc
@@ -100,10 +98,6 @@ DECLARE_METHOD(
   materialize,
   "materialize()\n\n"
   "Convert DataTable from 'view' into 'data' representation.\n")
-
-DECLARE_METHOD(
-  use_stype_for_buffers,
-  "use_stype_for_buffers(stype)\n\n")
 
 DECLARE_METHOD(
   save_jay,

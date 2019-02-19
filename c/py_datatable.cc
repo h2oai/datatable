@@ -270,14 +270,6 @@ PyObject* materialize(obj* self, PyObject*) {
 }
 
 
-PyObject* use_stype_for_buffers(obj*, PyObject* args) {
-  int st = 0;
-  if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st))
-    return nullptr;
-  force_stype = static_cast<SType>(st);
-  Py_RETURN_NONE;
-}
-
 
 PyObject* save_jay(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
@@ -350,7 +342,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(mean1),
   METHOD0(sd1),
   METHOD0(materialize),
-  METHODv(use_stype_for_buffers),
   METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
