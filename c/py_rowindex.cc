@@ -47,7 +47,7 @@ oobj orowindex::pyobject::m__repr__() {
   if (ri->isarr32()) out << "int32[" << ri->size() << "]";
   if (ri->isarr64()) out << "int64[" << ri->size() << "]";
   if (ri->isslice()) out << ri->slice_start() << '/' << ri->size() << '/'
-                        << ri->slice_step();
+                         << static_cast<int64_t>(ri->slice_step());
   out << ")";
   return ostring(out.str());
 }

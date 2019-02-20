@@ -111,7 +111,7 @@ static void check_nrows(DataTable* dt, size_t* nrows) {
   size_t inrows = dt->nrows;
   if (*nrows == 1 || *nrows == size_t(-1)) *nrows = inrows;
   if (*nrows == inrows || inrows == 1) return;
-  throw ValueError() << "Cannot merge frame with " << inrows << " rows to "
+  throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
       "a frame with " << *nrows << " rows. Use `force=True` to disregard "
       "this check and merge the frames anyways.";
 }
@@ -141,44 +141,49 @@ void Frame::Type::_init_cbind(Methods& mm) {
  * it will be filled with NAs; with the exception of 1-row datatables which will
  * be expanded to the desired height by duplicating that row.
  */
-DataTable* DataTable::cbind(std::vector<DataTable*> dts)
+void DataTable::cbind(std::vector<DataTable*> dts)
 {
   size_t t_ncols = ncols;
   size_t t_nrows = nrows;
-  for (size_t i = 0; i < dts.size(); ++i) {
-    t_ncols += dts[i]->ncols;
-    if (t_nrows < dts[i]->nrows) t_nrows = dts[i]->nrows;
+  for (auto dt : dts) {
+    t_ncols += dt->ncols;
+    if (t_nrows < dt->nrows) t_nrows = dt->nrows;
   }
 
   // Fix up the main datatable if it has too few rows
   if (nrows < t_nrows) {
-    for (size_t i = 0; i < ncols; ++i) {
-      columns[i]->resize_and_fill(t_nrows);
+    for (auto col : columns) {
+      col->resize_and_fill(t_nrows);
     }
     nrows = t_nrows;
   }
 
   // Append columns from `dts` into the "main" datatable
+  //
+  // NOTE: when appending a DataTable to itself, the following happens:
+  // we start changing `this->columns` vector, which thus becomes
+  // temporarily out-of-sync with `this->ncols` field (which reflects the
+  // original number of columns). Thus, when iterating over columns of
+  // `dt`, it is important NOT to use `for (col : dt->columns)` iterator.
+  //
   std::vector<std::string> newnames = names;
-  columns.resize(t_ncols);
-  size_t j = ncols;
-  for (size_t i = 0; i < dts.size(); ++i) {
-    size_t ncolsi = dts[i]->ncols;
-    size_t nrowsi = dts[i]->nrows;
+  columns.reserve(t_ncols);
+  for (auto dt : dts) {
+    size_t ncolsi = dt->ncols;
+    bool fix_columns = (dt->nrows < t_nrows);
     for (size_t ii = 0; ii < ncolsi; ++ii) {
-      Column *c = dts[i]->columns[ii]->shallowcopy();
-      c->reify();
-      if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
-      columns[j++] = c;
+      Column* c = dt->columns[ii]->shallowcopy();
+      if (fix_columns) c->resize_and_fill(t_nrows);
+      columns.push_back(c);
     }
-    const auto& namesi = dts[i]->names;
+    const auto& namesi = dt->names;
     xassert(namesi.size() == ncolsi);
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(j == t_ncols);
+  xassert(columns.size() == t_ncols);
+  xassert(newnames.size() == t_ncols);
 
   // Done.
   ncols = t_ncols;
   set_names(newnames);
-  return this;
 }
