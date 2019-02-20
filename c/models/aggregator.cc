@@ -28,12 +28,12 @@ namespace py {
 static PKArgs args_aggregate(
   11, 0, 0, false, false,
   {
-    "dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
+    "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
     "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"
   },
   "aggregate",
 
-R"(aggregate(dt, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
+R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
 nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
 nthreads=0, double_precision=False)
 --
@@ -42,7 +42,7 @@ Aggregate a datatable.
 
 Parameters
 ----------
-  dt: datatable
+  frame: datatable
       Frame to be aggregated.
   min_rows: int
       Minimum number of rows a datatable should have to be aggregated. 
@@ -74,11 +74,11 @@ Parameters
 
 Returns
 -------
-  A list `[dt_exemplars, dt_members]`, where 
-  - `dt_exemplars` is the aggregated `dt` frame with additional `members_count`
-    column, that specifies number of members for each exemplar.
-  - `dt_members` is a one-column frame contaiing `exemplar_id` for each of
-    the original rows in `dt`.
+  A list `[frame_exemplars, frame_members]`, where 
+  - `frame_exemplars` is the aggregated `frame` with an additional
+    `members_count` column, that specifies number of members for each exemplar.
+  - `frame_members` is a one-column datatable that contains `exemplar_id` for
+    each row from the original `frame`.
 )"
 );
 
@@ -113,8 +113,7 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_double_precision = !args[10].is_none_or_undefined();
 
   if (undefined_dt) {
-    throw ValueError() << "Required parameter `dt`, a datatable to aggregate, "
-                          "is missing";
+    throw ValueError() << "Required parameter `frame` is missing";
   }
 
   DataTable* dt = args[0].to_frame();
