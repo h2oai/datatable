@@ -185,7 +185,6 @@ def test_dt_view(dt0, patched_terminal, capsys):
             " 3    0   1   1   4.4       0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
-            "Press q to quit  ↑←↓→ to move  wasd to page  t to toggle types"
             in out)
 
 

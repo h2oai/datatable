@@ -24,6 +24,7 @@ extern int32_t sort_nthreads;
 extern bool fread_anonymize;
 extern int64_t frame_names_auto_index;
 extern std::string frame_names_auto_prefix;
+extern bool display_interactive;
 extern bool display_interactive_hint;
 
 int32_t normalize_nthreads(int32_t nth);

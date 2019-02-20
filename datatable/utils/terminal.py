@@ -10,6 +10,7 @@ Various functions to help display something in a terminal.
 import sys
 import blessed
 import _locale
+from datatable.lib import core
 
 __all__ = ("term", "wait_for_keypresses", "register_onresize")
 
@@ -97,17 +98,12 @@ for i, ll in enumerate(_lls):
 
 
 
-# Override sys.displayhook to allow better control over what is being printed
-# in the console. In particular, if an object to be displayed has method
-# ``_display_in_terminal_``, then that method will be used for custom object
-# rendering. Otherwise the default handler is used, which simply prints
-# ``repr(obj)`` if obj is not None.
+# Override sys.displayhook to allow datatable Frame to show a rich
+# display when viewed.
 #
 def _new_displayhook(value):
-    if value is None:
-        return
-    if hasattr(value, "_display_in_terminal_") and not isinstance(value, type):
-        value._display_in_terminal_()
+    if isinstance(value, core.Frame):
+        value.view()
     else:
         _original_displayhook(value)
 

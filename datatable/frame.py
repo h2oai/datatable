@@ -63,10 +63,6 @@ class Frame(core.Frame):
         scols = plural(self.ncols, "col")
         return "<Frame [%s x %s]>" % (srows, scols)
 
-    def _display_in_terminal_(self):  # pragma: no cover
-        # This method is called from the display hook set from .utils.terminal
-        self.view()
-
     def _repr_pretty_(self, p, cycle):
         # Called by IPython terminal when displaying the datatable
         if not term.jupyter:
@@ -84,7 +80,7 @@ class Frame(core.Frame):
             "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
         }
 
-    def view(self, interactive=True):
+    def view(self, interactive=None):
         widget = DataFrameWidget(self.nrows, self.ncols, len(self.key),
                                  self._data_viewer, interactive)
         widget.render()
