@@ -28,57 +28,57 @@ namespace py {
 static PKArgs args_aggregate(
   11, 0, 0, false, false,
   {
-    "dt", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
+    "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
     "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"
   },
   "aggregate",
 
-R"(aggregate(dt, min_rows, n_bins, nx_bins, ny_bins, nd_max_bins, max_dimensions, seed, progress_fn, nthreads, double_precision)
+R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
+nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
+nthreads=0, double_precision=False)
 --
 
 Aggregate a datatable.
 
 Parameters
 ----------
-  dt: datatable
+  frame: datatable
       Frame to be aggregated.
   min_rows: int
       Minimum number of rows a datatable should have to be aggregated. 
-      If datatable has `nrows` that is less than `min_rows`, aggregation is bypassed,
-      and all rows become exemplars. Default value is `500`.
+      If datatable has `nrows` that is less than `min_rows`, aggregation
+      is bypassed, and all rows become exemplars.
   n_bins: int
-      Number of bins for 1D aggregation. Default value is `500`.
+      Number of bins for 1D aggregation.
   nx_bins: int
-      Number of x bins for 2D aggregation. Default value is `50`.
+      Number of x bins for 2D aggregation.
   ny_bins: int
-      Number of y bins for 2D aggregation. Default value is `50`.
+      Number of y bins for 2D aggregation.
   nd_max_bins: int
       Maximum number of exemplars for ND aggregation, not a hard limit.
-      Default value is `500`.
   max_dimensions: int
       Number of columns at which start using the projection method.
-      Default value is `50`.
   seed: int
-      Seed to be used for the projection method. This value defaults to `0`.
+      Seed to be used for the projection method.
   progress_fn: object
-      Python function for progress reporting accepting two arguments:
-      - `progress`, that is a float value from 0 to 1;
-      - `status_code`, `0` – in progress, `1` – completed.
-      Default value is `None`.
+      Python function for progress reporting with the signature
+      `progress_fn(progress, status_code)`, where:
+      - `progress` is a float value that corresponds to the aggregation
+        progress on a scale from 0 to 1;
+      - `status_code` takes two values: `0` – in progress, `1` – completed.
   nthreads: int
-      Number of OpenMP threads ND aggregator will use. 
-      Default value is `50`, i.e. automatically figure out the optimal number.
+      Number of OpenMP threads aggregator should use. `0` means 
+      use all the threads.
   double_precision: bool
       Whether to use double precision arithmetic or not. 
-      Default value is `False`.
 
 Returns
 -------
-  A list `[dt_exemplars, dt_members]`, where 
-  - `dt_exemplars` is the aggregated `dt` frame with additional `members_count`
-    column, that specifies number of members for each exemplar.
-  - `dt_members` is a one-column frame contaiing `exemplar_id` for each of
-    the original rows in `dt`.
+  A list `[frame_exemplars, frame_members]`, where 
+  - `frame_exemplars` is the aggregated `frame` with an additional
+    `members_count` column, that specifies number of members for each exemplar.
+  - `frame_members` is a one-column datatable that contains `exemplar_id` for
+    each row from the original `frame`.
 )"
 );
 
@@ -113,7 +113,7 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_double_precision = !args[10].is_none_or_undefined();
 
   if (undefined_dt) {
-    throw ValueError() << "`dt`, i.e. a datatable to aggregate, parameter is missing";
+    throw ValueError() << "Required parameter `frame` is missing";
   }
 
   DataTable* dt = args[0].to_frame();
