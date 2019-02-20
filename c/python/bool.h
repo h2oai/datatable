@@ -19,12 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/bool.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+#ifndef dt_PYTHON_BOOL_h
+#define dt_PYTHON_BOOL_h
+#include <Python.h>
+#include "python/obj.h"
+
+namespace py {
+
+
+class obool : public oobj {
+  public:
+    obool() = default;
+    obool(const obool&) = default;
+    obool(obool&&) = default;
+    obool& operator=(const obool&) = default;
+    obool& operator=(obool&&) = default;
+
+    explicit obool(bool x);
+};
+
+
+}  // namespace py
+#endif

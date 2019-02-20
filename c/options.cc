@@ -5,13 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "options.h"
-#include "datatablemodule.h"
+#include "python/_all.h"
 #include "python/ext_type.h"
-#include "python/int.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/parallel.h"
+#include "datatablemodule.h"
+#include "options.h"
 
 
 namespace config
@@ -189,7 +189,7 @@ static py::oobj get_option(const py::PKArgs& args) {
     return logger? py::oobj(logger) : py::None();
 
   } else if (name == "fread.anonymize") {
-    return py::oint(fread_anonymize);
+    return py::obool(fread_anonymize);
 
   } else if (name == "frame.names_auto_index") {
     return py::oint(frame_names_auto_index);
@@ -198,10 +198,10 @@ static py::oobj get_option(const py::PKArgs& args) {
     return py::ostring(frame_names_auto_prefix);
 
   } else if (name == "display.interactive") {
-    return py::oint(display_interactive);
+    return py::obool(display_interactive);
 
   } else if (name == "display.interactive_hint") {
-    return py::oint(display_interactive_hint);
+    return py::obool(display_interactive_hint);
 
   } else {
     throw ValueError() << "Unknown option `" << name << "`";
