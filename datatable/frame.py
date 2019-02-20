@@ -281,22 +281,8 @@ class Frame(core.Frame):
 
 
     #---------------------------------------------------------------------------
-    # Converters
+    # Deprecated
     #---------------------------------------------------------------------------
-
-    def to_pandas(self):
-        """
-        Convert Frame to a pandas DataFrame, or raise an error if `pandas`
-        module is not installed.
-        """
-        pandas = load_module("pandas")
-        # self.materialize()
-
-        pd = pandas.DataFrame({name: self[:, i].to_numpy().ravel()
-                               for i, name in enumerate(self.names)},
-                              columns=self.names)
-        return pd
-
 
     def topython(self):
         warnings.warn(

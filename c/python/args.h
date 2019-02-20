@@ -273,7 +273,7 @@ class VarArgsIterable {
 
 template <typename T>
 T PKArgs::get(size_t i) const {
-  if (bound_args[i].is_undefined()) {
+  if (bound_args[i].is_none_or_undefined()) {
     throw TypeError() << "Argument `" << arg_names[i] << "` is missing";
   }
   return static_cast<T>(bound_args[i]);
@@ -281,7 +281,7 @@ T PKArgs::get(size_t i) const {
 
 template <typename T>
 T PKArgs::get(size_t i, T default_value) const {
-  return bound_args[i].is_undefined()
+  return bound_args[i].is_none_or_undefined()
           ? default_value
           : static_cast<T>(bound_args[i]);
 }

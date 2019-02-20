@@ -279,8 +279,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     init_csvwrite_constants();
     init_exceptions();
 
-    force_stype = SType::VOID;
-
     m = dtmod.init();
 
     // Initialize submodules
