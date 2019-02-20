@@ -95,6 +95,7 @@ class Arg : public _obj::error_manager {
     operator int32_t() const;
     operator int64_t() const;
     operator size_t() const;
+    operator SType() const;
 
     /**
      * Convert argument to different list objects.

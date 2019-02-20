@@ -22,12 +22,19 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/args.h"
+#include "python/string.h"
+#include "datatablemodule.h"
+namespace py {
+
 
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
 
-static bool datatable_has_nas(DataTable* dt) {
+static bool datatable_has_nas(DataTable* dt, size_t force_col) {
+  if (force_col != size_t(-1)) {
+    return dt->columns[force_col]->countna() > 0;
+  }
   for (size_t i = 0; i < dt->ncols; ++i) {
     if (dt->columns[i]->countna() > 0) {
       return true;
@@ -37,21 +44,33 @@ static bool datatable_has_nas(DataTable* dt) {
 }
 
 
+class pybuffers_context {
+  public:
+    pybuffers_context(SType st, size_t col) {
+      pybuffers::force_stype = st;
+      pybuffers::single_col = col;
+    }
+    ~pybuffers_context() {
+      pybuffers::force_stype = SType::VOID;
+      pybuffers::single_col = size_t(-1);
+    }
+};
+
+
 
 //------------------------------------------------------------------------------
 // to_numpy()
 //------------------------------------------------------------------------------
-namespace py {
 
 
 static PKArgs args_to_numpy(
-    0, 1, 0, false, false,
-    {"stype"}, "to_numpy",
+    0, 2, 0, false, false,
+    {"stype", "column"}, "to_numpy",
 
 R"(to_numpy(self, stype=None)
 --
 
-Convert frame into a numpy array, optionally forcing it into the
+Convert frame into a 2D numpy array, optionally forcing it into the
 specified stype/dtype.
 
 In a limited set of circumstances the returned numpy array will be
@@ -73,34 +92,43 @@ be an instance of `numpy.ma.masked_array`.
 Parameters
 ----------
 stype: datatable.stype, numpy.dtype or str
-    Cast frame into this stype before converting it into a numpy array.
+    Cast frame into this stype before converting it into a numpy
+    array.
+
+column: int
+    Convert only the specified column; the returned value will be
+    a 1D-array instead of a regular 2D-array.
 )");
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
   oobj numpy = oobj::import("numpy");
   oobj nparray = numpy.get_attr("array");
-  SType st = SType::VOID;
-  if (!args[0].is_undefined()) {
-    st = args[0].to_stype();
-  }
+  SType stype      = args.get<SType>(0, SType::VOID);
+  size_t force_col = args.get<size_t>(1, size_t(-1));
+
   oobj res;
   otuple call_args1(1);
   call_args1.set(0, oobj(this));
-  force_stype = st;
-  res = nparray.call(call_args1);
-  force_stype = SType::VOID;
+  {
+    pybuffers_context ctx(stype, force_col);
+    res = nparray.call(call_args1);
+  }
 
   // If there are any columns with NAs, replace the numpy.array with
   // numpy.ma.masked_array
-  if (datatable_has_nas(dt)) {
-    size_t dtsize = dt->ncols * dt->nrows;
+  if (datatable_has_nas(dt, force_col)) {
+    bool one_col = force_col != size_t(-1);
+    size_t ncols = one_col? 1 : dt->ncols;
+    size_t i0 = one_col? force_col : 0;
+
+    size_t dtsize = ncols * dt->nrows;
     Column* mask_col = Column::new_data_column(SType::BOOL, dtsize);
     int8_t* mask_data = static_cast<int8_t*>(mask_col->data_w());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
-    size_t n_chunks = dt->ncols * n_row_chunks;
+    size_t n_chunks = ncols * n_row_chunks;
     #pragma omp parallel for
     for (size_t j = 0; j < n_chunks; ++j) {
       size_t icol = j / n_row_chunks;
@@ -108,7 +136,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
       size_t row0 = irow * rows_per_chunk;
       size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
       int8_t* mask_ptr = mask_data + icol * dt->nrows;
-      Column* col = dt->columns[icol];
+      Column* col = dt->columns[icol + i0];
       if (col->countna()) {
         col->fill_na_mask(mask_ptr, row0, row1);
       } else {
@@ -122,7 +150,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     oobj mask_array = nparray.call(call_args1);
 
     otuple call_args2(2);
-    call_args2.set(0, oint(dt->ncols));
+    call_args2.set(0, oint(ncols));
     call_args2.set(1, oint(dt->nrows));
     mask_array = mask_array.invoke("reshape", call_args2).get_attr("T");
 
@@ -135,8 +163,65 @@ oobj Frame::to_numpy(const PKArgs& args) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// to_pandas()
+//------------------------------------------------------------------------------
+
+static PKArgs args_to_pandas(
+    0, 0, 0, false, false, {}, "to_pandas",
+
+R"(to_pandas(self)
+--
+
+Convert this frame to a pandas DataFrame.
+
+The `pandas` module is required to run this function.
+)");
+
+
+oobj Frame::to_pandas(const PKArgs&) {
+  // ```
+  // from pandas import DataFrame
+  // names = self.names
+  // ```
+  oobj pandas = oobj::import("pandas");
+  oobj dataframe = pandas.get_attr("DataFrame");
+  otuple names = dt->get_pynames();
+
+  // ```
+  // cols = {names[i]: self.to_numpy(None, i)
+  //         for i in range(self.ncols)}
+  // ```
+  odict cols;
+  otuple np_call_args(2);
+  np_call_args.set(0, py::None());
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    np_call_args.set(1, oint(i));
+    args_to_numpy.bind(np_call_args.to_borrowed_ref(), nullptr);
+    cols.set(names[i],
+             to_numpy(args_to_numpy));
+  }
+  // ```
+  // return DataFrame(cols, columns=names)
+  // ```
+  otuple pd_call_args(1);
+  odict pd_call_kws;
+  pd_call_args.set(0, cols);
+  pd_call_kws.set(ostring("columns"), names);
+  return dataframe.call(pd_call_args, pd_call_kws);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Declare Frame methods
+//------------------------------------------------------------------------------
+
 void Frame::Type::_init_tonumpy(Methods& mm) {
   ADD_METHOD(mm, &Frame::to_numpy, args_to_numpy);
+  ADD_METHOD(mm, &Frame::to_pandas, args_to_pandas);
 }
 
 

@@ -21,7 +21,10 @@
 #include "py_types.h"
 #include "py_utils.h"
 
-SType force_stype;
+namespace pybuffers {
+  size_t single_col;
+  SType force_stype;
+}
 
 // Forward declarations
 static Column* try_to_resolve_object_column(Column* col);
@@ -379,8 +382,10 @@ static int dt_getbuffer_no_cols(
 static int dt_getbuffer_1_col(
   pydatatable::obj* self, Py_buffer* view, int flags)
 {
+  bool one_col = (pybuffers::single_col != size_t(-1));
+  size_t i0 = one_col? pybuffers::single_col : 0;
   XInfo* xinfo = nullptr;
-  Column* col = self->ref->columns[0];
+  Column* col = self->ref->columns[i0];
   const char* fmt = format_from_stype(col->stype());
 
   xinfo = new XInfo();
@@ -397,7 +402,7 @@ static int dt_getbuffer_1_col(
   view->readonly = 1;
   view->itemsize = xinfo->strides[0];
   view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
-  view->ndim = 2;
+  view->ndim = one_col? 1 : 2;
   view->shape = REQ_ND(flags) ? xinfo->shape : nullptr;
   view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
   view->suboffsets = nullptr;
@@ -413,6 +418,12 @@ static int getbuffer_DataTable(
   DataTable* dt = self->ref;
   size_t ncols = dt->ncols;
   size_t nrows = dt->nrows;
+  size_t i0 = 0;
+  bool one_col = (pybuffers::single_col != size_t(-1));
+  if (one_col) {
+    ncols = 1;
+    i0 = pybuffers::single_col;
+  }
 
   if (ncols == 0) {
     return dt_getbuffer_no_cols(self, view, flags);
@@ -421,8 +432,9 @@ static int getbuffer_DataTable(
   // Check whether we have a single-column DataTable that doesn't need to be
   // copied -- in which case it should be possible to return the buffer
   // by-reference instead of copying the data into an intermediate buffer.
-  if (ncols == 1 && !dt->columns[0]->rowindex() && !REQ_WRITABLE(flags) &&
-      dt->columns[0]->is_fixedwidth() && force_stype == SType::VOID) {
+  if (ncols == 1 && !dt->columns[i0]->rowindex() && !REQ_WRITABLE(flags) &&
+      dt->columns[i0]->is_fixedwidth() &&
+      pybuffers::force_stype == SType::VOID) {
     return dt_getbuffer_1_col(self, view, flags);
   }
 
@@ -432,12 +444,12 @@ static int getbuffer_DataTable(
   // "INDIRECT" buffer.
 
   // First, find the common stype for all columns in the DataTable.
-  SType stype = force_stype;
+  SType stype = pybuffers::force_stype;
   if (stype == SType::VOID) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->columns[i]->stype();
+      SType next_stype = dt->columns[i + i0]->stype();
       uint64_t unstype = static_cast<uint64_t>(next_stype);
       if (stypes_mask & (1 << unstype)) continue;
       stypes_mask |= 1 << unstype;
@@ -455,7 +467,7 @@ static int getbuffer_DataTable(
   // Construct the data buffer
   for (size_t i = 0; i < ncols; ++i) {
     // either a shallow copy, or "materialized" column
-    Column* col = dt->columns[i]->shallowcopy();
+    Column* col = dt->columns[i + i0]->shallowcopy();
     col->reify();
     if (col->stype() == stype) {
       xassert(col->alloc_size() == colsize);
@@ -499,7 +511,7 @@ static int getbuffer_DataTable(
   view->readonly = 0;
   view->itemsize = static_cast<Py_ssize_t>(elemsize);
   view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
-  view->ndim = 2;
+  view->ndim = one_col? 1 : 2;
   view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
   view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
   view->suboffsets = nullptr;
@@ -612,6 +624,8 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 
 void DatatableModule::init_methods_buffers() {
   ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
+  pybuffers::single_col = size_t(-1);
+  pybuffers::force_stype = SType::VOID;
 }
 
 

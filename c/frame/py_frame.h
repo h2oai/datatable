@@ -79,8 +79,8 @@ class Frame : public PyObject {
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
-
     oobj _repr_html_(const PKArgs&);
+
     oobj get_ncols() const;
     oobj get_nrows() const;
     oobj get_shape() const;
@@ -102,6 +102,7 @@ class Frame : public PyObject {
     oobj to_list(const PKArgs&);
     oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
+    oobj to_pandas(const PKArgs&);
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);
     void repeat(const PKArgs&);

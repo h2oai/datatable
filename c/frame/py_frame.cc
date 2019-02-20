@@ -22,9 +22,6 @@
 #include <iostream>
 #include "frame/py_frame.h"
 #include "python/_all.h"
-
-extern SType force_stype;
-
 namespace py {
 
 PyObject* Frame_Type = nullptr;
