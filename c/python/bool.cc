@@ -20,11 +20,14 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/bool.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/namedtuple.h"
-#include "python/range.h"
-#include "python/slice.h"
-#include "python/tuple.h"
+
+namespace py {
+
+
+obool::obool(bool x) {
+  v = x? Py_True : Py_False;
+  Py_INCREF(v);
+}
+
+
+}  // namespace py
