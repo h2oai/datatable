@@ -44,6 +44,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   any NA values (#1619).
 
 
+### Changed
+
+- A Frame will no longer be shown in "interactive" mode in console by default.
+  The previous behavior can be restored with
+  `dt.options.display.interactive = True`. Alternatively, you can explore a
+  Frame interactively using `frame.view(True)`.
+
+
 ### Deprecated
 
 - Frame method `.scalar()` is now deprecated and will be removed in release
