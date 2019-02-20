@@ -195,6 +195,7 @@ class DataFrameWidget(object):
                     self._view_ncols = i + 1
 
         # Generate the elements of the display
+        at_last_row = (self._view_row0 + self._view_nrows == self._frame_nrows)
         grey = term.bright_black
         header = ["".join(col.header for col in columns),
                   grey("".join(col.divider for col in columns))]
@@ -202,7 +203,8 @@ class DataFrameWidget(object):
                 for j in range(self._view_nrows)]
         srows = plural_form(self._frame_nrows, "row")
         scols = plural_form(self._frame_ncols, "column")
-        footer = [grey("..."), "[%s x %s]" % (srows, scols), ""]
+        footer = ["" if at_last_row else grey("..."),
+                  "[%s x %s]" % (srows, scols), ""]
 
         # Display hint about navigation keys
         if self._show_navbar:
