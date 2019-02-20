@@ -28,6 +28,7 @@ int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
 int64_t frame_names_auto_index = 0;
 std::string frame_names_auto_prefix = "C";
+bool display_interactive = false;
 bool display_interactive_hint = true;
 
 
@@ -141,6 +142,9 @@ static py::oobj set_option(const py::PKArgs& args) {
   } else if (name == "frame.names_auto_prefix") {
     frame_names_auto_prefix = value.to_string();
 
+  } else if (name == "display.interactive") {
+    display_interactive = value.to_bool_strict();
+
   } else if (name == "display.interactive_hint") {
     display_interactive_hint = value.to_bool_strict();
 
@@ -192,6 +196,9 @@ static py::oobj get_option(const py::PKArgs& args) {
 
   } else if (name == "frame.names_auto_prefix") {
     return py::ostring(frame_names_auto_prefix);
+
+  } else if (name == "display.interactive") {
+    return py::oint(display_interactive);
 
   } else if (name == "display.interactive_hint") {
     return py::oint(display_interactive_hint);

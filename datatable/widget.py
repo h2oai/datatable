@@ -37,7 +37,7 @@ class DataFrameWidget(object):
     VIEW_NROWS_MAX = 30
     RIGHT_MARGIN = 2
 
-    def __init__(self, nrows, ncols, nkeys, viewdata_callback, interactive=True):
+    def __init__(self, nrows, ncols, nkeys, viewdata_callback, interactive):
         """
         Initialize a new frame widget.
 
@@ -51,6 +51,9 @@ class DataFrameWidget(object):
             "columns" is the frame's data within the requested view, stored
             as a list of columns.
         """
+        if interactive is None:
+            interactive = options.display.interactive
+
         # number of rows / columns in the dataframe being displayed
         self._frame_nrows = nrows
         self._frame_ncols = ncols
@@ -199,7 +202,7 @@ class DataFrameWidget(object):
                 for j in range(self._view_nrows)]
         srows = plural_form(self._frame_nrows, "row")
         scols = plural_form(self._frame_ncols, "column")
-        footer = ["", "[%s x %s]" % (srows, scols), ""]
+        footer = [grey("..."), "[%s x %s]" % (srows, scols), ""]
 
         # Display hint about navigation keys
         if self._show_navbar:
@@ -499,3 +502,7 @@ options.register_option(
     "display.interactive_hint", xtype=bool, default=True,
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
+
+options.register_option(
+    "display.interactive", xtype=bool, default=False,
+    doc="Show datatable Frame interactively in a Python console.")
