@@ -202,7 +202,7 @@ def test_dt_view_keyed(patched_terminal, capsys):
             "g  |  3\n"
             "\n"
             "[5 rows x 2 columns]\n"
-            == out)
+            in out)
 
 
 def test_dt_getitem(dt0):
