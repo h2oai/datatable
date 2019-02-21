@@ -68,22 +68,8 @@ class Frame(core.Frame):
         if not term.jupyter:
             self.view()
 
-    def _data_viewer(self, row0, row1, col0, col1):
-        view = self[row0:row1, col0:col1]
-        length = max(2, len(str(row1)))
-        nk = len(self.key)
-        return {
-            "names": self.names[:nk] + self.names[col0 + nk:col1 + nk],
-            "types": view.ltypes,
-            "stypes": view.stypes,
-            "columns": view.to_list(),
-            "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
-        }
-
-    def view(self, interactive=None):
-        widget = DataFrameWidget(self.nrows, self.ncols, len(self.key),
-                                 self._data_viewer, interactive)
-        widget.render()
+    def view(self, interactive=True):
+        DataFrameWidget(self, interactive).render()
 
 
     #---------------------------------------------------------------------------

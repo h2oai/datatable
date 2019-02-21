@@ -174,18 +174,36 @@ def test_internal():
 
 
 def test_dt_view(dt0, patched_terminal, capsys):
-    dt0.view()
+    dt0.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    assert ("      A   B   C     D   E   F  G    \n"
-            "---  --  --  --  ----  --  --  -----\n"
-            " 0    2   1   1   0.1       0  1    \n"
-            " 1    7   0   1   2         0  2    \n"
-            " 2    0   0   1  -4         0  hello\n"
-            " 3    0   1   1   4.4       0  world\n"
+    assert ("     A   B   C     D   E   F  G    \n"
+            "--  --  --  --  ----  --  --  -----\n"
+            " 0   2   1   1   0.1       0  1    \n"
+            " 1   7   0   1   2         0  2    \n"
+            " 2   0   0   1  -4         0  hello\n"
+            " 3   0   1   1   4.4       0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
             in out)
+
+
+def test_dt_view_keyed(patched_terminal, capsys):
+    DT = dt.Frame(A=range(5), B=list("cdbga"))
+    DT.key = "B"
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert ("B  |  A\n"
+            "---+ --\n"
+            "a  |  4\n"
+            "b  |  2\n"
+            "c  |  0\n"
+            "d  |  1\n"
+            "g  |  3\n"
+            "\n"
+            "[5 rows x 2 columns]\n"
+            == out)
 
 
 def test_dt_getitem(dt0):
@@ -403,18 +421,27 @@ def test_resize_bad():
             in str(e.value))
 
 
-def test_resize_issue1527():
+def test_resize_issue1527(patched_terminal, capsys):
     f0 = dt.Frame(A=[])
     assert f0.nrows == 0
-    f0.nrows = 10
-    assert f0.nrows == 10
-    assert f0.to_list() == [[None] * 10]
-    assert f0._data_viewer(0, f0.nrows, 0, f0.ncols) == \
-            {'names': ('A',),
-             'types': (ltype.bool,),
-             'stypes': (stype.bool8,),
-             'columns': [[None] * 10],
-             'rownumbers': [' 0', ' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9']}
+    f0.nrows = 5
+    assert f0.nrows == 5
+    assert f0.to_list() == [[None] * 5]
+
+    f0.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert ("     A\n"
+            "--  --\n"
+            " 0    \n"
+            " 1    \n"
+            " 2    \n"
+            " 3    \n"
+            " 4    \n"
+            "\n"
+            "[5 rows x 1 column]\n"
+            in out)
+
 
 
 

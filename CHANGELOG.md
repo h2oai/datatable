@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.to_numpy()` now returns a numpy `masked_array` if the frame has
   any NA values (#1619).
 
+- A keyed frame will now be rendered correctly when viewing it in python
+  console via `Frame.view()` (#1672).
+
 
 ### Changed
 
@@ -64,8 +67,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
+  [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [arno candel][] (#1619)
+  [pasha stetsenko][] (#1672)
 
 
 
