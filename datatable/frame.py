@@ -54,52 +54,6 @@ class Frame(core.Frame):
     This is a primary data structure for datatable module.
     """
 
-    #---------------------------------------------------------------------------
-    # Display
-    #---------------------------------------------------------------------------
-
-    def __repr__(self):
-        srows = plural(self.nrows, "row")
-        scols = plural(self.ncols, "col")
-        return "<Frame [%s x %s]>" % (srows, scols)
-
-    def _repr_pretty_(self, p, cycle):
-        # Called by IPython terminal when displaying the datatable
-        if not term.jupyter:
-            self.view()
-
-    def view(self, interactive=True):
-        DataFrameWidget(self, interactive).render()
-
-
-    #---------------------------------------------------------------------------
-    # Main processor function
-    #---------------------------------------------------------------------------
-
-    def __call__(self, rows=None, select=None, verbose=False, timeit=False,
-                 groupby=None, join=None, sort=None, engine=None
-                 ):
-        """DEPRECATED, use DT[i, j, ...] instead."""
-        warnings.warn(
-            "`DT(rows, select, ...)` is deprecated and will be removed in "
-            "version 0.9.0. Please use `DT[i, j, ...]` instead",
-            category=FutureWarning)
-        time0 = time.time() if timeit else 0
-        function = type(lambda: None)
-        if isinstance(rows, function):
-            rows = rows(datatable.f)
-        if isinstance(select, function):
-            select = select(datatable.f)
-
-        res = self[rows, select,
-                   datatable.join(join),
-                   datatable.by(groupby),
-                   datatable.sort(sort)]
-        if timeit:
-            print("Time taken: %d ms" % (1000 * (time.time() - time0)))
-        return res
-
-
     # Methods defined externally
     append = _rbind
     rbind = _rbind
@@ -129,6 +83,35 @@ class Frame(core.Frame):
         else:
             cols = list(cols)
         return self[:, :, datatable.sort(*cols)]
+
+
+    def materialize(self):
+        if self._dt.isview:
+            self._dt.materialize()
+
+
+    def __sizeof__(self):
+        """
+        Return the size of this Frame in memory.
+
+        The function attempts to compute the total memory size of the Frame
+        as precisely as possible. In particular, it takes into account not only
+        the size of data in columns, but also sizes of all auxiliary internal
+        structures.
+
+        Special cases: if Frame is a view (say, `d2 = d[:1000, :]`), then
+        the reported size will not contain the size of the data, because that
+        data "belongs" to the original datatable and is not copied. However if
+        a Frame selects only a subset of columns (say, `d3 = d[:, :5]`),
+        then a view is not created and instead the columns are copied by
+        reference. Frame `d3` will report the "full" size of its columns,
+        even though they do not occupy any extra memory compared to `d`. This
+        behavior may be changed in the future.
+
+        This function is not intended for manual use. Instead, in order to get
+        the size of a datatable `d`, call `sys.getsizeof(d)`.
+        """
+        return self._dt.alloc_size
 
 
     #---------------------------------------------------------------------------
@@ -294,34 +277,28 @@ class Frame(core.Frame):
             category=FutureWarning)
         return self[0, 0]
 
+    def __call__(self, rows=None, select=None, verbose=False, timeit=False,
+                 groupby=None, join=None, sort=None, engine=None
+                 ):
+        """DEPRECATED, use DT[i, j, ...] instead."""
+        warnings.warn(
+            "`DT(rows, select, ...)` is deprecated and will be removed in "
+            "version 0.9.0. Please use `DT[i, j, ...]` instead",
+            category=FutureWarning)
+        time0 = time.time() if timeit else 0
+        function = type(lambda: None)
+        if isinstance(rows, function):
+            rows = rows(datatable.f)
+        if isinstance(select, function):
+            select = select(datatable.f)
 
-    def materialize(self):
-        if self._dt.isview:
-            self._dt.materialize()
-
-
-    def __sizeof__(self):
-        """
-        Return the size of this Frame in memory.
-
-        The function attempts to compute the total memory size of the Frame
-        as precisely as possible. In particular, it takes into account not only
-        the size of data in columns, but also sizes of all auxiliary internal
-        structures.
-
-        Special cases: if Frame is a view (say, `d2 = d[:1000, :]`), then
-        the reported size will not contain the size of the data, because that
-        data "belongs" to the original datatable and is not copied. However if
-        a Frame selects only a subset of columns (say, `d3 = d[:, :5]`),
-        then a view is not created and instead the columns are copied by
-        reference. Frame `d3` will report the "full" size of its columns,
-        even though they do not occupy any extra memory compared to `d`. This
-        behavior may be changed in the future.
-
-        This function is not intended for manual use. Instead, in order to get
-        the size of a datatable `d`, call `sys.getsizeof(d)`.
-        """
-        return self._dt.alloc_size
+        res = self[rows, select,
+                   datatable.join(join),
+                   datatable.by(groupby),
+                   datatable.sort(sort)]
+        if timeit:
+            print("Time taken: %d ms" % (1000 * (time.time() - time0)))
+        return res
 
 
 

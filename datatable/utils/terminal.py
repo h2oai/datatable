@@ -54,7 +54,7 @@ def noop(self, s):
 
 class NoTerminal:
     is_a_tty = False
-    jupyter = False
+    jupyter = None
     width = 80
     height = 25
     _encoding = "UTF8"
