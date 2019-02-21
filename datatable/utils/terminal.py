@@ -72,7 +72,7 @@ class Terminal:
             self.is_a_tty = False
             self._width = 80
             self._height = 25
-            self.jupyter = False
+            self.jupyter = None
 
     @property
     def width(self):

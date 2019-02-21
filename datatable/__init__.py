@@ -37,6 +37,7 @@ from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 from .utils.typechecks import DatatableWarning
+import datatable.widget
 try:
     from .__git__ import __git_revision__
 except ImportError:

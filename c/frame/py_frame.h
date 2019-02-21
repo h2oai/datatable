@@ -63,7 +63,7 @@ class Frame : public PyObject {
         static void _init_replace(Methods&);
         static void _init_tonumpy(Methods&);
         static void _init_topython(Methods&);
-        static void _init_reprhtml(Methods&);
+        static void _init_repr(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -79,7 +79,12 @@ class Frame : public PyObject {
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
+
+    // Frame display
+    oobj m__repr__();
     oobj _repr_html_(const PKArgs&);
+    oobj _repr_pretty_(const PKArgs&);
+    void view(const PKArgs&);
 
     oobj get_ncols() const;
     oobj get_nrows() const;

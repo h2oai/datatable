@@ -63,6 +63,16 @@ static const char* imgv =
     "rxhhM0F6IYjq8PqNWyBh4+NN7CpGv2jBo0aNGrQqEGjBtHFIIoLf5pUR2RXkFStsqnSiKBqs4b"
     "i6KdW0w8AxFl+XL1lK8wAAAAASUVORK5CYII=');";
 
+static bool in_jupyter() {
+  static bool jup = !(py::oobj::import("datatable")
+                      .get_attr("utils")
+                      .get_attr("terminal")
+                      .get_attr("term")
+                      .get_attr("jupyter")
+                      .is_none());
+  return jup;
+}
+
 
 
 class HtmlWidget {
@@ -380,7 +390,18 @@ bool HtmlWidget::styles_emitted = false;
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args__repr_html_(0, 0, 0, false, false, {}, "_repr_html_", "");
+oobj Frame::m__repr__() {
+  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols;
+  std::ostringstream out;
+  out << "<Frame [" << nrows << " row" << (nrows == 1? "" : "s")
+      << " x " << ncols << " col" << (ncols == 1? "" : "s") << "]>";
+  return ostring(out.str());
+}
+
+
+static PKArgs args__repr_html_(
+  0, 0, 0, false, false, {}, "_repr_html_", nullptr);
 
 oobj Frame::_repr_html_(const PKArgs&) {
   HtmlWidget widget(dt);
@@ -388,9 +409,38 @@ oobj Frame::_repr_html_(const PKArgs&) {
 }
 
 
+static PKArgs args__repr_pretty_(
+    0, 2, 0, false, false, {"p", "cycle"}, "_repr_pretty_", nullptr);
 
-void Frame::Type::_init_reprhtml(Methods& mm) {
+oobj Frame::_repr_pretty_(const PKArgs&) {
+  if (in_jupyter()) {
+    return py::None();
+  } else {
+    return oobj(this).invoke("view");
+  }
+}
+
+
+static PKArgs args_view(
+  0, 1, 0, false, false, {"interactive"}, "view", nullptr);
+
+void Frame::view(const PKArgs& args) {
+  oobj interactive = args[0].is_undefined()? obool(true) : args[0].to_oobj();
+  oobj DFWidget = oobj::import("datatable")
+                  .get_attr("widget")
+                  .get_attr("DataFrameWidget");
+  otuple call_args(2);
+  call_args.set(0, oobj(this));
+  call_args.set(1, interactive);
+  DFWidget.call(call_args).invoke("render");
+}
+
+
+
+void Frame::Type::_init_repr(Methods& mm) {
   ADD_METHOD(mm, &Frame::_repr_html_, args__repr_html_);
+  ADD_METHOD(mm, &Frame::_repr_pretty_, args__repr_pretty_);
+  ADD_METHOD(mm, &Frame::view, args_view);
 }
 
 }
