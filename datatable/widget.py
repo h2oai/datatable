@@ -154,12 +154,12 @@ class DataFrameWidget(object):
         if keydata:
             for i, colname in enumerate(keynames):
                 if self._show_types and keystypes[i]:
-                    colname = term.cyan(keystypes[i].name)
+                    colname = term.color("cyan", keystypes[i].name)
                 oldwidth = self._colwidths.get(colname, 2)
                 col = _Column(name=colname,
                               ctype=keyltypes[i],
                               data=keydata[i],
-                              color=term.bright_black,
+                              color="bright_black",
                               minwidth=oldwidth)
                 self._colwidths[colname] = col.width
                 columns.append(col)
@@ -175,7 +175,7 @@ class DataFrameWidget(object):
         if viewdata:
             for i, colname in enumerate(viewnames):
                 if self._show_types:
-                    colname = term.cyan(viewstypes[i].name)
+                    colname = term.color("cyan", viewstypes[i].name)
                 oldwidth = self._colwidths.get(i + self._view_col0, 2)
                 col = _Column(name=colname,
                               ctype=viewltypes[i],
@@ -218,7 +218,7 @@ class DataFrameWidget(object):
 
         # Generate the elements of the display
         at_last_row = (self._view_row0 + self._view_nrows == self._conn.frame_nrows)
-        grey = term.bright_black
+        grey = lambda s: term.color("bright_black", s)
         header = ["".join(col.header for col in columns),
                   grey("".join(col.divider for col in columns))]
         rows = ["".join(col.value(j) for col in columns)
@@ -248,16 +248,14 @@ class DataFrameWidget(object):
 
         # Render the table
         lines = header + rows + footer
-        out = (term.move_x(0) + term.move_up * self._n_displayed_lines +
-               (term.clear_eol + "\n").join(lines) + term.clear_eol)
-        print(out, end="")
+        term.rewrite_lines(lines, self._n_displayed_lines)
         self._n_displayed_lines = len(lines) - 1
 
 
     def _interact(self):
         old_handler = register_onresize(self._onresize)
         try:
-            for ch in datatable.utils.terminal.wait_for_keypresses(0.5):
+            for ch in term.wait_for_keypresses(0.5):
                 if not ch:
                     # Signal handler could have invalidated interactive mode
                     # of the widget -- in which case we need to stop rendering
@@ -283,7 +281,7 @@ class DataFrameWidget(object):
         register_onresize(old_handler)
         # Clear the interactive prompt
         if self._show_navbar:
-            print(term.move_x(0) + term.clear_eol)
+            term.clear_line(end="\n")
 
 
     _MOVES = {
@@ -378,7 +376,7 @@ class DataFrameWidget(object):
     def _adjust_viewport(self):
         # Adjust Y position
         new_nrows = min(DataFrameWidget.VIEW_NROWS_MAX,
-                        max(term.height - 5, DataFrameWidget.VIEW_NROWS_MIN),
+                        max(term.height - 6, DataFrameWidget.VIEW_NROWS_MIN),
                         self._conn.frame_nrows)
         self._view_nrows = new_nrows
         self._max_row0 = self._conn.frame_nrows - new_nrows
@@ -456,15 +454,6 @@ class _Column(object):
             self._rmargin = ""
 
     @property
-    def color(self):
-        """ColorFormatter applied to the field."""
-        return self._color
-
-    @color.setter
-    def color(self, value):
-        self._color = value
-
-    @property
     def margin(self):
         """Column's margin on the right-hand side."""
         return self._rmargin
@@ -479,7 +468,8 @@ class _Column(object):
         if self._width == 0:
             return ""
         else:
-            return term.bright_white(self._format(self._name)) + self._rmargin
+            return (term.color("bright_white", self._format(self._name)) +
+                    self._rmargin)
 
     @property
     def divider(self):
@@ -493,7 +483,7 @@ class _Column(object):
             return ""
         v = self._format(self._strdata[row])
         if self._color:
-            return self._color(v) + self._rmargin
+            return term.color(self._color, v) + self._rmargin
         else:
             return v + self._rmargin
 
@@ -536,8 +526,8 @@ class _Divider:
     def __init__(self):
         self.width = 3
         self.margin = ""
-        self.header = term.bright_black(" | ")
-        self.divider = term.bright_black("-+ ")
+        self.header = term.color("bright_black", " | ")
+        self.divider = term.color("bright_black", "-+ ")
 
     def value(self, row):
         return self.header
