@@ -387,6 +387,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 {
   size_t old_nrows = nrows;
   if (new_nrows == old_nrows) return;
+  reify();
 
   if (new_nrows > INT32_MAX && sizeof(T) == 4) {
     // TODO: instead of throwing an error, upcast the column to <uint64_t>

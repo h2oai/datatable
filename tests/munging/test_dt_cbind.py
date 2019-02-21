@@ -13,7 +13,7 @@ from datatable import stype, DatatableWarning
 
 def dt_compute_stats(*dts):
     """
-    Force computing all Stats on the datatable.
+    Force computing all Stats on all frames.
 
     Currently, computing a single stat causes all other stats to be computed
     as well.
@@ -23,7 +23,7 @@ def dt_compute_stats(*dts):
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# cbind tests
 #-------------------------------------------------------------------------------
 
 def test_cbind_exists():
@@ -84,7 +84,7 @@ def test_cbind_notforced():
     d1 = dt.Frame([4, 5])
     with pytest.raises(ValueError) as e:
         d0.cbind(d1)
-    assert ("Cannot merge frame with 2 rows to a frame with 3 rows"
+    assert ("Cannot cbind frame with 2 rows to a frame with 3 rows"
             in str(e.value))
 
 
@@ -165,6 +165,23 @@ def test_cbind_views2():
     d1.cbind(d3)
     dr = dt.Frame({"A": [2, 3, 4], "B": ["h", "i", "j"]})
     assert_equals(d1, dr)
+
+
+def test_cbind_views3():
+    from datatable.internal import frame_column_rowindex
+    d0 = dt.Frame(A=range(10))[::-1, :]
+    d1 = dt.Frame(B=list("abcde") * 2)
+    d2 = dt.Frame(C=range(1000))[[14, 19, 35, 17, 3, 0, 1, 0, 10, 777], :]
+    d0.cbind([d1, d2])
+    assert d0.to_list() == [list(range(10))[::-1],
+                            list("abcde" * 2),
+                            [14, 19, 35, 17, 3, 0, 1, 0, 10, 777]]
+    assert (repr(frame_column_rowindex(d0, 0)) ==
+            "datatable.internal.RowIndex(9/10/-1)")
+    assert frame_column_rowindex(d0, 1) is None
+    assert (repr(frame_column_rowindex(d0, 2)) ==
+            "datatable.internal.RowIndex(int32[10])")
+
 
 
 def test_cbind_multiple():
@@ -260,7 +277,7 @@ def test_cbind_error_1():
     DT = dt.Frame(A=[1, 5])
     with pytest.raises(ValueError) as e:
         DT.cbind(dt.Frame(B=[]))
-    assert ("Cannot merge frame with 0 rows to a frame with 2 rows"
+    assert ("Cannot cbind frame with 0 rows to a frame with 2 rows"
             in str(e.value))
 
 
@@ -268,7 +285,7 @@ def test_cbind_error_2():
     DT = dt.Frame(A=[])
     with pytest.raises(ValueError) as e:
         DT.cbind(dt.Frame(B=[1, 5]))
-    assert ("Cannot merge frame with 2 rows to a frame with 0 rows"
+    assert ("Cannot cbind frame with 2 rows to a frame with 0 rows"
             in str(e.value))
 
 
@@ -278,5 +295,5 @@ def test_cbind_error_3():
     assert DT.shape == (5, 0)
     with pytest.raises(ValueError) as e:
         DT.cbind(dt.Frame(B=[]))
-    assert ("Cannot merge frame with 0 rows to a frame with 5 rows"
+    assert ("Cannot cbind frame with 0 rows to a frame with 5 rows"
             in str(e.value))

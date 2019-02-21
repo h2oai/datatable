@@ -106,7 +106,7 @@ class DataTable {
     void replace_groupby(const Groupby& newgb);
     void reify();
     void rbind(std::vector<DataTable*>, std::vector<intvec>);
-    DataTable* cbind(std::vector<DataTable*>);
+    void cbind(std::vector<DataTable*>);
     DataTable* copy() const;
     size_t memory_footprint() const;
 

@@ -193,6 +193,7 @@ template <typename T>
 void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
   if (new_nrows == nrows) return;
+  reify();
 
   mbuf.resize(sizeof(T) * new_nrows);
 

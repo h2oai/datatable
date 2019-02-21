@@ -65,6 +65,7 @@ void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf) {
 
 void PyObjectColumn::resize_and_fill(size_t new_nrows) {
   if (new_nrows == nrows) return;
+  reify();
 
   mbuf.resize(sizeof(PyObject*) * new_nrows);
 
