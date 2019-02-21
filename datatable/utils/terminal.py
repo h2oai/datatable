@@ -103,7 +103,7 @@ for i, ll in enumerate(_lls):
 #
 def _new_displayhook(value):
     if isinstance(value, core.Frame):
-        value.view()
+        value.view(None)
     else:
         _original_displayhook(value)
 
