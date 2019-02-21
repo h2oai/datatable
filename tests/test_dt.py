@@ -173,7 +173,7 @@ def test_internal():
         core.test_internal()
 
 
-def test_dt_view(dt0, capsys):
+def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
@@ -188,7 +188,7 @@ def test_dt_view(dt0, capsys):
             in out)
 
 
-def test_dt_view_keyed(capsys):
+def test_dt_view_keyed(patched_terminal, capsys):
     DT = dt.Frame(A=range(5), B=list("cdbga"))
     DT.key = "B"
     DT.view(interactive=False)
@@ -421,7 +421,7 @@ def test_resize_bad():
             in str(e.value))
 
 
-def test_resize_issue1527(capsys):
+def test_resize_issue1527(patched_terminal, capsys):
     f0 = dt.Frame(A=[])
     assert f0.nrows == 0
     f0.nrows = 5
