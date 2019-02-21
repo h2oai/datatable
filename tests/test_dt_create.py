@@ -109,7 +109,7 @@ def test_wrong_source():
 def test_wrong_source_heavy():
     # Repeatedly try to fail the constructor; make sure that the internal state
     # does not get corrupted in the process...
-    for i in range(100):
+    for _ in range(100):
         try:
             dt.Frame(A=[1], B=2)
         except TypeError:
