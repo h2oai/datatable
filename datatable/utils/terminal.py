@@ -91,7 +91,7 @@ class Terminal:
 
     def rewrite_lines(self, lines, nold, end=""):
         if self._enable_terminal_codes and nold:
-            print("\x1B[1G\x1B%dA" % nold +
+            print("\x1B[1G\x1B[%dA" % nold +
                   "\x1B[K\n".join(lines) + "\x1B[K", end=end)
         else:
             print("\n".join(lines), end=end)
