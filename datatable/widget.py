@@ -153,7 +153,7 @@ class DataFrameWidget(object):
         keystypes = self._conn.key_stypes
         if keydata:
             for i, colname in enumerate(keynames):
-                if self._show_types:
+                if self._show_types and keystypes[i]:
                     colname = term.cyan(keystypes[i].name)
                 oldwidth = self._colwidths.get(colname, 2)
                 col = _Column(name=colname,
