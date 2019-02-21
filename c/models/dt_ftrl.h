@@ -102,9 +102,6 @@ class Ftrl {
     static bool is_dt_valid(const dtptr&t, size_t, size_t);
     bool is_trained();
 
-    // Learning helper methods
-    static double logloss(double, bool);
-
     // Getters
     DataTable* get_model();
     DataTable* get_fi();
@@ -139,8 +136,8 @@ class Ftrl {
 template <typename T, typename F>
 void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   define_features(dt_X->ncols);
-
   is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
+
   is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Create column hashers.

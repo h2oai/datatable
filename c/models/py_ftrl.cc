@@ -25,6 +25,7 @@
 #include "str/py_str.h"
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
+#include "models/utils.h"
 
 namespace py {
 
@@ -447,22 +448,6 @@ oobj Ftrl::predict(const PKArgs& args) {
                   );
 
   return df_y;
-}
-
-
-/*
-*  Sigmoid function.
-*/
-inline double Ftrl::sigmoid(double x) {
-  return 1.0 / (1.0 + std::exp(-x));
-}
-
-
-/*
-*  Identity function.
-*/
-inline double Ftrl::identity(double x) {
-  return x;
 }
 
 
@@ -1056,8 +1041,6 @@ void Ftrl::set_params_tuple(robj params) {
 }
 
 
-
-
 /**
  *  Model validation methods.
  */
@@ -1069,8 +1052,6 @@ bool Ftrl::has_negative_n(DataTable* dt) const {
   }
   return false;
 }
-
-
 
 
 //------------------------------------------------------------------------------

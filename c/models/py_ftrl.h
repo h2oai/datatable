@@ -103,8 +103,6 @@ class Ftrl : public PyObject {
     bool has_negative_n(DataTable*) const;
 
     // Link functions
-    static double sigmoid(double);
-    static double identity(double);
     static void normalize_rows(DataTable*);
 
     // Helper functions

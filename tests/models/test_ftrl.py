@@ -742,7 +742,7 @@ def test_ftrl_regression():
 
 def test_ftrl_feature_importances():
     nrows = 10**4
-    feature_names = ['unique', 'boolean', 'mod10']
+    feature_names = ['unique', 'boolean', 'mod100']
     ft = Ftrl()
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],
@@ -777,8 +777,8 @@ def test_ftrl_fi_shallowcopy():
 
 def test_ftrl_interactions():
     nrows = 10**4
-    feature_names = ['unique', 'boolean', 'mod10']
-    feature_interactions = ['unique:boolean', 'unique:mod10', 'boolean:mod10']
+    feature_names = ['unique', 'boolean', 'mod100']
+    feature_interactions = ['unique:boolean', 'unique:mod100', 'boolean:mod100']
     ft = Ftrl(interactions = True)
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],

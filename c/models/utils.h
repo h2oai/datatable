@@ -22,8 +22,37 @@
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
 
+void calculate_coprimes(size_t, std::vector<size_t>&);
 
 /*
+*  Sigmoid function.
+*/
+inline double sigmoid(double x) {
+  return 1.0 / (1.0 + std::exp(-x));
+}
+
+/*
+*  Identity function.
+*/
+inline double identity(double x) {
+  return x;
+}
+
+/*
+* Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
+* where p is a prediction and y is the actual target:
+* - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
+*   to prevent logloss being undefined;
+* - simplify the logloss formula to more compact branchless code.
+*/
+inline double logloss(double p, bool y) {
+  double epsilon = std::numeric_limits<double>::epsilon();
+  p = std::max(std::min(p, 1 - epsilon), epsilon);
+  return -std::log(p * (2*y - 1) + 1 - y);
+}
+
+/*
+* Implementation of `make_unique` template function.
 * Note: this implementation does not disable this overload for array types,
 * see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
 */
@@ -32,10 +61,11 @@ std::unique_ptr<T> make_unique(Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+/*
+* Progress reporting function and parameters.
+*/
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 void print_progress(float, int);
-
-void calculate_coprimes(size_t, std::vector<size_t>&);
 
 #endif

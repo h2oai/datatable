@@ -223,17 +223,6 @@ bool Ftrl::is_trained() {
 }
 
 
-/**
- * Calculate logloss based on a prediction `p` and the actual target `y`.
- *     log-loss = -log(p * y + (1 - p) * (1 - y))
- */
-double Ftrl::logloss(double p, bool y) {
-  double epsilon = std::numeric_limits<double>::epsilon();
-  p = std::max(std::min(p, 1 - epsilon), epsilon);
-  return -std::log(p * (2*y - 1) + 1 - y);
-}
-
-
 /*
 *  Get a shallow copy of an FTRL model if available.
 */
