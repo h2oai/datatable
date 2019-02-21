@@ -8,33 +8,93 @@
 Various functions to help display something in a terminal.
 """
 import sys
-import blessed
-import _locale
 from datatable.lib import core
 
-__all__ = ("term", "wait_for_keypresses", "register_onresize")
+__all__ = ("term", "register_onresize")
+
+
+_default_palette = {
+    "reset": "\x1B[m",
+    "bold": "\x1B[1m",
+    "red": "\x1B[31m",
+    "green": "\x1B[32m",
+    "yellow": "\x1B[33m",
+    "blue": "\x1B[34m",
+    "magenta": "\x1B[35m",
+    "cyan": "\x1B[36m",
+    "white": "\x1B[37m",
+    "bright_black": "\x1B[90m",
+    "bright_red": "\x1B[91m",
+    "bright_green": "\x1B[92m",
+    "bright_yellow": "\x1B[93m",
+    "bright_cyan": "\x1B[96m",
+    "bright_white": "\x1B[97m",
+}
 
 
 # Initialize the terminal
-class MyTerminal(blessed.Terminal):
+class Terminal:
+
     def __init__(self):
-        super().__init__()
-        self.override_width = 0
-        self.jupyter = None
-        self._check_ipython()
+        if sys.__stdin__ and sys.__stdout__:
+            import blessed
+            import _locale
+
+            # Save current locale settings
+            try:
+                _lls = []
+                for i in range(100):
+                    ll = _locale.setlocale(i)
+                    _lls.append(ll)
+            except _locale.Error:
+                pass
+
+            self._blessed_term = blessed.Terminal()
+
+            # Restore previous locale settings
+            for i, ll in enumerate(_lls):
+                _locale.setlocale(i, ll)
+
+            self._enable_keyboard = True
+            self._enable_colors = True
+            self._enable_terminal_codes = True
+            self._encoding = self._blessed_term._encoding
+            self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
+            self._width = 0
+            self._height = 0
+            self.jupyter = None
+            self._check_ipython()
+        else:
+            self._enable_keyboard = False
+            self._enable_colors = False
+            self._enable_terminal_codes = False
+            self._encoding = "UTF8"
+            self.is_a_tty = False
+            self._width = 80
+            self._height = 25
+            self.jupyter = None
 
     @property
     def width(self):
-        return self.override_width or blessed.Terminal.width.fget(self)
+        return self._width or self._blessed_term.width
 
-    def disable_styling(self):
-        # The `does_styling` attr is read-only, so in order to actually change
-        # it we do a small hack: create a new Terminal object which has styling
-        # disabled, and then replace the "guts" of the current object with those
-        # of the newly created object.
-        tt = blessed.Terminal(force_styling=None)
-        tt.override_width = self.override_width
-        self.__dict__, tt.__dict__ = tt.__dict__, self.__dict__
+    @property
+    def height(self):
+        return self._height or self._blessed_term.height
+
+    def length(self, x):
+        return self._blessed_term.length(x)
+
+    def clear_line(self, end=""):
+        if self._enable_terminal_codes:
+            print("\x1B[1G\x1B[K", end=end)
+
+    def rewrite_lines(self, lines, nold, end=""):
+        if self._enable_terminal_codes and nold:
+            print("\x1B[1G\x1B[%dA" % nold +
+                  "\x1B[K\n".join(lines) + "\x1B[K", end=end)
+        else:
+            print("\n".join(lines), end=end)
 
     def _check_ipython(self):
         # When running inside a Jupyter notebook, IPython and ipykernel will
@@ -48,53 +108,42 @@ class MyTerminal(blessed.Terminal):
                 self._encoding = "UTF8"
                 self.jupyter = ipy
 
+    def use_colors(self, f):
+        self._enable_colors = f
 
-def noop(self, s):
-    return s
+    def use_keyboard(self, f):
+        self._enable_keyboard = f
 
-class NoTerminal:
-    is_a_tty = False
-    jupyter = None
-    width = 80
-    height = 25
-    _encoding = "UTF8"
-    bold = noop
-    bright_black = noop
-    bright_red = noop
-    bright_white = noop
-    cyan = noop
-    dim_yellow = noop
-    green = noop
-    clear_eol = ""
-    move_up = ""
+    def use_terminal_codes(self, f):
+        self._enable_terminal_codes = f
 
-    def length(self, s):
-        return len(s)
+    def color(self, color, text):
+        if self._enable_colors:
+            return _default_palette[color] + text + "\x1B[m"
+        else:
+            return text
 
-    def move_x(self, n):
-        return ""
+    def wait_for_keypresses(self, refresh_rate=1):
+        """
+        Listen to user's keystrokes and return them to caller one at a time.
+
+        The produced values are instances of blessed.keyboard.Keystroke class.
+        If the user did not press anything with the last `refresh_rate` seconds
+        the generator will yield `None`, allowing the caller to perform any
+        updates necessary.
+
+        This generator is infinite, and thus needs to be stopped explicitly.
+        """
+        if not self._enable_keyboard:
+            return
+        with self._blessed_term.cbreak():
+            while True:
+                yield self._blessed_term.inkey(timeout=refresh_rate)
 
 
-
-# Save current locale settings
-try:
-    _lls = []
-    for i in range(100):
-        ll = _locale.setlocale(i)
-        _lls.append(ll)
-except _locale.Error:
-    pass
 
 # Instantiate a terminal
-if sys.__stdin__ and sys.__stdout__:
-    term = MyTerminal()
-else:
-    term = NoTerminal()
-
-
-# Restore previous locale settings
-for i, ll in enumerate(_lls):
-    _locale.setlocale(i, ll)
+term = Terminal()
 
 
 
@@ -111,23 +160,6 @@ def _new_displayhook(value):
 _original_displayhook = sys.displayhook
 if not term.jupyter:
     sys.displayhook = _new_displayhook
-
-
-
-def wait_for_keypresses(refresh_rate=1):
-    """
-    Listen to user's keystrokes and return them to caller one at a time.
-
-    The produced values are instances of blessed.keyboard.Keystroke class.
-    If the user did not press anything with the last `refresh_rate` seconds
-    the generator will yield `None`, allowing the caller to perform any
-    updates necessary.
-
-    This generator is infinite, and thus needs to be stopped explicitly.
-    """
-    with term.cbreak():
-        while True:
-            yield term.inkey(timeout=refresh_rate)
 
 
 

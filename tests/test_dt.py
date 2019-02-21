@@ -54,12 +54,11 @@ def dt0():
 
 
 @pytest.fixture()
-def patched_terminal(monkeypatch):
-    def send1(refresh_rate=1):
-        yield None
-    monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
-    dt.utils.terminal.term.override_width = 100
-    dt.utils.terminal.term.disable_styling()
+def patched_terminal():
+    dt.utils.terminal.term._width = 100
+    dt.utils.terminal.term.use_colors(False)
+    dt.utils.terminal.term.use_keyboard(False)
+    dt.utils.terminal.term.use_terminal_codes(False)
 
 
 def assert_valueerror(frame, rows, error_message):
@@ -203,7 +202,7 @@ def test_dt_view_keyed(patched_terminal, capsys):
             "g  |  3\n"
             "\n"
             "[5 rows x 2 columns]\n"
-            == out)
+            in out)
 
 
 def test_dt_getitem(dt0):

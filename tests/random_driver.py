@@ -36,13 +36,14 @@ def start_random_attack(n_attacks=None, maxfail=None):
             if n_errors >= maxfail:
                 raise KeyboardInterrupt
             if skip_successful_seeds:
-                print(term.bold_bright_white(" Seeds tried: %d" % (i + 1)),
+                print(term.color("bright_white",
+                        term.color("bold", " Seeds tried: %d" % (i + 1))),
                       end="\r")
     except KeyboardInterrupt:
         errmsg = "errors: %d" % n_errors
         if n_errors:
-            errmsg = term.bright_red(errmsg)
-        print("\r" + term.bright_cyan("DONE.") +
+            errmsg = term.color("bright_red", errmsg)
+        print("\r" + term.color("bright_cyan", "DONE.") +
               " Seeds tested: %d, %s" % (n_tests, errmsg))
 
 
@@ -59,13 +60,13 @@ def try_seed(seed):
         return True
 
     if rc == 0:
-        status = term.bright_green("OK")
+        status = term.color("bright_green", "OK")
     elif rc > 0:
-        status = term.yellow("FAIL")
+        status = term.color("yellow", "FAIL")
     elif rc == -9:
-        status = term.cyan("HANG")
+        status = term.color("cyan", "HANG")
     else:
-        status = term.bright_red("ABORT")
+        status = term.color("bright_red", "ABORT")
     if rc != 0:
         status += " (%d)" % rc
     print("%-19d: %s" % (seed, status))
