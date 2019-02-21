@@ -21,22 +21,16 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import collections
+import datatable
 import time
 import warnings
 
-from datatable.lib import core
-import datatable
-from .widget import DataFrameWidget
-
 from datatable.dt_append import _rbind
+from datatable.lib import core
 from datatable.nff import save as dt_save
-from datatable.utils.misc import plural_form as plural
-from datatable.utils.misc import load_module
-from datatable.utils.terminal import term
 from datatable.utils.typechecks import (TTypeError, TValueError)
 from datatable.csv import write_csv
 from datatable.options import options
-from datatable.types import stype
 
 __all__ = ("Frame", )
 
