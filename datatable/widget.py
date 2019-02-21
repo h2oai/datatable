@@ -123,7 +123,7 @@ class DataFrameWidget(object):
 
         # Display state
         self._n_displayed_lines = 0
-        self._show_types = 0
+        self._show_types = False
         self._show_navbar = options.display.interactive_hint and interactive
         self._interactive = interactive
         self._colwidths = {}
@@ -152,8 +152,9 @@ class DataFrameWidget(object):
         keyltypes = self._conn.key_ltypes
         keystypes = self._conn.key_stypes
         if keydata:
-            for i in range(len(keydata)):
-                colname = keynames[i]
+            for i, colname in enumerate(keynames):
+                if self._show_types:
+                    colname = term.cyan(keystypes[i].name)
                 oldwidth = self._colwidths.get(colname, 2)
                 col = _Column(name=colname,
                               ctype=keyltypes[i],
@@ -172,13 +173,11 @@ class DataFrameWidget(object):
         viewstypes = self._conn.view_stypes
         viewdata = self._conn.view_data
         if viewdata:
-            for i in range(len(viewdata)):
+            for i, colname in enumerate(viewnames):
                 if self._show_types:
-                    name = term.cyan(viewstypes[i].name)
-                else:
-                    name = viewnames[i]
+                    colname = term.cyan(viewstypes[i].name)
                 oldwidth = self._colwidths.get(i + self._view_col0, 2)
-                col = _Column(name=name,
+                col = _Column(name=colname,
                               ctype=viewltypes[i],
                               data=viewdata[i],
                               minwidth=oldwidth)
@@ -352,7 +351,7 @@ class DataFrameWidget(object):
 
 
     def _toggle_types(self):
-        self._show_types = (self._show_types + 1) % 3
+        self._show_types = not self._show_types
         self._draw()
 
 
