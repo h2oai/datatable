@@ -7,7 +7,6 @@
 import os
 from datatable.lib import core
 from datatable.utils.terminal import term
-_log_color = term.bright_black
 
 __all__ = ("write_csv", "CsvWriter")
 
@@ -69,4 +68,4 @@ class CsvWriter(object):
         if self._log_newline:
             print("  ", end="")
         self._log_newline = message.endswith("\n")
-        print(_log_color(message), end="", flush=True)
+        print(term.color("bright_black", message), end="", flush=True)

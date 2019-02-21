@@ -69,9 +69,8 @@ NumpyMaskedArray_t = _LazyClass("numpy.ma", "MaskedArray")
 
 class DatatableWarning(UserWarning):
     def _handle_(self):
-        name = self.__class__.__name__
-        message = str(self)
-        print(term.dim_yellow(name + ": ") + term.bright_black(message))
+        print(term.color("yellow", self.__class__.__name__ + ": ") +
+              term.color("bright_black", str(self)))
 
 
 def dtwarn(message):

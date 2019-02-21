@@ -27,7 +27,6 @@ from datatable.types import stype, ltype
 from datatable.xls import read_xls_workbook
 
 
-_log_color = term.bright_black
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
 _psutil_load_attempted = False
@@ -732,15 +731,16 @@ class GenericReader(object):
         out += bs[frac_chars - 1] if frac_chars > 0 else ""
         outlen = len(out)
         if status == 2:
-            out += term.red("(error)")
+            out += term.color("red", "(error)")
             outlen += 7
         elif status == 3:
-            out += term.dim_yellow("(cancelled)")
+            out += term.color("yellow", "(cancelled)")
             outlen += 11
         out += " " * (bar_width - outlen)
         endf, endl = self._bar_ends
         out = "\r" + s0 + endf + out + endl + s1
-        print(_log_color(out), end=("\n" if status else ""), flush=True)
+        print(term.color("bright_black", out),
+              end=("\n" if status else ""), flush=True)
 
 
     def _get_destination(self, estimated_size):
@@ -1033,7 +1033,7 @@ class _DefaultLogger:
     def debug(self, message):
         if message[0] != "[":
             message = "  " + message
-        print(_log_color(message), flush=True)
+        print(term.color("bright_black", message), flush=True)
 
     def warning(self, message):
         warnings.warn(message, category=FreadWarning)
