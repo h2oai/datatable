@@ -115,14 +115,8 @@ class Frame(core.Frame):
     def mode1(self):
         return self._dt.mode1()
 
-    def mean1(self):
-        return self._dt.mean1()
-
     def sd1(self):
         return self._dt.sd1()
-
-    def countna1(self):
-        return self._dt.countna1()
 
     def nunique1(self):
         return self._dt.nunique1()

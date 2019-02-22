@@ -174,6 +174,32 @@ template <> oobj pyvalue<SType::FLOAT64>(void* ptr) { return pyvalue_real<double
 // Individual stats (as py::oobj's)
 //------------------------------------------------------------------------------
 
+static oobj _countnaval(const Column* col) {
+  size_t v = col->countna();
+  return pyvalue<SType::INT64>(&v);
+}
+
+template <SType stype, SType res>
+static oobj _sumval(const Column* col) {
+  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->sum();
+  return pyvalue<res>(&v);
+}
+
+template <SType stype>
+static oobj _meanval(const Column* col) {
+  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->mean();
+  return pyvalue<SType::FLOAT64>(&v);
+}
+
+// template <typename T>
+// static oobj _sdval(const Column* col) {
+//   return _make_column(SType::FLOAT64,
+//                       static_cast<NumericalStats<T>*>(stats)->stdev(col));
+// }
+
+
+
+
 template <SType stype>
 static oobj _minval(const Column* col) {
   auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->min();
@@ -186,27 +212,6 @@ static oobj _maxval(const Column* col) {
   return pyvalue<stype>(&v);
 }
 
-template <SType stype, SType res>
-static oobj _sumval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->sum();
-  return pyvalue<res>(&v);
-}
-
-
-
-
-// template <typename T>
-// static oobj _meancol_num(Stats* stats, const Column* col) {
-//   return _make_column(SType::FLOAT64,
-//                       static_cast<NumericalStats<T>*>(stats)->mean(col));
-// }
-
-// template <typename T>
-// static oobj _sdcol_num(Stats* stats, const Column* col) {
-//   return _make_column(SType::FLOAT64,
-//                       static_cast<NumericalStats<T>*>(stats)->stdev(col));
-// }
-
 // template <typename T>
 // static oobj _modecol_num(Stats* stats, const Column* col) {
 //   return _make_column(col->stype(),
@@ -216,11 +221,6 @@ static oobj _sumval(const Column* col) {
 // template <typename T>
 // static oobj _modecol_str(Stats* stats, const Column* col) {
 //   return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col));
-// }
-
-// static oobj _countnacol(Stats* stats, const Column* col) {
-//   return _make_column(SType::INT64,
-//                       static_cast<int64_t>(stats->countna(col)));
 // }
 
 // static oobj _nuniquecol(Stats* stats, const Column* col) {
@@ -285,9 +285,11 @@ oobj Frame::stat(const PKArgs& args) {
 }
 
 
+static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", nullptr);
+static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
+static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
 static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
 static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
-static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols != 1) {
@@ -303,18 +305,21 @@ oobj Frame::stat1(const PKArgs& args) {
 
 
 void Frame::Type::_init_stats(Methods& mm) {
+  ADD_METHOD(mm, &Frame::stat, args_countna);
+  ADD_METHOD(mm, &Frame::stat, args_sum);
   ADD_METHOD(mm, &Frame::stat, args_min);
   ADD_METHOD(mm, &Frame::stat, args_max);
   ADD_METHOD(mm, &Frame::stat, args_mode);
-  ADD_METHOD(mm, &Frame::stat, args_sum);
   ADD_METHOD(mm, &Frame::stat, args_mean);
   ADD_METHOD(mm, &Frame::stat, args_sd);
-  ADD_METHOD(mm, &Frame::stat, args_countna);
   ADD_METHOD(mm, &Frame::stat, args_nunique);
   ADD_METHOD(mm, &Frame::stat, args_nmodal);
+
+  ADD_METHOD(mm, &Frame::stat1, args_countna1);
+  ADD_METHOD(mm, &Frame::stat1, args_sum1);
+  ADD_METHOD(mm, &Frame::stat1, args_mean1);
   ADD_METHOD(mm, &Frame::stat1, args_min1);
   ADD_METHOD(mm, &Frame::stat1, args_max1);
-  ADD_METHOD(mm, &Frame::stat1, args_sum1);
 
   for (size_t i = 0; i < NSTATS * DT_STYPES_COUNT; ++i) {
     statfns[i] = _nacol;
@@ -416,6 +421,18 @@ void Frame::Type::_init_stats(Methods& mm) {
 
   //---- Scalar statfns --------------------------------------------------------
 
+  // Stat::NaCount (= 0)
+  statfns1[id(Stat::NaCount, SType::BOOL)]    = _countnaval;
+  statfns1[id(Stat::NaCount, SType::INT8)]    = _countnaval;
+  statfns1[id(Stat::NaCount, SType::INT16)]   = _countnaval;
+  statfns1[id(Stat::NaCount, SType::INT32)]   = _countnaval;
+  statfns1[id(Stat::NaCount, SType::INT64)]   = _countnaval;
+  statfns1[id(Stat::NaCount, SType::FLOAT32)] = _countnaval;
+  statfns1[id(Stat::NaCount, SType::FLOAT64)] = _countnaval;
+  statfns1[id(Stat::NaCount, SType::STR32)]   = _countnaval;
+  statfns1[id(Stat::NaCount, SType::STR64)]   = _countnaval;
+  statfns1[id(Stat::NaCount, SType::OBJ)]     = _countnaval;
+
   // Stat::Sum (= 1)
   statfns1[id(Stat::Sum, SType::BOOL)]    = _sumval<SType::BOOL,  SType::INT64>;
   statfns1[id(Stat::Sum, SType::INT8)]    = _sumval<SType::INT8,  SType::INT64>;
@@ -424,6 +441,15 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns1[id(Stat::Sum, SType::INT64)]   = _sumval<SType::INT64, SType::INT64>;
   statfns1[id(Stat::Sum, SType::FLOAT32)] = _sumval<SType::FLOAT32, SType::FLOAT64>;
   statfns1[id(Stat::Sum, SType::FLOAT64)] = _sumval<SType::FLOAT64, SType::FLOAT64>;
+
+  // Stat::Mean (= 2)
+  statfns1[id(Stat::Mean, SType::BOOL)]    = _meanval<SType::BOOL>;
+  statfns1[id(Stat::Mean, SType::INT8)]    = _meanval<SType::INT8>;
+  statfns1[id(Stat::Mean, SType::INT16)]   = _meanval<SType::INT16>;
+  statfns1[id(Stat::Mean, SType::INT32)]   = _meanval<SType::INT32>;
+  statfns1[id(Stat::Mean, SType::INT64)]   = _meanval<SType::INT64>;
+  statfns1[id(Stat::Mean, SType::FLOAT32)] = _meanval<SType::FLOAT32>;
+  statfns1[id(Stat::Mean, SType::FLOAT64)] = _meanval<SType::FLOAT64>;
 
   // Stat::Min (= 6)
   statfns1[id(Stat::Min, SType::BOOL)]    = _minval<SType::BOOL>;
@@ -456,7 +482,9 @@ void Frame::Type::_init_stats(Methods& mm) {
   stat_from_args[&args_nmodal]  = Stat::NModal;
   stat_from_args[&args_nunique] = Stat::NUnique;
 
+  stat_from_args[&args_countna1] = Stat::NaCount;
   stat_from_args[&args_sum1]     = Stat::Sum;
+  stat_from_args[&args_mean1]    = Stat::Mean;
   stat_from_args[&args_min1]     = Stat::Min;
   stat_from_args[&args_max1]     = Stat::Max;
 }
