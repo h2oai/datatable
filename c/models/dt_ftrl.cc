@@ -60,7 +60,6 @@ double Ftrl::predict_row(const uint64ptr& x, doubleptr& w) {
     double absw = std::max(std::abs(z[j]) - l1, 0.0) /
                   (std::sqrt(n[j]) * ia + rr);
     w[i] = -std::copysign(absw, z[j]);
-//    printf("Predict: i=%zu; j=%zu; w[i]=%f\n", i, j, w[i]);
     wTx += w[i];
     fi[i] += absw; // Update feature importance vector
   }
@@ -79,7 +78,6 @@ void Ftrl::update(const uint64ptr& x, doubleptr& w, double p, double y) {
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
     double sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
-//    printf("Update: i=%zu; j=%zu; w[i]=%f\n", i, j, w[i]);
     z[j] += g - sigma * w[i];
     n[j] += gsq;
   }
