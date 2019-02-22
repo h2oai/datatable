@@ -25,7 +25,8 @@
 
 namespace py {
 
-using dtftptr = std::unique_ptr<dt::Ftrl>;
+template <typename T> 
+using dtftptr = std::unique_ptr<dt::Ftrl<T>>;
 
 enum class RegType : uint8_t {
   NONE        = 0,
@@ -37,7 +38,7 @@ enum class RegType : uint8_t {
 
 class Ftrl : public PyObject {
   private:
-    std::vector<dtftptr>* dtft;
+    std::vector<dtftptr<double>>* dtft;
     DataTable* feature_names;
     py::olist labels;
     RegType reg_type;
@@ -56,7 +57,7 @@ class Ftrl : public PyObject {
     // Initializers and destructor
     void m__init__(PKArgs&);
     void m__dealloc__();
-    void init_dtft(dt::FtrlParams);
+    void init_dtft(dt::FtrlParams<double>);
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);

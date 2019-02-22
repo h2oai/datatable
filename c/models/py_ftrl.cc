@@ -23,6 +23,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
+#include <vector>
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
@@ -38,7 +39,7 @@ PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
 
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
-  dt::FtrlParams dt_params = dt::Ftrl::default_params;
+  dt::FtrlParams<double> dt_params = dt::Ftrl<double>::default_params;
 
   bool defined_params   = !args[0].is_none_or_undefined();
   bool defined_labels   = !args[1].is_none_or_undefined();
@@ -125,13 +126,13 @@ void Ftrl::m__init__(PKArgs& args) {
     set_labels(py::robj(py_list));
   }
 
-  dtft = new std::vector<dtftptr>;
+  dtft = new std::vector<dtftptr<double>>;
   init_dtft(dt_params);
   reg_type = RegType::NONE;
 }
 
 
-void Ftrl::init_dtft(dt::FtrlParams dt_params) {
+void Ftrl::init_dtft(dt::FtrlParams<double> dt_params) {
   size_t nlabels = labels.size();
   xassert(nlabels > 0);
   // If there is only two labels provided, we only need
@@ -140,7 +141,7 @@ void Ftrl::init_dtft(dt::FtrlParams dt_params) {
   dtft->clear();
   dtft->reserve(ndtft);
   for (size_t i = 0; i < ndtft; ++i) {
-    dtft->push_back(dtftptr(new dt::Ftrl(dt_params)));
+    dtft->push_back(dtftptr<double>(new dt::Ftrl<double>(dt_params)));
   }
 }
 
@@ -628,7 +629,7 @@ void Ftrl::set_model(robj model) {
 
     }
 
-    if (model_cols_in != dt::Ftrl::model_colnames) {
+    if (model_cols_in != dt::Ftrl<double>::model_colnames) {
       throw ValueError() << "Element " << i << ": "
                          << "FTRL model frame must have columns named `z` and "
                          << "`n`, whereas your frame has the following column "
@@ -1092,12 +1093,12 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  dtft = new std::vector<dtftptr>;
+  dtft = new std::vector<dtftptr<double>>;
   py::otuple pickle = args[0].to_otuple();
 
   // Set labels and initialize classifiers, this has to be done first.
   labels = pickle[4].to_pylist();
-  init_dtft(dt::Ftrl::default_params);
+  init_dtft(dt::Ftrl<double>::default_params);
 
   // Set FTRL parameters
   set_params_tuple(pickle[0]);

@@ -21,6 +21,35 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
+#include "py_datatable.h"
+
+template <typename T>
+using tptr = typename std::unique_ptr<T[]>;
+using uint64ptr = std::unique_ptr<uint64_t[]>;
+
+/*
+*  Helper template structures to convert C++ float/double types to
+*  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
+*/
+template<typename T> struct stype {
+  static void get_stype() {
+    throw TypeError() << "Only float and double types are supported";
+  }
+};
+
+
+template<> struct stype<float> {
+  static SType get_stype() {
+    return SType::FLOAT32;
+  }
+};
+
+
+template<> struct stype<double> {
+  static SType get_stype() {
+    return SType::FLOAT64;
+  }
+};
 
 void calculate_coprimes(size_t, std::vector<size_t>&);
 

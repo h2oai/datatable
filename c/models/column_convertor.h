@@ -22,31 +22,7 @@
 #ifndef dt_MODELS_COLUMN_CONVERTOR_h
 #define dt_MODELS_COLUMN_CONVERTOR_h
 #include "py_datatable.h"
-
-
-/*
-*  Helper template structures to convert C++ float/double types to
-*  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
-*/
-template<typename T> struct stype {
-  static void get_stype() {
-    throw TypeError() << "Only float and double types are supported";
-  }
-};
-
-
-template<> struct stype<float> {
-  static SType get_stype() {
-    return SType::FLOAT32;
-  }
-};
-
-
-template<> struct stype<double> {
-  static SType get_stype() {
-    return SType::FLOAT64;
-  }
-};
+#include "models/utils.h"
 
 
 /*

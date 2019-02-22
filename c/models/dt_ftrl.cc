@@ -28,14 +28,18 @@ namespace dt {
 /*
 *  Set column names for `dt_model` and default parameter values.
 */
-const std::vector<std::string> Ftrl::model_colnames = {"z", "n"};
-const FtrlParams Ftrl::default_params = {0.005, 1.0, 0.0, 1.0,
-                                         1000000, 1, false};
+template <typename T> 
+const std::vector<std::string> Ftrl<T>::model_colnames = {"z", "n"};
+
+template <typename T> 
+const FtrlParams<T> Ftrl<T>::default_params = {0.005, 1.0, 0.0, 1.0,
+                                               1000000, 1, false};
 
 /*
 *  Set up FTRL parameters and initialize weights.
 */
-Ftrl::Ftrl(FtrlParams params_in) :
+template <typename T> 
+Ftrl<T>::Ftrl(FtrlParams<T> params_in) :
   z(nullptr),
   n(nullptr),
   fi(nullptr),
@@ -50,14 +54,15 @@ Ftrl::Ftrl(FtrlParams params_in) :
 /*
 *  Make a prediction for an array of hashed features.
 */
-double Ftrl::predict_row(const uint64ptr& x, doubleptr& w) {
-  double wTx = 0;
-  double l1 = params.lambda1;
-  double ia = 1 / params.alpha;
-  double rr = params.beta * ia + params.lambda2;
+template <typename T>
+double Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w) {
+  T wTx = 0;
+  T l1 = params.lambda1;
+  T ia = 1 / params.alpha;
+  T rr = params.beta * ia + params.lambda2;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    double absw = std::max(std::abs(z[j]) - l1, 0.0) /
+    T absw = std::max(std::abs(z[j]) - l1, 0.0) /
                   (std::sqrt(n[j]) * ia + rr);
     w[i] = -std::copysign(absw, z[j]);
     wTx += w[i];
@@ -70,7 +75,8 @@ double Ftrl::predict_row(const uint64ptr& x, doubleptr& w) {
 /*
 *  Update weights based on prediction `p` and the actual target `y`.
 */
-void Ftrl::update(const uint64ptr& x, doubleptr& w, double p, double y) {
+template <typename T>
+void Ftrl<T>::update(const uint64ptr& x, tptr<T>& w, T p, T y) {
   double ia = 1 / params.alpha;
   double g = p - y;
   double gsq = g * g;
@@ -84,58 +90,65 @@ void Ftrl::update(const uint64ptr& x, doubleptr& w, double p, double y) {
 }
 
 
-void Ftrl::create_model() {
-  Column* col_z = Column::new_data_column(SType::FLOAT64, params.nbins);
-  Column* col_n = Column::new_data_column(SType::FLOAT64, params.nbins);
+template <typename T>
+void Ftrl<T>::create_model() {
+  Column* col_z = Column::new_data_column(stype<T>::get_stype(), params.nbins);
+  Column* col_n = Column::new_data_column(stype<T>::get_stype(), params.nbins);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
   reset_model();
 }
 
 
-void Ftrl::reset_model() {
+template <typename T>
+void Ftrl<T>::reset_model() {
   init_weights();
   if (z == nullptr || n == nullptr) return;
-  std::memset(z, 0, params.nbins * sizeof(double));
-  std::memset(n, 0, params.nbins * sizeof(double));
+  std::memset(z, 0, params.nbins * sizeof(T));
+  std::memset(n, 0, params.nbins * sizeof(T));
   model_trained = false;
 }
 
 
-void Ftrl::init_weights() {
+template <typename T>
+void Ftrl<T>::init_weights() {
   if (dt_model == nullptr) return;
   z = static_cast<double*>(dt_model->columns[0]->data_w());
   n = static_cast<double*>(dt_model->columns[1]->data_w());
 }
 
 
-void Ftrl::create_fi() {
+template <typename T>
+void Ftrl<T>::create_fi() {
   Column* col_fi = Column::new_data_column(SType::FLOAT64, nfeatures);
   dt_fi = dtptr(new DataTable({col_fi}, {"feature_importance"}));
   reset_fi();
 }
 
 
-void Ftrl::init_fi() {
+template <typename T>
+void Ftrl<T>::init_fi() {
   if (dt_fi == nullptr) return;
   fi = static_cast<double*>(dt_fi->columns[0]->data_w());
 }
 
-
-void Ftrl::reset_fi() {
+template <typename T>
+void Ftrl<T>::reset_fi() {
   init_fi();
   if (fi == nullptr) return;
   std::memset(fi, 0, nfeatures * sizeof(double));
 }
 
 
-void Ftrl::define_features(size_t ncols_in) {
+template <typename T>
+void Ftrl<T>::define_features(size_t ncols_in) {
   ncols = ncols_in;
   size_t n_inter_features = (params.interactions)? ncols * (ncols - 1) / 2 : 0;
   nfeatures = ncols + n_inter_features;
 }
 
 
-void Ftrl::create_hashers(const DataTable* dt) {
+template <typename T>
+void Ftrl<T>::create_hashers(const DataTable* dt) {
   hashers.clear();
   hashers.reserve(ncols);
 
@@ -159,7 +172,8 @@ void Ftrl::create_hashers(const DataTable* dt) {
 }
 
 
-hashptr Ftrl::create_colhasher(const Column* col) {
+template <typename T>
+hashptr Ftrl<T>::create_colhasher(const Column* col) {
   SType stype = col->stype();
   switch (stype) {
     case SType::BOOL:    return hashptr(new HashBool(col));
@@ -180,7 +194,8 @@ hashptr Ftrl::create_colhasher(const Column* col) {
 /*
 *  Hash each element of the datatable row, do feature interactions if requested.
 */
-void Ftrl::hash_row(uint64ptr& x, size_t row) {
+template <typename T>
+void Ftrl<T>::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < ncols; ++i) {
     // Hash a value adding a column name hash to it, so that the same value
     // in different columns results in different hashes.
@@ -203,7 +218,8 @@ void Ftrl::hash_row(uint64ptr& x, size_t row) {
 }
 
 
-bool Ftrl::is_dt_valid(const dtptr& dt, size_t nrows_in, size_t ncols_in) {
+template <typename T>
+bool Ftrl<T>::is_dt_valid(const dtptr& dt, size_t nrows_in, size_t ncols_in) {
   if (dt == nullptr) return false;
   // Normally, this exception should never be thrown.
   // For the moment, the only purpose of this check is to make sure we didn't
@@ -217,7 +233,8 @@ bool Ftrl::is_dt_valid(const dtptr& dt, size_t nrows_in, size_t ncols_in) {
 }
 
 
-bool Ftrl::is_trained() {
+template <typename T>
+bool Ftrl<T>::is_trained() {
   return model_trained;
 }
 
@@ -225,7 +242,8 @@ bool Ftrl::is_trained() {
 /*
 *  Get a shallow copy of an FTRL model if available.
 */
-DataTable* Ftrl::get_model() {
+template <typename T>
+DataTable* Ftrl<T>::get_model() {
   if (dt_model != nullptr) {
     return dt_model->copy();
   } else {
@@ -237,7 +255,8 @@ DataTable* Ftrl::get_model() {
 /*
 *  Get a shallow copy of a feature importance datatable if available.
 */
-DataTable* Ftrl::get_fi() {
+template <typename T>
+DataTable* Ftrl<T>::get_fi() {
   if (dt_fi != nullptr) {
     return dt_fi->copy();
   } else {
@@ -250,57 +269,68 @@ DataTable* Ftrl::get_fi() {
 *  Other getters and setters.
 *  Here we assume that all the validation for setters is done in `py_ftrl.cc`.
 */
-std::vector<uint64_t> Ftrl::get_colnames_hashes() {
+template <typename T>
+std::vector<uint64_t> Ftrl<T>::get_colnames_hashes() {
   return colnames_hashes;
 }
 
 
-size_t Ftrl::get_ncols() {
+template <typename T>
+size_t Ftrl<T>::get_ncols() {
   return ncols;
 }
 
 
-size_t Ftrl::get_nfeatures() {
+template <typename T>
+size_t Ftrl<T>::get_nfeatures() {
   return nfeatures;
 }
 
 
-double Ftrl::get_alpha() {
+template <typename T>
+T Ftrl<T>::get_alpha() {
   return params.alpha;
 }
 
 
-double Ftrl::get_beta() {
+template <typename T>
+T Ftrl<T>::get_beta() {
   return params.beta;
 }
 
 
-double Ftrl::get_lambda1() {
+template <typename T>
+T Ftrl<T>::get_lambda1() {
   return params.lambda1;
 }
 
 
-double Ftrl::get_lambda2() {
+template <typename T>
+T Ftrl<T>::get_lambda2() {
   return params.lambda2;
 }
 
 
-uint64_t Ftrl::get_nbins() {
+template <typename T>
+uint64_t Ftrl<T>::get_nbins() {
   return params.nbins;
 }
 
 
-bool Ftrl::get_interactions() {
+template <typename T>
+bool Ftrl<T>::get_interactions() {
   return params.interactions;
 }
 
 
-size_t Ftrl::get_nepochs() {
+template <typename T>
+size_t Ftrl<T>::get_nepochs() {
   return params.nepochs;
 }
 
 
-FtrlParams Ftrl::get_params() {
+template <typename T>
+FtrlParams<T> Ftrl<T>::get_params() {
   return params;
 }
 
@@ -308,7 +338,8 @@ FtrlParams Ftrl::get_params() {
 /*
 *  Set an FTRL model, assuming all the validation is done in `py_ftrl.cc`
 */
-void Ftrl::set_model(DataTable* dt_model_in) {
+template <typename T>
+void Ftrl<T>::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_nbins(dt_model->nrows);
   init_weights();
@@ -318,44 +349,52 @@ void Ftrl::set_model(DataTable* dt_model_in) {
 }
 
 
-void Ftrl::set_fi(DataTable* dt_fi_in) {
+template <typename T>
+void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
   dt_fi = dtptr(dt_fi_in->copy());
   nfeatures = dt_fi->nrows;
   init_fi();
 }
 
 
-void Ftrl::set_alpha(double alpha_in) {
+template <typename T>
+void Ftrl<T>::set_alpha(T alpha_in) {
   params.alpha = alpha_in;
 }
 
 
-void Ftrl::set_beta(double beta_in) {
+template <typename T>
+void Ftrl<T>::set_beta(T beta_in) {
   params.beta = beta_in;
 }
 
 
-void Ftrl::set_lambda1(double lambda1_in) {
+template <typename T>
+void Ftrl<T>::set_lambda1(T lambda1_in) {
   params.lambda1 = lambda1_in;
 }
 
 
-void Ftrl::set_lambda2(double lambda2_in) {
+template <typename T>
+void Ftrl<T>::set_lambda2(T lambda2_in) {
   params.lambda2 = lambda2_in;
 }
 
 
-void Ftrl::set_nbins(uint64_t nbins_in) {
+template <typename T>
+void Ftrl<T>::set_nbins(uint64_t nbins_in) {
   params.nbins = nbins_in;
 }
 
 
-void Ftrl::set_interactions(bool interactions_in) {
+template <typename T>
+void Ftrl<T>::set_interactions(bool interactions_in) {
   params.interactions = interactions_in;
 }
 
 
-void Ftrl::set_nepochs(size_t nepochs_in) {
+template <typename T>
+void Ftrl<T>::set_nepochs(size_t nepochs_in) {
   params.nepochs = nepochs_in;
 }
 

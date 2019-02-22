@@ -22,7 +22,6 @@
 #include <random>
 #include "models/aggregator.h"
 
-
 namespace py {
 
 static PKArgs args_aggregate(
