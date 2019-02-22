@@ -135,35 +135,24 @@ static Column* _nmodalcol(Stats* stats, const Column* col) {
 // Helpers for py values creation
 //------------------------------------------------------------------------------
 
-template <SType s> struct Stype2Col {};
-template <> struct Stype2Col<SType::BOOL> { const BoolColumn* ptr; };
-template <> struct Stype2Col<SType::INT8> { const IntColumn<int8_t>* ptr; };
-template <> struct Stype2Col<SType::INT16> { const IntColumn<int16_t>* ptr; };
-template <> struct Stype2Col<SType::INT32> { const IntColumn<int32_t>* ptr; };
-template <> struct Stype2Col<SType::INT64> { const IntColumn<int64_t>* ptr; };
-template <> struct Stype2Col<SType::FLOAT32> { const RealColumn<float>* ptr; };
-template <> struct Stype2Col<SType::FLOAT64> { const RealColumn<double>* ptr; };
-template <> struct Stype2Col<SType::STR32> { const StringColumn<uint32_t>* ptr; };
-template <> struct Stype2Col<SType::STR64> { const StringColumn<uint64_t>* ptr; };
-
-static oobj pyvalue_bool(void* ptr) {
+static inline oobj pyvalue_bool(void* ptr) {
   int8_t x = *reinterpret_cast<int8_t*>(ptr);
   return ISNA<int8_t>(x)? None() : obool(x);
 }
 
 template <typename T>
-static oobj pyvalue_int(void* ptr) {
+static inline oobj pyvalue_int(void* ptr) {
   T x = *reinterpret_cast<T*>(ptr);
   return ISNA<T>(x)? None() : oint(x);
 }
 
 template <typename T>
-static oobj pyvalue_real(void* ptr) {
+static inline oobj pyvalue_real(void* ptr) {
   T x = *reinterpret_cast<T*>(ptr);
   return ISNA<T>(x)? None() : ofloat(x);
 }
 
-static oobj pyvalue_str(void* ptr) {
+static inline oobj pyvalue_str(void* ptr) {
   CString& x = *reinterpret_cast<CString*>(ptr);
   return x.size >= 0? ostring(x.ch, static_cast<size_t>(x.size))
                     : None();
@@ -181,6 +170,7 @@ template <> oobj pyvalue<SType::STR32>(void* ptr)   { return pyvalue_str(ptr); }
 template <> oobj pyvalue<SType::STR64>(void* ptr)   { return pyvalue_str(ptr); }
 
 
+
 //------------------------------------------------------------------------------
 // Individual stats (as py::oobj's)
 //------------------------------------------------------------------------------
@@ -192,37 +182,37 @@ static oobj _countnaval(const Column* col) {
 
 template <SType stype, SType res>
 static oobj _sumval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->sum();
+  auto v = static_cast<const column_t<stype>*>(col)->sum();
   return pyvalue<res>(&v);
 }
 
 template <SType stype>
 static oobj _meanval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->mean();
+  auto v = static_cast<const column_t<stype>*>(col)->mean();
   return pyvalue<SType::FLOAT64>(&v);
 }
 
 template <SType stype>
 static oobj _sdval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->sd();
+  auto v = static_cast<const column_t<stype>*>(col)->sd();
   return pyvalue<SType::FLOAT64>(&v);
 }
 
 template <SType stype>
 static oobj _minval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->min();
+  auto v = static_cast<const column_t<stype>*>(col)->min();
   return pyvalue<stype>(&v);
 }
 
 template <SType stype>
 static oobj _maxval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->max();
+  auto v = static_cast<const column_t<stype>*>(col)->max();
   return pyvalue<stype>(&v);
 }
 
 template <SType stype>
 static oobj _modeval(const Column* col) {
-  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->mode();
+  auto v = static_cast<const column_t<stype>*>(col)->mode();
   return pyvalue<stype>(&v);
 }
 

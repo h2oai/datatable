@@ -43,6 +43,29 @@ template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 
+/**
+ * Helper templates to convert between an stype and a column's type:
+ *
+ *   column_t<stype>
+ *
+ * resolves to the type of the column that implements `stype`.
+ */
+template <SType s> struct _colt {};
+template <> struct _colt<SType::BOOL>    { using t = BoolColumn; };
+template <> struct _colt<SType::INT8>    { using t = IntColumn<int8_t>; };
+template <> struct _colt<SType::INT16>   { using t = IntColumn<int16_t>; };
+template <> struct _colt<SType::INT32>   { using t = IntColumn<int32_t>; };
+template <> struct _colt<SType::INT64>   { using t = IntColumn<int64_t>; };
+template <> struct _colt<SType::FLOAT32> { using t = RealColumn<float>; };
+template <> struct _colt<SType::FLOAT64> { using t = RealColumn<double>; };
+template <> struct _colt<SType::STR32>   { using t = StringColumn<uint32_t>; };
+template <> struct _colt<SType::STR64>   { using t = StringColumn<uint64_t>; };
+template <> struct _colt<SType::OBJ>     { using t = PyObjectColumn; };
+
+template <SType s>
+using column_t = typename _colt<s>::t;
+
+
 //==============================================================================
 
 /**
