@@ -112,17 +112,8 @@ class Frame(core.Frame):
     # Stats
     #---------------------------------------------------------------------------
 
-    # def min1(self):
-    #     return self._dt.min1()
-
-    def max1(self):
-        return self._dt.max1()
-
     def mode1(self):
         return self._dt.mode1()
-
-    def sum1(self):
-        return self._dt.sum1()
 
     def mean1(self):
         return self._dt.mean1()
