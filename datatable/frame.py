@@ -112,39 +112,6 @@ class Frame(core.Frame):
     # Stats
     #---------------------------------------------------------------------------
 
-    def min(self):
-        """
-        Get the minimum value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed minimum
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_min()
-
-    def max(self):
-        """
-        Get the maximum value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed maximum
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_max()
-
-    def mode(self):
-        """
-        Get the modal value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed count of
-        most frequent values for each column.
-        """
-        return self._dt.get_mode()
-
     def sum(self):
         """
         Get the sum of each column.

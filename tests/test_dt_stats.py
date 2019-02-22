@@ -409,25 +409,24 @@ def test_object_column2():
     f1 = df.min()
     f1.internal.check()
     assert f1.stypes == (stype.obj64, )
-    assert f1[0, 0] == None
+    assert f1[0, 0] is None
     f2 = df.max()
     f2.internal.check()
     assert f2.stypes == (stype.obj64, )
-    assert f2[0, 0] == None
+    assert f2[0, 0] is None
     f3 = df.sum()
     f3.internal.check()
     assert f3.stypes == (stype.obj64, )
-    assert f3[0, 0] == None
+    assert f3[0, 0] is None
     f4 = df.mean()
     f4.internal.check()
     assert f4.stypes == (stype.float64, )
-    assert f4[0, 0] == None
+    assert f4[0, 0] is None
     f5 = df.sd()
     f5.internal.check()
     assert f5.stypes == (stype.float64, )
-    assert f5[0, 0] == None
-    with pytest.raises(NotImplementedError):
-        df.mode()
+    assert f5[0, 0] is None
+    assert df.mode()[0, 0] is None
     with pytest.raises(NotImplementedError):
         df.nunique()
     with pytest.raises(NotImplementedError):

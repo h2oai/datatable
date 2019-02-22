@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MEMRANGE_h
 #define dt_MEMRANGE_h
+#include <cstdint>
 #include <string>             // std::string
 #include <type_traits>        // std::is_same
 #include <Python.h>
