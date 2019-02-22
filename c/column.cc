@@ -259,37 +259,6 @@ size_t Column::nunique() const { return get_stats()->nunique(this); }
 size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
-/**
- * Methods for retrieving stats but in column form. These should be populated
- * with NA values when called from the base column instance.
- */
-Column* Column::mean_column() const { return new_na_column(SType::FLOAT64, 1); }
-Column* Column::sd_column() const   { return new_na_column(SType::FLOAT64, 1); }
-Column* Column::skew_column() const { return new_na_column(SType::FLOAT64, 1); }
-Column* Column::kurt_column() const { return new_na_column(SType::FLOAT64, 1); }
-Column* Column::min_column() const  { return new_na_column(stype(), 1); }
-Column* Column::max_column() const  { return new_na_column(stype(), 1); }
-Column* Column::mode_column() const { throw NotImplError(); }
-Column* Column::sum_column() const  { return new_na_column(stype(), 1); }
-
-Column* Column::countna_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, static_cast<int64_t>(countna()));
-  return col;
-}
-
-Column* Column::nunique_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, static_cast<int64_t>(nunique()));
-  return col;
-}
-
-Column* Column::nmodal_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, static_cast<int64_t>(nmodal()));
-  return col;
-}
-
 PyObject* Column::mean_pyscalar() const { return none(); }
 PyObject* Column::sd_pyscalar() const { return none(); }
 PyObject* Column::skew_pyscalar() const { return none(); }

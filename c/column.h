@@ -243,28 +243,6 @@ public:
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
-  /**
-   * Methods for retrieving statistics in the form of a Column. The resulting
-   * Column will contain a single row, in which is the value of the statistic.
-   * Fixed-type statistics (e.g mean, countna) will always return a Column with
-   * a corresponding stype, even if the statistic results in a NA value. For
-   * example, `mean_column` will always return RealColumn<double>.
-   * Variable-type statistics (e.g. min, sum) will instead result in a column of
-   * the same stype as the calling instance if the statistic is incompatible
-   * with the column stype.
-   */
-  virtual Column* min_column() const;
-  virtual Column* max_column() const;
-  virtual Column* sum_column() const;
-  virtual Column* mean_column() const;
-  virtual Column* sd_column() const;
-  virtual Column* skew_column() const;
-  virtual Column* kurt_column() const;
-  virtual Column* countna_column() const;
-  virtual Column* nunique_column() const;
-  virtual Column* nmodal_column() const;
-  virtual Column* mode_column() const;
-
   virtual PyObject* min_pyscalar() const;
   virtual PyObject* max_pyscalar() const;
   virtual PyObject* sum_pyscalar() const;
@@ -414,12 +392,6 @@ public:
   double mean() const;
   double sd() const;
 
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
@@ -470,14 +442,6 @@ public:
   int64_t min_int64() const override;
   int64_t max_int64() const override;
 
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
@@ -535,14 +499,6 @@ public:
   double skew() const;
   double kurt() const;
 
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
@@ -670,7 +626,6 @@ public:
 
   CString mode() const;
   PyObject* mode_pyscalar() const override;
-  Column* mode_column() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;

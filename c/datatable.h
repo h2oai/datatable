@@ -135,18 +135,6 @@ class DataTable {
     void clear_key();
     void set_nkeys_unsafe(size_t K);
 
-    DataTable* min_datatable() const;
-    DataTable* max_datatable() const;
-    DataTable* mode_datatable() const;
-    DataTable* sum_datatable() const;
-    DataTable* mean_datatable() const;
-    DataTable* sd_datatable() const;
-    DataTable* skew_datatable() const;
-    DataTable* kurt_datatable() const;
-    DataTable* countna_datatable() const;
-    DataTable* nunique_datatable() const;
-    DataTable* nmodal_datatable() const;
-
     void verify_integrity() const;
 
     static DataTable* load(DataTable* schema, size_t nrows,

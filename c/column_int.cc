@@ -51,62 +51,6 @@ template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->s
 template <typename T> double  IntColumn<T>::skew() const { return get_stats()->skew(this); }
 template <typename T> double  IntColumn<T>::kurt() const { return get_stats()->kurt(this); }
 
-// Retrieve stat value as a column
-template <typename T>
-Column* IntColumn<T>::min_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, min());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::max_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, max());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::mode_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, mode());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::sum_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, sum());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::mean_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, mean());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::sd_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, sd());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::skew_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, skew());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::kurt_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, kurt());
-  return col;
-}
 
 template <typename T>
 int64_t IntColumn<T>::min_int64() const {

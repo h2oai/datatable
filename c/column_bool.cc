@@ -41,43 +41,6 @@ int64_t BoolColumn::sum() const  { return get_stats()->sum(this); }
 double  BoolColumn::mean() const { return get_stats()->mean(this); }
 double  BoolColumn::sd() const   { return get_stats()->stdev(this); }
 
-// Retrieve stat value as a column
-Column* BoolColumn::min_column() const {
-  BoolColumn* col = new BoolColumn(1);
-  col->set_elem(0, min());
-  return col;
-}
-
-Column* BoolColumn::max_column() const {
-  BoolColumn* col = new BoolColumn(1);
-  col->set_elem(0, max());
-  return col;
-}
-
-Column* BoolColumn::mode_column() const {
-  BoolColumn* col = new BoolColumn(1);
-  col->set_elem(0, mode());
-  return col;
-}
-
-Column* BoolColumn::sum_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, sum());
-  return col;
-}
-
-Column* BoolColumn::mean_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, mean());
-  return col;
-}
-
-Column* BoolColumn::sd_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, sd());
-  return col;
-}
-
 PyObject* BoolColumn::min_pyscalar() const { return bool_to_py(min()); }
 PyObject* BoolColumn::max_pyscalar() const { return bool_to_py(max()); }
 PyObject* BoolColumn::mode_pyscalar() const { return bool_to_py(mode()); }

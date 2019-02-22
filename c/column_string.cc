@@ -672,21 +672,6 @@ PyObject* StringColumn<T>::mode_pyscalar() const {
   return string_to_py(mode());
 }
 
-template <typename T>
-Column* StringColumn<T>::mode_column() const {
-  CString m = mode();
-  auto col = new StringColumn<T>(1);
-  if (m.size >= 0) {
-    col->mbuf.set_element(1, static_cast<T>(m.size));
-    col->strbuf.resize(static_cast<size_t>(m.size));
-    std::memcpy(col->strbuf.wptr(), m.ch, static_cast<size_t>(m.size));
-  } else {
-    col->mbuf.set_element(1, GETNA<T>());
-  }
-  return col;
-}
-
-
 
 
 //------------------------------------------------------------------------------

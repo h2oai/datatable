@@ -105,49 +105,6 @@ DECLARE_METHOD(
   "Save DataTable into a .jay file.\n")
 
 
-DECLARE_METHOD(
-   get_min,
-   "Get the minimum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_max,
-  "Get the maximum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_sum,
-  "Get the sum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_mean,
-  "Get the mean for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_sd,
-  "Get the standard deviation for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_skew,
-  "Get the skew for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_kurt,
-  "Get the kurtosis for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_countna,
-  "Get the NA count for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_nunique,
-  "Get the number of unique values for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_mode,
-  "Get the most frequent value in each column in the DataTable")
-
-DECLARE_METHOD(
-  get_nmodal,
-  "Get the count of most frequent values for each column in the DataTable")
 
 DECLARE_METHOD(
    min1,
