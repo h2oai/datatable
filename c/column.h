@@ -43,6 +43,29 @@ template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 
+/**
+ * Helper templates to convert between an stype and a column's type:
+ *
+ *   column_t<stype>
+ *
+ * resolves to the type of the column that implements `stype`.
+ */
+template <SType s> struct _colt {};
+template <> struct _colt<SType::BOOL>    { using t = BoolColumn; };
+template <> struct _colt<SType::INT8>    { using t = IntColumn<int8_t>; };
+template <> struct _colt<SType::INT16>   { using t = IntColumn<int16_t>; };
+template <> struct _colt<SType::INT32>   { using t = IntColumn<int32_t>; };
+template <> struct _colt<SType::INT64>   { using t = IntColumn<int64_t>; };
+template <> struct _colt<SType::FLOAT32> { using t = RealColumn<float>; };
+template <> struct _colt<SType::FLOAT64> { using t = RealColumn<double>; };
+template <> struct _colt<SType::STR32>   { using t = StringColumn<uint32_t>; };
+template <> struct _colt<SType::STR64>   { using t = StringColumn<uint64_t>; };
+template <> struct _colt<SType::OBJ>     { using t = PyObjectColumn; };
+
+template <SType s>
+using column_t = typename _colt<s>::t;
+
+
 //==============================================================================
 
 /**
@@ -244,40 +267,6 @@ public:
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
   /**
-   * Methods for retrieving statistics in the form of a Column. The resulting
-   * Column will contain a single row, in which is the value of the statistic.
-   * Fixed-type statistics (e.g mean, countna) will always return a Column with
-   * a corresponding stype, even if the statistic results in a NA value. For
-   * example, `mean_column` will always return RealColumn<double>.
-   * Variable-type statistics (e.g. min, sum) will instead result in a column of
-   * the same stype as the calling instance if the statistic is incompatible
-   * with the column stype.
-   */
-  virtual Column* min_column() const;
-  virtual Column* max_column() const;
-  virtual Column* sum_column() const;
-  virtual Column* mean_column() const;
-  virtual Column* sd_column() const;
-  virtual Column* skew_column() const;
-  virtual Column* kurt_column() const;
-  virtual Column* countna_column() const;
-  virtual Column* nunique_column() const;
-  virtual Column* nmodal_column() const;
-  virtual Column* mode_column() const;
-
-  virtual PyObject* min_pyscalar() const;
-  virtual PyObject* max_pyscalar() const;
-  virtual PyObject* sum_pyscalar() const;
-  virtual PyObject* mean_pyscalar() const;
-  virtual PyObject* sd_pyscalar() const;
-  virtual PyObject* skew_pyscalar() const;
-  virtual PyObject* kurt_pyscalar() const;
-  virtual PyObject* countna_pyscalar() const;
-  virtual PyObject* nunique_pyscalar() const;
-  virtual PyObject* nmodal_pyscalar() const;
-  virtual PyObject* mode_pyscalar() const;
-
-  /**
    * Check that the data in this Column object is correct. `name` is the name of
    * the column to be used in the diagnostic messages.
    */
@@ -413,19 +402,6 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
   BooleanStats* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -469,23 +445,6 @@ public:
   double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   IntegerStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -534,23 +493,6 @@ public:
   double sd() const;
   double skew() const;
   double kurt() const;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   RealStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -669,8 +611,6 @@ public:
   T* offsets_w();
 
   CString mode() const;
-  PyObject* mode_pyscalar() const override;
-  Column* mode_column() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;

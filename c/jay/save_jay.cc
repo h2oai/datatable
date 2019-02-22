@@ -18,7 +18,7 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
     Column* col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
     WritableBuffer* wb);
 static jay::Buffer saveMemoryRange(const MemoryRange*, WritableBuffer*);
-template <typename T, typename A, typename StatBuilder>
+template <typename T, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
     Stats* stats, flatbuffers::FlatBufferBuilder& fbb);
 
@@ -107,31 +107,31 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   Stats* colstats = col->get_stats_if_exist();
   switch (col->stype()) {
     case SType::BOOL:
-      jsto = saveStats<int8_t,  int64_t, jay::StatsBool>(colstats, fbb);
+      jsto = saveStats<int8_t,  jay::StatsBool>(colstats, fbb);
       jsttype = jay::Stats_Bool;
       break;
     case SType::INT8:
-      jsto = saveStats<int8_t,  int64_t, jay::StatsInt8>(colstats, fbb);
+      jsto = saveStats<int8_t,  jay::StatsInt8>(colstats, fbb);
       jsttype = jay::Stats_Int8;
       break;
     case SType::INT16:
-      jsto = saveStats<int16_t, int64_t, jay::StatsInt16>(colstats, fbb);
+      jsto = saveStats<int16_t, jay::StatsInt16>(colstats, fbb);
       jsttype = jay::Stats_Int16;
       break;
     case SType::INT32:
-      jsto = saveStats<int32_t, int64_t, jay::StatsInt32>(colstats, fbb);
+      jsto = saveStats<int32_t, jay::StatsInt32>(colstats, fbb);
       jsttype = jay::Stats_Int32;
       break;
     case SType::INT64:
-      jsto = saveStats<int64_t, int64_t, jay::StatsInt64>(colstats, fbb);
+      jsto = saveStats<int64_t, jay::StatsInt64>(colstats, fbb);
       jsttype = jay::Stats_Int64;
       break;
     case SType::FLOAT32:
-      jsto = saveStats<float,   double,  jay::StatsFloat32>(colstats, fbb);
+      jsto = saveStats<float,   jay::StatsFloat32>(colstats, fbb);
       jsttype = jay::Stats_Float32;
       break;
     case SType::FLOAT64:
-      jsto = saveStats<double,  double,  jay::StatsFloat64>(colstats, fbb);
+      jsto = saveStats<double,  jay::StatsFloat64>(colstats, fbb);
       jsttype = jay::Stats_Float64;
       break;
     default: break;
@@ -205,7 +205,7 @@ static jay::Buffer saveMemoryRange(
 }
 
 
-template <typename T, typename A, typename StatBuilder>
+template <typename T, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
     Stats* stats, flatbuffers::FlatBufferBuilder& fbb)
 {
@@ -214,7 +214,7 @@ static flatbuffers::Offset<void> saveStats(
   if (!stats ||
       !(stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
     return 0;
-  auto nstat = static_cast<NumericalStats<T, A>*>(stats);
+  auto nstat = static_cast<NumericalStats<T>*>(stats);
   StatBuilder ss(nstat->min(nullptr), nstat->max(nullptr));
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;

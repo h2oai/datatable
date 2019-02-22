@@ -392,12 +392,9 @@ def test_object_column():
     assert df.mean1() is None
     assert df.sum1() is None
     assert df.sd1() is None
-    with pytest.raises(NotImplementedError):
-        df.mode1()
-    with pytest.raises(NotImplementedError):
-        df.nunique1()
-    with pytest.raises(NotImplementedError):
-        df.nmodal1()
+    assert df.mode1() is None
+    assert df.nunique1() is None
+    assert df.nmodal1() is None
 
 
 def test_object_column2():
@@ -409,29 +406,26 @@ def test_object_column2():
     f1 = df.min()
     f1.internal.check()
     assert f1.stypes == (stype.obj64, )
-    assert f1[0, 0] == None
+    assert f1[0, 0] is None
     f2 = df.max()
     f2.internal.check()
     assert f2.stypes == (stype.obj64, )
-    assert f2[0, 0] == None
+    assert f2[0, 0] is None
     f3 = df.sum()
     f3.internal.check()
     assert f3.stypes == (stype.obj64, )
-    assert f3[0, 0] == None
+    assert f3[0, 0] is None
     f4 = df.mean()
     f4.internal.check()
-    assert f4.stypes == (stype.float64, )
-    assert f4[0, 0] == None
+    assert f4.stypes == (stype.obj64, )
+    assert f4[0, 0] is None
     f5 = df.sd()
     f5.internal.check()
-    assert f5.stypes == (stype.float64, )
-    assert f5[0, 0] == None
-    with pytest.raises(NotImplementedError):
-        df.mode()
-    with pytest.raises(NotImplementedError):
-        df.nunique()
-    with pytest.raises(NotImplementedError):
-        df.nmodal()
+    assert f5.stypes == (stype.obj64, )
+    assert f5[0, 0] is None
+    assert df.mode()[0, 0] is None
+    assert df.nunique()[0, 0] is None
+    assert df.nmodal()[0, 0] is None
 
 
 

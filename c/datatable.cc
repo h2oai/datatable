@@ -274,34 +274,6 @@ size_t DataTable::memory_footprint() const {
 
 
 
-//------------------------------------------------------------------------------
-// Compute stats
-//------------------------------------------------------------------------------
-
-DataTable* DataTable::_statdt(colmakerfn f) const {
-  colvec out_cols;
-  out_cols.reserve(ncols);
-  for (auto col : columns) {
-    out_cols.push_back((col->*f)());
-  }
-  return new DataTable(std::move(out_cols), this);
-}
-
-DataTable* DataTable::countna_datatable() const { return _statdt(&Column::countna_column); }
-DataTable* DataTable::nunique_datatable() const { return _statdt(&Column::nunique_column); }
-DataTable* DataTable::nmodal_datatable() const  { return _statdt(&Column::nmodal_column); }
-DataTable* DataTable::mean_datatable() const    { return _statdt(&Column::mean_column); }
-DataTable* DataTable::sd_datatable() const      { return _statdt(&Column::sd_column); }
-DataTable* DataTable::skew_datatable() const    { return _statdt(&Column::skew_column); }
-DataTable* DataTable::kurt_datatable() const    { return _statdt(&Column::kurt_column); }
-DataTable* DataTable::min_datatable() const     { return _statdt(&Column::min_column); }
-DataTable* DataTable::max_datatable() const     { return _statdt(&Column::max_column); }
-DataTable* DataTable::mode_datatable() const    { return _statdt(&Column::mode_column); }
-DataTable* DataTable::sum_datatable() const     { return _statdt(&Column::sum_column); }
-
-
-
-
 /**
  * Verify that all internal constraints in the DataTable hold, and that there
  * are no any inappropriate values/elements.

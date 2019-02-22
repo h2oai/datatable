@@ -233,36 +233,6 @@ PyObject* rbind(obj* self, PyObject* args) {
 
 
 
-PyObject* get_min    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->min_datatable()); }
-PyObject* get_max    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->max_datatable()); }
-PyObject* get_mode   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->mode_datatable()); }
-PyObject* get_mean   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->mean_datatable()); }
-PyObject* get_sd     (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->sd_datatable()); }
-PyObject* get_skew   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->skew_datatable()); }
-PyObject* get_kurt   (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->kurt_datatable()); }
-PyObject* get_sum    (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->sum_datatable()); }
-PyObject* get_countna(obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->countna_datatable()); }
-PyObject* get_nunique(obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->nunique_datatable()); }
-PyObject* get_nmodal (obj* self, PyObject*) { return py::Frame::from_datatable(self->ref->nmodal_datatable()); }
-
-typedef PyObject* (Column::*scalarstatfn)() const;
-static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
-  if (dt->ncols != 1) throw ValueError() << "This method can only be applied to a 1-column Frame";
-  return (dt->columns[0]->*f)();
-}
-
-PyObject* countna1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::countna_pyscalar); }
-PyObject* nunique1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::nunique_pyscalar); }
-PyObject* nmodal1 (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::nmodal_pyscalar); }
-PyObject* min1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::min_pyscalar); }
-PyObject* max1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::max_pyscalar); }
-PyObject* mode1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mode_pyscalar); }
-PyObject* mean1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mean_pyscalar); }
-PyObject* sd1     (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sd_pyscalar); }
-PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sum_pyscalar); }
-
-
-
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   dt->reify();
@@ -321,26 +291,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
   METHODv(rbind),
-  METHOD0(get_min),
-  METHOD0(get_max),
-  METHOD0(get_mode),
-  METHOD0(get_sum),
-  METHOD0(get_mean),
-  METHOD0(get_sd),
-  METHOD0(get_skew),
-  METHOD0(get_kurt),
-  METHOD0(get_countna),
-  METHOD0(get_nunique),
-  METHOD0(get_nmodal),
-  METHOD0(countna1),
-  METHOD0(nunique1),
-  METHOD0(nmodal1),
-  METHOD0(min1),
-  METHOD0(max1),
-  METHOD0(mode1),
-  METHOD0(sum1),
-  METHOD0(mean1),
-  METHOD0(sd1),
   METHOD0(materialize),
   METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */

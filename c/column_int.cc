@@ -51,62 +51,6 @@ template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->s
 template <typename T> double  IntColumn<T>::skew() const { return get_stats()->skew(this); }
 template <typename T> double  IntColumn<T>::kurt() const { return get_stats()->kurt(this); }
 
-// Retrieve stat value as a column
-template <typename T>
-Column* IntColumn<T>::min_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, min());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::max_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, max());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::mode_column() const {
-  IntColumn<T>* col = new IntColumn<T>(1);
-  col->set_elem(0, mode());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::sum_column() const {
-  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
-  col->set_elem(0, sum());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::mean_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, mean());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::sd_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, sd());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::skew_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, skew());
-  return col;
-}
-
-template <typename T>
-Column* IntColumn<T>::kurt_column() const {
-  RealColumn<double>* col = new RealColumn<double>(1);
-  col->set_elem(0, kurt());
-  return col;
-}
 
 template <typename T>
 int64_t IntColumn<T>::min_int64() const {
@@ -119,17 +63,6 @@ int64_t IntColumn<T>::max_int64() const {
   T x = max();
   return ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
 }
-
-
-template <typename T> PyObject* IntColumn<T>::min_pyscalar() const { return int_to_py(min()); }
-template <typename T> PyObject* IntColumn<T>::max_pyscalar() const { return int_to_py(max()); }
-template <typename T> PyObject* IntColumn<T>::mode_pyscalar() const { return int_to_py(mode()); }
-template <typename T> PyObject* IntColumn<T>::sum_pyscalar() const { return int_to_py(sum()); }
-template <typename T> PyObject* IntColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
-template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
-template <typename T> PyObject* IntColumn<T>::skew_pyscalar() const { return float_to_py(skew()); }
-template <typename T> PyObject* IntColumn<T>::kurt_pyscalar() const { return float_to_py(kurt()); }
-
 
 
 

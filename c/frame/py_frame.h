@@ -64,6 +64,7 @@ class Frame : public PyObject {
         static void _init_tonumpy(Methods&);
         static void _init_topython(Methods&);
         static void _init_repr(Methods&);
+        static void _init_stats(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -111,6 +112,10 @@ class Frame : public PyObject {
     oobj head(const PKArgs&);
     oobj tail(const PKArgs&);
     void repeat(const PKArgs&);
+
+    // Stats functions
+    oobj stat(const PKArgs&);
+    oobj stat1(const PKArgs&);
 
   private:
     static bool internal_construction;

@@ -15,20 +15,20 @@ class Column;
 
 
 enum class Stat : uint8_t {
-  NaCount,
-  Sum,
-  Mean,
-  StDev,
-  Skew,
-  Kurt,
-  Min,
-  Qt25,
-  Median,
-  Qt75,
-  Max,
-  Mode,
-  NModal,
-  NUnique
+  NaCount = 0,
+  Sum     = 1,
+  Mean    = 2,
+  StDev   = 3,
+  Skew    = 4,
+  Kurt    = 5,
+  Min     = 6,
+  Qt25    = 7,
+  Median  = 8,
+  Qt75    = 9,
+  Max     = 10,
+  Mode    = 11,
+  NModal  = 12,
+  NUnique = 13
 };
 constexpr uint8_t NSTATS = 14;
 
@@ -122,7 +122,7 @@ class Stats {
  * should be used instead (see the inheritance diagram above).
  */
 template <typename T, typename A>
-class NumericalStats : public Stats {
+class NumericalStats_ : public Stats {
   protected:
     double _mean;
     double _sd;
@@ -160,12 +160,24 @@ class NumericalStats : public Stats {
     virtual void compute_countna(const Column*) override;
 };
 
-extern template class NumericalStats<int8_t, int64_t>;
-extern template class NumericalStats<int16_t, int64_t>;
-extern template class NumericalStats<int32_t, int64_t>;
-extern template class NumericalStats<int64_t, int64_t>;
-extern template class NumericalStats<float, double>;
-extern template class NumericalStats<double, double>;
+
+template <typename T> struct _A_from_T {};
+template <> struct _A_from_T<int8_t> { int64_t value; };
+template <> struct _A_from_T<int16_t> { int64_t value; };
+template <> struct _A_from_T<int32_t> { int64_t value; };
+template <> struct _A_from_T<int64_t> { int64_t value; };
+template <> struct _A_from_T<float> { double value; };
+template <> struct _A_from_T<double> { double value; };
+
+template <typename T>
+using NumericalStats = NumericalStats_<T, decltype(_A_from_T<T>::value)>;
+
+extern template class NumericalStats_<int8_t, int64_t>;
+extern template class NumericalStats_<int16_t, int64_t>;
+extern template class NumericalStats_<int32_t, int64_t>;
+extern template class NumericalStats_<int64_t, int64_t>;
+extern template class NumericalStats_<float, double>;
+extern template class NumericalStats_<double, double>;
 
 
 
@@ -177,7 +189,7 @@ extern template class NumericalStats<double, double>;
  * Child of NumericalStats that represents real-valued columns.
  */
 template <typename T>
-class RealStats : public NumericalStats<T, double> {
+class RealStats : public NumericalStats<T> {
   protected:
     virtual RealStats<T>* make() const override;
     void compute_numerical_stats(const Column*) override;
@@ -196,7 +208,7 @@ extern template class RealStats<double>;
  * Child of NumericalStats that represents integer-valued columns.
  */
 template <typename T>
-class IntegerStats : public NumericalStats<T, int64_t> {
+class IntegerStats : public NumericalStats<T> {
   protected:
     virtual IntegerStats<T>* make() const override;
 };
@@ -217,7 +229,7 @@ extern template class IntegerStats<int64_t>;
  * stype is treated as if it was `int8_t`, some optimizations can be achieved
  * if we know that the set of possible element values is {0, 1, NA}.
  */
-class BooleanStats : public NumericalStats<int8_t, int64_t> {
+class BooleanStats : public NumericalStats<int8_t> {
   protected:
     virtual BooleanStats* make() const override;
     void compute_numerical_stats(const Column *col) override;
