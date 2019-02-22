@@ -427,10 +427,8 @@ def test_object_column2():
     assert f5.stypes == (stype.obj64, )
     assert f5[0, 0] is None
     assert df.mode()[0, 0] is None
-    with pytest.raises(NotImplementedError):
-        df.nunique()
-    with pytest.raises(NotImplementedError):
-        df.nmodal()
+    assert df.nunique()[0, 0] is None
+    assert df.nmodal()[0, 0] is None
 
 
 

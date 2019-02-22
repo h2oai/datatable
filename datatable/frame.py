@@ -112,39 +112,6 @@ class Frame(core.Frame):
     # Stats
     #---------------------------------------------------------------------------
 
-    def countna(self):
-        """
-        Get the number of NA values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of NA
-        values in each column.
-        """
-        return self._dt.get_countna()
-
-    def nunique(self):
-        """
-        Get the number of unique values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of
-        unique values in each column.
-        """
-        return self._dt.get_nunique()
-
-    def nmodal(self):
-        """
-        Get the number of modal values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of
-        most frequent values in each column.
-        """
-        return self._dt.get_nmodal()
-
     def min1(self):
         return self._dt.min1()
 

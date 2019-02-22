@@ -15,20 +15,20 @@ class Column;
 
 
 enum class Stat : uint8_t {
-  NaCount,
-  Sum,
-  Mean,
-  StDev,
-  Skew,
-  Kurt,
-  Min,
-  Qt25,
-  Median,
-  Qt75,
-  Max,
-  Mode,
-  NModal,
-  NUnique
+  NaCount = 0,
+  Sum     = 1,
+  Mean    = 2,
+  StDev   = 3,
+  Skew    = 4,
+  Kurt    = 5,
+  Min     = 6,
+  Qt25    = 7,
+  Median  = 8,
+  Qt75    = 9,
+  Max     = 10,
+  Mode    = 11,
+  NModal  = 12,
+  NUnique = 13
 };
 constexpr uint8_t NSTATS = 14;
 
