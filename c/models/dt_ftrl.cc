@@ -50,7 +50,7 @@ Ftrl::Ftrl(FtrlParams params_in) :
 /*
 *  Make a prediction for an array of hashed features.
 */
-double Ftrl::predict_row(const uint64ptr& x) {
+double Ftrl::predict_row(const uint64ptr& x, doubleptr& w) {
   double wTx = 0;
   double l1 = params.lambda1;
   double ia = 1 / params.alpha;
@@ -59,8 +59,9 @@ double Ftrl::predict_row(const uint64ptr& x) {
     size_t j = x[i];
     double absw = std::max(std::abs(z[j]) - l1, 0.0) /
                   (std::sqrt(n[j]) * ia + rr);
-    w[j] = -std::copysign(absw, z[j]);
-    wTx += w[j];
+    w[i] = -std::copysign(absw, z[j]);
+//    printf("Predict: i=%zu; j=%zu; w[i]=%f\n", i, j, w[i]);
+    wTx += w[i];
     fi[i] += absw; // Update feature importance vector
   }
   return wTx;
@@ -70,7 +71,7 @@ double Ftrl::predict_row(const uint64ptr& x) {
 /*
 *  Update weights based on prediction `p` and the actual target `y`.
 */
-void Ftrl::update(const uint64ptr& x, double p, double y) {
+void Ftrl::update(const uint64ptr& x, doubleptr& w, double p, double y) {
   double ia = 1 / params.alpha;
   double g = p - y;
   double gsq = g * g;
@@ -78,7 +79,8 @@ void Ftrl::update(const uint64ptr& x, double p, double y) {
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
     double sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
-    z[j] += g - sigma * w[j];
+//    printf("Update: i=%zu; j=%zu; w[i]=%f\n", i, j, w[i]);
+    z[j] += g - sigma * w[i];
     n[j] += gsq;
   }
 }
@@ -88,7 +90,6 @@ void Ftrl::create_model() {
   Column* col_z = Column::new_data_column(SType::FLOAT64, params.nbins);
   Column* col_n = Column::new_data_column(SType::FLOAT64, params.nbins);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
-  w = doubleptr(new double[params.nbins]());
   reset_model();
 }
 
@@ -172,8 +173,8 @@ hashptr Ftrl::create_colhasher(const Column* col) {
     case SType::FLOAT64: return hashptr(new HashFloat<double>(col));
     case SType::STR32:   return hashptr(new HashString<uint32_t>(col));
     case SType::STR64:   return hashptr(new HashString<uint64_t>(col));
-    default:             throw TypeError() << "Cannot hash column of type "
-                                            << stype;
+    default:             throw TypeError() << "Cannot hash a column of type "
+                                           << stype;
   }
 }
 
@@ -312,7 +313,6 @@ FtrlParams Ftrl::get_params() {
 void Ftrl::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_nbins(dt_model->nrows);
-  w = doubleptr(new double[params.nbins]());
   init_weights();
   ncols = 0;
   nfeatures = 0;

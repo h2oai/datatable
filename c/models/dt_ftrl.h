@@ -46,11 +46,10 @@ struct FtrlParams {
 
 class Ftrl {
   private:
-    // Model datatable, column pointers and weight vector
+    // Model datatable and pointers to weight data
     dtptr dt_model;
     double* z;
     double* n;
-    doubleptr w;
 
     // Feature importance datatable and column pointer
     dtptr dt_fi;
@@ -81,8 +80,8 @@ class Ftrl {
     template <typename T, typename F>
     void fit(const DataTable*, const Column*, F);
     template<typename F> dtptr predict(const DataTable*, F f);
-    double predict_row(const uint64ptr&);
-    void update(const uint64ptr&, double, double);
+    double predict_row(const uint64ptr&, doubleptr&);
+    void update(const uint64ptr&, doubleptr&, double, double);
 
     // Model and feature importance handling methods
     void create_model();
@@ -137,7 +136,6 @@ template <typename T, typename F>
 void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   define_features(dt_X->ncols);
   is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
-
   is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
   // Create column hashers.
@@ -151,8 +149,10 @@ void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   for (size_t e = 0; e < params.nepochs; ++e) {
     #pragma omp parallel num_threads(config::nthreads)
     {
-      // Array to store hashed column values and their interactions.
+      // Arrays to store hashed features and `w` weights.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      doubleptr w = doubleptr(new double[nfeatures]);
+
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
 
@@ -160,9 +160,9 @@ void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
           size_t j = ri_y[i];
           if (j != RowIndex::NA && !ISNA<T>(d_y[j])) {
             hash_row(x, i);
-            double p = f(predict_row(x));
+            double p = f(predict_row(x, w));
             double y = static_cast<double>(d_y[j]);
-            update(x, p, y);
+            update(x, w, p, y);
           }
       }
     }
@@ -195,12 +195,14 @@ dtptr Ftrl::predict(const DataTable* dt_X, F f) {
   #pragma omp parallel num_threads(config::nthreads)
   {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+    doubleptr w = doubleptr(new double[nfeatures]);
+
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
 
     for (size_t i = ith; i < dt_X->nrows; i += nth) {
       hash_row(x, i);
-      d_y[i] = f(predict_row(x));
+      d_y[i] = f(predict_row(x, w));
     }
   }
   return dt_y;
