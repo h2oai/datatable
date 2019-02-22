@@ -420,11 +420,11 @@ def test_object_column2():
     assert f3[0, 0] is None
     f4 = df.mean()
     f4.internal.check()
-    assert f4.stypes == (stype.float64, )
+    assert f4.stypes == (stype.obj64, )
     assert f4[0, 0] is None
     f5 = df.sd()
     f5.internal.check()
-    assert f5.stypes == (stype.float64, )
+    assert f5.stypes == (stype.obj64, )
     assert f5[0, 0] is None
     assert df.mode()[0, 0] is None
     with pytest.raises(NotImplementedError):

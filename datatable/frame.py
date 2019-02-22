@@ -112,39 +112,6 @@ class Frame(core.Frame):
     # Stats
     #---------------------------------------------------------------------------
 
-    def sum(self):
-        """
-        Get the sum of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed sums
-        for each column (or NA if not applicable).
-        """
-        return self._dt.get_sum()
-
-    def mean(self):
-        """
-        Get the mean of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed mean
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_mean()
-
-    def sd(self):
-        """
-        Get the standard deviation of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed standard
-        deviation values for each column (or NA if not applicable).
-        """
-        return self._dt.get_sd()
-
     def countna(self):
         """
         Get the number of NA values in each column.

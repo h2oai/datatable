@@ -31,7 +31,7 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// Helper functions
+// Helpers for column creation
 //------------------------------------------------------------------------------
 
 template <typename T>
@@ -58,10 +58,15 @@ static Column* _make_column_str(CString value) {
   return new StringColumn<T>(1, std::move(mbuf), std::move(strbuf));
 }
 
-
 static Column* _nacol(Stats*, const Column* col) {
   return Column::new_na_column(col->stype(), 1);
 }
+
+
+
+//------------------------------------------------------------------------------
+// Individual stats
+//------------------------------------------------------------------------------
 
 template <typename T>
 static Column* _mincol_num(Stats* stats, const Column* col) {
@@ -73,6 +78,24 @@ template <typename T>
 static Column* _maxcol_num(Stats* stats, const Column* col) {
   return _make_column(col->stype(),
                       static_cast<NumericalStats<T>*>(stats)->max(col));
+}
+
+template <typename T>
+static Column* _sumcol_num(Stats* stats, const Column* col) {
+  return _make_column(std::is_integral<T>::value? SType::INT64 : SType::FLOAT64,
+                      static_cast<NumericalStats<T>*>(stats)->sum(col));
+}
+
+template <typename T>
+static Column* _meancol_num(Stats* stats, const Column* col) {
+  return _make_column(SType::FLOAT64,
+                      static_cast<NumericalStats<T>*>(stats)->mean(col));
+}
+
+template <typename T>
+static Column* _sdcol_num(Stats* stats, const Column* col) {
+  return _make_column(SType::FLOAT64,
+                      static_cast<NumericalStats<T>*>(stats)->stdev(col));
 }
 
 template <typename T>
@@ -88,6 +111,10 @@ static Column* _modecol_str(Stats* stats, const Column* col) {
 
 
 
+//------------------------------------------------------------------------------
+// Frame creation functions
+//------------------------------------------------------------------------------
+
 using colmakerfn = Column* (*)(Stats*, const Column*);
 static colmakerfn statfns[DT_STYPES_COUNT * NSTATS];
 static std::unordered_map<const PKArgs*, Stat> stat_from_args;
@@ -95,8 +122,6 @@ static std::unordered_map<const PKArgs*, Stat> stat_from_args;
 inline constexpr size_t id(Stat stat, SType stype) {
   return static_cast<size_t>(stype) * NSTATS + static_cast<size_t>(stat);
 }
-
-
 
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
@@ -119,6 +144,9 @@ static DataTable* _make_frame(DataTable* dt, Stat stat) {
 static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
 static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
+static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
+static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
+static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
 
 
 oobj Frame::stat(const PKArgs& args) {
@@ -133,6 +161,9 @@ void Frame::Type::_init_stats(Methods& mm) {
   ADD_METHOD(mm, &Frame::stat, args_min);
   ADD_METHOD(mm, &Frame::stat, args_max);
   ADD_METHOD(mm, &Frame::stat, args_mode);
+  ADD_METHOD(mm, &Frame::stat, args_sum);
+  ADD_METHOD(mm, &Frame::stat, args_mean);
+  ADD_METHOD(mm, &Frame::stat, args_sd);
 
   for (size_t i = 0; i < NSTATS * DT_STYPES_COUNT; ++i) {
     statfns[i] = _nacol;
@@ -167,10 +198,40 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns[id(Stat::Mode, SType::STR32)]   = _modecol_str<uint32_t>;
   statfns[id(Stat::Mode, SType::STR64)]   = _modecol_str<uint64_t>;
 
+  // Sum
+  statfns[id(Stat::Sum, SType::BOOL)]    = _sumcol_num<int8_t>;
+  statfns[id(Stat::Sum, SType::INT8)]    = _sumcol_num<int8_t>;
+  statfns[id(Stat::Sum, SType::INT16)]   = _sumcol_num<int16_t>;
+  statfns[id(Stat::Sum, SType::INT32)]   = _sumcol_num<int32_t>;
+  statfns[id(Stat::Sum, SType::INT64)]   = _sumcol_num<int64_t>;
+  statfns[id(Stat::Sum, SType::FLOAT32)] = _sumcol_num<float>;
+  statfns[id(Stat::Sum, SType::FLOAT64)] = _sumcol_num<double>;
+
+  // Mean
+  statfns[id(Stat::Mean, SType::BOOL)]    = _meancol_num<int8_t>;
+  statfns[id(Stat::Mean, SType::INT8)]    = _meancol_num<int8_t>;
+  statfns[id(Stat::Mean, SType::INT16)]   = _meancol_num<int16_t>;
+  statfns[id(Stat::Mean, SType::INT32)]   = _meancol_num<int32_t>;
+  statfns[id(Stat::Mean, SType::INT64)]   = _meancol_num<int64_t>;
+  statfns[id(Stat::Mean, SType::FLOAT32)] = _meancol_num<float>;
+  statfns[id(Stat::Mean, SType::FLOAT64)] = _meancol_num<double>;
+
+  // Sd
+  statfns[id(Stat::StDev, SType::BOOL)]    = _sdcol_num<int8_t>;
+  statfns[id(Stat::StDev, SType::INT8)]    = _sdcol_num<int8_t>;
+  statfns[id(Stat::StDev, SType::INT16)]   = _sdcol_num<int16_t>;
+  statfns[id(Stat::StDev, SType::INT32)]   = _sdcol_num<int32_t>;
+  statfns[id(Stat::StDev, SType::INT64)]   = _sdcol_num<int64_t>;
+  statfns[id(Stat::StDev, SType::FLOAT32)] = _sdcol_num<float>;
+  statfns[id(Stat::StDev, SType::FLOAT64)] = _sdcol_num<double>;
+
   // Args -> Stat map
-  stat_from_args[&args_min] = Stat::Min;
-  stat_from_args[&args_max] = Stat::Max;
+  stat_from_args[&args_min]  = Stat::Min;
+  stat_from_args[&args_max]  = Stat::Max;
   stat_from_args[&args_mode] = Stat::Mode;
+  stat_from_args[&args_sum]  = Stat::Sum;
+  stat_from_args[&args_mean] = Stat::Mean;
+  stat_from_args[&args_sd]   = Stat::StDev;
 }
 
 
