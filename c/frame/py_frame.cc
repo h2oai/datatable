@@ -44,10 +44,8 @@ Return the first `n` rows of the frame, same as ``self[:n, :]``.
 oobj Frame::head(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
                       dt->nrows);
-  py::otuple aa(2);
-  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
+  return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
+                             None()));
 }
 
 
@@ -65,10 +63,9 @@ oobj Frame::tail(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
                       dt->nrows);
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
-  py::otuple aa(2);
-  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
+  int64_t start = static_cast<int64_t>(dt->nrows - n);
+  return m__getitem__(otuple(oslice(start, oslice::NA, 1),
+                             None()));
 }
 
 
@@ -196,10 +193,7 @@ static GSArgs args_shape(
   "Tuple with (nrows, ncols) dimensions of the Frame\n");
 
 oobj Frame::get_shape() const {
-  py::otuple shape(2);
-  shape.set(0, get_nrows());
-  shape.set(1, get_ncols());
-  return std::move(shape);
+  return otuple(get_nrows(), get_ncols());
 }
 
 

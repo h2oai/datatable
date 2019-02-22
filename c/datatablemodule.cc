@@ -88,10 +88,8 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
   auto u = _unpack_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
-  const void* ptr = dt->columns[col]->data();
-  py::otuple init_args(1);
-  init_args.set(0, py::oint(reinterpret_cast<size_t>(ptr)));
-  return c_void_p.call(init_args);
+  size_t iptr = reinterpret_cast<size_t>(dt->columns[col]->data());
+  return c_void_p.call({py::oint(iptr)});
 }
 
 

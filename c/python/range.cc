@@ -37,10 +37,7 @@ orange::orange(int64_t start, int64_t stop) : orange(start, stop, 1) {}
 
 
 orange::orange(int64_t start, int64_t stop, int64_t step) {
-  py::otuple args(3);
-  args.set(0, py::oint(start));
-  args.set(1, py::oint(stop));
-  args.set(2, py::oint(step));
+  otuple args = otuple(py::oint(start), py::oint(stop), py::oint(step));
   v = PyObject_CallObject(reinterpret_cast<PyObject*>(&PyRange_Type),
                           args.to_borrowed_ref());
   if (!v) throw PyError();

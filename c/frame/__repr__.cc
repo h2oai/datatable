@@ -429,10 +429,7 @@ void Frame::view(const PKArgs& args) {
   oobj DFWidget = oobj::import("datatable")
                   .get_attr("widget")
                   .get_attr("DataFrameWidget");
-  otuple call_args(2);
-  call_args.set(0, oobj(this));
-  call_args.set(1, interactive);
-  DFWidget.call(call_args).invoke("render");
+  DFWidget.call({oobj(this), interactive}).invoke("render");
 }
 
 
@@ -443,4 +440,5 @@ void Frame::Type::_init_repr(Methods& mm) {
   ADD_METHOD(mm, &Frame::view, args_view);
 }
 
-}
+
+}  // namespace py

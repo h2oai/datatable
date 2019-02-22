@@ -1027,15 +1027,13 @@ void Ftrl::set_params_namedtuple(robj params) {
 
 
 oobj Ftrl::get_params_tuple() const {
-  py::otuple params(7);
-  params.set(0, get_alpha());
-  params.set(1, get_beta());
-  params.set(2, get_lambda1());
-  params.set(3, get_lambda2());
-  params.set(4, get_nbins());
-  params.set(5, get_nepochs());
-  params.set(6, get_interactions());
-  return std::move(params);
+  return otuple {get_alpha(),
+                 get_beta(),
+                 get_lambda1(),
+                 get_lambda2(),
+                 get_nbins(),
+                 get_nepochs(),
+                 get_interactions()};
 }
 
 
@@ -1082,7 +1080,6 @@ static PKArgs args___getstate__(
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
-  py::otuple pickle(6);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_fi_tuple();
@@ -1096,13 +1093,7 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
                        );
   }
 
-  pickle.set(0, params);
-  pickle.set(1, model);
-  pickle.set(2, fi);
-  pickle.set(3, df_feature_names);
-  pickle.set(4, labels);
-  pickle.set(5, py_reg_type);
-  return std::move(pickle);
+  return otuple {params, model, fi, df_feature_names, labels, py_reg_type};
 }
 
 

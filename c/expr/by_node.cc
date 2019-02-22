@@ -252,9 +252,7 @@ oby::oby(const oobj& src) : oobj(src) {}
 
 oby oby::make(const robj& r) {
   robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
-  otuple args(1);
-  args.set(0, r);
-  return oby(oby_type.call(args));
+  return oby(oby_type.call({r}));
 }
 
 

@@ -108,11 +108,9 @@ oobj Frame::to_numpy(const PKArgs& args) {
   size_t force_col = args.get<size_t>(1, size_t(-1));
 
   oobj res;
-  otuple call_args1(1);
-  call_args1.set(0, oobj(this));
   {
     pybuffers_context ctx(stype, force_col);
-    res = nparray.call(call_args1);
+    res = nparray.call({oobj(this)});
   }
 
   // If there are any columns with NAs, replace the numpy.array with
@@ -146,17 +144,13 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
     DataTable* mask_dt = new DataTable({mask_col});
     oobj mask_frame = oobj::from_new_reference(Frame::from_datatable(mask_dt));
-    call_args1.set(0, mask_frame);
-    oobj mask_array = nparray.call(call_args1);
+    oobj mask_array = nparray.call({mask_frame});
 
-    otuple call_args2(2);
-    call_args2.set(0, oint(ncols));
-    call_args2.set(1, oint(dt->nrows));
-    mask_array = mask_array.invoke("reshape", call_args2).get_attr("T");
+    mask_array = mask_array.invoke("reshape", {oint(ncols), oint(dt->nrows)})
+                 .get_attr("T");
 
-    call_args2.set(0, res);
-    call_args2.set(1, mask_array);
-    res = numpy.get_attr("ma").get_attr("masked_array").call(call_args2);
+    res = numpy.get_attr("ma").get_attr("masked_array")
+          .call({res, mask_array});
   }
 
   return res;
@@ -197,7 +191,7 @@ oobj Frame::to_pandas(const PKArgs&) {
   otuple np_call_args(2);
   np_call_args.set(0, py::None());
   for (size_t i = 0; i < dt->ncols; ++i) {
-    np_call_args.set(1, oint(i));
+    np_call_args.replace(1, oint(i));
     args_to_numpy.bind(np_call_args.to_borrowed_ref(), nullptr);
     cols.set(names[i],
              to_numpy(args_to_numpy));
@@ -205,11 +199,9 @@ oobj Frame::to_pandas(const PKArgs&) {
   // ```
   // return DataFrame(cols, columns=names)
   // ```
-  otuple pd_call_args(1);
   odict pd_call_kws;
-  pd_call_args.set(0, cols);
   pd_call_kws.set(ostring("columns"), names);
-  return dataframe.call(pd_call_args, pd_call_kws);
+  return dataframe.call(otuple(cols), pd_call_kws);
 }
 
 
