@@ -97,6 +97,23 @@ class Arg : public _obj::error_manager {
     operator size_t() const;
     operator SType() const;
 
+    template <typename T> T to(T deflt) const;
+    template <> bool to(bool deflt) const {
+      return is_none_or_undefined()? deflt : to_bool_strict();
+    }
+    template <> int32_t to(int32_t deflt) const {
+      return is_none_or_undefined()? deflt : to_int32_strict();
+    }
+    template <> int64_t to(int64_t deflt) const {
+      return is_none_or_undefined()? deflt : to_int64_strict();
+    }
+    template <> oobj to(oobj deflt) const {
+      return is_none_or_undefined()? deflt : to_oobj();
+    }
+    template <> std::string to(std::string deflt) const {
+      return is_none_or_undefined()? deflt : to_string();
+    }
+
     /**
      * Convert argument to different list objects.
      */

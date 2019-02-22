@@ -29,7 +29,6 @@ from datatable.dt_append import _rbind
 from datatable.lib import core
 from datatable.nff import save as dt_save
 from datatable.utils.typechecks import (TTypeError, TValueError)
-from datatable.csv import write_csv
 from datatable.options import options
 
 __all__ = ("Frame", )
@@ -51,7 +50,6 @@ class Frame(core.Frame):
     # Methods defined externally
     append = _rbind
     rbind = _rbind
-    to_csv = write_csv
     save = dt_save
 
 

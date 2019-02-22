@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <Python.h>
 #include "../datatable/include/datatable.h"
-#include "csv/writer.h"
 #include "expr/base_expr.h"
 #include "expr/by_node.h"
 #include "expr/join_node.h"
@@ -274,7 +273,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
   PyObject* m = nullptr;
 
   try {
-    init_csvwrite_constants();
     init_exceptions();
 
     m = dtmod.init();

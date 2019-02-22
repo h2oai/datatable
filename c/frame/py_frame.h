@@ -61,10 +61,11 @@ class Frame : public PyObject {
         static void _init_key(GetSetters&);
         static void _init_names(Methods&, GetSetters&);
         static void _init_replace(Methods&);
-        static void _init_tonumpy(Methods&);
-        static void _init_topython(Methods&);
         static void _init_repr(Methods&);
         static void _init_stats(Methods&);
+        static void _init_tocsv(Methods&);
+        static void _init_tonumpy(Methods&);
+        static void _init_topython(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -114,6 +115,7 @@ class Frame : public PyObject {
     oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj to_pandas(const PKArgs&);
+    oobj to_csv(const PKArgs&);
 
     // Stats functions
     oobj stat(const PKArgs&);

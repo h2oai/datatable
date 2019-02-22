@@ -25,7 +25,7 @@ from .dt_append import rbind, cbind
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    log, log10, f, g)
-from .fread import fread, GenericReader, FreadWarning
+from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
     repeat, by, join, sort

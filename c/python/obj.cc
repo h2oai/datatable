@@ -118,11 +118,6 @@ oobj oobj::from_new_reference(PyObject* p) {
   return res;
 }
 
-oobj oobj::import(const char* mod, const char* symbol) {
-  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
-  if (!mod_obj) throw PyError();
-  return mod_obj.get_attr(symbol);
-}
 oobj oobj::import(const char* mod) {
   PyObject* module = PyImport_ImportModule(mod);
   if (!module) {
@@ -135,6 +130,16 @@ oobj oobj::import(const char* mod) {
     }
   }
   return oobj::from_new_reference(module);
+}
+
+oobj oobj::import(const char* mod, const char* symbol) {
+  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
+  if (!mod_obj) throw PyError();
+  return mod_obj.get_attr(symbol);
+}
+
+oobj oobj::import(const char* mod, const char* sym1, const char* sym2) {
+  return import(mod, sym1).get_attr(sym2);
 }
 
 oobj::~oobj() {
@@ -697,6 +702,12 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
   return oobj::from_new_reference(res);
 }
 
+
+oobj _obj::call() const {
+  PyObject* res = PyObject_Call(v, otuple(0).v, nullptr);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
 
 oobj _obj::call(otuple args) const {
   PyObject* res = PyObject_Call(v, args.v, nullptr);

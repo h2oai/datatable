@@ -73,7 +73,6 @@ public:
   }
 };
 
-#define VLOG(...)  do { if (verbose) log_message(logger, __VA_ARGS__); } while (0)
 
 
 //=================================================================================================
@@ -290,10 +289,8 @@ static void write_string(char** pch, const char *value)
 CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
   : dt(dt_),
     path(path_),
-    logger(nullptr),
     nthreads(1),
     usehex(false),
-    verbose(false),
     wb(nullptr),
     fixed_size_per_row(0),
     t_last(0)
@@ -337,12 +334,12 @@ void CsvWriter::write()
   // Start writing the CSV
   #pragma omp parallel num_threads(nthreads)
   {
-    #pragma omp single
+    #pragma omp master
     {
-      VLOG("Writing file using %zu chunks, with %.1f rows per chunk\n",
-           static_cast<size_t>(nchunks), rows_per_chunk);
-      VLOG("Using nthreads = %d\n", omp_get_num_threads());
-      VLOG("Initial buffer size in each thread: %zu\n", bytes_per_chunk*2);
+      log() << "Writing file using " << nchunks << " chunks, with "
+            << rows_per_chunk << " rows per chunk";
+      log() << "Using nthreads = " << omp_get_num_threads();
+      log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
     }
     // Initialize thread-local variables
     size_t thbufsize = bytes_per_chunk * 2;
@@ -449,7 +446,7 @@ void CsvWriter::write()
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
   // C string; otherwise truncate WritableBuffer to the final size.
-  VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
+  log() << "Finalizing output at size " << filesize_to_str(wb->size());
   if (path.empty()) {
     char c = '\0';
     wb->write(1, &c);
@@ -459,13 +456,13 @@ void CsvWriter::write()
 
   double t_total = t_prepare_for_writing + t_size_estimation + t_create_target
                    + t_write_data + t_finalize;
-  VLOG("Timing report:\n");
-  VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
-  VLOG(" + %6.3fs  Allocate file\n",                t_create_target);
-  VLOG(" + %6.3fs  Prepare for writing\n",          t_prepare_for_writing);
-  VLOG(" + %6.3fs  Write the data\n",               t_write_data);
-  VLOG(" + %6.3fs  Finalize the file\n",            t_finalize);
-  VLOG(" = %6.3fs  Overall time taken\n",           t_total);
+  log() << "Timing report:";
+  log() << "   " << ff(6, 3, t_size_estimation)     << "s  Calculate expected file size";
+  log() << " + " << ff(6, 3, t_create_target)       << "s  Allocate file";
+  log() << " + " << ff(6, 3, t_prepare_for_writing) << "s  Prepare for writing";
+  log() << " + " << ff(6, 3, t_write_data)          << "s  Write the data";
+  log() << " + " << ff(6, 3, t_finalize)            << "s  Finalize the file";
+  log() << " = " << ff(6, 3, t_total)               << "s  Overall time taken";
 }
 
 
@@ -497,6 +494,7 @@ size_t CsvWriter::estimate_output_size()
   size_t ncols = dt->ncols;
   size_t total_string_size = 0;
   size_t total_columns_size = 0;
+  const strvec& column_names = dt->get_names();
   fixed_size_per_row = ncols;  // 1 byte per separator
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
@@ -513,7 +511,7 @@ size_t CsvWriter::estimate_output_size()
   size_t bytes_total = fixed_size_per_row * nrows
                        + static_cast<size_t>(1.2 * total_string_size)
                        + total_columns_size;
-  VLOG("  Estimated output size: %zu\n", bytes_total);
+  log() << "Estimated output size: " << bytes_total;
   t_size_estimation = checkpoint();
   return bytes_total;
 }
@@ -533,6 +531,7 @@ void CsvWriter::create_target(size_t size) {
  */
 void CsvWriter::write_column_names()
 {
+  const strvec& column_names = dt->get_names();
   size_t ncolnames = column_names.size();
   if (ncolnames) {
     size_t maxsize = 0;
@@ -624,6 +623,11 @@ void CsvWriter::create_column_writers(size_t ncols)
     if (stype == SType::STR64) strcolumns64.push_back(csvcol);
   }
   t_prepare_for_writing = checkpoint();
+}
+
+
+LogMessage CsvWriter::log() const {
+  return LogMessage(logger);
 }
 
 
