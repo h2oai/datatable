@@ -62,10 +62,13 @@ static Column* _nacol(Stats*, const Column* col) {
   return Column::new_na_column(col->stype(), 1);
 }
 
+static oobj _naval(const Column*) {
+  return None();
+}
 
 
 //------------------------------------------------------------------------------
-// Individual stats
+// Individual stats (as columns)
 //------------------------------------------------------------------------------
 
 template <typename T>
@@ -127,11 +130,87 @@ static Column* _nmodalcol(Stats* stats, const Column* col) {
 
 
 //------------------------------------------------------------------------------
+// Individual stats (as py::oobj's)
+//------------------------------------------------------------------------------
+
+static oobj _minval_bool(const Column* col) {
+  int8_t val = static_cast<const BoolColumn*>(col)->min();
+  return ISNA<int8_t>(val)? None() : obool(val);
+}
+
+template <typename T>
+static oobj _minval_int(const Column* col) {
+  T val = static_cast<const IntColumn<T>*>(col)->min();
+  return ISNA<T>(val)? None() : oint(val);
+}
+
+template <typename T>
+static oobj _minval_float(const Column* col) {
+  T val = static_cast<const RealColumn<T>*>(col)->min();
+  return ISNA<T>(val)? None() : ofloat(val);
+}
+
+// template <typename T>
+// static oobj _maxcol_num(Stats* stats, const Column* col) {
+//   return _make_column(col->stype(),
+//                       static_cast<NumericalStats<T>*>(stats)->max(col));
+// }
+
+// template <typename T>
+// static oobj _sumcol_num(Stats* stats, const Column* col) {
+//   return _make_column(std::is_integral<T>::value? SType::INT64 : SType::FLOAT64,
+//                       static_cast<NumericalStats<T>*>(stats)->sum(col));
+// }
+
+// template <typename T>
+// static oobj _meancol_num(Stats* stats, const Column* col) {
+//   return _make_column(SType::FLOAT64,
+//                       static_cast<NumericalStats<T>*>(stats)->mean(col));
+// }
+
+// template <typename T>
+// static oobj _sdcol_num(Stats* stats, const Column* col) {
+//   return _make_column(SType::FLOAT64,
+//                       static_cast<NumericalStats<T>*>(stats)->stdev(col));
+// }
+
+// template <typename T>
+// static oobj _modecol_num(Stats* stats, const Column* col) {
+//   return _make_column(col->stype(),
+//                       static_cast<NumericalStats<T>*>(stats)->mode(col));
+// }
+
+// template <typename T>
+// static oobj _modecol_str(Stats* stats, const Column* col) {
+//   return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col));
+// }
+
+// static oobj _countnacol(Stats* stats, const Column* col) {
+//   return _make_column(SType::INT64,
+//                       static_cast<int64_t>(stats->countna(col)));
+// }
+
+// static oobj _nuniquecol(Stats* stats, const Column* col) {
+//   return _make_column(SType::INT64,
+//                       static_cast<int64_t>(stats->nunique(col)));
+// }
+
+// static oobj _nmodalcol(Stats* stats, const Column* col) {
+//   return _make_column(SType::INT64,
+//                       static_cast<int64_t>(stats->nmodal(col)));
+// }
+
+
+
+
+//------------------------------------------------------------------------------
 // Frame creation functions
 //------------------------------------------------------------------------------
 
 using colmakerfn = Column* (*)(Stats*, const Column*);
+using colmakerfn1 = oobj (*)(const Column*);
 static colmakerfn statfns[DT_STYPES_COUNT * NSTATS];
+static colmakerfn1 statfns1[DT_STYPES_COUNT * NSTATS];
 static std::unordered_map<const PKArgs*, Stat> stat_from_args;
 
 inline constexpr size_t id(Stat stat, SType stype) {
@@ -166,11 +245,24 @@ static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", nullptr);
 static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
 
-
 oobj Frame::stat(const PKArgs& args) {
   Stat stat = stat_from_args[&args];
   DataTable* res = _make_frame(dt, stat);
   return oobj::from_new_reference(Frame::from_datatable(res));
+}
+
+
+static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
+
+oobj Frame::stat1(const PKArgs& args) {
+  if (dt->ncols != 1) {
+    throw ValueError() << "This method can only be applied to a 1-column Frame";
+  }
+  Column* col0 = dt->columns[0];
+  Stat stat = stat_from_args[&args];
+  SType stype = col0->stype();
+  colmakerfn1 f = statfns1[id(stat, stype)];
+  return f(col0);
 }
 
 
@@ -185,10 +277,14 @@ void Frame::Type::_init_stats(Methods& mm) {
   ADD_METHOD(mm, &Frame::stat, args_countna);
   ADD_METHOD(mm, &Frame::stat, args_nunique);
   ADD_METHOD(mm, &Frame::stat, args_nmodal);
+  ADD_METHOD(mm, &Frame::stat1, args_min1);
 
   for (size_t i = 0; i < NSTATS * DT_STYPES_COUNT; ++i) {
     statfns[i] = _nacol;
+    statfns1[i] = _naval;
   }
+
+  //---- Column statfns --------------------------------------------------------
 
   // Stat::NaCount (= 0)
   statfns[id(Stat::NaCount, SType::BOOL)]    = _countnacol;
@@ -280,6 +376,17 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns[id(Stat::NUnique, SType::STR32)]   = _nuniquecol;
   statfns[id(Stat::NUnique, SType::STR64)]   = _nuniquecol;
 
+  //---- Scalar statfns --------------------------------------------------------
+
+  // Stat::Min (= 6)
+  statfns1[id(Stat::Min, SType::BOOL)]    = _minval_bool;
+  statfns1[id(Stat::Min, SType::INT8)]    = _minval_int<int8_t>;
+  statfns1[id(Stat::Min, SType::INT16)]   = _minval_int<int16_t>;
+  statfns1[id(Stat::Min, SType::INT32)]   = _minval_int<int32_t>;
+  statfns1[id(Stat::Min, SType::INT64)]   = _minval_int<int64_t>;
+  statfns1[id(Stat::Min, SType::FLOAT32)] = _minval_float<float>;
+  statfns1[id(Stat::Min, SType::FLOAT64)] = _minval_float<double>;
+
   // Args -> Stat map
   stat_from_args[&args_countna] = Stat::NaCount;
   stat_from_args[&args_sum]     = Stat::Sum;
@@ -290,6 +397,8 @@ void Frame::Type::_init_stats(Methods& mm) {
   stat_from_args[&args_mode]    = Stat::Mode;
   stat_from_args[&args_nmodal]  = Stat::NModal;
   stat_from_args[&args_nunique] = Stat::NUnique;
+
+  stat_from_args[&args_min1]     = Stat::Min;
 }
 
 

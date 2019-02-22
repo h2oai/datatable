@@ -115,6 +115,7 @@ class Frame : public PyObject {
 
     // Stats functions
     oobj stat(const PKArgs&);
+    oobj stat1(const PKArgs&);
 
   private:
     static bool internal_construction;
