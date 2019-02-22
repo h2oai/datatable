@@ -104,14 +104,16 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
     void replace(const PKArgs&);
+    oobj head(const PKArgs&);
+    oobj tail(const PKArgs&);
+    void repeat(const PKArgs&);
+
+    // Conversion methods
     oobj to_dict(const PKArgs&);
     oobj to_list(const PKArgs&);
     oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj to_pandas(const PKArgs&);
-    oobj head(const PKArgs&);
-    oobj tail(const PKArgs&);
-    void repeat(const PKArgs&);
 
     // Stats functions
     oobj stat(const PKArgs&);

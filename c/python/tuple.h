@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_TUPLE_h
 #define dt_PYTHON_TUPLE_h
+#include <initializer_list>
 #include <Python.h>
 #include "python/obj.h"
 
@@ -44,6 +45,13 @@ class otuple : public oobj {
     otuple& operator=(otuple&&) = default;
 
     otuple(size_t n);
+    otuple(std::initializer_list<oobj>);
+    otuple(const _obj&);
+    otuple(const _obj&, const _obj&);
+    otuple(const _obj&, const _obj&, const _obj&);
+    otuple(oobj&&);
+    otuple(oobj&&, oobj&&);
+    otuple(oobj&&, oobj&&, oobj&&);
 
     size_t size() const noexcept;
 

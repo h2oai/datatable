@@ -63,11 +63,7 @@ onamedtupletype::onamedtupletype(const std::string& cls_name,
     argnames.set(i, py::ostring(fields[i].name));
   }
 
-  py::otuple args(2);
-  args.set(0, py::ostring(cls_name));
-  args.set(1, argnames);
-
-  auto type = namedtuple.call(args);
+  auto type = namedtuple.call({py::ostring(cls_name), argnames});
   auto res = std::move(type).release();
 
   // Set namedtuple doc

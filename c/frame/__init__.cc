@@ -362,10 +362,7 @@ class FrameInitializationManager {
 
 
     void init_from_string() {
-      py::otuple call_args(1);
-      call_args.set(0, src.to_pyobj());
-
-      py::oobj res = py::robj(py::fread_fn).call(call_args);
+      py::oobj res = py::robj(py::fread_fn).call({src.to_pyobj()});
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);

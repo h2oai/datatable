@@ -162,7 +162,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 *     and the exemplars gathered in `dt_exemplars`.
 */
 template <typename T>
-void Aggregator<T>::aggregate(DataTable* dt_in, 
+void Aggregator<T>::aggregate(DataTable* dt_in,
                               dtptr& dt_exemplars_in,
                               dtptr& dt_members_in)
 {
@@ -985,9 +985,6 @@ void Aggregator<T>::progress(float progress, int status_code /*= 0*/) {
   if (progress_fn.is_none()) {
     print_progress(progress, status_code);
   } else {
-    py::otuple args(2);
-    args.set(0, py::ofloat(progress));
-    args.set(1, py::oint(status_code));
-    progress_fn.call(args);
+    progress_fn.call({py::ofloat(progress), py::oint(status_code)});
   }
 }

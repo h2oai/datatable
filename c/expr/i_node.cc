@@ -389,9 +389,7 @@ static i_node* _from_nparray(py::oobj src) {
     size_t dim0 = shape[0].to_size_t();
     size_t dim1 = shape[1].to_size_t();
     if (dim0 == 1 || dim1 == 1) {
-      py::otuple args(1);
-      args.set(0, py::oint(dim0 * dim1));
-      src = src.invoke("reshape", args);
+      src = src.invoke("reshape", {py::oint(dim0 * dim1)});
       shape = src.get_attr("shape").to_otuple();
       ndims = shape.size();
     }
@@ -410,9 +408,7 @@ static i_node* _from_nparray(py::oobj src) {
   }
   // Now convert numpy array into a datatable Frame
   auto dt_Frame = py::oobj(reinterpret_cast<PyObject*>(&py::Frame::Type::type));
-  py::otuple args(1);
-  args.set(0, src);
-  py::oobj frame = dt_Frame.call(args);
+  py::oobj frame = dt_Frame.call({src});
   return new frame_in(frame);
 }
 

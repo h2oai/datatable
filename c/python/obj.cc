@@ -123,7 +123,6 @@ oobj oobj::import(const char* mod, const char* symbol) {
   if (!mod_obj) throw PyError();
   return mod_obj.get_attr(symbol);
 }
-
 oobj oobj::import(const char* mod) {
   PyObject* module = PyImport_ImportModule(mod);
   if (!module) {
