@@ -393,10 +393,8 @@ def test_object_column():
     assert df.sum1() is None
     assert df.sd1() is None
     assert df.mode1() is None
-    with pytest.raises(NotImplementedError):
-        df.nunique1()
-    with pytest.raises(NotImplementedError):
-        df.nmodal1()
+    assert df.nunique1() is None
+    assert df.nmodal1() is None
 
 
 def test_object_column2():

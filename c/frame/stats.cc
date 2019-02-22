@@ -510,7 +510,6 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns1[id(Stat::NModal, SType::FLOAT64)] = _nmodalval;
   statfns1[id(Stat::NModal, SType::STR32)]   = _nmodalval;
   statfns1[id(Stat::NModal, SType::STR64)]   = _nmodalval;
-  statfns1[id(Stat::NModal, SType::OBJ)]     = _nmodalval;
 
   // Stat::NUnique (= 13)
   statfns1[id(Stat::NUnique, SType::BOOL)]    = _nuniqueval;
@@ -522,7 +521,6 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns1[id(Stat::NUnique, SType::FLOAT64)] = _nuniqueval;
   statfns1[id(Stat::NUnique, SType::STR32)]   = _nuniqueval;
   statfns1[id(Stat::NUnique, SType::STR64)]   = _nuniqueval;
-  statfns1[id(Stat::NUnique, SType::OBJ)]     = _nuniqueval;
 
   //---- Args -> Stat map ------------------------------------------------------
 
