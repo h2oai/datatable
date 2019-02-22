@@ -392,8 +392,7 @@ def test_object_column():
     assert df.mean1() is None
     assert df.sum1() is None
     assert df.sd1() is None
-    with pytest.raises(NotImplementedError):
-        df.mode1()
+    assert df.mode1() is None
     with pytest.raises(NotImplementedError):
         df.nunique1()
     with pytest.raises(NotImplementedError):

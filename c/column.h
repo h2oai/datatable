@@ -243,18 +243,6 @@ public:
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
-  virtual PyObject* min_pyscalar() const;
-  virtual PyObject* max_pyscalar() const;
-  virtual PyObject* sum_pyscalar() const;
-  virtual PyObject* mean_pyscalar() const;
-  virtual PyObject* sd_pyscalar() const;
-  virtual PyObject* skew_pyscalar() const;
-  virtual PyObject* kurt_pyscalar() const;
-  virtual PyObject* countna_pyscalar() const;
-  virtual PyObject* nunique_pyscalar() const;
-  virtual PyObject* nmodal_pyscalar() const;
-  virtual PyObject* mode_pyscalar() const;
-
   /**
    * Check that the data in this Column object is correct. `name` is the name of
    * the column to be used in the diagnostic messages.
@@ -391,13 +379,6 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
-
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
   BooleanStats* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -441,15 +422,6 @@ public:
   double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
-
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   IntegerStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -498,15 +470,6 @@ public:
   double sd() const;
   double skew() const;
   double kurt() const;
-
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   RealStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
@@ -625,7 +588,6 @@ public:
   T* offsets_w();
 
   CString mode() const;
-  PyObject* mode_pyscalar() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;

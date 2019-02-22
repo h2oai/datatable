@@ -667,11 +667,6 @@ CString StringColumn<T>::mode() const {
   return get_stats()->mode(this);
 }
 
-template <typename T>
-PyObject* StringColumn<T>::mode_pyscalar() const {
-  return string_to_py(mode());
-}
-
 
 
 //------------------------------------------------------------------------------

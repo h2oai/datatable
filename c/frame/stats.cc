@@ -23,6 +23,8 @@
 #include <type_traits>
 #include <unordered_map>
 #include "frame/py_frame.h"
+#include "python/_all.h"
+#include "python/string.h"
 #include "column.h"
 #include "memrange.h"
 #include "stats.h"
@@ -141,6 +143,8 @@ template <> struct Stype2Col<SType::INT32> { const IntColumn<int32_t>* ptr; };
 template <> struct Stype2Col<SType::INT64> { const IntColumn<int64_t>* ptr; };
 template <> struct Stype2Col<SType::FLOAT32> { const RealColumn<float>* ptr; };
 template <> struct Stype2Col<SType::FLOAT64> { const RealColumn<double>* ptr; };
+template <> struct Stype2Col<SType::STR32> { const StringColumn<uint32_t>* ptr; };
+template <> struct Stype2Col<SType::STR64> { const StringColumn<uint64_t>* ptr; };
 
 static oobj pyvalue_bool(void* ptr) {
   int8_t x = *reinterpret_cast<int8_t*>(ptr);
@@ -159,6 +163,12 @@ static oobj pyvalue_real(void* ptr) {
   return ISNA<T>(x)? None() : ofloat(x);
 }
 
+static oobj pyvalue_str(void* ptr) {
+  CString& x = *reinterpret_cast<CString*>(ptr);
+  return x.size >= 0? ostring(x.ch, static_cast<size_t>(x.size))
+                    : None();
+}
+
 template <SType s> oobj pyvalue(void* ptr);
 template <> oobj pyvalue<SType::BOOL>(void* ptr)    { return pyvalue_bool(ptr); }
 template <> oobj pyvalue<SType::INT8>(void* ptr)    { return pyvalue_int<int8_t>(ptr); }
@@ -167,7 +177,8 @@ template <> oobj pyvalue<SType::INT32>(void* ptr)   { return pyvalue_int<int32_t
 template <> oobj pyvalue<SType::INT64>(void* ptr)   { return pyvalue_int<int64_t>(ptr); }
 template <> oobj pyvalue<SType::FLOAT32>(void* ptr) { return pyvalue_real<float>(ptr); }
 template <> oobj pyvalue<SType::FLOAT64>(void* ptr) { return pyvalue_real<double>(ptr); }
-
+template <> oobj pyvalue<SType::STR32>(void* ptr)   { return pyvalue_str(ptr); }
+template <> oobj pyvalue<SType::STR64>(void* ptr)   { return pyvalue_str(ptr); }
 
 
 //------------------------------------------------------------------------------
@@ -191,14 +202,11 @@ static oobj _meanval(const Column* col) {
   return pyvalue<SType::FLOAT64>(&v);
 }
 
-// template <typename T>
-// static oobj _sdval(const Column* col) {
-//   return _make_column(SType::FLOAT64,
-//                       static_cast<NumericalStats<T>*>(stats)->stdev(col));
-// }
-
-
-
+template <SType stype>
+static oobj _sdval(const Column* col) {
+  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->sd();
+  return pyvalue<SType::FLOAT64>(&v);
+}
 
 template <SType stype>
 static oobj _minval(const Column* col) {
@@ -212,26 +220,21 @@ static oobj _maxval(const Column* col) {
   return pyvalue<stype>(&v);
 }
 
-// template <typename T>
-// static oobj _modecol_num(Stats* stats, const Column* col) {
-//   return _make_column(col->stype(),
-//                       static_cast<NumericalStats<T>*>(stats)->mode(col));
-// }
+template <SType stype>
+static oobj _modeval(const Column* col) {
+  auto v = static_cast<decltype(Stype2Col<stype>::ptr)>(col)->mode();
+  return pyvalue<stype>(&v);
+}
 
-// template <typename T>
-// static oobj _modecol_str(Stats* stats, const Column* col) {
-//   return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col));
-// }
+static oobj _nmodalval(const Column* col) {
+  size_t v = col->nmodal();
+  return pyvalue<SType::INT64>(&v);
+}
 
-// static oobj _nuniquecol(Stats* stats, const Column* col) {
-//   return _make_column(SType::INT64,
-//                       static_cast<int64_t>(stats->nunique(col)));
-// }
-
-// static oobj _nmodalcol(Stats* stats, const Column* col) {
-//   return _make_column(SType::INT64,
-//                       static_cast<int64_t>(stats->nmodal(col)));
-// }
+static oobj _nuniqueval(const Column* col) {
+  size_t v = col->nunique();
+  return pyvalue<SType::INT64>(&v);
+}
 
 
 
@@ -288,8 +291,12 @@ oobj Frame::stat(const PKArgs& args) {
 static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", nullptr);
 static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
 static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
+static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
 static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
 static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
+static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", nullptr);
+static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
+static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols != 1) {
@@ -318,8 +325,12 @@ void Frame::Type::_init_stats(Methods& mm) {
   ADD_METHOD(mm, &Frame::stat1, args_countna1);
   ADD_METHOD(mm, &Frame::stat1, args_sum1);
   ADD_METHOD(mm, &Frame::stat1, args_mean1);
+  ADD_METHOD(mm, &Frame::stat1, args_sd1);
   ADD_METHOD(mm, &Frame::stat1, args_min1);
   ADD_METHOD(mm, &Frame::stat1, args_max1);
+  ADD_METHOD(mm, &Frame::stat1, args_mode1);
+  ADD_METHOD(mm, &Frame::stat1, args_nmodal1);
+  ADD_METHOD(mm, &Frame::stat1, args_nunique1);
 
   for (size_t i = 0; i < NSTATS * DT_STYPES_COUNT; ++i) {
     statfns[i] = _nacol;
@@ -451,6 +462,15 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns1[id(Stat::Mean, SType::FLOAT32)] = _meanval<SType::FLOAT32>;
   statfns1[id(Stat::Mean, SType::FLOAT64)] = _meanval<SType::FLOAT64>;
 
+  // Stat::StDev (= 3)
+  statfns1[id(Stat::StDev, SType::BOOL)]    = _sdval<SType::BOOL>;
+  statfns1[id(Stat::StDev, SType::INT8)]    = _sdval<SType::INT8>;
+  statfns1[id(Stat::StDev, SType::INT16)]   = _sdval<SType::INT16>;
+  statfns1[id(Stat::StDev, SType::INT32)]   = _sdval<SType::INT32>;
+  statfns1[id(Stat::StDev, SType::INT64)]   = _sdval<SType::INT64>;
+  statfns1[id(Stat::StDev, SType::FLOAT32)] = _sdval<SType::FLOAT32>;
+  statfns1[id(Stat::StDev, SType::FLOAT64)] = _sdval<SType::FLOAT64>;
+
   // Stat::Min (= 6)
   statfns1[id(Stat::Min, SType::BOOL)]    = _minval<SType::BOOL>;
   statfns1[id(Stat::Min, SType::INT8)]    = _minval<SType::INT8>;
@@ -469,6 +489,40 @@ void Frame::Type::_init_stats(Methods& mm) {
   statfns1[id(Stat::Max, SType::FLOAT32)] = _maxval<SType::FLOAT32>;
   statfns1[id(Stat::Max, SType::FLOAT64)] = _maxval<SType::FLOAT64>;
 
+  // Stat::Mode (= 11)
+  statfns1[id(Stat::Mode, SType::BOOL)]    = _modeval<SType::BOOL>;
+  statfns1[id(Stat::Mode, SType::INT8)]    = _modeval<SType::INT8>;
+  statfns1[id(Stat::Mode, SType::INT16)]   = _modeval<SType::INT16>;
+  statfns1[id(Stat::Mode, SType::INT32)]   = _modeval<SType::INT32>;
+  statfns1[id(Stat::Mode, SType::INT64)]   = _modeval<SType::INT64>;
+  statfns1[id(Stat::Mode, SType::FLOAT32)] = _modeval<SType::FLOAT32>;
+  statfns1[id(Stat::Mode, SType::FLOAT64)] = _modeval<SType::FLOAT64>;
+  statfns1[id(Stat::Mode, SType::STR32)]   = _modeval<SType::STR32>;
+  statfns1[id(Stat::Mode, SType::STR64)]   = _modeval<SType::STR64>;
+
+  // Stat::NModal (= 12)
+  statfns1[id(Stat::NModal, SType::BOOL)]    = _nmodalval;
+  statfns1[id(Stat::NModal, SType::INT8)]    = _nmodalval;
+  statfns1[id(Stat::NModal, SType::INT16)]   = _nmodalval;
+  statfns1[id(Stat::NModal, SType::INT32)]   = _nmodalval;
+  statfns1[id(Stat::NModal, SType::INT64)]   = _nmodalval;
+  statfns1[id(Stat::NModal, SType::FLOAT32)] = _nmodalval;
+  statfns1[id(Stat::NModal, SType::FLOAT64)] = _nmodalval;
+  statfns1[id(Stat::NModal, SType::STR32)]   = _nmodalval;
+  statfns1[id(Stat::NModal, SType::STR64)]   = _nmodalval;
+  statfns1[id(Stat::NModal, SType::OBJ)]     = _nmodalval;
+
+  // Stat::NUnique (= 13)
+  statfns1[id(Stat::NUnique, SType::BOOL)]    = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::INT8)]    = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::INT16)]   = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::INT32)]   = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::INT64)]   = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::FLOAT32)] = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::FLOAT64)] = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::STR32)]   = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::STR64)]   = _nuniqueval;
+  statfns1[id(Stat::NUnique, SType::OBJ)]     = _nuniqueval;
 
   //---- Args -> Stat map ------------------------------------------------------
 
@@ -485,8 +539,12 @@ void Frame::Type::_init_stats(Methods& mm) {
   stat_from_args[&args_countna1] = Stat::NaCount;
   stat_from_args[&args_sum1]     = Stat::Sum;
   stat_from_args[&args_mean1]    = Stat::Mean;
+  stat_from_args[&args_sd1]      = Stat::StDev;
   stat_from_args[&args_min1]     = Stat::Min;
   stat_from_args[&args_max1]     = Stat::Max;
+  stat_from_args[&args_mode1]    = Stat::Mode;
+  stat_from_args[&args_nmodal1]  = Stat::NModal;
+  stat_from_args[&args_nunique1] = Stat::NUnique;
 }
 
 

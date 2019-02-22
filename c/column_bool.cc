@@ -6,9 +6,10 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <Python.h>
+#include "python/_all.h"
+#include "utils/parallel.h"
 #include "column.h"
 #include "datatablemodule.h"
-#include "utils/parallel.h"
 
 
 
@@ -40,13 +41,6 @@ int8_t  BoolColumn::mode() const { return get_stats()->mode(this); }
 int64_t BoolColumn::sum() const  { return get_stats()->sum(this); }
 double  BoolColumn::mean() const { return get_stats()->mean(this); }
 double  BoolColumn::sd() const   { return get_stats()->stdev(this); }
-
-PyObject* BoolColumn::min_pyscalar() const { return bool_to_py(min()); }
-PyObject* BoolColumn::max_pyscalar() const { return bool_to_py(max()); }
-PyObject* BoolColumn::mode_pyscalar() const { return bool_to_py(mode()); }
-PyObject* BoolColumn::sum_pyscalar() const { return int_to_py(sum()); }
-PyObject* BoolColumn::mean_pyscalar() const { return float_to_py(mean()); }
-PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }
 
 
 
@@ -132,7 +126,7 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   const int8_t* src_data = this->elements_r();
   PyObject**    trg_data = target->elements_w();
   for (size_t i = 0; i < nrows; ++i) {
-    trg_data[i] = bool_to_py(src_data[i]);
+    trg_data[i] = py::obool(src_data[i]).release();
   }
 }
 

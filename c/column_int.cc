@@ -65,17 +65,6 @@ int64_t IntColumn<T>::max_int64() const {
 }
 
 
-template <typename T> PyObject* IntColumn<T>::min_pyscalar() const { return int_to_py(min()); }
-template <typename T> PyObject* IntColumn<T>::max_pyscalar() const { return int_to_py(max()); }
-template <typename T> PyObject* IntColumn<T>::mode_pyscalar() const { return int_to_py(mode()); }
-template <typename T> PyObject* IntColumn<T>::sum_pyscalar() const { return int_to_py(sum()); }
-template <typename T> PyObject* IntColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
-template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
-template <typename T> PyObject* IntColumn<T>::skew_pyscalar() const { return float_to_py(skew()); }
-template <typename T> PyObject* IntColumn<T>::kurt_pyscalar() const { return float_to_py(kurt()); }
-
-
-
 
 //------------------------------------------------------------------------------
 // Type casts

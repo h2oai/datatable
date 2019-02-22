@@ -45,15 +45,5 @@ extern size_t py_buffers_size;
 int init_py_types(PyObject *module);
 
 
-PyObject* bool_to_py(int8_t x);
-PyObject* int_to_py(int8_t x);
-PyObject* int_to_py(int16_t x);
-PyObject* int_to_py(int32_t x);
-PyObject* int_to_py(int64_t x);
-PyObject* int_to_py(size_t x);
-PyObject* float_to_py(float x);
-PyObject* float_to_py(double x);
-PyObject* string_to_py(const CString& x);
-
 
 #endif

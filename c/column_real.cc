@@ -49,15 +49,6 @@ template <typename T> double RealColumn<T>::skew() const { return get_stats()->s
 template <typename T> double RealColumn<T>::kurt() const { return get_stats()->kurt(this); }
 
 
-template <typename T> PyObject* RealColumn<T>::min_pyscalar() const { return float_to_py(min()); }
-template <typename T> PyObject* RealColumn<T>::max_pyscalar() const { return float_to_py(max()); }
-template <typename T> PyObject* RealColumn<T>::mode_pyscalar() const { return float_to_py(mode()); }
-template <typename T> PyObject* RealColumn<T>::sum_pyscalar() const { return float_to_py(sum()); }
-template <typename T> PyObject* RealColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
-template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
-template <typename T> PyObject* RealColumn<T>::skew_pyscalar() const { return float_to_py(skew()); }
-template <typename T> PyObject* RealColumn<T>::kurt_pyscalar() const { return float_to_py(kurt()); }
-
 
 //------------------------------------------------------------------------------
 // Type casts

@@ -259,19 +259,6 @@ size_t Column::nunique() const { return get_stats()->nunique(this); }
 size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
-PyObject* Column::mean_pyscalar() const { return none(); }
-PyObject* Column::sd_pyscalar() const { return none(); }
-PyObject* Column::skew_pyscalar() const { return none(); }
-PyObject* Column::kurt_pyscalar() const { return none(); }
-PyObject* Column::min_pyscalar() const { return none(); }
-PyObject* Column::max_pyscalar() const { return none(); }
-PyObject* Column::mode_pyscalar() const { throw NotImplError(); }
-PyObject* Column::sum_pyscalar() const { return none(); }
-PyObject* Column::countna_pyscalar() const { return int_to_py(countna()); }
-PyObject* Column::nunique_pyscalar() const { return int_to_py(nunique()); }
-PyObject* Column::nmodal_pyscalar() const { return int_to_py(nmodal()); }
-
-
 
 //------------------------------------------------------------------------------
 // Casting

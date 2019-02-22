@@ -105,45 +105,6 @@ DECLARE_METHOD(
   "Save DataTable into a .jay file.\n")
 
 
-
-DECLARE_METHOD(
-   min1,
-   "Get the scalar minimum of a single-column DataTable")
-
-DECLARE_METHOD(
-   max1,
-   "Get the scalar maximum of a single-column DataTable")
-
-DECLARE_METHOD(
-   mode1,
-   "Get the scalar mode of a single-column DataTable")
-
-DECLARE_METHOD(
-   sum1,
-   "Get the scalar sum of a single-column DataTable")
-
-DECLARE_METHOD(
-   mean1,
-   "Get the scalar mean of a single-column DataTable")
-
-DECLARE_METHOD(
-   sd1,
-   "Get the scalar standard deviation of a single-column DataTable")
-
-DECLARE_METHOD(
-   countna1,
-   "Get the scalar count of NAs in a single-column DataTable")
-
-DECLARE_METHOD(
-   nunique1,
-   "Get the number of unique values in a single-column DataTable")
-
-DECLARE_METHOD(
-   nmodal1,
-   "Get the number of modal values in a single-column DataTable")
-
-
-
 };
 #undef BASECLS
 #undef CLSNAME
