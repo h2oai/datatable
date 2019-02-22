@@ -105,9 +105,9 @@ static MemoryRange extract_buffer(
 }
 
 
-template <typename T, typename A, typename JStats>
+template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<T, A>*>(stats);
+  auto tstats = static_cast<NumericalStats<T>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
     tstats->set_countna(jcol->nullcount());
@@ -145,13 +145,13 @@ static Column* column_from_jay(
 
   Stats* stats = col->get_stats();
   switch (jtype) {
-    case jay::Type_Bool8:   initStats<int8_t,  int64_t, jay::StatsBool>(stats, jcol); break;
-    case jay::Type_Int8:    initStats<int8_t,  int64_t, jay::StatsInt8>(stats, jcol); break;
-    case jay::Type_Int16:   initStats<int16_t, int64_t, jay::StatsInt16>(stats, jcol); break;
-    case jay::Type_Int32:   initStats<int32_t, int64_t, jay::StatsInt32>(stats, jcol); break;
-    case jay::Type_Int64:   initStats<int64_t, int64_t, jay::StatsInt64>(stats, jcol); break;
-    case jay::Type_Float32: initStats<float,   double,  jay::StatsFloat32>(stats, jcol); break;
-    case jay::Type_Float64: initStats<double,  double,  jay::StatsFloat64>(stats, jcol); break;
+    case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
+    case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
+    case jay::Type_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
+    case jay::Type_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
+    case jay::Type_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
+    case jay::Type_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;
+    case jay::Type_Float64: initStats<double,  jay::StatsFloat64>(stats, jcol); break;
     default: break;
   }
 

@@ -121,6 +121,8 @@ class PKArgs {
     PKArgs(size_t npo, size_t npk, size_t nko, bool vargs, bool vkwds,
            std::initializer_list<const char*> names,
            const char* name = nullptr, const char* doc = nullptr);
+    PKArgs(const PKArgs&) = delete;
+    PKArgs(PKArgs&&) = delete;
     ~PKArgs();
 
     void bind(PyObject* _args, PyObject* _kws);
