@@ -46,27 +46,28 @@ struct FtrlParams {
 
 class Ftrl {
   private:
-    // Model datatable and pointers to weight data
+    // Model datatable and column pointers
     dtptr dt_model;
     double* z;
     double* n;
 
-    // Feature importance datatable and column pointer
+    // Feature importance datatable and a column pointer
     dtptr dt_fi;
     double* fi;
 
-    // Input parameters
+    // FTRL fitting parameters
     FtrlParams params;
 
-    // Number of columns in a training datatable and total number of features
+    // Number of columns in a fitting datatable and a total number of features
     size_t ncols;
     size_t nfeatures;
 
-    // Set this to `True` in `train` and `set_model` methods
+    // Whether or not the FTRL model was trained, `false` by default.
+    // `fit(...)` and `set_model(...)` methods will set this to `true`.
     bool model_trained;
     size_t : 56;
 
-    // Hashers and hashed column names
+    // Column hashers and a vector of hashed column names
     std::vector<hashptr> hashers;
     std::vector<uint64_t> colnames_hashes;
 
@@ -76,7 +77,7 @@ class Ftrl {
     static const std::vector<std::string> model_colnames;
     static const FtrlParams default_params;
 
-    // Learning and predicting methods.
+    // Fitting and predicting methods
     template <typename T, typename F>
     void fit(const DataTable*, const Column*, F);
     template<typename F> dtptr predict(const DataTable*, F f);
@@ -130,7 +131,7 @@ class Ftrl {
 
 
 /*
-*  Train FTRL model on a dataset.
+*  Fit FTRL model on a datatable.
 */
 template <typename T, typename F>
 void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
@@ -138,10 +139,10 @@ void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
   is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
   is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
-  // Create column hashers.
+  // Create column hashers
   create_hashers(dt_X);
 
-  // Get the target column.
+  // Get the target column
   auto d_y = static_cast<const T*>(c_y->data());
   const RowIndex ri_y = c_y->rowindex();
 
@@ -172,8 +173,7 @@ void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
 
 
 /*
-*  Make predictions for a test dataset and return targets as a new datatable.
-*  We assume that all the validation is done in `py_ftrl.cc`.
+*  Make predictions for a test datatable and return targets as a new datatable.
 */
 template<typename F>
 dtptr Ftrl::predict(const DataTable* dt_X, F f) {
@@ -182,11 +182,11 @@ dtptr Ftrl::predict(const DataTable* dt_X, F f) {
   init_weights();
   is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
 
-  // Re-create hashers as stypes for training dataset and predictions
-  // may be different
+  // Re-create hashers as `stype`s for prediction may be different from
+  // those used for fitting
   create_hashers(dt_X);
 
-  // Create a target datatable.
+  // Create a datatable to store targets
   dtptr dt_y;
   Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
   dt_y = dtptr(new DataTable({col_target}, {"target"}));
