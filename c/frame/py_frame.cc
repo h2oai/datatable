@@ -275,6 +275,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   _init_replace(mm);
   _init_repr(mm);
   _init_stats(mm);
+  _init_tocsv(mm);
   _init_tonumpy(mm);
   _init_topython(mm);
 
