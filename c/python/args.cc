@@ -141,6 +141,11 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
         throw TypeError() << get_long_name() << " got multiple values for "
           "argument `" << PyUnicode_AsUTF8(key) << '`';
       }
+      if (ikey < n_posonly_args) {
+        throw TypeError() << get_long_name() << " got argument `"
+          << PyUnicode_AsUTF8(key) << "` as a keyword, but it should be "
+            "positional-only";
+      }
       bound_args[ikey].set(value);
     }
   }

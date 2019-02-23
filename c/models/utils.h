@@ -56,14 +56,17 @@ void calculate_coprimes(size_t, std::vector<size_t>&);
 /*
 *  Sigmoid function.
 */
-inline double sigmoid(double x) {
-  return 1.0 / (1.0 + std::exp(-x));
+template<typename T>
+inline T sigmoid(T x) {
+  T one = static_cast<T>(1.0);
+  return one / (one + std::exp(-x));
 }
 
 /*
 *  Identity function.
 */
-inline double identity(double x) {
+template<typename T>
+inline T identity(T x) {
   return x;
 }
 
@@ -74,8 +77,9 @@ inline double identity(double x) {
 *   to prevent logloss being undefined;
 * - simplify the logloss formula to more compact branchless code.
 */
-inline double logloss(double p, bool y) {
-  double epsilon = std::numeric_limits<double>::epsilon();
+template<typename T>
+inline T logloss(T p, bool y) {
+  T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
 }

@@ -31,34 +31,37 @@
 namespace py {
 
 
-PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
-                                 {"params", "labels", "alpha", "beta", "lambda1",
-                                 "lambda2", "nbins", "nepochs", "interactions"},
+PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
+                                 {"params", "labels", "alpha", "beta",
+                                 "lambda1", "lambda2", "nbins", "nepochs",
+                                 "interactions", "double_precision"},
                                  "__init__", nullptr);
 
 
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
-  dt::FtrlParams<double> dt_params = dt::Ftrl<double>::default_params;
+  dt::FtrlParams<float> dt_params = dt::Ftrl<float>::default_params;
 
-  bool defined_params   = !args[0].is_none_or_undefined();
-  bool defined_labels   = !args[1].is_none_or_undefined();
-  bool defined_alpha    = !args[2].is_none_or_undefined();
-  bool defined_beta     = !args[3].is_none_or_undefined();
-  bool defined_lambda1  = !args[4].is_none_or_undefined();
-  bool defined_lambda2  = !args[5].is_none_or_undefined();
-  bool defined_nbins    = !args[6].is_none_or_undefined();
-  bool defined_nepochs  = !args[7].is_none_or_undefined();
-  bool defined_interactions    = !args[8].is_none_or_undefined();
+  bool defined_params           = !args[0].is_none_or_undefined();
+  bool defined_labels           = !args[1].is_none_or_undefined();
+  bool defined_alpha            = !args[2].is_none_or_undefined();
+  bool defined_beta             = !args[3].is_none_or_undefined();
+  bool defined_lambda1          = !args[4].is_none_or_undefined();
+  bool defined_lambda2          = !args[5].is_none_or_undefined();
+  bool defined_nbins            = !args[6].is_none_or_undefined();
+  bool defined_nepochs          = !args[7].is_none_or_undefined();
+  bool defined_interactions     = !args[8].is_none_or_undefined();
+  bool defined_double_precision = !args[9].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_nbins || defined_nepochs || defined_interactions) {
+        defined_nbins || defined_nepochs || defined_interactions ||
+        defined_double_precision) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` or "
-            << "`interactions` to Ftrl constructor, but not both at the "
-            << "same time";
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
+            << "`interactions` or `double_precision` to Ftrl constructor, "
+            << "but not both at the same time";
     }
     py::otuple py_params = args[0].to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
@@ -68,41 +71,43 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_interactions = py_params.get_attr("interactions");
+    py::oobj py_double_precision = py_params.get_attr("double_precision");
 
-    dt_params.alpha = py_alpha.to_double();
-    dt_params.beta = py_beta.to_double();
-    dt_params.lambda1 = py_lambda1.to_double();
-    dt_params.lambda2 = py_lambda2.to_double();
+    dt_params.alpha = static_cast<float>(py_alpha.to_double());
+    dt_params.beta = static_cast<float>(py_beta.to_double());
+    dt_params.lambda1 = static_cast<float>(py_lambda1.to_double());
+    dt_params.lambda2 = static_cast<float>(py_lambda2.to_double());
     dt_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     dt_params.nepochs = py_nepochs.to_size_t();
     dt_params.interactions = py_interactions.to_bool_strict();
+    // dt_params.double_precision = py_double_precision.to_bool_strict();
 
-    py::Validator::check_positive<double>(dt_params.alpha, py_alpha);
-    py::Validator::check_not_negative<double>(dt_params.beta, py_beta);
-    py::Validator::check_not_negative<double>(dt_params.lambda1, py_lambda1);
-    py::Validator::check_not_negative<double>(dt_params.lambda2, py_lambda2);
-    py::Validator::check_not_negative<double>(dt_params.nbins, py_nbins);
+    py::Validator::check_positive<float>(dt_params.alpha, py_alpha);
+    py::Validator::check_not_negative<float>(dt_params.beta, py_beta);
+    py::Validator::check_not_negative<float>(dt_params.lambda1, py_lambda1);
+    py::Validator::check_not_negative<float>(dt_params.lambda2, py_lambda2);
+    py::Validator::check_not_negative<float>(dt_params.nbins, py_nbins);
 
   } else {
 
     if (defined_alpha) {
-      dt_params.alpha = args[2].to_double();
-      py::Validator::check_positive<double>(dt_params.alpha, args[2]);
+      dt_params.alpha = static_cast<float>(args[2].to_double());
+      py::Validator::check_positive<float>(dt_params.alpha, args[2]);
     }
 
     if (defined_beta) {
-      dt_params.beta = args[3].to_double();
-      py::Validator::check_not_negative<double>(dt_params.beta, args[3]);
+      dt_params.beta = static_cast<float>(args[3].to_double());
+      py::Validator::check_not_negative<float>(dt_params.beta, args[3]);
     }
 
     if (defined_lambda1) {
-      dt_params.lambda1 = args[4].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda1, args[4]);
+      dt_params.lambda1 = static_cast<float>(args[4].to_double());
+      py::Validator::check_not_negative<float>(dt_params.lambda1, args[4]);
     }
 
     if (defined_lambda2) {
-      dt_params.lambda2 = args[5].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda2, args[5]);
+      dt_params.lambda2 = static_cast<float>(args[5].to_double());
+      py::Validator::check_not_negative<float>(dt_params.lambda2, args[5]);
     }
 
     if (defined_nbins) {
@@ -117,6 +122,9 @@ void Ftrl::m__init__(PKArgs& args) {
     if (defined_interactions) {
       dt_params.interactions = args[8].to_bool_strict();
     }
+    if (defined_double_precision) {
+      // dt_params.double_precision = args[9].to_bool_strict();
+    }
   }
 
   if (defined_labels) {
@@ -126,13 +134,13 @@ void Ftrl::m__init__(PKArgs& args) {
     set_labels(py::robj(py_list));
   }
 
-  dtft = new std::vector<dtftptr<double>>;
+  dtft = new std::vector<dtftptr<float>>;
   init_dtft(dt_params);
   reg_type = RegType::NONE;
 }
 
 
-void Ftrl::init_dtft(dt::FtrlParams<double> dt_params) {
+void Ftrl::init_dtft(dt::FtrlParams<float> dt_params) {
   size_t nlabels = labels.size();
   xassert(nlabels > 0);
   // If there is only two labels provided, we only need
@@ -141,7 +149,7 @@ void Ftrl::init_dtft(dt::FtrlParams<double> dt_params) {
   dtft->clear();
   dtft->reserve(ndtft);
   for (size_t i = 0; i < ndtft; ++i) {
-    dtft->push_back(dtftptr<double>(new dt::Ftrl<double>(dt_params)));
+    dtft->push_back(dtftptr<float>(new dt::Ftrl<float>(dt_params)));
   }
 }
 
@@ -222,7 +230,7 @@ void Ftrl::fit(const PKArgs& args) {
     case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y); break;
     case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y); break;
     case SType::FLOAT32: fit_regression<float>(dt_X, dt_y); break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y); break;
+    case SType::FLOAT64: fit_regression<float>(dt_X, dt_y); break;
     case SType::STR32:   [[clang::fallthrough]];
     case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
     default:             throw TypeError() << "Cannot predict for a column "
@@ -267,7 +275,7 @@ void Ftrl::fit_binomial(DataTable* dt_X, DataTable* dt_y) {
                          "in a binomial mode this model should be reset.";
   }
   reg_type = RegType::BINOMIAL;
-  (*dtft)[0]->fit<int8_t>(dt_X, dt_y->columns[0], sigmoid);
+  (*dtft)[0]->fit<int8_t>(dt_X, dt_y->columns[0], sigmoid<float>);
 }
 
 
@@ -279,7 +287,7 @@ void Ftrl::fit_regression(DataTable* dt_X, DataTable* dt_y) {
                          "in a binomial mode this model should be reset.";
   }
   reg_type = RegType::REGRESSION;
-  (*dtft)[0]->fit<T>(dt_X, dt_y->columns[0], identity);
+  (*dtft)[0]->fit<T>(dt_X, dt_y->columns[0], identity<float>);
 }
 
 
@@ -343,7 +351,7 @@ void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
   // binomial case.
   size_t ndtft = dtft->size();
   for (size_t i = 0; i < ndtft; ++i) {
-    (*dtft)[i]->fit<int8_t>(dt_X, c_y[i], sigmoid);
+    (*dtft)[i]->fit<int8_t>(dt_X, c_y[i], sigmoid<float>);
   }
 }
 
@@ -415,11 +423,11 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
   // Determine which link function we should use.
-  double (*f)(double);
+  float (*f)(float);
   switch (reg_type) {
-    case RegType::REGRESSION  : f = identity; break;
-    case RegType::BINOMIAL    : f = sigmoid; break;
-    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = std::exp; break;
+    case RegType::REGRESSION  : f = identity<float>; break;
+    case RegType::BINOMIAL    : f = sigmoid<float>; break;
+    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid<float> : f = std::exp; break;
     // If this error is thrown, it means that `fit()` and `reg_type`
     // went out of sync, so there is a bug in the code.
     default : throw ValueError() << "Cannot make any predictions, "
@@ -456,16 +464,16 @@ void Ftrl::normalize_rows(DataTable* dt) {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
 
-  std::vector<double*> d_cs;
+  std::vector<float*> d_cs;
   d_cs.reserve(ncols);
   for (size_t j = 0; j < ncols; ++j) {
-    double* d_c = static_cast<double*>(dt->columns[j]->data_w());
+    float* d_c = static_cast<float*>(dt->columns[j]->data_w());
     d_cs.push_back(d_c);
   }
 
   #pragma omp parallel for num_threads(config::nthreads)
   for (size_t i = 0; i < nrows; ++i) {
-    double denom = 0.0;
+    float denom = 0.0;
     for (size_t j = 0; j < ncols; ++j) {
       denom += d_cs[j][i];
     }
@@ -629,7 +637,7 @@ void Ftrl::set_model(robj model) {
 
     }
 
-    if (model_cols_in != dt::Ftrl<double>::model_colnames) {
+    if (model_cols_in != dt::Ftrl<float>::model_colnames) {
       throw ValueError() << "Element " << i << ": "
                          << "FTRL model frame must have columns named `z` and "
                          << "`n`, whereas your frame has the following column "
@@ -682,13 +690,13 @@ oobj Ftrl::get_fi() const {
       size_t fi_nrows = (*dtft)[0]->get_fi()->nrows;
       Column* col_fi = Column::new_data_column(SType::FLOAT64, fi_nrows);
       dt_fi = new DataTable({col_fi}, {"feature_importance"});
-      auto d_fi = static_cast<double*>(dt_fi->columns[0]->data_w());
+      auto d_fi = static_cast<float*>(dt_fi->columns[0]->data_w());
 
-      std::vector<double*> d_fis;
+      std::vector<float*> d_fis;
       d_fis.reserve(ndtft);
       for (size_t j = 0; j < ndtft; ++j) {
         DataTable* dt_fi_j = (*dtft)[j]->get_fi();
-        double* d_fi_j = static_cast<double*>(dt_fi_j->columns[0]->data_w());
+        float* d_fi_j = static_cast<float*>(dt_fi_j->columns[0]->data_w());
         d_fis.push_back(d_fi_j);
       }
 
@@ -701,7 +709,7 @@ oobj Ftrl::get_fi() const {
     	// If there is just one classifier, simply return `fi`.
       dt_fi = (*dtft)[0]->get_fi();
     }
-    normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
+    normalize_fi(static_cast<RealColumn<float>*>(dt_fi->columns[0]));
     // TODO: memoize `dt_feature_importances`
     dt_feature_importances = feature_names->copy();
     std::vector<DataTable*> dt(1);
@@ -725,12 +733,12 @@ oobj Ftrl::get_fi() const {
 * but this may lead to some features having zero importance,
 * while in reality they don't.
 */
-void Ftrl::normalize_fi(RealColumn<double>* col) {
-  double max = col->max();
-  double epsilon = std::numeric_limits<double>::epsilon();
-  double* data = col->elements_w();
+void Ftrl::normalize_fi(RealColumn<float>* col) {
+  float max = col->max();
+  float epsilon = std::numeric_limits<float>::epsilon();
+  float* data = col->elements_w();
 
-  double norm_factor = 1.0;
+  float norm_factor = 1.0;
   if (fabs(max) > epsilon) norm_factor = 1 / max;
 
   for (size_t i = 0; i < col->nrows; ++i) {
@@ -803,7 +811,7 @@ oobj Ftrl::get_alpha() const {
 
 
 void Ftrl::set_alpha(robj py_alpha) {
-  double alpha = py_alpha.to_double();
+  float alpha = static_cast<float>(py_alpha.to_double());
   py::Validator::check_positive(alpha, py_alpha);
   for (size_t i = 0; i < dtft->size(); ++i) {
     (*dtft)[i]->set_alpha(alpha);
@@ -828,7 +836,7 @@ oobj Ftrl::get_beta() const {
 
 
 void Ftrl::set_beta(robj py_beta) {
-  double beta = py_beta.to_double();
+  float beta = static_cast<float>(py_beta.to_double());
   py::Validator::check_not_negative(beta, py_beta);
   for (size_t i = 0; i < dtft->size(); ++i) {
     (*dtft)[i]->set_beta(beta);
@@ -853,7 +861,7 @@ oobj Ftrl::get_lambda1() const {
 
 
 void Ftrl::set_lambda1(robj py_lambda1) {
-  double lambda1 = py_lambda1.to_double();
+  float lambda1 = static_cast<float>(py_lambda1.to_double());
   py::Validator::check_not_negative(lambda1, py_lambda1);
   for (size_t i = 0; i < dtft->size(); ++i) {
     (*dtft)[i]->set_lambda1(lambda1);
@@ -878,7 +886,7 @@ oobj Ftrl::get_lambda2() const {
 
 
 void Ftrl::set_lambda2(robj py_lambda2) {
-  double lambda2 = py_lambda2.to_double();
+  float lambda2 = static_cast<float>(py_lambda2.to_double());
   py::Validator::check_not_negative(lambda2, py_lambda2);
   for (size_t i = 0; i < dtft->size(); ++i) {
     (*dtft)[i]->set_lambda2(lambda2);
@@ -1046,7 +1054,7 @@ void Ftrl::set_params_tuple(robj params) {
  *  Model validation methods.
  */
 bool Ftrl::has_negative_n(DataTable* dt) const {
-  auto c_n = static_cast<RealColumn<double>*>(dt->columns[1]);
+  auto c_n = static_cast<RealColumn<float>*>(dt->columns[1]);
   auto d_n = c_n->elements_r();
   for (size_t i = 0; i < dt->nrows; ++i) {
     if (d_n[i] < 0) return true;
@@ -1093,12 +1101,12 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  dtft = new std::vector<dtftptr<double>>;
+  dtft = new std::vector<dtftptr<float>>;
   py::otuple pickle = args[0].to_otuple();
 
   // Set labels and initialize classifiers, this has to be done first.
   labels = pickle[4].to_pylist();
-  init_dtft(dt::Ftrl<double>::default_params);
+  init_dtft(dt::Ftrl<float>::default_params);
 
   // Set FTRL parameters
   set_params_tuple(pickle[0]);
@@ -1158,6 +1166,8 @@ nepochs : int
     Number of epochs to train for.
 interactions : bool
     Switch to enable second order feature interactions.
+double_precision : bool
+    Whether to use double precision arithmetic or not.
 )";
 }
 
@@ -1185,7 +1195,6 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_METHOD(mm, &Ftrl::predict, args_predict);
   ADD_METHOD(mm, &Ftrl::reset, args_reset);
 }
-
 
 
 } // namespace py
