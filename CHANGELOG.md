@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   when these selectors are applied to an `n`-rows frame, that frame will be
   split into train and test part according to the K-fold splitting scheme.
 
+- `Frame.rbind()` can now also accept a list or tuple of frames (previously
+  only a vararg sequence was allowed).
+
 
 ### Fixed
 
@@ -60,6 +63,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame method `.scalar()` is now deprecated and will be removed in release
   0.10.0. Please use `frame[0, 0]` instead.
 
+- Frame method `.append()` is now deprecated and will be removed in release
+  0.10.0. Please use `.rbind()` instead.
 
 
 ### Notes
