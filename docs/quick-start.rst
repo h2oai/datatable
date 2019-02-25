@@ -305,4 +305,4 @@ list of values; or a list of rows, where each row is a tuple of values::
 You can also save a frame into a CSV file, or into a binary .jay file::
 
     DT.to_csv("out.csv")
-    DT.save("data.jay")
+    DT.to_jay("data.jay")

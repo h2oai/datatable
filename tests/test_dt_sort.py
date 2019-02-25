@@ -802,8 +802,6 @@ def test_sort_random_multi(seed):
     sorted_data = [[col[j] for j in order] for col in data]
     d0 = dt.Frame(data, names=list("ABCDEF"))
     d0.internal.check()
-    # d0.save("multi.jay", format="jay")
-    # dt.Frame(sorted_data).save("test.jay", format="jay")
     d1 = d0.sort("B", "C", "D")
     assert d1.to_list() == sorted_data
 
@@ -908,7 +906,7 @@ def test_sort_expr():
 
 def test_h2oai7014(tempfile):
     data = dt.Frame([[None, 't'], [3580, 1047]], names=["ID", "count"])
-    data.save(tempfile)
+    data.to_jay(tempfile)
     # The data has to be opened from file
     counts = dt.open(tempfile)
     counts = counts[1:, :]

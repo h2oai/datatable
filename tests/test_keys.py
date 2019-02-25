@@ -147,7 +147,7 @@ def test_key_save(tempfile):
     dt0 = dt.Frame(D=range(6), A=[3, 7, 5, 2, 2, 3], B=[1, 2, 2, 3, 4, 4])
     dt0.key = ["A", "B"]
     dt0.internal.check()
-    dt0.save(tempfile, format="jay")
+    dt0.to_jay(tempfile)
     dt1 = dt.open(tempfile)
     assert dt1.key == ("A", "B")
     dt1.internal.check()
