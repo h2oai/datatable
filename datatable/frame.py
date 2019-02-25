@@ -165,9 +165,11 @@ class Frame(core.Frame):
             category=FutureWarning)
         if format == "jay":
             return self.to_jay(path, _strategy=_strategy)
+        elif format == "nff":
+            from datatable.nff import save_nff
+            return save_nff(self, path, _strategy=_strategy)
         else:
-            from datatable.nff import save
-            return save(self, path, format=format, _strategy=_strategy)
+            raise ValueError("Unknown `format` value: %s" % format)
 
 
 

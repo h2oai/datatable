@@ -188,31 +188,6 @@ PyObject* materialize(obj* self, PyObject*) {
 
 
 
-PyObject* save_jay(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1;
-  PyObject* arg2;
-  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2))
-    return nullptr;
-
-  auto filename = py::robj(arg1).to_string();
-  auto strategy = py::robj(arg2).to_string();
-  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                   (strategy == "write") ? WritableBuffer::Strategy::Write :
-                                           WritableBuffer::Strategy::Auto;
-  if (!filename.empty()) {
-    dt->save_jay(filename, sstrategy);
-    Py_RETURN_NONE;
-  } else {
-    MemoryRange mr = dt->save_jay();
-    auto data = static_cast<const char*>(mr.xptr());
-    auto size = static_cast<Py_ssize_t>(mr.size());
-    return PyBytes_FromStringAndSize(data, size);
-  }
-}
-
-
-
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
@@ -238,7 +213,6 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
   METHOD0(materialize),
-  METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

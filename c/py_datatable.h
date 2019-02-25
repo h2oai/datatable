@@ -94,11 +94,6 @@ DECLARE_METHOD(
   "materialize()\n\n"
   "Convert DataTable from 'view' into 'data' representation.\n")
 
-DECLARE_METHOD(
-  save_jay,
-  "save_jay(file, colnames)\n\n"
-  "Save DataTable into a .jay file.\n")
-
 
 };
 #undef BASECLS
