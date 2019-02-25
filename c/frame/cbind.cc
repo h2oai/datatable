@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "datatable.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 
 namespace py {
 
@@ -186,4 +187,26 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
   // Done.
   ncols = t_ncols;
   set_names(newnames);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// dt.cbind
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_dt_cbind(
+  0, 0, 1, true, false, {"force"}, "cbind", nullptr);
+
+static py::oobj dt_cbind(const py::PKArgs& args) {
+  py::oobj r = py::oobj::import("datatable", "Frame").call();
+  PyObject* rv = r.to_borrowed_ref();
+  reinterpret_cast<py::Frame*>(rv)->cbind(args);
+  return r;
+}
+
+
+void DatatableModule::init_methods_cbind() {
+  ADD_FN(&dt_cbind, args_dt_cbind);
 }

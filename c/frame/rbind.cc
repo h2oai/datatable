@@ -15,10 +15,11 @@
 //------------------------------------------------------------------------------
 #include <numeric>
 #include <unordered_map>
-#include "datatable.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 
 static void _check_ncols(size_t n0, size_t n1) {
   if (n0 == n1) return;
@@ -274,4 +275,26 @@ void DataTable::rbind(
   }
   ncols = new_ncols;
   nrows = new_nrows;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// dt.rbind
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_dt_rbind(
+  0, 0, 2, true, false, {"force", "bynames"}, "rbind", nullptr);
+
+static py::oobj dt_rbind(const py::PKArgs& args) {
+  py::oobj r = py::oobj::import("datatable", "Frame").call();
+  PyObject* rv = r.to_borrowed_ref();
+  reinterpret_cast<py::Frame*>(rv)->rbind(args);
+  return r;
+}
+
+
+void DatatableModule::init_methods_rbind() {
+  ADD_FN(&dt_rbind, args_dt_rbind);
 }
