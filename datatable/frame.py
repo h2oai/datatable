@@ -48,10 +48,7 @@ class Frame(core.Frame):
     """
 
     # Methods defined externally
-    append = _rbind
-    rbind = _rbind
     save = dt_save
-
 
     def sort(self, *cols):
         """
@@ -137,6 +134,12 @@ class Frame(core.Frame):
             "0.10.0), please use `Frame[0, 0]` istead",
             category=FutureWarning)
         return self[0, 0]
+
+    def append(self):
+        warnings.warn(
+            "Method `Frame.append()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame.rbind()` instead",
+            category=FutureWarning)
 
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
                  groupby=None, join=None, sort=None, engine=None

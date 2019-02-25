@@ -60,6 +60,7 @@ class Frame : public PyObject {
         static void _init_init(Methods&);
         static void _init_key(GetSetters&);
         static void _init_names(Methods&, GetSetters&);
+        static void _init_rbind(Methods&);
         static void _init_replace(Methods&);
         static void _init_repr(Methods&);
         static void _init_stats(Methods&);
@@ -104,10 +105,11 @@ class Frame : public PyObject {
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
-    void replace(const PKArgs&);
     oobj head(const PKArgs&);
-    oobj tail(const PKArgs&);
+    void rbind(const PKArgs&);
     void repeat(const PKArgs&);
+    void replace(const PKArgs&);
+    oobj tail(const PKArgs&);
 
     // Conversion methods
     oobj to_dict(const PKArgs&);

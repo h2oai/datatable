@@ -141,7 +141,7 @@ void Frame::Type::_init_cbind(Methods& mm) {
  * it will be filled with NAs; with the exception of 1-row datatables which will
  * be expanded to the desired height by duplicating that row.
  */
-void DataTable::cbind(std::vector<DataTable*> dts)
+void DataTable::cbind(const std::vector<DataTable*>& dts)
 {
   size_t t_ncols = ncols;
   size_t t_nrows = nrows;

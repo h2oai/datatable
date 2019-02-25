@@ -35,9 +35,8 @@ from datatable import stype, DatatableWarning
 
 def test_rbind_exists():
     dt0 = dt.Frame([1, 2, 3])
-    assert isinstance(dt0.rbind, types.MethodType)
-    assert len(dt0.rbind.__doc__) > 1900
-    assert dt0.append == dt0.rbind
+    assert isinstance(dt0.rbind, types.BuiltinMethodType)
+    assert len(dt0.rbind.__doc__) > 1700
 
 
 def test_rbind_simple():
@@ -80,11 +79,11 @@ def test_rbind_fails():
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt2)
-    assert "Column `C` is not found in the source frame" in str(e.value)
+    assert "Column `C` is not found in the original frame" in str(e.value)
     assert "`force=True`" in str(e.value)
 
 
-def test_rbind_bynumbers():
+def test_rbind_bynumbers1():
     dt0 = dt.Frame([[1, 2, 3], [7, 7, 0]], names=["A", "V"])
     dt1 = dt.Frame([[10, -1], [3, -1]], names=["C", "Z"])
     dtr = dt.Frame([[1, 2, 3, 10, -1], [7, 7, 0, 3, -1]],
@@ -92,19 +91,24 @@ def test_rbind_bynumbers():
     dt0.rbind(dt1, bynames=False)
     assert_equals(dt0, dtr)
 
+
+def test_rbind_bynumbers2():
     dt0 = dt.Frame({"X": [8]})
+    dt1 = dt.Frame([[10, -1], [3, -1]], names=["C", "Z"])
     dtr = dt.Frame({"X": [8, 10, -1], "Z": [None, 3, -1]})
     dt0.rbind(dt1, bynames=False, force=True)
     assert_equals(dt0, dtr)
 
 
-def test_rbind_bynames():
+def test_rbind_bynames1():
     dt0 = dt.Frame({"A": [1, 2, 3], "V": [7, 7, 0]})
     dt1 = dt.Frame({"V": [13], "A": [77]})
     dtr = dt.Frame({"A": [1, 2, 3, 77], "V": [7, 7, 0, 13]})
     dt0.rbind(dt1)
     assert_equals(dt0, dtr)
 
+
+def test_rbind_bynames2():
     dt0 = dt.Frame({"A": [5, 1]})
     dt1 = dt.Frame({"C": [4], "D": [10]})
     dt2 = dt.Frame({"A": [-1], "D": [4]})
@@ -114,6 +118,8 @@ def test_rbind_bynames():
     dt0.rbind(dt1, dt2, force=True)
     assert_equals(dt0, dtr)
 
+
+def test_rbind_bynames3():
     dt0 = dt.Frame({"A": [7, 4], "B": [-1, 1]})
     dt1 = dt.Frame({"A": [3]})
     dt2 = dt.Frame({"B": [4]})
@@ -122,6 +128,8 @@ def test_rbind_bynames():
     dt0.rbind(dt2, force=True)
     assert_equals(dt0, dtr)
 
+
+def test_rbind_bynames4():
     dt0 = dt.Frame({"A": [13]})
     dt1 = dt.Frame({"B": [6], "A": [3], "E": [7]})
     dtr = dt.Frame({"A": [13, 3], "B": [None, 6], "E": [None, 7]})
