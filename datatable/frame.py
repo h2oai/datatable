@@ -25,7 +25,6 @@ import datatable
 import time
 import warnings
 
-from datatable.dt_append import _rbind
 from datatable.lib import core
 from datatable.nff import save as dt_save
 from datatable.utils.typechecks import (TTypeError, TValueError)

@@ -89,11 +89,6 @@ DECLARE_METHOD(
   "column(index)\n\n"
   "Get the requested column in the datatable")
 
-
-DECLARE_METHOD(
-  rbind,
-  "Append rows of other datatables to the current")
-
 DECLARE_METHOD(
   materialize,
   "materialize()\n\n"
