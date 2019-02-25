@@ -65,8 +65,6 @@ namespace pybuffers {
 }
 
 
-void init_jay();
-
 PyMODINIT_FUNC PyInit__datatable() noexcept;
 
 

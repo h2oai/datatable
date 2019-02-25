@@ -14,8 +14,6 @@
 #include "datatable.h"
 #include "writebuf.h"
 
-void init_jay();  // called once from datatablemodule.c
-
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
 static flatbuffers::Offset<jay::Column> column_to_jay(
@@ -178,19 +176,6 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
 // Helpers
 //------------------------------------------------------------------------------
 
-void init_jay() {
-  stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
-  stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;
-  stype_to_jaytype[int(SType::INT16)]   = jay::Type_Int16;
-  stype_to_jaytype[int(SType::INT32)]   = jay::Type_Int32;
-  stype_to_jaytype[int(SType::INT64)]   = jay::Type_Int64;
-  stype_to_jaytype[int(SType::FLOAT32)] = jay::Type_Float32;
-  stype_to_jaytype[int(SType::FLOAT64)] = jay::Type_Float64;
-  stype_to_jaytype[int(SType::STR32)]   = jay::Type_Str32;
-  stype_to_jaytype[int(SType::STR64)]   = jay::Type_Str64;
-}
-
-
 static jay::Buffer saveMemoryRange(
     const MemoryRange* mbuf, WritableBuffer* wb)
 {
@@ -294,6 +279,16 @@ oobj Frame::to_jay(const PKArgs& args) {
 
 void Frame::Type::_init_jay(Methods& mm) {
   ADD_METHOD(mm, &Frame::to_jay, args_to_jay);
+
+  stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
+  stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;
+  stype_to_jaytype[int(SType::INT16)]   = jay::Type_Int16;
+  stype_to_jaytype[int(SType::INT32)]   = jay::Type_Int32;
+  stype_to_jaytype[int(SType::INT64)]   = jay::Type_Int64;
+  stype_to_jaytype[int(SType::FLOAT32)] = jay::Type_Float32;
+  stype_to_jaytype[int(SType::FLOAT64)] = jay::Type_Float64;
+  stype_to_jaytype[int(SType::STR32)]   = jay::Type_Str32;
+  stype_to_jaytype[int(SType::STR64)]   = jay::Type_Str64;
 }
 
 
