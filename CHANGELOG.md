@@ -66,6 +66,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame method `.append()` is now deprecated and will be removed in release
   0.10.0. Please use `.rbind()` instead.
 
+- Frame method `.save()` was renamed into `.to_jay()` (for consistency with
+  other `.to_*()` methods). The old name is still usable, but marked as
+  deprecated and will be removed in 0.10.0.
+
 
 ### Notes
 
