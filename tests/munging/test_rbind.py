@@ -30,7 +30,7 @@ from datatable import stype, DatatableWarning
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# rbind() API
 #-------------------------------------------------------------------------------
 
 def test_rbind_exists():
@@ -54,7 +54,20 @@ def test_rbind_empty():
     assert_equals(dt0, dt.Frame([1, 2, 3]))
 
 
-def test_rbind_fails():
+def test_rbind_array():
+    dt0 = dt.Frame(range(5))
+    dt0.rbind([dt.Frame(range(3)), dt.Frame(range(4))])
+    assert dt0.to_list() == [[0, 1, 2, 3, 4, 0, 1, 2, 0, 1, 2, 3]]
+
+
+def test_rbind_array2():
+    dt0 = dt.Frame([0, 1, 2, 3])
+    dt0.rbind([dt.Frame([4])], dt.Frame([5]),
+              [dt.Frame([6, 7, 8]), dt.Frame([9])])
+    assert dt0.to_list() == [list(range(10))]
+
+
+def test_rbind_columns_mismatch():
     dt0 = dt.Frame({"A": [1, 2, 3]})
     dt1 = dt.Frame({"A": [5], "B": [7]})
     dt2 = dt.Frame({"C": [10, -1]})
@@ -82,6 +95,27 @@ def test_rbind_fails():
     assert "Column `C` is not found in the original frame" in str(e.value)
     assert "`force=True`" in str(e.value)
 
+
+def test_rbind_error1():
+    dt0 = dt.Frame(range(5))
+    with pytest.raises(TypeError) as e:
+        dt0.rbind(123)
+    assert ("`Frame.rbind()` expects a list or sequence of Frames as an "
+            "argument; instead item 0 was a <class 'int'>" == str(e.value))
+
+
+def test_rbind_error2():
+    dt0 = dt.Frame(range(5))
+    with pytest.raises(TypeError) as e:
+        dt0.rbind(dt.Frame(range(1)), [dt.Frame(range(4)), 123])
+    assert ("`Frame.rbind()` expects a list or sequence of Frames as an "
+            "argument; instead item 2 was a <class 'int'>" == str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Simple test cases
+#-------------------------------------------------------------------------------
 
 def test_rbind_bynumbers1():
     dt0 = dt.Frame([[1, 2, 3], [7, 7, 0]], names=["A", "V"])
@@ -214,6 +248,11 @@ def test_rbind_strings5():
     assert f1.to_list() == [["foo", "bra", "1", "2", "3"]]
 
 
+
+
+#-------------------------------------------------------------------------------
+# Advanced test cases
+#-------------------------------------------------------------------------------
 
 def test_rbind_self():
     dt0 = dt.Frame({"A": [1, 5, 7], "B": ["one", "two", None]})

@@ -118,15 +118,15 @@ void Frame::rbind(const PKArgs& args) {
         for (size_t i = 0; i < list.size(); ++i) {
           auto item = list[i];
           if (!item.is_frame()) {
-            _notframe_error(dts.size() - 1, item);
+            _notframe_error(j, item);
           }
-          DataTable* df = arg.to_frame();
+          DataTable* df = item.to_frame();
           if (df->nrows) dts.push_back(df);
           ++j;
         }
       }
       else {
-        _notframe_error(dts.size() - 1, arg);
+        _notframe_error(j, arg);
       }
     }
   }

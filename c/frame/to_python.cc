@@ -80,7 +80,7 @@ template <typename T>
 oobj int_converter<T>::to_oobj(size_t row) const {
   T x = values[row];
   return ISNA<T>(x)? py::None() : oint(x);
-}
+} // LCOV_EXCL_LINE
 
 
 
@@ -102,7 +102,7 @@ template <typename T>
 oobj float_converter<T>::to_oobj(size_t row) const {
   T x = values[row];
   return ISNA<T>(x)? py::None() : ofloat(x);
-}
+} // LCOV_EXCL_LINE
 
 
 
@@ -165,7 +165,8 @@ static convptr make_converter(const Column* col) {
     case SType::STR64:   return convptr(new string_converter<uint64_t>(col));
     case SType::OBJ:     return convptr(new pyobj_converter(col));
     default:
-      throw ValueError() << "Cannot stringify column of type " << stype;
+      throw ValueError()  // LCOV_EXCL_LINE
+          << "Cannot stringify column of type " << stype;
   }
 }
 
