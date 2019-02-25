@@ -22,3 +22,5 @@
 #include "frame/py_frame.h"
 #include "models/dt_ftrl.h"
 #include "models/murmurhash.h"
+
+FtrlBase::~FtrlBase() {}

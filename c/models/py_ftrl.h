@@ -22,11 +22,12 @@
 #ifndef dt_MODELS_PY_FTRL_h
 #define dt_MODELS_PY_FTRL_h
 #include "models/dt_ftrl.h"
+#include "models/py_validator.h"
+#include "str/py_str.h"
+#include "python/string.h"
 
 namespace py {
 
-template <typename T>
-using dtftptr = std::unique_ptr<dt::Ftrl<T>>;
 
 enum class RegType : uint8_t {
   NONE        = 0,
@@ -38,7 +39,7 @@ enum class RegType : uint8_t {
 
 class Ftrl : public PyObject {
   private:
-    std::vector<dtftptr<float>>* dtft;
+    dt::FtrlBase* dtft;
     DataTable* feature_names;
     py::olist labels;
     RegType reg_type;
@@ -55,10 +56,10 @@ class Ftrl : public PyObject {
     };
 
     // Initializers and destructor
-    void m__initT__(PKArgs&);
     void m__init__(PKArgs&);
     void m__dealloc__();
-    void init_dtft(dt::FtrlParams<float>);
+
+    void init_dtft(dt::FtrlParams<T>);
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
@@ -68,7 +69,7 @@ class Ftrl : public PyObject {
     void fit(const PKArgs&);
     void fit_binomial(DataTable*, DataTable*);
     void fit_multinomial(DataTable*, DataTable*);
-    template <typename T>
+    template <typename U>
     void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
@@ -108,8 +109,10 @@ class Ftrl : public PyObject {
     static void normalize_rows(DataTable*);
 
     // Helper functions
-    static void normalize_fi(RealColumn<float>*);
+    static void normalize_fi(RealColumn<T>*);
 };
+
+
 
 } // namespace py
 

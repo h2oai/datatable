@@ -31,20 +31,58 @@ using hashptr = std::unique_ptr<Hash>;
 
 namespace dt {
 
-template <typename T>
 struct FtrlParams {
-    T alpha;
-    T beta;
-    T lambda1;
-    T lambda2;
+    double alpha;
+    double beta;
+    double lambda1;
+    double lambda2;
     uint64_t nbins;
     size_t nepochs;
     bool interactions;
-    size_t : 56;
+    bool double_precision;
+    size_t: 48;
+    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(1.0),
+                   nbins(1000000), nepohcs(1), interactions(false),
+                   double_precision(false) {}
 };
 
 
-template <typename T>
+class FtrlBase {
+  public:
+    virtual ~FtrlBase() = 0;
+    virtual void fit(const DataTable*, const DataTable*) = 0;
+    virtual dtptr predict(const DataTable*) = 0;
+    virtual bool is_trained() = 0;
+
+    // Getters
+    virtual DataTable* get_model() = 0;
+    virtual DataTable* get_fi() = 0;
+    virtual size_t get_nfeatures() = 0;
+    virtual size_t get_ncols() = 0;
+    virtual std::vector<uint64_t> get_colnames_hashes() = 0;
+    virtual double get_alpha() = 0;
+    virtual double get_beta() = 0;
+    virtual double get_lambda1() = 0;
+    virtual double get_lambda2() = 0;
+    virtual uint64_t get_nbins() = 0;
+    virtual size_t get_nepochs() = 0;
+    virtual bool get_interactions() = 0;
+    virtual FtrlParams get_params() = 0;
+
+    // Setters
+    virtual void set_model(DataTable*) = 0;
+    virtual void set_fi(DataTable*) = 0;
+    virtual void set_alpha(double) = 0;
+    virtual void set_beta(double) = 0;
+    virtual void set_lambda1(double) = 0;
+    virtual void set_lambda2(double) = 0;
+    virtual void set_nbins(uint64_t) = 0;
+    virtual void set_nepochs(size_t) = 0;
+    virtual void set_interactions(bool) = 0;
+};
+
+
+template <typename T /* float or double */>
 class Ftrl {
   private:
     // Model datatable and column data pointers
@@ -57,7 +95,14 @@ class Ftrl {
     T* fi;
 
     // FTRL fitting parameters
-    FtrlParams<T> params;
+    FtrlParams params;
+    T alpha;
+    T beta;
+    T lambda1;
+    T lambda2;
+    uint64_t nbins;
+    size_t nepochs;
+    bool interactions;
 
     // Number of columns in a fitting datatable and a total number of features
     size_t ncols;
@@ -73,10 +118,8 @@ class Ftrl {
     std::vector<uint64_t> colnames_hashes;
 
   public:
-    Ftrl(FtrlParams<T>);
-
+    Ftrl(FtrlParams);
     static const std::vector<std::string> model_colnames;
-    static const FtrlParams<T> default_params;
 
     // Fitting and predicting methods
     template <typename U, typename F>
@@ -89,7 +132,7 @@ class Ftrl {
     void create_model();
     void reset_model();
     void init_weights();
-    void create_fi();
+    void create_fi(DataTable*);
     void reset_fi();
     void init_fi();
     void define_features(size_t);
@@ -109,27 +152,134 @@ class Ftrl {
     size_t get_nfeatures();
     size_t get_ncols();
     std::vector<uint64_t> get_colnames_hashes();
-    T get_alpha();
-    T get_beta();
-    T get_lambda1();
-    T get_lambda2();
+    double get_alpha();
+    double get_beta();
+    double get_lambda1();
+    double get_lambda2();
     uint64_t get_nbins();
     size_t get_nepochs();
     bool get_interactions();
-    FtrlParams<T> get_params();
+    FtrlParams get_params();
 
     // Setters
     void set_model(DataTable*);
     void set_fi(DataTable*);
-    void set_alpha(T);
-    void set_beta(T);
-    void set_lambda1(T);
-    void set_lambda2(T);
+    void set_alpha(double);
+    void set_beta(double);
+    void set_lambda1(double);
+    void set_lambda2(double);
     void set_nbins(uint64_t);
     void set_nepochs(size_t);
     void set_interactions(bool);
 };
 
+
+
+/*
+*  Set up FTRL parameters and initialize weights.
+*/
+template <typename T>
+Ftrl<T>::Ftrl(FtrlParams params_in) :
+  z(nullptr),
+  n(nullptr),
+  fi(nullptr),
+  params(params_in),
+  alpha(static_cast<T>(params_in.alpha)),
+  beta(static_cast<T>(params_in.beta)),
+  lambda1(static_cast<T>(params_in.lambda1)),
+  lambda2(static_cast<T>(params_in.lambda2)),
+  nbins(params_in.nbins),
+  nepochs(params_in.nepochs),
+  interactions(params_in.interactions),
+  ncols(0),
+  nfeatures(0),
+  model_trained(false)
+{
+}
+
+
+/*
+*  Make an appropriate fit call depending on a target column type.
+*/
+template <typename T>
+void Ftrl<T>::fit(const DataTable* dt_X, const DataTable* dt_y) {
+  define_features(dt_X->ncols);
+  is_dt_valid(dt_model, nbins, 2)? init_weights() : create_model();
+  is_dt_valid(dt_fi, nfeatures, 2)? init_fi() : create_fi(dt_X);
+
+  // Create column hashers
+  create_hashers(dt_X);
+
+  SType stype_y = dt_y->columns[0]->stype();
+  switch (stype_y) {
+    case SType::BOOL:    fit_binomial(dt_X, dt_y, sigmoid<T>); break;
+    case SType::INT8:    fit_binomial<int8_t>(dt_X, dt_y, identity<T>); break;
+    case SType::INT16:   fit_binomial<int16_t>(dt_X, dt_y, identity<T>); break;
+    case SType::INT32:   fit_binomial<int32_t>(dt_X, dt_y, identity<T>); break;
+    case SType::INT64:   fit_binomial<int64_t>(dt_X, dt_y, identity<T>); break;
+    case SType::FLOAT32: fit_binomial<float>(dt_X, dt_y, identity<T>); break;
+    case SType::FLOAT64: fit_binomial<double>(dt_X, dt_y, identity<T>); break;
+    case SType::STR32:   [[clang::fallthrough]];
+    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
+    default:             throw TypeError() << "Cannot predict for a column "
+                                           << "of type `" << stype_y << "`";
+  }
+
+  model_trained = true;
+}
+
+
+/*
+*  Fit FTRL model on a datatable.
+*/
+template <typename T>
+template <typename U /* column data type */, typename F /* link function */>
+void Ftrl<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y, F f) {
+  // Get the target column
+  auto d_y = static_cast<const U*>(c_y->data());
+  const RowIndex ri_y = c_y->rowindex();
+
+  // Do training for `nepochs`.
+  for (size_t e = 0; e < nepochs; ++e) {
+    #pragma omp parallel num_threads(config::nthreads)
+    {
+      // Arrays to store hashed features and their correspondent weights.
+      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      tptr<T> w = tptr<T>(new T[nfeatures]);
+
+      size_t ith = static_cast<size_t>(omp_get_thread_num());
+      size_t nth = static_cast<size_t>(omp_get_num_threads());
+
+      for (size_t i = ith; i < dt_X->nrows; i += nth) {
+          size_t j = ri_y[i];
+          if (j != RowIndex::NA && !ISNA<U>(d_y[j])) {
+            hash_row(x, i);
+            T p = f(predict_row(x, w));
+            T y = static_cast<T>(d_y[j]);
+            update(x, w, p, y);
+          }
+      }
+    }
+  }
+}
+
+
+/*
+*  Update weights based on prediction `p` and the actual target `y`.
+*/
+template <typename T>
+void Ftrl<T>::update(const uint64ptr& x, tptr<T>& w, T p, T y) {
+  T ia = 1 / alpha;
+  T g = p - y;
+  T gsq = g * g;
+
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    T sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
+    z[j] += g - sigma * w[i];
+    n[j] += gsq;
+  }
+}
 
 
 /*
@@ -141,7 +291,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X, F f) {
   xassert(model_trained);
   define_features(dt_X->ncols);
   init_weights();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi(dt_X);
 
   // Re-create hashers as `stype`s for prediction may be different from
   // those used for fitting
@@ -170,31 +320,12 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X, F f) {
 }
 
 
-
 /*
 *  Set column names for `dt_model` and default parameter values.
 */
 template <typename T>
 const std::vector<std::string> Ftrl<T>::model_colnames = {"z", "n"};
 
-template <typename T>
-const FtrlParams<T> Ftrl<T>::default_params = {static_cast<T>(0.005), static_cast<T>(1.0), static_cast<T>(0.0), static_cast<T>(1.0),
-                                               1000000, 1, false};
-
-/*
-*  Set up FTRL parameters and initialize weights.
-*/
-template <typename T>
-Ftrl<T>::Ftrl(FtrlParams<T> params_in) :
-  z(nullptr),
-  n(nullptr),
-  fi(nullptr),
-  params(params_in),
-  ncols(0),
-  nfeatures(0),
-  model_trained(false)
-{
-}
 
 
 /*
@@ -203,13 +334,13 @@ Ftrl<T>::Ftrl(FtrlParams<T> params_in) :
 template <typename T>
 T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w) {
   T wTx = 0;
-  T l1 = params.lambda1;
-  T ia = 1 / params.alpha;
-  T rr = params.beta * ia + params.lambda2;
+  T l1 = lambda1;
+  T ia = 1 / alpha;
+  T rr = beta * ia + lambda2;
+  T zero = static_cast<T>(0.0);
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T absw = std::max(std::abs(z[j]) - l1, 0.0f) /
-                  (std::sqrt(n[j]) * ia + rr);
+    T absw = std::max(std::abs(z[j]) - l1, zero) / (std::sqrt(n[j]) * ia + rr);
     w[i] = -std::copysign(absw, z[j]);
     wTx += w[i];
     fi[i] += absw; // Update feature importance vector
@@ -218,28 +349,10 @@ T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w) {
 }
 
 
-/*
-*  Update weights based on prediction `p` and the actual target `y`.
-*/
-template <typename T>
-void Ftrl<T>::update(const uint64ptr& x, tptr<T>& w, T p, T y) {
-  T ia = 1 / params.alpha;
-  T g = p - y;
-  T gsq = g * g;
-
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    T sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
-    z[j] += g - sigma * w[i];
-    n[j] += gsq;
-  }
-}
-
-
 template <typename T>
 void Ftrl<T>::create_model() {
-  Column* col_z = Column::new_data_column(stype<T>::get_stype(), params.nbins);
-  Column* col_n = Column::new_data_column(stype<T>::get_stype(), params.nbins);
+  Column* col_z = Column::new_data_column(stype<T>::get_stype(), nbins);
+  Column* col_n = Column::new_data_column(stype<T>::get_stype(), nbins);
   dt_model = dtptr(new DataTable({col_z, col_n}, model_colnames));
   reset_model();
 }
@@ -249,8 +362,8 @@ template <typename T>
 void Ftrl<T>::reset_model() {
   init_weights();
   if (z == nullptr || n == nullptr) return;
-  std::memset(z, 0, params.nbins * sizeof(T));
-  std::memset(n, 0, params.nbins * sizeof(T));
+  std::memset(z, 0, nbins * sizeof(T));
+  std::memset(n, 0, nbins * sizeof(T));
   model_trained = false;
 }
 
@@ -264,54 +377,35 @@ void Ftrl<T>::init_weights() {
 
 
 
-/*
-*  Fit FTRL model on a datatable.
-*/
 template <typename T>
-template <typename U, typename F>
-void Ftrl<T>::fit(const DataTable* dt_X, const Column* c_y, F f) {
-  define_features(dt_X->ncols);
-  is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
+void Ftrl<T>::create_fi(const DataTable* dt_x) {
+  reset_feature_names(); //FIXME
+  size_t ncols = dt_X->ncols;
+  const std::vector<std::string>& column_names = dt_X->get_names();
 
-  // Create column hashers
-  create_hashers(dt_X);
+  dt::fixed_height_string_col c_fi_names_col(nfeas);
+  dt::fixed_height_string_col::buffer sb(fi_names_col);
+  sb.commit_and_start_new_chunk(0);
+  for (const auto& feature_name : column_names) {
+    sb.write(feature_name);
+  }
 
-  // Get the target column
-  auto d_y = static_cast<const U*>(c_y->data());
-  const RowIndex ri_y = c_y->rowindex();
-
-  // Do training for `nepochs`.
-  for (size_t e = 0; e < params.nepochs; ++e) {
-    #pragma omp parallel num_threads(config::nthreads)
-    {
-      // Arrays to store hashed features and `w` weights.
-      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      tptr<T> w = tptr<T>(new T[nfeatures]);
-
-      size_t ith = static_cast<size_t>(omp_get_thread_num());
-      size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-      for (size_t i = ith; i < dt_X->nrows; i += nth) {
-          size_t j = ri_y[i];
-          if (j != RowIndex::NA && !ISNA<U>(d_y[j])) {
-            hash_row(x, i);
-            T p = f(predict_row(x, w));
-            T y = static_cast<T>(d_y[j]);
-            update(x, w, p, y);
-          }
+  if (interactions) {
+    for (size_t i = 0; i < ncols - 1; ++i) {
+      for (size_t j = i + 1; j < ncols; ++j) {
+        std::string feature_name = column_names[i] + ":" + column_names[j];
+        sb.write(feature_name);
       }
     }
   }
-  model_trained = true;
-}
 
+  sb.order();
+  sb.commit_and_start_new_chunk(nfeatures);
 
-
-template <typename T>
-void Ftrl<T>::create_fi() {
-  Column* col_fi = Column::new_data_column(SType::FLOAT64, nfeatures);
-  dt_fi = dtptr(new DataTable({col_fi}, {"feature_importance"}));
+  Column* c_fi_values = Column::new_data_column(stype<T>::get_stype(), nfeatures);
+  dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_column(), c_fi_values},
+                              {"feature_name, feature_importance"})
+                             );
   reset_fi();
 }
 
@@ -333,7 +427,7 @@ void Ftrl<T>::reset_fi() {
 template <typename T>
 void Ftrl<T>::define_features(size_t ncols_in) {
   ncols = ncols_in;
-  size_t n_inter_features = (params.interactions)? ncols * (ncols - 1) / 2 : 0;
+  size_t n_inter_features = (interactions)? ncols * (ncols - 1) / 2 : 0;
   nfeatures = ncols + n_inter_features;
 }
 
@@ -390,18 +484,18 @@ void Ftrl<T>::hash_row(uint64ptr& x, size_t row) {
   for (size_t i = 0; i < ncols; ++i) {
     // Hash a value adding a column name hash to it, so that the same value
     // in different columns results in different hashes.
-    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % params.nbins;
+    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % nbins;
   }
 
   // Do feature interactions if required. We may also want to test
   // just a simple `h = x[i+1] + x[j+1]` approach here.
-  if (params.interactions) {
+  if (interactions) {
     size_t count = 0;
     for (size_t i = 0; i < ncols - 1; ++i) {
       for (size_t j = i + 1; j < ncols; ++j) {
         std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
-        x[ncols + count] = h % params.nbins;
+        x[ncols + count] = h % nbins;
         count++;
       }
     }
@@ -479,25 +573,25 @@ size_t Ftrl<T>::get_nfeatures() {
 
 
 template <typename T>
-T Ftrl<T>::get_alpha() {
+double Ftrl<T>::get_alpha() {
   return params.alpha;
 }
 
 
 template <typename T>
-T Ftrl<T>::get_beta() {
+double Ftrl<T>::get_beta() {
   return params.beta;
 }
 
 
 template <typename T>
-T Ftrl<T>::get_lambda1() {
+double Ftrl<T>::get_lambda1() {
   return params.lambda1;
 }
 
 
 template <typename T>
-T Ftrl<T>::get_lambda2() {
+double Ftrl<T>::get_lambda2() {
   return params.lambda2;
 }
 
@@ -521,7 +615,7 @@ size_t Ftrl<T>::get_nepochs() {
 
 
 template <typename T>
-FtrlParams<T> Ftrl<T>::get_params() {
+FtrlParams Ftrl<T>::get_params() {
   return params;
 }
 
@@ -549,44 +643,51 @@ void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_alpha(T alpha_in) {
+void Ftrl<T>::set_alpha(double alpha_in) {
   params.alpha = alpha_in;
+  alpha = static_cast<T>(alpha_in);
 }
 
 
 template <typename T>
-void Ftrl<T>::set_beta(T beta_in) {
+void Ftrl<T>::set_beta(double beta_in) {
   params.beta = beta_in;
+  beta = static_cast<T>(beta_in);
 }
 
 
 template <typename T>
-void Ftrl<T>::set_lambda1(T lambda1_in) {
+void Ftrl<T>::set_lambda1(double lambda1_in) {
   params.lambda1 = lambda1_in;
+  lambda1 = static_cast<T>(lambda1_in);
 }
 
 
 template <typename T>
-void Ftrl<T>::set_lambda2(T lambda2_in) {
+void Ftrl<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
+  lambda2 = static_cast<T>(lambda2_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_nbins(uint64_t nbins_in) {
   params.nbins = nbins_in;
+  nbins = nbins_in;
 }
 
 
 template <typename T>
 void Ftrl<T>::set_interactions(bool interactions_in) {
   params.interactions = interactions_in;
+  interactions = interactions_in;
 }
 
 
 template <typename T>
 void Ftrl<T>::set_nepochs(size_t nepochs_in) {
   params.nepochs = nepochs_in;
+  nepochs = nepochs_in;
 }
 
 } // namespace dt
