@@ -180,59 +180,6 @@ PyObject* column(obj* self, PyObject* args) {
 
 
 
-PyObject* rbind(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  size_t final_ncols;
-  PyObject* list;
-  if (!PyArg_ParseTuple(args, "lO!:rbind",
-                        &final_ncols, &PyList_Type, &list))
-    return nullptr;
-  size_t ndts = static_cast<size_t>(PyList_Size(list));
-
-  constexpr size_t INVALID_INDEX = size_t(-1);
-  std::vector<DataTable*> dts;
-  std::vector<std::vector<size_t>> cols_to_append(final_ncols);
-  for (size_t j = 0; j < final_ncols; ++j) {
-    cols_to_append[j].resize(ndts);
-  }
-
-  for (size_t i = 0; i < ndts; i++) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    DataTable* dti;
-    PyObject* colslist;
-    if (!PyArg_ParseTuple(item, "O&O",
-                          &unwrap, &dti, &colslist))
-      return nullptr;
-    size_t j = 0;
-    if (colslist == Py_None) {
-      size_t ncolsi = dti->ncols;
-      for (; j < ncolsi; ++j) {
-        cols_to_append[j][i] = j;
-      }
-    } else {
-      size_t ncolsi = static_cast<size_t>(PyList_Size(colslist));
-      for (; j < ncolsi; ++j) {
-        PyObject* itemj = PyList_GET_ITEM(colslist, j);
-        cols_to_append[j][i] = (itemj == Py_None)? INVALID_INDEX
-                               : PyLong_AsSize_t(itemj);
-      }
-    }
-    for (; j < final_ncols; ++j) {
-      cols_to_append[j][i] = INVALID_INDEX;
-    }
-    dts.push_back(dti);
-  }
-
-  dt->rbind(dts, cols_to_append);
-
-  // Clear cached stypes/ltypes
-  _clear_types(self);
-
-  Py_RETURN_NONE;
-}
-
-
-
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   dt->reify();
@@ -290,7 +237,6 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
-  METHODv(rbind),
   METHOD0(materialize),
   METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */

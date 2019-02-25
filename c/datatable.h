@@ -105,8 +105,8 @@ class DataTable {
     void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(std::vector<DataTable*>, std::vector<intvec>);
-    void cbind(std::vector<DataTable*>);
+    void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
+    void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;
     size_t memory_footprint() const;
 

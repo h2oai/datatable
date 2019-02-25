@@ -248,12 +248,14 @@ void DatatableModule::init_methods() {
 
   init_methods_aggregate();
   init_methods_buffers();
+  init_methods_cbind();
   init_methods_csv();
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
   init_methods_nff();
   init_methods_options();
+  init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();
   init_methods_str();

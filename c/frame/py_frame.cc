@@ -272,6 +272,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   _init_key(gs);
   _init_init(mm);
   _init_names(mm, gs);
+  _init_rbind(mm);
   _init_replace(mm);
   _init_repr(mm);
   _init_stats(mm);
