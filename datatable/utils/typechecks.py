@@ -35,33 +35,6 @@ TImportError.__qualname__ = "ImportError"
 TImportError.__name__ = "ImportError"
 
 
-class _LazyClass(typesentry.MagicType):
-    def __init__(self, module, symbol):
-        self._module = module
-        self._symbol = symbol
-        self._checker = None
-
-    def name(self):
-        if self._module == "datatable":
-            return self._symbol
-        else:
-            return self._module + "." + self._symbol
-
-    def check(self, var):
-        if self._module in sys.modules:
-            mod = sys.modules[self._module]
-            cls = getattr(mod, self._symbol, tuple())
-            return isinstance(var, cls)
-        return False
-
-
-Frame_t = _LazyClass("datatable", "Frame")
-PandasDataFrame_t = _LazyClass("pandas", "DataFrame")
-PandasSeries_t = _LazyClass("pandas", "Series")
-NumpyArray_t = _LazyClass("numpy", "ndarray")
-NumpyMaskedArray_t = _LazyClass("numpy.ma", "MaskedArray")
-
-
 
 #-------------------------------------------------------------------------------
 # Warnings
@@ -93,4 +66,4 @@ core._register_function(6, DatatableWarning)
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
-           "Frame_t", "NumpyArray_t", "DatatableWarning", "dtwarn", "name_type")
+           "DatatableWarning", "dtwarn", "name_type")
