@@ -5,12 +5,14 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "frame/py_frame.h"
 #include "jay/jay_generated.h"
-#include "datatable.h"
+#include "python/_all.h"
+#include "python/args.h"
+#include "python/string.h"
 #include "utils/assert.h"
+#include "datatable.h"
 #include "writebuf.h"
-
-void init_jay();  // called once from datatablemodule.c
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
@@ -174,19 +176,6 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
 // Helpers
 //------------------------------------------------------------------------------
 
-void init_jay() {
-  stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
-  stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;
-  stype_to_jaytype[int(SType::INT16)]   = jay::Type_Int16;
-  stype_to_jaytype[int(SType::INT32)]   = jay::Type_Int32;
-  stype_to_jaytype[int(SType::INT64)]   = jay::Type_Int64;
-  stype_to_jaytype[int(SType::FLOAT32)] = jay::Type_Float32;
-  stype_to_jaytype[int(SType::FLOAT64)] = jay::Type_Float64;
-  stype_to_jaytype[int(SType::STR32)]   = jay::Type_Str32;
-  stype_to_jaytype[int(SType::STR64)]   = jay::Type_Str64;
-}
-
-
 static jay::Buffer saveMemoryRange(
     const MemoryRange* mbuf, WritableBuffer* wb)
 {
@@ -219,3 +208,88 @@ static flatbuffers::Offset<void> saveStats(
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }
+
+
+
+//------------------------------------------------------------------------------
+// py::Frame interface
+//------------------------------------------------------------------------------
+namespace py {
+
+
+static PKArgs args_to_jay(
+  1, 0, 1, false, false, {"path", "_strategy"}, "to_jay",
+
+R"(to_jay(self, path, _strategy='auto')
+--
+
+Save this frame to a binary file on disk, in .jay format.
+
+Parameters
+----------
+path: str
+    The destination file name. Although not necessary, we recommend
+    using extension ".jay" for the file. If the file exists, it will
+    be overwritten.
+    If this argument is omitted, the file will be created in memory
+    instead, and returned as a `bytes` object.
+
+_strategy: 'mmap' | 'write' | 'auto'
+    Which method to use for writing the file to disk. The "write"
+    method is more portable across different operating systems, but
+    may be slower. This parameter has no effect when `path` is
+    omitted.
+)");
+
+
+oobj Frame::to_jay(const PKArgs& args) {
+  // path
+  oobj path = args[0].to<oobj>(ostring(""));
+  if (!path.is_string()) {
+    throw TypeError() << "Parameter `path` in Frame.to_jay() should be a "
+        "string, instead got " << path.typeobj();
+  }
+  path = oobj::import("os", "path", "expanduser").call({path});
+  std::string filename = path.to_string();
+
+  // _strategy
+  auto strategy = args[1].to<std::string>("auto");
+  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                   (strategy == "write") ? WritableBuffer::Strategy::Write :
+                   (strategy == "auto")  ? WritableBuffer::Strategy::Auto :
+                                           WritableBuffer::Strategy::Unknown;
+  if (sstrategy == WritableBuffer::Strategy::Unknown) {
+    throw TypeError() << "Parameter `_strategy` in Frame.to_jay() should be "
+        "one of 'mmap', 'write' or 'auto'; instead got '" << strategy << "'";
+  }
+
+  if (filename.empty()) {
+    MemoryRange mr = dt->save_jay();
+    auto data = static_cast<const char*>(mr.xptr());
+    auto size = static_cast<Py_ssize_t>(mr.size());
+    return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
+  }
+  else {
+    dt->save_jay(filename, sstrategy);
+    return None();
+  }
+}
+
+
+
+void Frame::Type::_init_jay(Methods& mm) {
+  ADD_METHOD(mm, &Frame::to_jay, args_to_jay);
+
+  stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
+  stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;
+  stype_to_jaytype[int(SType::INT16)]   = jay::Type_Int16;
+  stype_to_jaytype[int(SType::INT32)]   = jay::Type_Int32;
+  stype_to_jaytype[int(SType::INT64)]   = jay::Type_Int64;
+  stype_to_jaytype[int(SType::FLOAT32)] = jay::Type_Float32;
+  stype_to_jaytype[int(SType::FLOAT64)] = jay::Type_Float64;
+  stype_to_jaytype[int(SType::STR32)]   = jay::Type_Str32;
+  stype_to_jaytype[int(SType::STR64)]   = jay::Type_Str64;
+}
+
+
+} // namespace py

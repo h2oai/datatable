@@ -58,6 +58,7 @@ class Frame : public PyObject {
       private:
         static void _init_cbind(Methods&);
         static void _init_init(Methods&);
+        static void _init_jay(Methods&);
         static void _init_key(GetSetters&);
         static void _init_names(Methods&, GetSetters&);
         static void _init_rbind(Methods&);
@@ -112,12 +113,13 @@ class Frame : public PyObject {
     oobj tail(const PKArgs&);
 
     // Conversion methods
+    oobj to_csv(const PKArgs&);
     oobj to_dict(const PKArgs&);
+    oobj to_jay(const PKArgs&);  // See jay/save_jay.cc
     oobj to_list(const PKArgs&);
-    oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj to_pandas(const PKArgs&);
-    oobj to_csv(const PKArgs&);
+    oobj to_tuples(const PKArgs&);
 
     // Stats functions
     oobj stat(const PKArgs&);

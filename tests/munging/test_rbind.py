@@ -263,7 +263,7 @@ def test_rbind_self():
 
 def test_rbind_mmapped(tempfile):
     dt0 = dt.Frame({"A": [1, 5, 7], "B": ["one", "two", None]})
-    dt0.save(tempfile)
+    dt0.to_jay(tempfile)
     del dt0
     dt1 = dt.open(tempfile)
     dt2 = dt.Frame({"A": [-1], "B": ["zero"]})

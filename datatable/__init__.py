@@ -29,7 +29,7 @@ from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
     repeat, by, join, sort, cbind, rbind
 )
-from .nff import save, open
+from .nff import open
 from .options import options
 from .str import split_into_nhot
 from .types import stype, ltype

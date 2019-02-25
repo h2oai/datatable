@@ -284,7 +284,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!pycolumn::static_init(m)) return nullptr;
     if (!pydatatable::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
-    init_jay();
 
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);

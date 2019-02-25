@@ -26,8 +26,6 @@ import time
 import warnings
 
 from datatable.lib import core
-from datatable.nff import save as dt_save
-from datatable.utils.typechecks import (TTypeError, TValueError)
 from datatable.options import options
 
 __all__ = ("Frame", )
@@ -45,9 +43,6 @@ class Frame(core.Frame):
 
     This is a primary data structure for datatable module.
     """
-
-    # Methods defined externally
-    save = dt_save
 
     def sort(self, *cols):
         """
@@ -163,6 +158,19 @@ class Frame(core.Frame):
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
 
+    def save(self, path, format="jay", _strategy="auto"):
+        warnings.warn(
+            "Method `Frame.save()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame.to_jay()` instead",
+            category=FutureWarning)
+        if format == "jay":
+            return self.to_jay(path, _strategy=_strategy)
+        elif format == "nff":
+            from datatable.nff import save_nff
+            return save_nff(self, path, _strategy=_strategy)
+        else:
+            raise ValueError("Unknown `format` value: %s" % format)
+
 
 
 
@@ -170,8 +178,6 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-core._register_function(4, TTypeError)
-core._register_function(5, TValueError)
 core._register_function(7, Frame)
 core._install_buffer_hooks(Frame())
 

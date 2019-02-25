@@ -155,7 +155,7 @@ Save a Frame into a binary format on disk, then open it later instantly, regardl
 
 ::
 
-   df.save("out.jay")
+   df.to_jay("out.jay")
    df2 = dt.open("out.jay")
 
 Basic Frame Properties
