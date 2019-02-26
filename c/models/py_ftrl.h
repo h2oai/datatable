@@ -59,23 +59,17 @@ class Ftrl : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
-    void init_dtft(dt::FtrlParams<T>);
-
     // Pickling support
     oobj m__getstate__(const PKArgs&);
     void m__setstate__(const PKArgs&);
 
     // Learning and predicting methods
     void fit(const PKArgs&);
-    void fit_binomial(DataTable*, DataTable*);
-    void fit_multinomial(DataTable*, DataTable*);
-    template <typename U>
-    void fit_regression(DataTable*, DataTable*);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
     void reset_feature_names();
 
-    // Getters and setters
+    // Getters
     oobj get_labels() const;
     oobj get_fi() const;
     oobj get_fi_tuple() const;
@@ -88,8 +82,11 @@ class Ftrl : public PyObject {
     oobj get_lambda1() const;
     oobj get_lambda2() const;
     oobj get_nbins() const;
-    oobj get_interactions() const;
     oobj get_nepochs() const;
+    oobj get_interactions() const;
+    oobj get_double_precision() const;
+
+    // Setters
     void set_labels(robj);
     void set_model(robj);
     void set_params_namedtuple(robj);
@@ -101,15 +98,7 @@ class Ftrl : public PyObject {
     void set_nbins(robj);
     void set_nepochs(robj);
     void set_interactions(robj);
-
-    // Model validation methods
-    bool has_negative_n(DataTable*) const;
-
-    // Link functions
-    static void normalize_rows(DataTable*);
-
-    // Helper functions
-    static void normalize_fi(RealColumn<T>*);
+    void set_double_precision(robj);
 };
 
 
