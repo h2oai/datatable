@@ -28,14 +28,14 @@ static void map_n(int64_t row0, int64_t row1, void** params) {
   }
 }
 
-template<typename IT, typename OT, OT (*OP)(IT)>
+template<typename IT, typename OT, OT (*OP)(IT, IT)>
 static void strmap_n(int64_t row0, int64_t row1, void** params) {
   StringColumn<IT>* col0 = static_cast<StringColumn<IT>*>(params[0]);
   Column* col1 = static_cast<Column*>(params[1]);
   const IT* arg_data = col0->offsets();
   OT* res_data = static_cast<OT*>(col1->data_w());
   for (int64_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(arg_data[i]);
+    res_data[i] = OP(arg_data[i - 1] & ~GETNA<IT>(), arg_data[i]);
   }
 }
 
@@ -107,6 +107,22 @@ inline static int8_t bool_inverse(int8_t x) {
 
 
 //------------------------------------------------------------------------------
+// String operators
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline static int8_t op_isna_str(T, T end) {
+  return ISNA<T>(end);
+}
+
+template <typename IT, typename OT>
+inline static OT op_len_str(IT start, IT end) {
+  return ISNA<IT>(end)? GETNA<OT>() : static_cast<OT>(end - start);
+}
+
+
+
+//------------------------------------------------------------------------------
 // Method resolution
 //------------------------------------------------------------------------------
 
@@ -129,8 +145,10 @@ static mapperfn resolve1(dt::unop opcode) {
 
 template<typename T>
 static mapperfn resolve_str(dt::unop opcode) {
+  using OT = typename std::make_signed<T>::type;
   switch (opcode) {
-    case dt::unop::ISNA: return strmap_n<T, int8_t, op_isna<T>>;
+    case dt::unop::ISNA: return strmap_n<T, int8_t, op_isna_str<T>>;
+    case dt::unop::LEN:  return strmap_n<T, OT, op_len_str<T, OT>>;
     default:             return nullptr;
   }
 }
@@ -169,6 +187,8 @@ Column* unaryop(dt::unop opcode, Column* arg)
   } else if (opcode == dt::unop::EXP || opcode == dt::unop::LOGE ||
              opcode == dt::unop::LOG10) {
     res_type = SType::FLOAT64;
+  } else if (opcode == dt::unop::LEN) {
+    res_type = arg_type == SType::STR32? SType::INT32 : SType::INT64;
   }
   void* params[2];
   params[0] = arg;
