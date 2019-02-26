@@ -72,7 +72,7 @@ class Ftrl : public PyObject {
     // Getters
     oobj get_labels() const;
     oobj get_fi() const;
-    oobj get_fi_tuple() const;
+    oobj get_normalized_fi(bool) const;
     oobj get_model() const;
     oobj get_colname_hashes() const;
     oobj get_params_namedtuple() const;

@@ -29,7 +29,7 @@
 
 
 using hashptr = std::unique_ptr<Hash>;
-enum class RegType : uint8_t {
+enum class RegType : size_t {
   NONE        = 0,
   REGRESSION  = 1,
   BINOMIAL    = 2,
@@ -114,17 +114,18 @@ class Ftrl : public dt::FtrlBase{
     size_t nepochs;
     bool interactions;
     bool double_precision;
+    size_t: 40;
+
+    // Whether or not the FTRL model was trained, `false` by default.
+    // `fit(...)` and `set_model(...)` methods will set this to `true`.
+    bool model_trained;
+    RegType reg_type;
 
     // Number of columns in a fitting datatable and a total number of features
     size_t dt_X_ncols;
 
     size_t nfeatures;
     strvec labels;
-
-    // Whether or not the FTRL model was trained, `false` by default.
-    // `fit(...)` and `set_model(...)` methods will set this to `true`.
-    bool model_trained;
-    RegType reg_type;
 
 
     // Column hashers and a vector of hashed column names
@@ -213,10 +214,10 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   nbins(params_in.nbins),
   nepochs(params_in.nepochs),
   interactions(params_in.interactions),
-  dt_X_ncols(0),
-  nfeatures(0),
   model_trained(false),
-  reg_type(RegType::NONE)
+  reg_type(RegType::NONE),
+  dt_X_ncols(0),
+  nfeatures(0)
 {
 }
 
@@ -237,7 +238,7 @@ void Ftrl<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y) {
     case SType::FLOAT64: fit_regression<double>(dt_X, dt_y); break;
     case SType::STR32:   [[clang::fallthrough]];
     case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
-    default:             throw TypeError() << "Cannot predict for a column "
+    default:             throw TypeError() << "Cannot predict for a target "
                                            << "of type `" << stype_y << "`";
   }
   model_trained = true;
@@ -261,7 +262,6 @@ void Ftrl<T>::fit(const DataTable* dt_X, const DataTable* dt_y, F f) {
 
   // Create column hashers
   create_hashers(dt_X);
-
 
   // Do training for `nepochs`.
   for (size_t e = 0; e < nepochs; ++e) {
@@ -690,26 +690,24 @@ DataTable* Ftrl<T>::get_model() {
 */
 template <typename T>
 DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
-  if (dt_fi != nullptr) {
-    DataTable* dt_fi_copy = dt_fi->copy();
-    if (normalize) {
-      auto c_fi = static_cast<RealColumn<T>*>(dt_fi_copy->columns[1]);
-      T max = c_fi->max();
-      T epsilon = std::numeric_limits<T>::epsilon();
-      T* d_fi = c_fi->elements_w();
+  if (dt_fi == nullptr) return nullptr;
 
-      T norm_factor = static_cast<T>(1.0);
-      if (fabs(max) > epsilon) norm_factor /= max;
+  DataTable* dt_fi_copy = dt_fi->copy();
+  if (normalize) {
+    auto c_fi = static_cast<RealColumn<T>*>(dt_fi_copy->columns[1]);
+    T max = c_fi->max();
+    T epsilon = std::numeric_limits<T>::epsilon();
+    T* d_fi = c_fi->elements_w();
 
-      for (size_t i = 0; i < c_fi->nrows; ++i) {
-        d_fi[i] *= norm_factor;
-      }
-      c_fi->get_stats()->reset();
+    T norm_factor = static_cast<T>(1.0);
+    if (fabs(max) > epsilon) norm_factor /= max;
+
+    for (size_t i = 0; i < c_fi->nrows; ++i) {
+      d_fi[i] *= norm_factor;
     }
-    return dt_fi_copy;
-  } else {
-    return nullptr;
+    c_fi->get_stats()->reset();
   }
+  return dt_fi_copy;
 }
 
 

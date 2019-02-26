@@ -374,25 +374,25 @@ void Ftrl::set_model(robj model) {
 
   bool double_precision = dtft->get_double_precision();
   SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
-  bool (*has_negatives)(const Column*) = (double_precision)? py::Validator::has_negatives<double> :
-                                                       py::Validator::has_negatives<float>;
+  bool (*has_negatives)(const Column*) = (double_precision)?
+                                         py::Validator::has_negatives<double>:
+                                         py::Validator::has_negatives<float>;
 
   for (size_t i = 0; i < ncols; ++i) {
     Column* col = dt_model->columns[i];
     SType c_stype = col->stype();
     if (col->stype() != stype) {
       throw ValueError() << "Column " << i << " in the model frame should "
-                         << "have a type of " << stype << ", whereas your "
-                         << "frame has the following column type: "
+                         << "have a type of " << stype << ", whereas it has "
+                         << "the following type: "
                          << c_stype;
     }
 
     if ((i % 2) && has_negatives(col)) {
       throw ValueError() << "Column " << i << " cannot have negative values";
     }
-
-    dtft->set_model(dt_model);
   }
+  dtft->set_model(dt_model);
 }
 
 
@@ -402,41 +402,23 @@ void Ftrl::set_model(robj model) {
 
 static GSArgs args_fi(
   "feature_importances",
-R"(One-column frame with the overall weight contributions calculated
-feature-wise during training and predicting. It can be interpreted as
-a feature importance information.)");
+R"(Two-column frame with feature names and the corresponding
+feature importances normalized to [0; 1].)");
 
 
 oobj Ftrl::get_fi() const {
-  // If model was trained, return feature importance info.
-  if (dtft->is_trained()) {
-    DataTable* dt_fi = dtft->get_fi();
-    py::oobj df_fi = py::oobj::from_new_reference(
-                       py::Frame::from_datatable(dt_fi)
-                     );
-    return df_fi;
-  } else {
-    // If model was not trained, return `None`.
-    return py::None();
-  }
+  return get_normalized_fi(true);
 }
 
+oobj Ftrl::get_normalized_fi(bool normalize) const {
+  if (!dtft->is_trained()) return py::None();
 
-oobj Ftrl::get_fi_tuple() const {
-  if (dtft->is_trained()) {
-    py::otuple fi(1);
-    DataTable* dt_fi = dtft->get_fi(false);
-    py::oobj df_fi = py::oobj::from_new_reference(
-      py::Frame::from_datatable(dt_fi)
-    );
-    fi.set(0, df_fi);
-    return std::move(fi);
-  } else {
-    return py::None();
-  }
+  DataTable* dt_fi = dtft->get_fi(normalize);
+  py::oobj df_fi = py::oobj::from_new_reference(
+                     py::Frame::from_datatable(dt_fi)
+                   );
+  return df_fi;
 }
-
-
 
 
 //------------------------------------------------------------------------------
@@ -743,7 +725,7 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
   py::otuple pickle(4);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
-  py::oobj fi = get_fi_tuple();
+  py::oobj fi = get_normalized_fi(false);
   py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
 
   pickle.set(0, params);

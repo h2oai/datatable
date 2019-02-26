@@ -600,7 +600,7 @@ def test_ftrl_fit_predict_from_setters():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
     df_target = dt.Frame([True] * ft.nbins)
-    # Train `ft` to get a model
+    # Train `ft`
     ft.fit(df_train, df_target)
     # Set this model and parameters to `ft2`
     ft2 = Ftrl()
@@ -838,7 +838,8 @@ def test_ftrl_reuse_pickled_empty_model():
     df_target = dt.Frame([True] * ft_unpickled.nbins)
     ft_unpickled.fit(df_train, df_target)
     model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
-    fi = dt.Frame([["id"], [0.0]], names = ["feature_name", "feature_importance"])
+    fi = dt.Frame([["id"], [0.0]])[:, [f[0], dt.float32(f[1])]]
+    fi.names = ["feature_name", "feature_importance"]
     assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)
 
@@ -856,6 +857,6 @@ def test_ftrl_pickling():
     assert (ft_unpickled.feature_importances.names ==
             ('feature_name', 'feature_importance',))
     assert (ft_unpickled.feature_importances.stypes ==
-            (stype.str32, stype.float64))
+            (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
