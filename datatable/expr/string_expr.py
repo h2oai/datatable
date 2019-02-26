@@ -20,41 +20,34 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-
-from .abs_expr import abs
 from .base_expr import BaseExpr
-from .binary_expr import BinaryOpExpr
-from .cast_expr import CastExpr
-from .column_expr import ColSelectorExpr, NewColumnExpr
-from .dtproxy import f, g
-from .exp_expr import exp, log, log10
-from .literal_expr import LiteralExpr
-from .reduce_expr import ReduceExpr, sum, count, first, mean, min, max, sd
-from .relop_expr import RelationalOpExpr
-from .string_expr import StringExpr
-from .unary_expr import UnaryOpExpr, isna
+# from datatable.frame import Frame
+from datatable.lib import core
 
-__all__ = (
-    "abs",
-    "count",
-    "exp",
-    "f",
-    "first",
-    "isna",
-    "log",
-    "log10",
-    "max",
-    "mean",
-    "min",
-    "sd",
-    "sum",
-    "BinaryOpExpr",
-    "CastExpr",
-    "ColSelectorExpr",
-    "NewColumnExpr",
-    "BaseExpr",
-    "LiteralExpr",
-    "ReduceExpr",
-    "RelationalOpExpr",
-    "UnaryOpExpr",
-)
+# See "c/expr/base_expr.h"
+BASEEXPR_OPCODE_STRINGFN = 8
+
+
+
+class StringExpr(BaseExpr):
+    __slots__ = ["_op", "_expr", "_params"]
+
+    def __init__(self, opcode, expr, *args):
+        super().__init__()
+        self._op = opcode
+        self._expr = expr
+        self._params = args
+
+    def __str__(self):
+        return "%s(%s, %r)" % (self._op, self._expr, self._params)
+
+    def _core(self):
+        return core.base_expr(BASEEXPR_OPCODE_STRINGFN,
+                              string_opcodes[self._op],
+                              self._expr._core(),
+                              self._params)
+
+
+string_opcodes = {
+    "re_match": 1,
+}

@@ -657,6 +657,14 @@ void py::base_expr::m__init__(py::PKArgs& args) {
       expr = new dt::expr_reduce_nullary(op);
       break;
     }
+    case dt::exprCode::STRINGFN: {
+      check_args_count(va, 3);
+      size_t op = va[0].to_size_t();
+      dt::base_expr* arg = to_base_expr(va[1]);
+      oobj params = va[2];
+      expr = dt::expr_string_fn(op, arg, params);
+      break;
+    }
   }
 }
 
