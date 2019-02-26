@@ -5,22 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "expr/base_expr.h"
 #include "expr/py_expr.h"
 #include "types.h"
 
 namespace expr
 {
-
-enum OpCode {
-  IsNa   = 1,
-  Minus  = 2,
-  Plus   = 3,
-  Invert = 4,
-  Abs    = 5,
-  Exp    = 6,
-  LogE   = 7,
-  Log10  = 8,
-};
 
 
 //------------------------------------------------------------------------------
@@ -121,34 +111,35 @@ inline static int8_t bool_inverse(int8_t x) {
 //------------------------------------------------------------------------------
 
 template<typename IT>
-static mapperfn resolve1(int opcode) {
+static mapperfn resolve1(dt::unop opcode) {
   switch (opcode) {
-    case IsNa:    return map_n<IT, int8_t, op_isna<IT>>;
-    case Minus:   return map_n<IT, IT, op_minus<IT>>;
-    case Abs:     return map_n<IT, IT, op_abs<IT>>;
-    case Exp:     return map_n<IT, double, op_exp<IT>>;
-    case LogE:    return map_n<IT, double, op_loge<IT>>;
-    case Log10:   return map_n<IT, double, op_log10<IT>>;
-    case Invert:
+    case dt::unop::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
+    case dt::unop::MINUS:   return map_n<IT, IT, op_minus<IT>>;
+    case dt::unop::ABS:     return map_n<IT, IT, op_abs<IT>>;
+    case dt::unop::EXP:     return map_n<IT, double, op_exp<IT>>;
+    case dt::unop::LOGE:    return map_n<IT, double, op_loge<IT>>;
+    case dt::unop::LOG10:   return map_n<IT, double, op_log10<IT>>;
+    case dt::unop::INVERT:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
+    default:                return nullptr;
   }
-  return nullptr;
 }
+
 
 template<typename T>
-static mapperfn resolve_str(int opcode) {
-  if (opcode == OpCode::IsNa) {
-    return strmap_n<T, int8_t, op_isna<T>>;
+static mapperfn resolve_str(dt::unop opcode) {
+  switch (opcode) {
+    case dt::unop::ISNA: return strmap_n<T, int8_t, op_isna<T>>;
+    default:             return nullptr;
   }
-  return nullptr;
 }
 
 
-static mapperfn resolve0(SType stype, int opcode) {
+static mapperfn resolve0(SType stype, dt::unop opcode) {
   switch (stype) {
     case SType::BOOL:
-      if (opcode == OpCode::Invert) return map_n<int8_t, int8_t, bool_inverse>;
+      if (opcode == dt::unop::INVERT) return map_n<int8_t, int8_t, bool_inverse>;
       return resolve1<int8_t>(opcode);
     case SType::INT8:    return resolve1<int8_t>(opcode);
     case SType::INT16:   return resolve1<int16_t>(opcode);
@@ -164,19 +155,19 @@ static mapperfn resolve0(SType stype, int opcode) {
 }
 
 
-Column* unaryop(int opcode, Column* arg)
+Column* unaryop(dt::unop opcode, Column* arg)
 {
-  if (opcode == OpCode::Plus) return arg->shallowcopy();
+  if (opcode == dt::unop::PLUS) return arg->shallowcopy();
   arg->reify();
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;
-  if (opcode == OpCode::IsNa) {
+  if (opcode == dt::unop::ISNA) {
     res_type = SType::BOOL;
-  } else if (arg_type == SType::BOOL && opcode == OpCode::Minus) {
+  } else if (arg_type == SType::BOOL && opcode == dt::unop::MINUS) {
     res_type = SType::INT8;
-  } else if (opcode == OpCode::Exp || opcode == OpCode::LogE ||
-             opcode == OpCode::Log10) {
+  } else if (opcode == dt::unop::EXP || opcode == dt::unop::LOGE ||
+             opcode == dt::unop::LOG10) {
     res_type = SType::FLOAT64;
   }
   void* params[2];
@@ -186,7 +177,7 @@ Column* unaryop(int opcode, Column* arg)
   mapperfn fn = resolve0(arg_type, opcode);
   if (!fn) {
     throw RuntimeError()
-      << "Unable to apply unary op " << opcode << " to column(stype="
+      << "Unable to apply unary op " << int(opcode) << " to column(stype="
       << arg_type << ")";
   }
 

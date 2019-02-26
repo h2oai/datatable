@@ -184,6 +184,9 @@ class BaseExpr:
         """Unary plus (no-op)."""
         return datatable.expr.UnaryOpExpr("+", self)
 
+    def len(self):
+        return datatable.expr.UnaryOpExpr("len", self)
+
 
     #----- Code generation -----------------------------------------------------
 

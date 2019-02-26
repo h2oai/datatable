@@ -422,7 +422,7 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 
 Column* expr_unaryop::evaluate_eager(workframe& wf) {
   Column* arg_res = arg->evaluate_eager(wf);
-  return expr::unaryop(int(unop_code), arg_res);
+  return expr::unaryop(unop_code, arg_res);
 }
 
 

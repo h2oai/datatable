@@ -44,6 +44,7 @@ unary_op_codes = {
     "exp": 6,
     "log": 7,
     "log10": 8,
+    "len": 9,
 }
 
 

@@ -67,6 +67,7 @@ enum class unop : size_t {
   EXP    = 6,
   LOGE   = 7,
   LOG10  = 8,
+  LEN    = 9,
 };
 
 class base_expr;
