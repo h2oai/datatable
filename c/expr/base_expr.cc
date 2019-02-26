@@ -357,8 +357,10 @@ static void init_unops() {
   unop_rules[id(unop::PLUS, bool8)] = int8;
   unop_rules[id(unop::ABS, bool8)] = int8;
   unop_rules[id(unop::INVERT, bool8)] = bool8;
+  unop_rules[id(unop::LEN, str32)] = int32;
+  unop_rules[id(unop::LEN, str64)] = int64;
 
-  unop_names.resize(1 + id(unop::LOG10));
+  unop_names.resize(1 + id(unop::LEN));
   unop_names[id(unop::ISNA)]   = "isna";
   unop_names[id(unop::MINUS)]  = "-";
   unop_names[id(unop::PLUS)]   = "+";
@@ -367,6 +369,7 @@ static void init_unops() {
   unop_names[id(unop::EXP)]    = "exp";
   unop_names[id(unop::LOGE)]   = "log";
   unop_names[id(unop::LOG10)]  = "log10";
+  unop_names[id(unop::LEN)]    = "len";
 }
 
 
@@ -422,7 +425,7 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 
 Column* expr_unaryop::evaluate_eager(workframe& wf) {
   Column* arg_res = arg->evaluate_eager(wf);
-  return expr::unaryop(int(unop_code), arg_res);
+  return expr::unaryop(unop_code, arg_res);
 }
 
 

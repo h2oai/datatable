@@ -4,12 +4,13 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-
 from .base_expr import BaseExpr
 from .literal_expr import LiteralExpr
-from .consts import ops_rules, division_ops, baseexpr_opcodes
-from datatable.utils.typechecks import TTypeError, TValueError
 from datatable.lib import core
+
+# See "c/expr/base_expr.h"
+BASEEXPR_OPCODE_BINOP = 2
+
 
 
 class BinaryOpExpr(BaseExpr):
@@ -31,7 +32,7 @@ class BinaryOpExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(baseexpr_opcodes["binop"],
+        return core.base_expr(BASEEXPR_OPCODE_BINOP,
                               binary_op_codes[self._op],
                               self._lhs._core(),
                               self._rhs._core())
@@ -41,7 +42,21 @@ class BinaryOpExpr(BaseExpr):
 #-------------------------------------------------------------------------------
 # Should be in sync with enum in "expr/binaryop.cc"
 binary_op_codes = {
-    "+": 1, "-": 2, "*": 3, "/": 4, "//": 5, "**": 6, "%": 7,
-    "&": 8, "|": 9, "<<": 10, ">>": 11,
-    "==": 12, "!=": 13, ">": 14, "<": 15, ">=": 16, "<=": 17
+    "+": 1,
+    "-": 2,
+    "*": 3,
+    "/": 4,
+    "//": 5,
+    "**": 6,
+    "%": 7,
+    "&": 8,
+    "|": 9,
+    "<<": 10,
+    ">>": 11,
+    "==": 12,
+    "!=": 13,
+    ">": 14,
+    "<": 15,
+    ">=": 16,
+    "<=": 17,
 }

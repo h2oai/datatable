@@ -4,12 +4,13 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-
 from .base_expr import BaseExpr
-from .consts import nas_map, baseexpr_opcodes
-from ..types import stype
 from datatable.lib import core
 from datatable.utils.typechecks import TTypeError
+
+# See "c/expr/base_expr.h"
+BASEEXPR_OPCODE_COLUMN = 1
+
 
 
 class ColSelectorExpr(BaseExpr):
@@ -32,13 +33,9 @@ class ColSelectorExpr(BaseExpr):
             raise TTypeError("Column selector should be an integer or "
                              "a string, not %r" % type(selector))
 
-    @property
-    def col_index(self):
-        return self._colid
-
     def _core(self):
-        opcode = baseexpr_opcodes["col"]
-        return core.base_expr(opcode, self._dtexpr._id, self._colexpr)
+        return core.base_expr(BASEEXPR_OPCODE_COLUMN,
+                              self._dtexpr._id, self._colexpr)
 
     def __str__(self):
         strf = str(self._dtexpr)
@@ -48,40 +45,6 @@ class ColSelectorExpr(BaseExpr):
         else:
             return "%s[%r]" % (strf, name)
 
-    def safe_name(self):
-        # This will be used as the name of the variable that contains the value
-        # of the column (for `i`-th row). The name will look as follows:
-        #     f_salary    or    f_17
-        # where "f" is the id of the datatable, and "salary" / "17" is the
-        # column name/ index.
-        # The only reason we don't always use the latter form is to improve
-        # code readability during debugging.
-        #
-        # self._colexpr can be either a column name, or a column id. We must be
-        # careful to ensure that this method never throws an error, even if the
-        # _dtexpr is unbound, or if the referenced column does not exist.
-        #
-        dt = self._dtexpr.get_datatable()
-        if not dt:
-            return str(self)
-        colid = self._colexpr
-        if isinstance(colid, int):
-            if colid >= dt.ncols:
-                colname = str(colid)
-            elif colid < -dt.ncols:
-                colname = str(-colid) + "_"
-            else:
-                colname = dt.names[colid]
-                if not ColSelectorExpr._colname_ok(colname):
-                    colname = str(colid % dt.ncols)
-        else:
-            colname = colid
-            if not ColSelectorExpr._colname_ok(colname):
-                try:
-                    colname = str(dt.colindex(colname))
-                except ValueError:
-                    colname = "_" + str(id(colname))
-        return str(self._dtexpr) + "_" + colname
 
     @staticmethod
     def _colname_ok(name):

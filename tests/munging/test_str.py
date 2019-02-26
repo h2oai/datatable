@@ -17,8 +17,8 @@
 import datatable as dt
 import pytest
 import random
-from datatable import stype
-
+from datatable import stype, f
+from tests import noop
 
 
 #-------------------------------------------------------------------------------
@@ -129,11 +129,38 @@ def test_split_into_nhot_long(seed, st):
 
 
 def test_split_into_nhot_view():
-  f0 = dt.Frame(A=["cat,dog,mouse", "mouse", None, "dog, cat"])
-  f1 = dt.split_into_nhot(f0[::-1, :])
-  f2 = dt.split_into_nhot(f0[3, :])
-  assert set(f1.names) == {"cat", "dog", "mouse"}
-  assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
-         [[1, 0, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]]
-  assert set(f2.names) == {"cat", "dog"}
-  assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
+    f0 = dt.Frame(A=["cat,dog,mouse", "mouse", None, "dog, cat"])
+    f1 = dt.split_into_nhot(f0[::-1, :])
+    f2 = dt.split_into_nhot(f0[3, :])
+    assert set(f1.names) == {"cat", "dog", "mouse"}
+    assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
+           [[1, 0, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]]
+    assert set(f2.names) == {"cat", "dog"}
+    assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
+
+
+
+#-------------------------------------------------------------------------------
+# len()
+#-------------------------------------------------------------------------------
+
+def test_len():
+    f0 = dt.Frame(A=["", "one", "2", "three", "four", None, "six", "seventy"])
+    f1 = f0[:, f.A.len()]
+    assert f1.stypes == (dt.stype.int32,)
+    assert f1.to_list() == [[0, 3, 1, 5, 4, None, 3, 7]]
+
+
+def test_len2():
+    f0 = dt.Frame([None, "", "mooo" * 10000], stype="str64")
+    f1 = f0[:, f[0].len()]
+    assert f1.stypes == (dt.stype.int64,)
+    assert f1.to_list() == [[None, 0, 40000]]
+
+
+def test_len_wrong_col():
+    f0 = dt.Frame(range(34))
+    with pytest.raises(TypeError) as e:
+        noop(f0[:, f[0].len()])
+    assert ("Unary operator `len` cannot be applied to a column with stype "
+            "`int32`" == str(e.value))

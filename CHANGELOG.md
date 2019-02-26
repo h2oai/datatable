@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.rbind()` can now also accept a list or tuple of frames (previously
   only a vararg sequence was allowed).
 
+- Method `.len()` can be applied to a string column to obtain the lengths
+  of strings in each row.
+
 
 ### Fixed
 
