@@ -19,8 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/py_frame.h"
 #include "models/dt_ftrl.h"
-#include "models/murmurhash.h"
 
-FtrlBase::~FtrlBase() {}
+
+namespace dt {
+  FtrlBase::~FtrlBase() {}
+}

@@ -554,7 +554,7 @@ void Ftrl<T>::create_fi(const DataTable* dt_X) {
 
   Column* c_fi_values = Column::new_data_column(stype<T>::get_stype(), nfeatures);
   dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_column(), c_fi_values},
-                              {"feature_name, feature_importance"})
+                              {"feature_name", "feature_importance"})
                              );
   init_fi();
 }

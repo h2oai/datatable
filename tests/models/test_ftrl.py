@@ -41,16 +41,18 @@ from tests import assert_equals, noop
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "nbins", "nepochs", "interactions"])
+                                          "nbins", "nepochs", "interactions",
+                                          "double_precision"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 nepochs = 6, interactions = True)
+                 nepochs = 6, interactions = True, double_precision = True)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
-                        nbins = 1000000, nepochs = 1, interactions = False)
+                        nbins = 1000000, nepochs = 1, interactions = False,
+                        double_precision = False)
 
 epsilon = 0.01
 
@@ -108,14 +110,20 @@ def test_ftrl_construct_wrong_interactions_type():
     assert ("Argument `interactions` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
+def test_ftrl_construct_wrong_double_precision_type():
+    with pytest.raises(TypeError) as e:
+        noop(Ftrl(double_precision = 2))
+    assert ("Argument `double_precision` in Ftrl() constructor should be a boolean, "
+            "instead got <class 'int'>" == str(e.value))
+
 
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `nepochs` or `interactions` to Ftrl "
-            "constructor, but not both at the same time" == str(e.value))
+            "`lambda2`, `nbins`, `nepochs`, `interactions` or `double_precision` "
+            "to Ftrl constructor, but not both at the same time" == str(e.value))
 
 
 def test_ftrl_construct_unknown_arg():
@@ -190,10 +198,12 @@ def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
                    nbins = tparams.nbins, nepochs = tparams.nepochs,
-                   interactions = tparams.interactions)
+                   interactions = tparams.interactions,
+                   double_precision = tparams.double_precision)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.nbins, tparams.nepochs, tparams.interactions)
+                         tparams.nbins, tparams.nepochs, tparams.interactions,
+                         tparams.double_precision)
 
 
 #-------------------------------------------------------------------------------
@@ -203,8 +213,8 @@ def test_ftrl_create_individual():
 def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
-    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
-            ft.nbins, ft.nepochs, ft.interactions) == tparams
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.nepochs,
+            ft.interactions, ft.double_precision) == tparams
 
 
 def test_ftrl_set_individual():
@@ -216,6 +226,7 @@ def test_ftrl_set_individual():
     ft.nbins = tparams.nbins
     ft.nepochs = tparams.nepochs
     ft.interactions = tparams.interactions
+    ft.double_precision = tparams.double_precision
     assert ft.params == tparams
 
 
@@ -359,42 +370,41 @@ def test_ftrl_model_untrained():
 def test_ftrl_set_negative_n_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
-        ft.model = (tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']],)
-    assert ("Element 0: Values in column `n` cannot be negative" == str(e.value))
+        ft.model = tmodel[:, {'z' : f.z,
+                              'n' : -f.n}][:, ['z', 'n']]
+    assert ("Column 1 cannot have negative values" == str(e.value))
 
 
 def test_ftrl_set_wrong_shape_model():
     ft = Ftrl(tparams)
     with pytest.raises(ValueError) as e:
-        ft.model = (tmodel[:, 'n'],)
-    assert ("Element 0: "
-            "FTRL model frame must have %d rows, and 2 columns, whereas your "
-            "frame has %d rows and 1 column" % (tparams.nbins, tparams.nbins)
-            == str(e.value))
+        ft.model = tmodel[:, 'n']
+    assert ("Model frame must have %d rows, and an even number of columns, "
+            "whereas your frame has %d rows and 1 column"
+            % (tparams.nbins, tparams.nbins) == str(e.value))
 
 
 def test_ftrl_set_wrong_type_model():
     ft = Ftrl(tparams)
-    model = (dt.Frame([["foo"] * tparams.nbins,
+    model = dt.Frame([["foo"] * tparams.nbins,
                       [random.random() for _ in range(tparams.nbins)]],
-                      names=['z', 'n']),)
+                      names=['z', 'n'])
     with pytest.raises(ValueError) as e:
         ft.model = model
-    assert ("Element 0: "
-            "FTRL model frame must have both column types as `float64`, whereas"
-            " your frame has the following column types: `str32` and `float64`"
+    assert ("Column 0 in the model frame should have a type of float64, whereas "
+            "your frame has the following column type: str32"
             == str(e.value))
 
 
 def test_ftrl_get_set_model():
     ft = Ftrl(tparams)
-    ft.model = (tmodel,)
-    assert_equals(ft.model[0], tmodel)
+    ft.model = tmodel
+    assert_equals(ft.model, tmodel)
 
 
 def test_ftrl_reset_model():
     ft = Ftrl(tparams)
-    ft.model = (tmodel,)
+    ft.model = tmodel
     ft.reset()
     assert ft.model == None
 
@@ -408,7 +418,7 @@ def test_ftrl_none_model():
 def test_ftrl_model_shallowcopy():
     model = dt.Frame(tmodel)
     ft = Ftrl(tparams)
-    ft.model = (tmodel,)
+    ft.model = tmodel
     ft.reset()
     assert ft.model == None
     assert_equals(tmodel, model)
@@ -526,7 +536,7 @@ def test_ftrl_fit_unique():
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
-    assert ft.model[0].to_list() == model
+    assert ft.model.to_list() == model
 
 
 def test_ftrl_fit_unique_ignore_none():
@@ -535,7 +545,7 @@ def test_ftrl_fit_unique_ignore_none():
     df_target = dt.Frame([True] * ft.nbins + [None] * ft.nbins)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
-    assert ft.model[0].to_list() == model
+    assert ft.model.to_list() == model
 
 
 def test_ftrl_fit_predict_bool():
@@ -602,7 +612,7 @@ def test_ftrl_fit_predict_from_setters():
     # Train `ft` and make predictions
     ft.fit(df_train, df_target)
     target1 = ft.predict(df_train)
-    assert_equals(ft.model[0], ft2.model[0])
+    assert_equals(ft.model, ft2.model)
     assert_equals(target1, target2)
 
 
@@ -627,7 +637,7 @@ def test_ftrl_fit_predict_view():
     ft.fit(df_train_range, df_target_range)
     predictions_range = ft.predict(df_train_range)
 
-    assert_equals(model[0], ft.model[0])
+    assert_equals(model, ft.model)
     assert_equals(predictions, predictions_range)
 
 
@@ -751,7 +761,7 @@ def test_ftrl_feature_importances():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi.stypes == (stype.str32, stype.float64)
+    assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names]
     assert fi[0, 1] < fi[2, 1]
@@ -787,7 +797,7 @@ def test_ftrl_interactions():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi.stypes == (stype.str32, stype.float64)
+    assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names + feature_interactions]
     assert fi[0, 1] < fi[2, 1]
@@ -829,7 +839,7 @@ def test_ftrl_reuse_pickled_empty_model():
     ft_unpickled.fit(df_train, df_target)
     model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
     fi = dt.Frame([["id"], [0.0]], names = ["feature_name", "feature_importance"])
-    assert ft_unpickled.model[0].to_list() == model
+    assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)
 
 
@@ -840,11 +850,9 @@ def test_ftrl_pickling():
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model[0].internal.check()
-    assert len(ft_unpickled.model) == 1
-    assert ft_unpickled.model[0].names == ('z', 'n')
-    assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
-    assert_equals(ft.model[0], ft_unpickled.model[0])
+    ft_unpickled.model.internal.check()
+    assert ft_unpickled.model.stypes == (stype.float32, stype.float32)
+    assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==
             ('feature_name', 'feature_importance',))
     assert (ft_unpickled.feature_importances.stypes ==

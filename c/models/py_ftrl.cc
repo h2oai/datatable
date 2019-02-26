@@ -373,7 +373,7 @@ void Ftrl::set_model(robj model) {
   }
 
   bool double_precision = dtft->get_double_precision();
-  SType stype = (double_precision)? SType::FLOAT32 : SType::FLOAT64;
+  SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
   bool (*has_negatives)(const Column*) = (double_precision)? py::Validator::has_negatives<double> :
                                                        py::Validator::has_negatives<float>;
 
@@ -645,7 +645,7 @@ oobj Ftrl::get_double_precision() const {
 
 void Ftrl::set_double_precision(robj py_double_precision) {
   bool double_precision = py_double_precision.to_bool_strict();
-  dtft->set_interactions(double_precision);
+  dtft->set_double_precision(double_precision);
 }
 
 
@@ -700,7 +700,7 @@ void Ftrl::set_params_namedtuple(robj params) {
 
 
 oobj Ftrl::get_params_tuple() const {
-  py::otuple params(7);
+  py::otuple params(8);
   params.set(0, get_alpha());
   params.set(1, get_beta());
   params.set(2, get_lambda1());
@@ -708,6 +708,7 @@ oobj Ftrl::get_params_tuple() const {
   params.set(4, get_nbins());
   params.set(5, get_nepochs());
   params.set(6, get_interactions());
+  params.set(7, get_double_precision());
   return std::move(params);
 }
 
@@ -761,7 +762,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
 
   dt::FtrlParams ftrl_params;
-  bool double_precision = (pickle[0].to_otuple())[7].to_bool_strict();
+  py::otuple params = pickle[0].to_otuple();
+
+  bool double_precision = params[7].to_bool_strict();
   if (double_precision) {
     dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
@@ -853,6 +856,8 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
              args_interactions);
+  ADD_GETSET(gs, &Ftrl::get_double_precision, &Ftrl::set_double_precision,
+             args_double_precision);
 
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
