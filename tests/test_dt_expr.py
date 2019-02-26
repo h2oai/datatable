@@ -87,41 +87,6 @@ def test_f_col_selector_unbound():
     assert str(f["a b c"]) == "f['a b c']"
 
 
-def test_f_col_selector_bound1():
-    with f.bind_datatable(dt.Frame()):
-        assert f.a.safe_name() == "f_a"
-        assert f.abcdefghijkl.safe_name() == "f_abcdefghijkl"
-        assert f.abcdefghijklm.safe_name() == "f__" + str(id("abcdefghijklm"))
-        assert f[0].safe_name() == "f_0"
-        assert f[1].safe_name() == "f_1"
-        assert f[-1].safe_name() == "f_1_"
-        assert f[1000000].safe_name() == "f_1000000"
-        assert f[""].safe_name() == "f__" + str(id(""))
-        assert f["0"].safe_name() == "f__" + str(id("0"))
-        assert f["A/B"].safe_name() == "f__" + str(id("A/B"))
-
-
-def test_f_col_selector_bound2():
-    dt0 = dt.Frame([[]] * 3, names=["a", "abcdefg", "abcdefghijklm"])
-    with f.bind_datatable(dt0):
-        assert (f.a).safe_name() == "f_a"
-        assert (f.abcdefg).safe_name() == "f_abcdefg"
-        assert (f.abcdefghijkl).safe_name() == "f_abcdefghijkl"
-        assert (f.abcdefghijklm).safe_name() == "f_2"
-        assert (f[0]).safe_name() == "f_a"
-        assert (f[1]).safe_name() == "f_abcdefg"
-        assert (f[2]).safe_name() == "f_2"  # "f_abcdefgijklm" is too long
-        assert (f[3]).safe_name() == "f_3"
-        assert (f[-1]).safe_name() == "f_2"
-        assert (f[-2]).safe_name() == "f_abcdefg"
-        assert (f[-3]).safe_name() == "f_a"
-        assert (f[-4]).safe_name() == "f_4_"
-        assert (f.BBB).safe_name() == "f_BBB"
-        assert (f[""]).safe_name() == "f__" + str(id(""))
-        assert (f["0"]).safe_name() == "f__" + str(id("0"))
-        assert (f["The End."]).safe_name() == "f__" + str(id("The End."))
-
-
 def test_f_col_selector_invalid():
     with pytest.raises(TypeError) as e:
         noop(f[2.5])

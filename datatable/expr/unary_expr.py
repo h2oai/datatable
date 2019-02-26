@@ -6,10 +6,12 @@
 #-------------------------------------------------------------------------------
 
 from .base_expr import BaseExpr
-from .consts import unary_ops_rules, unary_op_codes, baseexpr_opcodes
 from ..types import stype
 from datatable.utils.typechecks import TTypeError
 from datatable.lib import core
+
+# See c/expr/base_expr.h
+BASEEXPR_OPCODE_UNOP = 4
 
 
 class UnaryOpExpr(BaseExpr):
@@ -26,6 +28,35 @@ class UnaryOpExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(baseexpr_opcodes["unop"],
+        return core.base_expr(BASEEXPR_OPCODE_UNOP,
                               unary_op_codes[self._op],
                               self._arg._core())
+
+
+# Synchronize with OpCode in c/expr/unaryop.cc
+unary_op_codes = {
+    "isna": 1,
+    "-": 2,
+    "+": 3,
+    "~": 4,
+    "!": 4,  # same as '~'
+    "abs": 5,
+    "exp": 6,
+    "log": 7,
+    "log10": 8,
+}
+
+
+
+#-------------------------------------------------------------------------------
+# Exported functions
+#-------------------------------------------------------------------------------
+
+def isna(x):
+    if isinstance(x, BaseExpr):
+        return UnaryOpExpr("isna", x)
+    if isinstance(x, core.Frame):
+        if x.ncols != 1:
+            raise TTypeError("Frame must have a single column")
+        return x[:, isna(f[0])]
+    return (x is None) or (isinstance(x, float) and math.isnan(x))

@@ -4,14 +4,13 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-
 from .base_expr import BaseExpr
 from .binary_expr import binary_op_codes
-from .consts import baseexpr_opcodes
 from .literal_expr import LiteralExpr
-from ..types import stype
-from datatable.utils.typechecks import TValueError
 from datatable.lib import core
+
+# See "c/expr/base_expr.h"
+BASEEXPR_OPCODE_BINOP = 2
 
 
 
@@ -32,7 +31,7 @@ class RelationalOpExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(baseexpr_opcodes["binop"],
+        return core.base_expr(BASEEXPR_OPCODE_BINOP,
                               binary_op_codes[self._op],
                               self._lhs._core(),
                               self._rhs._core())
