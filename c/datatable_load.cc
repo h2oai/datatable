@@ -88,24 +88,28 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
 
 
 
-static py::PKArgs args_open_nff(
+namespace py {
+
+static PKArgs args_open_nff(
   5, 0, 0, false, false,
   {"colspec", "nrows", "path", "recode", "names"}, "open_nff", nullptr);
 
-static py::oobj open_nff(const py::PKArgs& args) {
+static oobj open_nff(const PKArgs& args) {
   DataTable* colspec = args[0].to_frame();
   size_t nrows = args[1].to_size_t();
   std::string path = args[2].to_string();
   int recode = args[3].to_bool_strict();
-  py::oobj names = args[4].to_oobj();
+  oobj names = args[4].to_oobj();
 
   DataTable* dt = DataTable::load(colspec, nrows, path, recode);
-  py::Frame* frame = py::Frame::from_datatable(dt);
-  frame->set_names(py::robj(names));
-  return py::oobj::from_new_reference(frame);
+  Frame* frame = Frame::from_datatable(dt);
+  frame->set_names(robj(names));
+  return oobj::from_new_reference(frame);
 }
 
 
-void py::DatatableModule::init_methods_nff() {
+void DatatableModule::init_methods_nff() {
   ADD_FN(&open_nff, args_open_nff);
 }
+
+}  // namespace py

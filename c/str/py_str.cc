@@ -18,16 +18,16 @@
 #include "frame/py_frame.h"
 #include "types.h"
 #include "utils/exceptions.h"
+namespace py {
 
 
-
-static py::PKArgs args_split_into_nhot(
+static PKArgs args_split_into_nhot(
     1, 0, 1, false, false,
     {"col", "sep"}, "split_into_nhot", nullptr
 );
 
 
-static py::oobj split_into_nhot(const py::PKArgs& args) {
+static oobj split_into_nhot(const PKArgs& args) {
   DataTable* dt = args[0].to_frame();
   std::string sep = args[1]? args[1].to_string() : ",";
 
@@ -49,11 +49,13 @@ static py::oobj split_into_nhot(const py::PKArgs& args) {
   }
 
   DataTable* res = dt::split_into_nhot(col0, sep[0]);
-  return py::Frame::from_datatable(res);
+  return Frame::from_datatable(res);
 }
 
 
 
-void py::DatatableModule::init_methods_str() {
+void DatatableModule::init_methods_str() {
   ADD_FN(&split_into_nhot, args_split_into_nhot);
 }
+
+} // namespace py

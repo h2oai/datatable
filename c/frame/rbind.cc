@@ -239,11 +239,9 @@ void Frame::Type::_init_rbind(Methods& mm) {
 }
 
 
-
 void DatatableModule::init_methods_rbind() {
   ADD_FN(&dt_rbind, args_dt_rbind);
 }
-
 
 }  // namespace py
 
