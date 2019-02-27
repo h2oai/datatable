@@ -106,6 +106,6 @@ static py::oobj open_nff(const py::PKArgs& args) {
 }
 
 
-void DatatableModule::init_methods_nff() {
+void py::DatatableModule::init_methods_nff() {
   ADD_FN(&open_nff, args_open_nff);
 }

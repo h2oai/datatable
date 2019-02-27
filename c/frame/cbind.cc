@@ -207,6 +207,6 @@ static py::oobj dt_cbind(const py::PKArgs& args) {
 }
 
 
-void DatatableModule::init_methods_cbind() {
+void py::DatatableModule::init_methods_cbind() {
   ADD_FN(&dt_cbind, args_dt_cbind);
 }

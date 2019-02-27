@@ -191,6 +191,6 @@ static py::oobj open_jay(const py::PKArgs& args) {
 }
 
 
-void DatatableModule::init_methods_jay() {
+void py::DatatableModule::init_methods_jay() {
   ADD_FN(&open_jay, args_open_jay);
 }

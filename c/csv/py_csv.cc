@@ -42,6 +42,6 @@ static py::oobj read_csv(const py::PKArgs& args)
 
 
 
-void DatatableModule::init_methods_csv() {
+void py::DatatableModule::init_methods_csv() {
   ADD_FN(&read_csv, args_read_csv);
 }

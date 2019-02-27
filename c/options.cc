@@ -213,7 +213,7 @@ static py::oobj get_option(const py::PKArgs& args) {
 }; // namespace config
 
 
-void DatatableModule::init_methods_options() {
+void py::DatatableModule::init_methods_options() {
   ADD_FN(&config::get_option, config::args_get_option);
   ADD_FN(&config::set_option, config::args_set_option);
 }

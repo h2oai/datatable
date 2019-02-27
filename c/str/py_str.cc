@@ -54,6 +54,6 @@ static py::oobj split_into_nhot(const py::PKArgs& args) {
 
 
 
-void DatatableModule::init_methods_str() {
+void py::DatatableModule::init_methods_str() {
   ADD_FN(&split_into_nhot, args_split_into_nhot);
 }

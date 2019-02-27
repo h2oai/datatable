@@ -443,6 +443,6 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
 
 
 
-void DatatableModule::init_methods_join() {
+void py::DatatableModule::init_methods_join() {
   _init_comparators();
 }

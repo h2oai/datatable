@@ -135,6 +135,6 @@ static py::oobj repeat(const py::PKArgs& args) {
 
 
 
-void DatatableModule::init_methods_repeat() {
+void py::DatatableModule::init_methods_repeat() {
   ADD_FN(&repeat, args_repeat);
 }
