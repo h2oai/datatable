@@ -29,21 +29,9 @@
 namespace py {
 
 
-enum class RegType : uint8_t {
-  NONE        = 0,
-  REGRESSION  = 1,
-  BINOMIAL    = 2,
-  MULTINOMIAL = 3
-};
-
-
 class Ftrl : public PyObject {
   private:
     dt::FtrlBase* dtft;
-    DataTable* feature_names;
-    py::olist labels;
-    RegType reg_type;
-    size_t : 56;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -67,7 +55,6 @@ class Ftrl : public PyObject {
     void fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
-    void reset_feature_names();
 
     // Getters
     oobj get_labels() const;
@@ -87,8 +74,8 @@ class Ftrl : public PyObject {
     oobj get_double_precision() const;
 
     // Setters
-    void set_labels(robj);
     void set_model(robj);
+    void set_labels(robj);
     void set_params_namedtuple(robj);
     void set_params_tuple(robj);
     void set_alpha(robj);

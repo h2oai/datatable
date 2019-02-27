@@ -30,9 +30,9 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
-                                 {"params", "labels", "alpha", "beta",
-                                 "lambda1", "lambda2", "nbins", "nepochs",
+PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
+                                 {"params", "alpha", "beta", "lambda1",
+                                 "lambda2", "nbins", "nepochs",
                                  "interactions", "double_precision"},
                                  "__init__", nullptr);
 
@@ -42,15 +42,14 @@ void Ftrl::m__init__(PKArgs& args) {
   dt::FtrlParams ftrl_params;
 
   bool defined_params           = !args[0].is_none_or_undefined();
-  bool defined_labels           = !args[1].is_none_or_undefined();
-  bool defined_alpha            = !args[2].is_none_or_undefined();
-  bool defined_beta             = !args[3].is_none_or_undefined();
-  bool defined_lambda1          = !args[4].is_none_or_undefined();
-  bool defined_lambda2          = !args[5].is_none_or_undefined();
-  bool defined_nbins            = !args[6].is_none_or_undefined();
-  bool defined_nepochs          = !args[7].is_none_or_undefined();
-  bool defined_interactions     = !args[8].is_none_or_undefined();
-  bool defined_double_precision = !args[9].is_none_or_undefined();
+  bool defined_alpha            = !args[1].is_none_or_undefined();
+  bool defined_beta             = !args[2].is_none_or_undefined();
+  bool defined_lambda1          = !args[3].is_none_or_undefined();
+  bool defined_lambda2          = !args[4].is_none_or_undefined();
+  bool defined_nbins            = !args[5].is_none_or_undefined();
+  bool defined_nepochs          = !args[6].is_none_or_undefined();
+  bool defined_interactions     = !args[7].is_none_or_undefined();
+  bool defined_double_precision = !args[8].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
@@ -90,55 +89,48 @@ void Ftrl::m__init__(PKArgs& args) {
   } else {
 
     if (defined_alpha) {
-      ftrl_params.alpha = args[2].to_double();
-      py::Validator::check_positive<double>(ftrl_params.alpha, args[2]);
+      ftrl_params.alpha = args[1].to_double();
+      py::Validator::check_positive<double>(ftrl_params.alpha, args[1]);
     }
 
     if (defined_beta) {
-      ftrl_params.beta = args[3].to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.beta, args[3]);
+      ftrl_params.beta = args[2].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.beta, args[2]);
     }
 
     if (defined_lambda1) {
-      ftrl_params.lambda1 = args[4].to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.lambda1, args[4]);
+      ftrl_params.lambda1 = args[3].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.lambda1, args[3]);
     }
 
     if (defined_lambda2) {
-      ftrl_params.lambda2 = args[5].to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.lambda2, args[5]);
+      ftrl_params.lambda2 = args[4].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.lambda2, args[4]);
     }
 
     if (defined_nbins) {
-      ftrl_params.nbins = static_cast<uint64_t>(args[6].to_size_t());
-      py::Validator::check_positive<uint64_t>(ftrl_params.nbins, args[6]);
+      ftrl_params.nbins = static_cast<uint64_t>(args[5].to_size_t());
+      py::Validator::check_positive<uint64_t>(ftrl_params.nbins, args[5]);
     }
 
     if (defined_nepochs) {
-      ftrl_params.nepochs = args[7].to_size_t();
+      ftrl_params.nepochs = args[6].to_size_t();
     }
 
     if (defined_interactions) {
-      ftrl_params.interactions = args[8].to_bool_strict();
+      ftrl_params.interactions = args[7].to_bool_strict();
     }
     if (defined_double_precision) {
-      ftrl_params.double_precision = args[9].to_bool_strict();
+      ftrl_params.double_precision = args[8].to_bool_strict();
     }
   }
 
-  if (defined_labels) {
-    set_labels(args[1]);
-  } else {
-    py::olist py_list(0);
-    set_labels(py::robj(py_list));
-  }
 
   if (ftrl_params.double_precision) {
     dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
     dtft = new dt::Ftrl<float>(ftrl_params);
   }
-  reg_type = RegType::NONE;
 }
 
 
@@ -255,17 +247,6 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-
-void Ftrl::reset_feature_names() {
-  if (feature_names != nullptr) {
-    delete feature_names;
-    feature_names = nullptr;
-  }
-}
-
-
-
-
 //------------------------------------------------------------------------------
 // reset()
 //------------------------------------------------------------------------------
@@ -288,7 +269,6 @@ Returns
 
 
 void Ftrl::reset(const PKArgs&) {
-  reg_type = RegType::NONE;
   dtft->reset();
 }
 
@@ -301,25 +281,30 @@ void Ftrl::reset(const PKArgs&) {
 
 static GSArgs args_labels(
   "labels",
-  R"(List of labels for multinomial regression.)");
+  R"(List of labels used for classification.)");
 
 
 oobj Ftrl::get_labels() const {
-  return py::olist(labels);
+  strvec labels = dtft->get_labels();
+  size_t nlabels = labels.size();
+
+  py::olist py_labels(nlabels);
+  for (size_t i = 0; i < nlabels; ++i) {
+    py::ostring py_label = py::ostring(labels[i]);
+    py_labels.set(i, std::move(py_label));
+  }
+  return py_labels;
 }
 
 
 void Ftrl::set_labels(robj py_labels) {
-  py::olist labels_in = py_labels.to_pylist();
-  size_t nlabels = labels_in.size();
-  if (nlabels == 1) {
-    throw ValueError() << "List of labels can not have one element";
+  py::olist py_labels_list = py_labels.to_pylist();
+  size_t nlabels = py_labels_list.size();
+
+  strvec labels(nlabels);
+  for (size_t i = 0; i < nlabels; ++i) {
+    labels[i] = py_labels_list[i].to_string();
   }
-  // This ensures that we always have at least one classifier
-  if (nlabels == 0) {
-    labels_in.append(py::ostring("target"));
-  }
-  labels = labels_in;
 }
 
 
@@ -336,23 +321,19 @@ trick. Both column types are `T64`.)");
 
 
 oobj Ftrl::get_model() const {
-  if (dtft->is_trained()) {
-    DataTable* dt_model = dtft->get_model();
-    py::oobj df_model = py::oobj::from_new_reference(
-                          py::Frame::from_datatable(dt_model)
-                        );
-    return df_model;
-  } else {
-    return py::None();
-  }
-}
+  if (!dtft->is_trained()) return py::None();
 
+  DataTable* dt_model = dtft->get_model();
+  py::oobj df_model = py::oobj::from_new_reference(
+                        py::Frame::from_datatable(dt_model)
+                      );
+  return df_model;
+}
 
 
 void Ftrl::set_model(robj model) {
   // Reset model if it was assigned `None` in Python
   if (model.is_none()) {
-    reg_type = RegType::NONE;
     dtft->reset();
     return;
   }
@@ -722,16 +703,20 @@ static PKArgs args___getstate__(
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
-  py::otuple pickle(4);
+  py::otuple pickle(5);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_normalized_fi(false);
-  py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
+  py::oobj py_model_type = py::oint(static_cast<int32_t>(
+                             dtft->get_model_type()
+                           ));
+  py::oobj py_labels = get_labels();
 
   pickle.set(0, params);
   pickle.set(1, model);
   pickle.set(2, fi);
-  pickle.set(3, py_reg_type);
+  pickle.set(3, py_model_type);
+  pickle.set(4, py_labels);
   return std::move(pickle);
 }
 
@@ -766,20 +751,19 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
 
   // Set regression type
-  reg_type = static_cast<RegType>(pickle[3].to_int32());
+  dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
 
+  // Set labels
+  set_labels(pickle[4]);
 }
 
 
 
 void Ftrl::m__dealloc__() {
-  PyObject* py_labels = std::move(labels).release();
-  Py_XDECREF(py_labels);
   if (dtft != nullptr) {
     delete dtft;
     dtft = nullptr;
   }
-  reset_feature_names();
 }
 
 
@@ -824,7 +808,7 @@ double_precision : bool
 
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
-  ADD_GETSET(gs, &Ftrl::get_labels, &Ftrl::set_labels, args_labels);
+  ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
   ADD_GETSET(gs, &Ftrl::get_model, &Ftrl::set_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
   ADD_GETSET(gs, &Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple,
