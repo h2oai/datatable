@@ -217,13 +217,35 @@ void Frame::rbind(const PKArgs& args) {
 
 
 
+
+//------------------------------------------------------------------------------
+// dt.rbind
+//------------------------------------------------------------------------------
+
+static PKArgs args_dt_rbind(
+  0, 0, 2, true, false, {"force", "bynames"}, "rbind", nullptr);
+
+static oobj dt_rbind(const PKArgs& args) {
+  oobj r = oobj::import("datatable", "Frame").call();
+  PyObject* rv = r.to_borrowed_ref();
+  reinterpret_cast<Frame*>(rv)->rbind(args);
+  return r;
+}
+
+
+
 void Frame::Type::_init_rbind(Methods& mm) {
   ADD_METHOD(mm, &Frame::rbind, args_rbind);
 }
 
 
+void DatatableModule::init_methods_rbind() {
+  ADD_FN(&dt_rbind, args_dt_rbind);
+}
 
 }  // namespace py
+
+
 
 
 //------------------------------------------------------------------------------
@@ -281,20 +303,234 @@ void DataTable::rbind(
 
 
 //------------------------------------------------------------------------------
-// dt.rbind
+//  Column::rbind()
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_dt_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", nullptr);
+Column* Column::rbind(std::vector<const Column*>& columns)
+{
+  // Is the current column "empty" ?
+  bool col_empty = (stype() == SType::VOID);
+  // Compute the final number of rows and stype
+  size_t new_nrows = this->nrows;
+  SType new_stype = col_empty? SType::BOOL : stype();
+  for (const Column* col : columns) {
+    new_nrows += col->nrows;
+    new_stype = std::max(new_stype, col->stype());
+  }
 
-static py::oobj dt_rbind(const py::PKArgs& args) {
-  py::oobj r = py::oobj::import("datatable", "Frame").call();
-  PyObject* rv = r.to_borrowed_ref();
-  reinterpret_cast<py::Frame*>(rv)->rbind(args);
-  return r;
+  // Create the resulting Column object. It can be either: an empty column
+  // filled with NAs; the current column (`this`); a clone of the current
+  // column (if it has refcount > 1); or a type-cast of the current column.
+  Column* res = nullptr;
+  if (col_empty) {
+    res = Column::new_na_column(new_stype, this->nrows);
+  } else if (stype() == new_stype) {
+    res = this;
+  } else {
+    res = this->cast(new_stype);
+  }
+  xassert(res->stype() == new_stype);
+
+  // TODO: Temporary Fix. To be resolved in #301
+  if (res->stats != nullptr) res->stats->reset();
+
+  // Use the appropriate strategy to continue appending the columns.
+  res->rbind_impl(columns, new_nrows, col_empty);
+
+  // If everything is fine, then the current column can be safely discarded
+  // -- the upstream caller will replace this column with the `res`.
+  if (res != this) delete this;
+  return res;
 }
 
 
-void DatatableModule::init_methods_rbind() {
-  ADD_FN(&dt_rbind, args_dt_rbind);
+
+
+//------------------------------------------------------------------------------
+// rbind string columns
+//------------------------------------------------------------------------------
+
+template <typename T>
+void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
+                                 size_t new_nrows, bool col_empty)
+{
+  // Determine the size of the memory to allocate
+  size_t old_nrows = nrows;
+  size_t new_strbuf_size = 0;     // size of the string data region
+  if (!col_empty) {
+    new_strbuf_size += strbuf.size();
+  }
+  for (size_t i = 0; i < columns.size(); ++i) {
+    const Column* col = columns[i];
+    if (col->stype() == SType::VOID) continue;
+    if (col->stype() != stype()) {
+      columns[i] = col->cast(stype());
+      delete col;
+      col = columns[i];
+    }
+    // TODO: replace with datasize(). But: what if col is not a string?
+    new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf.size();
+  }
+  size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
+
+  // Reallocate the column
+  mbuf.resize(new_mbuf_size);
+  strbuf.resize(new_strbuf_size);
+  nrows = new_nrows;
+  T* offs = offsets_w();
+
+  // Move the original offsets
+  size_t rows_to_fill = 0;  // how many rows need to be filled with NAs
+  T curr_offset = 0;        // Current offset within string data section
+  offs[-1] = 0;
+  if (col_empty) {
+    rows_to_fill += old_nrows;
+  } else {
+    curr_offset = offs[old_nrows - 1] & ~GETNA<T>();
+    offs += old_nrows;
+  }
+  for (const Column* col : columns) {
+    if (col->stype() == SType::VOID) {
+      rows_to_fill += col->nrows;
+    } else {
+      if (rows_to_fill) {
+        const T na = curr_offset | GETNA<T>();
+        set_value(offs, &na, sizeof(T), rows_to_fill);
+        offs += rows_to_fill;
+        rows_to_fill = 0;
+      }
+      const T* col_offsets = static_cast<const StringColumn<T>*>(col)->offsets();
+      size_t col_nrows = col->nrows;
+      for (size_t j = 0; j < col_nrows; ++j) {
+        T off = col_offsets[j];
+        *offs++ = off + curr_offset;
+      }
+      auto strcol = static_cast<const StringColumn<T>*>(col);
+      size_t sz = strcol->strbuf.size();
+      if (sz) {
+        void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
+        std::memcpy(target, strcol->strbuf.rptr(), sz);
+        curr_offset += sz;
+      }
+    }
+    delete col;
+  }
+  if (rows_to_fill) {
+    const T na = curr_offset | GETNA<T>();
+    set_value(offs, &na, sizeof(T), rows_to_fill);
+  }
 }
+
+
+
+//------------------------------------------------------------------------------
+// rbind fixed-width columns
+//------------------------------------------------------------------------------
+
+template <typename T>
+void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
+                             size_t new_nrows, bool col_empty)
+{
+  const T na = na_elem;
+  const void* naptr = static_cast<const void*>(&na);
+
+  // Reallocate the column's data buffer
+  size_t old_nrows = nrows;
+  size_t old_alloc_size = alloc_size();
+  size_t new_alloc_size = sizeof(T) * new_nrows;
+  mbuf.resize(new_alloc_size);
+  nrows = new_nrows;
+
+  // Copy the data
+  char* resptr = static_cast<char*>(mbuf.wptr());
+  char* resptr0 = resptr;
+  size_t rows_to_fill = 0;
+  if (col_empty) {
+    rows_to_fill = old_nrows;
+  } else {
+    resptr += old_alloc_size;
+  }
+  for (const Column* col : columns) {
+    if (col->stype() == SType::VOID) {
+      rows_to_fill += col->nrows;
+    } else {
+      if (rows_to_fill) {
+        set_value(resptr, naptr, sizeof(T), rows_to_fill);
+        resptr += rows_to_fill * sizeof(T);
+        rows_to_fill = 0;
+      }
+      if (col->stype() != stype()) {
+        Column* newcol = col->cast(stype());
+        delete col;
+        col = newcol;
+      }
+      std::memcpy(resptr, col->data(), col->alloc_size());
+      resptr += col->alloc_size();
+    }
+    delete col;
+  }
+  if (rows_to_fill) {
+    set_value(resptr, naptr, sizeof(T), rows_to_fill);
+    resptr += rows_to_fill * sizeof(T);
+  }
+  xassert(resptr == resptr0 + new_alloc_size);
+  (void)resptr0;
+}
+
+
+
+//------------------------------------------------------------------------------
+// rbind object columns
+//------------------------------------------------------------------------------
+
+void PyObjectColumn::rbind_impl(
+  std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
+{
+  size_t old_nrows = nrows;
+  size_t new_nrows = nnrows;
+
+  // Reallocate the column's data buffer
+  // `resize` fills all new elements with Py_None
+  mbuf.resize(sizeof(PyObject*) * new_nrows);
+  nrows = nnrows;
+
+  // Copy the data
+  PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
+  PyObject** dest_data0 = dest_data;
+  if (!col_empty) {
+    dest_data += old_nrows;
+  }
+  for (const Column* col : columns) {
+    if (col->stype() == SType::VOID) {
+      dest_data += col->nrows;
+    } else {
+      if (col->stype() != SType::OBJ) {
+        Column* newcol = col->cast(stype());
+        delete col;
+        col = newcol;
+      }
+      auto src_data = static_cast<PyObject* const*>(col->data());
+      for (size_t i = 0; i < col->nrows; ++i) {
+        Py_INCREF(src_data[i]);
+        Py_DECREF(*dest_data);
+        *dest_data = src_data[i];
+        dest_data++;
+      }
+    }
+    delete col;
+  }
+  xassert(dest_data == dest_data0 + new_nrows);
+  (void)dest_data0;
+}
+
+
+// Explicitly instantiate these templates:
+template class FwColumn<int8_t>;
+template class FwColumn<int16_t>;
+template class FwColumn<int32_t>;
+template class FwColumn<int64_t>;
+template class FwColumn<float>;
+template class FwColumn<double>;
+template class FwColumn<PyObject*>;
+template class StringColumn<uint32_t>;
+template class StringColumn<uint64_t>;

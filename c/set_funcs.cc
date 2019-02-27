@@ -468,7 +468,7 @@ static py::oobj symdiff(const py::PKArgs& args) {
 } // namespace dt
 
 
-void DatatableModule::init_methods_sets() {
+void py::DatatableModule::init_methods_sets() {
   ADD_FN(&dt::set::unique, dt::set::args_unique);
   ADD_FN(&dt::set::union_, dt::set::args_union);
   ADD_FN(&dt::set::intersect, dt::set::args_intersect);

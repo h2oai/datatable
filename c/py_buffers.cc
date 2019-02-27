@@ -622,7 +622,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 }
 
 
-void DatatableModule::init_methods_buffers() {
+void py::DatatableModule::init_methods_buffers() {
   ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
   pybuffers::single_col = size_t(-1);
   pybuffers::force_stype = SType::VOID;

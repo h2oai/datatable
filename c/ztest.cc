@@ -55,7 +55,7 @@ void test_assert(const std::function<void(void)>& f,
 
 
 
-void DatatableModule::init_tests() {
+void py::DatatableModule::init_tests() {
   ADD_FN(&dttest::tests, dttest::arg_tests);
 }
 

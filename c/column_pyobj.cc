@@ -102,47 +102,6 @@ void PyObjectColumn::reify() {
 }
 
 
-void PyObjectColumn::rbind_impl(
-  std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
-{
-  size_t old_nrows = nrows;
-  size_t new_nrows = nnrows;
-
-  // Reallocate the column's data buffer
-  // `resize` fills all new elements with Py_None
-  mbuf.resize(sizeof(PyObject*) * new_nrows);
-  nrows = nnrows;
-
-  // Copy the data
-  PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
-  PyObject** dest_data0 = dest_data;
-  if (!col_empty) {
-    dest_data += old_nrows;
-  }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      dest_data += col->nrows;
-    } else {
-      if (col->stype() != SType::OBJ) {
-        Column* newcol = col->cast(stype());
-        delete col;
-        col = newcol;
-      }
-      auto src_data = static_cast<PyObject* const*>(col->data());
-      for (size_t i = 0; i < col->nrows; ++i) {
-        Py_INCREF(src_data[i]);
-        Py_DECREF(*dest_data);
-        *dest_data = src_data[i];
-        dest_data++;
-      }
-    }
-    delete col;
-  }
-  xassert(dest_data == dest_data0 + new_nrows);
-  (void)dest_data0;
-}
-
-
 
 //----- Type casts -------------------------------------------------------------
 using MWBPtr = std::unique_ptr<MemoryWritableBuffer>;

@@ -124,8 +124,10 @@ static oobj kfold(const PKArgs& args) {
 }
 
 
-} // namespace py
 
 void DatatableModule::init_methods_kfold() {
-  ADD_FN(&py::kfold, py::args_kfold_simple);
+  ADD_FN(&kfold, args_kfold_simple);
 }
+
+
+} // namespace py

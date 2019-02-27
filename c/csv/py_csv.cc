@@ -15,12 +15,14 @@
 #include "options.h"
 #include "py_datatable.h"
 
+namespace py {
+
 
 //------------------------------------------------------------------------------
 // read_csv()
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_read_csv(
+static PKArgs args_read_csv(
   1, 0, 0, false, false, {"reader"}, "gread",
 
 R"(gread(reader)
@@ -31,13 +33,13 @@ file types, not just csv.
 )");
 
 
-static py::oobj read_csv(const py::PKArgs& args)
+static oobj read_csv(const PKArgs& args)
 {
-  py::robj pyreader = args[0];
+  robj pyreader = args[0];
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read_all();
-  return py::oobj::from_new_reference(
-          py::Frame::from_datatable(dtptr.release()));
+  return oobj::from_new_reference(
+          Frame::from_datatable(dtptr.release()));
 }
 
 
@@ -45,3 +47,5 @@ static py::oobj read_csv(const py::PKArgs& args)
 void DatatableModule::init_methods_csv() {
   ADD_FN(&read_csv, args_read_csv);
 }
+
+} // namespace py

@@ -129,7 +129,29 @@ void Frame::Type::_init_cbind(Methods& mm) {
 
 
 
+
+
+//------------------------------------------------------------------------------
+// dt.cbind
+//------------------------------------------------------------------------------
+
+static PKArgs args_dt_cbind(
+  0, 0, 1, true, false, {"force"}, "cbind", nullptr);
+
+static oobj dt_cbind(const PKArgs& args) {
+  oobj r = oobj::import("datatable", "Frame").call();
+  PyObject* rv = r.to_borrowed_ref();
+  reinterpret_cast<Frame*>(rv)->cbind(args);
+  return r;
+}
+
+
+void DatatableModule::init_methods_cbind() {
+  ADD_FN(&dt_cbind, args_dt_cbind);
+}
+
 }  // namespace py
+
 
 
 //------------------------------------------------------------------------------
@@ -189,24 +211,3 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
   set_names(newnames);
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// dt.cbind
-//------------------------------------------------------------------------------
-
-static py::PKArgs args_dt_cbind(
-  0, 0, 1, true, false, {"force"}, "cbind", nullptr);
-
-static py::oobj dt_cbind(const py::PKArgs& args) {
-  py::oobj r = py::oobj::import("datatable", "Frame").call();
-  PyObject* rv = r.to_borrowed_ref();
-  reinterpret_cast<py::Frame*>(rv)->cbind(args);
-  return r;
-}
-
-
-void DatatableModule::init_methods_cbind() {
-  ADD_FN(&dt_cbind, args_dt_cbind);
-}

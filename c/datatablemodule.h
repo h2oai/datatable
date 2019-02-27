@@ -17,8 +17,10 @@
 #define dt_DATATABLEMODULE_h
 #include "python/ext_module.h"
 
+namespace py {
 
-class DatatableModule : public py::ExtModule<DatatableModule> {
+
+class DatatableModule : public ExtModule<DatatableModule> {
   public:
     const char* name() const {
       return "_datatable";
@@ -46,6 +48,9 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
       void init_tests();
     #endif
 };
+
+
+}  // namespace py
 
 
 #ifdef DTDEBUG

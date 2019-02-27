@@ -163,17 +163,18 @@ static Column* column_from_jay(
 //------------------------------------------------------------------------------
 // Python open_jay()
 //------------------------------------------------------------------------------
+namespace py {
 
-static py::PKArgs args_open_jay(
+static PKArgs args_open_jay(
   1, 0, 0, false, false, {"file"}, "open_jay",
   "open_jay(file)\n--\n\n"
   "Open a Frame from the provided .jay file.\n");
 
 
-static py::oobj open_jay(const py::PKArgs& args) {
+static oobj open_jay(const PKArgs& args) {
   DataTable* dt = nullptr;
   if (args[0].is_bytes()) {
-    // TODO: create & use class py::obytes
+    // TODO: create & use class obytes
     PyObject* arg1 = args[0].to_borrowed_ref();
     const char* data = PyBytes_AS_STRING(arg1);
     size_t length = static_cast<size_t>(PyBytes_GET_SIZE(arg1));
@@ -186,11 +187,13 @@ static py::oobj open_jay(const py::PKArgs& args) {
   else {
     throw TypeError() << "Invalid type of the argument to open_jay()";
   }
-  py::Frame* frame = py::Frame::from_datatable(dt);
-  return py::oobj::from_new_reference(frame);
+  Frame* frame = Frame::from_datatable(dt);
+  return oobj::from_new_reference(frame);
 }
 
 
 void DatatableModule::init_methods_jay() {
   ADD_FN(&open_jay, args_open_jay);
 }
+
+} // namespace py

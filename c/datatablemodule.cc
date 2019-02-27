@@ -238,7 +238,7 @@ static py::oobj get_tracked_objects(const py::PKArgs&) {
 // Module definition
 //------------------------------------------------------------------------------
 
-void DatatableModule::init_methods() {
+void py::DatatableModule::init_methods() {
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
@@ -271,7 +271,7 @@ void DatatableModule::init_methods() {
 /* Called when Python program imports the module */
 PyMODINIT_FUNC PyInit__datatable() noexcept
 {
-  static DatatableModule dtmod;
+  static py::DatatableModule dtmod;
   PyObject* m = nullptr;
 
   try {
