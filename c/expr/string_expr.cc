@@ -25,6 +25,18 @@
 
 namespace dt {
 
+static Error translate_exception(const std::regex_error& e) {
+  auto ret = ValueError() << "Invalid regular expression: ";
+  const char* desc = e.what();
+  if (std::memcmp(desc, "The expression ", 15) == 0) {
+    ret << "it " << desc + 15;
+  } else {
+    ret << desc;
+  }
+  return ret;
+}
+
+
 
 //------------------------------------------------------------------------------
 // re_match()
@@ -71,7 +83,7 @@ expr_string_match_re::expr_string_match_re(base_expr* expr, py::oobj params) {
   try {
     regex = std::regex(pattern, std::regex::nosubs);
   } catch (const std::regex_error& e) {
-    throw ValueError() << "Invalid regular expression: " << e.what();
+    throw translate_exception(e);
   }
 }
 
