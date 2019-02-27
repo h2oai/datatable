@@ -45,7 +45,7 @@ except ImportError:
 
 __all__ = ("__version__", "__git_revision__",
            "Frame", "max", "mean", "min", "open", "sd", "sum", "count", "first",
-           "isna", "fread", "GenericReader", "save", "stype", "ltype", "f", "g",
+           "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
            "join", "by", "abs", "exp", "log", "log10",
            "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
            "DataTable", "options",

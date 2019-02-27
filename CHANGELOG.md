@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Method `.len()` can be applied to a string column to obtain the lengths
   of strings in each row.
 
+- Method `.re_match(re)` applies to a string column, and produces boolean
+  indicator whether each value matches the regular expression `re` or not.
+  The method matches the entire string, not just the beginning. Thus, it
+  most closely resembles Python function `re.fullmatch()`.
+
 
 ### Fixed
 

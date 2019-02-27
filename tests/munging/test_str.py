@@ -17,8 +17,9 @@
 import datatable as dt
 import pytest
 import random
+import re
 from datatable import stype, f
-from tests import noop
+from tests import noop, random_string
 
 
 #-------------------------------------------------------------------------------
@@ -164,3 +165,84 @@ def test_len_wrong_col():
         noop(f0[:, f[0].len()])
     assert ("Unary operator `len` cannot be applied to a column with stype "
             "`int32`" == str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# re_match()
+#-------------------------------------------------------------------------------
+
+def test_re_match():
+    f0 = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
+    f1 = f0[:, f.A.re_match("ab.")]
+    assert f1.stypes == (dt.stype.bool8,)
+    assert f1.to_list() == [[True, True, False, False, None, False]]
+
+
+def test_re_match2():
+    # re_match() matches the entire string, not just the beginning...
+    f0 = dt.Frame(A=["a", "ab", "abc", "aaaa"])
+    f1 = f0[:, f.A.re_match("a.?")]
+    assert f1.stypes == (dt.stype.bool8,)
+    assert f1.to_list() == [[True, True, False, False]]
+
+
+def test_re_match_ignore_groups():
+    # Groups within the regular expression ought to be ignored
+    f0 = dt.Frame(list("abcdibaldfn"))
+    f1 = f0[f[0].re_match("([a-c]+)"), :]
+    assert f1.to_list() == [["a", "b", "c", "b", "a"]]
+
+
+def test_re_match_bad_regex1():
+    with pytest.raises(ValueError) as e:
+        noop(dt.Frame(["abc"])[f.A.re_match("(."), :])
+    assert ("Invalid regular expression: it contained mismatched ( and )"
+            in str(e.value))
+
+
+def test_re_match_bad_regex2():
+    with pytest.raises(ValueError) as e:
+        noop(dt.Frame(["abc"])[f.A.re_match("\\j"), :])
+    assert ("Invalid regular expression: it contained an invalid escaped "
+            "character, or a trailing escape"
+            in str(e.value))
+
+
+def test_re_match_bad_regex3():
+    with pytest.raises(ValueError) as e:
+        noop(dt.Frame(["abc"])[f.A.re_match("???"), :])
+    assert ("Invalid regular expression: One of *?+{ was not preceded by a "
+            "valid regular expression"
+            in str(e.value))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
+def test_re_match_random(seed):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 100)
+    k = random.randint(2, 12)
+    random_re = ""
+    random_len = 0
+    while random_len < k:
+        t = random.random()
+        if t < 0.4:
+            random_re += "."
+        elif t < 0.6:
+            random_re += random.choice("abcdefgh")
+        elif t < 0.8:
+            random_re += ".*"
+            random_len += 3
+        else:
+            random_re += "\\w"
+        random_len += 1
+    random_rx = re.compile(random_re)
+
+    src = [random_string(k) for _ in range(n)]
+    frame = dt.Frame(A=src)
+    frame_res = frame[:, f.A.re_match(random_rx)]
+    assert frame_res.shape == (n, 1)
+
+    res = [bool(re.fullmatch(random_rx, s)) for s in src]
+    dtres = frame_res.to_list()[0]
+    assert res == dtres

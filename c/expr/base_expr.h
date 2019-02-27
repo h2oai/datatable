@@ -36,6 +36,7 @@ enum exprCode : size_t {
   CAST     = 5,
   UNREDUCE = 6,
   NUREDUCE = 7,
+  STRINGFN = 8,
 };
 
 enum class biop : size_t {
@@ -68,6 +69,10 @@ enum class unop : size_t {
   LOGE   = 7,
   LOG10  = 8,
   LEN    = 9,
+};
+
+enum class strop : size_t {
+  RE_MATCH = 1,
 };
 
 class base_expr;
@@ -111,8 +116,11 @@ class expr_column : public base_expr {
 };
 
 
+base_expr* expr_string_fn(size_t op, base_expr* arg, py::oobj params);
 
-}
+
+
+}  // namespace dt
 namespace py {
 
 
