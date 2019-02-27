@@ -212,56 +212,6 @@ void FwColumn<T>::resize_and_fill(size_t new_nrows)
 }
 
 
-template <typename T>
-void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                             size_t new_nrows, bool col_empty)
-{
-  const T na = na_elem;
-  const void* naptr = static_cast<const void*>(&na);
-
-  // Reallocate the column's data buffer
-  size_t old_nrows = nrows;
-  size_t old_alloc_size = alloc_size();
-  size_t new_alloc_size = sizeof(T) * new_nrows;
-  mbuf.resize(new_alloc_size);
-  nrows = new_nrows;
-
-  // Copy the data
-  char* resptr = static_cast<char*>(mbuf.wptr());
-  char* resptr0 = resptr;
-  size_t rows_to_fill = 0;
-  if (col_empty) {
-    rows_to_fill = old_nrows;
-  } else {
-    resptr += old_alloc_size;
-  }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      rows_to_fill += col->nrows;
-    } else {
-      if (rows_to_fill) {
-        set_value(resptr, naptr, sizeof(T), rows_to_fill);
-        resptr += rows_to_fill * sizeof(T);
-        rows_to_fill = 0;
-      }
-      if (col->stype() != stype()) {
-        Column* newcol = col->cast(stype());
-        delete col;
-        col = newcol;
-      }
-      std::memcpy(resptr, col->data(), col->alloc_size());
-      resptr += col->alloc_size();
-    }
-    delete col;
-  }
-  if (rows_to_fill) {
-    set_value(resptr, naptr, sizeof(T), rows_to_fill);
-    resptr += rows_to_fill * sizeof(T);
-  }
-  xassert(resptr == resptr0 + new_alloc_size);
-  (void)resptr0;
-}
-
 
 template <typename T>
 size_t FwColumn<T>::data_nrows() const {
