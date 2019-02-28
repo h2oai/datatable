@@ -17,6 +17,7 @@
 #define dt_UTILS_PARALLEL_h
 #include <functional>     // std::function
 #include <memory>         // std::unique_ptr
+#include "utils/function.h"
 #include "rowindex.h"
 #include "wstringcol.h"
 
@@ -40,7 +41,7 @@
 
 namespace dt {
 
-using rangefn = std::function<void(size_t, size_t, size_t)>;
+using rangefn = dt::function<void(size_t, size_t, size_t)>;
 
 /**
  * Execute function `run` in parallel, over the range `[0 .. nrows - 1]`.
