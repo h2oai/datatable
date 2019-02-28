@@ -161,7 +161,7 @@ ARCH := $(shell arch)
 OS_NAME ?= centos7
 PLATFORM := $(ARCH)_$(OS_NAME)
 
-DOCKER_REPO_NAME ?= docker.h2o.ai
+DOCKER_REPO_NAME ?= harbor.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
 CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
@@ -246,8 +246,8 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 
 ARCH_NAME ?= $(shell uname -m)
 DOCKER_IMAGE_TAG ?= 0.6.0-master.3
-CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
-UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
+CENTOS_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
+UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
 docker_image_tag:
 	@echo $(DOCKER_IMAGE_TAG)
