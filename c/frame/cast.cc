@@ -105,7 +105,6 @@ void Column::cast_into(PyObjectColumn*) const {
 //------------------------------------------------------------------------------
 // BoolColumn
 //------------------------------------------------------------------------------
-typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template <typename T>
 inline static void bool_cast_helper(size_t nrows, const int8_t* src, T* trg) {
@@ -123,7 +122,7 @@ inline static MemoryRange bool_str_cast_helper(
   const int8_t* src_data = src->elements_r();
   T* toffsets = target->offsets_w();
   size_t exp_size = src->nrows;
-  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
   char* tmpbuf = new char[1024];
   TRACK(tmpbuf, sizeof(tmpbuf), "BoolColumn::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
@@ -218,7 +217,7 @@ inline static MemoryRange int_str_cast_helper(
   size_t nrows, const IT* src, OT* toffsets)
 {
   size_t exp_size = nrows * sizeof(IT);
-  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
   char* tmpbuf = new char[1024];
   TRACK(tmpbuf, sizeof(tmpbuf), "IntColumn::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
@@ -362,7 +361,7 @@ inline static MemoryRange real_str_cast_helper(
   const IT* src_data = src->elements_r();
   OT* toffsets = target->offsets_w();
   size_t exp_size = src->nrows * sizeof(IT) * 2;
-  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
   char* tmpbuf = new char[1024];
   TRACK(tmpbuf, sizeof(tmpbuf), "RealColumn::tmpbuf");
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
@@ -541,7 +540,7 @@ inline static MemoryRange obj_str_cast_helper(
   // is not thread-safe! In addition `to_pystring_force()` may invoke
   // arbitrary python code when stringifying a value...
   size_t exp_size = nrows * sizeof(PyObject*);
-  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
   OT offset = 0;
   toffsets[-1] = 0;
   for (size_t i = 0; i < nrows; ++i) {

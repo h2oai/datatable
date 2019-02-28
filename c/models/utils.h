@@ -23,15 +23,6 @@
 #define dt_MODELS_UTILS_h
 
 
-/*
-* Note: this implementation does not disable this overload for array types,
-* see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
-*/
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 void print_progress(float, int);
