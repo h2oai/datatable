@@ -105,6 +105,7 @@ class Ftrl : public dt::FtrlBase{
   private:
     // Model datatable with the shape of (nbins, 2 * nlabels).
     dtptr dt_model;
+    std::vector<T*> z, n;
 
     // Feature importances datatable with the shape of (nfeatures, 2),
     // where first column contains feature names and the second one
@@ -158,14 +159,14 @@ class Ftrl : public dt::FtrlBase{
     // Predicting method
     dtptr predict(const DataTable*) override;
     T predict_row(const uint64ptr&, tptr<T>&, size_t);
-    void update(const uint64ptr&, tptr<T>&, T, T, size_t);
-    dtptr create_p(size_t);
+    void update(const uint64ptr&, const tptr<T>&, T, T, size_t);
+    dtptr create_dt_p(size_t);
 
     // Model and feature importance handling methods
     void create_model();
     void reset() override;
     void init_model();
-    void print_model(DataTable*, std::string);
+    void init_weights();
     void create_fi(const DataTable*);
     void init_fi();
     void define_features(size_t);
@@ -271,20 +272,20 @@ void Ftrl<T>::fit(const DataTable* dt_X, const DataTable* dt_y, F f) {
   size_t nlabels = labels.size();
 
   // Create model and feature importances datatables if needed
-  if (!is_dt_valid(dt_model, nbins, 2 * nlabels)) create_model();
+  is_dt_valid(dt_model, nbins, 2 * nlabels)? init_weights() : create_model();
   if (!is_dt_valid(dt_fi, nfeatures, 2)) create_fi(dt_X);
+
 
   // Create column hashers
   create_hashers(dt_X);
 
   // Do training for `nepochs`.
   for (size_t e = 0; e < nepochs; ++e) {
-    print_model(dt_model.get(), "Fit start:");
     #pragma omp parallel num_threads(config::nthreads)
     {
       // Arrays to store hashed features and their correspondent weights.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      tptr<T> w = tptr<T>(new T[nfeatures]);
+      tptr<T> w = tptr<T>(new T[nfeatures]());
 
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
@@ -309,14 +310,52 @@ void Ftrl<T>::fit(const DataTable* dt_X, const DataTable* dt_y, F f) {
               auto d_y = static_cast<const U*>(dt_y->columns[k]->data());
               const size_t j = ri_y[i];
               T p = f(predict_row(x, w, k));
-              // printf("thread: %zu; x: %llu; w: %f; p: %f\n", ith, x[0], static_cast<double>(w[0]), static_cast<double>(p));
               T y = static_cast<T>(d_y[j]);
               update(x, w, p, y, k);
             }
           }
       }
-    }
-    print_model(dt_model.get(), "Fit end:");
+    } // parallel region
+  } // epoch
+}
+
+
+/*
+*  Make a prediction for an array of hashed features.
+*/
+template <typename T>
+T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k) {
+  auto fi = static_cast<T*>(dt_fi->columns[1]->data_w());
+  T zero = static_cast<T>(0.0);
+  T wTx = zero;
+  T l1 = lambda1;
+  T ia = 1 / alpha;
+  T rr = beta * ia + lambda2;
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    T absw = std::max(std::abs(z[k][j]) - l1, zero) / (std::sqrt(n[k][j]) * ia + rr);
+    w[i] = -std::copysign(absw, z[k][j]);
+    wTx += w[i];
+    fi[i] += absw; // FIXME: Make fi thread private and do not change for prediction only.
+  }
+  return wTx;
+}
+
+
+/*
+*  Update weights based on prediction p and the actual target y.
+*/
+template <typename T>
+void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w, T p, T y, size_t k) {
+  T ia = 1 / alpha;
+  T g = p - y;
+  T gsq = g * g;
+
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ia;
+    z[k][j] += g - sigma * w[i];
+    n[k][j] += gsq;
   }
 }
 
@@ -365,37 +404,13 @@ void Ftrl<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y) {
 
 
 /*
-*  Update weights based on prediction p and the actual target y.
-*/
-template <typename T>
-void Ftrl<T>::update(const uint64ptr& x, tptr<T>& w, T p, T y, size_t k) {
-  auto z = static_cast<T*>(dt_model->columns[2*k]->data_w());
-  auto n = static_cast<T*>(dt_model->columns[2*k+1]->data_w());
-  T ia = 1 / alpha;
-  T g = p - y;
-  // printf("p: %f; y: %f\n", p, y);
-  T gsq = g * g;
-
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    T sigma = (std::sqrt(n[j] + gsq) - std::sqrt(n[j])) * ia;
-    printf("j: %zu; z: %f; n: %f; sigma: %f; ia: %f; gsq: %f; w: %f\n", j,
-           static_cast<double>(z[j]), static_cast<double>(n[j]),
-           static_cast<double>(sigma), static_cast<double>(ia),
-           static_cast<double>(gsq), static_cast<double>(w[i]));
-    z[j] += g - sigma * w[i];
-    n[j] += gsq;
-  }
-}
-
-
-/*
 *  Predict on a datatable and return a new datatable with
 *  the predicted probabilities.
 */
 template <typename T>
 dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   xassert(model_trained);
+  init_weights();
   is_dt_valid(dt_fi, nfeatures, 2)? init_fi() : create_fi(dt_X);
 
   // Re-create hashers as `stype`s for prediction may be different from
@@ -404,7 +419,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
   // Create a datatable for predictions.
   size_t nlabels = labels.size();
-  dtptr dt_p = create_p(dt_X->nrows);
+  dtptr dt_p = create_dt_p(dt_X->nrows);
 
 
   // Determine which link function we should use.
@@ -471,40 +486,6 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
 }
 
 
-/*
-*  Set column names for `dt_model` and default parameter values.
-*/
-template <typename T>
-const std::vector<std::string> Ftrl<T>::model_colnames = {"z", "n"};
-
-
-
-/*
-*  Make a prediction for an array of hashed features.
-*/
-template <typename T>
-T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k) {
-  auto z = static_cast<const T*>(dt_model->columns[2*k]->data());
-  auto n = static_cast<const T*>(dt_model->columns[2*k+1]->data());
-  auto fi = static_cast<T*>(dt_fi->columns[1]->data_w());
-  T wTx = 0;
-  T l1 = lambda1;
-  T ia = 1 / alpha;
-  T rr = beta * ia + lambda2;
-  T zero = static_cast<T>(0.0);
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    T absw = std::max(std::abs(z[j]) - l1, zero) / (std::sqrt(n[j]) * ia + rr);
-    w[i] = -std::copysign(absw, z[j]);
-    wTx += w[i];
-    fi[i] += absw; // FIXME: Make fi thread private and do not change for prediction only.
-    // printf("j: %zu; absw: %f; wTx: %f; z[j]: %f; n[j]: %f\n", j, absw, wTx, z[j], n[j]);
-
-  }
-  return wTx;
-}
-
-
 template <typename T>
 void Ftrl<T>::create_model() {
   size_t nlabels = labels.size();
@@ -517,11 +498,12 @@ void Ftrl<T>::create_model() {
   }
   dt_model = dtptr(new DataTable(std::move(cols_model)));
   init_model();
+  init_weights();
 }
 
 
 template <typename T>
-dtptr Ftrl<T>::create_p(size_t nrows) {
+dtptr Ftrl<T>::create_dt_p(size_t nrows) {
   size_t nlabels = labels.size();
   if (nlabels == 0) ValueError() << "Prediction frame cannot have zero labels";
 
@@ -547,7 +529,6 @@ void Ftrl<T>::reset() {
 template <typename T>
 void Ftrl<T>::init_model() {
   if (dt_model == nullptr) return;
-
   for (size_t i = 0; i < dt_model->ncols; ++i) {
     auto d_ci = static_cast<T*>(dt_model->columns[i]->data_w());
     std::memset(d_ci, 0, nbins * sizeof(T));
@@ -556,14 +537,16 @@ void Ftrl<T>::init_model() {
 
 
 template <typename T>
-void Ftrl<T>::print_model(DataTable* dt, std::string s) {
-  printf("\n\n%s\n", s.c_str());
-  if (dt == nullptr) return;
-  for (size_t i = 0; i < dt->ncols; ++i) {
-    auto d_ci = static_cast<const T*>(dt->columns[i]->data());
-    for (size_t j = 0; j < dt->nrows; ++j) {
-      printf("columns: %zu; row: %zu; value: %f\n", i, j, static_cast<double>(d_ci[j]));
-    }
+void Ftrl<T>::init_weights() {
+  size_t model_ncols = dt_model->ncols;
+  xassert(model_ncols % 2 == 0);
+  size_t nlabels = model_ncols / 2;
+
+  z.clear(); z.reserve(nlabels);
+  n.clear(); n.reserve(nlabels);
+  for (size_t k = 0; k < nlabels; ++k) {
+    z.push_back(static_cast<T*>(dt_model->columns[2*k]->data_w()));
+    n.push_back(static_cast<T*>(dt_model->columns[2*k + 1]->data_w()));
   }
 }
 
@@ -694,7 +677,7 @@ bool Ftrl<T>::is_dt_valid(const dtptr& dt, size_t nrows_in, size_t ncols_in) {
   // For the moment, the only purpose of this check is to make sure we didn't
   // do something wrong to the model and feature importance datatables.
   if (dt->ncols != ncols_in) {
-    throw ValueError() << "Datatable should have " << ncols_in << "column"
+    throw ValueError() << "Datatable should have " << ncols_in << " column"
                        << (ncols_in == 1? "" : "s") << ", got: " << dt->ncols;
   }
   if (dt->nrows != nrows_in) return false;
@@ -714,8 +697,6 @@ bool Ftrl<T>::is_trained() {
 template <typename T>
 DataTable* Ftrl<T>::get_model() {
   if (dt_model == nullptr) return nullptr;
-
-  print_model(dt_model.get(), "Get model:");
   return dt_model->copy();
 }
 
@@ -845,7 +826,6 @@ strvec Ftrl<T>::get_labels() {
 template <typename T>
 void Ftrl<T>::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
-  print_model(dt_model.get(), "Set model:");
   set_nbins(dt_model->nrows);
   dt_X_ncols = 0;
   nfeatures = 0;
