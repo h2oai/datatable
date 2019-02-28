@@ -538,7 +538,7 @@ oobj Ftrl::get_nbins() const {
 
 void Ftrl::set_nbins(robj py_nbins) {
   if (dtft->is_trained()) {
-    throw ValueError() << "Cannot set `nbins` for a trained model, "
+    throw ValueError() << "Cannot change `nbins` for a trained model, "
                        << "reset this model or create a new one";
   }
 
@@ -587,6 +587,10 @@ oobj Ftrl::get_interactions() const {
 
 
 void Ftrl::set_interactions(robj py_interactions) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `interactions` for a trained model, "
+                       << "reset this model or create a new one";
+  }
   bool interactions = py_interactions.to_bool_strict();
   dtft->set_interactions(interactions);
 }
@@ -607,6 +611,10 @@ oobj Ftrl::get_double_precision() const {
 
 
 void Ftrl::set_double_precision(robj py_double_precision) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `double_precision` for a trained model, "
+                       << "reset this model or create a new one";
+  }
   bool double_precision = py_double_precision.to_bool_strict();
   dtft->set_double_precision(double_precision);
 }
@@ -824,7 +832,6 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
              args_interactions);
   ADD_GETSET(gs, &Ftrl::get_double_precision, &Ftrl::set_double_precision,
              args_double_precision);
-
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
   ADD_METHOD(mm, &Ftrl::fit, args_fit);

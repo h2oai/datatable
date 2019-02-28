@@ -78,10 +78,19 @@ inline T identity(T x) {
 * - simplify the logloss formula to more compact branchless code.
 */
 template<typename T>
-inline T logloss(T p, bool y) {
+inline T log_loss(T p, bool y) {
   T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
+}
+
+
+/*
+* Squared loss.
+*/
+template<typename T1, typename T2>
+inline T1 squared_loss(T1 p, T2 y) {
+  return (p - y) * (p - y);
 }
 
 /*

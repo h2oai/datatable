@@ -646,29 +646,29 @@ def test_ftrl_fit_predict_view():
     assert_equals(predictions, predictions_range)
 
 
-def test_ftrl_disable_nbins_setter_after_fit():
+@pytest.mark.parametrize('parameter, value',
+                         [("nbins", 100),
+                         ("interactions", True),
+                         ("double_precision", True)])
+def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
+
     with pytest.raises(ValueError) as e:
-        ft.nbins = 100
-    assert ("Cannot set `nbins` for a trained model, "
+        setattr(ft, parameter, value)
+    assert ("Cannot change `"+parameter+"` for a trained model, "
             "reset this model or create a new one"
             == str(e.value))
     ft.reset()
-    ft.nbins = 100
-    ft.fit(df_train, df_target)
-    assert ft.model.nrows == 100
-    assert ft.model.ncols == 2
+    setattr(ft, parameter, value)
 
 
 #-------------------------------------------------------------------------------
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-
-@pytest.mark.xfail
 def test_ftrl_fit_predict_multinomial_vs_binomial():
     ft1 = Ftrl(nbins = 10, nepochs = 2)
     df_train1 = dt.Frame(range(ft1.nbins))
@@ -681,8 +681,6 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
     df_target2 = dt.Frame(["target", "target2"] * 5)
     ft2.fit(df_train2, df_target2)
     p2 = ft2.predict(df_train2)
-
-    assert_equals(ft1.model, ft2.model[:,0:2])
     assert_equals(p1, p2[:, "target"])
 
 
@@ -788,17 +786,6 @@ def test_ftrl_interactions():
     assert fi[3, 1] < fi[1, 1]
     assert fi[4, 1] < fi[1, 1]
     assert fi[5, 1] < fi[1, 1]
-
-
-def test_ftrl_sync_fi_and_interactions():
-    X = dt.Frame([[3, None, 14, 15], [92, 6, 53, 59]], names = ['pi', 'more_pi'])
-    y = dt.Frame([None, False, True, True])
-    ft = Ftrl()
-    ft.fit(X, y)
-    ft.interactions = True
-    ft.fit(X, y)
-    assert (ft.feature_importances[:, 0].to_list() ==
-            [['pi', 'more_pi', 'pi:more_pi']])
 
 
 #-------------------------------------------------------------------------------

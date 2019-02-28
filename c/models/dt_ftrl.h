@@ -103,7 +103,8 @@ class FtrlBase {
 template <typename T /* float or double */>
 class Ftrl : public dt::FtrlBase{
   private:
-    // Model datatable with the shape of (nbins, 2 * nlabels).
+    // Model datatable with the shape of (nbins, 2 * nlabels),
+    // and pointers to coefficients.
     dtptr dt_model;
     std::vector<T*> z, n;
 
@@ -316,7 +317,7 @@ void Ftrl<T>::fit(const DataTable* dt_X, const DataTable* dt_y, F f) {
           }
       }
     } // parallel region
-  } // epoch
+  } // epochs
 }
 
 
@@ -343,7 +344,7 @@ T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k) {
 
 
 /*
-*  Update weights based on prediction p and the actual target y.
+*  Update weights based on a prediction p and the actual target y.
 */
 template <typename T>
 void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w, T p, T y, size_t k) {
@@ -409,7 +410,10 @@ void Ftrl<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y) {
 */
 template <typename T>
 dtptr Ftrl<T>::predict(const DataTable* dt_X) {
-  xassert(model_trained);
+  if (!model_trained) {
+    throw ValueError() << "To make predictions, the model should be trained "
+                          "first";
+  }
   init_weights();
   is_dt_valid(dt_fi, nfeatures, 2)? init_fi() : create_fi(dt_X);
 
