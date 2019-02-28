@@ -598,52 +598,6 @@ CString StringColumn<T>::mode() const {
 
 
 
-//------------------------------------------------------------------------------
-// Type casts
-//------------------------------------------------------------------------------
-
-template <typename T>
-void StringColumn<T>::cast_into(PyObjectColumn* target) const {
-  const char* strdata = this->strdata();
-  const T* offsets = this->offsets();
-  PyObject** trg_data = target->elements_w();
-
-  T prev_offset = 0;
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T off_end = offsets[i];
-    if (ISNA<T>(off_end)) {
-      trg_data[i] = none();
-    } else {
-      auto len = static_cast<Py_ssize_t>(off_end - prev_offset);
-      trg_data[i] = PyUnicode_FromStringAndSize(strdata + prev_offset, len);
-      prev_offset = off_end;
-    }
-  }
-}
-
-
-template <>
-void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
-  const uint32_t* src_data = this->offsets();
-  uint64_t* trg_data = target->offsets_w();
-  uint64_t dNA = GETNA<uint64_t>() - GETNA<uint32_t>();
-  trg_data[-1] = 0;
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    uint32_t v = src_data[i];
-    trg_data[i] = ISNA<uint32_t>(v)? v + dNA : v;
-  }
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
-}
-
-template <>
-void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
-  size_t alloc_size = sizeof(uint64_t) * (1 + this->nrows);
-  std::memcpy(target->data_w(), this->data(), alloc_size);
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
-}
-
-
 
 //------------------------------------------------------------------------------
 // Integrity checks
