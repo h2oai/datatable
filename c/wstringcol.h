@@ -43,10 +43,6 @@ class writable_string_col {
     MemoryRange offdata;
     size_t n;
 
-    static constexpr size_t MAX_ITEM_SIZE = 0x7FFFFFFF;
-    static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
-    static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
-
   public:
     writable_string_col(size_t nrows);
     Column* to_column() &&;

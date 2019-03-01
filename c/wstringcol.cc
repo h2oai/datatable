@@ -92,9 +92,9 @@ void writable_string_col::buffer::write(const char* ch, size_t len) {
   // Note: `strbuf_used` may overflow during the conversion into uint32_t.
   // If this happens, we would have to convert into STR64. It will be
   // possible to restore the correct offsets, provided that no single string
-  // item exceeds MAX_ITEM_SIZE in size.
+  // item exceeds MAX_STRING_SIZE in size.
   if (ch) {
-    xassert(len <= MAX_ITEM_SIZE);
+    xassert(len <= Column::MAX_STRING_SIZE);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;

@@ -118,6 +118,10 @@ public:  // TODO: convert this into private
   size_t nrows;
 
 public:
+  static constexpr size_t MAX_STRING_SIZE = 0x7FFFFFFF;
+  static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
+  static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
+
   static Column* new_data_column(SType, size_t nrows);
   static Column* new_na_column(SType, size_t nrows);
   static Column* new_mmap_column(SType, size_t nrows, const std::string& filename);
@@ -125,7 +129,6 @@ public:
                                   bool recode = false);
   static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
-  static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
@@ -643,15 +646,19 @@ protected:
   void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 
-  //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
-
   friend Column;
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
   friend Column* new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 
+/**
+ * Use this function to create a column from existing offsets & strdata.
+ * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
+ * depending on the size of the data.
+ */
 Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+
 
 template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
 template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
