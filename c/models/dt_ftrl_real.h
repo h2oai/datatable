@@ -79,8 +79,8 @@ class FtrlReal : public dt::Ftrl {
 
     // Fit dispatcher and fitting methods
     void dispatch_fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double) override;
-    template <typename U, typename F>
-    void fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double, F);
+    template <typename U, typename F, typename G>
+    void fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double, F, G);
     template <typename U>
     void fit_regression(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
     void fit_binomial(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
@@ -201,10 +201,10 @@ void FtrlReal<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y,
 *  Fit model on a datatable.
 */
 template <typename T>
-template <typename U /* column data type */, typename F /* link function */>
+template <typename U /* column data type */, typename F /* link function */, typename G /* loss function */>
 void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                       const DataTable* dt_X_val, const DataTable* dt_y_val,
-                      double val, F f) {
+                      double val, F link, G loss) {
   define_features(dt_X->ncols);
   labels = dt_y->get_names();
   size_t nlabels = labels.size();
@@ -248,10 +248,6 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
       auto d_y0 = static_cast<const U*>(c_y0->data());
       auto& ri_y0 = c_y0->rowindex();
 
-      auto c_y0_val = dt_y_val->columns[0];
-      auto d_y0_val = static_cast<const U*>(c_y0_val->data());
-      auto& ri_y0_val = c_y0_val->rowindex();
-
       for (size_t c = 0; c < nchunks; ++c) {
         size_t chunk_start = ith + c * chunk_nrows;
         size_t chunk_end = std::min((c + 1) * chunk_nrows, dt_X->nrows);
@@ -272,44 +268,50 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                 auto& ri_y = dt_y->columns[k]->rowindex();
                 auto d_y = static_cast<const U*>(dt_y->columns[k]->data());
                 const size_t j = ri_y[i];
-                T p = f(predict_row(x, w, k));
+                T p = link(predict_row(x, w, k));
                 T y = static_cast<T>(d_y[j]);
                 update(x, w, p, y, k);
               }
             }
         } // for i
 
-        T loss_local = 0.0;
-        #pragma omp barrier
-        for (size_t i = ith; i < dt_X_val->nrows; i += nth) {
-            const size_t j0 = ri_y0_val[i];
-            if (j0 != RowIndex::NA && !ISNA<U>(d_y0_val[j0])) {
-              hash_row(x, i);
-              for (size_t k = 0; k < dt_y_val->ncols; ++k) {
-                auto& ri_y_val = dt_y_val->columns[k]->rowindex();
-                auto d_y_val = static_cast<const U*>(dt_y_val->columns[k]->data());
-                const size_t j = ri_y_val[i];
-                T p = f(predict_row(x, w, k));
-                T y = static_cast<T>(d_y_val[j]);
-                loss_local += squared_loss(p, y);
-                // printf("\nthread: %zu; i: %zu; p: %f; y: %f; loss: %f", ith, i, static_cast<double>(p), static_cast<double>(y), static_cast<double>(loss_local));
+        if (dt_X_val != nullptr) {
+		      auto c_y0_val = dt_y_val->columns[0];
+		      auto d_y0_val = static_cast<const U*>(c_y0_val->data());
+		      auto& ri_y0_val = c_y0_val->rowindex();
+
+          T loss_local = 0.0;
+          #pragma omp barrier
+          for (size_t i = ith; i < dt_X_val->nrows; i += nth) {
+              const size_t j0 = ri_y0_val[i];
+              if (j0 != RowIndex::NA && !ISNA<U>(d_y0_val[j0])) {
+                hash_row(x, i);
+                for (size_t k = 0; k < dt_y_val->ncols; ++k) {
+                  auto& ri_y_val = dt_y_val->columns[k]->rowindex();
+                  auto d_y_val = static_cast<const U*>(dt_y_val->columns[k]->data());
+                  const size_t j = ri_y_val[i];
+                  T p = link(predict_row(x, w, k));
+                  // T y = static_cast<T>(d_y_val[j]);
+                  loss_local += loss(p, d_y_val[j]);
+                  // printf("\nthread: %zu; i: %zu; p: %f; y: %f; loss: %f", ith, i, static_cast<double>(p), static_cast<double>(y), static_cast<double>(loss_local));
+                }
               }
-            }
-        } // for i
+          } // for i
 
 
-        #pragma omp atomic
-        loss_global += loss_local / total_val;
+          #pragma omp atomic
+          loss_global += loss_local / total_val;
 
-        #pragma omp barrier
-        printf("\nthread: %zu; loss_diff: %f; loss_global: %f; loss_global_prev: %f",ith, static_cast<double>(loss_global - loss_global_prev), static_cast<double>(loss_global), static_cast<double>(loss_global_prev));
+          #pragma omp barrier
+          printf("\nthread: %zu; loss_diff: %f; loss_global: %f; loss_global_prev: %f",ith, static_cast<double>(loss_global - loss_global_prev), static_cast<double>(loss_global), static_cast<double>(loss_global_prev));
 
-        #pragma omp atomic write
-        loss_global_prev = loss_global;
+          #pragma omp atomic write
+          loss_global_prev = loss_global;
 
-        #pragma omp barrier
-        #pragma omp atomic write
-        loss_global = 0.0;
+          #pragma omp barrier
+          #pragma omp atomic write
+          loss_global = 0.0;
+        }
       } // for j < nchunks
 
 
@@ -369,7 +371,7 @@ void FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
                          "in a binomial mode this model should be reset.";
   }
   model_type = FtrlModelType::BINOMIAL;
-  fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, val, sigmoid<T>);
+  fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, val, sigmoid<T>, log_loss<T>);
 }
 
 
@@ -384,7 +386,7 @@ void FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
                          "in a regression mode this model should be reset.";
   }
   model_type = FtrlModelType::REGRESSION;
-  fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, val, identity<T>);
+  fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, val, identity<T>, squared_loss<T, U>);
 }
 
 
@@ -409,7 +411,7 @@ void FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
   }
 
   // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
-  fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), val, sigmoid<T>);
+  fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), val, sigmoid<T>, log_loss<T>);
 }
 
 
