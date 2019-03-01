@@ -23,5 +23,8 @@
 
 
 namespace dt {
-  FtrlBase::~FtrlBase() {}
+
+
+Ftrl::~Ftrl() {}
+
 }

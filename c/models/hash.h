@@ -38,6 +38,9 @@ class Hash {
 };
 
 
+using hashptr = std::unique_ptr<Hash>;
+
+
 /*
 * Class to hash booleans.
 */

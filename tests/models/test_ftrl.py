@@ -681,7 +681,13 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
     df_target2 = dt.Frame(["target", "target2"] * 5)
     ft2.fit(df_train2, df_target2)
     p2 = ft2.predict(df_train2)
+    target_index = p2.colindex("target")
+    multinomial_model = ft2.model[:, {
+                                      "C0" : f[target_index * 2],
+                                      "C1" : f[target_index * 2 + 1]
+                                      }]
     assert_equals(p1, p2[:, "target"])
+    assert_equals(ft1.model, multinomial_model)
 
 
 def test_ftrl_fit_predict_multinomial():

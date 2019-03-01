@@ -21,17 +21,18 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_PY_FTRL_h
 #define dt_MODELS_PY_FTRL_h
-#include "models/dt_ftrl.h"
-#include "models/py_validator.h"
 #include "str/py_str.h"
 #include "python/string.h"
+#include "models/dt_ftrl.h"
+#include "models/dt_ftrl_real.h"
+#include "models/py_validator.h"
 
 namespace py {
 
 
 class Ftrl : public PyObject {
   private:
-    dt::FtrlBase* dtft;
+    dt::Ftrl* dtft;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -87,7 +88,6 @@ class Ftrl : public PyObject {
     void set_interactions(robj);
     void set_double_precision(robj);
 };
-
 
 
 } // namespace py
