@@ -160,8 +160,7 @@ def test_dt_properties(dt0):
                           ltype.bool, ltype.bool, ltype.str)
     assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
                           stype.bool8, stype.bool8, stype.str32)
-    assert dt0.internal.alloc_size > 500
-    assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
+    assert sys.getsizeof(dt0) > 500
 
 
 
