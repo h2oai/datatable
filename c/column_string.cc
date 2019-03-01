@@ -19,32 +19,44 @@
 // the path to the offsets
 static std::string path_str(const std::string& path);
 
+
 template <typename T>
 StringColumn<T>::StringColumn() : Column(0) {}
 
+
 template <typename T>
-StringColumn<T>::StringColumn(size_t nrows_)
-  : StringColumn<T>(nrows_, MemoryRange(), MemoryRange()) {}
+StringColumn<T>::StringColumn(size_t n)
+  : StringColumn<T>(n, MemoryRange(), MemoryRange()) {}
 
 
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   : Column(n)
 {
-  size_t exp_off_size = sizeof(T) * (n + 1);
+  size_t expected_offsets_size = sizeof(T) * (n + 1);
   if (mb) {
-    xassert(mb.size() == exp_off_size);
+    xassert(mb.size() == expected_offsets_size);
     xassert(mb.get_element<T>(0) == 0);
     xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
+    mbuf = std::move(mb);
+    strbuf = std::move(sb);
   } else {
     xassert(!sb);
-    mb = MemoryRange::mem(exp_off_size);
-    mb.set_element<T>(0, 0);
+    mbuf = MemoryRange::mem(expected_offsets_size);
+    mbuf.set_element<T>(0, 0);
   }
-
-  mbuf = std::move(mb);
-  strbuf = std::move(sb);
 }
+
+
+Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
+  if (data.size() == sizeof(uint32_t) * (n + 1)) {
+    return new StringColumn<uint32_t>(n, std::move(data), std::move(str));
+  }
+  else {
+    return new StringColumn<uint64_t>(n, std::move(data), std::move(str));
+  }
+}
+
 
 
 //==============================================================================

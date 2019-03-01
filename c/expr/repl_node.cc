@@ -366,12 +366,7 @@ colptr scalar_string_rn::make_column(SType st, size_t nrows) const {
   }
   MemoryRange strbuf = MemoryRange::mem(len);
   std::memcpy(strbuf.xptr(), value.data(), len);
-  Column* col = nullptr;
-  if (elemsize == 4) {
-    col = new StringColumn<uint32_t>(1, std::move(offbuf), std::move(strbuf));
-  } else {
-    col = new StringColumn<uint64_t>(1, std::move(offbuf), std::move(strbuf));
-  }
+  Column* col = new_string_column(1, std::move(offbuf), std::move(strbuf));
   col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
   return colptr(col);
 }

@@ -29,7 +29,7 @@ namespace dt {
 // TODO: merge into parallel.h
 
 //------------------------------------------------------------------------------
-// Fixed-height writable string column
+// (Fixed-height) writable string column
 //------------------------------------------------------------------------------
 
 /**
@@ -39,9 +39,13 @@ namespace dt {
  */
 class writable_string_col {
   private:
-    std::unique_ptr<MemoryWritableBuffer> strdata;
+    MemoryWritableBuffer strdata;
     MemoryRange offdata;
     size_t n;
+
+    static constexpr size_t MAX_ITEM_SIZE = 0x7FFFFFFF;
+    static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
+    static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
 
   public:
     writable_string_col(size_t nrows);

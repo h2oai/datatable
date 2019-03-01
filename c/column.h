@@ -588,7 +588,6 @@ template <typename T> class StringColumn : public Column
 
 public:
   StringColumn(size_t nrows);
-  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryRange&&, MemoryRange&&) override;
@@ -623,6 +622,7 @@ public:
 
 protected:
   StringColumn();
+  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
   void init_mmap(const std::string& filename) override;
   void open_mmap(const std::string& filename, bool recode) override;
@@ -647,8 +647,11 @@ protected:
 
   friend Column;
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
+  friend Column* new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
+
+Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
 template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
