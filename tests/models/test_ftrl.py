@@ -57,6 +57,22 @@ default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
 epsilon = 0.01
 
 
+#-------------------------------------------------------------------------------
+# Test early stopping
+#-------------------------------------------------------------------------------
+
+def test_ftrl_early_stopping():
+    ft = Ftrl(alpha = 0.1, nbins = 10, nepochs = 100)
+    r = range(ft.nbins)
+    print(list(r))
+    df_train = dt.Frame(r)
+    df_target = dt.Frame(r)
+    ft.fit(df_train, df_target, df_train, df_target, 0.5)
+    # p = ft.predict(df_train)
+    # delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    # assert max(delta) < epsilon
+
+
 
 #-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
@@ -527,7 +543,7 @@ def test_ftrl_predict_wrong_frame():
 
 
 #-------------------------------------------------------------------------------
-# Test `fit` and `predict` methods
+# Test `fit` and `predict` methods for binomial classification
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_unique():
@@ -719,7 +735,7 @@ def test_ftrl_fit_predict_multinomial():
 
 
 #-------------------------------------------------------------------------------
-# Test regression
+# Test regression for numerical targets
 #-------------------------------------------------------------------------------
 
 def test_ftrl_regression():

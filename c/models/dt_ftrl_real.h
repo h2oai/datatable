@@ -217,9 +217,25 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   // Create column hashers
   create_hashers(dt_X);
 
+  // Prepare data for early stopping
+  size_t chunk_nrows = dt_X->nrows;
+  size_t nchunks = 1;
+  int nthreads = config::nthreads;
+  size_t total_val = 0;
+
+  T loss_global = 0.0;
+  T loss_global_prev = 0.0;
+
+  if (dt_X_val != nullptr) {
+    chunk_nrows = std::min(static_cast<size_t>(ceil(val * dt_X->nrows)), dt_X->nrows);
+    nchunks = static_cast<size_t>(ceil(static_cast<double>(dt_X->nrows) / static_cast<double>(chunk_nrows)));
+    nthreads = std::min(static_cast<int>(chunk_nrows), nthreads);
+    total_val = dt_X_val->nrows * dt_y_val->ncols;
+  }
+
   // Do training for `nepochs`.
   for (size_t e = 0; e < nepochs; ++e) {
-    #pragma omp parallel num_threads(config::nthreads)
+    #pragma omp parallel num_threads(nthreads)
     {
       // Arrays to store hashed features and their correspondent weights.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -232,27 +248,72 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
       auto d_y0 = static_cast<const U*>(c_y0->data());
       auto& ri_y0 = c_y0->rowindex();
 
-      for (size_t i = ith; i < dt_X->nrows; i += nth) {
-          const size_t j0 = ri_y0[i];
-          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-          // dt_y has only one column that may contain NA's or be a view
-          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-          // columns as there are labels, and split_into_nhot() filters out
-          // NA's and can never be a view. Therefore, to ignore NA targets
-          // it is enough to check the condition below for the zero column only.
-          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-          if (j0 != RowIndex::NA && !ISNA<U>(d_y0[j0])) {
-            hash_row(x, i);
-            for (size_t k = 0; k < dt_y->ncols; ++k) {
-              auto& ri_y = dt_y->columns[k]->rowindex();
-              auto d_y = static_cast<const U*>(dt_y->columns[k]->data());
-              const size_t j = ri_y[i];
-              T p = f(predict_row(x, w, k));
-              T y = static_cast<T>(d_y[j]);
-              update(x, w, p, y, k);
+      auto c_y0_val = dt_y_val->columns[0];
+      auto d_y0_val = static_cast<const U*>(c_y0_val->data());
+      auto& ri_y0_val = c_y0_val->rowindex();
+
+      for (size_t c = 0; c < nchunks; ++c) {
+        size_t chunk_start = ith + c * chunk_nrows;
+        size_t chunk_end = std::min((c + 1) * chunk_nrows, dt_X->nrows);
+        #pragma omp barrier
+        for (size_t i = chunk_start; i < chunk_end; i += nth) {
+            // printf("\nthread: %zu; i: %zu; chunk_nrows: %zu; nchunks: %zu; chunk_start: %zu; chunk_end: %zu", ith, i, chunk_nrows, nchunks, chunk_start, chunk_end);
+            const size_t j0 = ri_y0[i];
+            // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+            // dt_y has only one column that may contain NA's or be a view
+            // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+            // columns as there are labels, and split_into_nhot() filters out
+            // NA's and can never be a view. Therefore, to ignore NA targets
+            // it is enough to check the condition below for the zero column only.
+            // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
+            if (j0 != RowIndex::NA && !ISNA<U>(d_y0[j0])) {
+              hash_row(x, i);
+              for (size_t k = 0; k < dt_y->ncols; ++k) {
+                auto& ri_y = dt_y->columns[k]->rowindex();
+                auto d_y = static_cast<const U*>(dt_y->columns[k]->data());
+                const size_t j = ri_y[i];
+                T p = f(predict_row(x, w, k));
+                T y = static_cast<T>(d_y[j]);
+                update(x, w, p, y, k);
+              }
             }
-          }
-      } // for i
+        } // for i
+
+        T loss_local = 0.0;
+        #pragma omp barrier
+        for (size_t i = ith; i < dt_X_val->nrows; i += nth) {
+            const size_t j0 = ri_y0_val[i];
+            if (j0 != RowIndex::NA && !ISNA<U>(d_y0_val[j0])) {
+              hash_row(x, i);
+              for (size_t k = 0; k < dt_y_val->ncols; ++k) {
+                auto& ri_y_val = dt_y_val->columns[k]->rowindex();
+                auto d_y_val = static_cast<const U*>(dt_y_val->columns[k]->data());
+                const size_t j = ri_y_val[i];
+                T p = f(predict_row(x, w, k));
+                T y = static_cast<T>(d_y_val[j]);
+                loss_local += squared_loss(p, y);
+                // printf("\nthread: %zu; i: %zu; p: %f; y: %f; loss: %f", ith, i, static_cast<double>(p), static_cast<double>(y), static_cast<double>(loss_local));
+              }
+            }
+        } // for i
+
+
+        #pragma omp atomic
+        loss_global += loss_local / total_val;
+
+        #pragma omp barrier
+        printf("\nthread: %zu; loss_diff: %f; loss_global: %f; loss_global_prev: %f",ith, static_cast<double>(loss_global - loss_global_prev), static_cast<double>(loss_global), static_cast<double>(loss_global_prev));
+
+        #pragma omp atomic write
+        loss_global_prev = loss_global;
+
+        #pragma omp barrier
+        #pragma omp atomic write
+        loss_global = 0.0;
+      } // for j < nchunks
+
+
+
     } // parallel region
   } // epochs
 }
