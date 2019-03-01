@@ -224,7 +224,7 @@ static Column* try_to_resolve_object_column(Column* col)
   uint32_t offset = 0;
   for (size_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
-      offsets[i] = offset | GETNA<uint32_t>();
+      offsets[i] = offset ^ GETNA<uint32_t>();
     } else {
       PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
       size_t sz = static_cast<size_t>(PyBytes_Size(z));

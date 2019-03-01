@@ -35,34 +35,6 @@ Column* writable_string_col::to_column() && {
   auto strbuf = strdata.get_mbuf();
   offdata.set_element<uint32_t>(0, 0);
   return new_string_column(n, std::move(offdata), std::move(strbuf));
-  /*
-  if (strbuf.size() <= MAX_STR32_BUFFER_SIZE && n <= MAX_STR32_NROWS) {
-    return new StringColumn<uint32_t>(n, std::move(offdata),
-                                      std::move(strbuf));
-  }
-  else {
-    // Offsets need to be recoded into uint64_t array
-    // TODO: this conversion can also be done in parallel, using
-    //
-    MemoryRange offsets64 = MemoryRange::mem(sizeof(uint64_t) * (n + 1));
-    auto data64 = static_cast<uint64_t*>(offsets64.xptr());
-    auto data32 = static_cast<const uint32_t*>(offdata.rptr());
-    uint64_t curr_offset = 0;
-    data64[0] = 0;
-    for (size_t i = 1; i <= n; ++i) {
-      uint32_t len = data32[i] - data32[i - 1];
-      if (len == GETNA<uint32_t>()) {
-        data64[i] = curr_offset | GETNA<uint64_t>();
-      } else {
-        curr_offset += len;
-        data64[i] = curr_offset;
-      }
-    }
-    xassert(curr_offset == strbuf.size());
-    return new StringColumn<uint64_t>(n, std::move(offsets64),
-                                      std::move(strbuf));
-  }
-  */
 }
 
 
@@ -89,10 +61,6 @@ void writable_string_col::buffer::write(const std::string& str) {
 }
 
 void writable_string_col::buffer::write(const char* ch, size_t len) {
-  // Note: `strbuf_used` may overflow during the conversion into uint32_t.
-  // If this happens, we would have to convert into STR64. It will be
-  // possible to restore the correct offsets, provided that no single string
-  // item exceeds MAX_STRING_SIZE in size.
   if (ch) {
     xassert(len <= Column::MAX_STRING_SIZE);
     strbuf.ensuresize(strbuf_used + len);

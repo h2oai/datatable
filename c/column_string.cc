@@ -64,9 +64,9 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
   for (size_t i = 1; i <= n; ++i) {
     uint32_t len = data32[i] - data32[i - 1];
     if (len == GETNA<uint32_t>()) {
-      data64[i] = curr_offset | GETNA<uint64_t>();
+      data64[i] = curr_offset ^ GETNA<uint64_t>();
     } else {
-      curr_offset += len;
+      curr_offset += len & ~GETNA<uint32_t>();
       data64[i] = curr_offset;
     }
   }
@@ -297,7 +297,7 @@ void StringColumn<T>::reify() {
     size_t j = start;
     for (size_t i = 0; i < nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
-        offs_dest[i] = prev_off | GETNA<T>();
+        offs_dest[i] = prev_off ^ GETNA<T>();
       } else {
         T off0 = offs0[j] & ~GETNA<T>();
         T str_len = offs1[j] - off0;
@@ -331,7 +331,7 @@ void StringColumn<T>::reify() {
     ri.iterate(0, nrows, 1,
       [&](size_t i, size_t j) {
         if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
-          offs_dest[i] = prev_off | GETNA<T>();
+          offs_dest[i] = prev_off ^ GETNA<T>();
         } else {
           T off0 = offs0[j] & ~GETNA<T>();
           T str_len = offs1[j] - off0;
@@ -457,7 +457,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
       strbuf = new_strbuf;
     } else {
       if (old_nrows == 1) xassert(old_strbuf_size == 0);
-      T na = static_cast<T>(old_strbuf_size) | GETNA<T>();
+      T na = static_cast<T>(old_strbuf_size) ^ GETNA<T>();
       set_value(offsets + nrows, &na, sizeof(T), new_nrows - old_nrows);
     }
   }
@@ -482,7 +482,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
       doffset += offa - offp;
-      offsets[j] = offp | GETNA<T>();
+      offsets[j] = offp ^ GETNA<T>();
       continue;
     } else if (doffset) {
       if (offi == offa) {
@@ -490,7 +490,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
         std::memmove(strdata + offp, strdata + offp + doffset,
                      offi - offp - doffset);
       } else {
-        offsets[j] = offp | GETNA<T>();
+        offsets[j] = offp ^ GETNA<T>();
       }
     }
     offp = offa;
@@ -708,7 +708,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     T oj = str_offsets[i];
     if (ISNA<T>(oj)) {
-      if (oj != (lastoff | GETNA<T>())) {
+      if (oj != (lastoff ^ GETNA<T>())) {
         throw AssertionError()
             << "Offset of NA String in row " << i << " of " << name
             << " does not have the same magnitude as the previous offset: "

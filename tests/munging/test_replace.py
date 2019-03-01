@@ -252,6 +252,26 @@ def test_replace_str_large(seed):
     assert df.to_list() == [src]
 
 
+def test_replace_str_huge():
+    # Issue #1694: the output column is too large to fit into str32, so it
+    # must be converted into str64.
+    n = 10000000
+    src = ["a"] * n
+    src[-1] = None
+    src[-100] = None
+    src[-10000] = None
+    src[-1000000] = None
+    DT = dt.Frame(src)
+    assert DT.stypes == (dt.str32,)
+    DT.replace("a", "A" * 250)
+    DT.internal.check()
+    assert DT.stypes == (dt.str64,)
+    assert DT.shape == (n, 1)
+    assert DT[-2, 0] == "A" * 250
+    assert DT[-1, 0] is None
+    assert DT[-100, 0] is None
+
+
 
 
 #-------------------------------------------------------------------------------

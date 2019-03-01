@@ -335,7 +335,7 @@ static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
     py::robj item = list->item(i);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
       continue;
     }
     if (item.is_string()) {
@@ -411,7 +411,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
     py::oobj item = list->item(i);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
       continue;
     }
     if (!item.is_string()) {
@@ -425,7 +425,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
         if (std::is_same<T, int32_t>::value &&
               (static_cast<int64_t>(tlen) != cstr.size ||
                next_offset < curr_offset)) {
-          offsets[i] = curr_offset | GETNA<T>();
+          offsets[i] = curr_offset ^ GETNA<T>();
           continue;
         }
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
@@ -441,7 +441,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
       offsets[i] = curr_offset;
       continue;
     } else {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
     }
   }
   strbuf.resize(curr_offset);
