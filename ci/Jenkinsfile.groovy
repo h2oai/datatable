@@ -694,7 +694,7 @@ ansiColor('xterm') {
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
                             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                                docker.image("harbor.h2o.ai/s3cmd").inside {
+                                docker.image("harbor.h2o.ai/library/s3cmd").inside {
                                     sh """
                                         s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
                                         s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
@@ -715,7 +715,7 @@ ansiColor('xterm') {
                                        """
                                 }
                             }
-                            docker.image('harbor.h2o.ai/opsh2oai/hub').inside("--init") {
+                            docker.image('harbor.h2o.ai/library/hub').inside("--init") {
                                 withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
                                     def releaseMsg = """v${versionText}
