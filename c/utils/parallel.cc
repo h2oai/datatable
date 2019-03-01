@@ -24,7 +24,7 @@ namespace dt {
 // Interleaved
 //------------------------------------------------------------------------------
 
-void run_interleaved(rangefn run, size_t nrows)
+void run_parallel(rangefn run, size_t nrows)
 {
   // `min_nrows_per_thread`: avoid processing less than this many rows in each
   // thread, reduce the number of threads if necessary.
@@ -42,10 +42,8 @@ void run_interleaved(rangefn run, size_t nrows)
   else {
     // If the number of rows is too small, then we want to reduce the number of
     // processing threads.
-    int nth0 = config::nthreads;
-    if (nrows < min_nrows_per_thread * static_cast<size_t>(nth0)) {
-      nth0 = static_cast<int>(nrows / min_nrows_per_thread);
-    }
+    int nth0 = std::min(config::nthreads,
+                        static_cast<int>(nrows / min_nrows_per_thread));
     xassert(nth0 > 0);
     OmpExceptionManager oem;
     #pragma omp parallel num_threads(nth0)
@@ -56,8 +54,7 @@ void run_interleaved(rangefn run, size_t nrows)
       try {
         size_t i = ith;
         do {
-          size_t iend = i + batchsize;
-          if (iend > nrows) iend = nrows;
+          size_t iend = std::min(i + batchsize, nrows);
           run(i, iend, nth);
           i = iend;
           // if (ith == 0) progress.report(iend);

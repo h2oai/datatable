@@ -21,7 +21,6 @@
 #include "rowindex.h"
 #include "wstringcol.h"
 
-
 #ifdef DTNOOPENMP
   #define omp_get_max_threads() 1
   #define omp_get_num_threads() 1
@@ -38,8 +37,8 @@
   #endif
 #endif
 
-
 namespace dt {
+
 
 using rangefn = dt::function<void(size_t, size_t, size_t)>;
 
@@ -54,7 +53,7 @@ using rangefn = dt::function<void(size_t, size_t, size_t)>;
  *   - The amount of work per row is relatively small;
  *   - The rows can be processed in any order.
  */
-void run_interleaved(rangefn run, size_t nrows);
+void run_parallel(rangefn run, size_t nrows);
 
 
 
@@ -76,14 +75,16 @@ class ordered_job {
     /**
      * Run a job over the range `[0 .. nrows - 1]` in an ordered manner.
      * Specifically, each thread will:
-     *   (1) create a new `OrderedJobContext` object using the provided `prepare`
-     *       function (which takes the threan number and the total number of threads
-     *       as the parameters);
+     *   (1) create a new `ojcontext` object using the `make_thread_context()`
+     *       method;
      *   (2) split the range `[0 .. nrows - 1]` into a sequence of chunks;
-     *   (3) execute `ojc->run(start, end)` method, in parallel;
-     *   (4) execute `ojc->order()` method within the "omp ordered" section,
+     *   (3) execute `run(ctx, start, end)` method, in parallel;
+     *   (4) execute `order(ctx)` method within the "omp ordered" section,
      *       meaning that only one thread at a time will be executing this method,
      *       and in the order of the chunks.
+     *   (5) at the end of the iteration, each thread will call
+     *       `run(ctx, nrows, nrows)` one last time, giving the threads a chance
+     *       to perform any necessary cleanup.
      *
      * This function is best suited for those cases when the processing has to run
      * as-if sequentially. For example, writing or modifying a string column.
@@ -93,6 +94,7 @@ class ordered_job {
 
 
 using fhbuf = fixed_height_string_col::buffer;
+using str_iterator = dt::function<void(size_t, fhbuf&)>;
 
 template <void (*F)(size_t, fhbuf&)>
 class map_fw2str : private ordered_job {
@@ -105,8 +107,8 @@ class map_fw2str : private ordered_job {
     };
 
   public:
-    map_fw2str(size_t nrows) : ordered_job(nrows), outcol(nrows) {
-    }
+    map_fw2str(size_t nrows)
+      : ordered_job(nrows), outcol(nrows) {}
     ~map_fw2str() override = default;
 
     Column* result() {
@@ -120,7 +122,7 @@ class map_fw2str : private ordered_job {
     }
 
     void run(ojcptr& ctx, size_t i0, size_t i1) override {
-      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
+      fhbuf& sb = static_cast<thcontext*>(ctx.get())->sb;
       sb.commit_and_start_new_chunk(i0);
       for (size_t i = i0; i < i1; ++i) {
         F(i, sb);
@@ -128,7 +130,7 @@ class map_fw2str : private ordered_job {
     }
 
     void order(ojcptr& ctx) override {
-      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
+      fhbuf& sb = static_cast<thcontext*>(ctx.get())->sb;
       sb.order();
     }
 };
