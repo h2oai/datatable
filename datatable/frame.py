@@ -73,29 +73,6 @@ class Frame(core.Frame):
             self._dt.materialize()
 
 
-    def __sizeof__(self):
-        """
-        Return the size of this Frame in memory.
-
-        The function attempts to compute the total memory size of the Frame
-        as precisely as possible. In particular, it takes into account not only
-        the size of data in columns, but also sizes of all auxiliary internal
-        structures.
-
-        Special cases: if Frame is a view (say, `d2 = d[:1000, :]`), then
-        the reported size will not contain the size of the data, because that
-        data "belongs" to the original datatable and is not copied. However if
-        a Frame selects only a subset of columns (say, `d3 = d[:, :5]`),
-        then a view is not created and instead the columns are copied by
-        reference. Frame `d3` will report the "full" size of its columns,
-        even though they do not occupy any extra memory compared to `d`. This
-        behavior may be changed in the future.
-
-        This function is not intended for manual use. Instead, in order to get
-        the size of a datatable `d`, call `sys.getsizeof(d)`.
-        """
-        return self._dt.alloc_size
-
 
     #---------------------------------------------------------------------------
     # Deprecated

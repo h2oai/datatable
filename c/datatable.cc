@@ -262,18 +262,6 @@ void DataTable::reify() {
 
 
 
-size_t DataTable::memory_footprint() const {
-  size_t sz = 0;
-  sz += sizeof(*this);
-  sz += (ncols + 1) * sizeof(Column*);
-  for (size_t i = 0; i < ncols; ++i) {
-    sz += columns[i]->memory_footprint();
-  }
-  return sz;
-}
-
-
-
 /**
  * Verify that all internal constraints in the DataTable hold, and that there
  * are no any inappropriate values/elements.

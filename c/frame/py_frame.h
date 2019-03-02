@@ -64,6 +64,7 @@ class Frame : public PyObject {
         static void _init_rbind(Methods&);
         static void _init_replace(Methods&);
         static void _init_repr(Methods&);
+        static void _init_sizeof(Methods&);
         static void _init_stats(Methods&);
         static void _init_tocsv(Methods&);
         static void _init_tonumpy(Methods&);
@@ -83,6 +84,7 @@ class Frame : public PyObject {
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
+    oobj m__sizeof__(const PKArgs&);
 
     // Frame display
     oobj m__repr__();

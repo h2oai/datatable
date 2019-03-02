@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   or when converting from python, numpy or pandas, etc. In all these cases
   we will now transparently create a Str64 column instead (#1694).
 
+- The reported frame size (`sys.getsizeof(DT)`) is now more accurate; in
+  particular the content of string columns is no longer ignored (#1697).
+
 
 ### Changed
 
@@ -90,7 +93,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694)
+  [pasha stetsenko][] (#1672, #1694, #1697)
 
 
 

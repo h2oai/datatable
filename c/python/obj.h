@@ -141,6 +141,7 @@ class _obj {
     oobj call(otuple args, odict kws) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
+    size_t get_sizeof() const;
 
     explicit operator bool() const noexcept;  // opposite of is_undefined()
     bool operator==(const _obj& other) const noexcept;
