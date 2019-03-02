@@ -91,8 +91,8 @@ inline T log_loss(T p, bool y) {
 */
 template<typename T1, typename T2>
 inline T1 squared_loss(T1 p, T2 y) {
-  T1 y_real = static_cast<T1>(y);
-  return (p - y_real) * (p - y_real);
+  T1 y_T1 = static_cast<T1>(y);
+  return (p - y_T1) * (p - y_T1);
 }
 
 /*

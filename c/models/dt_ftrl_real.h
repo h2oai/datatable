@@ -90,7 +90,9 @@ class FtrlReal : public dt::Ftrl {
     // Predicting method
     dtptr predict(const DataTable*) override;
     T predict_row(const uint64ptr&, tptr<T>&, size_t);
-    void update(const uint64ptr&, const tptr<T>&, T, T, size_t);
+
+    template <typename U>
+    void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
     dtptr create_dt_p(size_t);
 
     // Model and feature importance handling methods
@@ -233,6 +235,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
     total_val = dt_X_val->nrows * dt_y_val->ncols;
   }
 
+  bool early_stopping = false;
   // Do training for `nepochs`.
   for (size_t e = 0; e < nepochs; ++e) {
     #pragma omp parallel num_threads(nthreads)
@@ -248,10 +251,10 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
       auto d_y0 = static_cast<const U*>(c_y0->data());
       auto& ri_y0 = c_y0->rowindex();
 
-      for (size_t c = 0; c < nchunks; ++c) {
+      size_t c = 0;
+      while (c < nchunks && !early_stopping) {
         size_t chunk_start = ith + c * chunk_nrows;
         size_t chunk_end = std::min((c + 1) * chunk_nrows, dt_X->nrows);
-        #pragma omp barrier
         for (size_t i = chunk_start; i < chunk_end; i += nth) {
             // printf("\nthread: %zu; i: %zu; chunk_nrows: %zu; nchunks: %zu; chunk_start: %zu; chunk_end: %zu", ith, i, chunk_nrows, nchunks, chunk_start, chunk_end);
             const size_t j0 = ri_y0[i];
@@ -269,21 +272,28 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                 auto d_y = static_cast<const U*>(dt_y->columns[k]->data());
                 const size_t j = ri_y[i];
                 T p = link(predict_row(x, w, k));
-                T y = static_cast<T>(d_y[j]);
-                update(x, w, p, y, k);
+                update(x, w, p, d_y[j], k);
               }
             }
         } // for i
 
         if (dt_X_val != nullptr) {
-		      auto c_y0_val = dt_y_val->columns[0];
-		      auto d_y0_val = static_cast<const U*>(c_y0_val->data());
-		      auto& ri_y0_val = c_y0_val->rowindex();
-
           T loss_local = 0.0;
+
+          auto c_y0_val = dt_y_val->columns[0];
+          auto d_y0_val = static_cast<const U*>(c_y0_val->data());
+          auto& ri_y0_val = c_y0_val->rowindex();
+
           #pragma omp barrier
           for (size_t i = ith; i < dt_X_val->nrows; i += nth) {
               const size_t j0 = ri_y0_val[i];
+              // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+              // dt_y has only one column that may contain NA's or be a view
+              // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+              // columns as there are labels, and split_into_nhot() filters out
+              // NA's and can never be a view. Therefore, to ignore NA targets
+              // it is enough to check the condition below for the zero column only.
+              // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
               if (j0 != RowIndex::NA && !ISNA<U>(d_y0_val[j0])) {
                 hash_row(x, i);
                 for (size_t k = 0; k < dt_y_val->ncols; ++k) {
@@ -291,7 +301,6 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                   auto d_y_val = static_cast<const U*>(dt_y_val->columns[k]->data());
                   const size_t j = ri_y_val[i];
                   T p = link(predict_row(x, w, k));
-                  // T y = static_cast<T>(d_y_val[j]);
                   loss_local += loss(p, d_y_val[j]);
                   // printf("\nthread: %zu; i: %zu; p: %f; y: %f; loss: %f", ith, i, static_cast<double>(p), static_cast<double>(y), static_cast<double>(loss_local));
                 }
@@ -303,21 +312,34 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
           loss_global += loss_local / total_val;
 
           #pragma omp barrier
-          printf("\nthread: %zu; loss_diff: %f; loss_global: %f; loss_global_prev: %f",ith, static_cast<double>(loss_global - loss_global_prev), static_cast<double>(loss_global), static_cast<double>(loss_global_prev));
+          #pragma omp master
+          if ((c || e) && (loss_global_prev - loss_global) <= std::numeric_limits<T>::epsilon()) {
+            early_stopping = true;
+            printf("\nEarly stopping true: thread: %zu; loss_diff: %.16f; std::numeric_limits<T>::epsilon(): %.16f",
+                   ith,
+                   abs(static_cast<double>(loss_global_prev - loss_global)),
+                   static_cast<double>(std::numeric_limits<T>::epsilon()));
 
-          #pragma omp atomic write
-          loss_global_prev = loss_global;
-
+          } else {
+            printf("\nEarly stopping false: thread: %zu; loss_diff: %.16f; loss_global: %.16f; loss_global_prev: %.16f",
+                   ith,
+                   abs(static_cast<double>(loss_global_prev - loss_global)),
+                   static_cast<double>(loss_global),
+                   static_cast<double>(loss_global_prev));
+            loss_global_prev = loss_global;
+            loss_global = 0.0;
+          }
           #pragma omp barrier
-          #pragma omp atomic write
-          loss_global = 0.0;
         }
-      } // for j < nchunks
-
-
-
+        ++c;
+      } // for c < nchunks
     } // parallel region
+    if (early_stopping) {
+      printf("\nEarly stopping at epoch = %zu\n", e);
+      break;
+    }
   } // epochs
+
 }
 
 
@@ -347,9 +369,10 @@ T FtrlReal<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k) {
 *  Update weights based on a prediction p and the actual target y.
 */
 template <typename T>
-void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w, T p, T y, size_t k) {
+template <typename U /* column data type */>
+void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w, T p, U y, size_t k) {
   T ia = 1 / alpha;
-  T g = p - y;
+  T g = p - static_cast<T>(y);
   T gsq = g * g;
 
   for (size_t i = 0; i < nfeatures; ++i) {

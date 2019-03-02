@@ -62,9 +62,8 @@ epsilon = 0.01
 #-------------------------------------------------------------------------------
 
 def test_ftrl_early_stopping():
-    ft = Ftrl(alpha = 0.1, nbins = 10, nepochs = 2)
+    ft = Ftrl(alpha = 0.1, nbins = 10, nepochs = 10000)
     r = range(ft.nbins)
-    print(list(r))
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
     ft.fit(df_train, df_target, df_train, df_target, 0.5)
