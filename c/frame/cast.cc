@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <unordered_map>
 #include "csv/toa.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -26,13 +27,17 @@
 #include "column.h"
 #include "datatablemodule.h"
 
-using castfn = dt::function<void(const Column* incol, Column* outcol)>;
-static castfn cast_fns[DT_STYPES_COUNT * DT_STYPES_COUNT];
-
 static inline constexpr size_t id(SType st1, SType st2) {
   return static_cast<size_t>(st1) * DT_STYPES_COUNT + static_cast<size_t>(st2);
 }
 
+using castfn0 = void (*)(const void*, void*, size_t);
+using castfn1 = void (*)(const void*, void*, size_t, const int32_t*);
+using castfn2 = void (*)(const void*, void*, size_t, const RowIndex&);
+
+static std::unordered_map<size_t, castfn0> castfns0;
+static std::unordered_map<size_t, castfn1> castfns1;
+static std::unordered_map<size_t, castfn2> castfns2;
 
 
 //------------------------------------------------------------------------------
@@ -59,13 +64,47 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
     }
     res = Column::new_data_column(new_stype, nrows);
   }
-  {
-    auto fn = cast_fns[id(stype(), new_stype)];
-    if (fn) {
-      fn(this, res);
+
+  size_t cast_id = id(stype(), new_stype);
+  const RowIndex& rowindex = this->rowindex();
+  const void* in_data = this->data();
+  void* out_data = res->data_w();
+
+  if (rowindex) {
+    if (rowindex.is_simple_slice() && castfns0.count(cast_id)) {
+      in_data = static_cast<const void*>(
+                  static_cast<const char*>(in_data) +
+                  rowindex.slice_start() * elemsize());
+      castfns0[cast_id](in_data, out_data, nrows);
       return res;
     }
+    if (rowindex.isarr32() && castfns1.count(cast_id)) {
+      const int32_t* indices = rowindex.indices32();
+      castfns1[cast_id](in_data, out_data, nrows, indices);
+      return res;
+    }
+    if (castfns2.count(cast_id)) {
+      castfns2[cast_id](in_data, out_data, nrows, rowindex);
+      return res;
+    }
+    // fall-through
   }
+  if (castfns0.count(cast_id)) {
+    std::unique_ptr<Column> tmpcol;
+    if (rowindex) {
+      tmpcol = std::unique_ptr<Column>(this->shallowcopy());
+      tmpcol->reify();
+      in_data = tmpcol->data();
+    }
+    castfns0[cast_id](in_data, out_data, nrows);
+    return res;
+  }
+  if (castfns2.count(cast_id)) {
+    castfns2[cast_id](in_data, out_data, nrows, rowindex);
+    return res;
+  }
+
+  // Old casting
   switch (new_stype) {
     case SType::BOOL:    cast_into(static_cast<BoolColumn*>(res)); break;
     case SType::INT8:    cast_into(static_cast<IntColumn<int8_t>*>(res)); break;
@@ -117,52 +156,98 @@ void Column::cast_into(PyObjectColumn*) const {
 
 
 //------------------------------------------------------------------------------
-// Fixed-width casts
+// Cast operators
 //------------------------------------------------------------------------------
 
+template <typename T>
+static inline T copy_fw(T x) { return x; }
+
 template <typename T, typename U>
-static inline U fw_cast(T x) {
-  return ISNA<T>(x)? GETNA<U>() : static_cast<U>(x);
+static inline U cast_simple(T x) { return static_cast<U>(x); }
+
+template <typename T, typename U>
+static inline U cast_fw(T x) {
+  return (std::is_same<T, U>::value) ||
+         (std::is_floating_point<T>::value && std::is_floating_point<U>::value)
+           ? static_cast<U>(x)
+           : ISNA<T>(x)? GETNA<U>() : static_cast<U>(x);
 }
 
 template <typename T>
-static inline int8_t bool_cast(T x) {
+static inline int8_t cast_bool(T x) {
   return ISNA<T>(x)? GETNA<int8_t>() : (x != 0);
 }
 
-
-// Cast fixed-width column from T into U
-template <typename T, typename U, U(*CAST_OP)(T)>
-static void fwcast(const Column* incol, Column* outcol) {
-  const RowIndex& rowindex = incol->rowindex();
-  const T* in_data = static_cast<const T*>(incol->data());
-  U* out_data = static_cast<U*>(outcol->data_w());
-
-  if (rowindex) {
-    if (rowindex.is_simple_slice()) {
-      in_data += rowindex.slice_start();
-      goto norowindex;
-    }
-    dt::run_parallel(
-      [=](size_t start, size_t stop, size_t step) {
-        for (size_t i = start; i < stop; i += step) {
-          // call to rowindex[] virtual function
-          out_data[i] = CAST_OP(in_data[rowindex[i]]);
-        }
-      },
-      incol->nrows);
-  }
-  else {
-    norowindex:
-    dt::run_parallel(
-      [=](size_t start, size_t stop, size_t step) {
-        for (size_t i = start; i < stop; i += step) {
-          out_data[i] = CAST_OP(in_data[i]);
-        }
-      },
-      incol->nrows);
-  }
+static inline PyObject* cast_bool_pyobj(int8_t x) {
+  return ISNA<int8_t>(x)? py::None().release() : py::obool(x).release();
 }
+
+template <typename T>
+static inline PyObject* cast_int_pyobj(T x) {
+  return ISNA<T>(x)? py::None().release() : py::oint(x).release();
+}
+
+template <typename T>
+static inline PyObject* cast_float_pyobj(T x) {
+  return ISNA<T>(x)? py::None().release() : py::ofloat(x).release();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Cast itererators
+//------------------------------------------------------------------------------
+
+// Standard parallel iterator for a fixed-width column without a rowindex
+//
+template <typename T, typename U, U(*CAST_OP)(T)>
+static void cast_fw0(const void* in_data, void* out_data, size_t nrows)
+{
+  auto in  = static_cast<const T*>(in_data);
+  auto out = static_cast<U*>(out_data);
+  dt::run_parallel(
+      [=](size_t start, size_t stop, size_t step) {
+        for (size_t i = start; i < stop; i += step) {
+          out[i] = CAST_OP(in[i]);
+        }
+      },
+      nrows);
+}
+
+
+template <typename T, typename U, U(*CAST_OP)(T)>
+static void cast_fw1(const void* in_data, void* out_data, size_t nrows,
+                     const int32_t* indices)
+{
+  auto in  = static_cast<const T*>(in_data);
+  auto out = static_cast<U*>(out_data);
+  dt::run_parallel(
+      [=](size_t start, size_t stop, size_t step) {
+        for (size_t i = start; i < stop; i += step) {
+          out[i] = CAST_OP(in[indices[i]]);
+        }
+      },
+      nrows);
+}
+
+
+template <typename T, typename U, U(*CAST_OP)(T)>
+static void cast_fw2(const void* in_data, void* out_data, size_t nrows,
+                     const RowIndex& rowindex)
+{
+  auto in  = static_cast<const T*>(in_data);
+  auto out = static_cast<U*>(out_data);
+  dt::run_parallel(
+      [=](size_t start, size_t stop, size_t step) {
+        for (size_t i = start; i < stop; i += step) {
+          out[i] = CAST_OP(in[rowindex[i]]);
+        }
+      },
+      nrows);
+}
+
+
 
 
 /*
@@ -186,15 +271,6 @@ static void cast_to_str(const Column* incol, Column* outcol) {
 //------------------------------------------------------------------------------
 // BoolColumn
 //------------------------------------------------------------------------------
-
-template <typename T>
-inline static void bool_cast_helper(size_t nrows, const int8_t* src, T* trg) {
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nrows; ++i) {
-    int8_t x = src[i];
-    trg[i] = ISNA<int8_t>(x)? GETNA<T>() : static_cast<T>(x);
-  }
-}
 
 template <typename T>
 inline static MemoryRange bool_str_cast_helper(
@@ -232,42 +308,6 @@ inline static MemoryRange bool_str_cast_helper(
 }
 
 
-void BoolColumn::cast_into(BoolColumn* target) const {
-  std::memcpy(target->data_w(), data(), alloc_size());
-}
-
-void BoolColumn::cast_into(IntColumn<int8_t>* target) const {
-  std::memcpy(target->data_w(), data(), alloc_size());
-}
-
-void BoolColumn::cast_into(IntColumn<int16_t>* target) const {
-  bool_cast_helper<int16_t>(nrows, this->elements_r(), target->elements_w());
-}
-
-void BoolColumn::cast_into(IntColumn<int32_t>* target) const {
-  bool_cast_helper<int32_t>(nrows, this->elements_r(), target->elements_w());
-}
-
-void BoolColumn::cast_into(IntColumn<int64_t>* target) const {
-  bool_cast_helper<int64_t>(nrows, this->elements_r(), target->elements_w());
-}
-
-void BoolColumn::cast_into(RealColumn<float>* target) const {
-  bool_cast_helper<float>(nrows, this->elements_r(), target->elements_w());
-}
-
-void BoolColumn::cast_into(RealColumn<double>* target) const {
-  bool_cast_helper<double>(nrows, this->elements_r(), target->elements_w());
-}
-
-void BoolColumn::cast_into(PyObjectColumn* target) const {
-  const int8_t* src_data = this->elements_r();
-  PyObject**    trg_data = target->elements_w();
-  for (size_t i = 0; i < nrows; ++i) {
-    trg_data[i] = py::obool(src_data[i]).release();
-  }
-}
-
 void BoolColumn::cast_into(StringColumn<uint32_t>* target) const {
   MemoryRange strbuf = bool_str_cast_helper<uint32_t>(this, target);
   target->replace_buffer(target->data_buf(), std::move(strbuf));
@@ -284,14 +324,6 @@ void BoolColumn::cast_into(StringColumn<uint64_t>* target) const {
 // IntColumn casts
 //------------------------------------------------------------------------------
 
-template<typename IT, typename OT>
-inline static void int_cast_helper(size_t nrows, const IT* src, OT* trg) {
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nrows; ++i) {
-    IT x = src[i];
-    trg[i] = ISNA<IT>(x)? GETNA<OT>() : static_cast<OT>(x);
-  }
-}
 
 template<typename IT, typename OT>
 inline static MemoryRange int_str_cast_helper(
@@ -328,48 +360,6 @@ inline static MemoryRange int_str_cast_helper(
 }
 
 
-template <typename T>
-void IntColumn<T>::cast_into(BoolColumn* target) const {
-  constexpr T na_src = GETNA<T>();
-  constexpr int8_t na_trg = GETNA<int8_t>();
-  const T* src_data = this->elements_r();
-  int8_t* trg_data = target->elements_w();
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = x == na_src? na_trg : (x != 0);
-  }
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(IntColumn<int8_t>* target) const {
-  int_cast_helper<T, int8_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(IntColumn<int16_t>* target) const {
-  int_cast_helper<T, int16_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(IntColumn<int32_t>* target) const {
-  int_cast_helper<T, int32_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(IntColumn<int64_t>* target) const {
-  int_cast_helper<T, int64_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(RealColumn<float>* target) const {
-  int_cast_helper<T, float>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void IntColumn<T>::cast_into(RealColumn<double>* target) const {
-  int_cast_helper<T, double>(this->nrows, this->elements_r(), target->elements_w());
-}
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<uint32_t>* target) const {
@@ -389,35 +379,6 @@ void IntColumn<T>::cast_into(StringColumn<uint64_t>* target) const {
   target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
-template <typename T>
-void IntColumn<T>::cast_into(PyObjectColumn* target) const {
-  const T* src_data = this->elements_r();
-  PyObject** trg_data = target->elements_w();
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x) ? py::None().release() : py::oint(x).release();
-  }
-}
-
-template <>
-void IntColumn<int8_t>::cast_into(IntColumn<int8_t>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
-
-template <>
-void IntColumn<int16_t>::cast_into(IntColumn<int16_t>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
-
-template <>
-void IntColumn<int32_t>::cast_into(IntColumn<int32_t>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
-
-template <>
-void IntColumn<int64_t>::cast_into(IntColumn<int64_t>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
 
 
 
@@ -425,15 +386,6 @@ void IntColumn<int64_t>::cast_into(IntColumn<int64_t>* target) const {
 //------------------------------------------------------------------------------
 // RealColumn casts
 //------------------------------------------------------------------------------
-
-template<typename IT, typename OT>
-inline static void real_cast_helper(size_t nrows, const IT* src, OT* trg) {
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nrows; ++i) {
-    IT x = src[i];
-    trg[i] = ISNA<IT>(x)? GETNA<OT>() : static_cast<OT>(x);
-  }
-}
 
 template<typename IT, typename OT>
 inline static MemoryRange real_str_cast_helper(
@@ -472,37 +424,6 @@ inline static MemoryRange real_str_cast_helper(
 }
 
 
-template <typename T>
-void RealColumn<T>::cast_into(BoolColumn* target) const {
-  constexpr int8_t na_trg = GETNA<int8_t>();
-  const T* src_data = this->elements_r();
-  int8_t* trg_data = target->elements_w();
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? na_trg : (x != 0);
-  }
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(IntColumn<int8_t>* target) const {
-  real_cast_helper<T, int8_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(IntColumn<int16_t>* target) const {
-  real_cast_helper<T, int16_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(IntColumn<int32_t>* target) const {
-  real_cast_helper<T, int32_t>(this->nrows, this->elements_r(), target->elements_w());
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
-  real_cast_helper<T, int64_t>(this->nrows, this->elements_r(), target->elements_w());
-}
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<uint32_t>* target) const {
@@ -516,46 +437,6 @@ void RealColumn<T>::cast_into(StringColumn<uint64_t>* target) const {
   target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
-template <>
-void RealColumn<float>::cast_into(RealColumn<double>* target) const {
-  const float* src_data = this->elements_r();
-  double* trg_data = target->elements_w();
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    trg_data[i] = static_cast<double>(src_data[i]);
-  }
-}
-
-template <>
-void RealColumn<double>::cast_into(RealColumn<float>* target) const {
-  const double* src_data = this->elements_r();
-  float* trg_data = target->elements_w();
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    trg_data[i] = static_cast<float>(src_data[i]);
-  }
-}
-
-template <>
-void RealColumn<float>::cast_into(RealColumn<float>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
-
-template <>
-void RealColumn<double>::cast_into(RealColumn<double>* target) const {
-  std::memcpy(target->data_w(), this->data(), alloc_size());
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(PyObjectColumn* target) const {
-  const T* src_data = this->elements_r();
-  PyObject** trg_data = target->elements_w();
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? py::None().release()
-                            : py::ofloat(x).release();
-  }
-}
 
 
 
@@ -673,32 +554,94 @@ void PyObjectColumn::cast_into(StringColumn<uint64_t>* target) const {
 // One-time initialization
 //------------------------------------------------------------------------------
 
-void py::DatatableModule::init_casts() {
-  std::memset(cast_fns, 0, sizeof(cast_fns));
+void py::DatatableModule::init_casts()
+{
+  // cast_fw0: cast a fw column without rowindex
+  // cast_fw1: cast a fw column with ARR32 rowindex
+  // cast_fw2: cast a fw column with any rowindex (including none)
+  constexpr SType bool8  = SType::BOOL;
+  constexpr SType int8   = SType::INT8;
+  constexpr SType int16  = SType::INT16;
+  constexpr SType int32  = SType::INT32;
+  constexpr SType int64  = SType::INT64;
+  constexpr SType real32 = SType::FLOAT32;
+  constexpr SType real64 = SType::FLOAT64;
+  constexpr SType obj64  = SType::OBJ;
 
-  constexpr SType bool8 = SType::BOOL;
-  constexpr SType int8 = SType::INT8;
-  constexpr SType int16 = SType::INT16;
-  constexpr SType int32 = SType::INT32;
-  constexpr SType int64 = SType::INT64;
-  constexpr SType float32 = SType::FLOAT32;
-  constexpr SType float64 = SType::FLOAT64;
+  // Trivial casts
+  castfns0[id(bool8, bool8)]   = cast_fw0<int8_t,  int8_t,  copy_fw<int8_t>>;
+  castfns0[id(int8, int8)]     = cast_fw0<int8_t,  int8_t,  copy_fw<int8_t>>;
+  castfns0[id(int16, int16)]   = cast_fw0<int16_t, int16_t, copy_fw<int16_t>>;
+  castfns0[id(int32, int32)]   = cast_fw0<int32_t, int32_t, copy_fw<int32_t>>;
+  castfns0[id(int64, int64)]   = cast_fw0<int64_t, int64_t, copy_fw<int64_t>>;
+  castfns0[id(real32, real32)] = cast_fw0<float,   float,   copy_fw<float>>;
+  castfns0[id(real64, real64)] = cast_fw0<double,  double,  copy_fw<double>>;
 
-  cast_fns[id(bool8, bool8)]   = fwcast<int8_t, int8_t,  bool_cast<int8_t>>;
-  cast_fns[id(bool8, int8)]    = fwcast<int8_t, int8_t,  fw_cast<int8_t, int8_t>>;
-  cast_fns[id(bool8, int16)]   = fwcast<int8_t, int16_t, fw_cast<int8_t, int16_t>>;
-  cast_fns[id(bool8, int32)]   = fwcast<int8_t, int32_t, fw_cast<int8_t, int32_t>>;
-  cast_fns[id(bool8, int64)]   = fwcast<int8_t, int64_t, fw_cast<int8_t, int64_t>>;
-  cast_fns[id(bool8, float32)] = fwcast<int8_t, float,   fw_cast<int8_t, float>>;
-  cast_fns[id(bool8, float64)] = fwcast<int8_t, double,  fw_cast<int8_t, double>>;
+  // Casts into bool8
+  castfns0[id(int8, bool8)]   = cast_fw0<int8_t,  int8_t, cast_bool<int8_t>>;
+  castfns0[id(int16, bool8)]  = cast_fw0<int16_t, int8_t, cast_bool<int16_t>>;
+  castfns0[id(int32, bool8)]  = cast_fw0<int32_t, int8_t, cast_bool<int32_t>>;
+  castfns0[id(int64, bool8)]  = cast_fw0<int64_t, int8_t, cast_bool<int64_t>>;
+  castfns0[id(real32, bool8)] = cast_fw0<float,   int8_t, cast_bool<float>>;
+  castfns0[id(real64, bool8)] = cast_fw0<double,  int8_t, cast_bool<double>>;
 
-  cast_fns[id(int8, bool8)]   = fwcast<int8_t, int8_t,  bool_cast<int8_t>>;
-  cast_fns[id(int8, int8)]    = fwcast<int8_t, int8_t,  fw_cast<int8_t, int8_t>>;
-  cast_fns[id(int8, int16)]   = fwcast<int8_t, int16_t, fw_cast<int8_t, int16_t>>;
-  cast_fns[id(int8, int32)]   = fwcast<int8_t, int32_t, fw_cast<int8_t, int32_t>>;
-  cast_fns[id(int8, int64)]   = fwcast<int8_t, int64_t, fw_cast<int8_t, int64_t>>;
-  cast_fns[id(int8, float32)] = fwcast<int8_t, float,   fw_cast<int8_t, float>>;
-  cast_fns[id(int8, float64)] = fwcast<int8_t, double,  fw_cast<int8_t, double>>;
+  // Casts into int8
+  castfns0[id(bool8, int8)]   = cast_fw0<int8_t,  int8_t, cast_fw<int8_t, int8_t>>;
+  castfns0[id(int16, int8)]   = cast_fw0<int16_t, int8_t, cast_fw<int16_t, int8_t>>;
+  castfns0[id(int32, int8)]   = cast_fw0<int32_t, int8_t, cast_fw<int32_t, int8_t>>;
+  castfns0[id(int64, int8)]   = cast_fw0<int64_t, int8_t, cast_fw<int64_t, int8_t>>;
+  castfns0[id(real32, int8)]  = cast_fw0<float,   int8_t, cast_fw<float, int8_t>>;
+  castfns0[id(real64, int8)]  = cast_fw0<double,  int8_t, cast_fw<double, int8_t>>;
+
+  // Casts into int16
+  castfns0[id(bool8, int16)]  = cast_fw0<int8_t,  int16_t, cast_fw<int8_t, int16_t>>;
+  castfns0[id(int8, int16)]   = cast_fw0<int8_t,  int16_t, cast_fw<int8_t, int16_t>>;
+  castfns0[id(int32, int16)]  = cast_fw0<int32_t, int16_t, cast_fw<int32_t, int16_t>>;
+  castfns0[id(int64, int16)]  = cast_fw0<int64_t, int16_t, cast_fw<int64_t, int16_t>>;
+  castfns0[id(real32, int16)] = cast_fw0<float,   int16_t, cast_fw<float, int16_t>>;
+  castfns0[id(real64, int16)] = cast_fw0<double,  int16_t, cast_fw<double, int16_t>>;
+
+  // Casts into int32
+  castfns0[id(bool8, int32)]  = cast_fw0<int8_t,  int32_t, cast_fw<int8_t, int32_t>>;
+  castfns0[id(int8, int32)]   = cast_fw0<int8_t,  int32_t, cast_fw<int8_t, int32_t>>;
+  castfns0[id(int16, int32)]  = cast_fw0<int16_t, int32_t, cast_fw<int16_t, int32_t>>;
+  castfns0[id(int64, int32)]  = cast_fw0<int64_t, int32_t, cast_fw<int64_t, int32_t>>;
+  castfns0[id(real32, int32)] = cast_fw0<float,   int32_t, cast_fw<float, int32_t>>;
+  castfns0[id(real64, int32)] = cast_fw0<double,  int32_t, cast_fw<double, int32_t>>;
+
+  // Casts into int64
+  castfns0[id(bool8, int64)]  = cast_fw0<int8_t,  int64_t, cast_fw<int8_t, int64_t>>;
+  castfns0[id(int8, int64)]   = cast_fw0<int8_t,  int64_t, cast_fw<int8_t, int64_t>>;
+  castfns0[id(int16, int64)]  = cast_fw0<int16_t, int64_t, cast_fw<int16_t, int64_t>>;
+  castfns0[id(int32, int64)]  = cast_fw0<int32_t, int64_t, cast_fw<int32_t, int64_t>>;
+  castfns0[id(real32, int64)] = cast_fw0<float,   int64_t, cast_fw<float, int64_t>>;
+  castfns0[id(real64, int64)] = cast_fw0<double,  int64_t, cast_fw<double, int64_t>>;
+
+  // Casts into real32
+  castfns0[id(bool8, real32)]  = cast_fw0<int8_t,  float, cast_fw<int8_t, float>>;
+  castfns0[id(int8, real32)]   = cast_fw0<int8_t,  float, cast_fw<int8_t, float>>;
+  castfns0[id(int16, real32)]  = cast_fw0<int16_t, float, cast_fw<int16_t, float>>;
+  castfns0[id(int32, real32)]  = cast_fw0<int32_t, float, cast_fw<int32_t, float>>;
+  castfns0[id(int64, real32)]  = cast_fw0<int64_t, float, cast_fw<int64_t, float>>;
+  castfns0[id(real64, real32)] = cast_fw0<double,  float, cast_simple<double, float>>;
+
+  // Casts into real64
+  castfns0[id(bool8, real64)]  = cast_fw0<int8_t,  double, cast_fw<int8_t, double>>;
+  castfns0[id(int8, real64)]   = cast_fw0<int8_t,  double, cast_fw<int8_t, double>>;
+  castfns0[id(int16, real64)]  = cast_fw0<int16_t, double, cast_fw<int16_t, double>>;
+  castfns0[id(int32, real64)]  = cast_fw0<int32_t, double, cast_fw<int32_t, double>>;
+  castfns0[id(int64, real64)]  = cast_fw0<int64_t, double, cast_fw<int64_t, double>>;
+  castfns0[id(real32, real64)] = cast_fw0<float,   double, cast_simple<float, double>>;
+
+  // Casts into obj64
+  castfns0[id(bool8, obj64)]  = cast_fw0<int8_t,  PyObject*, cast_bool_pyobj>;
+  castfns0[id(int8, obj64)]   = cast_fw0<int8_t,  PyObject*, cast_int_pyobj<int8_t>>;
+  castfns0[id(int16, obj64)]  = cast_fw0<int16_t, PyObject*, cast_int_pyobj<int16_t>>;
+  castfns0[id(int32, obj64)]  = cast_fw0<int32_t, PyObject*, cast_int_pyobj<int32_t>>;
+  castfns0[id(int64, obj64)]  = cast_fw0<int64_t, PyObject*, cast_int_pyobj<int64_t>>;
+  castfns0[id(real32, obj64)] = cast_fw0<float,   PyObject*, cast_float_pyobj<float>>;
+  castfns0[id(real64, obj64)] = cast_fw0<double,  PyObject*, cast_float_pyobj<double>>;
+
 }
 
 

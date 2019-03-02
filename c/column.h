@@ -411,14 +411,6 @@ public:
 
   protected:
 
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
   void cast_into(StringColumn<uint32_t>*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
 
@@ -453,14 +445,6 @@ public:
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
   void cast_into(StringColumn<uint32_t>*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
 
@@ -470,10 +454,6 @@ protected:
   friend Column;
 };
 
-template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
-template <> void IntColumn<int16_t>::cast_into(IntColumn<int16_t>*) const;
-template <> void IntColumn<int32_t>::cast_into(IntColumn<int32_t>*) const;
-template <> void IntColumn<int64_t>::cast_into(IntColumn<int64_t>*) const;
 extern template class IntColumn<int8_t>;
 extern template class IntColumn<int16_t>;
 extern template class IntColumn<int32_t>;
@@ -501,14 +481,6 @@ public:
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
   void cast_into(StringColumn<uint32_t>*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
 
@@ -517,10 +489,6 @@ protected:
   friend Column;
 };
 
-template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
-template <> void RealColumn<float>::cast_into(RealColumn<double>*) const;
-template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
-template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
 
