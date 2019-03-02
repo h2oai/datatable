@@ -154,7 +154,7 @@ public:
   size_t alloc_size() const;
 
   virtual size_t data_nrows() const = 0;
-  size_t memory_footprint() const;
+  virtual size_t memory_footprint() const;
 
   RowIndex sort(Groupby* out_groups) const;
 
@@ -609,6 +609,7 @@ public:
   const uint8_t* ustrdata() const;
   const T* offsets() const;
   T* offsets_w();
+  size_t memory_footprint() const override;
 
   CString mode() const;
 

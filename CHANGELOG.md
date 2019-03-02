@@ -57,6 +57,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - A keyed frame will now be rendered correctly when viewing it in python
   console via `Frame.view()` (#1672).
 
+- The reported frame size (`sys.getsizeof(DT)`) is now more accurate; in
+  particular the content of string columns is no longer ignored (#1697).
+
 
 ### Changed
 
@@ -86,7 +89,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672)
+  [pasha stetsenko][] (#1672, #1697)
 
 
 

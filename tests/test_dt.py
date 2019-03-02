@@ -163,6 +163,11 @@ def test_dt_properties(dt0):
     assert sys.getsizeof(dt0) > 500
 
 
+def test_sizeof():
+    DT1 = dt.Frame(A=["foo"])
+    DT2 = dt.Frame(A=["foo" * 1001])
+    assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
+
 
 def test_internal():
     # Run C++ tests

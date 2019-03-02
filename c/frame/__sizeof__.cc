@@ -6,6 +6,11 @@
 namespace py {
 
 
+
+//------------------------------------------------------------------------------
+// Frame::__sizeof__
+//------------------------------------------------------------------------------
+
 static PKArgs args__sizeof__(
   0, 0, 0, false, false, {}, "__sizeof__",
 
@@ -38,16 +43,6 @@ oobj Frame::m__sizeof__(const PKArgs&) {
   sz += sizeof(*this);
   if (ltypes) sz += _PySys_GetSizeOf(ltypes);
   if (stypes) sz += _PySys_GetSizeOf(stypes);
-
-  /*
-  // if (self->names) {
-  //   PyObject* names = self->names;
-  //   sz += _PySys_GetSizeOf(names);
-  //   for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
-  //     sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
-  //   }
-  // }
-  */
   return oint(sz);
 }
 
@@ -57,4 +52,55 @@ void Frame::Type::_init_sizeof(Methods& mm) {
 }
 
 
+
+}  // namespace py
+
+//------------------------------------------------------------------------------
+// DataTable methods
+//------------------------------------------------------------------------------
+
+size_t DataTable::memory_footprint() const {
+  size_t sz = 0;
+  sz += sizeof(*this);
+  sz += sizeof(Column*) * columns.capacity();
+  sz += sizeof(std::string) * names.capacity();
+  for (size_t i = 0; i < ncols; ++i) {
+    sz += columns[i]->memory_footprint();
+    sz += names[i].size();
+  }
+  if (py_names) {
+    sz += py_names.get_sizeof();
+    sz += py_inames.get_sizeof();
+    for (size_t i = 0; i < ncols; ++i) {
+      sz += py_names[i].get_sizeof();
+    }
+  }
+  if (groupby) {
+    sz += (groupby.ngroups() + 1) * sizeof(int32_t);
+  }
+  return sz;
 }
+
+
+/**
+ * Get the total size of the memory occupied by the Column. This is different
+ * from `column->alloc_size`, which in general reports byte size of the `data`
+ * portion of the column.
+ */
+size_t Column::memory_footprint() const {
+  size_t sz = sizeof(*this);
+  if (!ri) sz += mbuf.memory_footprint();
+  sz += ri.memory_footprint();
+  if (stats) sz += stats->memory_footprint();
+  return sz;
+}
+
+
+template <typename T>
+size_t StringColumn<T>::memory_footprint() const {
+  return Column::memory_footprint() + (ri? 0 : strbuf.memory_footprint());
+}
+
+
+template class StringColumn<uint32_t>;
+template class StringColumn<uint64_t>;
