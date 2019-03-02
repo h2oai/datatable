@@ -19,32 +19,77 @@
 // the path to the offsets
 static std::string path_str(const std::string& path);
 
+
+//------------------------------------------------------------------------------
+// String column construction
+//------------------------------------------------------------------------------
+
+// public: create a string column for `n` rows, preallocating the offsets array
+// but leaving string buffer empty (and not allocated).
+template <typename T>
+StringColumn<T>::StringColumn(size_t n) : Column(n)
+{
+  mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
+  mbuf.set_element<T>(0, 0);
+}
+
+
+// private use only
 template <typename T>
 StringColumn<T>::StringColumn() : Column(0) {}
 
-template <typename T>
-StringColumn<T>::StringColumn(size_t nrows_)
-  : StringColumn<T>(nrows_, MemoryRange(), MemoryRange()) {}
 
-
+// private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   : Column(n)
 {
-  size_t exp_off_size = sizeof(T) * (n + 1);
-  if (mb) {
-    xassert(mb.size() == exp_off_size);
-    xassert(mb.get_element<T>(0) == 0);
-    xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
-  } else {
-    xassert(!sb);
-    mb = MemoryRange::mem(exp_off_size);
-    mb.set_element<T>(0, 0);
-  }
-
+  xassert(mb);
+  xassert(mb.size() == sizeof(T) * (n + 1));
+  xassert(mb.get_element<T>(0) == 0);
+  xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }
+
+
+static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
+  // TODO: make this parallel
+  MemoryRange off64 = MemoryRange::mem(offsets.size() * 2);
+  auto data64 = static_cast<uint64_t*>(off64.xptr());
+  auto data32 = static_cast<const uint32_t*>(offsets.rptr());
+  data64[0] = 0;
+  uint64_t curr_offset = 0;
+  size_t n = offsets.size() / sizeof(uint32_t) - 1;
+  for (size_t i = 1; i <= n; ++i) {
+    uint32_t len = data32[i] - data32[i - 1];
+    if (len == GETNA<uint32_t>()) {
+      data64[i] = curr_offset ^ GETNA<uint64_t>();
+    } else {
+      curr_offset += len & ~GETNA<uint32_t>();
+      data64[i] = curr_offset;
+    }
+  }
+  return off64;
+}
+
+
+Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
+  size_t data_size = data.size();
+  size_t strb_size = str.size();
+
+  if (data_size == sizeof(uint32_t) * (n + 1)) {
+    if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
+        n <= Column::MAX_STR32_NROWS) {
+      return new StringColumn<uint32_t>(n, std::move(data), std::move(str));
+    }
+    // Otherwise, offsets need to be recoded into a uint64_t array
+    data = _recode_offsets_to_u64(data);
+  }
+  return new StringColumn<uint64_t>(n, std::move(data), std::move(str));
+}
+
+
 
 
 //==============================================================================
@@ -75,13 +120,6 @@ void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
   mbuf = MemoryRange::mmap(filename);
   strbuf = MemoryRange::mmap(filename_str);
 
-  // size_t exp_mbuf_size = sizeof(T) * (nrows + 1);
-  // if (mbuf.size() != exp_mbuf_size) {
-  //   throw Error() << "File \"" << filename <<
-  //       "\" cannot be used to create a column with " << nrows <<
-  //       " rows. Expected file size of " << exp_mbuf_size <<
-  //       " bytes, actual size is " << mbuf.size() << " bytes";
-  // }
   if (recode) {
     if (mbuf.get_element<T>(0) != 0) {
       // Recode old format of string storage
@@ -93,15 +131,6 @@ void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
       }
     }
   }
-
-  // size_t exp_strbuf_size = (mbuf.get_element<T>(nrows) & ~GETNA<T>());
-  // if (strbuf.size() != exp_strbuf_size) {
-  //   size_t strbuf_size = strbuf.size();
-  //   throw Error() << "File \"" << filename_str <<
-  //     "\" cannot be used to create a column with " << nrows <<
-  //     " rows. Expected file size of " << exp_strbuf_size <<
-  //     " bytes, actual size is " << strbuf_size << " bytes";
-  // }
 }
 
 // Not implemented (should it be?) see method signature in `Column` for
@@ -268,7 +297,7 @@ void StringColumn<T>::reify() {
     size_t j = start;
     for (size_t i = 0; i < nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
-        offs_dest[i] = prev_off | GETNA<T>();
+        offs_dest[i] = prev_off ^ GETNA<T>();
       } else {
         T off0 = offs0[j] & ~GETNA<T>();
         T str_len = offs1[j] - off0;
@@ -302,7 +331,7 @@ void StringColumn<T>::reify() {
     ri.iterate(0, nrows, 1,
       [&](size_t i, size_t j) {
         if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
-          offs_dest[i] = prev_off | GETNA<T>();
+          offs_dest[i] = prev_off ^ GETNA<T>();
         } else {
           T off0 = offs0[j] & ~GETNA<T>();
           T str_len = offs1[j] - off0;
@@ -428,7 +457,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
       strbuf = new_strbuf;
     } else {
       if (old_nrows == 1) xassert(old_strbuf_size == 0);
-      T na = static_cast<T>(old_strbuf_size) | GETNA<T>();
+      T na = static_cast<T>(old_strbuf_size) ^ GETNA<T>();
       set_value(offsets + nrows, &na, sizeof(T), new_nrows - old_nrows);
     }
   }
@@ -453,7 +482,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
       doffset += offa - offp;
-      offsets[j] = offp | GETNA<T>();
+      offsets[j] = offp ^ GETNA<T>();
       continue;
     } else if (doffset) {
       if (offi == offa) {
@@ -461,7 +490,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
         std::memmove(strdata + offp, strdata + offp + doffset,
                      offi - offp - doffset);
       } else {
-        offsets[j] = offp | GETNA<T>();
+        offsets[j] = offp ^ GETNA<T>();
       }
     }
     offp = offa;
@@ -679,7 +708,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     T oj = str_offsets[i];
     if (ISNA<T>(oj)) {
-      if (oj != (lastoff | GETNA<T>())) {
+      if (oj != (lastoff ^ GETNA<T>())) {
         throw AssertionError()
             << "Offset of NA String in row " << i << " of " << name
             << " does not have the same magnitude as the previous offset: "

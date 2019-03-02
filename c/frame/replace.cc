@@ -569,6 +569,7 @@ void ReplaceAgent::process_str_column(size_t colidx) {
   }
   Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
+  columns_cast = (newcol->stype() != col->stype());
   dt->columns[colidx] = newcol;
   delete col;
 }

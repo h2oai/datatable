@@ -277,7 +277,7 @@ void FreadThreadContext::postprocess() {
           coldata->str32.offset = output_offset;
         } else {
           xassert(coldata->str32.isna());
-          coldata->str32.offset = output_offset | GETNA<uint32_t>();
+          coldata->str32.offset = output_offset ^ GETNA<uint32_t>();
         }
         coldata += tbuf_ncols;
         xassert(output_offset <= sbuf.size());

@@ -81,7 +81,7 @@ inline static MemoryRange cast_str_helper(
   for (size_t i = 0; i < src->nrows; ++i) {
     IT x = src_data[i];
     if (ISNA<IT>(x)) {
-      toffsets[i] = offset | GETNA<OT>();
+      toffsets[i] = offset ^ GETNA<OT>();
     } else {
       char* ch0 = ch;
       toa<IT>(&ch, x);

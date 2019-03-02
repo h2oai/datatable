@@ -57,7 +57,7 @@ static Column* _make_column_str(CString value) {
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, GETNA<T>());
   }
-  return new StringColumn<T>(1, std::move(mbuf), std::move(strbuf));
+  return new_string_column(1, std::move(mbuf), std::move(strbuf));
 }
 
 static Column* _nacol(Stats*, const Column* col) {

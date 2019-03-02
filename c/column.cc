@@ -127,19 +127,6 @@ Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   return col;
 }
 
-Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf,
-                                MemoryRange&& strbuf)
-{
-  Column* col = new_column(stype);
-  if (stype == SType::STR32 || stype == SType::STR64) {
-    col->replace_buffer(std::move(mbuf), std::move(strbuf));
-  } else {
-    xassert(!strbuf);
-    col->replace_buffer(std::move(mbuf));
-  }
-  return col;
-}
-
 
 
 void Column::replace_buffer(MemoryRange&&) {

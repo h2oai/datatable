@@ -125,7 +125,7 @@ inline static MemoryRange cast_str_helper(
       offset += static_cast<OT>(xcstr.size);
       toffsets[i] = offset;
     } else {
-      toffsets[i] = offset | GETNA<OT>();
+      toffsets[i] = offset ^ GETNA<OT>();
     }
   }
   wb->finalize();
