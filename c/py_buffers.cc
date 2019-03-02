@@ -461,6 +461,9 @@ static int getbuffer_DataTable(
   size_t elemsize = info(stype).elemsize();
   size_t colsize = nrows * elemsize;
   MemoryRange memr = MemoryRange::mem(ncols * colsize);
+  if (stype == SType::OBJ) {
+    memr.set_pyobjects(/*clear=*/ true);
+  }
   const char* fmt = format_from_stype(stype);
 
   // Construct the data buffer
@@ -473,7 +476,7 @@ static int getbuffer_DataTable(
       std::memcpy(memr.wptr(i*colsize), col->data(), colsize);
     } else {
       // xmb becomes a "view" on a portion of the buffer `mbuf`. An
-      // ExternelMemBuf object is documented to be readonly; however in
+      // ExternalMemBuf object is documented to be readonly; however in
       // practice it can still be written to, just not resized (this is
       // hacky, maybe fix in the future).
       MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
