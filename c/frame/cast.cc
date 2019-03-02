@@ -192,6 +192,10 @@ static inline PyObject* cast_float_pyobj(T x) {
   return ISNA<T>(x)? py::None().release() : py::ofloat(x).release();
 }
 
+static inline PyObject* cast_pyobj_pyobj(PyObject* x) {
+  return py::oobj(x).release();
+}
+
 
 
 
@@ -247,6 +251,17 @@ static void cast_fw2(const void* in_data, void* out_data, size_t nrows,
       nrows);
 }
 
+
+template <typename T, PyObject* (*CAST_OP)(T)>
+static void cast_pyo(const void* in_data, void* out_data, size_t nrows)
+{
+  auto in = static_cast<const T*>(in_data);
+  auto out = static_cast<PyObject**>(out_data);
+  for (size_t i = 0; i < nrows; ++i) {
+    Py_DECREF(out[i]);
+    out[i] = CAST_OP(in[i]);
+  }
+}
 
 
 
@@ -521,17 +536,6 @@ inline static MemoryRange obj_str_cast_helper(
 }
 
 
-void PyObjectColumn::cast_into(PyObjectColumn* target) const {
-  PyObject* const* src_data = this->elements_r();
-  PyObject** dest_data = target->elements_w();
-  for (size_t i = 0; i < nrows; ++i) {
-    Py_INCREF(src_data[i]);
-    Py_DECREF(dest_data[i]);
-    dest_data[i] = src_data[i];
-  }
-}
-
-
 void PyObjectColumn::cast_into(StringColumn<uint32_t>* target) const {
   const PyObject* const* data = elements_r();
   uint32_t* offsets = target->offsets_w();
@@ -634,13 +638,14 @@ void py::DatatableModule::init_casts()
   castfns0[id(real32, real64)] = cast_fw0<float,   double, cast_simple<float, double>>;
 
   // Casts into obj64
-  castfns0[id(bool8, obj64)]  = cast_fw0<int8_t,  PyObject*, cast_bool_pyobj>;
-  castfns0[id(int8, obj64)]   = cast_fw0<int8_t,  PyObject*, cast_int_pyobj<int8_t>>;
-  castfns0[id(int16, obj64)]  = cast_fw0<int16_t, PyObject*, cast_int_pyobj<int16_t>>;
-  castfns0[id(int32, obj64)]  = cast_fw0<int32_t, PyObject*, cast_int_pyobj<int32_t>>;
-  castfns0[id(int64, obj64)]  = cast_fw0<int64_t, PyObject*, cast_int_pyobj<int64_t>>;
-  castfns0[id(real32, obj64)] = cast_fw0<float,   PyObject*, cast_float_pyobj<float>>;
-  castfns0[id(real64, obj64)] = cast_fw0<double,  PyObject*, cast_float_pyobj<double>>;
+  castfns0[id(bool8, obj64)]  = cast_pyo<int8_t,    cast_bool_pyobj>;
+  castfns0[id(int8, obj64)]   = cast_pyo<int8_t,    cast_int_pyobj<int8_t>>;
+  castfns0[id(int16, obj64)]  = cast_pyo<int16_t,   cast_int_pyobj<int16_t>>;
+  castfns0[id(int32, obj64)]  = cast_pyo<int32_t,   cast_int_pyobj<int32_t>>;
+  castfns0[id(int64, obj64)]  = cast_pyo<int64_t,   cast_int_pyobj<int64_t>>;
+  castfns0[id(real32, obj64)] = cast_pyo<float,     cast_float_pyobj<float>>;
+  castfns0[id(real64, obj64)] = cast_pyo<double,    cast_float_pyobj<double>>;
+  castfns0[id(obj64, obj64)]  = cast_pyo<PyObject*, cast_pyobj_pyobj>;
 
 }
 

@@ -526,14 +526,6 @@ protected:
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
 
-  // void cast_into(BoolColumn*) const override;
-  // void cast_into(IntColumn<int8_t>*) const override;
-  // void cast_into(IntColumn<int16_t>*) const override;
-  // void cast_into(IntColumn<int32_t>*) const override;
-  // void cast_into(IntColumn<int64_t>*) const override;
-  // void cast_into(RealColumn<float>*) const override;
-  // void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
   void cast_into(StringColumn<uint32_t>*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
 
