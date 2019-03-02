@@ -14,7 +14,8 @@
 
 
 // Helper functions
-static Column* column_from_jay(const jay::Column* jaycol,
+static Column* column_from_jay(size_t nrows,
+                               const jay::Column* jaycol,
                                const MemoryRange& jaybuf);
 
 
@@ -75,7 +76,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column* col = column_from_jay(jcol, mbuf);
+    Column* col = column_from_jay(nrows, jcol, mbuf);
     if (col->nrows != nrows) {
       throw IOError() << "Length of column " << i << " is " << col->nrows
           << ", however the Frame contains " << nrows << " rows";
@@ -118,29 +119,30 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 
 
 static Column* column_from_jay(
-    const jay::Column* jcol, const MemoryRange& jaybuf)
+    size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
 {
   jay::Type jtype = jcol->type();
 
-  Column* col = nullptr;
+  SType stype = SType::VOID;
   switch (jtype) {
-    case jay::Type_Bool8:   col = new BoolColumn(0); break;
-    case jay::Type_Int8:    col = new IntColumn<int8_t>(0); break;
-    case jay::Type_Int16:   col = new IntColumn<int16_t>(0); break;
-    case jay::Type_Int32:   col = new IntColumn<int32_t>(0); break;
-    case jay::Type_Int64:   col = new IntColumn<int64_t>(0); break;
-    case jay::Type_Float32: col = new RealColumn<float>(0); break;
-    case jay::Type_Float64: col = new RealColumn<double>(0); break;
-    case jay::Type_Str32:   col = new StringColumn<uint32_t>(0); break;
-    case jay::Type_Str64:   col = new StringColumn<uint64_t>(0); break;
+    case jay::Type_Bool8:   stype = SType::BOOL; break;
+    case jay::Type_Int8:    stype = SType::INT8; break;
+    case jay::Type_Int16:   stype = SType::INT16; break;
+    case jay::Type_Int32:   stype = SType::INT32; break;
+    case jay::Type_Int64:   stype = SType::INT64; break;
+    case jay::Type_Float32: stype = SType::FLOAT32; break;
+    case jay::Type_Float64: stype = SType::FLOAT64; break;
+    case jay::Type_Str32:   stype = SType::STR32; break;
+    case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
+  Column* col = nullptr;
   MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
-  if (jtype == jay::Type_Str32 || jtype == jay::Type_Str64) {
+  if (stype == SType::STR32 || stype == SType::STR64) {
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col->replace_buffer(std::move(databuf), std::move(strbuf));
+    col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col->replace_buffer(std::move(databuf));
+    col = Column::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col->get_stats();

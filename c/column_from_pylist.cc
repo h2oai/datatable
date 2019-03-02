@@ -335,7 +335,7 @@ static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
     py::robj item = list->item(i);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
       continue;
     }
     if (item.is_string()) {
@@ -411,7 +411,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
     py::oobj item = list->item(i);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
       continue;
     }
     if (!item.is_string()) {
@@ -425,7 +425,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
         if (std::is_same<T, int32_t>::value &&
               (static_cast<int64_t>(tlen) != cstr.size ||
                next_offset < curr_offset)) {
-          offsets[i] = curr_offset | GETNA<T>();
+          offsets[i] = curr_offset ^ GETNA<T>();
           continue;
         }
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
@@ -441,7 +441,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
       offsets[i] = curr_offset;
       continue;
     } else {
-      offsets[i] = curr_offset | GETNA<T>();
+      offsets[i] = curr_offset ^ GETNA<T>();
     }
   }
   strbuf.resize(curr_offset);
@@ -480,17 +480,18 @@ static bool parse_as_pyobj(const iterable* list, MemoryRange& membuf)
 // Parse controller
 //------------------------------------------------------------------------------
 
-static int find_next_stype(int curr_stype, int stype0) {
+static SType find_next_stype(SType curr_stype, int stype0) {
+  int istype = static_cast<int>(curr_stype);
   if (stype0 > 0) {
-    return stype0;
+    return static_cast<SType>(stype0);
   }
   if (stype0 < 0) {
-    return std::min(curr_stype + 1, -stype0);
+    return static_cast<SType>(std::min(istype + 1, -stype0));
   }
-  if (curr_stype == DT_STYPES_COUNT - 1) {
+  if (istype == DT_STYPES_COUNT - 1) {
     return curr_stype;
   }
-  return (curr_stype + 1) % int(DT_STYPES_COUNT);
+  return static_cast<SType>((istype + 1) % int(DT_STYPES_COUNT));
 }
 
 
@@ -500,12 +501,12 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
   MemoryRange membuf;
   MemoryRange strbuf;
   // TODO: Perhaps `stype` and `curr_stype` should have type SType ?
-  int stype = find_next_stype(0, stype0);
+  SType stype = find_next_stype(SType::VOID, stype0);
   size_t i = 0;
-  while (stype) {
-    int next_stype = find_next_stype(stype, stype0);
+  while (stype != SType::VOID) {
+    SType next_stype = find_next_stype(stype, stype0);
     if (stype == next_stype) {
-      switch (static_cast<SType>(stype)) {
+      switch (stype) {
         case SType::BOOL:    force_as_bool(il, membuf); break;
         case SType::INT8:    force_as_int<int8_t>(il, membuf); break;
         case SType::INT16:   force_as_int<int16_t>(il, membuf); break;
@@ -523,7 +524,7 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
       break; // while(stype)
     } else {
       bool ret = false;
-      switch (static_cast<SType>(stype)) {
+      switch (stype) {
         case SType::BOOL:    ret = parse_as_bool(il, membuf, i); break;
         case SType::INT8:    ret = parse_as_int<int8_t>(il, membuf, i); break;
         case SType::INT16:   ret = parse_as_int<int16_t>(il, membuf, i); break;
@@ -539,18 +540,16 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
       stype = next_stype;
     }
   }
-  Column* col = Column::new_column(static_cast<SType>(stype));
-  if (static_cast<SType>(stype) == SType::OBJ) {
-    membuf.set_pyobjects(/* clear_data = */ false);
+  if (stype == SType::STR32 || stype == SType::STR64) {
+    size_t nrows = il->size();
+    return new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
-  if (static_cast<SType>(stype) == SType::STR32 ||
-      static_cast<SType>(stype) == SType::STR64)
-  {
-    col->replace_buffer(std::move(membuf), std::move(strbuf));
-  } else {
-    col->replace_buffer(std::move(membuf));
+  else {
+    if (stype == SType::OBJ) {
+      membuf.set_pyobjects(/* clear_data = */ false);
+    }
+    return Column::new_mbuf_column(stype, std::move(membuf));
   }
-  return col;
 }
 
 

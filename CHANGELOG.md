@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - A keyed frame will now be rendered correctly when viewing it in python
   console via `Frame.view()` (#1672).
 
+- Str32 column can no longer overflow during the `.replace()` operation,
+  or when converting from python, numpy or pandas, etc. In all these cases
+  we will now transparently create a Str64 column instead (#1694).
+
 
 ### Changed
 
@@ -86,7 +90,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672)
+  [pasha stetsenko][] (#1672, #1694)
 
 
 

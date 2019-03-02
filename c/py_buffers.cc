@@ -175,8 +175,7 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new StringColumn<uint32_t>(nrows,
-                                    std::move(offbuf), std::move(strbuf));
+  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -225,7 +224,7 @@ static Column* try_to_resolve_object_column(Column* col)
   uint32_t offset = 0;
   for (size_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
-      offsets[i] = offset | GETNA<uint32_t>();
+      offsets[i] = offset ^ GETNA<uint32_t>();
     } else {
       PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
@@ -244,7 +243,7 @@ static Column* try_to_resolve_object_column(Column* col)
   xassert(offset < strbuf.size());
   strbuf.resize(offset);
   delete col;
-  return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
+  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 

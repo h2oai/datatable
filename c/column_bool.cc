@@ -75,7 +75,7 @@ inline static MemoryRange cast_str_helper(
   for (size_t i = 0; i < src->nrows; ++i) {
     int8_t x = src_data[i];
     if (ISNA<int8_t>(x)) {
-      toffsets[i] = offset | GETNA<T>();
+      toffsets[i] = offset ^ GETNA<T>();
     } else {
       *ch++ = '0' + x;
       offset++;
