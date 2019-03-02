@@ -394,7 +394,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
       rows_to_fill += col->nrows;
     } else {
       if (rows_to_fill) {
-        const T na = curr_offset | GETNA<T>();
+        const T na = curr_offset ^ GETNA<T>();
         set_value(offs, &na, sizeof(T), rows_to_fill);
         offs += rows_to_fill;
         rows_to_fill = 0;
@@ -416,7 +416,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     delete col;
   }
   if (rows_to_fill) {
-    const T na = curr_offset | GETNA<T>();
+    const T na = curr_offset ^ GETNA<T>();
     set_value(offs, &na, sizeof(T), rows_to_fill);
   }
 }

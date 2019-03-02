@@ -51,7 +51,6 @@ template <typename T> double RealColumn<T>::kurt() const { return get_stats()->k
 
 
 
-
 //------------------------------------------------------------------------------
 
 

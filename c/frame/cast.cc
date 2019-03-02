@@ -165,6 +165,7 @@ static void fwcast(const Column* incol, Column* outcol) {
 }
 
 
+/*
 template <typename T>
 static void cast_to_str(const Column* incol, Column* outcol) {
   static CString str_na;
@@ -178,7 +179,7 @@ static void cast_to_str(const Column* incol, Column* outcol) {
       buf.write(ISNA<T>(x)? str_na : x? str_true : str_false);
     }, incol->nrows);
 }
-
+*/
 
 
 
@@ -212,7 +213,7 @@ inline static MemoryRange bool_str_cast_helper(
   for (size_t i = 0; i < src->nrows; ++i) {
     int8_t x = src_data[i];
     if (ISNA<int8_t>(x)) {
-      toffsets[i] = offset | GETNA<T>();
+      toffsets[i] = offset ^ GETNA<T>();
     } else {
       *ch++ = '0' + x;
       offset++;
@@ -307,7 +308,7 @@ inline static MemoryRange int_str_cast_helper(
   for (size_t i = 0; i < nrows; ++i) {
     IT x = src[i];
     if (ISNA<IT>(x)) {
-      toffsets[i] = offset | GETNA<OT>();
+      toffsets[i] = offset ^ GETNA<OT>();
     } else {
       char* ch0 = ch;
       toa<IT>(&ch, x);
@@ -451,7 +452,7 @@ inline static MemoryRange real_str_cast_helper(
   for (size_t i = 0; i < src->nrows; ++i) {
     IT x = src_data[i];
     if (ISNA<IT>(x)) {
-      toffsets[i] = offset | GETNA<OT>();
+      toffsets[i] = offset ^ GETNA<OT>();
     } else {
       char* ch0 = ch;
       toa<IT>(&ch, x);
@@ -631,7 +632,7 @@ inline static MemoryRange obj_str_cast_helper(
       offset += static_cast<OT>(xcstr.size);
       toffsets[i] = offset;
     } else {
-      toffsets[i] = offset | GETNA<OT>();
+      toffsets[i] = offset ^ GETNA<OT>();
     }
   }
   wb->finalize();

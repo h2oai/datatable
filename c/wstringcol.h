@@ -26,9 +26,10 @@ template <typename T> class StringColumn;
 
 namespace dt {
 
+// TODO: merge into parallel.h
 
 //------------------------------------------------------------------------------
-// Fixed-height writable string column
+// (Fixed-height) writable string column
 //------------------------------------------------------------------------------
 
 /**
@@ -36,19 +37,19 @@ namespace dt {
  * number of rows is known in advance).
  *
  */
-class fixed_height_string_col {
+class writable_string_col {
   private:
-    std::unique_ptr<MemoryWritableBuffer> strdata;
+    MemoryWritableBuffer strdata;
     MemoryRange offdata;
     size_t n;
 
   public:
-    fixed_height_string_col(size_t nrows);
+    writable_string_col(size_t nrows);
     Column* to_column() &&;
 
     class buffer {
       private:
-        fixed_height_string_col& col;
+        writable_string_col& col;
         dt::array<char> strbuf;
         size_t strbuf_used;
         size_t strbuf_write_pos;
@@ -56,7 +57,7 @@ class fixed_height_string_col {
         uint32_t* offptr0;
 
       public:
-        buffer(fixed_height_string_col&);
+        buffer(writable_string_col&);
 
         void write(const CString&);
         void write(const std::string&);
@@ -69,7 +70,7 @@ class fixed_height_string_col {
 };
 
 
-
+using fixed_height_string_col = writable_string_col;
 
 
 

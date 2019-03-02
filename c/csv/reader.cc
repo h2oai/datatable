@@ -789,6 +789,7 @@ void GenericReader::report_columns_to_python() {
 
 dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
+  size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
   std::vector<Column*> ccols;
   ccols.reserve(ocols);
@@ -797,8 +798,11 @@ dtptr GenericReader::makeDatatable() {
     if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
-    ccols.push_back(Column::new_mbuf_column(col.get_stype(), std::move(databuf),
-                                       std::move(strbuf)));
+    SType stype = col.get_stype();
+    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
+      ? new_string_column(nrows, std::move(databuf), std::move(strbuf))
+      : Column::new_mbuf_column(stype, std::move(databuf))
+    );
   }
   py::olist names = freader.get_attr("_colnames").to_pylist();
   return dtptr(new DataTable(std::move(ccols), names));

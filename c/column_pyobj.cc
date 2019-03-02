@@ -103,6 +103,7 @@ void PyObjectColumn::reify() {
 
 
 
+
 //----- Stats ------------------------------------------------------------------
 
 PyObjectStats* PyObjectColumn::get_stats() const {
