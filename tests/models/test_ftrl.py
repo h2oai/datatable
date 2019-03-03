@@ -62,14 +62,14 @@ epsilon = 0.01
 #-------------------------------------------------------------------------------
 
 def test_ftrl_early_stopping():
-    ft = Ftrl(alpha = 0.1, nbins = 10, nepochs = 10000)
+    ft = Ftrl(alpha = 0.5, nbins = 10, nepochs = 10000)
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
-    ft.fit(df_train, df_target, df_train, df_target, 0.5)
-    # p = ft.predict(df_train)
-    # delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    # assert max(delta) < epsilon
+    ft.fit(df_train, df_target, df_train, df_target, 1.0)
+    p = ft.predict(df_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert max(delta) < epsilon
 
 
 
@@ -685,13 +685,13 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_predict_multinomial_vs_binomial():
-    ft1 = Ftrl(nbins = 10, nepochs = 2)
+    ft1 = Ftrl(nbins = 10, nepochs = 1)
     df_train1 = dt.Frame(range(ft1.nbins))
     df_target1 = dt.Frame({"target" : [True, False] * 5})
     ft1.fit(df_train1, df_target1)
     p1 = ft1.predict(df_train1)
 
-    ft2 = Ftrl(nbins = 10, nepochs = 2)
+    ft2 = Ftrl(nbins = 10, nepochs = 1)
     df_train2 = dt.Frame(range(ft2.nbins))
     df_target2 = dt.Frame(["target", "target2"] * 5)
     ft2.fit(df_train2, df_target2)
@@ -701,8 +701,8 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
                                       "C0" : f[target_index * 2],
                                       "C1" : f[target_index * 2 + 1]
                                       }]
-    assert_equals(p1, p2[:, "target"])
     assert_equals(ft1.model, multinomial_model)
+    assert_equals(p1, p2[:, "target"])
 
 
 def test_ftrl_fit_predict_multinomial():

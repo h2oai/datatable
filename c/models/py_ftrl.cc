@@ -234,8 +234,8 @@ void Ftrl::fit(const PKArgs& args) {
     if (!args[4].is_none_or_undefined()) {
       val = args[4].to_double();
       py::Validator::check_positive<double>(val, args[4]);
-      if (val >= 1.0) {
-        throw ValueError() << "val should be less than 1";
+      if (val > 1.0) {
+        throw ValueError() << "val should be less or equal to 1";
       }
     }
   }
