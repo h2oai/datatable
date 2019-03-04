@@ -41,6 +41,8 @@ static std::unordered_map<size_t, castfn1> castfns1;
 static std::unordered_map<size_t, castfn2> castfns2;
 
 static Column* cast_bool_to_str(const Column*, MemoryRange&&, SType);
+template <typename T>
+static Column* cast_int_to_str(const Column*, MemoryRange&&, SType);
 
 
 
@@ -57,6 +59,10 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const
   if (new_stype == SType::STR32 || new_stype == SType::STR64) {
     switch (stype()) {
       case SType::BOOL: return cast_bool_to_str(this, std::move(mr), new_stype);
+      case SType::INT8: return cast_int_to_str<int8_t>(this, std::move(mr), new_stype);
+      case SType::INT16: return cast_int_to_str<int16_t>(this, std::move(mr), new_stype);
+      case SType::INT32: return cast_int_to_str<int32_t>(this, std::move(mr), new_stype);
+      case SType::INT64: return cast_int_to_str<int64_t>(this, std::move(mr), new_stype);
       default: break;
     }
   }
@@ -271,67 +277,28 @@ static Column* cast_bool_to_str(const Column* col, MemoryRange&& out_offsets,
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// IntColumn casts
-//------------------------------------------------------------------------------
-
-
-template<typename IT, typename OT>
-inline static MemoryRange int_str_cast_helper(
-  size_t nrows, const IT* src, OT* toffsets)
+template <typename T>
+static Column* cast_int_to_str(const Column* col, MemoryRange&& out_offsets,
+                               SType target_stype)
 {
-  size_t exp_size = nrows * sizeof(IT);
-  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
-  char* tmpbuf = new char[1024];
-  TRACK(tmpbuf, sizeof(tmpbuf), "IntColumn::tmpbuf");
-  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
-  char* ch = tmpbuf;
-  OT offset = 0;
-  toffsets[-1] = 0;
-  for (size_t i = 0; i < nrows; ++i) {
-    IT x = src[i];
-    if (ISNA<IT>(x)) {
-      toffsets[i] = offset ^ GETNA<OT>();
-    } else {
-      char* ch0 = ch;
-      toa<IT>(&ch, x);
-      offset += static_cast<OT>(ch - ch0);
-      toffsets[i] = offset;
-      if (ch > tmpend) {
-        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-        ch = tmpbuf;
-      }
-    }
-  }
-  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-  wb->finalize();
-  delete[] tmpbuf;
-  UNTRACK(tmpbuf);
-  return wb->get_mbuf();
-}
-
-
-
-template <typename T>
-void IntColumn<T>::cast_into(StringColumn<uint32_t>* target) const {
-  uint32_t* offsets = target->offsets_w();
-  MemoryRange strbuf = int_str_cast_helper<T, uint32_t>(
-      this->nrows, this->elements_r(), offsets
+  auto inp = static_cast<const T*>(col->data());
+  const RowIndex& rowindex = col->rowindex();
+  return dt::generate_string_column(
+      [&](size_t i, dt::string_buf* buf) {
+        T x = inp[rowindex[i]];
+        if (ISNA<T>(x)) {
+          buf->write_na();
+        } else {
+          char* ch = buf->prepare_raw_write(24);
+          toa<T>(&ch, x);
+          buf->commit_raw_write(ch);
+        }
+      },
+      col->nrows,
+      std::move(out_offsets),
+      (target_stype == SType::STR64)
   );
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
-
-template <typename T>
-void IntColumn<T>::cast_into(StringColumn<uint64_t>* target) const {
-  uint64_t* offsets = target->offsets_w();
-  MemoryRange strbuf = int_str_cast_helper<T, uint64_t>(
-      this->nrows, this->elements_r(), offsets
-  );
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
-
 
 
 

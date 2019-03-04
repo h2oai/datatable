@@ -126,6 +126,19 @@ void writable_string_col::buffer_impl<T>::commit_and_start_new_chunk(size_t i0)
 }
 
 
+template <typename T>
+char* writable_string_col::buffer_impl<T>::prepare_raw_write(size_t nbytes) {
+  strbuf.ensuresize(strbuf_used + nbytes);
+  return strbuf.data() + strbuf_used;
+}
+
+
+template <typename T>
+void writable_string_col::buffer_impl<T>::commit_raw_write(char* ptr) {
+  strbuf_used = static_cast<size_t>(ptr - strbuf.data());
+  *offptr++ = static_cast<T>(strbuf_used);
+}
+
 
 
 template class writable_string_col::buffer_impl<uint32_t>;

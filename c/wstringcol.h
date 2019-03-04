@@ -58,6 +58,8 @@ class writable_string_col {
         void write(const std::string&);
         void write(const CString&);
         void write_na();
+        virtual char* prepare_raw_write(size_t nbytes) = 0;
+        virtual void commit_raw_write(char* ptr) = 0;
 
         virtual void order() = 0;
         virtual void commit_and_start_new_chunk(size_t i0) = 0;
@@ -75,8 +77,11 @@ class writable_string_col {
 
       public:
         buffer_impl(writable_string_col&);
-        void write(const char* ch, size_t len) override;
         using buffer::write;
+        void write(const char* ch, size_t len) override;
+        char* prepare_raw_write(size_t nbytes) override;
+        void commit_raw_write(char* ptr) override;
+
         void order() override;
         void commit_and_start_new_chunk(size_t i0) override;
     };

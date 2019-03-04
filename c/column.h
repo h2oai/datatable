@@ -454,9 +454,6 @@ public:
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
   using Column::stats;
   using Column::mbuf;
   using Column::new_data_column;
