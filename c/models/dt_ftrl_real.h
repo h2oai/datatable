@@ -242,7 +242,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   // If a validation set has been provided, we train on chunks of data.
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
-  bool validation = (dt_X_val != nullptr && dt_y_val != nullptr);
+  bool validation = !isnan(nepochs_val);
   T loss_global = 0;
   T loss_global_prev = 0;
   std::vector<hasherptr> hashers_val;
@@ -325,7 +325,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 			loss_global = 0;
 		}
 	}
-	// printf("Stopping at chunk %zu out of %zu\n", c, nchunks);
+	printf("Stopping at chunk %zu out of %zu\n", c, nchunks);
 }
 
 

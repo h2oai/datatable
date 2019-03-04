@@ -138,11 +138,10 @@ void Ftrl::m__init__(PKArgs& args) {
 // fit()
 //------------------------------------------------------------------------------
 
-static PKArgs args_fit(6, 0, 0, false, false, {"X_train", "y_train",
-                       "nepochs_train" /*FIXME*/, "X_validate", "y_validate",
-                       "nepochs_validate"},
+static PKArgs args_fit(2, 3, 0, false, false, {"X_train", "y_train",
+                       "X_validate", "y_validate", "nepochs_validate"},
                        "fit",
-R"(fit(self, X_train, y_train, nepochs_train=1, X_validate=None, y_validate=None, nepochs_validate=None)
+R"(fit(self, X_train, y_train, X_validate=None, y_validate=None, nepochs_validate=1)
 --
 
 Train an FTRL model on a dataset.
@@ -155,11 +154,6 @@ X_train: Frame
 y_train: Frame
     Target frame of shape (nrows, 1).
 
-nepochs: int
-    Parameter controlling how often loss is checked on the
-    validation set. Therefore, nepochs_validate should be
-    more than zero and less or equal to nepochs.
-
 X_validate: Frame
     Validation frame of shape (nrows, ncols) us
 
@@ -168,11 +162,9 @@ y_validate: Frame
 
 nepochs_validate: float
     Parameter that specifies how often to check loss on the validation
-    set. The model then trains on chunks consisting of
-    ceil(nepochs_validate * nrows) rows, last chunk may have smaller
-    number of rows, and if loss is not improving
-    training terminates. Therefore, nepochs_validate should be
-    more than zero and less than nepochs.
+    set for early stopping, and should be more than zero as well as
+    less than nepochs. If after a corresponding nepochs_validate period
+    loss does not improve, training terminates.
 
 
 Returns
@@ -215,14 +207,15 @@ void Ftrl::fit(const PKArgs& args) {
   // Check if validation set has been provided
   DataTable* dt_X_val = nullptr;
   DataTable* dt_y_val = nullptr;
-  double nepochs_val = std::numeric_limits<double>::quiet_NaN();
+  double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
 
-  if (!args[3].is_none_or_undefined() && !args[4].is_none_or_undefined()) {
-    dt_X_val = args[3].to_frame();
-    dt_y_val = args[4].to_frame();
+  if (!args[2].is_none_or_undefined() && !args[3].is_none_or_undefined()) {
+    dt_X_val = args[2].to_frame();
+    dt_y_val = args[3].to_frame();
 
     if (dt_X_val->ncols != dt_X->ncols) {
-      throw ValueError() << "Validation frame must have the same number of columns as the training frame";
+      throw ValueError() << "Validation frame must have the same number of "
+                         << "columns as the training frame";
     }
 
     if (dt_X_val->nrows == 0) {
@@ -230,28 +223,30 @@ void Ftrl::fit(const PKArgs& args) {
     }
 
     if (dt_y_val->ncols != 1) {
-      throw ValueError() << "Validation target frame must have exactly one column";
+      throw ValueError() << "Validation target frame must have exactly "
+                         << "one column";
     }
 
     if (dt_y_val->columns[0]->stype() != dt_y->columns[0]->stype()) {
-      throw ValueError() << "Validation target frame must have the same stype as the target frame";
+      throw ValueError() << "Validation target frame must have the same "
+                            "stype as the target frame";
     }
 
     if (dt_X_val->nrows != dt_y_val->nrows) {
-      throw ValueError() << "Validation target frame must have the same number of rows "
-                         << "as the validation frame itself";
+      throw ValueError() << "Validation target frame must have the same "
+                         << "number of rows as the validation frame itself";
     }
 
-    if (!args[5].is_none_or_undefined()) {
-      nepochs_val = args[5].to_double();
-      py::Validator::check_positive<double>(nepochs_val, args[4]);
-      if (nepochs_val > dtft->get_nepochs()) {
-        throw ValueError() << "`nepochs_val` should be less than `nepochs_train";
+    if (!args[4].is_none_or_undefined()) {
+      nepochs_validate = args[4].to_double();
+      py::Validator::check_positive<double>(nepochs_validate, args[4]);
+      if (nepochs_validate >= dtft->get_nepochs()) {
+        throw ValueError() << "`nepochs_validate` should be less than `nepochs";
       }
-    }
+    } else nepochs_validate = 1;
   }
 
-  dtft->dispatch_fit(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val);
+  dtft->dispatch_fit(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_validate);
 }
 
 

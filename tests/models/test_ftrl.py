@@ -66,7 +66,7 @@ def test_ftrl_early_stopping():
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
-    ft.fit(df_train, df_target, 1, df_train, df_target, 5)
+    ft.fit(df_train, df_target, df_train, df_target, nepochs_validate = 5)
     p = ft.predict(df_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon
