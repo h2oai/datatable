@@ -16,7 +16,7 @@
 #ifndef dt_UTILS_PARALLEL_h
 #define dt_UTILS_PARALLEL_h
 #include <functional>     // std::function
-#include <memory>         // std::unique_ptr
+#include "utils/c+++.h"
 #include "utils/function.h"
 #include "rowindex.h"
 #include "wstringcol.h"
@@ -40,6 +40,10 @@
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// Order-less iteration over range [0; n)
+//------------------------------------------------------------------------------
+
 using rangefn = dt::function<void(size_t, size_t, size_t)>;
 
 /**
@@ -58,6 +62,9 @@ void run_parallel(rangefn run, size_t nrows);
 
 
 
+//------------------------------------------------------------------------------
+// Ordered iteration over range [0; n)
+//------------------------------------------------------------------------------
 
 class ojcontext {};
 using ojcptr = std::unique_ptr<ojcontext>;
@@ -68,14 +75,15 @@ class ordered_job {
 
     ordered_job(size_t n);
     virtual ~ordered_job();
-    virtual ojcptr make_thread_context() = 0;
+    virtual ojcptr start_thread_context();
     virtual void run(ojcptr& ctx, size_t i0, size_t i1) = 0;
     virtual void order(ojcptr& ctx) = 0;
+    virtual void finish_thread_context(ojcptr& ctx);
 
     /**
      * Run a job over the range `[0 .. nrows - 1]` in an ordered manner.
      * Specifically, each thread will:
-     *   (1) create a new `ojcontext` object using the `make_thread_context()`
+     *   (1) create a new `ojcontext` object using the `start_thread_context()`
      *       method;
      *   (2) split the range `[0 .. nrows - 1]` into a sequence of chunks;
      *   (3) execute `run(ctx, start, end)` method, in parallel;
@@ -83,7 +91,7 @@ class ordered_job {
      *       meaning that only one thread at a time will be executing this method,
      *       and in the order of the chunks.
      *   (5) at the end of the iteration, each thread will call
-     *       `run(ctx, nrows, nrows)` one last time, giving the threads a chance
+     *       `finish_thread_context(ctx)`, giving the threads a chance
      *       to perform any necessary cleanup.
      *
      * This function is best suited for those cases when the processing has to run
@@ -93,60 +101,39 @@ class ordered_job {
 };
 
 
-using fhbuf = fixed_height_string_col::buffer;
-using str_iterator = dt::function<void(size_t, fhbuf&)>;
-
-template <void (*F)(size_t, fhbuf&)>
-class map_fw2str : private ordered_job {
-  private:
-    fixed_height_string_col outcol;
-
-    struct thcontext : public ojcontext {
-      fhbuf sb;
-      thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
-    };
-
-  public:
-    map_fw2str(size_t nrows)
-      : ordered_job(nrows), outcol(nrows) {}
-    ~map_fw2str() override = default;
-
-    Column* result() {
-      execute();
-      return std::move(outcol).to_column();
-    }
-
-  private:
-    ojcptr make_thread_context() override {
-      return ojcptr(new thcontext(outcol));
-    }
-
-    void run(ojcptr& ctx, size_t i0, size_t i1) override {
-      fhbuf& sb = static_cast<thcontext*>(ctx.get())->sb;
-      sb.commit_and_start_new_chunk(i0);
-      for (size_t i = i0; i < i1; ++i) {
-        F(i, sb);
-      }
-    }
-
-    void order(ojcptr& ctx) override {
-      fhbuf& sb = static_cast<thcontext*>(ctx.get())->sb;
-      sb.order();
-    }
-};
 
 
+//------------------------------------------------------------------------------
+// Iterate over range [0; n), producing a string column
+//------------------------------------------------------------------------------
+
+using string_buf = writable_string_col::buffer;
+
+Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               size_t n);
+
+Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               MemoryRange&& offsets_buffer,
+                               size_t n);
+
+
+
+
+//------------------------------------------------------------------------------
+// Map over a string column producing a new ostring column
+//------------------------------------------------------------------------------
 
 template <typename T, typename F>
 class mapper_str2str : private ordered_job {
   private:
     StringColumn<T>* inpcol;
-    fixed_height_string_col outcol;
+    writable_string_col outcol;
     F f;
 
     struct thcontext : public ojcontext {
-      fhbuf sb;
-      thcontext (fixed_height_string_col& fhsc) : sb(fhsc) {}
+      std::unique_ptr<string_buf> sb;
+      thcontext (writable_string_col& ws)
+        : sb(make_unique<writable_string_col::buffer_impl<uint32_t>>(ws)) {}
     };
 
   public:
@@ -163,13 +150,13 @@ class mapper_str2str : private ordered_job {
     }
 
   private:
-    ojcptr make_thread_context() override {
+    ojcptr start_thread_context() override {
       return ojcptr(new thcontext(outcol));
     }
 
     void run(ojcptr& ctx, size_t i0, size_t i1) override {
-      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
-      sb.commit_and_start_new_chunk(i0);
+      auto sb = static_cast<thcontext*>(ctx.get())->sb.get();
+      sb->commit_and_start_new_chunk(i0);
       CString curr_str;
       const T* offsets = inpcol->offsets();
       const char* strdata = inpcol->strdata();
@@ -190,8 +177,7 @@ class mapper_str2str : private ordered_job {
     }
 
     void order(ojcptr& ctx) override {
-      auto& sb = static_cast<thcontext*>(ctx.get())->sb;
-      sb.order();
+      static_cast<thcontext*>(ctx.get())->sb->order();
     }
 };
 

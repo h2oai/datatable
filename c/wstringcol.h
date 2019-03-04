@@ -45,33 +45,44 @@ class writable_string_col {
 
   public:
     writable_string_col(size_t nrows);
+    writable_string_col(MemoryRange&& offsets, size_t nrows);
     Column* to_column() &&;
 
     class buffer {
+      public:
+        virtual ~buffer();
+        virtual void write(const char* ch, size_t len) = 0;
+        void write(const std::string&);
+        void write(const CString&);
+        void write_na();
+
+        virtual void order() = 0;
+        virtual void commit_and_start_new_chunk(size_t i0) = 0;
+    };
+
+    template <typename T>
+    class buffer_impl : public buffer {
       private:
         writable_string_col& col;
         dt::array<char> strbuf;
         size_t strbuf_used;
         size_t strbuf_write_pos;
-        uint32_t* offptr;
-        uint32_t* offptr0;
+        T* offptr;
+        T* offptr0;
 
       public:
-        buffer(writable_string_col&);
-
-        void write(const CString&);
-        void write(const std::string&);
-        void write(const char* ch, size_t len);
-        void write_na();
-
-        void order();
-        void commit_and_start_new_chunk(size_t i0);
+        buffer_impl(writable_string_col&);
+        void write(const char* ch, size_t len) override;
+        using buffer::write;
+        void order() override;
+        void commit_and_start_new_chunk(size_t i0) override;
     };
 };
 
 
-using fixed_height_string_col = writable_string_col;
 
+extern template class writable_string_col::buffer_impl<uint32_t>;
+extern template class writable_string_col::buffer_impl<uint64_t>;
 
 
 }

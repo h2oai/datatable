@@ -375,8 +375,8 @@ void StringColumn<T>::replace_values(
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(this,
-      [=](size_t i, CString& value, dt::fhbuf& sb) {
-        sb.write(mask_indices[i]? repl_value : value);
+      [=](size_t i, CString& value, dt::string_buf* sb) {
+        sb->write(mask_indices[i]? repl_value : value);
       });
   }
   else {
@@ -386,17 +386,17 @@ void StringColumn<T>::replace_values(
     MemoryRange mask = replace_at.as_integer_mask(nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(this,
-      [=](size_t i, CString& value, dt::fhbuf& sb) {
+      [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {
-          sb.write(value);
+          sb->write(value);
         } else {
           T offstart = repl_offsets[ir - 1] & ~GETNA<T>();
           T offend = repl_offsets[ir];
           if (ISNA<T>(offend)) {
-            sb.write_na();
+            sb->write_na();
           } else {
-            sb.write(repl_strdata + offstart, offend - offstart);
+            sb->write(repl_strdata + offstart, offend - offstart);
           }
         }
       });

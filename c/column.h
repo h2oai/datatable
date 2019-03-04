@@ -46,9 +46,12 @@ template <typename T> class StringColumn;
 /**
  * Helper templates to convert between an stype and a column's type:
  *
- *   column_t<stype>
+ * column_t<stype>
+ *   resolves to the type of the column that implements `stype`.
  *
- * resolves to the type of the column that implements `stype`.
+ * element_t<stype>
+ *   resolves to the type of the element that is in the main data buffer
+ *   of `column_t<stype>`.
  */
 template <SType s> struct _colt {};
 template <> struct _colt<SType::BOOL>    { using t = BoolColumn; };
@@ -64,6 +67,22 @@ template <> struct _colt<SType::OBJ>     { using t = PyObjectColumn; };
 
 template <SType s>
 using column_t = typename _colt<s>::t;
+
+template <SType s> struct _elt {};
+template <> struct _elt<SType::BOOL>    { using t = int8_t; };
+template <> struct _elt<SType::INT8>    { using t = int8_t; };
+template <> struct _elt<SType::INT16>   { using t = int16_t; };
+template <> struct _elt<SType::INT32>   { using t = int32_t; };
+template <> struct _elt<SType::INT64>   { using t = int64_t; };
+template <> struct _elt<SType::FLOAT32> { using t = float; };
+template <> struct _elt<SType::FLOAT64> { using t = double; };
+template <> struct _elt<SType::STR32>   { using t = uint32_t; };
+template <> struct _elt<SType::STR64>   { using t = uint64_t; };
+template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+
+template <SType s>
+using element_t = typename _elt<s>::t;
+
 
 
 //==============================================================================
@@ -310,13 +329,6 @@ protected:
    *
    * Casting a column with a RowIndex is currently not supported.
    */
-  virtual void cast_into(BoolColumn*) const;
-  virtual void cast_into(IntColumn<int8_t>*) const;
-  virtual void cast_into(IntColumn<int16_t>*) const;
-  virtual void cast_into(IntColumn<int32_t>*) const;
-  virtual void cast_into(IntColumn<int64_t>*) const;
-  virtual void cast_into(RealColumn<float>*) const;
-  virtual void cast_into(RealColumn<double>*) const;
   virtual void cast_into(StringColumn<uint32_t>*) const;
   virtual void cast_into(StringColumn<uint64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
@@ -594,15 +606,7 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  // void cast_into(BoolColumn*) const override;
-  // void cast_into(IntColumn<int8_t>*) const override;
-  // void cast_into(IntColumn<int16_t>*) const override;
-  // void cast_into(IntColumn<int32_t>*) const override;
-  // void cast_into(IntColumn<int64_t>*) const override;
-  // void cast_into(RealColumn<float>*) const override;
-  // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<uint32_t>*) const;
   void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 

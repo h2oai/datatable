@@ -702,8 +702,8 @@ Column* ReplaceAgent::replace_str1(
     CString* x, CString* y, StringColumn<T>* col)
 {
   return dt::map_str2str(col,
-    [=](size_t, CString& value, dt::fhbuf& sb) {
-      sb.write(value == *x? *y : value);
+    [=](size_t, CString& value, dt::string_buf* sb) {
+      sb->write(value == *x? *y : value);
     });
 }
 
@@ -712,14 +712,15 @@ template <typename T>
 Column* ReplaceAgent::replace_strN(CString* x, CString* y,
                                    StringColumn<T>* col, size_t n)
 {
-  return dt::map_str2str(col, [=](size_t, CString& value, dt::fhbuf& sb) {
+  return dt::map_str2str(col,
+    [=](size_t, CString& value, dt::string_buf* sb) {
       for (size_t j = 0; j < n; ++j) {
         if (value == x[j]) {
-          sb.write(y[j]);
+          sb->write(y[j]);
           return;
         }
       }
-      sb.write(value);
+      sb->write(value);
     });
 }
 

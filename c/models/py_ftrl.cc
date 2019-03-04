@@ -234,10 +234,10 @@ void Ftrl::fit(const PKArgs& args) {
     size_t ncols = dt_X->ncols;
     const std::vector<std::string>& column_names = dt_X->get_names();
 
-    dt::fixed_height_string_col scol(nfeatures);
-    dt::fixed_height_string_col::buffer sb(scol);
+    dt::writable_string_col scol(nfeatures);
+    dt::writable_string_col::buffer_impl<uint32_t> sb(scol);
     sb.commit_and_start_new_chunk(0);
-    for (const auto& feature_name : column_names) {
+    for (const std::string& feature_name : column_names) {
       sb.write(feature_name);
     }
 

@@ -21,7 +21,7 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// Interleaved
+// Order-less iteration
 //------------------------------------------------------------------------------
 
 void run_parallel(rangefn run, size_t nrows)
@@ -77,6 +77,14 @@ ordered_job::ordered_job(size_t n) : nrows(n) {}
 
 ordered_job::~ordered_job() {}
 
+ojcptr ordered_job::start_thread_context() {
+  return ojcptr();
+}
+
+void ordered_job::finish_thread_context(ojcptr& ctx) {
+  run(ctx, nrows, nrows);
+}
+
 
 void ordered_job::execute()
 {
@@ -85,10 +93,10 @@ void ordered_job::execute()
                          nrows / min_nrows_per_thread);
 
   if (nth0 <= 1) {
-    ojcptr ctx = make_thread_context();
+    ojcptr ctx = start_thread_context();
     run(ctx, 0, nrows);
     order(ctx);
-    run(ctx, nrows, nrows);
+    finish_thread_context(ctx);
     // progress.report(nrows);
   }
   else {
@@ -102,7 +110,7 @@ void ordered_job::execute()
       ojcptr ctx;
 
       try {
-        ctx = make_thread_context();
+        ctx = start_thread_context();
       } catch (...) {
         oem.capture_exception();
       }
@@ -129,7 +137,7 @@ void ordered_job::execute()
       }
 
       try {
-        run(ctx, nrows, nrows);
+        finish_thread_context(ctx);
       } catch (...) {
         oem.capture_exception();
       }
@@ -137,6 +145,84 @@ void ordered_job::execute()
     oem.rethrow_exception_if_any();
   }
 }
+
+
+
+//------------------------------------------------------------------------------
+// Ordered iteration, produce a string column
+//------------------------------------------------------------------------------
+
+class mapper_fw2str : private ordered_job {
+  private:
+    using iterfn = dt::function<void(size_t, string_buf*)>;
+    writable_string_col outcol;
+    iterfn f;
+
+  public:
+    mapper_fw2str(iterfn f_, MemoryRange&& offsets_buffer, size_t nrows);
+    Column* result();
+
+  private:
+    struct thcontext : public ojcontext {
+      std::unique_ptr<string_buf> sb;
+      thcontext (writable_string_col& ws)
+        : sb(make_unique<writable_string_col::buffer_impl<uint32_t>>(ws)) {}
+    };
+
+    ojcptr start_thread_context() override;
+    void run(ojcptr& ctx, size_t i0, size_t i1) override;
+    void order(ojcptr& ctx) override;
+};
+
+
+mapper_fw2str::mapper_fw2str(iterfn f_, MemoryRange&& offsets, size_t nrows)
+  : ordered_job(nrows),
+    outcol(std::move(offsets), nrows),
+    f(f_) {}
+
+
+Column* mapper_fw2str::result() {
+  execute();
+  return std::move(outcol).to_column();
+}
+
+
+ojcptr mapper_fw2str::start_thread_context() {
+  return ojcptr(new thcontext(outcol));
+}
+
+
+void mapper_fw2str::run(ojcptr& ctx, size_t i0, size_t i1) {
+  string_buf* sb = static_cast<thcontext*>(ctx.get())->sb.get();
+  sb->commit_and_start_new_chunk(i0);
+  for (size_t i = i0; i < i1; ++i) {
+    f(i, sb);
+  }
+}
+
+
+void mapper_fw2str::order(ojcptr& ctx) {
+  static_cast<thcontext*>(ctx.get())->sb->order();
+}
+
+
+
+Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               size_t n)
+{
+  mapper_fw2str m(fn, MemoryRange(), n);
+  return m.result();
+}
+
+
+Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               MemoryRange&& offsets_buffer,
+                               size_t n)
+{
+  mapper_fw2str m(fn, std::move(offsets_buffer), n);
+  return m.result();
+}
+
 
 
 }  // namespace dt
