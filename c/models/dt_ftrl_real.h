@@ -181,18 +181,18 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 template <typename T>
 void FtrlReal<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double val) {
+                               double nepochs_val) {
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
+    case SType::BOOL:    fit_binomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y, dt_X_val, dt_y_val, val); break;
+    case SType::STR64:   fit_multinomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
     default:             throw TypeError() << "Cannot predict for a target "
                                            << "of type `" << stype_y << "`";
   }
@@ -221,7 +221,7 @@ template <typename T>
 template <typename U /* column data type */, typename F /* link function */, typename G /* loss function */>
 void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                       const DataTable* dt_X_val, const DataTable* dt_y_val,
-                      double val, F link, G loss) {
+                      double nepochs_val, F link, G loss) {
 	// Define features and labels
   define_features(dt_X->ncols);
   labels = dt_y->get_names();
@@ -247,7 +247,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   T loss_global = 0;
   T loss_global_prev = 0;
   if (validation) {
-    chunk_nrows = std::min(static_cast<size_t>(ceil(val * dt_X->nrows)), dt_X->nrows);
+    chunk_nrows = std::min(static_cast<size_t>(ceil(nepochs_val * dt_X->nrows)), dt_X->nrows);
     nchunks = static_cast<size_t>(ceil(static_cast<double>(total_nrows) / chunk_nrows));
   }
 
@@ -371,14 +371,14 @@ void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w, T p, U y, size_t 
 template <typename T>
 void FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double val) {
+                               double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::BINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from binomial. To train it "
                          "in a binomial mode this model should be reset.";
   }
   model_type = FtrlModelType::BINOMIAL;
-  fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, val, sigmoid<T>, log_loss<T>);
+  fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
 }
 
 
@@ -386,21 +386,21 @@ template <typename T>
 template <typename U>
 void FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double val) {
+                               double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
   model_type = FtrlModelType::REGRESSION;
-  fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, val, identity<T>, squared_loss<T, U>);
+  fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
 }
 
 
 template <typename T>
 void FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double val) {
+                               double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from multinomial. To train it "
@@ -418,7 +418,7 @@ void FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
   }
 
   // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
-  fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), val, sigmoid<T>, log_loss<T>);
+  fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
 }
 
 
