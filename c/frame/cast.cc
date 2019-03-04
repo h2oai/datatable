@@ -123,7 +123,6 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const
   switch (new_stype) {
     case SType::STR32:   cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
     case SType::STR64:   cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
-    case SType::OBJ:     cast_into(static_cast<PyObjectColumn*>(res)); break;
     default:
       throw ValueError() << "Unable to cast into stype = " << new_stype;
   }
@@ -135,9 +134,6 @@ void Column::cast_into(StringColumn<uint32_t>*) const {
 }
 void Column::cast_into(StringColumn<uint64_t>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into str64";
-}
-void Column::cast_into(PyObjectColumn*) const {
-  throw ValueError() << "Cannot cast " << stype() << " into pyobj";
 }
 
 
@@ -248,7 +244,7 @@ static void cast_fw2(const Column* col, void* out_data)
 // Casting into PyObject* can only be done in single-threaded mode.
 //
 template <typename T, PyObject* (*CAST_OP)(T)>
-static void cast_pyo(const Column* col, void* out_data)
+static void cast_to_pyobj(const Column* col, void* out_data)
 {
   auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<PyObject**>(out_data);
@@ -256,6 +252,28 @@ static void cast_pyo(const Column* col, void* out_data)
   for (size_t i = 0; i < col->nrows; ++i) {
     Py_DECREF(out[i]);
     out[i] = CAST_OP(inp[rowindex[i]]);
+  }
+}
+
+
+template <typename T>
+static void cast_str_to_pyobj(const Column* col, void* out_data)
+{
+  auto scol = static_cast<const StringColumn<T>*>(col);
+  auto offsets = scol->offsets();
+  auto strdata = scol->strdata();
+  auto out = static_cast<PyObject**>(out_data);
+  const RowIndex& rowindex = col->rowindex();
+  for (size_t i = 0; i < col->nrows; ++i) {
+    Py_DECREF(out[i]);
+    size_t j = rowindex[i];
+    T off_start = offsets[j - 1] & ~GETNA<T>();
+    T off_end = offsets[j];
+    if (ISNA<T>(off_end)) {
+      out[i] = py::None().release();
+    } else {
+      out[i] = py::ostring(strdata + off_start, off_end - off_start).release();
+    }
   }
 }
 
@@ -331,26 +349,6 @@ static Column* cast_pyobj_to_str(const Column* col, MemoryRange&& out_offsets,
 // StringColumn casts
 //------------------------------------------------------------------------------
 
-template <typename T>
-void StringColumn<T>::cast_into(PyObjectColumn* target) const {
-  const char* strdata = this->strdata();
-  const T* offsets = this->offsets();
-  PyObject** trg_data = target->elements_w();
-
-  T prev_offset = 0;
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T off_end = offsets[i];
-    if (ISNA<T>(off_end)) {
-      trg_data[i] = py::None().release();
-    } else {
-      trg_data[i] = py::ostring(strdata + prev_offset,
-                    off_end - prev_offset).release();
-      prev_offset = off_end;
-    }
-  }
-}
-
-
 template <>
 void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
   const uint32_t* src_data = this->offsets();
@@ -394,6 +392,8 @@ void py::DatatableModule::init_casts()
   constexpr SType int64  = SType::INT64;
   constexpr SType real32 = SType::FLOAT32;
   constexpr SType real64 = SType::FLOAT64;
+  constexpr SType str32  = SType::STR32;
+  constexpr SType str64  = SType::STR64;
   constexpr SType obj64  = SType::OBJ;
 
   // Trivial casts
@@ -462,14 +462,16 @@ void py::DatatableModule::init_casts()
   castfns0[id(real32, real64)] = cast_fw0<float,   double, cast_simple<float, double>>;
 
   // Casts into obj64
-  castfns2[id(bool8, obj64)]  = cast_pyo<int8_t,    cast_bool_pyobj>;
-  castfns2[id(int8, obj64)]   = cast_pyo<int8_t,    cast_int_pyobj<int8_t>>;
-  castfns2[id(int16, obj64)]  = cast_pyo<int16_t,   cast_int_pyobj<int16_t>>;
-  castfns2[id(int32, obj64)]  = cast_pyo<int32_t,   cast_int_pyobj<int32_t>>;
-  castfns2[id(int64, obj64)]  = cast_pyo<int64_t,   cast_int_pyobj<int64_t>>;
-  castfns2[id(real32, obj64)] = cast_pyo<float,     cast_float_pyobj<float>>;
-  castfns2[id(real64, obj64)] = cast_pyo<double,    cast_float_pyobj<double>>;
-  castfns2[id(obj64, obj64)]  = cast_pyo<PyObject*, cast_pyobj_pyobj>;
+  castfns2[id(bool8, obj64)]  = cast_to_pyobj<int8_t,    cast_bool_pyobj>;
+  castfns2[id(int8, obj64)]   = cast_to_pyobj<int8_t,    cast_int_pyobj<int8_t>>;
+  castfns2[id(int16, obj64)]  = cast_to_pyobj<int16_t,   cast_int_pyobj<int16_t>>;
+  castfns2[id(int32, obj64)]  = cast_to_pyobj<int32_t,   cast_int_pyobj<int32_t>>;
+  castfns2[id(int64, obj64)]  = cast_to_pyobj<int64_t,   cast_int_pyobj<int64_t>>;
+  castfns2[id(real32, obj64)] = cast_to_pyobj<float,     cast_float_pyobj<float>>;
+  castfns2[id(real64, obj64)] = cast_to_pyobj<double,    cast_float_pyobj<double>>;
+  castfns2[id(str32, obj64)]  = cast_str_to_pyobj<uint32_t>;
+  castfns2[id(str64, obj64)]  = cast_str_to_pyobj<uint64_t>;
+  castfns2[id(obj64, obj64)]  = cast_to_pyobj<PyObject*, cast_pyobj_pyobj>;
 
 }
 

@@ -331,7 +331,6 @@ protected:
    */
   virtual void cast_into(StringColumn<uint32_t>*) const;
   virtual void cast_into(StringColumn<uint64_t>*) const;
-  virtual void cast_into(PyObjectColumn*) const;
 
 
   /**
@@ -594,7 +593,6 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  void cast_into(PyObjectColumn*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 
