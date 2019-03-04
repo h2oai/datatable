@@ -40,6 +40,9 @@ static std::unordered_map<size_t, castfn0> castfns0;
 static std::unordered_map<size_t, castfn1> castfns1;
 static std::unordered_map<size_t, castfn2> castfns2;
 
+static Column* cast_bool_to_str(const Column*, MemoryRange&&, SType);
+
+
 
 //------------------------------------------------------------------------------
 // Column (base methods)
@@ -51,6 +54,13 @@ Column* Column::cast(SType new_stype) const {
 
 Column* Column::cast(SType new_stype, MemoryRange&& mr) const
 {
+  if (new_stype == SType::STR32 || new_stype == SType::STR64) {
+    switch (stype()) {
+      case SType::BOOL: return cast_bool_to_str(this, std::move(mr), new_stype);
+      default: break;
+    }
+  }
+
   Column *res = nullptr;
   if (mr) {
     res = Column::new_column(new_stype);
@@ -241,7 +251,8 @@ static void cast_pyo(const Column* col, void* out_data)
 
 
 
-static Column* cast_bool_to_str(const Column* col, MemoryRange&& out_offsets)
+static Column* cast_bool_to_str(const Column* col, MemoryRange&& out_offsets,
+                                SType target_stype)
 {
   static CString str_na;
   static CString str_true  {"True", 4};
@@ -253,61 +264,12 @@ static Column* cast_bool_to_str(const Column* col, MemoryRange&& out_offsets)
         int8_t x = inp[rowindex[i]];
         buf->write(ISNA<int8_t>(x)? str_na : x? str_true : str_false);
       },
+      col->nrows,
       std::move(out_offsets),
-      col->nrows);
+      (target_stype == SType::STR64)
+  );
 }
 
-
-
-//------------------------------------------------------------------------------
-// BoolColumn
-//------------------------------------------------------------------------------
-
-template <typename T>
-inline static MemoryRange bool_str_cast_helper(
-  const BoolColumn* src, StringColumn<T>* target)
-{
-  const int8_t* src_data = src->elements_r();
-  T* toffsets = target->offsets_w();
-  size_t exp_size = src->nrows;
-  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
-  char* tmpbuf = new char[1024];
-  TRACK(tmpbuf, sizeof(tmpbuf), "BoolColumn::tmpbuf");
-  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
-  char* ch = tmpbuf;
-  T offset = 0;
-  toffsets[-1] = 0;
-  for (size_t i = 0; i < src->nrows; ++i) {
-    int8_t x = src_data[i];
-    if (ISNA<int8_t>(x)) {
-      toffsets[i] = offset ^ GETNA<T>();
-    } else {
-      *ch++ = '0' + x;
-      offset++;
-      toffsets[i] = offset;
-      if (ch > tmpend) {
-        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-        ch = tmpbuf;
-      }
-    }
-  }
-  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-  wb->finalize();
-  delete[] tmpbuf;
-  UNTRACK(tmpbuf);
-  return wb->get_mbuf();
-}
-
-
-void BoolColumn::cast_into(StringColumn<uint32_t>* target) const {
-  MemoryRange strbuf = bool_str_cast_helper<uint32_t>(this, target);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
-
-void BoolColumn::cast_into(StringColumn<uint64_t>* target) const {
-  MemoryRange strbuf = bool_str_cast_helper<uint64_t>(this, target);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
 
 
 

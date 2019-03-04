@@ -42,10 +42,13 @@ class writable_string_col {
     MemoryWritableBuffer strdata;
     MemoryRange offdata;
     size_t n;
+    bool str64;
+    size_t : 56;
 
   public:
-    writable_string_col(size_t nrows);
-    writable_string_col(MemoryRange&& offsets, size_t nrows);
+    writable_string_col(size_t nrows, bool str64_ = false);
+    writable_string_col(MemoryRange&& offsets, size_t nrows,
+                        bool str64_ = false);
     Column* to_column() &&;
 
     class buffer {

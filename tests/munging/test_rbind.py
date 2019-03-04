@@ -381,7 +381,7 @@ def test_rbind_different_stypes4():
     dt0.rbind(dt1)
     assert dt0.stypes == (stype.str32, ) * 3
     assert dt0.to_list() == [
-        ["1", "0", "0", None, "1", "vega", "altair", None],
+        ["True", "False", "False", None, "True", "vega", "altair", None],
         ["0.0", "-12.34", None, "70000000.0", "1499.0", None, "wren", "crow"],
         [None, "4.998", "5.14", "-340000.0", "1.333333", "f", None, None]
     ]

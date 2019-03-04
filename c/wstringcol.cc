@@ -24,24 +24,31 @@ namespace dt {
 // writable_string_col
 //------------------------------------------------------------------------------
 
-writable_string_col::writable_string_col(size_t nrows)
+writable_string_col::writable_string_col(size_t nrows, bool str64_)
   : strdata(nrows),
-    offdata(MemoryRange::mem((nrows + 1) * sizeof(uint32_t))),
-    n(nrows) {}
+    offdata(MemoryRange::mem((nrows + 1) * 4 * (1 + str64_))),
+    n(nrows),
+    str64(str64_) {}
 
-writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows)
+writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
+                                         bool str64_)
   : strdata(nrows),
     offdata(std::move(offsets)),
-    n(nrows)
+    n(nrows),
+    str64(str64_)
 {
-  offdata.resize((nrows + 1) * sizeof(uint32_t));
+  offdata.resize((nrows + 1) * 4 * (1 + str64));
 }
 
 
 Column* writable_string_col::to_column() && {
   strdata.finalize();
   auto strbuf = strdata.get_mbuf();
-  offdata.set_element<uint32_t>(0, 0);
+  if (str64) {
+    offdata.set_element<uint64_t>(0, 0);
+  } else {
+    offdata.set_element<uint32_t>(0, 0);
+  }
   return new_string_column(n, std::move(offdata), std::move(strbuf));
 }
 

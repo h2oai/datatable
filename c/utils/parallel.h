@@ -110,11 +110,13 @@ class ordered_job {
 using string_buf = writable_string_col::buffer;
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n);
+                               size_t n,
+                               bool str64 = false);
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               size_t n,
                                MemoryRange&& offsets_buffer,
-                               size_t n);
+                               bool str64 = false);
 
 
 

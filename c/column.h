@@ -423,9 +423,6 @@ public:
 
   protected:
 
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
   void verify_integrity(const std::string& name) const override;
 
   using Column::mbuf;

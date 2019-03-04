@@ -157,16 +157,18 @@ class mapper_fw2str : private ordered_job {
     using iterfn = dt::function<void(size_t, string_buf*)>;
     writable_string_col outcol;
     iterfn f;
+    bool str64;
+    size_t : 56;
 
   public:
-    mapper_fw2str(iterfn f_, MemoryRange&& offsets_buffer, size_t nrows);
+    mapper_fw2str(iterfn f_, MemoryRange&& offsets_buffer, size_t nrows,
+                  bool str64);
     Column* result();
 
   private:
     struct thcontext : public ojcontext {
       std::unique_ptr<string_buf> sb;
-      thcontext (writable_string_col& ws)
-        : sb(make_unique<writable_string_col::buffer_impl<uint32_t>>(ws)) {}
+      thcontext(writable_string_col&, bool str64_);
     };
 
     ojcptr start_thread_context() override;
@@ -175,10 +177,22 @@ class mapper_fw2str : private ordered_job {
 };
 
 
-mapper_fw2str::mapper_fw2str(iterfn f_, MemoryRange&& offsets, size_t nrows)
+mapper_fw2str::mapper_fw2str(iterfn f_, MemoryRange&& offsets, size_t nrows,
+                             bool str64_)
   : ordered_job(nrows),
-    outcol(std::move(offsets), nrows),
-    f(f_) {}
+    outcol(std::move(offsets), nrows, str64_),
+    f(f_),
+    str64(str64_) {}
+
+
+mapper_fw2str::thcontext::thcontext(writable_string_col& ws, bool str64_) {
+  if (str64_) {
+    sb = make_unique<writable_string_col::buffer_impl<uint64_t>>(ws);
+  } else {
+    sb = make_unique<writable_string_col::buffer_impl<uint32_t>>(ws);
+  }
+}
+
 
 
 Column* mapper_fw2str::result() {
@@ -188,7 +202,7 @@ Column* mapper_fw2str::result() {
 
 
 ojcptr mapper_fw2str::start_thread_context() {
-  return ojcptr(new thcontext(outcol));
+  return ojcptr(new thcontext(outcol, str64));
 }
 
 
@@ -208,18 +222,20 @@ void mapper_fw2str::order(ojcptr& ctx) {
 
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n)
+                               size_t n,
+                               bool str64)
 {
-  mapper_fw2str m(fn, MemoryRange(), n);
+  mapper_fw2str m(fn, MemoryRange(), n, str64);
   return m.result();
 }
 
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                               size_t n,
                                MemoryRange&& offsets_buffer,
-                               size_t n)
+                               bool str64)
 {
-  mapper_fw2str m(fn, std::move(offsets_buffer), n);
+  mapper_fw2str m(fn, std::move(offsets_buffer), n, str64);
   return m.result();
 }
 

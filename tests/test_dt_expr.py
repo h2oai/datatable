@@ -375,7 +375,6 @@ def test_cast_int_to_str(stype0):
 def test_cast_to_str(src):
     def to_str(x):
         if x is None: return None
-        if isinstance(x, bool): return str(int(x))
         # if isinstance(x, float) and math.isnan(x): return None
         return str(x)
 
