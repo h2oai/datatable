@@ -64,13 +64,28 @@ epsilon = 0.01
 def test_ftrl_early_stopping():
     ft = Ftrl(alpha = 0.5, nbins = 10, nepochs = 10000)
     r = range(ft.nbins)
-    df_train = dt.Frame(r)
-    df_target = dt.Frame(r)
-    ft.fit(df_train, df_target, df_train, df_target, nepochs_validate = 5)
-    p = ft.predict(df_train)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = 5)
+    p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon
 
+
+def test_ftrl_early_stopping_view():
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = 10000)
+    r = range(ft.nbins)
+    df_X_train = dt.Frame(r)
+    df_y_train = dt.Frame(r)
+    df_X_validate = dt.Frame(range(-nbins, nbins))
+    df_y_validate = df_X_validate
+    ft.fit(df_X_train, df_y_train,
+           df_X_validate[nbins::,:], df_y_validate[nbins::,:],
+           nepochs_validate = 5)
+    p = ft.predict(df_X_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert max(delta) < epsilon
 
 
 #-------------------------------------------------------------------------------
