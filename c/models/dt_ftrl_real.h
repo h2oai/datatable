@@ -24,7 +24,7 @@
 #include "py_datatable.h"
 #include "str/py_str.h"
 #include "utils/parallel.h"
-#include "models/hash.h"
+#include "models/hasher.h"
 #include "models/utils.h"
 
 
@@ -69,8 +69,7 @@ class FtrlReal : public dt::Ftrl {
     size_t nfeatures;
 
 
-    // Column hashers and a vector of hashed column names
-    std::vector<hashptr> hashers;
+    // Vector of hashed column names
     std::vector<uint64_t> colnames_hashes;
 
   public:
@@ -108,9 +107,9 @@ class FtrlReal : public dt::Ftrl {
     void normalize_rows(dtptr&);
 
     // Hashing methods
-    void create_hashers(const DataTable*);
-    static hashptr create_colhasher(const Column*);
-    void hash_row(uint64ptr&, size_t);
+    std::vector<hasherptr> create_hashers(const DataTable*);
+    static hasherptr create_hasher(const Column*);
+    void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model validation methods
     static bool is_dt_valid(const dtptr&, size_t, size_t);
@@ -232,7 +231,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   if (!is_dt_valid(dt_fi, nfeatures, 2)) create_fi(dt_X);
 
   // Create column hashers
-  create_hashers(dt_X);
+  auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke `dt::run_interleaved()`
   // on all the data for all the epochs at once.
@@ -246,8 +245,10 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   bool validation = (dt_X_val != nullptr && dt_y_val != nullptr);
   T loss_global = 0;
   T loss_global_prev = 0;
+  std::vector<hasherptr> hashers_val;
   if (validation) {
-    chunk_nrows = std::min(static_cast<size_t>(ceil(nepochs_val * dt_X->nrows)), dt_X->nrows);
+    hashers_val = create_hashers(dt_X_val);
+    chunk_nrows = std::min(static_cast<size_t>(ceil(nepochs_val * dt_X->nrows)), total_nrows);
     nchunks = static_cast<size_t>(ceil(static_cast<double>(total_nrows) / chunk_nrows));
   }
 
@@ -277,7 +278,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 	        // it is enough to check the condition below for the zero column only.
 	        // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
           if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
-            hash_row(x, ii);
+            hash_row(x, hashers, ii);
             for (size_t k = 0; k < dt_y->ncols; ++k) {
               const size_t j = ri[k][ii];
               T p = link(predict_row(x, w, k));
@@ -301,7 +302,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 			    for (size_t i = i0; i < i1; i += di) {
 			    	const size_t j0 = ri_val[0][i];
 	          if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
-	            hash_row(x, i);
+	            hash_row(x, hashers_val, i);
 	            for (size_t k = 0; k < dt_y_val->ncols; ++k) {
 	              const size_t j = ri_val[k][i];
 	              T p = link(predict_row(x, w, k));
@@ -435,9 +436,8 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X) {
   init_weights();
   is_dt_valid(dt_fi, nfeatures, 2)? init_fi() : create_fi(dt_X); //FIXME: this should be removed
 
-  // Re-create hashers as `stype`s for prediction may be different from
-  // those used for fitting
-  create_hashers(dt_X);
+  // Create hashers
+  auto hashers = create_hashers(dt_X);
 
   // Create datatable for predictions and obtain column data pointers
   size_t nlabels = labels.size();
@@ -463,11 +463,11 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X) {
 	dt::run_interleaved(
 		[&](size_t i0, size_t i1, size_t di) {
 
-		uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+		  uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 			tptr<T> w = tptr<T>(new T[nfeatures]);
 
 			for (size_t i = i0; i < i1; i += di) {
-				hash_row(x, i);
+				hash_row(x, hashers, i);
 				for (size_t k = 0; k < nlabels; ++k) {
 				  d_p[k][i] = f(predict_row(x, w, k));
 				}
@@ -629,13 +629,14 @@ void FtrlReal<T>::define_features(size_t ncols_in) {
 
 
 template <typename T>
-void FtrlReal<T>::create_hashers(const DataTable* dt) {
+std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
+  std::vector<hasherptr> hashers;
   hashers.clear();
   hashers.reserve(dt_X_ncols);
 
   for (size_t i = 0; i < dt_X_ncols; ++i) {
     Column* col = dt->columns[i];
-    hashers.push_back(create_colhasher(col));
+    hashers.push_back(create_hasher(col));
   }
 
   // Also, pre-hash column names.
@@ -650,22 +651,23 @@ void FtrlReal<T>::create_hashers(const DataTable* dt) {
                              0);
     colnames_hashes.push_back(h);
   }
+  return hashers;
 }
 
 
 template <typename T>
-hashptr FtrlReal<T>::create_colhasher(const Column* col) {
+hasherptr FtrlReal<T>::create_hasher(const Column* col) {
   SType stype = col->stype();
   switch (stype) {
-    case SType::BOOL:    return hashptr(new HashBool(col));
-    case SType::INT8:    return hashptr(new HashInt<int8_t>(col));
-    case SType::INT16:   return hashptr(new HashInt<int16_t>(col));
-    case SType::INT32:   return hashptr(new HashInt<int32_t>(col));
-    case SType::INT64:   return hashptr(new HashInt<int64_t>(col));
-    case SType::FLOAT32: return hashptr(new HashFloat<float>(col));
-    case SType::FLOAT64: return hashptr(new HashFloat<double>(col));
-    case SType::STR32:   return hashptr(new HashString<uint32_t>(col));
-    case SType::STR64:   return hashptr(new HashString<uint64_t>(col));
+    case SType::BOOL:    return hasherptr(new HasherBool(col));
+    case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
+    case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
+    case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
+    case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
+    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col));
+    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col));
+    case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
+    case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
     default:             throw TypeError() << "Cannot hash a column of type "
                                            << stype;
   }
@@ -676,7 +678,7 @@ hashptr FtrlReal<T>::create_colhasher(const Column* col) {
 *  Hash each element of the datatable row, do feature interactions if requested.
 */
 template <typename T>
-void FtrlReal<T>::hash_row(uint64ptr& x, size_t row) {
+void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers, size_t row) {
   // Hash column values adding a column name hash, so that the same value
   // in different columns results in different hashes.
   for (size_t i = 0; i < dt_X_ncols; ++i) {

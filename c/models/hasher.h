@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_MODELS_HASH_h
-#define dt_MODELS_HASH_h
+#ifndef dt_MODELS_HASHER_h
+#define dt_MODELS_HASHER_h
 #include "py_datatable.h"
 #include "models/murmurhash.h"
 
@@ -28,27 +28,27 @@
 /*
 * An abstract base class for all the hashers.
 */
-class Hash {
+class Hasher {
   public:
-    explicit Hash(const Column*);
-    virtual ~Hash();
+    explicit Hasher(const Column*);
+    virtual ~Hasher();
 
     const RowIndex& ri;
     virtual uint64_t hash(size_t row) const = 0;
 };
 
 
-using hashptr = std::unique_ptr<Hash>;
+using hasherptr = std::unique_ptr<Hasher>;
 
 
 /*
 * Class to hash booleans.
 */
-class HashBool : public Hash {
+class HasherBool : public Hasher {
   private:
     const int8_t* values;
   public:
-    explicit HashBool(const Column*);
+    explicit HasherBool(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -57,11 +57,11 @@ class HashBool : public Hash {
 * Template class to hash integers.
 */
 template <typename T>
-class HashInt : public Hash {
+class HasherInt : public Hasher {
   private:
     const T* values;
   public:
-    explicit HashInt(const Column*);
+    explicit HasherInt(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -70,11 +70,11 @@ class HashInt : public Hash {
 *  Template class to hash floats.
 */
 template <typename T>
-class HashFloat : public Hash {
+class HasherFloat : public Hasher {
   private:
     const T* values;
   public:
-    explicit HashFloat(const Column*);
+    explicit HasherFloat(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
@@ -83,23 +83,23 @@ class HashFloat : public Hash {
 *  Template class to hash strings.
 */
 template <typename T>
-class HashString : public Hash {
+class HasherString : public Hasher {
   private:
     const char* strdata;
     const T* offsets;
   public:
-    explicit HashString(const Column*);
+    explicit HasherString(const Column*);
     uint64_t hash(size_t row) const override;
 };
 
 
-extern template class HashInt<int8_t>;
-extern template class HashInt<int16_t>;
-extern template class HashInt<int32_t>;
-extern template class HashInt<int64_t>;
-extern template class HashFloat<float>;
-extern template class HashFloat<double>;
-extern template class HashString<uint32_t>;
-extern template class HashString<uint64_t>;
+extern template class HasherInt<int8_t>;
+extern template class HasherInt<int16_t>;
+extern template class HasherInt<int32_t>;
+extern template class HasherInt<int64_t>;
+extern template class HasherFloat<float>;
+extern template class HasherFloat<double>;
+extern template class HasherString<uint32_t>;
+extern template class HasherString<uint64_t>;
 
 #endif

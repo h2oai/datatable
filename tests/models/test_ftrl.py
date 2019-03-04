@@ -66,7 +66,7 @@ def test_ftrl_early_stopping():
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
-    ft.fit(df_train, df_target, 1, df_train, df_target, 1.0)
+    ft.fit(df_train, df_target, 1, df_train, df_target, 5)
     p = ft.predict(df_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon
@@ -706,6 +706,7 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 
 
 def test_ftrl_fit_predict_multinomial():
+    dt.options.nthreads = 1
     ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
     labels = ("red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
