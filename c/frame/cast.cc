@@ -41,8 +41,9 @@ static std::unordered_map<size_t, castfn1> castfns1;
 static std::unordered_map<size_t, castfn2> castfns2;
 
 static Column* cast_bool_to_str(const Column*, MemoryRange&&, SType);
+static Column* cast_pyobj_to_str(const Column*, MemoryRange&&, SType);
 template <typename T>
-static Column* cast_int_to_str(const Column*, MemoryRange&&, SType);
+static Column* cast_num_to_str(const Column*, MemoryRange&&, SType);
 
 
 
@@ -59,10 +60,13 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const
   if (new_stype == SType::STR32 || new_stype == SType::STR64) {
     switch (stype()) {
       case SType::BOOL: return cast_bool_to_str(this, std::move(mr), new_stype);
-      case SType::INT8: return cast_int_to_str<int8_t>(this, std::move(mr), new_stype);
-      case SType::INT16: return cast_int_to_str<int16_t>(this, std::move(mr), new_stype);
-      case SType::INT32: return cast_int_to_str<int32_t>(this, std::move(mr), new_stype);
-      case SType::INT64: return cast_int_to_str<int64_t>(this, std::move(mr), new_stype);
+      case SType::INT8: return cast_num_to_str<int8_t>(this, std::move(mr), new_stype);
+      case SType::INT16: return cast_num_to_str<int16_t>(this, std::move(mr), new_stype);
+      case SType::INT32: return cast_num_to_str<int32_t>(this, std::move(mr), new_stype);
+      case SType::INT64: return cast_num_to_str<int64_t>(this, std::move(mr), new_stype);
+      case SType::FLOAT32: return cast_num_to_str<float>(this, std::move(mr), new_stype);
+      case SType::FLOAT64: return cast_num_to_str<double>(this, std::move(mr), new_stype);
+      case SType::OBJ: return cast_pyobj_to_str(this, std::move(mr), new_stype);
       default: break;
     }
   }
@@ -278,7 +282,7 @@ static Column* cast_bool_to_str(const Column* col, MemoryRange&& out_offsets,
 
 
 template <typename T>
-static Column* cast_int_to_str(const Column* col, MemoryRange&& out_offsets,
+static Column* cast_num_to_str(const Column* col, MemoryRange&& out_offsets,
                                SType target_stype)
 {
   auto inp = static_cast<const T*>(col->data());
@@ -302,61 +306,23 @@ static Column* cast_int_to_str(const Column* col, MemoryRange&& out_offsets,
 
 
 
-
-//------------------------------------------------------------------------------
-// RealColumn casts
-//------------------------------------------------------------------------------
-
-template<typename IT, typename OT>
-inline static MemoryRange real_str_cast_helper(
-  const RealColumn<IT>* src, StringColumn<OT>* target)
+static Column* cast_pyobj_to_str(const Column* col, MemoryRange&& out_offsets,
+                                 SType target_stype)
 {
-  const IT* src_data = src->elements_r();
-  OT* toffsets = target->offsets_w();
-  size_t exp_size = src->nrows * sizeof(IT) * 2;
-  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
-  char* tmpbuf = new char[1024];
-  TRACK(tmpbuf, sizeof(tmpbuf), "RealColumn::tmpbuf");
-  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
-  char* ch = tmpbuf;
-  OT offset = 0;
-  toffsets[-1] = 0;
-  for (size_t i = 0; i < src->nrows; ++i) {
-    IT x = src_data[i];
-    if (ISNA<IT>(x)) {
-      toffsets[i] = offset ^ GETNA<OT>();
-    } else {
-      char* ch0 = ch;
-      toa<IT>(&ch, x);
-      offset += static_cast<OT>(ch - ch0);
-      toffsets[i] = offset;
-      if (ch > tmpend) {
-        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-        ch = tmpbuf;
-      }
-    }
-  }
-  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
-  wb->finalize();
-  delete[] tmpbuf;
-  UNTRACK(tmpbuf);
-  return wb->get_mbuf();
+  auto inp = static_cast<PyObject* const*>(col->data());
+  const RowIndex& rowindex = col->rowindex();
+  return dt::generate_string_column(
+      [&](size_t i, dt::string_buf* buf) {
+        PyObject* x = inp[rowindex[i]];
+        CString xstr = py::robj(x).to_pystring_force().to_cstring();
+        buf->write(xstr);
+      },
+      col->nrows,
+      std::move(out_offsets),
+      /* force_str64 = */ (target_stype == SType::STR64),
+      /* force_single_threaded = */ true
+  );
 }
-
-
-
-template <typename T>
-void RealColumn<T>::cast_into(StringColumn<uint32_t>* target) const {
-  MemoryRange strbuf = real_str_cast_helper<T, uint32_t>(this, target);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
-
-template <typename T>
-void RealColumn<T>::cast_into(StringColumn<uint64_t>* target) const {
-  MemoryRange strbuf = real_str_cast_helper<T, uint64_t>(this, target);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
-
 
 
 
@@ -408,53 +374,6 @@ void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// PyObjectColumn casts
-//------------------------------------------------------------------------------
-
-template<typename OT>
-inline static MemoryRange obj_str_cast_helper(
-  size_t nrows, const PyObject* const* src, OT* toffsets)
-{
-  // Warning: Do not attempt to parallelize this: creating new PyObjects
-  // is not thread-safe! In addition `to_pystring_force()` may invoke
-  // arbitrary python code when stringifying a value...
-  size_t exp_size = nrows * sizeof(PyObject*);
-  auto wb = make_unique<MemoryWritableBuffer>(exp_size);
-  OT offset = 0;
-  toffsets[-1] = 0;
-  for (size_t i = 0; i < nrows; ++i) {
-    py::ostring xstr = py::robj(src[i]).to_pystring_force();
-    CString xcstr = xstr.to_cstring();
-    if (xcstr.ch) {
-      wb->write(static_cast<size_t>(xcstr.size), xcstr.ch);
-      offset += static_cast<OT>(xcstr.size);
-      toffsets[i] = offset;
-    } else {
-      toffsets[i] = offset ^ GETNA<OT>();
-    }
-  }
-  wb->finalize();
-  return wb->get_mbuf();
-}
-
-
-void PyObjectColumn::cast_into(StringColumn<uint32_t>* target) const {
-  const PyObject* const* data = elements_r();
-  uint32_t* offsets = target->offsets_w();
-  MemoryRange strbuf = obj_str_cast_helper<uint32_t>(nrows, data, offsets);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
-
-
-void PyObjectColumn::cast_into(StringColumn<uint64_t>* target) const {
-  const PyObject* const* data = elements_r();
-  uint64_t* offsets = target->offsets_w();
-  MemoryRange strbuf = obj_str_cast_helper<uint64_t>(nrows, data, offsets);
-  target->replace_buffer(target->data_buf(), std::move(strbuf));
-}
 
 
 
@@ -561,11 +480,5 @@ void py::DatatableModule::init_casts()
 // Explicit instantiation of templates
 //------------------------------------------------------------------------------
 
-template class IntColumn<int8_t>;
-template class IntColumn<int16_t>;
-template class IntColumn<int32_t>;
-template class IntColumn<int64_t>;
-template class RealColumn<float>;
-template class RealColumn<double>;
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;

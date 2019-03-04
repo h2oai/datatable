@@ -487,9 +487,6 @@ public:
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
   using Column::stats;
   using Column::new_data_column;
   friend Column;
@@ -531,9 +528,6 @@ protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
-
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
 
   void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,

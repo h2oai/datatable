@@ -72,8 +72,10 @@ using ojcptr = std::unique_ptr<ojcontext>;
 class ordered_job {
   public:
     size_t nrows;
+    bool noomp;
+    size_t : 56;
 
-    ordered_job(size_t n);
+    ordered_job(size_t n, bool force_single_threaded = false);
     virtual ~ordered_job();
     virtual ojcptr start_thread_context();
     virtual void run(ojcptr& ctx, size_t i0, size_t i1) = 0;
@@ -111,12 +113,9 @@ using string_buf = writable_string_col::buffer;
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
                                size_t n,
-                               bool str64 = false);
-
-Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n,
-                               MemoryRange&& offsets_buffer,
-                               bool str64 = false);
+                               MemoryRange&& offsets_buffer = MemoryRange(),
+                               bool force_str64 = false,
+                               bool force_single_threaded = false);
 
 
 

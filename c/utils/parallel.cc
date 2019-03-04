@@ -73,7 +73,9 @@ void run_parallel(rangefn run, size_t nrows)
 // ordered_job
 //------------------------------------------------------------------------------
 
-ordered_job::ordered_job(size_t n) : nrows(n) {}
+ordered_job::ordered_job(size_t n, bool force_single_threaded)
+  : nrows(n),
+    noomp(force_single_threaded) {}
 
 ordered_job::~ordered_job() {}
 
@@ -89,10 +91,8 @@ void ordered_job::finish_thread_context(ojcptr& ctx) {
 void ordered_job::execute()
 {
   constexpr size_t min_nrows_per_thread = 100;
-  size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
-                         nrows / min_nrows_per_thread);
 
-  if (nth0 <= 1) {
+  if (nrows <= min_nrows_per_thread) {
     ojcptr ctx = start_thread_context();
     run(ctx, 0, nrows);
     order(ctx);
@@ -100,11 +100,13 @@ void ordered_job::execute()
     // progress.report(nrows);
   }
   else {
+    size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
+                           nrows / min_nrows_per_thread);
+    if (noomp) nth0 = 1;
     OmpExceptionManager oem;
     #pragma omp parallel num_threads(nth0)
     {
       // int ith = omp_get_thread_num();
-      // int nth = omp_get_num_threads();
       size_t nchunks = 1 + (nrows - 1)/1000;
       size_t chunksize = 1 + (nrows - 1)/nchunks;
       ojcptr ctx;
@@ -162,7 +164,7 @@ class mapper_fw2str : private ordered_job {
 
   public:
     mapper_fw2str(iterfn f_, MemoryRange&& offsets_buffer, size_t nrows,
-                  bool str64);
+                  bool force_str64, bool force_single_threaded);
     Column* result();
 
   private:
@@ -178,11 +180,11 @@ class mapper_fw2str : private ordered_job {
 
 
 mapper_fw2str::mapper_fw2str(iterfn f_, MemoryRange&& offsets, size_t nrows,
-                             bool str64_)
-  : ordered_job(nrows),
-    outcol(std::move(offsets), nrows, str64_),
+                             bool force_str64, bool force_single_threaded)
+  : ordered_job(nrows, force_single_threaded),
+    outcol(std::move(offsets), nrows, force_str64),
     f(f_),
-    str64(str64_) {}
+    str64(force_str64) {}
 
 
 mapper_fw2str::thcontext::thcontext(writable_string_col& ws, bool str64_) {
@@ -223,19 +225,12 @@ void mapper_fw2str::order(ojcptr& ctx) {
 
 Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
                                size_t n,
-                               bool str64)
-{
-  mapper_fw2str m(fn, MemoryRange(), n, str64);
-  return m.result();
-}
-
-
-Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n,
                                MemoryRange&& offsets_buffer,
-                               bool str64)
+                               bool force_str64,
+                               bool force_single_threaded)
 {
-  mapper_fw2str m(fn, std::move(offsets_buffer), n, str64);
+  mapper_fw2str m(fn, std::move(offsets_buffer), n,
+                  force_str64, force_single_threaded);
   return m.result();
 }
 
