@@ -258,11 +258,11 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   if (validation) fill_ri_data<U>(dt_y_val, ri_val, data_val);
 
 	size_t c = 0;
-  while (c < nchunks) {
+	for (; c < nchunks; ++c) {
     size_t chunk_start = c * chunk_nrows;
     size_t chunk_end = std::min((c + 1) * chunk_nrows, total_nrows - 1);
 
-	  run_interleaved(
+	  dt::run_interleaved(
 		  [&](size_t i0, size_t i1, size_t di) {
 		    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 		    tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -292,7 +292,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 
 
     if (validation) {
-		  run_interleaved(
+		  dt::run_interleaved(
 			  [&](size_t i0, size_t i1, size_t di) {
 			    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 			    tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -319,11 +319,10 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 			loss_global /= (dt_X_val->nrows * dt_y_val->ncols);
 			T loss_diff = loss_global_prev - loss_global;
 			if (c && loss_diff <= std::numeric_limits<T>::epsilon()) break;
-			// If loss decreases, continue training.
+			// If loss decreases, save loss and continue training.
 			loss_global_prev = loss_global;
 			loss_global = 0;
 		}
-		++c;
 	}
 	// printf("Stopping at chunk %zu out of %zu\n", c, nchunks);
 }
@@ -461,22 +460,22 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X) {
                                  << "the model was trained in an unknown mode";
   }
 
-run_interleaved(
-[&](size_t i0, size_t i1, size_t di) {
+	dt::run_interleaved(
+		[&](size_t i0, size_t i1, size_t di) {
 
-uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-tptr<T> w = tptr<T>(new T[nfeatures]);
+		uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+			tptr<T> w = tptr<T>(new T[nfeatures]);
 
-for (size_t i = i0; i < i1; i += di) {
-hash_row(x, i);
-for (size_t k = 0; k < nlabels; ++k) {
-  d_p[k][i] = f(predict_row(x, w, k));
-}
-}
+			for (size_t i = i0; i < i1; i += di) {
+				hash_row(x, i);
+				for (size_t k = 0; k < nlabels; ++k) {
+				  d_p[k][i] = f(predict_row(x, w, k));
+				}
+			}
 
-},
-dt_X->nrows
-);
+		},
+		dt_X->nrows
+	);
 
   // For multinomial case, when there is more than two labels,
   // apply `softmax` function. NB: we already applied `std::exp`
