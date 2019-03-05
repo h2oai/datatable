@@ -342,8 +342,7 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
         break;
       }
       if (castfns.f1 && rowindex.isarr32()) {
-        const int32_t* indices = rowindex.indices32();
-        castfns.f1(src, indices, out_data);
+        castfns.f1(src, rowindex.indices32(), out_data);
         break;
       }
       if (castfns.f2) {
@@ -427,28 +426,28 @@ void py::DatatableModule::init_casts()
   casts.add(real64, real64, cast_fw2<double,  double,  _copy<double>>);
 
   // Casts into bool8
-  casts.add(int8, bool8,   cast_fw0<int8_t,  int8_t, fw_bool<int8_t>>);
-  casts.add(int16, bool8,  cast_fw0<int16_t, int8_t, fw_bool<int16_t>>);
-  casts.add(int32, bool8,  cast_fw0<int32_t, int8_t, fw_bool<int32_t>>);
-  casts.add(int64, bool8,  cast_fw0<int64_t, int8_t, fw_bool<int64_t>>);
-  casts.add(real32, bool8, cast_fw0<float,   int8_t, fw_bool<float>>);
-  casts.add(real64, bool8, cast_fw0<double,  int8_t, fw_bool<double>>);
+  casts.add(int8, bool8,   cast_fw2<int8_t,  int8_t, fw_bool<int8_t>>);
+  casts.add(int16, bool8,  cast_fw2<int16_t, int8_t, fw_bool<int16_t>>);
+  casts.add(int32, bool8,  cast_fw2<int32_t, int8_t, fw_bool<int32_t>>);
+  casts.add(int64, bool8,  cast_fw2<int64_t, int8_t, fw_bool<int64_t>>);
+  casts.add(real32, bool8, cast_fw2<float,   int8_t, fw_bool<float>>);
+  casts.add(real64, bool8, cast_fw2<double,  int8_t, fw_bool<double>>);
 
   // Casts into int8
-  casts.add(bool8, int8,   cast_fw0<int8_t,  int8_t, fw_fw<int8_t, int8_t>>);
-  casts.add(int16, int8,   cast_fw0<int16_t, int8_t, fw_fw<int16_t, int8_t>>);
-  casts.add(int32, int8,   cast_fw0<int32_t, int8_t, fw_fw<int32_t, int8_t>>);
-  casts.add(int64, int8,   cast_fw0<int64_t, int8_t, fw_fw<int64_t, int8_t>>);
-  casts.add(real32, int8,  cast_fw0<float,   int8_t, fw_fw<float, int8_t>>);
-  casts.add(real64, int8,  cast_fw0<double,  int8_t, fw_fw<double, int8_t>>);
+  casts.add(bool8, int8,   cast_fw2<int8_t,  int8_t, fw_fw<int8_t, int8_t>>);
+  casts.add(int16, int8,   cast_fw2<int16_t, int8_t, fw_fw<int16_t, int8_t>>);
+  casts.add(int32, int8,   cast_fw2<int32_t, int8_t, fw_fw<int32_t, int8_t>>);
+  casts.add(int64, int8,   cast_fw2<int64_t, int8_t, fw_fw<int64_t, int8_t>>);
+  casts.add(real32, int8,  cast_fw2<float,   int8_t, fw_fw<float, int8_t>>);
+  casts.add(real64, int8,  cast_fw2<double,  int8_t, fw_fw<double, int8_t>>);
 
   // Casts into int16
-  casts.add(bool8, int16,  cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
-  casts.add(int8, int16,   cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
-  casts.add(int32, int16,  cast_fw0<int32_t, int16_t, fw_fw<int32_t, int16_t>>);
-  casts.add(int64, int16,  cast_fw0<int64_t, int16_t, fw_fw<int64_t, int16_t>>);
-  casts.add(real32, int16, cast_fw0<float,   int16_t, fw_fw<float, int16_t>>);
-  casts.add(real64, int16, cast_fw0<double,  int16_t, fw_fw<double, int16_t>>);
+  casts.add(bool8, int16,  cast_fw2<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
+  casts.add(int8, int16,   cast_fw2<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
+  casts.add(int32, int16,  cast_fw2<int32_t, int16_t, fw_fw<int32_t, int16_t>>);
+  casts.add(int64, int16,  cast_fw2<int64_t, int16_t, fw_fw<int64_t, int16_t>>);
+  casts.add(real32, int16, cast_fw2<float,   int16_t, fw_fw<float, int16_t>>);
+  casts.add(real64, int16, cast_fw2<double,  int16_t, fw_fw<double, int16_t>>);
 
   // Casts into int32
   casts.add(bool8, int32,  cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
@@ -458,6 +457,20 @@ void py::DatatableModule::init_casts()
   casts.add(real32, int32, cast_fw0<float,   int32_t, fw_fw<float, int32_t>>);
   casts.add(real64, int32, cast_fw0<double,  int32_t, fw_fw<double, int32_t>>);
 
+  casts.add(bool8, int32,  cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int8, int32,   cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int16, int32,  cast_fw1<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
+  casts.add(int64, int32,  cast_fw1<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
+  casts.add(real32, int32, cast_fw1<float,   int32_t, fw_fw<float, int32_t>>);
+  casts.add(real64, int32, cast_fw1<double,  int32_t, fw_fw<double, int32_t>>);
+
+  casts.add(bool8, int32,  cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int8, int32,   cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int16, int32,  cast_fw2<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
+  casts.add(int64, int32,  cast_fw2<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
+  casts.add(real32, int32, cast_fw2<float,   int32_t, fw_fw<float, int32_t>>);
+  casts.add(real64, int32, cast_fw2<double,  int32_t, fw_fw<double, int32_t>>);
+
   // Casts into int64
   casts.add(bool8, int64,  cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
   casts.add(int8, int64,   cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
@@ -465,6 +478,20 @@ void py::DatatableModule::init_casts()
   casts.add(int32, int64,  cast_fw0<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
   casts.add(real32, int64, cast_fw0<float,   int64_t, fw_fw<float, int64_t>>);
   casts.add(real64, int64, cast_fw0<double,  int64_t, fw_fw<double, int64_t>>);
+
+  casts.add(bool8, int64,  cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int8, int64,   cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int16, int64,  cast_fw1<int16_t, int64_t, fw_fw<int16_t, int64_t>>);
+  casts.add(int32, int64,  cast_fw1<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
+  casts.add(real32, int64, cast_fw1<float,   int64_t, fw_fw<float, int64_t>>);
+  casts.add(real64, int64, cast_fw1<double,  int64_t, fw_fw<double, int64_t>>);
+
+  casts.add(bool8, int64,  cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int8, int64,   cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int16, int64,  cast_fw2<int16_t, int64_t, fw_fw<int16_t, int64_t>>);
+  casts.add(int32, int64,  cast_fw2<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
+  casts.add(real32, int64, cast_fw2<float,   int64_t, fw_fw<float, int64_t>>);
+  casts.add(real64, int64, cast_fw2<double,  int64_t, fw_fw<double, int64_t>>);
 
   // Casts into real32
   casts.add(bool8, real32,  cast_fw0<int8_t,  float, fw_fw<int8_t, float>>);
@@ -474,6 +501,13 @@ void py::DatatableModule::init_casts()
   casts.add(int64, real32,  cast_fw0<int64_t, float, fw_fw<int64_t, float>>);
   casts.add(real64, real32, cast_fw0<double,  float, _static<double, float>>);
 
+  casts.add(bool8, real32,  cast_fw2<int8_t,  float, fw_fw<int8_t, float>>);
+  casts.add(int8, real32,   cast_fw2<int8_t,  float, fw_fw<int8_t, float>>);
+  casts.add(int16, real32,  cast_fw2<int16_t, float, fw_fw<int16_t, float>>);
+  casts.add(int32, real32,  cast_fw2<int32_t, float, fw_fw<int32_t, float>>);
+  casts.add(int64, real32,  cast_fw2<int64_t, float, fw_fw<int64_t, float>>);
+  casts.add(real64, real32, cast_fw2<double,  float, _static<double, float>>);
+
   // Casts into real64
   casts.add(bool8, real64,  cast_fw0<int8_t,  double, fw_fw<int8_t, double>>);
   casts.add(int8, real64,   cast_fw0<int8_t,  double, fw_fw<int8_t, double>>);
@@ -481,6 +515,20 @@ void py::DatatableModule::init_casts()
   casts.add(int32, real64,  cast_fw0<int32_t, double, fw_fw<int32_t, double>>);
   casts.add(int64, real64,  cast_fw0<int64_t, double, fw_fw<int64_t, double>>);
   casts.add(real32, real64, cast_fw0<float,   double, _static<float, double>>);
+
+  casts.add(bool8, real64,  cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int8, real64,   cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int16, real64,  cast_fw1<int16_t, double, fw_fw<int16_t, double>>);
+  casts.add(int32, real64,  cast_fw1<int32_t, double, fw_fw<int32_t, double>>);
+  casts.add(int64, real64,  cast_fw1<int64_t, double, fw_fw<int64_t, double>>);
+  casts.add(real32, real64, cast_fw1<float,   double, _static<float, double>>);
+
+  casts.add(bool8, real64,  cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int8, real64,   cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int16, real64,  cast_fw2<int16_t, double, fw_fw<int16_t, double>>);
+  casts.add(int32, real64,  cast_fw2<int32_t, double, fw_fw<int32_t, double>>);
+  casts.add(int64, real64,  cast_fw2<int64_t, double, fw_fw<int64_t, double>>);
+  casts.add(real32, real64, cast_fw2<float,   double, _static<float, double>>);
 
   // Casts into str32
   casts.add(bool8, str32,  cast_to_str<int8_t, bool_str>);
