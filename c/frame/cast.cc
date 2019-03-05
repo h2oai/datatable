@@ -27,90 +27,6 @@
 #include "column.h"
 #include "datatablemodule.h"
 
-static inline constexpr size_t id(SType st1, SType st2) {
-  return static_cast<size_t>(st1) * DT_STYPES_COUNT + static_cast<size_t>(st2);
-}
-
-using castfn0 = void (*)(const Column*, size_t start, void* output);
-using castfn1 = void (*)(const Column*, const int32_t* indices, void* output);
-using castfn2 = void (*)(const Column*, void* output);
-using castfnx = Column* (*)(const Column*, MemoryRange&&, SType);
-
-static std::unordered_map<size_t, castfn0> castfns0;
-static std::unordered_map<size_t, castfn1> castfns1;
-static std::unordered_map<size_t, castfn2> castfns2;
-static std::unordered_map<size_t, castfnx> castfnsx;
-
-
-
-//------------------------------------------------------------------------------
-// Column (base methods)
-//------------------------------------------------------------------------------
-
-Column* Column::cast(SType new_stype) const {
-  return cast(new_stype, MemoryRange());
-}
-
-Column* Column::cast(SType new_stype, MemoryRange&& mr) const
-{
-  size_t cast_id = id(stype(), new_stype);
-  if (castfnsx.count(cast_id)) {
-    return castfnsx[cast_id](this, std::move(mr), new_stype);
-  }
-
-  Column *res = nullptr;
-  if (mr) {
-    res = Column::new_column(new_stype);
-    res->nrows = nrows;
-    res->mbuf = std::move(mr);
-  } else {
-    if (new_stype == stype()) {
-      return shallowcopy();
-    }
-    res = Column::new_data_column(new_stype, nrows);
-  }
-
-  const RowIndex& rowindex = this->rowindex();
-  void* out_data = res->data_w();
-
-  if (rowindex) {
-    if (rowindex.is_simple_slice() && castfns0.count(cast_id)) {
-      castfns0[cast_id](this, rowindex.slice_start(), out_data);
-      return res;
-    }
-    if (rowindex.isarr32() && castfns1.count(cast_id)) {
-      const int32_t* indices = rowindex.indices32();
-      castfns1[cast_id](this, indices, out_data);
-      return res;
-    }
-    if (castfns2.count(cast_id)) {
-      castfns2[cast_id](this, out_data);
-      return res;
-    }
-    // fall-through
-  }
-  if (castfns0.count(cast_id)) {
-    std::unique_ptr<Column> tmpcol;
-    if (rowindex) {
-      tmpcol = std::unique_ptr<Column>(this->shallowcopy());
-      tmpcol->reify();
-      castfns0[cast_id](tmpcol.get(), 0, out_data);
-    } else {
-      castfns0[cast_id](this, 0, out_data);
-    }
-    return res;
-  }
-  if (castfns2.count(cast_id)) {
-    castfns2[cast_id](this, out_data);
-    return res;
-  }
-
-  throw ValueError()
-      << "Unable to cast `" << stype() << "` into `" << new_stype << "`";
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // Cast operators
@@ -332,8 +248,137 @@ static Column* cast_str_to_str(const Column* col, MemoryRange&& out_offsets,
 
 
 //------------------------------------------------------------------------------
+// cast_manager
+//------------------------------------------------------------------------------
+
+class cast_manager {
+  private:
+    using castfn0 = void (*)(const Column*, size_t start, void* out);
+    using castfn1 = void (*)(const Column*, const int32_t* indices, void* out);
+    using castfn2 = void (*)(const Column*, void* out);
+    using castfnx = Column* (*)(const Column*, MemoryRange&&, SType);
+    struct cast_info {
+      castfn0  f0;
+      castfn1  f1;
+      castfn2  f2;
+      castfnx  fx;
+      cast_info() : f0(nullptr), f1(nullptr), f2(nullptr), fx(nullptr) {}
+    };
+    std::unordered_map<size_t, cast_info> all_casts;
+
+  public:
+
+    inline void add(SType st_from, SType st_to, castfn0 f);
+    inline void add(SType st_from, SType st_to, castfn1 f);
+    inline void add(SType st_from, SType st_to, castfn2 f);
+    inline void add(SType st_from, SType st_to, castfnx f);
+
+    Column* execute(const Column*, MemoryRange&&, SType);
+
+  private:
+    static inline constexpr size_t key(SType st1, SType st2) {
+      return static_cast<size_t>(st1) * DT_STYPES_COUNT +
+             static_cast<size_t>(st2);
+    }
+};
+
+
+void cast_manager::add(SType st_from, SType st_to, castfn0 f) {
+  size_t id = key(st_from, st_to);
+  xassert(!all_casts[id].f0);
+  all_casts[id].f0 = f;
+}
+
+void cast_manager::add(SType st_from, SType st_to, castfn1 f) {
+  size_t id = key(st_from, st_to);
+  xassert(!all_casts[id].f1);
+  all_casts[id].f1 = f;
+}
+
+void cast_manager::add(SType st_from, SType st_to, castfn2 f) {
+  size_t id = key(st_from, st_to);
+  xassert(!all_casts[id].f2);
+  all_casts[id].f2 = f;
+}
+
+void cast_manager::add(SType st_from, SType st_to, castfnx f) {
+  size_t id = key(st_from, st_to);
+  xassert(!all_casts[id].fx);
+  all_casts[id].fx = f;
+}
+
+
+Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
+                              SType target_stype)
+{
+  size_t id = key(src->stype(), target_stype);
+  if (all_casts.count(id) == 0) {
+    throw ValueError()
+        << "Unable to cast `" << src->stype() << "` into `"
+        << target_stype << "`";
+  }
+
+  const auto& castfns = all_casts[id];
+  if (castfns.fx) {
+    return castfns.fx(src, std::move(target_mbuf), target_stype);
+  }
+
+  Column *res = nullptr;
+  if (target_mbuf) {
+    res = Column::new_column(target_stype);
+    res->nrows = src->nrows;
+    res->mbuf = std::move(target_mbuf);
+  } else {
+    if (target_stype == src->stype()) {
+      return src->shallowcopy();
+    }
+    res = Column::new_data_column(target_stype, src->nrows);
+  }
+  void* out_data = res->data_w();
+
+  const RowIndex& rowindex = src->rowindex();
+  if (rowindex) {
+    if (castfns.f0 && rowindex.is_simple_slice()) {
+      castfns.f0(src, rowindex.slice_start(), out_data);
+      return res;
+    }
+    if (castfns.f1 && rowindex.isarr32()) {
+      const int32_t* indices = rowindex.indices32();
+      castfns.f1(src, indices, out_data);
+      return res;
+    }
+    if (castfns.f2) {
+      castfns.f2(src, out_data);
+      return res;
+    }
+    // fall-through
+  }
+  if (castfns.f0) {
+    std::unique_ptr<Column> tmpcol;
+    if (rowindex) {
+      tmpcol = std::unique_ptr<Column>(src->shallowcopy());
+      tmpcol->reify();
+      castfns.f0(tmpcol.get(), 0, out_data);
+    } else {
+      castfns.f0(src, 0, out_data);
+    }
+  }
+  else {
+    xassert(castfns.f2);
+    castfns.f2(src, out_data);
+  }
+  return res;
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // One-time initialization
 //------------------------------------------------------------------------------
+
+static cast_manager casts;
+
 
 void py::DatatableModule::init_casts()
 {
@@ -352,103 +397,118 @@ void py::DatatableModule::init_casts()
   constexpr SType obj64  = SType::OBJ;
 
   // Trivial casts
-  castfns0[id(bool8, bool8)]   = cast_fw0<int8_t,  int8_t,  _copy<int8_t>>;
-  castfns0[id(int8, int8)]     = cast_fw0<int8_t,  int8_t,  _copy<int8_t>>;
-  castfns0[id(int16, int16)]   = cast_fw0<int16_t, int16_t, _copy<int16_t>>;
-  castfns0[id(int32, int32)]   = cast_fw0<int32_t, int32_t, _copy<int32_t>>;
-  castfns0[id(int64, int64)]   = cast_fw0<int64_t, int64_t, _copy<int64_t>>;
-  castfns0[id(real32, real32)] = cast_fw0<float,   float,   _copy<float>>;
-  castfns0[id(real64, real64)] = cast_fw0<double,  double,  _copy<double>>;
+  casts.add(bool8, bool8,   cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int8, int8,     cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int16, int16,   cast_fw2<int16_t, int16_t, _copy<int16_t>>);
+  casts.add(int32, int32,   cast_fw2<int32_t, int32_t, _copy<int32_t>>);
+  casts.add(int64, int64,   cast_fw2<int64_t, int64_t, _copy<int64_t>>);
+  casts.add(real32, real32, cast_fw2<float,   float,   _copy<float>>);
+  casts.add(real64, real64, cast_fw2<double,  double,  _copy<double>>);
 
   // Casts into bool8
-  castfns0[id(int8, bool8)]   = cast_fw0<int8_t,  int8_t, fw_bool<int8_t>>;
-  castfns0[id(int16, bool8)]  = cast_fw0<int16_t, int8_t, fw_bool<int16_t>>;
-  castfns0[id(int32, bool8)]  = cast_fw0<int32_t, int8_t, fw_bool<int32_t>>;
-  castfns0[id(int64, bool8)]  = cast_fw0<int64_t, int8_t, fw_bool<int64_t>>;
-  castfns0[id(real32, bool8)] = cast_fw0<float,   int8_t, fw_bool<float>>;
-  castfns0[id(real64, bool8)] = cast_fw0<double,  int8_t, fw_bool<double>>;
+  casts.add(int8, bool8,   cast_fw0<int8_t,  int8_t, fw_bool<int8_t>>);
+  casts.add(int16, bool8,  cast_fw0<int16_t, int8_t, fw_bool<int16_t>>);
+  casts.add(int32, bool8,  cast_fw0<int32_t, int8_t, fw_bool<int32_t>>);
+  casts.add(int64, bool8,  cast_fw0<int64_t, int8_t, fw_bool<int64_t>>);
+  casts.add(real32, bool8, cast_fw0<float,   int8_t, fw_bool<float>>);
+  casts.add(real64, bool8, cast_fw0<double,  int8_t, fw_bool<double>>);
 
   // Casts into int8
-  castfns0[id(bool8, int8)]   = cast_fw0<int8_t,  int8_t, fw_fw<int8_t, int8_t>>;
-  castfns0[id(int16, int8)]   = cast_fw0<int16_t, int8_t, fw_fw<int16_t, int8_t>>;
-  castfns0[id(int32, int8)]   = cast_fw0<int32_t, int8_t, fw_fw<int32_t, int8_t>>;
-  castfns0[id(int64, int8)]   = cast_fw0<int64_t, int8_t, fw_fw<int64_t, int8_t>>;
-  castfns0[id(real32, int8)]  = cast_fw0<float,   int8_t, fw_fw<float, int8_t>>;
-  castfns0[id(real64, int8)]  = cast_fw0<double,  int8_t, fw_fw<double, int8_t>>;
+  casts.add(bool8, int8,   cast_fw0<int8_t,  int8_t, fw_fw<int8_t, int8_t>>);
+  casts.add(int16, int8,   cast_fw0<int16_t, int8_t, fw_fw<int16_t, int8_t>>);
+  casts.add(int32, int8,   cast_fw0<int32_t, int8_t, fw_fw<int32_t, int8_t>>);
+  casts.add(int64, int8,   cast_fw0<int64_t, int8_t, fw_fw<int64_t, int8_t>>);
+  casts.add(real32, int8,  cast_fw0<float,   int8_t, fw_fw<float, int8_t>>);
+  casts.add(real64, int8,  cast_fw0<double,  int8_t, fw_fw<double, int8_t>>);
 
   // Casts into int16
-  castfns0[id(bool8, int16)]  = cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>;
-  castfns0[id(int8, int16)]   = cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>;
-  castfns0[id(int32, int16)]  = cast_fw0<int32_t, int16_t, fw_fw<int32_t, int16_t>>;
-  castfns0[id(int64, int16)]  = cast_fw0<int64_t, int16_t, fw_fw<int64_t, int16_t>>;
-  castfns0[id(real32, int16)] = cast_fw0<float,   int16_t, fw_fw<float, int16_t>>;
-  castfns0[id(real64, int16)] = cast_fw0<double,  int16_t, fw_fw<double, int16_t>>;
+  casts.add(bool8, int16,  cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
+  casts.add(int8, int16,   cast_fw0<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
+  casts.add(int32, int16,  cast_fw0<int32_t, int16_t, fw_fw<int32_t, int16_t>>);
+  casts.add(int64, int16,  cast_fw0<int64_t, int16_t, fw_fw<int64_t, int16_t>>);
+  casts.add(real32, int16, cast_fw0<float,   int16_t, fw_fw<float, int16_t>>);
+  casts.add(real64, int16, cast_fw0<double,  int16_t, fw_fw<double, int16_t>>);
 
   // Casts into int32
-  castfns0[id(bool8, int32)]  = cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>;
-  castfns0[id(int8, int32)]   = cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>;
-  castfns0[id(int16, int32)]  = cast_fw0<int16_t, int32_t, fw_fw<int16_t, int32_t>>;
-  castfns0[id(int64, int32)]  = cast_fw0<int64_t, int32_t, fw_fw<int64_t, int32_t>>;
-  castfns0[id(real32, int32)] = cast_fw0<float,   int32_t, fw_fw<float, int32_t>>;
-  castfns0[id(real64, int32)] = cast_fw0<double,  int32_t, fw_fw<double, int32_t>>;
+  casts.add(bool8, int32,  cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int8, int32,   cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
+  casts.add(int16, int32,  cast_fw0<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
+  casts.add(int64, int32,  cast_fw0<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
+  casts.add(real32, int32, cast_fw0<float,   int32_t, fw_fw<float, int32_t>>);
+  casts.add(real64, int32, cast_fw0<double,  int32_t, fw_fw<double, int32_t>>);
 
   // Casts into int64
-  castfns0[id(bool8, int64)]  = cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>;
-  castfns0[id(int8, int64)]   = cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>;
-  castfns0[id(int16, int64)]  = cast_fw0<int16_t, int64_t, fw_fw<int16_t, int64_t>>;
-  castfns0[id(int32, int64)]  = cast_fw0<int32_t, int64_t, fw_fw<int32_t, int64_t>>;
-  castfns0[id(real32, int64)] = cast_fw0<float,   int64_t, fw_fw<float, int64_t>>;
-  castfns0[id(real64, int64)] = cast_fw0<double,  int64_t, fw_fw<double, int64_t>>;
+  casts.add(bool8, int64,  cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int8, int64,   cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
+  casts.add(int16, int64,  cast_fw0<int16_t, int64_t, fw_fw<int16_t, int64_t>>);
+  casts.add(int32, int64,  cast_fw0<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
+  casts.add(real32, int64, cast_fw0<float,   int64_t, fw_fw<float, int64_t>>);
+  casts.add(real64, int64, cast_fw0<double,  int64_t, fw_fw<double, int64_t>>);
 
   // Casts into real32
-  castfns0[id(bool8, real32)]  = cast_fw0<int8_t,  float, fw_fw<int8_t, float>>;
-  castfns0[id(int8, real32)]   = cast_fw0<int8_t,  float, fw_fw<int8_t, float>>;
-  castfns0[id(int16, real32)]  = cast_fw0<int16_t, float, fw_fw<int16_t, float>>;
-  castfns0[id(int32, real32)]  = cast_fw0<int32_t, float, fw_fw<int32_t, float>>;
-  castfns0[id(int64, real32)]  = cast_fw0<int64_t, float, fw_fw<int64_t, float>>;
-  castfns0[id(real64, real32)] = cast_fw0<double,  float, _static<double, float>>;
+  casts.add(bool8, real32,  cast_fw0<int8_t,  float, fw_fw<int8_t, float>>);
+  casts.add(int8, real32,   cast_fw0<int8_t,  float, fw_fw<int8_t, float>>);
+  casts.add(int16, real32,  cast_fw0<int16_t, float, fw_fw<int16_t, float>>);
+  casts.add(int32, real32,  cast_fw0<int32_t, float, fw_fw<int32_t, float>>);
+  casts.add(int64, real32,  cast_fw0<int64_t, float, fw_fw<int64_t, float>>);
+  casts.add(real64, real32, cast_fw0<double,  float, _static<double, float>>);
 
   // Casts into real64
-  castfns0[id(bool8, real64)]  = cast_fw0<int8_t,  double, fw_fw<int8_t, double>>;
-  castfns0[id(int8, real64)]   = cast_fw0<int8_t,  double, fw_fw<int8_t, double>>;
-  castfns0[id(int16, real64)]  = cast_fw0<int16_t, double, fw_fw<int16_t, double>>;
-  castfns0[id(int32, real64)]  = cast_fw0<int32_t, double, fw_fw<int32_t, double>>;
-  castfns0[id(int64, real64)]  = cast_fw0<int64_t, double, fw_fw<int64_t, double>>;
-  castfns0[id(real32, real64)] = cast_fw0<float,   double, _static<float, double>>;
+  casts.add(bool8, real64,  cast_fw0<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int8, real64,   cast_fw0<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int16, real64,  cast_fw0<int16_t, double, fw_fw<int16_t, double>>);
+  casts.add(int32, real64,  cast_fw0<int32_t, double, fw_fw<int32_t, double>>);
+  casts.add(int64, real64,  cast_fw0<int64_t, double, fw_fw<int64_t, double>>);
+  casts.add(real32, real64, cast_fw0<float,   double, _static<float, double>>);
 
   // Casts into str32
-  castfnsx[id(bool8, str32)]  = cast_to_str<int8_t, bool_str>;
-  castfnsx[id(int8, str32)]   = cast_to_str<int8_t, num_str<int8_t>>;
-  castfnsx[id(int16, str32)]  = cast_to_str<int16_t, num_str<int16_t>>;
-  castfnsx[id(int32, str32)]  = cast_to_str<int32_t, num_str<int32_t>>;
-  castfnsx[id(int64, str32)]  = cast_to_str<int64_t, num_str<int64_t>>;
-  castfnsx[id(real32, str32)] = cast_to_str<float, num_str<float>>;
-  castfnsx[id(real64, str32)] = cast_to_str<double, num_str<double>>;
-  castfnsx[id(str32, str32)]  = cast_str_to_str<uint32_t>;
-  castfnsx[id(str64, str32)]  = cast_str_to_str<uint64_t>;
-  castfnsx[id(obj64, str32)]  = cast_to_str<PyObject*, obj_str>;
+  casts.add(bool8, str32,  cast_to_str<int8_t, bool_str>);
+  casts.add(int8, str32,   cast_to_str<int8_t, num_str<int8_t>>);
+  casts.add(int16, str32,  cast_to_str<int16_t, num_str<int16_t>>);
+  casts.add(int32, str32,  cast_to_str<int32_t, num_str<int32_t>>);
+  casts.add(int64, str32,  cast_to_str<int64_t, num_str<int64_t>>);
+  casts.add(real32, str32, cast_to_str<float, num_str<float>>);
+  casts.add(real64, str32, cast_to_str<double, num_str<double>>);
+  casts.add(str32, str32,  cast_str_to_str<uint32_t>);
+  casts.add(str64, str32,  cast_str_to_str<uint64_t>);
+  casts.add(obj64, str32,  cast_to_str<PyObject*, obj_str>);
 
   // Casts into str64
-  castfnsx[id(bool8, str64)]  = cast_to_str<int8_t, bool_str>;
-  castfnsx[id(int8, str64)]   = cast_to_str<int8_t, num_str<int8_t>>;
-  castfnsx[id(int16, str64)]  = cast_to_str<int16_t, num_str<int16_t>>;
-  castfnsx[id(int32, str64)]  = cast_to_str<int32_t, num_str<int32_t>>;
-  castfnsx[id(int64, str64)]  = cast_to_str<int64_t, num_str<int64_t>>;
-  castfnsx[id(real32, str64)] = cast_to_str<float, num_str<float>>;
-  castfnsx[id(real64, str64)] = cast_to_str<double, num_str<double>>;
-  castfnsx[id(str32, str64)]  = cast_str_to_str<uint32_t>;
-  castfnsx[id(str64, str64)]  = cast_str_to_str<uint64_t>;
-  castfnsx[id(obj64, str64)]  = cast_to_str<PyObject*, obj_str>;
+  casts.add(bool8, str64,  cast_to_str<int8_t, bool_str>);
+  casts.add(int8, str64,   cast_to_str<int8_t, num_str<int8_t>>);
+  casts.add(int16, str64,  cast_to_str<int16_t, num_str<int16_t>>);
+  casts.add(int32, str64,  cast_to_str<int32_t, num_str<int32_t>>);
+  casts.add(int64, str64,  cast_to_str<int64_t, num_str<int64_t>>);
+  casts.add(real32, str64, cast_to_str<float, num_str<float>>);
+  casts.add(real64, str64, cast_to_str<double, num_str<double>>);
+  casts.add(str32, str64,  cast_str_to_str<uint32_t>);
+  casts.add(str64, str64,  cast_str_to_str<uint64_t>);
+  casts.add(obj64, str64,  cast_to_str<PyObject*, obj_str>);
 
   // Casts into obj64
-  castfns2[id(bool8, obj64)]  = cast_to_pyobj<int8_t,    bool_obj>;
-  castfns2[id(int8, obj64)]   = cast_to_pyobj<int8_t,    int_obj<int8_t>>;
-  castfns2[id(int16, obj64)]  = cast_to_pyobj<int16_t,   int_obj<int16_t>>;
-  castfns2[id(int32, obj64)]  = cast_to_pyobj<int32_t,   int_obj<int32_t>>;
-  castfns2[id(int64, obj64)]  = cast_to_pyobj<int64_t,   int_obj<int64_t>>;
-  castfns2[id(real32, obj64)] = cast_to_pyobj<float,     real_obj<float>>;
-  castfns2[id(real64, obj64)] = cast_to_pyobj<double,    real_obj<double>>;
-  castfns2[id(str32, obj64)]  = cast_str_to_pyobj<uint32_t>;
-  castfns2[id(str64, obj64)]  = cast_str_to_pyobj<uint64_t>;
-  castfns2[id(obj64, obj64)]  = cast_to_pyobj<PyObject*, obj_obj>;
+  casts.add(bool8, obj64,  cast_to_pyobj<int8_t,    bool_obj>);
+  casts.add(int8, obj64,   cast_to_pyobj<int8_t,    int_obj<int8_t>>);
+  casts.add(int16, obj64,  cast_to_pyobj<int16_t,   int_obj<int16_t>>);
+  casts.add(int32, obj64,  cast_to_pyobj<int32_t,   int_obj<int32_t>>);
+  casts.add(int64, obj64,  cast_to_pyobj<int64_t,   int_obj<int64_t>>);
+  casts.add(real32, obj64, cast_to_pyobj<float,     real_obj<float>>);
+  casts.add(real64, obj64, cast_to_pyobj<double,    real_obj<double>>);
+  casts.add(str32, obj64,  cast_str_to_pyobj<uint32_t>);
+  casts.add(str64, obj64,  cast_str_to_pyobj<uint64_t>);
+  casts.add(obj64, obj64,  cast_to_pyobj<PyObject*, obj_obj>);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Column (base methods)
+//------------------------------------------------------------------------------
+
+Column* Column::cast(SType new_stype) const {
+  return cast(new_stype, MemoryRange());
+}
+
+Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
+  return casts.execute(this, std::move(mr), new_stype);
 }
