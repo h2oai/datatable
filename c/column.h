@@ -319,21 +319,6 @@ protected:
                           size_t nrows, bool isempty) = 0;
 
   /**
-   * These functions are designed to cast the current column into another type.
-   * Each of the functions takes as an argument the new column object which
-   * ought to be filled with the converted data. The `cast_into(...)` functions
-   * do not modify the current column.
-   *
-   * The argument to the `cast_into(...)` methods is the "target" column - a
-   * new writable column preallocated for `nrows` elements.
-   *
-   * Casting a column with a RowIndex is currently not supported.
-   */
-  virtual void cast_into(StringColumn<uint32_t>*) const;
-  virtual void cast_into(StringColumn<uint64_t>*) const;
-
-
-  /**
    * Sets every row in the column to an NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
    * refcount or rowindex. Use with caution.
@@ -593,7 +578,6 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 
   friend Column;
@@ -610,8 +594,6 @@ protected:
 Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 
-template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
-template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
 extern template class StringColumn<uint32_t>;
 extern template class StringColumn<uint64_t>;
 

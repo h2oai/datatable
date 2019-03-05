@@ -105,22 +105,10 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const
     return res;
   }
 
-  // Old casting
-  switch (new_stype) {
-    case SType::STR32:   cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
-    case SType::STR64:   cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
-    default:
-      throw ValueError() << "Unable to cast into stype = " << new_stype;
-  }
-  return res;
+  throw ValueError()
+      << "Unable to cast `" << stype() << "` into `" << new_stype << "`";
 }
 
-void Column::cast_into(StringColumn<uint32_t>*) const {
-  throw ValueError() << "Cannot cast " << stype() << " into str32";
-}
-void Column::cast_into(StringColumn<uint64_t>*) const {
-  throw ValueError() << "Cannot cast " << stype() << " into str64";
-}
 
 
 
@@ -306,35 +294,39 @@ static Column* cast_to_str(const Column* col, MemoryRange&& out_offsets,
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// StringColumn casts
-//------------------------------------------------------------------------------
-
-template <>
-void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
-  const uint32_t* src_data = this->offsets();
-  uint64_t* trg_data = target->offsets_w();
-  uint64_t dNA = GETNA<uint64_t>() - GETNA<uint32_t>();
-  trg_data[-1] = 0;
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    uint32_t v = src_data[i];
-    trg_data[i] = ISNA<uint32_t>(v)? v + dNA : v;
+template <typename T>
+static Column* cast_str_to_str(const Column* col, MemoryRange&& out_offsets,
+                               SType target_stype)
+{
+  auto scol = static_cast<const StringColumn<T>*>(col);
+  auto offsets = scol->offsets();
+  auto strdata = scol->strdata();
+  const RowIndex& rowindex = scol->rowindex();
+  if (sizeof(T) == 8 && target_stype == SType::STR32 &&
+      (scol->datasize() > Column::MAX_STR32_BUFFER_SIZE ||
+       scol->nrows > Column::MAX_STR32_NROWS)) {
+    // If the user attempts to convert str64 into str32 but the column is too
+    // big, we will convert into str64 instead.
+    // We could have also thrown an exception here, but this seems to be more
+    // in agreement with other cases where we silently promote str32->str64.
+    return cast_str_to_str<T>(col, std::move(out_offsets), SType::STR64);
   }
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
+  return dt::generate_string_column(
+      [&](size_t i, dt::string_buf* buf) {
+        size_t j = rowindex[i];
+        T off_start = offsets[j - 1] & ~GETNA<T>();
+        T off_end = offsets[j];
+        if (ISNA<T>(off_end)) {
+          buf->write_na();
+        } else {
+          buf->write(strdata + off_start, off_end - off_start);
+        }
+      },
+      col->nrows,
+      std::move(out_offsets),
+      (target_stype == SType::STR64)
+  );
 }
-
-
-template <>
-void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
-  size_t alloc_size = sizeof(uint64_t) * (1 + this->nrows);
-  std::memcpy(target->data_w(), this->data(), alloc_size);
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
-}
-
-
 
 
 
@@ -424,6 +416,30 @@ void py::DatatableModule::init_casts()
   castfns0[id(int64, real64)]  = cast_fw0<int64_t, double, fw_fw<int64_t, double>>;
   castfns0[id(real32, real64)] = cast_fw0<float,   double, _static<float, double>>;
 
+  // Casts into str32
+  castfnsx[id(bool8, str32)]  = cast_to_str<int8_t, bool_str>;
+  castfnsx[id(int8, str32)]   = cast_to_str<int8_t, num_str<int8_t>>;
+  castfnsx[id(int16, str32)]  = cast_to_str<int16_t, num_str<int16_t>>;
+  castfnsx[id(int32, str32)]  = cast_to_str<int32_t, num_str<int32_t>>;
+  castfnsx[id(int64, str32)]  = cast_to_str<int64_t, num_str<int64_t>>;
+  castfnsx[id(real32, str32)] = cast_to_str<float, num_str<float>>;
+  castfnsx[id(real64, str32)] = cast_to_str<double, num_str<double>>;
+  castfnsx[id(str32, str32)]  = cast_str_to_str<uint32_t>;
+  castfnsx[id(str64, str32)]  = cast_str_to_str<uint64_t>;
+  castfnsx[id(obj64, str32)]  = cast_to_str<PyObject*, obj_str>;
+
+  // Casts into str64
+  castfnsx[id(bool8, str64)]  = cast_to_str<int8_t, bool_str>;
+  castfnsx[id(int8, str64)]   = cast_to_str<int8_t, num_str<int8_t>>;
+  castfnsx[id(int16, str64)]  = cast_to_str<int16_t, num_str<int16_t>>;
+  castfnsx[id(int32, str64)]  = cast_to_str<int32_t, num_str<int32_t>>;
+  castfnsx[id(int64, str64)]  = cast_to_str<int64_t, num_str<int64_t>>;
+  castfnsx[id(real32, str64)] = cast_to_str<float, num_str<float>>;
+  castfnsx[id(real64, str64)] = cast_to_str<double, num_str<double>>;
+  castfnsx[id(str32, str64)]  = cast_str_to_str<uint32_t>;
+  castfnsx[id(str64, str64)]  = cast_str_to_str<uint64_t>;
+  castfnsx[id(obj64, str64)]  = cast_to_str<PyObject*, obj_str>;
+
   // Casts into obj64
   castfns2[id(bool8, obj64)]  = cast_to_pyobj<int8_t,    bool_obj>;
   castfns2[id(int8, obj64)]   = cast_to_pyobj<int8_t,    int_obj<int8_t>>;
@@ -435,34 +451,4 @@ void py::DatatableModule::init_casts()
   castfns2[id(str32, obj64)]  = cast_str_to_pyobj<uint32_t>;
   castfns2[id(str64, obj64)]  = cast_str_to_pyobj<uint64_t>;
   castfns2[id(obj64, obj64)]  = cast_to_pyobj<PyObject*, obj_obj>;
-
-  // Casts into str32
-  castfnsx[id(bool8, str32)]  = cast_to_str<int8_t, bool_str>;
-  castfnsx[id(int8, str32)]   = cast_to_str<int8_t, num_str<int8_t>>;
-  castfnsx[id(int16, str32)]  = cast_to_str<int16_t, num_str<int16_t>>;
-  castfnsx[id(int32, str32)]  = cast_to_str<int32_t, num_str<int32_t>>;
-  castfnsx[id(int64, str32)]  = cast_to_str<int64_t, num_str<int64_t>>;
-  castfnsx[id(real32, str32)] = cast_to_str<float, num_str<float>>;
-  castfnsx[id(real64, str32)] = cast_to_str<double, num_str<double>>;
-  castfnsx[id(obj64, str32)]  = cast_to_str<PyObject*, obj_str>;
-
-  // Casts into str64
-  castfnsx[id(bool8, str64)]  = cast_to_str<int8_t, bool_str>;
-  castfnsx[id(int8, str64)]   = cast_to_str<int8_t, num_str<int8_t>>;
-  castfnsx[id(int16, str64)]  = cast_to_str<int16_t, num_str<int16_t>>;
-  castfnsx[id(int32, str64)]  = cast_to_str<int32_t, num_str<int32_t>>;
-  castfnsx[id(int64, str64)]  = cast_to_str<int64_t, num_str<int64_t>>;
-  castfnsx[id(real32, str64)] = cast_to_str<float, num_str<float>>;
-  castfnsx[id(real64, str64)] = cast_to_str<double, num_str<double>>;
-  castfnsx[id(obj64, str64)]  = cast_to_str<PyObject*, obj_str>;
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// Explicit instantiation of templates
-//------------------------------------------------------------------------------
-
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
