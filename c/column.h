@@ -157,8 +157,6 @@ public:
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
-  virtual void replace_buffer(MemoryRange&&);
-  virtual void replace_buffer(MemoryRange&&, MemoryRange&&);
 
   virtual SType stype() const noexcept = 0;
   virtual size_t elemsize() const = 0;
@@ -344,7 +342,6 @@ template <typename T> class FwColumn : public Column
 public:
   FwColumn(size_t nrows);
   FwColumn(size_t nrows, MemoryRange&&);
-  void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
   T get_elem(size_t i) const;
@@ -513,7 +510,6 @@ protected:
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
 
-  void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
@@ -537,7 +533,6 @@ public:
   StringColumn(size_t nrows);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
-  void replace_buffer(MemoryRange&&, MemoryRange&&) override;
 
   SType stype() const noexcept override;
   size_t elemsize() const override;

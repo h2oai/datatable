@@ -123,22 +123,12 @@ Column* Column::new_xbuf_column(SType stype,
  */
 Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   Column* col = new_column(stype);
-  col->replace_buffer(std::move(mbuf));
+  xassert(mbuf.size() % col->elemsize() == 0);
+  xassert(stype == SType::OBJ? mbuf.is_pyobjects() : true);
+  col->nrows = mbuf.size() / col->elemsize();
+  col->mbuf = std::move(mbuf);
   return col;
 }
-
-
-
-void Column::replace_buffer(MemoryRange&&) {
-  throw RuntimeError()
-    << "replace_buffer(mr) not valid for Column of type " << stype();
-}
-
-void Column::replace_buffer(MemoryRange&&, MemoryRange&&) {
-  throw RuntimeError()
-    << "replace_buffer(mr1, mr2) not valid for Column of type " << stype();
-}
-
 
 
 /**

@@ -150,6 +150,7 @@ void StringColumn<T>::save_to_disk(const std::string& filename,
   strbuf.save_to_disk(path_str(filename), strategy);
 }
 
+
 template <typename T>
 Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
   Column* newcol = Column::shallowcopy(new_rowindex);
@@ -160,37 +161,11 @@ Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
 
 
 template <typename T>
-void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
-                                     MemoryRange&& new_strbuf)
-{
-  size_t new_nrows = new_offbuf.size()/sizeof(T) - 1;
-  if (new_offbuf.size() % sizeof(T)) {
-    throw ValueError() << "The size of `new_offbuf` is not a multiple of "
-                          STRINGIFY(sizeof(T));
-  }
-  if (new_offbuf.get_element<T>(0) != 0) {
-    throw ValueError() << "Cannot use `new_offbuf` as an `offsets` buffer: "
-                          "first element of this array is not 0: got "
-                       << new_offbuf.get_element<T>(0);
-  }
-  size_t lastoff = new_offbuf.get_element<T>(new_nrows) & ~GETNA<T>();
-  if (new_strbuf.size() != lastoff) {
-    throw ValueError() << "The size of `new_strbuf` does not correspond to the"
-                          " last offset of `new_offbuff`: expected "
-                       << new_strbuf.size() << ", got " << lastoff;
-  }
-  strbuf = std::move(new_strbuf);
-  mbuf = std::move(new_offbuf);
-  nrows = new_nrows;
-}
-
-
-
-template <typename T>
 SType StringColumn<T>::stype() const noexcept {
   return sizeof(T) == 4? SType::STR32 :
          sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
+
 
 template <typename T>
 py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
@@ -208,6 +183,7 @@ template <typename T>
 size_t StringColumn<T>::elemsize() const {
   return sizeof(T);
 }
+
 
 template <typename T>
 bool StringColumn<T>::is_fixedwidth() const {
