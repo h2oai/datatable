@@ -128,7 +128,7 @@ using element_t = typename _elt<s>::t;
  */
 class Column
 {
-public:
+protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable Stats* stats;
@@ -325,7 +325,7 @@ protected:
    */
   virtual void fill_na() = 0;
 
-public:
+private:
   static Column* new_column(SType);
   static Column* from_py_iterable(const iterable*, int stype0);
 

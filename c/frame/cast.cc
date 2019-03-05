@@ -150,6 +150,9 @@ static void cast_fw2(const Column* col, void* out_data)
 
 
 // Casting into PyObject* can only be done in single-threaded mode.
+// Note that when casting into PyObject buffer, we assume that it
+// is safe to simply overwrite the contents of that buffer. Thus,
+// the buffer should not contain any existing PyObjects.
 //
 template <typename T, PyObject* (*CAST_OP)(T)>
 static void cast_to_pyobj(const Column* col, void* out_data)
@@ -158,7 +161,6 @@ static void cast_to_pyobj(const Column* col, void* out_data)
   auto out = static_cast<PyObject**>(out_data);
   const RowIndex& rowindex = col->rowindex();
   for (size_t i = 0; i < col->nrows; ++i) {
-    Py_DECREF(out[i]);
     out[i] = CAST_OP(inp[rowindex[i]]);
   }
 }
@@ -173,7 +175,6 @@ static void cast_str_to_pyobj(const Column* col, void* out_data)
   auto out = static_cast<PyObject**>(out_data);
   const RowIndex& rowindex = col->rowindex();
   for (size_t i = 0; i < col->nrows; ++i) {
-    Py_DECREF(out[i]);
     size_t j = rowindex[i];
     T off_start = offsets[j - 1] & ~GETNA<T>();
     T off_end = offsets[j];
@@ -311,6 +312,7 @@ void cast_manager::add(SType st_from, SType st_to, castfnx f) {
 Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
                               SType target_stype)
 {
+  xassert(!target_mbuf.is_pyobjects());
   size_t id = key(src->stype(), target_stype);
   if (all_casts.count(id) == 0) {
     throw ValueError()
@@ -323,51 +325,48 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
     return castfns.fx(src, std::move(target_mbuf), target_stype);
   }
 
-  Column *res = nullptr;
-  if (target_mbuf) {
-    res = Column::new_column(target_stype);
-    res->nrows = src->nrows;
-    res->mbuf = std::move(target_mbuf);
-  } else {
-    if (target_stype == src->stype()) {
-      return src->shallowcopy();
-    }
-    res = Column::new_data_column(target_stype, src->nrows);
-  }
-  void* out_data = res->data_w();
-
+  target_mbuf.resize(src->nrows * info(target_stype).elemsize());
+  void* out_data = target_mbuf.wptr();
   const RowIndex& rowindex = src->rowindex();
-  if (rowindex) {
-    if (castfns.f0 && rowindex.is_simple_slice()) {
-      castfns.f0(src, rowindex.slice_start(), out_data);
-      return res;
-    }
-    if (castfns.f1 && rowindex.isarr32()) {
-      const int32_t* indices = rowindex.indices32();
-      castfns.f1(src, indices, out_data);
-      return res;
-    }
-    if (castfns.f2) {
-      castfns.f2(src, out_data);
-      return res;
-    }
-    // fall-through
-  }
-  if (castfns.f0) {
-    std::unique_ptr<Column> tmpcol;
+
+  do {
     if (rowindex) {
-      tmpcol = std::unique_ptr<Column>(src->shallowcopy());
-      tmpcol->reify();
-      castfns.f0(tmpcol.get(), 0, out_data);
-    } else {
-      castfns.f0(src, 0, out_data);
+      if (castfns.f0 && rowindex.is_simple_slice()) {
+        castfns.f0(src, rowindex.slice_start(), out_data);
+        break;
+      }
+      if (castfns.f1 && rowindex.isarr32()) {
+        const int32_t* indices = rowindex.indices32();
+        castfns.f1(src, indices, out_data);
+        break;
+      }
+      if (castfns.f2) {
+        castfns.f2(src, out_data);
+        break;
+      }
+      // fall-through
     }
+    if (castfns.f0) {
+      std::unique_ptr<Column> tmpcol;
+      if (rowindex) {
+        tmpcol = std::unique_ptr<Column>(src->shallowcopy());
+        tmpcol->reify();
+        castfns.f0(tmpcol.get(), 0, out_data);
+      } else {
+        castfns.f0(src, 0, out_data);
+      }
+    }
+    else {
+      xassert(castfns.f2);
+      castfns.f2(src, out_data);
+    }
+  } while (0);
+
+  if (target_stype == SType::OBJ) {
+    target_mbuf.set_pyobjects(/* clear = */ false);
   }
-  else {
-    xassert(castfns.f2);
-    castfns.f2(src, out_data);
-  }
-  return res;
+
+  return Column::new_mbuf_column(target_stype, std::move(target_mbuf));
 }
 
 

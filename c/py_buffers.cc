@@ -461,9 +461,6 @@ static int getbuffer_DataTable(
   size_t elemsize = info(stype).elemsize();
   size_t colsize = nrows * elemsize;
   MemoryRange memr = MemoryRange::mem(ncols * colsize);
-  if (stype == SType::OBJ) {
-    memr.set_pyobjects(/*clear=*/ true);
-  }
   const char* fmt = format_from_stype(stype);
 
   // Construct the data buffer
@@ -496,6 +493,9 @@ static int getbuffer_DataTable(
     // Delete the `col` pointer, which was extracted from the i-th column
     // of the DataTable.
     delete col;
+  }
+  if (stype == SType::OBJ) {
+   memr.set_pyobjects(/*clear=*/ false);
   }
 
   xinfo = new XInfo();
