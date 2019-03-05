@@ -125,13 +125,13 @@ void Ftrl::m__init__(PKArgs& args) {
     }
   }
 
-
   if (ftrl_params.double_precision) {
     dtft = new dt::FtrlReal<double>(ftrl_params);
   } else {
     dtft = new dt::FtrlReal<float>(ftrl_params);
   }
 }
+
 
 
 //------------------------------------------------------------------------------

@@ -29,7 +29,6 @@
 
 namespace py {
 
-
 class Ftrl : public PyObject {
   private:
     dt::Ftrl* dtft;

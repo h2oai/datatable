@@ -127,8 +127,8 @@ def test_ftrl_early_stopping_view():
     df_X_validate = dt.Frame(range(-nbins, nbins))
     df_y_validate = df_X_validate
     epoch = ft.fit(df_X_train, df_y_train,
-           df_X_validate[nbins::,:], df_y_validate[nbins::,:],
-           nepochs_validate = nepochs_validate)
+                   df_X_validate[nbins::,:], df_y_validate[nbins::,:],
+                   nepochs_validate = nepochs_validate)
     p = ft.predict(df_X_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch < nepochs

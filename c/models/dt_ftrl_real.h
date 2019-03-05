@@ -41,7 +41,6 @@ class FtrlReal : public dt::Ftrl {
     // Feature importances datatable with the shape of (nfeatures, 2),
     // where first column contains feature names and the second one
     // feature importance values.
-    // FIXME: make dt_fi thread private.
     dtptr dt_fi;
 
     // Fitting parameters
@@ -348,7 +347,8 @@ T FtrlReal<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k) {
     T absw = std::max(std::abs(z[k][j]) - l1, zero) / (std::sqrt(n[k][j]) * ia + rr);
     w[i] = -std::copysign(absw, z[k][j]);
     wTx += w[i];
-    fi[i] += absw; // FIXME: Make fi thread private and do not change for prediction only.
+    #pragma omp atomic
+    fi[i] += absw; // FIXME: Remove for prediction.
   }
   return wTx;
 }
@@ -583,7 +583,6 @@ void FtrlReal<T>::init_weights() {
 }
 
 
-// FIXME: convert from py to dt.
 template <typename T>
 void FtrlReal<T>::create_fi(const DataTable* dt_X) {
   const strvec& col_names = dt_X->get_names();
