@@ -77,13 +77,13 @@ class FtrlReal : public dt::Ftrl {
     static const std::vector<std::string> model_colnames;
 
     // Fit dispatcher and fitting methods
-    void dispatch_fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double) override;
+    double dispatch_fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double) override;
     template <typename U, typename F, typename G>
-    void fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double, F, G);
+    double fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double, F, G);
     template <typename U>
-    void fit_regression(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
-    void fit_binomial(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
-    void fit_multinomial(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
+    double fit_regression(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
+    double fit_binomial(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
+    double fit_multinomial(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double);
 
 
     // Predicting method
@@ -178,24 +178,26 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 * - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
 */
 template <typename T>
-void FtrlReal<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y,
+double FtrlReal<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
                                double nepochs_val) {
+  double epoch;
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::BOOL:    epoch = fit_binomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT8:    epoch = fit_regression<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT16:   epoch = fit_regression<int16_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT32:   epoch = fit_regression<int32_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::INT64:   epoch = fit_regression<int64_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::FLOAT32: epoch = fit_regression<float>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::FLOAT64: epoch = fit_regression<double>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
+    case SType::STR64:   epoch = fit_multinomial(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val); break;
     default:             throw TypeError() << "Cannot predict for a target "
                                            << "of type `" << stype_y << "`";
   }
   model_trained = true;
+  return epoch;
 }
 
 
@@ -218,7 +220,7 @@ void FtrlReal<T>::fill_ri_data(const DataTable* dt,
 */
 template <typename T>
 template <typename U /* column data type */, typename F /* link function */, typename G /* loss function */>
-void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
+double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                       const DataTable* dt_X_val, const DataTable* dt_y_val,
                       double nepochs_val, F link, G loss) {
 	// Define features and labels
@@ -248,7 +250,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    chunk_nrows = std::min(static_cast<size_t>(ceil(nepochs_val * dt_X->nrows)), total_nrows);
+    chunk_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
     nchunks = static_cast<size_t>(ceil(static_cast<double>(total_nrows) / chunk_nrows));
   }
 
@@ -258,10 +260,10 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   fill_ri_data<U>(dt_y, ri, data);
   if (validation) fill_ri_data<U>(dt_y_val, ri_val, data_val);
 
-	size_t c = 0;
-	for (; c < nchunks; ++c) {
+	size_t chunk_end = 0;
+	for (size_t c = 0; c < nchunks; ++c) {
     size_t chunk_start = c * chunk_nrows;
-    size_t chunk_end = std::min((c + 1) * chunk_nrows, total_nrows - 1);
+    chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
 
 	  dt::run_interleaved(
 		  [&](size_t i0, size_t i1, size_t di) {
@@ -288,7 +290,7 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 		    }
 
 		  },
-		  chunk_end - chunk_start + 1
+		  chunk_end - chunk_start
 		);
 
 
@@ -325,7 +327,8 @@ void FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 			loss_global = 0;
 		}
 	}
-	printf("Stopping at chunk %zu out of %zu\n", c, nchunks);
+  double epoch = static_cast<double>(chunk_end) / dt_X->nrows;
+	return epoch;
 }
 
 
@@ -370,7 +373,7 @@ void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w, T p, U y, size_t 
 
 
 template <typename T>
-void FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
+double FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
                                double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::BINOMIAL) {
@@ -379,13 +382,13 @@ void FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
                          "in a binomial mode this model should be reset.";
   }
   model_type = FtrlModelType::BINOMIAL;
-  fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
+  return fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
 }
 
 
 template <typename T>
 template <typename U>
-void FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
+double FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
                                double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::REGRESSION) {
@@ -394,12 +397,12 @@ void FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
                          "in a regression mode this model should be reset.";
   }
   model_type = FtrlModelType::REGRESSION;
-  fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
+  return fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
 }
 
 
 template <typename T>
-void FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
+double FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
                                const DataTable* dt_X_val, const DataTable* dt_y_val,
                                double nepochs_val) {
   if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::MULTINOMIAL) {
@@ -419,7 +422,7 @@ void FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
   }
 
   // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
-  fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
+  return fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
 }
 
 

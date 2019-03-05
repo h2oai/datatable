@@ -163,17 +163,19 @@ y_validate: Frame
 nepochs_validate: float
     Parameter that specifies how often to check loss on the validation
     set for early stopping, and should be more than zero as well as
-    less than nepochs. If after a corresponding nepochs_validate period
+    less than `nepochs`. If after a corresponding `nepochs_validate` period
     loss does not improve, training terminates.
 
 
 Returns
 -------
-    None
+epoch : float
+    Epoch at which the model stoped training. If no validation set was
+    provided, `epoch` will be equal to `nepochs`.
 )");
 
 
-void Ftrl::fit(const PKArgs& args) {
+oobj Ftrl::fit(const PKArgs& args) {
   if (args[0].is_undefined()) {
     throw ValueError() << "Training frame parameter is missing";
   }
@@ -185,7 +187,7 @@ void Ftrl::fit(const PKArgs& args) {
   DataTable* dt_X = args[0].to_frame();
   DataTable* dt_y = args[1].to_frame();
 
-  if (dt_X == nullptr || dt_y == nullptr) return;
+  if (dt_X == nullptr || dt_y == nullptr) return py::None();
 
   if (dt_X->ncols == 0) {
     throw ValueError() << "Training frame must have at least one column";
@@ -246,7 +248,10 @@ void Ftrl::fit(const PKArgs& args) {
     } else nepochs_validate = 1;
   }
 
-  dtft->dispatch_fit(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_validate);
+  double epoch = dtft->dispatch_fit(dt_X, dt_y,
+                                    dt_X_val, dt_y_val,
+                                    nepochs_validate);
+  return py::ofloat(epoch);
 }
 
 

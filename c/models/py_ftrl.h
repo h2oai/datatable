@@ -53,7 +53,7 @@ class Ftrl : public PyObject {
     void m__setstate__(const PKArgs&);
 
     // Learning and predicting methods
-    void fit(const PKArgs&);
+    oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
 
