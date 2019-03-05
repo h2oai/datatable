@@ -321,7 +321,7 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
   xassert(!target_mbuf.is_pyobjects());
   size_t id = key(src->stype(), target_stype);
   if (all_casts.count(id) == 0) {
-    throw ValueError()
+    throw NotImplError()
         << "Unable to cast `" << src->stype() << "` into `"
         << target_stype << "`";
   }
