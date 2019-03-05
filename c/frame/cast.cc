@@ -126,7 +126,9 @@ static void cast_fw1(const Column* col, const int32_t* indices,
   dt::run_parallel(
       [=](size_t start, size_t stop, size_t step) {
         for (size_t i = start; i < stop; i += step) {
-          out[i] = CAST_OP(inp[indices[i]]);
+          size_t j = static_cast<size_t>(indices[i]);
+          T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
+          out[i] = CAST_OP(x);
         }
       },
       col->nrows);
@@ -142,7 +144,9 @@ static void cast_fw2(const Column* col, void* out_data)
   dt::run_parallel(
       [=](size_t start, size_t stop, size_t step) {
         for (size_t i = start; i < stop; i += step) {
-          out[i] = CAST_OP(inp[rowindex[i]]);
+          size_t j = rowindex[i];
+          T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
+          out[i] = CAST_OP(x);
         }
       },
       col->nrows);
@@ -161,7 +165,9 @@ static void cast_to_pyobj(const Column* col, void* out_data)
   auto out = static_cast<PyObject**>(out_data);
   const RowIndex& rowindex = col->rowindex();
   for (size_t i = 0; i < col->nrows; ++i) {
-    out[i] = CAST_OP(inp[rowindex[i]]);
+    size_t j = rowindex[i];
+    T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
+    out[i] = CAST_OP(x);
   }
 }
 
@@ -176,11 +182,11 @@ static void cast_str_to_pyobj(const Column* col, void* out_data)
   const RowIndex& rowindex = col->rowindex();
   for (size_t i = 0; i < col->nrows; ++i) {
     size_t j = rowindex[i];
-    T off_start = offsets[j - 1] & ~GETNA<T>();
-    T off_end = offsets[j];
-    if (ISNA<T>(off_end)) {
+    T off_end = offsets[j];  // Note: if j==-1 (NA), offsets[j] is still valid
+    if (j == RowIndex::NA || ISNA<T>(off_end)) {
       out[i] = py::None().release();
     } else {
+      T off_start = offsets[j - 1] & ~GETNA<T>();
       out[i] = py::ostring(strdata + off_start, off_end - off_start).release();
     }
   }
@@ -196,11 +202,11 @@ static Column* cast_to_str(const Column* col, MemoryRange&& out_offsets,
   const RowIndex& rowindex = col->rowindex();
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
-        T x = inp[rowindex[i]];
-        if (ISNA<T>(x)) {
+        size_t j = rowindex[i];
+        if (j == RowIndex::NA || ISNA<T>(inp[j])) {
           buf->write_na();
         } else {
-          CAST_OP(x, buf);
+          CAST_OP(inp[j], buf);
         }
       },
       col->nrows,
@@ -231,11 +237,11 @@ static Column* cast_str_to_str(const Column* col, MemoryRange&& out_offsets,
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
         size_t j = rowindex[i];
-        T off_start = offsets[j - 1] & ~GETNA<T>();
         T off_end = offsets[j];
-        if (ISNA<T>(off_end)) {
+        if (j == RowIndex::NA || ISNA<T>(off_end)) {
           buf->write_na();
         } else {
+          T off_start = offsets[j - 1] & ~GETNA<T>();
           buf->write(strdata + off_start, off_end - off_start);
         }
       },
@@ -396,6 +402,22 @@ void py::DatatableModule::init_casts()
   constexpr SType obj64  = SType::OBJ;
 
   // Trivial casts
+  casts.add(bool8, bool8,   cast_fw0<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int8, int8,     cast_fw0<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int16, int16,   cast_fw0<int16_t, int16_t, _copy<int16_t>>);
+  casts.add(int32, int32,   cast_fw0<int32_t, int32_t, _copy<int32_t>>);
+  casts.add(int64, int64,   cast_fw0<int64_t, int64_t, _copy<int64_t>>);
+  casts.add(real32, real32, cast_fw0<float,   float,   _copy<float>>);
+  casts.add(real64, real64, cast_fw0<double,  double,  _copy<double>>);
+
+  casts.add(bool8, bool8,   cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int8, int8,     cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
+  casts.add(int16, int16,   cast_fw1<int16_t, int16_t, _copy<int16_t>>);
+  casts.add(int32, int32,   cast_fw1<int32_t, int32_t, _copy<int32_t>>);
+  casts.add(int64, int64,   cast_fw1<int64_t, int64_t, _copy<int64_t>>);
+  casts.add(real32, real32, cast_fw1<float,   float,   _copy<float>>);
+  casts.add(real64, real64, cast_fw1<double,  double,  _copy<double>>);
+
   casts.add(bool8, bool8,   cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
   casts.add(int8, int8,     cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
   casts.add(int16, int16,   cast_fw2<int16_t, int16_t, _copy<int16_t>>);
