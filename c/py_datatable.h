@@ -64,13 +64,6 @@ DECLARE_DESTRUCTOR()
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  check,
-  "check()\n\n"
-  "Check the DataTable for internal consistency. Raises an AssertionError if\n"
-  "any internal problem is found.\n"
-)
-
-DECLARE_METHOD(
   column,
   "column(index)\n\n"
   "Get the requested column in the datatable")

@@ -73,12 +73,6 @@ void _clear_types(obj* self) {
 
 
 
-PyObject* check(obj* self, PyObject*) {
-  xassert(self->_frame);
-  self->_frame->integrity_check();
-
-  Py_RETURN_NONE;
-}
 
 
 PyObject* column(obj* self, PyObject* args) {
@@ -121,7 +115,6 @@ static void dealloc(obj* self) {
 //==============================================================================
 
 static PyMethodDef datatable_methods[] = {
-  METHOD0(check),
   METHODv(column),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
