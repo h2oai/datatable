@@ -97,6 +97,7 @@ class FtrlReal : public dt::Ftrl {
 
     // Model and feature importance handling methods
     void create_model();
+    void adjust_model();
     void reset() override;
     void init_model();
     void init_weights();
@@ -200,6 +201,117 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X, const DataTable* dt_y,
 }
 
 
+
+template <typename T>
+double FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
+                               const DataTable* dt_X_val, const DataTable* dt_y_val,
+                               double nepochs_val) {
+  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::BINOMIAL) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from binomial. To train it "
+                         "in a binomial mode this model should be reset.";
+  }
+  model_type = FtrlModelType::BINOMIAL;
+  if (!labels.size()) {
+    labels = dt_y->get_names();
+    xassert(labels.size() == 1);
+    create_model();
+  }
+  return fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
+}
+
+
+template <typename T>
+template <typename U>
+double FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
+                               const DataTable* dt_X_val, const DataTable* dt_y_val,
+                               double nepochs_val) {
+  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::REGRESSION) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from regression. To train it "
+                         "in a regression mode this model should be reset.";
+  }
+  model_type = FtrlModelType::REGRESSION;
+  if (!labels.size()) {
+    labels = dt_y->get_names();
+    xassert(labels.size() == 1);
+    create_model();
+  }
+  return fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
+}
+
+
+template <typename T>
+double FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
+                               const DataTable* dt_X_val, const DataTable* dt_y_val,
+                               double nepochs_val) {
+  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::MULTINOMIAL) {
+    throw TypeError() << "This model has already been trained in a "
+                         "mode different from multinomial. To train it "
+                         "in a multinomial mode this model should be reset.";
+  }
+
+  if (model_type == FtrlModelType::NONE) {
+    xassert(labels.size() == 0);
+    xassert(dt_model == nullptr);
+    xassert(model_trained == false);
+
+    labels.push_back("FTRL_negative");
+    create_model();
+    model_type = FtrlModelType::MULTINOMIAL;
+  }
+
+
+  // Do one hot encoding and get the list of incoming labels
+  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
+  strvec labels_in = dt_y_nhot->get_names();
+
+  // Create a "negative" column
+  colvec cols;
+  cols.reserve(labels.size());
+
+  cols.push_back(Column::new_data_column(SType::BOOL, dt_y_nhot->nrows));
+  auto data_negative = static_cast<bool*>(cols[0]->data_w());
+  std::memset(data_negative, 0, dt_y->nrows * sizeof(bool));
+
+  for (size_t i = 1; i < labels.size(); ++i) {
+    auto it = find(labels_in.begin(), labels_in.end(), labels[i]);
+    if (it == labels_in.end()) {
+      // If existing label is not found in the new label list,
+      // train it on all the negatives.
+      cols.push_back(cols[0]->shallowcopy());
+    } else {
+      // Otherwise, use the actual targets.
+      auto pos = static_cast<size_t>(std::distance(labels_in.begin(), it));
+      cols.push_back(dt_y_nhot->columns[pos]->shallowcopy());
+      labels_in[pos] = "";
+    }
+  }
+
+  // The remaining labels are the new ones, for which we
+  // need to add new model columns
+  size_t n_new_labels = 0;
+  for (size_t i = 0; i < labels_in.size(); ++i) {
+    if (labels_in[i] == "") continue;
+
+    cols.push_back(dt_y_nhot->columns[i]->shallowcopy());
+    labels.push_back(labels_in[i]);
+    n_new_labels++;
+  }
+  dtptr dt_y_train = dtptr(new DataTable(std::move(cols)));
+  if (n_new_labels) adjust_model();
+
+
+  dtptr dt_y_val_nhot;
+  if (dt_y_val != nullptr) {
+    dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+  }
+
+  // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
+  return fit<int8_t>(dt_X, dt_y_train.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
+}
+
+
 template <typename T>
 template <typename U /* column data type */>
 void FtrlReal<T>::fill_ri_data(const DataTable* dt,
@@ -224,11 +336,9 @@ double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
                       double nepochs_val, F link, G loss) {
 	// Define features and labels
   define_features(dt_X->ncols);
-  labels = dt_y->get_names();
-  size_t nlabels = labels.size();
+  init_weights();
 
   // Initialize weights, create model or fi datatables
-  is_dt_valid(dt_model, nbins, 2 * nlabels)? init_weights() : create_model();
   if (!is_dt_valid(dt_fi, nfeatures, 2)) create_fi(dt_X);
 
   // Create column hashers
@@ -248,7 +358,7 @@ double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   T loss_global_prev = 0;
   std::vector<hasherptr> hashers_val;
   if (validation) {
-    hashers_val = create_hashers(dt_X_val);
+    hashers_val = create_hashers(dt_X_val); // FIXME: make sure column names are the same in dt_X
     chunk_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
     nchunks = static_cast<size_t>(ceil(static_cast<double>(total_nrows) / chunk_nrows));
   }
@@ -372,60 +482,6 @@ void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w, T p, U y, size_t 
 }
 
 
-template <typename T>
-double FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
-                               const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double nepochs_val) {
-  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::BINOMIAL) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from binomial. To train it "
-                         "in a binomial mode this model should be reset.";
-  }
-  model_type = FtrlModelType::BINOMIAL;
-  return fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
-}
-
-
-template <typename T>
-template <typename U>
-double FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
-                               const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double nepochs_val) {
-  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::REGRESSION) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from regression. To train it "
-                         "in a regression mode this model should be reset.";
-  }
-  model_type = FtrlModelType::REGRESSION;
-  return fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
-}
-
-
-template <typename T>
-double FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y,
-                               const DataTable* dt_X_val, const DataTable* dt_y_val,
-                               double nepochs_val) {
-  if (model_type != FtrlModelType::NONE && model_type != FtrlModelType::MULTINOMIAL) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from multinomial. To train it "
-                         "in a multinomial mode this model should be reset.";
-  }
-  model_type = FtrlModelType::MULTINOMIAL;
-
-
-  // Convert dt_y to one hot encoded dt_y_nhot
-  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
-  dtptr dt_y_val_nhot;
-
-  if (dt_y_val != nullptr) {
-    dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
-  }
-
-  // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
-  return fit<int8_t>(dt_X, dt_y_nhot.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
-}
-
-
 /*
 *  Predict on a datatable and return a new datatable with
 *  the predicted probabilities.
@@ -523,14 +579,31 @@ void FtrlReal<T>::create_model() {
   size_t nlabels = labels.size();
   if (nlabels == 0) ValueError() << "Model cannot have zero labels";
 
-  size_t model_ncols = 2 * nlabels;
-  colvec cols_model(model_ncols);
-  for (size_t i = 0; i < model_ncols; ++i) {
-    cols_model[i] = Column::new_data_column(stype<T>::get_stype(), nbins);
+  size_t ncols = 2 * nlabels;
+  colvec cols(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    cols[i] = Column::new_data_column(stype<T>::get_stype(), nbins);
   }
-  dt_model = dtptr(new DataTable(std::move(cols_model)));
+  dt_model = dtptr(new DataTable(std::move(cols)));
   init_model();
-  init_weights();
+}
+
+
+template <typename T>
+void FtrlReal<T>::adjust_model() {
+  size_t ncols_model = dt_model->ncols;
+  size_t ncols_model_new = 2 * labels.size();
+  xassert(ncols_model_new > ncols_model)
+
+  colvec cols(ncols_model_new);
+  for (size_t i = 0; i < ncols_model; ++i) {
+    cols[i] = dt_model->columns[i]->shallowcopy();
+  }
+
+  for (size_t i = ncols_model; i < ncols_model_new; ++i) {
+    cols[i] = dt_model->columns[i % 2]->shallowcopy();
+  }
+  dt_model = dtptr(new DataTable(std::move(cols)));
 }
 
 
@@ -555,6 +628,7 @@ void FtrlReal<T>::reset() {
   dt_fi = nullptr;
   model_trained = false;
   model_type = FtrlModelType::NONE;
+  labels.clear();
 }
 
 
@@ -863,6 +937,10 @@ void FtrlReal<T>::set_model(DataTable* dt_model_in) {
   dt_X_ncols = 0;
   nfeatures = 0;
   model_trained = true;
+
+  //FIXME: remove, because we are not sure about the model_type
+  strvec labels_in = {"C0"};
+  set_labels(labels_in);
 }
 
 

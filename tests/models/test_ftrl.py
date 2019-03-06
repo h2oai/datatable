@@ -756,9 +756,10 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 
     ft2 = Ftrl(nbins = 10, nepochs = 1)
     df_train2 = dt.Frame(range(ft2.nbins))
-    df_target2 = dt.Frame(["target", "target2"] * 5)
+    df_target2 = dt.Frame(["target", None] * 5)
     ft2.fit(df_train2, df_target2)
     p2 = ft2.predict(df_train2)
+
     target_index = p2.colindex("target")
     multinomial_model = ft2.model[:, {
                                       "C0" : f[target_index * 2],
@@ -771,7 +772,7 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 def test_ftrl_fit_predict_multinomial():
     dt.options.nthreads = 1
     ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
-    labels = ("red", "green", "blue")
+    labels = ("FTRL_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -785,11 +786,58 @@ def test_ftrl_fit_predict_multinomial():
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
     delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.33, 0])]
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
     delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.33, 0])]
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.33, 1])]
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+    assert max(delta_sum)   < 1e-12
+    assert max(delta_red)   < epsilon
+    assert max(delta_green) < epsilon
+    assert max(delta_blue)  < epsilon
+    assert collections.Counter(p.names) == collections.Counter(labels)
+
+
+def test_ftrl_fit_predict_multinomial_online():
+    ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
+    labels = ("FTRL_negative", "red", "green", "blue")
+
+    # Show only 1 label to the model
+    df_train = dt.Frame(["cucumber"])
+    df_target = dt.Frame(["green"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == ["FTRL_negative", "green"])
+    assert(ft.model.shape == (ft.nbins, 4))
+
+    # Show one more
+    df_train = dt.Frame(["cucumber", None])
+    df_target = dt.Frame(["green", "red"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == ["FTRL_negative", "green", "red"])
+    assert(ft.model.shape == (ft.nbins, 6))
+
+    # And one more
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == ["FTRL_negative", "green", "red", "blue"])
+    assert(ft.model.shape == (ft.nbins, 8))
+
+    # Test predictions
+    p = ft.predict(df_train)
+    p.internal.check()
+    p_dict = p.to_dict()
+    p_list = p.to_list()
+    sum_p =[sum(row) for row in zip(*p_list)]
+    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
+    delta_red =   [abs(i - j) for i, j in
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
+    delta_green = [abs(i - j) for i, j in
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
+    delta_blue =  [abs(i - j) for i, j in
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
