@@ -67,13 +67,6 @@ int unwrap(PyObject* object, DataTable** address) {
 // PyDatatable methods
 //==============================================================================
 
-void _clear_types(obj* self) {
-  if (self->_frame) self->_frame->_clear_types();
-}
-
-
-
-
 
 PyObject* column(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
