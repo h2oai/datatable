@@ -59,7 +59,7 @@ void PyObjectColumn::fill_na() {
 
 void PyObjectColumn::resize_and_fill(size_t new_nrows) {
   if (new_nrows == nrows) return;
-  reify();
+  materialize();
 
   mbuf.resize(sizeof(PyObject*) * new_nrows);
 
@@ -81,9 +81,9 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
 }
 
 
-void PyObjectColumn::reify() {
+void PyObjectColumn::materialize() {
   if (ri.isabsent()) return;
-  FwColumn<PyObject*>::reify();
+  FwColumn<PyObject*>::materialize();
 
   // ???
   // After regular reification, we need to increment ref-counts for each

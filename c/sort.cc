@@ -1269,7 +1269,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   #endif
   if (!as_view) {
     for (auto& s : spec) {
-      columns[s.col_index]->reify();
+      columns[s.col_index]->materialize();
     }
   }
 

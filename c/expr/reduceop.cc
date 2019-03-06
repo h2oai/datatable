@@ -51,7 +51,7 @@ Column* reduce_first(const Column* col, const Groupby& groupby) {
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
   Column* res = col->shallowcopy(ri);
-  if (ngrps == 1) res->reify();
+  if (ngrps == 1) res->materialize();
   return res;
 }
 

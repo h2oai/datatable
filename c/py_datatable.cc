@@ -162,7 +162,7 @@ PyObject* column(obj* self, PyObject* args) {
 
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  dt->reify();
+  dt->materialize();
   Py_RETURN_NONE;
 }
 

@@ -430,7 +430,7 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     max = static_cast<size_t>(imax);
   }
   Column* col2 = col->shallowcopy();
-  col2->reify();  // noop if col has no rowindex
+  col2->materialize();  // noop if col has no rowindex
 
   length = col->nrows;
   Column* col3 = nullptr;

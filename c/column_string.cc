@@ -226,7 +226,7 @@ T* StringColumn<T>::offsets_w() {
 
 
 template <typename T>
-void StringColumn<T>::reify() {
+void StringColumn<T>::materialize() {
   // If our rowindex is null, then we're already done
   if (ri.isabsent()) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
@@ -331,7 +331,7 @@ template <typename T>
 void StringColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
-  reify();
+  materialize();
   Column* rescol = nullptr;
 
   if (replace_with && replace_with->stype() != stype()){
@@ -392,7 +392,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 {
   size_t old_nrows = nrows;
   if (new_nrows == old_nrows) return;
-  reify();
+  materialize();
 
   if (new_nrows > INT32_MAX && sizeof(T) == 4) {
     // TODO: instead of throwing an error, upcast the column to <uint64_t>
@@ -476,7 +476,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
 
 template <typename T>
 void StringColumn<T>::fill_na() {
-  // Perform a mini reify (the actual `reify` method will copy string and offset
+  // Perform a mini materialize (the actual `materialize` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);
   size_t new_mbuf_size = sizeof(T) * (nrows + 1);

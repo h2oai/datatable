@@ -271,7 +271,7 @@ void DataTable::rbind(
   xassert(new_ncols >= ncols);
 
   // If this is a view Frame, then it must be materialized.
-  this->reify();
+  this->materialize();
 
   columns.resize(new_ncols, nullptr);
   for (size_t i = ncols; i < new_ncols; ++i) {
@@ -290,7 +290,7 @@ void DataTable::rbind(
       Column* col = k == INVALID_INDEX
                       ? new VoidColumn(dts[j]->nrows)
                       : dts[j]->columns[k]->shallowcopy();
-      col->reify();
+      col->materialize();
       cols_to_append[j] = col;
     }
     columns[i] = columns[i]->rbind(cols_to_append);
