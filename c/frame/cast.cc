@@ -19,6 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// See also: `expr_cast` in "exprs/base_expr.cc"
+//
 #include <unordered_map>
 #include "csv/toa.h"
 #include "python/_all.h"
@@ -54,21 +57,21 @@ static inline int8_t fw_bool(T x) {
 
 static inline PyObject* bool_obj(int8_t x) {
   return ISNA<int8_t>(x)? py::None().release() : py::obool(x).release();
-}
+}  // LCOV_EXCL_LINE
 
 template <typename T>
 static inline PyObject* int_obj(T x) {
   return ISNA<T>(x)? py::None().release() : py::oint(x).release();
-}
+}  // LCOV_EXCL_LINE
 
 template <typename T>
 static inline PyObject* real_obj(T x) {
   return ISNA<T>(x)? py::None().release() : py::ofloat(x).release();
-}
+}  // LCOV_EXCL_LINE
 
 static inline PyObject* obj_obj(PyObject* x) {
   return py::oobj(x).release();
-}
+}  // LCOV_EXCL_LINE
 
 template <typename T, size_t MAX = 30>
 static inline void num_str(T x, dt::string_buf* buf) {
@@ -330,42 +333,31 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
   if (castfns.fx) {
     return castfns.fx(src, std::move(target_mbuf), target_stype);
   }
+  xassert(castfns.f2);
 
   target_mbuf.resize(src->nrows * info(target_stype).elemsize());
   void* out_data = target_mbuf.wptr();
   const RowIndex& rowindex = src->rowindex();
 
-  do {
-    if (rowindex) {
-      if (castfns.f0 && rowindex.is_simple_slice()) {
-        castfns.f0(src, rowindex.slice_start(), out_data);
-        break;
-      }
-      if (castfns.f1 && rowindex.isarr32()) {
-        castfns.f1(src, rowindex.indices32(), out_data);
-        break;
-      }
-      if (castfns.f2) {
-        castfns.f2(src, out_data);
-        break;
-      }
-      // fall-through
+  if (rowindex) {
+    if (castfns.f0 && rowindex.is_simple_slice()) {
+      castfns.f0(src, rowindex.slice_start(), out_data);
     }
-    if (castfns.f0) {
-      std::unique_ptr<Column> tmpcol;
-      if (rowindex) {
-        tmpcol = std::unique_ptr<Column>(src->shallowcopy());
-        tmpcol->reify();
-        castfns.f0(tmpcol.get(), 0, out_data);
-      } else {
-        castfns.f0(src, 0, out_data);
-      }
+    else if (castfns.f1 && rowindex.isarr32()) {
+      castfns.f1(src, rowindex.indices32(), out_data);
     }
     else {
-      xassert(castfns.f2);
       castfns.f2(src, out_data);
     }
-  } while (0);
+  }
+  else {
+    if (castfns.f0) {
+      castfns.f0(src, 0, out_data);
+    }
+    else {
+      castfns.f2(src, out_data);
+    }
+  }
 
   if (target_stype == SType::OBJ) {
     target_mbuf.set_pyobjects(/* clear = */ false);

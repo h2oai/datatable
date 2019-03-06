@@ -263,6 +263,18 @@ def test_cast_obj_to_str():
     assert RES.to_list() == [ans, ans]
 
 
+def test_cast_huge_to_str():
+    # Test that converting a huge column into str would properly overflow it
+    # into str64 type. See issue #1695
+    # This test takes up to 2s to run (or up to 5s if doing .internal.check())
+    DT = dt.repeat(dt.Frame(BIG=["ABCDEFGHIJ" * 100000]), 3000)
+    assert DT.stypes == (dt.str32,)
+    RES = DT[:, dt.str32(f.BIG)]
+    assert RES.stypes == (dt.str64,)
+    assert RES[-1, 0] == DT[0, 0]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Cast to obj

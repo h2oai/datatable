@@ -466,7 +466,6 @@ GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
 
 Column* expr_cast::evaluate_eager(workframe& wf) {
   Column* arg_col = arg->evaluate_eager(wf);
-  arg_col->reify();
   return arg_col->cast(stype);
 }
 
