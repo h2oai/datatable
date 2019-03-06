@@ -68,11 +68,6 @@ class Frame(core.Frame):
         return self[:, :, datatable.sort(*cols)]
 
 
-    def materialize(self):
-        if self._dt.isview:
-            self._dt.materialize()
-
-
 
     #---------------------------------------------------------------------------
     # Deprecated

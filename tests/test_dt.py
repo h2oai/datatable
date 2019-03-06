@@ -1040,6 +1040,27 @@ def test_tail_bad():
 
 
 #-------------------------------------------------------------------------------
+# Materialize
+#-------------------------------------------------------------------------------
+
+def test_materialize():
+    DT1 = dt.Frame(A=range(12))[::2, :]
+    DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
+    DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
+    DT = dt.cbind(DT1, DT2, DT3, force=True)
+    assert frame_column_rowindex(DT, 0).type == "slice"
+    assert frame_column_rowindex(DT, 1).type == "arr32"
+    assert frame_column_rowindex(DT, 2) is None
+    DT.materialize()
+    assert frame_column_rowindex(DT, 0) is None
+    assert frame_column_rowindex(DT, 1) is None
+    assert frame_column_rowindex(DT, 2) is None
+
+
+
+
+
+#-------------------------------------------------------------------------------
 # HTML repr
 #-------------------------------------------------------------------------------
 

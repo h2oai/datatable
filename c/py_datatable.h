@@ -85,11 +85,6 @@ DECLARE_METHOD(
   "column(index)\n\n"
   "Get the requested column in the datatable")
 
-DECLARE_METHOD(
-  materialize,
-  "materialize()\n\n"
-  "Convert DataTable from 'view' into 'data' representation.\n")
-
 
 };
 #undef BASECLS
