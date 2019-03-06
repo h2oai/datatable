@@ -116,7 +116,7 @@ class expr_column : public base_expr {
 };
 
 
-base_expr* expr_string_fn(size_t op, base_expr* arg, py::oobj params);
+pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params);
 
 
 
@@ -126,7 +126,7 @@ namespace py {
 
 class base_expr : public PyObject {
   private:
-    dt::base_expr* expr;
+    dt::base_expr* expr;  // owned
 
   public:
     class Type : public ExtType<base_expr> {
@@ -141,7 +141,7 @@ class base_expr : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
-    dt::base_expr* release();
+    std::unique_ptr<dt::base_expr> release();
 };
 
 

@@ -44,13 +44,13 @@ static Error translate_exception(const std::regex_error& e) {
 
 class expr_string_match_re : public base_expr {
   private:
-    base_expr* arg;
+    pexpr arg;
     std::string pattern;
     std::regex regex;
     // int flags;
 
   public:
-    expr_string_match_re(base_expr* expr, py::oobj params);
+    expr_string_match_re(pexpr&& expr, py::oobj params);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     Column* evaluate_eager(workframe& wf) override;
@@ -61,8 +61,8 @@ class expr_string_match_re : public base_expr {
 };
 
 
-expr_string_match_re::expr_string_match_re(base_expr* expr, py::oobj params) {
-  arg = expr;
+expr_string_match_re::expr_string_match_re(pexpr&& expr, py::oobj params) {
+  arg = std::move(expr);
   py::otuple tp = params.to_otuple();
   xassert(tp.size() == 2);
 
@@ -147,9 +147,10 @@ Column* expr_string_match_re::_compute(Column* src) {
 // Factory function
 //------------------------------------------------------------------------------
 
-base_expr* expr_string_fn(size_t op, base_expr* arg, py::oobj params) {
+pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
   switch (static_cast<strop>(op)) {
-    case strop::RE_MATCH: return new expr_string_match_re(arg, params);
+    case strop::RE_MATCH:
+      return pexpr(new expr_string_match_re(std::move(arg), params));
   }
 }
 

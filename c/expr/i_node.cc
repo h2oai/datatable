@@ -259,11 +259,10 @@ void slice_in::execute_grouped(workframe& wf) {
 
 class expr_in : public i_node {
   private:
-    dt::base_expr* expr;
+    std::unique_ptr<dt::base_expr> expr;
 
   public:
     explicit expr_in(py::robj src);
-    ~expr_in() override;
     void execute(workframe&) override;
     void execute_grouped(workframe&) override;
 };
@@ -275,11 +274,6 @@ expr_in::expr_in(py::robj src) {
   xassert(res.typeobj() == &py::base_expr::Type::type);
   auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
   expr = pybe->release();
-}
-
-
-expr_in::~expr_in() {
-  delete expr;
 }
 
 
