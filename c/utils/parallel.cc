@@ -103,6 +103,8 @@ void ordered_job::execute()
     size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
                            nrows / min_nrows_per_thread);
     if (noomp) nth0 = 1;
+    (void)nth0;  // Prevent warning about unused variable
+
     OmpExceptionManager oem;
     #pragma omp parallel num_threads(nth0)
     {

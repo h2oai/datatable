@@ -28,11 +28,11 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-import random
 import datatable as dt
 from datatable import f, stype, ltype
 from datatable.internal import frame_column_rowindex
-from tests import list_equals, noop, assert_equals
+from tests import noop, assert_equals
+
 
 numeric_stypes = ltype.bool.stypes + ltype.int.stypes + ltype.real.stypes
 all_stypes = numeric_stypes + ltype.str.stypes + ltype.obj.stypes
@@ -86,16 +86,6 @@ def test_cast_float_to_bool(source_stype):
     assert RES.to_list()[0] == [True, True, None, False, True, True, True, True]
 
 
-@pytest.mark.parametrize("source_stype", ltype.str.stypes + [stype.obj64])
-def test_cast_other_to_int(source_stype):
-    DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    with pytest.raises(NotImplementedError) as e:
-        noop(DT[:, dt.bool8(f.W)])
-    assert ("Unable to cast `%s` into `bool`"
-            % (source_stype.name,) in str(e.value))
-
-
 
 
 #-------------------------------------------------------------------------------
@@ -146,8 +136,8 @@ def test_cast_float_to_int(source_stype, target_stype):
 
 
 @pytest.mark.parametrize("source_stype", ltype.str.stypes + [stype.obj64])
-@pytest.mark.parametrize("target_stype", ltype.int.stypes)
-def test_cast_other_to_int(source_stype, target_stype):
+@pytest.mark.parametrize("target_stype", numeric_stypes)
+def test_cast_other_to_numeric(source_stype, target_stype):
     DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
     assert DT.stypes == (source_stype,)
     with pytest.raises(NotImplementedError) as e:
@@ -190,16 +180,6 @@ def test_cast_double_to_float():
     assert RES.to_list()[0] == [0.7799999713897705, None, math.inf, -math.inf,
                                 math.inf, -6.50000007168e+11]
 
-
-@pytest.mark.parametrize("source_stype", ltype.str.stypes + [stype.obj64])
-@pytest.mark.parametrize("target_stype", ltype.real.stypes)
-def test_cast_other_to_float(source_stype, target_stype):
-    DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    with pytest.raises(NotImplementedError) as e:
-        noop(DT[:, target_stype(f.W)])
-    assert ("Unable to cast `%s` into `%s`"
-            % (source_stype.name, target_stype.name) in str(e.value))
 
 
 
