@@ -770,7 +770,6 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 
 
 def test_ftrl_fit_predict_multinomial():
-    dt.options.nthreads = 1
     ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
     labels = ("FTRL_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
@@ -839,6 +838,36 @@ def test_ftrl_fit_predict_multinomial_online():
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
     assert max(delta_sum)   < 1e-12
+    assert max(delta_red)   < epsilon
+    assert max(delta_green) < epsilon
+    assert max(delta_blue)  < epsilon
+    assert collections.Counter(p.names) == collections.Counter(labels)
+
+
+def test_ftrl_fit_predict_multinomial_early_stopping():
+    nepochs = 1000000
+    ft = Ftrl(alpha = 0.5, nepochs = nepochs)
+    labels = ("FTRL_negative", "red", "green", "blue")
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    epoch = ft.fit(df_train, df_target, df_train, df_target, nepochs_validate = 10000)
+    ft.model.internal.check()
+    p = ft.predict(df_train)
+    p.internal.check()
+    p_dict = p.to_dict()
+    p_list = p.to_list()
+    sum_p =[sum(row) for row in zip(*p_list)]
+    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
+    delta_red =   [abs(i - j) for i, j in
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
+    delta_green = [abs(i - j) for i, j in
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
+    delta_blue =  [abs(i - j) for i, j in
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+    assert epoch < nepochs
+    assert max(delta_sum)   < 1e-6
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon

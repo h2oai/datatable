@@ -302,13 +302,22 @@ double FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y
   if (n_new_labels) adjust_model();
 
 
-  dtptr dt_y_val_nhot;
+  dtptr dt_y_val_nhot_filtered;
   if (dt_y_val != nullptr) {
-    dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+    dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+    const strvec& labels_val = dt_y_val_nhot->get_names();
+    colvec cols_val;
+    for (size_t i = 0; i < labels_val.size(); ++i) {
+      auto it = find(labels.begin(), labels.end(), labels_val[i]);
+      if (it == labels.end()) continue;
+      cols_val.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
+    }
+    dt_y_val_nhot_filtered = dtptr(new DataTable(std::move(cols_val)));
   }
 
+
   // FIXME: add a negative column and check that dt_y_val_nhot doesn't have any labels not beeing present in dt_y_nhot
-  return fit<int8_t>(dt_X, dt_y_train.get(), dt_X_val, dt_y_val_nhot.get(), nepochs_val, sigmoid<T>, log_loss<T>);
+  return fit<int8_t>(dt_X, dt_y_train.get(), dt_X_val, dt_y_val_nhot_filtered.get(), nepochs_val, sigmoid<T> /* FIXME */, log_loss<T>);
 }
 
 
@@ -317,10 +326,10 @@ template <typename U /* column data type */>
 void FtrlReal<T>::fill_ri_data(const DataTable* dt,
                                std::vector<const RowIndex>& ri,
                                std::vector<const U*>& data) {
-	size_t nlabels = labels.size();
-  ri.reserve(nlabels);
-  data.reserve(nlabels);
-	for (size_t i = 0; i < nlabels; ++i) {
+	size_t ncols = dt->ncols;
+  ri.reserve(ncols);
+  data.reserve(ncols);
+	for (size_t i = 0; i < ncols; ++i) {
   	data.push_back(static_cast<const U*>(dt->columns[i]->data()));
 	  ri.push_back(dt->columns[i]->rowindex());
 	}
@@ -404,21 +413,21 @@ double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 
 
     if (validation) {
+      bool label_shift = (model_type == FtrlModelType::MULTINOMIAL);
 		  dt::run_interleaved(
 			  [&](size_t i0, size_t i1, size_t di) {
 			    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 			    tptr<T> w = tptr<T>(new T[nfeatures]());
 					T loss_local = 0.0;
-
 			    for (size_t i = i0; i < i1; i += di) {
 			    	const size_t j0 = ri_val[0][i];
 	          if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
 	            hash_row(x, hashers_val, i);
 	            for (size_t k = 0; k < dt_y_val->ncols; ++k) {
-	              const size_t j = ri_val[k][i];
-	              T p = link(predict_row(x, w, k));
-	              loss_local += loss(p, data_val[k][j]);
-	            }
+                const size_t j = ri_val[k][i];
+	              T p = link(predict_row(x, w, k + label_shift));
+                loss_local += loss(p, data_val[k][j]);
+              }
 	          }
 			    }
 			    #pragma omp atomic
@@ -427,7 +436,7 @@ double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
 			  dt_X_val->nrows
 			);
 
-		  // If loss dp not decrease, do early stopping.
+		  // If loss do not decrease, do early stopping.
 			loss_global /= (dt_X_val->nrows * dt_y_val->ncols);
 			T loss_diff = loss_global_prev - loss_global;
 			if (c && loss_diff <= std::numeric_limits<T>::epsilon()) break;
