@@ -29,7 +29,7 @@ import datatable as dt
 from datatable import ltype
 from datatable.models import aggregate
 from tests import assert_equals
-from datatable.internal import frame_column_rowindex
+from datatable.internal import frame_column_rowindex, frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
@@ -53,11 +53,11 @@ def test_aggregate_0d_continuous_integer_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=min_rows, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 12, 10, 1, 5, 6, 7, 3, 8, 9, 11, 4, 2]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (13, 2)
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, None, None, 0, 1, 2, 3, 3, 5, 5, 8, 8, 9],
@@ -74,11 +74,11 @@ def test_aggregate_1d_empty():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (0, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (0, 1)
     assert d_exemplars.ltypes == (ltype.int,)
     assert d_exemplars.to_list() == [[]]
@@ -91,11 +91,11 @@ def test_aggregate_1d_continuous_integer_tiny():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (1, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (1, 2)
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[5], [1]]
@@ -108,11 +108,11 @@ def test_aggregate_1d_continuous_integer_equal():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 1, 0, 1, 0, 1, 1, 1, 1, 1]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (2, 2)
     assert d_exemplars.ltypes == (ltype.bool, ltype.int)
     assert d_exemplars.to_list() == [[None, 0], [2, 8]]
@@ -125,11 +125,11 @@ def test_aggregate_1d_continuous_integer_sorted():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (12, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 1, 0, 1, 1, 2, 2, 2, 3, 0, 3, 3]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, 0, 4, 7],
@@ -143,11 +143,11 @@ def test_aggregate_1d_continuous_integer_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 3, 3, 0, 1, 1, 1, 1, 2, 2, 3, 1, 0]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, 2, 5, 9],
@@ -161,11 +161,11 @@ def test_aggregate_1d_continuous_real_sorted():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (11, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.real, ltype.int)
     assert d_exemplars.to_list() == [[None, 0.0, 0.4, 0.7],
@@ -180,11 +180,11 @@ def test_aggregate_1d_continuous_real_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[3, 3, 2, 1, 1, 3, 1, 1, 2, 1, 0, 0, 0]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.real, ltype.int)
     assert d_exemplars.to_list() == [[None, 0.1, 0.5, 0.7],
@@ -197,11 +197,11 @@ def test_aggregate_1d_categorical_sorted():
                      "yellow"])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (8, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 1, 2, 3, 4, 5, 6, 7]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (8, 2)
     assert d_exemplars.ltypes == (ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[None, "blue", "green", "indigo", "orange",
@@ -215,11 +215,11 @@ def test_aggregate_1d_categorical_unsorted():
                      "indigo", None, "violet"])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (9, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 4, 6, 0, 2, 1, 3, 0, 5]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (7, 2)
     assert d_exemplars.ltypes == (ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[None, "blue", "green", "indigo", "orange",
@@ -236,11 +236,11 @@ def test_aggregate_1d_categorical_sampling():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, n_bins=3, min_rows=0,
                                          progress_fn=report_progress, seed=1)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (9, 1)
     assert d_members.ltypes == (ltype.int,)
     # assert d_members.to_list() == [[3, None, 2, 0, 1, 3, None, 0, None]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 2)
     assert d_exemplars.ltypes == (ltype.str, ltype.int)
     # assert d_exemplars.to_list() == [[None, 'green', 'yellow', 'blue'],
@@ -260,11 +260,11 @@ def test_aggregate_2d_continuous_integer_sorted():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (12, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 0, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (5, 3)
     assert d_exemplars.ltypes == (ltype.int, ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[0, None, 0, 4, 7],
@@ -281,11 +281,11 @@ def test_aggregate_2d_continuous_integer_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (11, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[2, 0, 4, 5, 1, 3, 3, 6, 6, 7, 1]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (8, 3)
     assert d_exemplars.ltypes == (ltype.int, ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, 3, 9, 3, 8, 2, 5, 8],
@@ -304,11 +304,11 @@ def test_aggregate_2d_continuous_real_sorted():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 3, 3, 3, 0, 3, 4, 4, 4, 5, 5, 5, 2]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (6, 3)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.int)
     assert d_exemplars.to_list() == [[None, 0.0, None, 0.0, 0.4, 0.7],
@@ -327,11 +327,11 @@ def test_aggregate_2d_continuous_real_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (12, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 2, 4, 5, 1, 0, 3, 3, 6, 6, 7, 1]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (8, 3)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.int)
     assert d_exemplars.to_list() == [[None, 0.3, 0.9, 0.3, 0.8, 0.2, 0.5, 0.8],
@@ -347,11 +347,11 @@ def test_aggregate_2d_categorical_sorted():
                       "Sunday", "Thursday", "Tuesday", "Wednesday"]])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 2, 1, 3, 4, 5, 6, 7, 8, 9]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (10, 3)
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[None, "abc", None, "blue", "green", "indigo",
@@ -368,11 +368,11 @@ def test_aggregate_2d_categorical_unsorted():
                      ["Monday", "Monday", "Wednesday", "Saturday", "Thursday", "Friday", "Wednesday"]])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (7, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 1, 2, 4, 5, 3, 2]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (6, 3)
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.int)
     assert d_exemplars.to_list() == [['blue', 'indigo', 'red', 'violet', 'violet',
@@ -394,11 +394,11 @@ def test_aggregate_2d_categorical_sampling():
 
     [d_exemplars, d_members] = aggregate(d_in, nx_bins=2, ny_bins=2, min_rows=0,
                           progress_fn=report_progress, seed=1)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
     # assert d_members.to_list() == [[...]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 3)
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.int)
     # assert d_exemplars.to_list() == [[...],
@@ -415,11 +415,11 @@ def test_aggregate_2d_mixed_sorted():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins,
                           progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 2, 1, 3, 4, 5, 6, 7, 8, 9]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (10, 3)
     assert d_exemplars.ltypes == (ltype.int, ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[None, 0, None, 0, 1, 2, 3, 4, 5, 6],
@@ -437,11 +437,11 @@ def test_aggregate_2d_mixed_random():
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins,
                           progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (11, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[0, 2, 3, 1, 1, 5, 7, 1, 8, 6, 4]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (9, 3)
     assert d_exemplars.ltypes == (ltype.int, ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[1, None, 3, 0, 4, 6, 2, 6, 1],
@@ -470,7 +470,7 @@ def test_aggregate_3d_categorical():
     assert d_members.shape == (rows, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [exemplar_id]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (rows, 4)
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.str, ltype.int)
     assert d_exemplars.to_list() == a_in + members_count
@@ -492,12 +492,12 @@ def test_aggregate_3d_real():
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
     assert a_members == [2, 1, 1, 0, 2, 1, 2, 1, 2, 2]
 
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 4)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
     assert d.to_list() == [[0.10, 0.50, 0.95],
@@ -537,11 +537,11 @@ def aggregate_nd(nd):
     for i, member in enumerate(a_members):
         a_members[i] = ri.index(member)
 
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
     assert a_members == column
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (div, nd + 1)
     assert d_exemplars.ltypes == tuple(out_types)
     assert d.to_list() == out_value
@@ -558,11 +558,11 @@ def test_aggregate_view_0d_continuous_integer():
     d_in_view = d_in[5:11, :]
     [d_exemplars, d_members] = aggregate(d_in_view, min_rows=100, n_bins=10,
                                          progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (6, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 2, 3, 4, 0, 5]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (6, 2)
     assert d_exemplars.ltypes == (ltype.int, ltype.int)
     assert d_exemplars.to_list() == [[None, 3, 3, 4, 4, 5], [1, 1, 1, 1, 1, 1]]
@@ -574,11 +574,11 @@ def test_aggregate_view_1d_categorical():
     d_in_copy = dt.Frame(d_in)
     d_in_view = d_in[2:6, :]
     [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (4, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[2, 0, 1, 1]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 2)
     assert d_exemplars.ltypes == (ltype.str, ltype.int)
     assert d_exemplars.to_list() == [[None, "charlie", "delta"],
@@ -592,11 +592,11 @@ def test_aggregate_view_2d_categorical():
     d_in_copy = dt.Frame(d_in)
     d_in_view = d_in[2:6, :]
     [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, progress_fn=report_progress)
-    d_members.internal.check()
+    frame_integrity_check(d_members)
     assert d_members.shape == (4, 1)
     assert d_members.ltypes == (ltype.int,)
     assert d_members.to_list() == [[1, 0, 2, 1]]
-    d_exemplars.internal.check()
+    frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 3)
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.int)
     assert d_exemplars.to_list() == [["charlie", "bravo", "charlie"],

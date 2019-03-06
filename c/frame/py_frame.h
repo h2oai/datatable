@@ -128,6 +128,9 @@ class Frame : public PyObject {
     oobj stat(const PKArgs&);
     oobj stat1(const PKArgs&);
 
+    // Exposed to users as `dt.frame_integrity_check(frame)` function
+    void integrity_check();
+
   private:
     static bool internal_construction;
     class NameProvider;

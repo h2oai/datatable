@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from datatable.internal import frame_integrity_check
 from tests import noop
 
 
@@ -131,7 +132,7 @@ def test_core_logger():
     assert dt.options.core_logger == ml
     f0 = dt.Frame([1, 2, 3])
     assert f0.shape == (3, 1)
-    f0.internal.check()
+    frame_integrity_check(f0)
     # assert "call DataTable.datatable_from_list(...)" in ml.messages
     # assert "call DataTable.ncols" in ml.messages
     # assert "call DataTable.nrows" in ml.messages

@@ -19,6 +19,7 @@ import pytest
 import random
 import re
 from datatable import stype, f
+from datatable.internal import frame_integrity_check
 from tests import noop, random_string
 
 
@@ -32,7 +33,7 @@ def test_split_into_nhot0():
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
     f1 = dt.split_into_nhot(f0)
-    f1.internal.check()
+    frame_integrity_check(f1)
     fr = dt.Frame({"cat":       [1, 0, 1, 1],
                    "dog":       [1, 0, 1, 1],
                    "mouse":     [1, 0, 1, 0],
@@ -58,7 +59,7 @@ def test_split_into_nhot1():
                    '(\t"meow", \'purr\')',
                    "{purr}"])
     f1 = dt.split_into_nhot(f0)
-    f1.internal.check()
+    frame_integrity_check(f1)
     fr = dt.Frame(meow=[1, 1, 1, 1, 0], purr=[0, 0, 1, 1, 1])
     assert set(f1.names) == set(fr.names)
     fr = fr[..., f1.names]

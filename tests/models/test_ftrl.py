@@ -28,6 +28,7 @@
 import pickle
 import datatable as dt
 from datatable.models import Ftrl
+from datatable.internal import frame_integrity_check
 from datatable import f, stype, DatatableWarning
 import pytest
 import collections
@@ -699,11 +700,11 @@ def test_ftrl_fit_predict_multinomial():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    ft.model[0].internal.check()
-    ft.model[1].internal.check()
-    ft.model[2].internal.check()
+    frame_integrity_check(ft.model[0])
+    frame_integrity_check(ft.model[1])
+    frame_integrity_check(ft.model[2])
     p = ft.predict(df_train)
-    p.internal.check()
+    frame_integrity_check(p)
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
@@ -840,7 +841,7 @@ def test_ftrl_pickling():
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model[0].internal.check()
+    frame_integrity_check(ft_unpickled.model[0])
     assert len(ft_unpickled.model) == 1
     assert ft_unpickled.model[0].names == ('z', 'n')
     assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)

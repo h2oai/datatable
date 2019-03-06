@@ -105,8 +105,12 @@ or throws an AssertionError if any problems were found.
 )");
 
 static void frame_integrity_check(const py::PKArgs& args) {
-  DataTable* dt = args[0].to_frame();
-  dt->verify_integrity();
+  if (!args[0].is_frame()) {
+    throw TypeError() << "Function `frame_integrity_check()` takes a Frame "
+        "as a single positional argument";
+  }
+  auto frame = static_cast<py::Frame*>(args[0].to_borrowed_ref());
+  frame->integrity_check();
 }
 
 

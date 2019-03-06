@@ -30,7 +30,7 @@ import math
 import pytest
 import datatable as dt
 from datatable import f, stype, ltype
-from datatable.internal import frame_column_rowindex
+from datatable.internal import frame_column_rowindex, frame_integrity_check
 from tests import noop, assert_equals
 
 
@@ -62,7 +62,7 @@ def test_cast_int_to_bool(source_stype):
     DT = dt.Frame(N=[-11, -1, None, 0, 1, 11, 127], stype=source_stype)
     assert DT.stypes == (source_stype,)
     RES = DT[:, dt.bool8(f.N)]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.stypes == (dt.bool8,)
     assert RES.to_list()[0] == [True, True, None, False, True, True, True]
 
@@ -70,7 +70,7 @@ def test_cast_int_to_bool(source_stype):
 def test_cast_m127_to_bool():
     DT = dt.Frame([-128, -127, 0, 127, 128])
     RES = DT[:, dt.bool8(f[0])]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.stypes == (dt.bool8,)
     assert RES.to_list()[0] == [True, True, False, True, True]
 
@@ -81,7 +81,7 @@ def test_cast_float_to_bool(source_stype):
                   stype=source_stype)
     assert DT.stypes == (source_stype,)
     RES = DT[:, dt.bool8(f.G)]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.stypes == (dt.bool8,)
     assert RES.to_list()[0] == [True, True, None, False, True, True, True, True]
 
@@ -202,7 +202,7 @@ def test_cast_int_to_str(source_stype):
                   stype=source_stype)
     assert DT.stypes == (source_stype,)
     RES = DT[:, [dt.str32(f.C0), dt.str64(f.C0)]]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.stypes == (dt.str32, dt.str64)
     assert RES.shape == (DT.nrows, 2)
     ans = [None if v is None else str(v)
@@ -217,7 +217,7 @@ def test_cast_float_to_str(source_stype):
                   stype=source_stype)
     assert DT.stypes == (source_stype,)
     RES = DT[:, [dt.str32(f.J), dt.str64(f.J)]]
-    RES.internal.check()
+    frame_integrity_check(RES)
     ans = ["3.5", "7.049", "-3.18", "inf", None, "1.0", "-inf", "1.0e+16", "0.0"]
     assert RES.to_list() == [ans, ans]
 
@@ -228,7 +228,7 @@ def test_cast_str_to_str(source_stype):
                   stype=source_stype)
     assert DT.stypes == (source_stype,)
     RES = DT[:, [dt.str32(f.S), dt.str64(f.S)]]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.to_list() == DT.to_list() * 2
 
 
@@ -237,7 +237,7 @@ def test_cast_obj_to_str():
     DT = dt.Frame(src)
     assert DT.stypes == (dt.obj64,)
     RES = DT[:, [dt.str32(f[0]), dt.str64(f[0])]]
-    RES.internal.check()
+    frame_integrity_check(RES)
     ans = [str(x) for x in src]
     ans[-1] = None
     assert RES.to_list() == [ans, ans]
@@ -246,7 +246,7 @@ def test_cast_obj_to_str():
 def test_cast_huge_to_str():
     # Test that converting a huge column into str would properly overflow it
     # into str64 type. See issue #1695
-    # This test takes up to 2s to run (or up to 5s if doing .internal.check())
+    # This test takes up to 2s to run (or up to 5s if doing an integrity check)
     DT = dt.repeat(dt.Frame(BIG=["ABCDEFGHIJ" * 100000]), 3000)
     assert DT.stypes == (dt.str32,)
     RES = DT[:, dt.str32(f.BIG)]
@@ -305,7 +305,7 @@ def test_cast_obj_to_obj():
 def test_cast_view_simple():
     df0 = dt.Frame({"A": [1, 2, 3]})
     df1 = df0[::-1, :][:, dt.float32(f.A)]
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.stypes == (dt.float32,)
     assert df1.to_list() == [[3.0, 2.0, 1.0]]
 
