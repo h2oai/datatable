@@ -684,8 +684,8 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 
 
 def test_ftrl_fit_predict_multinomial():
-    ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
-    labels = ("FTRL_negative", "red", "green", "blue")
+    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
+    labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -704,6 +704,16 @@ def test_ftrl_fit_predict_multinomial():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+
+    # Relax accuracy on `None`, as it is affected by Hogwild
+    none_index = 5
+    assert delta_red[none_index]   < epsilon * 10
+    assert delta_green[none_index] < epsilon * 10
+    assert delta_blue[none_index]  < epsilon * 10
+    delta_red.pop(none_index)
+    delta_green.pop(none_index)
+    delta_blue.pop(none_index)
+
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
@@ -712,21 +722,21 @@ def test_ftrl_fit_predict_multinomial():
 
 
 def test_ftrl_fit_predict_multinomial_online():
-    ft = Ftrl(alpha = 0.2, nepochs = 10000, double_precision = True)
-    labels = ("FTRL_negative", "red", "green", "blue")
+    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
+    labels = ("_negative", "red", "green", "blue")
 
     # Show only 1 label to the model
     df_train = dt.Frame(["cucumber"])
     df_target = dt.Frame(["green"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["FTRL_negative", "green"])
+    assert(ft.labels == ["_negative", "green"])
     assert(ft.model.shape == (ft.nbins, 4))
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
     df_target = dt.Frame(["green", "red"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["FTRL_negative", "green", "red"])
+    assert(ft.labels == ["_negative", "green", "red"])
     assert(ft.model.shape == (ft.nbins, 6))
 
     # And one more
@@ -735,7 +745,16 @@ def test_ftrl_fit_predict_multinomial_online():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["FTRL_negative", "green", "red", "blue"])
+    assert(ft.labels == ["_negative", "green", "red", "blue"])
+    assert(ft.model.shape == (ft.nbins, 8))
+
+    # Do not add any new labels
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == ["_negative", "green", "red", "blue"])
     assert(ft.model.shape == (ft.nbins, 8))
 
     # Test predictions
@@ -751,6 +770,16 @@ def test_ftrl_fit_predict_multinomial_online():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+
+    # Relax accuracy on `None`, as it is affected by Hogwild
+    none_index = 5
+    assert delta_red[none_index]   < epsilon * 10
+    assert delta_green[none_index] < epsilon * 10
+    assert delta_blue[none_index]  < epsilon * 10
+    delta_red.pop(none_index)
+    delta_green.pop(none_index)
+    delta_blue.pop(none_index)
+
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
@@ -761,7 +790,7 @@ def test_ftrl_fit_predict_multinomial_online():
 def test_ftrl_fit_predict_multinomial_early_stopping():
     nepochs = 1000000
     ft = Ftrl(alpha = 0.5, nepochs = nepochs)
-    labels = ("FTRL_negative", "red", "green", "blue")
+    labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -780,6 +809,16 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+
+    # Relax accuracy on `None`, as it is affected by Hogwild
+    none_index = 5
+    assert delta_red[none_index]   < epsilon * 10
+    assert delta_green[none_index] < epsilon * 10
+    assert delta_blue[none_index]  < epsilon * 10
+    delta_red.pop(none_index)
+    delta_green.pop(none_index)
+    delta_blue.pop(none_index)
+
     assert epoch < nepochs
     assert max(delta_sum)   < 1e-6
     assert max(delta_red)   < epsilon

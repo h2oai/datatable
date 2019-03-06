@@ -212,7 +212,9 @@ double FtrlReal<T>::fit_binomial(const DataTable* dt_X, const DataTable* dt_y,
     xassert(labels.size() == 1);
     create_model();
   }
-  double epoch = fit<int8_t>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, sigmoid<T>, log_loss<T>);
+  double epoch = fit<int8_t>(dt_X, dt_y,
+                             dt_X_val, dt_y_val, nepochs_val,
+                             sigmoid<T>, log_loss<T>);
   return epoch;
 }
 
@@ -233,7 +235,9 @@ double FtrlReal<T>::fit_regression(const DataTable* dt_X, const DataTable* dt_y,
     xassert(labels.size() == 1);
     create_model();
   }
-  double epoch = fit<U>(dt_X, dt_y, dt_X_val, dt_y_val, nepochs_val, identity<T>, squared_loss<T, U>);
+  double epoch = fit<U>(dt_X, dt_y,
+                        dt_X_val, dt_y_val, nepochs_val,
+                        identity<T>, squared_loss<T, U>);
   return epoch;
 }
 
@@ -252,7 +256,7 @@ double FtrlReal<T>::fit_multinomial(const DataTable* dt_X, const DataTable* dt_y
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
 
-    labels.push_back("FTRL_negative");
+    labels.push_back("_negative");
     create_model();
     model_type = FtrlModelType::MULTINOMIAL;
   }
