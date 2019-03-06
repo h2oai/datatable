@@ -345,60 +345,6 @@ def test_log_srcs(src, fn):
 
 
 #-------------------------------------------------------------------------------
-# type-cast
-#-------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float)
-def test_cast_to_float32(src):
-    dt0 = dt.Frame(src)
-    dt1 = dt0[:, [dt.float32(f[i]) for i in range(dt0.ncols)]]
-    dt1.internal.check()
-    assert dt1.stypes == (dt.float32,) * dt0.ncols
-    pyans = [float(x) if x is not None else None for x in src]
-    assert list_equals(dt1.to_list()[0], pyans)
-
-
-@pytest.mark.parametrize("stype0", ltype.int.stypes)
-def test_cast_int_to_str(stype0):
-    dt0 = dt.Frame([None, 0, -3, 189, 77, 14, None, 394831, -52939047130424957],
-                   stype=stype0)
-    dt1 = dt0[:, [dt.str32(f.C0), dt.str64(f.C0)]]
-    dt1.internal.check()
-    assert dt1.stypes == (dt.str32, dt.str64)
-    assert dt1.shape == (dt0.nrows, 2)
-    ans = [None if v is None else str(v)
-           for v in dt0.to_list()[0]]
-    assert dt1.to_list()[0] == ans
-
-
-@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_obj)
-def test_cast_to_str(src):
-    def to_str(x):
-        if x is None: return None
-        if isinstance(x, bool): return str(int(x))
-        # if isinstance(x, float) and math.isnan(x): return None
-        return str(x)
-
-    dt0 = dt.Frame(src)
-    dt1 = dt0[:, [dt.str32(f[i]) for i in range(dt0.ncols)]]
-    dt2 = dt0[:, [dt.str64(f[i]) for i in range(dt0.ncols)]]
-    dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.stypes == (dt.str32,) * dt0.ncols
-    assert dt2.stypes == (dt.str64,) * dt0.ncols
-    assert dt1.to_list()[0] == [to_str(x) for x in src]
-
-
-def test_cast_view():
-    df0 = dt.Frame({"A": [1, 2, 3]})
-    df1 = df0[::-1, :][:, dt.float32(f.A)]
-    df1.internal.check()
-    assert df1.stypes == (dt.float32,)
-    assert df1.to_list() == [[3.0, 2.0, 1.0]]
-
-
-
-#-------------------------------------------------------------------------------
 # logical ops
 #-------------------------------------------------------------------------------
 

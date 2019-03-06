@@ -64,6 +64,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - The reported frame size (`sys.getsizeof(DT)`) is now more accurate; in
   particular the content of string columns is no longer ignored (#1697).
 
+- Type casting into str32 no longer produces an error if the resulting column
+  is larger than 2GB. Now a str64 column will be returned instead (#1695).
+
+- Fixed memory leak during computation of a generic `DT[i, j]` expression.
+  Another memory leak was during generation of string columns, now also fixed
+  (#1705).
+
 
 ### Changed
 
@@ -71,6 +78,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   The previous behavior can be restored with
   `dt.options.display.interactive = True`. Alternatively, you can explore a
   Frame interactively using `frame.view(True)`.
+
+- Improved performance of type-casting a view column: now the code avoids
+  materializing the column before performing the cast.
 
 
 ### Deprecated
@@ -93,7 +103,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694, #1697)
+  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1705)
 
 
 

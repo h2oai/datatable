@@ -85,15 +85,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 //==============================================================================
 
 template <typename T>
-void FwColumn<T>::replace_buffer(MemoryRange&& new_mbuf) {
-  if (new_mbuf.size() % sizeof(T)) {
-    throw RuntimeError() << "New buffer has invalid size " << new_mbuf.size();
-  }
-  mbuf = std::move(new_mbuf);
-  nrows = mbuf.size() / sizeof(T);
-}
-
-template <typename T>
 size_t FwColumn<T>::elemsize() const {
   return sizeof(T);
 }

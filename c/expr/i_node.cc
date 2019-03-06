@@ -259,11 +259,10 @@ void slice_in::execute_grouped(workframe& wf) {
 
 class expr_in : public i_node {
   private:
-    dt::base_expr* expr;
+    std::unique_ptr<dt::base_expr> expr;
 
   public:
     explicit expr_in(py::robj src);
-    ~expr_in() override;
     void execute(workframe&) override;
     void execute_grouped(workframe&) override;
 };
@@ -278,21 +277,15 @@ expr_in::expr_in(py::robj src) {
 }
 
 
-expr_in::~expr_in() {
-  delete expr;
-}
-
-
 void expr_in::execute(workframe& wf) {
   SType st = expr->resolve(wf);
   if (st != SType::BOOL) {
     throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
-  Column* col = expr->evaluate_eager(wf);
-  RowIndex res(col);
+  auto col = expr->evaluate_eager(wf);
+  RowIndex res(col.get());
   wf.apply_rowindex(res);
-  delete col;
 }
 
 

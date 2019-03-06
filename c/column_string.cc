@@ -150,6 +150,7 @@ void StringColumn<T>::save_to_disk(const std::string& filename,
   strbuf.save_to_disk(path_str(filename), strategy);
 }
 
+
 template <typename T>
 Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
   Column* newcol = Column::shallowcopy(new_rowindex);
@@ -160,37 +161,11 @@ Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
 
 
 template <typename T>
-void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
-                                     MemoryRange&& new_strbuf)
-{
-  size_t new_nrows = new_offbuf.size()/sizeof(T) - 1;
-  if (new_offbuf.size() % sizeof(T)) {
-    throw ValueError() << "The size of `new_offbuf` is not a multiple of "
-                          STRINGIFY(sizeof(T));
-  }
-  if (new_offbuf.get_element<T>(0) != 0) {
-    throw ValueError() << "Cannot use `new_offbuf` as an `offsets` buffer: "
-                          "first element of this array is not 0: got "
-                       << new_offbuf.get_element<T>(0);
-  }
-  size_t lastoff = new_offbuf.get_element<T>(new_nrows) & ~GETNA<T>();
-  if (new_strbuf.size() != lastoff) {
-    throw ValueError() << "The size of `new_strbuf` does not correspond to the"
-                          " last offset of `new_offbuff`: expected "
-                       << new_strbuf.size() << ", got " << lastoff;
-  }
-  strbuf = std::move(new_strbuf);
-  mbuf = std::move(new_offbuf);
-  nrows = new_nrows;
-}
-
-
-
-template <typename T>
 SType StringColumn<T>::stype() const noexcept {
   return sizeof(T) == 4? SType::STR32 :
          sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
+
 
 template <typename T>
 py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
@@ -208,6 +183,7 @@ template <typename T>
 size_t StringColumn<T>::elemsize() const {
   return sizeof(T);
 }
+
 
 template <typename T>
 bool StringColumn<T>::is_fixedwidth() const {
@@ -375,8 +351,8 @@ void StringColumn<T>::replace_values(
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(this,
-      [=](size_t i, CString& value, dt::fhbuf& sb) {
-        sb.write(mask_indices[i]? repl_value : value);
+      [=](size_t i, CString& value, dt::string_buf* sb) {
+        sb->write(mask_indices[i]? repl_value : value);
       });
   }
   else {
@@ -386,17 +362,17 @@ void StringColumn<T>::replace_values(
     MemoryRange mask = replace_at.as_integer_mask(nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(this,
-      [=](size_t i, CString& value, dt::fhbuf& sb) {
+      [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {
-          sb.write(value);
+          sb->write(value);
         } else {
           T offstart = repl_offsets[ir - 1] & ~GETNA<T>();
           T offend = repl_offsets[ir];
           if (ISNA<T>(offend)) {
-            sb.write_na();
+            sb->write_na();
           } else {
-            sb.write(repl_strdata + offstart, offend - offstart);
+            sb->write(repl_strdata + offstart, offend - offstart);
           }
         }
       });
@@ -625,52 +601,6 @@ CString StringColumn<T>::mode() const {
   return get_stats()->mode(this);
 }
 
-
-
-//------------------------------------------------------------------------------
-// Type casts
-//------------------------------------------------------------------------------
-
-template <typename T>
-void StringColumn<T>::cast_into(PyObjectColumn* target) const {
-  const char* strdata = this->strdata();
-  const T* offsets = this->offsets();
-  PyObject** trg_data = target->elements_w();
-
-  T prev_offset = 0;
-  for (size_t i = 0; i < this->nrows; ++i) {
-    T off_end = offsets[i];
-    if (ISNA<T>(off_end)) {
-      trg_data[i] = none();
-    } else {
-      auto len = static_cast<Py_ssize_t>(off_end - prev_offset);
-      trg_data[i] = PyUnicode_FromStringAndSize(strdata + prev_offset, len);
-      prev_offset = off_end;
-    }
-  }
-}
-
-
-template <>
-void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>* target) const {
-  const uint32_t* src_data = this->offsets();
-  uint64_t* trg_data = target->offsets_w();
-  uint64_t dNA = GETNA<uint64_t>() - GETNA<uint32_t>();
-  trg_data[-1] = 0;
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < this->nrows; ++i) {
-    uint32_t v = src_data[i];
-    trg_data[i] = ISNA<uint32_t>(v)? v + dNA : v;
-  }
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
-}
-
-template <>
-void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
-  size_t alloc_size = sizeof(uint64_t) * (1 + this->nrows);
-  std::memcpy(target->data_w(), this->data(), alloc_size);
-  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
-}
 
 
 

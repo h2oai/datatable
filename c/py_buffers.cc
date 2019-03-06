@@ -466,33 +466,33 @@ static int getbuffer_DataTable(
   // Construct the data buffer
   for (size_t i = 0; i < ncols; ++i) {
     // either a shallow copy, or "materialized" column
-    Column* col = dt->columns[i + i0]->shallowcopy();
-    col->reify();
-    if (col->stype() == stype) {
-      xassert(col->alloc_size() == colsize);
-      std::memcpy(memr.wptr(i*colsize), col->data(), colsize);
-    } else {
-      // xmb becomes a "view" on a portion of the buffer `mbuf`. An
-      // ExternelMemBuf object is documented to be readonly; however in
-      // practice it can still be written to, just not resized (this is
-      // hacky, maybe fix in the future).
-      MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
-      // Now we create a `newcol` by casting `col` into `stype`, using
-      // the buffer `xmb`. Since `xmb` already has the correct size, this
-      // is possible. The effect of this call is that `newcol` will be
-      // created having the converted data; but the side-effect of this is
-      // that `mbuf` will have the same data, and in the right place.
-      Column* newcol = col->cast(stype, std::move(xmb));
-      xassert(newcol->alloc_size() == colsize);
-      // We can now delete the new column: this will delete `xmb` as well,
-      // however an ExternalMemBuf object does not attempt to free its
-      // memory buffer. The converted data that was written to `mbuf` will
-      // thus remain intact. No need to delete `xmb` either.
-      delete newcol;
-    }
+    // Column* col = dt->columns[i + i0]->shallowcopy();
+    // col->reify();
+
+    // xmb becomes a "view" on a portion of the buffer `mbuf`. An
+    // ExternalMemBuf object is documented to be readonly; however in
+    // practice it can still be written to, just not resized (this is
+    // hacky, maybe fix in the future).
+    MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
+    // Now we create a `newcol` by casting `col` into `stype`, using
+    // the buffer `xmb`. Since `xmb` already has the correct size, this
+    // is possible. The effect of this call is that `newcol` will be
+    // created having the converted data; but the side-effect of this is
+    // that `mbuf` will have the same data, and in the right place.
+    Column* newcol = dt->columns[i + i0]->cast(stype, std::move(xmb));
+    xassert(newcol->alloc_size() == colsize);
+    // We can now delete the new column: this will delete `xmb` as well,
+    // however an ExternalMemBuf object does not attempt to free its
+    // memory buffer. The converted data that was written to `mbuf` will
+    // thus remain intact. No need to delete `xmb` either.
+    delete newcol;
+
     // Delete the `col` pointer, which was extracted from the i-th column
     // of the DataTable.
-    delete col;
+    // delete col;
+  }
+  if (stype == SType::OBJ) {
+   memr.set_pyobjects(/*clear=*/ false);
   }
 
   xinfo = new XInfo();

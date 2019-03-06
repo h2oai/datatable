@@ -259,6 +259,7 @@ void py::DatatableModule::init_methods() {
   init_methods_repeat();
   init_methods_sets();
   init_methods_str();
+  init_casts();
   #ifdef DTTEST
     init_tests();
   #endif
