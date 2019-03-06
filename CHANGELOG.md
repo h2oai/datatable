@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   or when converting from python, numpy or pandas, etc. In all these cases
   we will now transparently create a Str64 column instead (#1694).
 
+- Type casting into str32 no longer produces an error if the resulting column
+  is larger than 2GB. Now a str64 column will be returned instead (#1695).
+
 
 ### Changed
 
@@ -68,6 +71,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   The previous behavior can be restored with
   `dt.options.display.interactive = True`. Alternatively, you can explore a
   Frame interactively using `frame.view(True)`.
+
+- Improved performance of type-casting a view column: now the code avoids
+  materializing the column before performing the cast.
 
 
 ### Deprecated
@@ -90,7 +96,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694)
+  [pasha stetsenko][] (#1672, #1694, #1695)
 
 
 
