@@ -30,7 +30,7 @@ import random
 import shutil
 import tempfile
 from datatable import DatatableWarning
-from tests import assert_equals, noop
+from tests import assert_equals, noop, isview
 
 
 
@@ -99,12 +99,12 @@ def test_obj_columns(tempdir):
 def test_save_view(tempdir):
     dt0 = dt.Frame([4, 0, -2, 3, 17, 2, 0, 1, 5], names=["fancy"])
     dt1 = dt0.sort(0)
-    assert dt1.internal.isview
+    assert isview(dt1)
     dt1.internal.check()
     with pytest.warns(FutureWarning):
         dt1.save(tempdir, format="nff")
     dt2 = dt.open(tempdir)
-    assert not dt2.internal.isview
+    assert not isview(dt2)
     dt2.internal.check()
     assert dt2.names == dt1.names
     assert dt2.to_list() == dt1.to_list()
@@ -141,11 +141,11 @@ def test_jay_view(tempfile, seed):
     src = [random.normalvariate(0, 1) for n in range(1000)]
     dt0 = dt.Frame({"values": src})
     dt1 = dt0.sort(0)
-    assert dt1.internal.isview
+    assert isview(dt1)
     dt1.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     dt2 = dt.open(tempfile)
-    assert not dt2.internal.isview
+    assert not isview(dt2)
     dt1.internal.check()
     dt2.internal.check()
     assert dt1.names == dt2.names

@@ -63,28 +63,6 @@ int unwrap(PyObject* object, DataTable** address) {
 
 
 
-
-//==============================================================================
-// PyDatatable getters/setters
-//==============================================================================
-
-PyObject* get_isview(obj* self) {
-  DataTable* dt = self->ref;
-  for (size_t i = 0; i < dt->ncols; ++i) {
-    if (dt->columns[i]->rowindex())
-      return incref(Py_True);
-  }
-  return incref(Py_False);
-}
-
-
-
-PyObject* get_datatable_ptr(obj* self) {
-  return PyLong_FromLongLong(reinterpret_cast<long long int>(self->ref));
-}
-
-
-
 //==============================================================================
 // PyDatatable methods
 //==============================================================================
@@ -187,12 +165,6 @@ static PyMethodDef datatable_methods[] = {
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 
-static PyGetSetDef datatable_getseters[] = {
-  GETTER(isview),
-  GETTER(datatable_ptr),
-  {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
-};
-
 PyTypeObject type = {
   PyVarObject_HEAD_INIT(nullptr, 0)
   cls_name,                           /* tp_name */
@@ -223,7 +195,7 @@ PyTypeObject type = {
   nullptr,                            /* tp_iternext */
   datatable_methods,                  /* tp_methods */
   nullptr,                            /* tp_members */
-  datatable_getseters,                /* tp_getset */
+  nullptr,                            /* tp_getset */
   nullptr,                            /* tp_base */
   nullptr,                            /* tp_dict */
   nullptr,                            /* tp_descr_get */

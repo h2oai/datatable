@@ -26,7 +26,7 @@ import datatable as dt
 import random
 from datatable import stype, ltype, f, by
 from datatable.internal import frame_column_rowindex
-from tests import same_iterables, noop, assert_equals
+from tests import same_iterables, noop, assert_equals, isview
 
 
 #-------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ def test_dt0_properties(dt0):
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
-    assert dt0.internal.isview is False
+    assert not isview(dt0)
     for i in range(dt0.ncols):
         assert frame_column_rowindex(dt0, i) is None
     dt0.internal.check()
@@ -103,11 +103,11 @@ def test_rows_ellipsis(dt0):
     dt1 = dt0[None, :]
     dt1.internal.check()
     assert dt1.shape == (10, 3)
-    assert not dt1.internal.isview
+    assert not isview(dt1)
     dt1 = dt0[..., :]
     dt1.internal.check()
     assert dt1.shape == (10, 3)
-    assert not dt1.internal.isview
+    assert not isview(dt1)
 
 
 
@@ -783,7 +783,7 @@ def test_filter_on_view1():
     assert df1.shape == (25, 1)
     df2 = df1[f.A < 10, :]
     df2.internal.check()
-    assert df2.internal.isview
+    assert isview(df2)
     assert df2.to_list() == [[0, 2, 4, 6, 8]]
 
 
@@ -792,7 +792,7 @@ def test_filter_on_view2():
     df1 = df0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
     df2 = df1[f.A < 10, :]
     df2.internal.check()
-    assert df2.internal.isview
+    assert isview(df2)
     assert df2.to_list() == [[5, 7, 9, 3, 1, 4, 8]]
 
 

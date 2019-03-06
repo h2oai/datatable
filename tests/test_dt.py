@@ -32,7 +32,7 @@ import time
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex
-from tests import same_iterables, list_equals, noop
+from tests import same_iterables, list_equals, noop, isview
 
 
 
@@ -375,16 +375,16 @@ def test_resize_view_slice():
     f1 = f0[8::2, :]
     f1.internal.check()
     assert f1.shape == (46, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     f1.nrows = 10
     f1.internal.check()
     assert f1.shape == (10, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list()[0] == list(range(8, 28, 2))
     f1.nrows = 15
     f1.internal.check()
     assert f1.shape == (15, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list()[0] == list(range(8, 28, 2)) + [None] * 5
 
 
@@ -393,17 +393,17 @@ def test_resize_view_array():
     f1 = f0[[1, 1, 2, 3, 5, 8, 13, 0], :]
     f1.internal.check()
     assert f1.shape == (8, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3, 5, 8, 13, 0]]
     f1.nrows = 4
     f1.internal.check()
     assert f1.shape == (4, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3]]
     f1.nrows = 5
     f1.internal.check()
     assert f1.shape == (5, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3, None]]
 
 
@@ -473,7 +473,7 @@ def test_dt_repeat_multicol():
                   D=[True, None, True, False])
     f1 = dt.repeat(f0, 4)
     f1.internal.check()
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.names == f0.names
     assert f1.stypes == f0.stypes
     assert f1.to_list() == [col * 4 for col in f0.to_list()]
@@ -759,7 +759,7 @@ def test_numpy_constructor_multi_types(numpy):
 def test_numpy_constructor_view(numpy):
     d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
     d1 = d0[::-2, :]
-    assert d1.internal.isview
+    assert isview(d1)
     n1 = numpy.array(d1)
     assert n1.dtype == numpy.dtype("int32")
     assert n1.T.tolist() == [list(range(99, 0, -2)),
