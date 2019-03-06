@@ -71,6 +71,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Another memory leak was during generation of string columns, now also fixed
   (#1705).
 
+- Fixed crash upon exiting from a python terminal, if the user ever called
+  function `frame_column_rowindex().type` (#1703).
+
 
 ### Changed
 
@@ -103,7 +106,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1705)
+  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 
 
 
