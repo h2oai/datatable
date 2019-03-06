@@ -436,71 +436,6 @@ def test_ftrl_set_wrong_nepochs_value():
         ft.nepochs = -10
     assert ("Integer value cannot be negative" == str(e.value))
 
-#-------------------------------------------------------------------------------
-# Test getters, setters and reset methods for FTRL model
-#-------------------------------------------------------------------------------
-
-def test_ftrl_model_untrained():
-    ft = Ftrl()
-    assert ft.model == None
-
-
-def test_ftrl_set_negative_n_model():
-    ft = Ftrl(tparams)
-    with pytest.raises(ValueError) as e:
-        ft.model = tmodel[:, {'z' : f.z,
-                              'n' : -f.n}][:, ['z', 'n']]
-    assert ("Column 1 cannot have negative values" == str(e.value))
-
-
-def test_ftrl_set_wrong_shape_model():
-    ft = Ftrl(tparams)
-    with pytest.raises(ValueError) as e:
-        ft.model = tmodel[:, 'n']
-    assert ("Model frame must have %d rows, and an even number of columns, "
-            "whereas your frame has %d rows and 1 column"
-            % (tparams.nbins, tparams.nbins) == str(e.value))
-
-
-def test_ftrl_set_wrong_type_model():
-    ft = Ftrl(tparams)
-    model = dt.Frame([["foo"] * tparams.nbins,
-                      [random.random() for _ in range(tparams.nbins)]],
-                      names=['z', 'n'])
-    with pytest.raises(ValueError) as e:
-        ft.model = model
-    assert ("Column 0 in the model frame should have a type of float64, "
-            "whereas it has the following type: str32"
-            == str(e.value))
-
-
-def test_ftrl_get_set_model():
-    ft = Ftrl(tparams)
-    ft.model = tmodel
-    assert_equals(ft.model, tmodel)
-
-
-def test_ftrl_reset_model():
-    ft = Ftrl(tparams)
-    ft.model = tmodel
-    ft.reset()
-    assert ft.model == None
-
-
-def test_ftrl_none_model():
-    ft = Ftrl(tparams)
-    ft.model = None
-    assert ft.model == None
-
-
-def test_ftrl_model_shallowcopy():
-    model = dt.Frame(tmodel)
-    ft = Ftrl(tparams)
-    ft.model = tmodel
-    ft.reset()
-    assert ft.model == None
-    assert_equals(tmodel, model)
-
 
 #-------------------------------------------------------------------------------
 # Test wrong training frame
@@ -558,6 +493,10 @@ def test_ftrl_col_hashes():
 # Test wrong parameters for `fit` and `predict` methods
 #-------------------------------------------------------------------------------
 
+def test_ftrl_model_untrained():
+    ft = Ftrl()
+    assert ft.model == None
+
 
 def test_ftrl_fit_no_frame():
     ft = Ftrl()
@@ -587,7 +526,7 @@ def test_ftrl_predict_not_trained():
     df_train = dt.Frame([[1, 2, 3], [True, False, True]])
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
-    assert ("Cannot make any predictions, train or set the model first"
+    assert ("Cannot make any predictions, the model should be trained first"
             == str(e.value))
 
 
@@ -672,31 +611,6 @@ def test_ftrl_fit_predict_string():
     assert df_target[0, 0] >= 1 - epsilon
     assert df_target[1, 0] >= 0
     assert df_target[1, 0] < epsilon
-
-
-def test_ftrl_fit_predict_from_setters():
-    ft = Ftrl(nbins = 10)
-    df_train = dt.Frame(range(ft.nbins))
-    df_target = dt.Frame([True] * ft.nbins)
-
-    # Train `ft`
-    ft.fit(df_train, df_target)
-
-    # Assign `ft` model and parameters to `ft2`
-    ft2 = Ftrl()
-    ft2.params = ft.params
-    ft2.model = ft.model
-
-    # Train `ft` for one more epoch and make predictions
-    ft.fit(df_train, df_target)
-    target1 = ft.predict(df_train)
-
-    # Train `ft2` for one epoch and make predictions
-    ft2.fit(df_train, df_target)
-    target2 = ft2.predict(df_train)
-
-    assert_equals(ft.model, ft2.model)
-    assert_equals(target1, target2)
 
 
 def test_ftrl_fit_predict_view():
@@ -974,6 +888,26 @@ def test_ftrl_reuse_pickled_empty_model():
     fi.names = ["feature_name", "feature_importance"]
     assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)
+
+
+def test_ftrl_fit_predict_from_pickled():
+    ft = Ftrl(nbins = 10)
+    df_train = dt.Frame(range(ft.nbins))
+    df_target = dt.Frame([True] * ft.nbins)
+    ft.fit(df_train, df_target)
+
+    # Pickle / unpickle, fit, predict
+    ft_pickled = pickle.dumps(ft)
+    ft_unpickled = pickle.loads(ft_pickled)
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
+
+    # Fit, predict for the original frame
+    ft.fit(df_train, df_target)
+    target = ft.predict(df_train)
+
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
 
 
 def test_ftrl_pickling():

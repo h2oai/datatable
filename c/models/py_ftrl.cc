@@ -287,8 +287,8 @@ oobj Ftrl::predict(const PKArgs& args) {
   if (dt_X == nullptr) return Py_None;
 
   if (!dtft->is_trained()) {
-    throw ValueError() << "Cannot make any predictions, train or set "
-                       << "the model first";
+    throw ValueError() << "Cannot make any predictions, the model "
+                          "should be trained first";
   }
 
   size_t ncols = dtft->get_dt_X_ncols();
@@ -879,7 +879,7 @@ double_precision : bool
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
-  ADD_GETSET(gs, &Ftrl::get_model, &Ftrl::set_model, args_model);
+  ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
   ADD_GETSET(gs, &Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple,
              args_params);
