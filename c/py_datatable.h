@@ -59,16 +59,6 @@ DECLARE_DESTRUCTOR()
 
 
 
-//---- Getters/setters ---------------------------------------------------------
-
-DECLARE_GETTER(
-  isview,
-  "Is the datatable view or now?")
-
-DECLARE_GETTER(
-  datatable_ptr,
-  "Get pointer (converted to an int) to the wrapped DataTable object")
-
 
 
 //---- Methods -----------------------------------------------------------------

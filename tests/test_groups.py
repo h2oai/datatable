@@ -25,7 +25,7 @@ import datatable as dt
 import pytest
 import random
 from datatable import f, mean, min, max, sum, count, by, sort
-from tests import same_iterables, assert_equals
+from tests import same_iterables, assert_equals, isview
 
 
 
@@ -271,7 +271,7 @@ def test_groupby_on_view():
                   B=[3, 6, 2, 4, 3, 1],
                   C=['b', 'd', 'b', 'b', 'd', 'b'])
     V = DT[f.A != 1, :]
-    assert V.internal.isview
+    assert isview(V)
     assert V.shape == (4, 3)
     assert V.to_dict() == {'A': [2, 3, 2, 3],
                            'B': [6, 2, 3, 1],
