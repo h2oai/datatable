@@ -30,12 +30,10 @@
 namespace dt {
 
 
-
 //------------------------------------------------------------------------------
 // base_expr
 //------------------------------------------------------------------------------
 
-using pexpr = std::unique_ptr<base_expr>;
 
 base_expr::base_expr() {
   TRACK(this, sizeof(*this), "dt::base_expr");
@@ -114,17 +112,17 @@ GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_column::evaluate_eager(workframe& wf) {
+colptr expr_column::evaluate_eager(workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
   const Column* rcol = dt->columns[col_id];
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
   const RowIndex& col_ri = rcol->rowindex();
 
   if (dt_ri) {
-    return rcol->shallowcopy(wf._product(dt_ri, col_ri));
+    return colptr(rcol->shallowcopy(wf._product(dt_ri, col_ri)));
   }
   else {
-    return rcol->shallowcopy();
+    return colptr(rcol->shallowcopy());
   }
 }
 
@@ -227,7 +225,7 @@ class expr_binaryop : public base_expr {
     expr_binaryop(size_t opcode, pexpr&& l, pexpr&& r);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
 
@@ -255,10 +253,10 @@ GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_binaryop::evaluate_eager(workframe& wf) {
-  Column* lhs_res = lhs->evaluate_eager(wf);
-  Column* rhs_res = rhs->evaluate_eager(wf);
-  return expr::binaryop(binop_code, lhs_res, rhs_res);
+colptr expr_binaryop::evaluate_eager(workframe& wf) {
+  auto lhs_res = lhs->evaluate_eager(wf);
+  auto rhs_res = rhs->evaluate_eager(wf);
+  return colptr(expr::binaryop(binop_code, lhs_res.get(), rhs_res.get()));
 }
 
 
@@ -269,25 +267,20 @@ Column* expr_binaryop::evaluate_eager(workframe& wf) {
 
 class expr_literal : public base_expr {
   private:
-    Column* col;
+    colptr col;
 
   public:
     explicit expr_literal(const py::robj&);
-    ~expr_literal() override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe&) override;
+    colptr evaluate_eager(workframe&) override;
 };
 
 
 expr_literal::expr_literal(const py::robj& v) {
   py::olist lst(1);
   lst.set(0, v);
-  col = Column::from_pylist(lst, 0);
-}
-
-expr_literal::~expr_literal() {
-  delete col;
+  col = colptr(Column::from_pylist(lst, 0));
 }
 
 
@@ -301,8 +294,8 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_literal::evaluate_eager(workframe&) {
-  return col->shallowcopy();
+colptr expr_literal::evaluate_eager(workframe&) {
+  return colptr(col->shallowcopy());
 }
 
 
@@ -376,7 +369,7 @@ static void init_unops() {
 
 class expr_unaryop : public base_expr {
   private:
-    std::unique_ptr<base_expr> arg;
+    pexpr arg;
     unop unop_code;
 
   public:
@@ -385,7 +378,7 @@ class expr_unaryop : public base_expr {
     pexpr get_negated_expr() override;
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
 
@@ -423,9 +416,9 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_unaryop::evaluate_eager(workframe& wf) {
-  Column* arg_res = arg->evaluate_eager(wf);
-  return expr::unaryop(unop_code, arg_res);
+colptr expr_unaryop::evaluate_eager(workframe& wf) {
+  auto arg_res = arg->evaluate_eager(wf);
+  return colptr(expr::unaryop(unop_code, arg_res.get()));
 }
 
 
@@ -445,7 +438,7 @@ class expr_cast : public base_expr {
     expr_cast(pexpr&& a, SType s);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
 
@@ -464,9 +457,9 @@ GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_cast::evaluate_eager(workframe& wf) {
-  Column* arg_col = arg->evaluate_eager(wf);
-  return arg_col->cast(stype);
+colptr expr_cast::evaluate_eager(workframe& wf) {
+  auto arg_col = arg->evaluate_eager(wf);
+  return colptr(arg_col->cast(stype));
 }
 
 
@@ -484,7 +477,7 @@ class expr_reduce : public base_expr {
     expr_reduce(pexpr&& a, size_t op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
 
@@ -503,14 +496,15 @@ GroupbyMode expr_reduce::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_reduce::evaluate_eager(workframe& wf) {
-  Column* arg_col = arg->evaluate_eager(wf);
+colptr expr_reduce::evaluate_eager(workframe& wf) {
+  auto arg_col = arg->evaluate_eager(wf);
   int op = static_cast<int>(opcode);
   if (wf.has_groupby()) {
     const Groupby& grby = wf.get_groupby();
-    return expr::reduceop(op, arg_col, grby);
+    return colptr(expr::reduceop(op, arg_col.get(), grby));
   } else {
-    return expr::reduceop(op, arg_col, Groupby::single_group(wf.nrows()));
+    return colptr(expr::reduceop(op, arg_col.get(),
+                                 Groupby::single_group(wf.nrows())));
   }
 }
 
@@ -528,7 +522,7 @@ class expr_reduce_nullary : public base_expr {
     explicit expr_reduce_nullary(size_t op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
 
@@ -545,7 +539,7 @@ GroupbyMode expr_reduce_nullary::get_groupby_mode(const workframe&) const {
 }
 
 
-Column* expr_reduce_nullary::evaluate_eager(workframe& wf) {
+colptr expr_reduce_nullary::evaluate_eager(workframe& wf) {
   Column* res = nullptr;
   if (opcode == 0) {  // COUNT
     if (wf.has_groupby()) {
@@ -563,7 +557,7 @@ Column* expr_reduce_nullary::evaluate_eager(workframe& wf) {
       d_res[0] = static_cast<int64_t>(wf.nrows());
     }
   }
-  return res;
+  return colptr(res);
 }
 
 

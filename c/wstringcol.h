@@ -53,6 +53,7 @@ class writable_string_col {
 
     class buffer {
       public:
+        buffer();
         virtual ~buffer();
         virtual void write(const char* ch, size_t len) = 0;
         void write(const std::string&);

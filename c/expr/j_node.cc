@@ -294,7 +294,8 @@ void exprlist_jn::select(workframe& wf) {
   wf.reserve(n);
   RowIndex ri0;  // empty rowindex
   for (size_t i = 0; i < n; ++i) {
-    wf.add_column(exprs[i]->evaluate_eager(wf), ri0, std::move(names[i]));
+    auto col = exprs[i]->evaluate_eager(wf);
+    wf.add_column(col.get(), ri0, std::move(names[i]));
   }
 }
 

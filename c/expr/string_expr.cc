@@ -53,11 +53,11 @@ class expr_string_match_re : public base_expr {
     expr_string_match_re(pexpr&& expr, py::oobj params);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 
   private:
     template <typename T>
-    Column* _compute(Column* src);
+    colptr _compute(Column* src);
 };
 
 
@@ -103,17 +103,17 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_string_match_re::evaluate_eager(workframe& wf) {
-  Column* arg_res = arg->evaluate_eager(wf);
+colptr expr_string_match_re::evaluate_eager(workframe& wf) {
+  auto arg_res = arg->evaluate_eager(wf);
   SType arg_stype = arg_res->stype();
   xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
-  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res)
-                                  : _compute<uint64_t>(arg_res);
+  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res.get())
+                                  : _compute<uint64_t>(arg_res.get());
 }
 
 
 template <typename T>
-Column* expr_string_match_re::_compute(Column* src) {
+colptr expr_string_match_re::_compute(Column* src) {
   auto ssrc = dynamic_cast<StringColumn<T>*>(src);
   size_t nrows = ssrc->nrows;
   RowIndex src_rowindex = ssrc->rowindex();
@@ -137,7 +137,7 @@ Column* expr_string_match_re::_compute(Column* src) {
                                 regex);
     trg_data[i] = res;
   }
-  return trg;
+  return colptr(trg);
 }
 
 

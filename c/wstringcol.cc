@@ -13,9 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "wstringcol.h"
 #include <cstring>        // std::memcpy
 #include "column.h"
+#include "datatablemodule.h"
+#include "wstringcol.h"
 
 namespace dt {
 
@@ -58,7 +59,13 @@ Column* writable_string_col::to_column() && {
 // writable_string_col::buffer
 //------------------------------------------------------------------------------
 
-writable_string_col::buffer::~buffer() {}
+writable_string_col::buffer::buffer() {
+  TRACK(this, sizeof(*this), "writable_string_col::buffer");
+}
+
+writable_string_col::buffer::~buffer() {
+  UNTRACK(this);
+}
 
 
 void writable_string_col::buffer::write(const CString& str) {

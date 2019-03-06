@@ -66,7 +66,10 @@ void run_parallel(rangefn run, size_t nrows);
 // Ordered iteration over range [0; n)
 //------------------------------------------------------------------------------
 
-class ojcontext {};
+class ojcontext {
+  public:
+    virtual ~ojcontext();
+};
 using ojcptr = std::unique_ptr<ojcontext>;
 
 class ordered_job {

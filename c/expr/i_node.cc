@@ -283,10 +283,9 @@ void expr_in::execute(workframe& wf) {
     throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
-  Column* col = expr->evaluate_eager(wf);
-  RowIndex res(col);
+  auto col = expr->evaluate_eager(wf);
+  RowIndex res(col.get());
   wf.apply_rowindex(res);
-  delete col;
 }
 
 

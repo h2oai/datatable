@@ -77,6 +77,7 @@ enum class strop : size_t {
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
+using colptr = std::unique_ptr<Column>;
 
 
 //------------------------------------------------------------------------------
@@ -89,7 +90,7 @@ class base_expr {
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column* evaluate_eager(workframe&) = 0;
+    virtual colptr evaluate_eager(workframe&) = 0;
 
     virtual bool is_column_expr() const;
     virtual bool is_negated_expr() const;
@@ -112,7 +113,7 @@ class expr_column : public base_expr {
     bool is_column_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe&) override;
+    colptr evaluate_eager(workframe&) override;
 };
 
 
@@ -141,7 +142,7 @@ class base_expr : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
-    std::unique_ptr<dt::base_expr> release();
+    dt::pexpr release();
 };
 
 

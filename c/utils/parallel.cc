@@ -79,6 +79,9 @@ ordered_job::ordered_job(size_t n, bool force_single_threaded)
 
 ordered_job::~ordered_job() {}
 
+ojcontext::~ojcontext() {}
+
+
 ojcptr ordered_job::start_thread_context() {
   return ojcptr();
 }
@@ -170,9 +173,11 @@ class mapper_fw2str : private ordered_job {
     Column* result();
 
   private:
-    struct thcontext : public ojcontext {
-      std::unique_ptr<string_buf> sb;
-      thcontext(writable_string_col&, bool str64_);
+    class thcontext : public ojcontext {
+      public:
+        std::unique_ptr<string_buf> sb;
+        thcontext(writable_string_col&, bool str64_);
+        ~thcontext() override;
     };
 
     ojcptr start_thread_context() override;
@@ -196,6 +201,8 @@ mapper_fw2str::thcontext::thcontext(writable_string_col& ws, bool str64_) {
     sb = make_unique<writable_string_col::buffer_impl<uint32_t>>(ws);
   }
 }
+
+mapper_fw2str::thcontext::~thcontext() {}
 
 
 
