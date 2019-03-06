@@ -295,7 +295,10 @@ RowIndex RowIndex::negate(size_t nrows) const {
 
 
 size_t RowIndex::memory_footprint() const {
-  return sizeof(this) + (impl? impl->memory_footprint() : 0);
+  // If multiple columns share a rowindex, we don't want to account for it
+  // multiple times. Instead, try to assign each instance an "equal share"
+  // of this object's memory footprint.
+  return sizeof(this) + (impl? impl->memory_footprint() / impl->refcount : 0);
 }
 
 

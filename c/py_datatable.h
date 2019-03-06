@@ -69,10 +69,6 @@ DECLARE_GETTER(
   datatable_ptr,
   "Get pointer (converted to an int) to the wrapped DataTable object")
 
-DECLARE_GETTER(
-  alloc_size,
-  "DataTable's internal size, in bytes")
-
 
 
 //---- Methods -----------------------------------------------------------------

@@ -173,22 +173,6 @@ void Column::replace_rowindex(const RowIndex& newri) {
 
 
 
-/**
- * Get the total size of the memory occupied by this Column. This is different
- * from `column->alloc_size`, which in general reports byte size of the `data`
- * portion of the column.
- */
-size_t Column::memory_footprint() const
-{
-  size_t sz = sizeof(*this);
-  sz += mbuf.memory_footprint();
-  // sz += ri.memory_footprint();
-  if (stats) sz += stats->memory_footprint();
-  return sz;
-}
-
-
-
 //------------------------------------------------------------------------------
 // Stats
 //------------------------------------------------------------------------------

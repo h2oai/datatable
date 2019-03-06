@@ -84,26 +84,6 @@ PyObject* get_datatable_ptr(obj* self) {
 }
 
 
-/**
- * Return size of the referenced DataTable, and the current `pydatatable::obj`.
- */
-PyObject* get_alloc_size(obj* self) {
-  DataTable* dt = self->ref;
-  size_t sz = dt->memory_footprint();
-  sz += sizeof(*self);
-  // if (self->ltypes) sz += _PySys_GetSizeOf(self->ltypes);
-  // if (self->stypes) sz += _PySys_GetSizeOf(self->stypes);
-  // if (self->names) {
-  //   PyObject* names = self->names;
-  //   sz += _PySys_GetSizeOf(names);
-  //   for (Py_ssize_t i = 0; i < Py_SIZE(names); ++i) {
-  //     sz += _PySys_GetSizeOf(PyTuple_GET_ITEM(names, i));
-  //   }
-  // }
-  return PyLong_FromSize_t(sz);
-}
-
-
 
 //==============================================================================
 // PyDatatable methods
@@ -219,7 +199,6 @@ static PyMethodDef datatable_methods[] = {
 static PyGetSetDef datatable_getseters[] = {
   GETTER(isview),
   GETTER(datatable_ptr),
-  GETTER(alloc_size),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
 };
 
