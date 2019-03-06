@@ -270,8 +270,8 @@ def test_cast_to_obj():
            [34.50659476, -math.inf, 5.78e+211, -4.19238e-297, None],
            ["Unknown", "secret", "hidden", "*********", None],
            ["Sectumsempra", "Flippendo", "Obliviate", "Accio", "Portus"]]
-    stypes = tuple([dt.bool8] + ltype.int.stypes + ltype.real.stypes +
-                   ltype.str.stypes)
+    stypes = (dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32,
+              dt.float64, dt.str32, dt.str64)
     DT = dt.Frame(src, stypes=stypes)
     assert DT.stypes == stypes
     assert DT.to_list() == src
