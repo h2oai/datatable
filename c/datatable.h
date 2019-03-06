@@ -104,7 +104,7 @@ class DataTable {
     void replace_rowindex(const RowIndex& newri);
     void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
-    void reify();
+    void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;

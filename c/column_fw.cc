@@ -102,7 +102,7 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) reify();
+  if (ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -128,7 +128,7 @@ void FwColumn<T>::set_elem(size_t i, T value) {
 
 
 template <typename T>
-void FwColumn<T>::reify() {
+void FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
   if (!ri) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
@@ -184,7 +184,7 @@ template <typename T>
 void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
   if (new_nrows == nrows) return;
-  reify();
+  materialize();
 
   mbuf.resize(sizeof(T) * new_nrows);
 
@@ -249,7 +249,7 @@ template <typename T>
 void FwColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
-  reify();
+  materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }

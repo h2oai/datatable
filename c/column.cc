@@ -240,7 +240,7 @@ SType VoidColumn::stype() const noexcept { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 bool VoidColumn::is_fixedwidth() const { return true; }
 size_t VoidColumn::data_nrows() const { return nrows; }
-void VoidColumn::reify() {}
+void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}

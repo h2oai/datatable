@@ -254,9 +254,9 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * The resulting DataTable should have a NULL RowIndex and Stats array.
  * Do nothing if the DataTable is not a view.
  */
-void DataTable::reify() {
+void DataTable::materialize() {
   for (auto col : columns) {
-    col->reify();
+    col->materialize();
   }
 }
 

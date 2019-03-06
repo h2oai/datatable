@@ -113,6 +113,7 @@ class Frame : public PyObject {
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
     oobj tail(const PKArgs&);
+    void materialize(const PKArgs&);
 
     // Conversion methods
     oobj to_csv(const PKArgs&);

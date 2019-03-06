@@ -272,7 +272,7 @@ public:
    * by replacing the current rowindex with the "plain slice" (i.e. a slice
    * with step 1).
    */
-  virtual void reify() = 0;
+  virtual void materialize() = 0;
 
   virtual py::oobj get_value_at_index(size_t i) const = 0;
 
@@ -352,7 +352,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
-  virtual void reify() override;
+  virtual void materialize() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
@@ -515,7 +515,7 @@ protected:
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
-  void reify() override;
+  void materialize() override;
   friend Column;
 };
 
@@ -538,7 +538,7 @@ public:
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
 
-  void reify() override;
+  void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
@@ -606,7 +606,7 @@ class VoidColumn : public Column {
     size_t elemsize() const override;
     bool is_fixedwidth() const override;
     size_t data_nrows() const override;
-    void reify() override;
+    void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;

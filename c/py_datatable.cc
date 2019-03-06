@@ -160,14 +160,6 @@ PyObject* column(obj* self, PyObject* args) {
 
 
 
-PyObject* materialize(obj* self, PyObject*) {
-  DataTable* dt = self->ref;
-  dt->reify();
-  Py_RETURN_NONE;
-}
-
-
-
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
@@ -192,7 +184,6 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHOD0(check),
   METHODv(column),
-  METHOD0(materialize),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

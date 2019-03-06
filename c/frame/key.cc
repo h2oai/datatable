@@ -156,7 +156,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
 
   // Apply sort key
   apply_rowindex(ri);
-  reify();
+  materialize();
 
   nkeys = K;
 }

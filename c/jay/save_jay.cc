@@ -55,7 +55,7 @@ MemoryRange DataTable::save_jay() {
 
 void DataTable::save_jay_impl(WritableBuffer* wb) {
   // Cannot store a view frame, so materialize first.
-  reify();
+  materialize();
 
   wb->write(8, "JAY1\0\0\0\0");
 

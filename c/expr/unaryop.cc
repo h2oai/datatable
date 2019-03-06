@@ -176,7 +176,7 @@ static mapperfn resolve0(SType stype, dt::unop opcode) {
 Column* unaryop(dt::unop opcode, Column* arg)
 {
   if (opcode == dt::unop::PLUS) return arg->shallowcopy();
-  arg->reify();
+  arg->materialize();
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;

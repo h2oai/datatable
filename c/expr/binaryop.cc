@@ -533,8 +533,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
 
 Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
 {
-  lhs->reify();
-  rhs->reify();
+  lhs->materialize();
+  rhs->materialize();
   size_t lhs_nrows = lhs->nrows;
   size_t rhs_nrows = rhs->nrows;
   if (lhs_nrows == 0 || rhs_nrows == 0) {
