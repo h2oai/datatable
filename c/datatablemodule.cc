@@ -40,7 +40,9 @@ namespace py {
 // These functions are exported as `datatable.internal.*`
 //------------------------------------------------------------------------------
 
-static std::pair<DataTable*, size_t> _unpack_args(const py::PKArgs& args) {
+static std::pair<DataTable*, size_t>
+_unpack_frame_column_args(const py::PKArgs& args)
+{
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
   DataTable* dt = args[0].to_frame();
   size_t col    = args[1].to_size_t();
@@ -62,7 +64,7 @@ has no row index.
 )");
 
 static py::oobj frame_column_rowindex(const py::PKArgs& args) {
-  auto u = _unpack_args(args);
+  auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
 
@@ -84,12 +86,29 @@ is returned as a `ctypes.c_void_p` object.
 static py::oobj frame_column_data_r(const py::PKArgs& args) {
   static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
 
-  auto u = _unpack_args(args);
+  auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
   size_t iptr = reinterpret_cast<size_t>(dt->columns[col]->data());
   return c_void_p.call({py::oint(iptr)});
 }
+
+
+static py::PKArgs args_frame_integrity_check(
+  1, 0, 0, false, false, {"frame"}, "frame_integrity_check",
+R"(frame_integrity_check(frame)
+--
+
+This function performs a range of tests on the `frame` to verify
+that its internal state is consistent. It returns None on success,
+or throws an AssertionError if any problems were found.
+)");
+
+static void frame_integrity_check(const py::PKArgs& args) {
+  DataTable* dt = args[0].to_frame();
+  dt->verify_integrity();
+}
+
 
 
 static py::PKArgs args_in_debug_mode(
@@ -245,6 +264,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
   ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
+  ADD_FN(&frame_integrity_check, args_frame_integrity_check);
 
   init_methods_aggregate();
   init_methods_buffers();
