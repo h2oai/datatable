@@ -9,6 +9,7 @@ import pytest
 import random
 import sys
 from math import isnan
+from datatable.internal import frame_column_rowindex
 
 
 # Try importing _datatable (core lib), so that if that doesn't work we don't
@@ -173,3 +174,8 @@ def assert_value_error(f, msg):
     with pytest.raises(ValueError) as e:
         f()
     assert msg in str(e.value)
+
+
+def isview(frame):
+    return any(frame_column_rowindex(frame, i) is not None
+               for i in range(frame.ncols))

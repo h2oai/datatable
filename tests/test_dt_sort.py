@@ -27,7 +27,7 @@ import random
 import datatable as dt
 from datatable import stype, ltype, sort, by, f
 from math import inf, nan
-from tests import list_equals, random_string, assert_equals
+from tests import list_equals, random_string, assert_equals, isview
 
 
 
@@ -90,7 +90,7 @@ def test_nonfirst_column():
     d1 = d0.sort("B")
     d0.internal.check()
     d1.internal.check()
-    assert d1.internal.isview
+    assert isview(d1)
     assert d0.shape == d1.shape == (100, 2)
     assert d0.names == d1.names == ("A", "B")
     a0, a1 = d1.to_list()
@@ -109,7 +109,7 @@ def test_int32_small():
     assert d0.stypes == (stype.int32, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
-    assert d1.internal.isview
+    assert isview(d1)
     d1.internal.check()
     assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 96, 245, 847569]]
 
@@ -226,7 +226,7 @@ def test_int8_small():
     assert d0.stypes == (stype.int8, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
-    assert d1.internal.isview
+    assert isview(d1)
     d1.internal.check()
     assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
 
@@ -271,7 +271,7 @@ def test_bool8_small():
     assert d0.stypes == (stype.bool8, )
     d1 = d0[:, :, sort("C0")]
     assert d1.stypes == d0.stypes
-    assert d1.internal.isview
+    assert isview(d1)
     d1.internal.check()
     assert d1.to_list() == [[None, None, False, False, True, True, True]]
 
@@ -283,7 +283,7 @@ def test_bool8_small_stable():
     d1 = d0[:, :, sort("C0")]
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
-    assert d1.internal.isview
+    assert isview(d1)
     d1.internal.check()
     assert d1.to_list() == [[None, None, False, False, True, True, True],
                             [4, 7, 2, 3, 1, 5, 6]]
@@ -296,7 +296,7 @@ def test_bool8_large(n):
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
-    assert d1.internal.isview
+    assert isview(d1)
     d0.internal.check()
     d1.internal.check()
     nn = 2 * n
@@ -308,7 +308,7 @@ def test_bool8_large_stable(n):
     d0 = dt.Frame([[True, False, None] * n, range(3 * n)], names=["A", "B"])
     assert d0.stypes[0] == stype.bool8
     d1 = d0[:, f.B, sort(f.A)]
-    assert d1.internal.isview
+    assert isview(d1)
     d1.internal.check()
     assert d1.to_list() == [list(range(2, 3 * n, 3)) +
                             list(range(1, 3 * n, 3)) +
@@ -388,7 +388,7 @@ def test_int64_large0(n):
     d1 = d0.sort(0)
     d0.internal.check()
     d1.internal.check()
-    assert d1.internal.isview
+    assert isview(d1)
     assert b < a < d < c
     assert d0.to_list() == [[c, d, a, b] * n]
     assert d1.to_list() == [[b] * n + [a] * n + [d] * n + [c] * n]
@@ -496,11 +496,11 @@ def test_sort_view1():
     d1 = d0[[i % 2 for i in range(10)], :]
     assert d1.shape == (10, 1)
     d1.internal.check()
-    assert d1.internal.isview
+    assert isview(d1)
     d2 = d1[:, :, sort(0)]
     assert d2.shape == d1.shape
     d2.internal.check()
-    assert d2.internal.isview
+    assert isview(d2)
     assert d2.to_list() == [[5] * 5 + [10] * 5]
 
 

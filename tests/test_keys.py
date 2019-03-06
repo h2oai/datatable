@@ -24,6 +24,7 @@
 import datatable as dt
 import pytest
 import random
+from tests import isview
 
 
 def test_keys_simple():
@@ -42,7 +43,7 @@ def test_keys_simple():
                              [-4.23, 5.3819, 3.6, 2.01, 9.78]]
     dt0.key = "sex"
     dt0.internal.check()
-    assert not dt0.internal.isview
+    assert not isview(dt0)
     assert dt0.key == ("sex",)
     assert dt0.shape == (5, 3)
     assert dt0.names == ("sex", "name", "avg")
