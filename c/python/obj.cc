@@ -83,7 +83,7 @@ oobj::oobj() {
 
 oobj::oobj(PyObject* p) {
   v = p;
-  Py_XINCREF(p);
+  if (p) Py_INCREF(p);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
@@ -143,7 +143,7 @@ oobj oobj::import(const char* mod, const char* sym1, const char* sym2) {
 }
 
 oobj::~oobj() {
-  Py_XDECREF(v);
+  if (v) Py_DECREF(v);
 }
 
 
