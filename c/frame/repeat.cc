@@ -105,7 +105,7 @@ This is equivalent to ``dt.rbind([self] * n)``.
 
 
 static oobj repeat(const PKArgs& args) {
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
   size_t n = args[1].to_size_t();
 
   // Empty Frame: repeating is a noop

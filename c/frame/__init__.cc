@@ -339,7 +339,7 @@ class FrameInitializationManager {
 
 
     void init_from_frame() {
-      DataTable* srcdt = src.to_frame();
+      DataTable* srcdt = src.to_datatable();
       size_t ncols = srcdt->ncols;
       check_names_count(ncols);
       if (stypes_arg || stype_arg) {

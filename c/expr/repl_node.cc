@@ -476,7 +476,7 @@ repl_node::~repl_node() {
 repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   repl_node* res = nullptr;
 
-  if (src.is_frame())       res = new frame_rn(src.to_frame());
+  if (src.is_frame())       res = new frame_rn(src.to_datatable());
   else if (src.is_none())   res = new scalar_na_rn();
   else if (src.is_bool())   res = new scalar_int_rn(src.to_bool());
   else if (src.is_int())    res = new scalar_int_rn(src.to_int64());

@@ -537,7 +537,7 @@ strvec _obj::to_stringlist(const error_manager&) const {
 // Object conversions
 //------------------------------------------------------------------------------
 
-DataTable* _obj::to_frame(const error_manager& em) const {
+DataTable* _obj::to_datatable(const error_manager& em) const {
   if (v == Py_None) return nullptr;
   if (is_frame()) {
     return static_cast<py::Frame*>(v)->get_datatable();

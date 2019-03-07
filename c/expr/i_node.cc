@@ -317,7 +317,7 @@ class frame_in : public i_node {
 
 
 frame_in::frame_in(py::robj src) : dtobj(src) {
-  dt = src.to_frame();
+  dt = src.to_datatable();
   if (dt->ncols != 1) {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
         "selector, instead got a Frame with " << dt->ncols << " columns";

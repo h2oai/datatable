@@ -43,7 +43,7 @@ static std::pair<DataTable*, size_t>
 _unpack_frame_column_args(const py::PKArgs& args)
 {
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
   size_t col    = args[1].to_size_t();
 
   if (!dt) throw TypeError() << "First parameter should be a Frame";
@@ -174,7 +174,7 @@ static py::PKArgs args__column_save_to_disk(
   "using the provided writing strategy.\n");
 
 static void _column_save_to_disk(const py::PKArgs& args) {
-  DataTable* dt        = args[0].to_frame();
+  DataTable* dt        = args[0].to_datatable();
   size_t i             = args[1].to_size_t();
   std::string filename = args[2].to_string();
   std::string strategy = args[3].to_string();

@@ -74,7 +74,7 @@ class Arg : public _obj::error_manager {
     SType       to_stype              (const error_manager&) const;
     py::oobj    to_oobj               () const { return oobj(pyobj); }
     py::robj    to_pyobj              () const { return pyobj; }
-    DataTable*  to_frame              () const;
+    DataTable*  to_datatable          () const;
 
 
     //---- Error messages --------------

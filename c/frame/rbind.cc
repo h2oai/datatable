@@ -109,7 +109,7 @@ void Frame::rbind(const PKArgs& args) {
     size_t j = 0;
     for (auto arg : args.varargs()) {
       if (arg.is_frame()) {
-        DataTable* df = arg.to_frame();
+        DataTable* df = arg.to_datatable();
         if (df->nrows) dts.push_back(df);
         ++j;
       }
@@ -120,7 +120,7 @@ void Frame::rbind(const PKArgs& args) {
           if (!item.is_frame()) {
             _notframe_error(j, item);
           }
-          DataTable* df = item.to_frame();
+          DataTable* df = item.to_datatable();
           if (df->nrows) dts.push_back(df);
           ++j;
         }
