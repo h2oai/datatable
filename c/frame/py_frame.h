@@ -93,7 +93,6 @@ class Frame : public PyObject {
     oobj get_ltypes() const;
     oobj get_names() const;
     oobj get_key() const;
-    oobj get_internal() const;
     void set_nrows(robj);
     void set_names(robj);
     void set_key(robj);

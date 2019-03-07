@@ -251,14 +251,6 @@ oobj Frame::get_ltypes() const {
 }
 
 
-static GSArgs args_internal("internal", "[DEPRECATED]");
-static GSArgs args__dt("_dt", "[DEPRECATED]");
-
-oobj Frame::get_internal() const {
-  return oobj(core_dt);
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -308,8 +300,6 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   ADD_GETTER(gs, &Frame::get_shape, args_shape);
   ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
   ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
-  ADD_GETTER(gs, &Frame::get_internal, args_internal);
-  ADD_GETTER(gs, &Frame::get_internal, args__dt);
 
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);
