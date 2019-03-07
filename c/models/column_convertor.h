@@ -80,7 +80,8 @@ template<typename T>
 ColumnConvertor<T>::ColumnConvertor(const Column* col) :
   ri(col->rowindex()),
   nrows(col->nrows)
-{}
+{
+}
 
 
 /*
@@ -119,7 +120,7 @@ size_t ColumnConvertor<T>::get_nrows() {
 template<typename T1, typename T2, typename T3>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
-    const /* T1 */ T2* values;
+    const /* T1* */ T2* values;
     colptr column;
   public:
     explicit ColumnConvertorReal(const Column*);
@@ -142,10 +143,11 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
   this->min = column_real->min();
   this->max = column_real->max();
   values = column_real->elements_r();
-//  auto columnT = static_cast<const T3*>(column_in);
-//  this->min = static_cast<T2>(columnT->min());
-//  this->max = static_cast<T2>(columnT->max());
-//  values = static_cast<const T1*>(column_in->data());
+  // TODO: when #219 is fixed, use the commented code
+  // auto columnT = static_cast<const T3*>(column_in);
+  // this->min = static_cast<T2>(columnT->min());
+  // this->max = static_cast<T2>(columnT->max());
+  // values = static_cast<const T1*>(column_in->data());
 }
 
 
@@ -157,11 +159,13 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
 */
 template<typename T1, typename T2, typename T3>
 T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
-  size_t i = this->ri[row];
+  size_t i = row;
+  // size_t i = this->ri[row];
   if (i == RowIndex::NA /* || ISNA<T1>(values[i]) */) {
     return GETNA<T2>();
   } else {
     return values[i];
+    // return static_cast<T2>(values[i]);
   }
 }
 
@@ -172,15 +176,17 @@ T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
 */
 template<typename T1, typename T2, typename T3>
 void ColumnConvertorReal<T1, T2, T3>::get_rows(std::vector<T2>& buffer,
-                                                     size_t from,
-                                                     size_t step,
-                                                     size_t count) const {
+                                               size_t from,
+                                               size_t step,
+                                               size_t count) const {
   for (size_t j = 0; j < count; ++j) {
-    size_t i = this->ri[from + j * step];
+    size_t i = from + j * step;
+    // size_t i = this->ri[from + j * step];
     if (i == RowIndex::NA /*|| ISNA<T1>(values[i])*/) {
       buffer[j] = GETNA<T2>();
     } else {
       buffer[j] = values[i];
+      // buffer[j] = static_cast<T2>(values[i]);
     }
   }
 }
