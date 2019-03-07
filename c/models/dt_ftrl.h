@@ -59,12 +59,13 @@ enum class FtrlModelType : size_t {
 
 
 /*
-* An abstract base class for FtrlReal<T>.
+* An abstract dt::Ftrl class that declares all the virtual functions
+* needed by py::Ftrl.
 */
 class Ftrl {
   public:
     virtual ~Ftrl();
-    // Depending on the target column stype, this method does
+    // Depending on the target column stype, this method should do
     // - binomial logistic regression (BOOL);
     // - multinomial logistic regression (STR32, STR64);
     // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
