@@ -41,25 +41,3 @@ int8_t  BoolColumn::mode() const { return get_stats()->mode(this); }
 int64_t BoolColumn::sum() const  { return get_stats()->sum(this); }
 double  BoolColumn::mean() const { return get_stats()->mean(this); }
 double  BoolColumn::sd() const   { return get_stats()->stdev(this); }
-
-
-
-
-//------------------------------------------------------------------------------
-// Integrity checks
-//------------------------------------------------------------------------------
-
-void BoolColumn::verify_integrity(const std::string& name) const {
-  FwColumn<int8_t>::verify_integrity(name);
-
-  // Check that all elements in column are either 0, 1, or NA_I1
-  size_t mbuf_nrows = data_nrows();
-  const int8_t* vals = elements_r();
-  for (size_t i = 0; i < mbuf_nrows; ++i) {
-    int8_t val = vals[i];
-    if (!(val == 0 || val == 1 || val == NA_I1)) {
-      throw AssertionError()
-          << "(Boolean) " << name << " has value " << val << " in row " << i;
-    }
-  }
-}

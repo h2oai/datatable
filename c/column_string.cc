@@ -8,7 +8,6 @@
 #include "column.h"
 #include <cmath>  // abs
 #include <limits> // numeric_limits::max()
-#include "encodings.h"
 #include "python/string.h"
 #include "py_utils.h"
 #include "utils.h"
@@ -605,62 +604,8 @@ CString StringColumn<T>::mode() const {
 
 
 //------------------------------------------------------------------------------
-// Integrity checks
+// Helpers
 //------------------------------------------------------------------------------
-
-template <typename T>
-void StringColumn<T>::verify_integrity(const std::string& name) const {
-  Column::verify_integrity(name);
-
-  size_t strdata_size = 0;
-  //*_utf8 functions use unsigned char*
-  const uint8_t* cdata = reinterpret_cast<const uint8_t*>(strdata());
-  const T* str_offsets = offsets();
-
-  // Check that the offsets section is preceded by a -1
-  if (str_offsets[-1] != 0) {
-    throw AssertionError()
-        << "Offsets section in (string) " << name << " does not start with 0";
-  }
-
-  size_t mbuf_nrows = data_nrows();
-  strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
-
-  if (strbuf.size() != strdata_size) {
-    throw AssertionError()
-        << "Size of string data section in " << name << " does not correspond"
-           " to the magnitude of the final offset: size = " << strbuf.size()
-        << ", expected " << strdata_size;
-  }
-
-  // Check for the validity of each offset
-  T lastoff = 0;
-  for (size_t i = 0; i < mbuf_nrows; ++i) {
-    T oj = str_offsets[i];
-    if (ISNA<T>(oj)) {
-      if (oj != (lastoff ^ GETNA<T>())) {
-        throw AssertionError()
-            << "Offset of NA String in row " << i << " of " << name
-            << " does not have the same magnitude as the previous offset: "
-               "offset = " << oj << ", previous offset = " << lastoff;
-      }
-    } else {
-      if (oj < lastoff) {
-        throw AssertionError()
-            << "String offset in row " << i << " of " << name
-            << " cannot be less than the previous offset: offset = " << oj
-            << ", previous offset = " << lastoff;
-      }
-      if (!is_valid_utf8(cdata + lastoff, static_cast<size_t>(oj - lastoff))) {
-        throw AssertionError()
-            << "Invalid UTF-8 string in row " << i << " of " << name << ": "
-            << repr_utf8(cdata + lastoff, cdata + oj);
-      }
-      lastoff = oj;
-    }
-  }
-}
-
 
 static std::string path_str(const std::string& path) {
   size_t f_s = path.find_last_of("/");
