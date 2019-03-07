@@ -8,7 +8,6 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "python/int.h"
-#include "py_utils.h"
 #include "utils/parallel.h"
 
 

@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
 #include "py_encodings.h"
-#include "py_utils.h"
 
 
 static uint32_t win1252_map[256];

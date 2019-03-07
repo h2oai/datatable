@@ -9,7 +9,6 @@
 #include <cmath>  // abs
 #include <limits> // numeric_limits::max()
 #include "python/string.h"
-#include "py_utils.h"
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/parallel.h"

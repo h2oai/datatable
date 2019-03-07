@@ -17,7 +17,6 @@
 #include "datatable.h"
 #include "column.h"
 #include "py_encodings.h"
-#include "py_utils.h"
 #include "utils/assert.h"
 #include "utils/file.h"
 #include "utils.h"

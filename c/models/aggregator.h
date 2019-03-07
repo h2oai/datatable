@@ -31,7 +31,6 @@
 #include "utils/shared_mutex.h"
 #include "datatablemodule.h"
 #include "options.h"
-#include "py_utils.h"
 #include "rowindex.h"
 
 // Number of steps for the aggregator progress bar

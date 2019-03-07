@@ -8,7 +8,6 @@
 #include <cstdlib>     // atoll
 #include "column.h"
 #include "datatablemodule.h"
-#include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "utils.h"
