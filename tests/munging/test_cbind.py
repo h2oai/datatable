@@ -274,6 +274,14 @@ def test_cbind_0rows_2():
     assert DT.shape == (0, 3)
 
 
+def test_cbind_0rows_3():
+    DT0 = dt.Frame(A=[], B=[], C=[])
+    RES1 = dt.cbind(dt.Frame(), DT0)
+    RES2 = dt.cbind(DT0, dt.Frame())
+    assert_equals(RES1, DT0)
+    assert_equals(RES2, DT0)
+
+
 def test_cbind_error_1():
     DT = dt.Frame(A=[1, 5])
     with pytest.raises(ValueError) as e:

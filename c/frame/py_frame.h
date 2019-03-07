@@ -60,6 +60,7 @@ class Frame : public PyObject {
         static void _init_replace(Methods&);
         static void _init_repr(Methods&);
         static void _init_sizeof(Methods&);
+        static void _init_sort(Methods&);
         static void _init_stats(Methods&);
         static void _init_tocsv(Methods&);
         static void _init_tonumpy(Methods&);
@@ -104,11 +105,12 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
     oobj head(const PKArgs&);
+    void materialize(const PKArgs&);
     void rbind(const PKArgs&);
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
+    oobj sort(const PKArgs&);
     oobj tail(const PKArgs&);
-    void materialize(const PKArgs&);
 
     // Conversion methods
     oobj to_csv(const PKArgs&);

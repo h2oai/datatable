@@ -603,3 +603,41 @@ def test_aggregate_view_2d_categorical():
                                      [None, "blue", "red"],
                                      [1, 2, 1]]
     assert_equals(d_in, d_in_copy)
+
+
+def test_aggregate_view_1d_continuous_integer():
+    d_in = dt.Frame([0, 1, None, 2, None, 3, 3, 4, 4, None, 5])
+    d_in_copy = dt.Frame(d_in)
+    d_in_view = d_in[5:11, :]
+    [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, n_bins=5,
+                                         progress_fn=report_progress)
+
+    frame_integrity_check(d_members)
+    assert d_members.shape == (6, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.to_list() == [[1, 1, 2, 2, 0, 3]]
+
+    frame_integrity_check(d_exemplars)
+    assert d_exemplars.shape == (4, 2)
+    assert d_exemplars.ltypes == (ltype.int, ltype.int)
+    assert d_exemplars.to_list() == [[None, 3, 4, 5], [1, 2, 2, 1]]
+    assert_equals(d_in, d_in_copy)
+
+
+def test_aggregate_view_1d_continuous_float():
+    d_in = dt.Frame([0.0, 1.1, None, 2.2, None, 3.1, 3.2, 4.1, 4.0, None, 5.1])
+    d_in_copy = dt.Frame(d_in)
+    d_in_view = d_in[5:11, :]
+    [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, n_bins=5,
+                                         progress_fn=report_progress)
+
+    frame_integrity_check(d_members)
+    assert d_members.shape == (6, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.to_list() == [[1, 1, 2, 2, 0, 3]]
+
+    frame_integrity_check(d_exemplars)
+    assert d_exemplars.shape == (4, 2)
+    assert d_exemplars.ltypes == (ltype.real, ltype.int)
+    assert d_exemplars.to_list() == [[None, 3.1, 4.1, 5.1], [1, 2, 2, 1]]
+    assert_equals(d_in, d_in_copy)
