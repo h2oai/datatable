@@ -66,45 +66,42 @@ static char strB[] = "B";
 
 
 //------------------------------------------------------------------------------
-// Construct a DataTable from a list of objects implementing Buffers protocol
+// Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column* Column::from_buffer(const py::robj& obuffer)
+Column* Column::from_buffer(const py::robj& pyobj)
 {
-  using pybufptr = std::unique_ptr<Py_buffer>;
-  PyObject* buffer = obuffer.to_borrowed_ref();
-  pybufptr pview = pybufptr(new Py_buffer());
+  auto pview = std::unique_ptr<Py_buffer>(new Py_buffer());
   Py_buffer* view = pview.get();
+
+  // Check if this is a datetime64 column, in which case it must be converted
+  if (pyobj.is_numpy_array()) {
+    auto dtype = pyobj.get_attr("dtype");
+    auto kind = dtype.get_attr("kind").to_string();
+    if (kind == "M" || kind == "m") {
+      return Column::from_buffer(pyobj.invoke("astype", "(s)", "str"));
+    }
+    auto fmt = dtype.get_attr("char").to_string();
+    if (kind == "f" && fmt == "e") {  // float16
+      return Column::from_buffer(pyobj.invoke("astype", "(s)", "float32"));
+    }
+  }
 
   // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
   // the `view->format` field should be filled; and PyBUF_ND will fill the
   // `view->shape` information (while `strides` and `suboffsets` will be
   // nullptr).
-  int ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_ND);
+  int ret = PyObject_GetBuffer(pyobj.to_borrowed_ref(), view,
+                               PyBUF_FORMAT | PyBUF_ND);
   if (ret != 0) {
     PyErr_Clear();  // otherwise system functions may fail later on
-
-    // Check if this is a datetime64 column, in which case it must be converted
-    if (obuffer.is_numpy_array()) {
-      auto kind = obuffer.get_attr("dtype").get_attr("kind").to_string();
-      if (kind == "M" || kind == "m") {
-        return Column::from_buffer(obuffer.invoke("astype", "(s)", "str"));
-      }
-    }
-
-    ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_STRIDES);
+    ret = PyObject_GetBuffer(pyobj.to_borrowed_ref(), view,
+                             PyBUF_FORMAT | PyBUF_STRIDES);
     if (ret != 0) throw PyError();
   }
   if (view->ndim != 1) {
     throw NotImplError() << "Source buffer has ndim=" << view->ndim
       << ", however only 1-D buffers are supported";
-  }
-
-  // If buffer is in float16 format, convert it to float32
-  if (view->itemsize == 2 && std::strcmp(view->format, "e") == 0) {
-    PyBuffer_Release(view);
-    py::oobj newbuf = obuffer.invoke("astype", "(s)", "float32");
-    return Column::from_buffer(newbuf);
   }
 
   SType stype = stype_from_format(view->format, view->itemsize);
