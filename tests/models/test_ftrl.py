@@ -54,7 +54,7 @@ default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
                         nbins = 1000000, nepochs = 1, interactions = False,
                         double_precision = False)
 
-epsilon = 0.01
+epsilon = 0.05
 
 
 #-------------------------------------------------------------------------------
@@ -786,7 +786,8 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
-    epoch = ft.fit(df_train, df_target, df_train, df_target, nepochs_validate = 10000)
+    epoch = ft.fit(df_train, df_target, df_train, df_target,
+                   nepochs_validate = 10000)
     ft.model.internal.check()
     p = ft.predict(df_train)
     p.internal.check()
