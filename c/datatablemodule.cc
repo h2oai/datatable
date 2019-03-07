@@ -21,7 +21,6 @@
 #include "python/string.h"
 #include "datatablemodule.h"
 #include "options.h"
-#include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
 #include "py_types.h"
@@ -305,7 +304,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
 
     // Initialize submodules
     if (!init_py_types(m)) return nullptr;
-    if (!pydatatable::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
 
     py::Frame::Type::init(m);

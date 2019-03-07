@@ -17,7 +17,6 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "encodings.h"
-#include "py_datatable.h"
 #include "py_types.h"
 #include "py_utils.h"
 

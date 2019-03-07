@@ -112,22 +112,17 @@ Frame* Frame::from_datatable(DataTable* dt) {
   Frame::internal_construction = false;
   if (!res) throw PyError();
 
-  PyObject* _dt = pydatatable::wrap(dt);
-  if (!_dt) throw PyError();
-
   Frame* frame = reinterpret_cast<Frame*>(res);
   frame->dt = dt;
-  frame->core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
-  frame->core_dt->_frame = frame;
   return frame;
 }
 
 
 void Frame::m__dealloc__() {
-  Py_XDECREF(core_dt);
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
-  dt = nullptr;  // `dt` is already managed by `core_dt`
+  delete dt;
+  dt = nullptr;
 }
 
 

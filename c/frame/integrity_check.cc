@@ -17,6 +17,7 @@
 #include "utils/exceptions.h"
 #include "datatable.h"
 #include "encodings.h"
+#include "utils.h"      // repr_utf8
 
 
 //------------------------------------------------------------------------------

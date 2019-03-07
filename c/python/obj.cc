@@ -25,7 +25,6 @@
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
-#include "py_datatable.h"
 #include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
@@ -541,9 +540,6 @@ DataTable* _obj::to_datatable(const error_manager& em) const {
   if (v == Py_None) return nullptr;
   if (is_frame()) {
     return static_cast<py::Frame*>(v)->get_datatable();
-  }
-  if (PyObject_TypeCheck(v, &pydatatable::type)) {
-    return static_cast<pydatatable::obj*>(v)->ref;
   }
   throw em.error_not_frame(v);
 }

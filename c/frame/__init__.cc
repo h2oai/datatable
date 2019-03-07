@@ -368,8 +368,6 @@ class FrameInitializationManager {
         std::swap(frame->dt,      resframe->dt);
         std::swap(frame->stypes,  resframe->stypes);
         std::swap(frame->ltypes,  resframe->ltypes);
-        std::swap(frame->core_dt, resframe->core_dt);
-        frame->core_dt->_frame = frame;
       } else {
         xassert(res.is_dict());
         auto err = ValueError();
@@ -614,7 +612,7 @@ class FrameInitializationManager {
     }
 
 
-    void make_datatable(nullptr_t) {
+    void make_datatable(std::nullptr_t) {
       frame->dt = new DataTable(std::move(cols));
     }
 
@@ -664,16 +662,12 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 void Frame::m__init__(PKArgs& args) {
   if (dt) m__dealloc__();
   dt = nullptr;
-  core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
   if (Frame::internal_construction) return;
 
   FrameInitializationManager fim(args, this);
   fim.run();
-
-  core_dt = static_cast<pydatatable::obj*>(pydatatable::wrap(dt));
-  core_dt->_frame = this;
 }
 
 
@@ -705,17 +699,12 @@ void Frame::m__setstate__(const PKArgs& args) {
   // Clean up any previous state of the Frame (since pickle first creates an
   // empty Frame object, and then calls __setstate__ on it).
   m__dealloc__();
-  core_dt = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
 
   const char* data = PyBytes_AS_STRING(_state);
   size_t length = static_cast<size_t>(PyBytes_GET_SIZE(_state));
   dt = open_jay_from_bytes(data, length);
-  PyObject* _dt = pydatatable::wrap(dt);
-  if (!_dt) throw PyError();
-  core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
-  core_dt->_frame = this;
 }
 
 

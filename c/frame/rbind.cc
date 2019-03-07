@@ -20,6 +20,8 @@
 #include "utils/assert.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "utils.h"
+
 
 static void _check_ncols(size_t n0, size_t n1) {
   if (n0 == n1) return;

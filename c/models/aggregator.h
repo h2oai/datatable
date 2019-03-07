@@ -21,17 +21,18 @@
 //------------------------------------------------------------------------------
 #include <random>
 #include <iostream>
-#include "py_utils.h"
-#include "rowindex.h"
-#include "datatablemodule.h"
 #include "frame/py_frame.h"
+#include "models/dt_ftrl.h"
+#include "models/column_convertor.h"
+#include "models/utils.h"
 #include "python/_all.h"
 #include "python/obj.h"
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
-#include "models/dt_ftrl.h"
-#include "models/column_convertor.h"
-#include "models/utils.h"
+#include "datatablemodule.h"
+#include "options.h"
+#include "py_utils.h"
+#include "rowindex.h"
 
 // Number of steps for the aggregator progress bar
 #define PBSTEPS 100

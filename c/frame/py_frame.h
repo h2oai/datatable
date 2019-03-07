@@ -23,7 +23,6 @@
 #define dt_FRAME_PYFRAME_h
 #include "python/ext_type.h"
 #include "datatable.h"
-#include "py_datatable.h"
 
 
 namespace py {
@@ -36,11 +35,10 @@ namespace py {
  */
 class Frame : public PyObject {
   private:
-    DataTable* dt;
+    DataTable* dt;  // owned (cannot use unique_ptr because this class's
+                    // destructor is never called by Python)
     mutable PyObject* stypes;  // memoized tuple of stypes
     mutable PyObject* ltypes;  // memoized tuple of ltypes
-
-    pydatatable::obj* core_dt;  // TODO: remove
 
   public:
     class Type : public ExtType<Frame> {
@@ -128,6 +126,8 @@ class Frame : public PyObject {
   private:
     static bool internal_construction;
     class NameProvider;
+
+    ~Frame() {}
     void _clear_types() const;
     void _clear_names();
     void _init_names() const;

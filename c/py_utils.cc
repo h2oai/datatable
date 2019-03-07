@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 #include <string.h>  // memcpy
-#include "py_datatable.h"
 #include "py_utils.h"
 
 double logger_timer;

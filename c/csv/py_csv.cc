@@ -13,7 +13,6 @@
 #include "utils/parallel.h"
 #include "datatablemodule.h"
 #include "options.h"
-#include "py_datatable.h"
 
 namespace py {
 
