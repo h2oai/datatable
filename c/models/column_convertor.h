@@ -24,6 +24,11 @@
 #include "py_datatable.h"
 
 
+// TODO: the only reason why we cast all the columns to `T` is that
+// stats calculation is faster on real columns. When #219 gets fixed,
+// we could do value casting on-the-fly, making use of the commented
+// parts of the code.
+
 /*
 *  Helper template structures to convert C++ float/double types to
 *  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
@@ -80,8 +85,7 @@ template<typename T>
 ColumnConvertor<T>::ColumnConvertor(const Column* col) :
   ri(col->rowindex()),
   nrows(col->nrows)
-{
-}
+{}
 
 
 /*
@@ -143,7 +147,6 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
   this->min = column_real->min();
   this->max = column_real->max();
   values = column_real->elements_r();
-  // TODO: when #219 is fixed, use the commented code
   // auto columnT = static_cast<const T3*>(column_in);
   // this->min = static_cast<T2>(columnT->min());
   // this->max = static_cast<T2>(columnT->max());
