@@ -220,6 +220,11 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "columns as the training frame";
     }
 
+    if (dt_X_val->get_names() != dt_X->get_names()) {
+      throw ValueError() << "Validation frame must have the same column "
+                         << "names as the training frame";
+    }
+
     if (dt_X_val->nrows == 0) {
       throw ValueError() << "Validation frame cannot be empty";
     }
@@ -367,6 +372,7 @@ void Ftrl::set_labels(robj py_labels) {
   for (size_t i = 0; i < nlabels; ++i) {
     labels[i] = py_labels_list[i].to_string();
   }
+  dtft->set_labels(labels);
 }
 
 
@@ -881,8 +887,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
   ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
-  ADD_GETSET(gs, &Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple,
-             args_params);
+  ADD_GETTER(gs, &Ftrl::get_params_namedtuple, args_params);
   ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
   ADD_GETSET(gs, &Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha);
   ADD_GETSET(gs, &Ftrl::get_beta, &Ftrl::set_beta, args_beta);
@@ -892,8 +897,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
              args_interactions);
-  ADD_GETSET(gs, &Ftrl::get_double_precision, &Ftrl::set_double_precision,
-             args_double_precision);
+  ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
   ADD_METHOD(mm, &Ftrl::fit, args_fit);

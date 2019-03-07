@@ -24,7 +24,6 @@
 
 namespace dt {
 
-
 Ftrl::~Ftrl() {}
 
 }

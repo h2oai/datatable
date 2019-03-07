@@ -58,85 +58,6 @@ epsilon = 0.01
 
 
 #-------------------------------------------------------------------------------
-# Test early stopping
-#-------------------------------------------------------------------------------
-
-def test_ftrl_no_validation_set():
-    nepochs = 1234
-    nbins = 56
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
-    r = range(ft.nbins)
-    df_X = dt.Frame(r)
-    df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y)
-    assert epoch == nepochs
-
-
-def test_ftrl_no_early_stopping():
-    nepochs = 1234
-    nepochs_validate = 56
-    nbins = 78
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
-    r = range(ft.nbins)
-    df_X = dt.Frame(r)
-    df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
-    assert epoch == nepochs
-
-
-def test_ftrl_early_stopping_int():
-    nepochs = 10000
-    nepochs_validate = 5
-    nbins = 10
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
-    r = range(ft.nbins)
-    df_X = dt.Frame(r)
-    df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
-    p = ft.predict(df_X)
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch < nepochs
-    assert int(epoch) % nepochs_validate == 0
-    assert max(delta) < epsilon
-
-
-def test_ftrl_early_stopping_freq():
-    nepochs = 10000
-    nepochs_validate = 5.5
-    nbins = 10
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
-    r = range(ft.nbins)
-    df_X = dt.Frame(r)
-    df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
-    p = ft.predict(df_X)
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch < nepochs
-    assert math.modf(epoch) == (0.5, int(epoch))
-    assert max(delta) < epsilon
-
-
-def test_ftrl_early_stopping_view():
-    nepochs = 10000
-    nepochs_validate = 5
-    nbins = 10
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
-    r = range(ft.nbins)
-    df_X_train = dt.Frame(r)
-    df_y_train = dt.Frame(r)
-    df_X_validate = dt.Frame(range(-nbins, nbins))
-    df_y_validate = df_X_validate
-    epoch = ft.fit(df_X_train, df_y_train,
-                   df_X_validate[nbins::,:], df_y_validate[nbins::,:],
-                   nepochs_validate = nepochs_validate)
-    p = ft.predict(df_X_train)
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch < nepochs
-    assert int(epoch) % nepochs_validate == 0
-    assert max(delta) < epsilon
-
-
-#-------------------------------------------------------------------------------
 # Test wrong parameter types, names and combination in constructor
 #-------------------------------------------------------------------------------
 
@@ -188,6 +109,7 @@ def test_ftrl_construct_wrong_interactions_type():
     assert ("Argument `interactions` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
+
 def test_ftrl_construct_wrong_double_precision_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(double_precision = 2))
@@ -210,6 +132,20 @@ def test_ftrl_construct_unknown_arg():
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
             str(e.value))
 
+
+def test_ftrl_construct_wrong_params_type():
+    params = tparams._replace(alpha = "1.0")
+    with pytest.raises(TypeError) as e:
+        ft = Ftrl(params)
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_construct_wrong_params_name():
+    WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
+    wrong_params = WrongParams(alpha = 1, interactions = True)
+    with pytest.raises(AttributeError) as e:
+        ft = Ftrl(wrong_params)
+    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -296,7 +232,7 @@ def test_ftrl_get_parameters():
 
 
 def test_ftrl_set_individual():
-    ft = Ftrl()
+    ft = Ftrl(double_precision = tparams.double_precision)
     ft.alpha = tparams.alpha
     ft.beta = tparams.beta
     ft.lambda1 = tparams.lambda1
@@ -304,36 +240,12 @@ def test_ftrl_set_individual():
     ft.nbins = tparams.nbins
     ft.nepochs = tparams.nepochs
     ft.interactions = tparams.interactions
-    ft.double_precision = tparams.double_precision
-    assert ft.params == tparams
-
-
-def test_ftrl_set_params():
-    ft = Ftrl()
-    ft.params = tparams
     assert ft.params == tparams
 
 
 #-------------------------------------------------------------------------------
 # Test getters and setters for wrong types / names of FTRL parameters
 #-------------------------------------------------------------------------------
-
-def test_ftrl_set_wrong_params_type():
-    ft = Ftrl()
-    params = tparams._replace(alpha = "1.0")
-    with pytest.raises(TypeError) as e:
-        ft.params = params
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
-
-
-def test_ftrl_set_wrong_params_name():
-    ft = Ftrl()
-    WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
-    wrong_params = WrongParams(alpha = 1, interactions = True)
-    with pytest.raises(AttributeError) as e:
-        ft.params = wrong_params
-    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
-
 
 def test_ftrl_set_wrong_alpha_type():
     ft = Ftrl()
@@ -640,8 +552,7 @@ def test_ftrl_fit_predict_view():
 
 @pytest.mark.parametrize('parameter, value',
                          [("nbins", 100),
-                         ("interactions", True),
-                         ("double_precision", True)])
+                         ("interactions", True)])
 def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
@@ -787,6 +698,86 @@ def test_ftrl_fit_predict_multinomial_online():
     assert collections.Counter(p.names) == collections.Counter(labels)
 
 
+
+#-------------------------------------------------------------------------------
+# Test early stopping
+#-------------------------------------------------------------------------------
+
+def test_ftrl_no_validation_set():
+    nepochs = 1234
+    nbins = 56
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    epoch = ft.fit(df_X, df_y)
+    assert epoch == nepochs
+
+
+def test_ftrl_no_early_stopping():
+    nepochs = 1234
+    nepochs_validate = 56
+    nbins = 78
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    assert epoch == nepochs
+
+
+def test_ftrl_early_stopping_int():
+    nepochs = 10000
+    nepochs_validate = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch < nepochs
+    assert int(epoch) % nepochs_validate == 0
+    assert max(delta) < epsilon
+
+
+def test_ftrl_early_stopping_float():
+    nepochs = 10000
+    nepochs_validate = 5.5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch < nepochs
+    assert math.modf(epoch) == (0.5, int(epoch))
+    assert max(delta) < epsilon
+
+
+def test_ftrl_early_stopping_view():
+    nepochs = 10000
+    nepochs_validate = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X_train = dt.Frame(r)
+    df_y_train = dt.Frame(r)
+    df_X_validate = dt.Frame(range(-nbins, nbins))
+    df_y_validate = df_X_validate
+    epoch = ft.fit(df_X_train, df_y_train,
+                   df_X_validate[nbins::,:], df_y_validate[nbins::,:],
+                   nepochs_validate = nepochs_validate)
+    p = ft.predict(df_X_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch < nepochs
+    assert int(epoch) % nepochs_validate == 0
+    assert max(delta) < epsilon
+
+
 def test_ftrl_fit_predict_multinomial_early_stopping():
     nepochs = 1000000
     ft = Ftrl(alpha = 0.5, nepochs = nepochs)
@@ -929,27 +920,7 @@ def test_ftrl_reuse_pickled_empty_model():
     assert_equals(ft_unpickled.feature_importances, fi)
 
 
-def test_ftrl_fit_predict_from_pickled():
-    ft = Ftrl(nbins = 10)
-    df_train = dt.Frame(range(ft.nbins))
-    df_target = dt.Frame([True] * ft.nbins)
-    ft.fit(df_train, df_target)
-
-    # Pickle / unpickle, fit, predict
-    ft_pickled = pickle.dumps(ft)
-    ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.fit(df_train, df_target)
-    target_unpickled = ft_unpickled.predict(df_train)
-
-    # Fit, predict for the original frame
-    ft.fit(df_train, df_target)
-    target = ft.predict(df_train)
-
-    assert_equals(ft.model, ft_unpickled.model)
-    assert_equals(target, target_unpickled)
-
-
-def test_ftrl_pickling():
+def test_ftrl_pickling_binomial():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins), names = ["f1"])
     df_target = dt.Frame([True] * ft.nbins)
@@ -965,3 +936,43 @@ def test_ftrl_pickling():
             (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
+    assert ft.labels == ft_unpickled.labels
+
+    # Fit and predict
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
+    ft.fit(df_train, df_target)
+    target = ft.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
+
+
+def test_ftrl_pickling_multinomial():
+    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False)
+    labels = ("_negative", "red", "green", "blue")
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.fit(df_train, df_target)
+
+    ft_pickled = pickle.dumps(ft)
+    ft_unpickled = pickle.loads(ft_pickled)
+    ft_unpickled.model.internal.check()
+    assert ft_unpickled.model.stypes == (stype.float32,) * 8
+    assert_equals(ft.model, ft_unpickled.model)
+    assert (ft_unpickled.feature_importances.names ==
+            ('feature_name', 'feature_importance',))
+    assert (ft_unpickled.feature_importances.stypes ==
+            (stype.str32, stype.float32))
+    assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
+    assert ft.params == ft_unpickled.params
+    assert ft.labels == ft_unpickled.labels
+
+    # Fit and predict
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
+    ft.fit(df_train, df_target)
+    target = ft.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)

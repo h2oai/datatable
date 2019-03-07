@@ -368,7 +368,7 @@ double FtrlReal<T>::fit(const DataTable* dt_X, const DataTable* dt_y,
   T loss_global_prev = 0;
   std::vector<hasherptr> hashers_val;
   if (validation) {
-    hashers_val = create_hashers(dt_X_val); // FIXME: make sure column names are the same in dt_X
+    hashers_val = create_hashers(dt_X_val);
     chunk_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
     nchunks = static_cast<size_t>(ceil(static_cast<double>(total_nrows) / chunk_nrows));
   }
@@ -953,10 +953,6 @@ void FtrlReal<T>::set_model(DataTable* dt_model_in) {
   set_nbins(dt_model->nrows);
   dt_X_ncols = 0;
   nfeatures = 0;
-
-  //FIXME: remove, because we are not sure about the model_type
-  strvec labels_in = {"C0"};
-  set_labels(labels_in);
 }
 
 
