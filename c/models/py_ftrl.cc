@@ -712,7 +712,7 @@ oobj Ftrl::get_fi() const {
         d_fi[i] /= ndtft;
       }
     } else {
-    	// If there is just one classifier, simply return `fi`.
+      // If there is just one classifier, simply return `fi`.
       dt_fi = (*dtft)[0]->get_fi();
     }
     normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
@@ -726,7 +726,7 @@ oobj Ftrl::get_fi() const {
                      );
     return df_fi;
   } else {
-  	// If model was not trained, return `None`.
+    // If model was not trained, return `None`.
     return py::None();
   }
 }
