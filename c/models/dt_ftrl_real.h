@@ -384,7 +384,7 @@ double FtrlReal<T>::fit(double nepochs_val, F linkfn, G lossfn) {
   auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke
-  // `dt::run_interleaved()` on all the data for all the epochs at once.
+  // `dt::run_parallel()` on all the data for all the epochs at once.
 	size_t total_nrows = dt_X->nrows * nepochs;
   size_t nchunks = 1;
   size_t chunk_nrows = total_nrows;

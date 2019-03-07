@@ -137,7 +137,7 @@ def test_ftrl_construct_unknown_arg():
 def test_ftrl_construct_wrong_params_type():
     params = tparams._replace(alpha = "1.0")
     with pytest.raises(TypeError) as e:
-        ft = Ftrl(params)
+        Ftrl(params)
     assert ("Expected a float, instead got <class 'str'>" == str(e.value))
 
 
@@ -145,7 +145,7 @@ def test_ftrl_construct_wrong_params_name():
     WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
     wrong_params = WrongParams(alpha = 1, interactions = True)
     with pytest.raises(AttributeError) as e:
-        ft = Ftrl(wrong_params)
+        Ftrl(wrong_params)
     assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
 
 
@@ -825,12 +825,13 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_regression():
-    ft = Ftrl(alpha = 0.5, nbins = 10, nepochs = 1000)
+    ft = Ftrl(alpha = 2.0, nbins = 100, nepochs = 10000)
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
     ft.fit(df_train, df_target)
     p = ft.predict(df_train)
+    # print(p.to_list())
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon
 
@@ -951,7 +952,6 @@ def test_ftrl_pickling_binomial():
 
 def test_ftrl_pickling_multinomial():
     ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False)
-    labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
