@@ -6,10 +6,10 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <type_traits>
-#include "column.h"
-#include "utils.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
+#include "column.h"
 
 
 

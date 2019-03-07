@@ -7,8 +7,8 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "types.h"
-#include "utils.h"
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 static PyObject* py_stype_objs[DT_STYPES_COUNT];

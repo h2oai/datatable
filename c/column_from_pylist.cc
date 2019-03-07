@@ -12,8 +12,8 @@
 #include "python/_all.h"
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
-#include "utils.h"
 #include "utils/exceptions.h"
+#include "utils/misc.h"
 
 //------------------------------------------------------------------------------
 // Helper iterator classes

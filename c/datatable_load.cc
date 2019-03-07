@@ -9,9 +9,9 @@
 #include <string>  // memcpy
 #include "frame/py_frame.h"
 #include "python/args.h"
+#include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "utils.h"
 
 
 

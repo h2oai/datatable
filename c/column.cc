@@ -10,9 +10,9 @@
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "sort.h"
-#include "utils.h"
 #include "utils/assert.h"
 #include "utils/file.h"
+#include "utils/misc.h"
 
 
 Column::Column(size_t nrows_)

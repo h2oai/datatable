@@ -11,10 +11,10 @@
 #include <unistd.h>    // write
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
 #include "datatablemodule.h"
 #include "memrange.h"
-#include "utils.h"
 #include "writebuf.h"
 
 

@@ -18,9 +18,9 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "utils.h"
 
 
 static void _check_ncols(size_t n0, size_t n1) {
