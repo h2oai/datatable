@@ -62,30 +62,6 @@ int unwrap(PyObject* object, DataTable** address) {
 }
 
 
-
-//==============================================================================
-// PyDatatable methods
-//==============================================================================
-
-
-PyObject* column(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  int64_t colidx;
-  int64_t ncols = static_cast<int64_t>(dt->ncols);
-  if (!PyArg_ParseTuple(args, "l:column", &colidx))
-    return nullptr;
-  if (colidx < -ncols || colidx >= ncols) {
-    PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
-    return nullptr;
-  }
-  if (colidx < 0) colidx += dt->ncols;
-  pycolumn::obj* pycol =
-      pycolumn::from_column(dt->columns[static_cast<size_t>(colidx)], self, colidx);
-  return pycol;
-}
-
-
-
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
@@ -106,11 +82,6 @@ static void dealloc(obj* self) {
 //==============================================================================
 // DataTable type definition
 //==============================================================================
-
-static PyMethodDef datatable_methods[] = {
-  METHODv(column),
-  {nullptr, nullptr, 0, nullptr}           /* sentinel */
-};
 
 PyTypeObject type = {
   PyVarObject_HEAD_INIT(nullptr, 0)
@@ -140,7 +111,7 @@ PyTypeObject type = {
   0,                                  /* tp_weaklistoffset */
   nullptr,                            /* tp_iter */
   nullptr,                            /* tp_iternext */
-  datatable_methods,                  /* tp_methods */
+  nullptr,                            /* tp_methods */
   nullptr,                            /* tp_members */
   nullptr,                            /* tp_getset */
   nullptr,                            /* tp_base */

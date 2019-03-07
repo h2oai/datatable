@@ -59,16 +59,6 @@ DECLARE_DESTRUCTOR()
 
 
 
-
-
-//---- Methods -----------------------------------------------------------------
-
-DECLARE_METHOD(
-  column,
-  "column(index)\n\n"
-  "Get the requested column in the datatable")
-
-
 };
 #undef BASECLS
 #undef CLSNAME
