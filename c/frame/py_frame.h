@@ -74,8 +74,6 @@ class Frame : public PyObject {
 
     void m__init__(PKArgs&);
     void m__dealloc__();
-    void m__get_buffer__(Py_buffer* buf, int flags) const;
-    void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support

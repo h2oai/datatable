@@ -126,7 +126,7 @@ class Frame(core.Frame):
 #-------------------------------------------------------------------------------
 
 core._register_function(7, Frame)
-core._install_buffer_hooks(Frame())
+core._install_buffer_hooks(Frame)
 
 
 options.register_option(

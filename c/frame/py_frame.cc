@@ -130,12 +130,6 @@ void Frame::m__dealloc__() {
   dt = nullptr;  // `dt` is already managed by `core_dt`
 }
 
-void Frame::m__get_buffer__(Py_buffer*, int) const {
-}
-
-void Frame::m__release_buffer__(Py_buffer*) const {
-}
-
 
 void Frame::_clear_types() const {
   Py_XDECREF(stypes);
