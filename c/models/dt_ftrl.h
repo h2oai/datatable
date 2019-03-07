@@ -27,6 +27,10 @@
 namespace dt {
 
 
+/*
+* All the FTRL parameters provided in Python are stored in this structure,
+* that also defines their default values.
+*/
 struct FtrlParams {
     double alpha;
     double beta;
@@ -43,6 +47,9 @@ struct FtrlParams {
 };
 
 
+/*
+* Supported FTRL model types.
+*/
 enum class FtrlModelType : size_t {
   NONE        = 0, // Untrained model
   REGRESSION  = 1, // Numerical regression
@@ -61,7 +68,8 @@ class Ftrl {
     // - binomial logistic regression (BOOL);
     // - multinomial logistic regression (STR32, STR64);
     // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
-    virtual double dispatch_fit(const DataTable*, const DataTable*, const DataTable*, const DataTable*, double) = 0;
+    virtual double dispatch_fit(const DataTable*, const DataTable*,
+                                const DataTable*, const DataTable*, double) = 0;
     virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
     virtual bool is_trained() = 0;

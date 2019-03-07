@@ -24,6 +24,11 @@
 
 namespace dt {
 
+
+/*
+* Destructor for the abstract `dt::Ftrl` class.
+*/
 Ftrl::~Ftrl() {}
+
 
 }
