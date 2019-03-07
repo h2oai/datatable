@@ -81,7 +81,6 @@ class Ftrl : public PyObject {
     void set_model(robj);             // Not exposed, used for unpickling only
     void set_labels(robj);            // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
-    void set_params_namedtuple(robj); // Not exposed
     void set_alpha(robj);
     void set_beta(robj);
     void set_lambda1(robj);

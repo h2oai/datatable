@@ -37,6 +37,10 @@ PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  "__init__", nullptr);
 
 
+/*
+* Ftrl(...)
+* Initialize Ftrl object with the provided parameters.
+*/
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
   dt::FtrlParams ftrl_params;
@@ -133,11 +137,21 @@ void Ftrl::m__init__(PKArgs& args) {
 }
 
 
+/*
+* Deallocate underlying data for an Ftrl object
+*/
+void Ftrl::m__dealloc__() {
+  if (dtft != nullptr) {
+    delete dtft;
+    dtft = nullptr;
+  }
+}
 
-//------------------------------------------------------------------------------
-// fit()
-//------------------------------------------------------------------------------
 
+/*
+* .fit(...)
+* Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
+*/
 static PKArgs args_fit(2, 3, 0, false, false, {"X_train", "y_train",
                        "X_validate", "y_validate", "nepochs_validate"},
                        "fit",
@@ -176,6 +190,7 @@ epoch : float
 
 
 oobj Ftrl::fit(const PKArgs& args) {
+  // Training set handling
   if (args[0].is_undefined()) {
     throw ValueError() << "Training frame parameter is missing";
   }
@@ -206,7 +221,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
-  // Check if validation set has been provided
+  // Validtion set handling
   DataTable* dt_X_val = nullptr;
   DataTable* dt_y_val = nullptr;
   double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
@@ -253,6 +268,7 @@ oobj Ftrl::fit(const PKArgs& args) {
     } else nepochs_validate = 1;
   }
 
+  // Train the model and return epoch when the training stopped
   double epoch = dtft->dispatch_fit(dt_X, dt_y,
                                     dt_X_val, dt_y_val,
                                     nepochs_validate);
@@ -260,10 +276,11 @@ oobj Ftrl::fit(const PKArgs& args) {
 }
 
 
-//------------------------------------------------------------------------------
-// predict()
-//------------------------------------------------------------------------------
-
+/*
+* .predict(...)
+* Perform dataset validation, make a call to `dtft->predict(...)`,
+* return frame with predictions.
+*/
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
@@ -274,12 +291,12 @@ Parameters
 ----------
 X: Frame
     Frame of shape (nrows, ncols) to make predictions for.
-    It must have the same number of columns as the training frame.
+    It should have the same number of columns as the training frame.
 
 Returns
 -------
-    A new frame of shape (nrows, 1) with the predicted probability
-    for each row of frame X.
+    A new frame of shape (nrows, nlabels) with the predicted probabilities
+    for each row of frame X and each label the model was trained for.
 )");
 
 
@@ -314,16 +331,16 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-//------------------------------------------------------------------------------
-// reset()
-//------------------------------------------------------------------------------
-
+/*
+* .reset()
+* Reset the model by making a call to `dtft->reset()`.
+*/
 static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
 
-Reset FTRL model and feature importance information,
-i.e. initialize model and importance frames with zeros.
+Reset FTRL model by clearing all the model weights, labels and
+feature importance information. Also, set the model to an untrained state.
 
 Parameters
 ----------
@@ -342,10 +359,9 @@ void Ftrl::reset(const PKArgs&) {
 
 
 
-//------------------------------------------------------------------------------
-// .labels
-//------------------------------------------------------------------------------
-
+/*
+* .labels
+*/
 static GSArgs args_labels(
   "labels",
   R"(List of labels used for classification.)");
@@ -377,10 +393,9 @@ void Ftrl::set_labels(robj py_labels) {
 
 
 
-//------------------------------------------------------------------------------
-// .model
-//------------------------------------------------------------------------------
-
+/*
+* .model
+*/
 static GSArgs args_model(
   "model",
 R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
@@ -400,15 +415,10 @@ oobj Ftrl::get_model() const {
 
 
 void Ftrl::set_model(robj model) {
-  // Reset model if it was assigned `None` in Python
-  if (model.is_none()) {
-    dtft->reset();
-    return;
-  }
-
   DataTable* dt_model = model.to_frame();
-  size_t ncols = dt_model->ncols;
+  if (dt_model == nullptr) return;
 
+  size_t ncols = dt_model->ncols;
   if (dt_model->nrows != dtft->get_nbins() || dt_model->ncols%2 != 0) {
     throw ValueError() << "Model frame must have " << dtft->get_nbins()
                        << " rows, and an even number of columns, "
@@ -445,10 +455,9 @@ void Ftrl::set_model(robj model) {
 }
 
 
-//------------------------------------------------------------------------------
-// .fi
-//------------------------------------------------------------------------------
-
+/*
+* .feature_importances
+*/
 static GSArgs args_fi(
   "feature_importances",
 R"(Two-column frame with feature names and the corresponding
@@ -470,10 +479,9 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
 }
 
 
-//------------------------------------------------------------------------------
-// .colname_hashes
-//------------------------------------------------------------------------------
-
+/*
+* .colname_hashes
+*/
 static GSArgs args_colname_hashes(
   "colname_hashes",
   "Column name hashes"
@@ -496,12 +504,9 @@ oobj Ftrl::get_colname_hashes() const {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .alpha
-//------------------------------------------------------------------------------
-
+/*
+* .alpha
+*/
 static GSArgs args_alpha(
   "alpha",
   "`alpha` in per-coordinate FTRL-Proximal algorithm");
@@ -519,12 +524,9 @@ void Ftrl::set_alpha(robj py_alpha) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .beta
-//------------------------------------------------------------------------------
-
+/*
+* .beta
+*/
 static GSArgs args_beta(
   "beta",
   "`beta` in per-coordinate FTRL-Proximal algorithm");
@@ -542,12 +544,9 @@ void Ftrl::set_beta(robj py_beta) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .lambda1
-//------------------------------------------------------------------------------
-
+/*
+* .lambda1
+*/
 static GSArgs args_lambda1(
   "lambda1",
   "L1 regularization parameter");
@@ -565,12 +564,9 @@ void Ftrl::set_lambda1(robj py_lambda1) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .lambda2
-//------------------------------------------------------------------------------
-
+/*
+* .lambda2
+*/
 static GSArgs args_lambda2(
   "lambda2",
   "L2 regularization parameter");
@@ -588,12 +584,9 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .nbins
-//------------------------------------------------------------------------------
-
+/*
+* .nbins
+*/
 static GSArgs args_nbins(
   "nbins",
   "Number of bins to be used for the hashing trick");
@@ -616,12 +609,9 @@ void Ftrl::set_nbins(robj py_nbins) {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .nepochs
-//------------------------------------------------------------------------------
-
+/*
+* .nepochs
+*/
 static GSArgs args_nepochs(
   "nepochs",
   "Number of epochs to train a model");
@@ -640,10 +630,9 @@ void Ftrl::set_nepochs(robj py_nepochs) {
 
 
 
-//------------------------------------------------------------------------------
-// .interactions
-//------------------------------------------------------------------------------
-
+/*
+* .interactions
+*/
 static GSArgs args_interactions(
   "interactions",
   "Switch to enable second order feature interactions");
@@ -664,10 +653,9 @@ void Ftrl::set_interactions(robj py_interactions) {
 }
 
 
-//------------------------------------------------------------------------------
-// .double_precision
-//------------------------------------------------------------------------------
-
+/*
+* .double_precision
+*/
 static GSArgs args_double_precision(
   "double_precision",
   "Whether to use double precision arithmetic for modeling");
@@ -689,10 +677,9 @@ void Ftrl::set_double_precision(robj py_double_precision) {
 
 
 
-//------------------------------------------------------------------------------
-// .params
-//------------------------------------------------------------------------------
-
+/*
+* .params
+*/
 static GSArgs args_params(
   "params",
   "FTRL model parameters");
@@ -722,19 +709,6 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(6, get_interactions());
   params.set(7, get_double_precision());
   return std::move(params);
-}
-
-
-void Ftrl::set_params_namedtuple(robj params) {
-  set_alpha(params.get_attr("alpha"));
-  set_beta(params.get_attr("beta"));
-  set_lambda1(params.get_attr("lambda1"));
-  set_lambda2(params.get_attr("lambda2"));
-  set_nbins(params.get_attr("nbins"));
-  set_nepochs(params.get_attr("nepochs"));
-  set_interactions(params.get_attr("interactions"));
-  set_double_precision(params.get_attr("double_precision"));
-  // TODO: check that there are no unknown parameters
 }
 
 
@@ -770,10 +744,9 @@ void Ftrl::set_params_tuple(robj params) {
 }
 
 
-//------------------------------------------------------------------------------
-// Pickling / unpickling methods.
-//------------------------------------------------------------------------------
-
+/*
+* Pickling and unpickling support.
+*/
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
 
@@ -814,46 +787,24 @@ void Ftrl::m__setstate__(const PKArgs& args) {
     dtft = new dt::FtrlReal<float>(ftrl_params);
   }
 
-  // Set FTRL parameters
   set_params_tuple(pickle[0]);
-
-  // Set model datatable.
   set_model(pickle[1]);
-
-  // Set feature importance info
   if (pickle[2].is_frame()) {
     dtft->set_fi(pickle[2].to_frame()->copy());
   }
-
-
-  // Set regression type
   dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
-
-  // Set labels
   set_labels(pickle[4]);
 }
 
 
-
-void Ftrl::m__dealloc__() {
-  if (dtft != nullptr) {
-    delete dtft;
-    dtft = nullptr;
-  }
-}
-
-
-
-//------------------------------------------------------------------------------
-// py::Ftrl::Type
-//------------------------------------------------------------------------------
-
+/*
+* py::Ftrl::Type
+*/
 const char* Ftrl::Type::classname() {
   return "datatable.models.Ftrl";
 }
 
 
-// TODO: use the above doc strings here.
 const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
 
@@ -882,6 +833,9 @@ double_precision : bool
 }
 
 
+/*
+* Initialize all the exposed methods and getters/setters.
+*/
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
