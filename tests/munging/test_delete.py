@@ -24,6 +24,7 @@
 import datatable as dt
 import pytest
 from datatable import f, g, isna, ltype
+from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 
@@ -237,7 +238,7 @@ def test_del_cols_from_view():
 def test_del_rows_all():
     d0 = dt.Frame(range(10))
     del d0[:, :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (0, 0)
 
 
@@ -276,28 +277,28 @@ def test_del_rows_slice_reverse():
     s0 = list(range(10))
     del d0[:4:-1, :]
     del s0[:4:-1]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [s0]
 
 
 def test_del_rows_slice_all():
     d0 = dt.Frame(range(10))
     del d0[::-1, :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (0, 1)
 
 
 def test_del_rows_slice_step():
     d0 = dt.Frame(range(10))
     del d0[::3, :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[1, 2, 4, 5, 7, 8]]
 
 
 def test_del_rows_array():
     d0 = dt.Frame(range(10))
     del d0[[0, 7, 8], :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[1, 2, 3, 4, 5, 6, 9]]
 
 
@@ -305,21 +306,21 @@ def test_del_rows_array():
 def test_del_rows_array_unordered():
     d0 = dt.Frame(range(10))
     del d0[[3, 1, 5, 2, 2, 0, -1], :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[4, 6, 7, 8]]
 
 
 def test_del_rows_filter():
     d0 = dt.Frame(range(10), names=["A"], stype="int32")
     del d0[f.A < 4, :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_nas():
     d0 = dt.Frame({"A": [1, 5, None, 12, 7, None, -3]})
     del d0[isna(f.A), :]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[1, 5, 12, 7, -3]]
 
 

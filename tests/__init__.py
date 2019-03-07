@@ -9,7 +9,7 @@ import pytest
 import random
 import sys
 from math import isnan
-from datatable.internal import frame_column_rowindex
+from datatable.internal import frame_column_rowindex, frame_integrity_check
 
 
 # Try importing _datatable (core lib), so that if that doesn't work we don't
@@ -107,8 +107,8 @@ def assert_equals(frame1, frame2):
     """
     Helper function to assert that 2 frames are equal to each other.
     """
-    frame1.internal.check()
-    frame2.internal.check()
+    frame_integrity_check(frame1)
+    frame_integrity_check(frame2)
     assert frame1.shape == frame2.shape, (
         "The left frame has shape %r, while the right has shape %r"
         % (frame1.shape, frame2.shape))

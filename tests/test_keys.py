@@ -24,6 +24,7 @@
 import datatable as dt
 import pytest
 import random
+from datatable.internal import frame_integrity_check
 from tests import isview
 
 
@@ -34,7 +35,7 @@ def test_keys_simple():
                    names=["name", "sex", "avg"])
     assert dt0.key == tuple()
     dt0.key = "name"
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     assert dt0.key == ("name",)
     assert dt0.shape == (5, 3)
     assert dt0.names == ("name", "sex", "avg")
@@ -42,7 +43,7 @@ def test_keys_simple():
                              [12, 8, 1, 15, 5],
                              [-4.23, 5.3819, 3.6, 2.01, 9.78]]
     dt0.key = "sex"
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     assert not isview(dt0)
     assert dt0.key == ("sex",)
     assert dt0.shape == (5, 3)
@@ -64,20 +65,20 @@ def test_no_cache():
     assert dt0.ltypes == (dt.ltype.real, dt.ltype.str, dt.ltype.int)
     assert dt0.stypes == (dt.float64, dt.str32, dt.int8)
     assert dt0.colindex("B") == 1
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     dt0.key = "C"
     assert dt0.names == ("C", "A", "B")
     assert dt0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     assert dt0.stypes == (dt.int8, dt.float64, dt.str32)
     assert dt0.colindex("B") == 2
-    dt0.internal.check()
+    frame_integrity_check(dt0)
 
 
 
 def test_multi_key():
     dt0 = dt.Frame(D=range(6), A=[3, 7, 5, 2, 2, 3], B=[1, 2, 2, 3, 4, 4])
     dt0.key = ["A", "B"]
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     assert dt0.key == ("A", "B")
     assert dt0.names == ("A", "B", "D")
     assert dt0.to_list() == [[2, 2, 3, 3, 5, 7],
@@ -139,7 +140,7 @@ def test_set_empty_key():
     dt0.key = "A"
     assert dt0.key == ("A",)
     dt0.key = []
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     assert dt0.key == tuple()
     assert dt0.names == ("A", "B")
 
@@ -147,18 +148,18 @@ def test_set_empty_key():
 def test_key_save(tempfile):
     dt0 = dt.Frame(D=range(6), A=[3, 7, 5, 2, 2, 3], B=[1, 2, 2, 3, 4, 4])
     dt0.key = ["A", "B"]
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     dt0.to_jay(tempfile)
     dt1 = dt.open(tempfile)
     assert dt1.key == ("A", "B")
-    dt1.internal.check()
+    frame_integrity_check(dt1)
 
 
 def test_key_after_group():
     n = 1000
     DT = dt.Frame(A=[random.choice("abcd") for _ in range(n)])
     tmp = DT[:, dt.count(), dt.by(0)]
-    tmp.internal.check()
+    frame_integrity_check(tmp)
     tmp.key = "A"
     assert tmp.to_list()[0] == ["a", "b", "c", "d"]
     assert sum(tmp.to_list()[1]) == n

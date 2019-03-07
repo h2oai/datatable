@@ -11,6 +11,7 @@ import datatable as dt
 import pytest
 import random
 import re
+from datatable.internal import frame_integrity_check
 from tests import find_file, same_iterables
 
 
@@ -23,7 +24,7 @@ def test_issue_R1113():
            "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
            "        -10998 1.95957E-01  4.16522E+00    7937.13048")
     d0 = dt.fread(txt, verbose=True)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
                          dt.ltype.real)
@@ -33,7 +34,7 @@ def test_issue_R1113():
                             [345678.20255, -195780.43911, 7937.13048]]
     # `strip_whitespace` has no effect when `sep == ' '`
     d1 = dt.fread(txt, strip_whitespace=False)
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.names == d0.names
     assert d1.to_list() == d0.to_list()
     # Check that whitespace is not removed from column names either
@@ -56,11 +57,11 @@ def test_issue_R2106():
     d2 = dt.fread(src, skip_blank_lines=True, fill=True)
     d3 = dt.fread(src2, na_strings=[""])
     d4 = dt.fread(src2, na_strings=["NA"])
-    d0.internal.check()
-    d1.internal.check()
-    d2.internal.check()
-    d3.internal.check()
-    d4.internal.check()
+    frame_integrity_check(d0)
+    frame_integrity_check(d1)
+    frame_integrity_check(d2)
+    frame_integrity_check(d3)
+    frame_integrity_check(d4)
     assert d0.to_list() == [[1, 5, None, 12, 18, None]]
     assert d1.to_list() == [[1, 5, 12, 18]]
     assert d2.to_list() == [[1, 5, 12, 18]]
@@ -73,7 +74,7 @@ def test_issue_R2196():
     Check that column detection heuristic detects 3 not 4 columns here...
     """
     d0 = dt.fread('1,2,"3,a"\n4,5,"6,b"')
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (2, 3)
     assert d0.to_list() == [[1, 4], [2, 5], ["3,a", "6,b"]]
 
@@ -83,7 +84,7 @@ def test_issue_R2222():
     d1 = dt.fread("A,B\n999,1\n4,2\n", na_strings=["999", "NA"])
     d2 = dt.fread("A,B\n999,5\n999,999\n", na_strings=["999", "NA"])
     d3 = dt.fread("A,B\n999,1\n999,2\n", na_strings=["99", "NA"])
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[None, None], [1, 2]]
     assert d1.to_list() == [[None, 4], [1, 2]]
     assert d2.to_list() == [[None, None], [5, None]]
@@ -121,13 +122,13 @@ def test_issue_R2351(tempfile):
     with open(tempfile, "wb") as o:
         o.write(text)
     d0 = dt.fread(tempfile)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0[:2, :].to_list() == [["id0", "id1"], [0, 38]]
     assert d0[-2:, :].to_list() == [["id99998", "id99999"], [92, 130]]
     with open(tempfile, "ab") as o:
         o.write(b"foo,1000")
     d0 = dt.fread(tempfile)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0[-2:, :].to_list() == [["id99999", "foo"], [130, 1000]]
 
 
@@ -136,7 +137,7 @@ def test_issue_R2404():
     inp[111] = ["ain't", "this", "a", "surprise!"]
     txt = "A,B,C,D\n" + "\n".join(",".join(row) for row in inp)
     d0 = dt.fread(txt)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("A", "B", "C", "D")
     assert d0.shape == (1000, 4)
     inp[111][2] = '"a"'
@@ -154,7 +155,7 @@ def test_issue_R2322(sep):
     """
     name = sep.join("abcd")
     d0 = dt.fread(name + "\n2\n3\n4\n")
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (3, 1)
     assert d0.names == (name, )
     assert d0.to_list() == [[2, 3, 4]]
@@ -165,7 +166,7 @@ def test_issue_R2464():
     # * The file doesn't end with \n
     # * Only subset of columns is requested
     f = dt.fread('A,B,C\n1,2,"a,b"', columns={'A', 'B'})
-    f.internal.check()
+    frame_integrity_check(f)
     assert f.names == ("A", "B")
     assert f.to_list() == [[1], [2]]
 
@@ -177,9 +178,9 @@ def test_issue_R2535():
     d0 = dt.fread(src, skip_blank_lines=True, fill=False)
     d1 = dt.fread(src, skip_blank_lines=True, fill=True)
     d2 = dt.fread(src, skip_blank_lines=False, fill=True)
-    d0.internal.check()
-    d1.internal.check()
-    d2.internal.check()
+    frame_integrity_check(d0)
+    frame_integrity_check(d1)
+    frame_integrity_check(d2)
     assert d0.to_list() == [list("ace"), list("bdf"), [2, 3, 4]]
     assert d1.to_list() == [list("ace"), list("bdf"), [2, 3, 4]]
     assert d2.to_list() == [["a", "c", None, "e"],
@@ -199,7 +200,7 @@ def test_issue_R2535x():
 
 def test_issue_R2542():
     d0 = dt.fread("A\r1\r\r\r2\r")
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[1, None, None, 2]]
 
 
@@ -225,7 +226,7 @@ def test_issue_527():
     """
     inp = b"A,B\xFF,C\n1,2,3\xAA\n"
     d0 = dt.fread(text=inp)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("A", "Bÿ", "C")
     assert d0.to_list() == [[1], [2], ["3ª"]]
 
@@ -246,7 +247,7 @@ def test_issue_594():
            b'\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff')
     inp = (b'A,"' + bad + b'"\n2,foo\n')
     d0 = dt.fread(text=inp)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (1, 2)
     assert d0.names == ("A", bad.decode("windows-1252", "replace"))
 
@@ -257,15 +258,15 @@ def test_issue_606():
     detected. See issue #606
     """
     d0 = dt.fread(text="A\n23     ")
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("A",)
     assert d0.to_list() == [[23]]
     d1 = dt.fread("A B C \n10 11 12 \n")
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.names == ("A", "B", "C")
     assert d1.to_list() == [[10], [11], [12]]
     d2 = dt.fread("a  b  c\nfoo  bar  baz\noof  bam  \nnah  aye  l8r")
-    d2.internal.check()
+    frame_integrity_check(d2)
     assert d2.names == ("a", "b", "c")
     assert d2.to_list() == [["foo", "oof", "nah"],
                             ["bar", "bam", "aye"],
@@ -276,7 +277,7 @@ def test_issue_615():
     d0 = dt.fread("A,B,C,D,E,F,G,H,I\n"
                   "NaNaNa,Infinity-3,nanny,0x1.5p+12@boo,23ba,2.5e-4q,"
                   "Truely,Falsely,1\n")
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
                             ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
                             ["Truely"], ["Falsely"], [1]]
@@ -285,7 +286,7 @@ def test_issue_615():
 def test_issue_628():
     """Similar to #594 but read in verbose mode."""
     d0 = dt.fread(b"a,\x80\n11,2\n", verbose=True)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.to_list() == [[11], [2]]
     # The interpretation of byte \x80 as symbol € is not set in stone: we may
     # alter it in the future, or make it platform-dependent?
@@ -297,7 +298,7 @@ def test_issue_641():
                  "5,,\n"
                  "6,foo\rbar,z\n"
                  "7,bah,")
-    f.internal.check()
+    frame_integrity_check(f)
     assert f.names == ("A", "B", "C")
     assert f.ltypes == (dt.ltype.int, dt.ltype.str, dt.ltype.str)
     assert f.to_list() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
@@ -305,7 +306,7 @@ def test_issue_641():
 
 def test_issue_643():
     d0 = dt.fread("A B\n1 2\n3 4 \n5 6\n6   7   ")
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
     assert d0.to_list() == [[1, 3, 5, 6], [2, 4, 6, 7]]
@@ -318,7 +319,7 @@ def test_issue_664(capsys):
     assert not err
     assert "Too few rows allocated" not in out
     assert "we know nrows=3 exactly" in out
-    f.internal.check()
+    frame_integrity_check(f)
     assert f.shape == (3, 3)
     assert f.to_list() == [["x", "A", "y"],
                            [None, "B", None],
@@ -327,7 +328,7 @@ def test_issue_664(capsys):
 
 def test_issue_670():
     d0 = dt.fread("A\n1\n\n\n2\n", skip_blank_lines=True)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (2, 1)
     assert d0.to_list() == [[1, 2]]
 
@@ -351,7 +352,7 @@ def test_issue682(seed):
     src[-1] = "1"  # Last entry cannot be "", since there is no final newline
     txt = "\n".join(src)
     d0 = dt.fread(txt, verbose=True)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.ltypes == (dt.ltype.int, )
     assert d0.names == ("A", )
     assert d0.shape == (n - 1, 1)
@@ -370,7 +371,7 @@ def test_issue684(seed):
     src[0] = "A"
     txt = "\n\r".join(src)
     d0 = dt.fread(txt, verbose=True)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.ltypes == (dt.ltype.int,)
     assert d0.shape == (n - 1, 1)
 
@@ -384,7 +385,7 @@ def test_issue735():
     lines[111] = '5,"7,60000"'
     src = "A,B\n" + "\n".join(lines)
     d0 = dt.fread(src)
-    d0.internal.check()
+    frame_integrity_check(d0)
 
 
 @pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
@@ -401,7 +402,7 @@ def test_issue720(seed):
                       for i in range(n))
     src = "A,B\n" + lines
     d0 = dt.fread(src)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.str, dt.ltype.str)
     assert d0.to_list() == [src0, src1]
@@ -409,7 +410,7 @@ def test_issue720(seed):
 
 def test_issuee786():
     df = dt.fread('"A","B"\n', sep="")
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.shape == (0, 1)
     assert df.names == ('"A","B"',)
     assert df.to_list() == [[]]
@@ -437,7 +438,7 @@ def test_issue939(capsys):
              9,FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF,1
 
     """, verbose=True)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.names == ("C0", "C1", "C2")
     assert df.shape == (18, 3)
     assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)

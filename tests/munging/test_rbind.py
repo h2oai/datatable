@@ -27,6 +27,7 @@ import types
 import datatable as dt
 from tests import assert_equals
 from datatable import stype, DatatableWarning
+from datatable.internal import frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
@@ -350,8 +351,8 @@ def test_rbind_different_stypes3():
                     range(-50, 0, 5)],
                    stypes=[stype.int8, stype.int16, stype.int32, stype.int64])
     dt1 = dt.Frame([["alpha"], ["beta"], ["gamma"], ["delta"]])
-    dt0.internal.check()
-    dt1.internal.check()
+    frame_integrity_check(dt0)
+    frame_integrity_check(dt1)
     assert dt0.stypes == (stype.int8, stype.int16, stype.int32, stype.int64)
     assert dt1.stypes == (stype.str32,) * 4
     dt0.rbind(dt1)
@@ -374,8 +375,8 @@ def test_rbind_different_stypes4():
     dt1 = dt.Frame([["vega", "altair", None],
                     [None, "wren", "crow"],
                     ["f", None, None]])
-    dt0.internal.check()
-    dt1.internal.check()
+    frame_integrity_check(dt0)
+    frame_integrity_check(dt1)
     assert dt0.stypes == (stype.bool8, stype.float32, stype.float64)
     assert dt1.stypes == (stype.str32, ) * 3
     dt0.rbind(dt1)
@@ -407,9 +408,9 @@ def test_rbind_all_stypes():
             f2 = dt.Frame(sources[st2], stype=st2)
             f3 = dt.rbind(f1, f2)
             f1.rbind(f2)
-            f1.internal.check()
-            f2.internal.check()
-            f3.internal.check()
+            frame_integrity_check(f1)
+            frame_integrity_check(f2)
+            frame_integrity_check(f3)
             assert f1.nrows == len(sources[st1]) + len(sources[st2])
             assert f3.shape == f1.shape
             assert f1.to_list() == f3.to_list()
@@ -422,7 +423,7 @@ def test_rbind_modulefn():
     f0 = dt.Frame([1, 5409, 204])
     f1 = dt.Frame([109813, None, 9385])
     f3 = dt.rbind(f0, f1)
-    f3.internal.check()
+    frame_integrity_check(f3)
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
@@ -430,7 +431,7 @@ def test_issue1292():
     f0 = dt.Frame([None, None, None, "foo"])
     f0.nrows = 2
     f0.rbind(f0)
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.to_list() == [[None] * 4]
     assert f0.stypes == (stype.str32,)
 
@@ -451,5 +452,5 @@ def test_issue1607():
     with pytest.warns(DatatableWarning):
         DT.cbind(DT, DT)
     DT.rbind(DT, DT)
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.shape == (0, 3)

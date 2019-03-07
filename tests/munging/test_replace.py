@@ -25,6 +25,7 @@ import datatable as dt
 import pytest
 import random
 import sys
+from datatable.internal import frame_integrity_check
 from math import inf, nan
 from tests import list_equals
 
@@ -78,7 +79,7 @@ def test_replace_dict():
 def test_replace_bool_simple():
     df = dt.Frame([[True, False, None], [True] * 3, [False] * 3])
     df.replace({True: False, False: True})
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (dt.bool8,) * 3
     assert df.to_list() == [[False, True, None], [False] * 3, [True] * 3]
 
@@ -86,7 +87,7 @@ def test_replace_bool_simple():
 def test_replace_bool_na():
     df = dt.Frame([True, False, None])
     df.replace(None, False)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[True, False, False]]
 
 
@@ -99,7 +100,7 @@ def test_replace_bool_na():
 def test_replace_int_simple():
     df = dt.Frame(range(5))
     df.replace(0, -1)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[-1, 1, 2, 3, 4]]
 
 
@@ -107,7 +108,7 @@ def test_replace_int_simple():
 def test_replace_ints(st):
     df = dt.Frame(A=[1, 2, 3, 5, 9, 0], B=[0, 2, 1, 3, 2, 1], stype=st)
     df.replace({0: 100, 1: -99, 2: 10})
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (st, st)
     assert df[:, "A"].to_list() == [[-99, 10, 3, 5, 9, 100]]
     assert df[:, "B"].to_list() == [[100, 10, -99, 3, 10, -99]]
@@ -117,7 +118,7 @@ def test_replace_int_with_upcast():
     df = dt.Frame(range(10), stype=dt.int8)
     assert df.stypes == (dt.stype.int8,)
     df.replace(5, 1000)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (dt.stype.int32,)
     assert df.to_list() == [[0, 1, 2, 3, 4, 1000, 6, 7, 8, 9]]
     df.replace(9, 10**10)
@@ -139,13 +140,13 @@ def test_replace_large(seed):
     n = int(100 + random.expovariate(0.00005))
     src = [random.randint(-10, 100) for i in range(n)]
     df = dt.Frame({"A": src}, stype=st)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.sum1() == sum(src)
     replacements = {25: -1, 77: -2, 0: 1, 1: 0}
     df.replace(replacements)
     for i in range(n):
         src[i] = replacements.get(src[i], src[i])
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [src]
     assert df.stypes == (st,)
     assert df.names == ("A",)
@@ -163,7 +164,7 @@ def test_replace_floats(st):
     df = dt.Frame([[1.1, 2.2, 5e10, inf, nan], [-inf, nan, None, 3.99, 7]],
                   stype=st, names=["A", "B"])
     df.replace([2.2, inf, None], [0.0, -1.0, -2.0])
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (st, st)
     res = [[1.1, 0.0, 5e10, -1.0, -2.0],
            [-inf, -2.0, -2.0, 3.99, 7.0]]
@@ -180,7 +181,7 @@ def test_replace_infs():
                   stypes=[dt.float32, dt.float64], names=["A", "B"])
     assert df.stypes == (dt.float32, dt.float64)
     df.replace([inf, -inf], None)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[1.0, None, None]] * 2
     assert df.stypes == (dt.float32, dt.float64)
 
@@ -190,11 +191,11 @@ def test_replace_infs2():
                   stypes=[dt.float32, dt.float64], names=["A", "B"])
     assert df.stypes == (dt.float32, dt.float64)
     df.replace(inf, None)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[1.0, None, -inf]] * 2
     assert df.stypes == (dt.float32, dt.float64)
     df.replace(-inf, 3.5)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[1.0, None, 3.5]] * 2
     assert df.stypes == (dt.float32, dt.float64)
 
@@ -203,7 +204,7 @@ def test_replace_almost_inf():
     maxfloat = sys.float_info.max
     df = dt.Frame([10.0, maxfloat, -maxfloat, inf, -inf, None])
     df.replace(maxfloat, -maxfloat)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[10.0, -maxfloat, -maxfloat, inf, -inf, None]]
     df.replace(-maxfloat, 0.0)
     assert df.to_list() == [[10.0, 0.0, 0.0, inf, -inf, None]]
@@ -243,7 +244,7 @@ def test_replace_str_large(seed):
     src = [random.choice(nums) for _ in range(10000)]
     df = dt.Frame(src)
     df.replace(["two", "five"], ["2", "1+1+1+1+1"])
-    df.internal.check()
+    frame_integrity_check(df)
     for i, word in enumerate(src):
         if word == "two":
             src[i] = "2"
@@ -264,7 +265,7 @@ def test_replace_str_huge():
     DT = dt.Frame(src)
     assert DT.stypes == (dt.str32,)
     DT.replace("a", "A" * 250)
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.stypes == (dt.str64,)
     assert DT.shape == (n, 1)
     assert DT[-2, 0] == "A" * 250
@@ -290,7 +291,7 @@ def test_replace_nas():
                    [2.7, nan, None, 1e5],
                    [True, False, None, None]])
     df.replace(None, [77, 9.999, True])
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[1, 77, 5, 10],
                             [2.7, 9.999, 9.999, 1e5],
                             [True, False, True, True]]
@@ -302,7 +303,7 @@ def test_replace_nas2(st):
     df = dt.Frame([1.0, None, 2.5, nan, -nan], stype=st)
     assert df.stypes == (st,)
     df.replace(nan, 0.0)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (st,)
     assert df.to_list() == [[1.0, 0.0, 2.5, 0.0, 0.0]]
 
@@ -325,7 +326,7 @@ def test_replace_multiple(nn, st):
         if nn != 0:
             replacements = {float(k): float(v) for k, v in replacements.items()}
     df.replace(replacements)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.stypes == (st,)
     assert df.to_list()[0] == res
 
@@ -342,7 +343,7 @@ def test_replace_do_nothing():
     # Check that the case when there is nothing to replace works too
     df1 = dt.Frame([[1, 2], [3, 4], [5.0, 6.6], [-inf, inf]])
     df1.replace([-99, -inf, inf], None)
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.to_list() == [[1, 2], [3, 4], [5.0, 6.6], [None, None]]
 
 
@@ -351,7 +352,7 @@ def test_replace_do_nothing2(numpy):
     a = numpy.array([[1, 2, 3, np.inf], [1, -np.inf, 4, 5]])
     df = dt.Frame(a)
     df.replace([-np.inf, np.inf], [np.nan, np.nan])
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.to_list() == [[1., 1.], [2., None], [3., 4.], [None, 5.]]
 
 

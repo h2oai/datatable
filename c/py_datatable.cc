@@ -67,58 +67,6 @@ int unwrap(PyObject* object, DataTable** address) {
 // PyDatatable methods
 //==============================================================================
 
-void _clear_types(obj* self) {
-  if (self->_frame) self->_frame->_clear_types();
-}
-
-
-
-PyObject* check(obj* self, PyObject*) {
-  DataTable* dt = self->ref;
-  dt->verify_integrity();
-
-  if (self->_frame && self->_frame->stypes) {
-    PyObject* stypes = self->_frame->stypes;
-    if (!PyTuple_Check(stypes)) {
-      throw AssertionError() << "Frame.stypes is not a tuple";
-    }
-    if (static_cast<size_t>(PyTuple_Size(stypes)) != dt->ncols) {
-      throw AssertionError() << "len(Frame.stypes) is " << PyTuple_Size(stypes)
-          << ", whereas .ncols = " << dt->ncols;
-    }
-    for (size_t i = 0; i < dt->ncols; ++i) {
-      SType st = dt->columns[i]->stype();
-      PyObject* elem = PyTuple_GET_ITEM(stypes, i);
-      PyObject* eexp = info(st).py_stype().release();
-      if (elem != eexp) {
-        throw AssertionError() << "Element " << i << " of Frame.stypes is "
-            << elem << ", but the column's type is " << eexp;
-      }
-    }
-  }
-  if (self->_frame && self->_frame->ltypes) {
-    PyObject* ltypes = self->_frame->ltypes;
-    if (!PyTuple_Check(ltypes)) {
-      throw AssertionError() << "Frame.ltypes is not a tuple";
-    }
-    if (static_cast<size_t>(PyTuple_Size(ltypes)) != dt->ncols) {
-      throw AssertionError() << "len(Frame.ltypes) is " << PyTuple_Size(ltypes)
-          << ", whereas .ncols = " << dt->ncols;
-    }
-    for (size_t i = 0; i < dt->ncols; ++i) {
-      SType st = dt->columns[i]->stype();
-      PyObject* elem = PyTuple_GET_ITEM(ltypes, i);
-      PyObject* eexp = info(st).py_ltype().release();
-      if (elem != eexp) {
-        throw AssertionError() << "Element " << i << " of Frame.ltypes is "
-            << elem << ", for a column of type " << eexp;
-      }
-    }
-  }
-
-  Py_RETURN_NONE;
-}
-
 
 PyObject* column(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
@@ -160,7 +108,6 @@ static void dealloc(obj* self) {
 //==============================================================================
 
 static PyMethodDef datatable_methods[] = {
-  METHOD0(check),
   METHODv(column),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };

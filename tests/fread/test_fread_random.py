@@ -16,6 +16,7 @@ import datatable as dt
 import os
 import pytest
 import random
+from datatable.internal import frame_integrity_check
 from tests import random_string
 
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -109,7 +110,7 @@ def test_fread_omnibus(seed):
     try:
         params["text"] = text
         d0 = dt.fread(**params)
-        d0.internal.check()
+        frame_integrity_check(d0)
         assert d0.shape == (nrows, ncols)
         assert d0.names == tuple(colnames)
         if nrows:

@@ -11,6 +11,7 @@ import random
 import sys
 import time
 import warnings
+from datatable.internal import frame_integrity_check
 
 exhaustive_checks = False
 
@@ -335,7 +336,7 @@ class Frame0:
     #---------------------------------------------------------------------------
 
     def check(self):
-        self.df.internal.check()
+        frame_integrity_check(self.df)
         self.check_shape()
         self.check_types()
         assert self.df.names == tuple(self.names)

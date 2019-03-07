@@ -184,51 +184,6 @@ size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
 
-//------------------------------------------------------------------------------
-// Integrity checks
-//------------------------------------------------------------------------------
-
-void Column::verify_integrity(const std::string& name) const {
-  mbuf.verify_integrity();
-  ri.verify_integrity();
-
-  size_t mbuf_nrows = data_nrows();
-
-  // Check RowIndex
-  if (ri.isabsent()) {
-    // Check that nrows is a correct representation of mbuf's size
-    if (nrows != mbuf_nrows) {
-      throw AssertionError()
-          << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << nrows << " but MemoryRange has data for "
-          << mbuf_nrows << " rows";
-    }
-  }
-  else {
-    // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != ri.size()) {
-      throw AssertionError()
-          << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.size();
-    }
-    // Check that the maximum value of the RowIndex does not exceed the maximum
-    // row number in the memory buffer
-    if (ri.max() >= mbuf_nrows && ri.max() != RowIndex::NA) {
-      throw AssertionError()
-          << "Maximum row number in the rowindex of " << name << " exceeds the "
-          << "number of rows in the underlying memory buffer: max(rowindex)="
-          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows;
-    }
-  }
-
-  // Check Stats
-  if (stats) { // Stats are allowed to be null
-    stats->verify_integrity(this);
-  }
-}
-
-
 
 //==============================================================================
 // VoidColumn

@@ -25,11 +25,6 @@
 #include "datatable.h"
 #include "py_datatable.h"
 
-namespace pydatatable {  // temp
-  void _clear_types(obj*);
-  PyObject* check(obj*, PyObject*);
-}
-
 
 namespace py {
 
@@ -128,6 +123,9 @@ class Frame : public PyObject {
     oobj stat(const PKArgs&);
     oobj stat1(const PKArgs&);
 
+    // Exposed to users as `dt.frame_integrity_check(frame)` function
+    void integrity_check();
+
   private:
     static bool internal_construction;
     class NameProvider;
@@ -142,8 +140,6 @@ class Frame : public PyObject {
     // getitem / setitem support
     oobj _main_getset(robj item, robj value);
 
-    friend void pydatatable::_clear_types(pydatatable::obj*); // temp
-    friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
     friend class FrameInitializationManager;
     friend class pylistNP;
     friend class strvecNP;
