@@ -4,13 +4,13 @@
 // https://github.com/aappleby/smhasher
 //------------------------------------------------------------------------------
 #include "models/murmurhash.h"
-#define BIG_CONSTANT(x) (x##LLU)
+
 
 /*
 *  Murmur2 hash function.
 */
 uint64_t hash_murmur2 (const void * key, uint64_t len, unsigned int seed) {
-  const uint64_t m = 0xc6a4a7935bd1e995;
+  const uint64_t m = 0xc6a4a7935bd1e995LLU;
   const int r = 47;
 
   uint64_t h = seed ^ (len * m);
@@ -60,8 +60,8 @@ void hash_murmur3(const void * key, const uint64_t len, unsigned int seed, void 
   uint64_t h1 = seed;
   uint64_t h2 = seed;
 
-  const uint64_t c1 = BIG_CONSTANT(0x87c37b91114253d5);
-  const uint64_t c2 = BIG_CONSTANT(0x4cf5ad432745937f);
+  const uint64_t c1 = 0x87c37b91114253d5LLU;
+  const uint64_t c2 = 0x4cf5ad432745937fLLU;
 
   //----------
   // body
@@ -147,9 +147,9 @@ inline uint64_t getblock64(const uint64_t * p, uint64_t i ) {
 */
 inline uint64_t fmix64 ( uint64_t k ) {
   k ^= k >> 33;
-  k *= BIG_CONSTANT(0xff51afd7ed558ccd);
+  k *= 0xff51afd7ed558ccdLLU;
   k ^= k >> 33;
-  k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
+  k *= 0xc4ceb9fe1a85ec53LLU;
   k ^= k >> 33;
 
   return k;
