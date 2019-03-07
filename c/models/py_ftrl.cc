@@ -183,7 +183,6 @@ nepochs_validate: float
 
 Returns
 -------
-epoch : float
 Epoch at which the model stoped training. If no validation set was
 provided, `epoch` will be equal to `nepochs`.
 )");
