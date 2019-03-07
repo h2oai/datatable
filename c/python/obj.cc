@@ -25,7 +25,6 @@
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
-#include "py_column.h"
 #include "py_datatable.h"
 #include "py_rowindex.h"
 #include "python/_all.h"
@@ -549,13 +548,6 @@ DataTable* _obj::to_frame(const error_manager& em) const {
   throw em.error_not_frame(v);
 }
 
-
-Column* _obj::to_column(const error_manager& em) const {
-  if (!PyObject_TypeCheck(v, &pycolumn::type)) {
-    throw em.error_not_column(v);
-  }
-  return reinterpret_cast<pycolumn::obj*>(v)->ref;
-}
 
 
 SType _obj::to_stype(const error_manager& em) const {

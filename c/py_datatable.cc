@@ -13,7 +13,6 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
-#include "py_column.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
