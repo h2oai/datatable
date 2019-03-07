@@ -35,7 +35,7 @@ void calculate_coprimes(size_t, std::vector<size_t>&);
 */
 template<typename T>
 inline T sigmoid(T x) {
-  T one = static_cast<T>(1.0);
+  constexpr T one = static_cast<T>(1.0);
   return one / (one + std::exp(-x));
 }
 
@@ -56,7 +56,7 @@ inline T identity(T x) {
 */
 template<typename T>
 inline T log_loss(T p, int8_t y) {
-  T epsilon = std::numeric_limits<T>::epsilon();
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
 }
