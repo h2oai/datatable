@@ -23,7 +23,6 @@
 #include "options.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
-#include "py_types.h"
 #include "utils/assert.h"
 #include "ztest.h"
 
@@ -303,9 +302,9 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     m = dtmod.init();
 
     // Initialize submodules
-    if (!init_py_types(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
 
+    init_types();
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);

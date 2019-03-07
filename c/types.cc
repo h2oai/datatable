@@ -49,6 +49,9 @@ dt_static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
 dt_static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
 dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 
+dt_static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
+                 "int64_t and Py_ssize_t should refer to the same type");
+
 
 
 //==============================================================================
