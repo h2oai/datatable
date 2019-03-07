@@ -245,8 +245,9 @@ static Column* try_to_resolve_object_column(Column* col)
 
 
 
+
 //==============================================================================
-// Buffers interface for pycolumn::obj
+// Buffers interface for pydatatable::obj
 //==============================================================================
 
 struct XInfo {
@@ -281,79 +282,6 @@ struct XInfo {
 };
 
 
-/**
- * Handle a request to fill-in structure `view` as specified by `flags`.
- * See https://docs.python.org/3/c-api/typeobj.html#buffer-structs for details.
- *
- * This function:
- *   - increments refcount and stores pointer to `self` in `view->obj`;
- *   - allocates `XInfo` structure and stores it in the `view->internal`;
- *   - creates a shallow copy of the Column (together with its buffer), and
- *     stores it in the `XInfo` struct.
- */
-static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags) {
-  XInfo* xinfo = nullptr;
-  Column* col = self->ref;
-
-  if (REQ_WRITABLE(flags)) {
-    // Do not provide a writable array (this may violate all kinds of internal
-    // assumptions about the data). Instead let the requester ask again, this
-    // time for a read-only buffer.
-    // Do not use a C++ exception here, as it may create deadlocks on rare
-    // occasions.
-    PyErr_SetString(PyExc_ValueError, "Cannot create a writable buffer");
-    return -1;
-  }
-  if (info(col->stype()).is_varwidth()) {
-    throw ValueError() << "Column's data has variable width";
-  }
-
-  xinfo = new XInfo();
-  xinfo->mbuf = col->data_buf();
-  xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
-  xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
-  xinfo->stype = col->stype();
-
-  view->buf = const_cast<void*>(xinfo->mbuf.rptr());
-  view->obj = reinterpret_cast<PyObject*>(self);
-  view->len = static_cast<Py_ssize_t>(xinfo->mbuf.size());
-  view->itemsize = xinfo->strides[0];
-  view->readonly = 1;
-  view->ndim = 1;
-  view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
-  view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
-  view->suboffsets = nullptr;
-  view->internal = xinfo;
-  view->format = REQ_FORMAT(flags) ?
-      const_cast<char*>(format_from_stype(col->stype())) : nullptr;
-
-  Py_INCREF(self);
-  return 0;
-}
-
-
-/**
- * Handle a request to release the resources of the buffer.
- *
- * This function MUST NOT decrement view->obj (== self), since it is done by
- * Python in `PyBuffer_Release()`.
- */
-static void releasebuffer_Column(pycolumn::obj*, Py_buffer* view) {
-  XInfo* xinfo = static_cast<XInfo*>(view->internal);
-  delete xinfo;
-  view->internal = nullptr;
-}
-
-
-DECLARE_INIT_BUFFER(pycolumn::obj, Column)
-DECLARE_RELEASE_BUFFER(pycolumn::obj, Column)
-DECLARE_BUFFERS_STRUCT(pycolumn::as_buffer, Column);
-
-
-
-//==============================================================================
-// Buffers interface for pydatatable::obj
-//==============================================================================
 
 static int dt_getbuffer_no_cols(
   pydatatable::obj* self, Py_buffer* view, int flags)

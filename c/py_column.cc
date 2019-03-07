@@ -168,7 +168,7 @@ PyTypeObject type = {
   nullptr,                            /* tp_str */
   nullptr,                            /* tp_getattro */
   nullptr,                            /* tp_setattro */
-  &pycolumn::as_buffer,               /* tp_as_buffer; see py_buffers.c */
+  nullptr,                            /* tp_as_buffer; see py_buffers.c */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
   nullptr,                            /* tp_traverse */
