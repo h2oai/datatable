@@ -34,11 +34,7 @@
 dt_static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
                  "int64_t and Py_ssize_t should refer to the same type");
 
-class Column;
 
-typedef PyObject* (stype_formatter)(Column *col, size_t row);
-
-extern stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 extern size_t py_buffers_size;
 
 
