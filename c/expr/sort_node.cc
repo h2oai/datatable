@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/sort_node.h"
 #include "expr/collist.h"
+#include "python/_all.h"
 #include "utils/exceptions.h"
 
 namespace py {
@@ -85,6 +86,12 @@ oobj _sort::get_cols() const {
 
 osort::osort(const robj& src) : oobj(src) {}
 osort::osort(const oobj& src) : oobj(src) {}
+
+osort::osort(const otuple& cols) {
+  PyObject* sort_class = reinterpret_cast<PyObject*>(&py::_sort::Type::type);
+  v = PyObject_CallObject(sort_class, cols.to_borrowed_ref());
+  if (!v) throw PyError();
+}
 
 
 bool osort::check(PyObject* v) {

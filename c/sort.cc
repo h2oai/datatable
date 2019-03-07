@@ -126,6 +126,14 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
+#include "expr/sort_node.h"
+#include "expr/workframe.h"
+#include "frame/py_frame.h"
+#include "python/args.h"
+#include "utils/alloc.h"
+#include "utils/array.h"
+#include "utils/assert.h"
+#include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -134,10 +142,6 @@
 #include "sort.h"
 #include "types.h"
 #include "utils.h"
-#include "utils/alloc.h"
-#include "utils/array.h"
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
@@ -1323,4 +1327,72 @@ RowIndex Column::sort(Groupby* out_grps) const {
   } else {
     return sc.get_result_rowindex();
   }
+}
+
+
+
+//------------------------------------------------------------------------------
+// py::Frame.sort
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_sort(
+  0, 0, 0, true, false, {}, "sort",
+
+R"(sort(self, *cols)
+--
+
+Sort frame by the specified column(s).
+
+Parameters
+----------
+cols: List[str | int]
+    Names or indices of the columns to sort by. If no columns are
+    given, the Frame will be sorted on all columns.
+
+Returns
+-------
+New Frame sorted by the provided column(s). The current frame
+remains unmodified.
+)");
+
+py::oobj py::Frame::sort(const PKArgs& args) {
+  dt::workframe wf(dt);
+
+  if (args.num_vararg_args() == 0) {
+    py::otuple all_cols(dt->ncols);
+    for (size_t i = 0; i < dt->ncols; ++i) {
+      all_cols.set(i, py::oint(i));
+    }
+    wf.add_sortby(py::osort(all_cols));
+  }
+  else {
+    std::vector<py::robj> cols;
+    for (py::robj arg : args.varargs()) {
+      if (arg.is_list_or_tuple()) {
+        auto arg_as_list = arg.to_pylist();
+        for (size_t i = 0; i < arg_as_list.size(); ++i) {
+          cols.push_back(arg_as_list[i]);
+        }
+      } else {
+        cols.push_back(arg);
+      }
+    }
+
+    py::otuple sort_cols(cols.size());
+    for (size_t i = 0; i < cols.size(); ++i) {
+      sort_cols.set(i, cols[i]);
+    }
+    wf.add_sortby(py::osort(sort_cols));
+  }
+
+  wf.add_i(py::None());
+  wf.add_j(py::None());
+  wf.evaluate();
+  return wf.get_result();
+}
+
+
+
+void py::Frame::Type::_init_sort(Methods& mm) {
+  ADD_METHOD(mm, &Frame::sort, args_sort);
 }
