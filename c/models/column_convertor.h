@@ -112,7 +112,9 @@ template<typename T1, typename T2, typename T3>
 ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
   ColumnConvertor<T2>(column_in)
 {
-  SType to_stype = stype<T2>::get_stype();
+  xassert((std::is_same<T2, float>::value || std::is_same<T2, double>::value));
+  SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
+
   column = colptr(column_in->cast(to_stype));
   auto column_real = static_cast<RealColumn<T2>*>(column.get());
   this->min = column_real->min();

@@ -24,9 +24,9 @@
 #include "py_datatable.h"
 #include "str/py_str.h"
 #include "utils/parallel.h"
-#include "models/dt_ftrl.h"
 #include "models/column_hasher.h"
 #include "models/utils.h"
+#include "models/dt_ftrl.h"
 
 
 namespace dt {
@@ -80,8 +80,8 @@ class FtrlReal : public dt::Ftrl {
     const DataTable* dt_y_val;
 
     // Fitting methods
-    template <typename U, typename F, typename G>
-    double fit(double, F, G);
+    template <typename U>
+    double fit(double, T(*)(T), T(*)(T,U));
     template <typename U>
     double fit_regression(double);
     double fit_binomial(double);

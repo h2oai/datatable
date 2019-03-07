@@ -28,30 +28,6 @@ using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 
 
-/*
-*  Helper template structures to convert C++ float/double types to
-*  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
-*/
-template<typename T> struct stype {
-  static void get_stype() {
-    throw TypeError() << "Only float and double types are supported";
-  }
-};
-
-
-template<> struct stype<float> {
-  static SType get_stype() {
-    return SType::FLOAT32;
-  }
-};
-
-
-template<> struct stype<double> {
-  static SType get_stype() {
-    return SType::FLOAT64;
-  }
-};
-
 void calculate_coprimes(size_t, std::vector<size_t>&);
 
 /*
@@ -79,7 +55,7 @@ inline T identity(T x) {
 * - simplify the logloss formula to more compact branchless code.
 */
 template<typename T>
-inline T log_loss(T p, bool y) {
+inline T log_loss(T p, int8_t y) {
   T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);

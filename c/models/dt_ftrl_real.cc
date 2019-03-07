@@ -228,9 +228,8 @@ void FtrlReal<T>::fill_ri_data(const DataTable* dt,
 *  Fit model on a datatable.
 */
 template <typename T>
-template <typename U /* column data type */, typename F /* link function */,
-          typename G /* loss function */>
-double FtrlReal<T>::fit(double nepochs_val, F linkfn, G lossfn) {
+template <typename U> /* column data type */
+double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
   // Define features and init weight pointers
   define_features(dt_X->ncols);
   init_weights();
@@ -501,7 +500,7 @@ void FtrlReal<T>::create_model() {
   size_t ncols = 2 * nlabels;
   colvec cols(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    cols[i] = Column::new_data_column(stype<T>::get_stype(), nbins);
+    cols[i] = new RealColumn<T>(nbins);
   }
   dt_model = dtptr(new DataTable(std::move(cols)));
   init_model();
@@ -533,7 +532,7 @@ dtptr FtrlReal<T>::create_dt_p(size_t nrows) {
 
   colvec cols_p(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    cols_p[i] = Column::new_data_column(stype<T>::get_stype(), nrows);
+    cols_p[i] = new RealColumn<T>(nrows);
   }
 
   dtptr dt_p = dtptr(new DataTable(std::move(cols_p), labels));
@@ -598,8 +597,7 @@ void FtrlReal<T>::create_fi(const DataTable* dt) {
   sb.order();
   sb.commit_and_start_new_chunk(nfeatures);
 
-  Column* c_fi_values = Column::new_data_column(stype<T>::get_stype(),
-                                                nfeatures);
+  Column* c_fi_values = new RealColumn<T>(nfeatures);
   dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_column(), c_fi_values},
                               {"feature_name", "feature_importance"})
                              );
