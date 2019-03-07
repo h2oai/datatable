@@ -487,10 +487,6 @@ static void releasebuffer_DataTable(pydatatable::obj*, Py_buffer *view) {
 }
 
 
-DECLARE_INIT_BUFFER(pydatatable::obj, DataTable)
-DECLARE_RELEASE_BUFFER(pydatatable::obj, DataTable)
-DECLARE_BUFFERS_STRUCT(pydatatable::as_buffer, DataTable);
-
 
 
 //==============================================================================

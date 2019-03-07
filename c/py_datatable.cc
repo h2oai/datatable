@@ -101,7 +101,7 @@ PyTypeObject type = {
   nullptr,                            /* tp_str */
   nullptr,                            /* tp_getattro */
   nullptr,                            /* tp_setattro */
-  &pydatatable::as_buffer,            /* tp_as_buffer;  see py_buffers.cc */
+  nullptr,                            /* tp_as_buffer;  see py_buffers.cc */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
   nullptr,                            /* tp_traverse */
