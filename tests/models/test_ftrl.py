@@ -831,7 +831,6 @@ def test_ftrl_regression():
     df_target = dt.Frame(r)
     ft.fit(df_train, df_target)
     p = ft.predict(df_train)
-    # print(p.to_list())
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon
 
