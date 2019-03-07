@@ -25,11 +25,6 @@
 #include "datatable.h"
 #include "py_datatable.h"
 
-namespace pydatatable {  // temp
-  void _clear_types(obj*);
-  PyObject* check(obj*, PyObject*);
-}
-
 
 namespace py {
 
@@ -58,12 +53,17 @@ class Frame : public PyObject {
       private:
         static void _init_cbind(Methods&);
         static void _init_init(Methods&);
+        static void _init_jay(Methods&);
         static void _init_key(GetSetters&);
         static void _init_names(Methods&, GetSetters&);
+        static void _init_rbind(Methods&);
         static void _init_replace(Methods&);
+        static void _init_repr(Methods&);
+        static void _init_sizeof(Methods&);
+        static void _init_stats(Methods&);
+        static void _init_tocsv(Methods&);
         static void _init_tonumpy(Methods&);
         static void _init_topython(Methods&);
-        static void _init_reprhtml(Methods&);
     };
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -79,7 +79,13 @@ class Frame : public PyObject {
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
+    oobj m__sizeof__(const PKArgs&);
+
+    // Frame display
+    oobj m__repr__();
     oobj _repr_html_(const PKArgs&);
+    oobj _repr_pretty_(const PKArgs&);
+    void view(const PKArgs&);
 
     oobj get_ncols() const;
     oobj get_nrows() const;
@@ -97,15 +103,28 @@ class Frame : public PyObject {
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
+    oobj head(const PKArgs&);
+    void rbind(const PKArgs&);
+    void repeat(const PKArgs&);
     void replace(const PKArgs&);
+    oobj tail(const PKArgs&);
+    void materialize(const PKArgs&);
+
+    // Conversion methods
+    oobj to_csv(const PKArgs&);
     oobj to_dict(const PKArgs&);
+    oobj to_jay(const PKArgs&);  // See jay/save_jay.cc
     oobj to_list(const PKArgs&);
-    oobj to_tuples(const PKArgs&);
     oobj to_numpy(const PKArgs&);
     oobj to_pandas(const PKArgs&);
-    oobj head(const PKArgs&);
-    oobj tail(const PKArgs&);
-    void repeat(const PKArgs&);
+    oobj to_tuples(const PKArgs&);
+
+    // Stats functions
+    oobj stat(const PKArgs&);
+    oobj stat1(const PKArgs&);
+
+    // Exposed to users as `dt.frame_integrity_check(frame)` function
+    void integrity_check();
 
   private:
     static bool internal_construction;
@@ -121,8 +140,6 @@ class Frame : public PyObject {
     // getitem / setitem support
     oobj _main_getset(robj item, robj value);
 
-    friend void pydatatable::_clear_types(pydatatable::obj*); // temp
-    friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
     friend class FrameInitializationManager;
     friend class pylistNP;
     friend class strvecNP;

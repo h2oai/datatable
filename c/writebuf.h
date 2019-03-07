@@ -24,7 +24,7 @@ protected:
   size_t bytes_written;
 
 public:
-  enum class Strategy : int8_t { Auto, Mmap, Write };
+  enum class Strategy : int8_t { Unknown, Auto, Mmap, Write };
 
   WritableBuffer();
   virtual ~WritableBuffer();

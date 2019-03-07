@@ -569,6 +569,7 @@ void ReplaceAgent::process_str_column(size_t colidx) {
   }
   Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
+  columns_cast = (newcol->stype() != col->stype());
   dt->columns[colidx] = newcol;
   delete col;
 }
@@ -604,14 +605,14 @@ template <typename T>
 void ReplaceAgent::replace_fw1(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
   if (std::is_floating_point<T>::value && ISNA<T>(x0)) {
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           if (ISNA<T>(data[i])) data[i] = y0;
         }
       }, nrows);
   } else {
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           if (data[i] == x0) data[i] = y0;
@@ -627,7 +628,7 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
   T x1 = x[1], y1 = y[1];
   xassert(!ISNA<T>(x0));
   if (std::is_floating_point<T>::value && ISNA<T>(x1)) {
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           T v = data[i];
@@ -636,7 +637,7 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
         }
       }, nrows);
   } else {
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           T v = data[i];
@@ -652,7 +653,7 @@ template <typename T>
 void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
   if (std::is_floating_point<T>::value && ISNA<T>(x[n-1])) {
     n--;
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           T v = data[i];
@@ -669,7 +670,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
         }
       }, nrows);
   } else {
-    dt::run_interleaved(
+    dt::run_parallel(
       [=](size_t istart, size_t iend, size_t di) {
         for (size_t i = istart; i < iend; i += di) {
           T v = data[i];
@@ -701,8 +702,8 @@ Column* ReplaceAgent::replace_str1(
     CString* x, CString* y, StringColumn<T>* col)
 {
   return dt::map_str2str(col,
-    [=](size_t, CString& value, dt::fhbuf& sb) {
-      sb.write(value == *x? *y : value);
+    [=](size_t, CString& value, dt::string_buf* sb) {
+      sb->write(value == *x? *y : value);
     });
 }
 
@@ -711,14 +712,15 @@ template <typename T>
 Column* ReplaceAgent::replace_strN(CString* x, CString* y,
                                    StringColumn<T>* col, size_t n)
 {
-  return dt::map_str2str(col, [=](size_t, CString& value, dt::fhbuf& sb) {
+  return dt::map_str2str(col,
+    [=](size_t, CString& value, dt::string_buf* sb) {
       for (size_t j = 0; j < n; ++j) {
         if (value == x[j]) {
-          sb.write(y[j]);
+          sb->write(y[j]);
           return;
         }
       }
-      sb.write(value);
+      sb->write(value);
     });
 }
 

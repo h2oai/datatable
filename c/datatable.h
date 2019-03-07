@@ -104,9 +104,9 @@ class DataTable {
     void replace_rowindex(const RowIndex& newri);
     void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
-    void reify();
-    void rbind(std::vector<DataTable*>, std::vector<intvec>);
-    void cbind(std::vector<DataTable*>);
+    void materialize();
+    void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
+    void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;
     size_t memory_footprint() const;
 
@@ -134,18 +134,6 @@ class DataTable {
     void set_key(intvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);
-
-    DataTable* min_datatable() const;
-    DataTable* max_datatable() const;
-    DataTable* mode_datatable() const;
-    DataTable* sum_datatable() const;
-    DataTable* mean_datatable() const;
-    DataTable* sd_datatable() const;
-    DataTable* skew_datatable() const;
-    DataTable* kurt_datatable() const;
-    DataTable* countna_datatable() const;
-    DataTable* nunique_datatable() const;
-    DataTable* nmodal_datatable() const;
 
     void verify_integrity() const;
 

@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "datatable.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 
 namespace py {
 
@@ -128,7 +129,29 @@ void Frame::Type::_init_cbind(Methods& mm) {
 
 
 
+
+
+//------------------------------------------------------------------------------
+// dt.cbind
+//------------------------------------------------------------------------------
+
+static PKArgs args_dt_cbind(
+  0, 0, 1, true, false, {"force"}, "cbind", nullptr);
+
+static oobj dt_cbind(const PKArgs& args) {
+  oobj r = oobj::import("datatable", "Frame").call();
+  PyObject* rv = r.to_borrowed_ref();
+  reinterpret_cast<Frame*>(rv)->cbind(args);
+  return r;
+}
+
+
+void DatatableModule::init_methods_cbind() {
+  ADD_FN(&dt_cbind, args_dt_cbind);
+}
+
 }  // namespace py
+
 
 
 //------------------------------------------------------------------------------
@@ -141,7 +164,7 @@ void Frame::Type::_init_cbind(Methods& mm) {
  * it will be filled with NAs; with the exception of 1-row datatables which will
  * be expanded to the desired height by duplicating that row.
  */
-void DataTable::cbind(std::vector<DataTable*> dts)
+void DataTable::cbind(const std::vector<DataTable*>& dts)
 {
   size_t t_ncols = ncols;
   size_t t_nrows = nrows;
@@ -187,3 +210,4 @@ void DataTable::cbind(std::vector<DataTable*> dts)
   ncols = t_ncols;
   set_names(newnames);
 }
+

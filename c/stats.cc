@@ -143,7 +143,7 @@ void Stats::verify_stat(Stat s, T value, F getter) const {
  * (Source: https://www.johndcook.com/blog/standard_deviation)
  */
 template <typename T, typename A>
-void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
+void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
   size_t nrows = col->nrows;
   const RowIndex& rowindex = col->rowindex();
   const T* data = static_cast<const T*>(col->data());
@@ -262,7 +262,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 
 
 template <typename T, typename A>
-void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
+void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
   const T* coldata = static_cast<const T*>(col->data());
   Groupby grpby;
   RowIndex ri = col->sort(&grpby);
@@ -301,75 +301,75 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
 
 
 template <typename T, typename A>
-A NumericalStats<T, A>::sum(const Column* col) {
+A NumericalStats_<T, A>::sum(const Column* col) {
   if (!is_computed(Stat::Sum)) compute_numerical_stats(col);
   return _sum;
 }
 
 template <typename T, typename A>
-T NumericalStats<T, A>::min(const Column* col) {
+T NumericalStats_<T, A>::min(const Column* col) {
   if (!is_computed(Stat::Min)) compute_numerical_stats(col);
   return _min;
 }
 
 template <typename T, typename A>
-T NumericalStats<T, A>::max(const Column* col) {
+T NumericalStats_<T, A>::max(const Column* col) {
   if (!is_computed(Stat::Max)) compute_numerical_stats(col);
   return _max;
 }
 
 template <typename T, typename A>
-T NumericalStats<T, A>::mode(const Column* col) {
+T NumericalStats_<T, A>::mode(const Column* col) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
   return _mode;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::mean(const Column* col) {
+double NumericalStats_<T, A>::mean(const Column* col) {
   if (!is_computed(Stat::Mean)) compute_numerical_stats(col);
   return _mean;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::stdev(const Column* col) {
+double NumericalStats_<T, A>::stdev(const Column* col) {
   if (!is_computed(Stat::StDev)) compute_numerical_stats(col);
   return _sd;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::skew(const Column* col) {
+double NumericalStats_<T, A>::skew(const Column* col) {
   if (!is_computed(Stat::Skew)) compute_numerical_stats(col);
   return _skew;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::kurt(const Column* col) {
+double NumericalStats_<T, A>::kurt(const Column* col) {
   if (!is_computed(Stat::Kurt)) compute_numerical_stats(col);
   return _kurt;
 }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_countna(const Column* col) {
+void NumericalStats_<T, A>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
 }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::set_min(T value) {
+void NumericalStats_<T, A>::set_min(T value) {
   set_computed(Stat::Min, !ISNA<T>(value));
   _min = value;
 }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::set_max(T value) {
+void NumericalStats_<T, A>::set_max(T value) {
   set_computed(Stat::Max, !ISNA<T>(value));
   _max = value;
 }
 
 
 template<typename T, typename A>
-void NumericalStats<T, A>::verify_more(Stats* test, const Column* col) const
+void NumericalStats_<T, A>::verify_more(Stats* test, const Column* col) const
 {
-  auto ntest = static_cast<NumericalStats<T, A>*>(test);
+  auto ntest = static_cast<NumericalStats_<T, A>*>(test);
   verify_stat(Stat::Min,   _min,   [&](){ return ntest->min(col); });
   verify_stat(Stat::Max,   _max,   [&](){ return ntest->max(col); });
   verify_stat(Stat::Sum,   _sum,   [&](){ return ntest->sum(col); });
@@ -381,12 +381,12 @@ void NumericalStats<T, A>::verify_more(Stats* test, const Column* col) const
 
 
 
-template class NumericalStats<int8_t, int64_t>;
-template class NumericalStats<int16_t, int64_t>;
-template class NumericalStats<int32_t, int64_t>;
-template class NumericalStats<int64_t, int64_t>;
-template class NumericalStats<float, double>;
-template class NumericalStats<double, double>;
+template class NumericalStats_<int8_t, int64_t>;
+template class NumericalStats_<int16_t, int64_t>;
+template class NumericalStats_<int32_t, int64_t>;
+template class NumericalStats_<int64_t, int64_t>;
+template class NumericalStats_<float, double>;
+template class NumericalStats_<double, double>;
 
 
 
@@ -397,7 +397,7 @@ template class NumericalStats<double, double>;
 // Adds a check for infinite/NaN mean and sd.
 template <typename T>
 void RealStats<T>::compute_numerical_stats(const Column *col) {
-  NumericalStats<T, double>::compute_numerical_stats(col);
+  NumericalStats_<T, double>::compute_numerical_stats(col);
   if (std::isinf(this->_min) || std::isinf(this->_max)) {
     this->_sd = GETNA<double>();
     this->_skew = GETNA<double>();

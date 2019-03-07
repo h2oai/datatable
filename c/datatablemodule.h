@@ -16,9 +16,12 @@
 #ifndef dt_DATATABLEMODULE_h
 #define dt_DATATABLEMODULE_h
 #include "python/ext_module.h"
+#include "utils/c+++.h"
+
+namespace py {
 
 
-class DatatableModule : public py::ExtModule<DatatableModule> {
+class DatatableModule : public ExtModule<DatatableModule> {
   public:
     const char* name() const {
       return "_datatable";
@@ -30,20 +33,26 @@ class DatatableModule : public py::ExtModule<DatatableModule> {
     void init_methods();
     void init_methods_aggregate(); // models/aggregate.cc
     void init_methods_buffers();   // py_buffers.cc
+    void init_methods_cbind();     // frame/cbind.cc
     void init_methods_csv();       // csv/py_csv.cc
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
     void init_methods_nff();       // datatable_load.cc
     void init_methods_options();   // options.cc
+    void init_methods_rbind();     // frame/rbind.cc
     void init_methods_repeat();    // frame/repeat.cc
     void init_methods_sets();      // set_funcs.cc
     void init_methods_str();       // str/py_str.cc
+    void init_casts();             // frame/cast.cc
 
     #ifdef DTTEST
       void init_tests();
     #endif
 };
+
+
+}  // namespace py
 
 
 #ifdef DTDEBUG
@@ -62,8 +71,6 @@ namespace pybuffers {
   extern SType force_stype;
 }
 
-
-void init_jay();
 
 PyMODINIT_FUNC PyInit__datatable() noexcept;
 

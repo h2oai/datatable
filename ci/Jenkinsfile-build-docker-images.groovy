@@ -14,7 +14,7 @@ import ai.h2o.ci.BuildResult
 properties([
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '25')),
         parameters([
-                string(name: 'registry', defaultValue: 'docker.h2o.ai', description: 'Docker registry to push images to'),
+                string(name: 'registry', defaultValue: 'harbor.h2o.ai', description: 'Docker registry to push images to'),
                 booleanParam(name: 'publish', defaultValue: true, description: 'If true, publish the docker image'),
         ]),
         pipelineTriggers([])
@@ -68,7 +68,7 @@ try {
                              make ubuntu_docker_publish CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
                         """
                     }
-                    echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
+                    echo "###### Docker image harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
                 }
             }
         }

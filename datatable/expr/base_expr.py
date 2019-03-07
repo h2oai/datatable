@@ -5,8 +5,6 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable
-from .consts import ctypes_map, nas_map
-
 
 
 
@@ -187,6 +185,15 @@ class BaseExpr:
         return datatable.expr.UnaryOpExpr("+", self)
 
 
+    #----- String functions ----------------------------------------------------
+
+    def len(self):
+        return datatable.expr.UnaryOpExpr("len", self)
+
+    def re_match(self, pattern, flags=None):
+        return datatable.expr.StringExpr("re_match", self, pattern, flags)
+
+
 
     #----- Code generation -----------------------------------------------------
 
@@ -210,6 +217,3 @@ class BaseExpr:
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self)
 
-
-    def safe_name(self):
-        return str(self)

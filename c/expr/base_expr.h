@@ -36,6 +36,7 @@ enum exprCode : size_t {
   CAST     = 5,
   UNREDUCE = 6,
   NUREDUCE = 7,
+  STRINGFN = 8,
 };
 
 enum class biop : size_t {
@@ -67,10 +68,16 @@ enum class unop : size_t {
   EXP    = 6,
   LOGE   = 7,
   LOG10  = 8,
+  LEN    = 9,
+};
+
+enum class strop : size_t {
+  RE_MATCH = 1,
 };
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
+using colptr = std::unique_ptr<Column>;
 
 
 //------------------------------------------------------------------------------
@@ -83,7 +90,7 @@ class base_expr {
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column* evaluate_eager(workframe&) = 0;
+    virtual colptr evaluate_eager(workframe&) = 0;
 
     virtual bool is_column_expr() const;
     virtual bool is_negated_expr() const;
@@ -106,18 +113,21 @@ class expr_column : public base_expr {
     bool is_column_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe&) override;
+    colptr evaluate_eager(workframe&) override;
 };
 
 
+pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params);
 
-}
+
+
+}  // namespace dt
 namespace py {
 
 
 class base_expr : public PyObject {
   private:
-    dt::base_expr* expr;
+    dt::base_expr* expr;  // owned
 
   public:
     class Type : public ExtType<base_expr> {
@@ -132,7 +142,7 @@ class base_expr : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
-    dt::base_expr* release();
+    dt::pexpr release();
 };
 
 

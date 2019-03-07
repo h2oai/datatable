@@ -59,132 +59,14 @@ DECLARE_DESTRUCTOR()
 
 
 
-//---- Getters/setters ---------------------------------------------------------
-
-DECLARE_GETTER(
-  isview,
-  "Is the datatable view or now?")
-
-DECLARE_GETTER(
-  datatable_ptr,
-  "Get pointer (converted to an int) to the wrapped DataTable object")
-
-DECLARE_GETTER(
-  alloc_size,
-  "DataTable's internal size, in bytes")
-
 
 
 //---- Methods -----------------------------------------------------------------
 
 DECLARE_METHOD(
-  check,
-  "check()\n\n"
-  "Check the DataTable for internal consistency. Raises an AssertionError if\n"
-  "any internal problem is found.\n"
-)
-
-DECLARE_METHOD(
   column,
   "column(index)\n\n"
   "Get the requested column in the datatable")
-
-
-DECLARE_METHOD(
-  rbind,
-  "Append rows of other datatables to the current")
-
-DECLARE_METHOD(
-  materialize,
-  "materialize()\n\n"
-  "Convert DataTable from 'view' into 'data' representation.\n")
-
-DECLARE_METHOD(
-  save_jay,
-  "save_jay(file, colnames)\n\n"
-  "Save DataTable into a .jay file.\n")
-
-
-DECLARE_METHOD(
-   get_min,
-   "Get the minimum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_max,
-  "Get the maximum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_sum,
-  "Get the sum for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_mean,
-  "Get the mean for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_sd,
-  "Get the standard deviation for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_skew,
-  "Get the skew for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_kurt,
-  "Get the kurtosis for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_countna,
-  "Get the NA count for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_nunique,
-  "Get the number of unique values for each column in the DataTable")
-
-DECLARE_METHOD(
-  get_mode,
-  "Get the most frequent value in each column in the DataTable")
-
-DECLARE_METHOD(
-  get_nmodal,
-  "Get the count of most frequent values for each column in the DataTable")
-
-DECLARE_METHOD(
-   min1,
-   "Get the scalar minimum of a single-column DataTable")
-
-DECLARE_METHOD(
-   max1,
-   "Get the scalar maximum of a single-column DataTable")
-
-DECLARE_METHOD(
-   mode1,
-   "Get the scalar mode of a single-column DataTable")
-
-DECLARE_METHOD(
-   sum1,
-   "Get the scalar sum of a single-column DataTable")
-
-DECLARE_METHOD(
-   mean1,
-   "Get the scalar mean of a single-column DataTable")
-
-DECLARE_METHOD(
-   sd1,
-   "Get the scalar standard deviation of a single-column DataTable")
-
-DECLARE_METHOD(
-   countna1,
-   "Get the scalar count of NAs in a single-column DataTable")
-
-DECLARE_METHOD(
-   nunique1,
-   "Get the number of unique values in a single-column DataTable")
-
-DECLARE_METHOD(
-   nmodal1,
-   "Get the number of modal values in a single-column DataTable")
-
 
 
 };

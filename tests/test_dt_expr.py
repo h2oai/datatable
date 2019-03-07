@@ -26,6 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, stype, ltype
+from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
 
@@ -87,41 +88,6 @@ def test_f_col_selector_unbound():
     assert str(f["a b c"]) == "f['a b c']"
 
 
-def test_f_col_selector_bound1():
-    with f.bind_datatable(dt.Frame()):
-        assert f.a.safe_name() == "f_a"
-        assert f.abcdefghijkl.safe_name() == "f_abcdefghijkl"
-        assert f.abcdefghijklm.safe_name() == "f__" + str(id("abcdefghijklm"))
-        assert f[0].safe_name() == "f_0"
-        assert f[1].safe_name() == "f_1"
-        assert f[-1].safe_name() == "f_1_"
-        assert f[1000000].safe_name() == "f_1000000"
-        assert f[""].safe_name() == "f__" + str(id(""))
-        assert f["0"].safe_name() == "f__" + str(id("0"))
-        assert f["A/B"].safe_name() == "f__" + str(id("A/B"))
-
-
-def test_f_col_selector_bound2():
-    dt0 = dt.Frame([[]] * 3, names=["a", "abcdefg", "abcdefghijklm"])
-    with f.bind_datatable(dt0):
-        assert (f.a).safe_name() == "f_a"
-        assert (f.abcdefg).safe_name() == "f_abcdefg"
-        assert (f.abcdefghijkl).safe_name() == "f_abcdefghijkl"
-        assert (f.abcdefghijklm).safe_name() == "f_2"
-        assert (f[0]).safe_name() == "f_a"
-        assert (f[1]).safe_name() == "f_abcdefg"
-        assert (f[2]).safe_name() == "f_2"  # "f_abcdefgijklm" is too long
-        assert (f[3]).safe_name() == "f_3"
-        assert (f[-1]).safe_name() == "f_2"
-        assert (f[-2]).safe_name() == "f_abcdefg"
-        assert (f[-3]).safe_name() == "f_a"
-        assert (f[-4]).safe_name() == "f_4_"
-        assert (f.BBB).safe_name() == "f_BBB"
-        assert (f[""]).safe_name() == "f__" + str(id(""))
-        assert (f["0"]).safe_name() == "f__" + str(id("0"))
-        assert (f["The End."]).safe_name() == "f__" + str(id("The End."))
-
-
 def test_f_col_selector_invalid():
     with pytest.raises(TypeError) as e:
         noop(f[2.5])
@@ -156,7 +122,7 @@ def inv(t):
 def test_dt_invert(src):
     dt0 = dt.Frame(src)
     df2 = dt0[:, ~f[0]]
-    df2.internal.check()
+    frame_integrity_check(df2)
     assert df2.stypes == dt0.stypes
     assert df2.to_list() == [[inv(x) for x in src]]
 
@@ -184,7 +150,7 @@ def neg(t):
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
     dtr = dt0[:, -f[0]]
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == ((dt.int8,) if dt0.stypes[0] == dt.bool8 else
                           dt0.stypes)
     assert_equals(dtr, dt.Frame([neg(x) for x in src]))
@@ -208,7 +174,7 @@ def test_dt_neg_invalid(src):
 def test_dt_pos(src):
     dt0 = dt.Frame(src)
     dtr = dt0[:, +f[0]]
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == dt0.stypes
     assert list_equals(dtr.to_list()[0], list(src))
 
@@ -232,7 +198,7 @@ def test_dt_isna(src):
     from datatable import isna
     dt0 = dt.Frame(src)
     dt1 = dt0[:, isna(f[0])]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
     assert dt1.to_list()[0] == pyans
@@ -266,7 +232,7 @@ def test_abs():
 def test_abs_srcs(src):
     dt0 = dt.Frame(src)
     dt1 = dt.abs(dt0)
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt0.stypes == dt1.stypes
     pyans = [None if x is None else abs(x) for x in src]
     assert dt1.to_list()[0] == pyans
@@ -280,7 +246,7 @@ def test_abs_all_stypes():
            [-2**63 + 1, 2**63 - 1, 0, -2**32, 2**32, -793]]
     dt0 = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
     dt1 = dt0[:, [abs(f[i]) for i in range(4)]]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.to_list() == [[abs(x) for x in col] for col in src]
 
 
@@ -303,7 +269,7 @@ def test_exp_srcs(src):
     from math import exp, inf
     dt0 = dt.Frame(src)
     dt1 = dt.exp(dt0)
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert all([st == stype.float64 for st in dt1.stypes])
     pyans = []
     for x in src:
@@ -325,7 +291,7 @@ def test_exp_all_stypes():
            [-2 ** 63 + 1, 2 ** 63 - 1, 0, -2 ** 32, 2 ** 32, -793]]
     dt0 = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
     dt1 = dt0[:, [exp(f[i]) for i in range(4)]]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     pyans = []
     for col in src:
         l = []
@@ -368,7 +334,7 @@ def test_log_srcs(src, fn):
     mathlog = getattr(math, fn)
     dt0 = dt.Frame(src)
     dt1 = dtlog(dt0)
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert all([st == stype.float64 for st in dt1.stypes])
     pyans = [None if x is None or x < 0 else
              -math.inf if x == 0 else
@@ -376,60 +342,6 @@ def test_log_srcs(src, fn):
              for x in src]
     assert dt1.to_list()[0] == pyans
 
-
-
-
-#-------------------------------------------------------------------------------
-# type-cast
-#-------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float)
-def test_cast_to_float32(src):
-    dt0 = dt.Frame(src)
-    dt1 = dt0[:, [dt.float32(f[i]) for i in range(dt0.ncols)]]
-    dt1.internal.check()
-    assert dt1.stypes == (dt.float32,) * dt0.ncols
-    pyans = [float(x) if x is not None else None for x in src]
-    assert list_equals(dt1.to_list()[0], pyans)
-
-
-@pytest.mark.parametrize("stype0", ltype.int.stypes)
-def test_cast_int_to_str(stype0):
-    dt0 = dt.Frame([None, 0, -3, 189, 77, 14, None, 394831, -52939047130424957],
-                   stype=stype0)
-    dt1 = dt0[:, [dt.str32(f.C0), dt.str64(f.C0)]]
-    dt1.internal.check()
-    assert dt1.stypes == (dt.str32, dt.str64)
-    assert dt1.shape == (dt0.nrows, 2)
-    ans = [None if v is None else str(v)
-           for v in dt0.to_list()[0]]
-    assert dt1.to_list()[0] == ans
-
-
-@pytest.mark.parametrize("src", dt_bool + dt_int + dt_float + dt_obj)
-def test_cast_to_str(src):
-    def to_str(x):
-        if x is None: return None
-        if isinstance(x, bool): return str(int(x))
-        # if isinstance(x, float) and math.isnan(x): return None
-        return str(x)
-
-    dt0 = dt.Frame(src)
-    dt1 = dt0[:, [dt.str32(f[i]) for i in range(dt0.ncols)]]
-    dt2 = dt0[:, [dt.str64(f[i]) for i in range(dt0.ncols)]]
-    dt1.internal.check()
-    dt2.internal.check()
-    assert dt1.stypes == (dt.str32,) * dt0.ncols
-    assert dt2.stypes == (dt.str64,) * dt0.ncols
-    assert dt1.to_list()[0] == [to_str(x) for x in src]
-
-
-def test_cast_view():
-    df0 = dt.Frame({"A": [1, 2, 3]})
-    df1 = df0[::-1, :][:, dt.float32(f.A)]
-    df1.internal.check()
-    assert df1.stypes == (dt.float32,)
-    assert df1.to_list() == [[3.0, 2.0, 1.0]]
 
 
 
@@ -554,10 +466,10 @@ def test_expr_reuse():
     expr = f.A < 1
     df0 = dt.Frame([range(5), range(5)], names=["B", "A"])
     df1 = df0[:, {"A": expr}]
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.names == ("A", )
     assert df1.stypes == (stype.bool8, )
     assert df1.to_list() == [[True, False, False, False, False]]
     df2 = df1[:, expr]
-    df2.internal.check()
+    frame_integrity_check(df2)
     assert df2.to_list() == [[False, True, True, True, True]]

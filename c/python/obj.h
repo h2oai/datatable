@@ -136,10 +136,12 @@ class _obj {
     oobj invoke(const char* fn) const;
     oobj invoke(const char* fn, const otuple& args) const;
     oobj invoke(const char* fn, const char* format, ...) const;
+    oobj call() const;
     oobj call(otuple args) const;
     oobj call(otuple args, odict kws) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
+    size_t get_sizeof() const;
 
     explicit operator bool() const noexcept;  // opposite of is_undefined()
     bool operator==(const _obj& other) const noexcept;
@@ -290,8 +292,9 @@ class oobj : public _obj {
     oobj(oobj&&);
     oobj& operator=(const oobj&);
     oobj& operator=(oobj&&);
-    static oobj import(const char* module, const char* symbol);
     static oobj import(const char* module);
+    static oobj import(const char* module, const char* symbol);
+    static oobj import(const char* module, const char* sym1, const char* sym2);
     ~oobj();
 
     static oobj from_new_reference(PyObject* p);

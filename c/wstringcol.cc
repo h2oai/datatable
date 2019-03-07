@@ -13,78 +13,142 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "wstringcol.h"
 #include <cstring>        // std::memcpy
 #include "column.h"
+#include "datatablemodule.h"
+#include "wstringcol.h"
 
 namespace dt {
 
 
 //------------------------------------------------------------------------------
-// fixed_height_string_col
+// writable_string_col
 //------------------------------------------------------------------------------
 
-fixed_height_string_col::fixed_height_string_col(size_t nrows)
-  : strdata(new MemoryWritableBuffer(nrows)),
-    offdata(MemoryRange::mem((nrows + 1) * sizeof(uint32_t))),
-    n(nrows) {}
+writable_string_col::writable_string_col(size_t nrows, bool str64_)
+  : strdata(nrows),
+    offdata(MemoryRange::mem((nrows + 1) * 4 * (1 + str64_))),
+    n(nrows),
+    str64(str64_) {}
 
-
-Column* fixed_height_string_col::to_column() && {
-  strdata->finalize();
-  offdata.set_element<uint32_t>(0, 0);
-  return new StringColumn<uint32_t>(n, std::move(offdata), strdata->get_mbuf());
-}
-
-
-fixed_height_string_col::buffer::buffer(fixed_height_string_col& s)
-  : col(s), strbuf(1024)
+writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
+                                         bool str64_)
+  : strdata(nrows),
+    offdata(std::move(offsets)),
+    n(nrows),
+    str64(str64_)
 {
-  strbuf_used = 0;
-  strbuf_write_pos = 0;
-  offptr = nullptr;
-  offptr0 = nullptr;
+  offdata.resize((nrows + 1) * 4 * (1 + str64));
 }
 
 
-void fixed_height_string_col::buffer::write(const CString& str) {
+Column* writable_string_col::to_column() && {
+  strdata.finalize();
+  auto strbuf = strdata.get_mbuf();
+  if (str64) {
+    offdata.set_element<uint64_t>(0, 0);
+  } else {
+    offdata.set_element<uint32_t>(0, 0);
+  }
+  return new_string_column(n, std::move(offdata), std::move(strbuf));
+}
+
+
+
+//------------------------------------------------------------------------------
+// writable_string_col::buffer
+//------------------------------------------------------------------------------
+
+writable_string_col::buffer::buffer() {
+  TRACK(this, sizeof(*this), "writable_string_col::buffer");
+}
+
+writable_string_col::buffer::~buffer() {
+  UNTRACK(this);
+}
+
+
+void writable_string_col::buffer::write(const CString& str) {
   write(str.ch, static_cast<size_t>(str.size));
 }
 
-void fixed_height_string_col::buffer::write(const std::string& str) {
+
+void writable_string_col::buffer::write(const std::string& str) {
   write(str.data(), str.size());
 }
 
-void fixed_height_string_col::buffer::write(const char* ch, size_t len) {
+
+void writable_string_col::buffer::write_na() {
+  write(nullptr, 0);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// writable_string_col::buffer_impl
+//------------------------------------------------------------------------------
+
+template <typename T>
+writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
+  : col(s),
+    strbuf(1024),
+    strbuf_used(0),
+    strbuf_write_pos(0),
+    offptr(nullptr),
+    offptr0(nullptr) {}
+
+
+template <typename T>
+void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
+    xassert(sizeof(T) == 4? len <= Column::MAX_STRING_SIZE : true);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;
-    *offptr++ = static_cast<uint32_t>(strbuf_used);
+    *offptr++ = static_cast<T>(strbuf_used);
   } else {
-    *offptr++ = static_cast<uint32_t>(strbuf_used) | GETNA<uint32_t>();
+    // Use XOR instead of OR in case the buffer overflows uint32_t.
+    *offptr++ = static_cast<T>(strbuf_used) ^ GETNA<T>();
   }
 }
 
-void fixed_height_string_col::buffer::write_na() {
-  *offptr++ = static_cast<uint32_t>(strbuf_used) | GETNA<uint32_t>();
+
+template <typename T>
+void writable_string_col::buffer_impl<T>::order() {
+  strbuf_write_pos = col.strdata.prep_write(strbuf_used, strbuf.data());
 }
 
 
-void fixed_height_string_col::buffer::order() {
-  strbuf_write_pos = col.strdata->prep_write(strbuf_used, strbuf.data());
-}
-
-
-void fixed_height_string_col::buffer::commit_and_start_new_chunk(size_t i0) {
-  col.strdata->write_at(strbuf_write_pos, strbuf_used, strbuf.data());
-  for (uint32_t* p = offptr0; p < offptr; ++p) {
+template <typename T>
+void writable_string_col::buffer_impl<T>::commit_and_start_new_chunk(size_t i0)
+{
+  col.strdata.write_at(strbuf_write_pos, strbuf_used, strbuf.data());
+  for (T* p = offptr0; p < offptr; ++p) {
     *p += strbuf_write_pos;
   }
-  offptr = static_cast<uint32_t*>(col.offdata.xptr()) + i0 + 1;
+  offptr = static_cast<T*>(col.offdata.xptr()) + i0 + 1;
   offptr0 = offptr;
   strbuf_used = 0;
 }
 
+
+template <typename T>
+char* writable_string_col::buffer_impl<T>::prepare_raw_write(size_t nbytes) {
+  strbuf.ensuresize(strbuf_used + nbytes);
+  return strbuf.data() + strbuf_used;
+}
+
+
+template <typename T>
+void writable_string_col::buffer_impl<T>::commit_raw_write(char* ptr) {
+  strbuf_used = static_cast<size_t>(ptr - strbuf.data());
+  *offptr++ = static_cast<T>(strbuf_used);
+}
+
+
+
+template class writable_string_col::buffer_impl<uint32_t>;
+template class writable_string_col::buffer_impl<uint64_t>;
 
 } // namespace dt

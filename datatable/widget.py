@@ -7,12 +7,74 @@
 import time
 
 import datatable
+from datatable.lib._datatable import Frame as coreFrame
 from datatable.options import options
 from datatable.types import ltype
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
 
 
+#-------------------------------------------------------------------------------
+# data connectors
+#-------------------------------------------------------------------------------
+
+class BaseConnector:
+
+    def __init__(self):
+        self.frame_nrows = None
+        self.frame_ncols = None
+        self.frame_nkeys = None
+        self.view_names = None
+        self.view_ltypes = None
+        self.view_stypes = None
+        self.view_data = None
+        self.key_names = None
+        self.key_ltypes = None
+        self.key_stypes = None
+        self.key_data = None
+
+    def fetch_data(self, row0, row1, col0, col1):
+        raise NotImplementedError
+
+
+
+class DatatableFrameConnector(BaseConnector):
+
+    def __init__(self, frame):
+        super().__init__()
+        nk = len(frame.key)
+        self._frame = frame
+        self.frame_nrows = frame.nrows
+        self.frame_ncols = frame.ncols
+        self.frame_nkeys = nk
+        if nk:
+            self.key_names = frame.key
+            self.key_ltypes = frame.ltypes[:nk]
+            self.key_stypes = frame.stypes[:nk]
+        else:
+            self.key_names = [""]
+            self.key_ltypes = [ltype.int]
+            self.key_stypes = [None]
+
+    def fetch_data(self, row0, row1, col0, col1):
+        nk = self.frame_nkeys
+        view = self._frame[row0:row1, (col0 + nk):(col1 + nk)]
+        self.view_names = view.names
+        self.view_ltypes = view.ltypes
+        self.view_stypes = view.stypes
+        self.view_data = view.to_list()
+        if nk:
+            kview = self._frame[row0:row1, :nk]
+            self.key_data = kview.to_list()
+        else:
+            self.key_data = [list(range(row0, row1))]
+
+
+
+
+#-------------------------------------------------------------------------------
+# DataFrameWidget
+#-------------------------------------------------------------------------------
 
 class DataFrameWidget(object):
     """
@@ -37,29 +99,16 @@ class DataFrameWidget(object):
     VIEW_NROWS_MAX = 30
     RIGHT_MARGIN = 2
 
-    def __init__(self, nrows, ncols, nkeys, viewdata_callback, interactive):
-        """
-        Initialize a new frame widget.
-
-        :param nrows: number of rows in the frame being displayed.
-        :param ncols: number of columns in the frame being displayed.
-        :param viewdata_callback: function that can be called to retrieve
-            the frame's data. This function should take 4 arguments:
-            ``(col0, ncols, row0, nrows)`` and return a dictionary with the
-            following fields: "names", "types", "columns". The "names" field
-            is the list of column names, "types" are their types, and lastly
-            "columns" is the frame's data within the requested view, stored
-            as a list of columns.
-        """
+    def __init__(self, obj, interactive):
         if interactive is None:
             interactive = options.display.interactive
+        if term.jupyter:
+            interactive = False
 
-        # number of rows / columns in the dataframe being displayed
-        self._frame_nrows = nrows
-        self._frame_ncols = ncols
-        self._frame_nkeys = nkeys
-        # callback function to fetch dataframe's data
-        self._data_callback = viewdata_callback
+        if isinstance(obj, coreFrame):
+            self._conn = DatatableFrameConnector(obj)
+        else:
+            raise TypeError("Unknown object of type %s" % type(obj))
 
         # Coordinates of the data window within the frame
         self._view_col0 = 0
@@ -69,14 +118,12 @@ class DataFrameWidget(object):
 
         # Largest allowed values for ``self._view_(col|row)0``
         self._max_row0 = 0
-        self._max_col0 = max(0, ncols - 1)
+        self._max_col0 = max(0, self._conn.frame_ncols - 1)
         self._adjust_viewport()
 
         # Display state
-        if term.jupyter:
-            interactive = False
         self._n_displayed_lines = 0
-        self._show_types = 0
+        self._show_types = False
         self._show_navbar = options.display.interactive_hint and interactive
         self._interactive = interactive
         self._colwidths = {}
@@ -86,101 +133,78 @@ class DataFrameWidget(object):
 
 
     def render(self):
-        self.draw()
-        if not self._interactive:
-            return
-        old_handler = register_onresize(self._onresize)
-        try:
-            for ch in datatable.utils.terminal.wait_for_keypresses(0.5):
-                if not ch:
-                    # Signal handler could have invalidated interactive mode
-                    # of the widget -- in which case we need to stop rendering
-                    if not self._interactive:
-                        break
-                    else:
-                        continue
-                uch = ch.name if ch.is_sequence else ch.upper()
-                if self._jump_string is None:
-                    if uch == "Q" or uch == "KEY_ESCAPE": break
-                    if uch in DataFrameWidget._MOVES:
-                        DataFrameWidget._MOVES[uch](self)
-                else:
-                    if uch in {"Q", "KEY_ESCAPE", "KEY_ENTER"}:
-                        self._jump_string = None
-                        self.draw()
-                    elif uch == "KEY_DELETE" or uch == "KEY_BACKSPACE":
-                        self._jump_to(self._jump_string[:-1])
-                    elif uch in "0123456789:":
-                        self._jump_to(self._jump_string + uch)
-        except KeyboardInterrupt:
-            pass
-        register_onresize(old_handler)
-        print(term.move_x(0) + term.clear_eol)
-
-
-    def draw(self):
-        data = self._fetch_data()
-        colnames = data["names"]
-        coltypes = data["types"]
-        stypes = data["stypes"]
-        coldata = data["columns"]
-        indices = data["rownumbers"]
-        nkeys = self._frame_nkeys
-
-        # Create column with row indices
-        if nkeys:
-            columns = []
-            for i in range(nkeys):
-                colname = colnames[i]
-                oldwidth = self._colwidths.get(colname, 3)
-                keycol = _Column(name=colname, ctype=coltypes[i],
-                                 data=coldata[i])
-                keycol.color = term.bright_black
-                keycol.width = max(oldwidth, keycol.width)
-                self._colwidths[colname] = keycol.width
-                columns.append(keycol)
-            columns[-1].margin = ""
-            columns.append(_Divider())
+        self._draw()
+        if self._interactive:
+            self._interact()
         else:
-            oldwidth = self._colwidths.get("", 3)
-            indexcolumn = _Column(name="", ctype=ltype.str, data=indices)
-            indexcolumn.color = term.bright_black
-            indexcolumn.margin = "  "
-            indexcolumn.width = max(oldwidth, indexcolumn.width)
-            self._colwidths[""] = indexcolumn.width
-            columns = [indexcolumn]
+            print()
 
-        # Data columns
-        for i in range(nkeys, self._view_ncols):
-            if self._show_types == 1:
-                name = term.green(coltypes[i].name)
-            elif self._show_types == 2:
-                name = term.cyan(stypes[i].name)
-            else:
-                name = colnames[i]
-            oldwidth = self._colwidths.get(i + self._view_col0, 0)
-            col = _Column(name=name, ctype=coltypes[i], data=coldata[i])
-            col.width = max(col.width, oldwidth)
-            if self._view_ncols < self._frame_ncols:
-                col.width = min(col.width, _Column.MAX_WIDTH)
-            self._colwidths[i + self._view_col0] = col.width
-            columns.append(col)
-        columns[-1].margin = ""
+
+    #---------------------------------------------------------------------------
+    # Private
+    #---------------------------------------------------------------------------
+
+    def _draw(self):
+        self._fetch_data()
+        columns = []
+
+        # Process key columns
+        keynames = self._conn.key_names
+        keydata = self._conn.key_data
+        keyltypes = self._conn.key_ltypes
+        keystypes = self._conn.key_stypes
+        if keydata:
+            for i, colname in enumerate(keynames):
+                if self._show_types and keystypes[i]:
+                    colname = term.color("cyan", keystypes[i].name)
+                oldwidth = self._colwidths.get(colname, 2)
+                col = _Column(name=colname,
+                              ctype=keyltypes[i],
+                              data=keydata[i],
+                              color="bright_black",
+                              minwidth=oldwidth)
+                self._colwidths[colname] = col.width
+                columns.append(col)
+            if keynames[0]:
+                columns[-1].margin = ""
+                columns.append(_Divider())
+
+        # Process data columns
+        viewnames = self._conn.view_names
+        viewltypes = self._conn.view_ltypes
+        viewstypes = self._conn.view_stypes
+        viewdata = self._conn.view_data
+        if viewdata:
+            for i, colname in enumerate(viewnames):
+                if self._show_types:
+                    colname = term.color("cyan", viewstypes[i].name)
+                oldwidth = self._colwidths.get(i + self._view_col0, 2)
+                col = _Column(name=colname,
+                              ctype=viewltypes[i],
+                              data=viewdata[i],
+                              minwidth=oldwidth)
+                if self._view_ncols < self._conn.frame_ncols:
+                    col.width = min(col.width, _Column.MAX_WIDTH)
+                self._colwidths[i + self._view_col0] = col.width
+                columns.append(col)
+            columns[-1].margin = ""
 
         # Adjust widths of columns
         total_width = sum(col.width + len(col.margin) for col in columns)
         extra_space = term.width - total_width - DataFrameWidget.RIGHT_MARGIN
         if extra_space > 0:
-            if self._view_col0 + self._view_ncols < self._frame_ncols:
+            if self._view_col0 + self._view_ncols < self._conn.frame_ncols:
                 self._view_ncols += max(1, extra_space // 8)
-                return self.draw()
+                self._draw()
+                return
             elif self._view_col0 > 0:
                 w = self._fetch_column_width(self._view_col0 - 1)
                 if w + 2 <= extra_space:
                     self._view_col0 -= 1
                     self._view_ncols += 1
                     self._max_col0 = self._view_col0
-                    return self.draw()
+                    self._draw()
+                    return
         else:
             if self._max_col0 == self._view_col0:
                 self._max_col0 += 1
@@ -195,14 +219,14 @@ class DataFrameWidget(object):
                     self._view_ncols = i + 1
 
         # Generate the elements of the display
-        at_last_row = (self._view_row0 + self._view_nrows == self._frame_nrows)
-        grey = term.bright_black
+        at_last_row = (self._view_row0 + self._view_nrows == self._conn.frame_nrows)
+        grey = lambda s: term.color("bright_black", s)
         header = ["".join(col.header for col in columns),
                   grey("".join(col.divider for col in columns))]
         rows = ["".join(col.value(j) for col in columns)
                 for j in range(self._view_nrows)]
-        srows = plural_form(self._frame_nrows, "row")
-        scols = plural_form(self._frame_ncols, "column")
+        srows = plural_form(self._conn.frame_nrows, "row")
+        scols = plural_form(self._conn.frame_ncols, "column")
         footer = ["" if at_last_row else grey("..."),
                   "[%s x %s]" % (srows, scols), ""]
 
@@ -226,15 +250,41 @@ class DataFrameWidget(object):
 
         # Render the table
         lines = header + rows + footer
-        out = (term.move_x(0) + term.move_up * self._n_displayed_lines +
-               (term.clear_eol + "\n").join(lines) + term.clear_eol)
-        print(out, end="")
+        term.rewrite_lines(lines, self._n_displayed_lines)
         self._n_displayed_lines = len(lines) - 1
 
 
-    #---------------------------------------------------------------------------
-    # Private
-    #---------------------------------------------------------------------------
+    def _interact(self):
+        old_handler = register_onresize(self._onresize)
+        try:
+            for ch in term.wait_for_keypresses(0.5):
+                if not ch:
+                    # Signal handler could have invalidated interactive mode
+                    # of the widget -- in which case we need to stop rendering
+                    if not self._interactive:
+                        break
+                    else:
+                        continue
+                uch = ch.name if ch.is_sequence else ch.upper()
+                if self._jump_string is None:
+                    if uch == "Q" or uch == "KEY_ESCAPE": break
+                    if uch in DataFrameWidget._MOVES:
+                        DataFrameWidget._MOVES[uch](self)
+                else:
+                    if uch in {"Q", "KEY_ESCAPE", "KEY_ENTER"}:
+                        self._jump_string = None
+                        self._draw()
+                    elif uch == "KEY_DELETE" or uch == "KEY_BACKSPACE":
+                        self._jump_to(self._jump_string[:-1])
+                    elif uch in "0123456789:":
+                        self._jump_to(self._jump_string + uch)
+        except KeyboardInterrupt:
+            pass
+        register_onresize(old_handler)
+        # Clear the interactive prompt
+        if self._show_navbar:
+            term.clear_line(end="\n")
+
 
     _MOVES = {
         "KEY_LEFT": lambda self: self._move_viewport(dx=-1),
@@ -262,24 +312,26 @@ class DataFrameWidget(object):
         self._view_col0 = clamp(self._view_col0, 0, self._max_col0)
         self._view_row0 = clamp(self._view_row0, 0, self._max_row0)
         self._view_ncols = clamp(self._view_ncols, 0,
-                                 self._frame_ncols - self._view_col0)
+                                 self._conn.frame_ncols - self._view_col0)
         self._view_nrows = clamp(self._view_nrows, 0,
-                                 self._frame_nrows - self._view_row0)
-        return self._data_callback(self._view_row0,
-                                   self._view_row0 + self._view_nrows,
-                                   self._view_col0,
-                                   self._view_col0 + self._view_ncols)
+                                 self._conn.frame_nrows - self._view_row0)
+        self._conn.fetch_data(
+            self._view_row0,
+            self._view_row0 + self._view_nrows,
+            self._view_col0,
+            self._view_col0 + self._view_ncols)
+
 
     def _fetch_column_width(self, icol):
         if icol in self._colwidths:
             return self._colwidths[icol]
         else:
-            data = self._data_callback(self._view_row0,
-                                       self._view_row0 + self._view_nrows,
-                                       icol,
-                                       icol + 1)
-            col = _Column(name=data["names"][0], ctype=data["types"][0],
-                          data=data["columns"][0])
+            self._conn.fetch_data(
+                self._view_row0, self._view_row0 + self._view_nrows,
+                icol, icol + 1)
+            col = _Column(name=self._conn.view_names[0],
+                          ctype=self._conn.view_ltypes[0],
+                          data=self._conn.data[0])
             w = min(col.width, _Column.MAX_WIDTH)
             self._colwidths[icol] = w
             return w
@@ -295,18 +347,18 @@ class DataFrameWidget(object):
         if ncol0 != self._view_col0 or nrow0 != self._view_row0 or force_draw:
             self._view_col0 = ncol0
             self._view_row0 = nrow0
-            self.draw()
+            self._draw()
 
 
     def _toggle_types(self):
-        self._show_types = (self._show_types + 1) % 3
-        self.draw()
+        self._show_types = not self._show_types
+        self._draw()
 
 
     def _toggle_jump_mode(self):
         assert self._jump_string is None
         self._jump_string = ""
-        self.draw()
+        self._draw()
 
 
     def _jump_to(self, newloc):
@@ -326,10 +378,10 @@ class DataFrameWidget(object):
     def _adjust_viewport(self):
         # Adjust Y position
         new_nrows = min(DataFrameWidget.VIEW_NROWS_MAX,
-                        max(term.height - 5, DataFrameWidget.VIEW_NROWS_MIN),
-                        self._frame_nrows)
+                        max(term.height - 6, DataFrameWidget.VIEW_NROWS_MIN),
+                        self._conn.frame_nrows)
         self._view_nrows = new_nrows
-        self._max_row0 = self._frame_nrows - new_nrows
+        self._max_row0 = self._conn.frame_nrows - new_nrows
         self._view_row0 = min(self._view_row0, self._max_row0)
 
 
@@ -340,7 +392,7 @@ class DataFrameWidget(object):
             self._adjust_viewport()
             self._term_width = term.width
             self._term_height = term.height
-            self.draw()
+            self._draw()
 
 
 
@@ -367,7 +419,7 @@ class _Column(object):
         ltype.obj: repr,
     }
 
-    def __init__(self, name, ctype, data, color=None):
+    def __init__(self, name, ctype, data, minwidth=2, color=None):
         self._name = name
         self._type = ctype
         self._color = color
@@ -378,10 +430,10 @@ class _Column(object):
         if ctype == ltype.real:
             self._align_at_dot()
         if self._strdata:
-            self._width = max(term.length(name), 2,
+            self._width = max(term.length(name), minwidth,
                               max(len(field) for field in self._strdata))
         else:
-            self._width = max(term.length(name), 2)
+            self._width = max(term.length(name), minwidth)
 
 
     #---------------------------------------------------------------------------
@@ -404,15 +456,6 @@ class _Column(object):
             self._rmargin = ""
 
     @property
-    def color(self):
-        """ColorFormatter applied to the field."""
-        return self._color
-
-    @color.setter
-    def color(self, value):
-        self._color = value
-
-    @property
     def margin(self):
         """Column's margin on the right-hand side."""
         return self._rmargin
@@ -427,7 +470,8 @@ class _Column(object):
         if self._width == 0:
             return ""
         else:
-            return term.bright_white(self._format(self._name)) + self._rmargin
+            return (term.color("bright_white", self._format(self._name)) +
+                    self._rmargin)
 
     @property
     def divider(self):
@@ -441,7 +485,7 @@ class _Column(object):
             return ""
         v = self._format(self._strdata[row])
         if self._color:
-            return self._color(v) + self._rmargin
+            return term.color(self._color, v) + self._rmargin
         else:
             return v + self._rmargin
 
@@ -482,10 +526,10 @@ class _Column(object):
 
 class _Divider:
     def __init__(self):
-        self.width = 4
+        self.width = 3
         self.margin = ""
-        self.header = term.bright_black(" |  ")
-        self.divider = term.bright_black("-+  ")
+        self.header = term.color("bright_black", " | ")
+        self.divider = term.color("bright_black", "-+ ")
 
     def value(self, row):
         return self.header

@@ -83,7 +83,7 @@ oobj::oobj() {
 
 oobj::oobj(PyObject* p) {
   v = p;
-  Py_XINCREF(p);
+  if (p) Py_INCREF(p);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
@@ -118,12 +118,6 @@ oobj oobj::from_new_reference(PyObject* p) {
   return res;
 }
 
-oobj oobj::import(const char* mod, const char* symbol) {
-  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
-  if (!mod_obj) throw PyError();
-  return mod_obj.get_attr(symbol);
-}
-
 oobj oobj::import(const char* mod) {
   PyObject* module = PyImport_ImportModule(mod);
   if (!module) {
@@ -138,8 +132,18 @@ oobj oobj::import(const char* mod) {
   return oobj::from_new_reference(module);
 }
 
+oobj oobj::import(const char* mod, const char* symbol) {
+  auto mod_obj = oobj::from_new_reference(PyImport_ImportModule(mod));
+  if (!mod_obj) throw PyError();
+  return mod_obj.get_attr(symbol);
+}
+
+oobj oobj::import(const char* mod, const char* sym1, const char* sym2) {
+  return import(mod, sym1).get_attr(sym2);
+}
+
 oobj::~oobj() {
-  Py_XDECREF(v);
+  if (v) Py_DECREF(v);
 }
 
 
@@ -699,6 +703,12 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 }
 
 
+oobj _obj::call() const {
+  PyObject* res = PyObject_Call(v, otuple(0).v, nullptr);
+  if (!res) throw PyError();
+  return oobj::from_new_reference(res);
+}
+
 oobj _obj::call(otuple args) const {
   PyObject* res = PyObject_Call(v, args.v, nullptr);
   if (!res) throw PyError();
@@ -720,6 +730,11 @@ ostring _obj::str() const {
 
 PyTypeObject* _obj::typeobj() const noexcept {
   return Py_TYPE(v);
+}
+
+
+size_t _obj::get_sizeof() const {
+  return _PySys_GetSizeOf(v);
 }
 
 

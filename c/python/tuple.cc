@@ -32,6 +32,43 @@ otuple::otuple(size_t n) {
   v = PyTuple_New(static_cast<Py_ssize_t>(n));
 }
 
+otuple::otuple(std::initializer_list<oobj> list) : otuple(list.size()) {
+  size_t i = 0;
+  for (const oobj& item: list) {
+    set(i++, item);
+  }
+}
+
+otuple::otuple(const _obj& o1) : otuple(1) {
+  set(0, o1);
+}
+
+otuple::otuple(const _obj& o1, const _obj& o2) : otuple(2) {
+  set(0, o1);
+  set(1, o2);
+}
+
+otuple::otuple(const _obj& o1, const _obj& o2, const _obj& o3) : otuple(3) {
+  set(0, o1);
+  set(1, o2);
+  set(2, o3);
+}
+
+otuple::otuple(oobj&& o1) : otuple(1) {
+  set(0, std::move(o1));
+}
+
+otuple::otuple(oobj&& o1, oobj&& o2) : otuple(2) {
+  set(0, std::move(o1));
+  set(1, std::move(o2));
+}
+
+otuple::otuple(oobj&& o1, oobj&& o2, oobj&& o3) : otuple(3) {
+  set(0, std::move(o1));
+  set(1, std::move(o2));
+  set(2, std::move(o3));
+}
+
 otuple::otuple(const robj& src) : oobj(src) {}
 rtuple::rtuple(const robj& src) : robj(src) {}
 

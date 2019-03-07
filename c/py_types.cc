@@ -17,43 +17,6 @@ size_t py_buffers_size;
 
 
 
-PyObject* bool_to_py(int8_t x) {
-  return incref(x == 0? Py_False : x == 1? Py_True : Py_None);
-}
-
-PyObject* int_to_py(int8_t x) {
-  return ISNA<int8_t>(x)? none() : PyLong_FromLong(static_cast<long>(x));
-}
-
-PyObject* int_to_py(int16_t x) {
-  return ISNA<int16_t>(x)? none() : PyLong_FromLong(static_cast<long>(x));
-}
-
-PyObject* int_to_py(int32_t x) {
-  return ISNA<int32_t>(x)? none() : PyLong_FromLong(static_cast<long>(x));
-}
-
-PyObject* int_to_py(int64_t x) {
-  return ISNA<int64_t>(x)? none() : PyLong_FromInt64(x);
-}
-
-PyObject* int_to_py(size_t x) {
-  return PyLong_FromSize_t(x);
-}
-
-PyObject* float_to_py(float x) {
-  return ISNA<float>(x)? none() : PyFloat_FromDouble(static_cast<double>(x));
-}
-
-PyObject* float_to_py(double x) {
-  return ISNA<double>(x)? none() : PyFloat_FromDouble(x);
-}
-
-PyObject* string_to_py(const CString& x) {
-  return x.size < 0? none() : PyUnicode_FromStringAndSize(x.ch, x.size);
-}
-
-
 static PyObject* stype_boolean_i8_tostring(Column* col, size_t row) {
   int8_t x = static_cast<const int8_t*>(col->data())[row];
   return x == 0? incref(Py_False) :

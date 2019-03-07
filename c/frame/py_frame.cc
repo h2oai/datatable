@@ -44,10 +44,8 @@ Return the first `n` rows of the frame, same as ``self[:n, :]``.
 oobj Frame::head(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
                       dt->nrows);
-  py::otuple aa(2);
-  aa.set(0, py::oslice(0, static_cast<int64_t>(n), 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
+  return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
+                             None()));
 }
 
 
@@ -65,10 +63,9 @@ oobj Frame::tail(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
                       dt->nrows);
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
-  py::otuple aa(2);
-  aa.set(0, py::oslice(static_cast<int64_t>(dt->nrows - n), py::oslice::NA, 1));
-  aa.set(1, py::None());
-  return m__getitem__(aa);
+  int64_t start = static_cast<int64_t>(dt->nrows - n);
+  return m__getitem__(otuple(oslice(start, oslice::NA, 1),
+                             None()));
 }
 
 
@@ -148,6 +145,32 @@ void Frame::_clear_types() const {
 }
 
 
+static PKArgs args_materialize(
+  0, 0, 0, false, false, {}, "materialize",
+
+R"(materialize(self)
+--
+
+Convert a "view" frame into a regular data frame.
+
+Certain datatable operation produce frames that contain "view"
+columns. These columns refer to the data in some other column, via
+a RowIndex object that describes which values from the other column
+should be picked. This is done in order to improve performance and
+reduce memory usage of certain operations: a view column avoids
+copying data from its parent column.
+
+Usually view columns are created transparently to the user, and they
+are materialized by datatable when necessary. This method, on the
+other hand, will force all view columns in the frame to be
+materialized immediately.
+)");
+
+void Frame::materialize(const PKArgs&) {
+  dt->materialize();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -196,10 +219,7 @@ static GSArgs args_shape(
   "Tuple with (nrows, ncols) dimensions of the Frame\n");
 
 oobj Frame::get_shape() const {
-  py::otuple shape(2);
-  shape.set(0, get_nrows());
-  shape.set(1, get_ncols());
-  return std::move(shape);
+  return otuple(get_nrows(), get_ncols());
 }
 
 
@@ -277,9 +297,14 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   _init_cbind(mm);
   _init_key(gs);
   _init_init(mm);
+  _init_jay(mm);
   _init_names(mm, gs);
+  _init_rbind(mm);
   _init_replace(mm);
-  _init_reprhtml(mm);
+  _init_repr(mm);
+  _init_sizeof(mm);
+  _init_stats(mm);
+  _init_tocsv(mm);
   _init_tonumpy(mm);
   _init_topython(mm);
 
@@ -294,6 +319,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);
   ADD_METHOD(mm, &Frame::copy, args_copy);
+  ADD_METHOD(mm, &Frame::materialize, args_materialize);
 }
 
 

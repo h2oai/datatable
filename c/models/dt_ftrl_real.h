@@ -416,7 +416,7 @@ double FtrlReal<T>::fit(double nepochs_val, F linkfn, G lossfn) {
     size_t chunk_start = c * chunk_nrows;
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
 
-	  dt::run_interleaved(
+	  dt::run_parallel(
 		  [&](size_t i0, size_t i1, size_t di) {
 		    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 		    tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -461,7 +461,7 @@ double FtrlReal<T>::fit(double nepochs_val, F linkfn, G lossfn) {
     // if the loss does not improve
     if (validation) {
       bool label_shift = (model_type == FtrlModelType::MULTINOMIAL);
-		  dt::run_interleaved(
+		  dt::run_parallel(
 			  [&](size_t i0, size_t i1, size_t di) {
 			    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
 			    tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -580,7 +580,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
                                  << "the model was trained in an unknown mode";
   }
 
-	dt::run_interleaved(
+	dt::run_parallel(
 		[&](size_t i0, size_t i1, size_t di) {
 
 		  uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -616,7 +616,7 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
     d_cs[j] = static_cast<T*>(dt->columns[j]->data_w());
   }
 
-  dt::run_interleaved(
+  dt::run_parallel(
     [&](size_t i0, size_t i1, size_t di) {
 
       for (size_t i = i0; i < i1; i += di) {
@@ -721,8 +721,8 @@ template <typename T>
 void FtrlReal<T>::create_fi(const DataTable* dt) {
   const strvec& col_names = dt->get_names();
 
-  dt::fixed_height_string_col c_fi_names(nfeatures);
-  dt::fixed_height_string_col::buffer sb(c_fi_names);
+  dt::writable_string_col c_fi_names(nfeatures);
+  dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
   sb.commit_and_start_new_chunk(0);
   for (const auto& feature_name : col_names) {
     sb.write(feature_name);

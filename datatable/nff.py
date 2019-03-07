@@ -9,8 +9,6 @@ import re
 
 import datatable as dt
 from datatable.lib import core
-# from datatable.fread import Frame
-# from datatable.fread import fread
 from datatable.utils.typechecks import TTypeError, TValueError, dtwarn
 
 _builtin_open = open
@@ -23,31 +21,20 @@ def _stringify(x):
     return str(x)
 
 
-def save(self, dest=None, format="jay", _strategy="auto"):
+def save_nff(self, dest, _strategy="auto"):
     """
     Save Frame in binary NFF/Jay format.
 
     :param dest: destination where the Frame should be saved.
-    :param format: either "nff" or "jay"
     :param _strategy: one of "mmap", "write" or "auto"
     """
-    if dest is None:
-        return self.internal.save_jay(None, None)
     if _strategy not in ("auto", "write", "mmap"):
         raise TValueError("Invalid parameter _strategy: only 'write' / 'mmap' "
                           "/ 'auto' are allowed")
-    if format not in ("nff", "jay"):
-        raise TValueError("Invalid parameter `format`: only 'nff' or 'jay' "
-                          "are supported")
-    dest = os.path.expanduser(dest)
-    if os.path.exists(dest):
-        pass
-    elif format == "nff":
-        os.makedirs(dest)
 
-    if format == "jay":
-        self.internal.save_jay(dest, _strategy)
-        return
+    dest = os.path.expanduser(dest)
+    if not os.path.exists(dest):
+        os.makedirs(dest)
 
     self.materialize()
     mins = self.min().to_list()

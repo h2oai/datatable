@@ -128,6 +128,7 @@ class RowIndex {
     RowIndexType type() const noexcept;
     bool isabsent() const;
     bool isslice() const;
+    bool is_simple_slice() const;  // is this a slice with step==1?
     bool isarr32() const;
     bool isarr64() const;
     bool isarray() const;

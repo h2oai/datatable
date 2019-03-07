@@ -25,6 +25,7 @@ import datatable as dt
 import math
 import pytest
 from datatable import f, DatatableWarning
+from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 
@@ -62,7 +63,7 @@ def test_assign_single_cell():
     for i in range(4):
         for j in range(2):
             f0[i, j] = i + j
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.ltypes == (dt.ltype.int, ) * 2
     assert f0.to_list() == [[0, 1, 2, 3], [1, 2, 3, 4]]
 
@@ -114,9 +115,9 @@ def test_assign_empty_frame():
     # See issue #1544
     X = dt.Frame(A=range(10))
     X[:, []] = X[:, []]
-    X.internal.check()
+    frame_integrity_check(X)
     X[:, []] = dt.Frame()
-    X.internal.check()
+    frame_integrity_check(X)
     assert_equals(X, dt.Frame(A=range(10)))
 
 
@@ -127,7 +128,7 @@ def test_assign_none_all():
                   stypes=['bool', 'int8', 'int64', 'float32', 'float64',
                           'str32', 'str64'])
     DT[:, :] = None
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.shape == (2, 7)
     assert DT.names == tuple("ABCDEFG")
     assert DT.stypes == (dt.bool8, dt.int8, dt.int64, dt.float32, dt.float64,
@@ -138,7 +139,7 @@ def test_assign_none_all():
 def test_assign_none_single():
     DT = dt.Frame(A=range(5))
     DT[:, f.A] = None
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.stypes == (dt.int32,)
     assert DT.to_list() == [[None] * 5]
 
@@ -146,7 +147,7 @@ def test_assign_none_single():
 def test_assign_none_new():
     DT = dt.Frame(A=range(5))
     DT[:, "B"] = None
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B")
     assert DT.stypes == (dt.int32, dt.bool8)
     assert DT.to_list() == [[0, 1, 2, 3, 4], [None] * 5]
@@ -155,7 +156,7 @@ def test_assign_none_new():
 def test_assign_list_of_exprs():
     DT = dt.Frame(A=range(5))
     DT[:, ["B", "C"]] = [f.A + 1, f.A * 2]
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B", "C")
     assert DT.stypes == (dt.int32,) * 3
     assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [0, 2, 4, 6, 8]]
@@ -165,7 +166,7 @@ def test_assign_list_duplicates():
     DT = dt.Frame(A=range(5))
     with pytest.warns(DatatableWarning) as ws:
         DT[:, ["B", "B"]] = [f.A + 1, f.A + 2]
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B", "B.1")
     assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
     assert len(ws) == 1
@@ -191,7 +192,7 @@ def test_stats_after_assign():
 def test_assign_scalar_to_one_column():
     DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
     DT[:, "B"] = 100
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B")
     assert DT.stypes == (dt.int32, dt.int8)
     assert DT.to_list() == [[0, 1, 2, 3, 4], [100] * 5]
@@ -200,7 +201,7 @@ def test_assign_scalar_to_one_column():
 def test_assign_scalar_to_all():
     DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
     DT[:, :] = 12
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B")
     assert DT.stypes == (dt.int32, dt.int8)
     assert DT.to_list() == [[12] * 5] * 2
@@ -210,7 +211,7 @@ def test_assign_scalar_to_list_of_columns():
     DT = dt.Frame([[1, 3, 4], [2.5, 17.3, None], [4.99, -12, 2.22]],
                   names=("A", "B", "C"))
     DT[:, ["A", "C"]] = 35
-    DT.internal.check()
+    frame_integrity_check(DT)
     assert DT.names == ("A", "B", "C")
     assert DT.stypes == (dt.int8, dt.float64, dt.float64)
     assert DT.to_list() == [[35] * 3, [2.5, 17.3, None], [35.0] * 3]

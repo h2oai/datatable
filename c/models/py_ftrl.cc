@@ -184,8 +184,8 @@ nepochs_validate: float
 Returns
 -------
 epoch : float
-    Epoch at which the model stoped training. If no validation set was
-    provided, `epoch` will be equal to `nepochs`.
+Epoch at which the model stoped training. If no validation set was
+provided, `epoch` will be equal to `nepochs`.
 )");
 
 
@@ -295,8 +295,8 @@ X: Frame
 
 Returns
 -------
-    A new frame of shape (nrows, nlabels) with the predicted probabilities
-    for each row of frame X and each label the model was trained for.
+A new frame of shape (nrows, nlabels) with the predicted probabilities
+for each row of frame X and each label the model was trained for.
 )");
 
 
@@ -344,11 +344,11 @@ feature importance information. Also, set the model to an untrained state.
 
 Parameters
 ----------
-    None
+None
 
 Returns
 -------
-    None
+None
 )");
 
 
@@ -713,16 +713,14 @@ oobj Ftrl::get_params_namedtuple() const {
 
 
 oobj Ftrl::get_params_tuple() const {
-  py::otuple params(8);
-  params.set(0, get_alpha());
-  params.set(1, get_beta());
-  params.set(2, get_lambda1());
-  params.set(3, get_lambda2());
-  params.set(4, get_nbins());
-  params.set(5, get_nepochs());
-  params.set(6, get_interactions());
-  params.set(7, get_double_precision());
-  return std::move(params);
+  return otuple {get_alpha(),
+                 get_beta(),
+                 get_lambda1(),
+                 get_lambda2(),
+                 get_nbins(),
+                 get_nepochs(),
+                 get_interactions(),
+                 get_double_precision()};
 }
 
 
@@ -752,21 +750,14 @@ static PKArgs args___getstate__(
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
-  py::otuple pickle(5);
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
   py::oobj fi = get_normalized_fi(false);
-  py::oobj py_model_type = py::oint(static_cast<int32_t>(
+  py::oobj model_type = py::oint(static_cast<int32_t>(
                              dtft->get_model_type()
                            ));
-  py::oobj py_labels = get_labels();
-
-  pickle.set(0, params);
-  pickle.set(1, model);
-  pickle.set(2, fi);
-  pickle.set(3, py_model_type);
-  pickle.set(4, py_labels);
-  return std::move(pickle);
+  py::oobj labels = get_labels();
+  return otuple {params, model, fi, model_type, labels};
 }
 
 

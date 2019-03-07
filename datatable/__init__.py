@@ -21,22 +21,22 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .__version__ import version as __version__
-from .dt_append import rbind, cbind
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    log, log10, f, g)
-from .fread import fread, GenericReader, FreadWarning
+from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
-    repeat, by, join, sort
+    repeat, by, join, sort, cbind, rbind
 )
-from .nff import save, open
+from .nff import open
 from .options import options
 from .str import split_into_nhot
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 from .utils.typechecks import DatatableWarning
+import datatable.widget
 try:
     from .__git__ import __git_revision__
 except ImportError:
@@ -45,7 +45,7 @@ except ImportError:
 
 __all__ = ("__version__", "__git_revision__",
            "Frame", "max", "mean", "min", "open", "sd", "sum", "count", "first",
-           "isna", "fread", "GenericReader", "save", "stype", "ltype", "f", "g",
+           "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
            "join", "by", "abs", "exp", "log", "log10",
            "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
            "DataTable", "options",

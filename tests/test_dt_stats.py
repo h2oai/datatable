@@ -25,6 +25,7 @@ import datatable as dt
 import random
 import statistics
 from datatable import stype, ltype
+from datatable.internal import frame_integrity_check
 from math import inf, nan, isnan
 from tests import list_equals
 
@@ -76,7 +77,7 @@ def t_min(t):
 def test_min(src):
     dt0 = dt.Frame(src)
     dtr = dt0.min()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
@@ -87,7 +88,7 @@ def test_min(src):
 def test_dt_str():
     dt0 = dt.Frame([[1, 5, 3, 9, -2], list("abcde")])
     dtr = dt0.min()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.to_list() == [[-2], [None]]
 
 
@@ -108,7 +109,7 @@ def t_max(t):
 def test_max(src):
     dt0 = dt.Frame(src)
     dtr = dt0.max()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
@@ -137,7 +138,7 @@ def sum_stype(st):
 def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
@@ -161,7 +162,7 @@ def t_mean(t):
 def test_dt_mean(src):
     dt0 = dt.Frame(src)
     dtr = dt0.mean()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
@@ -185,7 +186,7 @@ def test_dt_mean(src):
 def test_dt_mean_special_cases(src, res):
     dt0 = dt.Frame([src])
     dtr = dt0.mean()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
@@ -212,7 +213,7 @@ def t_sd(t):
 def test_dt_sd(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sd()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -230,7 +231,7 @@ def test_dt_sd(src):
 def test_dt_sd_special_cases(src, res):
     dt0 = dt.Frame([src])
     dtr = dt0.sd()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -256,7 +257,7 @@ def test_dt_count_na(src):
         dt0 = dt.Frame(src)
         ans = t_count_na(src)
     dtr = dt0.countna()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -281,7 +282,7 @@ def test_dt_n_unique(src):
         dt0 = dt.Frame(src)
         ans = n_unique(src)
     dtr = dt0.nunique()
-    dtr.internal.check()
+    frame_integrity_check(dtr)
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dtr.names == dt0.names
@@ -319,8 +320,8 @@ def test_mode(src):
     dtm = f0.mode()
     dtn = f0.nmodal()
     modal_count, modal_values = t_mode(src)
-    dtm.internal.check()
-    dtn.internal.check()
+    frame_integrity_check(dtm)
+    frame_integrity_check(dtn)
     assert dtm.shape == dtn.shape == (1, 1)
     assert dtm.names == dtn.names == f0.names
     assert dtm.stypes == f0.stypes
@@ -370,8 +371,8 @@ def test_bad_call():
 def test_empty_frame(st):
     f0 = dt.Frame([[]], stype=st)
     f1 = dt.Frame([None], stype=st)
-    f0.internal.check()
-    f1.internal.check()
+    frame_integrity_check(f0)
+    frame_integrity_check(f1)
     assert f0.shape == (0, 1)
     assert f1.shape == (1, 1)
     assert f0.stypes == f1.stypes == (st, )
@@ -385,53 +386,47 @@ def test_empty_frame(st):
 
 def test_object_column():
     df = dt.Frame([None, nan, 3, "srsh"])
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.countna1() == 2
     assert df.min1() is None
     assert df.max1() is None
     assert df.mean1() is None
     assert df.sum1() is None
     assert df.sd1() is None
-    with pytest.raises(NotImplementedError):
-        df.mode1()
-    with pytest.raises(NotImplementedError):
-        df.nunique1()
-    with pytest.raises(NotImplementedError):
-        df.nmodal1()
+    assert df.mode1() is None
+    assert df.nunique1() is None
+    assert df.nmodal1() is None
 
 
 def test_object_column2():
     df = dt.Frame([None, nan, 3, "srsh"])
     f0 = df.countna()
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.stypes == (stype.int64, )
     assert f0[0, 0] == 2
     f1 = df.min()
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.stypes == (stype.obj64, )
-    assert f1[0, 0] == None
+    assert f1[0, 0] is None
     f2 = df.max()
-    f2.internal.check()
+    frame_integrity_check(f2)
     assert f2.stypes == (stype.obj64, )
-    assert f2[0, 0] == None
+    assert f2[0, 0] is None
     f3 = df.sum()
-    f3.internal.check()
+    frame_integrity_check(f3)
     assert f3.stypes == (stype.obj64, )
-    assert f3[0, 0] == None
+    assert f3[0, 0] is None
     f4 = df.mean()
-    f4.internal.check()
-    assert f4.stypes == (stype.float64, )
-    assert f4[0, 0] == None
+    frame_integrity_check(f4)
+    assert f4.stypes == (stype.obj64, )
+    assert f4[0, 0] is None
     f5 = df.sd()
-    f5.internal.check()
-    assert f5.stypes == (stype.float64, )
-    assert f5[0, 0] == None
-    with pytest.raises(NotImplementedError):
-        df.mode()
-    with pytest.raises(NotImplementedError):
-        df.nunique()
-    with pytest.raises(NotImplementedError):
-        df.nmodal()
+    frame_integrity_check(f5)
+    assert f5.stypes == (stype.obj64, )
+    assert f5[0, 0] is None
+    assert df.mode()[0, 0] is None
+    assert df.nunique()[0, 0] is None
+    assert df.nmodal()[0, 0] is None
 
 
 

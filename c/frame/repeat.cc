@@ -90,8 +90,9 @@ Column* Column::repeat(size_t nreps) {
 //------------------------------------------------------------------------------
 // datatable.repeat()
 //------------------------------------------------------------------------------
+namespace py {
 
-static py::PKArgs args_repeat(
+static PKArgs args_repeat(
     2, 0, 0, false, false, {"frame", "n"},
     "repeat",
 R"(repeat(frame, n)
@@ -103,13 +104,13 @@ This is equivalent to ``dt.rbind([self] * n)``.
 )");
 
 
-static py::oobj repeat(const py::PKArgs& args) {
+static oobj repeat(const PKArgs& args) {
   DataTable* dt = args[0].to_frame();
   size_t n = args[1].to_size_t();
 
   // Empty Frame: repeating is a noop
   if (dt->ncols == 0 || dt->nrows == 0) {
-    return py::oobj::from_new_reference(py::Frame::from_datatable(dt->copy()));
+    return oobj::from_new_reference(Frame::from_datatable(dt->copy()));
   }
 
   // Single-colum fixed-width Frame:
@@ -120,7 +121,7 @@ static py::oobj repeat(const py::PKArgs& args) {
   {
     Column* newcol = col0->repeat(n);
     DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
-    return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
+    return oobj::from_new_reference(Frame::from_datatable(newdt));
   }
 
   constexpr size_t MAX32 = std::numeric_limits<int32_t>::max();
@@ -130,7 +131,7 @@ static py::oobj repeat(const py::PKArgs& args) {
                            : _make_repeat_rowindex<int64_t>(dt->nrows, n);
 
   DataTable* newdt = apply_rowindex(dt, ri);
-  return py::oobj::from_new_reference(py::Frame::from_datatable(newdt));
+  return oobj::from_new_reference(Frame::from_datatable(newdt));
 }
 
 
@@ -138,3 +139,5 @@ static py::oobj repeat(const py::PKArgs& args) {
 void DatatableModule::init_methods_repeat() {
   ADD_FN(&repeat, args_repeat);
 }
+
+} // namespace py

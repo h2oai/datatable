@@ -26,6 +26,7 @@ import pytest
 import random
 from tests import random_string, noop
 from datatable import join, ltype, stype, f, g, mean
+from datatable.internal import frame_integrity_check
 
 
 
@@ -35,7 +36,7 @@ def test_join_simple():
                   stypes=d0.stypes)
     d1.key = "A"
     res = d0[:, :, join(d1)]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (7, 3)
     assert res.names == ("A", "B", "V")
     assert res.to_list() == [
@@ -49,7 +50,7 @@ def test_join_strings():
     d1 = dt.Frame([list("abcd"), range(0, 20, 5)], names=("B", "V"))
     d1.key = "B"
     res = d0[:, :, join(d1)]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (7, 3)
     assert res.names == ("A", "B", "V")
     assert res.to_list() == [
@@ -63,7 +64,7 @@ def test_join_missing_levels():
     d1 = dt.Frame(A=[1, 2], K=[True, False])
     d1.key = "A"
     res = d0[:, :, join(d1)]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.to_list() == [[1, 2, 3], [True, False, None]]
 
 
@@ -130,7 +131,7 @@ def test_join_random(seed, lt):
     res = [vals[keys.index(main[i])] for i in range(ndata)]
 
     djoined = dmain[:, :, join(dkey)]
-    djoined.internal.check()
+    frame_integrity_check(djoined)
     assert djoined.shape == (ndata, 2)
     assert djoined.names == ("KEY", "VAL")
     assert djoined.to_list() == [main, res]
@@ -157,7 +158,7 @@ def test_join_and_select_g_col():
     G = dt.Frame(b=[2, 4], c=["foo", "bar"])
     G.key = "b"
     R = F[:, g.c, join(G)]
-    R.internal.check()
+    frame_integrity_check(R)
     assert R.shape == (3, 1)
     assert R.stypes == (stype.str32,)
     # assert R.names == ("c",)   # not working yet
@@ -259,7 +260,7 @@ def test_issue1556():
     J = dt.Frame(A=['hey'], B=['Avast'])
     J.key = 'A'
     R = X[:, :, join(J)]
-    R.internal.check()
+    frame_integrity_check(R)
     assert R.shape == (2, 2)
     assert R.to_dict() == {"A": ["Ahoy ye matey!", "hey"],
                            "B": [None, "Avast"]}

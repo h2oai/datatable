@@ -134,6 +134,11 @@ bool RowIndex::isslice() const {
   return impl && impl->type == RowIndexType::SLICE;
 }
 
+bool RowIndex::is_simple_slice() const {
+  return impl && impl->type == RowIndexType::SLICE &&
+         slice_rowindex_get_step(impl) == 1;
+}
+
 bool RowIndex::isarr32() const {
   return impl && impl->type == RowIndexType::ARR32;
 }
@@ -217,7 +222,7 @@ void RowIndex::extract_into(arr32_t& target) const {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
         size_t start = slice_start();
         size_t step = slice_step();
-        dt::run_interleaved(
+        dt::run_parallel(
           [&](size_t i0, size_t i1, size_t di) {
             for (size_t i = i0; i < i1; i += di) {
               target[i] = static_cast<int32_t>(start + i * step);
@@ -290,7 +295,10 @@ RowIndex RowIndex::negate(size_t nrows) const {
 
 
 size_t RowIndex::memory_footprint() const {
-  return sizeof(this) + (impl? impl->memory_footprint() : 0);
+  // If multiple columns share a rowindex, we don't want to account for it
+  // multiple times. Instead, try to assign each instance an "equal share"
+  // of this object's memory footprint.
+  return sizeof(this) + (impl? impl->memory_footprint() / impl->refcount : 0);
 }
 
 

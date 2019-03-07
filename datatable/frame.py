@@ -21,22 +21,12 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import collections
+import datatable
 import time
 import warnings
 
 from datatable.lib import core
-import datatable
-from .widget import DataFrameWidget
-
-from datatable.dt_append import _rbind
-from datatable.nff import save as dt_save
-from datatable.utils.misc import plural_form as plural
-from datatable.utils.misc import load_module
-from datatable.utils.terminal import term
-from datatable.utils.typechecks import (TTypeError, TValueError)
-from datatable.csv import write_csv
 from datatable.options import options
-from datatable.types import stype
 
 __all__ = ("Frame", )
 
@@ -53,73 +43,6 @@ class Frame(core.Frame):
 
     This is a primary data structure for datatable module.
     """
-
-    #---------------------------------------------------------------------------
-    # Display
-    #---------------------------------------------------------------------------
-
-    def __repr__(self):
-        srows = plural(self.nrows, "row")
-        scols = plural(self.ncols, "col")
-        return "<Frame [%s x %s]>" % (srows, scols)
-
-    def _repr_pretty_(self, p, cycle):
-        # Called by IPython terminal when displaying the datatable
-        if not term.jupyter:
-            self.view()
-
-    def _data_viewer(self, row0, row1, col0, col1):
-        view = self[row0:row1, col0:col1]
-        length = max(2, len(str(row1)))
-        nk = len(self.key)
-        return {
-            "names": self.names[:nk] + self.names[col0 + nk:col1 + nk],
-            "types": view.ltypes,
-            "stypes": view.stypes,
-            "columns": view.to_list(),
-            "rownumbers": ["%*d" % (length, x) for x in range(row0, row1)],
-        }
-
-    def view(self, interactive=None):
-        widget = DataFrameWidget(self.nrows, self.ncols, len(self.key),
-                                 self._data_viewer, interactive)
-        widget.render()
-
-
-    #---------------------------------------------------------------------------
-    # Main processor function
-    #---------------------------------------------------------------------------
-
-    def __call__(self, rows=None, select=None, verbose=False, timeit=False,
-                 groupby=None, join=None, sort=None, engine=None
-                 ):
-        """DEPRECATED, use DT[i, j, ...] instead."""
-        warnings.warn(
-            "`DT(rows, select, ...)` is deprecated and will be removed in "
-            "version 0.9.0. Please use `DT[i, j, ...]` instead",
-            category=FutureWarning)
-        time0 = time.time() if timeit else 0
-        function = type(lambda: None)
-        if isinstance(rows, function):
-            rows = rows(datatable.f)
-        if isinstance(select, function):
-            select = select(datatable.f)
-
-        res = self[rows, select,
-                   datatable.join(join),
-                   datatable.by(groupby),
-                   datatable.sort(sort)]
-        if timeit:
-            print("Time taken: %d ms" % (1000 * (time.time() - time0)))
-        return res
-
-
-    # Methods defined externally
-    append = _rbind
-    rbind = _rbind
-    to_csv = write_csv
-    save = dt_save
-
 
     def sort(self, *cols):
         """
@@ -144,136 +67,6 @@ class Frame(core.Frame):
             cols = list(cols)
         return self[:, :, datatable.sort(*cols)]
 
-
-    #---------------------------------------------------------------------------
-    # Stats
-    #---------------------------------------------------------------------------
-
-    def min(self):
-        """
-        Get the minimum value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed minimum
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_min()
-
-    def max(self):
-        """
-        Get the maximum value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed maximum
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_max()
-
-    def mode(self):
-        """
-        Get the modal value of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed count of
-        most frequent values for each column.
-        """
-        return self._dt.get_mode()
-
-    def sum(self):
-        """
-        Get the sum of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed sums
-        for each column (or NA if not applicable).
-        """
-        return self._dt.get_sum()
-
-    def mean(self):
-        """
-        Get the mean of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed mean
-        values for each column (or NA if not applicable).
-        """
-        return self._dt.get_mean()
-
-    def sd(self):
-        """
-        Get the standard deviation of each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the computed standard
-        deviation values for each column (or NA if not applicable).
-        """
-        return self._dt.get_sd()
-
-    def countna(self):
-        """
-        Get the number of NA values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of NA
-        values in each column.
-        """
-        return self._dt.get_countna()
-
-    def nunique(self):
-        """
-        Get the number of unique values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of
-        unique values in each column.
-        """
-        return self._dt.get_nunique()
-
-    def nmodal(self):
-        """
-        Get the number of modal values in each column.
-
-        Returns
-        -------
-        A new datatable of shape (1, ncols) containing the counted number of
-        most frequent values in each column.
-        """
-        return self._dt.get_nmodal()
-
-    def min1(self):
-        return self._dt.min1()
-
-    def max1(self):
-        return self._dt.max1()
-
-    def mode1(self):
-        return self._dt.mode1()
-
-    def sum1(self):
-        return self._dt.sum1()
-
-    def mean1(self):
-        return self._dt.mean1()
-
-    def sd1(self):
-        return self._dt.sd1()
-
-    def countna1(self):
-        return self._dt.countna1()
-
-    def nunique1(self):
-        return self._dt.nunique1()
-
-    def nmodal1(self):
-        return self._dt.nmodal1()
 
 
     #---------------------------------------------------------------------------
@@ -308,34 +101,47 @@ class Frame(core.Frame):
             category=FutureWarning)
         return self[0, 0]
 
+    def append(self):
+        warnings.warn(
+            "Method `Frame.append()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame.rbind()` instead",
+            category=FutureWarning)
 
-    def materialize(self):
-        if self._dt.isview:
-            self._dt.materialize()
+    def __call__(self, rows=None, select=None, verbose=False, timeit=False,
+                 groupby=None, join=None, sort=None, engine=None
+                 ):
+        """DEPRECATED, use DT[i, j, ...] instead."""
+        warnings.warn(
+            "`DT(rows, select, ...)` is deprecated and will be removed in "
+            "version 0.9.0. Please use `DT[i, j, ...]` instead",
+            category=FutureWarning)
+        time0 = time.time() if timeit else 0
+        function = type(lambda: None)
+        if isinstance(rows, function):
+            rows = rows(datatable.f)
+        if isinstance(select, function):
+            select = select(datatable.f)
 
+        res = self[rows, select,
+                   datatable.join(join),
+                   datatable.by(groupby),
+                   datatable.sort(sort)]
+        if timeit:
+            print("Time taken: %d ms" % (1000 * (time.time() - time0)))
+        return res
 
-    def __sizeof__(self):
-        """
-        Return the size of this Frame in memory.
-
-        The function attempts to compute the total memory size of the Frame
-        as precisely as possible. In particular, it takes into account not only
-        the size of data in columns, but also sizes of all auxiliary internal
-        structures.
-
-        Special cases: if Frame is a view (say, `d2 = d[:1000, :]`), then
-        the reported size will not contain the size of the data, because that
-        data "belongs" to the original datatable and is not copied. However if
-        a Frame selects only a subset of columns (say, `d3 = d[:, :5]`),
-        then a view is not created and instead the columns are copied by
-        reference. Frame `d3` will report the "full" size of its columns,
-        even though they do not occupy any extra memory compared to `d`. This
-        behavior may be changed in the future.
-
-        This function is not intended for manual use. Instead, in order to get
-        the size of a datatable `d`, call `sys.getsizeof(d)`.
-        """
-        return self._dt.alloc_size
+    def save(self, path, format="jay", _strategy="auto"):
+        warnings.warn(
+            "Method `Frame.save()` is deprecated (will be removed in "
+            "0.10.0), please use `Frame.to_jay()` instead",
+            category=FutureWarning)
+        if format == "jay":
+            return self.to_jay(path, _strategy=_strategy)
+        elif format == "nff":
+            from datatable.nff import save_nff
+            return save_nff(self, path, _strategy=_strategy)
+        else:
+            raise ValueError("Unknown `format` value: %s" % format)
 
 
 
@@ -344,8 +150,6 @@ class Frame(core.Frame):
 # Global settings
 #-------------------------------------------------------------------------------
 
-core._register_function(4, TTypeError)
-core._register_function(5, TValueError)
 core._register_function(7, Frame)
 core._install_buffer_hooks(Frame())
 

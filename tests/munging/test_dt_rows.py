@@ -25,8 +25,8 @@ import pytest
 import datatable as dt
 import random
 from datatable import stype, ltype, f, by
-from datatable.internal import frame_column_rowindex
-from tests import same_iterables, noop, assert_equals
+from datatable.internal import frame_column_rowindex, frame_integrity_check
+from tests import same_iterables, noop, assert_equals, isview
 
 
 #-------------------------------------------------------------------------------
@@ -92,22 +92,22 @@ def test_dt0_properties(dt0):
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
-    assert dt0.internal.isview is False
+    assert not isview(dt0)
     for i in range(dt0.ncols):
         assert frame_column_rowindex(dt0, i) is None
-    dt0.internal.check()
+    frame_integrity_check(dt0)
 
 
 def test_rows_ellipsis(dt0):
     """Both dt(...) and dt() should select all rows and all columns."""
     dt1 = dt0[None, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (10, 3)
-    assert not dt1.internal.isview
+    assert not isview(dt1)
     dt1 = dt0[..., :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (10, 3)
-    assert not dt1.internal.isview
+    assert not isview(dt1)
 
 
 
@@ -123,7 +123,7 @@ def test_rows_ellipsis(dt0):
 @pytest.mark.parametrize("i", range(-10, 10))
 def test_rows_integer1(dt0, i):
     dt1 = dt0[i, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (1, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -176,7 +176,7 @@ def test_rows_integer_empty_dt():
                                              (slice(None, None, -1), 10)])
 def test_rows_slice1(dt0, sliceobj, nrows):
     dt1 = dt0[sliceobj, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
     assert nrows == 0 or is_slice(dt1)
@@ -186,7 +186,7 @@ def test_rows_slice1(dt0, sliceobj, nrows):
 def test_rows_0step_slice():
     DT = dt.Frame(range(5))
     res = DT[3:100:0, :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.to_list() == [[3] * 100]
 
 
@@ -234,7 +234,7 @@ def test_slice_after_resize():
     DT = dt.Frame(A=['cat'])
     DT.nrows = 3
     RES = DT[2:, :]
-    RES.internal.check()
+    frame_integrity_check(RES)
     assert RES.to_list() == [[None]]
 
 
@@ -256,7 +256,7 @@ def test_slice_after_resize():
                                       range(9, -1, -1)])
 def test_rows_range1(dt0, rangeobj):
     dt1 = dt0[rangeobj, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (len(rangeobj), 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -289,7 +289,7 @@ def test_rows_generator(dt0):
     g = (i * 2 for i in range(4))
     assert type(g).__name__ == "generator"
     dt1 = dt0[g, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (4, 3)
     assert is_arr(dt1)
 
@@ -320,7 +320,7 @@ def test_rows_generator_bad(dt0):
                           ([4, 9, 3, slice(7), range(10)], 20)])
 def test_rows_multislice(dt0, selector, nrows):
     dt1 = dt0[selector, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (nrows, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -339,7 +339,7 @@ def test_rows_multislice2(dt0):
 def test_rows_multislice4():
     DT = dt.Frame(range(20))
     res = DT[[range(5), 3, -1, range(8, -2, -2)], :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.ncols == 1
     assert res.to_list()[0] == [0, 1, 2, 3, 4, 3, 19, 8, 6, 4, 2, 0]
 
@@ -347,7 +347,7 @@ def test_rows_multislice4():
 def test_rows_multislice5():
     DT = dt.Frame(range(20))
     res = DT[[range(3), slice(4, 105, 0)], :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.ncols == 1
     assert res.to_list()[0] == [0, 1, 2] + [4] * 105
 
@@ -355,7 +355,7 @@ def test_rows_multislice5():
 def test_rows_multislice6():
     DT = dt.Frame(range(20))
     res = DT[[slice(100), slice(4, None, -2)], :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.ncols == 1
     assert res.to_list()[0] == list(range(20)) + [4, 2, 0]
 
@@ -363,7 +363,7 @@ def test_rows_multislice6():
 def test_rows_multislice7():
     DT = dt.Frame(range(20))
     res = DT[[range(-5, 0, 2)], :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.to_list() == [[15, 17, 19]]
 
 
@@ -417,7 +417,7 @@ def test_rows_multislice_invalid5(dt0):
 def test_rows_bool_column(dt0):
     col = dt.Frame([1, 0, 1, 1, None, 0, None, 1, 1, 0])
     dt1 = dt0[col, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -456,7 +456,7 @@ def test_rows_bad_column(dt0):
 def test_rows_int_column(dt0):
     col = dt.Frame([0, 3, 0, 1])
     dt1 = dt0[col, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (4, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -470,7 +470,7 @@ def test_rows_int_column2():
     DT = dt.Frame(range(10))
     col = dt.Frame([3, 4, -1, 0, -1])
     res = DT[col, :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (5, 1)
     assert res.to_list() == [[3, 4, None, 0, None]]
 
@@ -503,7 +503,7 @@ def test_rows_int_column_0rows(dt0):
     assert col.shape == (0, 1)
     assert col.stypes == (stype.int64,)
     res = dt0[col, :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (0, dt0.ncols)
 
 
@@ -516,7 +516,7 @@ def test_rows_numpy_array(numpy):
     DT = dt.Frame(range(1000))
     idx = numpy.arange(0, 1000, 5)
     res = DT[idx, :]
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (200, 1)
     assert res.to_list() == [list(range(0, 1000, 5))]
 
@@ -536,7 +536,7 @@ def test_rows_int_numpy_array_shapes(dt0, numpy):
     arr3 = numpy.array([[7], [1], [0], [3]])
     for arr in [arr1, arr2, arr3]:
         dt1 = dt0[arr, :]
-        dt1.internal.check()
+        frame_integrity_check(dt1)
         assert dt1.shape == (4, 3)
         assert dt1.ltypes == dt0.ltypes
         assert dt1.to_list() == [[None, 1, 0, None],
@@ -561,7 +561,7 @@ def test_rows_bool_numpy_array(dt0, numpy):
     arr = numpy.array([True, False, True, True, False,
                        False, True, False, False, True])
     dt1 = dt0[arr, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -592,21 +592,21 @@ def test_rows_bool_numpy_array_error2(dt0, numpy):
 
 def test_rows_expr1(dt0):
     dt2 = dt0[f.colA, :]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (5, 3)
     assert dt2.to_list()[1] == [-11, 9, 0, 1, None]
 
 
 def test_rows_expr3(dt0):
     dt2 = dt0[f.colA < f.colB, :]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (2, 3)
     assert dt2.to_list() == [[0, 1], [7, 9], [5, 1.3]]
 
 
 def test_rows_expr4(dt0):
     dt1 = dt0[f.colB == 0, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (2, 3)
     assert dt1.to_list() == [[0, 1], [0, 0], [0, -2.6]]
 
@@ -615,11 +615,11 @@ def test_0rows_frame():
     dt0 = dt.Frame(A=[], B=[], stype=int)
     assert dt0.shape == (0, 2)
     dt1 = dt0[f.A == 0, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (0, 2)
     assert same_iterables(dt1.names, ("A", "B"))
     dt2 = dt0[:, f.A - f.B]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (0, 1)
     assert dt2.ltypes == (ltype.int, )
 
@@ -641,7 +641,7 @@ def _fixture2():
     df1 = dt.Frame([[0, 1, 2, 3, 4, 5, 6, None, 7,    None, 9],
                     [3, 2, 1, 3, 4, 0, 2, None, None, 8,    9.0]],
                    names=["A", "B"])
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.ltypes == (ltype.int, ltype.real)
     assert df1.names == ("A", "B")
     return df1
@@ -649,14 +649,14 @@ def _fixture2():
 
 def test_rows_equal(df1):
     dt1 = df1[f.A == f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[3, 4, None, 9], [3, 4, None, 9]]
 
 
 def test_rows_not_equal(df1):
     dt1 = df1[f.A != f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 2, 5, 6, 7, None],
                              [3, 2, 1, 0, 2, None, 8]]
@@ -664,28 +664,28 @@ def test_rows_not_equal(df1):
 
 def test_rows_less_than(df1):
     dt1 = df1[f.A < f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1], [3, 2]]
 
 
 def test_rows_greater_than(df1):
     dt1 = df1[f.A > f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[2, 5, 6], [1, 0, 2]]
 
 
 def test_rows_less_than_or_equal(df1):
     dt1 = df1[f.A <= f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 3, 4, None, 9], [3, 2, 3, 4, None, 9]]
 
 
 def test_rows_greater_than_or_equal(df1):
     dt1 = df1[f.A >= f.B, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[2, 3, 4, 5, 6, None, 9],
                              [1, 3, 4, 0, 2, None, 9]]
@@ -693,14 +693,14 @@ def test_rows_greater_than_or_equal(df1):
 
 def test_rows_compare_to_scalar_gt(df1):
     dt1 = df1[f.A > 3, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
 
 
 def test_rows_compare_to_scalar_lt(df1):
     dt1 = df1[f.A < 3, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[0, 1, 2], [3, 2, 1]]
 
@@ -708,14 +708,14 @@ def test_rows_compare_to_scalar_lt(df1):
 # noinspection PyComparisonWithNone
 def test_rows_compare_to_scalar_eq(df1):
     dt1 = df1[f.A == None, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[None, None], [None, 8]]
 
 
 def test_rows_unary_minus(df1):
     dt1 = df1[-f.A < -3, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[4, 5, 6, 7, 9], [4, 0, 2, None, 9]]
 
@@ -723,7 +723,7 @@ def test_rows_unary_minus(df1):
 def test_rows_isna(df1):
     from datatable import isna
     dt1 = df1[isna(f.A), :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[None, None], [None, 8]]
 
@@ -732,7 +732,7 @@ def test_rows_mean():
     from datatable import mean
     df0 = dt.Frame(A=range(10))
     df1 = df0[f.A > mean(f.A), :]
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.to_list() == [[5, 6, 7, 8, 9]]
 
 
@@ -741,7 +741,7 @@ def test_rows_min_max():
     df0 = dt.Frame(A=range(10))
     # min = 0, max = 9
     df1 = df0[f.A > (min(f.A) + max(f.A)) / 2, :]
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.to_list() == [[5, 6, 7, 8, 9]]
 
 
@@ -750,7 +750,7 @@ def test_rows_stdev():
     df0 = dt.Frame(A=range(10))
     # stdev = 3.0276
     df1 = df0[f.A > sd(f.A), :]
-    df1.internal.check()
+    frame_integrity_check(df1)
     assert df1.to_list() == [[4, 5, 6, 7, 8, 9]]
 
 
@@ -762,8 +762,8 @@ def test_rows_strequal():
     df2 = df0[f.A != f.B, :]
     df3 = df0[f.A == "foo", :]
     df4 = df0["bcD" == f.B, :]
-    df1.internal.check()
-    df2.internal.check()
+    frame_integrity_check(df1)
+    frame_integrity_check(df2)
     assert df1.to_list() == [["a", None, "xia"]] * 2
     assert df2.to_list() == [["bcd", "foo", "bee", "good"],
                              ["bcD", "fooo", None, "evil"]]
@@ -782,8 +782,8 @@ def test_filter_on_view1():
     df1 = df0[::2, :]
     assert df1.shape == (25, 1)
     df2 = df1[f.A < 10, :]
-    df2.internal.check()
-    assert df2.internal.isview
+    frame_integrity_check(df2)
+    assert isview(df2)
     assert df2.to_list() == [[0, 2, 4, 6, 8]]
 
 
@@ -791,8 +791,8 @@ def test_filter_on_view2():
     df0 = dt.Frame(A=range(50))
     df1 = df0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
     df2 = df1[f.A < 10, :]
-    df2.internal.check()
-    assert df2.internal.isview
+    frame_integrity_check(df2)
+    assert isview(df2)
     assert df2.to_list() == [[5, 7, 9, 3, 1, 4, 8]]
 
 
@@ -800,20 +800,20 @@ def test_filter_on_view3():
     df0 = dt.Frame(A=range(20))
     df1 = df0[::5, :]
     df2 = df1[f.A <= 10, :]
-    df2.internal.check()
+    frame_integrity_check(df2)
     assert df2.to_list() == [[0, 5, 10]]
 
 
 def test_chained_slice0(dt0):
     dt1 = dt0[::2, :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (5, 3)
     assert is_slice(dt1)
 
 
 def test_chained_slice1(dt0):
     dt2 = dt0[::2, :][::-1, :]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (5, 3)
     assert is_slice(dt2)
     assert dt2.to_list()[1] == [1, 0, None, 9, 7]
@@ -821,7 +821,7 @@ def test_chained_slice1(dt0):
 
 def test_chained_slice2(dt0):
     dt3 = dt0[::2, :][2:4, :]
-    dt3.internal.check()
+    frame_integrity_check(dt3)
     assert dt3.shape == (2, 3)
     assert is_slice(dt3)
     assert dt3.to_list() == [[0, 1], [None, 0], [100000, -2.6]]
@@ -829,7 +829,7 @@ def test_chained_slice2(dt0):
 
 def test_chained_slice3(dt0):
     dt4 = dt0[::2, :][[1, 0, 3, 2], :]
-    dt4.internal.check()
+    frame_integrity_check(dt4)
     assert dt4.shape == (4, 3)
     assert is_arr(dt4)
     assert dt4.to_list() == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
@@ -837,14 +837,14 @@ def test_chained_slice3(dt0):
 
 def test_chained_array0(dt0):
     dt1 = dt0[[2, 5, 1, 1, 1, 0], :]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (6, 3)
     assert is_arr(dt1)
 
 
 def test_chained_array1(dt0):
     dt2 = dt0[[2, 5, 1, 1, 1, 0], :][::2, :]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (3, 3)
     assert is_arr(dt2)
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
@@ -852,7 +852,7 @@ def test_chained_array1(dt0):
 
 def test_chained_array2(dt0):
     dt3 = dt0[[2, 5, 1, 1, 1, 0], :][::-1, :]
-    dt3.internal.check()
+    frame_integrity_check(dt3)
     assert dt3.shape == (6, 3)
     assert is_arr(dt3)
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
@@ -860,7 +860,7 @@ def test_chained_array2(dt0):
 
 def test_chained_array3(dt0):
     dt4 = dt0[[2, 5, 1, 1, 1, 0], :][(2, 3, 0), :]
-    dt4.internal.check()
+    frame_integrity_check(dt4)
     assert dt4.shape == (3, 3)
     assert as_list(dt4) == [[1, 1, 1], [-11, -11, 9], [1, 1, 1.3]]
 
@@ -888,12 +888,12 @@ def test_issue689(tempfile):
     n = 300000  # Must be > 65536
     data = [i % 8 for i in range(n)]
     d0 = dt.Frame(data, names=["A"])
-    d0.save(tempfile)
+    d0.to_jay(tempfile)
     del d0
     d1 = dt.open(tempfile)
     # Do not check d1! we want it to be lazy at this point
     d2 = d1[f[0] == 1, :]
-    d2.internal.check()
+    frame_integrity_check(d2)
     assert d2.shape == (n / 8, 1)
 
 
@@ -902,7 +902,7 @@ def test_issue1437(st):
     d0 = dt.Frame(range(100))
     d1 = d0[range(20), :]
     d2 = d1[dt.Frame(range(10), stype=st), :]
-    d2.internal.check()
+    frame_integrity_check(d2)
     assert d2.to_list() == [list(range(10))]
 
 

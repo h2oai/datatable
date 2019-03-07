@@ -7,10 +7,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_WRITER_H
 #define dt_CSV_WRITER_H
-#include <stdbool.h>
-#include <stdint.h>
+#include <iomanip>
 #include <string>
 #include <vector>
+#include "python/obj.h"
+#include "python/string.h"
+#include "utils/logger.h"
 #include "datatable.h"
 #include "writebuf.h"
 #include "utils.h"
@@ -18,19 +20,18 @@
 
 class CsvColumn;
 
+
 class CsvWriter {
   // Input parameters
-  DataTable *dt;
+  DataTable* dt;
   std::string path;
-  std::vector<std::string> column_names;
-  void *logger;
   size_t nthreads;
+  py::oobj logger;
   WritableBuffer::Strategy strategy;
   bool usehex;
-  bool verbose;
-  size_t : 40;
+  size_t : 48;
 
-  // Intermediate values used while writing the file
+  // Runtime values used while writing the file
   std::unique_ptr<WritableBuffer> wb;
   size_t fixed_size_per_row;
   double rows_per_chunk;
@@ -50,14 +51,10 @@ public:
   CsvWriter(DataTable *dt_, const std::string& path_);
   ~CsvWriter();
 
-  void set_logger(void *v) { logger = v; }
+  void set_logger(py::oobj v) { logger = v; }
   void set_nthreads(size_t n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
-  void set_verbose(bool v) { verbose = v; }
   void set_strategy(WritableBuffer::Strategy s) { strategy = s; }
-  void set_column_names(std::vector<std::string>& names) {
-    column_names = std::move(names);
-  }
 
   void write();
   WritableBuffer* get_output_buffer() { return wb.release(); }
@@ -69,16 +66,11 @@ private:
   void write_column_names();
   void determine_chunking_strategy(size_t size, size_t nrows);
   void create_column_writers(size_t ncols);
+  LogMessage log() const;
 };
 
 
 void init_csvwrite_constants();
 
-#ifdef _WIN32
-  void log_message(void *logger, const char *format, ...);
-#else
-  __attribute__((format(printf, 2, 3)))
-  void log_message(void *logger, const char *format, ...);
-#endif
 
 #endif

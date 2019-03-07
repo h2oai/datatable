@@ -175,8 +175,7 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new StringColumn<uint32_t>(nrows,
-                                    std::move(offbuf), std::move(strbuf));
+  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -225,7 +224,7 @@ static Column* try_to_resolve_object_column(Column* col)
   uint32_t offset = 0;
   for (size_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
-      offsets[i] = offset | GETNA<uint32_t>();
+      offsets[i] = offset ^ GETNA<uint32_t>();
     } else {
       PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
@@ -244,7 +243,7 @@ static Column* try_to_resolve_object_column(Column* col)
   xassert(offset < strbuf.size());
   strbuf.resize(offset);
   delete col;
-  return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
+  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -467,33 +466,33 @@ static int getbuffer_DataTable(
   // Construct the data buffer
   for (size_t i = 0; i < ncols; ++i) {
     // either a shallow copy, or "materialized" column
-    Column* col = dt->columns[i + i0]->shallowcopy();
-    col->reify();
-    if (col->stype() == stype) {
-      xassert(col->alloc_size() == colsize);
-      std::memcpy(memr.wptr(i*colsize), col->data(), colsize);
-    } else {
-      // xmb becomes a "view" on a portion of the buffer `mbuf`. An
-      // ExternelMemBuf object is documented to be readonly; however in
-      // practice it can still be written to, just not resized (this is
-      // hacky, maybe fix in the future).
-      MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
-      // Now we create a `newcol` by casting `col` into `stype`, using
-      // the buffer `xmb`. Since `xmb` already has the correct size, this
-      // is possible. The effect of this call is that `newcol` will be
-      // created having the converted data; but the side-effect of this is
-      // that `mbuf` will have the same data, and in the right place.
-      Column* newcol = col->cast(stype, std::move(xmb));
-      xassert(newcol->alloc_size() == colsize);
-      // We can now delete the new column: this will delete `xmb` as well,
-      // however an ExternalMemBuf object does not attempt to free its
-      // memory buffer. The converted data that was written to `mbuf` will
-      // thus remain intact. No need to delete `xmb` either.
-      delete newcol;
-    }
+    // Column* col = dt->columns[i + i0]->shallowcopy();
+    // col->materialize();
+
+    // xmb becomes a "view" on a portion of the buffer `mbuf`. An
+    // ExternalMemBuf object is documented to be readonly; however in
+    // practice it can still be written to, just not resized (this is
+    // hacky, maybe fix in the future).
+    MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
+    // Now we create a `newcol` by casting `col` into `stype`, using
+    // the buffer `xmb`. Since `xmb` already has the correct size, this
+    // is possible. The effect of this call is that `newcol` will be
+    // created having the converted data; but the side-effect of this is
+    // that `mbuf` will have the same data, and in the right place.
+    Column* newcol = dt->columns[i + i0]->cast(stype, std::move(xmb));
+    xassert(newcol->alloc_size() == colsize);
+    // We can now delete the new column: this will delete `xmb` as well,
+    // however an ExternalMemBuf object does not attempt to free its
+    // memory buffer. The converted data that was written to `mbuf` will
+    // thus remain intact. No need to delete `xmb` either.
+    delete newcol;
+
     // Delete the `col` pointer, which was extracted from the i-th column
     // of the DataTable.
-    delete col;
+    // delete col;
+  }
+  if (stype == SType::OBJ) {
+   memr.set_pyobjects(/*clear=*/ false);
   }
 
   xinfo = new XInfo();
@@ -622,7 +621,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 }
 
 
-void DatatableModule::init_methods_buffers() {
+void py::DatatableModule::init_methods_buffers() {
   ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
   pybuffers::single_col = size_t(-1);
   pybuffers::force_stype = SType::VOID;

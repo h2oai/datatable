@@ -31,8 +31,8 @@ import sys
 import time
 from collections import namedtuple
 from datatable import stype, ltype
-from datatable.internal import frame_column_rowindex
-from tests import same_iterables, list_equals, noop
+from datatable.internal import frame_column_rowindex, frame_integrity_check
+from tests import same_iterables, list_equals, noop, isview
 
 
 
@@ -54,12 +54,11 @@ def dt0():
 
 
 @pytest.fixture()
-def patched_terminal(monkeypatch):
-    def send1(refresh_rate=1):
-        yield None
-    monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
-    dt.utils.terminal.term.override_width = 100
-    dt.utils.terminal.term.disable_styling()
+def patched_terminal():
+    dt.utils.terminal.term._width = 100
+    dt.utils.terminal.term.use_colors(False)
+    dt.utils.terminal.term.use_keyboard(False)
+    dt.utils.terminal.term.use_terminal_codes(False)
 
 
 def assert_valueerror(frame, rows, error_message):
@@ -152,7 +151,7 @@ def test_dt_version():
 
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
-    dt0.internal.check()
+    frame_integrity_check(dt0)
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
@@ -161,9 +160,13 @@ def test_dt_properties(dt0):
                           ltype.bool, ltype.bool, ltype.str)
     assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
                           stype.bool8, stype.bool8, stype.str32)
-    assert dt0.internal.alloc_size > 500
-    assert sys.getsizeof(dt0) >= dt0.internal.alloc_size
+    assert sys.getsizeof(dt0) > 500
 
+
+def test_sizeof():
+    DT1 = dt.Frame(A=["foo"])
+    DT2 = dt.Frame(A=["foo" * 1001])
+    assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
 
 
 def test_internal():
@@ -174,17 +177,35 @@ def test_internal():
 
 
 def test_dt_view(dt0, patched_terminal, capsys):
-    dt0.view()
+    dt0.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    assert ("      A   B   C     D   E   F  G    \n"
-            "---  --  --  --  ----  --  --  -----\n"
-            " 0    2   1   1   0.1       0  1    \n"
-            " 1    7   0   1   2         0  2    \n"
-            " 2    0   0   1  -4         0  hello\n"
-            " 3    0   1   1   4.4       0  world\n"
+    assert ("     A   B   C     D   E   F  G    \n"
+            "--  --  --  --  ----  --  --  -----\n"
+            " 0   2   1   1   0.1       0  1    \n"
+            " 1   7   0   1   2         0  2    \n"
+            " 2   0   0   1  -4         0  hello\n"
+            " 3   0   1   1   4.4       0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
+            in out)
+
+
+def test_dt_view_keyed(patched_terminal, capsys):
+    DT = dt.Frame(A=range(5), B=list("cdbga"))
+    DT.key = "B"
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert ("B  |  A\n"
+            "---+ --\n"
+            "a  |  4\n"
+            "b  |  2\n"
+            "c  |  0\n"
+            "d  |  1\n"
+            "g  |  3\n"
+            "\n"
+            "[5 rows x 2 columns]\n"
             in out)
 
 
@@ -254,7 +275,7 @@ def test_dt_colindex_fuzzy_suggestions():
         assert str(e.value).endswith(suggestions)
 
     d0 = dt.Frame([[0]] * 3, names=["foo", "bar", "baz"])
-    d0.internal.check()
+    frame_integrity_check(d0)
     check(d0, "fo", "; did you mean `foo`?")
     check(d0, "foe", "; did you mean `foo`?")
     check(d0, "fooo", "; did you mean `foo`?")
@@ -263,7 +284,7 @@ def test_dt_colindex_fuzzy_suggestions():
     check(d0, "bazb", "; did you mean `baz` or `bar`?")
     check(d0, "ababa", "Frame")
     d1 = dt.Frame([[0]] * 50)
-    d1.internal.check()
+    frame_integrity_check(d1)
     check(d1, "A", "Frame")
     check(d1, "C", "; did you mean `C0`, `C1` or `C2`?")
     check(d1, "c1", "; did you mean `C1`, `C0` or `C2`?")
@@ -271,7 +292,7 @@ def test_dt_colindex_fuzzy_suggestions():
     check(d1, "V0", "; did you mean `C0`?")
     check(d1, "Va", "Frame")
     d2 = dt.Frame(varname=[1])
-    d2.internal.check()
+    frame_integrity_check(d2)
     check(d2, "vraname", "; did you mean `varname`?")
     check(d2, "VRANAME", "; did you mean `varname`?")
     check(d2, "var_name", "; did you mean `varname`?")
@@ -288,29 +309,29 @@ def test_resize_rows_api():
     f0 = dt.Frame([20])
     f0.nrows = 3
     f0.nrows = 5
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.to_list() == [[20, None, None, None, None]]
 
 
 def test_resize_rows0():
     f0 = dt.Frame(range(10), stype=dt.int32)
     f0.nrows = 6
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (6, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.to_list() == [[0, 1, 2, 3, 4, 5]]
     f0.nrows = 12
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (12, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.to_list() == [[0, 1, 2, 3, 4, 5] + [None] * 6]
     f0.nrows = 1
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (1, 1)
     assert f0.stypes == (dt.int32,)
     assert f0[0, 0] == 0
     f0.nrows = 20
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (20, 1)
     assert f0.stypes == (dt.int32,)
     assert f0.to_list() == [[0] + [None] * 19]
@@ -320,21 +341,21 @@ def test_resize_rows1():
     srcs = [[True], [5], [14.3], ["fooga"], ["zoom"]]
     stypes = (dt.bool8, dt.int64, dt.float64, dt.str32, dt.str64)
     f0 = dt.Frame(srcs, stypes=stypes)
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (1, 5)
     assert f0.stypes == stypes
     f0.nrows = 7
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (7, 5)
     assert f0.stypes == stypes
     assert f0.to_list() == [src + [None] * 6 for src in srcs]
     f0.nrows = 20
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (20, 5)
     assert f0.stypes == stypes
     assert f0.to_list() == [src + [None] * 19 for src in srcs]
     f0.nrows = 0
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.shape == (0, 5)
     assert f0.stypes == stypes
     assert f0.to_list() == [[]] * 5
@@ -345,44 +366,44 @@ def test_resize_rows_nastrs():
     f0.nrows = 3
     assert f0.to_list() == [["foo", None, None]]
     f0.nrows = 10
-    f0.internal.check()
+    frame_integrity_check(f0)
     assert f0.to_list() == [["foo"] + [None] * 9]
 
 
 def test_resize_view_slice():
     f0 = dt.Frame(range(100))
     f1 = f0[8::2, :]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (46, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     f1.nrows = 10
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (10, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list()[0] == list(range(8, 28, 2))
     f1.nrows = 15
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (15, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list()[0] == list(range(8, 28, 2)) + [None] * 5
 
 
 def test_resize_view_array():
     f0 = dt.Frame(range(100))
     f1 = f0[[1, 1, 2, 3, 5, 8, 13, 0], :]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (8, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3, 5, 8, 13, 0]]
     f1.nrows = 4
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (4, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3]]
     f1.nrows = 5
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.shape == (5, 1)
-    assert f1.internal.isview
+    assert isview(f1)
     assert f1.to_list() == [[1, 1, 2, 3, None]]
 
 
@@ -403,18 +424,27 @@ def test_resize_bad():
             in str(e.value))
 
 
-def test_resize_issue1527():
+def test_resize_issue1527(patched_terminal, capsys):
     f0 = dt.Frame(A=[])
     assert f0.nrows == 0
-    f0.nrows = 10
-    assert f0.nrows == 10
-    assert f0.to_list() == [[None] * 10]
-    assert f0._data_viewer(0, f0.nrows, 0, f0.ncols) == \
-            {'names': ('A',),
-             'types': (ltype.bool,),
-             'stypes': (stype.bool8,),
-             'columns': [[None] * 10],
-             'rownumbers': [' 0', ' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9']}
+    f0.nrows = 5
+    assert f0.nrows == 5
+    assert f0.to_list() == [[None] * 5]
+
+    f0.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert ("     A\n"
+            "--  --\n"
+            " 0    \n"
+            " 1    \n"
+            " 2    \n"
+            " 3    \n"
+            " 4    \n"
+            "\n"
+            "[5 rows x 1 column]\n"
+            in out)
+
 
 
 
@@ -425,14 +455,14 @@ def test_resize_issue1527():
 def test_dt_repeat():
     f0 = dt.Frame(range(10))
     f1 = dt.repeat(f0, 3)
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [list(range(10)) * 3]
 
 
 def test_dt_repeat2():
     f0 = dt.Frame(["A", "B", "CDE"])
     f1 = dt.repeat(f0, 7)
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [f0.to_list()[0] * 7]
 
 
@@ -442,8 +472,8 @@ def test_dt_repeat_multicol():
                   C=[25, -9, 18, 2],
                   D=[True, None, True, False])
     f1 = dt.repeat(f0, 4)
-    f1.internal.check()
-    assert f1.internal.isview
+    frame_integrity_check(f1)
+    assert isview(f1)
     assert f1.names == f0.names
     assert f1.stypes == f0.stypes
     assert f1.to_list() == [col * 4 for col in f0.to_list()]
@@ -453,21 +483,21 @@ def test_dt_repeat_view():
     f0 = dt.Frame(A=[1, 3, 4, 5], B=[2, 6, 3, 1])
     f1 = f0[::2, :]
     f2 = dt.repeat(f1, 5)
-    f2.internal.check()
+    frame_integrity_check(f2)
     assert f2.to_dict() == {"A": [1, 4] * 5, "B": [2, 3] * 5}
 
 
 def test_dt_repeat_empty_frame():
     f0 = dt.Frame()
     f1 = dt.repeat(f0, 5)
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == []
 
 
 def test_repeat_empty_frame2():
     f0 = dt.Frame(A=[], B=[], C=[], stypes=[dt.int32, dt.str32, dt.float32])
     f1 = dt.repeat(f0, 1000)
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.names == f0.names
     assert f1.stypes == f0.stypes
     assert f1.to_list() == f0.to_list()
@@ -482,7 +512,7 @@ def test_rename_list():
     d0 = dt.Frame([[7], [2], [5]])
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("a", "c", "e")
     assert d0.colindex("a") == 0
     assert d0.colindex("c") == 1
@@ -494,7 +524,7 @@ def test_rename_dict():
     assert d0.names == ("C0", "C1", "C2")
     d0.names = {"C0": "x", "C2": "z"}
     d0.names = {"C1": "y"}
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.names == ("x", "y", "z")
     assert d0.colindex("x") == 0
     assert d0.colindex("y") == 1
@@ -643,7 +673,7 @@ def test_topandas_nas():
                    [249, None, 30000, 1, None],
                    [4587074, None, 109348, 1394, -343],
                    [None, None, None, None, 134918374091834]])
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
                          dt.stype.int32, dt.stype.int64)
     p0 = d0.to_pandas()
@@ -729,7 +759,7 @@ def test_numpy_constructor_multi_types(numpy):
 def test_numpy_constructor_view(numpy):
     d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
     d1 = d0[::-2, :]
-    assert d1.internal.isview
+    assert isview(d1)
     n1 = numpy.array(d1)
     assert n1.dtype == numpy.dtype("int32")
     assert n1.T.tolist() == [list(range(99, 0, -2)),
@@ -888,7 +918,7 @@ def test_single_element_all_stypes(st):
           ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
           [dt, st, list, None, {3, 2, 1}]
     df = dt.Frame(A=src, stype=st)
-    df.internal.check()
+    frame_integrity_check(df)
     assert df.names == ("A", )
     assert df.stypes == (st, )
     for i, item in enumerate(src):
@@ -927,8 +957,8 @@ def test_copy_frame():
                   D=[True, False, None, False, True])
     assert sorted(d0.names) == list("ABCD")
     d1 = d0.copy()
-    d0.internal.check()
-    d1.internal.check()
+    frame_integrity_check(d0)
+    frame_integrity_check(d1)
     assert d0.names == d1.names
     assert d0.stypes == d1.stypes
     assert d0.to_list() == d1.to_list()
@@ -943,8 +973,8 @@ def test_copy_keyed_frame():
     d0.key = "A"
     d1 = d0.copy()
     d2 = dt.Frame(d0)
-    d1.internal.check()
-    d2.internal.check()
+    frame_integrity_check(d1)
+    frame_integrity_check(d2)
     assert d2.names == d1.names == d0.names
     assert d2.stypes == d1.stypes == d0.stypes
     assert d2.key == d1.key == d0.key
@@ -1006,6 +1036,27 @@ def test_tail_bad():
         d0.tail(5.0)
     assert ("The argument in Frame.tail() should be an integer"
             in str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Materialize
+#-------------------------------------------------------------------------------
+
+def test_materialize():
+    DT1 = dt.Frame(A=range(12))[::2, :]
+    DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
+    DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
+    DT = dt.cbind(DT1, DT2, DT3, force=True)
+    assert frame_column_rowindex(DT, 0).type == "slice"
+    assert frame_column_rowindex(DT, 1).type == "arr32"
+    assert frame_column_rowindex(DT, 2) is None
+    DT.materialize()
+    assert frame_column_rowindex(DT, 0) is None
+    assert frame_column_rowindex(DT, 1) is None
+    assert frame_column_rowindex(DT, 2) is None
+
+
 
 
 

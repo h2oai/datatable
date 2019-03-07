@@ -34,6 +34,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   when these selectors are applied to an `n`-rows frame, that frame will be
   split into train and test part according to the K-fold splitting scheme.
 
+- `Frame.rbind()` can now also accept a list or tuple of frames (previously
+  only a vararg sequence was allowed).
+
+- Method `.len()` can be applied to a string column to obtain the lengths
+  of strings in each row.
+
+- Method `.re_match(re)` applies to a string column, and produces boolean
+  indicator whether each value matches the regular expression `re` or not.
+  The method matches the entire string, not just the beginning. Thus, it
+  most closely resembles Python function `re.fullmatch()`.
+
 
 ### Fixed
 
@@ -43,6 +54,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.to_numpy()` now returns a numpy `masked_array` if the frame has
   any NA values (#1619).
 
+- A keyed frame will now be rendered correctly when viewing it in python
+  console via `Frame.view()` (#1672).
+
+- Str32 column can no longer overflow during the `.replace()` operation,
+  or when converting from python, numpy or pandas, etc. In all these cases
+  we will now transparently create a Str64 column instead (#1694).
+
+- The reported frame size (`sys.getsizeof(DT)`) is now more accurate; in
+  particular the content of string columns is no longer ignored (#1697).
+
+- Type casting into str32 no longer produces an error if the resulting column
+  is larger than 2GB. Now a str64 column will be returned instead (#1695).
+
+- Fixed memory leak during computation of a generic `DT[i, j]` expression.
+  Another memory leak was during generation of string columns, now also fixed
+  (#1705).
+
+- Fixed crash upon exiting from a python terminal, if the user ever called
+  function `frame_column_rowindex().type` (#1703).
+
 
 ### Changed
 
@@ -51,12 +82,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `dt.options.display.interactive = True`. Alternatively, you can explore a
   Frame interactively using `frame.view(True)`.
 
+- Improved performance of type-casting a view column: now the code avoids
+  materializing the column before performing the cast.
+
 
 ### Deprecated
 
 - Frame method `.scalar()` is now deprecated and will be removed in release
   0.10.0. Please use `frame[0, 0]` instead.
 
+- Frame method `.append()` is now deprecated and will be removed in release
+  0.10.0. Please use `.rbind()` instead.
+
+- Frame method `.save()` was renamed into `.to_jay()` (for consistency with
+  other `.to_*()` methods). The old name is still usable, but marked as
+  deprecated and will be removed in 0.10.0.
 
 
 ### Notes
@@ -64,8 +104,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
+  [arno candel][] (#1619),
   [antorsae][] (#1639),
-  [arno candel][] (#1619)
+  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 
 
 

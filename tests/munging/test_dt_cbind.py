@@ -9,6 +9,7 @@ import types
 import datatable as dt
 from tests import assert_equals
 from datatable import stype, DatatableWarning
+from datatable.internal import frame_integrity_check
 
 
 def dt_compute_stats(*dts):
@@ -227,7 +228,7 @@ def test_cbind_array():
     d0 = dt.Frame(A=range(5))
     with pytest.warns(DatatableWarning):
         d0.cbind([d0] * 10)
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.shape == (5, 11)
     assert d0.names == ("A",) + tuple("A.%d" % (i + 1) for i in range(10))
     assert d0.to_list() == [[0, 1, 2, 3, 4]] * 11

@@ -57,13 +57,10 @@ oobj orowindex::pyobject::m__repr__() {
 static GSArgs args_type("type");
 
 oobj orowindex::pyobject::get_type() const {
-  static oobj tSlice = ostring("slice");
-  static oobj tArr32 = ostring("arr32");
-  static oobj tArr64 = ostring("arr64");
   RowIndexType rt = ri->type();
-  return rt == RowIndexType::SLICE? tSlice :
-         rt == RowIndexType::ARR32? tArr32 :
-         rt == RowIndexType::ARR64? tArr64 : None();
+  return rt == RowIndexType::SLICE? ostring("slice") :
+         rt == RowIndexType::ARR32? ostring("arr32") :
+         rt == RowIndexType::ARR64? ostring("arr64") : None();
 }
 
 

@@ -14,7 +14,8 @@
 
 
 // Helper functions
-static Column* column_from_jay(const jay::Column* jaycol,
+static Column* column_from_jay(size_t nrows,
+                               const jay::Column* jaycol,
                                const MemoryRange& jaybuf);
 
 
@@ -75,7 +76,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column* col = column_from_jay(jcol, mbuf);
+    Column* col = column_from_jay(nrows, jcol, mbuf);
     if (col->nrows != nrows) {
       throw IOError() << "Length of column " << i << " is " << col->nrows
           << ", however the Frame contains " << nrows << " rows";
@@ -105,9 +106,9 @@ static MemoryRange extract_buffer(
 }
 
 
-template <typename T, typename A, typename JStats>
+template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<T, A>*>(stats);
+  auto tstats = static_cast<NumericalStats<T>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
     tstats->set_countna(jcol->nullcount());
@@ -118,40 +119,41 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 
 
 static Column* column_from_jay(
-    const jay::Column* jcol, const MemoryRange& jaybuf)
+    size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
 {
   jay::Type jtype = jcol->type();
 
-  Column* col = nullptr;
+  SType stype = SType::VOID;
   switch (jtype) {
-    case jay::Type_Bool8:   col = new BoolColumn(0); break;
-    case jay::Type_Int8:    col = new IntColumn<int8_t>(0); break;
-    case jay::Type_Int16:   col = new IntColumn<int16_t>(0); break;
-    case jay::Type_Int32:   col = new IntColumn<int32_t>(0); break;
-    case jay::Type_Int64:   col = new IntColumn<int64_t>(0); break;
-    case jay::Type_Float32: col = new RealColumn<float>(0); break;
-    case jay::Type_Float64: col = new RealColumn<double>(0); break;
-    case jay::Type_Str32:   col = new StringColumn<uint32_t>(0); break;
-    case jay::Type_Str64:   col = new StringColumn<uint64_t>(0); break;
+    case jay::Type_Bool8:   stype = SType::BOOL; break;
+    case jay::Type_Int8:    stype = SType::INT8; break;
+    case jay::Type_Int16:   stype = SType::INT16; break;
+    case jay::Type_Int32:   stype = SType::INT32; break;
+    case jay::Type_Int64:   stype = SType::INT64; break;
+    case jay::Type_Float32: stype = SType::FLOAT32; break;
+    case jay::Type_Float64: stype = SType::FLOAT64; break;
+    case jay::Type_Str32:   stype = SType::STR32; break;
+    case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
+  Column* col = nullptr;
   MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
-  if (jtype == jay::Type_Str32 || jtype == jay::Type_Str64) {
+  if (stype == SType::STR32 || stype == SType::STR64) {
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col->replace_buffer(std::move(databuf), std::move(strbuf));
+    col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col->replace_buffer(std::move(databuf));
+    col = Column::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col->get_stats();
   switch (jtype) {
-    case jay::Type_Bool8:   initStats<int8_t,  int64_t, jay::StatsBool>(stats, jcol); break;
-    case jay::Type_Int8:    initStats<int8_t,  int64_t, jay::StatsInt8>(stats, jcol); break;
-    case jay::Type_Int16:   initStats<int16_t, int64_t, jay::StatsInt16>(stats, jcol); break;
-    case jay::Type_Int32:   initStats<int32_t, int64_t, jay::StatsInt32>(stats, jcol); break;
-    case jay::Type_Int64:   initStats<int64_t, int64_t, jay::StatsInt64>(stats, jcol); break;
-    case jay::Type_Float32: initStats<float,   double,  jay::StatsFloat32>(stats, jcol); break;
-    case jay::Type_Float64: initStats<double,  double,  jay::StatsFloat64>(stats, jcol); break;
+    case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
+    case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
+    case jay::Type_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
+    case jay::Type_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
+    case jay::Type_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
+    case jay::Type_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;
+    case jay::Type_Float64: initStats<double,  jay::StatsFloat64>(stats, jcol); break;
     default: break;
   }
 
@@ -163,17 +165,18 @@ static Column* column_from_jay(
 //------------------------------------------------------------------------------
 // Python open_jay()
 //------------------------------------------------------------------------------
+namespace py {
 
-static py::PKArgs args_open_jay(
+static PKArgs args_open_jay(
   1, 0, 0, false, false, {"file"}, "open_jay",
   "open_jay(file)\n--\n\n"
   "Open a Frame from the provided .jay file.\n");
 
 
-static py::oobj open_jay(const py::PKArgs& args) {
+static oobj open_jay(const PKArgs& args) {
   DataTable* dt = nullptr;
   if (args[0].is_bytes()) {
-    // TODO: create & use class py::obytes
+    // TODO: create & use class obytes
     PyObject* arg1 = args[0].to_borrowed_ref();
     const char* data = PyBytes_AS_STRING(arg1);
     size_t length = static_cast<size_t>(PyBytes_GET_SIZE(arg1));
@@ -186,11 +189,13 @@ static py::oobj open_jay(const py::PKArgs& args) {
   else {
     throw TypeError() << "Invalid type of the argument to open_jay()";
   }
-  py::Frame* frame = py::Frame::from_datatable(dt);
-  return py::oobj::from_new_reference(frame);
+  Frame* frame = Frame::from_datatable(dt);
+  return oobj::from_new_reference(frame);
 }
 
 
 void DatatableModule::init_methods_jay() {
   ADD_FN(&open_jay, args_open_jay);
 }
+
+} // namespace py

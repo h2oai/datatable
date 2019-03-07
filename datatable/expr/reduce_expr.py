@@ -21,15 +21,22 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .base_expr import BaseExpr
-from .consts import reduce_opcodes, ops_rules, baseexpr_opcodes
 from datatable.frame import Frame
 from datatable.lib import core
-from datatable.types import stype
 
 _builtin_sum = sum
 _builtin_min = min
 _builtin_max = max
 
+# See "c/expr/base_expr.h"
+BASEEXPR_OPCODE_UNREDUCE = 6
+BASEEXPR_OPCODE_NUREDUCE = 7
+
+
+
+#-------------------------------------------------------------------------------
+# Exported functions
+#-------------------------------------------------------------------------------
 
 def count(iterable=None):
     if isinstance(iterable, BaseExpr):
@@ -97,7 +104,7 @@ class CountExpr(BaseExpr):
         return "count()"
 
     def _core(self):
-        return core.base_expr(baseexpr_opcodes["nureduce"], 0)
+        return core.base_expr(BASEEXPR_OPCODE_NUREDUCE, 0)
 
 
 
@@ -114,7 +121,18 @@ class ReduceExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(baseexpr_opcodes["unreduce"],
+        return core.base_expr(BASEEXPR_OPCODE_UNREDUCE,
                               reduce_opcodes[self._op],
                               self._expr._core())
 
+
+# Synchronize with c/expr/reduceop.cc
+reduce_opcodes = {
+    "mean": 1,
+    "min": 2,
+    "max": 3,
+    "stdev": 4,
+    "first": 5,
+    "sum": 6,
+    "count": 7,
+}

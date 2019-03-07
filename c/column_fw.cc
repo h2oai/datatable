@@ -85,15 +85,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 //==============================================================================
 
 template <typename T>
-void FwColumn<T>::replace_buffer(MemoryRange&& new_mbuf) {
-  if (new_mbuf.size() % sizeof(T)) {
-    throw RuntimeError() << "New buffer has invalid size " << new_mbuf.size();
-  }
-  mbuf = std::move(new_mbuf);
-  nrows = mbuf.size() / sizeof(T);
-}
-
-template <typename T>
 size_t FwColumn<T>::elemsize() const {
   return sizeof(T);
 }
@@ -111,7 +102,7 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) reify();
+  if (ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -137,7 +128,7 @@ void FwColumn<T>::set_elem(size_t i, T value) {
 
 
 template <typename T>
-void FwColumn<T>::reify() {
+void FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
   if (!ri) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
@@ -193,7 +184,7 @@ template <typename T>
 void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
   if (new_nrows == nrows) return;
-  reify();
+  materialize();
 
   mbuf.resize(sizeof(T) * new_nrows);
 
@@ -211,56 +202,6 @@ void FwColumn<T>::resize_and_fill(size_t new_nrows)
   if (this->stats != nullptr) this->stats->reset();
 }
 
-
-template <typename T>
-void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                             size_t new_nrows, bool col_empty)
-{
-  const T na = na_elem;
-  const void* naptr = static_cast<const void*>(&na);
-
-  // Reallocate the column's data buffer
-  size_t old_nrows = nrows;
-  size_t old_alloc_size = alloc_size();
-  size_t new_alloc_size = sizeof(T) * new_nrows;
-  mbuf.resize(new_alloc_size);
-  nrows = new_nrows;
-
-  // Copy the data
-  char* resptr = static_cast<char*>(mbuf.wptr());
-  char* resptr0 = resptr;
-  size_t rows_to_fill = 0;
-  if (col_empty) {
-    rows_to_fill = old_nrows;
-  } else {
-    resptr += old_alloc_size;
-  }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      rows_to_fill += col->nrows;
-    } else {
-      if (rows_to_fill) {
-        set_value(resptr, naptr, sizeof(T), rows_to_fill);
-        resptr += rows_to_fill * sizeof(T);
-        rows_to_fill = 0;
-      }
-      if (col->stype() != stype()) {
-        Column* newcol = col->cast(stype());
-        delete col;
-        col = newcol;
-      }
-      std::memcpy(resptr, col->data(), col->alloc_size());
-      resptr += col->alloc_size();
-    }
-    delete col;
-  }
-  if (rows_to_fill) {
-    set_value(resptr, naptr, sizeof(T), rows_to_fill);
-    resptr += rows_to_fill * sizeof(T);
-  }
-  xassert(resptr == resptr0 + new_alloc_size);
-  (void)resptr0;
-}
 
 
 template <typename T>
@@ -308,7 +249,7 @@ template <typename T>
 void FwColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
-  reify();
+  materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }

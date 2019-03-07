@@ -24,6 +24,7 @@
 import datatable as dt
 import pytest
 import random
+from datatable.internal import frame_integrity_check
 
 
 
@@ -36,7 +37,7 @@ set_fns = [dt.union, dt.intersect, dt.setdiff, dt.symdiff]
 @pytest.mark.parametrize("fn", set_fns)
 def test_setfns_0(fn):
     res = fn()
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (0, 0)
 
 
@@ -44,7 +45,7 @@ def test_setfns_0(fn):
 def test_setfns_1(fn):
     dt0 = dt.Frame([1, 2, 3, 1])
     res = fn(dt0)
-    res.internal.check()
+    frame_integrity_check(res)
     assert res.shape == (3, 1)
     assert res.to_list() == [[1, 2, 3]]
 
@@ -56,8 +57,8 @@ def test_setfns_array_arg(fn):
     dt2 = dt.Frame([2, 7, 11])
     res1 = fn(dt0, dt1, dt2)
     res2 = fn([dt0, dt1, dt2])
-    res1.internal.check()
-    res2.internal.check()
+    frame_integrity_check(res1)
+    frame_integrity_check(res2)
     assert res1.names == res2.names
     assert res1.stypes == res2.stypes
     assert res1.to_list() == res2.to_list()
@@ -95,7 +96,7 @@ def test_union2():
     dt2 = dt.Frame([3, 4, 2, 5])
     res = dt.union(dt1, dt2)
     assert res.to_list() == [[2, 3, 4, 5, 7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 def test_union3():
@@ -104,7 +105,7 @@ def test_union3():
     dt3 = dt.Frame([0, 3, 2, 2, 2, 2, 2, 2, 0])
     res = dt.union(dt3, dt1, dt2)
     assert res.to_list() == [[0, 2, 3, 4, 5, 7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 
@@ -117,7 +118,7 @@ def test_intersect2():
     dt2 = dt.Frame([3, 4, 2, 5])
     res = dt.intersect(dt1, dt2)
     assert res.to_list() == [[2, 3, 5]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 def test_intersect3():
@@ -126,7 +127,7 @@ def test_intersect3():
     dt3 = dt.Frame([0, 3, 2, 2, 2, 2, 2, 2, 0])
     res = dt.intersect(dt3, dt1, dt2)
     assert res.to_list() == [[2, 3]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 
@@ -139,7 +140,7 @@ def test_setdiff2():
     dt2 = dt.Frame([3, 4, 2, 5])
     res = dt.setdiff(dt1, dt2)
     assert res.to_list() == [[7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 def test_setdiff3():
     dt1 = dt.Frame([2, 5, 7, 2, 3, 6, 0])
@@ -147,7 +148,7 @@ def test_setdiff3():
     dt3 = dt.Frame([0, 3, 2, 2, 2, 2, 2, 2, 0])
     res = dt.setdiff(dt1, dt2, dt3)
     assert res.to_list() == [[6, 7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 
@@ -160,7 +161,7 @@ def test_symdiff2():
     dt2 = dt.Frame([3, 4, 2, 5])
     res = dt.symdiff(dt1, dt2)
     assert res.to_list() == [[4, 7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 def test_symdiff3():
     dt1 = dt.Frame([2, 5, 7, 2, 3, 6, 0])
@@ -168,7 +169,7 @@ def test_symdiff3():
     dt3 = dt.Frame([0, 3, 2, 2, 2, 2, 2, 2, 0])
     res = dt.symdiff(dt1, dt2, dt3)
     assert res.to_list() == [[2, 3, 4, 6, 7]]
-    res.internal.check()
+    frame_integrity_check(res)
 
 
 

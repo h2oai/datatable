@@ -43,6 +43,48 @@ template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 
+/**
+ * Helper templates to convert between an stype and a column's type:
+ *
+ * column_t<stype>
+ *   resolves to the type of the column that implements `stype`.
+ *
+ * element_t<stype>
+ *   resolves to the type of the element that is in the main data buffer
+ *   of `column_t<stype>`.
+ */
+template <SType s> struct _colt {};
+template <> struct _colt<SType::BOOL>    { using t = BoolColumn; };
+template <> struct _colt<SType::INT8>    { using t = IntColumn<int8_t>; };
+template <> struct _colt<SType::INT16>   { using t = IntColumn<int16_t>; };
+template <> struct _colt<SType::INT32>   { using t = IntColumn<int32_t>; };
+template <> struct _colt<SType::INT64>   { using t = IntColumn<int64_t>; };
+template <> struct _colt<SType::FLOAT32> { using t = RealColumn<float>; };
+template <> struct _colt<SType::FLOAT64> { using t = RealColumn<double>; };
+template <> struct _colt<SType::STR32>   { using t = StringColumn<uint32_t>; };
+template <> struct _colt<SType::STR64>   { using t = StringColumn<uint64_t>; };
+template <> struct _colt<SType::OBJ>     { using t = PyObjectColumn; };
+
+template <SType s>
+using column_t = typename _colt<s>::t;
+
+template <SType s> struct _elt {};
+template <> struct _elt<SType::BOOL>    { using t = int8_t; };
+template <> struct _elt<SType::INT8>    { using t = int8_t; };
+template <> struct _elt<SType::INT16>   { using t = int16_t; };
+template <> struct _elt<SType::INT32>   { using t = int32_t; };
+template <> struct _elt<SType::INT64>   { using t = int64_t; };
+template <> struct _elt<SType::FLOAT32> { using t = float; };
+template <> struct _elt<SType::FLOAT64> { using t = double; };
+template <> struct _elt<SType::STR32>   { using t = uint32_t; };
+template <> struct _elt<SType::STR64>   { using t = uint64_t; };
+template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+
+template <SType s>
+using element_t = typename _elt<s>::t;
+
+
+
 //==============================================================================
 
 /**
@@ -95,6 +137,10 @@ public:  // TODO: convert this into private
   size_t nrows;
 
 public:
+  static constexpr size_t MAX_STRING_SIZE = 0x7FFFFFFF;
+  static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
+  static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
+
   static Column* new_data_column(SType, size_t nrows);
   static Column* new_na_column(SType, size_t nrows);
   static Column* new_mmap_column(SType, size_t nrows, const std::string& filename);
@@ -102,7 +148,6 @@ public:
                                   bool recode = false);
   static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
-  static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
@@ -112,8 +157,6 @@ public:
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
-  virtual void replace_buffer(MemoryRange&&);
-  virtual void replace_buffer(MemoryRange&&, MemoryRange&&);
 
   virtual SType stype() const noexcept = 0;
   virtual size_t elemsize() const = 0;
@@ -131,7 +174,7 @@ public:
   size_t alloc_size() const;
 
   virtual size_t data_nrows() const = 0;
-  size_t memory_footprint() const;
+  virtual size_t memory_footprint() const;
 
   RowIndex sort(Groupby* out_groups) const;
 
@@ -229,7 +272,7 @@ public:
    * by replacing the current rowindex with the "plain slice" (i.e. a slice
    * with step 1).
    */
-  virtual void reify() = 0;
+  virtual void materialize() = 0;
 
   virtual py::oobj get_value_at_index(size_t i) const = 0;
 
@@ -242,40 +285,6 @@ public:
   size_t nmodal() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
-
-  /**
-   * Methods for retrieving statistics in the form of a Column. The resulting
-   * Column will contain a single row, in which is the value of the statistic.
-   * Fixed-type statistics (e.g mean, countna) will always return a Column with
-   * a corresponding stype, even if the statistic results in a NA value. For
-   * example, `mean_column` will always return RealColumn<double>.
-   * Variable-type statistics (e.g. min, sum) will instead result in a column of
-   * the same stype as the calling instance if the statistic is incompatible
-   * with the column stype.
-   */
-  virtual Column* min_column() const;
-  virtual Column* max_column() const;
-  virtual Column* sum_column() const;
-  virtual Column* mean_column() const;
-  virtual Column* sd_column() const;
-  virtual Column* skew_column() const;
-  virtual Column* kurt_column() const;
-  virtual Column* countna_column() const;
-  virtual Column* nunique_column() const;
-  virtual Column* nmodal_column() const;
-  virtual Column* mode_column() const;
-
-  virtual PyObject* min_pyscalar() const;
-  virtual PyObject* max_pyscalar() const;
-  virtual PyObject* sum_pyscalar() const;
-  virtual PyObject* mean_pyscalar() const;
-  virtual PyObject* sd_pyscalar() const;
-  virtual PyObject* skew_pyscalar() const;
-  virtual PyObject* kurt_pyscalar() const;
-  virtual PyObject* countna_pyscalar() const;
-  virtual PyObject* nunique_pyscalar() const;
-  virtual PyObject* nmodal_pyscalar() const;
-  virtual PyObject* mode_pyscalar() const;
 
   /**
    * Check that the data in this Column object is correct. `name` is the name of
@@ -308,29 +317,6 @@ protected:
                           size_t nrows, bool isempty) = 0;
 
   /**
-   * These functions are designed to cast the current column into another type.
-   * Each of the functions takes as an argument the new column object which
-   * ought to be filled with the converted data. The `cast_into(...)` functions
-   * do not modify the current column.
-   *
-   * The argument to the `cast_into(...)` methods is the "target" column - a
-   * new writable column preallocated for `nrows` elements.
-   *
-   * Casting a column with a RowIndex is currently not supported.
-   */
-  virtual void cast_into(BoolColumn*) const;
-  virtual void cast_into(IntColumn<int8_t>*) const;
-  virtual void cast_into(IntColumn<int16_t>*) const;
-  virtual void cast_into(IntColumn<int32_t>*) const;
-  virtual void cast_into(IntColumn<int64_t>*) const;
-  virtual void cast_into(RealColumn<float>*) const;
-  virtual void cast_into(RealColumn<double>*) const;
-  virtual void cast_into(StringColumn<uint32_t>*) const;
-  virtual void cast_into(StringColumn<uint64_t>*) const;
-  virtual void cast_into(PyObjectColumn*) const;
-
-
-  /**
    * Sets every row in the column to an NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
    * refcount or rowindex. Use with caution.
@@ -356,7 +342,6 @@ template <typename T> class FwColumn : public Column
 public:
   FwColumn(size_t nrows);
   FwColumn(size_t nrows, MemoryRange&&);
-  void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
   T get_elem(size_t i) const;
@@ -367,7 +352,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
-  virtual void reify() override;
+  virtual void materialize() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
@@ -413,35 +398,11 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
   BooleanStats* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
 
   protected:
-
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -469,49 +430,17 @@ public:
   double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   IntegerStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
   using Column::stats;
   using Column::mbuf;
   using Column::new_data_column;
   friend Column;
 };
 
-template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
-template <> void IntColumn<int16_t>::cast_into(IntColumn<int16_t>*) const;
-template <> void IntColumn<int32_t>::cast_into(IntColumn<int32_t>*) const;
-template <> void IntColumn<int64_t>::cast_into(IntColumn<int64_t>*) const;
 extern template class IntColumn<int8_t>;
 extern template class IntColumn<int16_t>;
 extern template class IntColumn<int32_t>;
@@ -534,48 +463,16 @@ public:
   double sd() const;
   double skew() const;
   double kurt() const;
-
-  Column* min_column() const override;
-  Column* max_column() const override;
-  Column* mode_column() const override;
-  Column* sum_column() const override;
-  Column* mean_column() const override;
-  Column* sd_column() const override;
-  Column* skew_column() const override;
-  Column* kurt_column() const override;
-  PyObject* min_pyscalar() const override;
-  PyObject* max_pyscalar() const override;
-  PyObject* mode_pyscalar() const override;
-  PyObject* sum_pyscalar() const override;
-  PyObject* mean_pyscalar() const override;
-  PyObject* sd_pyscalar() const override;
-  PyObject* skew_pyscalar() const override;
-  PyObject* kurt_pyscalar() const override;
   RealStats<T>* get_stats() const override;
 
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
-  void cast_into(BoolColumn*) const override;
-  void cast_into(IntColumn<int8_t>*) const override;
-  void cast_into(IntColumn<int16_t>*) const override;
-  void cast_into(IntColumn<int32_t>*) const override;
-  void cast_into(IntColumn<int64_t>*) const override;
-  void cast_into(RealColumn<float>*) const override;
-  void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
   using Column::stats;
   using Column::new_data_column;
   friend Column;
 };
 
-template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
-template <> void RealColumn<float>::cast_into(RealColumn<double>*) const;
-template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
-template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
 
@@ -613,24 +510,12 @@ protected:
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
 
-  // void cast_into(BoolColumn*) const override;
-  // void cast_into(IntColumn<int8_t>*) const override;
-  // void cast_into(IntColumn<int16_t>*) const override;
-  // void cast_into(IntColumn<int32_t>*) const override;
-  // void cast_into(IntColumn<int64_t>*) const override;
-  // void cast_into(RealColumn<float>*) const override;
-  // void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<uint32_t>*) const override;
-  void cast_into(StringColumn<uint64_t>*) const override;
-
-  void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
-  void reify() override;
+  void materialize() override;
   friend Column;
 };
 
@@ -646,16 +531,14 @@ template <typename T> class StringColumn : public Column
 
 public:
   StringColumn(size_t nrows);
-  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
-  void replace_buffer(MemoryRange&&, MemoryRange&&) override;
 
   SType stype() const noexcept override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
 
-  void reify() override;
+  void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
@@ -667,10 +550,9 @@ public:
   const uint8_t* ustrdata() const;
   const T* offsets() const;
   T* offsets_w();
+  size_t memory_footprint() const override;
 
   CString mode() const;
-  PyObject* mode_pyscalar() const override;
-  Column* mode_column() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;
@@ -683,6 +565,7 @@ public:
 
 protected:
   StringColumn();
+  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
   void init_mmap(const std::string& filename) override;
   void open_mmap(const std::string& filename, bool recode) override;
@@ -691,27 +574,22 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
                   bool isempty) override;
 
-  // void cast_into(BoolColumn*) const override;
-  // void cast_into(IntColumn<int8_t>*) const override;
-  // void cast_into(IntColumn<int16_t>*) const override;
-  // void cast_into(IntColumn<int32_t>*) const override;
-  // void cast_into(IntColumn<int64_t>*) const override;
-  // void cast_into(RealColumn<float>*) const override;
-  // void cast_into(RealColumn<double>*) const override;
-  void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<uint32_t>*) const;
-  void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
-
-  //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
   friend Column;
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
+  friend Column* new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 
-template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
-template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
+/**
+ * Use this function to create a column from existing offsets & strdata.
+ * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
+ * depending on the size of the data.
+ */
+Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+
+
 extern template class StringColumn<uint32_t>;
 extern template class StringColumn<uint64_t>;
 
@@ -728,7 +606,7 @@ class VoidColumn : public Column {
     size_t elemsize() const override;
     bool is_fixedwidth() const override;
     size_t data_nrows() const override;
-    void reify() override;
+    void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;

@@ -27,6 +27,7 @@ template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 
+
 /*
 *  Helper template structures to convert C++ float/double types to
 *  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
@@ -95,15 +96,6 @@ inline T1 squared_loss(T1 p, T2 y) {
   return (p - y_T1) * (p - y_T1);
 }
 
-/*
-* Implementation of `make_unique` template function.
-* Note: this implementation does not disable this overload for array types,
-* see https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
-*/
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
 
 /*
 * Progress reporting function and parameters.

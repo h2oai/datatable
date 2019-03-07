@@ -28,6 +28,7 @@
 import pickle
 import datatable as dt
 from datatable.models import Ftrl
+from datatable.internal import frame_integrity_check
 from datatable import f, stype, DatatableWarning
 import pytest
 import collections
@@ -602,9 +603,9 @@ def test_ftrl_fit_predict_multinomial():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    ft.model.internal.check()
+    frame_integrity_check(ft.model)
     p = ft.predict(df_train)
-    p.internal.check()
+    frame_integrity_check(p)
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
@@ -670,7 +671,7 @@ def test_ftrl_fit_predict_multinomial_online():
 
     # Test predictions
     p = ft.predict(df_train)
-    p.internal.check()
+    frame_integrity_check(p)
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
@@ -788,9 +789,9 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
                           "blue"])
     epoch = ft.fit(df_train, df_target, df_train, df_target,
                    nepochs_validate = 10000)
-    ft.model.internal.check()
+    frame_integrity_check(ft.model)
     p = ft.predict(df_train)
-    p.internal.check()
+    frame_integrity_check(p)
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
@@ -928,7 +929,7 @@ def test_ftrl_pickling_binomial():
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model.internal.check()
+    frame_integrity_check(ft_unpickled.model)
     assert ft_unpickled.model.stypes == (stype.float32, stype.float32)
     assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==
@@ -959,7 +960,7 @@ def test_ftrl_pickling_multinomial():
 
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model.internal.check()
+    frame_integrity_check(ft_unpickled.model)
     assert ft_unpickled.model.stypes == (stype.float32,) * 8
     assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==

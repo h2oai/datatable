@@ -86,14 +86,10 @@ static oobj kfold(const PKArgs& args) {
   int64_t n = static_cast<int64_t>(nrows);
 
   olist res(nsplits);
-  otuple split_first(2);
-  split_first.set(0, orange(n/k, n));
-  split_first.set(1, orange(0, n/k));
-  otuple split_last(2);
-  split_last.set(0, orange(0, (k-1)*n/k));
-  split_last.set(1, orange((k-1)*n/k, n));
-  res.set(0, split_first);
-  res.set(nsplits-1, split_last);
+  res.set(0, otuple(orange(n/k, n),
+                    orange(0, n/k)));
+  res.set(nsplits-1, otuple(orange(0, (k-1)*n/k),
+                            orange((k-1)*n/k, n)));
 
   std::vector<int32_t*> data;
 
@@ -105,10 +101,9 @@ static oobj kfold(const PKArgs& args) {
     DataTable* dt = new DataTable({col});
     data.push_back(static_cast<int32_t*>(col->data_w()));
 
-    otuple split_i(2);
-    split_i.set(0, oobj::from_new_reference(Frame::from_datatable(dt)));
-    split_i.set(1, orange(b1, b2));
-    res.set(static_cast<size_t>(ii), split_i);
+    res.set(static_cast<size_t>(ii),
+            otuple(oobj::from_new_reference(Frame::from_datatable(dt)),
+                   orange(b1, b2)));
   }
 
   for (int64_t t = 0; t < k*(k-2); ++t) {
@@ -129,8 +124,10 @@ static oobj kfold(const PKArgs& args) {
 }
 
 
-} // namespace py
 
 void DatatableModule::init_methods_kfold() {
-  ADD_FN(&py::kfold, py::args_kfold_simple);
+  ADD_FN(&kfold, args_kfold_simple);
 }
+
+
+} // namespace py

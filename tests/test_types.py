@@ -11,8 +11,6 @@ import pytest
 import datatable as dt
 from datatable.utils.typechecks import TValueError
 
-expr_consts = dt.expr.consts
-
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions

@@ -25,7 +25,8 @@ import datatable as dt
 import pytest
 import random
 from datatable import f, mean, min, max, sum, count, by, sort
-from tests import same_iterables, assert_equals
+from datatable.internal import frame_integrity_check
+from tests import same_iterables, assert_equals, isview
 
 
 
@@ -52,7 +53,7 @@ def test_groups_internal2():
 def test_groups_internal3():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
     f1 = f0[:, [f.B, f.A + f.B], by(f.A)]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
                             [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
@@ -70,7 +71,7 @@ def test_groups_internal4(seed):
     src = [random.getrandbits(10) for _ in range(n)]
     f0 = dt.Frame({"A": src})
     f1 = f0[:, :, by("A")]
-    f1.internal.check()
+    frame_integrity_check(f1)
     # gb = f1.internal.groupby
     # assert gb
     # grp_offsets = gb.group_offsets
@@ -91,7 +92,7 @@ def test_groups_internal5_strs(seed):
     src = ["%x" % random.getrandbits(8) for _ in range(n)]
     f0 = dt.Frame({"A": src})
     f1 = f0[:, :, by("A")]
-    f1.internal.check()
+    frame_integrity_check(f1)
     # gb = f1.internal.groupby
     # assert gb
     # grp_offsets = gb.group_offsets
@@ -126,7 +127,7 @@ def test_groups_multiple():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [min(f.size), max(f.size)], "color"]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [["blue", "green", "red"], [2, 0, 5], [2, 7, 13]]
 
 
@@ -134,7 +135,7 @@ def test_groups_autoexpand():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [mean(f.size), f.size], f.color]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [["blue", "green", "green", "red", "red"],
                             [2.0, 3.5, 3.5, 9.0, 9.0],
                             [2, 7, 0, 5, 13]]
@@ -172,7 +173,7 @@ def test_reduce_sum():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, -1]})
     f1 = f0[:, sum(f.size), f.color]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.to_list() == [["blue", "green", "red"],
                             [2, 6, 18]]
 
@@ -200,7 +201,7 @@ def test_groups_large2_str(n, seed):
     src = ["%x" % random.getrandbits(6) for _ in range(n)]
     f0 = dt.Frame({"A": src})
     f1 = f0[:, count(), by("A")]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.nrows == len(set(src))
 
 
@@ -271,7 +272,7 @@ def test_groupby_on_view():
                   B=[3, 6, 2, 4, 3, 1],
                   C=['b', 'd', 'b', 'b', 'd', 'b'])
     V = DT[f.A != 1, :]
-    assert V.internal.isview
+    assert isview(V)
     assert V.shape == (4, 3)
     assert V.to_dict() == {'A': [2, 3, 2, 3],
                            'B': [6, 2, 3, 1],

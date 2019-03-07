@@ -44,7 +44,7 @@ Parameters
 frame: datatable
     Frame to be aggregated.
 min_rows: int
-    Minimum number of rows a datatable should have to be aggregated. 
+    Minimum number of rows a datatable should have to be aggregated.
     If datatable has `nrows` that is less than `min_rows`, aggregation
     is bypassed, and all rows become exemplars.
 n_bins: int
@@ -66,18 +66,18 @@ progress_fn: object
       progress on a scale from 0 to 1;
     - `status_code` takes two values: `0` – in progress, `1` – completed.
 nthreads: int
-    Number of OpenMP threads aggregator should use. `0` means 
+    Number of OpenMP threads aggregator should use. `0` means
     use all the threads.
 double_precision: bool
-    Whether to use double precision arithmetic or not. 
+    Whether to use double precision arithmetic or not.
 
 Returns
 -------
-A list `[frame_exemplars, frame_members]`, where 
+A list `[frame_exemplars, frame_members]`, where
 - `frame_exemplars` is the aggregated `frame` with an additional
   `members_count` column, that specifies number of members for each exemplar.
 - `frame_members` is a one-column datatable that contains `exemplar_id` for
-    each row from the original `frame`.
+  each row from the original `frame`.
 )"
 );
 
@@ -90,7 +90,7 @@ A list `[frame_exemplars, frame_members]`, where
 static oobj aggregate(const PKArgs& args) {
   size_t min_rows = 500;
   size_t n_bins = 500;
-  size_t nx_bins = 50; 
+  size_t nx_bins = 50;
   size_t ny_bins = 50;
   size_t nd_max_bins = 500;
   size_t max_dimensions = 50;
@@ -197,7 +197,7 @@ AggregatorBase::~AggregatorBase() {}
 
 
 
-void DatatableModule::init_methods_aggregate() {
+void py::DatatableModule::init_methods_aggregate() {
   ADD_FN(&py::aggregate, py::args_aggregate);
 }
 

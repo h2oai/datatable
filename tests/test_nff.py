@@ -30,7 +30,8 @@ import random
 import shutil
 import tempfile
 from datatable import DatatableWarning
-from tests import assert_equals, noop
+from datatable.internal import frame_integrity_check
+from tests import assert_equals, noop, isview
 
 
 
@@ -43,7 +44,8 @@ def test_save_and_load():
     dt0 = dt.Frame({"A": [1, 7, 100, 12],
                     "B": [True, None, False, None],
                     "C": ["alpha", "beta", None, "delta"]})
-    dt0.save(dir1, format="nff")
+    with pytest.warns(FutureWarning):
+        dt0.save(dir1, format="nff")
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
     shutil.rmtree(dir1)
@@ -56,7 +58,8 @@ def test_empty_string_col():
     """
     dir1 = tempfile.mkdtemp()
     dt0 = dt.Frame([[1, 2, 3], ["", "", ""]])
-    dt0.save(dir1, format="nff")
+    with pytest.warns(FutureWarning):
+        dt0.save(dir1, format="nff")
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
     shutil.rmtree(dir1)
@@ -67,7 +70,8 @@ def test_issue627():
     dir1 = tempfile.mkdtemp()
     dt0 = dt.Frame({"py": [1], "ру": [2], "рy": [3], "pу": [4]})
     assert dt0.shape == (1, 4)
-    dt0.save(dir1, format="nff")
+    with pytest.warns(FutureWarning):
+        dt0.save(dir1, format="nff")
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
     shutil.rmtree(dir1)
@@ -77,16 +81,17 @@ def test_obj_columns(tempdir):
     src1 = [1, 2, 3, 4]
     src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
     d0 = dt.Frame([src1, src2], names=["A", "B"])
-    d0.internal.check()
+    frame_integrity_check(d0)
     assert d0.ltypes == (dt.ltype.int, dt.ltype.obj)
     assert d0.shape == (4, 2)
     with pytest.warns(DatatableWarning) as ws:
         d0.save(tempdir, format="nff")
-    assert len(ws) == 1
-    assert "Column 'B' of type obj64 was not saved" in ws[0].message.args[0]
+    assert len(ws) == 2
+    assert "Method `Frame.save()` is deprecated" in ws[0].message.args[0]
+    assert "Column 'B' of type obj64 was not saved" in ws[1].message.args[0]
     del d0
     d1 = dt.open(tempdir)
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.shape == (4, 1)
     assert d1.names == ("A", )
     assert d1.to_list() == [src1]
@@ -95,12 +100,13 @@ def test_obj_columns(tempdir):
 def test_save_view(tempdir):
     dt0 = dt.Frame([4, 0, -2, 3, 17, 2, 0, 1, 5], names=["fancy"])
     dt1 = dt0.sort(0)
-    assert dt1.internal.isview
-    dt1.internal.check()
-    dt1.save(tempdir, format="nff")
+    assert isview(dt1)
+    frame_integrity_check(dt1)
+    with pytest.warns(FutureWarning):
+        dt1.save(tempdir, format="nff")
     dt2 = dt.open(tempdir)
-    assert not dt2.internal.isview
-    dt2.internal.check()
+    assert not isview(dt2)
+    frame_integrity_check(dt2)
     assert dt2.names == dt1.names
     assert dt2.to_list() == dt1.to_list()
 
@@ -114,7 +120,7 @@ def test_jay_simple(tempfile):
     dt0 = dt.Frame({"A": [-1, 7, 10000, 12],
                     "B": [True, None, False, None],
                     "C": ["alpha", "beta", None, "delta"]})
-    dt0.save(tempfile, format="jay")
+    dt0.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     with open(tempfile, "rb") as inp:
         assert inp.read(8) == b"JAY1\x00\x00\x00\x00"
@@ -124,7 +130,7 @@ def test_jay_simple(tempfile):
 
 def test_jay_empty_string_col(tempfile):
     dt0 = dt.Frame([[1, 2, 3], ["", "", ""]], names=["hogs", "warts"])
-    dt0.save(tempfile)
+    dt0.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     dt1 = dt.open(tempfile)
     assert_equals(dt0, dt1)
@@ -136,13 +142,13 @@ def test_jay_view(tempfile, seed):
     src = [random.normalvariate(0, 1) for n in range(1000)]
     dt0 = dt.Frame({"values": src})
     dt1 = dt0.sort(0)
-    assert dt1.internal.isview
-    dt1.save(tempfile)
+    assert isview(dt1)
+    dt1.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     dt2 = dt.open(tempfile)
-    assert not dt2.internal.isview
-    dt1.internal.check()
-    dt2.internal.check()
+    assert not isview(dt2)
+    frame_integrity_check(dt1)
+    frame_integrity_check(dt2)
     assert dt1.names == dt2.names
     assert dt1.stypes == dt2.stypes
     assert dt1.to_list() == dt2.to_list()
@@ -151,7 +157,7 @@ def test_jay_view(tempfile, seed):
 def test_jay_unicode_names(tempfile):
     dt0 = dt.Frame({"py": [1], "ру": [2], "рy": [3], "pу": [4]})
     assert len(set(dt0.names)) == 4
-    dt0.save(tempfile)
+    dt0.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     dt1 = dt.open(tempfile)
     assert dt0.names == dt1.names
@@ -164,18 +170,18 @@ def test_jay_object_columns(tempfile):
     d0 = dt.Frame([src1, src2], names=["A", "B"])
     assert d0.stypes == (dt.int8, dt.obj64)
     with pytest.warns(DatatableWarning) as ws:
-        d0.save(tempfile)
+        d0.to_jay(tempfile)
     assert len(ws) == 1
     assert "Column `B` of type obj64 was not saved" in ws[0].message.args[0]
     d1 = dt.open(tempfile)
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.names == ("A",)
     assert d1.to_list() == [src1]
 
 
 def test_jay_empty_frame(tempfile):
     d0 = dt.Frame()
-    d0.save(tempfile)
+    d0.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     d1 = dt.open(tempfile)
     assert d1.shape == (0, 0)
@@ -201,7 +207,7 @@ def test_jay_all_types(tempfile):
     noop(d0.min())
     noop(d0.max())
     assert len(set(d0.stypes)) == d0.ncols
-    d0.save(tempfile)
+    d0.to_jay(tempfile)
     assert os.path.isfile(tempfile)
     d1 = dt.open(tempfile)
     assert_equals(d0, d1)
@@ -214,7 +220,7 @@ def test_jay_keys(tempfile):
     assert len(d0.key) == 1
     assert d0.to_list() == [["ab", "aop", "cd", "coo", "eee"],
                             [1, 5, 2, 4, 3]]
-    d0.save(tempfile)
+    d0.to_jay(tempfile)
     d1 = dt.open(tempfile)
     assert d1.key == ("x",)
     assert_equals(d0, d1)
@@ -231,7 +237,7 @@ def test_pickle(tempfile):
         pickle.dump(DT, out)
     with open(tempfile, 'rb') as inp:
         DT2 = pickle.load(inp)
-    DT2.internal.check()
+    frame_integrity_check(DT2)
     assert DT.to_list() == DT2.to_list()
     assert DT.names == DT2.names
     assert DT.stypes == DT2.stypes
@@ -253,7 +259,7 @@ def test_pickle2(tempfile):
         pickle.dump(DT, out)
     with open(tempfile, 'rb') as inp:
         DT2 = pickle.load(inp)
-    DT2.internal.check()
+    frame_integrity_check(DT2)
     assert DT.names == DT2.names
     assert DT.stypes == DT2.stypes
     assert DT.to_list() == DT2.to_list()
@@ -266,7 +272,7 @@ def test_pickle_keyed_frame(tempfile):
         pickle.dump(DT, out)
     with open(tempfile, 'rb') as inp:
         DT2 = pickle.load(inp)
-    DT2.internal.check()
+    frame_integrity_check(DT2)
     assert DT.names == DT2.names
     assert DT.stypes == DT2.stypes
     assert DT.to_list() == DT2.to_list()
