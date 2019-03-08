@@ -144,29 +144,24 @@ static void count_reducer(const RowIndex& ri, size_t row0, size_t row1,
 // Mean calculation
 //------------------------------------------------------------------------------
 
-template<typename IT, typename OT>
-static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* inputs = static_cast<const IT*>(col0->data());
-  OT* outputs = static_cast<OT*>(col1->data_w());
-  OT sum = 0;
-  int64_t cnt = 0;
-  OT delta = 0;
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
-  col0->rowindex().iterate(row0, row1, 1,
+template<typename T, typename U>
+static void mean_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                        const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  U* outputs = static_cast<U*>(out);
+  U sum = 0;
+  int64_t count = 0;
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
-      IT x = inputs[j];
-      if (ISNA<IT>(x)) return;
-      OT y = static_cast<OT>(x) - delta;
-      OT t = sum + y;
-      delta = (t - sum) - y;
-      sum = t;
-      cnt++;
+      T x = inputs[j];
+      if (!ISNA<T>(x)) {
+        sum += static_cast<U>(x);
+        count++;
+      }
     });
-  outputs[grp] = cnt == 0? GETNA<OT>() : sum / cnt;
+  outputs[grp_index] = (count == 0)? GETNA<U>() : sum / count;
 }
 
 
@@ -176,29 +171,28 @@ static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
 //------------------------------------------------------------------------------
 
 // Welford algorithm
-template<typename IT, typename OT>
-static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* inputs = static_cast<const IT*>(col0->data());
-  OT* outputs = static_cast<OT*>(col1->data_w());
-  OT mean = 0;
-  OT m2 = 0;
-  int64_t cnt = 0;
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
-  col0->rowindex().iterate(row0, row1, 1,
+template<typename T, typename U>
+static void stdev_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                          const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  U* outputs = static_cast<U*>(out);
+  U mean = 0;
+  U m2 = 0;
+  int64_t count = 0;
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
-      IT x = inputs[j];
-      if (ISNA<IT>(x)) return;
-      cnt++;
-      OT t1 = x - mean;
-      mean += t1 / cnt;
-      OT t2 = x - mean;
-      m2 += t1 * t2;
+      T x = inputs[j];
+      if (!ISNA<T>(x)) {
+        count++;
+        U tmp1 = static_cast<U>(x) - mean;
+        mean += tmp1 / count;
+        U tmp2 = static_cast<U>(x) - mean;
+        m2 += tmp1 * tmp2;
+      }
     });
-  outputs[grp] = cnt <= 1? GETNA<OT>() : std::sqrt(m2 / (cnt - 1));
+  outputs[grp_index] = (count <= 1)? GETNA<U>() : std::sqrt(m2/(count - 1));
 }
 
 
@@ -254,36 +248,6 @@ static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
 
 
 //------------------------------------------------------------------------------
-// Resolve template function
-//------------------------------------------------------------------------------
-
-template<typename T1, typename T2>
-static gmapperfn resolve1(ReduceOp opcode) {
-  switch (opcode) {
-    case ReduceOp::MEAN:  return mean_skipna<T1, T2>;
-    case ReduceOp::STDEV: return stdev_skipna<T1, T2>;
-    default:            return nullptr;
-  }
-}
-
-
-static gmapperfn resolve0(ReduceOp opcode, SType stype) {
-
-  switch (stype) {
-    case SType::BOOL:
-    case SType::INT8:    return resolve1<int8_t, double>(opcode);
-    case SType::INT16:   return resolve1<int16_t, double>(opcode);
-    case SType::INT32:   return resolve1<int32_t, double>(opcode);
-    case SType::INT64:   return resolve1<int64_t, double>(opcode);
-    case SType::FLOAT32: return resolve1<float, float>(opcode);
-    case SType::FLOAT64: return resolve1<double, double>(opcode);
-    default:             return nullptr;
-  }
-}
-
-
-
-//------------------------------------------------------------------------------
 // External API
 //------------------------------------------------------------------------------
 
@@ -295,63 +259,38 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
   SType arg_type = arg->stype();
 
   auto preducer = library.lookup(opcode, arg_type);
-  if (preducer) {
-    SType out_stype = preducer->output_stype;
-    size_t out_nrows = groupby.ngroups();
-    if (out_nrows == 0) out_nrows = 1;
-    Column* res = Column::new_data_column(out_stype, out_nrows);
-    const RowIndex& rowindex = arg->rowindex();
-    const void* input = arg->data();
-    if (arg_type == SType::STR32) input = static_cast<const char*>(input) + 4;
-    if (arg_type == SType::STR64) input = static_cast<const char*>(input) + 8;
-    void* output = res->data_w();
-
-    if (out_nrows == 1) {
-      preducer->f(rowindex, 0, arg->nrows, input, output, 0);
-    } else {
-      const int32_t* groups = groupby.offsets_r();
-
-      #pragma omp parallel for schedule(static)
-      for (size_t i = 0; i < out_nrows; ++i) {
-        size_t row0 = static_cast<size_t>(groups[i]);
-        size_t row1 = static_cast<size_t>(groups[i + 1]);
-        preducer->f(rowindex, row0, row1, input, output, i);
-      }
-    }
-    return res;
-  }
-
-
-  SType res_type = arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
-
-  int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
-  if (ngrps == 0) ngrps = 1;
-
-  void* params[2];
-  params[0] = arg;
-  params[1] = Column::new_data_column(res_type, static_cast<size_t>(ngrps));
-
-  gmapperfn fn = resolve0(opcode, arg_type);
-  if (!fn) {
+  if (!preducer) {
     throw RuntimeError()
       << "Unable to apply reduce function " << static_cast<size_t>(opcode)
       << " to column of type `" << arg_type << "`";
   }
+  SType out_stype = preducer->output_stype;
+  size_t out_nrows = groupby.ngroups();
+  if (out_nrows == 0) out_nrows = 1;
+  Column* res = Column::new_data_column(out_stype, out_nrows);
+  const RowIndex& rowindex = arg->rowindex();
+  const void* input = arg->data();
+  if (arg_type == SType::STR32) input = static_cast<const char*>(input) + 4;
+  if (arg_type == SType::STR64) input = static_cast<const char*>(input) + 8;
+  void* output = res->data_w();
 
-  int32_t _grps[2] = {0, static_cast<int32_t>(arg->nrows)};
-  const int32_t* grps = ngrps == 1? _grps : groupby.offsets_r();
+  if (out_nrows == 1) {
+    preducer->f(rowindex, 0, arg->nrows, input, output, 0);
+  } else {
+    const int32_t* groups = groupby.offsets_r();
 
-  #pragma omp parallel for schedule(static)
-  for (int32_t g = 0; g < ngrps; ++g) {
-    (*fn)(grps, g, params);
+    #pragma omp parallel for schedule(static)
+    for (size_t i = 0; i < out_nrows; ++i) {
+      size_t row0 = static_cast<size_t>(groups[i]);
+      size_t row1 = static_cast<size_t>(groups[i + 1]);
+      preducer->f(rowindex, row0, row1, input, output, i);
+    }
   }
-
-  return static_cast<Column*>(params[1]);
+  return res;
 }
 
+
 };  // namespace expr
-
-
 
 //------------------------------------------------------------------------------
 // Initialization
@@ -396,6 +335,24 @@ void py::DatatableModule::init_reducers()
   library.add(ReduceOp::SUM, sum_reducer<int16_t, int64_t>,  SType::INT16, SType::INT64);
   library.add(ReduceOp::SUM, sum_reducer<int32_t, int64_t>,  SType::INT32, SType::INT64);
   library.add(ReduceOp::SUM, sum_reducer<int64_t, int64_t>,  SType::INT64, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<float,   double>,   SType::FLOAT32, SType::FLOAT64);
+  library.add(ReduceOp::SUM, sum_reducer<float,   float>,    SType::FLOAT32, SType::FLOAT32);
   library.add(ReduceOp::SUM, sum_reducer<double,  double>,   SType::FLOAT64, SType::FLOAT64);
+
+  // Mean
+  library.add(ReduceOp::MEAN, mean_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
+  library.add(ReduceOp::MEAN, mean_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
+  library.add(ReduceOp::MEAN, mean_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
+  library.add(ReduceOp::MEAN, mean_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
+  library.add(ReduceOp::MEAN, mean_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
+  library.add(ReduceOp::MEAN, mean_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(ReduceOp::MEAN, mean_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
+
+  // Standard Deviation
+  library.add(ReduceOp::STDEV, stdev_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
+  library.add(ReduceOp::STDEV, stdev_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
+  library.add(ReduceOp::STDEV, stdev_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
+  library.add(ReduceOp::STDEV, stdev_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
+  library.add(ReduceOp::STDEV, stdev_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
+  library.add(ReduceOp::STDEV, stdev_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(ReduceOp::STDEV, stdev_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
 }

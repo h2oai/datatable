@@ -36,11 +36,13 @@ enum class ReduceOp : size_t {
   STDEV = 4,
   FIRST = 5,
   SUM   = 6,
-  COUNT = 7,
+  COUNT = 7,  // count of non-NA values in each group
 };
 
 // Each ReduceOp must be < REDUCEOP_COUNT
 constexpr size_t REDUCEOP_COUNT = 7 + 1;
+
+
 
 
 }
