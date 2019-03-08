@@ -385,8 +385,17 @@ class SortContext {
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
     o = nullptr;
     next_o = nullptr;
-    strdata = nullptr;
     histogram = nullptr;
+    strdata = nullptr;
+    stroffs = nullptr;
+    nchunks = 0;
+    chunklen = 0;
+    nradixes = 0;
+    elemsize = 0;
+    next_elemsize = 0;
+    nsigbits = 0;
+    shift = 0;
+    strtype = 0;
     use_order = false;
     descending = false;
 
