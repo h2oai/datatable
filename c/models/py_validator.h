@@ -23,6 +23,7 @@
 #define dt_MODELS_PY_VALIDATOR_h
 #include "python/obj.h"
 #include "python/arg.h"
+#include "column.h"
 
 namespace py {
 namespace Validator {
@@ -81,6 +82,16 @@ void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
   check_not_negative<T>(value, arg.to_pyobj(), arg.name(), em);
+}
+
+
+template<typename T>
+bool has_negatives(const Column* col) {
+  auto d_n = static_cast<const T*>(col->data());
+  for (size_t i = 0; i < col->nrows; ++i) {
+    if (d_n[i] < 0) return true;
+  }
+  return false;
 }
 
 

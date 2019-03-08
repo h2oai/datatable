@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   The method matches the entire string, not just the beginning. Thus, it
   most closely resembles Python function `re.fullmatch()`.
 
+- Added early stopping support to FTRL algo, that can now do binomial and
+  multinomial classification for categorical targets, as well as regression
+  for continuous targets.
+
 - New function `dt.median()` can be used to compute median of a certain
   column or expression, either per group or for the entire Frame (#1530).
 

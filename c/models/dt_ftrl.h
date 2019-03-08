@@ -21,17 +21,18 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_h
 #define dt_MODELS_FTRL_h
-#include "models/hash.h"
+#include "str/py_str.h"
 #include "utils/parallel.h"
 #include "options.h"
 
 
-using hashptr = std::unique_ptr<Hash>;
-using doubleptr = std::unique_ptr<double[]>;
-using uint64ptr = std::unique_ptr<uint64_t[]>;
-
 namespace dt {
 
+
+/*
+* All the FTRL parameters provided in Python are stored in this structure,
+* that also defines their default values.
+*/
 struct FtrlParams {
     double alpha;
     double beta;
@@ -40,174 +41,74 @@ struct FtrlParams {
     uint64_t nbins;
     size_t nepochs;
     bool interactions;
-    size_t : 56;
+    bool double_precision;
+    size_t: 48;
+    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(1.0),
+                   nbins(1000000), nepochs(1), interactions(false),
+                   double_precision(false) {}
 };
 
 
+/*
+* Supported FTRL model types.
+*/
+enum class FtrlModelType : size_t {
+  NONE        = 0, // Untrained model
+  REGRESSION  = 1, // Numerical regression
+  BINOMIAL    = 2, // Binomial logistic regression
+  MULTINOMIAL = 3  // Multinomial logistic regression
+};
+
+
+/*
+* An abstract dt::Ftrl class that declares all the virtual functions
+* needed by py::Ftrl.
+*/
 class Ftrl {
-  private:
-    // Model datatable, column pointers and weight vector
-    dtptr dt_model;
-    double* z;
-    double* n;
-    doubleptr w;
-
-    // Feature importance datatable and column pointer
-    dtptr dt_fi;
-    double* fi;
-
-    // Input parameters
-    FtrlParams params;
-
-    // Number of columns in a training datatable and total number of features
-    size_t ncols;
-    size_t nfeatures;
-
-    // Set this to `True` in `train` and `set_model` methods
-    bool model_trained;
-    size_t : 56;
-
-    // Hashers and hashed column names
-    std::vector<hashptr> hashers;
-    std::vector<uint64_t> colnames_hashes;
-
   public:
-    Ftrl(FtrlParams);
-
-    static const std::vector<std::string> model_colnames;
-    static const FtrlParams default_params;
-
-    // Learning and predicting methods.
-    template <typename T, typename F>
-    void fit(const DataTable*, const Column*, F);
-    template<typename F> dtptr predict(const DataTable*, F f);
-    double predict_row(const uint64ptr&);
-    void update(const uint64ptr&, double, double);
-
-    // Model and feature importance handling methods
-    void create_model();
-    void reset_model();
-    void init_weights();
-    void create_fi();
-    void reset_fi();
-    void init_fi();
-    void define_features(size_t);
-
-    // Hashing methods
-    void create_hashers(const DataTable*);
-    static hashptr create_colhasher(const Column*);
-    void hash_row(uint64ptr&, size_t);
-
-    // Model validation methods
-    static bool is_dt_valid(const dtptr&t, size_t, size_t);
-    bool is_trained();
-
-    // Learning helper methods
-    static double logloss(double, bool);
+    virtual ~Ftrl();
+    // Depending on the target column stype, this method should do
+    // - binomial logistic regression (BOOL);
+    // - multinomial logistic regression (STR32, STR64);
+    // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
+    virtual double dispatch_fit(const DataTable*, const DataTable*,
+                                const DataTable*, const DataTable*, double) = 0;
+    virtual dtptr predict(const DataTable*) = 0;
+    virtual void reset() = 0;
+    virtual bool is_trained() = 0;
 
     // Getters
-    DataTable* get_model();
-    DataTable* get_fi();
-    size_t get_nfeatures();
-    size_t get_ncols();
-    std::vector<uint64_t> get_colnames_hashes();
-    double get_alpha();
-    double get_beta();
-    double get_lambda1();
-    double get_lambda2();
-    uint64_t get_nbins();
-    size_t get_nepochs();
-    bool get_interactions();
-    FtrlParams get_params();
+    virtual DataTable* get_model() = 0;
+    virtual FtrlModelType get_model_type() = 0;
+    virtual DataTable* get_fi(bool normaliza = true) = 0;
+    virtual size_t get_nfeatures() = 0;
+    virtual size_t get_dt_X_ncols() = 0;
+    virtual std::vector<uint64_t> get_colnames_hashes() = 0;
+    virtual double get_alpha() = 0;
+    virtual double get_beta() = 0;
+    virtual double get_lambda1() = 0;
+    virtual double get_lambda2() = 0;
+    virtual uint64_t get_nbins() = 0;
+    virtual size_t get_nepochs() = 0;
+    virtual bool get_interactions() = 0;
+    virtual bool get_double_precision() = 0;
+    virtual FtrlParams get_params() = 0;
+    virtual strvec get_labels() = 0;
 
     // Setters
-    void set_model(DataTable*);
-    void set_fi(DataTable*);
-    void set_alpha(double);
-    void set_beta(double);
-    void set_lambda1(double);
-    void set_lambda2(double);
-    void set_nbins(uint64_t);
-    void set_nepochs(size_t);
-    void set_interactions(bool);
+    virtual void set_model(DataTable*) = 0;
+    virtual void set_fi(DataTable*) = 0;
+    virtual void set_model_type(FtrlModelType) = 0;
+    virtual void set_alpha(double) = 0;
+    virtual void set_beta(double) = 0;
+    virtual void set_lambda1(double) = 0;
+    virtual void set_lambda2(double) = 0;
+    virtual void set_nbins(uint64_t) = 0;
+    virtual void set_nepochs(size_t) = 0;
+    virtual void set_interactions(bool) = 0;
+    virtual void set_double_precision(bool) = 0;
+    virtual void set_labels(strvec) = 0;
 };
-
-
-/*
-*  Train FTRL model on a dataset.
-*/
-template <typename T, typename F>
-void Ftrl::fit(const DataTable* dt_X, const Column* c_y, F f) {
-  define_features(dt_X->ncols);
-
-  is_dt_valid(dt_model, params.nbins, 2)? init_weights() : create_model();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
-
-  // Create column hashers.
-  create_hashers(dt_X);
-
-  // Get the target column.
-  auto d_y = static_cast<const T*>(c_y->data());
-  const RowIndex ri_y = c_y->rowindex();
-
-  // Do training for `nepochs`.
-  for (size_t e = 0; e < params.nepochs; ++e) {
-    #pragma omp parallel num_threads(config::nthreads)
-    {
-      // Array to store hashed column values and their interactions.
-      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      size_t ith = static_cast<size_t>(omp_get_thread_num());
-      size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-      for (size_t i = ith; i < dt_X->nrows; i += nth) {
-          size_t j = ri_y[i];
-          if (j != RowIndex::NA && !ISNA<T>(d_y[j])) {
-            hash_row(x, i);
-            double p = f(predict_row(x));
-            double y = static_cast<double>(d_y[j]);
-            update(x, p, y);
-          }
-      }
-    }
-  }
-  model_trained = true;
-}
-
-
-/*
-*  Make predictions for a test dataset and return targets as a new datatable.
-*  We assume that all the validation is done in `py_ftrl.cc`.
-*/
-template<typename F>
-dtptr Ftrl::predict(const DataTable* dt_X, F f) {
-  xassert(model_trained);
-  define_features(dt_X->ncols);
-  init_weights();
-  is_dt_valid(dt_fi, nfeatures, 1)? init_fi() : create_fi();
-
-  // Re-create hashers as stypes for training dataset and predictions
-  // may be different
-  create_hashers(dt_X);
-
-  // Create a target datatable.
-  dtptr dt_y;
-  Column* col_target = Column::new_data_column(SType::FLOAT64, dt_X->nrows);
-  dt_y = dtptr(new DataTable({col_target}, {"target"}));
-  auto d_y = static_cast<double*>(dt_y->columns[0]->data_w());
-
-  #pragma omp parallel num_threads(config::nthreads)
-  {
-    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-
-    for (size_t i = ith; i < dt_X->nrows; i += nth) {
-      hash_row(x, i);
-      d_y[i] = f(predict_row(x));
-    }
-  }
-  return dt_y;
-}
 
 
 } // namespace dt

@@ -23,40 +23,47 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
+#include <vector>
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
+#include "models/utils.h"
 
 namespace py {
 
-
 PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
-                                 {"params", "labels", "alpha", "beta", "lambda1",
-                                 "lambda2", "nbins", "nepochs", "interactions"},
+                                 {"params", "alpha", "beta", "lambda1",
+                                 "lambda2", "nbins", "nepochs",
+                                 "interactions", "double_precision"},
                                  "__init__", nullptr);
 
 
+/*
+* Ftrl(...)
+* Initialize Ftrl object with the provided parameters.
+*/
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
-  dt::FtrlParams dt_params = dt::Ftrl::default_params;
+  dt::FtrlParams ftrl_params;
 
-  bool defined_params   = !args[0].is_none_or_undefined();
-  bool defined_labels   = !args[1].is_none_or_undefined();
-  bool defined_alpha    = !args[2].is_none_or_undefined();
-  bool defined_beta     = !args[3].is_none_or_undefined();
-  bool defined_lambda1  = !args[4].is_none_or_undefined();
-  bool defined_lambda2  = !args[5].is_none_or_undefined();
-  bool defined_nbins    = !args[6].is_none_or_undefined();
-  bool defined_nepochs  = !args[7].is_none_or_undefined();
-  bool defined_interactions    = !args[8].is_none_or_undefined();
+  bool defined_params           = !args[0].is_none_or_undefined();
+  bool defined_alpha            = !args[1].is_none_or_undefined();
+  bool defined_beta             = !args[2].is_none_or_undefined();
+  bool defined_lambda1          = !args[3].is_none_or_undefined();
+  bool defined_lambda2          = !args[4].is_none_or_undefined();
+  bool defined_nbins            = !args[5].is_none_or_undefined();
+  bool defined_nepochs          = !args[6].is_none_or_undefined();
+  bool defined_interactions     = !args[7].is_none_or_undefined();
+  bool defined_double_precision = !args[8].is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_nbins || defined_nepochs || defined_interactions) {
+        defined_nbins || defined_nepochs || defined_interactions ||
+        defined_double_precision) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` or "
-            << "`interactions` to Ftrl constructor, but not both at the "
-            << "same time";
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
+            << "`interactions` or `double_precision` to Ftrl constructor, "
+            << "but not both at the same time";
     }
     py::otuple py_params = args[0].to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
@@ -66,123 +73,123 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_interactions = py_params.get_attr("interactions");
+    py::oobj py_double_precision = py_params.get_attr("double_precision");
 
-    dt_params.alpha = py_alpha.to_double();
-    dt_params.beta = py_beta.to_double();
-    dt_params.lambda1 = py_lambda1.to_double();
-    dt_params.lambda2 = py_lambda2.to_double();
-    dt_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
-    dt_params.nepochs = py_nepochs.to_size_t();
-    dt_params.interactions = py_interactions.to_bool_strict();
+    ftrl_params.alpha = py_alpha.to_double();
+    ftrl_params.beta = py_beta.to_double();
+    ftrl_params.lambda1 = py_lambda1.to_double();
+    ftrl_params.lambda2 = py_lambda2.to_double();
+    ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
+    ftrl_params.nepochs = py_nepochs.to_size_t();
+    ftrl_params.interactions = py_interactions.to_bool_strict();
+    ftrl_params.double_precision = py_double_precision.to_bool_strict();
 
-    py::Validator::check_positive<double>(dt_params.alpha, py_alpha);
-    py::Validator::check_not_negative<double>(dt_params.beta, py_beta);
-    py::Validator::check_not_negative<double>(dt_params.lambda1, py_lambda1);
-    py::Validator::check_not_negative<double>(dt_params.lambda2, py_lambda2);
-    py::Validator::check_not_negative<double>(dt_params.nbins, py_nbins);
+    py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
+    py::Validator::check_not_negative<double>(ftrl_params.beta, py_beta);
+    py::Validator::check_not_negative<double>(ftrl_params.lambda1, py_lambda1);
+    py::Validator::check_not_negative<double>(ftrl_params.lambda2, py_lambda2);
+    py::Validator::check_not_negative<double>(ftrl_params.nbins, py_nbins);
 
   } else {
 
     if (defined_alpha) {
-      dt_params.alpha = args[2].to_double();
-      py::Validator::check_positive<double>(dt_params.alpha, args[2]);
+      ftrl_params.alpha = args[1].to_double();
+      py::Validator::check_positive<double>(ftrl_params.alpha, args[1]);
     }
 
     if (defined_beta) {
-      dt_params.beta = args[3].to_double();
-      py::Validator::check_not_negative<double>(dt_params.beta, args[3]);
+      ftrl_params.beta = args[2].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.beta, args[2]);
     }
 
     if (defined_lambda1) {
-      dt_params.lambda1 = args[4].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda1, args[4]);
+      ftrl_params.lambda1 = args[3].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.lambda1, args[3]);
     }
 
     if (defined_lambda2) {
-      dt_params.lambda2 = args[5].to_double();
-      py::Validator::check_not_negative<double>(dt_params.lambda2, args[5]);
+      ftrl_params.lambda2 = args[4].to_double();
+      py::Validator::check_not_negative<double>(ftrl_params.lambda2, args[4]);
     }
 
     if (defined_nbins) {
-      dt_params.nbins = static_cast<uint64_t>(args[6].to_size_t());
-      py::Validator::check_positive<uint64_t>(dt_params.nbins, args[6]);
+      ftrl_params.nbins = static_cast<uint64_t>(args[5].to_size_t());
+      py::Validator::check_positive<uint64_t>(ftrl_params.nbins, args[5]);
     }
 
     if (defined_nepochs) {
-      dt_params.nepochs = args[7].to_size_t();
+      ftrl_params.nepochs = args[6].to_size_t();
     }
 
     if (defined_interactions) {
-      dt_params.interactions = args[8].to_bool_strict();
+      ftrl_params.interactions = args[7].to_bool_strict();
+    }
+    if (defined_double_precision) {
+      ftrl_params.double_precision = args[8].to_bool_strict();
     }
   }
 
-  if (defined_labels) {
-    set_labels(args[1]);
+  if (ftrl_params.double_precision) {
+    dtft = new dt::FtrlReal<double>(ftrl_params);
   } else {
-    py::olist py_list(0);
-    set_labels(py::robj(py_list));
-  }
-
-  dtft = new std::vector<dtftptr>;
-  init_dtft(dt_params);
-  reg_type = RegType::NONE;
-}
-
-
-void Ftrl::init_dtft(dt::FtrlParams dt_params) {
-  size_t nlabels = labels.size();
-  xassert(nlabels > 0);
-  // If there is only two labels provided, we only need
-  // one classifier.
-  size_t ndtft = nlabels - (nlabels == 2);
-  dtft->clear();
-  dtft->reserve(ndtft);
-  for (size_t i = 0; i < ndtft; ++i) {
-    dtft->push_back(dtftptr(new dt::Ftrl(dt_params)));
+    dtft = new dt::FtrlReal<float>(ftrl_params);
   }
 }
 
 
+/*
+* Deallocate underlying data for an Ftrl object
+*/
 void Ftrl::m__dealloc__() {
-  PyObject* py_labels = std::move(labels).release();
-  Py_XDECREF(py_labels);
   if (dtft != nullptr) {
     delete dtft;
     dtft = nullptr;
   }
-  reset_feature_names();
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// fit()
-//------------------------------------------------------------------------------
-
-static PKArgs args_fit(2, 0, 0, false, false, {"X", "y"}, "fit",
-R"(fit(self, X, y)
+/*
+* .fit(...)
+* Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
+*/
+static PKArgs args_fit(2, 3, 0, false, false, {"X_train", "y_train",
+                       "X_validate", "y_validate", "nepochs_validate"},
+                       "fit",
+R"(fit(self, X_train, y_train, X_validate=None, y_validate=None, nepochs_validate=1)
 --
 
 Train an FTRL model on a dataset.
 
 Parameters
 ----------
-X: Frame
-    Frame of shape (nrows, ncols) to be trained on.
+X_train: Frame
+    Training frame of shape (nrows, ncols).
 
-y: Frame
-    Frame of shape (nrows, 1), i.e. the target column.
-    This column must have a `bool` type.
+y_train: Frame
+    Target frame of shape (nrows, 1).
+
+X_validate: Frame
+    Validation frame of shape (nrows, ncols) us
+
+y_validate: Frame
+    Validation target frame of shape (nrows, 1).
+
+nepochs_validate: float
+    Parameter that specifies how often to check loss on the validation
+    set for early stopping, and should be more than zero as well as
+    less than `nepochs`. If after a corresponding `nepochs_validate` period
+    loss does not improve, training terminates.
+
 
 Returns
 -------
-    None
+Epoch at which the model stoped training. If no validation set was
+provided, `epoch` will be equal to `nepochs`.
 )");
 
 
-void Ftrl::fit(const PKArgs& args) {
+oobj Ftrl::fit(const PKArgs& args) {
+  // Training set handling
   if (args[0].is_undefined()) {
     throw ValueError() << "Training frame parameter is missing";
   }
@@ -193,7 +200,8 @@ void Ftrl::fit(const PKArgs& args) {
 
   DataTable* dt_X = args[0].to_datatable();
   DataTable* dt_y = args[1].to_datatable();
-  if (dt_X == nullptr || dt_y == nullptr) return;
+
+  if (dt_X == nullptr || dt_y == nullptr) return py::None();
 
   if (dt_X->ncols == 0) {
     throw ValueError() << "Training frame must have at least one column";
@@ -212,146 +220,66 @@ void Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
-  SType stype_y = dt_y->columns[0]->stype();
-  switch (stype_y) {
-    case SType::BOOL:    fit_binomial(dt_X, dt_y); break;
-    case SType::INT8:    fit_regression<int8_t>(dt_X, dt_y); break;
-    case SType::INT16:   fit_regression<int16_t>(dt_X, dt_y); break;
-    case SType::INT32:   fit_regression<int32_t>(dt_X, dt_y); break;
-    case SType::INT64:   fit_regression<int64_t>(dt_X, dt_y); break;
-    case SType::FLOAT32: fit_regression<float>(dt_X, dt_y); break;
-    case SType::FLOAT64: fit_regression<double>(dt_X, dt_y); break;
-    case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   fit_multinomial(dt_X, dt_y); break;
-    default:             throw TypeError() << "Cannot predict for a column "
-                                           << "of type `" << stype_y << "`";
-  }
+  // Validtion set handling
+  DataTable* dt_X_val = nullptr;
+  DataTable* dt_y_val = nullptr;
+  double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
 
-  size_t nfeatures = (*dtft)[0]->get_nfeatures();
-  // Second condition means: `interactions` parameter was changed meanwhile
-  if (feature_names == nullptr || feature_names->nrows != nfeatures) {
-    reset_feature_names();
-    size_t ncols = dt_X->ncols;
-    const std::vector<std::string>& column_names = dt_X->get_names();
+  if (!args[2].is_none_or_undefined() && !args[3].is_none_or_undefined()) {
+    dt_X_val = args[2].to_datatable();
+    dt_y_val = args[3].to_datatable();
 
-    dt::writable_string_col scol(nfeatures);
-    dt::writable_string_col::buffer_impl<uint32_t> sb(scol);
-    sb.commit_and_start_new_chunk(0);
-    for (const std::string& feature_name : column_names) {
-      sb.write(feature_name);
+    if (dt_X_val->ncols != dt_X->ncols) {
+      throw ValueError() << "Validation frame must have the same number of "
+                         << "columns as the training frame";
     }
 
-    if ((*dtft)[0]->get_params().interactions) {
-      for (size_t i = 0; i < ncols - 1; ++i) {
-        for (size_t j = i + 1; j < ncols; ++j) {
-          std::string feature_name = column_names[i] + ":" + column_names[j];
-          sb.write(feature_name);
-        }
+    if (dt_X_val->get_names() != dt_X->get_names()) {
+      throw ValueError() << "Validation frame must have the same column "
+                         << "names as the training frame";
+    }
+
+    if (dt_X_val->nrows == 0) {
+      throw ValueError() << "Validation frame cannot be empty";
+    }
+
+    if (dt_y_val->ncols != 1) {
+      throw ValueError() << "Validation target frame must have exactly "
+                         << "one column";
+    }
+
+    if (dt_y_val->columns[0]->stype() != dt_y->columns[0]->stype()) {
+      throw ValueError() << "Validation target frame must have the same "
+                            "stype as the target frame";
+    }
+
+    if (dt_X_val->nrows != dt_y_val->nrows) {
+      throw ValueError() << "Validation target frame must have the same "
+                         << "number of rows as the validation frame itself";
+    }
+
+    if (!args[4].is_none_or_undefined()) {
+      nepochs_validate = args[4].to_double();
+      py::Validator::check_positive<double>(nepochs_validate, args[4]);
+      if (nepochs_validate >= dtft->get_nepochs()) {
+        throw ValueError() << "`nepochs_validate` should be less than `nepochs";
       }
-    }
-
-    sb.order();
-    sb.commit_and_start_new_chunk(nfeatures);
-    feature_names = new DataTable({std::move(scol).to_column()}, {"feature_name"});
+    } else nepochs_validate = 1;
   }
 
+  // Train the model and return epoch when the training stopped
+  double epoch = dtft->dispatch_fit(dt_X, dt_y,
+                                    dt_X_val, dt_y_val,
+                                    nepochs_validate);
+  return py::ofloat(epoch);
 }
 
 
-void Ftrl::fit_binomial(DataTable* dt_X, DataTable* dt_y) {
-  if (reg_type != RegType::NONE && reg_type != RegType::BINOMIAL) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from binomial. To train it "
-                         "in a binomial mode this model should be reset.";
-  }
-  reg_type = RegType::BINOMIAL;
-  (*dtft)[0]->fit<int8_t>(dt_X, dt_y->columns[0], sigmoid);
-}
-
-
-template <typename T>
-void Ftrl::fit_regression(DataTable* dt_X, DataTable* dt_y) {
-  if (reg_type != RegType::NONE && reg_type != RegType::REGRESSION) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from regression. To train it "
-                         "in a binomial mode this model should be reset.";
-  }
-  reg_type = RegType::REGRESSION;
-  (*dtft)[0]->fit<T>(dt_X, dt_y->columns[0], identity);
-}
-
-
-void Ftrl::fit_multinomial(DataTable* dt_X, DataTable* dt_y) {
-  if (reg_type != RegType::NONE && reg_type != RegType::MULTINOMIAL) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from multinomial. To train it "
-                         "in a binomial mode this model should be reset.";
-  }
-  reg_type = RegType::MULTINOMIAL;
-
-  // Due to `m__init__()` calling `init_dtft()`, number of classifiers
-  // is consistent with the number of labels from the very beginning.
-  // If number of labels changes afterwards with `set_labels()`,
-  // we need to re-initialize classifiers.
-  size_t nlabels = labels.size();
-  if (nlabels != dtft->size()) {
-    init_dtft((*dtft)[0]->get_params());
-  }
-
-  dtptr dt_ys;
-  std::vector<BoolColumn*> c_y;
-  c_y.reserve(dtft->size());
-  if (nlabels > 1) {
-    dt_ys = dtptr(dt::split_into_nhot(dt_y->columns[0], ','));
-    const strvec& colnames = dt_ys->get_names();
-    size_t nmissing = 0;
-
-    for (size_t i = 0; i < nlabels; ++i) {
-      BoolColumn* col;
-      std::string label = labels[i].to_string();
-      auto it = std::find(colnames.begin(), colnames.end(), label);
-
-      if (it == colnames.end()) {
-        nmissing++;
-        Warning w = DatatableWarning();
-        w << "Label '" << label << "' was not found in a target frame";
-        col = static_cast<BoolColumn*>(
-                Column::new_data_column(SType::BOOL, dt_y->nrows)
-              );
-        auto d_y = static_cast<bool*>(col->data_w());
-        for (size_t j = 0; j < col->nrows; ++j) d_y[j] = false;
-      } else {
-        size_t pos = static_cast<size_t>(it - colnames.begin());
-        col = static_cast<BoolColumn*>(dt_ys->columns[pos]);
-      }
-      c_y.push_back(col);
-    }
-
-    if (nlabels != dt_ys->ncols + nmissing) {
-       // TODO: make this message more user friendly.
-       throw ValueError() << "Target column contains unknown labels";
-    }
-  } else {
-    throw ValueError() << "For multinomial regression a list of labels "
-                          "should be provided";
-  }
-
-  // Train all the classifiers. NB: when there is two labels,
-  // `init_dtft()` creates only one classifier, just like in a
-  // binomial case.
-  size_t ndtft = dtft->size();
-  for (size_t i = 0; i < ndtft; ++i) {
-    (*dtft)[i]->fit<int8_t>(dt_X, c_y[i], sigmoid);
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// predict()
-//------------------------------------------------------------------------------
-
+/*
+* .predict(...)
+* Perform dataset validation, make a call to `dtft->predict(...)`,
+* return frame with predictions.
+*/
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
@@ -362,12 +290,12 @@ Parameters
 ----------
 X: Frame
     Frame of shape (nrows, ncols) to make predictions for.
-    It must have the same number of columns as the training frame.
+    It should have the same number of columns as the training frame.
 
 Returns
 -------
-    A new frame of shape (nrows, 1) with the predicted probability
-    for each row of frame X.
+A new frame of shape (nrows, nlabels) with the predicted probabilities
+for each row of frame X and each label the model was trained for.
 )");
 
 
@@ -379,12 +307,12 @@ oobj Ftrl::predict(const PKArgs& args) {
   DataTable* dt_X = args[0].to_datatable();
   if (dt_X == nullptr) return Py_None;
 
-  if (!(*dtft)[0]->is_trained()) {
-    throw ValueError() << "Cannot make any predictions, train or set "
-                       << "the model first";
+  if (!dtft->is_trained()) {
+    throw ValueError() << "Cannot make any predictions, the model "
+                          "should be trained first";
   }
 
-  size_t ncols = (*dtft)[0]->get_ncols();
+  size_t ncols = dtft->get_dt_X_ncols();
   if (dt_X->ncols != ncols && ncols != 0) {
     throw ValueError() << "Can only predict on a frame that has " << ncols
                        << " column" << (ncols == 1? "" : "s")
@@ -392,392 +320,167 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
-  size_t nlabels = labels.size();
-  size_t ndtft = dtft->size();
 
-  // If number of labels is different from the number of classifiers,
-  // then there is something wrong. Unless we do a multinomial
-  // regression with only two labels.
-  if (nlabels != ndtft && !(nlabels == 2 && ndtft == 1)) {
-    if (ndtft == 1) {
-      // Binomial and regression cases
-      throw ValueError() << "Cannot make any predictions with the labels "
-                            "supplied, as the model was trained in "
-                            "a binomial/regression mode";
-    } else {
-      // Multinomial case
-      throw ValueError() << "Can only make predictions for " << dtft->size()
-                        << " labels, i.e. the same number of labels as "
-                        << "was used for model training";
-    }
-  }
-
-  // Determine which link function we should use.
-  double (*f)(double);
-  switch (reg_type) {
-    case RegType::REGRESSION  : f = identity; break;
-    case RegType::BINOMIAL    : f = sigmoid; break;
-    case RegType::MULTINOMIAL : (nlabels == 2)? f = sigmoid : f = std::exp; break;
-    // If this error is thrown, it means that `fit()` and `reg_type`
-    // went out of sync, so there is a bug in the code.
-    default : throw ValueError() << "Cannot make any predictions, "
-                                 << "the model was trained in an unknown mode";
-  }
-
-  // Make predictions and `cbind` targets.
-  DataTable* dt_y = nullptr;
-  std::vector<std::string> names(1);
-  std::vector<DataTable*> dt(1);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    DataTable* dt_yi = (*dtft)[i]->predict(dt_X, f).release();
-    names[0] = labels[i].to_string();
-    dt_yi->set_names(names);
-    dt[0] = dt_yi;
-    if (i) dt_y->cbind(dt);
-    else dt_y = dt_yi;
-  }
-
-  // For multinomial case, when there is more than two labels,
-  // apply `softmax` function. NB: we already applied `std::exp`
-  // function to predictions, so only need to normalize probabilities here.
-  if (nlabels > 2) normalize_rows(dt_y);
-
-  py::oobj df_y = py::oobj::from_new_reference(
-                         py::Frame::from_datatable(dt_y)
+  DataTable* dt_p = dtft->predict(dt_X).release();
+  py::oobj df_p = py::oobj::from_new_reference(
+                         py::Frame::from_datatable(dt_p)
                   );
 
-  return df_y;
+  return df_p;
 }
 
 
 /*
-*  Sigmoid function.
+* .reset()
+* Reset the model by making a call to `dtft->reset()`.
 */
-inline double Ftrl::sigmoid(double x) {
-  return 1.0 / (1.0 + std::exp(-x));
-}
-
-
-/*
-*  Identity function.
-*/
-inline double Ftrl::identity(double x) {
-  return x;
-}
-
-
-void Ftrl::normalize_rows(DataTable* dt) {
-  size_t nrows = dt->nrows;
-  size_t ncols = dt->ncols;
-
-  std::vector<double*> d_cs;
-  d_cs.reserve(ncols);
-  for (size_t j = 0; j < ncols; ++j) {
-    double* d_c = static_cast<double*>(dt->columns[j]->data_w());
-    d_cs.push_back(d_c);
-  }
-
-  #pragma omp parallel for num_threads(config::nthreads)
-  for (size_t i = 0; i < nrows; ++i) {
-    double denom = 0.0;
-    for (size_t j = 0; j < ncols; ++j) {
-      denom += d_cs[j][i];
-    }
-    for (size_t j = 0; j < ncols; ++j) {
-      d_cs[j][i] = d_cs[j][i] / denom;
-    }
-  }
-}
-
-
-void Ftrl::reset_feature_names() {
-  if (feature_names != nullptr) {
-    delete feature_names;
-    feature_names = nullptr;
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// reset()
-//------------------------------------------------------------------------------
-
 static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
 
-Reset FTRL model and feature importance information,
-i.e. initialize model and importance frames with zeros.
+Reset FTRL model by clearing all the model weights, labels and
+feature importance information. Also, set the model to an untrained state.
 
 Parameters
 ----------
-    None
+None
 
 Returns
 -------
-    None
+None
 )");
 
 
 void Ftrl::reset(const PKArgs&) {
-  reg_type = RegType::NONE;
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->reset_model();
-    (*dtft)[i]->reset_fi();
-  }
-  reset_feature_names();
+  dtft->reset();
 }
 
 
 
 
-//------------------------------------------------------------------------------
-// .labels
-//------------------------------------------------------------------------------
-
+/*
+* .labels
+*/
 static GSArgs args_labels(
   "labels",
-  R"(List of labels for multinomial regression.)");
+  R"(List of labels used for classification.)");
 
 
 oobj Ftrl::get_labels() const {
-  return py::olist(labels);
+  strvec labels = dtft->get_labels();
+  size_t nlabels = labels.size();
+
+  py::olist py_labels(nlabels);
+  for (size_t i = 0; i < nlabels; ++i) {
+    py::ostring py_label = py::ostring(labels[i]);
+    py_labels.set(i, std::move(py_label));
+  }
+  return py_labels;
 }
 
 
 void Ftrl::set_labels(robj py_labels) {
-  py::olist labels_in = py_labels.to_pylist();
-  size_t nlabels = labels_in.size();
-  if (nlabels == 1) {
-    throw ValueError() << "List of labels can not have one element";
+  py::olist py_labels_list = py_labels.to_pylist();
+  size_t nlabels = py_labels_list.size();
+
+  strvec labels(nlabels);
+  for (size_t i = 0; i < nlabels; ++i) {
+    labels[i] = py_labels_list[i].to_string();
   }
-  // This ensures that we always have at least one classifier
-  if (nlabels == 0) {
-    labels_in.append(py::ostring("target"));
-  }
-  labels = labels_in;
+  dtft->set_labels(labels);
 }
 
 
 
-
-//------------------------------------------------------------------------------
-// .model
-//------------------------------------------------------------------------------
-
+/*
+* .model
+*/
 static GSArgs args_model(
   "model",
 R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
 and `nbins` rows, where `nbins` is a number of bins for the hashing
-trick. Both column types are `float64`.)");
+trick. Both column types are `T64`.)");
 
 
 oobj Ftrl::get_model() const {
-  if ((*dtft)[0]->is_trained()) {
-    size_t ndtft = dtft->size();
-    py::otuple models(ndtft);
+  if (!dtft->is_trained()) return py::None();
 
-    for (size_t i = 0; i < ndtft; ++i) {
-      DataTable* dt_model = (*dtft)[i]->get_model();
-      py::oobj df_model = py::oobj::from_new_reference(
-                            py::Frame::from_datatable(dt_model)
-                          );
-      models.set(i, df_model);
-    }
-    return std::move(models);
-  } else {
-    return py::None();
-  }
+  DataTable* dt_model = dtft->get_model();
+  py::oobj df_model = py::oobj::from_new_reference(
+                        py::Frame::from_datatable(dt_model)
+                      );
+  return df_model;
 }
 
 
 void Ftrl::set_model(robj model) {
-  size_t ndtft = dtft->size();
-  // Reset model if it was assigned `None` in Python
-  if (model.is_none()) {
-    reg_type = RegType::NONE;
-    if ((*dtft)[0]->is_trained()) {
-      for (size_t i = 0; i < ndtft; ++i) {
-        (*dtft)[i]->reset_model();
-      }
-    }
-    return;
-  }
+  DataTable* dt_model = model.to_datatable();
+  if (dt_model == nullptr) return;
 
-  size_t nlabels = labels.size();
-  py::otuple py_model = model.to_otuple();
-  if (py_model.size() != nlabels) {
-    throw ValueError() << "Number of models should be the same as number "
-                       << "of labels, i.e. " << nlabels << ", got "
-                       << py_model.size();
+  size_t ncols = dt_model->ncols;
+  if (dt_model->nrows != dtft->get_nbins() || dt_model->ncols%2 != 0) {
+    throw ValueError() << "Model frame must have " << dtft->get_nbins()
+                       << " rows, and an even number of columns, "
+                       << "whereas your frame has "
+                       << dt_model->nrows << " row"
+                       << (dt_model->nrows == 1? "": "s")
+                       << " and "
+                       << dt_model->ncols << " column"
+                       << (dt_model->ncols == 1? "": "s");
 
   }
 
-  if (nlabels > 1) {
-    reg_type = RegType::MULTINOMIAL;
-  } else {
-    // This could either be `RegType::REGRESSION` or `RegType::BINOMIAL`,
-    // however, there is no way to check it by just looking at the model.
-    // May need to disable model setter or have an explicit getter/setter
-    // for `reg_type`. For the moment we default this case to
-    // `RegType::BINOMIAL`.
-    reg_type = RegType::BINOMIAL;
+  bool double_precision = dtft->get_double_precision();
+  SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
+  bool (*has_negatives)(const Column*) = (double_precision)?
+                                         py::Validator::has_negatives<double>:
+                                         py::Validator::has_negatives<float>;
+
+  for (size_t i = 0; i < ncols; ++i) {
+    Column* col = dt_model->columns[i];
+    SType c_stype = col->stype();
+    if (col->stype() != stype) {
+      throw ValueError() << "Column " << i << " in the model frame should "
+                         << "have a type of " << stype << ", whereas it has "
+                         << "the following type: "
+                         << c_stype;
+    }
+
+    if ((i % 2) && has_negatives(col)) {
+      throw ValueError() << "Column " << i << " cannot have negative values";
+    }
   }
-
-  // Initialize classifiers
-  init_dtft((*dtft)[0]->get_params());
-
-  for (size_t i = 0; i < nlabels; ++i) {
-    DataTable* dt_model_in = py_model[i].to_datatable();
-    const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
-
-    if (dt_model_in->nrows != (*dtft)[0]->get_nbins() || dt_model_in->ncols != 2) {
-      throw ValueError() << "Element " << i << ": "
-                         << "FTRL model frame must have " << (*dtft)[0]->get_nbins()
-                         << " rows, and 2 columns, whereas your frame has "
-                         << dt_model_in->nrows << " rows and "
-                         << dt_model_in->ncols << " column"
-                         << (dt_model_in->ncols == 1? "": "s");
-
-    }
-
-    if (model_cols_in != dt::Ftrl::model_colnames) {
-      throw ValueError() << "Element " << i << ": "
-                         << "FTRL model frame must have columns named `z` and "
-                         << "`n`, whereas your frame has the following column "
-                         << "names: `" << model_cols_in[0]
-                         << "` and `" << model_cols_in[1] << "`";
-    }
-
-    if (dt_model_in->columns[0]->stype() != SType::FLOAT64 ||
-      dt_model_in->columns[1]->stype() != SType::FLOAT64) {
-      throw ValueError() << "Element " << i << ": "
-                         << "FTRL model frame must have both column types as "
-                         << "`float64`, whereas your frame has the following "
-                         << "column types: `"
-                         << dt_model_in->columns[0]->stype()
-                         << "` and `" << dt_model_in->columns[1]->stype() << "`";
-    }
-
-    if (has_negative_n(dt_model_in)) {
-      throw ValueError() << "Element " << i << ": "
-                         << "Values in column `n` cannot be negative";
-    }
-
-    (*dtft)[i]->set_model(dt_model_in);
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// .fi
-//------------------------------------------------------------------------------
-
-static GSArgs args_fi(
-  "feature_importances",
-R"(One-column frame with the overall weight contributions calculated
-feature-wise during training and predicting. It can be interpreted as
-a feature importance information.)");
-
-
-oobj Ftrl::get_fi() const {
-  // If model was trained, return feature importance info.
-  if ((*dtft)[0]->is_trained()) {
-    size_t ndtft = dtft->size();
-    DataTable* dt_feature_importances;
-    DataTable* dt_fi;
-    // If there is more than one classifier, average feature importance row-wise.
-    if (ndtft > 1) {
-      // Create datatable for averaged feature importance info.
-      size_t fi_nrows = (*dtft)[0]->get_fi()->nrows;
-      Column* col_fi = Column::new_data_column(SType::FLOAT64, fi_nrows);
-      dt_fi = new DataTable({col_fi}, {"feature_importance"});
-      auto d_fi = static_cast<double*>(dt_fi->columns[0]->data_w());
-
-      std::vector<double*> d_fis;
-      d_fis.reserve(ndtft);
-      for (size_t j = 0; j < ndtft; ++j) {
-        DataTable* dt_fi_j = (*dtft)[j]->get_fi();
-        double* d_fi_j = static_cast<double*>(dt_fi_j->columns[0]->data_w());
-        d_fis.push_back(d_fi_j);
-      }
-
-      for (size_t i = 0; i < fi_nrows; ++i) {
-        d_fi[i] = 0.0;
-        for (size_t j = 0; j < ndtft; ++j) d_fi[i] += d_fis[j][i];
-        d_fi[i] /= ndtft;
-      }
-    } else {
-      // If there is just one classifier, simply return `fi`.
-      dt_fi = (*dtft)[0]->get_fi();
-    }
-    normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
-    // TODO: memoize `dt_feature_importances`
-    dt_feature_importances = feature_names->copy();
-    std::vector<DataTable*> dt(1);
-    dt[0] = dt_fi;
-    dt_feature_importances->cbind(dt);
-    py::oobj df_fi = py::oobj::from_new_reference(
-                       py::Frame::from_datatable(dt_feature_importances)
-                     );
-    return df_fi;
-  } else {
-    // If model was not trained, return `None`.
-    return py::None();
-  }
+  dtft->set_model(dt_model);
 }
 
 
 /*
-* Normalize a column of feature importances to [0; 1]
-* This column has only positive values, so we simply divide its
-* content by `col->max()`. Another option is to do min-max normalization,
-* but this may lead to some features having zero importance,
-* while in reality they don't.
+* .feature_importances
 */
-void Ftrl::normalize_fi(RealColumn<double>* col) {
-  double max = col->max();
-  double epsilon = std::numeric_limits<double>::epsilon();
-  double* data = col->elements_w();
+static GSArgs args_fi(
+  "feature_importances",
+R"(Two-column frame with feature names and the corresponding
+feature importances normalized to [0; 1].)");
 
-  double norm_factor = 1.0;
-  if (fabs(max) > epsilon) norm_factor = 1 / max;
 
-  for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] *= norm_factor;
-  }
-  col->get_stats()->reset();
+oobj Ftrl::get_fi() const {
+  return get_normalized_fi(true);
+}
+
+oobj Ftrl::get_normalized_fi(bool normalize) const {
+  if (!dtft->is_trained()) return py::None();
+
+  DataTable* dt_fi = dtft->get_fi(normalize);
+  py::oobj df_fi = py::oobj::from_new_reference(
+                     py::Frame::from_datatable(dt_fi)
+                   );
+  return df_fi;
 }
 
 
-oobj Ftrl::get_fi_tuple() const {
-  if ((*dtft)[0]->is_trained()) {
-    size_t ndtft = dtft->size();
-    py::otuple fi(ndtft);
-    for (size_t i = 0; i < ndtft; ++i) {
-      DataTable* dt_fi = (*dtft)[i]->get_fi();
-      py::oobj df_fi = py::oobj::from_new_reference(
-                            py::Frame::from_datatable(dt_fi)
-                       );
-      fi.set(i, df_fi);
-    }
-    return std::move(fi);
-  } else {
-    return py::None();
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// .colname_hashes
-//------------------------------------------------------------------------------
-
+/*
+* .colname_hashes
+*/
 static GSArgs args_colname_hashes(
   "colname_hashes",
   "Column name hashes"
@@ -785,10 +488,10 @@ static GSArgs args_colname_hashes(
 
 
 oobj Ftrl::get_colname_hashes() const {
-  if ((*dtft)[0]->is_trained()) {
-    size_t ncols = (*dtft)[0]->get_ncols();
+  if (dtft->is_trained()) {
+    size_t ncols = dtft->get_dt_X_ncols();
     py::otuple py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = (*dtft)[0]->get_colnames_hashes();
+    std::vector<uint64_t> colname_hashes = dtft->get_colnames_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
@@ -800,190 +503,182 @@ oobj Ftrl::get_colname_hashes() const {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .alpha
-//------------------------------------------------------------------------------
-
+/*
+* .alpha
+*/
 static GSArgs args_alpha(
   "alpha",
   "`alpha` in per-coordinate FTRL-Proximal algorithm");
 
 
 oobj Ftrl::get_alpha() const {
-  return py::ofloat((*dtft)[0]->get_alpha());
+  return py::ofloat(dtft->get_alpha());
 }
 
 
 void Ftrl::set_alpha(robj py_alpha) {
   double alpha = py_alpha.to_double();
   py::Validator::check_positive(alpha, py_alpha);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_alpha(alpha);
-  }
+  dtft->set_alpha(alpha);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .beta
-//------------------------------------------------------------------------------
-
+/*
+* .beta
+*/
 static GSArgs args_beta(
   "beta",
   "`beta` in per-coordinate FTRL-Proximal algorithm");
 
 
 oobj Ftrl::get_beta() const {
-  return py::ofloat((*dtft)[0]->get_beta());
+  return py::ofloat(dtft->get_beta());
 }
 
 
 void Ftrl::set_beta(robj py_beta) {
   double beta = py_beta.to_double();
   py::Validator::check_not_negative(beta, py_beta);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_beta(beta);
-  }
+  dtft->set_beta(beta);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .lambda1
-//------------------------------------------------------------------------------
-
+/*
+* .lambda1
+*/
 static GSArgs args_lambda1(
   "lambda1",
   "L1 regularization parameter");
 
 
 oobj Ftrl::get_lambda1() const {
-  return py::ofloat((*dtft)[0]->get_lambda1());
+  return py::ofloat(dtft->get_lambda1());
 }
 
 
 void Ftrl::set_lambda1(robj py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_not_negative(lambda1, py_lambda1);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_lambda1(lambda1);
-  }
+  dtft->set_lambda1(lambda1);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .lambda2
-//------------------------------------------------------------------------------
-
+/*
+* .lambda2
+*/
 static GSArgs args_lambda2(
   "lambda2",
   "L2 regularization parameter");
 
 
 oobj Ftrl::get_lambda2() const {
-  return py::ofloat((*dtft)[0]->get_lambda2());
+  return py::ofloat(dtft->get_lambda2());
 }
 
 
 void Ftrl::set_lambda2(robj py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_not_negative(lambda2, py_lambda2);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_lambda2(lambda2);
-  }
+  dtft->set_lambda2(lambda2);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .nbins
-//------------------------------------------------------------------------------
-
+/*
+* .nbins
+*/
 static GSArgs args_nbins(
   "nbins",
   "Number of bins to be used for the hashing trick");
 
 
 oobj Ftrl::get_nbins() const {
-  return py::oint(static_cast<size_t>((*dtft)[0]->get_nbins()));
+  return py::oint(static_cast<size_t>(dtft->get_nbins()));
 }
 
 
 void Ftrl::set_nbins(robj py_nbins) {
-  if ((*dtft)[0]->is_trained()) {
-    throw ValueError() << "Cannot set `nbins` for a trained model, "
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `nbins` for a trained model, "
                        << "reset this model or create a new one";
   }
 
   uint64_t nbins = static_cast<uint64_t>(py_nbins.to_size_t());
   py::Validator::check_positive(nbins, py_nbins);
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_nbins(nbins);
-  }
+  dtft->set_nbins(nbins);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// .nepochs
-//------------------------------------------------------------------------------
-
+/*
+* .nepochs
+*/
 static GSArgs args_nepochs(
   "nepochs",
   "Number of epochs to train a model");
 
 
 oobj Ftrl::get_nepochs() const {
-  return py::oint((*dtft)[0]->get_nepochs());
+  return py::oint(dtft->get_nepochs());
 }
 
 
 void Ftrl::set_nepochs(robj py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_nepochs(nepochs);
-  }
+  dtft->set_nepochs(nepochs);
 }
 
 
 
 
-//------------------------------------------------------------------------------
-// .interactions
-//------------------------------------------------------------------------------
-
+/*
+* .interactions
+*/
 static GSArgs args_interactions(
   "interactions",
   "Switch to enable second order feature interactions");
 
 
 oobj Ftrl::get_interactions() const {
-  return (*dtft)[0]->get_interactions()? True() : False();
+  return dtft->get_interactions()? True() : False();
 }
 
 
 void Ftrl::set_interactions(robj py_interactions) {
-  bool interactions = py_interactions.to_bool_strict();
-  for (size_t i = 0; i < dtft->size(); ++i) {
-    (*dtft)[i]->set_interactions(interactions);
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `interactions` for a trained model, "
+                       << "reset this model or create a new one";
   }
+  bool interactions = py_interactions.to_bool_strict();
+  dtft->set_interactions(interactions);
+}
+
+
+/*
+* .double_precision
+*/
+static GSArgs args_double_precision(
+  "double_precision",
+  "Whether to use double precision arithmetic for modeling");
+
+
+oobj Ftrl::get_double_precision() const {
+  return dtft->get_double_precision()? True() : False();
+}
+
+
+void Ftrl::set_double_precision(robj py_double_precision) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `double_precision` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+  bool double_precision = py_double_precision.to_bool_strict();
+  dtft->set_double_precision(double_precision);
 }
 
 
 
-
-//------------------------------------------------------------------------------
-// .params
-//------------------------------------------------------------------------------
-
+/*
+* .params
+*/
 static GSArgs args_params(
   "params",
   "FTRL model parameters");
@@ -999,7 +694,8 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda2.name,      args_lambda2.doc},
      {args_nbins.name,        args_nbins.doc},
      {args_nepochs.name,      args_nepochs.doc},
-     {args_interactions.name, args_interactions.doc}}
+     {args_interactions.name, args_interactions.doc},
+     {args_double_precision.name, args_double_precision.doc}}
   );
 
   py::onamedtuple params(ntt);
@@ -1010,19 +706,8 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(4, get_nbins());
   params.set(5, get_nepochs());
   params.set(6, get_interactions());
+  params.set(7, get_double_precision());
   return std::move(params);
-}
-
-
-void Ftrl::set_params_namedtuple(robj params) {
-  set_alpha(params.get_attr("alpha"));
-  set_beta(params.get_attr("beta"));
-  set_lambda1(params.get_attr("lambda1"));
-  set_lambda2(params.get_attr("lambda2"));
-  set_nbins(params.get_attr("nbins"));
-  set_nepochs(params.get_attr("nepochs"));
-  set_interactions(params.get_attr("interactions"));
-  // TODO: check that there are no unknown parameters
 }
 
 
@@ -1033,15 +718,16 @@ oobj Ftrl::get_params_tuple() const {
                  get_lambda2(),
                  get_nbins(),
                  get_nepochs(),
-                 get_interactions()};
+                 get_interactions(),
+                 get_double_precision()};
 }
 
 
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 7) {
-    throw ValueError() << "Tuple of FTRL parameters should have 7 elements, "
+  if (n_params != 8) {
+    throw ValueError() << "Tuple of FTRL parameters should have 8 elements, "
                        << "got: " << n_params;
   }
   set_alpha(params_tuple[0]);
@@ -1051,30 +737,13 @@ void Ftrl::set_params_tuple(robj params) {
   set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
   set_interactions(params_tuple[6]);
+  set_double_precision(params_tuple[7]);
 }
 
 
-
-
-/**
- *  Model validation methods.
- */
-bool Ftrl::has_negative_n(DataTable* dt) const {
-  auto c_n = static_cast<RealColumn<double>*>(dt->columns[1]);
-  auto d_n = c_n->elements_r();
-  for (size_t i = 0; i < dt->nrows; ++i) {
-    if (d_n[i] < 0) return true;
-  }
-  return false;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Pickling / unpickling methods.
-//------------------------------------------------------------------------------
-
+/*
+* Pickling and unpickling support.
+*/
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
 
@@ -1082,18 +751,12 @@ static PKArgs args___getstate__(
 oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj params = get_params_tuple();
   py::oobj model = get_model();
-  py::oobj fi = get_fi_tuple();
-  py::oobj py_reg_type = py::oint(static_cast<int32_t>(reg_type));
-  py::oobj df_feature_names;
-  if (feature_names == nullptr) {
-    df_feature_names = py::None();
-  } else {
-    df_feature_names = py::oobj::from_new_reference(
-                         py::Frame::from_datatable(feature_names->copy())
-                       );
-  }
-
-  return otuple {params, model, fi, df_feature_names, labels, py_reg_type};
+  py::oobj fi = get_normalized_fi(false);
+  py::oobj model_type = py::oint(static_cast<int32_t>(
+                             dtft->get_model_type()
+                           ));
+  py::oobj labels = get_labels();
+  return otuple {params, model, fi, model_type, labels};
 }
 
 
@@ -1102,49 +765,37 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  dtft = new std::vector<dtftptr>;
   py::otuple pickle = args[0].to_otuple();
 
-  // Set labels and initialize classifiers, this has to be done first.
-  labels = pickle[4].to_pylist();
-  init_dtft(dt::Ftrl::default_params);
+  dt::FtrlParams ftrl_params;
+  py::otuple params = pickle[0].to_otuple();
 
-  // Set FTRL parameters
+  bool double_precision = params[7].to_bool_strict();
+  if (double_precision) {
+    dtft = new dt::FtrlReal<double>(ftrl_params);
+  } else {
+    dtft = new dt::FtrlReal<float>(ftrl_params);
+  }
+
   set_params_tuple(pickle[0]);
-
-  // Set model weights
   set_model(pickle[1]);
-
-  // Set feature importance info
-  if (pickle[2].is_tuple()) {
-    py::otuple fi_tuple = pickle[2].to_otuple();
-    for (size_t i = 0; i < fi_tuple.size(); ++i) {
-      (*dtft)[i]->set_fi(fi_tuple[i].to_datatable()->copy());
-    }
+  if (pickle[2].is_frame()) {
+    dtft->set_fi(pickle[2].to_datatable()->copy());
   }
 
-  // Set feature names
-  if (pickle[3].is_frame()) {
-    feature_names = pickle[3].to_datatable()->copy();
-  }
-  // Set regression type
-  reg_type = static_cast<RegType>(pickle[5].to_int32());
-
+  dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
+  set_labels(pickle[4]);
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// py::Ftrl::Type
-//------------------------------------------------------------------------------
-
+/*
+* py::Ftrl::Type
+*/
 const char* Ftrl::Type::classname() {
   return "datatable.models.Ftrl";
 }
 
 
-// TODO: use the above doc strings here.
 const char* Ftrl::Type::classdoc() {
   return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
 
@@ -1167,17 +818,21 @@ nepochs : int
     Number of epochs to train for.
 interactions : bool
     Switch to enable second order feature interactions.
+double_precision : bool
+    Whether to use double precision arithmetic or not.
 )";
 }
 
 
+/*
+* Initialize all the exposed methods and getters/setters.
+*/
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
-  ADD_GETSET(gs, &Ftrl::get_labels, &Ftrl::set_labels, args_labels);
-  ADD_GETSET(gs, &Ftrl::get_model, &Ftrl::set_model, args_model);
+  ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
+  ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
-  ADD_GETSET(gs, &Ftrl::get_params_namedtuple, &Ftrl::set_params_namedtuple,
-             args_params);
+  ADD_GETTER(gs, &Ftrl::get_params_namedtuple, args_params);
   ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
   ADD_GETSET(gs, &Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha);
   ADD_GETSET(gs, &Ftrl::get_beta, &Ftrl::set_beta, args_beta);
@@ -1187,14 +842,13 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
              args_interactions);
-
+  ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
   ADD_METHOD(mm, &Ftrl::fit, args_fit);
   ADD_METHOD(mm, &Ftrl::predict, args_predict);
   ADD_METHOD(mm, &Ftrl::reset, args_reset);
 }
-
 
 
 } // namespace py

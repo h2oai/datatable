@@ -21,37 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_COLUMN_CONVERTOR_h
 #define dt_MODELS_COLUMN_CONVERTOR_h
+#include "models/utils.h"
 #include "types.h"
 
-
-// TODO: the only reason why we cast all the columns to `T` is that
-// stats calculation is faster on real columns. When #219 gets fixed,
-// we could do value casting on-the-fly, making use of the commented
-// parts of the code.
-
-/*
-*  Helper template structures to convert C++ float/double types to
-*  datatable STypes::FLOAT32/STypes::FLOAT64. respectively.
-*/
-template<typename T> struct stype {
-  static void get_stype() {
-    throw TypeError() << "Only float and double types are supported";
-  }
-};
-
-
-template<> struct stype<float> {
-  static SType get_stype() {
-    return SType::FLOAT32;
-  }
-};
-
-
-template<> struct stype<double> {
-  static SType get_stype() {
-    return SType::FLOAT64;
-  }
-};
 
 
 /*
@@ -141,7 +113,9 @@ template<typename T1, typename T2, typename T3>
 ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
   ColumnConvertor<T2>(column_in)
 {
-  SType to_stype = stype<T2>::get_stype();
+  xassert((std::is_same<T2, float>::value || std::is_same<T2, double>::value));
+  SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
+
   column = colptr(column_in->cast(to_stype));
   auto column_real = static_cast<RealColumn<T2>*>(column.get());
   this->min = column_real->min();
