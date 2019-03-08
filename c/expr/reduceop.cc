@@ -5,26 +5,19 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "expr/py_expr.h"
-#include <cmath>      // std::sqrt
-#include <limits>     // std::numeric_limits<?>::max, ::infinity
+#include <cmath>             // std::sqrt
+#include <limits>            // std::numeric_limits<?>::max, ::infinity
 #include <type_traits>
-#include "types.h"
+#include <unordered_map>
+#include "expr/base_expr.h"  // ReduceOp
+#include "expr/py_expr.h"
 #include "utils/parallel.h"
+#include "datatablemodule.h"
+#include "types.h"
 
 namespace expr
 {
 
-// Synchronize with expr/consts.py
-enum OpCode {
-  Mean  = 1,
-  Min   = 2,
-  Max   = 3,
-  Stdev = 4,
-  First = 5,
-  Sum   = 6,
-  Count = 7,
-};
 
 template<typename T>
 constexpr T infinity() {
@@ -32,6 +25,52 @@ constexpr T infinity() {
          ? std::numeric_limits<T>::infinity()
          : std::numeric_limits<T>::max();
 }
+
+
+//------------------------------------------------------------------------------
+// Reducer library
+//------------------------------------------------------------------------------
+
+struct Reducer {
+  using reducer_fn = void (*)(const RowIndex& ri, size_t row0, size_t row1,
+                              const void* input, void* output, size_t grp);
+
+  reducer_fn f;
+  SType output_stype;
+  size_t : 56;
+};
+
+
+class ReducerLibrary {
+  private:
+    std::unordered_map<size_t, Reducer> reducers;
+
+  public:
+    void add(ReduceOp op, Reducer::reducer_fn f, SType inp_stype,
+             SType out_stype)
+    {
+      size_t id = key(op, inp_stype);
+      xassert(reducers.count(id) == 0);
+      reducers[id] = Reducer {f, out_stype};
+    }
+
+    const Reducer* lookup(ReduceOp op, SType stype) const {
+      size_t id = key(op, stype);
+      if (reducers.count(id) == 0) return nullptr;
+      return &(reducers.at(id));
+    }
+
+  private:
+    constexpr inline size_t key(ReduceOp op, SType stype) const {
+      return static_cast<size_t>(op) +
+             REDUCEOP_COUNT * static_cast<size_t>(stype);
+    }
+};
+
+
+static ReducerLibrary library;
+
+
 
 
 //------------------------------------------------------------------------------
@@ -86,24 +125,19 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
 // Count calculation
 //------------------------------------------------------------------------------
 
-template<typename IT, typename OT>
-static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* inputs = static_cast<const IT*>(col0->data());
-  if (std::is_same<uint32_t, IT>::value ||
-      std::is_same<uint64_t, IT>::value) inputs++;
-  OT* outputs = static_cast<OT*>(col1->data_w());
-  OT count = 0;
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
-  col0->rowindex().iterate(row0, row1, 1,
+template<typename T>
+static void count_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                          const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  int64_t count = 0;
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
-      IT x = inputs[j];
-      count += !ISNA<IT>(x);
+      count += !ISNA<T>(inputs[j]);
     });
-  outputs[grp] = count;
+  int64_t* outputs = static_cast<int64_t*>(out);
+  outputs[grp_index] = count;
 }
 
 
@@ -230,21 +264,20 @@ static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
 //------------------------------------------------------------------------------
 
 template<typename T1, typename T2>
-static gmapperfn resolve1(int opcode) {
+static gmapperfn resolve1(ReduceOp opcode) {
   switch (opcode) {
-    case OpCode::Mean:  return mean_skipna<T1, T2>;
-    case OpCode::Min:   return min_skipna<T1>;
-    case OpCode::Max:   return max_skipna<T1>;
-    case OpCode::Stdev: return stdev_skipna<T1, T2>;
-    case OpCode::Sum:   return sum_skipna<T1, T2>;
-    case OpCode::Count: return count_skipna<T1, T2>;
+    case ReduceOp::MEAN:  return mean_skipna<T1, T2>;
+    case ReduceOp::MIN:   return min_skipna<T1>;
+    case ReduceOp::MAX:   return max_skipna<T1>;
+    case ReduceOp::STDEV: return stdev_skipna<T1, T2>;
+    case ReduceOp::SUM:   return sum_skipna<T1, T2>;
     default:            return nullptr;
   }
 }
 
 
-static gmapperfn resolve0(int opcode, SType stype) {
-  if (opcode == OpCode::Sum) {
+static gmapperfn resolve0(ReduceOp opcode, SType stype) {
+  if (opcode == ReduceOp::SUM) {
     switch (stype) {
       case SType::BOOL:
       case SType::INT8:    return sum_skipna<int8_t, int64_t>;
@@ -257,19 +290,8 @@ static gmapperfn resolve0(int opcode, SType stype) {
     }
   }
 
-  if (opcode == OpCode::Count) {
-    switch (stype) {
-      case SType::BOOL:
-      case SType::INT8:    return count_skipna<int8_t, int64_t>;
-      case SType::INT16:   return count_skipna<int16_t, int64_t>;
-      case SType::INT32:   return count_skipna<int32_t, int64_t>;
-      case SType::INT64:   return count_skipna<int64_t, int64_t>;
-      case SType::FLOAT32: return count_skipna<float, int64_t>;
-      case SType::FLOAT64: return count_skipna<double, int64_t>;
-      case SType::STR32:   return count_skipna<uint32_t, int64_t>;
-      case SType::STR64:   return count_skipna<uint64_t, int64_t>;
-      default:             return nullptr;
-    }
+  if (opcode == ReduceOp::COUNT) {
+    return nullptr;
   }
 
   switch (stype) {
@@ -290,15 +312,42 @@ static gmapperfn resolve0(int opcode, SType stype) {
 // External API
 //------------------------------------------------------------------------------
 
-Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
+Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
 {
-  if (opcode == OpCode::First) {
+  if (opcode == ReduceOp::FIRST) {
     return reduce_first(arg, groupby);
   }
   SType arg_type = arg->stype();
-  SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
+
+  auto preducer = library.lookup(opcode, arg_type);
+  if (preducer) {
+    SType out_stype = preducer->output_stype;
+    size_t out_nrows = groupby.ngroups();
+    Column* res = Column::new_data_column(out_stype, out_nrows);
+    const RowIndex& rowindex = arg->rowindex();
+    const void* input = arg->data();
+    if (arg_type == SType::STR32) input = static_cast<const char*>(input) + 4;
+    if (arg_type == SType::STR64) input = static_cast<const char*>(input) + 8;
+    void* output = res->data_w();
+
+    if (out_nrows == 1) {
+      preducer->f(rowindex, 0, arg->nrows, input, output, 0);
+    } else {
+      const int32_t* groups = groupby.offsets_r();
+
+      #pragma omp parallel for schedule(static)
+      for (size_t i = 0; i < out_nrows; ++i) {
+        size_t row0 = static_cast<size_t>(groups[i]);
+        size_t row1 = static_cast<size_t>(groups[i + 1]);
+        preducer->f(rowindex, row0, row1, input, output, i);
+      }
+    }
+    return res;
+  }
+
+  SType res_type = opcode == ReduceOp::MIN || opcode == ReduceOp::MAX ||
                    arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
-  if (opcode == OpCode::Sum) {
+  if (opcode == ReduceOp::SUM) {
     if (arg_type == SType::FLOAT32 || arg_type == SType::FLOAT64) {
       res_type = SType::FLOAT64;
     } else {
@@ -306,7 +355,7 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
     }
   }
 
-  if (opcode == OpCode::Count) {
+  if (opcode == ReduceOp::COUNT) {
     res_type = SType::INT64;
   }
 
@@ -320,8 +369,8 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
   gmapperfn fn = resolve0(opcode, arg_type);
   if (!fn) {
     throw RuntimeError()
-      << "Unable to apply reduce function " << opcode
-      << " to column(stype=" << arg_type << ")";
+      << "Unable to apply reduce function " << static_cast<size_t>(opcode)
+      << " to column of type `" << arg_type << "`";
   }
 
   int32_t _grps[2] = {0, static_cast<int32_t>(arg->nrows)};
@@ -336,3 +385,24 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
 }
 
 };  // namespace expr
+
+
+
+//------------------------------------------------------------------------------
+// Initialization
+//------------------------------------------------------------------------------
+
+void py::DatatableModule::init_reducers()
+{
+  using namespace expr;
+  // Count
+  library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<int16_t>,  SType::INT16, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<int32_t>,  SType::INT32, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<int64_t>,  SType::INT64, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<float>,    SType::FLOAT32, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<double>,   SType::FLOAT64, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<uint32_t>, SType::STR32, SType::INT64);
+  library.add(ReduceOp::COUNT, count_reducer<uint64_t>, SType::STR64, SType::INT64);
+}

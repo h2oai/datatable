@@ -25,7 +25,25 @@
 #include "expr/workframe.h"
 #include "python/ext_type.h"
 
+namespace expr {
 
+
+// Synchronize with expr/consts.py
+enum class ReduceOp : size_t {
+  MEAN  = 1,
+  MIN   = 2,
+  MAX   = 3,
+  STDEV = 4,
+  FIRST = 5,
+  SUM   = 6,
+  COUNT = 7,
+};
+
+// Each ReduceOp must be < REDUCEOP_COUNT
+constexpr size_t REDUCEOP_COUNT = 7 + 1;
+
+
+}
 namespace dt {
 
 enum exprCode : size_t {

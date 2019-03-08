@@ -498,7 +498,7 @@ GroupbyMode expr_reduce::get_groupby_mode(const workframe&) const {
 
 colptr expr_reduce::evaluate_eager(workframe& wf) {
   auto arg_col = arg->evaluate_eager(wf);
-  int op = static_cast<int>(opcode);
+  auto op = static_cast<expr::ReduceOp>(opcode);
   if (wf.has_groupby()) {
     const Groupby& grby = wf.get_groupby();
     return colptr(expr::reduceop(op, arg_col.get(), grby));

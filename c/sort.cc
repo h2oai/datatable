@@ -406,6 +406,15 @@ class SortContext {
     }
   }
 
+  SortContext(size_t nrows, const RowIndex& rowindex, const Groupby& groupby,
+              bool make_groups)
+    : SortContext(nrows, rowindex, make_groups)
+  {
+    groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
+    gg.init(nullptr, 0, groupby.ngroups());
+  }
+
+
   SortContext(const SortContext&) = delete;
   SortContext(SortContext&&) = delete;
 
@@ -1328,6 +1337,16 @@ RowIndex Column::sort(Groupby* out_grps) const {
     return sc.get_result_rowindex();
   }
 }
+
+
+RowIndex Column::sort_grouped(const RowIndex& rowindex,
+                              const Groupby& grps) const
+{
+  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
+  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
+  return sc.get_result_rowindex();
+}
+
 
 
 
