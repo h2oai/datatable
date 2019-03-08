@@ -44,6 +44,7 @@ constexpr size_t REDUCEOP_COUNT = 7 + 1;
 
 
 
+void init_reducers();
 
 }
 namespace dt {

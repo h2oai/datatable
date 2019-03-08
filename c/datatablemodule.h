@@ -45,7 +45,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_sets();      // set_funcs.cc
     void init_methods_str();       // str/py_str.cc
     void init_casts();             // frame/cast.cc
-    void init_reducers();          // expr/reduce.cc
 
     #ifdef DTTEST
       void init_tests();

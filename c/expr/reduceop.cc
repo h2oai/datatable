@@ -290,16 +290,13 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
 }
 
 
-};  // namespace expr
 
 //------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
 
-void py::DatatableModule::init_reducers()
+void init_reducers()
 {
-  using namespace expr;
-
   // Count
   library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
   library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
@@ -356,3 +353,6 @@ void py::DatatableModule::init_reducers()
   library.add(ReduceOp::STDEV, stdev_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
   library.add(ReduceOp::STDEV, stdev_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
 }
+
+
+};  // namespace expr
