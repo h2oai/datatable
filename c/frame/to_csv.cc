@@ -24,6 +24,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/parallel.h"
+#include "options.h"
 namespace py {
 
 

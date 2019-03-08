@@ -63,7 +63,7 @@ void ojoin::pyobj::m__init__(PKArgs& args) {
   if (!join_frame.is_frame()) {
     throw TypeError() << "The argument to join() must be a Frame";
   }
-  DataTable* jdt = join_frame.to_frame();
+  DataTable* jdt = join_frame.to_datatable();
   if (jdt->get_nkeys() == 0) {
     throw ValueError() << "The join frame is not keyed";
   }
@@ -90,7 +90,7 @@ ojoin::ojoin(const robj& src) : oobj(src) {}
 
 DataTable* ojoin::get_datatable() const {
   auto w = static_cast<pyobj*>(v);
-  return w->join_frame.to_frame();
+  return w->join_frame.to_datatable();
 }
 
 

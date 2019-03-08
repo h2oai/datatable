@@ -1,12 +1,7 @@
 //------------------------------------------------------------------------------
-// Copyright 2017 data.table authors
-// (https://github.com/Rdatatable/data.table/DESCRIPTION)
-//
-// This Source Code Form is subject to the terms of the Mozilla Public License,
-// v.2.0. If a copy of the MPL was not distributed with this file, You can
-// obtain one at https://mozilla.org/MPL/2.0/.
+// Original version of this file contributed by Matt Dowle, from R data.table
+// project (https://github.com/Rdatatable/data.table)
 //------------------------------------------------------------------------------
-#include "csv/fread.h"
 #include <ctype.h>     // isspace
 #include <stdarg.h>    // va_list, va_start
 #include <stdio.h>     // vsnprintf
@@ -14,12 +9,13 @@
 #include <cmath>       // std::sqrt, std::ceil
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
+#include "csv/fread.h"
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
 #include "csv/reader_fread.h"
 #include "csv/reader_parsers.h"
-#include "datatable.h"
 #include "utils/assert.h"
+#include "datatable.h"
 
 
 

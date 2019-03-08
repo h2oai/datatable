@@ -198,8 +198,8 @@ oobj Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame parameter is missing";
   }
 
-  DataTable* dt_X = args[0].to_frame();
-  DataTable* dt_y = args[1].to_frame();
+  DataTable* dt_X = args[0].to_datatable();
+  DataTable* dt_y = args[1].to_datatable();
 
   if (dt_X == nullptr || dt_y == nullptr) return py::None();
 
@@ -226,8 +226,8 @@ oobj Ftrl::fit(const PKArgs& args) {
   double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
 
   if (!args[2].is_none_or_undefined() && !args[3].is_none_or_undefined()) {
-    dt_X_val = args[2].to_frame();
-    dt_y_val = args[3].to_frame();
+    dt_X_val = args[2].to_datatable();
+    dt_y_val = args[3].to_datatable();
 
     if (dt_X_val->ncols != dt_X->ncols) {
       throw ValueError() << "Validation frame must have the same number of "
@@ -304,7 +304,7 @@ oobj Ftrl::predict(const PKArgs& args) {
     throw ValueError() << "Frame to make predictions for is missing";
   }
 
-  DataTable* dt_X = args[0].to_frame();
+  DataTable* dt_X = args[0].to_datatable();
   if (dt_X == nullptr) return Py_None;
 
   if (!dtft->is_trained()) {
@@ -414,7 +414,7 @@ oobj Ftrl::get_model() const {
 
 
 void Ftrl::set_model(robj model) {
-  DataTable* dt_model = model.to_frame();
+  DataTable* dt_model = model.to_datatable();
   if (dt_model == nullptr) return;
 
   size_t ncols = dt_model->ncols;
@@ -780,8 +780,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {
-    dtft->set_fi(pickle[2].to_frame()->copy());
+    dtft->set_fi(pickle[2].to_datatable()->copy());
   }
+
   dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
   set_labels(pickle[4]);
 }

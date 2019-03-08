@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_REAL_h
 #define dt_MODELS_FTRL_REAL_h
-#include "py_datatable.h"
 #include "str/py_str.h"
 #include "utils/parallel.h"
 #include "models/column_hasher.h"

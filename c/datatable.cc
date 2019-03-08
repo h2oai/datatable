@@ -10,7 +10,6 @@
 #include "utils/parallel.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
 

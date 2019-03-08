@@ -70,7 +70,7 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
   ccolvec res;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
-      DataTable* dt = va.to_frame();
+      DataTable* dt = va.to_datatable();
       if (dt->ncols == 0) continue;
       verify_frame_1column(dt);
       Column* col = dt->columns[0]->shallowcopy();
@@ -80,7 +80,7 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
     }
     else if (va.is_iterable()) {
       for (auto item : va.to_oiter()) {
-        DataTable* dt = item.to_frame();
+        DataTable* dt = item.to_datatable();
         if (dt->ncols == 0) continue;
         verify_frame_1column(dt);
         Column* col = dt->columns[0]->shallowcopy();
@@ -170,7 +170,7 @@ static py::oobj unique(const py::PKArgs& args) {
   if (!args[0]) {
     throw ValueError() << "Function `unique()` expects a Frame as a parameter";
   }
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
 
   ccolvec cc;
   for (auto col : dt->columns) {

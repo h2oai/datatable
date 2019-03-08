@@ -5,14 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <cmath>  // abs
 #include <limits> // numeric_limits::max()
 #include "python/string.h"
-#include "py_utils.h"
-#include "utils.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
+#include "column.h"
 
 // Returns the expected path of the string data file given
 // the path to the offsets

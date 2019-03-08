@@ -28,7 +28,7 @@ static PKArgs args_split_into_nhot(
 
 
 static oobj split_into_nhot(const PKArgs& args) {
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
   std::string sep = args[1]? args[1].to_string() : ",";
 
   Column* col0 = dt->ncols == 1? dt->columns[0] : nullptr;

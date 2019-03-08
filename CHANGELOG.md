@@ -89,6 +89,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improved performance of type-casting a view column: now the code avoids
   materializing the column before performing the cast.
 
+- `Frame` class is now defined fully in C++, improving code robustness and
+  performance. The property `Frame.internal` was removed, as it no longer
+  represents anything. Certain internal properties of `Frame` can be accessed
+  via functions declared in the `dt.internal.` module.
+
 
 ### Deprecated
 

@@ -13,13 +13,13 @@
 #include "csv/toa.h"
 #include "csv/writer.h"
 #include "utils/alloc.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "memrange.h"
 #include "types.h"
-#include "utils.h"
 
 
 class CsvColumn;

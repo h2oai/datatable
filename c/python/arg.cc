@@ -89,7 +89,7 @@ std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
 SType       Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
-DataTable*  Arg::to_frame()        const { return pyobj.to_frame(*this); }
+DataTable*  Arg::to_datatable()    const { return pyobj.to_datatable(*this); }
 
 Arg::operator int32_t() const { return to_int32_strict(); }
 Arg::operator int64_t() const { return to_int64_strict(); }

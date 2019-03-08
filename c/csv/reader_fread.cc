@@ -5,23 +5,21 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "csv/reader_fread.h"
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <cmath>       // std::exp
 #include <exception>
 #include <map>         // std::map
 #include "csv/reader.h"
+#include "csv/reader_fread.h"
 #include "csv/reader_parsers.h"
 #include "csv/fread.h"
-#include "datatable.h"
-#include "column.h"
-#include "py_datatable.h"
-#include "py_encodings.h"
-#include "py_utils.h"
 #include "utils/assert.h"
 #include "utils/file.h"
-#include "utils.h"
+#include "utils/misc.h"
+#include "column.h"
+#include "datatable.h"
+#include "py_encodings.h"
 
 
 

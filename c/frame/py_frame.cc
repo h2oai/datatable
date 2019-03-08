@@ -112,28 +112,17 @@ Frame* Frame::from_datatable(DataTable* dt) {
   Frame::internal_construction = false;
   if (!res) throw PyError();
 
-  PyObject* _dt = pydatatable::wrap(dt);
-  if (!_dt) throw PyError();
-
   Frame* frame = reinterpret_cast<Frame*>(res);
   frame->dt = dt;
-  frame->core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
-  frame->core_dt->_frame = frame;
   return frame;
 }
 
 
 void Frame::m__dealloc__() {
-  Py_XDECREF(core_dt);
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
-  dt = nullptr;  // `dt` is already managed by `core_dt`
-}
-
-void Frame::m__get_buffer__(Py_buffer*, int) const {
-}
-
-void Frame::m__release_buffer__(Py_buffer*) const {
+  delete dt;
+  dt = nullptr;
 }
 
 
@@ -257,14 +246,6 @@ oobj Frame::get_ltypes() const {
 }
 
 
-static GSArgs args_internal("internal", "[DEPRECATED]");
-static GSArgs args__dt("_dt", "[DEPRECATED]");
-
-oobj Frame::get_internal() const {
-  return oobj(core_dt);
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -314,8 +295,6 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   ADD_GETTER(gs, &Frame::get_shape, args_shape);
   ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
   ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
-  ADD_GETTER(gs, &Frame::get_internal, args_internal);
-  ADD_GETTER(gs, &Frame::get_internal, args__dt);
 
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);

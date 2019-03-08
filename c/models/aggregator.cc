@@ -115,7 +115,7 @@ static oobj aggregate(const PKArgs& args) {
     throw ValueError() << "Required parameter `frame` is missing";
   }
 
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
 
   if (defined_min_rows) {
     min_rows = args[1].to_size_t();

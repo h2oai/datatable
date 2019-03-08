@@ -82,7 +82,7 @@ void Frame::cbind(const PKArgs& args) {
   std::vector<DataTable*> dts;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
-      DataTable* idt = va.to_frame();
+      DataTable* idt = va.to_datatable();
       if (idt->ncols == 0) continue;
       if (!force) check_nrows(idt, &nrows);
       dts.push_back(idt);
@@ -90,7 +90,7 @@ void Frame::cbind(const PKArgs& args) {
     else if (va.is_iterable()) {
       for (auto item : va.to_oiter()) {
         if (item.is_frame()) {
-          DataTable* idt = item.to_frame();
+          DataTable* idt = item.to_datatable();
           if (idt->ncols == 0) continue;
           if (!force) check_nrows(idt, &nrows);
           dts.push_back(idt);

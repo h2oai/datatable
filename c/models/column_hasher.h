@@ -19,9 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_MODELS_COLUMN_HASHER_h
-#define dt_MODELS_COLUMN_HASHER_h
-#include "py_datatable.h"
+#ifndef dt_MODELS_HASH_h
+#define dt_MODELS_HASH_h
+#include "column.h"
 #include "models/murmurhash.h"
 
 

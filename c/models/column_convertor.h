@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_COLUMN_CONVERTOR_h
 #define dt_MODELS_COLUMN_CONVERTOR_h
-#include "py_datatable.h"
 #include "models/utils.h"
+#include "types.h"
 
 
 

@@ -5,15 +5,15 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "stats.h"
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "utils/misc.h"
+#include "utils/parallel.h"
 #include "column.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
-#include "utils.h"
-#include "utils/parallel.h"
+#include "stats.h"
 
 
 template<typename T>

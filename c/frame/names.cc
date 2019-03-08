@@ -20,6 +20,7 @@
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
+#include "options.h"
 #include "ztest.h"
 
 static double _dlevenshtein(const std::string& a, const std::string& b, double* v);

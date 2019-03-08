@@ -26,7 +26,6 @@
 #include <Python.h>
 #include "groupby.h"
 #include "memrange.h"     // MemoryRange
-#include "py_types.h"
 #include "python/list.h"
 #include "python/obj.h"
 #include "rowindex.h"

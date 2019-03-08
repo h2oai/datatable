@@ -9,11 +9,11 @@
 #define dt_FREAD_h
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
-#include "utils.h"
-#include "utils/parallel.h"
-#include "memrange.h"
 #include "csv/reader.h"
+#include "memrange.h"
 #include "read/field64.h"
+#include "utils/misc.h"
+#include "utils/parallel.h"
 
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];

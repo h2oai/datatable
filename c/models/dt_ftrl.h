@@ -22,6 +22,8 @@
 #ifndef dt_MODELS_FTRL_h
 #define dt_MODELS_FTRL_h
 #include "str/py_str.h"
+#include "utils/parallel.h"
+#include "options.h"
 
 
 namespace dt {
