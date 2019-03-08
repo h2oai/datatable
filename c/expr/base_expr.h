@@ -19,10 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-//
-// Note: all enums should be synchronized with expr/consts.py
-//
-//------------------------------------------------------------------------------
 #ifndef dt_EXPR_BASE_EXPR_h
 #define dt_EXPR_BASE_EXPR_h
 #include "column.h"
@@ -63,21 +59,23 @@ namespace expr {
 // Reduce
 //------------------------------------------------------------------------------
 
+// Synchronize with datatable/expr/reduce_expr.py
 enum class ReduceOp : size_t {
-  MEAN  = 1,
-  MIN   = 2,
-  MAX   = 3,
-  STDEV = 4,
-  FIRST = 5,
-  SUM   = 6,
-  COUNT = 7,  // count of non-NA values in each group
+  MEAN   = 1,
+  MIN    = 2,
+  MAX    = 3,
+  STDEV  = 4,
+  FIRST  = 5,
+  SUM    = 6,
+  COUNT  = 7,  // count of non-NA values in each group
+  MEDIAN = 8,
 };
 
 // Each ReduceOp must be < REDUCEOP_COUNT
-constexpr size_t REDUCEOP_COUNT = 7 + 1;
+constexpr size_t REDUCEOP_COUNT = 8 + 1;
 
 static const char* reducer_names[REDUCEOP_COUNT] = {
-  "", "mean", "min", "max", "stdev", "first", "sum", "count"
+  "", "mean", "min", "max", "stdev", "first", "sum", "count", "median"
 };
 
 
@@ -94,6 +92,7 @@ class expr_reduce : public dt::base_expr {
 };
 
 
+// Call once, during module initialization
 void init_reducers();
 
 

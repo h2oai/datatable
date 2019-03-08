@@ -264,10 +264,9 @@ SType expr_reduce::resolve(const dt::workframe& wf) {
   }
   auto preducer = library.lookup(opcode, arg_stype);
   if (!preducer) {
-    throw RuntimeError()
-      << "Unable to apply reduce function "
-      << reducer_names[static_cast<size_t>(opcode)]
-      << " to a column of type `" << arg_stype << "`";
+    throw TypeError() << "Unable to apply reduce function `"
+        << reducer_names[static_cast<size_t>(opcode)]
+        << "()` to a column of type `" << arg_stype << "`";
   }
   return preducer->output_stype;
 }

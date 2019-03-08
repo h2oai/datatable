@@ -63,6 +63,10 @@ def sd(expr):
     return ReduceExpr("stdev", expr)
 
 
+def median(expr):
+    return ReduceExpr("median", expr)
+
+
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
     if isinstance(iterable, BaseExpr):
@@ -135,4 +139,5 @@ reduce_opcodes = {
     "first": 5,
     "sum": 6,
     "count": 7,
+    "median": 8,
 }
