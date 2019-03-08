@@ -29,8 +29,8 @@ _builtin_min = min
 _builtin_max = max
 
 # See "c/expr/base_expr.h"
-BASEEXPR_OPCODE_UNREDUCE = 6
-BASEEXPR_OPCODE_NUREDUCE = 7
+BASEEXPR_OPCODE_UNARY_REDUCE = 6
+BASEEXPR_OPCODE_NULLARY_REDUCE = 7
 
 
 
@@ -104,7 +104,7 @@ class CountExpr(BaseExpr):
         return "count()"
 
     def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_NUREDUCE, 0)
+        return core.base_expr(BASEEXPR_OPCODE_NULLARY_REDUCE, 0)
 
 
 
@@ -121,7 +121,7 @@ class ReduceExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_UNREDUCE,
+        return core.base_expr(BASEEXPR_OPCODE_UNARY_REDUCE,
                               reduce_opcodes[self._op],
                               self._expr._core())
 

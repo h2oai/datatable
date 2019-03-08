@@ -19,16 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// Note: all enums should be synchronized with expr/consts.py
+//
+//------------------------------------------------------------------------------
 #ifndef dt_EXPR_BASE_EXPR_h
 #define dt_EXPR_BASE_EXPR_h
 #include "column.h"
 #include "expr/workframe.h"
 #include "python/ext_type.h"
 
+namespace dt {
+
+class base_expr;
+using pexpr = std::unique_ptr<base_expr>;
+using colptr = std::unique_ptr<Column>;
+
+
+//------------------------------------------------------------------------------
+// dt::base_expr
+//------------------------------------------------------------------------------
+
+class base_expr {  // move into expr?
+  public:
+    base_expr();
+    virtual ~base_expr();
+    virtual SType resolve(const workframe&) = 0;
+    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
+    virtual colptr evaluate_eager(workframe&) = 0;
+
+    virtual bool is_column_expr() const;
+    virtual bool is_negated_expr() const;
+    virtual pexpr get_negated_expr();
+    virtual size_t get_col_index(const workframe&);
+};
+
+
+}
 namespace expr {
 
 
-// Synchronize with expr/consts.py
+//------------------------------------------------------------------------------
+// Reduce
+//------------------------------------------------------------------------------
+
 enum class ReduceOp : size_t {
   MEAN  = 1,
   MIN   = 2,
@@ -42,9 +76,28 @@ enum class ReduceOp : size_t {
 // Each ReduceOp must be < REDUCEOP_COUNT
 constexpr size_t REDUCEOP_COUNT = 7 + 1;
 
+static const char* reducer_names[REDUCEOP_COUNT] = {
+  "", "mean", "min", "max", "stdev", "first", "sum", "count"
+};
+
+
+class expr_reduce : public dt::base_expr {
+  private:
+    dt::pexpr arg;
+    size_t opcode;
+
+  public:
+    expr_reduce(dt::pexpr&& a, size_t op);
+    SType resolve(const dt::workframe& wf) override;
+    dt::GroupbyMode get_groupby_mode(const dt::workframe&) const override;
+    dt::colptr evaluate_eager(dt::workframe& wf) override;
+};
 
 
 void init_reducers();
+
+
+
 
 }
 namespace dt {
@@ -96,28 +149,6 @@ enum class strop : size_t {
   RE_MATCH = 1,
 };
 
-class base_expr;
-using pexpr = std::unique_ptr<base_expr>;
-using colptr = std::unique_ptr<Column>;
-
-
-//------------------------------------------------------------------------------
-// dt::base_expr
-//------------------------------------------------------------------------------
-
-class base_expr {
-  public:
-    base_expr();
-    virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual colptr evaluate_eager(workframe&) = 0;
-
-    virtual bool is_column_expr() const;
-    virtual bool is_negated_expr() const;
-    virtual pexpr get_negated_expr();
-    virtual size_t get_col_index(const workframe&);
-};
 
 
 class expr_column : public base_expr {

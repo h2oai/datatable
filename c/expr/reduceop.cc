@@ -30,11 +30,10 @@ constexpr T infinity() {
 //------------------------------------------------------------------------------
 // Reducer library
 //------------------------------------------------------------------------------
+using reducer_fn = void (*)(const RowIndex& ri, size_t row0, size_t row1,
+                            const void* input, void* output, size_t grp);
 
 struct Reducer {
-  using reducer_fn = void (*)(const RowIndex& ri, size_t row0, size_t row1,
-                              const void* input, void* output, size_t grp);
-
   reducer_fn f;
   SType output_stype;
   size_t : 56;
@@ -46,9 +45,7 @@ class ReducerLibrary {
     std::unordered_map<size_t, Reducer> reducers;
 
   public:
-    void add(ReduceOp op, Reducer::reducer_fn f, SType inp_stype,
-             SType out_stype)
-    {
+    void add(ReduceOp op, reducer_fn f, SType inp_stype, SType out_stype) {
       size_t id = key(op, inp_stype);
       xassert(reducers.count(id) == 0);
       reducers[id] = Reducer {f, out_stype};
@@ -256,22 +253,24 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
   if (opcode == ReduceOp::FIRST) {
     return reduce_first(arg, groupby);
   }
-  SType arg_type = arg->stype();
+  SType in_stype = arg->stype();
 
-  auto preducer = library.lookup(opcode, arg_type);
+  auto preducer = library.lookup(opcode, in_stype);
   if (!preducer) {
     throw RuntimeError()
-      << "Unable to apply reduce function " << static_cast<size_t>(opcode)
-      << " to column of type `" << arg_type << "`";
+      << "Unable to apply reduce function "
+      << reducer_names[static_cast<size_t>(opcode)]
+      << " to a column of type `" << in_stype << "`";
   }
+
   SType out_stype = preducer->output_stype;
   size_t out_nrows = groupby.ngroups();
   if (out_nrows == 0) out_nrows = 1;
   Column* res = Column::new_data_column(out_stype, out_nrows);
   const RowIndex& rowindex = arg->rowindex();
   const void* input = arg->data();
-  if (arg_type == SType::STR32) input = static_cast<const char*>(input) + 4;
-  if (arg_type == SType::STR64) input = static_cast<const char*>(input) + 8;
+  if (in_stype == SType::STR32) input = static_cast<const char*>(input) + 4;
+  if (in_stype == SType::STR64) input = static_cast<const char*>(input) + 8;
   void* output = res->data_w();
 
   if (out_nrows == 1) {
@@ -289,6 +288,43 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
   return res;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// expr_reduce
+//------------------------------------------------------------------------------
+
+
+expr_reduce::expr_reduce(dt::pexpr&& a, size_t op)
+  : arg(std::move(a)), opcode(op) {}
+
+
+SType expr_reduce::resolve(const dt::workframe& wf) {
+  if (opcode == 0 || opcode >= expr::REDUCEOP_COUNT) {
+    throw ValueError() << "Invalid op code in expr_reduce: " << opcode;
+  }
+  (void) arg->resolve(wf);
+  return SType::INT32;  // FIXME
+}
+
+
+dt::GroupbyMode expr_reduce::get_groupby_mode(const dt::workframe&) const {
+  return dt::GroupbyMode::GtoONE;
+}
+
+
+dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf) {
+  auto arg_col = arg->evaluate_eager(wf);
+  auto op = static_cast<expr::ReduceOp>(opcode);
+  if (wf.has_groupby()) {
+    const Groupby& grby = wf.get_groupby();
+    return colptr(expr::reduceop(op, arg_col.get(), grby));
+  } else {
+    return colptr(expr::reduceop(op, arg_col.get(),
+                                 Groupby::single_group(wf.nrows())));
+  }
+}
 
 
 //------------------------------------------------------------------------------
