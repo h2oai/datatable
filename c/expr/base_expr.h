@@ -84,13 +84,13 @@ static const char* reducer_names[REDUCEOP_COUNT] = {
 class expr_reduce : public dt::base_expr {
   private:
     dt::pexpr arg;
-    size_t opcode;
+    ReduceOp opcode;
 
   public:
     expr_reduce(dt::pexpr&& a, size_t op);
     SType resolve(const dt::workframe& wf) override;
     dt::GroupbyMode get_groupby_mode(const dt::workframe&) const override;
-    dt::colptr evaluate_eager(dt::workframe& wf) override;
+    std::unique_ptr<Column> evaluate_eager(dt::workframe& wf) override;
 };
 
 

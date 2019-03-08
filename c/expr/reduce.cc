@@ -7,16 +7,12 @@
 //------------------------------------------------------------------------------
 #include <cmath>             // std::sqrt
 #include <limits>            // std::numeric_limits<?>::max, ::infinity
-#include <type_traits>
-#include <unordered_map>
+#include <memory>            // std::unique_ptr
+#include <unordered_map>     // std::unordered_map
 #include "expr/base_expr.h"  // ReduceOp
-#include "expr/py_expr.h"
 #include "utils/parallel.h"
-#include "datatablemodule.h"
 #include "types.h"
-
-namespace expr
-{
+namespace expr {
 
 
 template<typename T>
@@ -25,6 +21,9 @@ constexpr T infinity() {
          ? std::numeric_limits<T>::infinity()
          : std::numeric_limits<T>::max();
 }
+
+using colptr = std::unique_ptr<Column>;
+
 
 
 //------------------------------------------------------------------------------
@@ -74,9 +73,10 @@ static ReducerLibrary library;
 // "First" reducer
 //------------------------------------------------------------------------------
 
-Column* reduce_first(const Column* col, const Groupby& groupby) {
+static colptr reduce_first(const colptr& col, const Groupby& groupby)
+{
   if (col->nrows == 0) {
-    return Column::new_data_column(col->stype(), 0);
+    return colptr(Column::new_data_column(col->stype(), 0));
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -86,7 +86,7 @@ Column* reduce_first(const Column* col, const Groupby& groupby) {
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
-  Column* res = col->shallowcopy(ri);
+  auto res = colptr(col->shallowcopy(ri));
   if (ngrps == 1) res->materialize();
   return res;
 }
@@ -245,38 +245,77 @@ static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
 
 
 //------------------------------------------------------------------------------
-// External API
+// expr_reduce
 //------------------------------------------------------------------------------
 
-Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
+expr_reduce::expr_reduce(dt::pexpr&& a, size_t op) : arg(std::move(a))
 {
-  if (opcode == ReduceOp::FIRST) {
-    return reduce_first(arg, groupby);
+  if (op == 0 || op >= REDUCEOP_COUNT) {
+    throw ValueError() << "Invalid op code in expr_reduce: " << op;
   }
-  SType in_stype = arg->stype();
+  opcode = static_cast<ReduceOp>(op);
+}
 
-  auto preducer = library.lookup(opcode, in_stype);
+
+SType expr_reduce::resolve(const dt::workframe& wf) {
+  SType arg_stype = arg->resolve(wf);
+  if (opcode == ReduceOp::FIRST) {
+    return arg_stype;
+  }
+  auto preducer = library.lookup(opcode, arg_stype);
   if (!preducer) {
     throw RuntimeError()
       << "Unable to apply reduce function "
       << reducer_names[static_cast<size_t>(opcode)]
-      << " to a column of type `" << in_stype << "`";
+      << " to a column of type `" << arg_stype << "`";
+  }
+  return preducer->output_stype;
+}
+
+
+dt::GroupbyMode expr_reduce::get_groupby_mode(const dt::workframe&) const {
+  return dt::GroupbyMode::GtoONE;
+}
+
+
+dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
+{
+  auto input_col = arg->evaluate_eager(wf);
+
+  size_t out_nrows = 1;
+  if (wf.has_groupby()) {
+    const Groupby& groupby = wf.get_groupby();
+    out_nrows = groupby.ngroups();
+  }
+  xassert(out_nrows);  // Groupby cannot have 0 groups
+
+  // -----
+
+  if (opcode == ReduceOp::FIRST) {
+    if (wf.has_groupby()) {
+      return reduce_first(input_col, wf.get_groupby());
+    } else {
+      return reduce_first(input_col, Groupby::single_group(input_col->nrows));
+    }
   }
 
+  SType in_stype = input_col->stype();
+  auto preducer = library.lookup(opcode, in_stype);
+  xassert(preducer);  // checked in .resolve()
+
   SType out_stype = preducer->output_stype;
-  size_t out_nrows = groupby.ngroups();
-  if (out_nrows == 0) out_nrows = 1;
-  Column* res = Column::new_data_column(out_stype, out_nrows);
-  const RowIndex& rowindex = arg->rowindex();
-  const void* input = arg->data();
+  auto res = colptr(Column::new_data_column(out_stype, out_nrows));
+  const RowIndex& rowindex = input_col->rowindex();
+  const void* input = input_col->data();
   if (in_stype == SType::STR32) input = static_cast<const char*>(input) + 4;
   if (in_stype == SType::STR64) input = static_cast<const char*>(input) + 8;
   void* output = res->data_w();
 
   if (out_nrows == 1) {
-    preducer->f(rowindex, 0, arg->nrows, input, output, 0);
-  } else {
-    const int32_t* groups = groupby.offsets_r();
+    preducer->f(rowindex, 0, input_col->nrows, input, output, 0);
+  }
+  else {
+    const int32_t* groups = wf.get_groupby().offsets_r();
 
     #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < out_nrows; ++i) {
@@ -289,42 +328,6 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// expr_reduce
-//------------------------------------------------------------------------------
-
-
-expr_reduce::expr_reduce(dt::pexpr&& a, size_t op)
-  : arg(std::move(a)), opcode(op) {}
-
-
-SType expr_reduce::resolve(const dt::workframe& wf) {
-  if (opcode == 0 || opcode >= expr::REDUCEOP_COUNT) {
-    throw ValueError() << "Invalid op code in expr_reduce: " << opcode;
-  }
-  (void) arg->resolve(wf);
-  return SType::INT32;  // FIXME
-}
-
-
-dt::GroupbyMode expr_reduce::get_groupby_mode(const dt::workframe&) const {
-  return dt::GroupbyMode::GtoONE;
-}
-
-
-dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf) {
-  auto arg_col = arg->evaluate_eager(wf);
-  auto op = static_cast<expr::ReduceOp>(opcode);
-  if (wf.has_groupby()) {
-    const Groupby& grby = wf.get_groupby();
-    return colptr(expr::reduceop(op, arg_col.get(), grby));
-  } else {
-    return colptr(expr::reduceop(op, arg_col.get(),
-                                 Groupby::single_group(wf.nrows())));
-  }
-}
 
 
 //------------------------------------------------------------------------------
