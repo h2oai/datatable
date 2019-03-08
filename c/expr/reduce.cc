@@ -245,6 +245,35 @@ static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
 
 
 //------------------------------------------------------------------------------
+// Median
+//------------------------------------------------------------------------------
+
+template<typename T, typename U>
+static void median_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                           const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  U* outputs = static_cast<U*>(out);
+
+  // skip NA values if any
+  for (; row0 < row1; ++row0) {
+    size_t j = ri[row0];
+    if (j != RowIndex::NA && !ISNA<T>(inputs[j])) break;
+  }
+
+  if (row0 == row1) {
+    outputs[grp_index] = GETNA<U>();
+  } else {
+    size_t j = ri[(row1 + row0) / 2];
+    outputs[grp_index] = ((row1 - row0) & 1) ? static_cast<U>(inputs[j]) :
+                            (static_cast<U>(inputs[j]) +
+                             static_cast<U>(inputs[j - 1])) / 2;
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
 // expr_reduce
 //------------------------------------------------------------------------------
 
@@ -262,13 +291,13 @@ SType expr_reduce::resolve(const dt::workframe& wf) {
   if (opcode == ReduceOp::FIRST) {
     return arg_stype;
   }
-  auto preducer = library.lookup(opcode, arg_stype);
-  if (!preducer) {
+  auto reducer = library.lookup(opcode, arg_stype);
+  if (!reducer) {
     throw TypeError() << "Unable to apply reduce function `"
         << reducer_names[static_cast<size_t>(opcode)]
         << "()` to a column of type `" << arg_stype << "`";
   }
-  return preducer->output_stype;
+  return reducer->output_stype;
 }
 
 
@@ -280,38 +309,35 @@ dt::GroupbyMode expr_reduce::get_groupby_mode(const dt::workframe&) const {
 dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
 {
   auto input_col = arg->evaluate_eager(wf);
+  Groupby gb = wf.get_groupby();
+  if (!gb) gb = Groupby::single_group(input_col->nrows);
 
-  size_t out_nrows = 1;
-  if (wf.has_groupby()) {
-    const Groupby& groupby = wf.get_groupby();
-    out_nrows = groupby.ngroups();
-  }
-  xassert(out_nrows);  // Groupby cannot have 0 groups
-
-  // -----
+  size_t out_nrows = gb.ngroups();
+  if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
 
   if (opcode == ReduceOp::FIRST) {
-    if (wf.has_groupby()) {
-      return reduce_first(input_col, wf.get_groupby());
-    } else {
-      return reduce_first(input_col, Groupby::single_group(input_col->nrows));
-    }
+    return reduce_first(input_col, gb);
   }
 
   SType in_stype = input_col->stype();
-  auto preducer = library.lookup(opcode, in_stype);
-  xassert(preducer);  // checked in .resolve()
+  auto reducer = library.lookup(opcode, in_stype);
+  xassert(reducer);  // checked in .resolve()
 
-  SType out_stype = preducer->output_stype;
+  SType out_stype = reducer->output_stype;
   auto res = colptr(Column::new_data_column(out_stype, out_nrows));
-  const RowIndex& rowindex = input_col->rowindex();
+
+  RowIndex rowindex = input_col->rowindex();
+  if (opcode == ReduceOp::MEDIAN && gb) {
+    rowindex = input_col->sort_grouped(rowindex, gb);
+  }
+
   const void* input = input_col->data();
   if (in_stype == SType::STR32) input = static_cast<const char*>(input) + 4;
   if (in_stype == SType::STR64) input = static_cast<const char*>(input) + 8;
   void* output = res->data_w();
 
   if (out_nrows == 1) {
-    preducer->f(rowindex, 0, input_col->nrows, input, output, 0);
+    reducer->f(rowindex, 0, input_col->nrows, input, output, 0);
   }
   else {
     const int32_t* groups = wf.get_groupby().offsets_r();
@@ -320,7 +346,7 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
     for (size_t i = 0; i < out_nrows; ++i) {
       size_t row0 = static_cast<size_t>(groups[i]);
       size_t row1 = static_cast<size_t>(groups[i + 1]);
-      preducer->f(rowindex, row0, row1, input, output, i);
+      reducer->f(rowindex, row0, row1, input, output, i);
     }
   }
   return res;
@@ -390,6 +416,15 @@ void init_reducers()
   library.add(ReduceOp::STDEV, stdev_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
   library.add(ReduceOp::STDEV, stdev_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
   library.add(ReduceOp::STDEV, stdev_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
+
+  // Median
+  library.add(ReduceOp::MEDIAN, median_reducer<int8_t, double>,  SType::BOOL, SType::FLOAT64);
+  library.add(ReduceOp::MEDIAN, median_reducer<int8_t, double>,  SType::INT8, SType::FLOAT64);
+  library.add(ReduceOp::MEDIAN, median_reducer<int16_t, double>, SType::INT16, SType::FLOAT64);
+  library.add(ReduceOp::MEDIAN, median_reducer<int32_t, double>, SType::INT32, SType::FLOAT64);
+  library.add(ReduceOp::MEDIAN, median_reducer<int64_t, double>, SType::INT64, SType::FLOAT64);
+  library.add(ReduceOp::MEDIAN, median_reducer<float, float>,    SType::FLOAT32, SType::FLOAT32);
+  library.add(ReduceOp::MEDIAN, median_reducer<double, double>,  SType::FLOAT64, SType::FLOAT64);
 }
 
 

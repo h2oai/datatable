@@ -412,6 +412,12 @@ class SortContext {
   {
     groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
     gg.init(nullptr, 0, groupby.ngroups());
+    if (!rowindex) {
+      #pragma omp parallel for schedule(static) num_threads(nth)
+      for (size_t i = 0; i < n; ++i) {
+        o[i] = static_cast<int32_t>(i);
+      }
+    }
   }
 
 
@@ -436,12 +442,12 @@ class SortContext {
       if (groups) radix_psort<true>();
       else        radix_psort<false>();
     }
+    use_order = true;  // if want to continue sort
   }
 
 
   void continue_sort(const Column* col, bool desc, bool make_groups) {
     nradixes = gg.size();
-    use_order = true;
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
