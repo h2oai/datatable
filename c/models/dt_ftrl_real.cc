@@ -26,7 +26,7 @@ namespace dt {
 
 
 /*
-*  Set up parameters and initialize weights.
+*  Constructor. Set up parameters and initialize weights.
 */
 template <typename T>
 FtrlReal<T>::FtrlReal(FtrlParams params_in) :
@@ -54,6 +54,7 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 * - binomial logistic regression (BOOL);
 * - multinomial logistic regression (STR32, STR64);
 * - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
+* and returns epoch at which learning completed or was early stopped.
 */
 template <typename T>
 double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
@@ -94,6 +95,7 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
 
 template <typename T>
 double FtrlReal<T>::fit_binomial(double nepochs_val) {
+  xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::BINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
@@ -102,7 +104,6 @@ double FtrlReal<T>::fit_binomial(double nepochs_val) {
   }
   if (model_type == FtrlModelType::NONE) {
     labels = dt_y->get_names();
-    xassert(labels.size() == 1);
     create_model();
     model_type = FtrlModelType::BINOMIAL;
   }
@@ -114,6 +115,7 @@ double FtrlReal<T>::fit_binomial(double nepochs_val) {
 template <typename T>
 template <typename U>
 double FtrlReal<T>::fit_regression(double nepochs_val) {
+  xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
@@ -122,7 +124,6 @@ double FtrlReal<T>::fit_regression(double nepochs_val) {
   }
   if (model_type == FtrlModelType::NONE) {
     labels = dt_y->get_names();
-    xassert(labels.size() == 1);
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
@@ -143,13 +144,12 @@ double FtrlReal<T>::fit_multinomial(double nepochs_val) {
   if (model_type == FtrlModelType::NONE) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
-
     labels.push_back("_negative");
     create_model();
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
-  // Do one hot encoding and get the list of all the incoming labels
+  // Do one hot encoding and get a list of all the incoming labels.
   dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
   strvec labels_in = dt_y_nhot->get_names();
 
@@ -160,7 +160,7 @@ double FtrlReal<T>::fit_multinomial(double nepochs_val) {
   auto data_negative = static_cast<bool*>(cols[0]->data_w());
   std::memset(data_negative, 0, dt_y->nrows * sizeof(bool));
 
-  // First, process all the labels the model already have.
+  // First, process labels that are already in the model.
   for (size_t i = 1; i < labels.size(); ++i) {
     auto it = find(labels_in.begin(), labels_in.end(), labels[i]);
     if (it == labels_in.end()) {
@@ -179,7 +179,6 @@ double FtrlReal<T>::fit_multinomial(double nepochs_val) {
   size_t n_new_labels = 0;
   for (size_t i = 0; i < labels_in.size(); ++i) {
     if (labels_in[i] == "") continue;
-
     cols.push_back(dt_y_nhot->columns[i]->shallowcopy());
     labels.push_back(labels_in[i]);
     n_new_labels++;
@@ -237,14 +236,14 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
   // Create feature importance datatable.
   if (!is_dt_valid(dt_fi, nfeatures, 2)) create_fi(dt_X);
 
-  // Create column hashers
+  // Create column hashers.
   auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke
   // `dt::run_parallel()` on all the data for all the epochs at once.
   size_t total_nrows = dt_X->nrows * nepochs;
-  size_t nchunks = 1;
-  size_t chunk_nrows = total_nrows;
+  size_t nchunks = nepochs;
+  size_t chunk_nrows = dt_X->nrows;
 
   // If a validation set has been provided, we train on chunks of data.
   // After each chunk was fitted, we calculate loss on the validation set,
@@ -261,7 +260,7 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
               );
   }
 
-  // Gather rowindex and data pointers
+  // Gather rowindex and data pointers.
   std::vector<const RowIndex> ri, ri_val;
   std::vector<const U*> data, data_val;
   fill_ri_data<U>(dt_y, ri, data);
@@ -315,7 +314,7 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
 
 
     // Calculate loss on the validation dataset and do early stopping,
-    // if the loss does not improve
+    // if the loss does not improve.
     if (validation) {
       bool label_shift = (model_type == FtrlModelType::MULTINOMIAL);
       dt::run_parallel(

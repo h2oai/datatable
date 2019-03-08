@@ -55,7 +55,7 @@ default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
                         nbins = 1000000, nepochs = 1, interactions = False,
                         double_precision = False)
 
-epsilon = 0.05
+epsilon = 0.01
 
 
 #-------------------------------------------------------------------------------
@@ -617,15 +617,6 @@ def test_ftrl_fit_predict_multinomial():
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
 
-    # Relax accuracy on `None`, as it is affected by Hogwild
-    none_index = 5
-    assert delta_red[none_index]   < epsilon * 10
-    assert delta_green[none_index] < epsilon * 10
-    assert delta_blue[none_index]  < epsilon * 10
-    delta_red.pop(none_index)
-    delta_green.pop(none_index)
-    delta_blue.pop(none_index)
-
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
@@ -682,15 +673,6 @@ def test_ftrl_fit_predict_multinomial_online():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
-
-    # Relax accuracy on `None`, as it is affected by Hogwild
-    none_index = 5
-    assert delta_red[none_index]   < epsilon * 10
-    assert delta_green[none_index] < epsilon * 10
-    assert delta_blue[none_index]  < epsilon * 10
-    delta_red.pop(none_index)
-    delta_green.pop(none_index)
-    delta_blue.pop(none_index)
 
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
@@ -802,15 +784,6 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
-
-    # Relax accuracy on `None`, as it is affected by Hogwild
-    none_index = 5
-    assert delta_red[none_index]   < epsilon * 10
-    assert delta_green[none_index] < epsilon * 10
-    assert delta_blue[none_index]  < epsilon * 10
-    delta_red.pop(none_index)
-    delta_green.pop(none_index)
-    delta_blue.pop(none_index)
 
     assert epoch < nepochs
     assert max(delta_sum)   < 1e-6
