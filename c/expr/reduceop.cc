@@ -210,16 +210,14 @@ static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
 //------------------------------------------------------------------------------
 
 template<typename T>
-static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const T* inputs = static_cast<const T*>(col0->data());
-  T* outputs = static_cast<T*>(col1->data_w());
+static void min_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                        const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  T* outputs = static_cast<T*>(out);
   T res = infinity<T>();
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
   bool valid = false;
-  col0->rowindex().iterate(row0, row1, 1,
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
       T x = inputs[j];
@@ -227,7 +225,7 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
       if (x < res) res = x;
       valid = true;
     });
-  outputs[grp] = valid? res : GETNA<T>();
+  outputs[grp_index] = valid? res : GETNA<T>();
 }
 
 
@@ -237,16 +235,14 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
 //------------------------------------------------------------------------------
 
 template<typename T>
-static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const T* inputs = static_cast<const T*>(col0->data());
-  T* outputs = static_cast<T*>(col1->data_w());
+static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                        const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  T* outputs = static_cast<T*>(out);
   T res = -infinity<T>();
   bool valid = false;
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
-  col0->rowindex().iterate(row0, row1, 1,
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
       T x = inputs[j];
@@ -254,9 +250,8 @@ static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
       if (x > res) res = x;
       valid = true;
     });
-  outputs[grp] = valid? res : GETNA<T>();
+  outputs[grp_index] = valid? res : GETNA<T>();
 }
-
 
 
 //------------------------------------------------------------------------------
@@ -267,8 +262,6 @@ template<typename T1, typename T2>
 static gmapperfn resolve1(ReduceOp opcode) {
   switch (opcode) {
     case ReduceOp::MEAN:  return mean_skipna<T1, T2>;
-    case ReduceOp::MIN:   return min_skipna<T1>;
-    case ReduceOp::MAX:   return max_skipna<T1>;
     case ReduceOp::STDEV: return stdev_skipna<T1, T2>;
     case ReduceOp::SUM:   return sum_skipna<T1, T2>;
     default:            return nullptr;
@@ -323,6 +316,7 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
   if (preducer) {
     SType out_stype = preducer->output_stype;
     size_t out_nrows = groupby.ngroups();
+    if (out_nrows == 0) out_nrows = 1;
     Column* res = Column::new_data_column(out_stype, out_nrows);
     const RowIndex& rowindex = arg->rowindex();
     const void* input = arg->data();
@@ -345,18 +339,13 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
     return res;
   }
 
-  SType res_type = opcode == ReduceOp::MIN || opcode == ReduceOp::MAX ||
-                   arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
+  SType res_type = arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
   if (opcode == ReduceOp::SUM) {
     if (arg_type == SType::FLOAT32 || arg_type == SType::FLOAT64) {
       res_type = SType::FLOAT64;
     } else {
       res_type = SType::INT64;
     }
-  }
-
-  if (opcode == ReduceOp::COUNT) {
-    res_type = SType::INT64;
   }
 
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
@@ -395,6 +384,7 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
 void py::DatatableModule::init_reducers()
 {
   using namespace expr;
+
   // Count
   library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
   library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
@@ -405,4 +395,22 @@ void py::DatatableModule::init_reducers()
   library.add(ReduceOp::COUNT, count_reducer<double>,   SType::FLOAT64, SType::INT64);
   library.add(ReduceOp::COUNT, count_reducer<uint32_t>, SType::STR32, SType::INT64);
   library.add(ReduceOp::COUNT, count_reducer<uint64_t>, SType::STR64, SType::INT64);
+
+  // Min
+  library.add(ReduceOp::MIN, min_reducer<int8_t>,  SType::BOOL, SType::BOOL);
+  library.add(ReduceOp::MIN, min_reducer<int8_t>,  SType::INT8, SType::INT8);
+  library.add(ReduceOp::MIN, min_reducer<int16_t>, SType::INT16, SType::INT16);
+  library.add(ReduceOp::MIN, min_reducer<int32_t>, SType::INT32, SType::INT32);
+  library.add(ReduceOp::MIN, min_reducer<int64_t>, SType::INT64, SType::INT64);
+  library.add(ReduceOp::MIN, min_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(ReduceOp::MIN, min_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
+
+  // Max
+  library.add(ReduceOp::MAX, max_reducer<int8_t>,  SType::BOOL, SType::BOOL);
+  library.add(ReduceOp::MAX, max_reducer<int8_t>,  SType::INT8, SType::INT8);
+  library.add(ReduceOp::MAX, max_reducer<int16_t>, SType::INT16, SType::INT16);
+  library.add(ReduceOp::MAX, max_reducer<int32_t>, SType::INT32, SType::INT32);
+  library.add(ReduceOp::MAX, max_reducer<int64_t>, SType::INT64, SType::INT64);
+  library.add(ReduceOp::MAX, max_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(ReduceOp::MAX, max_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
 }
