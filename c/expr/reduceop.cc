@@ -100,23 +100,21 @@ Column* reduce_first(const Column* col, const Groupby& groupby) {
 // Sum calculation
 //------------------------------------------------------------------------------
 
-template<typename IT, typename OT>
-static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* inputs = static_cast<const IT*>(col0->data());
-  OT* outputs = static_cast<OT*>(col1->data_w());
-  OT sum = 0;
-  size_t row0 = static_cast<size_t>(groups[grp]);
-  size_t row1 = static_cast<size_t>(groups[grp + 1]);
-  col0->rowindex().iterate(row0, row1, 1,
+template<typename T, typename U>
+static void sum_reducer(const RowIndex& ri, size_t row0, size_t row1,
+                        const void* inp, void* out, size_t grp_index)
+{
+  const T* inputs = static_cast<const T*>(inp);
+  U* outputs = static_cast<U*>(out);
+  U sum = 0;
+  ri.iterate(row0, row1, 1,
     [&](size_t, size_t j) {
       if (j == RowIndex::NA) return;
-      IT x = inputs[j];
-      if (!ISNA<IT>(x))
-        sum += static_cast<OT>(x);
+      T x = inputs[j];
+      if (!ISNA<T>(x))
+        sum += static_cast<U>(x);
     });
-  outputs[grp] = sum;
+  outputs[grp_index] = sum;
 }
 
 
@@ -254,6 +252,7 @@ static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
 }
 
 
+
 //------------------------------------------------------------------------------
 // Resolve template function
 //------------------------------------------------------------------------------
@@ -263,29 +262,12 @@ static gmapperfn resolve1(ReduceOp opcode) {
   switch (opcode) {
     case ReduceOp::MEAN:  return mean_skipna<T1, T2>;
     case ReduceOp::STDEV: return stdev_skipna<T1, T2>;
-    case ReduceOp::SUM:   return sum_skipna<T1, T2>;
     default:            return nullptr;
   }
 }
 
 
 static gmapperfn resolve0(ReduceOp opcode, SType stype) {
-  if (opcode == ReduceOp::SUM) {
-    switch (stype) {
-      case SType::BOOL:
-      case SType::INT8:    return sum_skipna<int8_t, int64_t>;
-      case SType::INT16:   return sum_skipna<int16_t, int64_t>;
-      case SType::INT32:   return sum_skipna<int32_t, int64_t>;
-      case SType::INT64:   return sum_skipna<int64_t, int64_t>;
-      case SType::FLOAT32: return sum_skipna<float, double>;
-      case SType::FLOAT64: return sum_skipna<double, double>;
-      default:             return nullptr;
-    }
-  }
-
-  if (opcode == ReduceOp::COUNT) {
-    return nullptr;
-  }
 
   switch (stype) {
     case SType::BOOL:
@@ -339,14 +321,8 @@ Column* reduceop(ReduceOp opcode, Column* arg, const Groupby& groupby)
     return res;
   }
 
+
   SType res_type = arg_type == SType::FLOAT32 ? arg_type : SType::FLOAT64;
-  if (opcode == ReduceOp::SUM) {
-    if (arg_type == SType::FLOAT32 || arg_type == SType::FLOAT64) {
-      res_type = SType::FLOAT64;
-    } else {
-      res_type = SType::INT64;
-    }
-  }
 
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
   if (ngrps == 0) ngrps = 1;
@@ -413,4 +389,13 @@ void py::DatatableModule::init_reducers()
   library.add(ReduceOp::MAX, max_reducer<int64_t>, SType::INT64, SType::INT64);
   library.add(ReduceOp::MAX, max_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
   library.add(ReduceOp::MAX, max_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
+
+  // Sum
+  library.add(ReduceOp::SUM, sum_reducer<int8_t,  int64_t>,  SType::BOOL, SType::INT64);
+  library.add(ReduceOp::SUM, sum_reducer<int8_t,  int64_t>,  SType::INT8, SType::INT64);
+  library.add(ReduceOp::SUM, sum_reducer<int16_t, int64_t>,  SType::INT16, SType::INT64);
+  library.add(ReduceOp::SUM, sum_reducer<int32_t, int64_t>,  SType::INT32, SType::INT64);
+  library.add(ReduceOp::SUM, sum_reducer<int64_t, int64_t>,  SType::INT64, SType::INT64);
+  library.add(ReduceOp::SUM, sum_reducer<float,   double>,   SType::FLOAT32, SType::FLOAT64);
+  library.add(ReduceOp::SUM, sum_reducer<double,  double>,   SType::FLOAT64, SType::FLOAT64);
 }
