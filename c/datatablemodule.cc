@@ -21,11 +21,8 @@
 #include "python/string.h"
 #include "datatablemodule.h"
 #include "options.h"
-#include "py_column.h"
-#include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
-#include "py_types.h"
 #include "utils/assert.h"
 #include "ztest.h"
 
@@ -44,7 +41,7 @@ static std::pair<DataTable*, size_t>
 _unpack_frame_column_args(const py::PKArgs& args)
 {
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
   size_t col    = args[1].to_size_t();
 
   if (!dt) throw TypeError() << "First parameter should be a Frame";
@@ -175,7 +172,7 @@ static py::PKArgs args__column_save_to_disk(
   "using the provided writing strategy.\n");
 
 static void _column_save_to_disk(const py::PKArgs& args) {
-  DataTable* dt        = args[0].to_frame();
+  DataTable* dt        = args[0].to_datatable();
   size_t i             = args[1].to_size_t();
   std::string filename = args[2].to_string();
   std::string strategy = args[3].to_string();
@@ -305,11 +302,9 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     m = dtmod.init();
 
     // Initialize submodules
-    if (!init_py_types(m)) return nullptr;
-    if (!pycolumn::static_init(m)) return nullptr;
-    if (!pydatatable::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
 
+    init_types();
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);

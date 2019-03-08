@@ -10,7 +10,6 @@
 #include "expr/base_expr.h"
 #include "column.h"
 #include "groupby.h"
-#include "py_utils.h"
 
 
 namespace expr {

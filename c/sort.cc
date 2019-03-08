@@ -133,6 +133,7 @@
 #include "utils/alloc.h"
 #include "utils/array.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
@@ -141,7 +142,6 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "types.h"
-#include "utils.h"
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory

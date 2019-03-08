@@ -348,9 +348,10 @@ void GenericReader::_message(
     msg = va_arg(args, char*);
   } else {
     msg = shared_buffer;
-    IGNORE_WARNING(-Wformat-nonliteral)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     vsnprintf(msg, 2000, format, args);
-    RESTORE_WARNINGS()
+    #pragma GCC diagnostic pop
   }
 
   if (omp_get_thread_num() == 0) {

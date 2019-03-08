@@ -213,8 +213,7 @@ class _obj {
     py::otuple  to_otuple         (const error_manager& = _em0) const;
     py::rtuple  to_rtuple_lax     () const;
 
-    Column*     to_column         (const error_manager& = _em0) const;
-    DataTable*  to_frame          (const error_manager& = _em0) const;
+    DataTable*  to_datatable      (const error_manager& = _em0) const;
     SType       to_stype          (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;

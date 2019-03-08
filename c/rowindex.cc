@@ -21,11 +21,11 @@
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "utils/parallel.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
-#include "utils.h"
 
 
 //------------------------------------------------------------------------------

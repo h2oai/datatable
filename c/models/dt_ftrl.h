@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_h
 #define dt_MODELS_FTRL_h
-#include "py_datatable.h"
-#include "utils/parallel.h"
 #include "models/hash.h"
+#include "utils/parallel.h"
+#include "options.h"
 
 
 using hashptr = std::unique_ptr<Hash>;

@@ -36,32 +36,6 @@ inline std::string operator "" _s(const char* str, size_t len) {
 
 
 //==============================================================================
-// Pointer macros
-//==============================================================================
-
-// Some macro hackery based on
-// https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
-#define zPRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
-#define zCAT(a, ...) zPRIMITIVE_CAT(a, __VA_ARGS__)
-#define zIIF_0(t, ...) __VA_ARGS__
-#define zIIF_1(t, ...) t
-#define zCHECK_N(x, n, ...) n
-#define zCHECK(...) zCHECK_N(__VA_ARGS__, 0,)
-#define zIIF(c) zPRIMITIVE_CAT(zIIF_, c)
-#define zTEST3_ ~,1,
-
-// This macro expands to `t` if symbol `x` is defined and equal to 1, and to
-// `f` otherwise.
-#define IFDEF(x, t, f) zIIF(zCHECK(zPRIMITIVE_CAT(zTEST3_, x)))(t, f)
-#define WHEN(x, t) IFDEF(x, t, )
-
-#define APPLY(macro, arg) macro(arg)
-#define STRINGIFY_(L) #L
-#define STRINGIFY(x) APPLY(STRINGIFY_, x)
-
-
-
-//==============================================================================
 // Binary arithmetics
 //==============================================================================
 
@@ -78,15 +52,6 @@ extern template int nlz(uint8_t);
 //==============================================================================
 // Other
 //==============================================================================
-
-#define zMAKE_PRAGMA(x) _Pragma(#x);
-
-#define IGNORE_WARNING(name) \
-    zMAKE_PRAGMA(GCC diagnostic push) \
-    zMAKE_PRAGMA(GCC diagnostic ignored #name)
-
-#define RESTORE_WARNINGS() \
-    zMAKE_PRAGMA(GCC diagnostic pop)
 
 
 void set_value(void* ptr, const void* value, size_t sz, size_t count);

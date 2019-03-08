@@ -13,10 +13,10 @@
 #endif
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
+#include "utils/misc.h"        // malloc_size
 #include "datatablemodule.h"   // TRACK, UNTRACK, IS_TRACKED
 #include "memrange.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
-#include "utils.h"             // malloc_size
 
 
 

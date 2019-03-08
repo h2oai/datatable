@@ -60,7 +60,7 @@ struct cols_exprlist : public collist {
   exprvec exprs;
   strvec  names;
 
-	cols_exprlist(exprvec&& exprs_, strvec&& names_);
+  cols_exprlist(exprvec&& exprs_, strvec&& names_);
   ~cols_exprlist() override;
 };
 

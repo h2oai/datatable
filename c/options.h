@@ -9,7 +9,6 @@
 #define dt_OPTIONS_h
 #include <string>
 #include <Python.h>
-#include "py_utils.h"
 
 namespace config {
 

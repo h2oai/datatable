@@ -13,9 +13,9 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/logger.h"
+#include "utils/misc.h"
 #include "datatable.h"
 #include "writebuf.h"
-#include "utils.h"
 
 
 class CsvColumn;

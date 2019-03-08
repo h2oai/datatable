@@ -91,8 +91,6 @@ def test_dt0_properties(dt0):
     assert dt0.names == ("colA", "colB", "colC")
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
-    assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
-    assert not isview(dt0)
     for i in range(dt0.ncols):
         assert frame_column_rowindex(dt0, i) is None
     frame_integrity_check(dt0)

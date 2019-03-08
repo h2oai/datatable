@@ -7,8 +7,8 @@
 //------------------------------------------------------------------------------
 #include "python/obj.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "types.h"
-#include "utils.h"
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 static PyObject* py_stype_objs[DT_STYPES_COUNT];
@@ -48,6 +48,9 @@ dt_static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
                  "Unsigned arithmetics check");
 dt_static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
 dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+
+dt_static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
+                 "int64_t and Py_ssize_t should refer to the same type");
 
 
 

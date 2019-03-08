@@ -191,8 +191,8 @@ void Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame parameter is missing";
   }
 
-  DataTable* dt_X = args[0].to_frame();
-  DataTable* dt_y = args[1].to_frame();
+  DataTable* dt_X = args[0].to_datatable();
+  DataTable* dt_y = args[1].to_datatable();
   if (dt_X == nullptr || dt_y == nullptr) return;
 
   if (dt_X->ncols == 0) {
@@ -376,7 +376,7 @@ oobj Ftrl::predict(const PKArgs& args) {
     throw ValueError() << "Frame to make predictions for is missing";
   }
 
-  DataTable* dt_X = args[0].to_frame();
+  DataTable* dt_X = args[0].to_datatable();
   if (dt_X == nullptr) return Py_None;
 
   if (!(*dtft)[0]->is_trained()) {
@@ -630,7 +630,7 @@ void Ftrl::set_model(robj model) {
   init_dtft((*dtft)[0]->get_params());
 
   for (size_t i = 0; i < nlabels; ++i) {
-    DataTable* dt_model_in = py_model[i].to_frame();
+    DataTable* dt_model_in = py_model[i].to_datatable();
     const std::vector<std::string>& model_cols_in = dt_model_in->get_names();
 
     if (dt_model_in->nrows != (*dtft)[0]->get_nbins() || dt_model_in->ncols != 2) {
@@ -712,7 +712,7 @@ oobj Ftrl::get_fi() const {
         d_fi[i] /= ndtft;
       }
     } else {
-    	// If there is just one classifier, simply return `fi`.
+      // If there is just one classifier, simply return `fi`.
       dt_fi = (*dtft)[0]->get_fi();
     }
     normalize_fi(static_cast<RealColumn<double>*>(dt_fi->columns[0]));
@@ -726,7 +726,7 @@ oobj Ftrl::get_fi() const {
                      );
     return df_fi;
   } else {
-  	// If model was not trained, return `None`.
+    // If model was not trained, return `None`.
     return py::None();
   }
 }
@@ -1119,13 +1119,13 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   if (pickle[2].is_tuple()) {
     py::otuple fi_tuple = pickle[2].to_otuple();
     for (size_t i = 0; i < fi_tuple.size(); ++i) {
-      (*dtft)[i]->set_fi(fi_tuple[i].to_frame()->copy());
+      (*dtft)[i]->set_fi(fi_tuple[i].to_datatable()->copy());
     }
   }
 
   // Set feature names
   if (pickle[3].is_frame()) {
-    feature_names = pickle[3].to_frame()->copy();
+    feature_names = pickle[3].to_datatable()->copy();
   }
   // Set regression type
   reg_type = static_cast<RegType>(pickle[5].to_int32());
