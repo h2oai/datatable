@@ -81,6 +81,7 @@ messages, and powerful API similar to R ``data.table``'s.
     :hidden:
 
     quick-start
+    tutorial
     using-datatable
 
 .. toctree::
