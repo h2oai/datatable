@@ -264,10 +264,10 @@ static void median_reducer(const RowIndex& ri, size_t row0, size_t row1,
   if (row0 == row1) {
     outputs[grp_index] = GETNA<U>();
   } else {
-    size_t j = ri[(row1 + row0) / 2];
-    outputs[grp_index] = ((row1 - row0) & 1) ? static_cast<U>(inputs[j]) :
-                            (static_cast<U>(inputs[j]) +
-                             static_cast<U>(inputs[j - 1])) / 2;
+    size_t j = (row1 + row0) / 2;
+    outputs[grp_index] = ((row1 - row0) & 1)
+      ? static_cast<U>(inputs[ri[j]]) :
+        (static_cast<U>(inputs[ri[j]]) + static_cast<U>(inputs[ri[j - 1]]))/2;
   }
 }
 
