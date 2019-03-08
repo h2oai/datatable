@@ -22,11 +22,10 @@
 #include <random>
 #include "models/aggregator.h"
 
-
 namespace py {
 
 static PKArgs args_aggregate(
-  11, 0, 0, false, false,
+  1, 0, 10, false, false,
   {
     "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
     "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"
@@ -42,43 +41,43 @@ Aggregate a datatable.
 
 Parameters
 ----------
-  frame: datatable
-      Frame to be aggregated.
-  min_rows: int
-      Minimum number of rows a datatable should have to be aggregated.
-      If datatable has `nrows` that is less than `min_rows`, aggregation
-      is bypassed, and all rows become exemplars.
-  n_bins: int
-      Number of bins for 1D aggregation.
-  nx_bins: int
-      Number of x bins for 2D aggregation.
-  ny_bins: int
-      Number of y bins for 2D aggregation.
-  nd_max_bins: int
-      Maximum number of exemplars for ND aggregation, not a hard limit.
-  max_dimensions: int
-      Number of columns at which start using the projection method.
-  seed: int
-      Seed to be used for the projection method.
-  progress_fn: object
-      Python function for progress reporting with the signature
-      `progress_fn(progress, status_code)`, where:
-      - `progress` is a float value that corresponds to the aggregation
-        progress on a scale from 0 to 1;
-      - `status_code` takes two values: `0` – in progress, `1` – completed.
-  nthreads: int
-      Number of OpenMP threads aggregator should use. `0` means
-      use all the threads.
-  double_precision: bool
-      Whether to use double precision arithmetic or not.
+frame: datatable
+    Frame to be aggregated.
+min_rows: int
+    Minimum number of rows a datatable should have to be aggregated.
+    If datatable has `nrows` that is less than `min_rows`, aggregation
+    is bypassed, and all rows become exemplars.
+n_bins: int
+    Number of bins for 1D aggregation.
+nx_bins: int
+    Number of x bins for 2D aggregation.
+ny_bins: int
+    Number of y bins for 2D aggregation.
+nd_max_bins: int
+    Maximum number of exemplars for ND aggregation, not a hard limit.
+max_dimensions: int
+    Number of columns at which start using the projection method.
+seed: int
+    Seed to be used for the projection method.
+progress_fn: object
+    Python function for progress reporting with the signature
+    `progress_fn(progress, status_code)`, where:
+    - `progress` is a float value that corresponds to the aggregation
+      progress on a scale from 0 to 1;
+    - `status_code` takes two values: `0` – in progress, `1` – completed.
+nthreads: int
+    Number of OpenMP threads aggregator should use. `0` means
+    use all the threads.
+double_precision: bool
+    Whether to use double precision arithmetic or not.
 
 Returns
 -------
-  A list `[frame_exemplars, frame_members]`, where
-  - `frame_exemplars` is the aggregated `frame` with an additional
-    `members_count` column, that specifies number of members for each exemplar.
-  - `frame_members` is a one-column datatable that contains `exemplar_id` for
-    each row from the original `frame`.
+A list `[frame_exemplars, frame_members]`, where
+- `frame_exemplars` is the aggregated `frame` with an additional
+  `members_count` column, that specifies number of members for each exemplar.
+- `frame_members` is a one-column datatable that contains `exemplar_id` for
+  each row from the original `frame`.
 )"
 );
 

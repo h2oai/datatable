@@ -22,11 +22,61 @@
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
 
+template <typename T>
+using tptr = typename std::unique_ptr<T[]>;
+using uint64ptr = std::unique_ptr<uint64_t[]>;
 
+
+void calculate_coprimes(size_t, std::vector<size_t>&);
+
+/*
+*  Sigmoid function.
+*/
+template<typename T>
+inline T sigmoid(T x) {
+  constexpr T one = static_cast<T>(1.0);
+  return one / (one + std::exp(-x));
+}
+
+/*
+*  Identity function.
+*/
+template<typename T>
+inline T identity(T x) {
+  return x;
+}
+
+/*
+* Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
+* where p is a prediction and y is the actual target:
+* - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
+*   to prevent logloss being undefined;
+* - simplify the logloss formula to more compact branchless code.
+*/
+template<typename T>
+inline T log_loss(T p, int8_t y) {
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
+  p = std::max(std::min(p, 1 - epsilon), epsilon);
+  return -std::log(p * (2*y - 1) + 1 - y);
+}
+
+
+/*
+* Squared loss, T1 is either float or double,
+* T2 is any other numerical type.
+*/
+template<typename T1, typename T2>
+inline T1 squared_loss(T1 p, T2 y) {
+  T1 y_T1 = static_cast<T1>(y);
+  return (p - y_T1) * (p - y_T1);
+}
+
+
+/*
+* Progress reporting function and parameters.
+*/
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 void print_progress(float, int);
-
-void calculate_coprimes(size_t, std::vector<size_t>&);
 
 #endif

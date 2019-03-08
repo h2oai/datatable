@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
+#include <cmath>
 #include <stdio.h>
 #include "models/utils.h"
 
