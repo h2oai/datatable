@@ -10,6 +10,8 @@
 #include "utils/assert.h"
 #include "utils/misc.h"          // wallclock
 #include "datatable.h"
+#include "read/fread/fread_parallel_reader.h"  // FreadParallelReader
+#include "read/fread/fread_tokenizer.h"        // FreadTokenizer
 
 
 

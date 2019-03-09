@@ -7,21 +7,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_FREAD_h
 #define dt_CSV_READER_FREAD_h
-#include <Python.h>
-#include <vector>        // std::vector
-#include "csv/fread.h"
-#include "csv/reader.h"
-#include "csv/reader_parsers.h"
-#include "memrange.h"
-#include "read/parallel_reader.h"
-#include "read/fread/fread_parallel_reader.h"
-#include "read/fread/fread_tokenizer.h"
-#include "utils/shared_mutex.h"
+#include <vector>                 // std::vector
+#include "csv/reader.h"           // GenericReader
+#include "csv/reader_parsers.h"   // ParserLibrary, ParserFnPtr
+#include "read/field64.h"         // dt::read::field64
 
 
 namespace dt {
 namespace read {
-  struct ChunkCoordinates;
   class ParallelReader;
   class FreadParallelReader;
   class FreadThreadContext;
