@@ -2,19 +2,13 @@
 // Original version of this file contributed by Matt Dowle, from R data.table
 // project (https://github.com/Rdatatable/data.table)
 //------------------------------------------------------------------------------
-#include <ctype.h>     // isspace
-#include <stdarg.h>    // va_list, va_start
-#include <stdio.h>     // vsnprintf
-#include <algorithm>
-#include <cmath>       // std::sqrt, std::ceil
-#include <cstdio>      // std::snprintf
-#include <string>      // std::string
 #include "csv/fread.h"
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
 #include "csv/reader_fread.h"
 #include "csv/reader_parsers.h"
 #include "utils/assert.h"
+#include "utils/misc.h"          // wallclock
 #include "datatable.h"
 
 

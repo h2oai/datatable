@@ -17,6 +17,7 @@
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/parallel.h"
+#include "utils/misc.h"         // wallclock
 #include "python/list.h"
 #include "python/string.h"
 

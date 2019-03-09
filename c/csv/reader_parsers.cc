@@ -7,7 +7,8 @@
 //------------------------------------------------------------------------------
 #include <limits>                // std::numeric_limits
 #include "csv/reader_parsers.h"
-#include "csv/fread.h"    // FreadTokenizer
+#include "csv/fread.h"
+#include "read/fread/fread_tokenizer.h"  // FreadTokenizer
 #include "utils/assert.h"
 
 #define NA_BOOL8         INT8_MIN

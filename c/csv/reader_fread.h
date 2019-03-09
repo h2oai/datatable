@@ -15,7 +15,9 @@
 #include "memrange.h"
 #include "read/parallel_reader.h"
 #include "read/fread/fread_parallel_reader.h"
+#include "read/fread/fread_tokenizer.h"
 #include "utils/shared_mutex.h"
+
 
 namespace dt {
 namespace read {
