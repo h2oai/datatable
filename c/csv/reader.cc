@@ -5,21 +5,21 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <stdlib.h>             // strtod
+#include <strings.h>            // strcasecmp
+#include <cerrno>               // errno
+#include <cstring>              // std::memcmp
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
-#include <stdlib.h>   // strtod
-#include <strings.h>  // strcasecmp
-#include <cerrno>     // errno
-#include <cstring>    // std::memcmp
-#include "datatable.h"
-#include "encodings.h"
-#include "options.h"
+#include "python/_all.h"
+#include "python/string.h"
 #include "utils/exceptions.h"
 #include "utils/parallel.h"
 #include "utils/misc.h"         // wallclock
-#include "python/list.h"
-#include "python/string.h"
+#include "datatable.h"
+#include "encodings.h"
+#include "options.h"
 
 
 //------------------------------------------------------------------------------
