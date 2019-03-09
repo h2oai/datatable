@@ -271,7 +271,7 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (!args[5].is_none_or_undefined()) {
       early_stopping_error = args[5].to_double();
-      py::Validator::check_positive<double>(early_stopping_error, args[6]);
+      py::Validator::check_positive<double>(early_stopping_error, args[5]);
     } else early_stopping_error = 0.01;
   }
 

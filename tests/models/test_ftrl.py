@@ -763,7 +763,7 @@ def test_ftrl_early_stopping_view():
 
 
 def test_ftrl_fit_predict_multinomial_early_stopping():
-    nepochs = 1000
+    nepochs = 2000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
