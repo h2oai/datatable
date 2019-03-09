@@ -5,19 +5,19 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <limits>                // std::numeric_limits
+#include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
 #include "csv/fread.h"
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
-#include "utils/assert.h"
+#include "utils/assert.h"                // xassert
 
-#define NA_BOOL8         INT8_MIN
-#define NA_INT32         INT32_MIN
-#define NA_INT64         INT64_MIN
-#define NA_FLOAT32_I32   0x7F8007A2
-#define NA_FLOAT64_I64   0x7FF00000000007A2
-#define INF_FLOAT32_I32  0x7F800000
-#define INF_FLOAT64_I64  0x7FF0000000000000
+static constexpr int8_t  NA_BOOL8 = -128;
+static constexpr int32_t NA_INT32 = INT32_MIN;
+static constexpr int64_t NA_INT64 = INT64_MIN;
+static constexpr uint32_t NA_FLOAT32_I32 = 0x7F8007A2;
+static constexpr uint64_t NA_FLOAT64_I64 = 0x7FF000000000DEADull;
+static constexpr uint32_t INF_FLOAT32_I32 = 0x7F800000;
+static constexpr uint64_t INF_FLOAT64_I64 = 0x7FF0000000000000ull;
 
 
 //------------------------------------------------------------------------------
