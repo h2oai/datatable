@@ -7,13 +7,13 @@
 //------------------------------------------------------------------------------
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
-#include "csv/fread.h"
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
+#include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 
-static constexpr int8_t  NA_BOOL8 = -128;
-static constexpr int32_t NA_INT32 = INT32_MIN;
-static constexpr int64_t NA_INT64 = INT64_MIN;
+static constexpr int8_t   NA_BOOL8 = -128;
+static constexpr int32_t  NA_INT32 = INT32_MIN;
+static constexpr int64_t  NA_INT64 = INT64_MIN;
 static constexpr uint32_t NA_FLOAT32_I32 = 0x7F8007A2;
 static constexpr uint64_t NA_FLOAT64_I64 = 0x7FF000000000DEADull;
 static constexpr uint32_t INF_FLOAT32_I32 = 0x7F800000;
@@ -244,7 +244,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
     if (*ch == '.') {
       ch++;
       int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+      while ((digit = dt::read::hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
         acc = (acc << 4) + digit;
         ch++;
         ndigits++;
@@ -398,7 +398,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
   if (e < 0 || e > 700) goto fail;
 
-  r = static_cast<double>(static_cast<long double>(acc) * pow10lookup[e]);
+  r = static_cast<double>(static_cast<long double>(acc) * dt::read::pow10lookup[e]);
   ctx.target->float64 = neg? -r : r;
   ctx.ch = ch;
   return;
@@ -514,7 +514,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
     if (*ch == '.') {
       ch++;
       int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+      while ((digit = dt::read::hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
         acc = (acc << 4) + digit;
         ch++;
         ndigits++;
