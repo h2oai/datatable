@@ -152,10 +152,11 @@ void Ftrl::m__dealloc__() {
 * .fit(...)
 * Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
 */
-static PKArgs args_fit(2, 3, 0, false, false, {"X_train", "y_train",
-                       "X_validate", "y_validate", "nepochs_validate"},
+static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
+                       "X_validation", "y_validation",
+                       "nepochs_validation", "early_stopping_error"},
                        "fit",
-R"(fit(self, X_train, y_train, X_validate=None, y_validate=None, nepochs_validate=1)
+R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, early_stopping_error = 0.01)
 --
 
 Train an FTRL model on a dataset.
@@ -168,23 +169,24 @@ X_train: Frame
 y_train: Frame
     Target frame of shape (nrows, 1).
 
-X_validate: Frame
-    Validation frame of shape (nrows, ncols) us
+X_validation: Frame
+    Validation frame of shape (nrows, ncols).
 
-y_validate: Frame
+y_validation: Frame
     Validation target frame of shape (nrows, 1).
 
-nepochs_validate: float
-    Parameter that specifies how often to check loss on the validation
-    set for early stopping, and should be more than zero as well as
-    less than `nepochs`. If after a corresponding `nepochs_validate` period
-    loss does not improve, training terminates.
+nepochs_validation: float
+    Parameter that specifies how often, in epoch units, validation
+    error is checked.
 
+early_stopping_error: float
+    If within `nepochs_validation` validation error does not improve
+    by at least `early_stopping_error`, training is stopped.
 
 Returns
 -------
-Epoch at which the model stoped training. If no validation set was
-provided, `epoch` will be equal to `nepochs`.
+Epoch at which model training stopped. If no validation dataset was provided,
+epoch returned will be equal to `nepochs`.
 )");
 
 
@@ -223,7 +225,8 @@ oobj Ftrl::fit(const PKArgs& args) {
   // Validtion set handling
   DataTable* dt_X_val = nullptr;
   DataTable* dt_y_val = nullptr;
-  double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
+  double nepochs_validation = std::numeric_limits<double>::quiet_NaN();
+  double early_stopping_error = std::numeric_limits<double>::quiet_NaN();
 
   if (!args[2].is_none_or_undefined() && !args[3].is_none_or_undefined()) {
     dt_X_val = args[2].to_datatable();
@@ -259,18 +262,23 @@ oobj Ftrl::fit(const PKArgs& args) {
     }
 
     if (!args[4].is_none_or_undefined()) {
-      nepochs_validate = args[4].to_double();
-      py::Validator::check_positive<double>(nepochs_validate, args[4]);
-      if (nepochs_validate >= dtft->get_nepochs()) {
-        throw ValueError() << "`nepochs_validate` should be less than `nepochs";
+      nepochs_validation = args[4].to_double();
+      py::Validator::check_positive<double>(nepochs_validation, args[4]);
+      if (nepochs_validation >= dtft->get_nepochs()) {
+        throw ValueError() << "`nepochs_validation` should be less than `nepochs";
       }
-    } else nepochs_validate = 1;
+    } else nepochs_validation = 1;
+
+    if (!args[5].is_none_or_undefined()) {
+      early_stopping_error = args[5].to_double();
+      py::Validator::check_positive<double>(early_stopping_error, args[6]);
+    } else early_stopping_error = 0.01;
   }
 
   // Train the model and return epoch when the training stopped
   double epoch = dtft->dispatch_fit(dt_X, dt_y,
                                     dt_X_val, dt_y_val,
-                                    nepochs_validate);
+                                    nepochs_validation, early_stopping_error);
   return py::ofloat(epoch);
 }
 
@@ -397,9 +405,10 @@ void Ftrl::set_labels(robj py_labels) {
 */
 static GSArgs args_model(
   "model",
-R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
-and `nbins` rows, where `nbins` is a number of bins for the hashing
-trick. Both column types are `T64`.)");
+R"(Model frame of shape (2 * nlabels, nbins), where nlabels is
+the total number of labels the model was trained on, and nbins
+is the number of bins used for the hashing trick. Odd frame columns
+contain z model coefficients, and even columns n model coefficients.)");
 
 
 oobj Ftrl::get_model() const {

@@ -596,7 +596,8 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
 
 
 def test_ftrl_fit_predict_multinomial():
-    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
+    nepochs = 1000
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
@@ -699,51 +700,51 @@ def test_ftrl_no_validation_set():
 
 def test_ftrl_no_early_stopping():
     nepochs = 1234
-    nepochs_validate = 56
+    nepochs_validation = 56
     nbins = 78
     ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validation = nepochs_validation)
     assert epoch == nepochs
 
 
 def test_ftrl_early_stopping_int():
     nepochs = 10000
-    nepochs_validate = 5
+    nepochs_validation = 5
     nbins = 10
     ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validation = nepochs_validation)
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch < nepochs
-    assert int(epoch) % nepochs_validate == 0
+    assert int(epoch) % nepochs_validation == 0
     assert max(delta) < epsilon
 
 
 def test_ftrl_early_stopping_float():
     nepochs = 10000
-    nepochs_validate = 5.5
+    nepochs_validation = 5.5
     nbins = 10
     ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validate = nepochs_validate)
+    epoch = ft.fit(df_X, df_y, df_X, df_y, nepochs_validation = nepochs_validation)
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch < nepochs
-    assert math.modf(epoch) == (0.5, int(epoch))
+    assert epoch / nepochs_validation == int(epoch / nepochs_validation)
     assert max(delta) < epsilon
 
 
 def test_ftrl_early_stopping_view():
     nepochs = 10000
-    nepochs_validate = 5
+    nepochs_validation = 5
     nbins = 10
     ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
     r = range(ft.nbins)
@@ -753,24 +754,24 @@ def test_ftrl_early_stopping_view():
     df_y_validate = df_X_validate
     epoch = ft.fit(df_X_train, df_y_train,
                    df_X_validate[nbins::,:], df_y_validate[nbins::,:],
-                   nepochs_validate = nepochs_validate)
+                   nepochs_validation = nepochs_validation)
     p = ft.predict(df_X_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch < nepochs
-    assert int(epoch) % nepochs_validate == 0
+    assert int(epoch) % nepochs_validation == 0
     assert max(delta) < epsilon
 
 
 def test_ftrl_fit_predict_multinomial_early_stopping():
-    nepochs = 1000000
-    ft = Ftrl(alpha = 0.5, nepochs = nepochs)
+    nepochs = 1000
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ("_negative", "red", "green", "blue")
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     epoch = ft.fit(df_train, df_target, df_train, df_target,
-                   nepochs_validate = 10000)
+                   nepochs_validation = 1, early_stopping_error = 1e-3)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
