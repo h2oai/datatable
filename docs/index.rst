@@ -80,9 +80,7 @@ messages, and powerful API similar to R ``data.table``'s.
     :maxdepth: 2
     :hidden:
 
-    quick-start
     tutorial
-    using-datatable
 
 .. toctree::
     :maxdepth: 2
