@@ -111,8 +111,7 @@ class FreadReader : public GenericReader
   //
   char whiteChar;
   int8_t quoteRule;
-  bool LFpresent;
-  int64_t : 40;
+  int64_t : 48;
 
 public:
   explicit FreadReader(const GenericReader&);

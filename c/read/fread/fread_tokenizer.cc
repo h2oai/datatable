@@ -27,7 +27,7 @@ void parse_string(FreadTokenizer&);
  *     CR LF
  *     LF CR
  *     LF
- *     CR  (only if `LFpresent` is false)
+ *     CR  (only if `cr_is_newline` is true)
  *
  * Here LF and CR-LF are the most commonly used line endings, while LF-CR and
  * CR are encountered much less frequently. The sequence CR-CR-LF is not
@@ -36,12 +36,12 @@ void parse_string(FreadTokenizer&);
  * endings by buggy software.
  *
  * In addition, CR (\\r) is treated specially: it is considered a newline only
- * when `LFpresent` is false. This is because it is common to find files created
+ * when `cr_is_newline` is true. This is because it is common to find files created
  * by programs that don't account for '\\r's and fail to quote fields containing
  * these characters. If we were to treat these '\\r's as newlines, the data
  * would be parsed incorrectly. On the other hand, there are files where '\\r's
  * are used as valid newlines. In order to handle both of these cases, we
- * introduce parameter `LFpresent` which is set to true if there is any '\\n'
+ * introduce parameter `cr_is_newline` which is set to false if there is any '\\n'
  * found in the file, in which case a standalone '\\r' will not be considered a
  * newline.
  */
@@ -59,7 +59,7 @@ bool FreadTokenizer::skip_eol() {
       ch += 3;
       return true;
     }
-    if (!LFpresent) {      // '\r'
+    if (cr_is_newline) {      // '\r'
       ch++;
       return true;
     }
@@ -79,19 +79,15 @@ bool FreadTokenizer::end_of_field() {
   // single check `tch<=13` is almost equivalent to checking whether `tch` is one
   // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
   // default, and therefore characters in the range 0x80-0xFF are negative.
-  // We use eol() because that looks at LFpresent inside it w.r.t. \r
   char c = *ch;
   if (c == sep) return true;
   if (static_cast<uint8_t>(c) > 13) return false;
   if (c == '\n' || (c == '\0' && ch == eof)) return true;
   if (c == '\r') {
-    if (LFpresent) {
-      const char* tch = ch + 1;
-      while (*tch == '\r') tch++;
-      if (*tch == '\n') return true;
-    } else {
-      return true;
-    }
+    if (cr_is_newline) return true;
+    const char* tch = ch + 1;
+    while (*tch == '\r') tch++;
+    if (*tch == '\n') return true;
   }
   return false;
 }

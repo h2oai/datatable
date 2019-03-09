@@ -52,7 +52,8 @@ struct FreadTokenizer
   // Do we consider blank as NA string?
   bool blank_is_na;
 
-  bool LFpresent;
+  // Whether to consider a standalone '\r' a newline character
+  bool cr_is_newline;
 
   void skip_whitespace();
   void skip_whitespace_at_line_start();

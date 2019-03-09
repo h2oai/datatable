@@ -32,7 +32,7 @@ FreadReader::FreadReader(const GenericReader& g)
   n_sample_lines = 0;
   whiteChar = '\0';
   quoteRule = -1;
-  LFpresent = false;
+  cr_is_newline = true;
   fo.input_size = input_size;
 }
 
@@ -55,7 +55,7 @@ FreadTokenizer FreadReader::makeTokenizer(
     .quoteRule = quoteRule,
     .strip_whitespace = strip_whitespace,
     .blank_is_na = blank_is_na,
-    .LFpresent = LFpresent,
+    .cr_is_newline = cr_is_newline,
   };
 }
 
@@ -737,9 +737,9 @@ void FreadReader::detect_header() {
 
 /**
  * This helper method tests whether '\\n' characters are present in the file,
- * and sets the `LFpresent` flag accordingly.
+ * and sets the `cr_is_newline` flag accordingly.
  *
- * If '\\n' exists in the file, then `LFpresent` is set to true, and standalone
+ * If '\\n' exists in the file, then `cr_is_newline` is false, and standalone
  * '\\r' will be treated as a regular character. However if there are no '\\n's
  * in the file (at least within the first 100 lines), then we will treat '\\r'
  * as a newline character.
@@ -751,14 +751,13 @@ void FreadReader::detect_lf() {
     cnt += (*ch == '\r');
     ch++;
   }
-  LFpresent = (ch < eof && *ch == '\n');
-  cr_is_newline = !LFpresent;
-  if (LFpresent) {
-    trace("LF character (\\n) found in input, "
-          "\\r-only newlines will not be recognized");
-  } else {
+  cr_is_newline = !(ch < eof && *ch == '\n');
+  if (cr_is_newline) {
     trace("LF character (\\n) not found in input, "
           "CR character (\\r) will be treated as a newline");
+  } else {
+    trace("LF character (\\n) found in input, "
+          "\\r-only newlines will not be recognized");
   }
 
 }

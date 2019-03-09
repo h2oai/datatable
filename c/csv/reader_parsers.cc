@@ -582,7 +582,7 @@ void parse_string(FreadTokenizer& ctx) {
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
         if (*ch == '\r') {
-          if (!ctx.LFpresent || ch[1] == '\n') break;
+          if (ctx.cr_is_newline || ch[1] == '\n') break;
           const char *tch = ch + 1;
           while (*tch == '\r') tch++;
           if (*tch == '\n') break;
