@@ -78,7 +78,7 @@ class GroupGatherer {
 
   public:
     GroupGatherer();
-    void init(int32_t* data, int32_t cumsize0);
+    void init(int32_t* data, int32_t cumsize0, size_t count_ = 0);
 
     int32_t* data() const { return groups; }
     size_t   size() const { return static_cast<size_t>(count); }

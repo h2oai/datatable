@@ -176,6 +176,7 @@ public:
   virtual size_t memory_footprint() const;
 
   RowIndex sort(Groupby* out_groups) const;
+  RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with

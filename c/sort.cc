@@ -385,8 +385,17 @@ class SortContext {
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
     o = nullptr;
     next_o = nullptr;
-    strdata = nullptr;
     histogram = nullptr;
+    strdata = nullptr;
+    stroffs = nullptr;
+    nchunks = 0;
+    chunklen = 0;
+    nradixes = 0;
+    elemsize = 0;
+    next_elemsize = 0;
+    nsigbits = 0;
+    shift = 0;
+    strtype = 0;
     use_order = false;
     descending = false;
 
@@ -405,6 +414,21 @@ class SortContext {
       gg.init(groups.data() + 1, 0);
     }
   }
+
+  SortContext(size_t nrows, const RowIndex& rowindex, const Groupby& groupby,
+              bool make_groups)
+    : SortContext(nrows, rowindex, make_groups)
+  {
+    groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
+    gg.init(nullptr, 0, groupby.ngroups());
+    if (!rowindex) {
+      #pragma omp parallel for schedule(static) num_threads(nth)
+      for (size_t i = 0; i < n; ++i) {
+        o[i] = static_cast<int32_t>(i);
+      }
+    }
+  }
+
 
   SortContext(const SortContext&) = delete;
   SortContext(SortContext&&) = delete;
@@ -427,12 +451,12 @@ class SortContext {
       if (groups) radix_psort<true>();
       else        radix_psort<false>();
     }
+    use_order = true;  // if want to continue sort
   }
 
 
   void continue_sort(const Column* col, bool desc, bool make_groups) {
     nradixes = gg.size();
-    use_order = true;
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
@@ -1328,6 +1352,16 @@ RowIndex Column::sort(Groupby* out_grps) const {
     return sc.get_result_rowindex();
   }
 }
+
+
+RowIndex Column::sort_grouped(const RowIndex& rowindex,
+                              const Groupby& grps) const
+{
+  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
+  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
+  return sc.get_result_rowindex();
+}
+
 
 
 
