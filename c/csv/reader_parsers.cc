@@ -594,7 +594,7 @@ void parse_string(FreadTokenizer& ctx) {
     int fieldLen = static_cast<int>(ch - fieldStart);
     if (ctx.strip_whitespace) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
-      // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
+      // this space can't be sep otherwise it would have stopped the field earlier inside at_end_of_field()
     }
     if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_na) {
       // TODO - speed up by avoiding end_NA_string when there are none

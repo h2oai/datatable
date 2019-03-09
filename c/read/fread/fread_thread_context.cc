@@ -126,7 +126,7 @@ void FreadThreadContext::read_chunk(
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_whitespace();
-            if (!tokenizer.end_of_field()) tch = afterSpace;
+            if (!tokenizer.at_end_of_field()) tch = afterSpace;
             if (*tch==quote) { quoted=true; tch++; }
           }
           parsers[*ptype_iter](tokenizer);
@@ -135,7 +135,7 @@ void FreadThreadContext::read_chunk(
             else goto typebump;
           }
           tokenizer.skip_whitespace();
-          if (tokenizer.end_of_field()) {
+          if (tokenizer.at_end_of_field()) {
             if (sep==' ' && *tch==' ') {
               while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
               if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;

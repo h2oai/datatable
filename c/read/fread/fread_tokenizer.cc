@@ -36,14 +36,14 @@ void parse_string(FreadTokenizer&);
  * endings by buggy software.
  *
  * In addition, CR (\\r) is treated specially: it is considered a newline only
- * when `cr_is_newline` is true. This is because it is common to find files created
- * by programs that don't account for '\\r's and fail to quote fields containing
- * these characters. If we were to treat these '\\r's as newlines, the data
- * would be parsed incorrectly. On the other hand, there are files where '\\r's
- * are used as valid newlines. In order to handle both of these cases, we
- * introduce parameter `cr_is_newline` which is set to false if there is any '\\n'
- * found in the file, in which case a standalone '\\r' will not be considered a
- * newline.
+ * when `cr_is_newline` is true. This is because it is common to find files
+ * created by programs that don't account for '\\r's and fail to quote fields
+ * containing these characters. If we were to treat these '\\r's as newlines,
+ * the data would be parsed incorrectly. On the other hand, there are files
+ * where '\\r's are used as valid newlines. In order to handle both of these
+ * cases, we introduce parameter `cr_is_newline` which is set to false if there
+ * is any '\\n' found in the file, in which case a standalone '\\r' will not be
+ * considered a newline.
  */
 bool FreadTokenizer::skip_eol() {
   if (*ch == '\n') {       // '\n\r' or '\n'
@@ -73,21 +73,20 @@ bool FreadTokenizer::skip_eol() {
  * terminator (either a `sep` or a newline). This does not advance the tokenizer
  * position.
  */
-bool FreadTokenizer::end_of_field() {
+bool FreadTokenizer::at_end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
-  // single check `tch<=13` is almost equivalent to checking whether `tch` is one
-  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
-  // default, and therefore characters in the range 0x80-0xFF are negative.
+  // single check `tch<=13` is almost equivalent to checking whether `tch` is
+  // one of \r, \n, \0. We cast to unsigned first because `char` type is signed
+  // by default, and therefore characters in the range 0x80-0xFF are negative.
   char c = *ch;
   if (c == sep) return true;
   if (static_cast<uint8_t>(c) > 13) return false;
   if (c == '\n' || (c == '\0' && ch == eof)) return true;
   if (c == '\r') {
     if (cr_is_newline) return true;
-    const char* tch = ch + 1;
-    while (*tch == '\r') tch++;
-    if (*tch == '\n') return true;
+    if (ch[1] == '\n') return true;
+    if (ch[1] == '\r' && ch[2] == '\n') return true;
   }
   return false;
 }

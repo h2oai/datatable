@@ -479,13 +479,13 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       tch = fieldStart;
       parsers[*ptype_iter](fctx);
       fctx.skip_whitespace();
-      if (fctx.end_of_field()) break;
+      if (fctx.at_end_of_field()) break;
 
       // Try to parse as NA
       // TODO: this API is awkward; better have smth like `fctx.parse_na();`
       tch = fctx.end_NA_string(fieldStart);
       fctx.skip_whitespace();
-      if (fctx.end_of_field()) break;
+      if (fctx.at_end_of_field()) break;
 
       if (ParserLibrary::info(*ptype_iter).isstring()) {
         // Do not bump the quote rule, since we cannot be sure that the jump
@@ -501,7 +501,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
         if (*tch == quote) {
           tch++;
           fctx.skip_whitespace();
-          if (fctx.end_of_field()) break;
+          if (fctx.at_end_of_field()) break;
         }
       }
 

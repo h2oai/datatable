@@ -57,7 +57,7 @@ struct FreadTokenizer
 
   void skip_whitespace();
   void skip_whitespace_at_line_start();
-  bool end_of_field();
+  bool at_end_of_field();
   const char* end_NA_string(const char*);
   int countfields();
   bool skip_eol();
