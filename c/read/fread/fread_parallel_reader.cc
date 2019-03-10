@@ -38,24 +38,24 @@ void FreadParallelReader::adjust_chunk_coordinates(
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
-  if (!cc.start_exact) {
+  if (cc.is_start_approximate()) {
     FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->tokenizer;
-    const char* start = cc.start;
+    const char* start = cc.get_start();
     while (*start=='\n' || *start=='\r') start++;
-    cc.start = start;
+    cc.set_start_approximate(start);
     int ncols = static_cast<int>(f.get_ncols());
     if (tok.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
-      cc.start = tok.ch;
+      cc.set_start_approximate(tok.ch);
     }
   }
   // Move the end of the chunk, similarly skipping all newline characters;
   // plus 1 more character, thus guaranteeing that the entire next line will
   // also "belong" to the current chunk (this because chunk reader stops at
   // the first end of the line after `end`).
-  if (!cc.end_exact) {
-    const char* end = cc.end;
+  if (cc.is_end_approximate()) {
+    const char* end = cc.get_end();
     while (*end=='\n' || *end=='\r') end++;
-    cc.end = end + 1;
+    cc.set_end_approximate(end + 1);
   }
 }
 

@@ -89,23 +89,23 @@ ChunkCoordinates ParallelReader::compute_chunk_boundaries(
   bool isLastChunk = (i == chunkCount - 1);
 
   if (nthreads == 1 || isFirstChunk) {
-    c.start = lastChunkEnd;
-    c.start_exact = true;
+    c.set_start_exact(lastChunkEnd);
   } else {
-    c.start = inputStart + i * chunkSize;
+    c.set_start_approximate(inputStart + i * chunkSize);
   }
 
   // It is possible to reach the end of input before the last chunk (for
   // example if )
-  c.end = c.start + chunkSize;
-  if (isLastChunk || c.end >= inputEnd) {
-    c.end = inputEnd;
-    c.end_exact = true;
+  const char* ch = c.get_start() + chunkSize;
+  if (isLastChunk || ch >= inputEnd) {
+    c.set_end_exact(inputEnd);
+  } else {
+    c.set_end_approximate(ch);
   }
 
   adjust_chunk_coordinates(c, ctx);
 
-  xassert(c.start >= inputStart && c.end <= inputEnd);
+  xassert(c.get_start() >= inputStart && c.get_end() <= inputEnd);
   return c;
 }
 
@@ -298,12 +298,11 @@ void ParallelReader::order_chunk(
 {
   int i = 2;
   while (i--) {
-    if (acc.start == lastChunkEnd && acc.end >= lastChunkEnd) {
-      lastChunkEnd = acc.end;
+    if (acc.get_start() == lastChunkEnd && acc.get_end() >= lastChunkEnd) {
+      lastChunkEnd = acc.get_end();
       return;
     }
-    xcc.start = lastChunkEnd;
-    xcc.start_exact = true;
+    xcc.set_start_exact(lastChunkEnd);
 
     ctx->read_chunk(xcc, acc);
     xassert(i);

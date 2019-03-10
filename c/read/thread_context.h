@@ -8,12 +8,10 @@
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
 #include "read/field64.h"    // field64
+#include "read/chunk_coordinates.h"  // ChunkCoordinates
 #include "utils/array.h"     // dt::array
-
 namespace dt {
 namespace read {
-
-struct ChunkCoordinates;
 
 
 /**

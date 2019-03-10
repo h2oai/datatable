@@ -18,7 +18,7 @@ namespace read {
  * and end of the chunk are known with certainty or were guessed.
  */
 class ChunkCoordinates {
-  public:
+  private:
     const char* start;
     const char* end;
     bool start_exact;
@@ -31,7 +31,18 @@ class ChunkCoordinates {
     ChunkCoordinates(const ChunkCoordinates&) = default;
     ChunkCoordinates& operator=(const ChunkCoordinates&) = default;
 
-    operator bool() const;
+    const char* get_start() const noexcept;
+    const char* get_end() const noexcept;
+
+    bool is_start_exact() const noexcept;
+    bool is_end_exact() const noexcept;
+    bool is_start_approximate() const noexcept;
+    bool is_end_approximate() const noexcept;
+
+    void set_start_exact(const char* ch) noexcept;
+    void set_end_exact(const char* ch) noexcept;
+    void set_start_approximate(const char* ch) noexcept;
+    void set_end_approximate(const char* ch) noexcept;
 };
 
 

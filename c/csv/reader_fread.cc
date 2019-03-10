@@ -410,13 +410,13 @@ class ColumnTypeDetectionChunkster {
       dt::read::ChunkCoordinates cc(f.eof, f.eof);
       if (j == 0) {
         if (f.header == 0) {
-          cc.start = f.sof;
+          cc.set_start_exact(f.sof);
         } else {
           // If `header` is either True or <auto>, we skip the first row during
           // type detection.
           fctx.ch = f.sof;
           int n = fctx.countfields();
-          if (n >= 0) cc.start = fctx.ch;
+          if (n >= 0) cc.set_start_exact(fctx.ch);
         }
       } else {
         const char* tch =
@@ -434,7 +434,7 @@ class ColumnTypeDetectionChunkster {
         if (tch < f.eof) {
           bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),
                                               f.fill, f.skip_blank_lines);
-          if (ok) cc.start = fctx.ch;
+          if (ok) cc.set_start_approximate(fctx.ch);
         }
       }
       return cc;
@@ -560,7 +560,7 @@ void FreadReader::detect_column_types()
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
-    tch = cc.start;
+    tch = cc.get_start();
     if (tch >= eof) continue;
 
     columns.saveTypes(saved_types);

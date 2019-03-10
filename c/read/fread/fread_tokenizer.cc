@@ -190,8 +190,8 @@ bool FreadTokenizer::next_good_line_start(
   // int ncols = static_cast<int>(f.get_ncols());
   // bool fill = f.fill;
   // bool skipEmptyLines = f.skip_blank_lines;
-  ch = cc.start;
-  const char* end = cc.end;
+  ch = cc.get_start();
+  const char* end = cc.get_end();
   int attempts = 0;
   while (ch < end && attempts++ < 10) {
     while (ch < end && *ch != '\n' && *ch != '\r') ch++;

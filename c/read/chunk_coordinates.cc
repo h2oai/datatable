@@ -24,8 +24,52 @@ ChunkCoordinates::ChunkCoordinates(const char* s, const char* e)
     end_exact(false) {}
 
 
-ChunkCoordinates::operator bool() const {
-  return end == nullptr;
+
+const char* ChunkCoordinates::get_start() const noexcept {
+  return start;
+}
+
+const char* ChunkCoordinates::get_end() const noexcept {
+  return end;
+}
+
+
+bool ChunkCoordinates::is_start_exact() const noexcept {
+  return start_exact;
+}
+
+bool ChunkCoordinates::is_start_approximate() const noexcept {
+  return !start_exact;
+}
+
+bool ChunkCoordinates::is_end_exact() const noexcept {
+  return end_exact;
+}
+
+bool ChunkCoordinates::is_end_approximate() const noexcept {
+  return !end_exact;
+}
+
+
+
+void ChunkCoordinates::set_start_exact(const char* ch) noexcept {
+  start = ch;
+  start_exact = true;
+}
+
+void ChunkCoordinates::set_end_exact(const char* ch) noexcept {
+  end = ch;
+  end_exact = true;
+}
+
+void ChunkCoordinates::set_start_approximate(const char* ch) noexcept {
+  start = ch;
+  start_exact = false;
+}
+
+void ChunkCoordinates::set_end_approximate(const char* ch) noexcept {
+  end = ch;
+  end_exact = false;
 }
 
 
