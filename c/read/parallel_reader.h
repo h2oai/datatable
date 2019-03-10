@@ -26,12 +26,12 @@ class ParallelReader {
   using ThreadContextPtr = std::unique_ptr<ThreadContext>;
 
   protected:
-    size_t chunkSize;
-    size_t chunkCount;
-    const char* inputStart;
-    const char* inputEnd;
+    size_t chunk_size;
+    size_t chunk_count;
+    const char* input_start;
+    const char* input_end;
     const char* end_of_last_chunk;
-    double lineLength;
+    double approximate_line_length;
 
   protected:
     GenericReader& g;
@@ -39,36 +39,19 @@ class ParallelReader {
     size_t nrows_max;
     size_t nrows_allocated;
     size_t nrows_written;
-    int nthreads;
-    int : 32;
+    size_t nthreads;
 
   public:
     ParallelReader(GenericReader& reader, double len);
     ParallelReader(const ParallelReader&) = delete;
     ParallelReader& operator=(const ParallelReader&) = delete;
-    virtual ~ParallelReader() {}
+    virtual ~ParallelReader();
 
-    /**
-     * Main function that reads all data from the input.
-     */
     virtual void read_all();
 
+    ChunkCoordinates compute_chunk_boundaries(size_t i, ThreadContext*) const;
 
   protected:
-    /**
-     * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
-     * must be in the range [0..chunkCount).
-     *
-     * The optional `ThreadContext` instance may be needed for some
-     * implementations of `ParallelReader` in order to perform additional
-     * parsing using a thread-local context.
-     *
-     * The method `compute_chunk_boundaries()` may be called in-parallel,
-     * assuming that different invocation receive different `ctx` objects.
-     */
-    ChunkCoordinates compute_chunk_boundaries(
-      size_t i, ThreadContext* ctx) const;
-
     /**
      * This method can be overridden in derived classes in order to implement
      * more advanced chunk boundaries detection. This method will be called from
@@ -77,7 +60,7 @@ class ParallelReader {
      * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
-      ChunkCoordinates& cc, ThreadContext* ctx) const;
+        ChunkCoordinates&, ThreadContext*) const {}
 
     /**
      * Return an instance of a `ThreadContext` class. Implementations of

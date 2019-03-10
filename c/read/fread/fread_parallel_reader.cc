@@ -21,12 +21,12 @@ FreadParallelReader::FreadParallelReader(FreadReader& reader, PT* types_)
 
 void FreadParallelReader::read_all() {
   ParallelReader::read_all();
-  f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+  f.fo.read_data_nthreads = nthreads;
 }
 
 
 std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
-  size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
+  size_t trows = std::max<size_t>(nrows_allocated / chunk_count, 4);
   size_t tcols = f.columns.nColumnsInBuffer();
   return std::unique_ptr<ThreadContext>(
             new FreadThreadContext(tcols, trows, f, types, shmutex));
