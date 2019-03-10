@@ -10,6 +10,7 @@
 #include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
 #include "py_encodings.h"          // decode_win1252
 #include "read/parallel_reader.h"  // ChunkCoordinates
+#include "utils/misc.h"            // wallclock
 
 namespace dt {
 namespace read {
@@ -54,20 +55,19 @@ void FreadThreadContext::read_chunk(
   const ChunkCoordinates& cc, ChunkCoordinates& actual_cc)
 {
   double t0 = verbose? wallclock() : 0;
-  // If any error in the loop below occurs, we'll do `return;` and the output
-  // variable `actual_cc` will contain `.end = nullptr;`.
-  actual_cc.start = cc.start;
-  actual_cc.end = nullptr;
+  actual_cc.set_start_exact(cc.get_start());
+  actual_cc.set_end_exact(nullptr);
+
   size_t ncols = columns.size();
   bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
   bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
   const char*& tch = tokenizer.ch;
-  tch = cc.start;
+  tch = cc.get_start();
   used_nrows = 0;
   tokenizer.target = tbuf.data();
-  tokenizer.anchor = anchor = cc.start;
+  tokenizer.anchor = anchor = tch;
 
-  while (tch < cc.end) {
+  while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {
       allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
       tokenizer.target = tbuf.data() + used_nrows * tbuf_ncols;
@@ -125,7 +125,7 @@ void FreadThreadContext::read_chunk(
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_whitespace();
-            if (!tokenizer.end_of_field()) tch = afterSpace;
+            if (!tokenizer.at_end_of_field()) tch = afterSpace;
             if (*tch==quote) { quoted=true; tch++; }
           }
           parsers[*ptype_iter](tokenizer);
@@ -134,7 +134,7 @@ void FreadThreadContext::read_chunk(
             else goto typebump;
           }
           tokenizer.skip_whitespace();
-          if (tokenizer.end_of_field()) {
+          if (tokenizer.at_end_of_field()) {
             if (sep==' ' && *tch==' ') {
               while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
               if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
@@ -146,7 +146,7 @@ void FreadThreadContext::read_chunk(
           // start of the chunk is valid.
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
-          if (cc.start_exact) {
+          if (cc.is_start_exact()) {
             ++ptype_iter;
             tch = fieldStart;
           } else {
@@ -154,11 +154,11 @@ void FreadThreadContext::read_chunk(
           }
         }
 
-        // Type-bump. This may only happen if cc.start_exact is true, which flag
-        // is only set to true on one thread at a time. Thus, there is no need
+        // Type-bump. This may only happen if cc.is_start_exact() is true, which
+        // is can only happen to one thread at a time. Thus, there is no need
         // for "critical" section here.
         if (ptype_iter.has_incremented()) {
-          xassert(cc.start_exact);
+          xassert(cc.is_start_exact());
           if (verbose) {
             freader.fo.type_bump_info(j + 1, columns[j], *ptype_iter, fieldStart,
                                       tch - fieldStart,
@@ -199,7 +199,7 @@ void FreadThreadContext::read_chunk(
       // not enough columns observed (including empty line). If fill==true,
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
-      if (cc.start_exact) {
+      if (cc.is_start_exact()) {
         throw RuntimeError() << "Too few fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but found only " << j
@@ -210,7 +210,7 @@ void FreadThreadContext::read_chunk(
       }
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
-      if (cc.start_exact) {
+      if (cc.is_start_exact()) {
         throw RuntimeError() << "Too many fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but more are present. <<"
@@ -226,7 +226,7 @@ void FreadThreadContext::read_chunk(
 
   // Tell the caller where we finished reading the chunk. This is why
   // the parameter `actual_cc` was passed to this function.
-  actual_cc.end = tch;
+  actual_cc.set_end_exact(tch);
   if (verbose) ttime_read += wallclock() - t0;
 }
 

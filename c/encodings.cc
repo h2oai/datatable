@@ -7,9 +7,8 @@
 //------------------------------------------------------------------------------
 #include <cstring>
 #include <string.h>
+#include "read/constants.h"
 #include "encodings.h"
-
-extern const uint8_t hexdigits[256];  // defined in c/csv/freadLookups.h
 
 
 
@@ -298,7 +297,7 @@ int decode_escaped_csv_string(
             int n = (c == 'x')? 2 : (c == 'u')? 4 : 8;
             for (int i = 0; i < n; i++) {
               if (ch >= end) break;
-              uint8_t chd = hexdigits[*ch];
+              uint8_t chd = dt::read::hexdigits[*ch];
               if (chd == 99) break;
               v = v * 16 + chd;
               ch++;

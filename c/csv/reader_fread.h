@@ -7,19 +7,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_FREAD_h
 #define dt_CSV_READER_FREAD_h
-#include <Python.h>
-#include <vector>        // std::vector
-#include "csv/fread.h"
-#include "csv/reader.h"
-#include "csv/reader_parsers.h"
-#include "memrange.h"
-#include "read/parallel_reader.h"
-#include "read/fread/fread_parallel_reader.h"
-#include "utils/shared_mutex.h"
+#include <vector>                 // std::vector
+#include "csv/reader.h"           // GenericReader
+#include "csv/reader_parsers.h"   // ParserLibrary, ParserFnPtr
+#include "read/field64.h"         // dt::read::field64
+
 
 namespace dt {
 namespace read {
-  struct ChunkCoordinates;
   class ParallelReader;
   class FreadParallelReader;
   class FreadThreadContext;
@@ -116,8 +111,7 @@ class FreadReader : public GenericReader
   //
   char whiteChar;
   int8_t quoteRule;
-  bool LFpresent;
-  int64_t : 40;
+  int64_t : 48;
 
 public:
   explicit FreadReader(const GenericReader&);
@@ -129,18 +123,18 @@ public:
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 
-  FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
+  dt::read::FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
 
 private:
-  void parse_column_names(FreadTokenizer& ctx);
-  void detect_sep(FreadTokenizer& ctx);
+  void parse_column_names(dt::read::FreadTokenizer& ctx);
+  void detect_sep(dt::read::FreadTokenizer& ctx);
 
   void detect_lf();
   void skip_preamble();
   void detect_sep_and_qr();
   void detect_column_types();
   void detect_header();
-  int64_t parse_single_line(FreadTokenizer&);
+  int64_t parse_single_line(dt::read::FreadTokenizer&);
 
   friend dt::read::FreadThreadContext;
   friend dt::read::FreadParallelReader;

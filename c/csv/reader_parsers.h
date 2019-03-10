@@ -12,31 +12,34 @@
 #include <Python.h>
 #include "types.h"
 
-struct FreadTokenizer;
-namespace dt { namespace read { class Column; } }
-typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
+namespace dt {
+namespace read {
+  class Column;
+  struct FreadTokenizer;
+}}
+typedef void (*ParserFnPtr)(dt::read::FreadTokenizer& ctx);
 typedef PyObject* (*FormatGeneratorFn)(dt::read::Column& col);
 
 
 // In order to add a new type:
-//   - implement a new parser function `void (*)(FreadTokenizer&)`
+//   - implement a new parser function `void (*)(dt::read::FreadTokenizer&)`
 //   - add a new identifier into `enum PT`
 //   - declare this parser in `ParserLibrary::init_parsers()`
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
 
-void parse_mu(FreadTokenizer&);
-void parse_bool8_numeric(FreadTokenizer&);
-void parse_bool8_uppercase(FreadTokenizer&);
-void parse_bool8_lowercase(FreadTokenizer&);
-void parse_bool8_titlecase(FreadTokenizer&);
-void parse_int32_simple(FreadTokenizer&);
-void parse_int64_simple(FreadTokenizer&);
-void parse_float32_hex(FreadTokenizer&);
-void parse_float64_simple(FreadTokenizer& ctx);
-void parse_float64_extended(FreadTokenizer& ctx);
-void parse_float64_hex(FreadTokenizer&);
-void parse_string(FreadTokenizer&);
+void parse_mu(dt::read::FreadTokenizer&);
+void parse_bool8_numeric(dt::read::FreadTokenizer&);
+void parse_bool8_uppercase(dt::read::FreadTokenizer&);
+void parse_bool8_lowercase(dt::read::FreadTokenizer&);
+void parse_bool8_titlecase(dt::read::FreadTokenizer&);
+void parse_int32_simple(dt::read::FreadTokenizer&);
+void parse_int64_simple(dt::read::FreadTokenizer&);
+void parse_float32_hex(dt::read::FreadTokenizer&);
+void parse_float64_simple(dt::read::FreadTokenizer& ctx);
+void parse_float64_extended(dt::read::FreadTokenizer& ctx);
+void parse_float64_hex(dt::read::FreadTokenizer&);
+void parse_string(dt::read::FreadTokenizer&);
 
 
 //------------------------------------------------------------------------------

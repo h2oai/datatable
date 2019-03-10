@@ -5,18 +5,21 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <limits>                // std::numeric_limits
+#include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
-#include "csv/fread.h"    // FreadTokenizer
-#include "utils/assert.h"
+#include "read/fread/fread_tokenizer.h"  // FreadTokenizer
+#include "read/constants.h"              // hexdigits, pow10lookup
+#include "utils/assert.h"                // xassert
 
-#define NA_BOOL8         INT8_MIN
-#define NA_INT32         INT32_MIN
-#define NA_INT64         INT64_MIN
-#define NA_FLOAT32_I32   0x7F8007A2
-#define NA_FLOAT64_I64   0x7FF00000000007A2
-#define INF_FLOAT32_I32  0x7F800000
-#define INF_FLOAT64_I64  0x7FF0000000000000
+static constexpr int8_t   NA_BOOL8 = -128;
+static constexpr int32_t  NA_INT32 = INT32_MIN;
+static constexpr int64_t  NA_INT64 = INT64_MIN;
+static constexpr uint32_t NA_FLOAT32_I32 = 0x7F8007A2;
+static constexpr uint64_t NA_FLOAT64_I64 = 0x7FF000000000DEADull;
+static constexpr uint32_t INF_FLOAT32_I32 = 0x7F800000;
+static constexpr uint64_t INF_FLOAT64_I64 = 0x7FF0000000000000ull;
+
+using namespace dt::read;
 
 
 //------------------------------------------------------------------------------
@@ -243,7 +246,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
     if (*ch == '.') {
       ch++;
       int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+      while ((digit = dt::read::hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
         acc = (acc << 4) + digit;
         ch++;
         ndigits++;
@@ -397,7 +400,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
   if (e < 0 || e > 700) goto fail;
 
-  r = static_cast<double>(static_cast<long double>(acc) * pow10lookup[e]);
+  r = static_cast<double>(static_cast<long double>(acc) * dt::read::pow10lookup[e]);
   ctx.target->float64 = neg? -r : r;
   ctx.ch = ch;
   return;
@@ -513,7 +516,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
     if (*ch == '.') {
       ch++;
       int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+      while ((digit = dt::read::hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
         acc = (acc << 4) + digit;
         ch++;
         ndigits++;
@@ -581,7 +584,7 @@ void parse_string(FreadTokenizer& ctx) {
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
         if (*ch == '\r') {
-          if (!ctx.LFpresent || ch[1] == '\n') break;
+          if (ctx.cr_is_newline || ch[1] == '\n') break;
           const char *tch = ch + 1;
           while (*tch == '\r') tch++;
           if (*tch == '\n') break;
@@ -593,7 +596,7 @@ void parse_string(FreadTokenizer& ctx) {
     int fieldLen = static_cast<int>(ch - fieldStart);
     if (ctx.strip_whitespace) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
-      // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
+      // this space can't be sep otherwise it would have stopped the field earlier inside at_end_of_field()
     }
     if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_na) {
       // TODO - speed up by avoiding end_NA_string when there are none
