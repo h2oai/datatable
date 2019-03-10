@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"    // FreadReader
-#include "read/fread/fread_tokenizer.h"  // FreadTokenizer
+#include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
@@ -39,7 +39,7 @@ FreadReader::FreadReader(const GenericReader& g)
 FreadReader::~FreadReader() {}
 
 
-FreadTokenizer FreadReader::makeTokenizer(
+dt::read::FreadTokenizer FreadReader::makeTokenizer(
     dt::read::field64* target, const char* anchor) const
 {
   return {
@@ -209,7 +209,7 @@ class HypothesisNoQC : public Hypothesis {
  * H1: QC = «"», starting with QR1 = 0
  * H2: QC = «'», starting with QR2 = 0
  */
-void FreadReader::detect_sep(FreadTokenizer&) {
+void FreadReader::detect_sep(dt::read::FreadTokenizer&) {
 }
 
 /**
@@ -250,7 +250,7 @@ void FreadReader::detect_sep_and_qr() {
                             //    lines of fewer)
 
   dt::read::field64 trash;
-  FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  dt::read::FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -370,12 +370,12 @@ void FreadReader::detect_sep_and_qr() {
 class ColumnTypeDetectionChunkster {
   public:
     const FreadReader& f;
-    FreadTokenizer fctx;
+    dt::read::FreadTokenizer fctx;
     size_t nchunks;
     size_t chunk_distance;
     const char* last_row_end;
 
-    ColumnTypeDetectionChunkster(FreadReader& fr, FreadTokenizer& ft)
+    ColumnTypeDetectionChunkster(FreadReader& fr, dt::read::FreadTokenizer& ft)
         : f(fr), fctx(ft)
     {
       nchunks = 0;
@@ -455,7 +455,7 @@ class ColumnTypeDetectionChunkster {
  * If the line cannot be parsed (because it contains a string that is not
  * parseable under the current quoting rule), then return -1.
  */
-int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
+int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
 {
   const char*& tch = fctx.ch;
 
@@ -539,7 +539,7 @@ void FreadReader::detect_column_types()
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
   ColumnTypeDetectionChunkster chunkster(*this, fctx);
@@ -664,7 +664,7 @@ void FreadReader::detect_header() {
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
@@ -830,7 +830,7 @@ void FreadReader::skip_preamble() {
  * not, a `RuntimeError` will be thrown.
  */
 // TODO name-cleaning should be a method of dt::read::Column
-void FreadReader::parse_column_names(FreadTokenizer& ctx) {
+void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.

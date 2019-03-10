@@ -36,7 +36,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   if (header == 1) {
     trace("[4] Assign column names");
     dt::read::field64 tmp;
-    FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
+    dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns

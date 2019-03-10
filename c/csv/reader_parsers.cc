@@ -19,6 +19,8 @@ static constexpr uint64_t NA_FLOAT64_I64 = 0x7FF000000000DEADull;
 static constexpr uint32_t INF_FLOAT32_I32 = 0x7F800000;
 static constexpr uint64_t INF_FLOAT64_I64 = 0x7FF0000000000000ull;
 
+using namespace dt::read;
+
 
 //------------------------------------------------------------------------------
 // Boolean

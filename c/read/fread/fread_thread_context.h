@@ -14,7 +14,7 @@
 
 class FreadReader;
 enum PT : uint8_t;
-using ParserFnPtr = void (*)(FreadTokenizer& ctx);
+using ParserFnPtr = void (*)(dt::read::FreadTokenizer& ctx);
 
 namespace dt {
 namespace read {

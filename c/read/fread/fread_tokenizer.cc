@@ -7,9 +7,12 @@
 //------------------------------------------------------------------------------
 #include "read/fread/fread_tokenizer.h"
 
-
 // defined in reader_parsers.cc
-void parse_string(FreadTokenizer&);
+void parse_string(dt::read::FreadTokenizer&);
+
+
+namespace dt {
+namespace read {
 
 
 /**
@@ -182,7 +185,7 @@ int FreadTokenizer::countfields()
 // Find the next "good line", in the sense that we find at least 5 lines
 // with `ncols` fields from that point on.
 bool FreadTokenizer::next_good_line_start(
-  const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
+  const ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
 {
   // int ncols = static_cast<int>(f.get_ncols());
   // bool fill = f.fill;
@@ -212,3 +215,6 @@ bool FreadTokenizer::next_good_line_start(
   }
   return false;
 }
+
+
+}}  // namespace dt::read::

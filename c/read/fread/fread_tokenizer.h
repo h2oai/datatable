@@ -9,6 +9,8 @@
 #define dt_READ_FREAD_TOKENIZER_h
 #include "read/field64.h"            // field64
 #include "read/parallel_reader.h"    // ChunkCoordinates
+namespace dt {
+namespace read {
 
 
 struct FreadTokenizer
@@ -18,7 +20,7 @@ struct FreadTokenizer
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
-  dt::read::field64* target;
+  field64* target;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
@@ -64,10 +66,11 @@ struct FreadTokenizer
   bool at_eof() const { return ch == eof; }
 
   bool next_good_line_start(
-    const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines);
-
+    const ChunkCoordinates& cc, int ncols, bool fill,
+    bool skipEmptyLines);
 };
 
 
 
+}}  // namespace dt::read::
 #endif

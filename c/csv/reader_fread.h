@@ -123,18 +123,18 @@ public:
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 
-  FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
+  dt::read::FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
 
 private:
-  void parse_column_names(FreadTokenizer& ctx);
-  void detect_sep(FreadTokenizer& ctx);
+  void parse_column_names(dt::read::FreadTokenizer& ctx);
+  void detect_sep(dt::read::FreadTokenizer& ctx);
 
   void detect_lf();
   void skip_preamble();
   void detect_sep_and_qr();
   void detect_column_types();
   void detect_header();
-  int64_t parse_single_line(FreadTokenizer&);
+  int64_t parse_single_line(dt::read::FreadTokenizer&);
 
   friend dt::read::FreadThreadContext;
   friend dt::read::FreadParallelReader;
