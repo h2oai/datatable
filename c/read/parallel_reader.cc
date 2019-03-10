@@ -93,7 +93,7 @@ void ParallelReader::determine_chunking_strategy() {
  * assuming that different invocation receive different `ctx` objects.
  */
 ChunkCoordinates ParallelReader::compute_chunk_boundaries(
-    size_t i, ThreadContext* ctx) const
+    size_t i, ThreadContextPtr& ctx) const
 {
   xassert(i < chunk_count);
   ChunkCoordinates c;
@@ -182,6 +182,7 @@ void ParallelReader::read_all()
 
     // Thread-local parse context. This object does most of the parsing job.
     auto tctx = init_thread_context();
+    xassert(tctx);
 
     // Helper variables for keeping track of chunk's coordinates:
     // `txcc` has the expected chunk coordinates (i.e. as determined ex ante
@@ -204,7 +205,14 @@ void ParallelReader::read_all()
         }
 
         tctx->push_buffers();
-        txcc = compute_chunk_boundaries(i, tctx.get());
+        txcc = compute_chunk_boundaries(i, tctx);
+
+        // Read the chunk with the expected coordinates `txcc`. The actual
+        // coordinates of the data read will be stored in variable `tacc`.
+        // If the method fails with a recoverable error (such as a type
+        // exception), it will return with `tacc.get_end() == nullptr`. If the
+        // method fails without possibility of recovery, it will raise an
+        // exception.
         tctx->read_chunk(txcc, tacc);
 
       } catch (...) {

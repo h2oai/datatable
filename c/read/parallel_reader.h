@@ -15,6 +15,7 @@ class GenericReader;
 
 namespace dt {
 namespace read {
+using ThreadContextPtr = std::unique_ptr<ThreadContext>;
 
 
 
@@ -23,7 +24,6 @@ namespace read {
  * ensuring that the data integrity is maintained.
  */
 class ParallelReader {
-  using ThreadContextPtr = std::unique_ptr<ThreadContext>;
 
   protected:
     size_t chunk_size;
@@ -44,12 +44,11 @@ class ParallelReader {
   public:
     ParallelReader(GenericReader& reader, double len);
     ParallelReader(const ParallelReader&) = delete;
+    ParallelReader(ParallelReader&&) = delete;
     ParallelReader& operator=(const ParallelReader&) = delete;
     virtual ~ParallelReader();
 
     virtual void read_all();
-
-    ChunkCoordinates compute_chunk_boundaries(size_t i, ThreadContext*) const;
 
   protected:
     /**
@@ -60,7 +59,7 @@ class ParallelReader {
      * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
-        ChunkCoordinates&, ThreadContext*) const {}
+        ChunkCoordinates&, ThreadContextPtr&) const {}
 
     /**
      * Return an instance of a `ThreadContext` class. Implementations of
@@ -70,6 +69,7 @@ class ParallelReader {
     virtual ThreadContextPtr init_thread_context() = 0;
 
   private:
+    ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContextPtr&) const;
     void determine_chunking_strategy();
     double work_done_amount() const;
     void realloc_output_columns(size_t i, size_t new_nrows);

@@ -56,6 +56,7 @@ void FreadThreadContext::read_chunk(
 {
   double t0 = verbose? wallclock() : 0;
   actual_cc.set_start_exact(cc.get_start());
+  actual_cc.set_end_exact(nullptr);
 
   size_t ncols = columns.size();
   bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
