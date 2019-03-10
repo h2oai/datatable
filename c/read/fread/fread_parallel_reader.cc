@@ -39,13 +39,13 @@ void FreadParallelReader::adjust_chunk_coordinates(
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
   if (!cc.start_exact) {
-    auto fctx = static_cast<FreadThreadContext*>(ctx);
+    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->tokenizer;
     const char* start = cc.start;
     while (*start=='\n' || *start=='\r') start++;
     cc.start = start;
     int ncols = static_cast<int>(f.get_ncols());
-    if (fctx->tokenizer.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
-      cc.start = fctx->tokenizer.ch;
+    if (tok.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
+      cc.start = tok.ch;
     }
   }
   // Move the end of the chunk, similarly skipping all newline characters;

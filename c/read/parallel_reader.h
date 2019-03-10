@@ -7,38 +7,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARALLELREADER_h
 #define dt_READ_PARALLELREADER_h
-#include <memory>                  // std::unique_ptr
-#include "read/thread_context.h"   // ThreadContext
+#include <memory>                    // std::unique_ptr
+#include "read/chunk_coordinates.h"  // ChunkCoordinates
+#include "read/thread_context.h"     // ThreadContext
 
 class GenericReader;
 
 namespace dt {
 namespace read {
-
-
-
-/**
- * Helper struct containing the beginning / end for a chunk.
- *
- * Additional flags `start_exact` and `end_exact` indicate whether the beginning
- * and end of the chunk are known with certainty or guessed.
- */
-struct ChunkCoordinates {
-  const char* start;
-  const char* end;
-  bool start_exact;
-  bool end_exact;
-  size_t : 48;
-
-  ChunkCoordinates()
-    : start(nullptr), end(nullptr), start_exact(false), end_exact(false) {}
-  ChunkCoordinates(const char* s, const char* e)
-    : start(s), end(e), start_exact(false), end_exact(false) {}
-  ChunkCoordinates(const ChunkCoordinates&) = default;
-  ChunkCoordinates& operator=(const ChunkCoordinates&) = default;
-
-  operator bool() const { return end == nullptr; }
-};
 
 
 
@@ -149,7 +125,6 @@ class ParallelReader {
 };
 
 
-}  // namespace read
-}  // namespace dt
 
+}}  // namespace dt::read
 #endif
