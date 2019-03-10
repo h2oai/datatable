@@ -320,7 +320,7 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "should be trained first";
   }
 
-  size_t ncols = dtft->get_dt_X_ncols();
+  size_t ncols = dtft->get_ncols();
   if (dt_X->ncols != ncols && ncols != 0) {
     throw ValueError() << "Can only predict on a frame that has " << ncols
                        << " column" << (ncols == 1? "" : "s")
@@ -405,7 +405,7 @@ void Ftrl::set_labels(robj py_labels) {
 */
 static GSArgs args_model(
   "model",
-R"(Model frame of shape (2 * nlabels, nbins), where nlabels is
+R"(Model frame of shape (nbins, 2 * nlabels), where nlabels is
 the total number of labels the model was trained on, and nbins
 is the number of bins used for the hashing trick. Odd frame columns
 contain z model coefficients, and even columns n model coefficients.)");
@@ -498,9 +498,9 @@ static GSArgs args_colname_hashes(
 
 oobj Ftrl::get_colname_hashes() const {
   if (dtft->is_trained()) {
-    size_t ncols = dtft->get_dt_X_ncols();
+    size_t ncols = dtft->get_ncols();
     py::otuple py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = dtft->get_colnames_hashes();
+    std::vector<uint64_t> colname_hashes = dtft->get_colname_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
@@ -597,7 +597,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 */
 static GSArgs args_nbins(
   "nbins",
-  "Number of bins to be used for the hashing trick");
+  "Number of bins used for the hashing trick");
 
 
 oobj Ftrl::get_nbins() const {
@@ -774,9 +774,9 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  py::otuple pickle = args[0].to_otuple();
-
   dt::FtrlParams ftrl_params;
+
+  py::otuple pickle = args[0].to_otuple();
   py::otuple params = pickle[0].to_otuple();
 
   bool double_precision = params[7].to_bool_strict();
@@ -785,7 +785,6 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   } else {
     dtft = new dt::FtrlReal<float>(ftrl_params);
   }
-
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {
