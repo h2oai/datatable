@@ -25,7 +25,7 @@ ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
   chunkCount = 0;
   inputStart = g.sof;
   inputEnd = g.eof;
-  lastChunkEnd = inputStart;
+  end_of_last_chunk = inputStart;
   lineLength = std::max(meanLineLen, 1.0);
   nthreads = g.nthreads;
   nrows_written = 0;
@@ -89,7 +89,7 @@ ChunkCoordinates ParallelReader::compute_chunk_boundaries(
   bool isLastChunk = (i == chunkCount - 1);
 
   if (nthreads == 1 || isFirstChunk) {
-    c.set_start_exact(lastChunkEnd);
+    c.set_start_exact(end_of_last_chunk);
   } else {
     c.set_start_approximate(inputStart + i * chunkSize);
   }
@@ -110,11 +110,17 @@ ChunkCoordinates ParallelReader::compute_chunk_boundaries(
 }
 
 
+
+/**
+ * Return the fraction of the input that was parsed, as a number between
+ * 0 and 1.0.
+ */
 double ParallelReader::work_done_amount() const {
-  double done = static_cast<double>(lastChunkEnd - inputStart);
+  double done = static_cast<double>(end_of_last_chunk - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);
   return done / total;
 }
+
 
 
 void ParallelReader::adjust_chunk_coordinates(
@@ -262,50 +268,83 @@ void ParallelReader::read_all()
   // Check that all input was read (unless interrupted early because of
   // nrows_max).
   if (nrows_written < nrows_max) {
-    xassert(lastChunkEnd == inputEnd);
+    xassert(end_of_last_chunk == inputEnd);
   }
 }
 
 
 
-void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
+/**
+ * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+ * Argument `ichunk` contains the index of the chunk that was read last (this
+ * helps with determining the new number of rows), and `new_allocnrow` is the
+ * minimal number of rows to reallocate to.
+ *
+ * This method is thread-safe: it will acquire an exclusive lock before
+ * making any changes.
+ */
+void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
 {
-  if (new_alloc == nrows_allocated) {
+  xassert(ichunk < chunkCount);
+  if (new_nrows == nrows_allocated) {
     return;
   }
   if (ichunk == chunkCount - 1) {
-    // If we're on the last jump, then `new_alloc` is exactly how many rows
+    // If we're on the last jump, then `new_nrows` is exactly how many rows
     // will be needed.
   } else {
     // Otherwise we adjust the alloc to account for future chunks as well.
-    double exp_nrows = 1.2 * new_alloc * chunkCount / (ichunk + 1);
-    new_alloc = std::max(static_cast<size_t>(exp_nrows),
+    double expected_nrows = 1.2 * new_nrows * chunkCount / (ichunk + 1);
+    new_nrows = std::max(static_cast<size_t>(expected_nrows),
                          1024 + nrows_allocated);
   }
-  if (new_alloc > nrows_max) {
-    new_alloc = nrows_max;
+  if (new_nrows > nrows_max) {
+    // If the user asked to read no more than `nrows_max` rows, then there is
+    // no point in allocating more than that amount.
+    new_nrows = nrows_max;
   }
-  nrows_allocated = new_alloc;
+  nrows_allocated = new_nrows;
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
-  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
-  g.columns.set_nrows(nrows_allocated);
+  { // Acquire a lock and then resize all columns
+    shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
+    g.columns.set_nrows(nrows_allocated);
+  }
 }
 
 
+
+/**
+ * Ensure that the chunks were placed properly.
+ *
+ * This method must be called from the #ordered section. It takes three
+ * arguments:
+ *   - `acc` the *actual* coordinates of the chunk just read;
+ *   - `xcc` the coordinates that were *expected*; and
+ *   - `ctx` the thread-local parse context.
+ *
+ * If the chunk was ordered properly (i.e. started reading from the place
+ * where the previous chunk ended), then this method updates the internal
+ * `end_of_last_chunk` variable and returns.
+ *
+ * Otherwise, it re-parses the chunk with correct coordinates. When doing
+ * so, it will set `xcc.start_exact` to true, thus informing the chunk
+ * parser that the coordinates that it received are true.
+ */
 void ParallelReader::order_chunk(
-  ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
+    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
 {
-  int i = 2;
-  while (i--) {
-    if (acc.get_start() == lastChunkEnd && acc.get_end() >= lastChunkEnd) {
-      lastChunkEnd = acc.get_end();
+  for (int i = 0; i < 2; ++i) {
+    if (acc.get_start() == end_of_last_chunk &&
+        acc.get_end() >= end_of_last_chunk)
+    {
+      end_of_last_chunk = acc.get_end();
       return;
     }
-    xcc.set_start_exact(lastChunkEnd);
+    xassert(i == 0);
+    xcc.set_start_exact(end_of_last_chunk);
 
-    ctx->read_chunk(xcc, acc);
-    xassert(i);
+    ctx->read_chunk(xcc, acc);  // updates `acc`
   }
 }
 

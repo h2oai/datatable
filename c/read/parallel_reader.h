@@ -30,12 +30,12 @@ class ParallelReader {
     size_t chunkCount;
     const char* inputStart;
     const char* inputEnd;
-    const char* lastChunkEnd;
+    const char* end_of_last_chunk;
     double lineLength;
 
   protected:
     GenericReader& g;
-    dt::shared_mutex shmutex;
+    shared_mutex shmutex;
     size_t nrows_max;
     size_t nrows_allocated;
     size_t nrows_written;
@@ -86,40 +86,10 @@ class ParallelReader {
      */
     virtual ThreadContextPtr init_thread_context() = 0;
 
-
   private:
     void determine_chunking_strategy();
-
-    /**
-     * Return the fraction of the input that was parsed, as a number between
-     * 0 and 1.0.
-     */
     double work_done_amount() const;
-
-    /**
-     * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
-     * Argument `i` contains the index of the chunk that was read last (this
-     * helps with determining the new number of rows), and `new_allocnrow` is
-     * the minimal number of rows to reallocate to.
-     *
-     * This method is thread-safe.
-     */
-    void realloc_output_columns(size_t i, size_t new_allocnrow);
-
-    /**
-     * Ensure that the chunks were placed properly. This method must be called
-     * from the #ordered section. It takes three arguments: `acc` the *actual*
-     * coordinates of the chunk just read; `xcc` the coordinates that were
-     * *expected*; and `ctx` the thread-local parse context.
-     *
-     * If the chunk was ordered properly (i.e. started reading from the place
-     * were the previous chunk ended), then this method updates the internal
-     * `lastChunkEnd` variable and returns.
-     *
-     * Otherwise, it re-parses the chunk with correct coordinates. When doing
-     * so, it will set `xcc.start_exact` to true, thus informing the chunk
-     * parser that the coordinates that it received are true.
-     */
+    void realloc_output_columns(size_t i, size_t new_nrows);
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
                      ThreadContextPtr& ctx);
 };
