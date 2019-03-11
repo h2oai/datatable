@@ -60,6 +60,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'IPython.sphinxext.ipython_directive',
     'IPython.sphinxext.ipython_console_highlighting'
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
