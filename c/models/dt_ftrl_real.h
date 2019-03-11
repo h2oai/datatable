@@ -78,23 +78,20 @@ class FtrlReal : public dt::Ftrl {
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
     // Other temporary parameters that might need for validation.
-    T nepochs_validation;
-    T early_stopping_error;
+    T nepochs_val;
+    T val_error;
     std::vector<size_t> map_val;
 
     // Fitting methods
     double fit_binomial();
     double fit_multinomial();
-    template <typename U>
-    double fit_regression();
-    template <typename U>
-    double fit(T(*)(T), T(*)(T, U));
+    template <typename U> double fit_regression();
+    template <typename U> double fit(T(*)(T), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
     // Predicting methods
-    template <typename F>
-    T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
+    template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 
     // Hashing methods
@@ -107,6 +104,7 @@ class FtrlReal : public dt::Ftrl {
     void adjust_model();
     void init_model();
     void init_weights();
+    dtptr create_y_val();
 
     // Feature importance helper methods
     void create_fi();

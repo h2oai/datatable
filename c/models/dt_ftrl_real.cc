@@ -44,8 +44,8 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   dt_y(nullptr),
   dt_X_val(nullptr),
   dt_y_val(nullptr),
-  nepochs_validation(std::numeric_limits<T>::quiet_NaN()),
-  early_stopping_error(std::numeric_limits<T>::quiet_NaN())
+  nepochs_val(std::numeric_limits<T>::quiet_NaN()),
+  val_error(std::numeric_limits<T>::quiet_NaN())
 {
 }
 
@@ -62,14 +62,14 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
                                  const DataTable* dt_y_in,
                                  const DataTable* dt_X_val_in,
                                  const DataTable* dt_y_val_in,
-                                 double nepochs_validation_in,
-                                 double early_stopping_error_in) {
+                                 double nepochs_val_in,
+                                 double val_error_in) {
   dt_X = dt_X_in;
   dt_y = dt_y_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
-  nepochs_validation = static_cast<T>(nepochs_validation_in);
-  early_stopping_error = static_cast<T>(early_stopping_error_in);
+  nepochs_val = static_cast<T>(nepochs_val_in);
+  val_error = static_cast<T>(val_error_in);
 
   double epoch;
   SType stype_y = dt_y->columns[0]->stype();
@@ -91,8 +91,8 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
   dt_y = nullptr;
   dt_X_val = nullptr;
   dt_y_val = nullptr;
-  nepochs_validation = std::numeric_limits<T>::quiet_NaN();
-  early_stopping_error = std::numeric_limits<T>::quiet_NaN();
+  nepochs_val = std::numeric_limits<T>::quiet_NaN();
+  val_error = std::numeric_limits<T>::quiet_NaN();
   map_val.clear();
 
   return epoch;
@@ -115,8 +115,7 @@ double FtrlReal<T>::fit_binomial() {
     model_type = FtrlModelType::BINOMIAL;
   }
   map_val = {0};
-  double epoch = fit<int8_t>(sigmoid<T>, log_loss<T>);
-  return epoch;
+  return fit<int8_t>(sigmoid<T>, log_loss<T>);
 }
 
 
@@ -136,8 +135,7 @@ double FtrlReal<T>::fit_regression() {
     model_type = FtrlModelType::REGRESSION;
   }
   map_val = {0};
-  double epoch = fit<U>(identity<T>, squared_loss<T, U>);
-  return epoch;
+  return fit<U>(identity<T>, squared_loss<T, U>);
 }
 
 
@@ -184,7 +182,7 @@ double FtrlReal<T>::fit_multinomial() {
     }
   }
 
-  // The remaining labels are the new ones, for which we use actual targets.
+  // Second, process new labels.
   size_t n_new_labels = 0;
   for (size_t i = 0; i < labels_in.size(); ++i) {
     if (labels_in[i] == "") continue;
@@ -198,28 +196,45 @@ double FtrlReal<T>::fit_multinomial() {
   // shallow copies of the corresponding ones for the "_negative" classifier.
   if (n_new_labels) adjust_model();
 
-  // If we need to do validation, only do it on the known labels.
-  dtptr dt_y_val_nhot_filtered;
-  if (!isnan(nepochs_validation)) {
-    dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
-    const strvec& labels_val = dt_y_val_nhot->get_names();
-    colvec cols_val;
-    // Add a "_negative" target column.
-    cols_val.push_back(dt_y_train->columns[0]->shallowcopy());
-    map_val.push_back(0);
-    for (size_t i = 0; i < labels_val.size(); ++i) {
-      auto it = find(labels.begin(), labels.end(), labels_val[i]);
-      if (it == labels.end()) continue;
-      auto pos = static_cast<size_t>(std::distance(labels.begin(), it));
-      map_val.push_back(pos);
-      cols_val.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
-    }
-    dt_y_val_nhot_filtered = dtptr(new DataTable(std::move(cols_val)));
-    dt_y_val = dt_y_val_nhot_filtered.get();
+  // Create validation targets if needed.
+  dtptr dt_y_val_filtered;
+  if (!isnan(nepochs_val)) {
+    dt_y_val_filtered = create_y_val();
+    dt_y_val = dt_y_val_filtered.get();
   }
 
-  double epoch = fit<int8_t>(sigmoid<T>, log_loss<T>);
-  return epoch;
+  return fit<int8_t>(sigmoid<T>, log_loss<T>);
+}
+
+
+/*
+*  Create validation datasets for early stopping. Only include the labels
+*  the model was already trained on. Also, create mapping between the validation
+*  labels and the model labels to be used during training.
+*/
+template <typename T>
+dtptr FtrlReal<T>::create_y_val() {
+  xassert(map_val.size() == 0);
+  xassert(dt_X_val != nullptr && dt_y_val != nullptr)
+
+  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+  const strvec& labels_val = dt_y_val_nhot->get_names();
+
+  // First, Add a "_negative" target column and its mapping info.
+  colvec cols = {dt_y->columns[0]->shallowcopy()};
+  map_val.push_back(0);
+
+  // Second, filter out only the model known labels.
+  for (size_t i = 0; i < labels_val.size(); ++i) {
+    auto it = find(labels.begin(), labels.end(), labels_val[i]);
+    if (it == labels.end()) continue;
+
+    cols.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
+    auto pos = static_cast<size_t>(std::distance(labels.begin(), it));
+    map_val.push_back(pos);
+  }
+
+  return dtptr(new DataTable(std::move(cols)));
 }
 
 
@@ -248,13 +263,13 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // If a validation set has been provided, we train on chunks of data.
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
-  bool validation = !isnan(nepochs_validation);
+  bool validation = !isnan(nepochs_val);
   T loss_global = 0;
   T loss_global_prev = 0;
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    chunk_nrows = static_cast<size_t>(nepochs_validation * dt_X->nrows);
+    chunk_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
     nchunks = static_cast<size_t>(
                 ceil(static_cast<double>(total_nrows) / chunk_nrows)
               );
@@ -342,16 +357,17 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         dt_X_val->nrows
       );
 
+      T loss_diff = (loss_global_prev - loss_global) / loss_global_prev;
+      constexpr T epsilon = std::numeric_limits<T>::epsilon();
       // If loss do not decrease, do early stopping.
-      T loss_improvement = (loss_global_prev - loss_global) / loss_global_prev;
-      if (c && (loss_global < std::numeric_limits<T>::epsilon() || loss_improvement < early_stopping_error)) break;
+      if (c && (loss_global < epsilon || loss_diff < val_error)) break;
       // If loss decreases, save current loss and continue training.
       loss_global_prev = loss_global;
       loss_global = 0;
     }
   }
-  double epoch = static_cast<double>(chunk_end) / dt_X->nrows;
-  return epoch;
+  double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
+  return epoch_stopped;
 }
 
 
