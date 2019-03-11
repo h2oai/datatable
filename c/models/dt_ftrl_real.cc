@@ -208,7 +208,7 @@ double FtrlReal<T>::fit_multinomial() {
 
 
 /*
-*  Create validation datasets for early stopping. Only include the labels
+*  Create validation targets for early stopping. Only include the labels
 *  the model was already trained on. Also, create mapping between the validation
 *  labels and the model labels to be used during training.
 */
@@ -220,7 +220,7 @@ dtptr FtrlReal<T>::create_y_val() {
   dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
   const strvec& labels_val = dt_y_val_nhot->get_names();
 
-  // First, Add a "_negative" target column and its mapping info.
+  // First, add a "_negative" target column and its mapping info.
   colvec cols = {dt_y->columns[0]->shallowcopy()};
   map_val.push_back(0);
 
@@ -428,7 +428,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   // Re-create hashers, as stypes for predictions may be different.
   auto hashers = create_hashers(dt_X);
 
-  // Create datatable for predictions and obtain column data pointers
+  // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = labels.size();
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
@@ -467,8 +467,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   // For multinomial case, when there is two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
   // than two labels, we use `std::exp` link function, and do normalization,
-  // so that predictions sum up to 1, this procedure is equivalent to `softmax`
-  // link function.
+  // so that predictions sum up to 1, effectively doing `softmax` linking.
   if (nlabels > 2) normalize_rows(dt_p);
   dt_X = nullptr;
   return dt_p;
