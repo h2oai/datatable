@@ -746,7 +746,7 @@ def test_ftrl_early_stopping_float():
     assert max(delta) < epsilon
 
 
-def test_ftrl_early_stopping_view():
+def test_ftrl_early_stopping_regression():
     nepochs = 10000
     nepochs_validation = 5
     nbins = 10
@@ -766,7 +766,7 @@ def test_ftrl_early_stopping_view():
     assert max(delta) < epsilon
 
 
-def test_ftrl_fit_predict_multinomial_early_stopping():
+def test_ftrl_early_stopping_multinomial():
     nepochs = 2000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ("_negative", "red", "green", "blue")
@@ -774,7 +774,7 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
-    epoch_stopped = ft.fit(df_train, df_target, df_train, df_target,
+    epoch_stopped = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
                            nepochs_validation = 1, early_stopping_error = 1e-3)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
