@@ -30,11 +30,10 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
+PKArgs Ftrl::Type::args___init__(0, 2, 6, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "nepochs",
-                                 "interactions", "double_precision"},
-                                 "__init__", nullptr);
+                                 "double_precision"}, "__init__", nullptr);
 
 
 /*
@@ -52,8 +51,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_lambda2          = args[4];
   const Arg& arg_nbins            = args[5];
   const Arg& arg_nepochs          = args[6];
-  const Arg& arg_interactions     = args[7];
-  const Arg& arg_double_precision = args[8];
+  const Arg& arg_double_precision = args[7];
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -62,13 +60,11 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
   bool defined_nbins            = !arg_nbins.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
-  bool defined_interactions     = !arg_interactions.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_nbins || defined_nepochs || defined_interactions ||
-        defined_double_precision) {
+        defined_nbins || defined_nepochs || defined_double_precision) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
             << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
@@ -82,7 +78,6 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
     py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
-    py::oobj py_interactions = py_params.get_attr("interactions");
     py::oobj py_double_precision = py_params.get_attr("double_precision");
 
     ftrl_params.alpha = py_alpha.to_double();
@@ -91,7 +86,6 @@ void Ftrl::m__init__(PKArgs& args) {
     ftrl_params.lambda2 = py_lambda2.to_double();
     ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     ftrl_params.nepochs = py_nepochs.to_size_t();
-    ftrl_params.interactions = py_interactions.to_bool_strict();
     ftrl_params.double_precision = py_double_precision.to_bool_strict();
 
     py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
@@ -131,9 +125,6 @@ void Ftrl::m__init__(PKArgs& args) {
       ftrl_params.nepochs = arg_nepochs.to_size_t();
     }
 
-    if (defined_interactions) {
-      ftrl_params.interactions = arg_interactions.to_bool_strict();
-    }
     if (defined_double_precision) {
       ftrl_params.double_precision = arg_double_precision.to_bool_strict();
     }
@@ -667,17 +658,32 @@ static GSArgs args_interactions(
 
 
 oobj Ftrl::get_interactions() const {
-  return dtft->get_interactions()? True() : False();
+  return py_interactions;
 }
 
 
-void Ftrl::set_interactions(robj py_interactions) {
+void Ftrl::set_interactions(robj arg_interactions) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `interactions` for a trained model, "
                        << "reset this model or create a new one";
   }
-  bool interactions = py_interactions.to_bool_strict();
-  dtft->set_interactions(interactions);
+
+  py_interactions = arg_interactions.to_pylist();
+  std::vector<strvec> interactions;
+  interactions.reserve(py_interactions.size());
+
+  for (auto py_interaction : arg_interactions.to_oiter()) {
+    size_t nfeatures = py_interaction.to_pylist().size();
+    strvec interaction;
+    interaction.reserve(nfeatures);
+    for (auto py_feature : py_interaction.to_oiter()) {
+      interaction.push_back(py_feature.to_string());
+    }
+
+    interactions.push_back(std::move(interaction));
+  }
+
+  dtft->set_interactions(std::move(interactions));
 }
 
 

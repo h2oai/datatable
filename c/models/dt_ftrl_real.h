@@ -58,8 +58,7 @@ class FtrlReal : public dt::Ftrl {
     T lambda2;
     uint64_t nbins;
     size_t nepochs;
-    bool interactions;
-    size_t : 56;
+    std::vector<strvec> interactions;
 
     // Labels that are automatically extracted from the target column.
     strvec labels;
@@ -146,7 +145,7 @@ class FtrlReal : public dt::Ftrl {
     double get_lambda2() override;
     uint64_t get_nbins() override;
     size_t get_nepochs() override;
-    bool get_interactions() override;
+    std::vector<strvec> get_interactions() override;
     bool get_double_precision() override;
     FtrlParams get_params() override;
     strvec get_labels() override;
@@ -161,7 +160,7 @@ class FtrlReal : public dt::Ftrl {
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
     void set_nepochs(size_t) override;
-    void set_interactions(bool) override;
+    void set_interactions(std::vector<strvec>) override;
     void set_double_precision(bool) override;
     void set_labels(strvec) override;
 };

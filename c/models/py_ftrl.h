@@ -36,6 +36,7 @@ namespace py {
 class Ftrl : public PyObject {
   private:
     dt::Ftrl* dtft;
+    py::olist py_interactions;
 
   public:
     class Type : public ExtType<Ftrl> {

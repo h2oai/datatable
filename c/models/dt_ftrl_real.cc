@@ -38,7 +38,6 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
   nepochs(params_in.nepochs),
-  interactions(params_in.interactions),
   nfeatures(0),
   dt_X(nullptr),
   dt_y(nullptr),
@@ -644,12 +643,13 @@ void FtrlReal<T>::create_fi() {
     sb.write(feature_name);
   }
 
-  if (interactions) {
-    for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
-      for (size_t j = i + 1; j < dt_X->ncols; ++j) {
-        std::string feature_name = col_names[i] + ":" + col_names[j];
-        sb.write(feature_name);
+  if (interactions.size()) {
+    for (auto interaction : interactions) {
+      std::string feature_interaction;
+      for (auto feature : interaction) {
+        feature_interaction += feature + ":";
       }
+      sb.write(feature_interaction);
     }
   }
 
@@ -680,9 +680,7 @@ void FtrlReal<T>::init_fi() {
 */
 template <typename T>
 void FtrlReal<T>::define_features() {
-  size_t n_inter_features = (interactions)? dt_X->ncols * (dt_X->ncols - 1) / 2 :
-                                            0;
-  nfeatures = dt_X->ncols + n_inter_features;
+  nfeatures = dt_X->ncols + interactions.size();
 }
 
 
@@ -751,17 +749,22 @@ void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
   }
 
   // Do feature interactions.
-  if (interactions) {
+  if (interactions.size()) {
     size_t count = 0;
-    for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
-      for (size_t j = i + 1; j < dt_X->ncols; ++j) {
-        // std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
-        // uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
-        uint64_t h = x[i+1] + x[j+1];
-        x[dt_X->ncols + count] = h % nbins;
-        count++;
-      }
+    for (auto interaction : interactions) {
+      x[dt_X->ncols + count] = 0; //FIXME
+      count++;
     }
+    // size_t count = 0;
+    // for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
+    //   for (size_t j = i + 1; j < dt_X->ncols; ++j) {
+    //     // std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
+    //     // uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
+    //     uint64_t h = x[i+1] + x[j+1];
+    //     x[dt_X->ncols + count] = h % nbins;
+    //     count++;
+    //   }
+    // }
   }
 }
 
@@ -877,8 +880,8 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
-bool FtrlReal<T>::get_interactions() {
-  return params.interactions;
+std::vector<strvec> FtrlReal<T>::get_interactions() {
+  return interactions;
 }
 
 
@@ -963,9 +966,8 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 
 
 template <typename T>
-void FtrlReal<T>::set_interactions(bool interactions_in) {
-  params.interactions = interactions_in;
-  interactions = interactions_in;
+void FtrlReal<T>::set_interactions(std::vector<strvec> interactions_in) {
+  interactions = std::move(interactions_in);
 }
 
 

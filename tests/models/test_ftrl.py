@@ -855,8 +855,12 @@ def test_ftrl_fi_shallowcopy():
 def test_ftrl_interactions():
     nrows = 10**4
     feature_names = ['unique', 'boolean', 'mod100']
-    feature_interactions = ['unique:boolean', 'unique:mod100', 'boolean:mod100']
-    ft = Ftrl(interactions = True)
+    feature_interactions = [["unique", "boolean"],
+                            ["unique", "mod100"],
+                            ["boolean", "mod100"]]
+    interaction_names = ["unique:boolean:", "unique:mod100:", "boolean:mod100:"]
+    ft = Ftrl()
+    ft.interactions = feature_interactions
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],
                          [i % 100 for i in range(nrows)]
@@ -866,7 +870,7 @@ def test_ftrl_interactions():
     fi = ft.feature_importances
     assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
-    assert fi[:, 0].to_list() == [feature_names + feature_interactions]
+    assert fi[:, 0].to_list() == [feature_names + interaction_names]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
     assert fi[3, 1] < fi[1, 1]
