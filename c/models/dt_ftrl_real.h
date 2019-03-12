@@ -104,7 +104,9 @@ class FtrlReal : public dt::Ftrl {
     void adjust_model();
     void init_model();
     void init_weights();
+    dtptr create_y_train();
     dtptr create_y_val();
+    Column* create_negative_column(size_t);
 
     // Feature importance helper methods
     void create_fi();

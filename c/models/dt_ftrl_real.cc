@@ -156,16 +156,34 @@ double FtrlReal<T>::fit_multinomial() {
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
-  // Do one hot encoding and get a list of all the incoming labels.
+  dtptr dt_y_train = create_y_train();
+  dt_y = dt_y_train.get();
+
+  // Create validation targets if needed.
+  dtptr dt_y_val_filtered;
+  if (!isnan(nepochs_val)) {
+    dt_y_val_filtered = create_y_val();
+    dt_y_val = dt_y_val_filtered.get();
+  }
+
+  return fit<int8_t>(sigmoid<T>, log_loss<T>);
+}
+
+
+/*
+*  Create training targets.
+*/
+template <typename T>
+dtptr FtrlReal<T>::create_y_train() {
+// Do one hot encoding and get a list of all the incoming labels.
   dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
   strvec labels_in = dt_y_nhot->get_names();
 
   // Create a "_negative" target column.
   colvec cols;
   cols.reserve(labels.size());
-  cols.push_back(Column::new_data_column(SType::BOOL, dt_y_nhot->nrows));
-  auto data_negative = static_cast<bool*>(cols[0]->data_w());
-  std::memset(data_negative, 0, dt_y->nrows * sizeof(bool));
+  Column* col = create_negative_column(dt_y_nhot->nrows);
+  cols.push_back(col);
 
   // First, process labels that are already in the model.
   for (size_t i = 1; i < labels.size(); ++i) {
@@ -190,20 +208,21 @@ double FtrlReal<T>::fit_multinomial() {
     labels.push_back(labels_in[i]);
     n_new_labels++;
   }
-  dtptr dt_y_train = dtptr(new DataTable(std::move(cols)));
-  dt_y = dt_y_train.get();
+
   // Add new model columns for the new labels. The new columns are
   // shallow copies of the corresponding ones for the "_negative" classifier.
   if (n_new_labels) adjust_model();
 
-  // Create validation targets if needed.
-  dtptr dt_y_val_filtered;
-  if (!isnan(nepochs_val)) {
-    dt_y_val_filtered = create_y_val();
-    dt_y_val = dt_y_val_filtered.get();
-  }
+  return dtptr(new DataTable(std::move(cols)));
+}
 
-  return fit<int8_t>(sigmoid<T>, log_loss<T>);
+
+template <typename T>
+Column* FtrlReal<T>::create_negative_column(size_t nrows) {
+  Column* col = Column::new_data_column(SType::BOOL, nrows);
+  auto data = static_cast<bool*>(col->data_w());
+  std::memset(data, 0, nrows * sizeof(bool));
+  return col;
 }
 
 
@@ -216,12 +235,15 @@ template <typename T>
 dtptr FtrlReal<T>::create_y_val() {
   xassert(map_val.size() == 0);
   xassert(dt_X_val != nullptr && dt_y_val != nullptr)
+  xassert(dt_X_val->nrows == dt_y_val->nrows)
 
   dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
   const strvec& labels_val = dt_y_val_nhot->get_names();
+  xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
 
   // First, add a "_negative" target column and its mapping info.
-  colvec cols = {dt_y->columns[0]->shallowcopy()};
+  Column* col = create_negative_column(dt_y_val_nhot->nrows);
+  colvec cols = {col};
   map_val.push_back(0);
 
   // Second, filter out only the model known labels.
