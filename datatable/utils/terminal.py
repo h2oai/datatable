@@ -151,15 +151,18 @@ term = Terminal()
 # display when viewed.
 #
 def _new_displayhook(value):
+
     if isinstance(value, core.Frame):
-        value.view(None)
+        _original_displayhook(value)
+        #value.view(None)
     else:
         _original_displayhook(value)
 
 
 _original_displayhook = sys.displayhook
 if not term.jupyter:
-    sys.displayhook = _new_displayhook
+    pass
+    #sys.displayhook = _new_displayhook
 
 
 
