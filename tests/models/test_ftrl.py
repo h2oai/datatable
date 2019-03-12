@@ -775,7 +775,7 @@ def test_ftrl_fit_predict_multinomial_early_stopping():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     epoch_stopped = ft.fit(df_train, df_target, df_train, df_target,
-                   nepochs_validation = 1, early_stopping_error = 1e-3)
+                           nepochs_validation = 1, early_stopping_error = 1e-3)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)

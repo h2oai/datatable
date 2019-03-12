@@ -99,6 +99,7 @@ DataTable* split_into_nhot(Column* col, char sep) {
 
   OmpExceptionManager oem;
   size_t nth0 = std::min(static_cast<size_t>(config::nthreads), nrows);
+  (void)nth0;  // Prevent warning about unused variable
   #pragma omp parallel num_threads(nth0)
   {
     try {
