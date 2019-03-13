@@ -672,6 +672,7 @@ void FtrlReal<T>::create_fi() {
       for (auto feature_id : interaction) {
         feature_interaction += colnames[feature_id] + ":";
       }
+      feature_interaction.pop_back();
       sb.write(feature_interaction);
     }
   }

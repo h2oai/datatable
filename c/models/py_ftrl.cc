@@ -765,7 +765,11 @@ void Ftrl::set_interactions(robj arg_interactions) {
       throw TypeError() << "Interactions should be a list of lists, "
                         << "instead encountered: " << py_interaction;
 
-    for (auto py_feature : py_interaction.to_oiter()) {
+    auto py_interaction_iter = py_interaction.to_oiter();
+    if (!py_interaction_iter.size())
+      throw TypeError() << "Interaction lists cannot be empty";
+
+    for (auto py_feature : py_interaction_iter) {
       if (!py_feature.is_string())
         throw TypeError() << "Interaction features should be strings, "
                           << "instead encountered: " << py_feature;

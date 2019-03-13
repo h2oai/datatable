@@ -288,6 +288,13 @@ def test_ftrl_set_wrong_interactions_type():
             == str(e.value))
 
 
+def test_ftrl_set_wrong_interactions_empty():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = [["C0"], []]
+    assert ("Interaction lists cannot be empty")
+
+
 def test_ftrl_set_wrong_interactions_not_list():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
@@ -883,8 +890,8 @@ def test_ftrl_interactions():
                             ["unique", "mod100"],
                             ["boolean", "mod100"],
                             ["boolean", "boolean", "boolean"]]
-    interaction_names = ["unique:boolean:", "unique:mod100:",
-                         "boolean:mod100:", "boolean:boolean:boolean:"]
+    interaction_names = ["unique:boolean", "unique:mod100",
+                         "boolean:mod100", "boolean:boolean:boolean"]
     ft = Ftrl()
     ft.interactions = feature_interactions
     df_train = dt.Frame([range(nrows),
