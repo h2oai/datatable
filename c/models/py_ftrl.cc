@@ -739,14 +739,12 @@ void Ftrl::set_nepochs(robj py_nepochs) {
 }
 
 
-
-
 /*
 *  .interactions
 */
 static GSArgs args_interactions(
   "interactions",
-  "Switch to enable second order feature interactions");
+  "List of feature lists to do interactions for");
 
 
 oobj Ftrl::get_interactions() const {
