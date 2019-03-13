@@ -7,18 +7,18 @@ compiler:
   - gcc
 
 before_install:
-  - ( test -d "$LLVM4" && test "$(ls -A $LLVM4)") || ( wget -O llvm4.tar.xz "http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM4" && tar xf llvm4.tar.xz -C "$LLVM4" --strip-components 1 )
-  - sudo cp $LLVM4/lib/libomp.so /usr/lib
+  - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
+  - sudo cp $LLVM7/lib/libomp.so /usr/lib
 
 env:
   global:
-  - LLVM4=$HOME/LLVM4 LLVM_CONFIG=$LLVM4/bin/llvm-config CLANG=$LLVM4/bin/clang LD_LIBRARY_PATH=$LLVM4/lib:$LD_LIBRARY_PATH
+  - LLVM7=$HOME/LLVM7 LLVM_CONFIG=$LLVM7/bin/llvm-config CLANG=$LLVM7/bin/clang LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
 
 cache:
   pip: true
   ccache: true
   directories:
-      - $LLVM4
+      - $LLVM7
 
 python:
   - "3.5"
