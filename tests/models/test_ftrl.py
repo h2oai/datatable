@@ -42,18 +42,17 @@ from tests import assert_equals, noop
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "nbins", "nepochs", "interactions",
+                                          "nbins", "nepochs",
                                           "double_precision"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 nepochs = 6, interactions = True, double_precision = True)
+                 nepochs = 6, double_precision = True)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
-                        nbins = 1000000, nepochs = 1, interactions = False,
-                        double_precision = False)
+                        nbins = 1000000, nepochs = 1, double_precision = False)
 
 epsilon = 0.01
 
@@ -104,13 +103,6 @@ def test_ftrl_construct_wrong_nepochs_type():
             "instead got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_construct_wrong_interactions_type():
-    with pytest.raises(TypeError) as e:
-        noop(Ftrl(interactions = 2))
-    assert ("Argument `interactions` in Ftrl() constructor should be a boolean, "
-            "instead got <class 'int'>" == str(e.value))
-
-
 def test_ftrl_construct_wrong_double_precision_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(double_precision = 2))
@@ -123,7 +115,7 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `nepochs`, `interactions` or `double_precision` "
+            "`lambda2`, `nbins`, `nepochs` or `double_precision` "
             "to Ftrl constructor, but not both at the same time" == str(e.value))
 
 
@@ -142,8 +134,8 @@ def test_ftrl_construct_wrong_params_type():
 
 
 def test_ftrl_construct_wrong_params_name():
-    WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
-    wrong_params = WrongParams(alpha = 1, interactions = True)
+    WrongParams = collections.namedtuple("WrongParams",["alpha", "lambda1"])
+    wrong_params = WrongParams(alpha = 1, lambda1 = 0.01)
     with pytest.raises(AttributeError) as e:
         Ftrl(wrong_params)
     assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
@@ -213,11 +205,10 @@ def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
                    nbins = tparams.nbins, nepochs = tparams.nepochs,
-                   interactions = tparams.interactions,
                    double_precision = tparams.double_precision)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.nbins, tparams.nepochs, tparams.interactions,
+                         tparams.nbins, tparams.nepochs,
                          tparams.double_precision)
 
 
@@ -229,7 +220,7 @@ def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.nepochs,
-            ft.interactions, ft.double_precision) == tparams
+            ft.double_precision) == tparams
 
 
 def test_ftrl_set_individual():
@@ -240,7 +231,6 @@ def test_ftrl_set_individual():
     ft.lambda2 = tparams.lambda2
     ft.nbins = tparams.nbins
     ft.nepochs = tparams.nepochs
-    ft.interactions = tparams.interactions
     assert ft.params == tparams
 
 
@@ -293,8 +283,25 @@ def test_ftrl_set_wrong_nepochs_type():
 def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
-        ft.interactions = 2
-    assert ("Expected a boolean, instead got <class 'int'>" == str(e.value))
+        ft.interactions = True
+    assert ("Expected an iterable, instead got <class 'bool'>"
+            == str(e.value))
+
+
+def test_ftrl_set_wrong_interactions_not_list():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = ["a", [1, 2]]
+    assert ("Interactions should be a list of lists, instead "
+            "encountered: 'a'" == str(e.value))
+
+
+def test_ftrl_set_wrong_interactions_not_string():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = [["a", "b"], [1, 2]]
+    assert ("Interaction features should be strings, instead "
+            "encountered: 1" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -553,7 +560,7 @@ def test_ftrl_fit_predict_view():
 
 @pytest.mark.parametrize('parameter, value',
                          [("nbins", 100),
-                         ("interactions", True)])
+                         ("interactions", [["C0", "C0"]])])
 def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
@@ -803,7 +810,7 @@ def test_ftrl_early_stopping_multinomial():
 #-------------------------------------------------------------------------------
 
 def test_ftrl_regression():
-    ft = Ftrl(alpha = 2.0, nbins = 100, nepochs = 10000)
+    ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
@@ -852,13 +859,32 @@ def test_ftrl_fi_shallowcopy():
 # Test feature interactions
 #-------------------------------------------------------------------------------
 
+def test_ftrl_interactions_wrong_features():
+    nrows = 10**4
+    feature_names = ['unique', 'boolean', 'mod100']
+    feature_interactions = [["unique", "boolean"],["unique", "mod1000"]]
+    ft = Ftrl()
+    ft.interactions = feature_interactions
+    df_train = dt.Frame([range(nrows),
+                         [i % 2 for i in range(nrows)],
+                         [i % 100 for i in range(nrows)]
+                        ], names = feature_names)
+    df_target = dt.Frame([False, True] * (nrows // 2))
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train, df_target)
+    assert ("Feature 'mod1000' is used for interactions, however, it is "
+            "missing in the training frame" == str(e.value))
+
+
 def test_ftrl_interactions():
     nrows = 10**4
     feature_names = ['unique', 'boolean', 'mod100']
     feature_interactions = [["unique", "boolean"],
                             ["unique", "mod100"],
-                            ["boolean", "mod100"]]
-    interaction_names = ["unique:boolean:", "unique:mod100:", "boolean:mod100:"]
+                            ["boolean", "mod100"],
+                            ["boolean", "boolean", "boolean"]]
+    interaction_names = ["unique:boolean:", "unique:mod100:",
+                         "boolean:mod100:", "boolean:boolean:boolean:"]
     ft = Ftrl()
     ft.interactions = feature_interactions
     df_train = dt.Frame([range(nrows),
@@ -876,6 +902,12 @@ def test_ftrl_interactions():
     assert fi[3, 1] < fi[1, 1]
     assert fi[4, 1] < fi[1, 1]
     assert fi[5, 1] < fi[1, 1]
+    # Make sure interaction of important features is still an important feature
+    assert fi[0, 1] < fi[6, 1]
+    assert fi[2, 1] < fi[6, 1]
+    assert fi[3, 1] < fi[6, 1]
+    assert fi[4, 1] < fi[6, 1]
+    assert fi[5, 1] < fi[6, 1]
 
 
 #-------------------------------------------------------------------------------

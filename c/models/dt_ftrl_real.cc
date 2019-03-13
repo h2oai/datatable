@@ -615,6 +615,7 @@ void FtrlReal<T>::reset() {
   model_type = FtrlModelType::NONE;
   labels.clear();
   colname_hashes.clear();
+  interactions.clear();
 }
 
 
@@ -656,20 +657,20 @@ void FtrlReal<T>::init_weights() {
 */
 template <typename T>
 void FtrlReal<T>::create_fi() {
-  const strvec& col_names = dt_X->get_names();
+  const strvec& colnames = dt_X->get_names();
 
   dt::writable_string_col c_fi_names(nfeatures);
   dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
   sb.commit_and_start_new_chunk(0);
-  for (const auto& feature_name : col_names) {
+  for (const auto& feature_name : colnames) {
     sb.write(feature_name);
   }
 
   if (interactions.size()) {
     for (auto interaction : interactions) {
       std::string feature_interaction;
-      for (auto feature : interaction) {
-        feature_interaction += feature + ":";
+      for (auto feature_id : interaction) {
+        feature_interaction += colnames[feature_id] + ":";
       }
       sb.write(feature_interaction);
     }
@@ -771,22 +772,17 @@ void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
   }
 
   // Do feature interactions.
-  if (interactions.size()) {
+  if (interactions.size() > 0) {
     size_t count = 0;
     for (auto interaction : interactions) {
-      x[dt_X->ncols + count] = 0; //FIXME
+      size_t i = dt_X->ncols + count;
+      x[i] = 0;
+      for (auto feature_id : interaction) {
+        x[i] += x[feature_id];
+      }
+      x[i] %= nbins;
       count++;
     }
-    // size_t count = 0;
-    // for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
-    //   for (size_t j = i + 1; j < dt_X->ncols; ++j) {
-    //     // std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
-    //     // uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
-    //     uint64_t h = x[i+1] + x[j+1];
-    //     x[dt_X->ncols + count] = h % nbins;
-    //     count++;
-    //   }
-    // }
   }
 }
 
@@ -902,7 +898,7 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
-std::vector<strvec> FtrlReal<T>::get_interactions() {
+std::vector<sizetvec> FtrlReal<T>::get_interactions() {
   return interactions;
 }
 
@@ -988,7 +984,7 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 
 
 template <typename T>
-void FtrlReal<T>::set_interactions(std::vector<strvec> interactions_in) {
+void FtrlReal<T>::set_interactions(std::vector<sizetvec> interactions_in) {
   interactions = std::move(interactions_in);
 }
 

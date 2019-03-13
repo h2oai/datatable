@@ -36,7 +36,7 @@ namespace py {
 class Ftrl : public PyObject {
   private:
     dt::Ftrl* dtft;
-    py::olist py_interactions;
+    py::oobj py_interactions;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -60,6 +60,7 @@ class Ftrl : public PyObject {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
+    std::vector<sizetvec> convert_interactions(const strvec&);
 
     // Getters
     oobj get_labels() const;

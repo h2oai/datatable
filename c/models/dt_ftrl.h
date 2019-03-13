@@ -24,6 +24,7 @@
 #include "str/py_str.h"
 #include "utils/parallel.h"
 #include "options.h"
+#include "models/utils.h"
 
 
 namespace dt {
@@ -89,7 +90,7 @@ class Ftrl {
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
     virtual size_t get_nepochs() = 0;
-    virtual std::vector<strvec> get_interactions() = 0;
+    virtual std::vector<sizetvec> get_interactions() = 0;
     virtual bool get_double_precision() = 0;
     virtual FtrlParams get_params() = 0;
     virtual strvec get_labels() = 0;
@@ -104,7 +105,7 @@ class Ftrl {
     virtual void set_lambda2(double) = 0;
     virtual void set_nbins(uint64_t) = 0;
     virtual void set_nepochs(size_t) = 0;
-    virtual void set_interactions(std::vector<strvec>) = 0;
+    virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_double_precision(bool) = 0;
     virtual void set_labels(strvec) = 0;
 };

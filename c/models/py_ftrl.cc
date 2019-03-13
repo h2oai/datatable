@@ -67,8 +67,8 @@ void Ftrl::m__init__(PKArgs& args) {
         defined_nbins || defined_nepochs || defined_double_precision) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
-            << "`interactions` or `double_precision` to Ftrl constructor, "
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` "
+            << "or `double_precision` to Ftrl constructor, "
             << "but not both at the same time";
     }
     py::otuple py_params = arg_params.to_otuple();
@@ -130,6 +130,8 @@ void Ftrl::m__init__(PKArgs& args) {
     }
   }
 
+  py_interactions = py::None();
+
   if (ftrl_params.double_precision) {
     dtft = new dt::FtrlReal<double>(ftrl_params);
   } else {
@@ -139,13 +141,47 @@ void Ftrl::m__init__(PKArgs& args) {
 
 
 /*
-* Deallocate underlying data for an Ftrl object
+*  Deallocate underlying data for an Ftrl object
 */
 void Ftrl::m__dealloc__() {
   if (dtft != nullptr) {
     delete dtft;
     dtft = nullptr;
   }
+}
+
+
+/*
+*  Check if provided interactions are consistent with the column names
+*  of the training frame.
+*/
+std::vector<sizetvec> Ftrl::convert_interactions(const strvec& colnames) {
+  std::vector<sizetvec> interactions;
+  auto py_iter = py_interactions.to_oiter();
+  interactions.reserve(py_iter.size());
+
+  for (auto py_interaction : py_iter) {
+    size_t nfeatures = py_interaction.to_pylist().size();
+    sizetvec interaction;
+    interaction.reserve(nfeatures);
+    for (auto py_feature : py_interaction.to_oiter()) {
+      std::string feature = py_feature.to_string();
+
+      auto it = find(colnames.begin(), colnames.end(), feature);
+      if (it == colnames.end()) {
+        throw ValueError() << "Feature " << py_feature << " is used for "
+                              "interactions, however, it is missing in the "
+                              "training frame";
+      }
+
+      auto pos = static_cast<size_t>(std::distance(colnames.begin(), it));
+      interaction.push_back(pos);
+    }
+
+    interactions.push_back(std::move(interaction));
+  }
+
+  return interactions;
 }
 
 
@@ -219,6 +255,11 @@ oobj Ftrl::fit(const PKArgs& args) {
 
   if (dt_X->nrows == 0) {
     throw ValueError() << "Training frame cannot be empty";
+  }
+
+  if (!py_interactions.is_none()) {
+    std::vector<sizetvec> inters = convert_interactions(dt_X->get_names());
+    dtft->set_interactions(std::move(inters));
   }
 
   if (dt_y->ncols != 1) {
@@ -372,6 +413,7 @@ None
 
 void Ftrl::reset(const PKArgs&) {
   dtft->reset();
+  py_interactions = py::None();
 }
 
 
@@ -663,27 +705,24 @@ oobj Ftrl::get_interactions() const {
 
 
 void Ftrl::set_interactions(robj arg_interactions) {
-  if (dtft->is_trained()) {
+  if (dtft->is_trained())
     throw ValueError() << "Cannot change `interactions` for a trained model, "
                        << "reset this model or create a new one";
-  }
 
-  py_interactions = arg_interactions.to_pylist();
-  std::vector<strvec> interactions;
-  interactions.reserve(py_interactions.size());
+  auto py_interactions_in = arg_interactions.to_oiter();
+  for (auto py_interaction : py_interactions_in) {
+    if (!py_interaction.is_list())
+      throw TypeError() << "Interactions should be a list of lists, "
+                        << "instead encountered: " << py_interaction;
 
-  for (auto py_interaction : arg_interactions.to_oiter()) {
-    size_t nfeatures = py_interaction.to_pylist().size();
-    strvec interaction;
-    interaction.reserve(nfeatures);
     for (auto py_feature : py_interaction.to_oiter()) {
-      interaction.push_back(py_feature.to_string());
+      if (!py_feature.is_string())
+        throw TypeError() << "Interaction features should be strings, "
+                          << "instead encountered: " << py_feature;
     }
-
-    interactions.push_back(std::move(interaction));
   }
 
-  dtft->set_interactions(std::move(interactions));
+  py_interactions = std::move(arg_interactions);
 }
 
 
@@ -729,7 +768,6 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda2.name,      args_lambda2.doc},
      {args_nbins.name,        args_nbins.doc},
      {args_nepochs.name,      args_nepochs.doc},
-     {args_interactions.name, args_interactions.doc},
      {args_double_precision.name, args_double_precision.doc}}
   );
 
@@ -740,8 +778,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(3, get_lambda2());
   params.set(4, get_nbins());
   params.set(5, get_nepochs());
-  params.set(6, get_interactions());
-  params.set(7, get_double_precision());
+  params.set(6, get_double_precision());
   return std::move(params);
 }
 
@@ -753,7 +790,6 @@ oobj Ftrl::get_params_tuple() const {
                  get_lambda2(),
                  get_nbins(),
                  get_nepochs(),
-                 get_interactions(),
                  get_double_precision()};
 }
 
@@ -761,8 +797,8 @@ oobj Ftrl::get_params_tuple() const {
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 8) {
-    throw ValueError() << "Tuple of FTRL parameters should have 8 elements, "
+  if (n_params != 7) {
+    throw ValueError() << "Tuple of FTRL parameters should have 7 elements, "
                        << "got: " << n_params;
   }
   set_alpha(params_tuple[0]);
@@ -771,13 +807,12 @@ void Ftrl::set_params_tuple(robj params) {
   set_lambda2(params_tuple[3]);
   set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
-  set_interactions(params_tuple[6]);
-  set_double_precision(params_tuple[7]);
+  set_double_precision(params_tuple[6]);
 }
 
 
 /*
-* Pickling and unpickling support.
+* Pickling support.
 */
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
@@ -791,10 +826,13 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
                              dtft->get_model_type()
                            ));
   py::oobj labels = get_labels();
-  return otuple {params, model, fi, model_type, labels};
+  return otuple {params, model, fi, model_type, labels, py_interactions};
 }
 
 
+/*
+* Unpickling support.
+*/
 static PKArgs args___setstate__(
     1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
@@ -805,7 +843,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::otuple params = pickle[0].to_otuple();
 
-  bool double_precision = params[7].to_bool_strict();
+  bool double_precision = params[6].to_bool_strict();
   if (double_precision) {
     dtft = new dt::FtrlReal<double>(ftrl_params);
   } else {
@@ -819,6 +857,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
   set_labels(pickle[4]);
+  py_interactions = pickle[5];
+  //FIXME set dtft interactions
 }
 
 
