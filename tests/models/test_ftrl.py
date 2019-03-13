@@ -395,13 +395,13 @@ def test_ftrl_fit_wrong_target_obj64():
 # Test hash function
 #-------------------------------------------------------------------------------
 
-def test_ftrl_col_hashes():
+def test_ftrl_colname_hashes():
     ncols = 10
-    col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840,
+    col_hashes_murmur2 = [ 1838936504594058908, 14027412581578625840,
                           14296604503264754754,  3956937694466614811,
                           10071734010655191393,  6063711047550005084,
                            4309007444360962581,  4517980897659475069,
-                          17871586791652695964, 15779814813469047786)
+                          17871586791652695964, 15779814813469047786]
     ft = Ftrl()
     df_train = dt.Frame([[0]] * ncols)
     df_target = dt.Frame([[True]])
@@ -782,7 +782,7 @@ def test_ftrl_early_stopping_multinomial():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     epoch_stopped = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
-                           nepochs_validation = 1, early_stopping_error = 1e-3)
+                           nepochs_validation = 1, validation_error = 1e-3)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
@@ -953,6 +953,7 @@ def test_ftrl_pickling_binomial():
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
     assert ft.labels == ft_unpickled.labels
+    assert ft.colnames == ft_unpickled.colnames
 
     # Fit and predict
     ft_unpickled.fit(df_train, df_target)
@@ -969,6 +970,7 @@ def test_ftrl_pickling_multinomial():
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
+    ft.interactions = [["C0", "C0"]]
     ft.fit(df_train, df_target)
 
     ft_pickled = pickle.dumps(ft)
@@ -983,6 +985,8 @@ def test_ftrl_pickling_multinomial():
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
     assert ft.labels == ft_unpickled.labels
+    assert ft.colnames == ft_unpickled.colnames
+    assert ft.interactions == ft_unpickled.interactions
 
     # Fit and predict
     ft_unpickled.fit(df_train, df_target)
@@ -991,3 +995,4 @@ def test_ftrl_pickling_multinomial():
     target = ft.predict(df_train)
     assert_equals(ft.model, ft_unpickled.model)
     assert_equals(target, target_unpickled)
+
