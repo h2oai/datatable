@@ -292,7 +292,7 @@ def test_ftrl_set_wrong_interactions_empty():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = [["C0"], []]
-    assert ("Interaction lists cannot be empty")
+    assert ("Interaction lists cannot be empty" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_not_list():
