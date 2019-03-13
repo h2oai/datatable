@@ -389,6 +389,11 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
+  if (dt_X->get_names() != colnames) {
+    throw ValueError() << "Frames used for training and predictions "
+                       << "should have the same column names";
+  }
+
 
   DataTable* dt_p = dtft->predict(dt_X).release();
   py::oobj df_p = py::oobj::from_new_reference(
