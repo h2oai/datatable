@@ -29,7 +29,8 @@ from .column_expr import ColSelectorExpr, NewColumnExpr
 from .dtproxy import f, g
 from .exp_expr import exp, log, log10
 from .literal_expr import LiteralExpr
-from .reduce_expr import ReduceExpr, sum, count, first, mean, min, max, sd
+from .reduce_expr import (ReduceExpr, sum, count, first, mean, median, min,
+    max, sd)
 from .relop_expr import RelationalOpExpr
 from .string_expr import StringExpr
 from .unary_expr import UnaryOpExpr, isna
@@ -45,6 +46,7 @@ __all__ = (
     "log10",
     "max",
     "mean",
+    "median",
     "min",
     "sd",
     "sum",

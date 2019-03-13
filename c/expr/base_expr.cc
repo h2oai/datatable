@@ -464,51 +464,6 @@ colptr expr_cast::evaluate_eager(workframe& wf) {
 
 
 
-//------------------------------------------------------------------------------
-// expr_reduce
-//------------------------------------------------------------------------------
-
-class expr_reduce : public base_expr {
-  private:
-    pexpr arg;
-    size_t opcode;
-
-  public:
-    expr_reduce(pexpr&& a, size_t op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
-};
-
-
-expr_reduce::expr_reduce(pexpr&& a, size_t op)
-  : arg(std::move(a)), opcode(op) {}
-
-
-SType expr_reduce::resolve(const workframe& wf) {
-  (void) arg->resolve(wf);
-  return SType::INT32;  // FIXME
-}
-
-
-GroupbyMode expr_reduce::get_groupby_mode(const workframe&) const {
-  return GroupbyMode::GtoONE;
-}
-
-
-colptr expr_reduce::evaluate_eager(workframe& wf) {
-  auto arg_col = arg->evaluate_eager(wf);
-  int op = static_cast<int>(opcode);
-  if (wf.has_groupby()) {
-    const Groupby& grby = wf.get_groupby();
-    return colptr(expr::reduceop(op, arg_col.get(), grby));
-  } else {
-    return colptr(expr::reduceop(op, arg_col.get(),
-                                 Groupby::single_group(wf.nrows())));
-  }
-}
-
-
 
 //------------------------------------------------------------------------------
 // expr_reduce_nullary
@@ -641,7 +596,7 @@ void py::base_expr::m__init__(py::PKArgs& args) {
       check_args_count(va, 2);
       size_t op = va[0].to_size_t();
       auto arg = to_base_expr(va[1]);
-      expr = new dt::expr_reduce(std::move(arg), op);
+      expr = new expr::expr_reduce(std::move(arg), op);
       break;
     }
     case dt::exprCode::NUREDUCE: {

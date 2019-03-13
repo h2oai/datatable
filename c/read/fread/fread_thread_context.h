@@ -7,14 +7,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_FREAD_THREAD_CONTEXT_h
 #define dt_READ_FREAD_THREAD_CONTEXT_h
-#include "csv/fread.h"            // FreadTokenizer  (FIXME)
-#include "read/columns.h"         // Columns
-#include "read/thread_context.h"  // ThreadContext
-#include "utils/shared_mutex.h"   // dt::shared_mutex
+#include "read/fread/fread_tokenizer.h" // FreadTokenizer
+#include "read/columns.h"               // Columns
+#include "read/thread_context.h"        // ThreadContext
+#include "utils/shared_mutex.h"         // dt::shared_mutex
 
 class FreadReader;
 enum PT : uint8_t;
-using ParserFnPtr = void (*)(FreadTokenizer& ctx);
+using ParserFnPtr = void (*)(dt::read::FreadTokenizer& ctx);
 
 namespace dt {
 namespace read {

@@ -138,7 +138,7 @@ void write_str(char** pch, CsvColumn* col, size_t row)
 }
 
 
-static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+static char hexdigits16[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 static void write_f8_hex(char** pch, CsvColumn* col, size_t row)
 {
@@ -172,7 +172,7 @@ static void write_f8_hex(char** pch, CsvColumn* col, size_t row)
   ch += 3 + (sig != 0);
   while (sig) {
     uint64_t r = sig & 0xF000000000000;
-    *ch++ = hexdigits[r >> 48];
+    *ch++ = hexdigits16[r >> 48];
     sig = (sig ^ r) << 4;
   }
   // Add the exponent bias. Special treatment for subnormals (exp==0, value>0)
@@ -217,7 +217,7 @@ static void write_f4_hex(char** pch, CsvColumn* col, size_t row)
   ch += 3 + (sig != 0);
   while (sig) {
     uint32_t r = sig & 0x780000;
-    *ch++ = hexdigits[r >> 19];
+    *ch++ = hexdigits16[r >> 19];
     sig = (sig ^ r) << 4;
   }
   exp = (exp - 127 + subnormal) & -(value != 0);

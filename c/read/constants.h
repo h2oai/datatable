@@ -5,21 +5,19 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_PY_EXPR_h
-#define dt_EXPR_PY_EXPR_h
-#include "expr/base_expr.h"
-#include "column.h"
-#include "groupby.h"
+#ifndef dt_READ_CONSTANTS_h
+#define dt_READ_CONSTANTS_h
+#include <cstdint>
+namespace dt {
+namespace read {
+
+extern const uint8_t hexdigits[256];
+extern const uint8_t allowedseps[128];
+extern const long double pow10lookup[701];
 
 
-namespace expr {
+// Don't know why, but without this `make coverage` fails.
+void foo();
 
-typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
-typedef void (*gmapperfn)(const int32_t* groups, int32_t grp, void** params);
-
-Column* unaryop(dt::unop opcode, Column* arg);
-Column* binaryop(size_t opcode, Column* lhs, Column* rhs);
-
-};
-
+}} // namespace dt::read::
 #endif

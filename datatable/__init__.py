@@ -23,7 +23,7 @@
 from .__version__ import version as __version__
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   log, log10, f, g)
+                   log, log10, f, g, median)
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
@@ -43,17 +43,25 @@ except ImportError:
     __git_revision__ = ""
 
 
-__all__ = ("__version__", "__git_revision__",
-           "Frame", "max", "mean", "min", "open", "sd", "sum", "count", "first",
-           "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
-           "join", "by", "abs", "exp", "log", "log10",
-           "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
-           "DataTable", "options",
-           "bool8", "int8", "int16", "int32", "int64",
-           "float32", "float64", "str32", "str64", "obj64",
-           "cbind", "rbind", "repeat", "sort",
-           "unique", "union", "intersect", "setdiff", "symdiff",
-           "split_into_nhot")
+__all__ = (
+    "__git_revision__",
+    "__version__",
+    "Frame",
+    "max",
+    "mean",
+    "median",
+    "min",
+    "open", "sd", "sum", "count", "first",
+    "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
+    "join", "by", "abs", "exp", "log", "log10",
+    "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
+    "DataTable", "options",
+    "bool8", "int8", "int16", "int32", "int64",
+    "float32", "float64", "str32", "str64", "obj64",
+    "cbind", "rbind", "repeat", "sort",
+    "unique", "union", "intersect", "setdiff", "symdiff",
+    "split_into_nhot"
+)
 
 bool8 = stype.bool8
 int8 = stype.int8
