@@ -7,7 +7,7 @@ compiler:
   - gcc
 
 before_install:
-  - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
+  - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
   - sudo cp $LLVM7/lib/libomp.so /usr/lib
 
 env:
