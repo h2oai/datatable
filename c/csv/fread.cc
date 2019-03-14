@@ -1,31 +1,22 @@
 //------------------------------------------------------------------------------
-// Original version of this file contributed by Matt Dowle, from R data.table
+// Original version of this file was contributed by Matt Dowle from R data.table
 // project (https://github.com/Rdatatable/data.table)
 //------------------------------------------------------------------------------
-#include <ctype.h>     // isspace
-#include <stdarg.h>    // va_list, va_start
-#include <stdio.h>     // vsnprintf
-#include <algorithm>
-#include <cmath>       // std::sqrt, std::ceil
-#include <cstdio>      // std::snprintf
-#include <string>      // std::string
-#include "csv/fread.h"
-#include "csv/freadLookups.h"
-#include "csv/reader.h"
-#include "csv/reader_fread.h"
-#include "csv/reader_parsers.h"
-#include "utils/assert.h"
-#include "datatable.h"
+#include "csv/reader_fread.h"                  // FreadReader
+#include "read/fread/fread_parallel_reader.h"  // FreadParallelReader
+#include "read/fread/fread_tokenizer.h"        // FreadTokenizer
+#include "utils/misc.h"                        // wallclock
+#include "datatable.h"                         // DataTable
 
 
 
-//=================================================================================================
+//==============================================================================
 //
 // Main fread() function that does all the job of reading a text/csv file.
 //
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
-//=================================================================================================
+//==============================================================================
 std::unique_ptr<DataTable> FreadReader::read_all()
 {
   detect_lf();
@@ -36,16 +27,16 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   detect_sep_and_qr();    // [2]
   detect_column_types();  // [3]
 
-  //*********************************************************************************************
+  //****************************************************************************
   // [4] Parse column names (if present)
   //
   //     This section also moves the `sof` pointer to point at the first row
   //     of data ("removing" the column names).
-  //*********************************************************************************************
+  //****************************************************************************
   if (header == 1) {
     trace("[4] Assign column names");
     dt::read::field64 tmp;
-    FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
+    dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns
@@ -105,9 +96,9 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   }
 
 
-  //*********************************************************************************************
+  //****************************************************************************
   // [6] Read the data
-  //*********************************************************************************************
+  //****************************************************************************
   bool firstTime = true;
 
   std::unique_ptr<PT[]> typesPtr = columns.getTypes();
@@ -153,7 +144,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
 
 
   trace("[7] Finalize the datatable");
-  auto res = makeDatatable();
+  std::unique_ptr<DataTable> res = makeDatatable();
   if (verbose) fo.report();
   return res;
 }

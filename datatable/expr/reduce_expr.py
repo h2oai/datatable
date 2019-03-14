@@ -29,8 +29,8 @@ _builtin_min = min
 _builtin_max = max
 
 # See "c/expr/base_expr.h"
-BASEEXPR_OPCODE_UNREDUCE = 6
-BASEEXPR_OPCODE_NUREDUCE = 7
+BASEEXPR_OPCODE_UNARY_REDUCE = 6
+BASEEXPR_OPCODE_NULLARY_REDUCE = 7
 
 
 
@@ -61,6 +61,10 @@ def mean(expr):
 
 def sd(expr):
     return ReduceExpr("stdev", expr)
+
+
+def median(expr):
+    return ReduceExpr("median", expr)
 
 
 # noinspection PyShadowingBuiltins
@@ -104,7 +108,7 @@ class CountExpr(BaseExpr):
         return "count()"
 
     def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_NUREDUCE, 0)
+        return core.base_expr(BASEEXPR_OPCODE_NULLARY_REDUCE, 0)
 
 
 
@@ -121,7 +125,7 @@ class ReduceExpr(BaseExpr):
 
 
     def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_UNREDUCE,
+        return core.base_expr(BASEEXPR_OPCODE_UNARY_REDUCE,
                               reduce_opcodes[self._op],
                               self._expr._core())
 
@@ -135,4 +139,5 @@ reduce_opcodes = {
     "first": 5,
     "sum": 6,
     "count": 7,
+    "median": 8,
 }

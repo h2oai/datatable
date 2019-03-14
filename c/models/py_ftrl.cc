@@ -403,7 +403,7 @@ oobj Ftrl::get_labels() const {
     py::ostring py_label = py::ostring(labels[i]);
     py_labels.set(i, std::move(py_label));
   }
-  return py_labels;
+  return py::oobj(std::move(py_labels));
 }
 
 

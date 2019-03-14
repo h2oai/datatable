@@ -21,13 +21,13 @@ namespace read {
 ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
   : g(reader)
 {
-  chunkSize = 0;
-  chunkCount = 0;
-  inputStart = g.sof;
-  inputEnd = g.eof;
-  lastChunkEnd = inputStart;
-  lineLength = std::max(meanLineLen, 1.0);
-  nthreads = g.nthreads;
+  chunk_size = 0;
+  chunk_count = 0;
+  input_start = g.sof;
+  input_end = g.eof;
+  end_of_last_chunk = input_start;
+  approximate_line_length = std::max(meanLineLen, 1.0);
+  nthreads = static_cast<size_t>(g.nthreads);
   nrows_written = 0;
   nrows_allocated = g.columns.get_nrows();
   nrows_max = g.max_nrows;
@@ -36,93 +36,110 @@ ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
   determine_chunking_strategy();
 }
 
+ParallelReader::~ParallelReader() {}
+
+
 
 void ParallelReader::determine_chunking_strategy() {
-  size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
-  size_t zThreads = static_cast<size_t>(nthreads);
-  double maxrowsSize = nrows_max * lineLength;
-  bool inputSize_reduced = false;
-  if (nrows_max < 1000000 && maxrowsSize < inputSize) {
-    inputSize = static_cast<size_t>(maxrowsSize * 1.5) + 1;
-    inputSize_reduced = true;
+  size_t input_size = static_cast<size_t>(input_end - input_start);
+  double maxrows_size = nrows_max * approximate_line_length;
+  bool input_size_reduced = false;
+  if (nrows_max < 1000000 && maxrows_size < input_size) {
+    input_size = static_cast<size_t>(maxrows_size * 1.5) + 1;
+    input_size_reduced = true;
   }
-  chunkSize = std::max<size_t>(
+  chunk_size = std::max<size_t>(
                 std::min<size_t>(
                   std::max<size_t>(
-                    static_cast<size_t>(1000 * lineLength),
+                    static_cast<size_t>(1000 * approximate_line_length),
                     1 << 16),
                   1 << 20),
-                static_cast<size_t>(10 * lineLength)
+                static_cast<size_t>(10 * approximate_line_length)
               );
-  chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
-  if (chunkCount > zThreads) {
-    chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);
-    chunkSize = inputSize / chunkCount;
+  chunk_count = std::max<size_t>(input_size / chunk_size, 1);
+  if (chunk_count > nthreads) {
+    chunk_count = nthreads * (1 + (chunk_count - 1)/nthreads);
+    chunk_size = input_size / chunk_count;
   } else {
-    nthreads = static_cast<int>(chunkCount);
-    chunkSize = inputSize / chunkCount;
-    if (inputSize_reduced) {
-      // If chunkCount is 1 then we'll attempt to read the whole input
+    nthreads = chunk_count;
+    chunk_size = input_size / chunk_count;
+    if (input_size_reduced) {
+      // If chunk_count is 1 then we'll attempt to read the whole input
       // with the first chunk, which is not what we want...
-      chunkCount += 2;
-      g.trace("Number of threads reduced to %d because due to max_nrows=%zu "
+      chunk_count += 2;
+      g.trace("Number of threads reduced to %zu because due to max_nrows=%zu "
               "we estimate the amount of data to be read will be small",
               nthreads, nrows_max);
     } else {
-      g.trace("Number of threads reduced to %d because data is small",
+      g.trace("Number of threads reduced to %zu because data is small",
               nthreads);
     }
   }
   g.trace("The input will be read in %zu chunks of size %zu each",
-          chunkCount, chunkSize);
+          chunk_count, chunk_size);
 }
 
 
 
+/**
+ * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
+ * must be in the range [0..chunk_count).
+ *
+ * The optional `ThreadContext` instance may be needed for some
+ * implementations of `ParallelReader` in order to perform additional
+ * parsing using a thread-local context.
+ *
+ * The method `compute_chunk_boundaries()` may be called in-parallel,
+ * assuming that different invocation receive different `ctx` objects.
+ */
 ChunkCoordinates ParallelReader::compute_chunk_boundaries(
-  size_t i, ThreadContext* ctx) const
+    size_t i, ThreadContextPtr& ctx) const
 {
-  xassert(i < chunkCount);
+  xassert(i < chunk_count);
   ChunkCoordinates c;
 
-  bool isFirstChunk = (i == 0);
-  bool isLastChunk = (i == chunkCount - 1);
+  bool is_first_chunk = (i == 0);
+  bool is_last_chunk = (i == chunk_count - 1);
 
-  if (nthreads == 1 || isFirstChunk) {
-    c.start = lastChunkEnd;
-    c.start_exact = true;
+  if (nthreads == 1 || is_first_chunk) {
+    c.set_start_exact(end_of_last_chunk);
   } else {
-    c.start = inputStart + i * chunkSize;
+    c.set_start_approximate(input_start + i * chunk_size);
   }
 
   // It is possible to reach the end of input before the last chunk (for
   // example if )
-  c.end = c.start + chunkSize;
-  if (isLastChunk || c.end >= inputEnd) {
-    c.end = inputEnd;
-    c.end_exact = true;
+  const char* ch = c.get_start() + chunk_size;
+  if (is_last_chunk || ch >= input_end) {
+    c.set_end_exact(input_end);
+  } else {
+    c.set_end_approximate(ch);
   }
 
   adjust_chunk_coordinates(c, ctx);
 
-  xassert(c.start >= inputStart && c.end <= inputEnd);
+  xassert(c.get_start() >= input_start && c.get_end() <= input_end);
   return c;
 }
 
 
+
+/**
+ * Return the fraction of the input that was parsed, as a number between
+ * 0 and 1.0.
+ */
 double ParallelReader::work_done_amount() const {
-  double done = static_cast<double>(lastChunkEnd - inputStart);
-  double total = static_cast<double>(inputEnd - inputStart);
+  double done = static_cast<double>(end_of_last_chunk - input_start);
+  double total = static_cast<double>(input_end - input_start);
   return done / total;
 }
 
 
-void ParallelReader::adjust_chunk_coordinates(
-      ChunkCoordinates&, ThreadContext*) const {}
 
 
-
-
+/**
+ * Main function that reads all data from the input.
+ */
 void ParallelReader::read_all()
 {
   // Any exceptions that are thrown within OMP blocks must be captured within
@@ -137,10 +154,10 @@ void ParallelReader::read_all()
     bool tMaster = false;
     #pragma omp master
     {
-      int actual_nthreads = omp_get_num_threads();
+      size_t actual_nthreads = static_cast<size_t>(omp_get_num_threads());
       if (actual_nthreads != nthreads) {
         nthreads = actual_nthreads;
-        g.trace("Actual number of threads allowed by OMP: %d", nthreads);
+        g.trace("Actual number of threads allowed by OMP: %zu", nthreads);
         determine_chunking_strategy();
       }
       tMaster = true;
@@ -160,11 +177,12 @@ void ParallelReader::read_all()
     // and fast files. However if the file is big enough (>256MB) then it's ok
     // to show the progress as soon as possible.
     bool tShowProgress = g.report_progress && tMaster;
-    bool tShowAlways = tShowProgress && (inputEnd - inputStart > (1 << 28));
+    bool tShowAlways = tShowProgress && (input_end - input_start > (1 << 28));
     double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
     // Thread-local parse context. This object does most of the parsing job.
     auto tctx = init_thread_context();
+    xassert(tctx);
 
     // Helper variables for keeping track of chunk's coordinates:
     // `txcc` has the expected chunk coordinates (i.e. as determined ex ante
@@ -177,7 +195,7 @@ void ParallelReader::read_all()
 
     // Main data reading loop
     #pragma omp for ordered schedule(dynamic)
-    for (size_t i = 0; i < chunkCount; ++i) {
+    for (size_t i = 0; i < chunk_count; ++i) {
       if (oem.stop_requested()) continue;
       try {
         if (tMaster) g.emit_delayed_messages();
@@ -187,7 +205,14 @@ void ParallelReader::read_all()
         }
 
         tctx->push_buffers();
-        txcc = compute_chunk_boundaries(i, tctx.get());
+        txcc = compute_chunk_boundaries(i, tctx);
+
+        // Read the chunk with the expected coordinates `txcc`. The actual
+        // coordinates of the data read will be stored in variable `tacc`.
+        // If the method fails with a recoverable error (such as a type
+        // exception), it will return with `tacc.get_end() == nullptr`. If the
+        // method fails without possibility of recovery, it will raise an
+        // exception.
         tctx->read_chunk(txcc, tacc);
 
       } catch (...) {
@@ -262,55 +287,86 @@ void ParallelReader::read_all()
   // Check that all input was read (unless interrupted early because of
   // nrows_max).
   if (nrows_written < nrows_max) {
-    xassert(lastChunkEnd == inputEnd);
+    xassert(end_of_last_chunk == input_end);
   }
 }
 
 
 
-void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
+/**
+ * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+ * Argument `ichunk` contains the index of the chunk that was read last (this
+ * helps with determining the new number of rows), and `new_allocnrow` is the
+ * minimal number of rows to reallocate to.
+ *
+ * This method is thread-safe: it will acquire an exclusive lock before
+ * making any changes.
+ */
+void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
 {
-  if (new_alloc == nrows_allocated) {
+  xassert(ichunk < chunk_count);
+  if (new_nrows == nrows_allocated) {
     return;
   }
-  if (ichunk == chunkCount - 1) {
-    // If we're on the last jump, then `new_alloc` is exactly how many rows
+  if (ichunk == chunk_count - 1) {
+    // If we're on the last jump, then `new_nrows` is exactly how many rows
     // will be needed.
   } else {
     // Otherwise we adjust the alloc to account for future chunks as well.
-    double exp_nrows = 1.2 * new_alloc * chunkCount / (ichunk + 1);
-    new_alloc = std::max(static_cast<size_t>(exp_nrows),
+    double expected_nrows = 1.2 * new_nrows * chunk_count / (ichunk + 1);
+    new_nrows = std::max(static_cast<size_t>(expected_nrows),
                          1024 + nrows_allocated);
   }
-  if (new_alloc > nrows_max) {
-    new_alloc = nrows_max;
+  if (new_nrows > nrows_max) {
+    // If the user asked to read no more than `nrows_max` rows, then there is
+    // no point in allocating more than that amount.
+    new_nrows = nrows_max;
   }
-  nrows_allocated = new_alloc;
+  nrows_allocated = new_nrows;
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
-  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
-  g.columns.set_nrows(nrows_allocated);
-}
-
-
-void ParallelReader::order_chunk(
-  ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
-{
-  int i = 2;
-  while (i--) {
-    if (acc.start == lastChunkEnd && acc.end >= lastChunkEnd) {
-      lastChunkEnd = acc.end;
-      return;
-    }
-    xcc.start = lastChunkEnd;
-    xcc.start_exact = true;
-
-    ctx->read_chunk(xcc, acc);
-    xassert(i);
+  { // Acquire a lock and then resize all columns
+    shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
+    g.columns.set_nrows(nrows_allocated);
   }
 }
 
 
 
-}  // namespace read
-}  // namespace dt
+/**
+ * Ensure that the chunks were placed properly.
+ *
+ * This method must be called from the #ordered section. It takes three
+ * arguments:
+ *   - `acc` the *actual* coordinates of the chunk just read;
+ *   - `xcc` the coordinates that were *expected*; and
+ *   - `ctx` the thread-local parse context.
+ *
+ * If the chunk was ordered properly (i.e. started reading from the place
+ * where the previous chunk ended), then this method updates the internal
+ * `end_of_last_chunk` variable and returns.
+ *
+ * Otherwise, it re-parses the chunk with correct coordinates. When doing
+ * so, it will set `xcc.start_exact` to true, thus informing the chunk
+ * parser that the coordinates that it received are true.
+ */
+void ParallelReader::order_chunk(
+    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
+{
+  for (int i = 0; i < 2; ++i) {
+    if (acc.get_start() == end_of_last_chunk &&
+        acc.get_end() >= end_of_last_chunk)
+    {
+      end_of_last_chunk = acc.get_end();
+      return;
+    }
+    xassert(i == 0);
+    xcc.set_start_exact(end_of_last_chunk);
+
+    ctx->read_chunk(xcc, acc);  // updates `acc`
+  }
+}
+
+
+
+}}  // namespace dt::read

@@ -21,12 +21,12 @@ FreadParallelReader::FreadParallelReader(FreadReader& reader, PT* types_)
 
 void FreadParallelReader::read_all() {
   ParallelReader::read_all();
-  f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+  f.fo.read_data_nthreads = nthreads;
 }
 
 
 std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
-  size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
+  size_t trows = std::max<size_t>(nrows_allocated / chunk_count, 4);
   size_t tcols = f.columns.nColumnsInBuffer();
   return std::unique_ptr<ThreadContext>(
             new FreadThreadContext(tcols, trows, f, types, shmutex));
@@ -34,28 +34,28 @@ std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
 
 
 void FreadParallelReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, ThreadContext* ctx) const
+  ChunkCoordinates& cc, ThreadContextPtr& ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
-  if (!cc.start_exact) {
-    auto fctx = static_cast<FreadThreadContext*>(ctx);
-    const char* start = cc.start;
+  if (cc.is_start_approximate()) {
+    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx.get())->tokenizer;
+    const char* start = cc.get_start();
     while (*start=='\n' || *start=='\r') start++;
-    cc.start = start;
+    cc.set_start_approximate(start);
     int ncols = static_cast<int>(f.get_ncols());
-    if (fctx->tokenizer.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
-      cc.start = fctx->tokenizer.ch;
+    if (tok.next_good_line_start(cc, ncols, f.fill, f.skip_blank_lines)) {
+      cc.set_start_approximate(tok.ch);
     }
   }
   // Move the end of the chunk, similarly skipping all newline characters;
   // plus 1 more character, thus guaranteeing that the entire next line will
   // also "belong" to the current chunk (this because chunk reader stops at
   // the first end of the line after `end`).
-  if (!cc.end_exact) {
-    const char* end = cc.end;
+  if (cc.is_end_approximate()) {
+    const char* end = cc.get_end();
     while (*end=='\n' || *end=='\r') end++;
-    cc.end = end + 1;
+    cc.set_end_approximate(end + 1);
   }
 }
 

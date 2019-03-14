@@ -37,11 +37,11 @@
 // In order to help tame this explosion of possibilities, templates are used
 // heavily in this source file.
 //------------------------------------------------------------------------------
-#include "expr/py_expr.h"
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
-#include "types.h"
+#include "expr/py_expr.h"
 #include "utils/exceptions.h"
+#include "types.h"
 
 
 namespace expr
