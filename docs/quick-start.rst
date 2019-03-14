@@ -1,12 +1,11 @@
 
-Quick-start
-===========
+Getting started
+===============
 
 Install datatable
 -----------------
 
-Let’s begin by installing the latest stable version of ``datatable``
-from PyPI:
+Let’s begin by installing the latest stable version of ``datatable`` from PyPI:
 
 .. code:: bash
 
@@ -16,8 +15,8 @@ If this didn’t work for you, or if you want to install the bleeding edge
 version of the library, please check the :doc:`Installation </install>` page.
 
 
-Assuming the installation was successful, you can now import the library
-in a JupyterLab notebook or in a Python console:
+Assuming the installation was successful, you can now import the library in
+a JupyterLab notebook or in a Python console:
 
 ::
 
@@ -264,15 +263,14 @@ Investigate your Frame using descripting operators
 Data manipulation
 -----------------
 
-Once the data is loaded into a Frame, you may want to do certain
-operations with it: extract/remove/modify subsets of the data, perform
-calculations, reshape, group, join with other datasets, etc. In
-datatable, the primary vehicle for all these operations is the
-square-bracket notation inspired by traditional matrix indexing but
-overcharged with power (this notation was pioneered in R data.table and
-is the main axis of intersection between these two libraries).
+Once the data is loaded into a Frame, you may want to do certain operations with
+it: extract/remove/modify subsets of the data, perform calculations, reshape,
+group, join with other datasets, etc. In datatable, the primary vehicle for all
+these operations is the square-bracket notation inspired by traditional matrix
+indexing but overcharged with power (this notation was pioneered in R data.table
+and is the main axis of intersection between these two libraries).
 
-In short, almost all operations with a Frame can be expressed as:
+In short, almost all operations with a Frame can be expressed as
 
 .. raw:: html
 
@@ -306,7 +304,6 @@ In short, almost all operations with a Frame can be expressed as:
 
 .. role:: raw-html(raw)
    :format: html
-
 
 where :raw-html:`<b class="i">i</b>` is the row selector,
 :raw-html:`<b class="j">j</b>` is the column selector, and ``...`` indicates
