@@ -37,11 +37,12 @@ nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
 nthreads=0, double_precision=False)
 --
 
-Aggregate a datatable.
+Aggregate frame into a set of clusters. Each cluster is represented by
+an exemplar, and mapping information for the corresponding members.
 
 Parameters
 ----------
-frame: datatable
+frame: Frame
     Frame to be aggregated.
 min_rows: int
     Minimum number of rows a datatable should have to be aggregated.
@@ -716,11 +717,15 @@ void Aggregator<T>::group_nd() {
   size_t ncols = contconvs.size();
   size_t nrows = (*contconvs[0]).get_nrows();
   size_t ndims = std::min(max_dimensions, ncols);
+
   std::vector<exptr> exemplars;
   std::vector<size_t> ids;
   std::vector<size_t> coprimes;
+  size_t nexemplars = 0;
+  size_t ncoprimes = 0;
+
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
-  tptr<T> pmatrix = nullptr;
+  tptr<T> pmatrix;
   bool do_projection = ncols > max_dimensions;
   if (do_projection) pmatrix = generate_pmatrix(ncols);
 
@@ -755,8 +760,6 @@ void Aggregator<T>::group_nd() {
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
           ecounter_local = ecounter;
-          size_t nexemplars = exemplars.size();
-          size_t ncoprimes = coprimes.size();
 
           // Generate random exemplar and coprime vector indices.
           // When `nexemplars` is zero, this may be any `size_t` number,
@@ -801,6 +804,8 @@ void Aggregator<T>::group_nd() {
               adjust_delta(delta, exemplars, ids, ndims);
             }
             calculate_coprimes(exemplars.size(), coprimes);
+            nexemplars = exemplars.size();
+            ncoprimes = coprimes.size();
           } else {
             goto test_member;
           }
@@ -821,7 +826,7 @@ void Aggregator<T>::group_nd() {
 /*
  *  Figure out how many threads we need to run ND groupping.
  */
- template <typename T>
+template <typename T>
 size_t Aggregator<T>::get_nthreads(size_t nrows) {
   size_t nth;
   if (nthreads) {
