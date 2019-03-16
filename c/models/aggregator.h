@@ -117,8 +117,8 @@ class Aggregator : public AggregatorBase {
 
     // Helper methods
     size_t get_nthreads(size_t nrows);
-    void normalize_row(tptr<T>&, size_t);
-    void project_row(tptr<T>&, size_t, tptr<T>&);
+    void normalize_row(tptr<T>&, size_t, size_t);
+    void project_row(tptr<T>&, size_t, size_t, tptr<T>&);
     tptr<T> generate_pmatrix(size_t ncols);
     T calculate_distance(tptr<T>&, tptr<T>&, size_t, T, bool early_exit = true);
     void adjust_delta(T&, std::vector<exptr>&, std::vector<size_t>&, size_t);

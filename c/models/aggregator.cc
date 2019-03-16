@@ -755,7 +755,8 @@ void Aggregator<T>::group_nd() {
       // Main loop over all the rows
       for (size_t i = ith; i < nrows; i += nth) {
         bool is_exemplar = true;
-        do_projection? project_row(member, i, pmatrix) : normalize_row(member, i);
+        do_projection? project_row(member, i, ncols, pmatrix) :
+                       normalize_row(member, i, ncols);
 
         test_member: {
           dt::shared_lock<dt::shared_bmutex> lock(shmutex, /* exclusive = */ false);
@@ -907,9 +908,10 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
 
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
+  auto nids = ids.size();
 
   #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < ids.size(); ++i) {
+  for (size_t i = 0; i < nids; ++i) {
     if (ids[i] == i) {
       map[i] = i;
     } else {
@@ -967,8 +969,8 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 *  Normalize the row elements to [0,1).
 */
 template <typename T>
-void Aggregator<T>::normalize_row(tptr<T>& r, size_t row) {
-  for (size_t i = 0; i < contconvs.size(); ++i) {
+void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
+  for (size_t i = 0; i < ncols; ++i) {
     T norm_factor, norm_shift;
     T value = (*contconvs[i])[row];
     set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).get_min(), (*contconvs[i]).get_max(), 1);
@@ -981,11 +983,11 @@ void Aggregator<T>::normalize_row(tptr<T>& r, size_t row) {
 *  Project a particular row on a subspace by using the projection matrix.
 */
 template <typename T>
-void Aggregator<T>::project_row(tptr<T>& r, size_t row, tptr<T>& pmatrix)
+void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& pmatrix)
 {
   std::memset(r.get(), 0, max_dimensions * sizeof(T));
   int32_t n = 0;
-  for (size_t i = 0; i < contconvs.size(); ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     T value = (*contconvs[i])[row];
     if (!ISNA<T>(value)) {
       T norm_factor, norm_shift;
