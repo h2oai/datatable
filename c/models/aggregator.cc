@@ -833,7 +833,7 @@ size_t Aggregator<T>::get_nthreads(size_t nrows) {
   size_t nth = 1;
   if (nthreads) {
     nth = nthreads;
-  } else if (nth > min_nrows_per_thread) {
+  } else if (nrows > min_nrows_per_thread) {
     nth = std::min(static_cast<size_t>(config::nthreads),
                    nrows / min_nrows_per_thread);
   }
