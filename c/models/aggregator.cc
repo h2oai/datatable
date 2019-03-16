@@ -749,7 +749,7 @@ void Aggregator<T>::group_nd() {
     size_t ecounter_local;
 
     // Each thread gets its own seed
-    std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
+    thread_local std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
@@ -829,11 +829,13 @@ void Aggregator<T>::group_nd() {
  */
 template <typename T>
 size_t Aggregator<T>::get_nthreads(size_t nrows) {
-  size_t nth;
+  constexpr size_t min_nrows_per_thread = 100;
+  size_t nth = 1;
   if (nthreads) {
     nth = nthreads;
-  } else {
-    nth = std::min(static_cast<size_t>(config::nthreads), nrows);
+  } else if (nth > min_nrows_per_thread) {
+    nth = std::min(static_cast<size_t>(config::nthreads),
+                   nrows / min_nrows_per_thread);
   }
   return nth;
 }
