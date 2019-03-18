@@ -26,7 +26,7 @@ namespace dt {
 
 
 /*
-*  Set up parameters and initialize weights.
+*  Constructor. Set up parameters and initialize weights.
 */
 template <typename T>
 FtrlReal<T>::FtrlReal(FtrlParams params_in) :
@@ -39,12 +39,13 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   nbins(params_in.nbins),
   nepochs(params_in.nepochs),
   interactions(params_in.interactions),
-  dt_X_ncols(0),
   nfeatures(0),
   dt_X(nullptr),
   dt_y(nullptr),
   dt_X_val(nullptr),
-  dt_y_val(nullptr)
+  dt_y_val(nullptr),
+  nepochs_val(std::numeric_limits<T>::quiet_NaN()),
+  val_error(std::numeric_limits<T>::quiet_NaN())
 {
 }
 
@@ -54,30 +55,34 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 * - binomial logistic regression (BOOL);
 * - multinomial logistic regression (STR32, STR64);
 * - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
+* and returns epoch at which learning completed or was early stopped.
 */
 template <typename T>
 double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
                                  const DataTable* dt_y_in,
                                  const DataTable* dt_X_val_in,
                                  const DataTable* dt_y_val_in,
-                                 double nepochs_val) {
+                                 double nepochs_val_in,
+                                 double val_error_in) {
   dt_X = dt_X_in;
   dt_y = dt_y_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
+  nepochs_val = static_cast<T>(nepochs_val_in);
+  val_error = static_cast<T>(val_error_in);
 
   double epoch;
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    epoch = fit_binomial(nepochs_val); break;
-    case SType::INT8:    epoch = fit_regression<int8_t>(nepochs_val); break;
-    case SType::INT16:   epoch = fit_regression<int16_t>(nepochs_val); break;
-    case SType::INT32:   epoch = fit_regression<int32_t>(nepochs_val); break;
-    case SType::INT64:   epoch = fit_regression<int64_t>(nepochs_val); break;
-    case SType::FLOAT32: epoch = fit_regression<float>(nepochs_val); break;
-    case SType::FLOAT64: epoch = fit_regression<double>(nepochs_val); break;
+    case SType::BOOL:    epoch = fit_binomial(); break;
+    case SType::INT8:    epoch = fit_regression<int8_t>(); break;
+    case SType::INT16:   epoch = fit_regression<int16_t>(); break;
+    case SType::INT32:   epoch = fit_regression<int32_t>(); break;
+    case SType::INT64:   epoch = fit_regression<int64_t>(); break;
+    case SType::FLOAT32: epoch = fit_regression<float>(); break;
+    case SType::FLOAT64: epoch = fit_regression<double>(); break;
     case SType::STR32:   [[clang::fallthrough]];
-    case SType::STR64:   epoch = fit_multinomial(nepochs_val); break;
+    case SType::STR64:   epoch = fit_multinomial(); break;
     default:             throw TypeError() << "Targets of type `"
                                            << stype_y << "` are not supported";
   }
@@ -86,6 +91,9 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
   dt_y = nullptr;
   dt_X_val = nullptr;
   dt_y_val = nullptr;
+  nepochs_val = std::numeric_limits<T>::quiet_NaN();
+  val_error = std::numeric_limits<T>::quiet_NaN();
+  map_val.clear();
 
   return epoch;
 }
@@ -93,7 +101,8 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
 
 
 template <typename T>
-double FtrlReal<T>::fit_binomial(double nepochs_val) {
+double FtrlReal<T>::fit_binomial() {
+  xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::BINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
@@ -102,18 +111,18 @@ double FtrlReal<T>::fit_binomial(double nepochs_val) {
   }
   if (model_type == FtrlModelType::NONE) {
     labels = dt_y->get_names();
-    xassert(labels.size() == 1);
     create_model();
     model_type = FtrlModelType::BINOMIAL;
   }
-  double epoch = fit<int8_t>(nepochs_val, sigmoid<T>, log_loss<T>);
-  return epoch;
+  map_val = {0};
+  return fit<int8_t>(sigmoid<T>, log_loss<T>);
 }
 
 
 template <typename T>
 template <typename U>
-double FtrlReal<T>::fit_regression(double nepochs_val) {
+double FtrlReal<T>::fit_regression() {
+  xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
@@ -122,17 +131,16 @@ double FtrlReal<T>::fit_regression(double nepochs_val) {
   }
   if (model_type == FtrlModelType::NONE) {
     labels = dt_y->get_names();
-    xassert(labels.size() == 1);
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
-  double epoch = fit<U>(nepochs_val, identity<T>, squared_loss<T, U>);
-  return epoch;
+  map_val = {0};
+  return fit<U>(identity<T>, squared_loss<T, U>);
 }
 
 
 template <typename T>
-double FtrlReal<T>::fit_multinomial(double nepochs_val) {
+double FtrlReal<T>::fit_multinomial() {
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
@@ -143,24 +151,41 @@ double FtrlReal<T>::fit_multinomial(double nepochs_val) {
   if (model_type == FtrlModelType::NONE) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
-
     labels.push_back("_negative");
     create_model();
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
-  // Do one hot encoding and get the list of all the incoming labels
+  dtptr dt_y_train = create_y_train();
+  dt_y = dt_y_train.get();
+
+  // Create validation targets if needed.
+  dtptr dt_y_val_filtered;
+  if (!isnan(nepochs_val)) {
+    dt_y_val_filtered = create_y_val();
+    dt_y_val = dt_y_val_filtered.get();
+  }
+
+  return fit<int8_t>(sigmoid<T>, log_loss<T>);
+}
+
+
+/*
+*  Create training targets.
+*/
+template <typename T>
+dtptr FtrlReal<T>::create_y_train() {
+// Do one hot encoding and get a list of all the incoming labels.
   dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
   strvec labels_in = dt_y_nhot->get_names();
 
   // Create a "_negative" target column.
   colvec cols;
   cols.reserve(labels.size());
-  cols.push_back(Column::new_data_column(SType::BOOL, dt_y_nhot->nrows));
-  auto data_negative = static_cast<bool*>(cols[0]->data_w());
-  std::memset(data_negative, 0, dt_y->nrows * sizeof(bool));
+  Column* col = create_negative_column(dt_y_nhot->nrows);
+  cols.push_back(col);
 
-  // First, process all the labels the model already have.
+  // First, process labels that are already in the model.
   for (size_t i = 1; i < labels.size(); ++i) {
     auto it = find(labels_in.begin(), labels_in.end(), labels[i]);
     if (it == labels_in.end()) {
@@ -175,76 +200,87 @@ double FtrlReal<T>::fit_multinomial(double nepochs_val) {
     }
   }
 
-  // The remaining labels are the new ones, for which we use actual targets.
+  // Second, process new labels.
   size_t n_new_labels = 0;
   for (size_t i = 0; i < labels_in.size(); ++i) {
     if (labels_in[i] == "") continue;
-
     cols.push_back(dt_y_nhot->columns[i]->shallowcopy());
     labels.push_back(labels_in[i]);
     n_new_labels++;
   }
-  dtptr dt_y_train = dtptr(new DataTable(std::move(cols)));
-  dt_y = dt_y_train.get();
+
   // Add new model columns for the new labels. The new columns are
   // shallow copies of the corresponding ones for the "_negative" classifier.
   if (n_new_labels) adjust_model();
 
-  // If we need to do validation, only do it on the known labels.
-  dtptr dt_y_val_nhot_filtered;
-  if (!isnan(nepochs_val)) {
-    dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
-    const strvec& labels_val = dt_y_val_nhot->get_names();
-    colvec cols_val;
-    for (size_t i = 0; i < labels_val.size(); ++i) {
-      auto it = find(labels.begin(), labels.end(), labels_val[i]);
-      if (it == labels.end()) continue;
-      cols_val.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
-    }
-    dt_y_val_nhot_filtered = dtptr(new DataTable(std::move(cols_val)));
-    dt_y_val = dt_y_val_nhot_filtered.get();
-  }
-
-  double epoch = fit<int8_t>(nepochs_val, sigmoid<T>, log_loss<T>);
-  return epoch;
+  return dtptr(new DataTable(std::move(cols)));
 }
 
 
 template <typename T>
-template <typename U /* column data type */>
-void FtrlReal<T>::fill_ri_data(const DataTable* dt,
-                               std::vector<const RowIndex>& ri,
-                               std::vector<const U*>& data) {
-  size_t ncols = dt->ncols;
-  ri.reserve(ncols);
-  data.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    data.push_back(static_cast<const U*>(dt->columns[i]->data()));
-    ri.push_back(dt->columns[i]->rowindex());
-  }
+Column* FtrlReal<T>::create_negative_column(size_t nrows) {
+  Column* col = Column::new_data_column(SType::BOOL, nrows);
+  auto data = static_cast<bool*>(col->data_w());
+  std::memset(data, 0, nrows * sizeof(bool));
+  return col;
 }
+
+
+/*
+*  Create validation targets for early stopping. Only include the labels
+*  the model was already trained on. Also, create mapping between the validation
+*  labels and the model labels to be used during training.
+*/
+template <typename T>
+dtptr FtrlReal<T>::create_y_val() {
+  xassert(map_val.size() == 0);
+  xassert(dt_X_val != nullptr && dt_y_val != nullptr)
+  xassert(dt_X_val->nrows == dt_y_val->nrows)
+
+  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+  const strvec& labels_val = dt_y_val_nhot->get_names();
+  xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
+
+  // First, add a "_negative" target column and its mapping info.
+  Column* col = create_negative_column(dt_y_val_nhot->nrows);
+  colvec cols = {col};
+  map_val.push_back(0);
+
+  // Second, filter out only the model known labels.
+  for (size_t i = 0; i < labels_val.size(); ++i) {
+    auto it = find(labels.begin(), labels.end(), labels_val[i]);
+    if (it == labels.end()) continue;
+
+    cols.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
+    auto pos = static_cast<size_t>(std::distance(labels.begin(), it));
+    map_val.push_back(pos);
+  }
+
+  return dtptr(new DataTable(std::move(cols)));
+}
+
 
 /*
 *  Fit model on a datatable.
 */
 template <typename T>
 template <typename U> /* column data type */
-double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
+double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // Define features and init weight pointers
-  define_features(dt_X->ncols);
+  define_features();
   init_weights();
 
   // Create feature importance datatable.
-  if (!is_dt_valid(dt_fi, nfeatures, 2)) create_fi(dt_X);
+  if (dt_fi == nullptr) create_fi();
 
-  // Create column hashers
+  // Create column hashers.
   auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke
   // `dt::run_parallel()` on all the data for all the epochs at once.
   size_t total_nrows = dt_X->nrows * nepochs;
-  size_t nchunks = 1;
-  size_t chunk_nrows = total_nrows;
+  size_t nchunks = nepochs;
+  size_t chunk_nrows = dt_X->nrows;
 
   // If a validation set has been provided, we train on chunks of data.
   // After each chunk was fitted, we calculate loss on the validation set,
@@ -261,7 +297,7 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
               );
   }
 
-  // Gather rowindex and data pointers
+  // Gather rowindex and data pointers.
   std::vector<const RowIndex> ri, ri_val;
   std::vector<const U*> data, data_val;
   fill_ri_data<U>(dt_y, ri, data);
@@ -315,9 +351,8 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
 
 
     // Calculate loss on the validation dataset and do early stopping,
-    // if the loss does not improve
+    // if the loss does not improve.
     if (validation) {
-      bool label_shift = (model_type == FtrlModelType::MULTINOMIAL);
       dt::run_parallel(
         [&](size_t i0, size_t i1, size_t di) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -331,8 +366,9 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
               for (size_t k = 0; k < dt_y_val->ncols; ++k) {
                 const size_t j = ri_val[k][i];
                 T p = linkfn(predict_row(
-                        x, w, k + label_shift, [&](size_t, T){}
+                        x, w, map_val[k], [&](size_t, T){}
                       ));
+
                 loss_local += lossfn(p, data_val[k][j]);
               }
             }
@@ -343,17 +379,17 @@ double FtrlReal<T>::fit(double nepochs_val, T(*linkfn)(T), T(*lossfn)(T,U)) {
         dt_X_val->nrows
       );
 
+      T loss_diff = (loss_global_prev - loss_global) / loss_global_prev;
+      constexpr T epsilon = std::numeric_limits<T>::epsilon();
       // If loss do not decrease, do early stopping.
-      loss_global /= dt_X_val->nrows * dt_y_val->ncols;
-      T loss_diff = loss_global_prev - loss_global;
-      if (c && loss_diff <= std::numeric_limits<T>::epsilon()) break;
+      if (c && (loss_global < epsilon || loss_diff < val_error)) break;
       // If loss decreases, save current loss and continue training.
       loss_global_prev = loss_global;
       loss_global = 0;
     }
   }
-  double epoch = static_cast<double>(chunk_end) / dt_X->nrows;
-  return epoch;
+  double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
+  return epoch_stopped;
 }
 
 
@@ -411,17 +447,16 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   dt_X = dt_X_in;
   init_weights();
 
-  // Create hashers
+  // Re-create hashers, as stypes for predictions may be different.
   auto hashers = create_hashers(dt_X);
 
-  // Create datatable for predictions and obtain column data pointers
+  // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = labels.size();
-  dtptr dt_p = create_dt_p(dt_X->nrows);
-  std::vector<T*> d_p(nlabels);
+  dtptr dt_p = create_p(dt_X->nrows);
+  std::vector<T*> data_p(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    d_p[i] = static_cast<T*>(dt_p->columns[i]->data_w());
+    data_p[i] = static_cast<T*>(dt_p->columns[i]->data_w());
   }
-
 
   // Determine which link function we should use.
   T (*linkfn)(T);
@@ -431,22 +466,19 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
     case FtrlModelType::MULTINOMIAL : (nlabels == 2)? linkfn = sigmoid<T> :
                                                       linkfn = std::exp;
                                       break;
-    // If this error is thrown, it means that `fit()` and `model_type`
-    // went out of sync, so there is a bug in the code.
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
   }
 
   dt::run_parallel(
     [&](size_t i0, size_t i1, size_t di) {
-
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
 
       for (size_t i = i0; i < i1; i += di) {
         hash_row(x, hashers, i);
         for (size_t k = 0; k < nlabels; ++k) {
-          d_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
+          data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
         }
       }
 
@@ -454,23 +486,45 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
     dt_X->nrows
   );
 
-  // For multinomial case, when there is more than two labels,
-  // apply `softmax` function. NB: we already applied `std::exp`
-  // function to predictions, so only need to normalize probabilities here.
+  // For multinomial case, when there is two labels, we match binomial
+  // classifier by using `sigmoid` link function. When there is more
+  // than two labels, we use `std::exp` link function, and do normalization,
+  // so that predictions sum up to 1, effectively doing `softmax` linking.
   if (nlabels > 2) normalize_rows(dt_p);
   dt_X = nullptr;
   return dt_p;
 }
 
 
+/*
+* Obtain pointers to column rowindexes and data.
+*/
+template <typename T>
+template <typename U /* column data type */>
+void FtrlReal<T>::fill_ri_data(const DataTable* dt,
+                               std::vector<const RowIndex>& ri,
+                               std::vector<const U*>& data) {
+  size_t ncols = dt->ncols;
+  ri.reserve(ncols);
+  data.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    data.push_back(static_cast<const U*>(dt->columns[i]->data()));
+    ri.push_back(dt->columns[i]->rowindex());
+  }
+}
+
+
+/*
+* Normalize rows in a datatable, so that their values sum up to one.
+*/
 template <typename T>
 void FtrlReal<T>::normalize_rows(dtptr& dt) {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
 
-  std::vector<T*> d_cs(ncols);
+  std::vector<T*> data(ncols);
   for (size_t j = 0; j < ncols; ++j) {
-    d_cs[j] = static_cast<T*>(dt->columns[j]->data_w());
+    data[j] = static_cast<T*>(dt->columns[j]->data_w());
   }
 
   dt::run_parallel(
@@ -479,10 +533,10 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
       for (size_t i = i0; i < i1; i += di) {
         T denom = static_cast<T>(0.0);
         for (size_t j = 0; j < ncols; ++j) {
-          denom += d_cs[j][i];
+          denom += data[j][i];
         }
         for (size_t j = 0; j < ncols; ++j) {
-          d_cs[j][i] = d_cs[j][i] / denom;
+          data[j][i] /= denom;
         }
       }
 
@@ -492,10 +546,14 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
 }
 
 
+/*
+* Crete model datatable of shape (nbins, 2 * nlabels) to store z and n
+* coefficients.
+*/
 template <typename T>
 void FtrlReal<T>::create_model() {
   size_t nlabels = labels.size();
-  if (nlabels == 0) ValueError() << "Model cannot have zero labels";
+  xassert(nlabels > 0);
 
   size_t ncols = 2 * nlabels;
   colvec cols(ncols);
@@ -507,6 +565,12 @@ void FtrlReal<T>::create_model() {
 }
 
 
+/*
+* This method is invoked in the case when we get new labels
+* for multinomial classification and need to add them to the model.
+* In such a case, we make a copy of the "negative" z and n
+* coefficients adding them to the existing `dt_model` columns.
+*/
 template <typename T>
 void FtrlReal<T>::adjust_model() {
   size_t ncols_model = dt_model->ncols;
@@ -525,58 +589,75 @@ void FtrlReal<T>::adjust_model() {
 }
 
 
+/*
+* Create datatable for predictions.
+*/
 template <typename T>
-dtptr FtrlReal<T>::create_dt_p(size_t nrows) {
+dtptr FtrlReal<T>::create_p(size_t nrows) {
   size_t nlabels = labels.size();
-  if (nlabels == 0) ValueError() << "Prediction frame cannot have zero labels";
+  xassert(nlabels > 0);
 
-  colvec cols_p(nlabels);
+  colvec cols(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    cols_p[i] = new RealColumn<T>(nrows);
+    cols[i] = new RealColumn<T>(nrows);
   }
-
-  dtptr dt_p = dtptr(new DataTable(std::move(cols_p), labels));
+  dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
   return dt_p;
 }
 
 
+/*
+* Reset the model.
+*/
 template <typename T>
 void FtrlReal<T>::reset() {
   dt_model = nullptr;
   dt_fi = nullptr;
   model_type = FtrlModelType::NONE;
   labels.clear();
+  colname_hashes.clear();
 }
 
 
+/*
+* Initialize model coefficients with zeros.
+*/
 template <typename T>
 void FtrlReal<T>::init_model() {
   if (dt_model == nullptr) return;
   for (size_t i = 0; i < dt_model->ncols; ++i) {
-    auto d_ci = static_cast<T*>(dt_model->columns[i]->data_w());
-    std::memset(d_ci, 0, nbins * sizeof(T));
+    auto data = static_cast<T*>(dt_model->columns[i]->data_w());
+    std::memset(data, 0, nbins * sizeof(T));
   }
 }
 
 
+/*
+* Obtain pointers to the model column data.
+*/
 template <typename T>
 void FtrlReal<T>::init_weights() {
   size_t model_ncols = dt_model->ncols;
   xassert(model_ncols % 2 == 0);
   size_t nlabels = model_ncols / 2;
+  z.clear();
+  z.reserve(nlabels);
+  n.clear();
+  n.reserve(nlabels);
 
-  z.clear(); z.reserve(nlabels);
-  n.clear(); n.reserve(nlabels);
   for (size_t k = 0; k < nlabels; ++k) {
-    z.push_back(static_cast<T*>(dt_model->columns[2*k]->data_w()));
-    n.push_back(static_cast<T*>(dt_model->columns[2*k + 1]->data_w()));
+    z.push_back(static_cast<T*>(dt_model->columns[2 * k]->data_w()));
+    n.push_back(static_cast<T*>(dt_model->columns[2 * k + 1]->data_w()));
   }
 }
 
 
+/*
+* Create feature importance datatable.
+*/
 template <typename T>
-void FtrlReal<T>::create_fi(const DataTable* dt) {
-  const strvec& col_names = dt->get_names();
+void FtrlReal<T>::create_fi() {
+  const strvec& col_names = dt_X->get_names();
 
   dt::writable_string_col c_fi_names(nfeatures);
   dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
@@ -586,8 +667,8 @@ void FtrlReal<T>::create_fi(const DataTable* dt) {
   }
 
   if (interactions) {
-    for (size_t i = 0; i < dt_X_ncols - 1; ++i) {
-      for (size_t j = i + 1; j < dt_X_ncols; ++j) {
+    for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
+      for (size_t j = i + 1; j < dt_X->ncols; ++j) {
         std::string feature_name = col_names[i] + ":" + col_names[j];
         sb.write(feature_name);
       }
@@ -605,50 +686,61 @@ void FtrlReal<T>::create_fi(const DataTable* dt) {
 }
 
 
+/*
+* Initialize feature importances with zeros.
+*/
 template <typename T>
 void FtrlReal<T>::init_fi() {
   if (dt_fi == nullptr) return;
-  auto d_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
-  std::memset(d_fi, 0, nfeatures * sizeof(T));
+  auto data = static_cast<T*>(dt_fi->columns[1]->data_w());
+  std::memset(data, 0, nfeatures * sizeof(T));
 }
 
 
+/*
+* Determine number of features.
+*/
 template <typename T>
-void FtrlReal<T>::define_features(size_t ncols_in) {
-  dt_X_ncols = ncols_in;
-  size_t n_inter_features = (interactions)? dt_X_ncols * (dt_X_ncols - 1) / 2 :
+void FtrlReal<T>::define_features() {
+  size_t n_inter_features = (interactions)? dt_X->ncols * (dt_X->ncols - 1) / 2 :
                                             0;
-  nfeatures = dt_X_ncols + n_inter_features;
+  nfeatures = dt_X->ncols + n_inter_features;
 }
 
 
+/*
+* Create hashers for all datatable column.
+*/
 template <typename T>
 std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
   std::vector<hasherptr> hashers;
   hashers.clear();
-  hashers.reserve(dt_X_ncols);
+  hashers.reserve(dt->ncols);
 
-  for (size_t i = 0; i < dt_X_ncols; ++i) {
+  // Create hashers.
+  for (size_t i = 0; i < dt->ncols; ++i) {
     Column* col = dt->columns[i];
     hashers.push_back(create_hasher(col));
   }
 
-  // Also, pre-hash column names.
-  // TODO: if we stick to default column names, like `C*`,
-  // this may only be necessary, when number of features increases.
+  // Hash column names.
   const std::vector<std::string>& c_names = dt->get_names();
-  colnames_hashes.clear();
-  colnames_hashes.reserve(dt_X_ncols);
-  for (size_t i = 0; i < dt_X_ncols; i++) {
+  colname_hashes.clear();
+  colname_hashes.reserve(dt->ncols);
+  for (size_t i = 0; i < dt->ncols; i++) {
     uint64_t h = hash_murmur2(c_names[i].c_str(),
                              c_names[i].length() * sizeof(char),
                              0);
-    colnames_hashes.push_back(h);
+    colname_hashes.push_back(h);
   }
+
   return hashers;
 }
 
 
+/*
+* Depending on a column type, create a corresponding hasher.
+*/
 template <typename T>
 hasherptr FtrlReal<T>::create_hasher(const Column* col) {
   SType stype = col->stype();
@@ -662,8 +754,8 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
     case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col));
     case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
     case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
-    default:             throw TypeError() << "Cannot hash a column of type "
-                                           << stype;
+    default:             throw  TypeError() << "Cannot hash a column of type "
+                                            << stype;
   }
 }
 
@@ -676,19 +768,19 @@ void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
                            size_t row) {
   // Hash column values adding a column name hash, so that the same value
   // in different columns results in different hashes.
-  for (size_t i = 0; i < dt_X_ncols; ++i) {
-    x[i] = (hashers[i]->hash(row) + colnames_hashes[i]) % nbins;
+  for (size_t i = 0; i < dt_X->ncols; ++i) {
+    x[i] = (hashers[i]->hash(row) + colname_hashes[i]) % nbins;
   }
 
   // Do feature interactions.
   if (interactions) {
     size_t count = 0;
-    for (size_t i = 0; i < dt_X_ncols - 1; ++i) {
-      for (size_t j = i + 1; j < dt_X_ncols; ++j) {
+    for (size_t i = 0; i < dt_X->ncols - 1; ++i) {
+      for (size_t j = i + 1; j < dt_X->ncols; ++j) {
         // std::string s = std::to_string(x[i+1]) + std::to_string(x[j+1]);
         // uint64_t h = hash_murmur2(s.c_str(), s.length() * sizeof(char), 0);
         uint64_t h = x[i+1] + x[j+1];
-        x[dt_X_ncols + count] = h % nbins;
+        x[dt_X->ncols + count] = h % nbins;
         count++;
       }
     }
@@ -696,22 +788,9 @@ void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
 }
 
 
-template <typename T>
-bool FtrlReal<T>::is_dt_valid(const dtptr& dt, size_t nrows_in,
-                              size_t ncols_in) {
-  if (dt == nullptr) return false;
-  // Normally, this exception should never be thrown.
-  // For the moment, the only purpose of this check is to make sure we didn't
-  // do something wrong to the model and feature importance datatables.
-  if (dt->ncols != ncols_in) {
-    throw ValueError() << "Datatable should have " << ncols_in << " column"
-                       << (ncols_in == 1? "" : "s") << ", got: " << dt->ncols;
-  }
-  if (dt->nrows != nrows_in) return false;
-  return true;
-}
-
-
+/*
+*  Return training status.
+*/
 template <typename T>
 bool FtrlReal<T>::is_trained() {
   return model_type != FtrlModelType::NONE;
@@ -728,6 +807,9 @@ DataTable* FtrlReal<T>::get_model() {
 }
 
 
+/*
+*  Return model type.
+*/
 template <typename T>
 FtrlModelType FtrlReal<T>::get_model_type() {
   return model_type;
@@ -748,18 +830,17 @@ DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
 
   DataTable* dt_fi_copy = dt_fi->copy();
   if (normalize) {
-    auto c_fi = static_cast<RealColumn<T>*>(dt_fi_copy->columns[1]);
-    T max = c_fi->max();
-    T epsilon = std::numeric_limits<T>::epsilon();
-    T* d_fi = c_fi->elements_w();
-
+    constexpr T epsilon = std::numeric_limits<T>::epsilon();
+    auto col = static_cast<RealColumn<T>*>(dt_fi_copy->columns[1]);
+    T max = col->max();
+    T* data = col->elements_w();
     T norm_factor = static_cast<T>(1.0);
-    if (fabs(max) > epsilon) norm_factor /= max;
 
-    for (size_t i = 0; i < c_fi->nrows; ++i) {
-      d_fi[i] *= norm_factor;
+    if (fabs(max) > epsilon) norm_factor /= max;
+    for (size_t i = 0; i < col->nrows; ++i) {
+      data[i] *= norm_factor;
     }
-    c_fi->get_stats()->reset();
+    col->get_stats()->reset();
   }
   return dt_fi_copy;
 }
@@ -770,14 +851,14 @@ DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
 *  Here we assume that all the validation for setters is done by py::Ftrl.
 */
 template <typename T>
-std::vector<uint64_t> FtrlReal<T>::get_colnames_hashes() {
-  return colnames_hashes;
+std::vector<uint64_t> FtrlReal<T>::get_colname_hashes() {
+  return colname_hashes;
 }
 
 
 template <typename T>
-size_t FtrlReal<T>::get_dt_X_ncols() {
-  return dt_X_ncols;
+size_t FtrlReal<T>::get_ncols() {
+  return colname_hashes.size();
 }
 
 
@@ -851,7 +932,6 @@ template <typename T>
 void FtrlReal<T>::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
   set_nbins(dt_model->nrows);
-  dt_X_ncols = 0;
   nfeatures = 0;
 }
 

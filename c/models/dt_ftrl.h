@@ -72,7 +72,8 @@ class Ftrl {
     // - multinomial logistic regression (STR32, STR64);
     // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
     virtual double dispatch_fit(const DataTable*, const DataTable*,
-                                const DataTable*, const DataTable*, double) = 0;
+                                const DataTable*, const DataTable*,
+                                double, double) = 0;
     virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
     virtual bool is_trained() = 0;
@@ -82,8 +83,8 @@ class Ftrl {
     virtual FtrlModelType get_model_type() = 0;
     virtual DataTable* get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
-    virtual size_t get_dt_X_ncols() = 0;
-    virtual std::vector<uint64_t> get_colnames_hashes() = 0;
+    virtual size_t get_ncols() = 0;
+    virtual std::vector<uint64_t> get_colname_hashes() = 0;
     virtual double get_alpha() = 0;
     virtual double get_beta() = 0;
     virtual double get_lambda1() = 0;

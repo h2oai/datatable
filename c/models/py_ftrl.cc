@@ -45,15 +45,25 @@ void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
   dt::FtrlParams ftrl_params;
 
-  bool defined_params           = !args[0].is_none_or_undefined();
-  bool defined_alpha            = !args[1].is_none_or_undefined();
-  bool defined_beta             = !args[2].is_none_or_undefined();
-  bool defined_lambda1          = !args[3].is_none_or_undefined();
-  bool defined_lambda2          = !args[4].is_none_or_undefined();
-  bool defined_nbins            = !args[5].is_none_or_undefined();
-  bool defined_nepochs          = !args[6].is_none_or_undefined();
-  bool defined_interactions     = !args[7].is_none_or_undefined();
-  bool defined_double_precision = !args[8].is_none_or_undefined();
+  const Arg& arg_params           = args[0];
+  const Arg& arg_alpha            = args[1];
+  const Arg& arg_beta             = args[2];
+  const Arg& arg_lambda1          = args[3];
+  const Arg& arg_lambda2          = args[4];
+  const Arg& arg_nbins            = args[5];
+  const Arg& arg_nepochs          = args[6];
+  const Arg& arg_interactions     = args[7];
+  const Arg& arg_double_precision = args[8];
+
+  bool defined_params           = !arg_params.is_none_or_undefined();
+  bool defined_alpha            = !arg_alpha.is_none_or_undefined();
+  bool defined_beta             = !arg_beta.is_none_or_undefined();
+  bool defined_lambda1          = !arg_lambda1.is_none_or_undefined();
+  bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
+  bool defined_nbins            = !arg_nbins.is_none_or_undefined();
+  bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
+  bool defined_interactions     = !arg_interactions.is_none_or_undefined();
+  bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
@@ -65,7 +75,7 @@ void Ftrl::m__init__(PKArgs& args) {
             << "`interactions` or `double_precision` to Ftrl constructor, "
             << "but not both at the same time";
     }
-    py::otuple py_params = args[0].to_otuple();
+    py::otuple py_params = arg_params.to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
     py::oobj py_beta = py_params.get_attr("beta");
     py::oobj py_lambda1 = py_params.get_attr("lambda1");
@@ -93,39 +103,39 @@ void Ftrl::m__init__(PKArgs& args) {
   } else {
 
     if (defined_alpha) {
-      ftrl_params.alpha = args[1].to_double();
+      ftrl_params.alpha = arg_alpha.to_double();
       py::Validator::check_positive<double>(ftrl_params.alpha, args[1]);
     }
 
     if (defined_beta) {
-      ftrl_params.beta = args[2].to_double();
+      ftrl_params.beta = arg_beta.to_double();
       py::Validator::check_not_negative<double>(ftrl_params.beta, args[2]);
     }
 
     if (defined_lambda1) {
-      ftrl_params.lambda1 = args[3].to_double();
+      ftrl_params.lambda1 = arg_lambda1.to_double();
       py::Validator::check_not_negative<double>(ftrl_params.lambda1, args[3]);
     }
 
     if (defined_lambda2) {
-      ftrl_params.lambda2 = args[4].to_double();
+      ftrl_params.lambda2 = arg_lambda2.to_double();
       py::Validator::check_not_negative<double>(ftrl_params.lambda2, args[4]);
     }
 
     if (defined_nbins) {
-      ftrl_params.nbins = static_cast<uint64_t>(args[5].to_size_t());
+      ftrl_params.nbins = static_cast<uint64_t>(arg_nbins.to_size_t());
       py::Validator::check_positive<uint64_t>(ftrl_params.nbins, args[5]);
     }
 
     if (defined_nepochs) {
-      ftrl_params.nepochs = args[6].to_size_t();
+      ftrl_params.nepochs = arg_nepochs.to_size_t();
     }
 
     if (defined_interactions) {
-      ftrl_params.interactions = args[7].to_bool_strict();
+      ftrl_params.interactions = arg_interactions.to_bool_strict();
     }
     if (defined_double_precision) {
-      ftrl_params.double_precision = args[8].to_bool_strict();
+      ftrl_params.double_precision = arg_double_precision.to_bool_strict();
     }
   }
 
@@ -152,10 +162,11 @@ void Ftrl::m__dealloc__() {
 * .fit(...)
 * Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
 */
-static PKArgs args_fit(2, 3, 0, false, false, {"X_train", "y_train",
-                       "X_validate", "y_validate", "nepochs_validate"},
+static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
+                       "X_validation", "y_validation",
+                       "nepochs_validation", "early_stopping_error"},
                        "fit",
-R"(fit(self, X_train, y_train, X_validate=None, y_validate=None, nepochs_validate=1)
+R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, early_stopping_error = 0.01)
 --
 
 Train an FTRL model on a dataset.
@@ -168,38 +179,46 @@ X_train: Frame
 y_train: Frame
     Target frame of shape (nrows, 1).
 
-X_validate: Frame
-    Validation frame of shape (nrows, ncols) us
+X_validation: Frame
+    Validation frame of shape (nrows, ncols).
 
-y_validate: Frame
+y_validation: Frame
     Validation target frame of shape (nrows, 1).
 
-nepochs_validate: float
-    Parameter that specifies how often to check loss on the validation
-    set for early stopping, and should be more than zero as well as
-    less than `nepochs`. If after a corresponding `nepochs_validate` period
-    loss does not improve, training terminates.
+nepochs_validation: float
+    Parameter that specifies how often, in epoch units, validation
+    error is checked.
 
+validation_error: float
+    If within `nepochs_validation` relative validation error does not improve
+    by at least `validation_error`, training is stopped.
 
 Returns
 -------
-Epoch at which the model stoped training. If no validation set was
-provided, `epoch` will be equal to `nepochs`.
+Epoch at which model training stopped. If no validation dataset was provided,
+epoch returned will be equal to `nepochs`.
 )");
 
 
 oobj Ftrl::fit(const PKArgs& args) {
+  const Arg& arg_X_train = args[0];
+  const Arg& arg_y_train = args[1];
+  const Arg& arg_X_validation = args[2];
+  const Arg& arg_y_validation = args[3];
+  const Arg& arg_nepochs_validation = args[4];
+  const Arg& arg_validation_error = args[5];
+
   // Training set handling
-  if (args[0].is_undefined()) {
+  if (arg_X_train.is_undefined()) {
     throw ValueError() << "Training frame parameter is missing";
   }
 
-  if (args[1].is_undefined()) {
+  if (arg_y_train.is_undefined()) {
     throw ValueError() << "Target frame parameter is missing";
   }
 
-  DataTable* dt_X = args[0].to_datatable();
-  DataTable* dt_y = args[1].to_datatable();
+  DataTable* dt_X = arg_X_train.to_datatable();
+  DataTable* dt_y = arg_y_train.to_datatable();
 
   if (dt_X == nullptr || dt_y == nullptr) return py::None();
 
@@ -223,11 +242,13 @@ oobj Ftrl::fit(const PKArgs& args) {
   // Validtion set handling
   DataTable* dt_X_val = nullptr;
   DataTable* dt_y_val = nullptr;
-  double nepochs_validate = std::numeric_limits<double>::quiet_NaN();
+  double nepochs_val = std::numeric_limits<double>::quiet_NaN();
+  double val_error = std::numeric_limits<double>::quiet_NaN();
 
-  if (!args[2].is_none_or_undefined() && !args[3].is_none_or_undefined()) {
-    dt_X_val = args[2].to_datatable();
-    dt_y_val = args[3].to_datatable();
+  if (!arg_X_validation.is_none_or_undefined() &&
+      !arg_y_validation.is_none_or_undefined()) {
+    dt_X_val = arg_X_validation.to_datatable();
+    dt_y_val = arg_y_validation.to_datatable();
 
     if (dt_X_val->ncols != dt_X->ncols) {
       throw ValueError() << "Validation frame must have the same number of "
@@ -258,20 +279,26 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "number of rows as the validation frame itself";
     }
 
-    if (!args[4].is_none_or_undefined()) {
-      nepochs_validate = args[4].to_double();
-      py::Validator::check_positive<double>(nepochs_validate, args[4]);
-      if (nepochs_validate >= dtft->get_nepochs()) {
-        throw ValueError() << "`nepochs_validate` should be less than `nepochs";
+    if (!arg_nepochs_validation.is_none_or_undefined()) {
+      nepochs_val = arg_nepochs_validation.to_double();
+      py::Validator::check_positive<double>(nepochs_val, arg_nepochs_validation);
+      if (nepochs_val >= dtft->get_nepochs()) {
+        throw ValueError() << "`nepochs_validation` should be less than "
+                           << "`nepochs";
       }
-    } else nepochs_validate = 1;
+    } else nepochs_val = 1;
+
+    if (!arg_validation_error.is_none_or_undefined()) {
+      val_error = arg_validation_error.to_double();
+      py::Validator::check_positive<double>(val_error, arg_validation_error);
+    } else val_error = 0.01;
   }
 
-  // Train the model and return epoch when the training stopped
-  double epoch = dtft->dispatch_fit(dt_X, dt_y,
-                                    dt_X_val, dt_y_val,
-                                    nepochs_validate);
-  return py::ofloat(epoch);
+  // Train the model and return epoch when training.
+  double epoch_stopped = dtft->dispatch_fit(dt_X, dt_y,
+                                            dt_X_val, dt_y_val,
+                                            nepochs_val, val_error);
+  return py::ofloat(epoch_stopped);
 }
 
 
@@ -300,11 +327,12 @@ for each row of frame X and each label the model was trained for.
 
 
 oobj Ftrl::predict(const PKArgs& args) {
-  if (args[0].is_undefined()) {
+  const Arg& arg_X = args[0];
+  if (arg_X.is_undefined()) {
     throw ValueError() << "Frame to make predictions for is missing";
   }
 
-  DataTable* dt_X = args[0].to_datatable();
+  DataTable* dt_X = arg_X.to_datatable();
   if (dt_X == nullptr) return Py_None;
 
   if (!dtft->is_trained()) {
@@ -312,7 +340,7 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "should be trained first";
   }
 
-  size_t ncols = dtft->get_dt_X_ncols();
+  size_t ncols = dtft->get_ncols();
   if (dt_X->ncols != ncols && ncols != 0) {
     throw ValueError() << "Can only predict on a frame that has " << ncols
                        << " column" << (ncols == 1? "" : "s")
@@ -397,9 +425,10 @@ void Ftrl::set_labels(robj py_labels) {
 */
 static GSArgs args_model(
   "model",
-R"(Tuple of model frames. Each frame has two columns, i.e. `z` and `n`,
-and `nbins` rows, where `nbins` is a number of bins for the hashing
-trick. Both column types are `T64`.)");
+R"(Model frame of shape (nbins, 2 * nlabels), where nlabels is
+the total number of labels the model was trained on, and nbins
+is the number of bins used for the hashing trick. Odd frame columns
+contain z model coefficients, and even columns n model coefficients.)");
 
 
 oobj Ftrl::get_model() const {
@@ -489,9 +518,9 @@ static GSArgs args_colname_hashes(
 
 oobj Ftrl::get_colname_hashes() const {
   if (dtft->is_trained()) {
-    size_t ncols = dtft->get_dt_X_ncols();
+    size_t ncols = dtft->get_ncols();
     py::otuple py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = dtft->get_colnames_hashes();
+    std::vector<uint64_t> colname_hashes = dtft->get_colname_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
@@ -588,7 +617,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 */
 static GSArgs args_nbins(
   "nbins",
-  "Number of bins to be used for the hashing trick");
+  "Number of bins used for the hashing trick");
 
 
 oobj Ftrl::get_nbins() const {
@@ -765,9 +794,9 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  py::otuple pickle = args[0].to_otuple();
-
   dt::FtrlParams ftrl_params;
+
+  py::otuple pickle = args[0].to_otuple();
   py::otuple params = pickle[0].to_otuple();
 
   bool double_precision = params[7].to_bool_strict();
@@ -776,7 +805,6 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   } else {
     dtft = new dt::FtrlReal<float>(ftrl_params);
   }
-
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {
