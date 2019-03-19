@@ -58,8 +58,7 @@ class FtrlReal : public dt::Ftrl {
     T lambda2;
     uint64_t nbins;
     size_t nepochs;
-    bool interactions;
-    size_t : 56;
+    std::vector<sizetvec> interactions;
 
     // Labels that are automatically extracted from the target column.
     strvec labels;
@@ -141,17 +140,17 @@ class FtrlReal : public dt::Ftrl {
     FtrlModelType get_model_type() override;
     size_t get_nfeatures() override;
     size_t get_ncols() override;
-    std::vector<uint64_t> get_colname_hashes() override;
+    const std::vector<uint64_t>& get_colname_hashes() override;
     double get_alpha() override;
     double get_beta() override;
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
     size_t get_nepochs() override;
-    bool get_interactions() override;
+    const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
     FtrlParams get_params() override;
-    strvec get_labels() override;
+    const strvec& get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;
@@ -163,7 +162,7 @@ class FtrlReal : public dt::Ftrl {
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
     void set_nepochs(size_t) override;
-    void set_interactions(bool) override;
+    void set_interactions(std::vector<sizetvec>) override;
     void set_double_precision(bool) override;
     void set_labels(strvec) override;
 };

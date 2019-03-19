@@ -30,16 +30,15 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
+PKArgs Ftrl::Type::args___init__(0, 2, 6, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "nepochs",
-                                 "interactions", "double_precision"},
-                                 "__init__", nullptr);
+                                 "double_precision"}, "__init__", nullptr);
 
 
 /*
-* Ftrl(...)
-* Initialize Ftrl object with the provided parameters.
+*  Ftrl(...)
+*  Initialize Ftrl object with the provided parameters.
 */
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
@@ -52,8 +51,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_lambda2          = args[4];
   const Arg& arg_nbins            = args[5];
   const Arg& arg_nepochs          = args[6];
-  const Arg& arg_interactions     = args[7];
-  const Arg& arg_double_precision = args[8];
+  const Arg& arg_double_precision = args[7];
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -62,17 +60,15 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
   bool defined_nbins            = !arg_nbins.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
-  bool defined_interactions     = !arg_interactions.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_nbins || defined_nepochs || defined_interactions ||
-        defined_double_precision) {
+        defined_nbins || defined_nepochs || defined_double_precision) {
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
-            << "`interactions` or `double_precision` to Ftrl constructor, "
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` "
+            << "or `double_precision` to Ftrl constructor, "
             << "but not both at the same time";
     }
     py::otuple py_params = arg_params.to_otuple();
@@ -82,7 +78,6 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
     py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
-    py::oobj py_interactions = py_params.get_attr("interactions");
     py::oobj py_double_precision = py_params.get_attr("double_precision");
 
     ftrl_params.alpha = py_alpha.to_double();
@@ -91,7 +86,6 @@ void Ftrl::m__init__(PKArgs& args) {
     ftrl_params.lambda2 = py_lambda2.to_double();
     ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     ftrl_params.nepochs = py_nepochs.to_size_t();
-    ftrl_params.interactions = py_interactions.to_bool_strict();
     ftrl_params.double_precision = py_double_precision.to_bool_strict();
 
     py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
@@ -131,13 +125,12 @@ void Ftrl::m__init__(PKArgs& args) {
       ftrl_params.nepochs = arg_nepochs.to_size_t();
     }
 
-    if (defined_interactions) {
-      ftrl_params.interactions = arg_interactions.to_bool_strict();
-    }
     if (defined_double_precision) {
       ftrl_params.double_precision = arg_double_precision.to_bool_strict();
     }
   }
+
+  py_interactions = py::None();
 
   if (ftrl_params.double_precision) {
     dtft = new dt::FtrlReal<double>(ftrl_params);
@@ -148,7 +141,7 @@ void Ftrl::m__init__(PKArgs& args) {
 
 
 /*
-* Deallocate underlying data for an Ftrl object
+*  Deallocate underlying data for an Ftrl object
 */
 void Ftrl::m__dealloc__() {
   if (dtft != nullptr) {
@@ -159,14 +152,48 @@ void Ftrl::m__dealloc__() {
 
 
 /*
-* .fit(...)
-* Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
+*  Check if provided interactions are consistent with the column names
+*  of the training frame.
+*/
+std::vector<sizetvec> Ftrl::convert_interactions() {
+  std::vector<sizetvec> interactions;
+  auto py_iter = py_interactions.to_oiter();
+  interactions.reserve(py_iter.size());
+
+  for (auto py_interaction : py_iter) {
+    size_t nfeatures = py_interaction.to_pylist().size();
+    sizetvec interaction;
+    interaction.reserve(nfeatures);
+    for (auto py_feature : py_interaction.to_oiter()) {
+      std::string feature = py_feature.to_string();
+
+      auto it = find(colnames.begin(), colnames.end(), feature);
+      if (it == colnames.end()) {
+        throw ValueError() << "Feature " << py_feature << " is used for "
+                              "interactions, however, it is missing in the "
+                              "training frame";
+      }
+
+      auto pos = static_cast<size_t>(std::distance(colnames.begin(), it));
+      interaction.push_back(pos);
+    }
+
+    interactions.push_back(std::move(interaction));
+  }
+
+  return interactions;
+}
+
+
+/*
+*  .fit(...)
+*  Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
 */
 static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
-                       "nepochs_validation", "early_stopping_error"},
+                       "nepochs_validation", "validation_error"},
                        "fit",
-R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, early_stopping_error = 0.01)
+R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error = 0.01)
 --
 
 Train an FTRL model on a dataset.
@@ -239,6 +266,20 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
+  if (!dtft->is_trained()) {
+    colnames = dt_X->get_names();
+  }
+
+  if (dtft->is_trained() && dt_X->get_names() != colnames) {
+    throw ValueError() << "Training frame names cannot change for a trained "
+                       << "model";
+  }
+
+  if (!py_interactions.is_none()) {
+    std::vector<sizetvec> inters = convert_interactions();
+    dtft->set_interactions(std::move(inters));
+  }
+
   // Validtion set handling
   DataTable* dt_X_val = nullptr;
   DataTable* dt_y_val = nullptr;
@@ -255,7 +296,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "columns as the training frame";
     }
 
-    if (dt_X_val->get_names() != dt_X->get_names()) {
+    if (dt_X_val->get_names() != colnames) {
       throw ValueError() << "Validation frame must have the same column "
                          << "names as the training frame";
     }
@@ -303,9 +344,9 @@ oobj Ftrl::fit(const PKArgs& args) {
 
 
 /*
-* .predict(...)
-* Perform dataset validation, make a call to `dtft->predict(...)`,
-* return frame with predictions.
+*  .predict(...)
+*  Perform dataset validation, make a call to `dtft->predict(...)`,
+*  return frame with predictions.
 */
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
@@ -348,6 +389,11 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
+  if (dt_X->get_names() != colnames) {
+    throw ValueError() << "Frames used for training and predictions "
+                       << "should have the same column names";
+  }
+
 
   DataTable* dt_p = dtft->predict(dt_X).release();
   py::oobj df_p = py::oobj::from_new_reference(
@@ -359,8 +405,8 @@ oobj Ftrl::predict(const PKArgs& args) {
 
 
 /*
-* .reset()
-* Reset the model by making a call to `dtft->reset()`.
+*  .reset()
+*  Reset the model by making a call to `dtft->reset()`.
 */
 static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
@@ -381,13 +427,13 @@ None
 
 void Ftrl::reset(const PKArgs&) {
   dtft->reset();
+  py_interactions = py::None();
+  colnames.clear();
 }
 
 
-
-
 /*
-* .labels
+*  .labels
 */
 static GSArgs args_labels(
   "labels",
@@ -395,33 +441,39 @@ static GSArgs args_labels(
 
 
 oobj Ftrl::get_labels() const {
-  strvec labels = dtft->get_labels();
-  size_t nlabels = labels.size();
+  if (dtft->is_trained()) {
+    const strvec& labels = dtft->get_labels();
+    size_t nlabels = labels.size();
 
-  py::olist py_labels(nlabels);
-  for (size_t i = 0; i < nlabels; ++i) {
-    py::ostring py_label = py::ostring(labels[i]);
-    py_labels.set(i, std::move(py_label));
+    py::olist py_labels(nlabels);
+    for (size_t i = 0; i < nlabels; ++i) {
+      py::ostring py_label = py::ostring(labels[i]);
+      py_labels.set(i, std::move(py_label));
+    }
+    return std::move(py_labels);
+  } else {
+    return py::None();
   }
-  return py::oobj(std::move(py_labels));
 }
 
 
 void Ftrl::set_labels(robj py_labels) {
-  py::olist py_labels_list = py_labels.to_pylist();
-  size_t nlabels = py_labels_list.size();
+  if (py_labels.is_list()) {
+    py::olist py_labels_list = py_labels.to_pylist();
+    size_t nlabels = py_labels_list.size();
 
-  strvec labels(nlabels);
-  for (size_t i = 0; i < nlabels; ++i) {
-    labels[i] = py_labels_list[i].to_string();
+    strvec labels(nlabels);
+    for (size_t i = 0; i < nlabels; ++i) {
+      labels[i] = py_labels_list[i].to_string();
+    }
+    dtft->set_labels(labels);
   }
-  dtft->set_labels(labels);
 }
 
 
 
 /*
-* .model
+*  .model
 */
 static GSArgs args_model(
   "model",
@@ -484,7 +536,7 @@ void Ftrl::set_model(robj model) {
 
 
 /*
-* .feature_importances
+*  .feature_importances
 */
 static GSArgs args_fi(
   "feature_importances",
@@ -508,7 +560,43 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
 
 
 /*
-* .colname_hashes
+*  .colnames
+*/
+static GSArgs args_colnames(
+  "colnames",
+  "Column names"
+);
+
+
+oobj Ftrl::get_colnames() const {
+  if (dtft->is_trained()) {
+    size_t ncols = colnames.size();
+    py::olist py_colnames(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      py_colnames.set(i, py::ostring(colnames[i]));
+    }
+    return std::move(py_colnames);
+  } else {
+    return py::None();
+  }
+}
+
+
+void Ftrl::set_colnames(robj py_colnames) {
+  if (py_colnames.is_list()) {
+    py::olist py_colnames_list = py_colnames.to_pylist();
+    size_t ncolnames = py_colnames_list.size();
+
+    colnames.reserve(ncolnames);
+    for (size_t i = 0; i < ncolnames; ++i) {
+      colnames.push_back(py_colnames_list[i].to_string());
+    }
+  }
+}
+
+
+/*
+*  .colname_hashes
 */
 static GSArgs args_colname_hashes(
   "colname_hashes",
@@ -519,8 +607,8 @@ static GSArgs args_colname_hashes(
 oobj Ftrl::get_colname_hashes() const {
   if (dtft->is_trained()) {
     size_t ncols = dtft->get_ncols();
-    py::otuple py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = dtft->get_colname_hashes();
+    py::olist py_colname_hashes(ncols);
+    const std::vector<uint64_t>& colname_hashes = dtft->get_colname_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
@@ -533,7 +621,7 @@ oobj Ftrl::get_colname_hashes() const {
 
 
 /*
-* .alpha
+*  .alpha
 */
 static GSArgs args_alpha(
   "alpha",
@@ -553,7 +641,7 @@ void Ftrl::set_alpha(robj py_alpha) {
 
 
 /*
-* .beta
+*  .beta
 */
 static GSArgs args_beta(
   "beta",
@@ -573,7 +661,7 @@ void Ftrl::set_beta(robj py_beta) {
 
 
 /*
-* .lambda1
+*  .lambda1
 */
 static GSArgs args_lambda1(
   "lambda1",
@@ -593,7 +681,7 @@ void Ftrl::set_lambda1(robj py_lambda1) {
 
 
 /*
-* .lambda2
+*  .lambda2
 */
 static GSArgs args_lambda2(
   "lambda2",
@@ -613,7 +701,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 
 
 /*
-* .nbins
+*  .nbins
 */
 static GSArgs args_nbins(
   "nbins",
@@ -638,7 +726,7 @@ void Ftrl::set_nbins(robj py_nbins) {
 
 
 /*
-* .nepochs
+*  .nepochs
 */
 static GSArgs args_nepochs(
   "nepochs",
@@ -656,33 +744,47 @@ void Ftrl::set_nepochs(robj py_nepochs) {
 }
 
 
-
-
 /*
-* .interactions
+*  .interactions
 */
 static GSArgs args_interactions(
   "interactions",
-  "Switch to enable second order feature interactions");
+  "List of feature lists to do interactions for");
 
 
 oobj Ftrl::get_interactions() const {
-  return dtft->get_interactions()? True() : False();
+  return py_interactions;
 }
 
 
-void Ftrl::set_interactions(robj py_interactions) {
-  if (dtft->is_trained()) {
+void Ftrl::set_interactions(robj arg_interactions) {
+  if (dtft->is_trained())
     throw ValueError() << "Cannot change `interactions` for a trained model, "
                        << "reset this model or create a new one";
+
+  auto py_interactions_in = arg_interactions.to_oiter();
+  for (auto py_interaction : py_interactions_in) {
+    if (!py_interaction.is_list())
+      throw TypeError() << "Interactions should be a list of lists, "
+                        << "instead encountered: " << py_interaction;
+
+    auto py_interaction_iter = py_interaction.to_oiter();
+    if (!py_interaction_iter.size())
+      throw TypeError() << "Interaction lists cannot be empty";
+
+    for (auto py_feature : py_interaction_iter) {
+      if (!py_feature.is_string())
+        throw TypeError() << "Interaction features should be strings, "
+                          << "instead encountered: " << py_feature;
+    }
   }
-  bool interactions = py_interactions.to_bool_strict();
-  dtft->set_interactions(interactions);
+
+  py_interactions = std::move(arg_interactions);
 }
 
 
 /*
-* .double_precision
+*  .double_precision
 */
 static GSArgs args_double_precision(
   "double_precision",
@@ -706,7 +808,7 @@ void Ftrl::set_double_precision(robj py_double_precision) {
 
 
 /*
-* .params
+*  .params
 */
 static GSArgs args_params(
   "params",
@@ -723,7 +825,6 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda2.name,      args_lambda2.doc},
      {args_nbins.name,        args_nbins.doc},
      {args_nepochs.name,      args_nepochs.doc},
-     {args_interactions.name, args_interactions.doc},
      {args_double_precision.name, args_double_precision.doc}}
   );
 
@@ -734,8 +835,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(3, get_lambda2());
   params.set(4, get_nbins());
   params.set(5, get_nepochs());
-  params.set(6, get_interactions());
-  params.set(7, get_double_precision());
+  params.set(6, get_double_precision());
   return std::move(params);
 }
 
@@ -747,7 +847,6 @@ oobj Ftrl::get_params_tuple() const {
                  get_lambda2(),
                  get_nbins(),
                  get_nepochs(),
-                 get_interactions(),
                  get_double_precision()};
 }
 
@@ -755,8 +854,8 @@ oobj Ftrl::get_params_tuple() const {
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 8) {
-    throw ValueError() << "Tuple of FTRL parameters should have 8 elements, "
+  if (n_params != 7) {
+    throw ValueError() << "Tuple of FTRL parameters should have 7 elements, "
                        << "got: " << n_params;
   }
   set_alpha(params_tuple[0]);
@@ -765,30 +864,35 @@ void Ftrl::set_params_tuple(robj params) {
   set_lambda2(params_tuple[3]);
   set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
-  set_interactions(params_tuple[6]);
-  set_double_precision(params_tuple[7]);
+  set_double_precision(params_tuple[6]);
 }
 
 
 /*
-* Pickling and unpickling support.
+*  Pickling support.
 */
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
-  py::oobj params = get_params_tuple();
-  py::oobj model = get_model();
-  py::oobj fi = get_normalized_fi(false);
-  py::oobj model_type = py::oint(static_cast<int32_t>(
+  py::oobj py_params = get_params_tuple();
+  py::oobj py_model = get_model();
+  py::oobj py_fi = get_normalized_fi(false);
+  py::oobj py_model_type = py::oint(static_cast<int32_t>(
                              dtft->get_model_type()
                            ));
-  py::oobj labels = get_labels();
-  return otuple {params, model, fi, model_type, labels};
+  py::oobj py_labels = get_labels();
+  py::oobj py_colnames = get_colnames();
+
+  return otuple {py_params, py_model, py_fi, py_model_type, py_labels,
+                 py_interactions, py_colnames};
 }
 
 
+/*
+*  Unpickling support.
+*/
 static PKArgs args___setstate__(
     1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
@@ -799,7 +903,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::otuple params = pickle[0].to_otuple();
 
-  bool double_precision = params[7].to_bool_strict();
+  bool double_precision = params[6].to_bool_strict();
   if (double_precision) {
     dtft = new dt::FtrlReal<double>(ftrl_params);
   } else {
@@ -813,11 +917,13 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
   set_labels(pickle[4]);
+  py_interactions = pickle[5];
+  set_colnames(pickle[6]);
 }
 
 
 /*
-* py::Ftrl::Type
+*  py::Ftrl::Type
 */
 const char* Ftrl::Type::classname() {
   return "datatable.models.Ftrl";
@@ -853,7 +959,7 @@ double_precision : bool
 
 
 /*
-* Initialize all the exposed methods and getters/setters.
+*  Initialize all the exposed methods and getters/setters.
 */
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
@@ -861,6 +967,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
   ADD_GETTER(gs, &Ftrl::get_params_namedtuple, args_params);
+  ADD_GETTER(gs, &Ftrl::get_colnames, args_colnames);
   ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
   ADD_GETSET(gs, &Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha);
   ADD_GETSET(gs, &Ftrl::get_beta, &Ftrl::set_beta, args_beta);
