@@ -140,17 +140,17 @@ class FtrlReal : public dt::Ftrl {
     FtrlModelType get_model_type() override;
     size_t get_nfeatures() override;
     size_t get_ncols() override;
-    std::vector<uint64_t> get_colname_hashes() override;
+    const std::vector<uint64_t>& get_colname_hashes() override;
     double get_alpha() override;
     double get_beta() override;
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
     size_t get_nepochs() override;
-    std::vector<sizetvec> get_interactions() override;
+    const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
     FtrlParams get_params() override;
-    strvec get_labels() override;
+    const strvec& get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;

@@ -83,17 +83,17 @@ class Ftrl {
     virtual DataTable* get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_ncols() = 0;
-    virtual std::vector<uint64_t> get_colname_hashes() = 0;
+    virtual const std::vector<uint64_t>& get_colname_hashes() = 0;
     virtual double get_alpha() = 0;
     virtual double get_beta() = 0;
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
     virtual size_t get_nepochs() = 0;
-    virtual std::vector<sizetvec> get_interactions() = 0;
+    virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual strvec get_labels() = 0;
+    virtual const strvec& get_labels() = 0;
 
     // Setters
     virtual void set_model(DataTable*) = 0;

@@ -851,7 +851,7 @@ DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
 *  Here we assume that all the validation for setters is done by py::Ftrl.
 */
 template <typename T>
-std::vector<uint64_t> FtrlReal<T>::get_colname_hashes() {
+const std::vector<uint64_t>& FtrlReal<T>::get_colname_hashes() {
   return colname_hashes;
 }
 
@@ -899,7 +899,7 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
-std::vector<sizetvec> FtrlReal<T>::get_interactions() {
+const std::vector<sizetvec>& FtrlReal<T>::get_interactions() {
   return interactions;
 }
 
@@ -923,7 +923,7 @@ FtrlParams FtrlReal<T>::get_params() {
 
 
 template <typename T>
-strvec FtrlReal<T>::get_labels() {
+const strvec& FtrlReal<T>::get_labels() {
   return labels;
 }
 

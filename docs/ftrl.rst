@@ -138,9 +138,11 @@ a list of feature interactions, for instance as
 
   ftrl_model.interactions = [["C0", "C1", "C3"], ["C2", "C5"]]
 
-where ``C*`` are column names from a training dataset. `interactions`
-should be set before a call to `fit()` method, and can not be changed
-once the model is trained.
+where ``C*`` are column names from a training dataset. In the above example
+two additional features, namely, `C0:C1:C3` and `C2:C5`, are created.
+
+`interactions` should be set before a call to `fit()` method, and can not be
+changed once the model is trained.
 
 
 Further Reading

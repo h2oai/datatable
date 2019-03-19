@@ -442,7 +442,7 @@ static GSArgs args_labels(
 
 oobj Ftrl::get_labels() const {
   if (dtft->is_trained()) {
-    strvec labels = dtft->get_labels();
+    const strvec& labels = dtft->get_labels();
     size_t nlabels = labels.size();
 
     py::olist py_labels(nlabels);
@@ -608,7 +608,7 @@ oobj Ftrl::get_colname_hashes() const {
   if (dtft->is_trained()) {
     size_t ncols = dtft->get_ncols();
     py::olist py_colname_hashes(ncols);
-    std::vector<uint64_t> colname_hashes = dtft->get_colname_hashes();
+    const std::vector<uint64_t>& colname_hashes = dtft->get_colname_hashes();
     for (size_t i = 0; i < ncols; ++i) {
       size_t h = static_cast<size_t>(colname_hashes[i]);
       py_colname_hashes.set(i, py::oint(h));
