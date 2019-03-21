@@ -166,58 +166,81 @@ static Column* try_to_resolve_object_column(Column* col)
   PyObject* const* data = static_cast<PyObject* const*>(col->data());
   size_t nrows = col->nrows;
 
-  int all_strings = 1;
+  bool all_strings = true;
+  bool all_booleans = true;
+
   // Approximate total length of all strings. Do not take into account
   // possibility that the strings may expand in UTF-8 -- if needed, we'll
   // realloc the buffer later.
   size_t total_length = 10;
   for (size_t i = 0; i < nrows; ++i) {
-    if (data[i] == Py_None) continue;
-    if (!PyUnicode_Check(data[i])) {
-      all_strings = 0;
+    PyObject* v = data[i];
+    if (v == Py_None) {}
+    else if (all_strings && PyUnicode_Check(v)) {
+      all_booleans = false;
+      total_length += static_cast<size_t>(PyUnicode_GetLength(v));
+    }
+    else if (all_booleans && (v == Py_False || v == Py_True)) {
+      all_strings = false;
+    }
+    else if (PyFloat_Check(v) && std::isnan(PyFloat_AS_DOUBLE(v))) {}
+    else {
+      all_strings = false;
+      all_booleans = false;
       break;
     }
-    total_length += static_cast<size_t>(PyUnicode_GetLength(data[i]));
   }
 
-  // Not all elements were strings -- return the original column unmodified
-  if (!all_strings) {
-    return col;
-  }
-
-  // Otherwise the column is all-strings: convert it into *STRING stype.
-  size_t strbuf_size = total_length;
-  MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
-  MemoryRange strbuf = MemoryRange::mem(strbuf_size);
-  uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
-  char* strs = static_cast<char*>(strbuf.xptr());
-
-  offsets[0] = 0;
-  ++offsets;
-
-  uint32_t offset = 0;
-  for (size_t i = 0; i < nrows; ++i) {
-    if (data[i] == Py_None) {
-      offsets[i] = offset ^ GETNA<uint32_t>();
-    } else {
-      PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
-      size_t sz = static_cast<size_t>(PyBytes_Size(z));
-      if (offset + sz > strbuf_size) {
-        strbuf_size = static_cast<size_t>(1.5 * strbuf_size + sz);
-        strbuf.resize(strbuf_size);
-        strs = static_cast<char*>(strbuf.xptr()); // Location may have changed
-      }
-      std::memcpy(strs + offset, PyBytes_AsString(z), sz);
-      Py_DECREF(z);
-      offset += sz;
-      offsets[i] = offset;
+  // All values in the list were booleans (or None)
+  if (all_booleans) {
+    MemoryRange mbuf = MemoryRange::mem(nrows);
+    auto out = static_cast<int8_t*>(mbuf.xptr());
+    for (size_t i = 0; i < nrows; ++i) {
+      PyObject* v = data[i];
+      out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
     }
+    delete col;
+    return new BoolColumn(nrows, std::move(mbuf));
   }
 
-  xassert(offset < strbuf.size());
-  strbuf.resize(offset);
-  delete col;
-  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+  // All values were strings
+  if (all_strings) {
+    size_t strbuf_size = total_length;
+    MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
+    MemoryRange strbuf = MemoryRange::mem(strbuf_size);
+    uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
+    char* strs = static_cast<char*>(strbuf.xptr());
+
+    offsets[0] = 0;
+    ++offsets;
+
+    uint32_t offset = 0;
+    for (size_t i = 0; i < nrows; ++i) {
+      if (data[i] == Py_None) {
+        offsets[i] = offset ^ GETNA<uint32_t>();
+      } else {
+        PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
+        size_t sz = static_cast<size_t>(PyBytes_Size(z));
+        if (offset + sz > strbuf_size) {
+          strbuf_size = static_cast<size_t>(1.5 * strbuf_size + sz);
+          strbuf.resize(strbuf_size);
+          strs = static_cast<char*>(strbuf.xptr());
+        }
+        std::memcpy(strs + offset, PyBytes_AsString(z), sz);
+        Py_DECREF(z);
+        offset += sz;
+        offsets[i] = offset;
+      }
+    }
+
+    xassert(offset < strbuf.size());
+    strbuf.resize(offset);
+    delete col;
+    return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+  }
+
+  // Otherwise, return the original object column
+  return col;
 }
 
 
