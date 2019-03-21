@@ -1161,3 +1161,15 @@ def test_issue898():
     f1.materialize()
     res = f1.to_list()
     del res
+
+
+def test_issue1728(tempfile):
+    data = dt.Frame({'department1': [None, 't'], 'C0': [3580, 1047]})
+    data.to_jay(tempfile)
+    del data
+    counts = dt.open(tempfile)
+    counts = counts[1:, :]
+    counts = counts[:, :, dt.sort(-1)]
+    counts.materialize()
+    frame_integrity_check(counts)
+    assert counts.to_dict() == {'department1': ['t'], 'C0': [1047]}
