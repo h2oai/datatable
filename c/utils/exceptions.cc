@@ -60,6 +60,7 @@ Error::Error(const Error& other) {
   pycls = other.pycls;
 }
 
+/*
 Error::Error(Error&& other) : Error() {
   swap(*this, other);
 }
@@ -69,7 +70,7 @@ void swap(Error& first, Error& second) noexcept {
   swap(first.error, second.error);
   swap(first.pycls, second.pycls);
 }
-
+*/
 
 Error& Error::operator<<(const std::string& v) { error << v; return *this; }
 Error& Error::operator<<(const char* v)        { error << v; return *this; }

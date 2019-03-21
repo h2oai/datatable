@@ -36,8 +36,8 @@ PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  "lambda2", "nbins", "nepochs", "interactions"},
                                  "__init__", nullptr);
 
-static NoArgs fn___getstate__("__getstate__", nullptr);
-static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
+NoArgs Ftrl::Type::fn___getstate__("__getstate__", nullptr);
+PKArgs Ftrl::Type::fn___setstate__(1, 0, 0, false, false, {"state"},
                               "__setstate__", nullptr);
 
 static const char* doc_alpha        = "`alpha` in per-coordinate FTRL-Proximal algorithm";

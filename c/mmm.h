@@ -8,6 +8,7 @@
 #ifndef dt_MMM_h
 #define dt_MMM_h
 #include <vector>
+using std::size_t;
 
 
 class MemoryMapWorker {

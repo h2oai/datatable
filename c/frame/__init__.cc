@@ -685,8 +685,8 @@ void Frame::m__init__(PKArgs& args) {
 // pickling / unpickling
 //------------------------------------------------------------------------------
 
-static NoArgs fn___getstate__("__getstate__", nullptr);
-static PKArgs fn___setstate__(1, 0, 0, false, false, {"state"},
+NoArgs Frame::Type::fn___getstate__("__getstate__", nullptr);
+PKArgs Frame::Type::fn___setstate__(1, 0, 0, false, false, {"state"},
                               "__setstate__", nullptr);
 
 

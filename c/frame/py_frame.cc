@@ -46,7 +46,7 @@ NoArgs Frame::Type::args_copy("copy",
 "Thus, for all intents and purposes the copied Frame will behave as if\n"
 "it was deep-copied.\n");
 
-static PKArgs fn_head(
+PKArgs Frame::Type::fn_head(
     1, 0, 0, false, false,
     {"n"}, "head",
 R"(head(self, n=10)
@@ -55,7 +55,7 @@ R"(head(self, n=10)
 Return the first `n` rows of the Frame, same as ``self[:n, :]``.
 )");
 
-static PKArgs fn_tail(
+  PKArgs Frame::Type::fn_tail(
     1, 0, 0, false, false,
     {"n"}, "tail",
 R"(tail(self, n=10)
