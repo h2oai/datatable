@@ -32,7 +32,7 @@ import time
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check
-from tests import same_iterables, list_equals, noop, isview
+from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 
 
@@ -695,6 +695,21 @@ def test_topandas_view_mixed():
     assert pp["B"].tolist() == d2.to_list()[0]
     assert pp["V"].tolist()[0] == 2.2222
     assert all(math.isnan(x) for x in pp["V"].tolist()[1:])
+
+
+@pytest.mark.usefixtures("pandas", "numpy")
+def test_topandas_bool_nas():
+    d0 = dt.Frame(A=[True, False, None, True])
+    pf = d0.to_pandas()
+    pf_values = pf["A"].values.tolist()
+    assert pf_values[0] is True
+    assert pf_values[1] is False
+    assert pf_values[2] is None or (isinstance(pf_values[2], float) and
+                                    math.isnan(pf_values[2]))
+    d1 = dt.Frame(pf)
+    assert_equals(d0, d1)
+    d2 = dt.Frame(d0.to_numpy(), names=["A"])
+    assert_equals(d0, d2)
 
 
 def test_tonumpy0(numpy):

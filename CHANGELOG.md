@@ -81,6 +81,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash upon exiting from a python terminal, if the user ever called
   function `frame_column_rowindex().type` (#1703).
 
+- Pandas "boolean column with NAs" (of dtype `object`) now converts into
+  datatable `bool8` column when pandas DataFrame is converted into a datatable
+  Frame (#1730).
+
 
 ### Changed
 
@@ -116,7 +120,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  [arno candel][] (#1619),
+  [arno candel][] (#1619, #1730),
   [antorsae][] (#1639),
   [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 
