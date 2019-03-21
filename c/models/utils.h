@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
+#include <memory>
+#include <limits>
 
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;

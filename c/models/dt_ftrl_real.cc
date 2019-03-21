@@ -160,7 +160,7 @@ double FtrlReal<T>::fit_multinomial() {
 
   // Create validation targets if needed.
   dtptr dt_y_val_filtered;
-  if (!isnan(nepochs_val)) {
+  if (!std::isnan(nepochs_val)) {
     dt_y_val_filtered = create_y_val();
     dt_y_val = dt_y_val_filtered.get();
   }
@@ -284,7 +284,7 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // If a validation set has been provided, we train on chunks of data.
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
-  bool validation = !isnan(nepochs_val);
+  bool validation = !std::isnan(nepochs_val);
   T loss_global = 0;
   T loss_global_prev = 0;
   std::vector<hasherptr> hashers_val;
