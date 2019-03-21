@@ -37,7 +37,7 @@ class Error : public std::exception
 public:
   Error(PyObject* cls = PyExc_Exception);
   Error(const Error& other);
-  Error(Error&& other);
+  // Error(Error&& other);
   virtual ~Error() override {}
   friend void swap(Error& first, Error& second) noexcept;
 
