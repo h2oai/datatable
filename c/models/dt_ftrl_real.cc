@@ -297,7 +297,7 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   }
 
   // Gather rowindex and data pointers.
-  std::vector<const RowIndex> ri, ri_val;
+  std::vector<RowIndex> ri, ri_val;
   std::vector<const U*> data, data_val;
   fill_ri_data<U>(dt_y, ri, data);
   if (validation) fill_ri_data<U>(dt_y_val, ri_val, data_val);
@@ -501,7 +501,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
 template <typename T>
 template <typename U /* column data type */>
 void FtrlReal<T>::fill_ri_data(const DataTable* dt,
-                               std::vector<const RowIndex>& ri,
+                               std::vector<RowIndex>& ri,
                                std::vector<const U*>& data) {
   size_t ncols = dt->ncols;
   ri.reserve(ncols);
