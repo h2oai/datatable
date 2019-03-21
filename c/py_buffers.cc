@@ -216,10 +216,9 @@ static Column* try_to_resolve_object_column(Column* col)
 
     uint32_t offset = 0;
     for (size_t i = 0; i < nrows; ++i) {
-      if (data[i] == Py_None) {
-        offsets[i] = offset ^ GETNA<uint32_t>();
-      } else {
-        PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
+      PyObject* v = data[i];
+      if (PyUnicode_Check(v)) {
+        PyObject *z = PyUnicode_AsEncodedString(v, "utf-8", "strict");
         size_t sz = static_cast<size_t>(PyBytes_Size(z));
         if (offset + sz > strbuf_size) {
           strbuf_size = static_cast<size_t>(1.5 * strbuf_size + sz);
@@ -230,6 +229,8 @@ static Column* try_to_resolve_object_column(Column* col)
         Py_DECREF(z);
         offset += sz;
         offsets[i] = offset;
+      } else {
+        offsets[i] = offset ^ GETNA<uint32_t>();
       }
     }
 
