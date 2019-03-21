@@ -768,6 +768,20 @@ def test_create_from_pandas_with_bad_names(pandas):
             "number of columns being created (3)" == str(e.value))
 
 
+def test_create_from_pandas_string_with_nans(pandas):
+    pf = pandas.DataFrame(["Hello", math.nan, "world!"])
+    df = dt.Frame(pf)
+    assert df.stypes == (dt.str32,)
+    assert df.to_list() == [["Hello", None, "world!"]]
+
+
+def test_create_from_pandas_boolean_with_nans(pandas):
+    pf = pandas.DataFrame([True, math.nan, False])
+    df = dt.Frame(pf)
+    assert df.stypes == (dt.bool8,)
+    assert df.to_list() == [[True, None, False]]
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
