@@ -116,7 +116,7 @@ class FtrlReal : public dt::Ftrl {
     // Other helpers
     template <typename U>
     void fill_ri_data(const DataTable*,
-                      std::vector<const RowIndex>&,
+                      std::vector<RowIndex>&,
                       std::vector<const U*>&);
 
   public:
