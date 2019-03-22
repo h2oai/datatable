@@ -749,7 +749,7 @@ void Aggregator<T>::group_nd() {
     size_t ecounter_local;
 
     // Each thread gets its own seed
-    thread_local std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
+    std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
     try {
       // Main loop over all the rows
