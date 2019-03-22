@@ -1239,3 +1239,113 @@ Append rows / columns to a Frame using:
       </div>
     </div>
     </div>
+
+
+Chaining
+--------
+
+Chaining is used to make your code shorter by removing intermediate operations and joining several commands together.
+
+Without chaining:
+
+::
+
+    DT = dt.Frame(V1=[1, 2, 1, 2], V4=[16, 18, 20, 22])
+    DT
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>V4</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int8">▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>1</td><td>16</td></tr>
+            <tr><td class="row_index">1</td><td>2</td><td>18</td></tr>
+            <tr><td class="row_index">2</td><td>1</td><td>20</td></tr>
+            <tr><td class="row_index">3</td><td>2</td><td>22</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">4 rows × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+
+::
+
+    DT1 = DT[:, {"sum": sum(f.V4)}, by(f.V1)]
+    DT1
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>1</td><td>36</td></tr>
+            <tr><td class="row_index">1</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">2 rows × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+::
+
+    DT1[f.sum >= 40,:]
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">1 row × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+with chaining:
+
+::
+
+    DT[:, {"sum": sum(f.V4)}, by(f.V1)][f.sum >= 40, :]
+
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">1 row × 2 columns</div>
+          </div>
+        </div>
+    </div>
