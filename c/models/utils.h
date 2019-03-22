@@ -21,10 +21,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
+#include <memory>
+#include <limits>
 
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
+using sizetptr = std::unique_ptr<size_t[]>;
+using sizetvec = std::vector<size_t>;
 
 
 void calculate_coprimes(size_t, std::vector<size_t>&);

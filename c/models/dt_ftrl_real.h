@@ -48,49 +48,50 @@ class FtrlReal : public dt::Ftrl {
     // feature importance values.
     dtptr dt_fi;
 
-    // FTRL model parameters provided to constructor
+    // FTRL model parameters provided to constructor.
     FtrlParams params;
 
-    // Individual parameters converted to T type
+    // Individual parameters converted to T type.
     T alpha;
     T beta;
     T lambda1;
     T lambda2;
     uint64_t nbins;
     size_t nepochs;
-    bool interactions;
-    size_t : 56;
+    std::vector<sizetvec> interactions;
 
-    // Vector of labels that is automatically constructed based on the target
+    // Labels that are automatically extracted from the target column.
     strvec labels;
 
-    // Number of columns in a training datatable,
-    // and the total number of features that also includes interactions
-    size_t dt_X_ncols;
+    // Total number of features used for training, this includes
+    // dt_X->ncols columns plus their interactions.
     size_t nfeatures;
 
-    // Vector of hashed column names
-    std::vector<uint64_t> colnames_hashes;
+    // Vector of hashed column names.
+    std::vector<uint64_t> colname_hashes;
 
-    // Pointers to training and validation data. The data is not owned.
+    // Pointers to training and validation datatables, they are
+    // only valid during training.
     const DataTable* dt_X;
     const DataTable* dt_y;
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
+    // Other temporary parameters that might need for validation.
+    T nepochs_val;
+    T val_error;
+    std::vector<size_t> map_val;
 
     // Fitting methods
-    template <typename U>
-    double fit(double, T(*)(T), T(*)(T,U));
-    template <typename U>
-    double fit_regression(double);
-    double fit_binomial(double);
-    double fit_multinomial(double);
+    double fit_binomial();
+    double fit_multinomial();
+    template <typename U> double fit_regression();
+    template <typename U> double fit(T(*)(T), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
     // Predicting methods
-    template <typename F>
-    T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
+    template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
+    dtptr create_p(size_t);
 
     // Hashing methods
     std::vector<hasherptr> create_hashers(const DataTable*);
@@ -102,21 +103,20 @@ class FtrlReal : public dt::Ftrl {
     void adjust_model();
     void init_model();
     void init_weights();
+    dtptr create_y_train();
+    dtptr create_y_val();
+    Column* create_negative_column(size_t);
 
     // Feature importance helper methods
-    void create_fi(const DataTable*);
+    void create_fi();
     void init_fi();
-    void define_features(size_t);
+    void define_features();
     void normalize_rows(dtptr&);
 
-    // Prediction helper methods
-    dtptr create_dt_p(size_t);
-
     // Other helpers
-    static bool is_dt_valid(const dtptr&, size_t, size_t);
     template <typename U>
     void fill_ri_data(const DataTable*,
-                      std::vector<const RowIndex>&,
+                      std::vector<RowIndex>&,
                       std::vector<const U*>&);
 
   public:
@@ -124,7 +124,8 @@ class FtrlReal : public dt::Ftrl {
 
     // Main fitting method
     double dispatch_fit(const DataTable*, const DataTable*,
-                        const DataTable*, const DataTable*, double) override;
+                        const DataTable*, const DataTable*,
+                        double, double) override;
 
     // Main predicting method
     dtptr predict(const DataTable*) override;
@@ -138,18 +139,18 @@ class FtrlReal : public dt::Ftrl {
     DataTable* get_fi(bool normalize = true) override;
     FtrlModelType get_model_type() override;
     size_t get_nfeatures() override;
-    size_t get_dt_X_ncols() override;
-    std::vector<uint64_t> get_colnames_hashes() override;
+    size_t get_ncols() override;
+    const std::vector<uint64_t>& get_colname_hashes() override;
     double get_alpha() override;
     double get_beta() override;
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
     size_t get_nepochs() override;
-    bool get_interactions() override;
+    const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
     FtrlParams get_params() override;
-    strvec get_labels() override;
+    const strvec& get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;
@@ -161,7 +162,7 @@ class FtrlReal : public dt::Ftrl {
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
     void set_nepochs(size_t) override;
-    void set_interactions(bool) override;
+    void set_interactions(std::vector<sizetvec>) override;
     void set_double_precision(bool) override;
     void set_labels(strvec) override;
 };
@@ -169,6 +170,7 @@ class FtrlReal : public dt::Ftrl {
 
 extern template class FtrlReal<float>;
 extern template class FtrlReal<double>;
+
 
 } // namespace dt
 

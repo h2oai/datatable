@@ -32,7 +32,7 @@ import time
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check
-from tests import same_iterables, list_equals, noop, isview
+from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 
 
@@ -697,6 +697,21 @@ def test_topandas_view_mixed():
     assert all(math.isnan(x) for x in pp["V"].tolist()[1:])
 
 
+@pytest.mark.usefixtures("pandas", "numpy")
+def test_topandas_bool_nas():
+    d0 = dt.Frame(A=[True, False, None, True])
+    pf = d0.to_pandas()
+    pf_values = pf["A"].values.tolist()
+    assert pf_values[0] is True
+    assert pf_values[1] is False
+    assert pf_values[2] is None or (isinstance(pf_values[2], float) and
+                                    math.isnan(pf_values[2]))
+    d1 = dt.Frame(pf)
+    assert_equals(d0, d1)
+    d2 = dt.Frame(d0.to_numpy(), names=["A"])
+    assert_equals(d0, d2)
+
+
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stypes == (stype.int8, )
@@ -1146,3 +1161,15 @@ def test_issue898():
     f1.materialize()
     res = f1.to_list()
     del res
+
+
+def test_issue1728(tempfile):
+    data = dt.Frame({'department1': [None, 't'], 'C0': [3580, 1047]})
+    data.to_jay(tempfile)
+    del data
+    counts = dt.open(tempfile)
+    counts = counts[1:, :]
+    counts = counts[:, :, dt.sort(-1)]
+    counts.materialize()
+    frame_integrity_check(counts)
+    assert counts.to_dict() == {'department1': ['t'], 'C0': [1047]}

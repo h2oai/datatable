@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <vector>
 #include "datatable.h"
+#include "options.h"
 #include "utils/exceptions.h"
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
@@ -97,7 +98,9 @@ DataTable* split_into_nhot(Column* col, char sep) {
   const RowIndex& ri = col->rowindex();
 
   OmpExceptionManager oem;
-  #pragma omp parallel
+  size_t nth0 = std::min(static_cast<size_t>(config::nthreads), nrows);
+  (void)nth0;  // Prevent warning about unused variable
+  #pragma omp parallel num_threads(nth0)
   {
     try {
       size_t ith = static_cast<size_t>(omp_get_thread_num());

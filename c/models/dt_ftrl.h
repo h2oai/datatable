@@ -24,6 +24,7 @@
 #include "str/py_str.h"
 #include "utils/parallel.h"
 #include "options.h"
+#include "models/utils.h"
 
 
 namespace dt {
@@ -40,12 +41,10 @@ struct FtrlParams {
     double lambda2;
     uint64_t nbins;
     size_t nepochs;
-    bool interactions;
     bool double_precision;
-    size_t: 48;
+    size_t: 56;
     FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(1.0),
-                   nbins(1000000), nepochs(1), interactions(false),
-                   double_precision(false) {}
+                   nbins(1000000), nepochs(1), double_precision(false) {}
 };
 
 
@@ -72,7 +71,8 @@ class Ftrl {
     // - multinomial logistic regression (STR32, STR64);
     // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
     virtual double dispatch_fit(const DataTable*, const DataTable*,
-                                const DataTable*, const DataTable*, double) = 0;
+                                const DataTable*, const DataTable*,
+                                double, double) = 0;
     virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
     virtual bool is_trained() = 0;
@@ -82,18 +82,18 @@ class Ftrl {
     virtual FtrlModelType get_model_type() = 0;
     virtual DataTable* get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
-    virtual size_t get_dt_X_ncols() = 0;
-    virtual std::vector<uint64_t> get_colnames_hashes() = 0;
+    virtual size_t get_ncols() = 0;
+    virtual const std::vector<uint64_t>& get_colname_hashes() = 0;
     virtual double get_alpha() = 0;
     virtual double get_beta() = 0;
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
     virtual size_t get_nepochs() = 0;
-    virtual bool get_interactions() = 0;
+    virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual strvec get_labels() = 0;
+    virtual const strvec& get_labels() = 0;
 
     // Setters
     virtual void set_model(DataTable*) = 0;
@@ -105,7 +105,7 @@ class Ftrl {
     virtual void set_lambda2(double) = 0;
     virtual void set_nbins(uint64_t) = 0;
     virtual void set_nepochs(size_t) = 0;
-    virtual void set_interactions(bool) = 0;
+    virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_double_precision(bool) = 0;
     virtual void set_labels(strvec) = 0;
 };
