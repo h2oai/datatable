@@ -145,7 +145,6 @@ ansiColor('xterm') {
                             try {
                                 sh """
                                     echo "${dockerfileSHAsString}" > dockerfiles.sha
-                                    sha1sum -c dockerfiles.sha
                                     rm -f dockerfiles.sha
                                 """
                             } catch (e) {
