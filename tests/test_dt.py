@@ -875,6 +875,14 @@ def test_tonumpy_with_NAs_random(seed, numpy):
     assert ar.T.tolist() == data
 
 
+@pytest.mark.usefixtures("numpy")
+def test_tonumpy_with_NAs_view():
+    # See issue #1738
+    X = dt.Frame(A=[5.7, 2.3, None, 4.4, 9.8, None])[1:, :]
+    a = X.to_numpy()
+    assert a.tolist() == [[2.3], [None], [4.4], [9.8], [None]]
+
+
 
 #-------------------------------------------------------------------------------
 # [0, 0] (conversion to scalar python variable)
