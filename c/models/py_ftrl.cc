@@ -600,7 +600,7 @@ void Ftrl::set_colnames(robj py_colnames) {
 */
 static GSArgs args_colname_hashes(
   "colname_hashes",
-  "Column names hashes"
+  "Column name hashes"
 );
 
 
@@ -947,13 +947,13 @@ Parameters
 alpha : float
     `alpha` in per-coordinate learning rate algorithm, defaults to `0.001`.
 beta : float
-    `beta` in per-coordinate learning rate algorithm, defaults to `1.0`.
+    `beta` in per-coordinate learning rate algorithm, defaults to `1`.
 lambda1 : float
     L1 regularization parameter, defaults to `0`.
 lambda2 : float
     L2 regularization parameter, defaults to `0`.
 nbins : int
-    Number of bins to be used for the hashing trick, defaults to `10**7`.
+    Number of bins to be used for the hashing trick, defaults to `10**6`.
 nepochs : int
     Number of training epochs, defaults to `1`.
 double_precision : bool
