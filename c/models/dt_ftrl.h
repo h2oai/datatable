@@ -43,7 +43,7 @@ struct FtrlParams {
     size_t nepochs;
     bool double_precision;
     size_t: 56;
-    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(1.0),
+    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
                    nbins(1000000), nepochs(1), double_precision(false) {}
 };
 

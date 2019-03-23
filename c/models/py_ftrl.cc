@@ -196,7 +196,7 @@ static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
 R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error = 0.01)
 --
 
-Train an FTRL model on a dataset.
+Train FTRL model on a dataset.
 
 Parameters
 ----------
@@ -413,7 +413,7 @@ R"(reset(self)
 --
 
 Reset FTRL model by clearing all the model weights, labels and
-feature importance information. Also, set the model to an untrained state.
+feature importance information.
 
 Parameters
 ----------
@@ -477,7 +477,7 @@ void Ftrl::set_labels(robj py_labels) {
 */
 static GSArgs args_model(
   "model",
-R"(Model frame of shape (nbins, 2 * nlabels), where nlabels is
+R"(Model frame of shape `(nbins, 2 * nlabels)`, where nlabels is
 the total number of labels the model was trained on, and nbins
 is the number of bins used for the hashing trick. Odd frame columns
 contain z model coefficients, and even columns n model coefficients.)");
@@ -600,7 +600,7 @@ void Ftrl::set_colnames(robj py_colnames) {
 */
 static GSArgs args_colname_hashes(
   "colname_hashes",
-  "Column name hashes"
+  "Column names hashes"
 );
 
 
@@ -705,7 +705,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 */
 static GSArgs args_nbins(
   "nbins",
-  "Number of bins used for the hashing trick");
+  "Number of bins for the hashing trick");
 
 
 oobj Ftrl::get_nbins() const {
@@ -931,7 +931,13 @@ const char* Ftrl::Type::classname() {
 
 
 const char* Ftrl::Type::classdoc() {
-  return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
+  return R"(Follow the Regularized Leader (FTRL) model.
+
+FTRL model is a datatable implementation of the FTRL-Proximal online
+learning algorithm for binomial logistic regression. It uses a hashing
+trick for feature vectorization and the Hogwild approach
+for parallelization. FTRL for multinomial classification and continuous
+targets are implemented experimentally.
 
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
@@ -939,21 +945,19 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 Parameters
 ----------
 alpha : float
-    `alpha` in per-coordinate learning rate formula.
+    `alpha` in per-coordinate learning rate algorithm, defaults to `0.001`.
 beta : float
-    `beta` in per-coordinate learning rate formula.
+    `beta` in per-coordinate learning rate algorithm, defaults to `1.0`.
 lambda1 : float
-    L1 regularization parameter.
+    L1 regularization parameter, defaults to `0`.
 lambda2 : float
-    L2 regularization parameter.
+    L2 regularization parameter, defaults to `0`.
 nbins : int
-    Number of bins to be used after the hashing trick.
+    Number of bins to be used for the hashing trick, defaults to `10**7`.
 nepochs : int
-    Number of epochs to train for.
-interactions : bool
-    Switch to enable second order feature interactions.
+    Number of training epochs, defaults to `1`.
 double_precision : bool
-    Whether to use double precision arithmetic or not.
+    Whether to use double precision arithmetic or not, defaults to `False`.
 )";
 }
 
@@ -976,7 +980,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_nbins, &Ftrl::set_nbins, args_nbins);
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
-             args_interactions);
+                 args_interactions);
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
