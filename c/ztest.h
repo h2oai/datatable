@@ -20,6 +20,8 @@ void cover_init_FrameInitializationManager_em();
 void cover_names_FrameNameProviders();
 void cover_names_integrity_checks();
 
+// Defined in utils/shared_mutex_test.cc
+void test_shmutex(size_t n_iters, size_t n_threads, int impl);
 
 }  // namespace dttest
 
