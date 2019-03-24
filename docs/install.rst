@@ -17,9 +17,9 @@ Install on Mac OS X
 
 Run the following command to install ``datatable`` on Mac OS X.
 
-::
+.. code:: bash
 
-  pip install datatable
+  $ pip install datatable
 
 
 
@@ -28,13 +28,13 @@ Install on Linux
 
 Run one of the following commands to retrieve the ``datatable`` whl file for Linux environments.
 
-::
+.. code:: bash
 
   # Python 3.5
-  pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp35-cp35m-linux_x86_64.whl
+  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp35-cp35m-linux_x86_64.whl
 
   # Python 3.6
-  pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp36-cp36m-linux_x86_64.whl
+  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp36-cp36m-linux_x86_64.whl
 
 
 
@@ -52,34 +52,38 @@ Installing the ``Clang/Llvm`` distribution
 
  For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz`` the sequence of steps might look like:
 
- ::
+.. code:: bash
 
     $ mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz  /opt
     $ cd /opt
     $ sudo tar xvf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz
     $ export LLVM4=/opt/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10
 
-You probably also want to put the last ``export`` line into your ``~/.bash_profile``.
+You probably also want to put the last ``export`` line into your ``~/.bash_profile``:
+
+.. code:: bash
+
+    $ echo 'export LLVM4=/opt/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10' >> ~/.bashrc
 
 Building ``datatable``
 ~~~~~~~~~~~~~~~~~~~~~~
 
 1. Verify that you have Python 3.5 or above:
 
- ::
+.. code:: bash
 
    $ python --V
 
- If you don't have Python 3.5 or later, you may want to download and install the newest version of Python, and then create and activate a virtual environment for that Python. For example:
+If you don't have Python 3.5 or later, you may want to download and install the newest version of Python, and then create and activate a virtual environment for that Python. For example:
 
- ::
+.. code:: bash
 
    $ virtualenv --python=python3.6 ~/py36
    $ source ~/py36/bin/activate
 
 2. Build ``datatable``:
 
- ::
+.. code:: bash
 
    $ make build
    $ make install
@@ -87,16 +91,16 @@ Building ``datatable``
 
 3. Additional commands you may find occasionally interesting:
 
- ::
+.. code:: bash
 
    # Uninstall previously installed datatable
-   make uninstall
+   $ make uninstall
 
    # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
-   make debug
+   $ make debug
 
    # Generate code coverage report
-   make coverage
+   $ make coverage
 
 
 
@@ -111,14 +115,14 @@ Troubleshooting
 
 - If you run into installation errors with ``llvmlite`` dependency, then your best bet is to attempt to install it manually before trying to build ``datatable``:
 
-   ::
+.. code:: bash
 
        $ pip install llvmlite
 
-   Consult the ``llvmlite`` `Installation Guide <http://llvmlite.pydata.org/en/latest/admin-guide/install.html>`__ for additional information.
+Consult the ``llvmlite`` `Installation Guide <http://llvmlite.pydata.org/en/latest/admin-guide/install.html>`__ for additional information.
 
 - On OS X, if you are getting an error ``fatal error: 'sys/mman.h' file not found`` or similar, this can be fixed by installing the Xcode Command Line Tools:
 
-   ::
+.. code:: bash
 
        $ xcode-select --install
