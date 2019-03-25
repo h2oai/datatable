@@ -28,7 +28,7 @@ import sys
 import sysconfig
 import tempfile
 from functools import lru_cache as memoize
-from distutils.errors import DistutilsExecError
+from distutils.errors import DistutilsExecError, CompileError
 
 __all__ = (
     "find_linked_dynamic_libraries",
