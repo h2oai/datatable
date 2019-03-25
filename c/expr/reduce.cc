@@ -57,7 +57,7 @@ class ReducerLibrary {
     }
 
   private:
-    constexpr inline size_t key(ReduceOp op, SType stype) const {
+    static constexpr size_t key(ReduceOp op, SType stype) {
       return static_cast<size_t>(op) +
              REDUCEOP_COUNT * static_cast<size_t>(stype);
     }

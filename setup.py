@@ -155,8 +155,7 @@ if cmd in ("build", "bdist_wheel", "build_ext", "install"):
                 log.info("Copying %s to %s" % (libpath, trgfile))
                 shutil.copy(libpath, trgfile)
 
-    if ismacos():
-        monkey_patch_compiler()
+    monkey_patch_compiler()
 
 
 # Create the git version file

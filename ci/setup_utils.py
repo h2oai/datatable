@@ -725,7 +725,7 @@ def monkey_patch_compiler():
                 compiler_so = _osx_support.compiler_fixup(compiler_so, cc_args)
             for token in ["-Wstrict-prototypes", "-O2"]:
                 if token in compiler_so:
-                    del compiler_so[token]
+                    del compiler_so[compiler_so.index(token)]
             return compiler_so
 
 
@@ -735,7 +735,8 @@ def monkey_patch_compiler():
             outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
             if outdir is not None:
                 outname = os.path.join(outdir, outname)
-            self.postlink(outname)
+            if ismacos():
+                self.postlink(outname)
 
 
         def postlink(self, outname):
