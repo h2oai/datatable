@@ -61,7 +61,7 @@ Error::Error(const Error& other) {
 }
 
 Error::Error(Error&& other) : Error() {
-  #if defined(__gnuc__) && __GNUC__ < 5
+  #if defined(__GNUC__) && __GNUC__ < 5
     // In gcc4.8 string stream was not moveable
     error << other.error.str();
   #else
