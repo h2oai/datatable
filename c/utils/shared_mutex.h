@@ -134,12 +134,13 @@ class shared_bmutex {
       // The return value is `true` if the `state` was updated, and `false`
       // otherwise.
       size_t state_old = 0;
-      while (!state.compare_exchange_weak(state_old, state_old|WRITE_ENTERED)) {
+      while (!state.compare_exchange_weak(state_old, state_old|WRITE_ENTERED,
+                                          std::memory_order_relaxed)) {
         state_old &= ~WRITE_ENTERED;
       }
 
       // Now wait until all pending readers finished reading
-      while (state.load() != WRITE_ENTERED);
+      while (state.load(std::memory_order_acquire) != WRITE_ENTERED);
     }
 
 
@@ -148,7 +149,7 @@ class shared_bmutex {
       // because there may be some readers waiting in the `lock_shared()`.
       // These readers increment and decrement the `state`, so setting
       // it to `0` may result in the incorrect mutex behavior.
-      state &= ~WRITE_ENTERED;
+      state.fetch_and(~WRITE_ENTERED, std::memory_order_release);
     }
 
 
@@ -159,10 +160,10 @@ class shared_bmutex {
       while (true) {
         // If the mutex was locked for exclusive access, wait until the writer's
         // bit is cleared.
-        while (state.load() & WRITE_ENTERED);
+        while (state.load(std::memory_order_relaxed) & WRITE_ENTERED);
 
         // Increment the state, to indicate that we acquire a reader's lock.
-        size_t state_old = state.fetch_add(1);
+        size_t state_old = state.fetch_add(1, std::memory_order_acquire);
 
         // If during the previous operation the `state` had no exclusive bit
         // set, then the lock was acquired successfully, and we can return.
@@ -170,7 +171,7 @@ class shared_bmutex {
 
         // Otherwise, we relinquish the lock, and wait again until the end of
         // exclusive access.
-        state.fetch_sub(1);
+        state.fetch_sub(1, std::memory_order_relaxed);
       }
       // Note that the pattern of `state++; [check WRITE_ENTERED]; state--` can
       // result in a livelock with the exclusive lock, which waits until all
@@ -182,7 +183,7 @@ class shared_bmutex {
 
 
     void unlock_shared() {
-      state.fetch_sub(1);
+      state.fetch_sub(1, std::memory_order_release);
     }
 
 };
