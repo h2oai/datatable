@@ -25,11 +25,14 @@
 #include "ztest.h"
 namespace dttest {
 
+
+// Helper class to ensure the thread pool is joined in the end, even if an
+// exception occurs.
 class joining_threads {
   private:
     std::vector<std::thread>& threads;
   public:
-    joining_threads(std::vector<std::thread>& th_) : threads(th_) {}
+    explicit joining_threads(std::vector<std::thread>& th_) : threads(th_) {}
     ~joining_threads() {
       for (auto& thread : threads) {
         thread.join();
@@ -38,6 +41,40 @@ class joining_threads {
 };
 
 
+// Task to be executed in each thread
+template <typename MUTEX>
+static int _thread_task(MUTEX* shmutex, std::atomic<int>* barrier,
+                        size_t n_iters, int8_t* exclusives, int* data)
+{
+  barrier->fetch_sub(1);
+  while (barrier->load());  // wait for all threads to spawn
+  for (size_t i = 0; i < n_iters; ++i) {
+    if (exclusives[i]) {
+      dt::shared_lock<MUTEX> lock(*shmutex, true);
+      data[0]++;
+      data[1]++;
+      data[2]++;
+    }
+    else {
+      dt::shared_lock<MUTEX> lock(*shmutex, false);
+      int x = data[0];
+      int y = data[1];
+      int z = data[2];
+      if (!(y == x + 2 && z == x + 4)) {
+        std::stringstream ss;
+        ss << std::this_thread::get_id();
+        throw AssertionError() << "Incorrect values (" << x << ", "
+            << y << ", " << z << ") observed in thread "
+            << ss.str() << " at iteration " << i;
+      }
+    }
+  }
+  return 0;
+}
+
+
+// Spawn a thread pool, execute `_thread_task` in each thread, and collect
+// the results (in our case, the "result" is presence/absence of an exception).
 template <typename MUTEX>
 static void _execute(size_t n_iters, size_t n_threads, int8_t* exclusives,
                      int* data)
@@ -54,35 +91,7 @@ static void _execute(size_t n_iters, size_t n_threads, int8_t* exclusives,
   threads.reserve(n_threads);
   barrier = static_cast<int>(n_threads);
   for (size_t j = 0; j < n_threads; ++j) {
-    std::packaged_task<task_t> task(
-      [](MUTEX* mutx, std::atomic<int>* barr, size_t niters, int8_t* excl,
-         int* xyz) -> int
-      {
-        barr->fetch_sub(1);
-        while (barr->load());  // wait for all threads to spawn
-        for (size_t i = 0; i < niters; ++i) {
-          if (excl[i]) {
-            dt::shared_lock<MUTEX> lock(*mutx, true);
-            xyz[0]++;
-            xyz[1]++;
-            xyz[2]++;
-          }
-          else {
-            dt::shared_lock<MUTEX> lock(*mutx, false);
-            int x = xyz[0];
-            int y = xyz[1];
-            int z = xyz[2];
-            if (!(y == x + 2 && z == x + 4)) {
-              std::stringstream ss;
-              ss << std::this_thread::get_id();
-              throw AssertionError() << "Incorrect values (" << x << ", "
-                  << y << ", " << z << ") observed in thread "
-                  << ss.str() << " at iteration " << i;
-            }
-          }
-        }
-        return 0;
-      });
+    std::packaged_task<task_t> task(_thread_task<MUTEX>);
     std::future<int> future = task.get_future();
     std::thread thread(std::move(task),
                        &shmutex, &barrier, n_iters, exclusives + j*n_iters, data);
