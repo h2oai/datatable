@@ -116,7 +116,7 @@ information see [Build instructions](https://github.com/h2oai/datatable/wiki/Bui
 
 ## See also
 
-* [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions)
+* [Build instructions](https://github.com/h2oai/datatable/blob/master/docs/install.rst)
 * [Changelog](https://github.com/h2oai/datatable/blob/master/CHANGELOG.md)
 * [Documentation](https://datatable.readthedocs.io/en/latest/?badge=latest)
 
