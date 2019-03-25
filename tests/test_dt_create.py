@@ -550,6 +550,71 @@ def test_create_from_list_of_dicts_bad3():
 
 
 
+#-------------------------------------------------------------------------------
+# Stype auto-detection
+#-------------------------------------------------------------------------------
+
+def test_auto_bool8():
+    d0 = dt.Frame([True, False, None])
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.bool8,)
+
+
+def test_auto_int8():
+    src = [0, 3, 12, None, -5]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    # TODO: after #1702 this will become int32
+    assert d0.stypes == (stype.int8,)
+    assert d0.to_list()[0] == src
+
+
+def test_auto_int16():
+    src = [50, 2303, None, -45]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    # TODO: after #1702 this will become int32
+    assert d0.stypes == (stype.int16,)
+    assert d0.to_list()[0] == src
+
+
+def test_auto_int32():
+    src = [None, 0, 1, 44, 9548, 428570247, -12]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.int32,)
+    assert d0.to_list()[0] == src
+
+
+def test_auto_int64():
+    src = [None, 0, 1, 44, 9548, 145928450, 2245982454589145, 333, 2]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.int64,)
+    assert d0.to_list()[0] == src
+
+
+def test_auto_float64():
+    d0 = dt.Frame([5, 12, 5.2, None, 11, 0.998, -1])
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.float64,)
+    assert d0.to_list()[0] == [5.0, 12.0, 5.2, None, 11.0]
+
+
+def test_auto_str32():
+    d0 = dt.Frame(["start", None, "end"])
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.str32,)
+
+
+def test_auto_str64():
+    hello = 'hello' * 50000
+    d0 = dt.Frame([hello] * 10000)
+    frame_integrity_check(d0)
+    assert d0.stypes == (stype.str64,)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Create specific stypes
