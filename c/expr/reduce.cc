@@ -24,6 +24,10 @@ constexpr T infinity() {
 
 using colptr = std::unique_ptr<Column>;
 
+static const char* reducer_names[REDUCEOP_COUNT] = {
+  "", "mean", "min", "max", "stdev", "first", "sum", "count", "median"
+};
+
 
 
 //------------------------------------------------------------------------------
