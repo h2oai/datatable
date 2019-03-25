@@ -28,6 +28,7 @@ import sys
 import sysconfig
 import tempfile
 from functools import lru_cache as memoize
+from distutils.errors import DistutilsExecError
 
 __all__ = (
     "find_linked_dynamic_libraries",
@@ -704,6 +705,28 @@ def monkey_patch_compiler():
                 if not os.path.exists(destname):
                     log.info("Copying %s -> %s" % (lib, destname))
                     shutil.copyfile(lib, destname)
+
+        def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
+            if cc.__name__ == "UnixCCompiler":
+                compiler_so = self.fixup_compiler(self.compiler_so,
+                                                  cc_args + extra_postargs)
+                try:
+                    self.spawn(compiler_so + cc_args + [src, '-o', obj] +
+                               extra_postargs)
+                except DistutilsExecError as msg:
+                    raise CompileError(msg)
+            else:
+                cc._compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts)
+
+
+        def fixup_compiler(self, compiler_so, cc_args):
+            if ismacos():
+                import _osx_support
+                compiler_so = _osx_support.compiler_fixup(compiler_so, cc_args)
+            for token in ["-Wstrict-prototypes", "-O2"]:
+                if token in compiler_so:
+                    del compiler_so[token]
+            return compiler_so
 
 
         def link(self, *args, **kwargs):
