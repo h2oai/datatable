@@ -595,10 +595,11 @@ def test_auto_int64():
 
 
 def test_auto_float64():
-    d0 = dt.Frame([5, 12, 5.2, None, 11, 0.998, -1])
+    src = [5, 12, 5.2, None, 11, 0.998, -1]
+    d0 = dt.Frame(src)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.float64,)
-    assert d0.to_list()[0] == [5.0, 12.0, 5.2, None, 11.0]
+    assert d0.to_list()[0] == src
 
 
 def test_auto_str32():
