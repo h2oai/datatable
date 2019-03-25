@@ -42,7 +42,17 @@ class LogMessage {
   public:
     explicit LogMessage(py::oobj logger_) : logger(logger_) {}
     LogMessage(const LogMessage&) = delete;
-    LogMessage(LogMessage&&) = default;
+
+    LogMessage(LogMessage&& other) {
+      #if defined(__GNUC__) && __GNUC__ < 5
+        // In gcc4.8 string stream was not moveable
+        out << other.out.str();
+      #else
+        std::swap(out, other.out);
+      #endif
+      logger = std::move(other.logger);
+    }
+
     ~LogMessage() {
       if (!logger) return;
       try {
