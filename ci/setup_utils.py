@@ -265,6 +265,15 @@ def get_rpath():
         return "$ORIGIN/."
 
 
+def print_compiler_version(log, cc):
+    cmd = [cc, "--version"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    stdout = stdout.decode().strip()
+    log.info(" ".join(cmd) + " :")
+    for line in stdout.split("\n"):
+        log.info("  " + line.strip())
+
 
 @memoize()
 def get_compiler():
@@ -274,6 +283,7 @@ def get_compiler():
             if cc:
                 log.info("Using compiler from environment variable `%s`: %s"
                          % (envvar, cc))
+                print_compiler_version(log, cc)
                 return cc
             else:
                 log.info("Environment variable `%s` is not set" % envvar)
@@ -284,6 +294,7 @@ def get_compiler():
                 cc += ".exe"
             if os.path.isfile(cc):
                 log.info("Found Clang compiler %s" % cc)
+                print_compiler_version(log, cc)
                 return cc
             else:
                 log.info("Cannot find Clang compiler at %s" % cc)
@@ -322,6 +333,7 @@ def get_compiler():
                     stderr = stderr.decode().strip()
                     if proc.returncode == 0:
                         log.info("Compiler `%s` will be used" % cc)
+                        print_compiler_version(log, cc)
                         return cc
                     elif omp_enabled() and "-fopenmp" in stderr:
                         log.info("Compiler `%s` does not support OpenMP" % cc)
@@ -342,7 +354,8 @@ def get_compiler():
 
 @memoize()
 def is_gcc():
-    return "gcc" in get_compiler()
+    cc = get_compiler()
+    return ("gcc" in cc or "g++" in cc) and ("clang" not in cc)
 
 @memoize()
 def is_clang():
