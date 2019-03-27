@@ -743,7 +743,11 @@ void Aggregator<T>::group_nd() {
   {
     size_t ith = static_cast<size_t>(omp_get_thread_num());
     size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t rstep = (nrows > nth * PBSTEPS)? nrows / (nth * PBSTEPS) : 1;
+    size_t nrows_per_thread = nrows / nth;
+    size_t i0 = ith * nrows_per_thread;
+    size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
+    size_t rstep = (PBSTEPS > nrows_per_thread)? 1 : nrows_per_thread / PBSTEPS;
+
     T distance;
     auto member = tptr<T>(new T[ndims]);
     size_t ecounter_local;
@@ -753,7 +757,7 @@ void Aggregator<T>::group_nd() {
 
     try {
       // Main loop over all the rows
-      for (size_t i = ith; i < nrows; i += nth) {
+      for (size_t i = i0; i < i1; ++i) {
         bool is_exemplar = true;
         do_projection? project_row(member, i, ncols, pmatrix) :
                        normalize_row(member, i, ncols);
@@ -813,7 +817,7 @@ void Aggregator<T>::group_nd() {
         }
 
         #pragma omp master
-        if ((i / nth) % rstep == 0) progress(static_cast<float>(i+1) / nrows);
+        if ((i - i0) % rstep == 0) progress(static_cast<float>(i+1) / nrows_per_thread);
       } // End main loop over all the rows
     } catch (...) {
       oem.capture_exception();
