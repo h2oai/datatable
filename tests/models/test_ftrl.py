@@ -51,7 +51,7 @@ tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
-default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
+default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 1000000, nepochs = 1, double_precision = False)
 
 epsilon = 0.01
