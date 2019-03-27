@@ -222,7 +222,7 @@ def test_int32_issue220():
 #-------------------------------------------------------------------------------
 
 def test_int8_small():
-    d0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1])
+    d0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1],stypes=[dt.int8])
     assert d0.stypes == (stype.int8, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
@@ -245,7 +245,7 @@ def test_int8_small_stable():
 
 
 def test_int8_large():
-    d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)])
+    d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)], stypes=[dt.int8])
     d1 = d0.sort(0)
     assert d1.stypes == (stype.int8, )
     d1.internal.check()
@@ -255,7 +255,7 @@ def test_int8_large():
 @pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
 def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
-    d0 = dt.Frame([src, range(n)], names=("A", "B"))
+    d0 = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A":"int8"})
     assert d0.stypes[0] == stype.int8
     d1 = d0[:, f.B, sort(f.A)]
     assert d1.to_list() == [list(range(0, n, 3)) +
@@ -277,10 +277,10 @@ def test_bool8_small():
 
 
 def test_bool8_small_stable():
-    d0 = dt.Frame([[True, False, False, None, True, True, None],
-                   [1, 2, 3, 4, 5, 6, 7]])
+    d0 = dt.Frame(A = [True, False, False, None, True, True, None],
+                  B = [1, 2, 3, 4, 5, 6, 7], stypes={"B":"int8"})
     assert d0.stypes == (stype.bool8, stype.int8)
-    d1 = d0[:, :, sort("C0")]
+    d1 = d0[:, :, sort("A")]
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview
@@ -319,7 +319,7 @@ def test_bool8_large_stable(n):
 #-------------------------------------------------------------------------------
 
 def test_int16_small():
-    d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None])
+    d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None], stypes = [dt.int16])
     assert d0.stypes[0] == stype.int16
     d1 = d0.sort(0)
     d1.internal.check()
@@ -327,8 +327,8 @@ def test_int16_small():
 
 
 def test_int16_small_stable():
-    d0 = dt.Frame([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
-                   [1, 2, 3, 4, 5, 6, 7, 8, 9]])
+    d0 = dt.Frame(A = [0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
+                  B = [1, 2, 3, 4, 5, 6, 7, 8, 9], stypes={"A":"int16"} )
     assert d0.stypes[0] == stype.int16
     d1 = d0.sort(0)
     d1.internal.check()
@@ -337,7 +337,7 @@ def test_int16_small_stable():
 
 
 def test_int16_large():
-    d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)])
+    d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)], stypes = [dt.int16])
     d1 = d0.sort(0)
     assert d1.stypes == (stype.int16, )
     d1.internal.check()
@@ -347,7 +347,7 @@ def test_int16_large():
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
 def test_int16_large_stable(n):
     d0 = dt.Frame([[-5, None, 5, -999, 1000] * n, range(n * 5)],
-                  names=["A", "B"])
+                  names=["A", "B"], stypes={"A":"int16"})
     assert d0.stypes[0] == stype.int16
     d1 = d0[:, f.B, sort(f.A)]
     d1.internal.check()
