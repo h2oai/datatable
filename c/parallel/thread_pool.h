@@ -15,40 +15,45 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_POOL_h
 #define dt_PARALLEL_THREAD_POOL_h
-#include <condition_variable>  // std::condition_variable
 #include <mutex>               // std::mutex
 #include <vector>              // std::vector
 #include "parallel/thread_task_scheduler.h"
+#include "parallel/thread_worker.h"
 namespace dt {
 using std::size_t;
 
 
-class task;
-class thread_worker;
 
-
+/**
+ * Pool of threads, capable of executing a given work load in parallel.
+ *
+ * The pool contains a certain number of `thread_worker`s, each running on its
+ * own thread. The number of workers can be adjusted up or down using method
+ * `set_number_of_threads(n)`.
+ *
+ * At any given time, the pool can be either "sleeping", or "active". While
+ * sleeping, the pool uses `thread_sleep_scheduler`, which emits "sleep" tasks.
+ * This is the initial state of the thread pool, and it returns to this state
+ * after each call to `execute_job()`.
+ *
+ */
 class thread_pool {
   private:
+    // Worker instances, each running on its own thread.
     std::vector<thread_worker> workers;
-    std::mutex sleep_mutex;
-    std::condition_variable sleep_alarm;
-    // reference to the scheduler while the job is executed (not owned)
-    thread_task_scheduler* scheduler;
 
-    thread_task_scheduler* shutdown_scheduler;
+    // Scheduler instances used for thread pool management.
+    thread_sleep_scheduler    sch_sleep;
+    thread_shutdown_scheduler sch_shutdown;
 
   public:
     thread_pool();
+    thread_pool(const thread_pool&) = delete;
+    thread_pool(thread_pool&&) = delete;
     ~thread_pool();
 
     void execute_job(thread_task_scheduler*);
     void set_number_of_threads(size_t n);
-    thread_worker& get_worker(size_t i);
-
-  private:
-    task* get_next_task(size_t i);
-
-    friend class thread_worker;
 };
 
 

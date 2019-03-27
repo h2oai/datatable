@@ -15,27 +15,39 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
+#include <cstddef>
 namespace dt {
 using std::size_t;
 
 // forward-declare
-class thread_pool;
+class thread_task_scheduler;
 
 
+
+/**
+ * A class that encapsulates thread-specific runtime information. After
+ * instantiation, we expect this class to be accessed within its own thread
+ * only. This makes it safe to have variables such as `scheduler` non-atomic.
+ *
+ * Any communication with the worker (including changing to a new scheduler)
+ * is performed only via the current scheduler: the scheduler may emit a task
+ * that changes the worker's state.
+ *
+ * The thread stops running when `scheduler` becomes nullptr.
+ */
 class thread_worker {
   private:
-    size_t thread_index;
-    thread_pool* thpool;
+    const size_t thread_index;
+    thread_task_scheduler* scheduler;
 
   public:
-    thread_worker(size_t i, thread_pool* tp);
-    thread_worker(const thread_worker&) = delete;
+    thread_worker();
+    thread_worker(size_t i, thread_task_scheduler* ts);
+    thread_worker(const thread_worker&) = default;
     thread_worker(thread_worker&&) = default;
 
-    void shutdown();
-
-  private:
     void run();
+    void set_scheduler(thread_task_scheduler*);
 };
 
 

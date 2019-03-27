@@ -34,26 +34,36 @@ void thread_pool::set_number_of_threads(size_t n) {
   if (workers.size() == n) return;
   if (workers.size() < n) {
     for (size_t i = workers.size(); i < n; ++i) {
-      workers.emplace_back(i, this);
+      workers.emplace_back(i, &sch_sleep);
     }
   }
   else {
-    // execute_job(new thread_shutdown_scheduler(n));
+    sch_shutdown.init(n, workers.size(), &sch_sleep);
+    execute_job(&sch_shutdown);
+    workers.resize(n);
   }
 }
 
 
 void thread_pool::execute_job(thread_task_scheduler* job) {
-  scheduler = job;
-
-  scheduler = nullptr;
+  sch_sleep.awaken(job);
+  job->join();
 }
 
 
 
-task* thread_pool::get_next_task(size_t i) {
-  return scheduler->get_next_task(i);
-}
+// task* thread_pool::get_next_task(size_t i) {
+//   return scheduler->get_next_task(i);
+// }
+
+// task* thread_pool::get_sleep_task() const {
+//   return sleep_scheduler.get_next_task(0);
+// }
+
+// thread_worker& thread_pool::get_worker(size_t i) const {
+//   return workers[i];
+// }
+
 
 
 

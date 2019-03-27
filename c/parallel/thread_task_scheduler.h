@@ -15,9 +15,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_TASK_SCHEDULER_h
 #define dt_PARALLEL_THREAD_TASK_SCHEDULER_h
+#include <memory>      // std::unique_ptr
 #include <vector>      // std::vector
 namespace dt {
 using std::size_t;
+
+// forward-declare
+class thread_pool;
+class thread_worker;
 
 
 //------------------------------------------------------------------------------
@@ -27,7 +32,7 @@ using std::size_t;
 class task {
   public:
     virtual ~task();
-    virtual void execute() = 0;
+    virtual void execute(thread_worker*) = 0;
 };
 
 
@@ -40,6 +45,7 @@ class thread_task_scheduler {
   public:
     virtual ~thread_task_scheduler();
     virtual task* get_next_task(size_t thread_index) = 0;
+    virtual void join() = 0;
 };
 
 
@@ -48,23 +54,56 @@ class thread_task_scheduler {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-class thread_shutdown_scheduler : public thread_task_scheduler
-{
+class shutdown_thread_task : public task {
+  public:
+    void execute(thread_worker*) override;
+};
+
+class put_to_sleep_task : public task {
+  public:
+    thread_task_scheduler* sleep_scheduler;
+
+    void execute(thread_worker*) override;
+};
+
+
+class thread_shutdown_scheduler : public thread_task_scheduler {
   private:
-    class shutdown_thread_task : public task {
-      public:
-        size_t thread_index;
-
-        shutdown_thread_task(size_t i);
-        void execute() override;
-    };
-
     size_t n_threads_to_keep;
-    std::vector<shutdown_thread_task> shutdown_tasks;
+    std::atomic<size_t> n_threads_to_kill;
+    shutdown_thread_task shutdown;
+    put_to_sleep_task lullaby;
 
   public:
-    thread_shutdown_scheduler(size_t i0);
+    void init(size_t nnew, size_t nold, thread_task_scheduler* sch_sleep);
     task* get_next_task(size_t thread_index) override;
+    void join() override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// thread sleep scheduler
+//------------------------------------------------------------------------------
+
+class thread_sleep_task : public task {
+  public:
+    std::mutex mutex;
+    std::condition_variable alarm;
+    thread_task_scheduler* next_scheduler;
+
+    void execute(thread_worker*) override;
+};
+
+class thread_sleep_scheduler : public thread_task_scheduler {
+  private:
+    thread_sleep_task sleep;
+
+  public:
+    task* get_next_task(size_t thread_index) override;
+    void join() override;
+    void awaken(thread_task_scheduler*);
 };
 
 

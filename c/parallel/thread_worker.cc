@@ -14,9 +14,14 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <thread>   // std::thread
+#include "parallel/thread_task_scheduler.h"
 #include "parallel/thread_worker.h"
-#include "parallel/thread_pool.h"
 namespace dt {
+
+
+// This constructor is only needed so that `thread_worker` objects can be
+// inserted into an std::vector.
+thread_worker::thread_worker() : thread_index(0), scheduler(nullptr) {}
 
 
 /**
@@ -25,9 +30,10 @@ namespace dt {
  * only way to shut down the thread is to cause the `run()` function to stop
  * its loop.
  */
-thread_worker::thread_worker(size_t i, thread_pool* tp) {
-  thread_index = i;
-  thpool = tp;
+thread_worker::thread_worker(size_t i, thread_task_scheduler* ts)
+  : thread_index(i),
+    scheduler(ts)
+{
   std::thread t(&thread_worker::run, this);
   t.detach();
 }
@@ -36,24 +42,25 @@ thread_worker::thread_worker(size_t i, thread_pool* tp) {
 /**
  * This is the main function that will be run within the thread. It
  * continuously picks up tasks from the thread pool and executes them. This
- * function exits only when `thpool` becomes `nullptr`. Once this function
+ * function exits only when `scheduler` becomes `nullptr`. Once this function
  * returns, the thread of execution associated with this worker exits too.
  *
  * Special tasks:
  *   - `shutdown_thread_task` will call `this->shutdown()`, which will cause
  *     the loop to terminate.
- *   - `slumber_task` will
+ *   - `thread_sleep_task` will put the thread to sleep, until it is awaken
+ *     via a condition variable.
  */
 void thread_worker::run() {
-  while (thpool) {
-    auto task = thpool->get_next_task(thread_index);
-    task->execute();
+  while (scheduler) {
+    auto task = scheduler->get_next_task(thread_index);
+    task->execute(this);
   }
 }
 
 
-void thread_worker::shutdown() {
-  thpool = nullptr;
+void thread_worker::set_scheduler(thread_task_scheduler* ts) {
+  scheduler = ts;
 }
 
 
