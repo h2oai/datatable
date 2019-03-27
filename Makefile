@@ -262,10 +262,6 @@ centos7_build_in_docker_impl:
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		-e "LLVM6=" \
-		-e "LLVM_CONFIG=" \
-		-e "CC=g++" \
-		-e "CXX=g++" \
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
