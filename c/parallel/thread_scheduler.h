@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class thread_scheduler {
     // is used to signal that an exception have occurred. The method will save
     // this exception and then call `abort_execution()` (see below). The saved
     // exception will be re-thrown at the end of `join()`.
-    void handle_exception();
+    void handle_exception() noexcept;
 
 
     //--------------------------------------------------------------------------

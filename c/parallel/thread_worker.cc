@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ thread_worker::thread_worker(size_t i, thread_scheduler* ts)
  *   - `thread_sleep_task` will put the thread to sleep, until it is awaken
  *     via a condition variable.
  */
-void thread_worker::run() {
+void thread_worker::run() noexcept {
   while (scheduler) {
     try {
       thread_task* task = scheduler->get_next_task(thread_index);
@@ -64,7 +64,7 @@ void thread_worker::run() {
 }
 
 
-void thread_worker::set_scheduler(thread_scheduler* ts) {
+void thread_worker::set_scheduler(thread_scheduler* ts) noexcept {
   scheduler = ts;
 }
 

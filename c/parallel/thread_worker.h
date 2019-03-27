@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ class thread_worker {
     thread_worker(const thread_worker&) = default;
     thread_worker(thread_worker&&) = default;
 
-    void run();
-    void set_scheduler(thread_scheduler*);
+    void run() noexcept;
+    void set_scheduler(thread_scheduler*) noexcept;
 };
 
 

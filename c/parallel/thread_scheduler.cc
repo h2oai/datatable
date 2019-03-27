@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,12 +36,14 @@ void thread_scheduler::join() {
 }
 
 
-void thread_scheduler::handle_exception() {
-  {
-    std::lock_guard<std::mutex> lock(mtx);
-    saved_exception = std::current_exception();  // noexcept
-  }
-  abort_execution();
+void thread_scheduler::handle_exception() noexcept {
+  try {
+    {
+      std::lock_guard<std::mutex> lock(mtx);
+      saved_exception = std::current_exception();
+    }
+    abort_execution();
+  } catch (...) {}
 }
 
 
