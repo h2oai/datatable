@@ -17,7 +17,7 @@
 #define dt_PARALLEL_THREAD_POOL_h
 #include <mutex>               // std::mutex
 #include <vector>              // std::vector
-#include "parallel/thread_task_scheduler.h"
+#include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 using std::size_t;
@@ -62,7 +62,7 @@ class thread_pool {
     thread_pool(thread_pool&&) = delete;
     ~thread_pool();
 
-    void execute_job(thread_task_scheduler*);
+    void execute_job(thread_scheduler*);
     void set_number_of_threads(size_t n);
 };
 

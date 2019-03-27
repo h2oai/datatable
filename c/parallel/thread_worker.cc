@@ -14,7 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <thread>   // std::thread
-#include "parallel/thread_task_scheduler.h"
+#include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 
@@ -30,7 +30,7 @@ thread_worker::thread_worker() : thread_index(0), scheduler(nullptr) {}
  * only way to shut down the thread is to cause the `run()` function to stop
  * its loop.
  */
-thread_worker::thread_worker(size_t i, thread_task_scheduler* ts)
+thread_worker::thread_worker(size_t i, thread_scheduler* ts)
   : thread_index(i),
     scheduler(ts)
 {
@@ -53,13 +53,18 @@ thread_worker::thread_worker(size_t i, thread_task_scheduler* ts)
  */
 void thread_worker::run() {
   while (scheduler) {
-    auto task = scheduler->get_next_task(thread_index);
-    task->execute(this);
+    try {
+      thread_task* task = scheduler->get_next_task(thread_index);
+      if (!task) continue;
+      task->execute(this);
+    } catch (...) {
+      scheduler->handle_exception();
+    }
   }
 }
 
 
-void thread_worker::set_scheduler(thread_task_scheduler* ts) {
+void thread_worker::set_scheduler(thread_scheduler* ts) {
   scheduler = ts;
 }
 

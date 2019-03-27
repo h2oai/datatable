@@ -20,7 +20,7 @@ namespace dt {
 using std::size_t;
 
 // forward-declare
-class thread_task_scheduler;
+class thread_scheduler;
 
 
 
@@ -38,16 +38,16 @@ class thread_task_scheduler;
 class thread_worker {
   private:
     const size_t thread_index;
-    thread_task_scheduler* scheduler;
+    thread_scheduler* scheduler;
 
   public:
     thread_worker();
-    thread_worker(size_t i, thread_task_scheduler* ts);
+    thread_worker(size_t i, thread_scheduler* ts);
     thread_worker(const thread_worker&) = default;
     thread_worker(thread_worker&&) = default;
 
     void run();
-    void set_scheduler(thread_task_scheduler*);
+    void set_scheduler(thread_scheduler*);
 };
 
 

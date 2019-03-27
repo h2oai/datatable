@@ -45,7 +45,7 @@ void thread_pool::set_number_of_threads(size_t n) {
 }
 
 
-void thread_pool::execute_job(thread_task_scheduler* job) {
+void thread_pool::execute_job(thread_scheduler* job) {
   sch_sleep.awaken(job);
   job->join();
 }
