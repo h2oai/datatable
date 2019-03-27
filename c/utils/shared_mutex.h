@@ -18,19 +18,25 @@
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// shared_mutex
+//------------------------------------------------------------------------------
+
 /**
- * Analogue of `std::shared_mutex` from C++17.
+ * Equivalent of `std::shared_mutex` from C++17. Also known as read-write mutex.
+ * This mutex allows to kinds of locking: for read-only access, and for writing.
+ * Multiple threads can hold read lock at the same time, whereas writing is
+ * exclusive: only one thread can hold this lock, and no other threads can have
+ * even read access at the same time.
  */
 class shared_mutex {
   private:
-    unsigned long           state;  // reader count + writer flag
+    size_t                  state;  // reader count + writer flag
     std::mutex              mutex;  // locked when accessing condition variables
-    std::condition_variable wgate;  // condition variable for writers
+    std::condition_variable wgate;  // condition variable for writer
     std::condition_variable rgate;  // condition variable for readers
 
-    static constexpr unsigned long WRITE_ENTERED
-      = 1ULL << (sizeof(unsigned long) * 8 - 1);
-    static constexpr unsigned long N_READERS = ~WRITE_ENTERED;
+    static constexpr size_t WRITE_ENTERED = 1ULL << (sizeof(size_t) * 8 - 1);
 
   public:
     shared_mutex() : state(0) {}
@@ -50,7 +56,7 @@ class shared_mutex {
       state |= WRITE_ENTERED;
 
       // Now wait until all readers have finished reading
-      while (state & N_READERS) rgate.wait(lock);
+      while (state & ~WRITE_ENTERED) rgate.wait(lock);
     }
 
     void unlock() {
@@ -65,7 +71,7 @@ class shared_mutex {
     //--------------------------------------------------------------------------
     void lock_shared() {
       std::unique_lock<std::mutex> lock(mutex);
-      while (state >= N_READERS) wgate.wait(lock);
+      while (state >= ~WRITE_ENTERED) wgate.wait(lock);
       ++state;
     }
 
@@ -78,14 +84,37 @@ class shared_mutex {
 };
 
 
+
+
+//------------------------------------------------------------------------------
+// shared_bmutex
+//------------------------------------------------------------------------------
+
 /**
- * Shared "busy" mutex implementation with `while` loops
- * instead of `std::mutex`. Could be useful when there are frequent, but short
- * read operations.
+ * Shared "busy" mutex implementation with `while` loops instead of
+ * `std::mutex`. Could be useful when there are frequent, but short read
+ * operations.
  */
 class shared_bmutex {
   private:
-    size_t state; // reader count + writer flag
+    // `state` variable is the indicator of the locked state of the mutex.
+    // If the mutex is unlocked, the `state` is 0.
+    // If the mutex is locked for exclusive access, the `WRITE_ENTERED` bit
+    // will be set on the `state`. While the bit is set, no thread can acquire
+    // either exclusive or regular lock on the mutex.
+    // The remaining bits of `state` count how many threads has requested a
+    // "reader" access to the mutex. We increment `state` when a shared lock is
+    // requested, and decrement when the shared lock is released.
+    //
+    // Externally, if the `WRITE_ENTERED` bit is set on the `state`, then the
+    // remaining bits are 0. Internally, this invariant may be temporarily
+    // broken as the locks are acquired. Specifically, during exclusive locking
+    // the `WRITE_ENTERED` flag is set, and then the lock waits until all reader
+    // threads finish their reading. During read-only locking, the `state` may
+    // be temporarily incremented while `WRITE_ENTERED` is set, but then we
+    // immediately decrement it again and wait for exclusive flag to clear.
+    //
+    std::atomic<size_t> state;
     static constexpr size_t WRITE_ENTERED = 1ULL << (sizeof(size_t) * 8 - 1);
 
   public:
@@ -96,30 +125,31 @@ class shared_bmutex {
     // Exclusive access
     //--------------------------------------------------------------------------
     void lock() {
-      size_t state_old;
-      // Needed for the case when there are multiple threads waiting for the
-      // exclusive access.
-      bool exclusive_request = false;
-
-      while (true) {
-
-        #pragma omp atomic capture
-        {state_old = state; state |= WRITE_ENTERED;}
-
-        if ((state_old & WRITE_ENTERED) && !exclusive_request) continue;
-        if (state_old == WRITE_ENTERED) break;
-        exclusive_request = true;
+      // Wait until no other thread is having exclusive access; i.e. wait until
+      // the `state` has bit WRITE_ENTERED clear. Once this is true, set the bit
+      // WRITE_ENTERED, claiming exclusive access for the current thread.
+      // Note: `state.compare_exchanege_weak(exp, newval)` will check whether
+      // `state==exp`, and if yes then write `newval` into `state`; and if no
+      // the variable `exp` will be updated with the latest value of `state`.
+      // The return value is `true` if the `state` was updated, and `false`
+      // otherwise.
+      size_t state_old = 0;
+      while (!state.compare_exchange_weak(state_old, state_old|WRITE_ENTERED,
+                                          std::memory_order_relaxed)) {
+        state_old &= ~WRITE_ENTERED;
       }
+
+      // Now wait until all pending readers finished reading
+      while (state.load(std::memory_order_acquire) != WRITE_ENTERED);
     }
 
 
     void unlock() {
       // Clear the writer bit. Note, one can not simply set `state` to `0`,
-      // because there may be some readers waiting in the `shared_lock()`.
+      // because there may be some readers waiting in the `lock_shared()`.
       // These readers increment and decrement the `state`, so setting
       // it to `0` may result in the incorrect mutex behavior.
-      #pragma omp atomic update
-      state &= ~WRITE_ENTERED;
+      state.fetch_and(~WRITE_ENTERED, std::memory_order_release);
     }
 
 
@@ -127,38 +157,64 @@ class shared_bmutex {
     // Shared access
     //--------------------------------------------------------------------------
     void lock_shared() {
-      size_t state_old;
-
       while (true) {
-        #pragma omp atomic read
-        state_old = state;
+        // If the mutex was locked for exclusive access, wait until the writer's
+        // bit is cleared.
+        while (state.load(std::memory_order_relaxed) & WRITE_ENTERED);
 
-        // This check is required to prevent deadlocks, so that exclusive `lock()`
-        // takes priority over the `lock_shared()` when competing. Note, that
-        // the `state` should be "omp atomic read", otherwise behavior is unpredictable
-        // on some systems.
-        if (state_old & WRITE_ENTERED) continue;
+        // Increment the state, to indicate that we acquire a reader's lock.
+        size_t state_old = state.fetch_add(1, std::memory_order_acquire);
 
-        #pragma omp atomic capture
-        state_old = state++;
+        // If during the previous operation the `state` had no exclusive bit
+        // set, then the lock was acquired successfully, and we can return.
+        if (!(state_old & WRITE_ENTERED)) return;
 
-        if (state_old & WRITE_ENTERED) {
-          #pragma omp atomic update
-          --state;
-        } else break;
+        // Otherwise, we relinquish the lock, and wait again until the end of
+        // exclusive access.
+        state.fetch_sub(1, std::memory_order_relaxed);
       }
+      // Note that the pattern of `state++; [check WRITE_ENTERED]; state--` can
+      // result in a livelock with the exclusive lock, which waits until all
+      // low bits of `state` become 0.
+      // In practice the chances of this happening should be exceedingly small,
+      // and even if it does the livelock would resolve itself after several
+      // wasted cycles.
     }
 
 
     void unlock_shared() {
-      #pragma omp atomic update
-      --state;
+      state.fetch_sub(1, std::memory_order_release);
     }
 
 };
 
 
-template<class T> class shared_lock {
+
+
+//------------------------------------------------------------------------------
+// shared_lock
+//------------------------------------------------------------------------------
+
+/**
+ * Lock class that can accept either a `shared_mutex`, or `shared_bmutex`.
+ *
+ * Usage:
+ *
+ *     // mutex variable must previously be declared and accessible from
+ *     // multiple threads
+ *     dt::shared_mutex shmutex;
+ *     ...
+ *
+ *     { // Acquire read-only lock
+ *       dt::shared_lock< dt::shared_mutex> lock(shmutex, false);
+ *     }
+ *
+ *     { // Acquire exclusive lock
+ *       dt::shared_lock< dt::shared_mutex> lock(shmutex, true);
+ *     }
+ */
+template <typename T>
+class shared_lock {
   private:
     T& mutex;
     bool exclusive;

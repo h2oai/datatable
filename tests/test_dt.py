@@ -169,11 +169,23 @@ def test_sizeof():
     assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
 
 
-def test_internal():
-    # Run C++ tests
+def test_coverage():
+    # Run additional C++ tests that ensure better coverage of underlying classes
     from datatable.lib import core
-    if hasattr(core, "test_internal"):
-        core.test_internal()
+    if hasattr(core, "test_coverage"):
+        core.test_coverage()
+
+
+def test_internal_shared_mutex():
+    from datatable.lib import core
+    if hasattr(core, "test_shmutex"):
+        core.test_shmutex(500, dt.options.nthreads * 2, 1)
+
+
+def test_internal_shared_bmutex():
+    from datatable.lib import core
+    if hasattr(core, "test_shmutex"):
+        core.test_shmutex(1000, dt.options.nthreads * 2, 0)
 
 
 def test_dt_view(dt0, patched_terminal, capsys):
