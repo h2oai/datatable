@@ -44,7 +44,7 @@ class task {
 class thread_task_scheduler {
   public:
     virtual ~thread_task_scheduler();
-    virtual task* get_next_task(size_t thread_index) = 0;
+    virtual task* get_next_task(size_t thread_index) noexcept = 0;
     virtual void join() = 0;
 };
 
@@ -76,7 +76,7 @@ class thread_shutdown_scheduler : public thread_task_scheduler {
 
   public:
     void init(size_t nnew, size_t nold, thread_task_scheduler* sch_sleep);
-    task* get_next_task(size_t thread_index) override;
+    task* get_next_task(size_t thread_index) noexcept override;
     void join() override;
 };
 
@@ -101,7 +101,7 @@ class thread_sleep_scheduler : public thread_task_scheduler {
     thread_sleep_task sleep;
 
   public:
-    task* get_next_task(size_t thread_index) override;
+    task* get_next_task(size_t thread_index) noexcept override;
     void join() override;
     void awaken(thread_task_scheduler*);
 };

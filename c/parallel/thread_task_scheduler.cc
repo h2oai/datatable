@@ -53,7 +53,7 @@ void thread_shutdown_scheduler::init(
 }
 
 
-task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
+task* thread_shutdown_scheduler::get_next_task(size_t thread_index) noexcept {
   if (thread_index < n_threads_to_keep) {
     return &lullaby;
   }
@@ -86,7 +86,7 @@ void thread_sleep_task::execute(thread_worker* worker) {
 
 
 
-task* thread_sleep_scheduler::get_next_task(size_t) {
+task* thread_sleep_scheduler::get_next_task(size_t) noexcept {
   return &sleep;
 }
 

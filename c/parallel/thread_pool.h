@@ -29,20 +29,30 @@ using std::size_t;
  *
  * The pool contains a certain number of `thread_worker`s, each running on its
  * own thread. The number of workers can be adjusted up or down using method
- * `set_number_of_threads(n)`.
+ * `set_number_of_threads()`.
  *
- * At any given time, the pool can be either "sleeping", or "active". While
- * sleeping, the pool uses `thread_sleep_scheduler`, which emits "sleep" tasks.
- * This is the initial state of the thread pool, and it returns to this state
- * after each call to `execute_job()`.
+ * Normally, the thread pool is in the "sleeping" state. This means all workers
+ * are idling, consuming `thread_sleep_task`s from the `thread_sleep_scheduler`.
+ *
+ * However, once a user requests `execute_job()`, the threads are awaken and
+ * use the supplied scheduler to perform the job. The method `execute_job()` is
+ * blocking, and will return only after the job is completely finished and the
+ * thread pool has been put back to sleep.
+ *
+ * The main thread of execution (which runs `execute_job()` and is connected to
+ * Python) does not perform any tasks. Instead, it only performs high-level
+ * maintenance: progress reporting, message logs, exception handling, checking
+ * for user interrupts, etc.
  *
  */
 class thread_pool {
   private:
-    // Worker instances, each running on its own thread.
+    // Worker instances, each running on its own thread. Each thread has a
+    // reference to its own worker, so these workers must be alive as long
+    // as their corresponding threads are running.
     std::vector<thread_worker> workers;
 
-    // Scheduler instances used for thread pool management.
+    // Schedulers used for thread pool management.
     thread_sleep_scheduler    sch_sleep;
     thread_shutdown_scheduler sch_shutdown;
 
