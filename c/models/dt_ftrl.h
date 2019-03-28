@@ -42,9 +42,11 @@ struct FtrlParams {
     uint64_t nbins;
     size_t nepochs;
     bool double_precision;
-    size_t: 56;
+    bool negative_class;
+    size_t: 48;
     FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
-                   nbins(1000000), nepochs(1), double_precision(false) {}
+                   nbins(1000000), nepochs(1), double_precision(false),
+                   negative_class(false) {}
 };
 
 
@@ -92,6 +94,7 @@ class Ftrl {
     virtual size_t get_nepochs() = 0;
     virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
+    virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual const strvec& get_labels() = 0;
 
@@ -107,6 +110,7 @@ class Ftrl {
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_double_precision(bool) = 0;
+    virtual void set_negative_class(bool) = 0;
     virtual void set_labels(strvec) = 0;
 };
 

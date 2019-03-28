@@ -149,6 +149,7 @@ class FtrlReal : public dt::Ftrl {
     size_t get_nepochs() override;
     const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
+    bool get_negative_class() override;
     FtrlParams get_params() override;
     const strvec& get_labels() override;
 
@@ -164,6 +165,7 @@ class FtrlReal : public dt::Ftrl {
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<sizetvec>) override;
     void set_double_precision(bool) override;
+    void set_negative_class(bool) override;
     void set_labels(strvec) override;
 };
 

@@ -43,16 +43,17 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
                                           "nbins", "nepochs",
-                                          "double_precision"])
+                                          "double_precision", "negative_class"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 nepochs = 6, double_precision = True)
+                 nepochs = 6, double_precision = True, negative_class = False)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
-                        nbins = 1000000, nepochs = 1, double_precision = False)
+                        nbins = 1000000, nepochs = 1, double_precision = False,
+                        negative_class = False)
 
 epsilon = 0.01
 
@@ -115,7 +116,7 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `nepochs` or `double_precision` "
+            "`lambda2`, `nbins`, `nepochs`, `double_precision` or `negative_class` "
             "to Ftrl constructor, but not both at the same time" == str(e.value))
 
 
@@ -209,7 +210,7 @@ def test_ftrl_create_individual():
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
                          tparams.nbins, tparams.nepochs,
-                         tparams.double_precision)
+                         tparams.double_precision, tparams.negative_class)
 
 
 #-------------------------------------------------------------------------------
@@ -220,7 +221,7 @@ def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.nepochs,
-            ft.double_precision) == tparams
+            ft.double_precision, ft.negative_class) == tparams
 
 
 def test_ftrl_set_individual():
@@ -587,32 +588,38 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-def test_ftrl_fit_predict_multinomial_vs_binomial():
-    ft1 = Ftrl(nbins = 10, nepochs = 1)
-    df_train1 = dt.Frame(range(ft1.nbins))
-    df_target1 = dt.Frame({"target" : [True, False] * 5})
-    ft1.fit(df_train1, df_target1)
-    p1 = ft1.predict(df_train1)
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
+    ft_binomial = Ftrl(nbins = 10, nepochs = 2)
+    df_train_binomial = dt.Frame(range(ft_binomial.nbins))
+    df_target_binomial = dt.Frame({"target" : [True, False] * 5})
+    ft_binomial.fit(df_train_binomial, df_target_binomial)
+    p_binomial = ft_binomial.predict(df_train_binomial)
 
-    ft2 = Ftrl(nbins = 10, nepochs = 1)
-    df_train2 = dt.Frame(range(ft2.nbins))
-    df_target2 = dt.Frame(["target", None] * 5)
-    ft2.fit(df_train2, df_target2)
-    p2 = ft2.predict(df_train2)
+    ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
+                          negative_class = negative_class_value)
+    df_target_multinomial = dt.Frame(["target", None] * 5)
+    ft_multinomial.fit(df_train_binomial, df_target_multinomial)
+    p_multinomial = ft_multinomial.predict(df_train_binomial)
 
-    target_index = p2.colindex("target")
-    multinomial_model = ft2.model[:, {
-                                      "C0" : f[target_index * 2],
-                                      "C1" : f[target_index * 2 + 1]
-                                      }]
-    assert_equals(ft1.model, multinomial_model)
-    assert_equals(p1, p2[:, "target"])
+    target_index = p_multinomial.colindex("target")
+    multinomial_model = ft_multinomial.model[:, {
+                          "C0" : f[target_index * 2],
+                          "C1" : f[target_index * 2 + 1]
+                        }]
+    assert_equals(ft_binomial.model, multinomial_model)
+    assert_equals(p_binomial, p_multinomial[:, "target"])
 
 
-def test_ftrl_fit_predict_multinomial():
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial(negative_class_value):
     nepochs = 1000
-    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
-    labels = ("_negative", "red", "green", "blue")
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ["red", "green", "blue"]
+    if negative_class_value:
+      labels += ["_negative"]
+
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -621,16 +628,17 @@ def test_ftrl_fit_predict_multinomial():
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
+    p_none = 1 / p.ncols
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
     delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
     delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
     delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
 
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
@@ -639,23 +647,27 @@ def test_ftrl_fit_predict_multinomial():
     assert collections.Counter(p.names) == collections.Counter(labels)
 
 
-def test_ftrl_fit_predict_multinomial_online():
-    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
-    labels = ("_negative", "red", "green", "blue")
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial_online(negative_class_value):
+    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ["green", "red", "blue"]
+    if negative_class_value:
+      labels = ["_negative"] + labels
 
     # Show only 1 label to the model
     df_train = dt.Frame(["cucumber"])
     df_target = dt.Frame(["green"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["_negative", "green"])
-    assert(ft.model.shape == (ft.nbins, 4))
+    assert(ft.labels == labels[:1 + negative_class_value])
+    assert(ft.model.shape == (ft.nbins, 2 + 2*negative_class_value))
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
     df_target = dt.Frame(["green", "red"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["_negative", "green", "red"])
-    assert(ft.model.shape == (ft.nbins, 6))
+    assert(ft.labels == labels[:2 + negative_class_value])
+    assert(ft.model.shape == (ft.nbins, 4 + 2*negative_class_value))
 
     # And one more
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
@@ -663,8 +675,8 @@ def test_ftrl_fit_predict_multinomial_online():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["_negative", "green", "red", "blue"])
-    assert(ft.model.shape == (ft.nbins, 8))
+    assert(ft.labels == labels)
+    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
 
     # Do not add any new labels
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
@@ -672,22 +684,23 @@ def test_ftrl_fit_predict_multinomial_online():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == ["_negative", "green", "red", "blue"])
-    assert(ft.model.shape == (ft.nbins, 8))
+    assert(ft.labels == labels)
+    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
 
     # Test predictions
     p = ft.predict(df_train)
     frame_integrity_check(p)
+    p_none = 1 / p.ncols
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
     delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
     delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
     delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
 
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
@@ -780,10 +793,15 @@ def test_ftrl_early_stopping_regression():
     assert max(delta) < epsilon
 
 
-def test_ftrl_early_stopping_multinomial():
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_early_stopping_multinomial(negative_class_value):
     nepochs = 2000
-    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
-    labels = ("_negative", "red", "green", "blue")
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ["green", "red", "blue"]
+    if negative_class_value:
+      labels = ["_negative"] + labels
+
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -793,16 +811,17 @@ def test_ftrl_early_stopping_multinomial():
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
+    p_none = 1/p.ncols
     p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
     delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, 0.25, 0])]
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
     delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, 0.25, 0])]
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
     delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, 0.25, 1])]
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
 
     assert epoch_stopped < nepochs
     assert max(delta_sum)   < 1e-6
@@ -971,8 +990,10 @@ def test_ftrl_pickling_binomial():
     assert_equals(target, target_unpickled)
 
 
-def test_ftrl_pickling_multinomial():
-    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False)
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_pickling_multinomial(negative_class_value):
+    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False,
+              negative_class = negative_class_value)
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -983,7 +1004,8 @@ def test_ftrl_pickling_multinomial():
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
     frame_integrity_check(ft_unpickled.model)
-    assert ft_unpickled.model.stypes == (stype.float32,) * 8
+    ncols = (6 + 2*negative_class_value)
+    assert ft_unpickled.model.stypes == (stype.float32,) * ncols
     assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==
             ('feature_name', 'feature_importance',))
