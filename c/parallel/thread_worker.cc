@@ -64,6 +64,11 @@ void thread_worker::run() noexcept {
   }
 }
 
+size_t thread_worker::get_index() const noexcept {
+  return thread_index;
+}
+
+
 
 
 //------------------------------------------------------------------------------

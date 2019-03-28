@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 #ifndef dt_UTILS_FUNCTION_h
 #define dt_UTILS_FUNCTION_h
+#include <cstdint>      // intptr_t
 #include <type_traits>
 namespace dt {
 

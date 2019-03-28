@@ -31,9 +31,9 @@ class thread_task {
 
 class simple_task : public thread_task {
   private:
-    function<void()> f;
+    function<void(size_t)> f;
   public:
-    simple_task(function<void()>);
+    simple_task(function<void(size_t)>);
     void execute(thread_worker*) override;
 };
 

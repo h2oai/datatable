@@ -15,7 +15,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
-#include <cstddef>
+#include <condition_variable>   // std::condition_variable
+#include <cstddef>              // std::size_t
+#include <mutex>                // std::mutex
 #include "parallel/thread_task.h"
 namespace dt {
 using std::size_t;
@@ -52,6 +54,7 @@ class thread_worker {
     thread_worker(thread_worker&&) = default;
 
     void run() noexcept;
+    size_t get_index() const noexcept;
 };
 
 

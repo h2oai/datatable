@@ -132,7 +132,7 @@ void once_scheduler::wait_until_finish() {
 }
 
 
-void run_once_per_thread(function<void()> f) {
+void run_once_per_thread(function<void(size_t)> f) {
   thread_pool& thpool = get_thread_pool();
   simple_task task(f);
   once_scheduler sch(thpool.size(), &task);

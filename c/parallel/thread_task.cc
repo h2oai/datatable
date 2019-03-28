@@ -14,13 +14,14 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/thread_task.h"
+#include "parallel/thread_worker.h"
 namespace dt {
 
 
-simple_task::simple_task(function<void()> f_) : f(f_) {}
+simple_task::simple_task(function<void(size_t)> f_) : f(f_) {}
 
-void simple_task::execute(thread_worker*) {
-  f();
+void simple_task::execute(thread_worker* worker) {
+  f(worker->get_index());
 }
 
 

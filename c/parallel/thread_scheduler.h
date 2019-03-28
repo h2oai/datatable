@@ -133,7 +133,7 @@ class once_scheduler : public thread_scheduler {
 
 
 // Call function `f` exactly once in each thread.
-void run_once_per_thread(function<void()> f);
+void run_once_per_thread(function<void(size_t)> f);
 
 
 

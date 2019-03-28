@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <iostream>
+#include <thread>
 #include <unordered_map>
 #include <Python.h>
 #include "../datatable/include/datatable.h"
@@ -19,6 +20,8 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "parallel/thread_pool.h"
+#include "parallel/thread_scheduler.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "py_encodings.h"
@@ -140,6 +143,28 @@ static py::oobj has_omp_support(const py::PKArgs&) {
     return py::True();
   #endif
 }
+
+
+static py::PKArgs args_get_thread_ids(
+    0, 0, 0, false, false, {}, "get_thread_ids",
+R"(Return internal ids of all threads used internally by datatable)");
+
+static py::oobj get_thread_ids(const py::PKArgs&) {
+  std::mutex m;
+  py::olist list(dt::get_thread_pool().size());
+
+  dt::run_once_per_thread([&](size_t i) {
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(m);
+    auto pystr = py::ostring(ss.str());
+    list.set(i, pystr);
+  });
+
+  return std::move(list);
+}
+
+
 
 
 static py::PKArgs args__register_function(
@@ -266,6 +291,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
   ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
+  ADD_FN(&get_thread_ids, args_get_thread_ids);
 
   init_methods_aggregate();
   init_methods_buffers();
