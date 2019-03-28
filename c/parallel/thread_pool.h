@@ -67,8 +67,19 @@ class thread_pool {
 };
 
 
-// thread_pool is a singleton, returned by this function
+
+/**
+ * thread_pool is a singleton, returned by this function
+ */
 thread_pool& get_thread_pool();
+
+
+/**
+ * Return the number of concurrent threads supported by the machine. This
+ * value is approximate. If the number of concurrent threads is unknown,
+ * this function returns 1.
+ */
+size_t get_hardware_concurrency() noexcept;
 
 
 }  // namespace dt

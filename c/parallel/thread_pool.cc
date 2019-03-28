@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <thread>    // std::thread::hardware_concurrency
 #include "parallel/thread_pool.h"
 #include "parallel/thread_worker.h"
 namespace dt {
@@ -52,26 +53,22 @@ void thread_pool::execute_job(thread_scheduler* job) {
 
 
 
-// task* thread_pool::get_next_task(size_t i) {
-//   return scheduler->get_next_task(i);
-// }
 
-// task* thread_pool::get_sleep_task() const {
-//   return sleep_scheduler.get_next_task(0);
-// }
-
-// thread_worker& thread_pool::get_worker(size_t i) const {
-//   return workers[i];
-// }
-
-
-
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
 
 thread_pool& get_thread_pool() {
   static thread_pool tp;
   return tp;
 }
 
+
+size_t get_hardware_concurrency() noexcept {
+  unsigned int nth = std::thread::hardware_concurrency();
+  if (!nth) nth = 1;
+  return static_cast<size_t>(nth);
+}
 
 
 
