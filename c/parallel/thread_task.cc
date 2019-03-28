@@ -13,30 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_TASK_h
-#define dt_PARALLEL_THREAD_TASK_h
-#include "utils/function.h"
+#include "parallel/thread_task.h"
 namespace dt {
 
-// forward-declare
-class thread_worker;
 
+simple_task::simple_task(function<void()> f_) : f(f_) {}
 
-class thread_task {
-  public:
-    virtual ~thread_task();
-    virtual void execute(thread_worker*) = 0;
-};
-
-
-class simple_task : public thread_task {
-  private:
-    function<void()> f;
-  public:
-    simple_task(function<void()>);
-    void execute(thread_worker*) override;
-};
+void simple_task::execute(thread_worker*) {
+  f();
+}
 
 
 } // namespace dt
-#endif

@@ -18,6 +18,8 @@
 #include <memory>      // std::unique_ptr
 #include <vector>      // std::vector
 #include "parallel/thread_worker.h"
+#include "utils/function.h"
+#include "utils/macros.h"
 namespace dt {
 using std::size_t;
 
@@ -109,6 +111,29 @@ class thread_sleep_scheduler : public thread_scheduler {
     void wait_until_finish() override;
     void awaken(thread_scheduler*);
 };
+
+
+
+//------------------------------------------------------------------------------
+// once scheduler
+//------------------------------------------------------------------------------
+
+class once_scheduler : public thread_scheduler {
+  private:
+    std::vector<cache_aligned<size_t>> done;
+    std::atomic<unsigned int> num_working_threads;
+    int : 32;
+    thread_task* task;
+
+  public:
+    once_scheduler(size_t nthreads, thread_task*);
+    thread_task* get_next_task(size_t thread_index) override;
+    void wait_until_finish() override;
+};
+
+
+// Call function `f` exactly once in each thread.
+void run_once_per_thread(function<void()> f);
 
 
 

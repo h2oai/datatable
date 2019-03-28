@@ -62,8 +62,10 @@ class thread_pool {
     thread_pool(thread_pool&&) = delete;
     ~thread_pool();
 
-    void execute_job(thread_scheduler*);
-    void set_number_of_threads(size_t n);
+    void execute_job(thread_scheduler&);
+
+    size_t size() const noexcept;
+    void resize(size_t n);
 };
 
 

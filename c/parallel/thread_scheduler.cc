@@ -103,4 +103,42 @@ void thread_sleep_scheduler::awaken(thread_scheduler* next) {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// once scheduler
+//------------------------------------------------------------------------------
+
+once_scheduler::once_scheduler(size_t nth, thread_task* task_)
+  : done(nth, 0),
+    num_working_threads(static_cast<unsigned int>(nth)),
+    task(task_) {}
+
+
+thread_task* once_scheduler::get_next_task(size_t i) {
+  if (done[i].v) {
+    num_working_threads--;
+    return nullptr;
+  } else {
+    done[i].v = 1;
+    return task;
+  }
+}
+
+
+void once_scheduler::wait_until_finish() {
+  while (num_working_threads)
+    std::this_thread::yield();
+}
+
+
+void run_once_per_thread(function<void()> f) {
+  thread_pool& thpool = get_thread_pool();
+  simple_task task(f);
+  once_scheduler sch(thpool.size(), &task);
+  thpool.execute_job(sch);
+}
+
+
+
 }  // namespace dt

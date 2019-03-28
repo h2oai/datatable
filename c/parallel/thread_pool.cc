@@ -27,11 +27,11 @@ namespace dt {
 thread_pool::thread_pool() {}
 
 thread_pool::~thread_pool() {
-  set_number_of_threads(0);
+  resize(0);
 }
 
 
-void thread_pool::set_number_of_threads(size_t n) {
+void thread_pool::resize(size_t n) {
   if (workers.size() == n) return;
   if (workers.size() < n) {
     workers.reserve(n);
@@ -41,15 +41,20 @@ void thread_pool::set_number_of_threads(size_t n) {
   }
   else {
     sch_shutdown.init(n, workers.size());
-    execute_job(&sch_shutdown);
+    execute_job(sch_shutdown);
     workers.resize(n);
   }
 }
 
 
-void thread_pool::execute_job(thread_scheduler* job) {
-  sch_sleep.awaken(job);
-  job->join();
+void thread_pool::execute_job(thread_scheduler& job) {
+  sch_sleep.awaken(&job);
+  job.join();
+}
+
+
+size_t thread_pool::size() const noexcept {
+  return workers.size();
 }
 
 
