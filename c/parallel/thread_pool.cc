@@ -34,6 +34,7 @@ thread_pool::~thread_pool() {
 void thread_pool::set_number_of_threads(size_t n) {
   if (workers.size() == n) return;
   if (workers.size() < n) {
+    workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
       workers.emplace_back(i, &sch_sleep);
     }

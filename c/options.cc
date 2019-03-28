@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/ext_type.h"
 #include "python/obj.h"
@@ -51,6 +52,8 @@ void set_nthreads(int32_t n) {
   // Default number of threads that will be used in all `#pragma omp` calls
   // that do not use explicit `num_threads()` directive.
   omp_set_num_threads(n);
+
+  dt::get_thread_pool().set_number_of_threads(static_cast<size_t>(n));
 }
 
 
