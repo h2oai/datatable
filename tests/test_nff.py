@@ -167,7 +167,7 @@ def test_jay_object_columns(tempfile):
     src1 = [1, 2, 3, 4]
     src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
     d0 = dt.Frame([src1, src2], names=["A", "B"])
-    assert d0.stypes == (dt.int8, dt.obj64)
+    assert d0.stypes == (dt.int32, dt.obj64)
     with pytest.warns(DatatableWarning) as ws:
         d0.to_jay(tempfile)
     assert len(ws) == 1
