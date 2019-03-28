@@ -193,7 +193,7 @@ def test_assign_scalar_to_one_column():
     DT[:, "B"] = 100
     DT.internal.check()
     assert DT.names == ("A", "B")
-    assert DT.stypes == (dt.int32, dt.int8)
+    assert DT.stypes == (dt.int32, dt.int32)
     assert DT.to_list() == [[0, 1, 2, 3, 4], [100] * 5]
 
 
@@ -202,7 +202,7 @@ def test_assign_scalar_to_all():
     DT[:, :] = 12
     DT.internal.check()
     assert DT.names == ("A", "B")
-    assert DT.stypes == (dt.int32, dt.int8)
+    assert DT.stypes == (dt.int32, dt.int32)
     assert DT.to_list() == [[12] * 5] * 2
 
 
@@ -212,7 +212,7 @@ def test_assign_scalar_to_list_of_columns():
     DT[:, ["A", "C"]] = 35
     DT.internal.check()
     assert DT.names == ("A", "B", "C")
-    assert DT.stypes == (dt.int8, dt.float64, dt.float64)
+    assert DT.stypes == (dt.int32, dt.float64, dt.float64)
     assert DT.to_list() == [[35] * 3, [2.5, 17.3, None], [35.0] * 3]
 
 
@@ -243,17 +243,17 @@ def test_assign_scalar_to_empty_frame_0x3():
 
 
 def test_assign_scalar_out_of_range():
-    DT = dt.Frame(A=[1, 2, 3])
+    DT = dt.Frame(A=[1, 2, 3], stypes = [dt.int8])
     assert DT.stypes == (dt.int8,)
     DT[:, "A"] = 5000000
     assert_equals(DT, dt.Frame(A=[5000000] * 3))
 
 
 def test_assign_scalar_out_of_range_to_subset():
-    DT = dt.Frame(A=list(range(10)))
+    DT = dt.Frame(A=list(range(10)), stypes = [dt.int8])
     assert DT.stypes == (dt.int8,)
     DT[:3, "A"] = 999
-    assert_equals(DT, dt.Frame(A=[999, 999, 999, 3, 4, 5, 6, 7, 8, 9]))
+    assert_equals(DT, dt.Frame(A=[999, 999, 999, 3, 4, 5, 6, 7, 8, 9], stypes = [dt.int16]))
 
 
 def test_assign_scalar_to_newcolumn_subset():
