@@ -163,7 +163,7 @@ def test_cbind_views2():
     d2 = dt.Frame({"B": list("abcdefghij")})
     d3 = d2[-3:, :]
     d1.cbind(d3)
-    dr = dt.Frame({"A": [2, 3, 4], "B": ["h", "i", "j"]})
+    dr = dt.Frame({"A": [2, 3, 4], "B": ["h", "i", "j"]}, stypes = {"A":"int8"})
     assert_equals(d1, dr)
 
 
