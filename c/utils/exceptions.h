@@ -39,7 +39,6 @@ public:
   Error(const Error& other);
   Error(Error&& other);
   virtual ~Error() override {}
-  friend void swap(Error& first, Error& second) noexcept;
 
   Error& operator<<(const std::string&);
   Error& operator<<(const char*);

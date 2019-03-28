@@ -74,9 +74,7 @@ enum class ReduceOp : size_t {
 // Each ReduceOp must be < REDUCEOP_COUNT
 constexpr size_t REDUCEOP_COUNT = 8 + 1;
 
-static const char* reducer_names[REDUCEOP_COUNT] = {
-  "", "mean", "min", "max", "stdev", "first", "sum", "count", "median"
-};
+
 
 
 class expr_reduce : public dt::base_expr {

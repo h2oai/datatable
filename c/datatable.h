@@ -7,8 +7,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_DATATABLE_h
 #define dt_DATATABLE_h
-#include <vector>
-#include <string>
+#include <memory>         // std::unique_ptr
+#include <string>         // std::string
+#include <vector>         // std::vector
 #include "python/_all.h"
 #include "rowindex.h"
 #include "types.h"
