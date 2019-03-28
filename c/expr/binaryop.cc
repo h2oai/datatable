@@ -41,6 +41,7 @@
 #include <type_traits>         // std::is_integral
 #include "expr/py_expr.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 #include "types.h"
 
 
@@ -424,7 +425,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
         if (opcode == OpCode::LogicalAnd) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
         if (opcode == OpCode::LogicalOr)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
       }
-      [[clang::fallthrough]];
+      FALLTHROUGH;
 
     case SType::INT8:
       switch (rhs_type) {

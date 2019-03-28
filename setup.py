@@ -31,6 +31,7 @@ Build script for the `datatable` module.
 import os
 import shutil
 import sys
+assert sys.version_info >= (3, 5), "Unsupported python version: " + sys.version
 from setuptools import setup, find_packages, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_compiler, get_extra_compile_flags,
@@ -154,8 +155,7 @@ if cmd in ("build", "bdist_wheel", "build_ext", "install"):
                 log.info("Copying %s to %s" % (libpath, trgfile))
                 shutil.copy(libpath, trgfile)
 
-    if ismacos():
-        monkey_patch_compiler()
+    monkey_patch_compiler()
 
 
 # Create the git version file
