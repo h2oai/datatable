@@ -90,7 +90,7 @@ def test_dt0_properties(dt0):
     assert dt0.shape == (10, 3)  # must be a tuple, not a list!
     assert dt0.names == ("colA", "colB", "colC")
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
-    assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
+    assert dt0.stypes == (stype.bool8, stype.int32, stype.float64)
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
     assert dt0.internal.isview is False
     for i in range(dt0.ncols):
