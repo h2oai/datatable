@@ -17,23 +17,9 @@
 #define dt_PARALLEL_THREAD_SCHEDULER_h
 #include <memory>      // std::unique_ptr
 #include <vector>      // std::vector
+#include "parallel/thread_worker.h"
 namespace dt {
 using std::size_t;
-
-// forward-declare
-class thread_pool;
-class thread_worker;
-
-
-//------------------------------------------------------------------------------
-// thread_task
-//------------------------------------------------------------------------------
-
-class thread_task {
-  public:
-    virtual ~thread_task();
-    virtual void execute(thread_worker*) = 0;
-};
 
 
 
@@ -95,28 +81,14 @@ class thread_scheduler {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-class shutdown_thread_task : public thread_task {
-  public:
-    void execute(thread_worker*) override;
-};
-
-class put_to_sleep_task : public thread_task {
-  public:
-    thread_scheduler* sleep_scheduler;
-
-    void execute(thread_worker*) override;
-};
-
-
 class thread_shutdown_scheduler : public thread_scheduler {
   private:
     size_t n_threads_to_keep;
     std::atomic<size_t> n_threads_to_kill;
     shutdown_thread_task shutdown;
-    put_to_sleep_task lullaby;
 
   public:
-    void init(size_t nnew, size_t nold, thread_scheduler* sch_sleep);
+    void init(size_t nnew, size_t nold);
     thread_task* get_next_task(size_t thread_index) override;
     void wait_until_finish() override;
 };
@@ -127,15 +99,6 @@ class thread_shutdown_scheduler : public thread_scheduler {
 //------------------------------------------------------------------------------
 // thread sleep scheduler
 //------------------------------------------------------------------------------
-
-class thread_sleep_task : public thread_task {
-  public:
-    std::mutex mutex;
-    std::condition_variable alarm;
-    thread_scheduler* next_scheduler;
-
-    void execute(thread_worker*) override;
-};
 
 class thread_sleep_scheduler : public thread_scheduler {
   private:

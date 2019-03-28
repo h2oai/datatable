@@ -58,33 +58,21 @@ void thread_scheduler::abort_execution() {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-void shutdown_thread_task::execute(thread_worker* worker) {
-  worker->set_scheduler(nullptr);
-}
-
-void put_to_sleep_task::execute(thread_worker* worker) {
-  worker->set_scheduler(sleep_scheduler);
-}
-
-
-
-void thread_shutdown_scheduler::init(
-    size_t nnew, size_t nold, thread_scheduler* sleep_scheduler)
-{
+void thread_shutdown_scheduler::init(size_t nnew, size_t nold) {
   xassert(nold > nnew);
   n_threads_to_keep = nnew;
   n_threads_to_kill = nold - nnew;
-  lullaby.sleep_scheduler = sleep_scheduler;
 }
 
 
 thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
   if (thread_index < n_threads_to_keep) {
-    return &lullaby;
+    return nullptr;  // thread goes back to sleep
   }
   n_threads_to_kill--;
   return &shutdown;
 }
+
 
 void thread_shutdown_scheduler::wait_until_finish() {
   while (n_threads_to_kill)
@@ -93,23 +81,10 @@ void thread_shutdown_scheduler::wait_until_finish() {
 
 
 
+
 //------------------------------------------------------------------------------
 // thread sleep scheduler
 //------------------------------------------------------------------------------
-
-void thread_sleep_task::execute(thread_worker* worker) {
-  std::unique_lock<std::mutex> lock(mutex);
-  while (true) {
-    // Wait for the `alarm` condition variable to be notified, but may also
-    // wake up spuriously, in which case we check `sleeping` flag to decide
-    // whether we need to keep waiting or not.
-    alarm.wait(lock);
-    if (next_scheduler) break;
-  }
-  worker->set_scheduler(next_scheduler);
-}
-
-
 
 thread_task* thread_sleep_scheduler::get_next_task(size_t) {
   return &sleep;

@@ -40,7 +40,7 @@ void thread_pool::set_number_of_threads(size_t n) {
     }
   }
   else {
-    sch_shutdown.init(n, workers.size(), &sch_sleep);
+    sch_shutdown.init(n, workers.size());
     execute_job(&sch_shutdown);
     workers.resize(n);
   }

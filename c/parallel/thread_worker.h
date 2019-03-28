@@ -16,6 +16,7 @@
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
 #include <cstddef>
+#include "parallel/thread_task.h"
 namespace dt {
 using std::size_t;
 
@@ -36,9 +37,13 @@ class thread_scheduler;
  * The thread stops running when `scheduler` becomes nullptr.
  */
 class thread_worker {
+  friend struct shutdown_thread_task;
+  friend struct thread_sleep_task;
+
   private:
     const size_t thread_index;
-    thread_scheduler* scheduler;
+    thread_scheduler* current_scheduler;
+    thread_scheduler* sleep_scheduler;
 
   public:
     thread_worker();
@@ -47,8 +52,24 @@ class thread_worker {
     thread_worker(thread_worker&&) = default;
 
     void run() noexcept;
-    void set_scheduler(thread_scheduler*) noexcept;
 };
+
+
+
+
+struct shutdown_thread_task : public thread_task {
+  void execute(thread_worker* worker) override;
+};
+
+
+struct thread_sleep_task : public thread_task {
+  std::mutex mutex;
+  std::condition_variable alarm;
+  thread_scheduler* next_scheduler;
+
+  void execute(thread_worker* worker) override;
+};
+
 
 
 

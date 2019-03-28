@@ -19,9 +19,9 @@
 namespace dt {
 
 
-// This constructor is only needed so that `thread_worker` objects can be
-// inserted into an std::vector.
-thread_worker::thread_worker() : thread_index(0), scheduler(nullptr) {}
+// This constructor is not used. But without it `std::vector<thread_worker>`
+// cannot be resized.
+thread_worker::thread_worker() : thread_index(0) {}
 
 
 /**
@@ -32,7 +32,8 @@ thread_worker::thread_worker() : thread_index(0), scheduler(nullptr) {}
  */
 thread_worker::thread_worker(size_t i, thread_scheduler* ts)
   : thread_index(i),
-    scheduler(ts)
+    current_scheduler(ts),
+    sleep_scheduler(ts)
 {
   std::thread t(&thread_worker::run, this);
   t.detach();
@@ -42,30 +43,48 @@ thread_worker::thread_worker(size_t i, thread_scheduler* ts)
 /**
  * This is the main function that will be run within the thread. It
  * continuously picks up tasks from the thread pool and executes them. This
- * function exits only when `scheduler` becomes `nullptr`. Once this function
- * returns, the thread of execution associated with this worker exits too.
+ * function stops running (terminating the thread) once `current_scheduler`
+ * becomes nullptr.
  *
- * Special tasks:
- *   - `shutdown_thread_task` will call `this->shutdown()`, which will cause
- *     the loop to terminate.
- *   - `thread_sleep_task` will put the thread to sleep, until it is awaken
- *     via a condition variable.
+ * If the task returned from the scheduler is nullptr, then the thread worker
+ * switches to
  */
 void thread_worker::run() noexcept {
-  while (scheduler) {
+  while (current_scheduler) {
     try {
-      thread_task* task = scheduler->get_next_task(thread_index);
-      if (!task) continue;
-      task->execute(this);
+      thread_task* task = current_scheduler->get_next_task(thread_index);
+      if (task) {
+        task->execute(this);
+      } else {
+        current_scheduler = sleep_scheduler;
+      }
     } catch (...) {
-      scheduler->handle_exception();
+      current_scheduler->handle_exception();
     }
   }
 }
 
 
-void thread_worker::set_scheduler(thread_scheduler* ts) noexcept {
-  scheduler = ts;
+
+//------------------------------------------------------------------------------
+// Worker control via tasks
+//------------------------------------------------------------------------------
+
+void shutdown_thread_task::execute(thread_worker* worker) {
+  worker->current_scheduler = nullptr;
+}
+
+
+void thread_sleep_task::execute(thread_worker* worker) {
+  std::unique_lock<std::mutex> lock(mutex);
+  while (true) {
+    // Wait for the `alarm` condition variable to be notified, but may also
+    // wake up spuriously, in which case we check `sleeping` flag to decide
+    // whether we need to keep waiting or not.
+    alarm.wait(lock);
+    if (next_scheduler) break;
+  }
+  worker->current_scheduler = next_scheduler;
 }
 
 
