@@ -21,8 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
-#include <memory>
 #include <limits>
+#include <memory>
+#include <numeric>
+#include "datatable.h"
 
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
@@ -30,8 +32,28 @@ using uint64ptr = std::unique_ptr<uint64_t[]>;
 using sizetptr = std::unique_ptr<size_t[]>;
 using sizetvec = std::vector<size_t>;
 
-
 void calculate_coprimes(size_t, std::vector<size_t>&);
+
+
+/*
+*  Create list of sorting indexes.
+*/
+template <typename T>
+sizetvec sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+  sizetvec idx(v.size());
+  iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  sort(idx.begin(),
+       idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];}
+      );
+
+  return idx;
+}
+
 
 /*
 *  Sigmoid function.
@@ -51,11 +73,11 @@ inline T identity(T x) {
 }
 
 /*
-* Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
-* where p is a prediction and y is the actual target:
-* - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
-*   to prevent logloss being undefined;
-* - simplify the logloss formula to more compact branchless code.
+*  Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
+*  where p is a prediction and y is the actual target:
+*  - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
+*    to prevent logloss being undefined;
+*  - simplify the logloss formula to more compact branchless code.
 */
 template<typename T>
 inline T log_loss(T p, int8_t y) {
@@ -66,8 +88,8 @@ inline T log_loss(T p, int8_t y) {
 
 
 /*
-* Squared loss, T1 is either float or double,
-* T2 is any other numerical type.
+*  Squared loss, T1 is either float or double,
+*  T2 is any other numerical type.
 */
 template<typename T1, typename T2>
 inline T1 squared_loss(T1 p, T2 y) {
@@ -77,7 +99,7 @@ inline T1 squared_loss(T1 p, T2 y) {
 
 
 /*
-* Progress reporting function and parameters.
+*  Progress reporting function and parameters.
 */
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60

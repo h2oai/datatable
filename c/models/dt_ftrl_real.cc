@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <numeric>                // std::iota
+#include <algorithm>              // std::sort
 #include "models/dt_ftrl_real.h"
 
 
@@ -177,6 +179,7 @@ dtptr FtrlReal<T>::create_y_train() {
 // Do one hot encoding and get a list of all the incoming labels.
   dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
   strvec labels_in = dt_y_nhot->get_names();
+  sizetvec idx = sort_indexes<std::string>(labels_in);
 
   // Create a "_negative" target column.
   colvec cols;

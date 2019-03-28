@@ -26,8 +26,8 @@
 
 
 /*
-* For a given `n` calculate all the coprime numbers and return them
-* as a `coprimes` vector.
+*  For a given `n` calculate all the coprime numbers and return them
+*  as a `coprimes` vector.
 */
 void calculate_coprimes(size_t n, std::vector<size_t>& coprimes) {
   coprimes.clear();
@@ -57,8 +57,8 @@ void calculate_coprimes(size_t n, std::vector<size_t>& coprimes) {
 
 
 /*
-* Print a progress bar if `status_code == 0`, i.e. in-progress;
-* clear the progress bar when `status_code != 0`, i.e. finished.
+*  Print a progress bar if `status_code == 0`, i.e. in-progress;
+*  clear the progress bar when `status_code != 0`, i.e. finished.
 */
 void print_progress(float progress, int status_code) {
   int val = static_cast<int>(progress * 100);
