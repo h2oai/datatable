@@ -90,7 +90,7 @@ def test_join_error_type_mismatch():
     d1.key = "A"
     with pytest.raises(TypeError) as e:
         noop(d0[:, :, join(d1)])
-    assert ("Column `A` of type int8 in the left Frame cannot be joined to "
+    assert ("Column `A` of type int32 in the left Frame cannot be joined to "
             "column `A` of incompatible type str32 in the right Frame"
             in str(e.value))
 
