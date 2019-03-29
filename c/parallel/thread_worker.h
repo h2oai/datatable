@@ -107,7 +107,7 @@ struct thread_sleep_task : public thread_task {
  *
  * When a thread's queue is exhausted and there are no more tasks to do, that
  * worker receives a `nullptr` from `get_next_task()`. At this moment the
- * worker switches back to `thread_sleep_scheduler`, and requests a task. The
+ * worker switches back to `thread_control_scheduler`, and requests a task. The
  * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
  * and a condition variable, and its `.next_scheduler` is null, indicating the
  * sleeping state. This will allow the thread to go safely to sleep, while other
@@ -119,7 +119,7 @@ struct thread_sleep_task : public thread_task {
  * thread ensures that all threads are sleeping again before the next call to
  * `awaken`.
  */
-class thread_sleep_scheduler : public thread_scheduler {
+class thread_control_scheduler : public thread_scheduler {
   private:
     static constexpr size_t N_SLEEP_TASKS = 2;
     thread_sleep_task tsleep[N_SLEEP_TASKS];
@@ -132,7 +132,7 @@ class thread_sleep_scheduler : public thread_scheduler {
   public:
     thread_task* get_next_task(size_t thread_index) override;
 
-    void awaken(thread_scheduler* next);
+    void awaken_and_run(thread_scheduler* job);
 
     // Called from the master thread, this function will block until all the
     // work is finished and all worker threads have been put to sleep. If there
@@ -160,11 +160,11 @@ struct shutdown_thread_task : public thread_task {
 class thread_shutdown_scheduler : public thread_scheduler {
   private:
     size_t n_threads_to_keep;
-    thread_sleep_scheduler* sleep_scheduler;
+    thread_control_scheduler* sleep_scheduler;
     shutdown_thread_task shutdown;
 
   public:
-    thread_shutdown_scheduler(size_t nnew, thread_sleep_scheduler*);
+    thread_shutdown_scheduler(size_t nnew, thread_control_scheduler*);
     thread_task* get_next_task(size_t thread_index) override;
 };
 

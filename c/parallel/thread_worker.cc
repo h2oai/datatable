@@ -94,17 +94,17 @@ void thread_sleep_task::execute(thread_worker* worker) {
 }
 
 
-thread_task* thread_sleep_scheduler::get_next_task(size_t) {
+thread_task* thread_control_scheduler::get_next_task(size_t) {
   return &tsleep[index];
 }
 
 
-void thread_sleep_scheduler::awaken(thread_scheduler* next) {
+void thread_control_scheduler::awaken_and_run(thread_scheduler* job) {
   size_t i = index;
   size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
   {
     std::lock_guard<std::mutex> lock(tsleep[i].mutex);
-    tsleep[i].next_scheduler = next;
+    tsleep[i].next_scheduler = job;
     tsleep[j].next_scheduler = nullptr;
     tsleep[j].n_threads_sleeping = 0;
     index = j;
@@ -115,7 +115,7 @@ void thread_sleep_scheduler::awaken(thread_scheduler* next) {
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
-void thread_sleep_scheduler::join(size_t nthreads) {
+void thread_control_scheduler::join(size_t nthreads) {
   thread_sleep_task& st = tsleep[index];
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
@@ -130,7 +130,7 @@ void thread_sleep_scheduler::join(size_t nthreads) {
 }
 
 
-void thread_sleep_scheduler::pretend_thread_went_to_sleep() {
+void thread_control_scheduler::pretend_thread_went_to_sleep() {
   std::lock_guard<std::mutex> lock(tsleep[index].mutex);
   tsleep[index].n_threads_sleeping++;
 }
@@ -148,7 +148,7 @@ void shutdown_thread_task::execute(thread_worker* worker) {
 
 
 thread_shutdown_scheduler::thread_shutdown_scheduler(
-    size_t nnew, thread_sleep_scheduler* sch)
+    size_t nnew, thread_control_scheduler* sch)
   : n_threads_to_keep(nnew),
     sleep_scheduler(sch) {}
 

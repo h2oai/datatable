@@ -38,22 +38,22 @@ void thread_pool::resize(size_t n) {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
       workers.push_back(
-        make_unique<dt::thread_worker>(i, &sch_sleep));
+        make_unique<dt::thread_worker>(i, &controller));
     }
-    // Wait until all threads are properly alive & safe asleep.
-    sch_sleep.join(n);
+    // Wait until all threads are properly alive & safely asleep
+    controller.join(n);
   }
   else {
-    thread_shutdown_scheduler tss(n, &sch_sleep);
-    execute_job(tss);
+    thread_shutdown_scheduler tss(n, &controller);
+    execute_job(&tss);
     workers.resize(n);
   }
 }
 
 
-void thread_pool::execute_job(thread_scheduler& job) {
-  sch_sleep.awaken(&job);
-  sch_sleep.join(workers.size());
+void thread_pool::execute_job(thread_scheduler* job) {
+  controller.awaken_and_run(job);
+  controller.join(workers.size());
 }
 
 
