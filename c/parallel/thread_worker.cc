@@ -18,6 +18,10 @@
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// thread worker
+//------------------------------------------------------------------------------
+
 /**
  * The worker creates its own thread of execution, and then detaches it. The
  * thread will be executing function `thread_worker::run()` continuously. The
@@ -73,13 +77,8 @@ size_t thread_worker::get_index() const noexcept {
 
 
 //------------------------------------------------------------------------------
-// Worker control via tasks
+// thread sleep scheduler
 //------------------------------------------------------------------------------
-
-void shutdown_thread_task::execute(thread_worker* worker) {
-  worker->current_scheduler = nullptr;
-}
-
 
 void thread_sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
@@ -93,6 +92,75 @@ void thread_sleep_task::execute(thread_worker* worker) {
   worker->current_scheduler = next_scheduler;
   n_threads_sleeping--;
 }
+
+
+thread_task* thread_sleep_scheduler::get_next_task(size_t) {
+  return &tsleep[index];
+}
+
+
+void thread_sleep_scheduler::awaken(thread_scheduler* next) {
+  size_t i = index;
+  size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
+  {
+    std::lock_guard<std::mutex> lock(tsleep[i].mutex);
+    tsleep[i].next_scheduler = next;
+    tsleep[j].next_scheduler = nullptr;
+    tsleep[j].n_threads_sleeping = 0;
+    index = j;
+  }
+  // Unlock mutex before awaking all sleeping threads
+  tsleep[i].alarm.notify_all();
+}
+
+
+// Wait until all threads go back to sleep (which would mean the job is done)
+void thread_sleep_scheduler::join(size_t nthreads) {
+  thread_sleep_task& st = tsleep[index];
+  size_t n_sleeping = 0;
+  while (n_sleeping < nthreads) {
+    std::this_thread::yield();
+    std::unique_lock<std::mutex> lock(st.mutex);
+    n_sleeping = st.n_threads_sleeping;
+  }
+
+  if (saved_exception) {
+    std::rethrow_exception(saved_exception);
+  }
+}
+
+
+void thread_sleep_scheduler::pretend_thread_went_to_sleep() {
+  std::lock_guard<std::mutex> lock(tsleep[index].mutex);
+  tsleep[index].n_threads_sleeping++;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// thread shutdown scheduler
+//------------------------------------------------------------------------------
+
+void shutdown_thread_task::execute(thread_worker* worker) {
+  worker->current_scheduler = nullptr;
+}
+
+
+thread_shutdown_scheduler::thread_shutdown_scheduler(
+    size_t nnew, thread_sleep_scheduler* sch)
+  : n_threads_to_keep(nnew),
+    sleep_scheduler(sch) {}
+
+
+thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
+  if (thread_index < n_threads_to_keep) {
+    return nullptr;  // thread goes back to sleep
+  }
+  sleep_scheduler->pretend_thread_went_to_sleep();
+  return &shutdown;
+}
+
 
 
 }  // namespace dt
