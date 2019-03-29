@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_SCHEDULER_h
 #define dt_PARALLEL_THREAD_SCHEDULER_h
+#include <atomic>      // std::atomic
 #include <memory>      // std::unique_ptr
 #include <vector>      // std::vector
 #include "parallel/thread_worker.h"
@@ -30,7 +31,7 @@ using std::size_t;
 //------------------------------------------------------------------------------
 
 class thread_scheduler {
-  private:
+  protected:
     std::mutex mtx;
     std::exception_ptr saved_exception;
 
@@ -38,12 +39,6 @@ class thread_scheduler {
     //--------------------------------------------------------------------------
     // Public API
     //--------------------------------------------------------------------------
-
-    // Called from the master thread, this function will block until all the
-    // work is finished and all worker threads have been put to sleep. If there
-    // was an exception during execution of any of the tasks, this exception
-    // will be rethrown here (but only after all workers were put to sleep).
-    void join();
 
     // Called from worker threads, within the `catch(...){ }` block, this method
     // is used to signal that an exception have occurred. The method will save
@@ -64,11 +59,6 @@ class thread_scheduler {
     // `get_next_task()` by the thread with the same index.
     virtual thread_task* get_next_task(size_t thread_index) = 0;
 
-    // Invoked by `join()`, this function should wait and return only when all
-    // scheduled tasks were completed. At the end of this function all worker
-    // threads must be on the "sleep" schedule.
-    virtual void wait_until_finish() = 0;
-
     // Invoked by `handle_exception()` (and therefore on a worker thread), this
     // method should cancel all pending tasks, or as many as feasible, since
     // their results will not be needed. This call is not supposed to be
@@ -76,25 +66,6 @@ class thread_scheduler {
     // continue being executed), which is allowed but sub-optimal.
     virtual void abort_execution();
 };
-
-
-
-//------------------------------------------------------------------------------
-// thread shutdown scheduler
-//------------------------------------------------------------------------------
-
-class thread_shutdown_scheduler : public thread_scheduler {
-  private:
-    size_t n_threads_to_keep;
-    std::atomic<size_t> n_threads_to_kill;
-    shutdown_thread_task shutdown;
-
-  public:
-    void init(size_t nnew, size_t nold);
-    thread_task* get_next_task(size_t thread_index) override;
-    void wait_until_finish() override;
-};
-
 
 
 
@@ -111,6 +82,10 @@ class thread_shutdown_scheduler : public thread_scheduler {
  * it contains a mutex, and a condition variable. In this state the workers are
  * simply waiting, though they may occasionally be woken by the operating system
  * to check whether `tsleep[0].next_scheduler` became non-null.
+ *
+ * More precisely, a thread is considered to be asleep if its scheduler is this
+ * class, and if the thread already requested a sleep task from this scheduler
+ * and started executing that sleep task.
  *
  * When master thread calls `awaken` (and only the master thread is allowed to
  * do so), we do the following:
@@ -149,9 +124,39 @@ class thread_sleep_scheduler : public thread_scheduler {
 
   public:
     thread_task* get_next_task(size_t thread_index) override;
-    void wait_until_finish() override;
-    void awaken(thread_scheduler*);
+
+    void awaken(thread_scheduler* next);
+
+    // Called from the master thread, this function will block until all the
+    // work is finished and all worker threads have been put to sleep. If there
+    // was an exception during execution of any of the tasks, this exception
+    // will be rethrown here (but only after all workers were put to sleep).
+    void join(size_t nthreads);
+
+  private:
+    friend class thread_shutdown_scheduler;
+    void pretend_thread_went_to_sleep();
 };
+
+
+
+
+//------------------------------------------------------------------------------
+// thread shutdown scheduler
+//------------------------------------------------------------------------------
+
+class thread_shutdown_scheduler : public thread_scheduler {
+  private:
+    size_t n_threads_to_keep;
+    std::atomic<size_t> n_threads_to_kill;
+    shutdown_thread_task shutdown;
+    thread_sleep_scheduler* sleep_scheduler;
+
+  public:
+    void init(size_t nnew, size_t nold, thread_sleep_scheduler*);
+    thread_task* get_next_task(size_t thread_index) override;
+};
+
 
 
 
@@ -162,15 +167,11 @@ class thread_sleep_scheduler : public thread_scheduler {
 class once_scheduler : public thread_scheduler {
   private:
     std::vector<cache_aligned<size_t>> done;
-    std::atomic<int> num_working_threads;
-    int : 32;
     thread_task* task;
 
   public:
     once_scheduler(size_t nthreads, thread_task*);
     thread_task* get_next_task(size_t thread_index) override;
-    void wait_until_finish() override;
-    void abort_execution() override;
 };
 
 

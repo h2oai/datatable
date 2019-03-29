@@ -17,12 +17,16 @@
 #include "parallel/thread_worker.h"
 namespace dt {
 
+thread_task::~thread_task() {}
+
+
 
 simple_task::simple_task(function<void(size_t)> f_) : f(f_) {}
 
 void simple_task::execute(thread_worker* worker) {
   f(worker->get_index());
 }
+
 
 
 } // namespace dt

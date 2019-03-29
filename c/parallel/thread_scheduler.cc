@@ -23,17 +23,8 @@
 namespace dt {
 
 
-thread_task::~thread_task() {}
 
 thread_scheduler::~thread_scheduler() {}
-
-
-void thread_scheduler::join() {
-  wait_until_finish();
-  if (saved_exception) {
-    std::rethrow_exception(saved_exception);
-  }
-}
 
 
 void thread_scheduler::handle_exception() noexcept {
@@ -58,10 +49,13 @@ void thread_scheduler::abort_execution() {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-void thread_shutdown_scheduler::init(size_t nnew, size_t nold) {
+void thread_shutdown_scheduler::init(
+    size_t nnew, size_t nold, thread_sleep_scheduler* sch)
+{
   xassert(nold > nnew);
   n_threads_to_keep = nnew;
   n_threads_to_kill = nold - nnew;
+  sleep_scheduler = sch;
 }
 
 
@@ -70,13 +64,8 @@ thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
     return nullptr;  // thread goes back to sleep
   }
   n_threads_to_kill--;
+  sleep_scheduler->pretend_thread_went_to_sleep();
   return &shutdown;
-}
-
-
-void thread_shutdown_scheduler::wait_until_finish() {
-  while (n_threads_to_kill)
-    std::this_thread::yield();
 }
 
 
@@ -90,9 +79,6 @@ thread_task* thread_sleep_scheduler::get_next_task(size_t) {
   return &tsleep[index];
 }
 
-void thread_sleep_scheduler::wait_until_finish() {
-  // This is the only non-joinable task. Don't do anything here.
-}
 
 void thread_sleep_scheduler::awaken(thread_scheduler* next) {
   size_t i = index;
@@ -101,9 +87,33 @@ void thread_sleep_scheduler::awaken(thread_scheduler* next) {
     std::lock_guard<std::mutex> lock(tsleep[i].mutex);
     tsleep[i].next_scheduler = next;
     tsleep[j].next_scheduler = nullptr;
+    tsleep[j].n_threads_sleeping = 0;
     index = j;
-  }  // Unlock mutex before awaking all sleeping threads
+  }
+  // Unlock mutex before awaking all sleeping threads
   tsleep[i].alarm.notify_all();
+}
+
+
+// Wait until all threads go back to sleep (which would mean the job is done)
+void thread_sleep_scheduler::join(size_t nthreads) {
+  thread_sleep_task& st = tsleep[index];
+  size_t n_sleeping = 0;
+  while (n_sleeping < nthreads) {
+    std::this_thread::yield();
+    std::unique_lock<std::mutex> lock(st.mutex);
+    n_sleeping = st.n_threads_sleeping;
+  }
+
+  if (saved_exception) {
+    std::rethrow_exception(saved_exception);
+  }
+}
+
+
+void thread_sleep_scheduler::pretend_thread_went_to_sleep() {
+  std::lock_guard<std::mutex> lock(tsleep[index].mutex);
+  tsleep[index].n_threads_sleeping++;
 }
 
 
@@ -115,32 +125,17 @@ void thread_sleep_scheduler::awaken(thread_scheduler* next) {
 
 once_scheduler::once_scheduler(size_t nth, thread_task* task_)
   : done(nth, 0),
-    num_working_threads(static_cast<int>(nth)),
     task(task_) {}
 
 
 thread_task* once_scheduler::get_next_task(size_t i) {
   if (done[i].v) {
-    num_working_threads--;
     return nullptr;
-  } else {
-    done[i].v = 1;
-    return task;
   }
+  done[i].v = 1;
+  return task;
 }
 
-
-void once_scheduler::wait_until_finish() {
-  // num_working_threads could become < 0 if one thread aborts execution, and
-  // other thread(s) finish their task(s) at the same time.
-  while (num_working_threads > 0)
-    std::this_thread::yield();
-}
-
-
-void once_scheduler::abort_execution() {
-  num_working_threads = 0;
-}
 
 
 

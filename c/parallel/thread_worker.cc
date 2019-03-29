@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <thread>   // std::thread
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
 namespace dt {
@@ -30,9 +29,15 @@ thread_worker::thread_worker(size_t i, thread_scheduler* ts)
     current_scheduler(ts),
     sleep_scheduler(ts)
 {
-  std::thread t(&thread_worker::run, this);
-  t.detach();
+  // Create actual execution thread only when `this` is fully initialized
+  thread = std::thread(&thread_worker::run, this);
 }
+
+
+thread_worker::~thread_worker() {
+  if (thread.joinable()) thread.join();
+}
+
 
 
 /**
@@ -78,6 +83,7 @@ void shutdown_thread_task::execute(thread_worker* worker) {
 
 void thread_sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
+  n_threads_sleeping++;
   while (!next_scheduler) {
     // Wait for the `alarm` condition variable to be notified, but may also
     // wake up spuriously, in which case we check `next_scheduler` to decide
@@ -85,6 +91,7 @@ void thread_sleep_task::execute(thread_worker* worker) {
     alarm.wait(lock);
   }
   worker->current_scheduler = next_scheduler;
+  n_threads_sleeping--;
 }
 
 

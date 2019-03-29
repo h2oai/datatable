@@ -14,7 +14,8 @@
 #ifndef dt_UTILS_FUNCTION_h
 #define dt_UTILS_FUNCTION_h
 #include <cstdint>      // intptr_t
-#include <type_traits>
+#include <type_traits>  // std::is_same, std::enable_if, std::remove_reference
+#include <utility>      // std::forward
 namespace dt {
 
 

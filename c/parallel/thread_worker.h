@@ -15,9 +15,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
+#include <atomic>               // std::atomic
 #include <condition_variable>   // std::condition_variable
 #include <cstddef>              // std::size_t
 #include <mutex>                // std::mutex
+#include <thread>               // std::thread
 #include "parallel/thread_task.h"
 namespace dt {
 using std::size_t;
@@ -44,13 +46,15 @@ class thread_worker {
 
   private:
     const size_t thread_index;
+    std::thread  thread;
     thread_scheduler* current_scheduler;
     thread_scheduler* sleep_scheduler;
 
   public:
     thread_worker(size_t i, thread_scheduler* ts);
-    thread_worker(const thread_worker&) = default;
-    thread_worker(thread_worker&&) = default;
+    thread_worker(const thread_worker&) = delete;
+    thread_worker(thread_worker&&) = delete;
+    ~thread_worker();
 
     void run() noexcept;
     size_t get_index() const noexcept;
@@ -64,10 +68,12 @@ struct shutdown_thread_task : public thread_task {
 };
 
 
+// See description in `thread_sleep_scheduler` class.
 struct thread_sleep_task : public thread_task {
   std::mutex mutex;
   std::condition_variable alarm;
   thread_scheduler* next_scheduler = nullptr;
+  size_t n_threads_sleeping = 0;
 
   void execute(thread_worker* worker) override;
 };
