@@ -596,12 +596,25 @@ void FtrlReal<T>::adjust_model() {
     cols[i] = dt_model->columns[i]->shallowcopy();
   }
 
-  colptr col = std::unique_ptr<Column>(new RealColumn<T>(nbins));
-  auto data = static_cast<T*>(col->data_w());
-  std::memset(data, 0, nbins * sizeof(T));
+  colvec cols_new(2);
+  colptr col;
+  // If we have a negative class, then all the new classes
+  // get a copy of its weights to start learning from.
+  // Otherwise, new classes start learning from zero weights.
+  if (params.negative_class) {
+    cols_new[0] = dt_model->columns[0];
+    cols_new[1] = dt_model->columns[1];
+  } else {
+    col = std::unique_ptr<Column>(new RealColumn<T>(nbins));
+    auto data = static_cast<T*>(col->data_w());
+    std::memset(data, 0, nbins * sizeof(T));
+    cols_new[0] = col.get();
+    cols_new[1] = col.get();
+  }
 
-  for (size_t i = ncols_model; i < ncols_model_new; ++i) {
-    cols[i] = col->shallowcopy();
+  for (size_t i = ncols_model; i < ncols_model_new; i+=2) {
+    cols[i] = cols_new[0]->shallowcopy();
+    cols[i + 1] = cols_new[1]->shallowcopy();
   }
 
   dt_model = dtptr(new DataTable(std::move(cols)));
