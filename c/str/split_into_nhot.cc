@@ -166,7 +166,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
 
   oem.rethrow_exception_if_any();
 
-  // Re-order columns, so that column names go in alphabetic order.
+  // Re-order columns, so that column names go in alphabetical order.
   if (sort) {
     size_t ncols = outcols.size();
     std::vector<std::string> outnames_sorted(ncols);
