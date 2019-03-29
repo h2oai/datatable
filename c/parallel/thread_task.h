@@ -17,6 +17,7 @@
 #define dt_PARALLEL_THREAD_TASK_h
 #include "utils/function.h"
 namespace dt {
+using std::size_t;
 
 // forward-declare
 class thread_worker;

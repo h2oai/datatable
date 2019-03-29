@@ -119,8 +119,13 @@ class thread_scheduler {
  */
 class thread_sleep_scheduler : public thread_scheduler {
   private:
-    thread_sleep_task tsleep[2];
-    size_t index = 0;  // switches between 0 or 1
+    static constexpr size_t N_SLEEP_TASKS = 2;
+    thread_sleep_task tsleep[N_SLEEP_TASKS];
+    // Index within array `tsleep` indicating which sleep task is "current";
+    // where "current" means that all sleeping threads are waiting on the
+    // condition variable within that task, and its `n_sleeping_threads` holds
+    // the total count of workers that are currently sleeping.
+    size_t index = 0;
 
   public:
     thread_task* get_next_task(size_t thread_index) override;

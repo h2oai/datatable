@@ -82,7 +82,7 @@ thread_task* thread_sleep_scheduler::get_next_task(size_t) {
 
 void thread_sleep_scheduler::awaken(thread_scheduler* next) {
   size_t i = index;
-  size_t j = (i + 1) & 1;
+  size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
   {
     std::lock_guard<std::mutex> lock(tsleep[i].mutex);
     tsleep[i].next_scheduler = next;

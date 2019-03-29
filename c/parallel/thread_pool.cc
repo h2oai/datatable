@@ -40,6 +40,8 @@ void thread_pool::resize(size_t n) {
       workers.push_back(
         make_unique<dt::thread_worker>(i, &sch_sleep));
     }
+    // Wait until all threads are properly alive & safe asleep.
+    sch_sleep.join(n);
   }
   else {
     sch_shutdown.init(n, workers.size(), &sch_sleep);

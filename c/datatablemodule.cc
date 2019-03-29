@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <iostream>
-#include <thread>
+#include <thread>          // std::this_thread
 #include <unordered_map>
 #include <Python.h>
 #include "../datatable/include/datatable.h"
@@ -147,7 +147,7 @@ static py::oobj has_omp_support(const py::PKArgs&) {
 
 static py::PKArgs args_get_thread_ids(
     0, 0, 0, false, false, {}, "get_thread_ids",
-R"(Return internal ids of all threads used internally by datatable)");
+R"(Return system ids of all threads used internally by datatable)");
 
 static py::oobj get_thread_ids(const py::PKArgs&) {
   std::mutex m;
@@ -157,8 +157,7 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
     std::stringstream ss;
     ss << std::this_thread::get_id();
     std::lock_guard<std::mutex> lock(m);
-    auto pystr = py::ostring(ss.str());
-    list.set(i, pystr);
+    list.set(i, py::ostring(ss.str()));
   });
 
   return std::move(list);
