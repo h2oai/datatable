@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl_real.h"
+#include "utils/macros.h"
 
 
 namespace dt {
@@ -80,7 +81,7 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
     case SType::INT64:   epoch = fit_regression<int64_t>(); break;
     case SType::FLOAT32: epoch = fit_regression<float>(); break;
     case SType::FLOAT64: epoch = fit_regression<double>(); break;
-    case SType::STR32:   [[clang::fallthrough]];
+    case SType::STR32:   FALLTHROUGH;
     case SType::STR64:   epoch = fit_multinomial(); break;
     default:             throw TypeError() << "Targets of type `"
                                            << stype_y << "` are not supported";

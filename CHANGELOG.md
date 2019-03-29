@@ -85,6 +85,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   datatable `bool8` column when pandas DataFrame is converted into a datatable
   Frame (#1730).
 
+- Fixed conversion to numpy of a view Frame which contains NAs (#1738).
+
 
 ### Changed
 
@@ -120,7 +122,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  [arno candel][] (#1619, #1730),
+  [arno candel][] (#1619, #1730, #1738),
   [antorsae][] (#1639),
   [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 

@@ -152,6 +152,7 @@ pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
     case strop::RE_MATCH:
       return pexpr(new expr_string_match_re(std::move(arg), params));
   }
+  return pexpr();  // LCOV_EXCL_LINE
 }
 
 

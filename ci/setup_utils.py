@@ -28,6 +28,7 @@ import sys
 import sysconfig
 import tempfile
 from functools import lru_cache as memoize
+from distutils.errors import DistutilsExecError, CompileError
 
 __all__ = (
     "find_linked_dynamic_libraries",
@@ -264,6 +265,15 @@ def get_rpath():
         return "$ORIGIN/."
 
 
+def print_compiler_version(log, cc):
+    cmd = [cc, "--version"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    stdout = stdout.decode().strip()
+    log.info(" ".join(cmd) + " :")
+    for line in stdout.split("\n"):
+        log.info("  " + line.strip())
+
 
 @memoize()
 def get_compiler():
@@ -273,6 +283,7 @@ def get_compiler():
             if cc:
                 log.info("Using compiler from environment variable `%s`: %s"
                          % (envvar, cc))
+                print_compiler_version(log, cc)
                 return cc
             else:
                 log.info("Environment variable `%s` is not set" % envvar)
@@ -283,6 +294,7 @@ def get_compiler():
                 cc += ".exe"
             if os.path.isfile(cc):
                 log.info("Found Clang compiler %s" % cc)
+                print_compiler_version(log, cc)
                 return cc
             else:
                 log.info("Cannot find Clang compiler at %s" % cc)
@@ -321,6 +333,7 @@ def get_compiler():
                     stderr = stderr.decode().strip()
                     if proc.returncode == 0:
                         log.info("Compiler `%s` will be used" % cc)
+                        print_compiler_version(log, cc)
                         return cc
                     elif omp_enabled() and "-fopenmp" in stderr:
                         log.info("Compiler `%s` does not support OpenMP" % cc)
@@ -341,7 +354,8 @@ def get_compiler():
 
 @memoize()
 def is_gcc():
-    return "gcc" in get_compiler()
+    cc = get_compiler()
+    return ("gcc" in cc or "g++" in cc) and ("clang" not in cc)
 
 @memoize()
 def is_clang():
@@ -705,6 +719,28 @@ def monkey_patch_compiler():
                     log.info("Copying %s -> %s" % (lib, destname))
                     shutil.copyfile(lib, destname)
 
+        def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
+            if cc.__name__ == "UnixCCompiler":
+                compiler_so = self.fixup_compiler(self.compiler_so,
+                                                  cc_args + extra_postargs)
+                try:
+                    self.spawn(compiler_so + cc_args + [src, '-o', obj] +
+                               extra_postargs)
+                except DistutilsExecError as msg:
+                    raise CompileError(msg)
+            else:
+                cc._compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts)
+
+
+        def fixup_compiler(self, compiler_so, cc_args):
+            if ismacos():
+                import _osx_support
+                compiler_so = _osx_support.compiler_fixup(compiler_so, cc_args)
+            for token in ["-Wstrict-prototypes", "-O2"]:
+                if token in compiler_so:
+                    del compiler_so[compiler_so.index(token)]
+            return compiler_so
+
 
         def link(self, *args, **kwargs):
             super().link(*args, **kwargs)
@@ -712,7 +748,8 @@ def monkey_patch_compiler():
             outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
             if outdir is not None:
                 outname = os.path.join(outdir, outname)
-            self.postlink(outname)
+            if ismacos():
+                self.postlink(outname)
 
 
         def postlink(self, outname):

@@ -7,10 +7,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITEBUF_H
 #define dt_WRITEBUF_H
-#include <stdio.h>     // size_t
+#include <memory>      // std::unique_ptr
 #include <string>      // std::string
 #include "utils/file.h"
 #include "utils/shared_mutex.h"
+using std::size_t;
 
 class MemoryRange;
 

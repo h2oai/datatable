@@ -1016,10 +1016,10 @@ void FreadObserver::type_bump_info(
   static const int BUF_SIZE = 1000;
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
-    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %lld",
+    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
-    static_cast<int>(len), field, lineno);
+    static_cast<int>(len), field, static_cast<size_t>(lineno));
   n = std::min(n, BUF_SIZE);
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

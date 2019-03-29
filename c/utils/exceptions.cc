@@ -61,13 +61,13 @@ Error::Error(const Error& other) {
 }
 
 Error::Error(Error&& other) : Error() {
-  swap(*this, other);
-}
-
-void swap(Error& first, Error& second) noexcept {
-  using std::swap;
-  swap(first.error, second.error);
-  swap(first.pycls, second.pycls);
+  #if defined(__GNUC__) && __GNUC__ < 5
+    // In gcc4.8 string stream was not moveable
+    error << other.error.str();
+  #else
+    std::swap(error, other.error);
+  #endif
+  std::swap(pycls, other.pycls);
 }
 
 
