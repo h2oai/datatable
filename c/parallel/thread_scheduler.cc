@@ -111,7 +111,7 @@ void thread_sleep_scheduler::awaken(thread_scheduler* next) {
 
 once_scheduler::once_scheduler(size_t nth, thread_task* task_)
   : done(nth, 0),
-    num_working_threads(static_cast<unsigned int>(nth)),
+    num_working_threads(static_cast<int>(nth)),
     task(task_) {}
 
 
@@ -127,9 +127,17 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 void once_scheduler::wait_until_finish() {
-  while (num_working_threads)
+  // num_working_threads could become < 0 if one thread aborts execution, and
+  // other thread(s) finish their task(s) at the same time.
+  while (num_working_threads > 0)
     std::this_thread::yield();
 }
+
+
+void once_scheduler::abort_execution() {
+  num_working_threads = 0;
+}
+
 
 
 void run_once_per_thread(function<void(size_t)> f) {

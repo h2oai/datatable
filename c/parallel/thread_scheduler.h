@@ -121,7 +121,7 @@ class thread_sleep_scheduler : public thread_scheduler {
 class once_scheduler : public thread_scheduler {
   private:
     std::vector<cache_aligned<size_t>> done;
-    std::atomic<unsigned int> num_working_threads;
+    std::atomic<int> num_working_threads;
     int : 32;
     thread_task* task;
 
@@ -129,6 +129,7 @@ class once_scheduler : public thread_scheduler {
     once_scheduler(size_t nthreads, thread_task*);
     thread_task* get_next_task(size_t thread_index) override;
     void wait_until_finish() override;
+    void abort_execution() override;
 };
 
 
