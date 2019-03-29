@@ -27,12 +27,13 @@ from tests import noop, random_string
 # split_into_nhot
 #-------------------------------------------------------------------------------
 
-def test_split_into_nhot0():
+@pytest.mark.parametrize('sort', [False, True])
+def test_split_into_nhot0(sort):
     f0 = dt.Frame(["cat, dog, mouse, peacock, frog",
                    "armadillo, fox, hedgehog",
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
-    f1 = dt.split_into_nhot(f0)
+    f1 = dt.split_into_nhot(f0, sort = sort)
     frame_integrity_check(f1)
     fr = dt.Frame({"cat":       [1, 0, 1, 1],
                    "dog":       [1, 0, 1, 1],
@@ -45,6 +46,8 @@ def test_split_into_nhot0():
                    "horse":     [0, 0, 0, 1],
                    "raccoon":   [0, 0, 0, 1]})
     assert set(f1.names) == set(fr.names)
+    if sort :
+        assert list(f1.names) == sorted(fr.names)
     fr = fr[:, f1.names]
     assert f1.names == fr.names
     assert f1.stypes == (dt.stype.bool8, ) * f1.ncols

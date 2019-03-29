@@ -39,19 +39,19 @@ void calculate_coprimes(size_t, std::vector<size_t>&);
 *  Create list of sorting indexes.
 */
 template <typename T>
-sizetvec sort_indexes(const std::vector<T> &v) {
+sizetvec sort_index(const std::vector<T> &v) {
 
-  // initialize original index locations
-  sizetvec idx(v.size());
-  iota(idx.begin(), idx.end(), 0);
+  // Initialize original index locations
+  sizetvec index(v.size());
+  iota(index.begin(), index.end(), 0);
 
-  // sort indexes based on comparing values in v
-  sort(idx.begin(),
-       idx.end(),
+  // Sort index based on comparing values in v
+  sort(index.begin(),
+       index.end(),
        [&v](size_t i1, size_t i2) {return v[i1] < v[i2];}
       );
 
-  return idx;
+  return index;
 }
 
 

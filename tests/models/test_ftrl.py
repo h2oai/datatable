@@ -616,9 +616,9 @@ def test_ftrl_fit_predict_multinomial(negative_class_value):
     nepochs = 1000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
               negative_class = negative_class_value)
-    labels = ["red", "green", "blue"]
+    labels = ("blue", "green", "red")
     if negative_class_value:
-      labels += ["_negative"]
+      labels = ("_negative",) + labels
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
@@ -644,7 +644,7 @@ def test_ftrl_fit_predict_multinomial(negative_class_value):
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert collections.Counter(p.names) == collections.Counter(labels)
+    assert p.names == labels
 
 
 @pytest.mark.parametrize('negative_class_value', [False, True])
@@ -706,7 +706,7 @@ def test_ftrl_fit_predict_multinomial_online(negative_class_value):
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert collections.Counter(p.names) == collections.Counter(labels)
+    assert list(p.names) == labels
 
 
 
@@ -798,7 +798,7 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
     nepochs = 2000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
               negative_class = negative_class_value)
-    labels = ["green", "red", "blue"]
+    labels = ["blue", "green", "red"]
     if negative_class_value:
       labels = ["_negative"] + labels
 
@@ -828,7 +828,7 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert collections.Counter(p.names) == collections.Counter(labels)
+    assert list(p.names) == labels
 
 
 #-------------------------------------------------------------------------------

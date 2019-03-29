@@ -19,8 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <numeric>                // std::iota
-#include <algorithm>              // std::sort
 #include "models/dt_ftrl_real.h"
 
 
@@ -179,9 +177,9 @@ double FtrlReal<T>::fit_multinomial() {
 template <typename T>
 dtptr FtrlReal<T>::create_y_train() {
 // Do one hot encoding and get a list of all the incoming labels.
-  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
+  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], ',', true));
+
   strvec labels_in = dt_y_nhot->get_names();
-  sizetvec idx = sort_indexes<std::string>(labels_in);
 
   colvec cols;
   cols.reserve(labels.size());
@@ -247,7 +245,7 @@ dtptr FtrlReal<T>::create_y_val() {
   xassert(dt_X_val != nullptr && dt_y_val != nullptr)
   xassert(dt_X_val->nrows == dt_y_val->nrows)
 
-  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], ','));
   const strvec& labels_val = dt_y_val_nhot->get_names();
   xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
   colvec cols;

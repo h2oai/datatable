@@ -21,6 +21,7 @@
 #include "utils/exceptions.h"
 #include "utils/parallel.h"
 #include "utils/shared_mutex.h"
+#include "models/utils.h"
 
 namespace dt {
 
@@ -73,7 +74,7 @@ static void tokenize_string(
 
 
 
-DataTable* split_into_nhot(Column* col, char sep) {
+DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   bool is32 = (col->stype() == SType::STR32);
   xassert(is32 || (col->stype() == SType::STR64));
   const uint32_t* offsets32 = nullptr;
@@ -164,6 +165,21 @@ DataTable* split_into_nhot(Column* col, char sep) {
   }  // end of #pragma omp parallel
 
   oem.rethrow_exception_if_any();
+
+  // Re-order columns, so that column names go in alphabetic order.
+  if (sort) {
+    size_t ncols = outcols.size();
+    std::vector<std::string> outnames_sorted(ncols);
+    std::vector<Column*> outcols_sorted(ncols);
+    std::vector<size_t> colindex = sort_index<std::string>(outnames);
+    for (size_t i = 0; i < outnames.size(); ++i) {
+      size_t j = colindex[i];
+      outnames_sorted[i] = outnames[j];
+      outcols_sorted[i] = outcols[j];
+    }
+    outcols = outcols_sorted;
+    outnames = outnames_sorted;
+  }
 
   return new DataTable(std::move(outcols), std::move(outnames));
 }
