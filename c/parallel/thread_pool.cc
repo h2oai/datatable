@@ -16,6 +16,7 @@
 #include <thread>    // std::thread::hardware_concurrency
 #include "parallel/thread_pool.h"
 #include "parallel/thread_worker.h"
+#include "utils/c+++.h"
 namespace dt {
 
 
@@ -36,7 +37,8 @@ void thread_pool::resize(size_t n) {
   if (workers.size() < n) {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
-      workers.emplace_back(i, &sch_sleep);
+      workers.push_back(
+        make_unique<dt::thread_worker>(i, &sch_sleep));
     }
   }
   else {

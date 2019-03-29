@@ -31,13 +31,14 @@ template<typename TReturn, typename ...TArgs>
 class function<TReturn(TArgs...)>
 {
   private:
-    using callback_t = TReturn (*)(intptr_t, TArgs...);
+    using fptr = void*;
+    using callback_t = TReturn (*)(fptr, TArgs...);
 
     callback_t _callback = nullptr;
-    intptr_t _callable;
+    fptr _callable;
 
     template<typename F>
-    static TReturn callback_fn(intptr_t callable, TArgs ...params) {
+    static TReturn callback_fn(fptr callable, TArgs ...params) {
       return (*reinterpret_cast<F*>(callable))(
           std::forward<TArgs>(params)...);
     }
@@ -51,7 +52,7 @@ class function<TReturn(TArgs...)>
                                    function>::value>::type>
     function(F&& callable) noexcept
         : _callback(callback_fn<typename std::remove_reference<F>::type>),
-          _callable(reinterpret_cast<intptr_t>(&callable)) {}
+          _callable(reinterpret_cast<fptr>(&callable)) {}
 
     TReturn operator()(TArgs ...params) const {
       return _callback(_callable, std::forward<TArgs>(params)...);

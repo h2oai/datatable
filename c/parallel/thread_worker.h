@@ -48,7 +48,6 @@ class thread_worker {
     thread_scheduler* sleep_scheduler;
 
   public:
-    thread_worker();
     thread_worker(size_t i, thread_scheduler* ts);
     thread_worker(const thread_worker&) = default;
     thread_worker(thread_worker&&) = default;

@@ -19,11 +19,6 @@
 namespace dt {
 
 
-// This constructor is not used. But without it `std::vector<thread_worker>`
-// cannot be resized.
-thread_worker::thread_worker() : thread_index(0) {}
-
-
 /**
  * The worker creates its own thread of execution, and then detaches it. The
  * thread will be executing function `thread_worker::run()` continuously. The

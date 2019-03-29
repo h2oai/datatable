@@ -50,7 +50,10 @@ class thread_pool {
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long
     // as their corresponding threads are running.
-    std::vector<thread_worker> workers;
+    // Also, use pointers here instead of `thread_worker` objects, so that
+    // the pointers to each worker remain constant when the vector resizes
+    // (these pointers are stored within each thread).
+    std::vector<std::unique_ptr<thread_worker>> workers;
 
     // Schedulers used for thread pool management.
     thread_sleep_scheduler    sch_sleep;
