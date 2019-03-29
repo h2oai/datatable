@@ -25,6 +25,7 @@ from .lib._datatable import (
     frame_column_data_r,
     frame_column_rowindex,
     frame_integrity_check,
+    get_thread_ids,
     has_omp_support,
     in_debug_mode,
     RowIndex
@@ -34,6 +35,7 @@ __all__ = [
     "frame_column_data_r",
     "frame_column_rowindex",
     "frame_integrity_check",
+    "get_thread_ids",
     "has_omp_support",
     "in_debug_mode",
     "RowIndex",
