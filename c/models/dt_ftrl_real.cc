@@ -298,8 +298,9 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
   bool validation = !std::isnan(nepochs_val);
-  T loss_global = 0;
-  T loss_global_prev = 0;
+  T loss = 0;
+  T loss_old = 0;
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
@@ -386,21 +387,19 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             }
           }
           #pragma omp atomic
-          loss_global += loss_local;
+          loss += loss_local;
         },
         dt_X_val->nrows
       );
 
-      T loss_diff = (loss_global_prev - loss_global) / loss_global_prev;
-      constexpr T epsilon = std::numeric_limits<T>::epsilon();
       // If loss do not decrease, do early stopping.
-      if (c && (loss_global < epsilon || loss_diff < val_error)) {
-        loss_global /= dt_X_val->nrows * dt_y_val->ncols;
-        break;
-      }
+      T logloss = loss / dt_X_val->nrows * dt_y_val->ncols;
+      T loss_diff = (loss_old - loss) / loss_old;
+      if (c && (loss < epsilon || loss_diff < val_error)) break;
+
       // If loss decreases, save current loss and continue training.
-      loss_global_prev = loss_global;
-      loss_global = 0;
+      loss_old = loss;
+      loss = 0;
     }
   }
   double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
