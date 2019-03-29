@@ -39,8 +39,8 @@ using std::size_t;
  * The thread stops running when `scheduler` becomes nullptr.
  */
 class thread_worker {
-  friend struct shutdown_thread_task;
-  friend struct thread_sleep_task;
+  friend class thread_shutdown_scheduler;
+  friend class worker_controller;
 
   private:
     const size_t thread_index;
@@ -62,18 +62,8 @@ class thread_worker {
 
 
 //------------------------------------------------------------------------------
-// thread sleep scheduler
+// thread controller (scheduler)
 //------------------------------------------------------------------------------
-
-struct thread_sleep_task : public thread_task {
-  std::mutex mutex;
-  std::condition_variable alarm;
-  thread_scheduler* next_scheduler = nullptr;
-  size_t n_threads_sleeping = 0;
-
-  void execute(thread_worker* worker) override;
-};
-
 
 /**
  * This class handles putting to sleep/awaking of workers in a thread pool.
@@ -107,7 +97,7 @@ struct thread_sleep_task : public thread_task {
  *
  * When a thread's queue is exhausted and there are no more tasks to do, that
  * worker receives a `nullptr` from `get_next_task()`. At this moment the
- * worker switches back to `thread_control_scheduler`, and requests a task. The
+ * worker switches back to `worker_controller`, and requests a task. The
  * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
  * and a condition variable, and its `.next_scheduler` is null, indicating the
  * sleeping state. This will allow the thread to go safely to sleep, while other
@@ -119,8 +109,17 @@ struct thread_sleep_task : public thread_task {
  * thread ensures that all threads are sleeping again before the next call to
  * `awaken`.
  */
-class thread_control_scheduler : public thread_scheduler {
+class worker_controller : public thread_scheduler {
   private:
+    struct thread_sleep_task : public thread_task {
+      std::mutex mutex;
+      std::condition_variable alarm;
+      thread_scheduler* next_scheduler = nullptr;
+      size_t n_threads_sleeping = 0;
+
+      void execute(thread_worker* worker) override;
+    };
+
     static constexpr size_t N_SLEEP_TASKS = 2;
     thread_sleep_task tsleep[N_SLEEP_TASKS];
     // Index within array `tsleep` indicating which sleep task is "current";
@@ -132,6 +131,9 @@ class thread_control_scheduler : public thread_scheduler {
   public:
     thread_task* get_next_task(size_t thread_index) override;
 
+    // Called from the master thread, this function will awaken all threads
+    // in the thread pool, and give them `job` to execute.
+    // Precondition: that all threads in the pool are currently sleeping.
     void awaken_and_run(thread_scheduler* job);
 
     // Called from the master thread, this function will block until all the
@@ -141,8 +143,10 @@ class thread_control_scheduler : public thread_scheduler {
     void join(size_t nthreads);
 
   private:
-    friend class thread_shutdown_scheduler;
+    // Helper for thread_shutdown_scheduler: mark the current thread as if it
+    // went to sleep, whereas in reality it shut down.
     void pretend_thread_went_to_sleep();
+    friend class thread_shutdown_scheduler;
 };
 
 
@@ -152,19 +156,18 @@ class thread_control_scheduler : public thread_scheduler {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-struct shutdown_thread_task : public thread_task {
-  void execute(thread_worker* worker) override;
-};
-
-
 class thread_shutdown_scheduler : public thread_scheduler {
   private:
+    struct shutdown_task : public thread_task {
+      void execute(thread_worker* worker) override;
+    };
+
     size_t n_threads_to_keep;
-    thread_control_scheduler* sleep_scheduler;
-    shutdown_thread_task shutdown;
+    worker_controller* sleep_scheduler;
+    shutdown_task shutdown;
 
   public:
-    thread_shutdown_scheduler(size_t nnew, thread_control_scheduler*);
+    thread_shutdown_scheduler(size_t nnew, worker_controller*);
     thread_task* get_next_task(size_t thread_index) override;
 };
 

@@ -32,8 +32,8 @@ using std::size_t;
  * `set_number_of_threads()`.
  *
  * Normally, the thread pool is in the "sleeping" state. This means all workers
- * are idling, consuming sleep tasks from the `thread_control_scheduler`
- * (see documentation of `thread_control_scheduler` for more details).
+ * are idling, consuming sleep tasks from the `worker_controller`
+ * (see documentation of `worker_controller` for more details).
  *
  * However, once a user requests `execute_job()`, the threads are awaken and
  * use the supplied scheduler to perform the job. The method `execute_job()` is
@@ -56,8 +56,8 @@ class thread_pool {
     // (these pointers are stored within each thread).
     std::vector<std::unique_ptr<thread_worker>> workers;
 
-    // Scheduler used to manage sleep/awake cycle of the pool.
-    thread_control_scheduler controller;
+    // Scheduler used to manage sleep/awake cycle of the threads in the pool.
+    worker_controller controller;
 
   public:
     thread_pool();
