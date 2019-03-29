@@ -153,12 +153,11 @@ class thread_sleep_scheduler : public thread_scheduler {
 class thread_shutdown_scheduler : public thread_scheduler {
   private:
     size_t n_threads_to_keep;
-    std::atomic<size_t> n_threads_to_kill;
-    shutdown_thread_task shutdown;
     thread_sleep_scheduler* sleep_scheduler;
+    shutdown_thread_task shutdown;
 
   public:
-    void init(size_t nnew, size_t nold, thread_sleep_scheduler*);
+    thread_shutdown_scheduler(size_t nnew, thread_sleep_scheduler*);
     thread_task* get_next_task(size_t thread_index) override;
 };
 

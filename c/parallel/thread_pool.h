@@ -56,9 +56,8 @@ class thread_pool {
     // (these pointers are stored within each thread).
     std::vector<std::unique_ptr<thread_worker>> workers;
 
-    // Schedulers used for thread pool management.
-    thread_sleep_scheduler    sch_sleep;
-    thread_shutdown_scheduler sch_shutdown;
+    // Sleep scheduler used to manage sleep/awake cycle of the pool.
+    thread_sleep_scheduler sch_sleep;
 
   public:
     thread_pool();

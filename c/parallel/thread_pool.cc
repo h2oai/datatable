@@ -44,8 +44,8 @@ void thread_pool::resize(size_t n) {
     sch_sleep.join(n);
   }
   else {
-    sch_shutdown.init(n, workers.size(), &sch_sleep);
-    execute_job(sch_shutdown);
+    thread_shutdown_scheduler tss(n, &sch_sleep);
+    execute_job(tss);
     workers.resize(n);
   }
 }

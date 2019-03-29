@@ -49,21 +49,16 @@ void thread_scheduler::abort_execution() {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-void thread_shutdown_scheduler::init(
-    size_t nnew, size_t nold, thread_sleep_scheduler* sch)
-{
-  xassert(nold > nnew);
-  n_threads_to_keep = nnew;
-  n_threads_to_kill = nold - nnew;
-  sleep_scheduler = sch;
-}
+thread_shutdown_scheduler::thread_shutdown_scheduler(
+    size_t nnew, thread_sleep_scheduler* sch)
+  : n_threads_to_keep(nnew),
+    sleep_scheduler(sch) {}
 
 
 thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
   if (thread_index < n_threads_to_keep) {
     return nullptr;  // thread goes back to sleep
   }
-  n_threads_to_kill--;
   sleep_scheduler->pretend_thread_went_to_sleep();
   return &shutdown;
 }
