@@ -50,7 +50,7 @@ void run_parallel(rangefn run, size_t nrows)
     {
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
-      size_t nchunks = std::min(static_cast<size_t>(nth0),
+      size_t nchunks = std::min(static_cast<size_t>(nth),
                                 nrows / min_nrows_per_chunk);  // >= 1
       size_t chunksize = nrows / nchunks;
 
