@@ -102,9 +102,50 @@ class thread_shutdown_scheduler : public thread_scheduler {
 // thread sleep scheduler
 //------------------------------------------------------------------------------
 
+/**
+ * This class handles putting to sleep/awaking of workers in a thread pool.
+ * A single instance of this class exists in `thread_pool`.
+ *
+ * Initially all workers in a thread pool are in the "idle" state, running the
+ * sleep task returned by this scheduler. This sleep task is `tsleep[0]`, and
+ * it contains a mutex, and a condition variable. In this state the workers are
+ * simply waiting, though they may occasionally be woken by the operating system
+ * to check whether `tsleep[0].next_scheduler` became non-null.
+ *
+ * When master thread calls `awaken` (and only the master thread is allowed to
+ * do so), we do the following:
+ *   - lock `tsleep[0].mutex` (at this point no thread can awaken, even
+ *     spuriously, because they would need to acquire lock on the same mutex as
+ *     they wake up);
+ *   - set `tsleep[0].next_scheduler` to the job that needs to be executed;
+ *   - set `tsleep[1].next_scheduler` to nullptr;
+ *   - change `index` from 0 to 1;
+ *   - unlock the mutex and notify all threads waiting on `tsleep[0].alarm`.
+ *
+ * As the threads awaken, they check their task's `next_scheduler` property, see
+ * that it is now not-null, they will switch to that scheduler and finish their
+ * current sleep task. Note that it may take some time for OS to notify and
+ * awaken all the threads; some threads may already finish their new task by the
+ * time the last thread in the team gets up.
+ *
+ * When a thread's queue is exhausted and there are no more tasks to do, that
+ * worker receives a `nullptr` from `get_next_task()`. At this moment the
+ * worker switches back to `thread_sleep_scheduler`, and requests a task. The
+ * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
+ * and a condition variable, and its `.next_scheduler` is null, indicating the
+ * sleeping state. This will allow the thread to go safely to sleep, while other
+ * threads might still be waking up from the initial sleep.
+ *
+ * The master thread that called `awaken(job)` will then call `job.join()`,
+ * and it is the responsibility of thread_scheduler `job` to wait until all
+ * threads have finished execution and were put back to sleep. Thus, the master
+ * thread ensures that all threads are sleeping again before the next call to
+ * `awaken`.
+ */
 class thread_sleep_scheduler : public thread_scheduler {
   private:
-    thread_sleep_task sleep;
+    thread_sleep_task tsleep[2];
+    size_t index = 0;  // switches between 0 or 1
 
   public:
     thread_task* get_next_task(size_t thread_index) override;

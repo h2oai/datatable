@@ -87,7 +87,7 @@ void thread_shutdown_scheduler::wait_until_finish() {
 //------------------------------------------------------------------------------
 
 thread_task* thread_sleep_scheduler::get_next_task(size_t) {
-  return &sleep;
+  return &tsleep[index];
 }
 
 void thread_sleep_scheduler::wait_until_finish() {
@@ -95,11 +95,15 @@ void thread_sleep_scheduler::wait_until_finish() {
 }
 
 void thread_sleep_scheduler::awaken(thread_scheduler* next) {
+  size_t i = index;
+  size_t j = (i + 1) & 1;
   {
-    std::lock_guard<std::mutex> lock(sleep.mutex);
-    sleep.next_scheduler = next;
-  }  // Unlock `mutex` before awaking all sleeping threads
-  sleep.alarm.notify_all();
+    std::lock_guard<std::mutex> lock(tsleep[i].mutex);
+    tsleep[i].next_scheduler = next;
+    tsleep[j].next_scheduler = nullptr;
+    index = j;
+  }  // Unlock mutex before awaking all sleeping threads
+  tsleep[i].alarm.notify_all();
 }
 
 

@@ -32,7 +32,8 @@ using std::size_t;
  * `set_number_of_threads()`.
  *
  * Normally, the thread pool is in the "sleeping" state. This means all workers
- * are idling, consuming `thread_sleep_task`s from the `thread_sleep_scheduler`.
+ * are idling, consuming `thread_sleep_task`s from the `thread_sleep_scheduler`
+ * (see documentation of `thread_sleep_scheduler` for more details).
  *
  * However, once a user requests `execute_job()`, the threads are awaken and
  * use the supplied scheduler to perform the job. The method `execute_job()` is
@@ -62,6 +63,7 @@ class thread_pool {
   public:
     thread_pool();
     thread_pool(const thread_pool&) = delete;
+    // Cannot move: threads hold pointers to this->sch_sleep.
     thread_pool(thread_pool&&) = delete;
     ~thread_pool();
 

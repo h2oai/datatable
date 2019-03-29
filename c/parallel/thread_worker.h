@@ -67,7 +67,7 @@ struct shutdown_thread_task : public thread_task {
 struct thread_sleep_task : public thread_task {
   std::mutex mutex;
   std::condition_variable alarm;
-  thread_scheduler* next_scheduler;
+  thread_scheduler* next_scheduler = nullptr;
 
   void execute(thread_worker* worker) override;
 };

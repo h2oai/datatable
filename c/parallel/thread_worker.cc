@@ -37,12 +37,13 @@ thread_worker::thread_worker(size_t i, thread_scheduler* ts)
 
 /**
  * This is the main function that will be run within the thread. It
- * continuously picks up tasks from the thread pool and executes them. This
+ * continuously picks up tasks from the scheduler and executes them. This
  * function stops running (terminating the thread) once `current_scheduler`
  * becomes nullptr.
  *
  * If the task returned from the scheduler is nullptr, then the thread worker
- * switches to
+ * switches to "sleep" scheduler and waits until it is awaken by the condition
+ * variable inside the sleep task.
  */
 void thread_worker::run() noexcept {
   while (current_scheduler) {
@@ -77,12 +78,11 @@ void shutdown_thread_task::execute(thread_worker* worker) {
 
 void thread_sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
-  while (true) {
+  while (!next_scheduler) {
     // Wait for the `alarm` condition variable to be notified, but may also
-    // wake up spuriously, in which case we check `sleeping` flag to decide
+    // wake up spuriously, in which case we check `next_scheduler` to decide
     // whether we need to keep waiting or not.
     alarm.wait(lock);
-    if (next_scheduler) break;
   }
   worker->current_scheduler = next_scheduler;
 }
