@@ -19,9 +19,8 @@
 #include <memory>      // std::unique_ptr
 #include <mutex>       // std::mutex
 #include <vector>      // std::vector
-#include "parallel/thread_task.h"
-#include "utils/function.h"
-#include "utils/macros.h"
+#include "parallel/thread_task.h"  // thread_task
+#include "utils/macros.h"          // cache_aligned
 namespace dt {
 using std::size_t;
 
@@ -32,26 +31,7 @@ using std::size_t;
 //------------------------------------------------------------------------------
 
 class thread_scheduler {
-  protected:
-    std::mutex mtx;
-    std::exception_ptr saved_exception;
-
   public:
-    //--------------------------------------------------------------------------
-    // Public API
-    //--------------------------------------------------------------------------
-
-    // Called from worker threads, within the `catch(...){ }` block, this method
-    // is used to signal that an exception have occurred. The method will save
-    // this exception and then call `abort_execution()` (see below). The saved
-    // exception will be re-thrown at the end of `join()`.
-    void handle_exception() noexcept;
-
-
-    //--------------------------------------------------------------------------
-    // Subclass API
-    //--------------------------------------------------------------------------
-
     virtual ~thread_scheduler();
 
     // Invoked by a worker (on a worker thread), this method should return the
@@ -75,6 +55,9 @@ class thread_scheduler {
 // once scheduler
 //------------------------------------------------------------------------------
 
+/**
+ * Implementation class for `dt::run_once_per_thread()` function.
+ */
 class once_scheduler : public thread_scheduler {
   private:
     std::vector<cache_aligned<size_t>> done;
@@ -84,10 +67,6 @@ class once_scheduler : public thread_scheduler {
     once_scheduler(size_t nthreads, thread_task*);
     thread_task* get_next_task(size_t thread_index) override;
 };
-
-
-// Call function `f` exactly once in each thread.
-void run_once_per_thread(function<void(size_t)> f);
 
 
 

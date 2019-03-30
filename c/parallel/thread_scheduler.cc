@@ -16,6 +16,7 @@
 #include <atomic>              // std::atomic
 #include <condition_variable>  // std::condition_variable
 #include <thread>              // std::this_thread
+#include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
@@ -25,17 +26,6 @@ namespace dt {
 
 
 thread_scheduler::~thread_scheduler() {}
-
-
-void thread_scheduler::handle_exception() noexcept {
-  try {
-    {
-      std::lock_guard<std::mutex> lock(mtx);
-      saved_exception = std::current_exception();
-    }
-    abort_execution();
-  } catch (...) {}
-}
 
 
 void thread_scheduler::abort_execution() {

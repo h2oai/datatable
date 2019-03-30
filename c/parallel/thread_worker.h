@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
-#include <atomic>               // std::atomic
 #include <condition_variable>   // std::condition_variable
 #include <cstddef>              // std::size_t
 #include <mutex>                // std::mutex
@@ -25,6 +24,8 @@
 namespace dt {
 using std::size_t;
 
+// Forward-declare
+class worker_controller;
 
 
 /**
@@ -45,11 +46,11 @@ class thread_worker {
   private:
     const size_t thread_index;
     std::thread  thread;
-    thread_scheduler* current_scheduler;
-    thread_scheduler* sleep_scheduler;
+    thread_scheduler*  scheduler;
+    worker_controller* controller;
 
   public:
-    thread_worker(size_t i, thread_scheduler* ts);
+    thread_worker(size_t i, worker_controller*);
     thread_worker(const thread_worker&) = delete;
     thread_worker(thread_worker&&) = delete;
     ~thread_worker();
@@ -111,7 +112,7 @@ class thread_worker {
  */
 class worker_controller : public thread_scheduler {
   private:
-    struct thread_sleep_task : public thread_task {
+    struct sleep_task : public thread_task {
       std::mutex mutex;
       std::condition_variable alarm;
       thread_scheduler* next_scheduler = nullptr;
@@ -120,13 +121,19 @@ class worker_controller : public thread_scheduler {
       void execute(thread_worker* worker) override;
     };
 
+    // `tsleep` is an array of sleep tasks, used to manage the awake/sleep
+    // cycle as described above.
     static constexpr size_t N_SLEEP_TASKS = 2;
-    thread_sleep_task tsleep[N_SLEEP_TASKS];
+    sleep_task tsleep[N_SLEEP_TASKS];
+
     // Index within array `tsleep` indicating which sleep task is "current";
     // where "current" means that all sleeping threads are waiting on the
     // condition variable within that task, and its `n_sleeping_threads` holds
     // the total count of workers that are currently sleeping.
     size_t index = 0;
+
+    // If an exception occurs during execution, it will be saved here
+    std::exception_ptr saved_exception;
 
   public:
     thread_task* get_next_task(size_t thread_index) override;
@@ -141,6 +148,11 @@ class worker_controller : public thread_scheduler {
     // was an exception during execution of any of the tasks, this exception
     // will be rethrown here (but only after all workers were put to sleep).
     void join(size_t nthreads);
+
+    // Called from worker threads, within the `catch(...){ }` block, this method
+    // is used to signal that an exception have occurred. The method will save
+    // this exception, so that it can be re-thrown in the master thread.
+    void catch_exception() noexcept;
 
   private:
     // Helper for thread_shutdown_scheduler: mark the current thread as if it

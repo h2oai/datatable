@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <thread>    // std::thread::hardware_concurrency
+#include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_worker.h"
 #include "utils/c+++.h"

@@ -33,7 +33,7 @@ using std::size_t;
  *
  * Normally, the thread pool is in the "sleeping" state. This means all workers
  * are idling, consuming sleep tasks from the `worker_controller`
- * (see documentation of `worker_controller` for more details).
+ * (see documentation of `worker_controller` in "thread_worker.h").
  *
  * However, once a user requests `execute_job()`, the threads are awaken and
  * use the supplied scheduler to perform the job. The method `execute_job()` is
@@ -72,20 +72,6 @@ class thread_pool {
     void resize(size_t n);
 };
 
-
-
-/**
- * thread_pool is a singleton, returned by this function
- */
-thread_pool& get_thread_pool();
-
-
-/**
- * Return the number of concurrent threads supported by the machine. This
- * value is approximate. If the number of concurrent threads is unknown,
- * this function returns 1.
- */
-size_t get_hardware_concurrency() noexcept;
 
 
 }  // namespace dt

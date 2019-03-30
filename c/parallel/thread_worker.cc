@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 
@@ -28,10 +27,10 @@ namespace dt {
  * only way to shut down the thread is to cause the `run()` function to stop
  * its loop.
  */
-thread_worker::thread_worker(size_t i, thread_scheduler* ts)
+thread_worker::thread_worker(size_t i, worker_controller* wc)
   : thread_index(i),
-    current_scheduler(ts),
-    sleep_scheduler(ts)
+    scheduler(wc),
+    controller(wc)
 {
   // Create actual execution thread only when `this` is fully initialized
   thread = std::thread(&thread_worker::run, this);
@@ -47,24 +46,25 @@ thread_worker::~thread_worker() {
 /**
  * This is the main function that will be run within the thread. It
  * continuously picks up tasks from the scheduler and executes them. This
- * function stops running (terminating the thread) once `current_scheduler`
- * becomes nullptr.
+ * function stops running (terminating the thread) once `scheduler` becomes
+ * nullptr.
  *
  * If the task returned from the scheduler is nullptr, then the thread worker
  * switches to "sleep" scheduler and waits until it is awaken by the condition
  * variable inside the sleep task.
  */
 void thread_worker::run() noexcept {
-  while (current_scheduler) {
+  while (scheduler) {
     try {
-      thread_task* task = current_scheduler->get_next_task(thread_index);
+      thread_task* task = scheduler->get_next_task(thread_index);
       if (task) {
         task->execute(this);
       } else {
-        current_scheduler = sleep_scheduler;
+        scheduler = controller;
       }
     } catch (...) {
-      current_scheduler->handle_exception();
+      controller->catch_exception();
+      scheduler->abort_execution();
     }
   }
 }
@@ -80,8 +80,7 @@ size_t thread_worker::get_index() const noexcept {
 // thread sleep scheduler
 //------------------------------------------------------------------------------
 
-void worker_controller::thread_sleep_task::execute(thread_worker* worker)
-{
+void worker_controller::sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
   n_threads_sleeping++;
   while (!next_scheduler) {
@@ -90,7 +89,7 @@ void worker_controller::thread_sleep_task::execute(thread_worker* worker)
     // whether we need to keep waiting or not.
     alarm.wait(lock);
   }
-  worker->current_scheduler = next_scheduler;
+  worker->scheduler = next_scheduler;
   n_threads_sleeping--;
 }
 
@@ -109,6 +108,7 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
     tsleep[j].next_scheduler = nullptr;
     tsleep[j].n_threads_sleeping = 0;
     index = j;
+    saved_exception = nullptr;
   }
   // Unlock mutex before awaking all sleeping threads
   tsleep[i].alarm.notify_all();
@@ -117,7 +117,7 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void worker_controller::join(size_t nthreads) {
-  thread_sleep_task& st = tsleep[index];
+  sleep_task& st = tsleep[index];
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
     std::this_thread::yield();
@@ -137,6 +137,14 @@ void worker_controller::pretend_thread_went_to_sleep() {
 }
 
 
+void worker_controller::catch_exception() noexcept {
+  try {
+    std::lock_guard<std::mutex> lock(tsleep[index].mutex);
+    saved_exception = std::current_exception();
+  } catch (...) {}
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -144,7 +152,7 @@ void worker_controller::pretend_thread_went_to_sleep() {
 //------------------------------------------------------------------------------
 
 void thread_shutdown_scheduler::shutdown_task::execute(thread_worker* worker) {
-  worker->current_scheduler = nullptr;
+  worker->scheduler = nullptr;
 }
 
 
