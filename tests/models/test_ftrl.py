@@ -518,7 +518,7 @@ def test_ftrl_fit_predict_int():
 
 
 def test_ftrl_fit_predict_float():
-    ft = Ftrl(alpha = 0.1, nepochs = 1)
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0.0, 1.0]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
