@@ -996,7 +996,7 @@ nepochs : int
 double_precision : bool
     Whether to use double precision arithmetic or not, defaults to `False`.
 negative_class : bool
-    Whether to train on negatives in the case of multinomial classification.
+    Whether to create and train on a "negative" class in the case of multinomial classification.
 )";
 }
 

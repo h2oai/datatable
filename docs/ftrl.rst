@@ -46,6 +46,7 @@ namely:
 -  ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
 -  ``nbins`` – the number of bins for the hashing trick, defaults to ``10**6``.
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
+-  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
