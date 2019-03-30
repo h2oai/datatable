@@ -230,7 +230,7 @@ nepochs_validation: float
 
 validation_error: float
     If within `nepochs_validation` relative validation error does not improve
-    by at least `validation_error`, training is stopped.
+    by at least `validation_error`, training stops.
 
 Returns
 -------
@@ -343,7 +343,7 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (!arg_validation_error.is_none_or_undefined()) {
       val_error = arg_validation_error.to_double();
-      py::Validator::check_positive<double>(val_error, arg_validation_error);
+      // py::Validator::check_positive<double>(val_error, arg_validation_error);
     } else val_error = 0.01;
   }
 

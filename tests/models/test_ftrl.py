@@ -52,7 +52,7 @@ tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
-                        nbins = 1000000, nepochs = 1, double_precision = False,
+                        nbins = 10**6, nepochs = 1, double_precision = False,
                         negative_class = False)
 
 epsilon = 0.01
@@ -518,7 +518,7 @@ def test_ftrl_fit_predict_int():
 
 
 def test_ftrl_fit_predict_float():
-    ft = Ftrl(alpha = 0.1, nepochs = 10000)
+    ft = Ftrl(alpha = 0.1, nepochs = 1)
     df_train = dt.Frame([[0.0, 1.0]])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
