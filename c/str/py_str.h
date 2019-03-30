@@ -19,7 +19,7 @@
 
 
 namespace dt {
-  DataTable* split_into_nhot(Column* col, char sep);
+  DataTable* split_into_nhot(Column* col, char sep, bool sort = false);
 }
 
 

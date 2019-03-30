@@ -22,14 +22,15 @@ namespace py {
 
 
 static PKArgs args_split_into_nhot(
-    1, 0, 1, false, false,
-    {"col", "sep"}, "split_into_nhot", nullptr
+    1, 0, 2, false, false,
+    {"col", "sep", "sort"}, "split_into_nhot", nullptr
 );
 
 
 static oobj split_into_nhot(const PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
   std::string sep = args[1]? args[1].to_string() : ",";
+  bool sort = args[2]? args[2].to_bool_strict() : false;
 
   Column* col0 = dt->ncols == 1? dt->columns[0] : nullptr;
   if (!col0) {
@@ -48,7 +49,7 @@ static oobj split_into_nhot(const PKArgs& args) {
       "single character; got '" << sep << "'";
   }
 
-  DataTable* res = dt::split_into_nhot(col0, sep[0]);
+  DataTable* res = dt::split_into_nhot(col0, sep[0], sort);
   return Frame::from_datatable(res);
 }
 

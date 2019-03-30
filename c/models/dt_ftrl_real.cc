@@ -151,7 +151,9 @@ double FtrlReal<T>::fit_multinomial() {
   if (model_type == FtrlModelType::NONE) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
-    labels.push_back("_negative");
+    if (params.negative_class) {
+      labels.push_back("_negative");
+    }
     create_model();
     model_type = FtrlModelType::MULTINOMIAL;
   }
@@ -175,23 +177,29 @@ double FtrlReal<T>::fit_multinomial() {
 */
 template <typename T>
 dtptr FtrlReal<T>::create_y_train() {
-// Do one hot encoding and get a list of all the incoming labels.
-  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], '\0'));
+  // Do nhot encoding and sort labels alphabetically.
+  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], sep, true));
   strvec labels_in = dt_y_nhot->get_names();
 
-  // Create a "_negative" target column.
   colvec cols;
   cols.reserve(labels.size());
-  Column* col = create_negative_column(dt_y_nhot->nrows);
-  cols.push_back(col);
+
+  // Create a target column with all negatives.
+  colptr col_negative = std::unique_ptr<Column>(
+                          create_negative_column(dt_y_nhot->nrows)
+                        );
+
+  if (params.negative_class) {
+    cols.push_back(col_negative->shallowcopy());
+  }
 
   // First, process labels that are already in the model.
-  for (size_t i = 1; i < labels.size(); ++i) {
+  for (size_t i = params.negative_class; i < labels.size(); ++i) {
     auto it = find(labels_in.begin(), labels_in.end(), labels[i]);
     if (it == labels_in.end()) {
       // If existing label is not found in the new label list,
       // train it on all the negatives.
-      cols.push_back(cols[0]->shallowcopy());
+      cols.push_back(col_negative->shallowcopy());
     } else {
       // Otherwise, use the actual targets.
       auto pos = static_cast<size_t>(std::distance(labels_in.begin(), it));
@@ -217,6 +225,9 @@ dtptr FtrlReal<T>::create_y_train() {
 }
 
 
+/*
+*  Create a target frame with all the negatives.
+*/
 template <typename T>
 Column* FtrlReal<T>::create_negative_column(size_t nrows) {
   Column* col = Column::new_data_column(SType::BOOL, nrows);
@@ -237,14 +248,17 @@ dtptr FtrlReal<T>::create_y_val() {
   xassert(dt_X_val != nullptr && dt_y_val != nullptr)
   xassert(dt_X_val->nrows == dt_y_val->nrows)
 
-  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], '\0'));
+  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], sep));
   const strvec& labels_val = dt_y_val_nhot->get_names();
   xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
+  colvec cols;
 
   // First, add a "_negative" target column and its mapping info.
-  Column* col = create_negative_column(dt_y_val_nhot->nrows);
-  colvec cols = {col};
-  map_val.push_back(0);
+  if (params.negative_class) {
+    Column* col = create_negative_column(dt_y_val_nhot->nrows);
+    cols.push_back(col);
+    map_val.push_back(0);
+  }
 
   // Second, filter out only the model known labels.
   for (size_t i = 0; i < labels_val.size(); ++i) {
@@ -286,8 +300,9 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
   bool validation = !std::isnan(nepochs_val);
-  T loss_global = 0;
-  T loss_global_prev = 0;
+  T loss = 0;
+  T loss_old = 0;
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
@@ -374,18 +389,19 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             }
           }
           #pragma omp atomic
-          loss_global += loss_local;
+          loss += loss_local;
         },
         dt_X_val->nrows
       );
 
-      T loss_diff = (loss_global_prev - loss_global) / loss_global_prev;
-      constexpr T epsilon = std::numeric_limits<T>::epsilon();
       // If loss do not decrease, do early stopping.
-      if (c && (loss_global < epsilon || loss_diff < val_error)) break;
+      loss /= (dt_X_val->nrows * dt_y_val->ncols);
+      T loss_diff = (loss_old - loss) / loss_old;
+      if (c && (loss < epsilon || loss_diff < val_error)) break;
+
       // If loss decreases, save current loss and continue training.
-      loss_global_prev = loss_global;
-      loss_global = 0;
+      loss_old = loss;
+      loss = 0;
     }
   }
   double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
@@ -463,7 +479,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   switch (model_type) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
-    case FtrlModelType::MULTINOMIAL : (nlabels == 2)? linkfn = sigmoid<T> :
+    case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
                                                       linkfn = std::exp;
                                       break;
     default : throw ValueError() << "Cannot make any predictions, "
@@ -553,7 +569,6 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
 template <typename T>
 void FtrlReal<T>::create_model() {
   size_t nlabels = labels.size();
-  xassert(nlabels > 0);
 
   size_t ncols = 2 * nlabels;
   colvec cols(ncols);
@@ -582,9 +597,27 @@ void FtrlReal<T>::adjust_model() {
     cols[i] = dt_model->columns[i]->shallowcopy();
   }
 
-  for (size_t i = ncols_model; i < ncols_model_new; ++i) {
-    cols[i] = dt_model->columns[i % 2]->shallowcopy();
+  colvec cols_new(2);
+  colptr col;
+  // If we have a negative class, then all the new classes
+  // get a copy of its weights to start learning from.
+  // Otherwise, new classes start learning from zero weights.
+  if (params.negative_class) {
+    cols_new[0] = dt_model->columns[0];
+    cols_new[1] = dt_model->columns[1];
+  } else {
+    col = std::unique_ptr<Column>(new RealColumn<T>(nbins));
+    auto data = static_cast<T*>(col->data_w());
+    std::memset(data, 0, nbins * sizeof(T));
+    cols_new[0] = col.get();
+    cols_new[1] = col.get();
   }
+
+  for (size_t i = ncols_model; i < ncols_model_new; i+=2) {
+    cols[i] = cols_new[0]->shallowcopy();
+    cols[i + 1] = cols_new[1]->shallowcopy();
+  }
+
   dt_model = dtptr(new DataTable(std::move(cols)));
 }
 
@@ -918,6 +951,12 @@ bool FtrlReal<T>::get_double_precision() {
 
 
 template <typename T>
+bool FtrlReal<T>::get_negative_class() {
+  return params.negative_class;
+}
+
+
+template <typename T>
 FtrlParams FtrlReal<T>::get_params() {
   return params;
 }
@@ -997,9 +1036,16 @@ void FtrlReal<T>::set_nepochs(size_t nepochs_in) {
   nepochs = nepochs_in;
 }
 
+
 template <typename T>
 void FtrlReal<T>::set_double_precision(bool double_precision_in) {
   params.double_precision = double_precision_in;
+}
+
+
+template <typename T>
+void FtrlReal<T>::set_negative_class(bool negative_class_in) {
+  params.negative_class = negative_class_in;
 }
 
 

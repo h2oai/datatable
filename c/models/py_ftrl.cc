@@ -30,10 +30,11 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 2, 6, false, false,
+PKArgs Ftrl::Type::args___init__(0, 2, 7, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "nepochs",
-                                 "double_precision"}, "__init__", nullptr);
+                                 "double_precision", "negative_class"},
+                                 "__init__", nullptr);
 
 
 /*
@@ -52,6 +53,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_nbins            = args[5];
   const Arg& arg_nepochs          = args[6];
   const Arg& arg_double_precision = args[7];
+  const Arg& arg_negative_class   = args[8];
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -61,16 +63,20 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_nbins            = !arg_nbins.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
+  bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
 
   if (defined_params) {
-    if (defined_alpha || defined_beta || defined_lambda1 || defined_lambda2 ||
-        defined_nbins || defined_nepochs || defined_double_precision) {
+    if (defined_alpha || defined_beta || defined_lambda1 ||
+        defined_lambda2 || defined_nbins || defined_nepochs ||
+        defined_double_precision || defined_negative_class) {
+
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs` "
-            << "or `double_precision` to Ftrl constructor, "
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `nepochs`, "
+            << "`double_precision` or `negative_class` to Ftrl constructor, "
             << "but not both at the same time";
     }
+
     py::otuple py_params = arg_params.to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
     py::oobj py_beta = py_params.get_attr("beta");
@@ -79,6 +85,7 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_nbins = py_params.get_attr("nbins");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_double_precision = py_params.get_attr("double_precision");
+    py::oobj py_negative_class = py_params.get_attr("negative_class");
 
     ftrl_params.alpha = py_alpha.to_double();
     ftrl_params.beta = py_beta.to_double();
@@ -87,6 +94,7 @@ void Ftrl::m__init__(PKArgs& args) {
     ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
     ftrl_params.nepochs = py_nepochs.to_size_t();
     ftrl_params.double_precision = py_double_precision.to_bool_strict();
+    ftrl_params.negative_class = py_negative_class.to_bool_strict();
 
     py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
     py::Validator::check_not_negative<double>(ftrl_params.beta, py_beta);
@@ -127,6 +135,10 @@ void Ftrl::m__init__(PKArgs& args) {
 
     if (defined_double_precision) {
       ftrl_params.double_precision = arg_double_precision.to_bool_strict();
+    }
+
+    if (defined_negative_class) {
+      ftrl_params.negative_class = arg_negative_class.to_bool_strict();
     }
   }
 
@@ -196,7 +208,7 @@ static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
 R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error = 0.01)
 --
 
-Train an FTRL model on a dataset.
+Train FTRL model on a dataset.
 
 Parameters
 ----------
@@ -218,7 +230,7 @@ nepochs_validation: float
 
 validation_error: float
     If within `nepochs_validation` relative validation error does not improve
-    by at least `validation_error`, training is stopped.
+    by at least `validation_error`, training stops.
 
 Returns
 -------
@@ -331,7 +343,7 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (!arg_validation_error.is_none_or_undefined()) {
       val_error = arg_validation_error.to_double();
-      py::Validator::check_positive<double>(val_error, arg_validation_error);
+      // py::Validator::check_positive<double>(val_error, arg_validation_error);
     } else val_error = 0.01;
   }
 
@@ -413,7 +425,7 @@ R"(reset(self)
 --
 
 Reset FTRL model by clearing all the model weights, labels and
-feature importance information. Also, set the model to an untrained state.
+feature importance information.
 
 Parameters
 ----------
@@ -477,7 +489,7 @@ void Ftrl::set_labels(robj py_labels) {
 */
 static GSArgs args_model(
   "model",
-R"(Model frame of shape (nbins, 2 * nlabels), where nlabels is
+R"(Model frame of shape `(nbins, 2 * nlabels)`, where nlabels is
 the total number of labels the model was trained on, and nbins
 is the number of bins used for the hashing trick. Odd frame columns
 contain z model coefficients, and even columns n model coefficients.)");
@@ -705,7 +717,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 */
 static GSArgs args_nbins(
   "nbins",
-  "Number of bins used for the hashing trick");
+  "Number of bins for the hashing trick");
 
 
 oobj Ftrl::get_nbins() const {
@@ -795,7 +807,6 @@ oobj Ftrl::get_double_precision() const {
   return dtft->get_double_precision()? True() : False();
 }
 
-
 void Ftrl::set_double_precision(robj py_double_precision) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `double_precision` for a trained model, "
@@ -805,6 +816,28 @@ void Ftrl::set_double_precision(robj py_double_precision) {
   dtft->set_double_precision(double_precision);
 }
 
+
+/*
+*  .negative_class
+*/
+static GSArgs args_negative_class(
+  "negative_class",
+  "Whether to train on negatives in the case of multinomial classification.");
+
+
+oobj Ftrl::get_negative_class() const {
+  return dtft->get_negative_class()? True() : False();
+}
+
+
+void Ftrl::set_negative_class(robj py_negative_class) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `negative_class` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+  bool negative_class = py_negative_class.to_bool_strict();
+  dtft->set_negative_class(negative_class);
+}
 
 
 /*
@@ -819,13 +852,14 @@ oobj Ftrl::get_params_namedtuple() const {
   static onamedtupletype ntt(
     "FtrlParams",
     args_params.doc,
-    {{args_alpha.name,        args_alpha.doc},
-     {args_beta.name,         args_beta.doc},
-     {args_lambda1.name,      args_lambda1.doc},
-     {args_lambda2.name,      args_lambda2.doc},
-     {args_nbins.name,        args_nbins.doc},
-     {args_nepochs.name,      args_nepochs.doc},
-     {args_double_precision.name, args_double_precision.doc}}
+    {{args_alpha.name,            args_alpha.doc},
+     {args_beta.name,             args_beta.doc},
+     {args_lambda1.name,          args_lambda1.doc},
+     {args_lambda2.name,          args_lambda2.doc},
+     {args_nbins.name,            args_nbins.doc},
+     {args_nepochs.name,          args_nepochs.doc},
+     {args_double_precision.name, args_double_precision.doc},
+     {args_negative_class.name,   args_negative_class.doc}}
   );
 
   py::onamedtuple params(ntt);
@@ -836,6 +870,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(4, get_nbins());
   params.set(5, get_nepochs());
   params.set(6, get_double_precision());
+  params.set(7, get_negative_class());
   return std::move(params);
 }
 
@@ -847,15 +882,16 @@ oobj Ftrl::get_params_tuple() const {
                  get_lambda2(),
                  get_nbins(),
                  get_nepochs(),
-                 get_double_precision()};
+                 get_double_precision(),
+                 get_negative_class()};
 }
 
 
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 7) {
-    throw ValueError() << "Tuple of FTRL parameters should have 7 elements, "
+  if (n_params != 8) {
+    throw ValueError() << "Tuple of FTRL parameters should have 8 elements, "
                        << "got: " << n_params;
   }
   set_alpha(params_tuple[0]);
@@ -865,6 +901,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_nbins(params_tuple[4]);
   set_nepochs(params_tuple[5]);
   set_double_precision(params_tuple[6]);
+  set_negative_class(params_tuple[7]);
 }
 
 
@@ -931,7 +968,13 @@ const char* Ftrl::Type::classname() {
 
 
 const char* Ftrl::Type::classdoc() {
-  return R"(Follow the Regularized Leader (FTRL) model with hashing trick.
+  return R"(Follow the Regularized Leader (FTRL) model.
+
+FTRL model is a datatable implementation of the FTRL-Proximal online
+learning algorithm for binomial logistic regression. It uses a hashing
+trick for feature vectorization and the Hogwild approach
+for parallelization. FTRL for multinomial classification and continuous
+targets are implemented experimentally.
 
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
@@ -939,21 +982,21 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 Parameters
 ----------
 alpha : float
-    `alpha` in per-coordinate learning rate formula.
+    `alpha` in per-coordinate learning rate algorithm, defaults to `0.005`.
 beta : float
-    `beta` in per-coordinate learning rate formula.
+    `beta` in per-coordinate learning rate algorithm, defaults to `1`.
 lambda1 : float
-    L1 regularization parameter.
+    L1 regularization parameter, defaults to `0`.
 lambda2 : float
-    L2 regularization parameter.
+    L2 regularization parameter, defaults to `0`.
 nbins : int
-    Number of bins to be used after the hashing trick.
+    Number of bins to be used for the hashing trick, defaults to `10**6`.
 nepochs : int
-    Number of epochs to train for.
-interactions : bool
-    Switch to enable second order feature interactions.
+    Number of training epochs, defaults to `1`.
 double_precision : bool
-    Whether to use double precision arithmetic or not.
+    Whether to use double precision arithmetic or not, defaults to `False`.
+negative_class : bool
+    Whether to create and train on a "negative" class in the case of multinomial classification.
 )";
 }
 
@@ -963,26 +1006,34 @@ double_precision : bool
 */
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
-  ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
-  ADD_GETTER(gs, &Ftrl::get_model, args_model);
-  ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
+  // Input parameters
   ADD_GETTER(gs, &Ftrl::get_params_namedtuple, args_params);
-  ADD_GETTER(gs, &Ftrl::get_colnames, args_colnames);
-  ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
   ADD_GETSET(gs, &Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha);
   ADD_GETSET(gs, &Ftrl::get_beta, &Ftrl::set_beta, args_beta);
   ADD_GETSET(gs, &Ftrl::get_lambda1, &Ftrl::set_lambda1, args_lambda1);
   ADD_GETSET(gs, &Ftrl::get_lambda2, &Ftrl::set_lambda2, args_lambda2);
   ADD_GETSET(gs, &Ftrl::get_nbins, &Ftrl::set_nbins, args_nbins);
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
-  ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
-             args_interactions);
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
-  ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
-  ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
+  ADD_GETTER(gs, &Ftrl::get_negative_class, args_negative_class);
+  ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
+                 args_interactions);
+
+  // Model and features
+  ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
+  ADD_GETTER(gs, &Ftrl::get_model, args_model);
+  ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
+  ADD_GETTER(gs, &Ftrl::get_colnames, args_colnames);
+  ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
+
+  // Fit, predict and reset
   ADD_METHOD(mm, &Ftrl::fit, args_fit);
   ADD_METHOD(mm, &Ftrl::predict, args_predict);
   ADD_METHOD(mm, &Ftrl::reset, args_reset);
+
+  // Pickling and unpickling
+  ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
+  ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
 }
 
 

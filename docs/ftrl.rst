@@ -44,8 +44,9 @@ namely:
 -  ``beta`` – beta parameter, defaults to ``1.0``.
 -  ``lambda1`` – L1 regularization parameter, defaults to ``0.0``.
 -  ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
--  ``nbins`` – the number of bins for the hashing trick, defaults to ``1000000``.
+-  ``nbins`` – the number of bins for the hashing trick, defaults to ``10**6``.
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
+-  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
@@ -68,16 +69,33 @@ values.
 Training a Model
 ----------------
 
-Use the ``fit()`` method to train a model for a binomial logistic regression problem:
+Use the ``fit()`` method to train a model:
 
 ::
 
-  ftrl_model.fit(X, y)
+  ftrl_model.fit(X_train, y_train)
 
-where ``X`` is a frame of shape ``(nrows, ncols)`` to be trained on,
-and ``y`` is a frame of shape ``(nrows, 1)`` having a ``bool`` type
-of the target column. The following datatable column types are supported
-for the ``X`` frame: ``bool``, ``int``, ``real`` and ``str``.
+where ``X_train`` is a frame of shape ``(nrows, ncols)`` to be trained on,
+and ``y_train`` is a target frame of shape ``(nrows, 1)``. The following
+datatable column types are supported for the ``X_train`` frame: ``bool``,
+``int``, ``real`` and ``str``.
+
+
+FTRL model can also do early stopping, if relative validation error does
+not improve. For this the model should be fit as
+
+::
+
+  epoch = ftrl_model.fit(X_train, y_train, X_validation, y_validation, nepochs_validation, validation_error)
+
+
+where ``X_train`` and ``y_train`` are training and target frames,
+respectively, ``X_validation`` and ``y_validation`` are validation frames,
+``nepochs_validation`` specifies how often, in epoch units, validation
+error should be checked, and ``validation_error`` is the relative
+validation error improvement that the model should demonstrate within
+``nepochs_validation`` to continue training. Returned ``epoch`` value
+is an epoch at which training stopped.
 
 
 Resetting a Model
@@ -139,9 +157,9 @@ a list of feature interactions, for instance as
   ftrl_model.interactions = [["C0", "C1", "C3"], ["C2", "C5"]]
 
 where ``C*`` are column names from a training dataset. In the above example
-two additional features, namely, `C0:C1:C3` and `C2:C5`, are created.
+two additional features, namely, ``C0:C1:C3`` and ``C2:C5``, are created.
 
-`interactions` should be set before a call to `fit()` method, and can not be
+``interactions`` should be set before a call to ``fit()`` method, and can not be
 changed once the model is trained.
 
 
