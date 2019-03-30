@@ -43,10 +43,10 @@ sizetvec sort_index(const std::vector<T> &v) {
 
   // Initialize original index locations
   sizetvec index(v.size());
-  iota(index.begin(), index.end(), 0);
+  std::iota(index.begin(), index.end(), 0);
 
   // Sort index based on comparing values in v
-  sort(index.begin(),
+  std::sort(index.begin(),
        index.end(),
        [&v](size_t i1, size_t i2) {return v[i1] < v[i2];}
       );

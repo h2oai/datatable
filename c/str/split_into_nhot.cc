@@ -172,13 +172,13 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
     std::vector<std::string> outnames_sorted(ncols);
     std::vector<Column*> outcols_sorted(ncols);
     std::vector<size_t> colindex = sort_index<std::string>(outnames);
-    for (size_t i = 0; i < outnames.size(); ++i) {
+    for (size_t i = 0; i < ncols; ++i) {
       size_t j = colindex[i];
-      outnames_sorted[i] = outnames[j];
+      outnames_sorted[i] = std::move(outnames[j]);
       outcols_sorted[i] = outcols[j];
     }
-    outcols = outcols_sorted;
-    outnames = outnames_sorted;
+    outcols = std::move(outcols_sorted);
+    outnames = std::move(outnames_sorted);
   }
 
   return new DataTable(std::move(outcols), std::move(outnames));
