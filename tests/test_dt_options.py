@@ -113,11 +113,22 @@ def test_options_many_bad():
 #-------------------------------------------------------------------------------
 
 def test_nthreads():
-    initial = dt.options.nthreads
-    dt.options.nthreads = 1
-    assert dt.options.nthreads == 1
-    del dt.options.nthreads
-    assert dt.options.nthreads == initial
+    from datatable.internal import get_thread_ids
+    nthreads0 = dt.options.nthreads
+    curr_threads = get_thread_ids()
+    assert len(curr_threads) == nthreads0
+
+    for n in [4, 1, nthreads0 + 10, nthreads0]:
+        dt.options.nthreads = n
+        new_threads = get_thread_ids()
+        assert len(new_threads) == n
+        m = min(len(curr_threads), len(new_threads))
+        assert curr_threads[:m] == new_threads[:m]
+        curr_threads = new_threads
+
+    assert dt.options.nthreads == nthreads0
+
+
 
 def test_core_logger():
     class MyLogger:

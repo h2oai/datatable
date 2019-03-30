@@ -188,6 +188,13 @@ def write_build_directories(realhdrs, realsrcs, out):
         out.write("\n")
 
 
+def get_setup(cmd):
+    import subprocess
+    out = subprocess.check_output(["python", "ci/setup_utils.py", cmd])
+    out = out.decode()
+    return out.strip().replace("$", "\\$")
+
+
 def write_make_targets(out):
     out.write("\n\n")
     out.write("#" + "-" * 79 + "\n")
@@ -198,10 +205,10 @@ def write_make_targets(out):
     out.write("fast:\n")
     out.write("\t$(eval DTDEBUG := 1)\n")
     out.write("\t$(eval export DTDEBUG)\n")
-    out.write("\t$(eval CC := $(shell python ci/setup_utils.py compiler))\n")
-    out.write("\t$(eval CCFLAGS := $(shell python ci/setup_utils.py ccflags))\n")
-    out.write("\t$(eval LDFLAGS := $(shell python ci/setup_utils.py ldflags))\n")
-    out.write("\t$(eval EXTEXT := $(shell python ci/setup_utils.py ext_suffix))\n")
+    out.write("\t$(eval CC := %s)\n" % get_setup("compiler"))
+    out.write("\t$(eval CCFLAGS := %s)\n" % get_setup("ccflags"))
+    out.write("\t$(eval LDFLAGS := %s)\n" % get_setup("ldflags"))
+    out.write("\t$(eval EXTEXT := %s)\n" % get_setup("ext_suffix"))
     out.write("\t$(eval export CC CCFLAGS LDFLAGS EXTEXT)\n")
     out.write("\t@$(MAKE) main-fast\n")
     out.write("\n")

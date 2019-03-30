@@ -12,6 +12,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_SHARED_MUTEX_h
 #define dt_UTILS_SHARED_MUTEX_h
+#include <atomic>              // std::atomic
 #include <condition_variable>  // std::condition_variable
 #include <mutex>               // std::mutex, std::unique_lock
 

@@ -39,7 +39,8 @@ def noppc64():
     """
     if sys.version_info < (3, 6):
         pytest.skip("Python3.6+ is required")
-    if "powerpc64" in str(sys.implementation):
+    impl = str(sys.implementation)
+    if "powerpc64" in impl or "ppc64le" in impl:
         pytest.skip("Disabled on PowerPC64 platform")
 
 

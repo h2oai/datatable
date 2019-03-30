@@ -32,5 +32,31 @@
 #endif
 
 
+// Cache line size: equivalent of std::hardware_destructive_interference_size
+// from C++17.
+#if defined(__i386__) || defined(__x86_64__)
+  #define CACHELINE_SIZE 64
+#elif defined(__powerpc64__)
+  #define CACHELINE_SIZE 128
+#else
+  // Reasonable default
+  #define CACHELINE_SIZE 64
+#endif
+
+
+// Helper template to replace type `T` with a cache-aligned + padded wrapper
+// type. Using this structure may help reduce false sharing
+template <typename T>
+struct alignas(CACHELINE_SIZE) cache_aligned {
+  T v;
+
+  char _padding[(CACHELINE_SIZE - (sizeof(T) % CACHELINE_SIZE))
+                % CACHELINE_SIZE];
+
+  cache_aligned(const T& v_) : v(v_) {}
+  cache_aligned(T&& v_) : v(std::move(v_)) {}
+};
+
+
 
 #endif
