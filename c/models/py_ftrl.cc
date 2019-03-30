@@ -982,7 +982,7 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 Parameters
 ----------
 alpha : float
-    `alpha` in per-coordinate learning rate algorithm, defaults to `0.001`.
+    `alpha` in per-coordinate learning rate algorithm, defaults to `0.005`.
 beta : float
     `beta` in per-coordinate learning rate algorithm, defaults to `1`.
 lambda1 : float

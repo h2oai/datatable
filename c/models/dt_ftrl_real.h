@@ -70,6 +70,9 @@ class FtrlReal : public dt::Ftrl {
     // Vector of hashed column names.
     std::vector<uint64_t> colname_hashes;
 
+    // Separator used for nhot encoding.
+    static const char sep = ',';
+
     // Pointers to training and validation datatables, they are
     // only valid during training.
     const DataTable* dt_X;

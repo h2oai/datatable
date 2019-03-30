@@ -177,15 +177,14 @@ double FtrlReal<T>::fit_multinomial() {
 */
 template <typename T>
 dtptr FtrlReal<T>::create_y_train() {
-// Do one hot encoding and get a list of all the incoming labels.
-  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], ',', true));
-
+  // Do nhot encoding and sort labels alphabetically.
+  dtptr dt_y_nhot = dtptr(split_into_nhot(dt_y->columns[0], sep, true));
   strvec labels_in = dt_y_nhot->get_names();
 
   colvec cols;
   cols.reserve(labels.size());
 
-  // Create a "_negative" target column.
+  // Create a target column with all negatives.
   colptr col_negative = std::unique_ptr<Column>(
                           create_negative_column(dt_y_nhot->nrows)
                         );
@@ -226,6 +225,9 @@ dtptr FtrlReal<T>::create_y_train() {
 }
 
 
+/*
+*  Create a target frame with all the negatives.
+*/
 template <typename T>
 Column* FtrlReal<T>::create_negative_column(size_t nrows) {
   Column* col = Column::new_data_column(SType::BOOL, nrows);
@@ -246,7 +248,7 @@ dtptr FtrlReal<T>::create_y_val() {
   xassert(dt_X_val != nullptr && dt_y_val != nullptr)
   xassert(dt_X_val->nrows == dt_y_val->nrows)
 
-  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], ','));
+  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], sep));
   const strvec& labels_val = dt_y_val_nhot->get_names();
   xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
   colvec cols;
