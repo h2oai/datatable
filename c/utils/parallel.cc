@@ -13,9 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "parallel/api.h"
+#include "utils/exceptions.h"
 #include "utils/parallel.h"
 #include "options.h"
-#include "utils/exceptions.h"
 
 namespace dt {
 
@@ -24,6 +25,7 @@ namespace dt {
 // Order-less iteration
 //------------------------------------------------------------------------------
 
+/*
 void run_parallel(rangefn run, size_t nrows)
 {
   // `min_nrows_per_chunk`: avoid processing less than this many rows in each
@@ -46,7 +48,7 @@ void run_parallel(rangefn run, size_t nrows)
                         static_cast<int>(nrows / min_nrows_per_chunk));
     xassert(nth0 > 0);
     OmpExceptionManager oem;
-    #pragma omp parallel num_threads(nth0)
+    pragma omp parallel num_threads(nth0)
     {
       size_t ith = static_cast<size_t>(omp_get_thread_num());
       size_t nth = static_cast<size_t>(omp_get_num_threads());
@@ -83,6 +85,33 @@ void run_parallel(rangefn run, size_t nrows)
     oem.rethrow_exception_if_any();
   }
 }
+*/
+
+
+void run_parallel(rangefn f, size_t nrows) {
+  constexpr size_t min_nrows_per_chunk = 4096;
+  size_t k = nrows / min_nrows_per_chunk;
+
+  if (k == 0) {
+    f(0, nrows);
+  }
+  else {
+    size_t nth = get_num_threads();
+    size_t chunksize = nrows / k;
+    size_t nchunks = nrows / chunksize;
+
+    dt::run_once_per_thread(
+      [=](size_t ith) {
+        for (size_t j = ith; j < nchunks; j += nth) {
+          size_t i0 = j * chunksize;
+          size_t i1 = i0 + chunksize;
+          if (j == nchunks - 1) i1 = nrows;
+          f(i0, i1);
+        }
+      });
+  }
+}
+
 
 
 

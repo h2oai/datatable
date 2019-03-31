@@ -325,11 +325,11 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
 
     dt::run_parallel(
-      [&](size_t i0, size_t i1, size_t di) {
+      [&](size_t i0, size_t i1) {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]());
         tptr<T> fi = tptr<T>(new T[nfeatures]());
-        for (size_t i = chunk_start + i0; i < chunk_start + i1; i += di) {
+        for (size_t i = chunk_start + i0; i < chunk_start + i1; ++i) {
           size_t ii = i % dt_X->nrows;
           const size_t j0 = ri[0][ii];
           // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
@@ -369,12 +369,12 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     // if the loss does not improve.
     if (validation) {
       dt::run_parallel(
-        [&](size_t i0, size_t i1, size_t di) {
+        [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
           tptr<T> w = tptr<T>(new T[nfeatures]());
           T loss_local = 0.0;
 
-          for (size_t i = i0; i < i1; i += di) {
+          for (size_t i = i0; i < i1; ++i) {
             const size_t j0 = ri_val[0][i];
             if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
               hash_row(x, hashers_val, i);
@@ -487,11 +487,11 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   }
 
   dt::run_parallel(
-    [&](size_t i0, size_t i1, size_t di) {
+    [&](size_t i0, size_t i1) {
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
 
-      for (size_t i = i0; i < i1; i += di) {
+      for (size_t i = i0; i < i1; ++i) {
         hash_row(x, hashers, i);
         for (size_t k = 0; k < nlabels; ++k) {
           data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
@@ -544,9 +544,8 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
   }
 
   dt::run_parallel(
-    [&](size_t i0, size_t i1, size_t di) {
-
-      for (size_t i = i0; i < i1; i += di) {
+    [&](size_t i0, size_t i1) {
+      for (size_t i = i0; i < i1; ++i) {
         T denom = static_cast<T>(0.0);
         for (size_t j = 0; j < ncols; ++j) {
           denom += data[j][i];

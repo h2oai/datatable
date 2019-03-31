@@ -150,7 +150,7 @@ R"(Return system ids of all threads used internally by datatable)");
 
 static py::oobj get_thread_ids(const py::PKArgs&) {
   std::mutex m;
-  py::olist list(dt::get_thread_pool().size());
+  py::olist list(dt::get_num_threads());
 
   dt::run_once_per_thread([&](size_t i) {
     std::stringstream ss;
