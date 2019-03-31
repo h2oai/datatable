@@ -44,7 +44,7 @@ namespace dt {
 // Order-less iteration over range [0; n)
 //------------------------------------------------------------------------------
 
-using rangefn = dt::function<void(size_t, size_t, size_t)>;
+using rangefn = dt::function<void(size_t, size_t)>;
 
 /**
  * Execute function `run` in parallel, over the range `[0 .. nrows - 1]`.

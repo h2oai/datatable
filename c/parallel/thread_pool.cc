@@ -75,6 +75,11 @@ thread_pool& get_thread_pool() {
 }
 
 
+size_t get_num_threads() {
+  return get_thread_pool().size();
+}
+
+
 size_t get_hardware_concurrency() noexcept {
   unsigned int nth = std::thread::hardware_concurrency();
   if (!nth) nth = 1;

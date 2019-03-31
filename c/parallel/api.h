@@ -28,6 +28,12 @@ thread_pool& get_thread_pool();
 
 
 /**
+ * Return the current number of threads in the pool.
+ */
+size_t get_num_threads();
+
+
+/**
  * Return the number of concurrent threads supported by the machine. This
  * value is approximate. If the number of concurrent threads is unknown,
  * this function returns 1.

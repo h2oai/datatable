@@ -606,15 +606,15 @@ void ReplaceAgent::replace_fw1(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
   if (std::is_floating_point<T>::value && ISNA<T>(x0)) {
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           if (ISNA<T>(data[i])) data[i] = y0;
         }
       }, nrows);
   } else {
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           if (data[i] == x0) data[i] = y0;
         }
       }, nrows);
@@ -629,8 +629,8 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
   xassert(!ISNA<T>(x0));
   if (std::is_floating_point<T>::value && ISNA<T>(x1)) {
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           if (v == x0) data[i] = y0;
           else if (ISNA<T>(v)) data[i] = y1;
@@ -638,8 +638,8 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
       }, nrows);
   } else {
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           if (v == x0) data[i] = y0;
           else if (v == x1) data[i] = y1;
@@ -654,8 +654,8 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
   if (std::is_floating_point<T>::value && ISNA<T>(x[n-1])) {
     n--;
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           if (ISNA<T>(v)) {
             data[i] = y[n];
@@ -671,8 +671,8 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
       }, nrows);
   } else {
     dt::run_parallel(
-      [=](size_t istart, size_t iend, size_t di) {
-        for (size_t i = istart; i < iend; i += di) {
+      [=](size_t istart, size_t iend) {
+        for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           for (size_t j = 0; j < n; ++j) {
             if (v == x[j]) {
