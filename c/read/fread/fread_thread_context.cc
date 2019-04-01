@@ -41,9 +41,7 @@ FreadThreadContext::FreadThreadContext(
 }
 
 FreadThreadContext::~FreadThreadContext() {
-  #pragma omp atomic update
   freader.fo.time_push_data += ttime_push;
-  #pragma omp atomic update
   freader.fo.time_read_data += ttime_read;
   ttime_push = 0;
   ttime_read = 0;

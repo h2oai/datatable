@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl_real.h"
+#include "parallel/atomic.h"
 #include "utils/macros.h"
 
 
@@ -300,8 +301,6 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // After each chunk was fitted, we calculate loss on the validation set,
   // and do early stopping if needed.
   bool validation = !std::isnan(nepochs_val);
-  T loss = 0;
-  T loss_old = 0;
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;
   if (validation) {
@@ -320,9 +319,11 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
 
   size_t chunk_end = 0;
+  T loss_old = 0;
   for (size_t c = 0; c < nchunks; ++c) {
     size_t chunk_start = c * chunk_nrows;
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
+    std::mutex m;
 
     dt::run_parallel(
       [&](size_t i0, size_t i1) {
@@ -354,12 +355,10 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           }
         }
 
-        #pragma omp critical
+        std::lock_guard<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
         }
-
-
       },
       chunk_end - chunk_start
     );
@@ -368,6 +367,7 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     // Calculate loss on the validation dataset and do early stopping,
     // if the loss does not improve.
     if (validation) {
+      dt::atomic<T> loss { 0.0 };
       dt::run_parallel(
         [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -388,20 +388,19 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               }
             }
           }
-          #pragma omp atomic
           loss += loss_local;
         },
         dt_X_val->nrows
       );
 
       // If loss do not decrease, do early stopping.
-      loss /= (dt_X_val->nrows * dt_y_val->ncols);
-      T loss_diff = (loss_old - loss) / loss_old;
-      if (c && (loss < epsilon || loss_diff < val_error)) break;
+      T loss_current = loss.load();
+      loss_current /= (dt_X_val->nrows * dt_y_val->ncols);
+      T loss_diff = (loss_old - loss_current) / loss_old;
+      if (c && (loss_current < epsilon || loss_diff < val_error)) break;
 
       // If loss decreases, save current loss and continue training.
-      loss_old = loss;
-      loss = 0;
+      loss_old = loss_current;
     }
   }
   double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;

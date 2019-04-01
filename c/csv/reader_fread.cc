@@ -917,8 +917,8 @@ FreadObserver::FreadObserver(const GenericReader& g_) : g(g_) {
   t_frame_allocated = 0;
   t_data_read = 0;
   t_data_reread = 0;
-  time_read_data = 0;
-  time_push_data = 0;
+  time_read_data = 0.0;
+  time_push_data = 0.0;
   input_size = 0;
   n_rows_read = 0;
   n_cols_read = 0;
@@ -952,10 +952,9 @@ void FreadObserver::report() {
   double read_time = t_data_read - t_frame_allocated;
   double reread_time = t_data_reread - t_data_read;
   double makedt_time = t_end - t_data_reread;
-  time_read_data /= read_data_nthreads;
-  time_push_data /= read_data_nthreads;
-  double time_wait_data = read_time + reread_time
-                          - time_read_data - time_push_data;
+  double t_read = time_read_data.load() / read_data_nthreads;
+  double t_push = time_push_data.load() / read_data_nthreads;
+  double time_wait_data = read_time + reread_time - t_read - t_push;
   int p = total_time < 10 ? 5 :
           total_time < 100 ? 6 :
           total_time < 1000 ? 7 : 8;
@@ -993,9 +992,9 @@ void FreadObserver::report() {
             n_cols_reread);
   }
   g.trace("    = %*.3fs (%2.0f%%) reading into row-major buffers", p,
-          time_read_data, 100 * time_read_data / total_time);
+          t_read, 100 * t_read / total_time);
   g.trace("    + %*.3fs (%2.0f%%) saving into the output frame", p,
-          time_push_data, 100 * time_push_data / total_time);
+          t_push, 100 * t_push / total_time);
   g.trace("    + %*.3fs (%2.0f%%) waiting", p,
           time_wait_data, 100 * time_wait_data / total_time);
   g.trace(" + %*.3fs (%2.0f%%) creating the final Frame", p,
