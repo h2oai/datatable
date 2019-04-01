@@ -8,7 +8,7 @@
 #include <type_traits>
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
+#include "utils/parallel.h"  // dt::run_parallel
 #include "column.h"
 
 
@@ -213,24 +213,28 @@ size_t FwColumn<T>::data_nrows() const {
 template <typename T>
 void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   const int8_t* maskdata = mask->elements_r();
-  constexpr T na = GETNA<T>();
   T* coldata = this->elements_w();
-  #pragma omp parallel for schedule(dynamic, 1024)
-  for (size_t j = 0; j < nrows; ++j) {
-    if (maskdata[j] == 1) coldata[j] = na;
-  }
+
+  dt::run_parallel(
+    [=](size_t i0, size_t i1) {
+      for (size_t i = i0; i < i1; ++i) {
+        if (maskdata[i] == 1) coldata[i] = GETNA<T>();
+      }
+    }, nrows);
   if (stats != nullptr) stats->reset();
 }
 
 
 template <typename T>
 void FwColumn<T>::fill_na() {
+  xassert(!ri);
   T* vals = static_cast<T*>(mbuf.wptr());
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nrows; ++i) {
-    vals[i] = GETNA<T>();
-  }
-  ri.clear();
+  dt::run_parallel(
+    [=](size_t i0, size_t i1) {
+      for (size_t i = i0; i < i1; ++i) {
+        vals[i] = GETNA<T>();
+      }
+    }, nrows);
 }
 
 
