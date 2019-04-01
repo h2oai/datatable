@@ -5,9 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <iostream>
+#include <exception>       // std::exception
+#include <iostream>        // std::cerr
+#include <mutex>           // std::mutex, std::lock_guard
 #include <thread>          // std::this_thread
-#include <unordered_map>
+#include <sstream>         // std::stringstream
+#include <unordered_map>   // std::unordered_map
+#include <utility>         // std::pair, std::make_pair, std::move
 #include <Python.h>
 #include "../datatable/include/datatable.h"
 #include "expr/base_expr.h"
@@ -227,36 +231,36 @@ struct PtrInfo {
 };
 
 static std::unordered_map<void*, PtrInfo> tracked_objects;
+static std::mutex track_mutex;
 
 
 void TRACK(void* ptr, size_t size, const char* name) {
-  #pragma omp critical
-  {
-    if (tracked_objects.count(ptr)) {
-      std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
-          "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
-          << (PtrInfo {size, name}).to_string();
-    }
-    tracked_objects.insert({ptr, PtrInfo {size, name}});
+  std::lock_guard<std::mutex> lock(track_mutex);
+
+  if (tracked_objects.count(ptr)) {
+    std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
+        "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
+        << (PtrInfo {size, name}).to_string();
   }
+  tracked_objects.insert({ptr, PtrInfo {size, name}});
 }
 
 
 void UNTRACK(void* ptr) {
-  #pragma omp critical
-  {
-    if (tracked_objects.count(ptr) == 0) {
-      // UNTRACK() is usually called from a destructor, so cannot throw any
-      // exceptions there :(
-      std::cerr << "ERROR: Trying to remove pointer " << ptr
-                << " which is not tracked\n";
-    }
-    tracked_objects.erase(ptr);
+  std::lock_guard<std::mutex> lock(track_mutex);
+
+  if (tracked_objects.count(ptr) == 0) {
+    // UNTRACK() is usually called from a destructor, so cannot throw any
+    // exceptions there :(
+    std::cerr << "ERROR: Trying to remove pointer " << ptr
+              << " which is not tracked\n";
   }
+  tracked_objects.erase(ptr);
 }
 
 
 bool IS_TRACKED(void* ptr) {
+  std::lock_guard<std::mutex> lock(track_mutex);
   return (tracked_objects.count(ptr) > 0);
 }
 
