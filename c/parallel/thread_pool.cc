@@ -99,11 +99,8 @@ void thread_pool::cleanup_after_fork() {
   _instance = new thread_pool;
   _instance->resize(num_threads_requested);
 
-  // Abandon the workers (since they are in an invalid state after the fork).
-  for (auto& worker : workers) {
-    worker.release();
-  }
-  delete this;
+  // Abandon the current instance (`this`) without deleting, since it is owned
+  // by the parent process anyways.
 }
 
 
