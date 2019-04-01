@@ -53,7 +53,7 @@ void set_nthreads(int32_t n) {
   // that do not use explicit `num_threads()` directive.
   omp_set_num_threads(n);
 
-  dt::get_thread_pool().resize(static_cast<size_t>(n));
+  dt::thread_pool::get_instance()->resize(static_cast<size_t>(n));
 }
 
 
