@@ -5,12 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <cmath>  // abs
-#include <limits> // numeric_limits::max()
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
+#include "utils/parallel.h"  // dt::run_parallel
 #include "column.h"
 
 // Returns the expected path of the string data file given
@@ -474,6 +472,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
 
 template <typename T>
 void StringColumn<T>::fill_na() {
+  xassert(!ri);
   // Perform a mini materialize (the actual `materialize` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);
@@ -481,11 +480,13 @@ void StringColumn<T>::fill_na() {
   mbuf.resize(new_mbuf_size, /* keep_data = */ false);
   T* off_data = offsets_w();
   off_data[-1] = 0;
-  #pragma omp parallel for
-  for (size_t i = 0; i < nrows; ++i) {
-    off_data[i] = GETNA<T>();
-  }
-  ri.clear();
+
+  dt::run_parallel(
+    [=](size_t i0, size_t i1){
+      for (size_t i = i0; i < i1; ++i) {
+        off_data[i] = GETNA<T>();
+      }
+    }, nrows);
 }
 
 
