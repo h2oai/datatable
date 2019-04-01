@@ -393,7 +393,7 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         dt_X_val->nrows
       );
 
-      // If loss doesn't not decrease, do early stopping.
+      // If loss does not decrease, do early stopping.
       T loss_current = loss.load();
       loss_current /= (dt_X_val->nrows * dt_y_val->ncols);
       T loss_diff = (loss_old - loss_current) / loss_old;
