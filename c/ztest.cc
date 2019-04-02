@@ -32,11 +32,18 @@ static void test_shmutex(const PKArgs& args) {
   dttest::test_shmutex(n_iters, n_threads, impl);
 }
 
+static PKArgs arg_test_atomic(0, 0, 0, false, false, {}, "test_atomic");
+
+static void test_atomic(const PKArgs&) {
+  dttest::test_atomic();
+}
+
 
 
 void DatatableModule::init_tests() {
   ADD_FN(&test_coverage, arg_test_coverage);
   ADD_FN(&test_shmutex, arg_test_shmutex);
+  ADD_FN(&test_atomic, arg_test_atomic);
 }
 
 

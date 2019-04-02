@@ -77,9 +77,10 @@ template <typename T>
 uint64_t HasherFloat<T>::hash(size_t row) const {
   size_t i = ri[row];
   T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
-  auto x = static_cast<double>(value);
-  uint64_t* h = reinterpret_cast<uint64_t*>(&x);
-  return *h;
+  double x = static_cast<double>(value);
+  uint64_t h;
+  std::memcpy(&h, &x, sizeof(double));
+  return h;
 }
 
 

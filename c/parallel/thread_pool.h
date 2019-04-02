@@ -56,10 +56,18 @@ class thread_pool {
     // (these pointers are stored within each thread).
     std::vector<std::unique_ptr<thread_worker>> workers;
 
+    // Number of threads requested by the user; however, we will only
+    // instantiate the threads when `execute_job()` is first called.
+    size_t num_threads_requested;
+
     // Scheduler used to manage sleep/awake cycle of the threads in the pool.
     worker_controller controller;
 
+    // Singleton instance of the thread_pool, returned by `get_instance()`.
+    static thread_pool* _instance;
+
   public:
+    static thread_pool* get_instance();
     thread_pool();
     thread_pool(const thread_pool&) = delete;
     // Not moveable: workers hold pointers to this->controller.
@@ -70,6 +78,10 @@ class thread_pool {
 
     size_t size() const noexcept;
     void resize(size_t n);
+
+  private:
+    void resize_impl();
+    void cleanup_after_fork();
 };
 
 

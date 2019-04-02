@@ -87,6 +87,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed conversion to numpy of a view Frame which contains NAs (#1738).
 
+- `datatable` can now be safely used with `multiprocessing`, or other modules
+  that perform fork-without-exec (#1758). The child process will spawn its
+  own thread pool that will have the same number of threads as the parent.
+  Adjust `dt.options.nthreads` in the child process(es) if different number
+  of threads is required.
+
 
 ### Changed
 

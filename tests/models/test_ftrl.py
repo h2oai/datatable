@@ -26,14 +26,14 @@
 #
 #-------------------------------------------------------------------------------
 import pickle
-import datatable as dt
-from datatable.models import Ftrl
-from datatable.internal import frame_integrity_check
-from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
 import math
+import datatable as dt
+from datatable.models import Ftrl
+from datatable.internal import frame_integrity_check
+from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
 
 
@@ -714,15 +714,20 @@ def test_ftrl_fit_predict_multinomial_online(negative_class_value):
 # Test early stopping
 #-------------------------------------------------------------------------------
 
-def test_ftrl_no_validation_set():
+@pytest.mark.parametrize('double_precision_value', [False, True])
+def test_ftrl_no_validation_set(double_precision_value):
     nepochs = 1234
     nbins = 56
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs,
+              double_precision = double_precision_value)
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch_stopped = ft.fit(df_X, df_y)
+    res = ft.fit(df_X, df_y)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped)
 
 
 def test_ftrl_no_early_stopping():
@@ -733,9 +738,12 @@ def test_ftrl_no_early_stopping():
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch_stopped = ft.fit(df_X, df_y, df_X, df_y,
-                           nepochs_validation = nepochs_validation)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped) == False
 
 
 def test_ftrl_early_stopping_int():
@@ -746,11 +754,14 @@ def test_ftrl_early_stopping_int():
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch_stopped = ft.fit(df_X, df_y, df_X, df_y,
-                           nepochs_validation = nepochs_validation)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
     assert int(epoch_stopped) % nepochs_validation == 0
     assert max(delta) < epsilon
 
@@ -763,11 +774,14 @@ def test_ftrl_early_stopping_float():
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
-    epoch_stopped = ft.fit(df_X, df_y, df_X, df_y,
-                           nepochs_validation = nepochs_validation)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
     assert (epoch_stopped / nepochs_validation ==
             int(epoch_stopped / nepochs_validation))
     assert max(delta) < epsilon
@@ -783,12 +797,15 @@ def test_ftrl_early_stopping_regression():
     df_y_train = dt.Frame(r)
     df_X_validate = dt.Frame(range(-nbins, nbins))
     df_y_validate = df_X_validate
-    epoch_stopped = ft.fit(df_X_train, df_y_train,
-                           df_X_validate[nbins::,:], df_y_validate[nbins::,:],
-                           nepochs_validation = nepochs_validation)
+    res = ft.fit(df_X_train, df_y_train,
+                 df_X_validate[nbins::,:], df_y_validate[nbins::,:],
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
     assert int(epoch_stopped) % nepochs_validation == 0
     assert max(delta) < epsilon
 
@@ -806,8 +823,10 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
-    epoch_stopped = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
-                           nepochs_validation = 1, validation_error = 1e-3)
+    res = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
+                 nepochs_validation = 1, validation_error = 1e-3)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
@@ -824,6 +843,7 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
 
     assert epoch_stopped < nepochs
+    assert loss_stopped < 0.1
     assert max(delta_sum)   < 1e-6
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon

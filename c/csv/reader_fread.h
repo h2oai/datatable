@@ -11,7 +11,7 @@
 #include "csv/reader.h"           // GenericReader
 #include "csv/reader_parsers.h"   // ParserLibrary, ParserFnPtr
 #include "read/field64.h"         // dt::read::field64
-
+#include "parallel/atomic.h"      // dt::atomic
 
 namespace dt {
 namespace read {
@@ -40,8 +40,8 @@ class FreadObserver {
     double t_frame_allocated;
     double t_data_read;
     double t_data_reread;
-    double time_read_data;
-    double time_push_data;
+    dt::atomic<double> time_read_data;
+    dt::atomic<double> time_push_data;
     size_t n_rows_read;
     size_t n_cols_read;
     size_t input_size;
