@@ -100,7 +100,7 @@ void run_parallel(rangefn f, size_t nrows) {
     size_t chunksize = nrows / k;
     size_t nchunks = nrows / chunksize;
 
-    dt::run_once_per_thread(
+    dt::parallel_region(
       [=](size_t ith) {
         for (size_t j = ith; j < nchunks; j += nth) {
           size_t i0 = j * chunksize;

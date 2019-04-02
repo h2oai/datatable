@@ -38,7 +38,7 @@ size_t get_hardware_concurrency() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void run_once_per_thread(function<void(size_t)> f);
+void parallel_region(function<void(size_t)> f);
 
 
 

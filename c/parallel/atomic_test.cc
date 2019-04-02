@@ -32,7 +32,7 @@ static void test_atomic_impl() {
   dt::atomic<T> y { T(1.0) };
   dt::atomic<T> z { T(1.3e20) };
 
-  dt::run_once_per_thread(
+  dt::parallel_region(
     [&](size_t i) {
       barrier--;
       while (barrier.load());

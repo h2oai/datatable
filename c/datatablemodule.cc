@@ -157,7 +157,7 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   size_t n = dt::get_num_threads();
   py::olist list(n);
 
-  dt::run_once_per_thread([&](size_t i) {
+  dt::parallel_region([&](size_t i) {
     std::stringstream ss;
     ss << std::this_thread::get_id();
     std::lock_guard<std::mutex> lock(m);
