@@ -85,10 +85,10 @@ class FtrlReal : public dt::Ftrl {
     std::vector<size_t> map_val;
 
     // Fitting methods
-    double fit_binomial();
-    double fit_multinomial();
-    template <typename U> double fit_regression();
-    template <typename U> double fit(T(*)(T), T(*)(T, U));
+    FtrlFitOutput fit_binomial();
+    FtrlFitOutput fit_multinomial();
+    template <typename U> FtrlFitOutput fit_regression();
+    template <typename U> FtrlFitOutput fit(T(*)(T), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
@@ -126,9 +126,9 @@ class FtrlReal : public dt::Ftrl {
     FtrlReal(FtrlParams);
 
     // Main fitting method
-    double dispatch_fit(const DataTable*, const DataTable*,
-                        const DataTable*, const DataTable*,
-                        double, double) override;
+    FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
+                               const DataTable*, const DataTable*,
+                               double, double) override;
 
     // Main predicting method
     dtptr predict(const DataTable*) override;

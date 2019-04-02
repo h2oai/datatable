@@ -234,8 +234,10 @@ validation_error: float
 
 Returns
 -------
-Epoch at which model training stopped. If no validation dataset was provided,
-epoch returned will be equal to `nepochs`.
+A tuple consisting of two elements: `epoch` and `loss`, where
+`epoch` is the epoch at which model fitting stopped, and `loss` is the final
+loss. When validation dataset was not provided, `epoch` returned will be equal to
+`nepochs`, and `loss` will be zero.
 )");
 
 
@@ -348,10 +350,22 @@ oobj Ftrl::fit(const PKArgs& args) {
   }
 
   // Train the model and return epoch when training.
-  double epoch_stopped = dtft->dispatch_fit(dt_X, dt_y,
-                                            dt_X_val, dt_y_val,
-                                            nepochs_val, val_error);
-  return py::ofloat(epoch_stopped);
+  dt::FtrlFitOutput output = dtft->dispatch_fit(dt_X, dt_y,
+                                         dt_X_val, dt_y_val,
+                                         nepochs_val, val_error);
+
+  static onamedtupletype ntt(
+    "FtrlFitOutput",
+    "Tuple of fit output",
+    {{"epoch", "epoch at which fitting stopped"},
+     {"loss",  "final loss calculated on the validation dataset"}}
+  );
+
+  py::onamedtuple res(ntt);
+  res.set(0, py::ofloat(output.epoch));
+  res.set(1, py::ofloat(output.loss));
+
+  return res;
 }
 
 
