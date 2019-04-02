@@ -331,13 +331,10 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
       [&](size_t) {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]);
-        tptr<T> fi = tptr<T>(new T[nfeatures]);
+        tptr<T> fi = tptr<T>(new T[nfeatures]());
 
         dt::parallel_for_static(chunk_end - chunk_start,
           [&](size_t i0, size_t i1) {
-            std::memset(w.get(), 0, nfeatures * sizeof(T));
-            std::memset(fi.get(), 0, nfeatures * sizeof(T));
-
             for (size_t i = i0; i < i1; ++i) {
               size_t ii = (chunk_start + i) % dt_X->nrows;
               const size_t j0 = ri[0][ii];
@@ -354,7 +351,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
                   const size_t j = ri[k][ii];
                   T p = linkfn(predict_row(
                             x, w, k,
-                            [=](size_t f_id, T f_imp) {
+                            [&](size_t f_id, T f_imp) {
                               fi[f_id] += f_imp;
                             }
                         ));
@@ -362,12 +359,12 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
                 }
               }
             }
-
-            std::lock_guard<std::mutex> lock(m);
-            for (size_t i = 0; i < nfeatures; ++i) {
-              data_fi[i] += fi[i];
-            }
           });
+
+        std::lock_guard<std::mutex> lock(m);
+        for (size_t i = 0; i < nfeatures; ++i) {
+          data_fi[i] += fi[i];
+        }
       }
     );
 
