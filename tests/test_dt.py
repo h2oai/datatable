@@ -188,6 +188,12 @@ def test_internal_shared_bmutex():
         core.test_shmutex(1000, dt.options.nthreads * 2, 0)
 
 
+def test_internal_atomic():
+    from datatable.lib import core
+    if hasattr(core, "test_atomic"):
+        core.test_atomic()
+
+
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)
     out, err = capsys.readouterr()
