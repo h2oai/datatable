@@ -28,6 +28,13 @@ size_t get_num_threads();
 
 
 /**
+ * Return the index of the current thread: from 0 to `get_num_threads() - 1`.
+ * For the master thread this will return `size_t(-1)`.
+ */
+size_t get_thread_num();
+
+
+/**
  * Return the number of concurrent threads supported by the machine. This
  * value is approximate. If the number of concurrent threads is unknown,
  * this function returns 1.

@@ -131,6 +131,15 @@ size_t get_num_threads() {
 }
 
 
+static thread_local size_t thread_index = size_t(-1);
+size_t get_thread_num() {
+  return thread_index;
+}
+void _set_thread_num(size_t i) {
+  thread_index = i;
+}
+
+
 size_t get_hardware_concurrency() noexcept {
   unsigned int nth = std::thread::hardware_concurrency();
   if (!nth) nth = 1;

@@ -54,6 +54,7 @@ thread_worker::~thread_worker() {
  * variable inside the sleep task.
  */
 void thread_worker::run() noexcept {
+  _set_thread_num(thread_index);
   while (scheduler) {
     try {
       thread_task* task = scheduler->get_next_task(thread_index);

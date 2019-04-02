@@ -187,6 +187,9 @@ class thread_shutdown_scheduler : public thread_scheduler {
 };
 
 
+// Helper function, defined in `thread_pool.cc`.
+// This should only be called within a new thread.
+void _set_thread_num(size_t);
 
 }  // namespace dt
 #endif
