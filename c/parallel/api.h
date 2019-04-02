@@ -22,12 +22,6 @@ namespace dt {
 
 
 /**
- * thread_pool is a singleton, returned by this function
- */
-thread_pool& get_thread_pool();
-
-
-/**
  * Return the current number of threads in the pool.
  */
 size_t get_num_threads();

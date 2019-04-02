@@ -56,10 +56,10 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 void run_once_per_thread(function<void(size_t)> f) {
-  thread_pool& thpool = get_thread_pool();
+  thread_pool* thpool = thread_pool::get_instance();
   simple_task task(f);
-  once_scheduler sch(thpool.size(), &task);
-  thpool.execute_job(&sch);
+  once_scheduler sch(thpool->size(), &task);
+  thpool->execute_job(&sch);
 }
 
 
