@@ -26,7 +26,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 /*
-void parallel_for_static(rangefn run, size_t nrows)
+void parallel_for_static(size_t nrows, rangefn run)
 {
   // `min_nrows_per_chunk`: avoid processing less than this many rows in each
   // thread, reduce the number of threads if necessary.

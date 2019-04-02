@@ -606,19 +606,19 @@ template <typename T>
 void ReplaceAgent::replace_fw1(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
   if (std::is_floating_point<T>::value && ISNA<T>(x0)) {
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           if (ISNA<T>(data[i])) data[i] = y0;
         }
-      }, nrows);
+      });
   } else {
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           if (data[i] == x0) data[i] = y0;
         }
-      }, nrows);
+      });
   }
 }
 
@@ -629,23 +629,23 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
   T x1 = x[1], y1 = y[1];
   xassert(!ISNA<T>(x0));
   if (std::is_floating_point<T>::value && ISNA<T>(x1)) {
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           if (v == x0) data[i] = y0;
           else if (ISNA<T>(v)) data[i] = y1;
         }
-      }, nrows);
+      });
   } else {
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
           if (v == x0) data[i] = y0;
           else if (v == x1) data[i] = y1;
         }
-      }, nrows);
+      });
   }
 }
 
@@ -654,7 +654,7 @@ template <typename T>
 void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
   if (std::is_floating_point<T>::value && ISNA<T>(x[n-1])) {
     n--;
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
@@ -669,9 +669,9 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
             }
           }
         }
-      }, nrows);
+      });
   } else {
-    dt::parallel_for_static(
+    dt::parallel_for_static(nrows,
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
@@ -682,7 +682,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
             }
           }
         }
-      }, nrows);
+      });
   }
 }
 

@@ -327,7 +327,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
     std::mutex m;
 
-    dt::parallel_for_static(
+    dt::parallel_for_static(chunk_end - chunk_start,
       [&](size_t i0, size_t i1) {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -361,16 +361,14 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
         }
-      },
-      chunk_end - chunk_start
-    );
+      });
 
 
     // Calculate loss on the validation dataset and do early stopping,
     // if the loss does not improve.
     if (validation) {
       dt::atomic<T> loss_global { 0.0 };
-      dt::parallel_for_static(
+      dt::parallel_for_static(dt_X_val->nrows,
         [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
           tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -391,9 +389,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             }
           }
           loss_global.fetch_add(loss_local);
-        },
-        dt_X_val->nrows
-      );
+        });
 
       // If loss does not decrease, do early stopping.
       loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
@@ -487,7 +483,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
                                  << "the model was trained in an unknown mode";
   }
 
-  dt::parallel_for_static(
+  dt::parallel_for_static(dt_X->nrows,
     [&](size_t i0, size_t i1) {
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
@@ -498,10 +494,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
           data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
         }
       }
-
-    },
-    dt_X->nrows
-  );
+    });
 
   // For multinomial case, when there is two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
@@ -544,7 +537,7 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
     data[j] = static_cast<T*>(dt->columns[j]->data_w());
   }
 
-  dt::parallel_for_static(
+  dt::parallel_for_static(nrows,
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) {
         T denom = static_cast<T>(0.0);
@@ -555,10 +548,7 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
           data[j][i] /= denom;
         }
       }
-
-    },
-    nrows
-  );
+    });
 }
 
 

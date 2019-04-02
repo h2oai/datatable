@@ -48,7 +48,7 @@ size_t get_hardware_concurrency() noexcept;
 void parallel_region(function<void(size_t)> f);
 
 
-void parallel_for_static(function<void(size_t, size_t)> fn, size_t nrows);
+void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn);
 
 
 }  // namespace dt

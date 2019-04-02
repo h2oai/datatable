@@ -70,12 +70,12 @@ void parallel_region(function<void(size_t)> f) {
 // parallel_for_static
 //------------------------------------------------------------------------------
 
-void parallel_for_static(function<void(size_t, size_t)> f, size_t nrows) {
+void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
   constexpr size_t min_nrows_per_chunk = 4096;
   size_t k = nrows / min_nrows_per_chunk;
 
   if (k == 0) {
-    f(0, nrows);
+    fn(0, nrows);
   }
   else {
     size_t nth = get_num_threads();
@@ -88,7 +88,7 @@ void parallel_for_static(function<void(size_t, size_t)> f, size_t nrows) {
           size_t i0 = j * chunksize;
           size_t i1 = i0 + chunksize;
           if (j == nchunks - 1) i1 = nrows;
-          f(i0, i1);
+          fn(i0, i1);
         }
       });
   }
