@@ -55,7 +55,7 @@ class thread_pool {
     // Also, use pointers here instead of `thread_worker` objects, so that
     // the pointers to each worker remain constant when the vector resizes
     // (these pointers are stored within each thread).
-    std::vector<std::unique_ptr<thread_worker>> workers;
+    std::vector<thread_worker*> workers;
 
     // Number of threads requested by the user; however, we will only
     // instantiate the threads when `execute_job()` is first called.
@@ -83,6 +83,8 @@ class thread_pool {
 
     size_t size() const noexcept;
     void resize(size_t n);
+
+    bool in_master_thread() const;
 
   private:
     void resize_impl();

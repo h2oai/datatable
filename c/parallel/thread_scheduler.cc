@@ -57,6 +57,7 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 void parallel_region(function<void(size_t)> f) {
   thread_pool* thpool = thread_pool::get_instance();
+  xassert(thpool->in_master_thread());
   simple_task task(f);
   once_scheduler sch(thpool->size(), &task);
   thpool->execute_job(&sch);

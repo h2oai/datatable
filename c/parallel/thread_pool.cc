@@ -19,7 +19,6 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_worker.h"
 #include "utils/assert.h"
-#include "utils/c+++.h"
 namespace dt {
 
 
@@ -73,8 +72,7 @@ void thread_pool::resize_impl() {
   if (workers.size() < n) {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
-      workers.push_back(
-        make_unique<dt::thread_worker>(i, &controller));
+      workers.push_back(new thread_worker(i, &controller));
     }
     // Wait until all threads are properly alive & safely asleep
     controller.join(n);
@@ -82,12 +80,16 @@ void thread_pool::resize_impl() {
   else {
     thread_shutdown_scheduler tss(n, &controller);
     execute_job(&tss);
+    for (size_t i = n; i < workers.size(); ++i) {
+      delete workers[i];
+    }
     workers.resize(n);
   }
 }
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
+  xassert(in_master_thread());
   if (workers.empty()) resize_impl();
   controller.awaken_and_run(job);
   controller.join(workers.size());
@@ -106,6 +108,11 @@ void thread_pool::cleanup_after_fork() {
 
   // Abandon the current instance (`this`) without deleting, since it is owned
   // by the parent process anyways.
+}
+
+
+bool thread_pool::in_master_thread() const {
+  return std::this_thread::get_id() == master_thread_id;
 }
 
 
