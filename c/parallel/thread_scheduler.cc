@@ -74,24 +74,48 @@ void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
   constexpr size_t min_nrows_per_chunk = 4096;
   size_t k = nrows / min_nrows_per_chunk;
 
-  if (k == 0) {
-    fn(0, nrows);
-  }
-  else {
-    size_t nth = get_num_threads();
-    size_t chunksize = nrows / k;
-    size_t nchunks = nrows / chunksize;
+  size_t ith = dt::get_thread_num();
 
-    dt::parallel_region(
-      [=](size_t ith) {
-        for (size_t j = ith; j < nchunks; j += nth) {
-          size_t i0 = j * chunksize;
-          size_t i1 = i0 + chunksize;
-          if (j == nchunks - 1) i1 = nrows;
-          fn(i0, i1);
-        }
-      });
+  // Standard parallel loop
+  if (ith == size_t(-1)) {
+    if (k == 0) {
+      fn(0, nrows);
+    }
+    else {
+      size_t nth = get_num_threads();
+      size_t chunksize = nrows / k;
+      size_t nchunks = nrows / chunksize;
+
+      dt::parallel_region(
+        [=](size_t ithread) {
+          for (size_t j = ithread; j < nchunks; j += nth) {
+            size_t i0 = j * chunksize;
+            size_t i1 = i0 + chunksize;
+            if (j == nchunks - 1) i1 = nrows;
+            fn(i0, i1);
+          }
+        });
+    }
   }
+  // Parallel loop within a parallel region
+  else {
+    if (k == 0) {
+      if (ith == 0) fn(0, nrows);
+    }
+    else {
+      size_t nth = get_num_threads();
+      size_t chunksize = nrows / k;
+      size_t nchunks = nrows / chunksize;
+
+      for (size_t j = ith; j < nchunks; j += nth) {
+        size_t i0 = j * chunksize;
+        size_t i1 = i0 + chunksize;
+        if (j == nchunks - 1) i1 = nrows;
+        fn(i0, i1);
+      }
+    }
+  }
+
 }
 
 
