@@ -36,21 +36,24 @@ thread_pool* thread_pool::get_instance() {
 }
 
 
-thread_pool::thread_pool() {
+
+thread_pool::thread_pool()
+  : num_threads_requested(0),
+    master_thread_id(std::this_thread::get_id())
+{
+  // pthread_atfork callback needs to be established within the main process
+  // only, which is indicated by `_instance` being nullptr during construction.
   if (!_instance) {
-    pthread_atfork(
-      /* before_fork = */ nullptr,
-      /* after_fork_parent = */ nullptr,
-      /* after_fork_child = */ [] {
-        thread_pool::get_instance()->cleanup_after_fork();
-      }
-    );
+    pthread_atfork(nullptr, nullptr, []{
+      thread_pool::get_instance()->cleanup_after_fork();
+    });
   }
 }
 
-thread_pool::~thread_pool() {
-  resize(0);
-}
+// In the current implementation the thread_pool instance never gets deleted
+// thread_pool::~thread_pool() {
+//   resize(0);
+// }
 
 
 size_t thread_pool::size() const noexcept {

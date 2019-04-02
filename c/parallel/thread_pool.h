@@ -16,6 +16,7 @@
 #ifndef dt_PARALLEL_THREAD_POOL_h
 #define dt_PARALLEL_THREAD_POOL_h
 #include <mutex>               // std::mutex
+#include <thread>              // std::thread::id
 #include <vector>              // std::vector
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
@@ -63,6 +64,10 @@ class thread_pool {
     // Scheduler used to manage sleep/awake cycle of the threads in the pool.
     worker_controller controller;
 
+    // Thread id of the main (python) thread, mostly used to verify that
+    // certain constructs are called from the master thread only.
+    std::thread::id master_thread_id;
+
     // Singleton instance of the thread_pool, returned by `get_instance()`.
     static thread_pool* _instance;
 
@@ -72,7 +77,7 @@ class thread_pool {
     thread_pool(const thread_pool&) = delete;
     // Not moveable: workers hold pointers to this->controller.
     thread_pool(thread_pool&&) = delete;
-    ~thread_pool();
+    // ~thread_pool();
 
     void execute_job(thread_scheduler*);
 
