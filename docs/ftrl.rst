@@ -146,7 +146,7 @@ feature names and their importances, that are normalized to [0; 1] range.
 
 
 Feature Interactions
--------------------
+--------------------
 
 By default each column of a training dataset is considered as a feature
 by FTRL model. User can provide additional features by specifying
