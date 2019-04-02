@@ -59,7 +59,7 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 * and returns epoch at which learning completed or was early stopped.
 */
 template <typename T>
-double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
+FtrlFitOutput FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
                                  const DataTable* dt_y_in,
                                  const DataTable* dt_X_val_in,
                                  const DataTable* dt_y_val_in,
@@ -71,19 +71,19 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
   dt_y_val = dt_y_val_in;
   nepochs_val = static_cast<T>(nepochs_val_in);
   val_error = static_cast<T>(val_error_in);
+  FtrlFitOutput res;
 
-  double epoch;
   SType stype_y = dt_y->columns[0]->stype();
   switch (stype_y) {
-    case SType::BOOL:    epoch = fit_binomial(); break;
-    case SType::INT8:    epoch = fit_regression<int8_t>(); break;
-    case SType::INT16:   epoch = fit_regression<int16_t>(); break;
-    case SType::INT32:   epoch = fit_regression<int32_t>(); break;
-    case SType::INT64:   epoch = fit_regression<int64_t>(); break;
-    case SType::FLOAT32: epoch = fit_regression<float>(); break;
-    case SType::FLOAT64: epoch = fit_regression<double>(); break;
+    case SType::BOOL:    res = fit_binomial(); break;
+    case SType::INT8:    res = fit_regression<int8_t>(); break;
+    case SType::INT16:   res = fit_regression<int16_t>(); break;
+    case SType::INT32:   res = fit_regression<int32_t>(); break;
+    case SType::INT64:   res = fit_regression<int64_t>(); break;
+    case SType::FLOAT32: res = fit_regression<float>(); break;
+    case SType::FLOAT64: res = fit_regression<double>(); break;
     case SType::STR32:   FALLTHROUGH;
-    case SType::STR64:   epoch = fit_multinomial(); break;
+    case SType::STR64:   res = fit_multinomial(); break;
     default:             throw TypeError() << "Targets of type `"
                                            << stype_y << "` are not supported";
   }
@@ -96,13 +96,13 @@ double FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
   val_error = std::numeric_limits<T>::quiet_NaN();
   map_val.clear();
 
-  return epoch;
+  return res;
 }
 
 
 
 template <typename T>
-double FtrlReal<T>::fit_binomial() {
+FtrlFitOutput FtrlReal<T>::fit_binomial() {
   xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::BINOMIAL) {
@@ -122,7 +122,7 @@ double FtrlReal<T>::fit_binomial() {
 
 template <typename T>
 template <typename U>
-double FtrlReal<T>::fit_regression() {
+FtrlFitOutput FtrlReal<T>::fit_regression() {
   xassert(dt_y->ncols == 1);
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::REGRESSION) {
@@ -141,7 +141,7 @@ double FtrlReal<T>::fit_regression() {
 
 
 template <typename T>
-double FtrlReal<T>::fit_multinomial() {
+FtrlFitOutput FtrlReal<T>::fit_multinomial() {
   if (model_type != FtrlModelType::NONE &&
       model_type != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
@@ -280,7 +280,7 @@ dtptr FtrlReal<T>::create_y_val() {
 */
 template <typename T>
 template <typename U> /* column data type */
-double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
+FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // Define features and init weight pointers
   define_features();
   init_weights();
@@ -297,9 +297,10 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   size_t nchunks = nepochs;
   size_t chunk_nrows = dt_X->nrows;
 
-  // If a validation set has been provided, we train on chunks of data.
-  // After each chunk was fitted, we calculate loss on the validation set,
-  // and do early stopping if needed.
+  // If a validation set is provided, we train on chunks of data.
+  // After each chunk, we calculate loss on the validation dataset,
+  // and do early stopping if loss does not improve.
+  T loss = std::numeric_limits<T>::quiet_NaN();;
   bool validation = !std::isnan(nepochs_val);
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;
@@ -367,7 +368,7 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     // Calculate loss on the validation dataset and do early stopping,
     // if the loss does not improve.
     if (validation) {
-      dt::atomic<T> loss { 0.0 };
+      dt::atomic<T> loss_global { 0.0 };
       dt::run_parallel(
         [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -388,23 +389,23 @@ double FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               }
             }
           }
-          loss.fetch_add(loss_local);
+          loss_global.fetch_add(loss_local);
         },
         dt_X_val->nrows
       );
 
       // If loss does not decrease, do early stopping.
-      T loss_current = loss.load();
-      loss_current /= (dt_X_val->nrows * dt_y_val->ncols);
-      T loss_diff = (loss_old - loss_current) / loss_old;
-      if (c && (loss_current < epsilon || loss_diff < val_error)) break;
+      loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+      T loss_diff = (loss_old - loss) / loss_old;
+      if (c && (loss < epsilon || loss_diff < val_error)) break;
 
       // If loss decreases, save current loss and continue training.
-      loss_old = loss_current;
+      loss_old = loss;
     }
   }
   double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
-  return epoch_stopped;
+  FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  return res;
 }
 
 
