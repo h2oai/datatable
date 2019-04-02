@@ -87,7 +87,9 @@ void thread_pool::resize_impl() {
 void thread_pool::execute_job(thread_scheduler* job) {
   if (workers.empty()) resize_impl();
   controller.awaken_and_run(job);
-  controller.join(num_threads_requested);
+  controller.join(workers.size());
+  // careful: workers.size() may not be equal to num_threads_requested during
+  // shutdown
 }
 
 
