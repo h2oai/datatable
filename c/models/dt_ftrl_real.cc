@@ -297,10 +297,10 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   size_t nchunks = nepochs;
   size_t chunk_nrows = dt_X->nrows;
 
-  // If a validation set has been provided, we train on chunks of data.
-  // After each chunk was fitted, we calculate loss on the validation set,
-  // and do early stopping if needed.
-  T loss = 0.0;
+  // If a validation set is provided, we train on chunks of data.
+  // After each chunk, we calculate loss on the validation dataset,
+  // and do early stopping if loss does not improve.
+  T loss = std::numeric_limits<T>::quiet_NaN();;
   bool validation = !std::isnan(nepochs_val);
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;

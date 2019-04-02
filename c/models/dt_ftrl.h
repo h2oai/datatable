@@ -53,7 +53,7 @@ struct FtrlParams {
 /*
 *  When FTRL fitting is completed, this structure is returned
 *  containing epoch at which fitting stopped, and, in the case validation set
-*  was provided, the non-zero final loss.
+*  was provided, non-zero final loss.
 */
 struct FtrlFitOutput {
     double epoch;

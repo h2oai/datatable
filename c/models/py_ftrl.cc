@@ -236,8 +236,8 @@ Returns
 -------
 A tuple consisting of two elements: `epoch` and `loss`, where
 `epoch` is the epoch at which model fitting stopped, and `loss` is the final
-loss. When validation dataset was not provided, `epoch` returned will be equal to
-`nepochs`, and `loss` will be zero.
+loss. When validation dataset is not provided, `epoch` returned is equal to
+`nepochs`, and `loss` is `float('nan')`.
 )");
 
 
@@ -349,10 +349,9 @@ oobj Ftrl::fit(const PKArgs& args) {
     } else val_error = 0.01;
   }
 
-  // Train the model and return epoch when training.
   dt::FtrlFitOutput output = dtft->dispatch_fit(dt_X, dt_y,
-                                         dt_X_val, dt_y_val,
-                                         nepochs_val, val_error);
+                                                dt_X_val, dt_y_val,
+                                                nepochs_val, val_error);
 
   static onamedtupletype ntt(
     "FtrlFitOutput",

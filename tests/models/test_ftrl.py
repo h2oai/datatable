@@ -26,14 +26,14 @@
 #
 #-------------------------------------------------------------------------------
 import pickle
-import datatable as dt
-from datatable.models import Ftrl
-from datatable.internal import frame_integrity_check
-from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
 import math
+import datatable as dt
+from datatable.models import Ftrl
+from datatable.internal import frame_integrity_check
+from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
 
 
@@ -714,15 +714,20 @@ def test_ftrl_fit_predict_multinomial_online(negative_class_value):
 # Test early stopping
 #-------------------------------------------------------------------------------
 
-def test_ftrl_no_validation_set():
+@pytest.mark.parametrize('double_precision_value', [False, True])
+def test_ftrl_no_validation_set(double_precision_value):
     nepochs = 1234
     nbins = 56
-    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs,
+              double_precision = double_precision_value)
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y)
-    assert res == (nepochs, 0.0)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped)
 
 
 def test_ftrl_no_early_stopping():
@@ -735,7 +740,10 @@ def test_ftrl_no_early_stopping():
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation)
-    assert getattr(res, "epoch") == nepochs
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped) == False
 
 
 def test_ftrl_early_stopping_int():
