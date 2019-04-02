@@ -111,8 +111,12 @@ void thread_pool::cleanup_after_fork() {
 }
 
 
-bool thread_pool::in_master_thread() const {
+bool thread_pool::in_master_thread() const noexcept {
   return std::this_thread::get_id() == master_thread_id;
+}
+
+bool thread_pool::in_parallel_region() const noexcept {
+  return controller.is_running();
 }
 
 

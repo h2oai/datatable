@@ -84,7 +84,8 @@ class thread_pool {
     size_t size() const noexcept;
     void resize(size_t n);
 
-    bool in_master_thread() const;
+    bool in_master_thread() const noexcept;
+    bool in_parallel_region() const noexcept;
 
   private:
     void resize_impl();

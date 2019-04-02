@@ -77,7 +77,7 @@ size_t thread_worker::get_index() const noexcept {
 
 
 //------------------------------------------------------------------------------
-// thread sleep scheduler
+// "worker controller" scheduler
 //------------------------------------------------------------------------------
 
 void worker_controller::sleep_task::execute(thread_worker* worker) {
@@ -124,6 +124,9 @@ void worker_controller::join(size_t nthreads) {
     std::unique_lock<std::mutex> lock(st.mutex);
     n_sleeping = st.n_threads_sleeping;
   }
+  // Clear `.next_scheduler` flag of the previous sleep task, indicating that
+  // we no longer run in a parallel region (see `is_running()`).
+  tsleep[(index - 1) % N_SLEEP_TASKS].next_scheduler = nullptr;
 
   if (saved_exception) {
     std::rethrow_exception(saved_exception);
@@ -142,6 +145,12 @@ void worker_controller::catch_exception() noexcept {
     std::lock_guard<std::mutex> lock(tsleep[index].mutex);
     saved_exception = std::current_exception();
   } catch (...) {}
+}
+
+
+bool worker_controller::is_running() const noexcept {
+  size_t j = (index - 1) % N_SLEEP_TASKS;
+  return (tsleep[j].next_scheduler != nullptr);
 }
 
 

@@ -154,6 +154,9 @@ class worker_controller : public thread_scheduler {
     // this exception, so that it can be re-thrown in the master thread.
     void catch_exception() noexcept;
 
+    // Return true if there is a task currently being run in parallel.
+    bool is_running() const noexcept;
+
   private:
     // Helper for thread_shutdown_scheduler: mark the current thread as if it
     // went to sleep, whereas in reality it shut down.
