@@ -138,8 +138,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
-    ArrayRowIndexImpl(filterfn32* f, size_t n, bool sorted);
-    ArrayRowIndexImpl(filterfn64* f, size_t n, bool sorted);
     ArrayRowIndexImpl(const Column*);
     ~ArrayRowIndexImpl() override;
 
