@@ -36,7 +36,7 @@ void thread_scheduler::abort_execution() {
 
 
 //------------------------------------------------------------------------------
-// once scheduler
+// parallel_region
 //------------------------------------------------------------------------------
 
 once_scheduler::once_scheduler(size_t nth, thread_task* task_)
@@ -61,6 +61,37 @@ void parallel_region(function<void(size_t)> f) {
   simple_task task(f);
   once_scheduler sch(thpool->size(), &task);
   thpool->execute_job(&sch);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// parallel_for_static
+//------------------------------------------------------------------------------
+
+void parallel_for_static(function<void(size_t, size_t)> f, size_t nrows) {
+  constexpr size_t min_nrows_per_chunk = 4096;
+  size_t k = nrows / min_nrows_per_chunk;
+
+  if (k == 0) {
+    f(0, nrows);
+  }
+  else {
+    size_t nth = get_num_threads();
+    size_t chunksize = nrows / k;
+    size_t nchunks = nrows / chunksize;
+
+    dt::parallel_region(
+      [=](size_t ith) {
+        for (size_t j = ith; j < nchunks; j += nth) {
+          size_t i0 = j * chunksize;
+          size_t i1 = i0 + chunksize;
+          if (j == nchunks - 1) i1 = nrows;
+          f(i0, i1);
+        }
+      });
+  }
 }
 
 

@@ -22,7 +22,7 @@
 #include <cstring>     // std::memcpy
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
+#include "parallel/api.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
@@ -222,7 +222,7 @@ void RowIndex::extract_into(arr32_t& target) const {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
         size_t start = slice_start();
         size_t step = slice_step();
-        dt::run_parallel(
+        dt::parallel_for_static(
           [&](size_t i0, size_t i1) {
             for (size_t i = i0; i < i1; ++i) {
               target[i] = static_cast<int32_t>(start + i * step);

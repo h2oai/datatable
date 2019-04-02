@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl_real.h"
+#include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 
@@ -292,7 +293,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke
-  // `dt::run_parallel()` on all the data for all the epochs at once.
+  // `dt::parallel_for_static()` on all the data for all the epochs at once.
   size_t total_nrows = dt_X->nrows * nepochs;
   size_t nchunks = nepochs;
   size_t chunk_nrows = dt_X->nrows;
@@ -326,7 +327,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
     std::mutex m;
 
-    dt::run_parallel(
+    dt::parallel_for_static(
       [&](size_t i0, size_t i1) {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -369,7 +370,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     // if the loss does not improve.
     if (validation) {
       dt::atomic<T> loss_global { 0.0 };
-      dt::run_parallel(
+      dt::parallel_for_static(
         [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
           tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -486,7 +487,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
                                  << "the model was trained in an unknown mode";
   }
 
-  dt::run_parallel(
+  dt::parallel_for_static(
     [&](size_t i0, size_t i1) {
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
@@ -543,7 +544,7 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
     data[j] = static_cast<T*>(dt->columns[j]->data_w());
   }
 
-  dt::run_parallel(
+  dt::parallel_for_static(
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) {
         T denom = static_cast<T>(0.0);

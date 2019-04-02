@@ -19,13 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/py_frame.h"
 #include <type_traits>
 #include <unordered_set>
+#include "frame/py_frame.h"
+#include "parallel/api.h"    // dt::parallel_for_static
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
-#include "utils/parallel.h"
+#include "utils/parallel.h"  // dt::map_str2str
 
 namespace py {
 
@@ -605,14 +606,14 @@ template <typename T>
 void ReplaceAgent::replace_fw1(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
   if (std::is_floating_point<T>::value && ISNA<T>(x0)) {
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           if (ISNA<T>(data[i])) data[i] = y0;
         }
       }, nrows);
   } else {
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           if (data[i] == x0) data[i] = y0;
@@ -628,7 +629,7 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
   T x1 = x[1], y1 = y[1];
   xassert(!ISNA<T>(x0));
   if (std::is_floating_point<T>::value && ISNA<T>(x1)) {
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
@@ -637,7 +638,7 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
         }
       }, nrows);
   } else {
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
@@ -653,7 +654,7 @@ template <typename T>
 void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
   if (std::is_floating_point<T>::value && ISNA<T>(x[n-1])) {
     n--;
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
@@ -670,7 +671,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
         }
       }, nrows);
   } else {
-    dt::run_parallel(
+    dt::parallel_for_static(
       [=](size_t istart, size_t iend) {
         for (size_t i = istart; i < iend; ++i) {
           T v = data[i];
