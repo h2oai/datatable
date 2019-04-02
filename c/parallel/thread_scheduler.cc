@@ -71,8 +71,13 @@ void parallel_region(function<void(size_t)> f) {
 //------------------------------------------------------------------------------
 
 void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
-  constexpr size_t min_nrows_per_chunk = 4096;
-  size_t k = nrows / min_nrows_per_chunk;
+  parallel_for_static(nrows, 4096, fn);
+}
+
+void parallel_for_static(size_t nrows, size_t min_chunk_size,
+                         function<void(size_t, size_t)> fn)
+{
+  size_t k = nrows / min_chunk_size;
 
   size_t ith = dt::get_thread_num();
 

@@ -333,7 +333,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         tptr<T> w = tptr<T>(new T[nfeatures]);
         tptr<T> fi = tptr<T>(new T[nfeatures]());
 
-        dt::parallel_for_static(chunk_end - chunk_start,
+        dt::parallel_for_static(chunk_end - chunk_start, /* min_chunk_size= */ 1,
           [&](size_t i0, size_t i1) {
             for (size_t i = i0; i < i1; ++i) {
               size_t ii = (chunk_start + i) % dt_X->nrows;

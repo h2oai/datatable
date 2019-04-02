@@ -49,6 +49,8 @@ void parallel_region(function<void(size_t)> f);
 
 
 void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn);
+void parallel_for_static(size_t nrows, size_t min_chunk_size,
+                         function<void(size_t, size_t)> fn);
 
 
 }  // namespace dt
