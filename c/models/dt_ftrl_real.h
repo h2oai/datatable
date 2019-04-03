@@ -151,7 +151,7 @@ class FtrlReal : public dt::Ftrl {
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
-    uint64_t get_float_nbits() override;
+    unsigned char get_float_nbits() override;
     size_t get_nepochs() override;
     const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;

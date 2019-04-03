@@ -933,7 +933,7 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
-uint64_t FtrlReal<T>::get_float_nbits() {
+unsigned char FtrlReal<T>::get_float_nbits() {
   return params.float_nbits;
 }
 
@@ -1032,6 +1032,8 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 
 template <typename T>
 void FtrlReal<T>::set_float_nbits(unsigned char float_nbits_in) {
+  xassert(float_nbits_in > 0);
+  xassert(float_nbits_in < sizeof(double) * 8 + 1);
   params.float_nbits = float_nbits_in;
   float_nbits = float_nbits_in;
 }

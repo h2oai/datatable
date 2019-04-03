@@ -606,7 +606,8 @@ def test_ftrl_fit_predict_view():
 
 @pytest.mark.parametrize('parameter, value',
                          [("nbins", 100),
-                         ("interactions", [["C0", "C0"]])])
+                         ("interactions", [["C0", "C0"]]),
+                         ("float_nbits", 46)])
 def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))

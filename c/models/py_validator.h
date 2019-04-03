@@ -34,7 +34,7 @@ struct error_manager {
   Error error_not_positive (PyObject*, const std::string&) const;
   Error error_negative     (PyObject*, const std::string&) const;
   template <typename T>
-  Error error_larger_or_equal_than (PyObject*, const std::string&, T value_max) const;
+  Error error_larger_or_equal (PyObject*, const std::string&, T value_max) const;
 };
 
 static std::string _name = "Value";
@@ -42,7 +42,7 @@ static error_manager _em;
 
 
 template <typename T>
-Error py::Validator::error_manager::error_larger_or_equal_than(PyObject* src,
+Error py::Validator::error_manager::error_larger_or_equal(PyObject* src,
                                                    const std::string& name,
                                                    T value_max
 ) const {
@@ -64,7 +64,7 @@ void check_less_than(const T value,
                      error_manager& em = _em)
 {
   if (!std::isinf(value) && value < value_max) return;
-  throw em.error_larger_or_equal_than<T>(o.to_borrowed_ref(), name, value_max);
+  throw em.error_larger_or_equal<T>(o.to_borrowed_ref(), name, value_max);
 }
 
 

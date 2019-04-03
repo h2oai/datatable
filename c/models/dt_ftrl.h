@@ -103,7 +103,7 @@ class Ftrl {
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
-    virtual uint64_t get_float_nbits() = 0;
+    virtual unsigned char get_float_nbits() = 0;
     virtual size_t get_nepochs() = 0;
     virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
