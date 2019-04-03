@@ -158,12 +158,13 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   py::olist list(n);
   xassert(dt::get_thread_num() == size_t(-1));
 
-  dt::parallel_region([&](size_t i) {
+  dt::parallel_region([&] {
     std::stringstream ss;
+    size_t i = dt::get_thread_num();
     ss << std::this_thread::get_id();
     std::lock_guard<std::mutex> lock(m);
+    xassert(!list[i]);
     list.set(i, py::ostring(ss.str()));
-    xassert(i == dt::get_thread_num());
   });
 
   for (size_t i = 0; i < n; ++i) {

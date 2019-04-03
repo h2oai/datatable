@@ -35,9 +35,10 @@ static void test_atomic_impl() {
   std::atomic<int> r { 100 };
 
   dt::parallel_region(
-    [&](size_t i) {
+    [&] {
       barrier--;
       while (barrier.load());
+      size_t i = dt::get_thread_num();
 
       x += static_cast<T>(i);
       y *= static_cast<T>(2.0);

@@ -45,7 +45,7 @@ once_scheduler::once_scheduler(size_t nth, thread_task* task_)
 
 
 thread_task* once_scheduler::get_next_task(size_t i) {
-  if (done[i].v) {
+  if (i >= done.size() || done[i].v) {
     return nullptr;
   }
   done[i].v = 1;
@@ -54,12 +54,17 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 
+void parallel_region(function<void()> fn) {
+  parallel_region(0, fn);
+}
 
-void parallel_region(function<void(size_t)> f) {
+void parallel_region(size_t nthreads, function<void()> fn) {
   thread_pool* thpool = thread_pool::get_instance();
   xassert(thpool->in_master_thread());
-  simple_task task(f);
-  once_scheduler sch(thpool->size(), &task);
+  size_t nthreads0 = thpool->size();
+  if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
+  simple_task task(fn);
+  once_scheduler sch(nthreads, &task);
   thpool->execute_job(&sch);
 }
 
@@ -67,15 +72,11 @@ void parallel_region(function<void(size_t)> f) {
 
 
 //------------------------------------------------------------------------------
-// parallel_for_static
+// _parallel_for_static
 //------------------------------------------------------------------------------
 
-void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
-  parallel_for_static(nrows, 4096, fn);
-}
-
-void parallel_for_static(size_t nrows, size_t min_chunk_size,
-                         function<void(size_t, size_t)> fn)
+void _parallel_for_static(size_t nrows, size_t min_chunk_size,
+                          function<void(size_t, size_t)> fn)
 {
   size_t k = nrows / min_chunk_size;
 
@@ -92,7 +93,8 @@ void parallel_for_static(size_t nrows, size_t min_chunk_size,
       size_t nchunks = nrows / chunksize;
 
       dt::parallel_region(
-        [=](size_t ithread) {
+        [=] {
+          size_t ithread = get_thread_num();
           for (size_t j = ithread; j < nchunks; j += nth) {
             size_t i0 = j * chunksize;
             size_t i1 = i0 + chunksize;
