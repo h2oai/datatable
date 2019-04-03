@@ -73,8 +73,10 @@ template <typename T>
 class HasherFloat : public Hasher {
   private:
     const T* values;
+    const unsigned char shift_nbits;
+    size_t: 56;
   public:
-    explicit HasherFloat(const Column*);
+    explicit HasherFloat(const Column*, unsigned char);
     uint64_t hash(size_t row) const override;
 };
 

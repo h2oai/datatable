@@ -41,19 +41,20 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
-Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "nbins", "nepochs",
+Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambda2",
+                                          "nbins", "float_nbits", "nepochs",
                                           "double_precision", "negative_class"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 nepochs = 6, double_precision = True, negative_class = False)
+                 float_nbits = 6, nepochs = 7, double_precision = True,
+                 negative_class = False)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
-                        nbins = 10**6, nepochs = 1, double_precision = False,
-                        negative_class = False)
+                        nbins = 10**6, float_nbits = 64, nepochs = 1,
+                        double_precision = False, negative_class = False)
 
 epsilon = 0.01
 
@@ -97,6 +98,13 @@ def test_ftrl_construct_wrong_nbins_type():
             "instead got <class 'float'>" == str(e.value))
 
 
+def test_ftrl_construct_wrong_float_nbits_type():
+    with pytest.raises(TypeError) as e:
+        noop(Ftrl(float_nbits = 20.0))
+    assert ("Argument `float_nbits` in Ftrl() constructor should be an integer, "
+            "instead got <class 'float'>" == str(e.value))
+
+
 def test_ftrl_construct_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(nepochs = 10.0))
@@ -116,8 +124,9 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `nepochs`, `double_precision` or `negative_class` "
-            "to Ftrl constructor, but not both at the same time" == str(e.value))
+            "`lambda2`, `nbins`, `float_nbits`, `nepochs`, `double_precision` or "
+            "`negative_class` to Ftrl constructor, but not both at the same time"
+            == str(e.value))
 
 
 def test_ftrl_construct_unknown_arg():
@@ -181,6 +190,16 @@ def test_ftrl_construct_wrong_nbins_value():
             == str(e.value))
 
 
+@pytest.mark.parametrize('value, message',
+                         [[0, "Argument `float_nbits` in Ftrl() constructor should be positive: 0"],
+                         [65, "Argument `float_nbits` in Ftrl() constructor should be less than 65, got: 65"]])
+def test_ftrl_construct_wrong_float_nbits_value(value, message):
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        noop(Ftrl(float_nbits = value))
+    assert (message == str(e.value))
+
+
 def test_ftrl_construct_wrong_nepochs_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(nepochs = -1))
@@ -204,12 +223,13 @@ def test_ftrl_create_params():
 
 def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
-                   lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
-                   nbins = tparams.nbins, nepochs = tparams.nepochs,
-                   double_precision = tparams.double_precision)
+              lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
+              nbins = tparams.nbins, float_nbits = tparams.float_nbits,
+              nepochs = tparams.nepochs,
+              double_precision = tparams.double_precision)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.nbins, tparams.nepochs,
+                         tparams.nbins, tparams.float_nbits, tparams.nepochs,
                          tparams.double_precision, tparams.negative_class)
 
 
@@ -220,8 +240,8 @@ def test_ftrl_create_individual():
 def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
-    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.nepochs,
-            ft.double_precision, ft.negative_class) == tparams
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.float_nbits,
+            ft.nepochs, ft.double_precision, ft.negative_class) == tparams
 
 
 def test_ftrl_set_individual():
@@ -231,6 +251,7 @@ def test_ftrl_set_individual():
     ft.lambda1 = tparams.lambda1
     ft.lambda2 = tparams.lambda2
     ft.nbins = tparams.nbins
+    ft.float_nbits = tparams.float_nbits
     ft.nepochs = tparams.nepochs
     assert ft.params == tparams
 
@@ -271,6 +292,13 @@ def test_ftrl_set_wrong_nbins_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nbins = "0"
+    assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_set_wrong_float_nbits_type():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.float_nbits = "0"
     assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
 
 
@@ -356,6 +384,16 @@ def test_ftrl_set_wrong_nbins_value():
     with pytest.raises(ValueError) as e:
         ft.nbins = 0
     assert ("Value should be positive: 0" == str(e.value))
+
+
+@pytest.mark.parametrize('value, message',
+                         [[0, "Value should be positive: 0"],
+                         [65, "Value should be less than 65, got: 65"]])
+def test_ftrl_set_wrong_float_nbits_value(value, message):
+    ft = Ftrl()
+    with pytest.raises(ValueError) as e:
+        ft.float_nbits = value
+    assert (message == str(e.value))
 
 
 def test_ftrl_set_wrong_nepochs_value():

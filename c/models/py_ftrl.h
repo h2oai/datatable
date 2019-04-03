@@ -77,6 +77,7 @@ class Ftrl : public PyObject {
     oobj get_lambda1() const;
     oobj get_lambda2() const;
     oobj get_nbins() const;
+    oobj get_float_nbits() const;
     oobj get_nepochs() const;
     oobj get_interactions() const;
     oobj get_double_precision() const;
@@ -93,6 +94,7 @@ class Ftrl : public PyObject {
     void set_lambda2(robj);
     void set_nepochs(robj);
     void set_nbins(robj);             // Disabled for a trained model
+    void set_float_nbits(robj);       // Disabled for a trained model
     void set_interactions(robj);      // Disabled for a trained model
     void set_double_precision(robj);  // Not exposed, used for unpickling only
     void set_negative_class(robj);    // Disabled for a trained model

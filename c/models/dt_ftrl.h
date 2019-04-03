@@ -41,12 +41,13 @@ struct FtrlParams {
     double lambda2;
     uint64_t nbins;
     size_t nepochs;
+    unsigned char float_nbits;
     bool double_precision;
     bool negative_class;
-    size_t: 48;
+    size_t: 40;
     FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
-                   nbins(1000000), nepochs(1), double_precision(false),
-                   negative_class(false) {}
+                   nbins(1000000), nepochs(1), float_nbits(sizeof(double) * 8),
+                   double_precision(false), negative_class(false) {}
 };
 
 
@@ -102,6 +103,7 @@ class Ftrl {
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
+    virtual uint64_t get_float_nbits() = 0;
     virtual size_t get_nepochs() = 0;
     virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
@@ -118,6 +120,7 @@ class Ftrl {
     virtual void set_lambda1(double) = 0;
     virtual void set_lambda2(double) = 0;
     virtual void set_nbins(uint64_t) = 0;
+    virtual void set_float_nbits(unsigned char) = 0;
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_double_precision(bool) = 0;

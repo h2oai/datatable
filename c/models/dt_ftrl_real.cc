@@ -39,6 +39,7 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   lambda1(static_cast<T>(params_in.lambda1)),
   lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
+  float_nbits(params_in.float_nbits),
   nepochs(params_in.nepochs),
   nfeatures(0),
   dt_X(nullptr),
@@ -480,7 +481,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
-                                                      linkfn = std::exp;
+                                                     linkfn = std::exp;
                                       break;
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
@@ -783,8 +784,8 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
-    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col));
-    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col));
+    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, float_nbits));
+    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, float_nbits));
     case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
     case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
     default:             throw  TypeError() << "Cannot hash a column of type "
@@ -932,6 +933,12 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
+uint64_t FtrlReal<T>::get_float_nbits() {
+  return params.float_nbits;
+}
+
+
+template <typename T>
 const std::vector<sizetvec>& FtrlReal<T>::get_interactions() {
   return interactions;
 }
@@ -1020,6 +1027,13 @@ template <typename T>
 void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
   params.nbins = nbins_in;
   nbins = nbins_in;
+}
+
+
+template <typename T>
+void FtrlReal<T>::set_float_nbits(unsigned char float_nbits_in) {
+  params.float_nbits = float_nbits_in;
+  float_nbits = float_nbits_in;
 }
 
 

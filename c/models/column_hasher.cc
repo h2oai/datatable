@@ -68,7 +68,8 @@ uint64_t HasherInt<T>::hash(size_t row) const {
 * TODO: also support some binning here.
 */
 template <typename T>
-HasherFloat<T>::HasherFloat(const Column* col) : Hasher(col){
+HasherFloat<T>::HasherFloat(const Column* col, unsigned char float_nbits) :
+Hasher(col), shift_nbits(sizeof(double) * 8 - float_nbits) {
   values = static_cast<const T*>(col->data());
 }
 
@@ -80,7 +81,7 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
   double x = static_cast<double>(value);
   uint64_t h;
   std::memcpy(&h, &x, sizeof(double));
-  return h;
+  return h >> shift_nbits;
 }
 
 
