@@ -5,10 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "parallel/api.h"  // dt::parallel_for_static
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"  // dt::run_parallel
+#include "utils/parallel.h"
 #include "column.h"
 
 // Returns the expected path of the string data file given
@@ -481,12 +482,12 @@ void StringColumn<T>::fill_na() {
   T* off_data = offsets_w();
   off_data[-1] = 0;
 
-  dt::run_parallel(
+  dt::parallel_for_static(nrows,
     [=](size_t i0, size_t i1){
       for (size_t i = i0; i < i1; ++i) {
         off_data[i] = GETNA<T>();
       }
-    }, nrows);
+    });
 }
 
 

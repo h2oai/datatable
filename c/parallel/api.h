@@ -28,6 +28,13 @@ size_t get_num_threads();
 
 
 /**
+ * Return the index of the current thread: from 0 to `get_num_threads() - 1`.
+ * For the master thread this will return `size_t(-1)`.
+ */
+size_t get_thread_num();
+
+
+/**
  * Return the number of concurrent threads supported by the machine. This
  * value is approximate. If the number of concurrent threads is unknown,
  * this function returns 1.
@@ -38,8 +45,12 @@ size_t get_hardware_concurrency() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void run_once_per_thread(function<void(size_t)> f);
+void parallel_region(function<void(size_t)> f);
 
+
+void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn);
+void parallel_for_static(size_t nrows, size_t min_chunk_size,
+                         function<void(size_t, size_t)> fn);
 
 
 }  // namespace dt

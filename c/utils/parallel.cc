@@ -26,7 +26,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 /*
-void run_parallel(rangefn run, size_t nrows)
+void parallel_for_static(size_t nrows, rangefn run)
 {
   // `min_nrows_per_chunk`: avoid processing less than this many rows in each
   // thread, reduce the number of threads if necessary.
@@ -86,31 +86,6 @@ void run_parallel(rangefn run, size_t nrows)
   }
 }
 */
-
-
-void run_parallel(rangefn f, size_t nrows) {
-  constexpr size_t min_nrows_per_chunk = 4096;
-  size_t k = nrows / min_nrows_per_chunk;
-
-  if (k == 0) {
-    f(0, nrows);
-  }
-  else {
-    size_t nth = get_num_threads();
-    size_t chunksize = nrows / k;
-    size_t nchunks = nrows / chunksize;
-
-    dt::run_once_per_thread(
-      [=](size_t ith) {
-        for (size_t j = ith; j < nchunks; j += nth) {
-          size_t i0 = j * chunksize;
-          size_t i1 = i0 + chunksize;
-          if (j == nchunks - 1) i1 = nrows;
-          f(i0, i1);
-        }
-      });
-  }
-}
 
 
 

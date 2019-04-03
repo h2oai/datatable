@@ -56,7 +56,7 @@ class thread_scheduler {
 //------------------------------------------------------------------------------
 
 /**
- * Implementation class for `dt::run_once_per_thread()` function.
+ * Implementation class for `dt::parallel_region()` function.
  */
 class once_scheduler : public thread_scheduler {
   private:

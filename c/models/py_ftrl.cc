@@ -363,8 +363,7 @@ oobj Ftrl::fit(const PKArgs& args) {
   py::onamedtuple res(ntt);
   res.set(0, py::ofloat(output.epoch));
   res.set(1, py::ofloat(output.loss));
-
-  return res;
+  return std::move(res);
 }
 
 

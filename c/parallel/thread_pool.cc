@@ -19,7 +19,6 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_worker.h"
 #include "utils/assert.h"
-#include "utils/c+++.h"
 namespace dt {
 
 
@@ -36,21 +35,24 @@ thread_pool* thread_pool::get_instance() {
 }
 
 
-thread_pool::thread_pool() {
+
+thread_pool::thread_pool()
+  : num_threads_requested(0),
+    master_thread_id(std::this_thread::get_id())
+{
+  // pthread_atfork callback needs to be established within the main process
+  // only, which is indicated by `_instance` being nullptr during construction.
   if (!_instance) {
-    pthread_atfork(
-      /* before_fork = */ nullptr,
-      /* after_fork_parent = */ nullptr,
-      /* after_fork_child = */ [] {
-        thread_pool::get_instance()->cleanup_after_fork();
-      }
-    );
+    pthread_atfork(nullptr, nullptr, []{
+      thread_pool::get_instance()->cleanup_after_fork();
+    });
   }
 }
 
-thread_pool::~thread_pool() {
-  resize(0);
-}
+// In the current implementation the thread_pool instance never gets deleted
+// thread_pool::~thread_pool() {
+//   resize(0);
+// }
 
 
 size_t thread_pool::size() const noexcept {
@@ -70,8 +72,7 @@ void thread_pool::resize_impl() {
   if (workers.size() < n) {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
-      workers.push_back(
-        make_unique<dt::thread_worker>(i, &controller));
+      workers.push_back(new thread_worker(i, &controller));
     }
     // Wait until all threads are properly alive & safely asleep
     controller.join(n);
@@ -79,12 +80,16 @@ void thread_pool::resize_impl() {
   else {
     thread_shutdown_scheduler tss(n, &controller);
     execute_job(&tss);
+    for (size_t i = n; i < workers.size(); ++i) {
+      delete workers[i];
+    }
     workers.resize(n);
   }
 }
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
+  xassert(in_master_thread());
   if (workers.empty()) resize_impl();
   controller.awaken_and_run(job);
   controller.join(workers.size());
@@ -106,6 +111,15 @@ void thread_pool::cleanup_after_fork() {
 }
 
 
+bool thread_pool::in_master_thread() const noexcept {
+  return std::this_thread::get_id() == master_thread_id;
+}
+
+bool thread_pool::in_parallel_region() const noexcept {
+  return controller.is_running();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -114,6 +128,15 @@ void thread_pool::cleanup_after_fork() {
 
 size_t get_num_threads() {
   return thread_pool::get_instance()->size();
+}
+
+
+static thread_local size_t thread_index = size_t(-1);
+size_t get_thread_num() {
+  return thread_index;
+}
+void _set_thread_num(size_t i) {
+  thread_index = i;
 }
 
 

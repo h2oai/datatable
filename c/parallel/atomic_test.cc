@@ -34,7 +34,7 @@ static void test_atomic_impl() {
   std::atomic<int> q { 0 };
   std::atomic<int> r { 100 };
 
-  dt::run_once_per_thread(
+  dt::parallel_region(
     [&](size_t i) {
       barrier--;
       while (barrier.load());

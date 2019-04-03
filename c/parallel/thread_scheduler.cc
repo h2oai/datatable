@@ -36,7 +36,7 @@ void thread_scheduler::abort_execution() {
 
 
 //------------------------------------------------------------------------------
-// once scheduler
+// parallel_region
 //------------------------------------------------------------------------------
 
 once_scheduler::once_scheduler(size_t nth, thread_task* task_)
@@ -55,11 +55,72 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 
-void run_once_per_thread(function<void(size_t)> f) {
+void parallel_region(function<void(size_t)> f) {
   thread_pool* thpool = thread_pool::get_instance();
+  xassert(thpool->in_master_thread());
   simple_task task(f);
   once_scheduler sch(thpool->size(), &task);
   thpool->execute_job(&sch);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// parallel_for_static
+//------------------------------------------------------------------------------
+
+void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
+  parallel_for_static(nrows, 4096, fn);
+}
+
+void parallel_for_static(size_t nrows, size_t min_chunk_size,
+                         function<void(size_t, size_t)> fn)
+{
+  size_t k = nrows / min_chunk_size;
+
+  size_t ith = dt::get_thread_num();
+
+  // Standard parallel loop
+  if (ith == size_t(-1)) {
+    if (k == 0) {
+      fn(0, nrows);
+    }
+    else {
+      size_t nth = get_num_threads();
+      size_t chunksize = nrows / k;
+      size_t nchunks = nrows / chunksize;
+
+      dt::parallel_region(
+        [=](size_t ithread) {
+          for (size_t j = ithread; j < nchunks; j += nth) {
+            size_t i0 = j * chunksize;
+            size_t i1 = i0 + chunksize;
+            if (j == nchunks - 1) i1 = nrows;
+            fn(i0, i1);
+          }
+        });
+    }
+  }
+  // Parallel loop within a parallel region
+  else {
+    if (k == 0) {
+      if (ith == 0) fn(0, nrows);
+    }
+    else {
+      size_t nth = get_num_threads();
+      size_t chunksize = nrows / k;
+      size_t nchunks = nrows / chunksize;
+
+      for (size_t j = ith; j < nchunks; j += nth) {
+        size_t i0 = j * chunksize;
+        size_t i1 = i0 + chunksize;
+        if (j == nchunks - 1) i1 = nrows;
+        fn(i0, i1);
+      }
+    }
+  }
+
 }
 
 
