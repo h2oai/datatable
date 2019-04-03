@@ -31,6 +31,8 @@ static void test_atomic_impl() {
   dt::atomic<T> x { T(0.0) };
   dt::atomic<T> y { T(1.0) };
   dt::atomic<T> z { T(1.3e20) };
+  std::atomic<int> q { 0 };
+  std::atomic<int> r { 100 };
 
   dt::parallel_region(
     [&](size_t i) {
@@ -41,6 +43,8 @@ static void test_atomic_impl() {
       y *= static_cast<T>(2.0);
       z /= static_cast<T>(7.0);
       x -= static_cast<T>(1.0);
+      dt::atomic_fetch_max(&q, static_cast<int>(i));
+      dt::atomic_fetch_min(&r, static_cast<int>(i));
     });
 
   T x_exp = static_cast<T>(n * (n - 1) / 2 - n);
@@ -49,6 +53,10 @@ static void test_atomic_impl() {
   T x_act = x.load();
   T y_act = y.load();
   T z_act = z.load();
+  int q_act = q.load();  // max
+  int r_act = r.load();  // min
+  int q_exp = static_cast<int>(n - 1);
+  int r_exp = 0;
 
   T eps = static_cast<T>(sizeof(T) == 4? 1e-6 : 1e-10);
   if (std::abs(x_act/x_exp - 1) > eps) {
@@ -62,6 +70,14 @@ static void test_atomic_impl() {
   if (std::abs(z_act/z_exp - 1) > eps) {
     throw AssertionError() << "Invalid z = " << z_act << " after " << n
         << " atomic operations, expected = " << z_exp;
+  }
+  if (q_act != q_exp) {
+    throw AssertionError() << "Invalid q = " << q_act << " after " << n
+        << " atomic operations, expected = " << q_exp;
+  }
+  if (r_act != r_exp) {
+    throw AssertionError() << "Invalid r = " << r_act << " after " << n
+        << " atomic operations, expected = " << r_exp;
   }
 }
 
