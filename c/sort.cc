@@ -129,6 +129,7 @@
 #include "expr/sort_node.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "parallel/api.h"
 #include "python/args.h"
 #include "utils/alloc.h"
 #include "utils/array.h"
@@ -422,10 +423,12 @@ class SortContext {
     groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
     gg.init(nullptr, 0, groupby.ngroups());
     if (!rowindex) {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t i = 0; i < n; ++i) {
-        o[i] = static_cast<int32_t>(i);
-      }
+      dt::parallel_for_static(n,
+        [&](size_t i0, size_t i1) {
+          for (size_t i = i0; i < i1; ++i) {
+            o[i] = static_cast<int32_t>(i);
+          }
+        });
     }
   }
 
@@ -578,19 +581,23 @@ class SortContext {
     uint8_t* xo = x.data<uint8_t>();
 
     if (use_order) {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; j++) {
-        xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
-                   : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
-      }
+      dt::parallel_for_static(n,
+        [=](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; j++) {
+            xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
+                       : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
+          }
+        });
     } else {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; j++) {
-        // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
-        // to int, which leads to wrong results after shift by 6.
-        xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
-                   : static_cast<uint8_t>(128 - xi[j]) >> 6;
-      }
+      dt::parallel_for_static(n,
+        [=](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; j++) {
+            // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
+            // to int, which leads to wrong results after shift by 6.
+            xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+                       : static_cast<uint8_t>(128 - xi[j]) >> 6;
+          }
+        });
     }
   }
 
@@ -625,21 +632,25 @@ class SortContext {
     TO* xo = x.data<TO>();
 
     if (use_order) {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; ++j) {
-        TI t = xi[o[j]];
-        xo[j] = t == una? 0 :
-                ASC? static_cast<TO>(t - uedge + 1)
-                   : static_cast<TO>(uedge - t + 1);
-      }
+      dt::parallel_for_static(n,
+        [&](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; ++j) {
+            TI t = xi[o[j]];
+            xo[j] = t == una? 0 :
+                    ASC? static_cast<TO>(t - uedge + 1)
+                       : static_cast<TO>(uedge - t + 1);
+          }
+        });
     } else {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; j++) {
-        TI t = xi[j];
-        xo[j] = t == una? 0 :
-                ASC? static_cast<TO>(t - uedge + 1)
-                   : static_cast<TO>(uedge - t + 1);
-      }
+      dt::parallel_for_static(n,
+        [&](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; ++j) {
+            TI t = xi[j];
+            xo[j] = t == una? 0 :
+                    ASC? static_cast<TO>(t - uedge + 1)
+                       : static_cast<TO>(uedge - t + 1);
+          }
+        });
     }
   }
 
@@ -690,21 +701,25 @@ class SortContext {
     constexpr int SHIFT = sizeof(TO) * 8 - 1;
 
     if (use_order) {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; j++) {
-        TO t = xi[o[j]];
-        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                ASC? t ^ (SBT | -(t>>SHIFT))
-                   : t ^ (~SBT & ((t>>SHIFT) - 1));
-      }
+      dt::parallel_for_static(n,
+        [&](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; ++j) {
+            TO t = xi[o[j]];
+            xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                    ASC? t ^ (SBT | -(t>>SHIFT))
+                       : t ^ (~SBT & ((t>>SHIFT) - 1));
+          }
+        });
     } else {
-      #pragma omp parallel for schedule(static) num_threads(nth)
-      for (size_t j = 0; j < n; j++) {
-        TO t = xi[j];
-        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                ASC? t ^ (SBT | -(t>>SHIFT))
-                   : t ^ (~SBT & ((t>>SHIFT) - 1));
-      }
+      dt::parallel_for_static(n,
+        [&](size_t i0, size_t i1) {
+          for (size_t j = i0; j < i1; ++j) {
+            TO t = xi[j];
+            xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                    ASC? t ^ (SBT | -(t>>SHIFT))
+                       : t ^ (~SBT & ((t>>SHIFT) - 1));
+          }
+        });
     }
   }
 
@@ -826,15 +841,17 @@ class SortContext {
 
   template<typename T> void _histogram_gather() {
     T* tx = x.data<T>();
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; ++i) {
-      size_t* cnts = histogram + (nradixes * i);
-      size_t j0 = i * chunklen;
-      size_t j1 = std::min(j0 + chunklen, n);
-      for (size_t j = j0; j < j1; ++j) {
-        cnts[tx[j] >> shift]++;
-      }
-    }
+    dt::parallel_for_static(nchunks, 1,
+      [&](size_t i0, size_t i1) {
+        for (size_t i = i0; i < i1; ++i) {
+          size_t* cnts = histogram + (nradixes * i);
+          size_t j0 = i * chunklen;
+          size_t j1 = std::min(j0 + chunklen, n);
+          for (size_t j = j0; j < j1; ++j) {
+            cnts[tx[j] >> shift]++;
+          }
+        }
+      });
   }
 
   void _histogram_cumulate() {
@@ -920,20 +937,22 @@ class SortContext {
       xo = xx.data<TO>();
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; ++i) {
-      size_t j0 = i * chunklen;
-      size_t j1 = std::min(j0 + chunklen, n);
-      size_t* tcounts = histogram + (nradixes * i);
-      for (size_t j = j0; j < j1; ++j) {
-        size_t k = tcounts[xi[j] >> shift]++;
-        xassert(k < n);
-        next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
-        if (OUT) {
-          xo[k] = static_cast<TO>(xi[j] & mask);
+    dt::parallel_for_static(nchunks,
+      [&](size_t i0, size_t i1) {
+        for (size_t i = i0; i < i1; ++i) {
+          size_t j0 = i * chunklen;
+          size_t j1 = std::min(j0 + chunklen, n);
+          size_t* tcounts = histogram + (nradixes * i);
+          for (size_t j = j0; j < j1; ++j) {
+            size_t k = tcounts[xi[j] >> shift]++;
+            xassert(k < n);
+            next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
+            if (OUT) {
+              xo[k] = static_cast<TO>(xi[j] & mask);
+            }
+          }
         }
-      }
-    }
+      });
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
