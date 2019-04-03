@@ -45,7 +45,7 @@ once_scheduler::once_scheduler(size_t nth, thread_task* task_)
 
 
 thread_task* once_scheduler::get_next_task(size_t i) {
-  if (done[i].v) {
+  if (i >= done.size() || done[i].v) {
     return nullptr;
   }
   done[i].v = 1;
@@ -54,12 +54,17 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 
+void parallel_region(function<void()> fn) {
+  parallel_region(0, fn);
+}
 
-void parallel_region(function<void()> f) {
+void parallel_region(size_t nthreads, function<void()> fn) {
   thread_pool* thpool = thread_pool::get_instance();
   xassert(thpool->in_master_thread());
-  simple_task task(f);
-  once_scheduler sch(thpool->size(), &task);
+  size_t nthreads0 = thpool->size();
+  if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
+  simple_task task(fn);
+  once_scheduler sch(nthreads, &task);
   thpool->execute_job(&sch);
 }
 
