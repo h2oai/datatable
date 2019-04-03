@@ -132,5 +132,27 @@ class atomic {
 
 
 
+//------------------------------------------------------------------------------
+// atomic_fetch_min / atomic_fetch_max
+//------------------------------------------------------------------------------
+
+template <typename T>
+T atomic_fetch_min(std::atomic<T>* obj, T arg) noexcept {
+  T curr = obj->load();
+  while (curr > arg &&
+         !obj->compare_exchange_weak(curr, arg));
+  return curr;
+}
+
+template <typename T>
+T atomic_fetch_max(std::atomic<T>* obj, T arg) noexcept {
+  T curr = obj->load();
+  while (curr < arg &&
+         !obj->compare_exchange_weak(curr, arg));
+  return curr;
+}
+
+
+
 }  // namespace dt
 #endif
