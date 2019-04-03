@@ -22,13 +22,14 @@
 #include <algorithm>           // std::min, std::swap, std::move
 #include <cstdlib>             // std::memcpy
 #include <limits>              // std::numeric_limits
+#include "parallel/api.h"
+#include "parallel/atomic.h"
+#include "utils/exceptions.h"  // ValueError, RuntimeError
+#include "utils/assert.h"
 #include "column.h"            // Column, BoolColumn
 #include "memrange.h"          // MemoryRange
 #include "rowindex.h"
 #include "rowindex_impl.h"
-#include "utils/exceptions.h"  // ValueError, RuntimeError
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 #ifndef NDEBUG
   inline static void test(ArrayRowIndexImpl* o) {
@@ -222,16 +223,26 @@ void ArrayRowIndexImpl::_set_min_max() {
     }
   }
   else {
-    T tmin = TMAX;
-    T tmax = -TMAX;
-    #pragma omp parallel for schedule(static) \
-        reduction(min:tmin) reduction(max:tmax)
-    for (size_t j = 0; j < length; ++j) {
-      T t = idata[j];
-      if (t == -1) continue;
-      if (t < tmin) tmin = t;
-      if (t > tmax) tmax = t;
-    }
+    std::atomic<T> amin { TMAX };
+    std::atomic<T> amax { -TMAX };
+    dt::parallel_region(
+      [&](size_t) {
+        T local_min = TMAX;
+        T local_max = -TMAX;
+        dt::parallel_for_static(length,
+          [&](size_t i0, size_t i1) {
+            for (size_t i = i0; i < i1; ++i) {
+              T t = idata[i];
+              if (t == -1) continue;
+              if (t < local_min) local_min = t;
+              if (t > local_max) local_max = t;
+            }
+          });
+        dt::atomic_fetch_min(&amin, local_min);
+        dt::atomic_fetch_max(&amax, local_max);
+      });
+    T tmin = amin.load();
+    T tmax = amax.load();
     if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
     min = static_cast<size_t>(tmin);
     max = static_cast<size_t>(tmax);
