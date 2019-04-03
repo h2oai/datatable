@@ -1049,6 +1049,9 @@ lambda2 : float
     L2 regularization parameter, defaults to `0`.
 nbins : int
     Number of bins to be used for the hashing trick, defaults to `10**6`.
+float_nbits : int
+    Number of bits to be taken into account when hashing float values,
+    defaults to maximum of `sizeof(double) * 8`, that is `64` on most of the systems.
 nepochs : int
     Number of training epochs, defaults to `1`.
 double_precision : bool

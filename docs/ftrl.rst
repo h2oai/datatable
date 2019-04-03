@@ -45,6 +45,8 @@ namely:
 -  ``lambda1`` – L1 regularization parameter, defaults to ``0.0``.
 -  ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
 -  ``nbins`` – the number of bins for the hashing trick, defaults to ``10**6``.
+-  ``float_nbits`` – the number of bits to be taken into account when hashing float values,
+  defaults to maximum of ``sizeof(double) * 8``, that is ``64`` on most of the systems.
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
 -  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
 
