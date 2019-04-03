@@ -40,25 +40,6 @@
 namespace dt {
 
 
-//------------------------------------------------------------------------------
-// Order-less iteration over range [0; n)
-//------------------------------------------------------------------------------
-
-using rangefn = dt::function<void(size_t, size_t)>;
-
-/**
- * Execute function `run` in parallel, over the range `[0 .. nrows - 1]`.
- * The signature of function `run` is that of the "range" function:
- * `(start, end)`. The function `run` is then expected to run a loop for
- * the indices in this range.
- *
- * Each thread will thus run on a set of rows that are at a constant distance
- * apart. This pattern of execution is most appropriate when:
- *   - The amount of work per row is relatively small;
- *   - The rows can be processed in any order.
- */
-
-
 
 
 //------------------------------------------------------------------------------

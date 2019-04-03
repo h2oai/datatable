@@ -112,11 +112,9 @@ static void cast_fw0(const Column* col, size_t start, void* out_data)
   auto inp = static_cast<const T*>(col->data()) + start;
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col->nrows,
-      [=](size_t i0, size_t i1) {
-        for (size_t i = i0; i < i1; ++i) {
-          out[i] = CAST_OP(inp[i]);
-        }
-      });
+    [=](size_t i) {
+      out[i] = CAST_OP(inp[i]);
+    });
 }
 
 
@@ -127,13 +125,11 @@ static void cast_fw1(const Column* col, const int32_t* indices,
   auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col->nrows,
-      [=](size_t start, size_t stop) {
-        for (size_t i = start; i < stop; ++i) {
-          size_t j = static_cast<size_t>(indices[i]);
-          T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-          out[i] = CAST_OP(x);
-        }
-      });
+    [=](size_t i) {
+      size_t j = static_cast<size_t>(indices[i]);
+      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
+      out[i] = CAST_OP(x);
+    });
 }
 
 
@@ -144,13 +140,11 @@ static void cast_fw2(const Column* col, void* out_data)
   auto out = static_cast<U*>(out_data);
   const RowIndex& rowindex = col->rowindex();
   dt::parallel_for_static(col->nrows,
-      [=](size_t start, size_t stop) {
-        for (size_t i = start; i < stop; ++i) {
-          size_t j = rowindex[i];
-          T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-          out[i] = CAST_OP(x);
-        }
-      });
+    [=](size_t i) {
+      size_t j = rowindex[i];
+      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
+      out[i] = CAST_OP(x);
+    });
 }
 
 

@@ -45,12 +45,32 @@ size_t get_hardware_concurrency() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void parallel_region(function<void(size_t)> f);
+void parallel_region(size_t nthreads, function<void()> f);
+void parallel_region(function<void()> f);
 
 
-void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn);
-void parallel_for_static(size_t nrows, size_t min_chunk_size,
-                         function<void(size_t, size_t)> fn);
+/**
+ * Run parallel loop `for i in range(nrows): f(i)`.
+ */
+void _parallel_for_static(size_t nrows, size_t min_chunk_size,
+                          function<void(size_t, size_t)> fn);
+
+
+template <typename F>
+void parallel_for_static(size_t nrows, F f) {
+  _parallel_for_static(nrows, 4096,
+    [&](size_t i0, size_t i1) {
+      for (size_t i = i0; i < i1; ++i) f(i);
+    });
+}
+
+template <typename F>
+void parallel_for_static(size_t nrows, size_t min_chunk_size, F f) {
+  _parallel_for_static(nrows, min_chunk_size,
+    [&](size_t i0, size_t i1) {
+      for (size_t i = i0; i < i1; ++i) f(i);
+    });
+}
 
 
 }  // namespace dt
