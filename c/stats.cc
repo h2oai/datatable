@@ -5,11 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <atomic>       // std::atomic
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "parallel/api.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
 #include "column.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
@@ -155,51 +156,52 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
   A sum = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
+  std::mutex mutex;
 
-  #pragma omp parallel
-  {
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t t_count_notna = 0;
-    size_t n1 = 0;
-    size_t n2 = 0; // added for readability
-    double t_mean = 0;
-    double t_m2 = 0;
-    double t_m3 = 0;
-    double t_m4 = 0;
-    double t_m2_helper = 0;
+  dt::parallel_region(
+    [&](size_t) {
+      size_t t_count_notna = 0;
+      size_t n1 = 0;
+      size_t n2 = 0; // added for readability
+      double t_mean = 0;
+      double t_m2 = 0;
+      double t_m3 = 0;
+      double t_m4 = 0;
+      double t_m2_helper = 0;
 
-    A t_sum = 0;
-    T t_min = infinity<T>();
-    T t_max = -infinity<T>();
+      A t_sum = 0;
+      T t_min = infinity<T>();
+      T t_max = -infinity<T>();
 
-    rowindex.iterate(ith, nrows, nth,
-      [&](size_t, size_t j) {
-        if (j == RowIndex::NA) return;
-        T x = data[j];
-        if (ISNA<T>(x)) return;
-        n1 = t_count_notna;
-        ++t_count_notna;
-        n2 = t_count_notna; // readability
-        t_sum += static_cast<A>(x);
-        if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
-        if (x > t_max) t_max = x;
-        double delta = static_cast<double>(x) - t_mean;
-        double delta_n = static_cast<double>(delta) / t_count_notna;
-        double delta_n2 = delta_n * delta_n;
-        double term1 = delta * delta_n * static_cast<double>(n1);
-        t_mean += delta / t_count_notna;
-        double delta2 = static_cast<double>(x) - t_mean;
-        t_m4 += term1 * delta_n2 * (n2 * n2 - 3 * n2 + 3);
-        t_m4 += 6 * delta_n2 * t_m2_helper - 4 * delta_n * t_m3;
-        t_m3 += (term1 * delta_n * (n2 - 2) - 3 * delta_n * t_m2_helper);
-        t_m2 += delta * delta2;
-        t_m2_helper += term1;
-      });
+      dt::parallel_for_static(nrows,
+        [&](size_t i0, size_t i1) {
+          for (size_t i = i0; i < i1; ++i) {
+            size_t j = rowindex[i];
+            if (j == RowIndex::NA) continue;
+            T x = data[j];
+            if (ISNA<T>(x)) continue;
+            n1 = t_count_notna;
+            ++t_count_notna;
+            n2 = t_count_notna; // readability
+            t_sum += static_cast<A>(x);
+            if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
+            if (x > t_max) t_max = x;
+            double delta = static_cast<double>(x) - t_mean;
+            double delta_n = static_cast<double>(delta) / t_count_notna;
+            double delta_n2 = delta_n * delta_n;
+            double term1 = delta * delta_n * static_cast<double>(n1);
+            t_mean += delta / t_count_notna;
+            double delta2 = static_cast<double>(x) - t_mean;
+            t_m4 += term1 * delta_n2 * (n2 * n2 - 3 * n2 + 3);
+            t_m4 += 6 * delta_n2 * t_m2_helper - 4 * delta_n * t_m3;
+            t_m3 += (term1 * delta_n * (n2 - 2) - 3 * delta_n * t_m2_helper);
+            t_m2 += delta * delta2;
+            t_m2_helper += term1;
+          }
+        });
 
-    #pragma omp critical
-    {
       if (t_count_notna) {
+        std::lock_guard<std::mutex> lock(mutex);
         size_t nold = count_notna;
         count_notna += t_count_notna;
         sum += t_sum;
@@ -233,8 +235,7 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
         // Running mean
         mean = static_cast<double>(sum) / count_notna;
       }
-    }
-  }
+    });
 
   _countna = nrows - count_notna;
   if (count_notna == 0) {
@@ -451,30 +452,33 @@ template class IntegerStats<int64_t>;
  *            \ (count0 + count1 - 1)(count0 + count1) /
  */
 void BooleanStats::compute_numerical_stats(const Column *col) {
-  size_t count0 = 0, count1 = 0;
+  std::atomic<size_t> acount0 { 0 };
+  std::atomic<size_t> acount1 { 0 };
   size_t nrows = col->nrows;
   const int8_t* data = static_cast<const int8_t*>(col->data());
   const RowIndex& rowindex = col->rowindex();
-  #pragma omp parallel
-  {
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t tcount0 = 0, tcount1 = 0;
 
-    rowindex.iterate(ith, nrows, nth,
-      [&](size_t, size_t j) {
-        if (j == RowIndex::NA) return;
-        int8_t x = data[j];
-        tcount0 += (x == 0);
-        tcount1 += (x == 1);
-      });
+  dt::parallel_region(
+    [&](size_t) {
+      size_t tcount0 = 0;
+      size_t tcount1 = 0;
 
-    #pragma omp critical
-    {
-      count0 += tcount0;
-      count1 += tcount1;
-    }
-  }
+      dt::parallel_for_static(nrows,
+        [&](size_t i0, size_t i1) {
+          for (size_t i = i0; i < i1; ++i) {
+            size_t j = rowindex[i];
+            if (j == RowIndex::NA) continue;
+            int8_t x = data[j];
+            tcount0 += (x == 0);
+            tcount1 += (x == 1);
+          }
+        });
+
+      acount0 += tcount0;
+      acount1 += tcount1;
+    });
+  size_t count0 = acount0.load();
+  size_t count1 = acount1.load();
   size_t t_count = count0 + count1;
   double dcount0 = static_cast<double>(count0);
   double dcount1 = static_cast<double>(count1);
@@ -520,28 +524,26 @@ void StringStats<T>::compute_countna(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const RowIndex& rowindex = col->rowindex();
   size_t nrows = scol->nrows;
-  size_t countna = 0;
+  std::atomic<size_t> acountna { 0 };
   const T* data = scol->offsets();
 
-  #pragma omp parallel
-  {
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t tcountna = 0;
+  dt::parallel_region(
+    [&](size_t) {
+      size_t tcountna = 0;
 
-    rowindex.iterate(ith, nrows, nth,
-      [&](size_t, size_t j) {
-        if (j == RowIndex::NA) return;
-        tcountna += data[j] >> (sizeof(T)*8 - 1);
-      });
+      dt::parallel_for_static(nrows,
+        [&](size_t i0, size_t i1) {
+          for (size_t i = i0; i < i1; ++i) {
+            size_t j = rowindex[i];
+            if (j == RowIndex::NA) continue;
+            tcountna += data[j] >> (sizeof(T)*8 - 1);
+          }
+        });
 
-    #pragma omp critical
-    {
-      countna += tcountna;
-    }
-  }
+      acountna += tcountna;
+    });
 
-  _countna = countna;
+  _countna = acountna.load();
   set_computed(Stat::NaCount);
 }
 
@@ -619,28 +621,26 @@ template class StringStats<uint64_t>;
 void PyObjectStats::compute_countna(const Column* col) {
   const RowIndex& rowindex = col->rowindex();
   size_t nrows = col->nrows;
-  size_t countna = 0;
+  std::atomic<size_t> acountna { 0 };
   PyObject* const* data = static_cast<PyObject* const*>(col->data());
 
-  #pragma omp parallel
-  {
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t tcountna = 0;
+  dt::parallel_region(
+    [&](size_t) {
+      size_t tcountna = 0;
 
-    rowindex.iterate(ith, nrows, nth,
-      [&](size_t, size_t j) {
-        if (j == RowIndex::NA) return;
-        tcountna += (data[j] == Py_None);
-      });
+      dt::parallel_for_static(nrows,
+        [&](size_t i0, size_t i1) {
+          for (size_t i = i0; i < i1; ++i) {
+            size_t j = rowindex[i];
+            if (j == RowIndex::NA) continue;
+            tcountna += (data[j] == Py_None);
+          }
+        });
 
-    #pragma omp critical
-    {
-      countna += tcountna;
-    }
-  }
+      acountna += tcountna;
+    });
 
-  _countna = countna;
+  _countna = acountna.load();
   set_computed(Stat::NaCount);
 }
 

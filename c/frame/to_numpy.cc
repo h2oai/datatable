@@ -127,6 +127,9 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
     size_t n_chunks = ncols * n_row_chunks;
+    // precompte `countna` for all columns
+    for (size_t j = 0; j < ncols; ++j) dt->columns[j]->countna();
+
     #pragma omp parallel for
     for (size_t j = 0; j < n_chunks; ++j) {
       size_t icol = j / n_row_chunks;
