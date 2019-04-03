@@ -159,7 +159,7 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
   std::mutex mutex;
 
   dt::parallel_region(
-    [&](size_t) {
+    [&] {
       size_t t_count_notna = 0;
       size_t n1 = 0;
       size_t n2 = 0; // added for readability
@@ -459,7 +459,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   const RowIndex& rowindex = col->rowindex();
 
   dt::parallel_region(
-    [&](size_t) {
+    [&] {
       size_t tcount0 = 0;
       size_t tcount1 = 0;
 
@@ -528,7 +528,7 @@ void StringStats<T>::compute_countna(const Column* col) {
   const T* data = scol->offsets();
 
   dt::parallel_region(
-    [&](size_t) {
+    [&] {
       size_t tcountna = 0;
 
       dt::parallel_for_static(nrows,
@@ -625,7 +625,7 @@ void PyObjectStats::compute_countna(const Column* col) {
   PyObject* const* data = static_cast<PyObject* const*>(col->data());
 
   dt::parallel_region(
-    [&](size_t) {
+    [&] {
       size_t tcountna = 0;
 
       dt::parallel_for_static(nrows,

@@ -103,7 +103,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   // size_t nth0 = std::min(static_cast<size_t>(config::nthreads), nrows);
 
   dt::parallel_region(
-    [&](size_t) {
+    [&] {
       std::vector<std::string> chunks;
 
       dt::parallel_for_static(nrows,

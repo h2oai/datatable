@@ -226,7 +226,7 @@ void ArrayRowIndexImpl::_set_min_max() {
     std::atomic<T> amin { TMAX };
     std::atomic<T> amax { -TMAX };
     dt::parallel_region(
-      [&](size_t) {
+      [&] {
         T local_min = TMAX;
         T local_max = -TMAX;
         dt::parallel_for_static(length,

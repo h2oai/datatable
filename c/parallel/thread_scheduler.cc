@@ -55,7 +55,7 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 
 
 
-void parallel_region(function<void(size_t)> f) {
+void parallel_region(function<void()> f) {
   thread_pool* thpool = thread_pool::get_instance();
   xassert(thpool->in_master_thread());
   simple_task task(f);
@@ -92,7 +92,8 @@ void parallel_for_static(size_t nrows, size_t min_chunk_size,
       size_t nchunks = nrows / chunksize;
 
       dt::parallel_region(
-        [=](size_t ithread) {
+        [=] {
+          size_t ithread = get_thread_num();
           for (size_t j = ithread; j < nchunks; j += nth) {
             size_t i0 = j * chunksize;
             size_t i1 = i0 + chunksize;

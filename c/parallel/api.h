@@ -45,7 +45,8 @@ size_t get_hardware_concurrency() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void parallel_region(function<void(size_t)> f);
+void parallel_region(size_t nthreads, function<void()> f);
+void parallel_region(function<void()> f);
 
 
 void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn);
