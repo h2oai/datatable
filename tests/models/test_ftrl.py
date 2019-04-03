@@ -194,7 +194,6 @@ def test_ftrl_construct_wrong_nbins_value():
                          [[0, "Argument `float_nbits` in Ftrl() constructor should be positive: 0"],
                          [65, "Argument `float_nbits` in Ftrl() constructor should be less than 65, got: 65"]])
 def test_ftrl_construct_wrong_float_nbits_value(value, message):
-    ft = Ftrl()
     with pytest.raises(ValueError) as e:
         noop(Ftrl(float_nbits = value))
     assert (message == str(e.value))
