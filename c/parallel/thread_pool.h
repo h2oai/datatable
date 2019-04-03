@@ -16,6 +16,7 @@
 #ifndef dt_PARALLEL_THREAD_POOL_h
 #define dt_PARALLEL_THREAD_POOL_h
 #include <mutex>               // std::mutex
+#include <thread>              // std::thread::id
 #include <vector>              // std::vector
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
@@ -54,7 +55,7 @@ class thread_pool {
     // Also, use pointers here instead of `thread_worker` objects, so that
     // the pointers to each worker remain constant when the vector resizes
     // (these pointers are stored within each thread).
-    std::vector<std::unique_ptr<thread_worker>> workers;
+    std::vector<thread_worker*> workers;
 
     // Number of threads requested by the user; however, we will only
     // instantiate the threads when `execute_job()` is first called.
@@ -62,6 +63,10 @@ class thread_pool {
 
     // Scheduler used to manage sleep/awake cycle of the threads in the pool.
     worker_controller controller;
+
+    // Thread id of the main (python) thread, mostly used to verify that
+    // certain constructs are called from the master thread only.
+    std::thread::id master_thread_id;
 
     // Singleton instance of the thread_pool, returned by `get_instance()`.
     static thread_pool* _instance;
@@ -72,12 +77,15 @@ class thread_pool {
     thread_pool(const thread_pool&) = delete;
     // Not moveable: workers hold pointers to this->controller.
     thread_pool(thread_pool&&) = delete;
-    ~thread_pool();
+    // ~thread_pool();
 
     void execute_job(thread_scheduler*);
 
     size_t size() const noexcept;
     void resize(size_t n);
+
+    bool in_master_thread() const noexcept;
+    bool in_parallel_region() const noexcept;
 
   private:
     void resize_impl();
