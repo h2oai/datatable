@@ -72,15 +72,11 @@ void parallel_region(size_t nthreads, function<void()> fn) {
 
 
 //------------------------------------------------------------------------------
-// parallel_for_static
+// _parallel_for_static
 //------------------------------------------------------------------------------
 
-void parallel_for_static(size_t nrows, function<void(size_t, size_t)> fn) {
-  parallel_for_static(nrows, 4096, fn);
-}
-
-void parallel_for_static(size_t nrows, size_t min_chunk_size,
-                         function<void(size_t, size_t)> fn)
+void _parallel_for_static(size_t nrows, size_t min_chunk_size,
+                          function<void(size_t, size_t)> fn)
 {
   size_t k = nrows / min_chunk_size;
 

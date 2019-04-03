@@ -107,56 +107,54 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
       std::vector<std::string> chunks;
 
       dt::parallel_for_static(nrows,
-        [&](size_t i0, size_t i1) {
-          for (size_t irow = i0; irow < i1; ++irow) {
-            const char* strstart, *strend;
-            size_t jrow = ri[irow];
-            if (jrow == RowIndex::NA) continue;
-            if (is32) {
-              if (ISNA(offsets32[jrow])) continue;
-              strstart = strdata + (offsets32[jrow - 1] & ~GETNA<uint32_t>());
-              strend = strdata + offsets32[jrow];
+        [&](size_t irow) {
+          const char* strstart, *strend;
+          size_t jrow = ri[irow];
+          if (jrow == RowIndex::NA) return;
+          if (is32) {
+            if (ISNA(offsets32[jrow])) return;
+            strstart = strdata + (offsets32[jrow - 1] & ~GETNA<uint32_t>());
+            strend = strdata + offsets32[jrow];
+          } else {
+            if (ISNA(offsets64[jrow])) return;
+            strstart = strdata + (offsets64[jrow - 1] & ~GETNA<uint64_t>());
+            strend = strdata + offsets64[jrow];
+          }
+          if (strstart == strend) return;
+          char chfirst = *strstart;
+          char chlast = strend[-1];
+          if ((chfirst == '(' && chlast == ')') ||
+              (chfirst == '[' && chlast == ']') ||
+              (chfirst == '{' && chlast == '}')) {
+            strstart++;
+            strend--;
+          }
+
+          tokenize_string(chunks, strstart, strend, sep);
+
+          dt::shared_lock<dt::shared_mutex> lock(shmutex);
+          for (const std::string& s : chunks) {
+            if (colsmap.count(s)) {
+              size_t j = colsmap[s];
+              outdata[j][irow] = 1;
             } else {
-              if (ISNA(offsets64[jrow])) continue;
-              strstart = strdata + (offsets64[jrow - 1] & ~GETNA<uint64_t>());
-              strend = strdata + offsets64[jrow];
-            }
-            if (strstart == strend) continue;
-            char chfirst = *strstart;
-            char chlast = strend[-1];
-            if ((chfirst == '(' && chlast == ')') ||
-                (chfirst == '[' && chlast == ']') ||
-                (chfirst == '{' && chlast == '}')) {
-              strstart++;
-              strend--;
-            }
-
-            tokenize_string(chunks, strstart, strend, sep);
-
-            dt::shared_lock<dt::shared_mutex> lock(shmutex);
-            for (const std::string& s : chunks) {
-              if (colsmap.count(s)) {
+              lock.exclusive_start();
+              if (colsmap.count(s) == 0) {
+                colsmap[s] = outcols.size();
+                BoolColumn* newcol = new BoolColumn(col->nrows);
+                int8_t* data = newcol->elements_w();
+                std::memset(data, 0, nrows);
+                data[irow] = 1;
+                outcols.push_back(newcol);
+                outdata.push_back(data);
+                outnames.push_back(s);
+              } else {
+                // In case the name was already added from another thread while we
+                // were waiting for the exclusive lock
                 size_t j = colsmap[s];
                 outdata[j][irow] = 1;
-              } else {
-                lock.exclusive_start();
-                if (colsmap.count(s) == 0) {
-                  colsmap[s] = outcols.size();
-                  BoolColumn* newcol = new BoolColumn(col->nrows);
-                  int8_t* data = newcol->elements_w();
-                  std::memset(data, 0, nrows);
-                  data[irow] = 1;
-                  outcols.push_back(newcol);
-                  outdata.push_back(data);
-                  outnames.push_back(s);
-                } else {
-                  // In case the name was already added from another thread while we
-                  // were waiting for the exclusive lock
-                  size_t j = colsmap[s];
-                  outdata[j][irow] = 1;
-                }
-                lock.exclusive_end();
               }
+              lock.exclusive_end();
             }
           }
         });

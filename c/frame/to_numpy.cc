@@ -132,19 +132,17 @@ oobj Frame::to_numpy(const PKArgs& args) {
     for (size_t j = 0; j < ncols; ++j) dt->columns[j]->countna();
 
     dt::parallel_for_static(n_chunks,
-      [&](size_t j0, size_t j1) {
-        for (size_t j = j0; j < j1; ++j) {
-          size_t icol = j / n_row_chunks;
-          size_t irow = j - (icol * n_row_chunks);
-          size_t row0 = irow * rows_per_chunk;
-          size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
-          int8_t* mask_ptr = mask_data + icol * dt->nrows;
-          Column* col = dt->columns[icol + i0];
-          if (col->countna()) {
-            col->fill_na_mask(mask_ptr, row0, row1);
-          } else {
-            std::memset(mask_ptr, 0, row1 - row0);
-          }
+      [&](size_t j) {
+        size_t icol = j / n_row_chunks;
+        size_t irow = j - (icol * n_row_chunks);
+        size_t row0 = irow * rows_per_chunk;
+        size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
+        int8_t* mask_ptr = mask_data + icol * dt->nrows;
+        Column* col = dt->columns[icol + i0];
+        if (col->countna()) {
+          col->fill_na_mask(mask_ptr, row0, row1);
+        } else {
+          std::memset(mask_ptr, 0, row1 - row0);
         }
       });
 
