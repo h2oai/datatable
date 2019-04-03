@@ -145,7 +145,7 @@ def neg(t):
     return -t
 
 
-@pytest.mark.parametrize("src", dt_int + dt_float + dt_bool)
+@pytest.mark.parametrize("src", dt_int)
 def test_dt_neg(src):
     dt0 = dt.Frame(src)
     dtr = dt0[:, -f[0]]
@@ -153,6 +153,27 @@ def test_dt_neg(src):
     assert dtr.stypes == ((dt.int8,) if dt0.stypes[0] == dt.bool8 else
                           dt0.stypes)
     assert_equals(dtr, dt.Frame([neg(x) for x in src]))
+
+
+@pytest.mark.parametrize("src", dt_float)
+def test_dt_neg(src):
+    dt0 = dt.Frame(src)
+    dtr = dt0[:, -f[0]]
+    dtr.internal.check()
+    assert dtr.stypes == ((dt.int8,) if dt0.stypes[0] == dt.bool8 else
+                          dt0.stypes)
+    assert_equals(dtr, dt.Frame([neg(x) for x in src]))
+
+
+@pytest.mark.parametrize("src", dt_bool)
+def test_dt_neg(src):
+    dt0 = dt.Frame(src)
+    dtr = dt0[:, -f[0]]
+    dtr.internal.check()
+    assert dtr.stypes == ((dt.int8,) if dt0.stypes[0] == dt.bool8 else
+                          dt0.stypes)
+    assert_equals(dtr, dt.Frame([neg(x) for x in src], stype = dt.int8))
+
 
 
 @pytest.mark.parametrize("src", dt_str)
