@@ -349,7 +349,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               T p = linkfn(predict_row(
                         x, w, k,
                         [&](size_t f_id, T f_imp) {
-                          data_fi[f_id] += f_imp;
+                          fi[f_id] += f_imp;
                         }
                     ));
               update(x, w, p, data[k][j], k);
