@@ -419,12 +419,10 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // - for 1D and 2D binnings some bins may be empty;
   // - for ND we could do id to re-mapping.
   dt::parallel_for_static(gb_members.ngroups() - was_sampled,
-    [&](size_t i0, size_t i1) {
-      for (size_t i_sampled = i0; i_sampled < i1; ++i_sampled) {
-        for (size_t j = 0; j < static_cast<size_t>(d_counts[i_sampled]); ++j) {
-          size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]) + j;
-          d_members[ri_members[member_shift]] = static_cast<int32_t>(i_sampled);
-        }
+    [&](size_t i_sampled) {
+      for (size_t j = 0; j < static_cast<size_t>(d_counts[i_sampled]); ++j) {
+        size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]) + j;
+        d_members[ri_members[member_shift]] = static_cast<int32_t>(i_sampled);
       }
     });
   dt_members->columns[0]->get_stats()->reset();
@@ -505,14 +503,12 @@ void Aggregator<T>::group_1d_continuous() {
   set_norm_coeffs(norm_factor, norm_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), n_bins);
 
   dt::parallel_for_static(contconvs[0]->get_nrows(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        T value = (*contconvs[0])[i];
-        if (ISNA<T>(value)) {
-          d_members[i] = GETNA<int32_t>();
-        } else {
-          d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
-        }
+    [&](size_t i) {
+      T value = (*contconvs[0])[i];
+      if (ISNA<T>(value)) {
+        d_members[i] = GETNA<int32_t>();
+      } else {
+        d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
       }
     });
 }
@@ -531,18 +527,16 @@ void Aggregator<T>::group_2d_continuous() {
   set_norm_coeffs(normy_factor, normy_shift, contconvs[1]->get_min(), contconvs[1]->get_max(), ny_bins);
 
   dt::parallel_for_static(contconvs[0]->get_nrows(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        T value0 = (*contconvs[0])[i];
-        T value1 = (*contconvs[1])[i];
-        int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
-        if (na_case) {
-          d_members[i] = -na_case;
-        } else {
-          d_members[i] = static_cast<int32_t>(normy_factor * value1 + normy_shift) *
-                         static_cast<int32_t>(nx_bins) +
-                         static_cast<int32_t>(normx_factor * value0 + normx_shift);
-        }
+    [&](size_t i) {
+      T value0 = (*contconvs[0])[i];
+      T value1 = (*contconvs[1])[i];
+      int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
+      if (na_case) {
+        d_members[i] = -na_case;
+      } else {
+        d_members[i] = static_cast<int32_t>(normy_factor * value1 + normy_shift) *
+                       static_cast<int32_t>(nx_bins) +
+                       static_cast<int32_t>(normx_factor * value0 + normx_shift);
       }
     });
 }
@@ -563,13 +557,11 @@ void Aggregator<T>::group_1d_categorical() {
 
   // TODO: use dynamic instead?
   dt::parallel_for_static(grpby0.ngroups(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        size_t off_i = static_cast<size_t>(offsets0[i]);
-        size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
-        for (size_t j = off_i; j < off_i1; ++j) {
-          d_members[ri0[j]] = static_cast<int32_t>(i);
-        }
+    [&](size_t i) {
+      size_t off_i = static_cast<size_t>(offsets0[i]);
+      size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        d_members[ri0[j]] = static_cast<int32_t>(i);
       }
     });
 }
@@ -627,19 +619,17 @@ void Aggregator<T>::group_2d_categorical_str() {
 
   // TODO: use dynamic instead?
   dt::parallel_for_static(grpby.ngroups(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        auto group_id = static_cast<int32_t>(i);
-        size_t off_i = static_cast<size_t>(offsets[i]);
-        size_t off_i1 = static_cast<size_t>(offsets[i+1]);
-        for (size_t j = off_i; j < off_i1; ++j) {
-          int32_t gi = static_cast<int32_t>(ri[j]);
-          int32_t na_case = ISNA<U0>(d_c0[gi]) + 2 * ISNA<U1>(d_c1[gi]);
-          if (na_case) {
-            d_members[gi] = -na_case;
-          } else {
-            d_members[gi] = group_id;
-          }
+    [&](size_t i) {
+      auto group_id = static_cast<int32_t>(i);
+      size_t off_i = static_cast<size_t>(offsets[i]);
+      size_t off_i1 = static_cast<size_t>(offsets[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        int32_t gi = static_cast<int32_t>(ri[j]);
+        int32_t na_case = ISNA<U0>(d_c0[gi]) + 2 * ISNA<U1>(d_c1[gi]);
+        if (na_case) {
+          d_members[gi] = -na_case;
+        } else {
+          d_members[gi] = group_id;
         }
       }
     });
@@ -685,20 +675,18 @@ void Aggregator<T>::group_2d_mixed_str() {
 
   // TODO: use dynamic instead?
   dt::parallel_for_static(grpby.ngroups(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
-        size_t off_i = static_cast<size_t>(offsets_cat[i]);
-        size_t off_i1 = static_cast<size_t>(offsets_cat[i+1]);
-        for (size_t j = off_i; j < off_i1; ++j) {
-          size_t gi = ri_cat[j];
-          int32_t na_case = ISNA<T>((*contconvs[0])[gi]) + 2 * ISNA<U0>(d_cat[gi]);
-          if (na_case) {
-            d_members[gi] = -na_case;
-          } else {
-            d_members[gi] = group_cat_id +
-                            static_cast<int32_t>(normx_factor * (*contconvs[0])[gi] + normx_shift);
-          }
+    [&](size_t i) {
+      int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
+      size_t off_i = static_cast<size_t>(offsets_cat[i]);
+      size_t off_i1 = static_cast<size_t>(offsets_cat[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        size_t gi = ri_cat[j];
+        int32_t na_case = ISNA<T>((*contconvs[0])[gi]) + 2 * ISNA<U0>(d_cat[gi]);
+        if (na_case) {
+          d_members[gi] = -na_case;
+        } else {
+          d_members[gi] = group_cat_id +
+                          static_cast<int32_t>(normx_factor * (*contconvs[0])[gi] + normx_shift);
         }
       }
     });
@@ -759,9 +747,9 @@ void Aggregator<T>::group_nd() {
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
 
-  dt::parallel_region(
-    [&](size_t ith) {
-      if (ith >= nth) return;
+  dt::parallel_region(nth,
+    [&] {
+      size_t ith = dt::get_thread_num();
       size_t nrows_per_thread = nrows / nth;
       size_t i0 = ith * nrows_per_thread;
       size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
@@ -932,18 +920,14 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
   auto nids = ids.size();
 
   dt::parallel_for_static(nids,
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        map[i] = (ids[i] == i) ? i : calculate_map(ids, i);
-      }
+    [&](size_t i) {
+      map[i] = (ids[i] == i) ? i : calculate_map(ids, i);
     });
 
   dt::parallel_for_static(dt_members->nrows,
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        auto j = static_cast<size_t>(d_members[i]);
-        d_members[i] = static_cast<int32_t>(map[j]);
-      }
+    [&](size_t i) {
+      auto j = static_cast<size_t>(d_members[i]);
+      d_members[i] = static_cast<int32_t>(map[j]);
     });
 
 }
