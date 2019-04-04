@@ -21,13 +21,12 @@
 namespace dttest {
 
 
-void test_parallel_for_dynamic() {
-  constexpr size_t n = 10000;
+void test_parallel_for_dynamic(size_t n) {
   std::vector<size_t> data(n, 0);
 
   dt::parallel_for_dynamic(n,
     [&](size_t i) {
-      data[i] = 1 + 2 * i;
+      data[i] += 1 + 2 * i;
     });
 
   for (size_t i = 0; i < n; ++i) {
@@ -35,6 +34,37 @@ void test_parallel_for_dynamic() {
       throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
         << " in test_parallel_for_dynamic(), expected " << 1 + 2*i;
     }
+  }
+}
+
+
+
+void test_parallel_for_dynamic_nested(size_t n) {
+  std::vector<size_t> data(n, 0);
+  std::atomic<size_t> total { 0 };
+
+  dt::parallel_region([&] {
+    size_t counter = 0;
+
+    dt::parallel_for_dynamic(n,
+      [&](size_t i) {
+        data[i] += 1 + 2 * i;
+        counter++;
+      });
+
+    total += counter;
+  });
+
+  for (size_t i = 0; i < n; ++i) {
+    if (data[i] != 1 + 2*i) {
+      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
+        << " in test_parallel_for_dynamic_nested(), expected " << 1 + 2*i;
+    }
+  }
+  size_t nn = total.load();
+  if (nn != n) {
+    throw AssertionError() << "Incorrect total = " << nn
+        << " in test_parallel_for_dynamic_nested(), expected " << n;
   }
 }
 

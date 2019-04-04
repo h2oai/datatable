@@ -13,20 +13,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/thread_task.h"
-#include "parallel/thread_worker.h"
+#ifndef dt_PARALLEL_THREAD_TEAM_h
+#define dt_PARALLEL_THREAD_TEAM_h
+#include <cstddef>
+#include "parallel/thread_pool.h"
 namespace dt {
+using std::size_t;
 
-thread_task::~thread_task() {}
+// Forward-declare
+class thread_scheduler;
 
 
 
-simple_task::simple_task(function<void()> f_) : f(f_) {}
+class thread_team {
+  private:
+    size_t nthreads;
+    thread_pool* thpool;
+    thread_scheduler* nested_scheduler;
 
-void simple_task::execute(thread_worker*) {
-  f();
-}
+  public:
+    thread_team(size_t nth, thread_pool*);
+    ~thread_team();
 
+    size_t size() const noexcept;
+
+    template <typename S, typename... Args>
+    S* shared_scheduler(Args&&... args) {
+      if (!nested_scheduler) {
+        std::lock_guard<std::mutex> lock(thpool->global_mutex);
+        if (!nested_scheduler) {
+          nested_scheduler = new S(std::forward<Args>(args)...);
+        }
+      }
+      return reinterpret_cast<S*>(nested_scheduler);
+    }
+};
 
 
 } // namespace dt
+#endif
