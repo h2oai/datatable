@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
-#include "parallel/thread_pool.h"
 #include "utils/function.h"
 namespace dt {
 

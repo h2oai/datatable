@@ -13,14 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <atomic>              // std::atomic
-#include <condition_variable>  // std::condition_variable
-#include <thread>              // std::this_thread
-#include "parallel/api.h"
-#include "parallel/thread_pool.h"
-#include "parallel/thread_scheduler.h"
-#include "parallel/thread_worker.h"
-#include "utils/assert.h"
+#include "parallel/api.h"               // this_thread_index
+#include "parallel/thread_scheduler.h"  // thread_scheduler
+#include "parallel/thread_task.h"       // thread_task
 namespace dt {
 
 

@@ -14,9 +14,11 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_task.h"
 #include "utils/assert.h"
+#include "utils/macros.h"          // cache_aligned
 namespace dt {
 
 

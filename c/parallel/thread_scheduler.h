@@ -15,19 +15,15 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_SCHEDULER_h
 #define dt_PARALLEL_THREAD_SCHEDULER_h
-#include <atomic>      // std::atomic
-#include <memory>      // std::unique_ptr
-#include <mutex>       // std::mutex
-#include <vector>      // std::vector
-#include "parallel/thread_task.h"  // thread_task
-#include "utils/macros.h"          // cache_aligned
+#include <cstddef>  // size_t
 namespace dt {
 using std::size_t;
 
+class thread_task;
 
 
 //------------------------------------------------------------------------------
-// Base scheduler
+// Base thread_scheduler
 //------------------------------------------------------------------------------
 
 class thread_scheduler {
