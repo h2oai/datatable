@@ -208,6 +208,13 @@ def test_internal_atomic():
         core.test_atomic()
 
 
+def test_internal_parallel_for_dynamic():
+    from datatable.lib import core
+    if hasattr(core, "test_parallel_for_dynamic"):
+        core.test_parallel_for_dynamic()
+
+
+
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)
     out, err = capsys.readouterr()

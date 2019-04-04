@@ -39,10 +39,20 @@ void thread_scheduler::abort_execution() {
 // parallel_region
 //------------------------------------------------------------------------------
 
+// Implementation class for `dt::parallel_region()` function.
+class once_scheduler : public thread_scheduler {
+  private:
+    std::vector<cache_aligned<size_t>> done;
+    thread_task* task;
+
+  public:
+    once_scheduler(size_t nthreads, thread_task*);
+    thread_task* get_next_task(size_t thread_index) override;
+};
+
 once_scheduler::once_scheduler(size_t nth, thread_task* task_)
   : done(nth, 0),
     task(task_) {}
-
 
 thread_task* once_scheduler::get_next_task(size_t i) {
   if (i >= done.size() || done[i].v) {
@@ -72,7 +82,7 @@ void parallel_region(size_t nthreads, function<void()> fn) {
 
 
 //------------------------------------------------------------------------------
-// _parallel_for_static
+// parallel_for_static
 //------------------------------------------------------------------------------
 
 void _parallel_for_static(size_t nrows, size_t min_chunk_size,
@@ -122,7 +132,6 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
       }
     }
   }
-
 }
 
 

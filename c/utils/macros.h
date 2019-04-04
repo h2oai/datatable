@@ -53,6 +53,7 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
   char _padding[(CACHELINE_SIZE - (sizeof(T) % CACHELINE_SIZE))
                 % CACHELINE_SIZE];
 
+  cache_aligned() = default;
   cache_aligned(const T& v_) : v(v_) {}
   cache_aligned(T&& v_) : v(std::move(v_)) {}
 };
