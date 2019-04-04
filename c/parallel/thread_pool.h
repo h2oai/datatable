@@ -19,11 +19,11 @@
 #include <thread>              // std::thread::id
 #include <vector>              // std::vector
 #include "parallel/thread_scheduler.h"
-#include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 using std::size_t;
 
+class thread_team;
 
 
 /**
@@ -68,11 +68,16 @@ class thread_pool {
     // See definition in thread_worker.h
     worker_controller controller;
 
+    // Mutex which can be used to guard operations that must be protected
+    // across all threads.
+    std::mutex global_mutex;
+
     thread_team* current_team;
 
   public:
     static thread_pool* get_instance();
     static thread_pool* get_instance_unchecked() noexcept;
+    static thread_team* get_team_unchecked() noexcept;
 
     void execute_job(thread_scheduler*);
 

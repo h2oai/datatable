@@ -17,6 +17,7 @@
 #include <pthread.h>   // pthread_atfork
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
+#include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
 #include "utils/assert.h"
 namespace dt {
@@ -126,6 +127,10 @@ thread_pool* thread_pool::get_instance() {
 
 thread_pool* thread_pool::get_instance_unchecked() noexcept {
   return _instance;
+}
+
+thread_team* thread_pool::get_team_unchecked() noexcept {
+  return _instance->current_team;
 }
 
 

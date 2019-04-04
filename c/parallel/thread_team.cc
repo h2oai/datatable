@@ -14,13 +14,16 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/thread_pool.h"
+#include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
 #include "utils/exceptions.h"
 namespace dt {
 
 
 thread_team::thread_team(size_t nth, thread_pool* pool)
-  : thpool(pool), nthreads(nth)
+  : nthreads(nth),
+    thpool(pool),
+    nested_scheduler(nullptr)
 {
   if (thpool->current_team) {
     throw RuntimeError() << "Unable to create a nested thread team";
@@ -31,6 +34,7 @@ thread_team::thread_team(size_t nth, thread_pool* pool)
 
 thread_team::~thread_team() {
   thpool->current_team = nullptr;
+  delete nested_scheduler;
 }
 
 
