@@ -133,7 +133,7 @@ template <typename T> std::mutex          thread_shared_ptr<T>::mutex;
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
   thread_pool* thpool = thread_pool::get_instance();
   size_t nthreads = thpool->size();
-  size_t ith = dt::get_thread_num();
+  size_t ith = dt::this_thread_index();
 
   // Running from the master thread
   if (ith == size_t(-1)) {

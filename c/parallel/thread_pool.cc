@@ -80,7 +80,7 @@ void thread_pool::execute_job(thread_scheduler* job) {
 
 
 bool thread_pool::in_master_thread() const noexcept {
-  return get_thread_num() == size_t(-1);
+  return this_thread_index() == size_t(-1);
 }
 
 bool thread_pool::in_parallel_region() const noexcept {
@@ -128,13 +128,17 @@ thread_pool* thread_pool::get_instance_unchecked() noexcept {
 // Misc
 //------------------------------------------------------------------------------
 
-size_t get_num_threads() {
+size_t num_threads_in_pool() {
+  return thread_pool::get_instance()->size();
+}
+
+size_t num_threads_in_team() {
   return thread_pool::get_instance()->size();
 }
 
 
 static thread_local size_t thread_index = size_t(-1);
-size_t get_thread_num() {
+size_t this_thread_index() {
   return thread_index;
 }
 void _set_thread_num(size_t i) {

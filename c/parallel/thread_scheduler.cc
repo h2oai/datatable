@@ -36,7 +36,7 @@ void thread_scheduler::abort_execution() {
 void thread_scheduler::execute_in_current_thread() {
   // If this throws an exception, it will propagate to outer level, where the
   // exception will get caught in the outer's level task executor.
-  size_t ith = dt::get_thread_num();
+  size_t ith = dt::this_thread_index();
   while (true) {
     auto task = get_next_task(ith);
     if (!task) break;
@@ -102,7 +102,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
 {
   size_t k = nrows / min_chunk_size;
 
-  size_t ith = dt::get_thread_num();
+  size_t ith = dt::this_thread_index();
 
   // Standard parallel loop
   if (ith == size_t(-1)) {
@@ -110,13 +110,13 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
       fn(0, nrows);
     }
     else {
-      size_t nth = get_num_threads();
+      size_t nth = num_threads_in_pool();
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 
       dt::parallel_region(
         [=] {
-          size_t ithread = get_thread_num();
+          size_t ithread = this_thread_index();
           for (size_t j = ithread; j < nchunks; j += nth) {
             size_t i0 = j * chunksize;
             size_t i1 = i0 + chunksize;
@@ -132,7 +132,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
       if (ith == 0) fn(0, nrows);
     }
     else {
-      size_t nth = get_num_threads();
+      size_t nth = num_threads_in_team();
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 

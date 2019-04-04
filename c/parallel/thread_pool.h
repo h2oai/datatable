@@ -70,7 +70,6 @@ class thread_pool {
     static thread_pool* get_instance();
     static thread_pool* get_instance_unchecked() noexcept;
 
-
     void execute_job(thread_scheduler*);
 
     size_t size() const noexcept;
