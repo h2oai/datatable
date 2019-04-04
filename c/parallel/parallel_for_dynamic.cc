@@ -16,6 +16,7 @@
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
+#include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/function.h"
 #include "utils/macros.h"          // cache_aligned
@@ -140,8 +141,10 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
 
   // Running from the master thread
   if (ith == size_t(-1)) {
+    thread_team tt(nthreads, thpool);
     dynamic_scheduler sch(nthreads, nrows);
     sch.set_task(fn);
+
     thpool->execute_job(&sch);
   }
   // Running inside a parallel region

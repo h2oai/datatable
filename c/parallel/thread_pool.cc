@@ -60,6 +60,7 @@ void thread_pool::resize_impl() {
     controller.join(n);
   }
   else {
+    thread_team tt(n, this);
     thread_shutdown_scheduler tss(n, &controller);
     execute_job(&tss);
     for (size_t i = n; i < workers.size(); ++i) {
@@ -72,6 +73,7 @@ void thread_pool::resize_impl() {
 
 void thread_pool::execute_job(thread_scheduler* job) {
   xassert(in_master_thread());
+  xassert(current_team);
   if (workers.empty()) resize_impl();
   controller.awaken_and_run(job);
   controller.join(workers.size());
@@ -85,7 +87,7 @@ bool thread_pool::in_master_thread() const noexcept {
 }
 
 bool thread_pool::in_parallel_region() const noexcept {
-  return controller.is_running();
+  return (current_team != nullptr);
 }
 
 size_t thread_pool::n_threads_in_team() const noexcept {
