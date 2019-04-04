@@ -23,6 +23,9 @@ namespace dt {
 void _parallel_for_static(size_t, size_t, function<void(size_t, size_t)>);
 
 
+//------------------------------------------------------------------------------
+// Generic thread information
+//------------------------------------------------------------------------------
 
 /**
  * Return the total number of threads in the thread pool. This is roughly
@@ -62,6 +65,11 @@ size_t this_thread_index();
  */
 size_t get_hardware_concurrency() noexcept;
 
+
+
+//------------------------------------------------------------------------------
+// Parallel constructs
+//------------------------------------------------------------------------------
 
 /**
  * Call function `f` exactly once in each thread.
