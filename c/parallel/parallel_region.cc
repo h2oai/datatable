@@ -16,6 +16,7 @@
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
+#include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/macros.h"          // cache_aligned
 namespace dt {
@@ -86,6 +87,8 @@ void parallel_region(size_t nthreads, function<void()> fn) {
   xassert(thpool->in_master_thread());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
+  thread_team tt(nthreads, thpool);
+
   simple_task task(fn);
   once_scheduler sch(nthreads, &task);
   thpool->execute_job(&sch);

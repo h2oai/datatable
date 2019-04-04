@@ -19,6 +19,7 @@
 #include <thread>              // std::thread::id
 #include <vector>              // std::vector
 #include "parallel/thread_scheduler.h"
+#include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 using std::size_t;
@@ -48,6 +49,7 @@ using std::size_t;
  *
  */
 class thread_pool {
+  friend class thread_team;
   friend void _child_cleanup_after_fork();
   private:
     // Worker instances, each running on its own thread. Each thread has a
@@ -66,6 +68,8 @@ class thread_pool {
     // See definition in thread_worker.h
     worker_controller controller;
 
+    thread_team* current_team;
+
   public:
     static thread_pool* get_instance();
     static thread_pool* get_instance_unchecked() noexcept;
@@ -77,6 +81,7 @@ class thread_pool {
 
     bool in_master_thread() const noexcept;
     bool in_parallel_region() const noexcept;
+    size_t n_threads_in_team() const noexcept;
 
   private:
     thread_pool();

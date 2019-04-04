@@ -28,7 +28,8 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 thread_pool::thread_pool()
-  : num_threads_requested(0) {}
+  : num_threads_requested(0),
+    current_team(nullptr) {}
 
 // In the current implementation the thread_pool instance never gets deleted
 // thread_pool::~thread_pool() {
@@ -87,6 +88,10 @@ bool thread_pool::in_parallel_region() const noexcept {
   return controller.is_running();
 }
 
+size_t thread_pool::n_threads_in_team() const noexcept {
+  return current_team? current_team->size() : 0;
+}
+
 
 
 
@@ -133,7 +138,7 @@ size_t num_threads_in_pool() {
 }
 
 size_t num_threads_in_team() {
-  return thread_pool::get_instance()->size();
+  return _instance? _instance->n_threads_in_team() : 0;
 }
 
 
