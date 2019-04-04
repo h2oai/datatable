@@ -51,24 +51,5 @@ class thread_scheduler {
 
 
 
-//------------------------------------------------------------------------------
-// once scheduler
-//------------------------------------------------------------------------------
-
-/**
- * Implementation class for `dt::parallel_region()` function.
- */
-class once_scheduler : public thread_scheduler {
-  private:
-    std::vector<cache_aligned<size_t>> done;
-    thread_task* task;
-
-  public:
-    once_scheduler(size_t nthreads, thread_task*);
-    thread_task* get_next_task(size_t thread_index) override;
-};
-
-
-
 }  // namespace dt
 #endif

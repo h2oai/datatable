@@ -19,6 +19,9 @@
 #include "utils/function.h"
 namespace dt {
 
+// Private
+void _parallel_for_static(size_t, size_t, function<void(size_t, size_t)>);
+
 
 
 /**
@@ -50,12 +53,8 @@ void parallel_region(function<void()> f);
 
 
 /**
- * Run parallel loop `for i in range(nrows): f(i)`.
+ * Run parallel loop `for i in range(nrows): f(i)`, with static scheduling.
  */
-void _parallel_for_static(size_t nrows, size_t min_chunk_size,
-                          function<void(size_t, size_t)> fn);
-
-
 template <typename F>
 void parallel_for_static(size_t nrows, F f) {
   _parallel_for_static(nrows, 4096,
@@ -65,12 +64,18 @@ void parallel_for_static(size_t nrows, F f) {
 }
 
 template <typename F>
-void parallel_for_static(size_t nrows, size_t min_chunk_size, F f) {
-  _parallel_for_static(nrows, min_chunk_size,
+void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
+  _parallel_for_static(nrows, chunk_size,
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
 }
+
+
+/**
+ * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
+ */
+void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
 
 
 }  // namespace dt
