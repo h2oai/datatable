@@ -20,17 +20,30 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
+// dynamic_task
+//------------------------------------------------------------------------------
+
+struct dynamic_task : public thread_task {
+  function<void(size_t)> fn;
+  size_t iter;
+
+  void execute(thread_worker*) override;
+};
+
+
+void dynamic_task::execute(thread_worker*) {
+  fn(iter);
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // dynamic_scheduler
 //------------------------------------------------------------------------------
 
 class dynamic_scheduler : public thread_scheduler {
   private:
-    struct dynamic_task : public thread_task {
-      function<void(size_t)> fn;
-      size_t iter;
-      void execute(thread_worker*) override;
-    };
-
     std::vector<cache_aligned<dynamic_task>> tasks;
     size_t num_iterations;
     std::atomic<size_t> iteration_index;
@@ -39,12 +52,8 @@ class dynamic_scheduler : public thread_scheduler {
     dynamic_scheduler(size_t nthreads, size_t niters);
     void set_task(function<void(size_t)>);
     thread_task* get_next_task(size_t thread_index) override;
+    void abort_execution() override;
 };
-
-
-void dynamic_scheduler::dynamic_task::execute(thread_worker*) {
-  fn(iter);
-}
 
 
 dynamic_scheduler::dynamic_scheduler(size_t nthreads, size_t niters)
@@ -67,6 +76,11 @@ thread_task* dynamic_scheduler::get_next_task(size_t thread_index) {
   dynamic_task* ptask = &tasks[thread_index].v;
   ptask->iter = next_iter;
   return ptask;
+}
+
+
+void dynamic_scheduler::abort_execution() {
+  iteration_index.store(num_iterations);
 }
 
 
