@@ -33,6 +33,18 @@ void thread_scheduler::abort_execution() {
 }
 
 
+void thread_scheduler::execute_in_current_thread() {
+  // If this throws an exception, it will propagate to outer level, where the
+  // exception will get caught in the outer's level task executor.
+  size_t ith = dt::get_thread_num();
+  while (true) {
+    auto task = get_next_task(ith);
+    if (!task) break;
+    task->execute(nullptr);
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------

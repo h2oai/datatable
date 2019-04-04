@@ -51,6 +51,7 @@ class dynamic_scheduler : public thread_scheduler {
   public:
     dynamic_scheduler(size_t nthreads, size_t niters);
     void set_task(function<void(size_t)>);
+    void set_task(function<void(size_t)>, size_t i);
     thread_task* get_next_task(size_t thread_index) override;
     void abort_execution() override;
 };
@@ -65,6 +66,10 @@ dynamic_scheduler::dynamic_scheduler(size_t nthreads, size_t niters)
 void dynamic_scheduler::set_task(function<void(size_t)> f) {
   for (auto& task : tasks)
     task.v.fn = f;
+}
+
+void dynamic_scheduler::set_task(function<void(size_t)> f, size_t i) {
+  tasks[i].v.fn = f;
 }
 
 
@@ -90,14 +95,59 @@ void dynamic_scheduler::abort_execution() {
 // parallel_for_dynamic
 //------------------------------------------------------------------------------
 
+template <typename T>
+class thread_shared_ptr {
+  static std::mutex mutex;
+  static std::atomic<size_t> refcnt;
+  static T* instance;
+
+  public:
+    template <typename... Args>
+    thread_shared_ptr(Args&&... args) {
+      if (instance == nullptr) {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (instance == nullptr) {
+          instance = new T(std::forward<Args>(args)...);
+        }
+      }
+      refcnt.fetch_add(1);
+    }
+
+    ~thread_shared_ptr() {
+      refcnt.fetch_sub(1);
+      if (refcnt.load() == 0) {
+        delete instance;
+        instance = nullptr;
+      }
+    }
+
+    T* get() const noexcept {
+      return instance;
+    }
+};
+template <typename T> T*                  thread_shared_ptr<T>::instance = nullptr;
+template <typename T> std::atomic<size_t> thread_shared_ptr<T>::refcnt { 0 };
+template <typename T> std::mutex          thread_shared_ptr<T>::mutex;
+
+
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
   thread_pool* thpool = thread_pool::get_instance();
-  xassert(thpool->in_master_thread());
   size_t nthreads = thpool->size();
+  size_t ith = dt::get_thread_num();
 
-  dynamic_scheduler sch(nthreads, nrows);
-  sch.set_task(fn);
-  thpool->execute_job(&sch);
+  // Running from the master thread
+  if (ith == size_t(-1)) {
+    dynamic_scheduler sch(nthreads, nrows);
+    sch.set_task(fn);
+    thpool->execute_job(&sch);
+  }
+  // Running inside a parallel region
+  else {
+    thread_shared_ptr<dynamic_scheduler> gsch(nthreads, nrows);
+    dynamic_scheduler* sch = gsch.get();
+    sch->set_task(fn, ith);
+    sch->execute_in_current_thread();
+  }
 }
 
 

@@ -27,26 +27,8 @@ namespace dt {
 // thread_pool
 //------------------------------------------------------------------------------
 
-thread_pool* thread_pool::_instance = nullptr;
-
-thread_pool* thread_pool::get_instance() {
-  if (!_instance) _instance = new thread_pool;
-  return _instance;
-}
-
-
-
 thread_pool::thread_pool()
-  : num_threads_requested(0)
-{
-  // pthread_atfork callback needs to be established within the main process
-  // only, which is indicated by `_instance` being nullptr during construction.
-  if (!_instance) {
-    pthread_atfork(nullptr, nullptr, []{
-      thread_pool::get_instance()->cleanup_after_fork();
-    });
-  }
-}
+  : num_threads_requested(0) {}
 
 // In the current implementation the thread_pool instance never gets deleted
 // thread_pool::~thread_pool() {
@@ -97,25 +79,46 @@ void thread_pool::execute_job(thread_scheduler* job) {
 }
 
 
-// This function should be called in the child process after the fork only.
-void thread_pool::cleanup_after_fork() {
-  xassert(this == _instance);
-  // Replace the current thread pool instance with a new one, ensuring that all
-  // schedulers and workers have new mutexes/condition variables
-  _instance = new thread_pool;
-  _instance->resize(num_threads_requested);
-
-  // Abandon the current instance (`this`) without deleting, since it is owned
-  // by the parent process anyways.
-}
-
-
 bool thread_pool::in_master_thread() const noexcept {
   return get_thread_num() == size_t(-1);
 }
 
 bool thread_pool::in_parallel_region() const noexcept {
   return controller.is_running();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// thread_pool static instance
+//------------------------------------------------------------------------------
+
+// Singleton instance of the thread_pool, returned by
+// `thread_pool::get_instance()`.
+static thread_pool* _instance = nullptr;
+
+void _child_cleanup_after_fork() {
+  if (!_instance) return;
+  size_t n = _instance->size();
+  _instance = new thread_pool;
+  _instance->resize(n);
+}
+
+thread_pool* thread_pool::get_instance() {
+  if (!_instance) {
+    // Replace the current thread pool instance with a new one, ensuring that all
+    // schedulers and workers have new mutexes/condition variables.
+    // The previous value of `_instance` is abandoned without deleting since that
+    // memory is owned by the parent process.
+    _instance = new thread_pool;
+    pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
+  }
+  return _instance;
+}
+
+thread_pool* thread_pool::get_instance_unchecked() noexcept {
+  return _instance;
 }
 
 

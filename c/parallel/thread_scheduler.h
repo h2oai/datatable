@@ -46,6 +46,8 @@ class thread_scheduler {
     // blocking. The default implementation does nothing (all scheduled tasks
     // continue being executed), which is allowed but sub-optimal.
     virtual void abort_execution();
+
+    void execute_in_current_thread();
 };
 
 

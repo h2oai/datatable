@@ -48,6 +48,7 @@ using std::size_t;
  *
  */
 class thread_pool {
+  friend void _child_cleanup_after_fork();
   private:
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long
@@ -65,16 +66,10 @@ class thread_pool {
     // See definition in thread_worker.h
     worker_controller controller;
 
-    // Singleton instance of the thread_pool, returned by `get_instance()`.
-    static thread_pool* _instance;
-
   public:
     static thread_pool* get_instance();
-    thread_pool();
-    thread_pool(const thread_pool&) = delete;
-    // Not moveable: workers hold pointers to this->controller.
-    thread_pool(thread_pool&&) = delete;
-    // ~thread_pool();
+    static thread_pool* get_instance_unchecked() noexcept;
+
 
     void execute_job(thread_scheduler*);
 
@@ -85,8 +80,12 @@ class thread_pool {
     bool in_parallel_region() const noexcept;
 
   private:
+    thread_pool();
+    thread_pool(const thread_pool&) = delete;
+    // Not moveable: workers hold pointers to this->controller.
+    thread_pool(thread_pool&&) = delete;
+
     void resize_impl();
-    void cleanup_after_fork();
 };
 
 
