@@ -19,12 +19,17 @@
 namespace dt {
 using std::size_t;
 
-class thread_task;
+// forward-declare
+class thread_worker;
 
 
-//------------------------------------------------------------------------------
-// Base thread_scheduler
-//------------------------------------------------------------------------------
+class thread_task {
+  public:
+    virtual ~thread_task();
+    virtual void execute(thread_worker*) = 0;
+};
+
+
 
 class thread_scheduler {
   public:
@@ -45,7 +50,6 @@ class thread_scheduler {
 
     void execute_in_current_thread();
 };
-
 
 
 

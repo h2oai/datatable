@@ -16,10 +16,31 @@
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
-#include "parallel/thread_task.h"
 #include "utils/assert.h"
 #include "utils/macros.h"          // cache_aligned
 namespace dt {
+
+
+
+//------------------------------------------------------------------------------
+// simple_task
+//------------------------------------------------------------------------------
+
+class simple_task : public thread_task {
+  private:
+    function<void()> f;
+  public:
+    simple_task(function<void()>);
+    void execute(thread_worker*) override;
+};
+
+
+simple_task::simple_task(function<void()> f_) : f(f_) {}
+
+void simple_task::execute(thread_worker*) {
+  f();
+}
+
 
 
 //------------------------------------------------------------------------------

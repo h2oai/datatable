@@ -15,9 +15,10 @@
 //------------------------------------------------------------------------------
 #include "parallel/api.h"               // this_thread_index
 #include "parallel/thread_scheduler.h"  // thread_scheduler
-#include "parallel/thread_task.h"       // thread_task
 namespace dt {
 
+
+thread_task::~thread_task() {}
 
 
 thread_scheduler::~thread_scheduler() {}
