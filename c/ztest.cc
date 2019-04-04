@@ -42,10 +42,12 @@ static void test_atomic(const PKArgs&) {
 
 
 static PKArgs arg_test_parallel_for_dynamic(
-  0, 0, 0, false, false, {}, "test_parallel_for_dynamic");
+  1, 0, 0, false, false, {"n"}, "test_parallel_for_dynamic");
 
-static void test_parallel_for_dynamic(const PKArgs&) {
-  dttest::test_parallel_for_dynamic();
+static void test_parallel_for_dynamic(const PKArgs& args) {
+  size_t n = args[0].to_size_t();
+  dttest::test_parallel_for_dynamic(n);
+  dttest::test_parallel_for_dynamic_nested(n);
 }
 
 

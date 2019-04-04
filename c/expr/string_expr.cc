@@ -21,9 +21,10 @@
 //------------------------------------------------------------------------------
 #include <regex>
 #include "expr/base_expr.h"
+#include "parallel/api.h"
 #include "utils/exceptions.h"
-
 namespace dt {
+
 
 static Error translate_exception(const std::regex_error& e) {
   auto ret = ValueError() << "Invalid regular expression: ";
@@ -123,20 +124,20 @@ colptr expr_string_match_re::_compute(Column* src) {
   auto trg = new BoolColumn(nrows);
   int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
 
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < nrows; ++i) {
-    size_t j = src_rowindex[i];
-    T start = src_offsets[j - 1] & ~GETNA<T>();
-    T end = src_offsets[j];
-    if (ISNA<T>(end)) {
-      trg_data[i] = GETNA<int8_t>();
-      continue;
-    }
-    bool res = std::regex_match(src_strdata + start,
-                                src_strdata + end,
-                                regex);
-    trg_data[i] = res;
-  }
+  dt::parallel_for_dynamic(nrows,
+    [&](size_t i) {
+      size_t j = src_rowindex[i];
+      T start = src_offsets[j - 1] & ~GETNA<T>();
+      T end = src_offsets[j];
+      if (ISNA<T>(end)) {
+        trg_data[i] = GETNA<int8_t>();
+        return;
+      }
+      bool res = std::regex_match(src_strdata + start,
+                                  src_strdata + end,
+                                  regex);
+      trg_data[i] = res;
+    });
   return colptr(trg);
 }
 

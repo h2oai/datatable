@@ -14,8 +14,12 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
+#include "parallel/thread_scheduler.h"
+#include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/function.h"
+#include "utils/macros.h"          // cache_aligned
 namespace dt {
 
 
@@ -51,6 +55,7 @@ class dynamic_scheduler : public thread_scheduler {
   public:
     dynamic_scheduler(size_t nthreads, size_t niters);
     void set_task(function<void(size_t)>);
+    void set_task(function<void(size_t)>, size_t i);
     thread_task* get_next_task(size_t thread_index) override;
     void abort_execution() override;
 };
@@ -65,6 +70,10 @@ dynamic_scheduler::dynamic_scheduler(size_t nthreads, size_t niters)
 void dynamic_scheduler::set_task(function<void(size_t)> f) {
   for (auto& task : tasks)
     task.v.fn = f;
+}
+
+void dynamic_scheduler::set_task(function<void(size_t)> f, size_t i) {
+  tasks[i].v.fn = f;
 }
 
 
@@ -91,13 +100,25 @@ void dynamic_scheduler::abort_execution() {
 //------------------------------------------------------------------------------
 
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
-  thread_pool* thpool = thread_pool::get_instance();
-  xassert(thpool->in_master_thread());
-  size_t nthreads = thpool->size();
+  size_t ith = dt::this_thread_index();
 
-  dynamic_scheduler sch(nthreads, nrows);
-  sch.set_task(fn);
-  thpool->execute_job(&sch);
+  // Running from the master thread
+  if (ith == size_t(-1)) {
+    thread_pool* thpool = thread_pool::get_instance_unchecked();
+    size_t nthreads = thpool->size();
+    thread_team tt(nthreads, thpool);
+    dynamic_scheduler sch(nthreads, nrows);
+    sch.set_task(fn);
+
+    thpool->execute_job(&sch);
+  }
+  // Running inside a parallel region
+  else {
+    thread_team* tt = thread_pool::get_team_unchecked();
+    auto sch = tt->shared_scheduler<dynamic_scheduler>(tt->size(), nrows);
+    sch->set_task(fn, ith);
+    sch->execute_in_current_thread();
+  }
 }
 
 

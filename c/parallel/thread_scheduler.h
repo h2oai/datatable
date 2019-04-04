@@ -15,20 +15,21 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_SCHEDULER_h
 #define dt_PARALLEL_THREAD_SCHEDULER_h
-#include <atomic>      // std::atomic
-#include <memory>      // std::unique_ptr
-#include <mutex>       // std::mutex
-#include <vector>      // std::vector
-#include "parallel/thread_task.h"  // thread_task
-#include "utils/macros.h"          // cache_aligned
+#include <cstddef>  // size_t
 namespace dt {
 using std::size_t;
 
+// forward-declare
+class thread_worker;
 
 
-//------------------------------------------------------------------------------
-// Base scheduler
-//------------------------------------------------------------------------------
+class thread_task {
+  public:
+    virtual ~thread_task();
+    virtual void execute(thread_worker*) = 0;
+};
+
+
 
 class thread_scheduler {
   public:
@@ -46,8 +47,9 @@ class thread_scheduler {
     // blocking. The default implementation does nothing (all scheduled tasks
     // continue being executed), which is allowed but sub-optimal.
     virtual void abort_execution();
-};
 
+    void execute_in_current_thread();
+};
 
 
 

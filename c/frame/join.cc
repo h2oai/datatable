@@ -19,20 +19,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <limits>
-#include <memory>
-#include <type_traits>
-#include <vector>
-#include "column.h"
-#include "datatable.h"
-#include "datatablemodule.h"
-#include "options.h"
-#include "py_rowindex.h"
+#include <limits>       // std::numeric_limits
+#include <memory>       // std::unique_ptr
+#include <type_traits>  // std::is_integral
+#include <vector>       // std::vector
+#include "parallel/api.h"
 #include "python/args.h"
 #include "python/obj.h"
 #include "python/tuple.h"
-#include "types.h"
 #include "utils/assert.h"
+#include "column.h"
+#include "datatable.h"
+#include "datatablemodule.h"
+#include "types.h"
 
 class Cmp;
 using indvec = std::vector<size_t>;
@@ -411,31 +410,25 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   if (xdt->nrows) {
     int32_t* result_indices = arr_result_indices.data();
     size_t nchunks = std::min(std::max(xdt->nrows / 200, size_t(1)),
-                              static_cast<size_t>(config::nthreads));
+                              dt::num_threads_in_pool());
     xassert(nchunks);
 
-    OmpExceptionManager oem;
-    #pragma omp parallel num_threads(nchunks)
-    {
-      try {
+    dt::parallel_region(nchunks,
+      [&] {
         // Creating the comparator may fail if xcols and jcols are incompatible
         MultiCmp comparator(xcols, jcols, xdt, jdt);
 
-        #pragma omp for
-        for (size_t i = 0; i < xdt->nrows; ++i) {
-          int r = comparator.set_xrow(i);
-          if (r == 0) {
-            size_t j = binsearch(&comparator, jdt->nrows);
-            result_indices[i] = static_cast<int32_t>(j);
-          } else {
-            result_indices[i] = -1;
-          }
-        }
-      } catch (...) {
-        oem.capture_exception();
-      }
-    }
-    oem.rethrow_exception_if_any();
+        dt::parallel_for_static(xdt->nrows,
+          [&](size_t i) {
+            int r = comparator.set_xrow(i);
+            if (r == 0) {
+              size_t j = binsearch(&comparator, jdt->nrows);
+              result_indices[i] = static_cast<int32_t>(j);
+            } else {
+              result_indices[i] = -1;
+            }
+          });
+      });
   }
 
   return RowIndex(std::move(arr_result_indices));
