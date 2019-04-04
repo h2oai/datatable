@@ -57,16 +57,13 @@ class thread_pool {
     // (these pointers are stored within each thread).
     std::vector<thread_worker*> workers;
 
-    // Number of threads requested by the user; however, we will only
-    // instantiate the threads when `execute_job()` is first called.
+    // Number of threads requested by the user; however, we will only create
+    // the threads when `execute_job()` is first called.
     size_t num_threads_requested;
 
-    // Scheduler used to manage sleep/awake cycle of the threads in the pool.
+    // Scheduler used to manage sleep/awake cycle of the workers in the pool.
+    // See definition in thread_worker.h
     worker_controller controller;
-
-    // Thread id of the main (python) thread, mostly used to verify that
-    // certain constructs are called from the master thread only.
-    std::thread::id master_thread_id;
 
     // Singleton instance of the thread_pool, returned by `get_instance()`.
     static thread_pool* _instance;

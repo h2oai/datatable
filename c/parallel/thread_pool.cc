@@ -37,8 +37,7 @@ thread_pool* thread_pool::get_instance() {
 
 
 thread_pool::thread_pool()
-  : num_threads_requested(0),
-    master_thread_id(std::this_thread::get_id())
+  : num_threads_requested(0)
 {
   // pthread_atfork callback needs to be established within the main process
   // only, which is indicated by `_instance` being nullptr during construction.
@@ -112,7 +111,7 @@ void thread_pool::cleanup_after_fork() {
 
 
 bool thread_pool::in_master_thread() const noexcept {
-  return std::this_thread::get_id() == master_thread_id;
+  return get_thread_num() == size_t(-1);
 }
 
 bool thread_pool::in_parallel_region() const noexcept {
