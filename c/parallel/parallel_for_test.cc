@@ -23,7 +23,6 @@ namespace dttest {
 
 void test_parallel_for_dynamic() {
   constexpr size_t n = 10000;
-  size_t nth = dt::get_num_threads();
   std::vector<size_t> data(n, 0);
 
   dt::parallel_for_dynamic(n,
