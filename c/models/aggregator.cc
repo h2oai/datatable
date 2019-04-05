@@ -739,7 +739,7 @@ void Aggregator<T>::group_nd() {
   if (do_projection) pmatrix = generate_pmatrix(ncols);
 
   // Figuring out how many threads to use.
-  size_t nth = std::min(get_nthreads(nrows), dt::get_num_threads());
+  size_t nth = std::min(get_nthreads(nrows), dt::num_threads_in_pool());
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   T delta = epsilon;
@@ -750,7 +750,7 @@ void Aggregator<T>::group_nd() {
 
   dt::parallel_region(nth,
     [&] {
-      size_t ith = dt::get_thread_num();
+      size_t ith = dt::this_thread_index();
       size_t nrows_per_thread = nrows / nth;
       size_t i0 = ith * nrows_per_thread;
       size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
