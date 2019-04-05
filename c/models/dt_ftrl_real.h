@@ -57,7 +57,7 @@ class FtrlReal : public dt::Ftrl {
     T lambda1;
     T lambda2;
     uint64_t nbins;
-    unsigned char float_nbits;
+    unsigned char mantissa_nbits;
     size_t: 56;
     size_t nepochs;
     std::vector<sizetvec> interactions;
@@ -151,7 +151,7 @@ class FtrlReal : public dt::Ftrl {
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
-    unsigned char get_float_nbits() override;
+    unsigned char get_mantissa_nbits() override;
     size_t get_nepochs() override;
     const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
@@ -168,7 +168,7 @@ class FtrlReal : public dt::Ftrl {
     void set_lambda1(double) override;
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
-    void set_float_nbits(unsigned char) override;
+    void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<sizetvec>) override;
     void set_double_precision(bool) override;

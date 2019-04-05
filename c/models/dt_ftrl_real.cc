@@ -39,7 +39,7 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   lambda1(static_cast<T>(params_in.lambda1)),
   lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
-  float_nbits(params_in.float_nbits),
+  mantissa_nbits(params_in.mantissa_nbits),
   nepochs(params_in.nepochs),
   nfeatures(0),
   dt_X(nullptr),
@@ -784,8 +784,8 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
-    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, float_nbits));
-    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, float_nbits));
+    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, mantissa_nbits));
+    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, mantissa_nbits));
     case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
     case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
     default:             throw  TypeError() << "Cannot hash a column of type "
@@ -933,8 +933,8 @@ uint64_t FtrlReal<T>::get_nbins() {
 
 
 template <typename T>
-unsigned char FtrlReal<T>::get_float_nbits() {
-  return params.float_nbits;
+unsigned char FtrlReal<T>::get_mantissa_nbits() {
+  return params.mantissa_nbits;
 }
 
 
@@ -1031,11 +1031,11 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 
 
 template <typename T>
-void FtrlReal<T>::set_float_nbits(unsigned char float_nbits_in) {
-  xassert(float_nbits_in > 0);
-  xassert(float_nbits_in < sizeof(double) * 8 + 1);
-  params.float_nbits = float_nbits_in;
-  float_nbits = float_nbits_in;
+void FtrlReal<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
+  xassert(mantissa_nbits_in > 0);
+  xassert(mantissa_nbits_in < sizeof(double) * 8 + 1);
+  params.mantissa_nbits = mantissa_nbits_in;
+  mantissa_nbits = mantissa_nbits_in;
 }
 
 

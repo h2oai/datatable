@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/column_hasher.h"
+#include <float.h>
 
 
 /*
@@ -68,8 +69,8 @@ uint64_t HasherInt<T>::hash(size_t row) const {
 * TODO: also support some binning here.
 */
 template <typename T>
-HasherFloat<T>::HasherFloat(const Column* col, unsigned char float_nbits) :
-Hasher(col), shift_nbits(sizeof(double) * 8 - float_nbits) {
+HasherFloat<T>::HasherFloat(const Column* col, unsigned char mantissa_nbits) :
+Hasher(col), shift_nbits(DBL_MANT_DIG - mantissa_nbits) {
   values = static_cast<const T*>(col->data());
 }
 
@@ -78,8 +79,8 @@ template <typename T>
 uint64_t HasherFloat<T>::hash(size_t row) const {
   size_t i = ri[row];
   T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
-  double x = static_cast<double>(value);
   uint64_t h;
+  double x = static_cast<double>(value);
   std::memcpy(&h, &x, sizeof(double));
   return h >> shift_nbits;
 }

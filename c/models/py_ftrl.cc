@@ -24,6 +24,7 @@
 #include "python/string.h"
 #include "str/py_str.h"
 #include <vector>
+#include <float.h>
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
@@ -32,7 +33,7 @@ namespace py {
 
 PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
                                  {"params", "alpha", "beta", "lambda1",
-                                 "lambda2", "nbins", "float_nbits", "nepochs",
+                                 "lambda2", "nbins", "mantissa_nbits", "nepochs",
                                  "double_precision", "negative_class"},
                                  "__init__", nullptr);
 
@@ -51,7 +52,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_lambda1          = args[3];
   const Arg& arg_lambda2          = args[4];
   const Arg& arg_nbins            = args[5];
-  const Arg& arg_float_nbits      = args[6];
+  const Arg& arg_mantissa_nbits   = args[6];
   const Arg& arg_nepochs          = args[7];
   const Arg& arg_double_precision = args[8];
   const Arg& arg_negative_class   = args[9];
@@ -62,19 +63,19 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_lambda1          = !arg_lambda1.is_none_or_undefined();
   bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
   bool defined_nbins            = !arg_nbins.is_none_or_undefined();
-  bool defined_float_nbits      = !arg_float_nbits.is_none_or_undefined();
+  bool defined_mantissa_nbits      = !arg_mantissa_nbits.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
 
   if (defined_params) {
     if (defined_alpha || defined_beta || defined_lambda1 ||
-        defined_lambda2 || defined_nbins || defined_float_nbits ||
+        defined_lambda2 || defined_nbins || defined_mantissa_nbits ||
         defined_nepochs || defined_double_precision || defined_negative_class) {
 
       throw TypeError() << "You can either pass all the parameters with "
             << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `float_nbits`, `nepochs`, "
+            << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
             << "`double_precision` or `negative_class` to Ftrl constructor, "
             << "but not both at the same time";
     }
@@ -85,7 +86,7 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_lambda1 = py_params.get_attr("lambda1");
     py::oobj py_lambda2 = py_params.get_attr("lambda2");
     py::oobj py_nbins = py_params.get_attr("nbins");
-    py::oobj py_float_nbits = py_params.get_attr("float_nbits");
+    py::oobj py_mantissa_nbits = py_params.get_attr("mantissa_nbits");
     py::oobj py_nepochs = py_params.get_attr("nepochs");
     py::oobj py_double_precision = py_params.get_attr("double_precision");
     py::oobj py_negative_class = py_params.get_attr("negative_class");
@@ -95,7 +96,7 @@ void Ftrl::m__init__(PKArgs& args) {
     ftrl_params.lambda1 = py_lambda1.to_double();
     ftrl_params.lambda2 = py_lambda2.to_double();
     ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
-    size_t float_nbits = py_float_nbits.to_size_t();
+    size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
     ftrl_params.nepochs = py_nepochs.to_size_t();
     ftrl_params.double_precision = py_double_precision.to_bool_strict();
     ftrl_params.negative_class = py_negative_class.to_bool_strict();
@@ -105,10 +106,8 @@ void Ftrl::m__init__(PKArgs& args) {
     py::Validator::check_not_negative<double>(ftrl_params.lambda1, py_lambda1);
     py::Validator::check_not_negative<double>(ftrl_params.lambda2, py_lambda2);
     py::Validator::check_not_negative<double>(ftrl_params.nbins, py_nbins);
-
-    py::Validator::check_positive<uint64_t>(float_nbits, py_negative_class);
-    py::Validator::check_less_than<uint64_t>(float_nbits, sizeof(double) * 8 + 1, py_negative_class);
-    ftrl_params.float_nbits = static_cast<unsigned char>(float_nbits);
+    py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, py_negative_class);
+    ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
 
   } else {
 
@@ -137,11 +136,10 @@ void Ftrl::m__init__(PKArgs& args) {
       py::Validator::check_positive<uint64_t>(ftrl_params.nbins, arg_nbins);
     }
 
-    if (defined_float_nbits) {
-      size_t float_nbits = arg_float_nbits.to_size_t();
-      py::Validator::check_positive<uint64_t>(float_nbits, arg_float_nbits);
-      py::Validator::check_less_than<uint64_t>(float_nbits, sizeof(double) * 8 + 1, arg_float_nbits);
-      ftrl_params.float_nbits = static_cast<unsigned char>(float_nbits);
+    if (defined_mantissa_nbits) {
+      size_t mantissa_nbits = arg_mantissa_nbits.to_size_t();
+      py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, arg_mantissa_nbits);
+      ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
     }
 
     if (defined_nepochs) {
@@ -766,28 +764,27 @@ void Ftrl::set_nbins(robj py_nbins) {
 
 
 /*
-*  .float_nbits
+*  .mantissa_nbits
 */
-static GSArgs args_float_nbits(
-  "float_nbits",
+static GSArgs args_mantissa_nbits(
+  "mantissa_nbits",
   "Number of bits to be used for hashing float values");
 
 
-oobj Ftrl::get_float_nbits() const {
-  return py::oint(static_cast<size_t>(dtft->get_float_nbits()));
+oobj Ftrl::get_mantissa_nbits() const {
+  return py::oint(static_cast<size_t>(dtft->get_mantissa_nbits()));
 }
 
 
-void Ftrl::set_float_nbits(robj py_float_nbits) {
+void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
   if (dtft->is_trained()) {
-    throw ValueError() << "Cannot change `float_nbits` for a trained model, "
+    throw ValueError() << "Cannot change `mantissa_nbits` for a trained model, "
                        << "reset this model or create a new one";
   }
 
-  size_t float_nbits = py_float_nbits.to_size_t();
-  py::Validator::check_positive(float_nbits, py_float_nbits);
-  py::Validator::check_less_than<uint64_t>(float_nbits, 65, py_float_nbits);
-  dtft->set_float_nbits(static_cast<unsigned char>(float_nbits));
+  size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
+  py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, py_mantissa_nbits);
+  dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
 }
 
 
@@ -911,7 +908,7 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda1.name,          args_lambda1.doc},
      {args_lambda2.name,          args_lambda2.doc},
      {args_nbins.name,            args_nbins.doc},
-     {args_float_nbits.name,      args_float_nbits.doc},
+     {args_mantissa_nbits.name,      args_mantissa_nbits.doc},
      {args_nepochs.name,          args_nepochs.doc},
      {args_double_precision.name, args_double_precision.doc},
      {args_negative_class.name,   args_negative_class.doc}}
@@ -923,7 +920,7 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(2, get_lambda1());
   params.set(3, get_lambda2());
   params.set(4, get_nbins());
-  params.set(5, get_float_nbits());
+  params.set(5, get_mantissa_nbits());
   params.set(6, get_nepochs());
   params.set(7, get_double_precision());
   params.set(8, get_negative_class());
@@ -937,7 +934,7 @@ oobj Ftrl::get_params_tuple() const {
                  get_lambda1(),
                  get_lambda2(),
                  get_nbins(),
-                 get_float_nbits(),
+                 get_mantissa_nbits(),
                  get_nepochs(),
                  get_double_precision(),
                  get_negative_class()};
@@ -956,7 +953,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_lambda1(params_tuple[2]);
   set_lambda2(params_tuple[3]);
   set_nbins(params_tuple[4]);
-  set_float_nbits(params_tuple[5]);
+  set_mantissa_nbits(params_tuple[5]);
   set_nepochs(params_tuple[6]);
   set_double_precision(params_tuple[7]);
   set_negative_class(params_tuple[8]);
@@ -1049,9 +1046,8 @@ lambda2 : float
     L2 regularization parameter, defaults to `0`.
 nbins : int
     Number of bins to be used for the hashing trick, defaults to `10**6`.
-float_nbits : int
-    Number of bits to be taken into account when hashing float values,
-    defaults to maximum of `sizeof(double) * 8`, that is `64` on most of the systems.
+mantissa_nbits : int
+    Number of bits from mantissa to be used for hashing, defaults to `10`.
 nepochs : int
     Number of training epochs, defaults to `1`.
 double_precision : bool
@@ -1074,7 +1070,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_lambda1, &Ftrl::set_lambda1, args_lambda1);
   ADD_GETSET(gs, &Ftrl::get_lambda2, &Ftrl::set_lambda2, args_lambda2);
   ADD_GETSET(gs, &Ftrl::get_nbins, &Ftrl::set_nbins, args_nbins);
-  ADD_GETSET(gs, &Ftrl::get_float_nbits, &Ftrl::set_float_nbits, args_float_nbits);
+  ADD_GETSET(gs, &Ftrl::get_mantissa_nbits, &Ftrl::set_mantissa_nbits, args_mantissa_nbits);
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_GETTER(gs, &Ftrl::get_negative_class, args_negative_class);
