@@ -79,6 +79,7 @@ enum class FtrlModelType : size_t {
 */
 class Ftrl {
   public:
+    static constexpr unsigned char DBL_MANT_NBITS = 52;
     virtual ~Ftrl();
     // Depending on the target column stype, this method should do
     // - binomial logistic regression (BOOL);

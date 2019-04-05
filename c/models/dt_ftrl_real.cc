@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <float.h>
+#include <cfloat>
 #include "models/dt_ftrl_real.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
@@ -28,9 +28,9 @@
 namespace dt {
 
 
-/*
-*  Constructor. Set up parameters and initialize weights.
-*/
+/**
+ * Constructor. Set up parameters and initialize weights.
+ */
 template <typename T>
 FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   model_type(FtrlModelType::NONE),
@@ -778,6 +778,7 @@ std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
 */
 template <typename T>
 hasherptr FtrlReal<T>::create_hasher(const Column* col) {
+  unsigned char shift_nbits = dt::Ftrl::DBL_MANT_NBITS - mantissa_nbits;
   SType stype = col->stype();
   switch (stype) {
     case SType::BOOL:    return hasherptr(new HasherBool(col));
@@ -785,8 +786,8 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
-    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, mantissa_nbits));
-    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, mantissa_nbits));
+    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
+    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, shift_nbits));
     case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
     case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
     default:             throw  TypeError() << "Cannot hash a column of type "

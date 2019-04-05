@@ -19,12 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <vector>
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
-#include <vector>
-#include <float.h>
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
@@ -74,10 +73,10 @@ void Ftrl::m__init__(PKArgs& args) {
         defined_nepochs || defined_double_precision || defined_negative_class) {
 
       throw TypeError() << "You can either pass all the parameters with "
-            << "`params` or any of the individual parameters with `alpha`, "
-            << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
-            << "`double_precision` or `negative_class` to Ftrl constructor, "
-            << "but not both at the same time";
+        << "`params` or any of the individual parameters with `alpha`, "
+        << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
+        << "`double_precision` or `negative_class` to Ftrl constructor, "
+        << "but not both at the same time";
     }
 
     py::otuple py_params = arg_params.to_otuple();
@@ -106,7 +105,9 @@ void Ftrl::m__init__(PKArgs& args) {
     py::Validator::check_not_negative<double>(ftrl_params.lambda1, py_lambda1);
     py::Validator::check_not_negative<double>(ftrl_params.lambda2, py_lambda2);
     py::Validator::check_not_negative<double>(ftrl_params.nbins, py_nbins);
-    py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, py_negative_class);
+    py::Validator::check_less_than<uint64_t>(mantissa_nbits,
+                                             dt::Ftrl::DBL_MANT_NBITS + 1,
+                                             py_negative_class);
     ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
 
   } else {
@@ -138,7 +139,9 @@ void Ftrl::m__init__(PKArgs& args) {
 
     if (defined_mantissa_nbits) {
       size_t mantissa_nbits = arg_mantissa_nbits.to_size_t();
-      py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, arg_mantissa_nbits);
+      py::Validator::check_less_than<uint64_t>(mantissa_nbits,
+                                               dt::Ftrl::DBL_MANT_NBITS + 1,
+                                               arg_mantissa_nbits);
       ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
     }
 
@@ -783,7 +786,9 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
   }
 
   size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
-  py::Validator::check_less_than<uint64_t>(mantissa_nbits, DBL_MANT_DIG + 1, py_mantissa_nbits);
+  py::Validator::check_less_than<uint64_t>(mantissa_nbits,
+                                           dt::Ftrl::DBL_MANT_NBITS + 1,
+                                           py_mantissa_nbits);
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
 }
 
