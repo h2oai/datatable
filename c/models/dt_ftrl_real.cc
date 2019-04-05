@@ -514,7 +514,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
 
 
 /**
- * Obtain pointers to column rowindexes and data.
+ *  Obtain pointers to column rowindexes and data.
  */
 template <typename T>
 template <typename U /* column data type */>
@@ -532,7 +532,7 @@ void FtrlReal<T>::fill_ri_data(const DataTable* dt,
 
 
 /**
- * Normalize rows in a datatable, so that their values sum up to one.
+ *  Normalize rows in a datatable, so that their values sum up to one.
  */
 template <typename T>
 void FtrlReal<T>::normalize_rows(dtptr& dt) {
@@ -563,8 +563,8 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
 
 
 /**
- * Crete model datatable of shape (nbins, 2 * nlabels) to store z and n
- * coefficients.
+ *  Create model datatable of shape (nbins, 2 * nlabels) to store z and n
+ *  coefficients.
  */
 template <typename T>
 void FtrlReal<T>::create_model() {
@@ -581,10 +581,10 @@ void FtrlReal<T>::create_model() {
 
 
 /**
- * This method is invoked in the case when we get new labels
- * for multinomial classification and need to add them to the model.
- * In such a case, we make a copy of the "negative" z and n
- * coefficients adding them to the existing `dt_model` columns.
+ *  This method is invoked in the case when we get new labels
+ *  for multinomial classification and need to add them to the model.
+ *  In such a case, we make a copy of the "negative" z and n
+ *  coefficients adding them to the existing `dt_model` columns.
  */
 template <typename T>
 void FtrlReal<T>::adjust_model() {
@@ -623,7 +623,7 @@ void FtrlReal<T>::adjust_model() {
 
 
 /**
- * Create datatable for predictions.
+ *  Create datatable for predictions.
  */
 template <typename T>
 dtptr FtrlReal<T>::create_p(size_t nrows) {
@@ -640,7 +640,7 @@ dtptr FtrlReal<T>::create_p(size_t nrows) {
 
 
 /**
- * Reset the model.
+ *  Reset the model.
  */
 template <typename T>
 void FtrlReal<T>::reset() {
@@ -654,7 +654,7 @@ void FtrlReal<T>::reset() {
 
 
 /**
- * Initialize model coefficients with zeros.
+ *  Initialize model coefficients with zeros.
  */
 template <typename T>
 void FtrlReal<T>::init_model() {
@@ -667,7 +667,7 @@ void FtrlReal<T>::init_model() {
 
 
 /**
- * Obtain pointers to the model column data.
+ *  Obtain pointers to the model column data.
  */
 template <typename T>
 void FtrlReal<T>::init_weights() {
