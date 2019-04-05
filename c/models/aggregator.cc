@@ -415,14 +415,18 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
     d_counts[i_sampled] = offsets[i+1] - offsets[i];
   }
 
-  // Replacing group ids with the actual `exemplar_id`s, because
-  // - for 1D and 2D binnings some bins may be empty;
-  // - for ND we could do id to re-mapping.
-  dt::parallel_for_static(gb_members.ngroups() - was_sampled,
+  // Replacing aggregated exemplar_id's with group id's based on groupby,
+  // because:
+  // - for 1D and 2D some bins may be empty, and we want to exlude them;
+  // - for ND we first generate exemplar_id's based on the exemplar row ids
+  //   from the original dataset, so those should be replaced with the
+  //   actual exemplar_id's from the exemplar column.
+  dt::parallel_for_dynamic(gb_members.ngroups() - was_sampled,
     [&](size_t i_sampled) {
-      for (size_t j = 0; j < static_cast<size_t>(d_counts[i_sampled]); ++j) {
-        size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]) + j;
-        d_members[ri_members[member_shift]] = static_cast<int32_t>(i_sampled);
+      size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]);
+      size_t jmax = static_cast<size_t>(d_counts[i_sampled]);
+      for (size_t j = 0; j < jmax; ++j) {
+        d_members[ri_members[member_shift + j]] = static_cast<int32_t>(i_sampled);
       }
     });
   dt_members->columns[0]->get_stats()->reset();
@@ -555,8 +559,7 @@ void Aggregator<T>::group_1d_categorical() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
-  // TODO: use dynamic instead?
-  dt::parallel_for_static(grpby0.ngroups(),
+  dt::parallel_for_dynamic(grpby0.ngroups(),
     [&](size_t i) {
       size_t off_i = static_cast<size_t>(offsets0[i]);
       size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
@@ -617,8 +620,7 @@ void Aggregator<T>::group_2d_categorical_str() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets = grpby.offsets_r();
 
-  // TODO: use dynamic instead?
-  dt::parallel_for_static(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.ngroups(),
     [&](size_t i) {
       auto group_id = static_cast<int32_t>(i);
       size_t off_i = static_cast<size_t>(offsets[i]);
@@ -673,8 +675,7 @@ void Aggregator<T>::group_2d_mixed_str() {
   T normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), nx_bins);
 
-  // TODO: use dynamic instead?
-  dt::parallel_for_static(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.ngroups(),
     [&](size_t i) {
       int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
       size_t off_i = static_cast<size_t>(offsets_cat[i]);
