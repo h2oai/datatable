@@ -1034,7 +1034,7 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 template <typename T>
 void FtrlReal<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
   xassert(mantissa_nbits_in >= 0);
-  xassert(mantissa_nbits_in <= DBL_MANT_DIG);
+  xassert(mantissa_nbits_in <= dt::Ftrl::DBL_MANT_NBITS);
   params.mantissa_nbits = mantissa_nbits_in;
   mantissa_nbits = mantissa_nbits_in;
 }
