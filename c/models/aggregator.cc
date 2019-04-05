@@ -20,9 +20,16 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
+#include "frame/py_frame.h"
 #include "models/aggregator.h"
-
+#include "models/utils.h"
+#include "parallel/api.h"       // dt::parallel_for_static
+#include "utils/c+++.h"
+#include "datatablemodule.h"
+#include "options.h"
 namespace py {
+
+
 
 static PKArgs args_aggregate(
   1, 0, 10, false, false,
@@ -408,17 +415,20 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
     d_counts[i_sampled] = offsets[i+1] - offsets[i];
   }
 
-  // Replacing group ids with the actual `exemplar_id`s, because
-  // - for 1D and 2D binnings some bins may be empty;
-  // - for ND we could do id to re-mapping.
-  #pragma omp parallel for schedule(static)
-  for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
-    size_t i_sampled = i - was_sampled;
-    for (size_t j = 0; j < static_cast<size_t>(d_counts[i_sampled]); ++j) {
-      size_t member_shift = static_cast<size_t>(offsets[i]) + j;
-      d_members[ri_members[member_shift]] = static_cast<int32_t>(i_sampled);
-    }
-  }
+  // Replacing aggregated exemplar_id's with group id's based on groupby,
+  // because:
+  // - for 1D and 2D some bins may be empty, and we want to exlude them;
+  // - for ND we first generate exemplar_id's based on the exemplar row ids
+  //   from the original dataset, so those should be replaced with the
+  //   actual exemplar_id's from the exemplar column.
+  dt::parallel_for_dynamic(gb_members.ngroups() - was_sampled,
+    [&](size_t i_sampled) {
+      size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]);
+      size_t jmax = static_cast<size_t>(d_counts[i_sampled]);
+      for (size_t j = 0; j < jmax; ++j) {
+        d_members[ri_members[member_shift + j]] = static_cast<int32_t>(i_sampled);
+      }
+    });
   dt_members->columns[0]->get_stats()->reset();
 
   // Applying exemplars row index and binding exemplars with the counts.
@@ -494,17 +504,17 @@ template <typename T>
 void Aggregator<T>::group_1d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   T norm_factor, norm_shift;
-  set_norm_coeffs(norm_factor, norm_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), n_bins);
+  set_norm_coeffs(norm_factor, norm_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), n_bins);
 
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < (*contconvs[0]).get_nrows(); ++i) {
-    T value = (*contconvs[0])[i];
-    if (ISNA<T>(value)) {
-      d_members[i] = GETNA<int32_t>();
-    } else {
-      d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
-    }
-  }
+  dt::parallel_for_static(contconvs[0]->get_nrows(),
+    [&](size_t i) {
+      T value = (*contconvs[0])[i];
+      if (ISNA<T>(value)) {
+        d_members[i] = GETNA<int32_t>();
+      } else {
+        d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
+      }
+    });
 }
 
 
@@ -517,22 +527,22 @@ void Aggregator<T>::group_2d_continuous() {
 
   T normx_factor, normx_shift;
   T normy_factor, normy_shift;
-  set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), nx_bins);
-  set_norm_coeffs(normy_factor, normy_shift, (*contconvs[1]).get_min(), (*contconvs[1]).get_max(), ny_bins);
+  set_norm_coeffs(normx_factor, normx_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), nx_bins);
+  set_norm_coeffs(normy_factor, normy_shift, contconvs[1]->get_min(), contconvs[1]->get_max(), ny_bins);
 
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < (*contconvs[0]).get_nrows(); ++i) {
-    T value0 = (*contconvs[0])[i];
-    T value1 = (*contconvs[1])[i];
-    int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
-    if (na_case) {
-      d_members[i] = -na_case;
-    } else {
-      d_members[i] = static_cast<int32_t>(normy_factor * value1 + normy_shift) *
-                     static_cast<int32_t>(nx_bins) +
-                     static_cast<int32_t>(normx_factor * value0 + normx_shift);
-    }
-  }
+  dt::parallel_for_static(contconvs[0]->get_nrows(),
+    [&](size_t i) {
+      T value0 = (*contconvs[0])[i];
+      T value1 = (*contconvs[1])[i];
+      int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
+      if (na_case) {
+        d_members[i] = -na_case;
+      } else {
+        d_members[i] = static_cast<int32_t>(normy_factor * value1 + normy_shift) *
+                       static_cast<int32_t>(nx_bins) +
+                       static_cast<int32_t>(normx_factor * value0 + normx_shift);
+      }
+    });
 }
 
 
@@ -549,14 +559,14 @@ void Aggregator<T>::group_1d_categorical() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
-    size_t off_i = static_cast<size_t>(offsets0[i]);
-    size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
-    for (size_t j = off_i; j < off_i1; ++j) {
-      d_members[ri0[j]] = static_cast<int32_t>(i);
-    }
-  }
+  dt::parallel_for_dynamic(grpby0.ngroups(),
+    [&](size_t i) {
+      size_t off_i = static_cast<size_t>(offsets0[i]);
+      size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        d_members[ri0[j]] = static_cast<int32_t>(i);
+      }
+    });
 }
 
 
@@ -610,21 +620,21 @@ void Aggregator<T>::group_2d_categorical_str() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
   const int32_t* offsets = grpby.offsets_r();
 
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < grpby.ngroups(); ++i) {
-    auto group_id = static_cast<int32_t>(i);
-    size_t off_i = static_cast<size_t>(offsets[i]);
-    size_t off_i1 = static_cast<size_t>(offsets[i+1]);
-    for (size_t j = off_i; j < off_i1; ++j) {
-      int32_t gi = static_cast<int32_t>(ri[j]);
-      int32_t na_case = ISNA<U0>(d_c0[gi]) + 2 * ISNA<U1>(d_c1[gi]);
-      if (na_case) {
-        d_members[gi] = -na_case;
-      } else {
-        d_members[gi] = group_id;
+  dt::parallel_for_dynamic(grpby.ngroups(),
+    [&](size_t i) {
+      auto group_id = static_cast<int32_t>(i);
+      size_t off_i = static_cast<size_t>(offsets[i]);
+      size_t off_i1 = static_cast<size_t>(offsets[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        int32_t gi = static_cast<int32_t>(ri[j]);
+        int32_t na_case = ISNA<U0>(d_c0[gi]) + 2 * ISNA<U1>(d_c1[gi]);
+        if (na_case) {
+          d_members[gi] = -na_case;
+        } else {
+          d_members[gi] = group_id;
+        }
       }
-    }
-  }
+    });
 }
 
 
@@ -665,22 +675,22 @@ void Aggregator<T>::group_2d_mixed_str() {
   T normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, (*contconvs[0]).get_min(), (*contconvs[0]).get_max(), nx_bins);
 
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < grpby.ngroups(); ++i) {
-    int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
-    size_t off_i = static_cast<size_t>(offsets_cat[i]);
-    size_t off_i1 = static_cast<size_t>(offsets_cat[i+1]);
-    for (size_t j = off_i; j < off_i1; ++j) {
-      size_t gi = ri_cat[j];
-      int32_t na_case = ISNA<T>((*contconvs[0])[gi]) + 2 * ISNA<U0>(d_cat[gi]);
-      if (na_case) {
-        d_members[gi] = -na_case;
-      } else {
-        d_members[gi] = group_cat_id +
-                        static_cast<int32_t>(normx_factor * (*contconvs[0])[gi] + normx_shift);
+  dt::parallel_for_dynamic(grpby.ngroups(),
+    [&](size_t i) {
+      int32_t group_cat_id = static_cast<int32_t>(nx_bins * i);
+      size_t off_i = static_cast<size_t>(offsets_cat[i]);
+      size_t off_i1 = static_cast<size_t>(offsets_cat[i+1]);
+      for (size_t j = off_i; j < off_i1; ++j) {
+        size_t gi = ri_cat[j];
+        int32_t na_case = ISNA<T>((*contconvs[0])[gi]) + 2 * ISNA<U0>(d_cat[gi]);
+        if (na_case) {
+          d_members[gi] = -na_case;
+        } else {
+          d_members[gi] = group_cat_id +
+                          static_cast<int32_t>(normx_factor * (*contconvs[0])[gi] + normx_shift);
+        }
       }
-    }
-  }
+    });
 }
 
 
@@ -712,7 +722,6 @@ void Aggregator<T>::group_2d_mixed_str() {
 */
 template <typename T>
 void Aggregator<T>::group_nd() {
-  OmpExceptionManager oem;
   dt::shared_bmutex shmutex;
   size_t ncols = contconvs.size();
   size_t nrows = (*contconvs[0]).get_nrows();
@@ -730,7 +739,7 @@ void Aggregator<T>::group_nd() {
   if (do_projection) pmatrix = generate_pmatrix(ncols);
 
   // Figuring out how many threads to use.
-  size_t nth0 = get_nthreads(nrows);
+  size_t nth = std::min(get_nthreads(nrows), dt::num_threads_in_pool());
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   T delta = epsilon;
@@ -739,23 +748,21 @@ void Aggregator<T>::group_nd() {
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
 
-  #pragma omp parallel num_threads(nth0)
-  {
-    size_t ith = static_cast<size_t>(omp_get_thread_num());
-    size_t nth = static_cast<size_t>(omp_get_num_threads());
-    size_t nrows_per_thread = nrows / nth;
-    size_t i0 = ith * nrows_per_thread;
-    size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
-    size_t rstep = (PBSTEPS > nrows_per_thread)? 1 : nrows_per_thread / PBSTEPS;
+  dt::parallel_region(nth,
+    [&] {
+      size_t ith = dt::this_thread_index();
+      size_t nrows_per_thread = nrows / nth;
+      size_t i0 = ith * nrows_per_thread;
+      size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
+      size_t rstep = (PBSTEPS > nrows_per_thread)? 1 : nrows_per_thread / PBSTEPS;
 
-    T distance;
-    auto member = tptr<T>(new T[ndims]);
-    size_t ecounter_local;
+      T distance;
+      auto member = tptr<T>(new T[ndims]);
+      size_t ecounter_local;
 
-    // Each thread gets its own seed
-    std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
+      // Each thread gets its own seed
+      std::default_random_engine generator(seed + static_cast<unsigned int>(ith));
 
-    try {
       // Main loop over all the rows
       for (size_t i = i0; i < i1; ++i) {
         bool is_exemplar = true;
@@ -816,14 +823,11 @@ void Aggregator<T>::group_nd() {
           }
         }
 
-        #pragma omp master
-        if ((i - i0) % rstep == 0) progress(static_cast<float>(i+1) / nrows_per_thread);
+        if (ith == 0 && (i - i0) % rstep == 0) {
+          progress(static_cast<float>(i+1) / nrows_per_thread);
+        }
       } // End main loop over all the rows
-    } catch (...) {
-      oem.capture_exception();
-    }
-  }
-  oem.rethrow_exception_if_any();
+    });
   adjust_members(ids);
 }
 
@@ -916,20 +920,16 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
   auto nids = ids.size();
 
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nids; ++i) {
-    if (ids[i] == i) {
-      map[i] = i;
-    } else {
-      map[i] = calculate_map(ids, i);
-    }
-  }
+  dt::parallel_for_static(nids,
+    [&](size_t i) {
+      map[i] = (ids[i] == i) ? i : calculate_map(ids, i);
+    });
 
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < dt_members->nrows; ++i) {
-    auto j = static_cast<size_t>(d_members[i]);
-    d_members[i] = static_cast<int32_t>(map[j]);
-  }
+  dt::parallel_for_static(dt_members->nrows,
+    [&](size_t i) {
+      auto j = static_cast<size_t>(d_members[i]);
+      d_members[i] = static_cast<int32_t>(map[j]);
+    });
 
 }
 
