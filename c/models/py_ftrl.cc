@@ -768,7 +768,7 @@ void Ftrl::set_nbins(robj py_nbins) {
 */
 static GSArgs args_mantissa_nbits(
   "mantissa_nbits",
-  "Number of bits to be used for hashing float values");
+  "Number of bits from mantissa to be used for hashing float values");
 
 
 oobj Ftrl::get_mantissa_nbits() const {
