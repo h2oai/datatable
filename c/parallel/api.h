@@ -107,19 +107,20 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
 /**
  * Execute loop
  *
- *     for i in range(i):
+ *     for i in range(nrows):
  *         pre-ordered(i)
  *         ordered(i)
  *         post-ordered(i)
  *
  * where `pre-ordered` and `post-ordered` are allowed to run in parallel,
- * whereas the `ordered(i)` part will run sequentially, in single-threaded
+ * whereas the `ordered(i)` parts will run sequentially, in single-threaded
  * mode.
  */
-void parallel_for_ordered(size_t nrows,
-                          function<void(size_t)> pre_ordered,
-                          function<void(size_t)> ordered,
-                          function<void(size_t)> post_ordered = nullptr);
+using prepare_ordered_fn = function<void(function<void(size_t)> pre_ordered,
+                                         function<void(size_t)> ordered,
+                                         function<void(size_t)> post_ordered)>;
+
+void parallel_for_ordered(size_t nrows, function<void(prepare_ordered_fn)>);
 
 
 }  // namespace dt
