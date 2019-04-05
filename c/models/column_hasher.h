@@ -26,7 +26,7 @@
 
 
 /*
-* An abstract base class for all the hashers.
+*  An abstract base class for all the hashers.
 */
 class Hasher {
   public:
@@ -42,7 +42,7 @@ using hasherptr = std::unique_ptr<Hasher>;
 
 
 /*
-* Class to hash booleans.
+*  Class to hash booleans.
 */
 class HasherBool : public Hasher {
   private:
@@ -54,7 +54,7 @@ class HasherBool : public Hasher {
 
 
 /*
-* Template class to hash integers.
+*  Template class to hash integers.
 */
 template <typename T>
 class HasherInt : public Hasher {

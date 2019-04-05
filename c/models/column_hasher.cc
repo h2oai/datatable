@@ -24,14 +24,14 @@
 
 
 /*
-* Abstract Hasher class constructor and destructor.
+*  Abstract Hasher class constructor and destructor.
 */
 Hasher::Hasher(const Column* col) : ri(col->rowindex()) {}
 Hasher::~Hasher() {}
 
 
 /*
-* Hash booleans by casting them to `uint64_t`.
+*  Hash booleans by casting them to `uint64_t`.
 */
 HasherBool::HasherBool(const Column* col) : Hasher(col) {
   values = dynamic_cast<const BoolColumn*>(col)->elements_r();
@@ -47,7 +47,7 @@ uint64_t HasherBool::hash(size_t row) const {
 
 
 /*
-* Hash integers by casting them to `uint64_t`.
+*  Hash integers by casting them to `uint64_t`.
 */
 template <typename T>
 HasherInt<T>::HasherInt(const Column* col) : Hasher(col) {
@@ -65,8 +65,8 @@ uint64_t HasherInt<T>::hash(size_t row) const {
 
 
 /*
-* Hash floats by reinterpreting their bit representation as `uint64_t`.
-* TODO: also support some binning here.
+*  Hash floats by interpreting their bit representation as `uint64_t`,
+*  also do mantissa binning here.
 */
 template <typename T>
 HasherFloat<T>::HasherFloat(const Column* col, unsigned char mantissa_nbits) :
@@ -87,7 +87,7 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
 
 
 /*
-* Hash strings using Murmur hash function.
+*  Hash strings using Murmur hash function.
 */
 template <typename T>
 HasherString<T>::HasherString(const Column* col) : Hasher(col){
