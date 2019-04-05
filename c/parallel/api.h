@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
-#include "parallel/thread_pool.h"
 #include "utils/function.h"
 namespace dt {
 
@@ -23,18 +22,39 @@ namespace dt {
 void _parallel_for_static(size_t, size_t, function<void(size_t, size_t)>);
 
 
+//------------------------------------------------------------------------------
+// Generic thread information
+//------------------------------------------------------------------------------
 
 /**
- * Return the current number of threads in the pool.
+ * Return the total number of threads in the thread pool. This is roughly
+ * equivalent to `omp_get_max_threads()`.
+ *
+ * This function returns the same value regardless of whether the thread pool
+ * has actually spawned all the threads or not.
  */
-size_t get_num_threads();
+size_t num_threads_in_pool();
 
 
 /**
- * Return the index of the current thread: from 0 to `get_num_threads() - 1`.
- * For the master thread this will return `size_t(-1)`.
+ * Return the number of threads in the currently executed parallel region. This
+ * is similar to `omp_get_num_threads()`.
+ *
+ * The return value is 0 if no parallel region is currently being executed,
+ * otherwise the value is between 1 and `num_threads_in_pool()`. The number of
+ * threads in a team can be less than the number of threads in the pool if
+ * either the user explicitly requested to use less threads, or if the number
+ * of iterations was small enough that using all of them was deamed suboptimal.
  */
-size_t get_thread_num();
+size_t num_threads_in_team();
+
+
+/**
+ * Return the index of the current thread, similar to `omp_get_thread_num()`.
+ * The value returned is between 0 and `num_threads_in_team() - 1`, or
+ * `size_t(-1)` for the master thread.
+ */
+size_t this_thread_index();
 
 
 /**
@@ -44,6 +64,11 @@ size_t get_thread_num();
  */
 size_t get_hardware_concurrency() noexcept;
 
+
+
+//------------------------------------------------------------------------------
+// Parallel constructs
+//------------------------------------------------------------------------------
 
 /**
  * Call function `f` exactly once in each thread.

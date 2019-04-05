@@ -25,7 +25,7 @@ namespace dttest {
 
 template <typename T>
 static void test_atomic_impl() {
-  size_t n = dt::get_num_threads();
+  size_t n = dt::num_threads_in_pool();
   std::atomic<int> barrier { static_cast<int>(n) };
 
   dt::atomic<T> x { T(0.0) };
@@ -38,7 +38,7 @@ static void test_atomic_impl() {
     [&] {
       barrier--;
       while (barrier.load());
-      size_t i = dt::get_thread_num();
+      size_t i = dt::this_thread_index();
 
       x += static_cast<T>(i);
       y *= static_cast<T>(2.0);

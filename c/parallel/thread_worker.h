@@ -19,7 +19,6 @@
 #include <cstddef>              // std::size_t
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
-#include "parallel/thread_task.h"
 #include "parallel/thread_scheduler.h"
 namespace dt {
 using std::size_t;
