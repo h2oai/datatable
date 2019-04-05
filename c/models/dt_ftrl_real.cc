@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cfloat>
 #include "models/dt_ftrl_real.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
