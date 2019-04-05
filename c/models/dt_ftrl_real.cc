@@ -723,7 +723,7 @@ void FtrlReal<T>::create_fi() {
 
 
 /**
- * Initialize feature importances with zeros.
+ *  Initialize feature importances with zeros.
  */
 template <typename T>
 void FtrlReal<T>::init_fi() {
@@ -734,7 +734,7 @@ void FtrlReal<T>::init_fi() {
 
 
 /**
- * Determine number of features.
+ *  Determine number of features.
  */
 template <typename T>
 void FtrlReal<T>::define_features() {
@@ -743,7 +743,7 @@ void FtrlReal<T>::define_features() {
 
 
 /**
- * Create hashers for all datatable column.
+ *  Create hashers for all datatable column.
  */
 template <typename T>
 std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
@@ -773,7 +773,7 @@ std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
 
 
 /**
- * Depending on a column type, create a corresponding hasher.
+ *  Depending on a column type, create a corresponding hasher.
  */
 template <typename T>
 hasherptr FtrlReal<T>::create_hasher(const Column* col) {
@@ -853,11 +853,11 @@ FtrlModelType FtrlReal<T>::get_model_type() {
 
 
 /**
- * Normalize a column of feature importances to [0; 1]
- * This column has only positive values, so we simply divide its
- * content by the maximum. Another option is to do min-max normalization,
- * but this may lead to some features having zero importance,
- * while in reality they don't.
+ *  Normalize a column of feature importances to [0; 1]
+ *  This column has only positive values, so we simply divide its
+ *  content by the maximum. Another option is to do min-max normalization,
+ *  but this may lead to some features having zero importance,
+ *  while in reality they don't.
  */
 template <typename T>
 DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
