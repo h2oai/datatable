@@ -37,10 +37,10 @@ PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
                                  "__init__", nullptr);
 
 
-/*
-*  Ftrl(...)
-*  Initialize Ftrl object with the provided parameters.
-*/
+/**
+ *  Ftrl(...)
+ *  Initialize Ftrl object with the provided parameters.
+ */
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
   dt::FtrlParams ftrl_params;
@@ -168,9 +168,9 @@ void Ftrl::m__init__(PKArgs& args) {
 }
 
 
-/*
-*  Deallocate underlying data for an Ftrl object
-*/
+/**
+ *  Deallocate underlying data for an Ftrl object
+ */
 void Ftrl::m__dealloc__() {
   if (dtft != nullptr) {
     delete dtft;
@@ -179,10 +179,10 @@ void Ftrl::m__dealloc__() {
 }
 
 
-/*
-*  Check if provided interactions are consistent with the column names
-*  of the training frame.
-*/
+/**
+ *  Check if provided interactions are consistent with the column names
+ *  of the training frame.
+ */
 std::vector<sizetvec> Ftrl::convert_interactions() {
   std::vector<sizetvec> interactions;
   auto py_iter = py_interactions.to_oiter();
@@ -213,10 +213,10 @@ std::vector<sizetvec> Ftrl::convert_interactions() {
 }
 
 
-/*
-*  .fit(...)
-*  Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
-*/
+/**
+ *  .fit(...)
+ *  Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
+ */
 static PKArgs args_fit(2, 4, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
                        "nepochs_validation", "validation_error"},
@@ -384,11 +384,11 @@ oobj Ftrl::fit(const PKArgs& args) {
 }
 
 
-/*
-*  .predict(...)
-*  Perform dataset validation, make a call to `dtft->predict(...)`,
-*  return frame with predictions.
-*/
+/**
+ *  .predict(...)
+ *  Perform dataset validation, make a call to `dtft->predict(...)`,
+ *  return frame with predictions.
+ */
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
 R"(predict(self, X)
 --
@@ -445,10 +445,10 @@ oobj Ftrl::predict(const PKArgs& args) {
 }
 
 
-/*
-*  .reset()
-*  Reset the model by making a call to `dtft->reset()`.
-*/
+/**
+ *  .reset()
+ *  Reset the model by making a call to `dtft->reset()`.
+ */
 static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
 R"(reset(self)
 --
@@ -473,9 +473,9 @@ void Ftrl::reset(const PKArgs&) {
 }
 
 
-/*
-*  .labels
-*/
+/**
+ *  .labels
+ */
 static GSArgs args_labels(
   "labels",
   R"(List of labels used for classification.)");
@@ -513,9 +513,9 @@ void Ftrl::set_labels(robj py_labels) {
 
 
 
-/*
-*  .model
-*/
+/**
+ *  .model
+ */
 static GSArgs args_model(
   "model",
 R"(Model frame of shape `(nbins, 2 * nlabels)`, where nlabels is
@@ -576,9 +576,9 @@ void Ftrl::set_model(robj model) {
 }
 
 
-/*
-*  .feature_importances
-*/
+/**
+ *  .feature_importances
+ */
 static GSArgs args_fi(
   "feature_importances",
 R"(Two-column frame with feature names and the corresponding
@@ -600,9 +600,9 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
 }
 
 
-/*
-*  .colnames
-*/
+/**
+ *  .colnames
+ */
 static GSArgs args_colnames(
   "colnames",
   "Column names"
@@ -636,9 +636,9 @@ void Ftrl::set_colnames(robj py_colnames) {
 }
 
 
-/*
-*  .colname_hashes
-*/
+/**
+ *  .colname_hashes
+ */
 static GSArgs args_colname_hashes(
   "colname_hashes",
   "Column name hashes"
@@ -661,9 +661,9 @@ oobj Ftrl::get_colname_hashes() const {
 }
 
 
-/*
-*  .alpha
-*/
+/**
+ *  .alpha
+ */
 static GSArgs args_alpha(
   "alpha",
   "`alpha` in per-coordinate FTRL-Proximal algorithm");
@@ -681,9 +681,9 @@ void Ftrl::set_alpha(robj py_alpha) {
 }
 
 
-/*
-*  .beta
-*/
+/**
+ *  .beta
+ */
 static GSArgs args_beta(
   "beta",
   "`beta` in per-coordinate FTRL-Proximal algorithm");
@@ -701,9 +701,9 @@ void Ftrl::set_beta(robj py_beta) {
 }
 
 
-/*
-*  .lambda1
-*/
+/**
+ *  .lambda1
+ */
 static GSArgs args_lambda1(
   "lambda1",
   "L1 regularization parameter");
@@ -721,9 +721,9 @@ void Ftrl::set_lambda1(robj py_lambda1) {
 }
 
 
-/*
-*  .lambda2
-*/
+/**
+ *  .lambda2
+ */
 static GSArgs args_lambda2(
   "lambda2",
   "L2 regularization parameter");
@@ -741,9 +741,9 @@ void Ftrl::set_lambda2(robj py_lambda2) {
 }
 
 
-/*
-*  .nbins
-*/
+/**
+ *  .nbins
+ */
 static GSArgs args_nbins(
   "nbins",
   "Number of bins for the hashing trick");
@@ -766,9 +766,9 @@ void Ftrl::set_nbins(robj py_nbins) {
 }
 
 
-/*
-*  .mantissa_nbits
-*/
+/**
+ *  .mantissa_nbits
+ */
 static GSArgs args_mantissa_nbits(
   "mantissa_nbits",
   "Number of bits from mantissa to be used for hashing float values");
@@ -793,9 +793,9 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
 }
 
 
-/*
-*  .nepochs
-*/
+/**
+ *  .nepochs
+ */
 static GSArgs args_nepochs(
   "nepochs",
   "Number of epochs to train a model");
@@ -812,9 +812,9 @@ void Ftrl::set_nepochs(robj py_nepochs) {
 }
 
 
-/*
-*  .interactions
-*/
+/**
+ *  .interactions
+ */
 static GSArgs args_interactions(
   "interactions",
   "List of feature lists to do interactions for");
@@ -851,9 +851,9 @@ void Ftrl::set_interactions(robj arg_interactions) {
 }
 
 
-/*
-*  .double_precision
-*/
+/**
+ *  .double_precision
+ */
 static GSArgs args_double_precision(
   "double_precision",
   "Whether to use double precision arithmetic for modeling");
@@ -873,9 +873,9 @@ void Ftrl::set_double_precision(robj py_double_precision) {
 }
 
 
-/*
-*  .negative_class
-*/
+/**
+ *  .negative_class
+ */
 static GSArgs args_negative_class(
   "negative_class",
   "Whether to train on negatives in the case of multinomial classification.");
@@ -896,9 +896,9 @@ void Ftrl::set_negative_class(robj py_negative_class) {
 }
 
 
-/*
-*  .params
-*/
+/**
+ *  .params
+ */
 static GSArgs args_params(
   "params",
   "FTRL model parameters");
@@ -965,9 +965,9 @@ void Ftrl::set_params_tuple(robj params) {
 }
 
 
-/*
-*  Pickling support.
-*/
+/**
+ *  Pickling support.
+ */
 static PKArgs args___getstate__(
     0, 0, 0, false, false, {}, "__getstate__", nullptr);
 
@@ -987,9 +987,9 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
 }
 
 
-/*
-*  Unpickling support.
-*/
+/**
+ *  Unpickling support.
+ */
 static PKArgs args___setstate__(
     1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
@@ -1019,9 +1019,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 }
 
 
-/*
-*  py::Ftrl::Type
-*/
+/**
+ *  py::Ftrl::Type
+ */
 const char* Ftrl::Type::classname() {
   return "datatable.models.Ftrl";
 }
@@ -1063,9 +1063,9 @@ negative_class : bool
 }
 
 
-/*
-*  Initialize all the exposed methods and getters/setters.
-*/
+/**
+ *  Initialize all the exposed methods and getters/setters.
+ */
 void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 {
   // Input parameters

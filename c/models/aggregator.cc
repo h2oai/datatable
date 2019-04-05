@@ -83,11 +83,11 @@ A list `[frame_exemplars, frame_members]`, where
 );
 
 
-/*
-*  Read arguments from Python's `aggregate()` function and aggregate data
-*  either with single or double precision. Return a list consisting
-*  of two frames: `df_exemplars` and `df_members`.
-*/
+/**
+ *  Read arguments from Python's `aggregate()` function and aggregate data
+ *  either with single or double precision. Return a list consisting
+ *  of two frames: `df_exemplars` and `df_members`.
+ */
 static oobj aggregate(const PKArgs& args) {
   size_t min_rows = 500;
   size_t n_bins = 500;
@@ -191,9 +191,9 @@ static oobj aggregate(const PKArgs& args) {
 
 
 
-/*
-*  Destructor for the AggregatorBase class.
-*/
+/**
+ *  Destructor for the AggregatorBase class.
+ */
 AggregatorBase::~AggregatorBase() {}
 
 
@@ -203,9 +203,9 @@ void py::DatatableModule::init_methods_aggregate() {
 
 
 
-/*
-*  Constructor, initialize all the input parameters.
-*/
+/**
+ *  Constructor, initialize all the input parameters.
+ */
 template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nx_bins_in, size_t ny_bins_in,
@@ -226,14 +226,14 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 }
 
 
-/*
-*  Main Aggregator method, convert all the numeric columns to `T`,
-*  do the corresponding grouping and final exemplar aggregation:
-*  - `dt` is an input datatable to aggregate;
-*  - `dt_exemplars` is the result of aggregation;
-*  - `dt_members` will store a relation between each of the original `dt` rows
-*     and the exemplars gathered in `dt_exemplars`.
-*/
+/**
+ *  Main Aggregator method, convert all the numeric columns to `T`,
+ *  do the corresponding grouping and final exemplar aggregation:
+ *  - `dt` is an input datatable to aggregate;
+ *  - `dt_exemplars` is the result of aggregation;
+ *  - `dt_members` will store a relation between each of the original `dt` rows
+ *     and the exemplars gathered in `dt_exemplars`.
+ */
 template <typename T>
 void Aggregator<T>::aggregate(DataTable* dt_in,
                               dtptr& dt_exemplars_in,
@@ -321,10 +321,10 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
 }
 
 
-/*
-*  Check how many exemplars we have got, if there is more than `max_bins+1`
-*  (e.g. too many distinct categorical values) do random sampling.
-*/
+/**
+ *  Check how many exemplars we have got, if there is more than `max_bins+1`
+ *  (e.g. too many distinct categorical values) do random sampling.
+ */
 template <typename T>
 bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 {
@@ -373,14 +373,14 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 }
 
 
-/*
-*  Sort/group the members frame and set up the first member
-*  in each group as an exemplar with the corresponding `members_count`,
-*  that is essentially a number of members within the group.
-*  If members were randomly sampled, those who got `exemplar_id == NA`
-*  are ending up in the zero group, that is ignored and not included
-*  in the aggregated frame.
-*/
+/**
+ *  Sort/group the members frame and set up the first member
+ *  in each group as an exemplar with the corresponding `members_count`,
+ *  that is essentially a number of members within the group.
+ *  If members were randomly sampled, those who got `exemplar_id == NA`
+ *  are ending up in the zero group, that is ignored and not included
+ *  in the aggregated frame.
+ */
 template <typename T>
 void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // Setting up offsets and members row index.
@@ -429,9 +429,9 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 }
 
 
-/*
-*  Do no grouping, i.e. all rows become exemplars sorted by the first column.
-*/
+/**
+ *  Do no grouping, i.e. all rows become exemplars sorted by the first column.
+ */
 template <typename T>
 void Aggregator<T>::group_0d() {
   if (dt->ncols > 0) {
@@ -448,9 +448,9 @@ void Aggregator<T>::group_0d() {
 }
 
 
-/*
-*  Call an appropriate function for 1D grouping.
-*/
+/**
+ *  Call an appropriate function for 1D grouping.
+ */
 template <typename T>
 void Aggregator<T>::group_1d() {
   if (contconvs.size()) {
@@ -461,18 +461,18 @@ void Aggregator<T>::group_1d() {
 }
 
 
-/*
-*  Call an appropriate function for 2D grouping.
-*  Dealing with NA's:
-*    - (value, NA) goes to bin -1;
-*    - (NA, value) goes to bin -2;
-*    - (NA, NA)    goes to bin -3.
-*  Rows having no NA's end up in the corresponding positive bins,
-*  so that we are not mixing NA and not NA members. After calling
-*  `aggregate_exemplars(...)` bins will be renumbered starting from 0,
-*  with NA bins (if ones exist) being gathered at the very beginning
-*  of the exemplar data frame.
-*/
+/**
+ *  Call an appropriate function for 2D grouping.
+ *  Dealing with NA's:
+ *    - (value, NA) goes to bin -1;
+ *    - (NA, value) goes to bin -2;
+ *    - (NA, NA)    goes to bin -3.
+ *  Rows having no NA's end up in the corresponding positive bins,
+ *  so that we are not mixing NA and not NA members. After calling
+ *  `aggregate_exemplars(...)` bins will be renumbered starting from 0,
+ *  with NA bins (if ones exist) being gathered at the very beginning
+ *  of the exemplar data frame.
+ */
 template <typename T>
 void Aggregator<T>::group_2d() {
   size_t ncont = contconvs.size();
@@ -487,9 +487,9 @@ void Aggregator<T>::group_2d() {
 }
 
 
-/*
-*  Do 1D grouping for a continuous column, i.e. 1D binning.
-*/
+/**
+ *  Do 1D grouping for a continuous column, i.e. 1D binning.
+ */
 template <typename T>
 void Aggregator<T>::group_1d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -508,9 +508,9 @@ void Aggregator<T>::group_1d_continuous() {
 }
 
 
-/*
-*  Do 2D grouping for two continuous columns, i.e. 2D binning.
-*/
+/**
+ *  Do 2D grouping for two continuous columns, i.e. 2D binning.
+ */
 template <typename T>
 void Aggregator<T>::group_2d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
@@ -536,9 +536,9 @@ void Aggregator<T>::group_2d_continuous() {
 }
 
 
-/*
-*  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
-*/
+/**
+ *  Do 1D grouping for a categorical column, i.e. just a `group by` operation.
+ */
 template <typename T>
 void Aggregator<T>::group_1d_categorical() {
   std::vector<sort_spec> spec = {sort_spec(0)};
@@ -560,10 +560,10 @@ void Aggregator<T>::group_1d_categorical() {
 }
 
 
-/*
-*  Detect string types for both categorical columns and do a corresponding call
-*  to `group_2d_mixed_str`.
-*/
+/**
+ *  Detect string types for both categorical columns and do a corresponding call
+ *  to `group_2d_mixed_str`.
+ */
 template <typename T>
 void Aggregator<T>::group_2d_categorical () {
   switch (dt_cat->columns[0]->stype()) {
@@ -589,10 +589,10 @@ void Aggregator<T>::group_2d_categorical () {
 }
 
 
-/*
-*  Do 2D grouping for two categorical columns, i.e. two `group by` operations,
-*  and combine their results.
-*/
+/**
+ *  Do 2D grouping for two categorical columns, i.e. two `group by` operations,
+ *  and combine their results.
+ */
 template <typename T>
 template <typename U0, typename U1>
 void Aggregator<T>::group_2d_categorical_str() {
@@ -628,10 +628,10 @@ void Aggregator<T>::group_2d_categorical_str() {
 }
 
 
-/*
-*  Detect string type for a categorical column and do a corresponding call
-*  to `group_2d_mixed_str`.
-*/
+/**
+ *  Detect string type for a categorical column and do a corresponding call
+ *  to `group_2d_mixed_str`.
+ */
 template <typename T>
 void Aggregator<T>::group_2d_mixed() {
   switch (dt_cat->columns[0]->stype()) {
@@ -643,11 +643,11 @@ void Aggregator<T>::group_2d_mixed() {
 }
 
 
-/*
-*  Do 2D grouping for one continuous and one categorical string column,
-*  i.e. 1D binning for the continuous column and a `group by`
-*  operation for the categorical one.
-*/
+/**
+ *  Do 2D grouping for one continuous and one categorical string column,
+ *  i.e. 1D binning for the continuous column and a `group by`
+ *  operation for the categorical one.
+ */
 template<typename T>
 template<typename U0>
 void Aggregator<T>::group_2d_mixed_str() {
@@ -684,32 +684,32 @@ void Aggregator<T>::group_2d_mixed_str() {
 }
 
 
-/*
-*  Do ND grouping in the general case. The initial `delta` (`delta = radius^2`)
-*  is set to machine precision, so that we are gathering some initial exemplars.
-*  When this `delta` starts getting us more exemplars than is set by `nd_max_bins`
-*  do the following:
-*  - find the mean distance between all the gathered exemplars;
-*  - merge all the exemplars that are within half of this distance;
-*  - adjust `delta` taking into account initial size of bubbles;
-*  - store the merging info and use it in `adjust_members(...)`.
-*
-*  Another approach is to have a constant `delta` see `Develop` branch
-*  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/
-*  h2o/data/Aggregator.java based on the estimates given at
-*  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-
-*  euclidean-space?answertab=active#tab-top i.e.
-*
-*  T radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
-*  T radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
-*  if (d > max_dimensions) {
-*    radius /= 7.0;
-*  }
-*  T delta = radius * radius;
-*
-*  However, for some datasets this `delta` results in too many (e.g. thousands) or
-*  too few (e.g. just one) exemplars.
-*/
+/**
+ *  Do ND grouping in the general case. The initial `delta` (`delta = radius^2`)
+ *  is set to machine precision, so that we are gathering some initial exemplars.
+ *  When this `delta` starts getting us more exemplars than is set by `nd_max_bins`
+ *  do the following:
+ *  - find the mean distance between all the gathered exemplars;
+ *  - merge all the exemplars that are within half of this distance;
+ *  - adjust `delta` taking into account initial size of bubbles;
+ *  - store the merging info and use it in `adjust_members(...)`.
+ *
+ *  Another approach is to have a constant `delta` see `Develop` branch
+ *  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/
+ *  h2o/data/Aggregator.java based on the estimates given at
+ *  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-
+ *  euclidean-space?answertab=active#tab-top i.e.
+ *
+ *  T radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
+ *  T radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
+ *  if (d > max_dimensions) {
+ *    radius /= 7.0;
+ *  }
+ *  T delta = radius * radius;
+ *
+ *  However, for some datasets this `delta` results in too many (e.g. thousands) or
+ *  too few (e.g. just one) exemplars.
+ */
 template <typename T>
 void Aggregator<T>::group_nd() {
   OmpExceptionManager oem;
@@ -828,7 +828,7 @@ void Aggregator<T>::group_nd() {
 }
 
 
-/*
+/**
  *  Figure out how many threads we need to run ND groupping.
  */
 template <typename T>
@@ -844,16 +844,16 @@ size_t Aggregator<T>::get_nthreads(size_t nrows) {
   return nth;
 }
 
-/*
-*  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
-*  the gathered exemplars and merge all the exemplars within that distance.
-*  Here we will just use an additional index `k` to map triangular matrix
-*  into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
-*  i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
-*  j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
-*  and mapping from `(i,j)` to `k`:
-*  k = (2 * n - i - 1 ) * i / 2 + j
-*/
+/**
+ *  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
+ *  the gathered exemplars and merge all the exemplars within that distance.
+ *  Here we will just use an additional index `k` to map triangular matrix
+ *  into 1D array of distances. However, one can also use mapping from `k` to `(i,j)`:
+ *  i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
+ *  j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
+ *  and mapping from `(i,j)` to `k`:
+ *  k = (2 * n - i - 1 ) * i / 2 + j
+ */
 template <typename T>
 void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
                                  std::vector<size_t>& ids, size_t ndims) {
@@ -905,10 +905,10 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
 }
 
 
-/*
-*  Based on the merging info adjust the members information,
-*  i.e. set which exemplar they belong to.
-*/
+/**
+ *  Based on the merging info adjust the members information,
+ *  i.e. set which exemplar they belong to.
+ */
 template <typename T>
 void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
 
@@ -934,9 +934,9 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
 }
 
 
-/*
-*  For each exemplar find the one it was merged to.
-*/
+/**
+ *  For each exemplar find the one it was merged to.
+ */
 template <typename T>
 size_t Aggregator<T>::calculate_map(std::vector<size_t>& ids, size_t id) {
   if (id == ids[id]) {
@@ -947,10 +947,10 @@ size_t Aggregator<T>::calculate_map(std::vector<size_t>& ids, size_t id) {
 }
 
 
-/*
-*  Calculate distance between two vectors. If `early_exit` is set to `true`,
-*  stop when the distance reaches `delta`.
-*/
+/**
+ *  Calculate distance between two vectors. If `early_exit` is set to `true`,
+ *  stop when the distance reaches `delta`.
+ */
 template <typename T>
 T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
                                     size_t ndims, T delta,
@@ -971,9 +971,9 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 }
 
 
-/*
-*  Normalize the row elements to [0,1).
-*/
+/**
+ *  Normalize the row elements to [0,1).
+ */
 template <typename T>
 void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
   for (size_t i = 0; i < ncols; ++i) {
@@ -985,9 +985,9 @@ void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
 }
 
 
-/*
-*  Project a particular row on a subspace by using the projection matrix.
-*/
+/**
+ *  Project a particular row on a subspace by using the projection matrix.
+ */
 template <typename T>
 void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& pmatrix)
 {
@@ -1011,9 +1011,9 @@ void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& p
 }
 
 
-/*
-*  Generate projection matrix.
-*/
+/**
+ *  Generate projection matrix.
+ */
 template <typename T>
 std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
   std::default_random_engine generator;
@@ -1035,18 +1035,18 @@ std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
 }
 
 
-/*
-*  To normalize a continuous column x to [0; 1] range we use
-*  the following formula: x_i_new = (x_i - min) / (max - min),
-*  where x_i is the value stored in the i-th row, max and min are the column
-*  maximum and minimum, respectively. To save on arithmetics, this can be
-*  easily converted to x_i_new = x_i * norm_factor + norm_shift,
-*  where norm_factor = 1 / (max - min) and norm_shift = - min / (max - min).
-*  When max = min, i.e. the column is constant, there is a singularity
-*  that may lead to wrong distance calculations done by the Aggregator.
-*  One of the approaches here is to handle the constant columns separately
-*  and set their values to 0.5, i.e. norm_factor = 0 and norm_shift = 0.5.
-*/
+/**
+ *  To normalize a continuous column x to [0; 1] range we use
+ *  the following formula: x_i_new = (x_i - min) / (max - min),
+ *  where x_i is the value stored in the i-th row, max and min are the column
+ *  maximum and minimum, respectively. To save on arithmetics, this can be
+ *  easily converted to x_i_new = x_i * norm_factor + norm_shift,
+ *  where norm_factor = 1 / (max - min) and norm_shift = - min / (max - min).
+ *  When max = min, i.e. the column is constant, there is a singularity
+ *  that may lead to wrong distance calculations done by the Aggregator.
+ *  One of the approaches here is to handle the constant columns separately
+ *  and set their values to 0.5, i.e. norm_factor = 0 and norm_shift = 0.5.
+ */
 template <typename T>
 void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
                                     T c_min, T c_max, size_t c_bins) {
@@ -1060,10 +1060,10 @@ void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
 }
 
 
-/*
-*  Helper function to invoke the Python progress function if supplied,
-*  otherwise just print the progress bar.
-*/
+/**
+ *  Helper function to invoke the Python progress function if supplied,
+ *  otherwise just print the progress bar.
+ */
 template <typename T>
 void Aggregator<T>::progress(float progress, int status_code /*= 0*/) {
   if (progress_fn.is_none()) {

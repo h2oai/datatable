@@ -30,9 +30,9 @@
 namespace py {
 
 
-/*
-* Main class that controls Python FTRL API.
-*/
+/**
+ *  Main class that controls Python FTRL API.
+ */
 class Ftrl : public PyObject {
   private:
     dt::Ftrl* dtft;
@@ -94,7 +94,7 @@ class Ftrl : public PyObject {
     void set_lambda2(robj);
     void set_nepochs(robj);
     void set_nbins(robj);             // Disabled for a trained model
-    void set_mantissa_nbits(robj);       // Disabled for a trained model
+    void set_mantissa_nbits(robj);    // Disabled for a trained model
     void set_interactions(robj);      // Disabled for a trained model
     void set_double_precision(robj);  // Not exposed, used for unpickling only
     void set_negative_class(robj);    // Disabled for a trained model

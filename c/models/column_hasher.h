@@ -25,9 +25,9 @@
 #include "models/murmurhash.h"
 
 
-/*
-*  An abstract base class for all the hashers.
-*/
+/**
+ *  An abstract base class for all the hashers.
+ */
 class Hasher {
   public:
     explicit Hasher(const Column*);
@@ -41,9 +41,9 @@ class Hasher {
 using hasherptr = std::unique_ptr<Hasher>;
 
 
-/*
-*  Class to hash booleans.
-*/
+/**
+ *  Class to hash booleans.
+ */
 class HasherBool : public Hasher {
   private:
     const int8_t* values;
@@ -53,9 +53,9 @@ class HasherBool : public Hasher {
 };
 
 
-/*
-*  Template class to hash integers.
-*/
+/**
+ *  Template class to hash integers.
+ */
 template <typename T>
 class HasherInt : public Hasher {
   private:
@@ -66,9 +66,9 @@ class HasherInt : public Hasher {
 };
 
 
-/*
-*  Template class to hash floats.
-*/
+/**
+ *  Template class to hash floats.
+ */
 template <typename T>
 class HasherFloat : public Hasher {
   private:
@@ -81,9 +81,9 @@ class HasherFloat : public Hasher {
 };
 
 
-/*
-*  Template class to hash strings.
-*/
+/**
+ *  Template class to hash strings.
+ */
 template <typename T>
 class HasherString : public Hasher {
   private:

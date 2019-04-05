@@ -7,7 +7,7 @@
 #include "utils/macros.h"
 
 
-/*
+/**
  *  Murmur2 hash function.
  */
 uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed)
@@ -52,7 +52,7 @@ uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed)
 }
 
 
-/*
+/**
  *  Murmur3 hash function.
  */
 void hash_murmur3(const void* key, const uint64_t len, unsigned int seed,
@@ -131,24 +131,24 @@ void hash_murmur3(const void* key, const uint64_t len, unsigned int seed,
 }
 
 
-/*
- * Some helper functions for Murmur3 hash
+/**
+ *  Some helper functions for Murmur3 hash
  */
 inline uint64_t ROTL64(uint64_t x, int8_t r) {
   return (x << r) | (x >> (64 - r));
 }
 
-/*
- * Block read - if your platform needs to do endian-swapping or can only
- * handle aligned reads, do the conversion here
+/**
+ *  Block read - if your platform needs to do endian-swapping or can only
+ *  handle aligned reads, do the conversion here
  */
 inline uint64_t getblock64(const uint64_t* p, uint64_t i) {
   return p[i];
 }
 
 
-/*
- * Finalization mix - force all bits of a hash block to avalanche
+/**
+ *  Finalization mix - force all bits of a hash block to avalanche
  */
 inline uint64_t fmix64(uint64_t k) {
   k ^= k >> 33;

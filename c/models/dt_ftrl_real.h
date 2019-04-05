@@ -31,9 +31,9 @@
 namespace dt {
 
 
-/*
-* Class template that implements all the virtual methods declared in dt::Ftrl.
-*/
+/**
+ *  Class template that implements all the virtual methods declared in dt::Ftrl.
+ */
 template <typename T /* float or double */>
 class FtrlReal : public dt::Ftrl {
   private:

@@ -30,10 +30,10 @@
 namespace dt {
 
 
-/*
-*  All the FTRL parameters provided in Python are stored in this structure,
-*  that also defines their default values.
-*/
+/**
+ *  All the FTRL parameters provided in Python are stored in this structure,
+ *  that also defines their default values.
+ */
 struct FtrlParams {
     double alpha;
     double beta;
@@ -51,20 +51,20 @@ struct FtrlParams {
 };
 
 
-/*
-*  When FTRL fitting is completed, this structure is returned
-*  containing epoch at which fitting stopped, and, in the case validation set
-*  was provided, the corresponding final loss.
-*/
+/**
+ *  When FTRL fitting is completed, this structure is returned
+ *  containing epoch at which fitting stopped, and, in the case validation set
+ *  was provided, the corresponding final loss.
+ */
 struct FtrlFitOutput {
     double epoch;
     double loss;
 };
 
 
-/*
-* Supported FTRL model types.
-*/
+/**
+ * Supported FTRL model types.
+ */
 enum class FtrlModelType : size_t {
   NONE        = 0, // Untrained model
   REGRESSION  = 1, // Numerical regression
@@ -73,10 +73,10 @@ enum class FtrlModelType : size_t {
 };
 
 
-/*
-*  An abstract dt::Ftrl class that declares all the virtual functions
-*  needed by py::Ftrl.
-*/
+/**
+ *  An abstract dt::Ftrl class that declares all the virtual functions
+ *  needed by py::Ftrl.
+ */
 class Ftrl {
   public:
     static constexpr unsigned char DBL_MANT_NBITS = 52;

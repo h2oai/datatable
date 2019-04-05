@@ -53,9 +53,9 @@ Error py::Validator::error_manager::error_larger_or_equal(PyObject* src,
 
 // py::_obj validators
 
-/*
-*  Less than check.
-*/
+/**
+ *  Less than check.
+ */
 template <typename T>
 void check_less_than(const T value,
                      const T value_max,
@@ -68,10 +68,10 @@ void check_less_than(const T value,
 }
 
 
-/*
-*  Positive check. Will emit an error, when `value` is not positive, `NaN`
-*  or infinity.
-*/
+/**
+ *  Positive check. Will emit an error, when `value` is not positive, `NaN`
+ *  or infinity.
+ */
 template <typename T>
 void check_positive(T value,
                     const py::_obj& o,
@@ -83,10 +83,10 @@ void check_positive(T value,
 }
 
 
-/*
-*  Not negative check. Will emit an error, when `value` is negative, `NaN`
-*  or infinity.
-*/
+/**
+ *  Not negative check. Will emit an error, when `value` is negative, `NaN`
+ *  or infinity.
+ */
 template <typename T>
 void check_not_negative(T value,
                         const py::_obj& o,
