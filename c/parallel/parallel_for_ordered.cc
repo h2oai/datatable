@@ -262,21 +262,35 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 
 
 
-
 //------------------------------------------------------------------------------
 // parallel_for_ordered
 //------------------------------------------------------------------------------
 
-void parallel_for_ordered(size_t nrows,
+void parallel_for_ordered(size_t nrows, size_t nthreads,
                           function<void(prepare_ordered_fn)> fn)
 {
   thread_pool* thpool = thread_pool::get_instance();
   xassert(!thpool->in_parallel_region());
-  size_t nthreads = thpool->size();
+  size_t nthreads0 = thpool->size();
+  if (nthreads > nthreads0) nthreads = nthreads0;
 
-  ordered_scheduler sch(nthreads * 2, nthreads, nrows);
-  thread_team tt(nthreads, thpool);
-  sch.run(fn, thpool);
+  if (nthreads <= 1) {
+    fn([=](f1t fpre, f1t ford, f1t fpost) {
+      if (!fpre) fpre = noop;
+      if (!ford) ford = noop;
+      if (!fpost) fpost = noop;
+      for (size_t j = 0; j < nrows; ++j) {
+        fpre(j);
+        ford(j);
+        fpost(j);
+      }
+    });
+  }
+  else {
+    ordered_scheduler sch(nthreads * 2, nthreads, nrows);
+    thread_team tt(nthreads, thpool);
+    sch.run(fn, thpool);
+  }
 }
 
 

@@ -120,7 +120,8 @@ using prepare_ordered_fn = function<void(function<void(size_t)> pre_ordered,
                                          function<void(size_t)> ordered,
                                          function<void(size_t)> post_ordered)>;
 
-void parallel_for_ordered(size_t nrows, function<void(prepare_ordered_fn)>);
+void parallel_for_ordered(size_t nrows, size_t nthreads,
+                          function<void(prepare_ordered_fn)>);
 
 
 }  // namespace dt

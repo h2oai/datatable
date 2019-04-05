@@ -44,66 +44,30 @@ void ordered_job::finish_thread_context(ojcptr& ctx) {
 }
 
 
-void ordered_job::execute()
-{
+void ordered_job::execute() {
   constexpr size_t min_nrows_per_thread = 100;
+  size_t nthreads = noomp? 0 : nrows / min_nrows_per_thread;
+  size_t nchunks = 1 + (nrows - 1)/1000;
+  size_t chunksize = 1 + (nrows - 1)/nchunks;
 
-  if (nrows <= min_nrows_per_thread) {
-    ojcptr ctx = start_thread_context();
-    run(ctx, 0, nrows);
-    order(ctx);
-    finish_thread_context(ctx);
-    // progress.report(nrows);
-  }
-  else {
-    size_t nth0 = std::min(static_cast<size_t>(config::nthreads),
-                           nrows / min_nrows_per_thread);
-    if (noomp) nth0 = 1;
-    (void)nth0;  // Prevent warning about unused variable
+  dt::parallel_for_ordered(
+    nchunks,
+    nthreads,  // will be truncated to pool size if necessary
+    [&](prepare_ordered_fn parallel) {
+      ojcptr ctx = start_thread_context();
 
-    OmpExceptionManager oem;
-    #pragma omp parallel num_threads(nth0)
-    {
-      // int ith = omp_get_thread_num();
-      size_t nchunks = 1 + (nrows - 1)/1000;
-      size_t chunksize = 1 + (nrows - 1)/nchunks;
-      ojcptr ctx;
-
-      try {
-        ctx = start_thread_context();
-      } catch (...) {
-        oem.capture_exception();
-      }
-
-      #pragma omp for ordered schedule(dynamic)
-      for (size_t j = 0; j < nchunks; ++j) {
-        if (oem.stop_requested()) continue;
-        size_t i0 = j * chunksize;
-        size_t i1 = std::min(i0 + chunksize, nrows);
-        try {
+      parallel(
+        [&](size_t j) {
+          size_t i0 = j * chunksize;
+          size_t i1 = std::min(i0 + chunksize, nrows);
           run(ctx, i0, i1);
-          // if (ith == 0) progress.report(i1);
-        } catch (...) {
-          oem.capture_exception();
-        }
-        #pragma omp ordered
-        {
-          try {
-            order(ctx);
-          } catch (...) {
-            oem.capture_exception();
-          }
-        }
-      }
+        },
+        [&](size_t) { order(ctx); },
+        nullptr
+      );
 
-      try {
-        finish_thread_context(ctx);
-      } catch (...) {
-        oem.capture_exception();
-      }
-    }
-    oem.rethrow_exception_if_any();
-  }
+      finish_thread_context(ctx);
+    });
 }
 
 
