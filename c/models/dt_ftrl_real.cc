@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <float.h>
 #include "models/dt_ftrl_real.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
@@ -1032,8 +1033,8 @@ void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
 
 template <typename T>
 void FtrlReal<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
-  xassert(mantissa_nbits_in > 0);
-  xassert(mantissa_nbits_in < sizeof(double) * 8 + 1);
+  xassert(mantissa_nbits_in >= 0);
+  xassert(mantissa_nbits_in <= DBL_MANT_DIG);
   params.mantissa_nbits = mantissa_nbits_in;
   mantissa_nbits = mantissa_nbits_in;
 }
