@@ -63,7 +63,8 @@ ordered_task::ordered_task(f1t pre, f1t ord, f1t post)
   : pre_ordered(pre? pre : noop),
     ordered(ord? ord : noop),
     post_ordered(post? post : noop),
-    state(0) {}
+    state(0),
+    n_iter(0) {}
 
 
 void ordered_task::advance_state() {
@@ -290,7 +291,9 @@ void parallel_for_ordered(size_t nrows, size_t nthreads,
     });
   }
   else {
-    ordered_scheduler sch(nthreads * 2, nthreads, nrows);
+    size_t ntasks = std::min(nrows, nthreads * 2);
+    if (nthreads > ntasks) nthreads = ntasks;
+    ordered_scheduler sch(ntasks, nthreads, nrows);
     thread_team tt(nthreads, thpool);
     sch.run(fn, thpool);
   }
