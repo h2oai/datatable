@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #ifdef DTTEST
+#include <atomic>
 #include <vector>
 #include "parallel/api.h"
 #include "utils/exceptions.h"

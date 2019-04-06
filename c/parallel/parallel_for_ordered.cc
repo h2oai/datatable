@@ -116,6 +116,7 @@ void wait_task::execute(thread_worker*) {
 class ordered_scheduler : public thread_scheduler {
   private:
     size_t n_tasks;
+    size_t n_threads;
     size_t n_iterations;
     std::vector<ordered_task> tasks;
     std::vector<ordered_task*> assigned_tasks;
@@ -143,6 +144,7 @@ class ordered_scheduler : public thread_scheduler {
 ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
                                      size_t niters)
   : n_tasks(ntasks),
+    n_threads(nthreads),
     n_iterations(niters),
     assigned_tasks(nthreads, &waittask),
     next_to_start(0),
@@ -215,6 +217,7 @@ void ordered_scheduler::run(const function<void(prepare_ordered_fn)>& init,
 
 
 thread_task* ordered_scheduler::get_next_task(size_t ith) {
+  if (ith >= n_threads) return nullptr;
   std::lock_guard<std::mutex> lock(mutex);
 
   ordered_task* task = assigned_tasks[ith];

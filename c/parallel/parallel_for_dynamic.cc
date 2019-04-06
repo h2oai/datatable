@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <atomic>     // std::atomic
+#include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"

@@ -15,8 +15,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
+#include <cstddef>
 #include "utils/function.h"
 namespace dt {
+using std::size_t;
 
 // Private
 void _parallel_for_static(size_t, size_t, function<void(size_t, size_t)>);
