@@ -115,6 +115,7 @@ void wait_task::execute(thread_worker*) {
 //------------------------------------------------------------------------------
 
 class ordered_scheduler : public thread_scheduler {
+  friend class ordered;
   private:
     size_t n_tasks;
     size_t n_threads;
@@ -136,8 +137,6 @@ class ordered_scheduler : public thread_scheduler {
 
   public:
     ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters);
-    void run(const function<void(prepare_ordered_fn)>& initializer,
-             thread_pool*);
     thread_task* get_next_task(size_t) override;
 };
 
@@ -155,66 +154,6 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     istart(0),
     iorder(0),
     ifinish(0) {}
-
-
-/**
- * This function finishes initializing the scheduler object, and then runs
- * the scheduler in the thread pool. When this function returns, the entire
- * ordered job will already be completed.
- *
- * In case you're wondering what the crazy hack is this, here's the general
- * idea:
- *
- * The syntax for parallel ordered for-loop looks like this:
- *
- *     dt::parallel_for_ordered(n,
- *       [&](prepare_ordered_fn parallel) {
- *         ... prepare context ...
- *         parallel(
- *           [&](size_t i){ ... pre_ordered ... },
- *           [&](size_t i){ ... ordered ... },
- *           [&](size_t i){ ... post_ordered ... }
- *         );
- *         ... cleanup context ...
- *       });
- *
- * The crucial part is that there is some per-thread (or per-task) context
- * that has to be prepared, then the functions pre_ordered/ordered/post_ordered
- * should run in the current thread team, and only once the job is completely
- * finished should the thread-local context be cleaned up.
- *
- * This feat should be achieved in such a way that there are more task objects
- * than threads. Thus, conceptually what we want to happen is that multiple
- * tasks start executing the outer lambda, then "pause" at the "parallel"
- * section, then the team of threads would jointly execute the parallel section,
- * and only then each task would "unpause" and proceed with cleaning up the
- * thread-local context.
- *
- * In practice we achieve this via deep recursion: the "thread-local" contexts
- * are prepared in master thread one by one. When a new context is created,
- * the triple of functions pre_ordered/ordered/post_ordered (each capturing the
- * context via lambda mechanisms) is pushed onto the vector of ordered tasks.
- * At this point we recursively start creating the next context without
- * returning from the function. This would create a sequence of `n` nested
- * functions; and at the deepest level we call `thpool->execute_job(this)`.
- * Once this function returns, the ordered job is finished and we are free to
- * exit each level of the `init()` function, running the "cleanup context" part
- * of its body.
- */
-void ordered_scheduler::run(const function<void(prepare_ordered_fn)>& init,
-                            thread_pool* thpool)
-{
-  tasks.reserve(n_tasks);
-  prepare_ordered_fn prepare = [&](f1t fpre, f1t ford, f1t fpost) {
-    tasks.emplace_back(fpre, ford, fpost);
-    if (tasks.size() == n_tasks) {
-      thpool->execute_job(this);
-    } else {
-      init(prepare);
-    }
-  };
-  init(prepare);
-}
 
 
 thread_task* ordered_scheduler::get_next_task(size_t ith) {
@@ -267,36 +206,102 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 
 
 //------------------------------------------------------------------------------
+// ordered
+//------------------------------------------------------------------------------
+
+ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
+  : sch(s), init(f) {}
+
+/**
+ * This function finishes initializing the scheduler object, and then runs
+ * the scheduler in the thread pool. When this function returns, the entire
+ * ordered job will already be completed.
+ *
+ * In case you're wondering what the crazy hack is this, here's the general
+ * idea:
+ *
+ * The syntax for parallel ordered for-loop looks like this:
+ *
+ *     dt::parallel_for_ordered(n,
+ *       [&](ordered* o) {
+ *         ... prepare context ...
+ *         o->parallel(
+ *           [&](size_t i){ ... pre_ordered ... },
+ *           [&](size_t i){ ... ordered ... },
+ *           [&](size_t i){ ... post_ordered ... }
+ *         );
+ *         ... cleanup context ...
+ *       });
+ *
+ * The crucial part is that there is some per-thread (or per-task) context
+ * that has to be prepared, then the functions pre_ordered/ordered/post_ordered
+ * should run in the current thread team, and only once the job is completely
+ * finished should the thread-local context be cleaned up.
+ *
+ * This feat should be achieved in such a way that there are more task objects
+ * than threads. Thus, conceptually what we want to happen is that multiple
+ * tasks start executing the outer lambda, then "pause" at the "parallel"
+ * section, then the team of threads would jointly execute the parallel section,
+ * and only then each task would "unpause" and proceed with cleaning up the
+ * thread-local context.
+ *
+ * In practice we achieve this via deep recursion: the "thread-local" contexts
+ * are prepared in master thread one by one. When a new context is created,
+ * the triple of functions pre_ordered/ordered/post_ordered (each capturing the
+ * context via lambda mechanisms) is pushed onto the vector of ordered tasks.
+ * At this point we recursively start creating the next context without
+ * returning from the function. This would create a sequence of `n` nested
+ * functions; and at the deepest level we call `thpool->execute_job(this)`.
+ * Once this function returns, the ordered job is finished and we are free to
+ * exit each level of the `init()` function, running the "cleanup context" part
+ * of its body.
+ */
+void ordered::parallel(function<void(size_t)> pre_ordered,
+                       function<void(size_t)> do_ordered,
+                       function<void(size_t)> post_ordered)
+{
+  if (sch->n_threads <= 1) {
+    if (!pre_ordered)  pre_ordered = noop;
+    if (!do_ordered)   do_ordered = noop;
+    if (!post_ordered) post_ordered = noop;
+    for (size_t j = 0; j < sch->n_iterations; ++j) {
+      pre_ordered(j);
+      do_ordered(j);
+      post_ordered(j);
+    }
+  }
+  else {
+    sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
+    if (sch->tasks.size() == sch->n_tasks) {
+      thread_pool* thpool = thread_pool::get_instance();
+      thpool->execute_job(sch);
+    } else {
+      init(this);
+    }
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // parallel_for_ordered
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered(size_t nrows, size_t nthreads,
-                          function<void(prepare_ordered_fn)> fn)
+                          function<void(ordered*)> fn)
 {
   thread_pool* thpool = thread_pool::get_instance();
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;
 
-  if (nthreads <= 1) {
-    fn([=](f1t fpre, f1t ford, f1t fpost) {
-      if (!fpre) fpre = noop;
-      if (!ford) ford = noop;
-      if (!fpost) fpost = noop;
-      for (size_t j = 0; j < nrows; ++j) {
-        fpre(j);
-        ford(j);
-        fpost(j);
-      }
-    });
-  }
-  else {
-    size_t ntasks = std::min(nrows, nthreads * 2);
-    if (nthreads > ntasks) nthreads = ntasks;
-    ordered_scheduler sch(ntasks, nthreads, nrows);
-    thread_team tt(nthreads, thpool);
-    sch.run(fn, thpool);
-  }
+  size_t ntasks = std::min(nrows, nthreads * 2);
+  if (nthreads > ntasks) nthreads = ntasks;
+  thread_team tt(nthreads, thpool);
+  ordered_scheduler sch(ntasks, nthreads, nrows);
+  ordered octx(&sch, fn);
+  fn(&octx);
 }
 
 

@@ -118,12 +118,19 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
  * whereas the `ordered(i)` parts will run sequentially, in single-threaded
  * mode.
  */
-using prepare_ordered_fn = function<void(function<void(size_t)> pre_ordered,
-                                         function<void(size_t)> ordered,
-                                         function<void(size_t)> post_ordered)>;
+class ordered_scheduler;
+class ordered {
+  ordered_scheduler* sch;
+  function<void(ordered*)> init;
+  public:
+    ordered(ordered_scheduler*, function<void(ordered*)>);
+    void parallel(function<void(size_t)> pre_ordered,
+                  function<void(size_t)> do_ordered,
+                  function<void(size_t)> post_ordered);
+};
 
 void parallel_for_ordered(size_t nrows, size_t nthreads,
-                          function<void(prepare_ordered_fn)>);
+                          function<void(ordered*)> fn);
 
 
 }  // namespace dt

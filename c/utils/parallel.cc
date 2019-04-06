@@ -53,10 +53,10 @@ void ordered_job::execute() {
   dt::parallel_for_ordered(
     nchunks,
     nthreads,  // will be truncated to pool size if necessary
-    [&](prepare_ordered_fn parallel) {
+    [&](ordered* o) {
       ojcptr ctx = start_thread_context();
 
-      parallel(
+      o->parallel(
         [&](size_t j) {
           size_t i0 = j * chunksize;
           size_t i1 = std::min(i0 + chunksize, nrows);
@@ -92,13 +92,13 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
   dt::parallel_for_ordered(
     nchunks,
     nthreads,  // will be truncated to pool size if necessary
-    [&](prepare_ordered_fn parallel) {
+    [&](ordered* o) {
       using sbptr = std::unique_ptr<string_buf>;
       auto sb = force_str64
         ? sbptr(new writable_string_col::buffer_impl<uint64_t>(outcol))
         : sbptr(new writable_string_col::buffer_impl<uint32_t>(outcol));
 
-      parallel(
+      o->parallel(
         [&](size_t j) {
           size_t i0 = j * chunksize;
           size_t i1 = std::min(i0 + chunksize, nrows);
