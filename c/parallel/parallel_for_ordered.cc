@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <iostream>
+#include <functional>
 #include <mutex>
 #include <thread>   // std::this_thread
 #include <vector>
@@ -30,7 +31,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 // ordered_task
 //------------------------------------------------------------------------------
-using f1t = function<void(size_t)>;
+using f1t = std::function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
@@ -210,7 +211,7 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 // ordered
 //------------------------------------------------------------------------------
 
-ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
+ordered::ordered(ordered_scheduler* s, std::function<void(ordered*)> f)
   : sch(s), init(f) {}
 
 /**
@@ -257,9 +258,9 @@ ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
  * exit each level of the `init()` function, running the "cleanup context" part
  * of its body.
  */
-void ordered::parallel(function<void(size_t)> pre_ordered,
-                       function<void(size_t)> do_ordered,
-                       function<void(size_t)> post_ordered)
+void ordered::parallel(std::function<void(size_t)> pre_ordered,
+                       std::function<void(size_t)> do_ordered,
+                       std::function<void(size_t)> post_ordered)
 {
   std::cout << "entering ordered::parallel()\n";
   if (sch->n_threads <= 1) {
@@ -299,7 +300,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered(size_t niters, size_t nthreads,
-                          function<void(ordered*)> fn)
+                          std::function<void(ordered*)> fn)
 {
   std::cout << "Entered parallel_for_ordered(niters=" << niters << ", nthreads=" << nthreads << ")\n";
   if (!niters) return;
