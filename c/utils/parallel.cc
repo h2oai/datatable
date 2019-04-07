@@ -100,7 +100,7 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
 
       o->parallel(
         [&](size_t j) {
-          size_t i0 = j * chunksize;
+          size_t i0 = std::min(j * chunksize, nrows);
           size_t i1 = std::min(i0 + chunksize, nrows);
 
           sb->commit_and_start_new_chunk(i0);
