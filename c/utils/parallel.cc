@@ -58,7 +58,7 @@ void ordered_job::execute() {
 
       o->parallel(
         [&](size_t j) {
-          size_t i0 = j * chunksize;
+          size_t i0 = std::min(j * chunksize, nrows);
           size_t i1 = std::min(i0 + chunksize, nrows);
           run(ctx, i0, i1);
         },
