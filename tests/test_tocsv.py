@@ -147,7 +147,7 @@ def test_save_bool():
 def test_save_int8():
     src = [1, 0, -5, None, 127, -127, 99, 10, 100, -100, -10]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.Frame(src)
+    d = dt.Frame(src, stypes=[dt.int8])
     assert d.stypes == (stype.int8, )
     assert d.to_csv() == "C0\n" + res + "\n"
 
@@ -156,7 +156,7 @@ def test_save_int16():
     src = [0, 10, 100, 1000, 10000, 32767, -32767, -10, -20, 5, 5125, 3791,
            21, -45, 93, 0, None, 0, None, None, 499, 999, 1001, -8, None, -1]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.Frame(src)
+    d = dt.Frame(src, stypes=[dt.int16])
     assert d.stypes == (stype.int16, )
     assert d.to_csv() == "C0\n" + res + "\n"
 
