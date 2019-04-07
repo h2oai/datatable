@@ -116,7 +116,7 @@ def test_groups1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
     f1 = f0[:, mean(f.B), by(f.A)]
-    assert f1.stypes == (dt.int8, dt.float64,)
+    assert f1.stypes == (dt.int32, dt.float64,)
     assert f1.to_list() == [[1, 2, 3], [3.8, 2.0, 5.0]]
     f2 = f0[:, mean(f.B), "A"]
     assert f2.stypes == f1.stypes
