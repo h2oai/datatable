@@ -321,8 +321,8 @@ def test_rbind_views3():
 
 
 def test_rbind_different_stypes1():
-    dt0 = dt.Frame([[1, 5, 24, 100]])
-    dt1 = dt.Frame([[1000, 2000]])
+    dt0 = dt.Frame([[1, 5, 24, 100]], stype = dt.int8)
+    dt1 = dt.Frame([[1000, 2000]], stype = dt.int16)
     dt2 = dt.Frame([[134976130]])
     assert dt0.stypes[0] == stype.int8
     assert dt1.stypes[0] == stype.int16
@@ -334,7 +334,7 @@ def test_rbind_different_stypes1():
 
 def test_rbind_different_stypes2():
     dt0 = dt.Frame([[True, False, True]])
-    dt1 = dt.Frame([[1, 2, 3]])
+    dt1 = dt.Frame([[1, 2, 3]], stype = dt.int8)
     dt2 = dt.Frame([[0.1, 0.5]])
     assert dt0.stypes[0] == stype.bool8
     assert dt1.stypes[0] == stype.int8
