@@ -23,12 +23,6 @@
 #define dt_FRAME_PYFRAME_h
 #include "python/ext_type.h"
 #include "datatable.h"
-#include "py_datatable.h"
-
-namespace pydatatable {  // temp
-  void _clear_types(obj*);
-  PyObject* check(obj*, PyObject*);
-}
 
 
 namespace py {
@@ -41,11 +35,10 @@ namespace py {
  */
 class Frame : public PyObject {
   private:
-    DataTable* dt;
+    DataTable* dt;  // owned (cannot use unique_ptr because this class's
+                    // destructor is never called by Python)
     mutable PyObject* stypes;  // memoized tuple of stypes
     mutable PyObject* ltypes;  // memoized tuple of ltypes
-
-    pydatatable::obj* core_dt;  // TODO: remove
 
   public:
     class Type : public ExtType<Frame> {
@@ -65,6 +58,7 @@ class Frame : public PyObject {
         static void _init_replace(Methods&);
         static void _init_repr(Methods&);
         static void _init_sizeof(Methods&);
+        static void _init_sort(Methods&);
         static void _init_stats(Methods&);
         static void _init_tocsv(Methods&);
         static void _init_tonumpy(Methods&);
@@ -78,8 +72,6 @@ class Frame : public PyObject {
 
     void m__init__(PKArgs&);
     void m__dealloc__();
-    void m__get_buffer__(Py_buffer* buf, int flags) const;
-    void m__release_buffer__(Py_buffer* buf) const;
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
@@ -99,7 +91,6 @@ class Frame : public PyObject {
     oobj get_ltypes() const;
     oobj get_names() const;
     oobj get_key() const;
-    oobj get_internal() const;
     void set_nrows(robj);
     void set_names(robj);
     void set_key(robj);
@@ -109,9 +100,11 @@ class Frame : public PyObject {
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
     oobj head(const PKArgs&);
+    void materialize(const PKArgs&);
     void rbind(const PKArgs&);
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
+    oobj sort(const PKArgs&);
     oobj tail(const PKArgs&);
 
     // Conversion methods
@@ -127,9 +120,14 @@ class Frame : public PyObject {
     oobj stat(const PKArgs&);
     oobj stat1(const PKArgs&);
 
+    // Exposed to users as `dt.frame_integrity_check(frame)` function
+    void integrity_check();
+
   private:
     static bool internal_construction;
     class NameProvider;
+
+    ~Frame() {}
     void _clear_types() const;
     void _clear_names();
     void _init_names() const;
@@ -141,8 +139,6 @@ class Frame : public PyObject {
     // getitem / setitem support
     oobj _main_getset(robj item, robj value);
 
-    friend void pydatatable::_clear_types(pydatatable::obj*); // temp
-    friend PyObject* pydatatable::check(pydatatable::obj*, PyObject*); // temp
     friend class FrameInitializationManager;
     friend class pylistNP;
     friend class strvecNP;

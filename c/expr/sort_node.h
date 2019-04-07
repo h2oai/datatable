@@ -58,6 +58,8 @@ class osort : public oobj {
     osort& operator=(const osort&) = default;
     osort& operator=(osort&&) = default;
 
+    osort(const otuple& cols);
+
     static bool check(PyObject* v);
     static void init(PyObject* m);
 

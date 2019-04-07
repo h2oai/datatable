@@ -6,10 +6,10 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <type_traits>
-#include "column.h"
-#include "utils.h"
 #include "utils/assert.h"
-#include "utils/parallel.h"
+#include "utils/misc.h"
+#include "parallel/api.h"  // dt::parallel_for_static
+#include "column.h"
 
 
 
@@ -85,15 +85,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 //==============================================================================
 
 template <typename T>
-void FwColumn<T>::replace_buffer(MemoryRange&& new_mbuf) {
-  if (new_mbuf.size() % sizeof(T)) {
-    throw RuntimeError() << "New buffer has invalid size " << new_mbuf.size();
-  }
-  mbuf = std::move(new_mbuf);
-  nrows = mbuf.size() / sizeof(T);
-}
-
-template <typename T>
 size_t FwColumn<T>::elemsize() const {
   return sizeof(T);
 }
@@ -111,7 +102,7 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) reify();
+  if (ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -137,7 +128,7 @@ void FwColumn<T>::set_elem(size_t i, T value) {
 
 
 template <typename T>
-void FwColumn<T>::reify() {
+void FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
   if (!ri) return;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
@@ -193,7 +184,7 @@ template <typename T>
 void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
   if (new_nrows == nrows) return;
-  reify();
+  materialize();
 
   mbuf.resize(sizeof(T) * new_nrows);
 
@@ -222,24 +213,24 @@ size_t FwColumn<T>::data_nrows() const {
 template <typename T>
 void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   const int8_t* maskdata = mask->elements_r();
-  constexpr T na = GETNA<T>();
   T* coldata = this->elements_w();
-  #pragma omp parallel for schedule(dynamic, 1024)
-  for (size_t j = 0; j < nrows; ++j) {
-    if (maskdata[j] == 1) coldata[j] = na;
-  }
+
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      if (maskdata[i] == 1) coldata[i] = GETNA<T>();
+    });
   if (stats != nullptr) stats->reset();
 }
 
 
 template <typename T>
 void FwColumn<T>::fill_na() {
+  xassert(!ri);
   T* vals = static_cast<T*>(mbuf.wptr());
-  #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < nrows; ++i) {
-    vals[i] = GETNA<T>();
-  }
-  ri.clear();
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      vals[i] = GETNA<T>();
+    });
 }
 
 
@@ -258,7 +249,7 @@ template <typename T>
 void FwColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
-  reify();
+  materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
@@ -326,9 +317,10 @@ RowIndex FwColumn<T>::join(const Column* keycol) const {
 template <typename T>
 void FwColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
   const T* tdata = elements_r();
-  for (size_t i = row0; i < row1; ++i) {
-    outmask[i] = ISNA<T>(tdata[i]);
-  }
+  ri.iterate(row0, row1, 1,
+    [&](size_t i, size_t j) {
+      outmask[i] = (j == RowIndex::NA) || ISNA<T>(tdata[j]);
+    });
 }
 
 

@@ -44,36 +44,6 @@ class Frame(core.Frame):
     This is a primary data structure for datatable module.
     """
 
-    def sort(self, *cols):
-        """
-        Sort Frame by the specified column(s).
-
-        Parameters
-        ----------
-        cols: List[str | int]
-            Names or indices of the columns to sort by. If no columns are given,
-            the Frame will be sorted on all columns.
-
-        Returns
-        -------
-        New Frame sorted by the provided column(s). The target Frame
-        remains unmodified.
-        """
-        if not cols:
-            cols = list(range(self.ncols))
-        elif len(cols) == 1 and isinstance(cols[0], list):
-            cols = cols[0]
-        else:
-            cols = list(cols)
-        return self[:, :, datatable.sort(*cols)]
-
-
-    def materialize(self):
-        if self._dt.isview:
-            self._dt.materialize()
-
-
-
     #---------------------------------------------------------------------------
     # Deprecated
     #---------------------------------------------------------------------------
@@ -156,7 +126,7 @@ class Frame(core.Frame):
 #-------------------------------------------------------------------------------
 
 core._register_function(7, Frame)
-core._install_buffer_hooks(Frame())
+core._install_buffer_hooks(Frame)
 
 
 options.register_option(

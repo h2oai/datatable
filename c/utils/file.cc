@@ -5,14 +5,14 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "utils/file.h"
 #include <errno.h>      // errno
 #include <fcntl.h>      // open
 #include <stdio.h>      // remove
 #include <string.h>     // strerror
 #include <sys/stat.h>   // fstat
 #include <unistd.h>     // close, write, ftruncate
-#include "utils.h"
+#include "utils/file.h"
+#include "utils/misc.h"
 
 
 const int File::READ = O_RDONLY;

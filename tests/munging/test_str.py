@@ -19,6 +19,7 @@ import pytest
 import random
 import re
 from datatable import stype, f
+from datatable.internal import frame_integrity_check
 from tests import noop, random_string
 
 
@@ -26,13 +27,14 @@ from tests import noop, random_string
 # split_into_nhot
 #-------------------------------------------------------------------------------
 
-def test_split_into_nhot0():
+@pytest.mark.parametrize('sort', [False, True])
+def test_split_into_nhot0(sort):
     f0 = dt.Frame(["cat, dog, mouse, peacock, frog",
                    "armadillo, fox, hedgehog",
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
-    f1 = dt.split_into_nhot(f0)
-    f1.internal.check()
+    f1 = dt.split_into_nhot(f0, sort = sort)
+    frame_integrity_check(f1)
     fr = dt.Frame({"cat":       [1, 0, 1, 1],
                    "dog":       [1, 0, 1, 1],
                    "mouse":     [1, 0, 1, 0],
@@ -44,6 +46,8 @@ def test_split_into_nhot0():
                    "horse":     [0, 0, 0, 1],
                    "raccoon":   [0, 0, 0, 1]})
     assert set(f1.names) == set(fr.names)
+    if sort :
+        assert list(f1.names) == sorted(fr.names)
     fr = fr[:, f1.names]
     assert f1.names == fr.names
     assert f1.stypes == (dt.stype.bool8, ) * f1.ncols
@@ -58,7 +62,7 @@ def test_split_into_nhot1():
                    '(\t"meow", \'purr\')',
                    "{purr}"])
     f1 = dt.split_into_nhot(f0)
-    f1.internal.check()
+    frame_integrity_check(f1)
     fr = dt.Frame(meow=[1, 1, 1, 1, 0], purr=[0, 0, 1, 1, 1])
     assert set(f1.names) == set(fr.names)
     fr = fr[..., f1.names]
@@ -195,26 +199,26 @@ def test_re_match_ignore_groups():
 
 
 def test_re_match_bad_regex1():
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError):
         noop(dt.Frame(["abc"])[f.A.re_match("(."), :])
-    assert ("Invalid regular expression: it contained mismatched ( and )"
-            in str(e.value))
+    # assert ("Invalid regular expression: it contained mismatched ( and )"
+    #         in str(e.value))
 
 
 def test_re_match_bad_regex2():
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError):
         noop(dt.Frame(["abc"])[f.A.re_match("\\j"), :])
-    assert ("Invalid regular expression: it contained an invalid escaped "
-            "character, or a trailing escape"
-            in str(e.value))
+    # assert ("Invalid regular expression: it contained an invalid escaped "
+    #         "character, or a trailing escape"
+    #         in str(e.value))
 
 
 def test_re_match_bad_regex3():
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError):
         noop(dt.Frame(["abc"])[f.A.re_match("???"), :])
-    assert ("Invalid regular expression: One of *?+{ was not preceded by a "
-            "valid regular expression"
-            in str(e.value))
+    # assert ("Invalid regular expression: One of *?+{ was not preceded by a "
+    #         "valid regular expression"
+    #         in str(e.value))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])

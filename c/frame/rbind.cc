@@ -18,8 +18,10 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
+#include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+
 
 static void _check_ncols(size_t n0, size_t n1) {
   if (n0 == n1) return;
@@ -109,7 +111,7 @@ void Frame::rbind(const PKArgs& args) {
     size_t j = 0;
     for (auto arg : args.varargs()) {
       if (arg.is_frame()) {
-        DataTable* df = arg.to_frame();
+        DataTable* df = arg.to_datatable();
         if (df->nrows) dts.push_back(df);
         ++j;
       }
@@ -120,7 +122,7 @@ void Frame::rbind(const PKArgs& args) {
           if (!item.is_frame()) {
             _notframe_error(j, item);
           }
-          DataTable* df = item.to_frame();
+          DataTable* df = item.to_datatable();
           if (df->nrows) dts.push_back(df);
           ++j;
         }
@@ -271,7 +273,7 @@ void DataTable::rbind(
   xassert(new_ncols >= ncols);
 
   // If this is a view Frame, then it must be materialized.
-  this->reify();
+  this->materialize();
 
   columns.resize(new_ncols, nullptr);
   for (size_t i = ncols; i < new_ncols; ++i) {
@@ -290,7 +292,7 @@ void DataTable::rbind(
       Column* col = k == INVALID_INDEX
                       ? new VoidColumn(dts[j]->nrows)
                       : dts[j]->columns[k]->shallowcopy();
-      col->reify();
+      col->materialize();
       cols_to_append[j] = col;
     }
     columns[i] = columns[i]->rbind(cols_to_append);

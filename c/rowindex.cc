@@ -21,11 +21,11 @@
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
 #include "utils/assert.h"
-#include "utils/parallel.h"
+#include "utils/misc.h"
+#include "parallel/api.h"     // dt::parallel_for_static
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
-#include "utils.h"
 
 
 //------------------------------------------------------------------------------
@@ -101,16 +101,6 @@ RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
   TRACK(this, sizeof(*this), "RowIndex");
 }
 
-RowIndex::RowIndex(filterfn32* f, size_t n, bool sorted) {
-  impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
-}
-
-RowIndex::RowIndex(filterfn64* f, size_t n, bool sorted) {
-  impl = (new ArrayRowIndexImpl(f, n, sorted))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
-}
-
 RowIndex::RowIndex(const Column* col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
   TRACK(this, sizeof(*this), "RowIndex");
@@ -132,6 +122,11 @@ bool RowIndex::isabsent() const {
 
 bool RowIndex::isslice() const {
   return impl && impl->type == RowIndexType::SLICE;
+}
+
+bool RowIndex::is_simple_slice() const {
+  return impl && impl->type == RowIndexType::SLICE &&
+         slice_rowindex_get_step(impl) == 1;
 }
 
 bool RowIndex::isarr32() const {
@@ -217,12 +212,10 @@ void RowIndex::extract_into(arr32_t& target) const {
       if (szlen <= INT32_MAX && max() <= INT32_MAX) {
         size_t start = slice_start();
         size_t step = slice_step();
-        dt::run_interleaved(
-          [&](size_t i0, size_t i1, size_t di) {
-            for (size_t i = i0; i < i1; i += di) {
-              target[i] = static_cast<int32_t>(start + i * step);
-            }
-          }, szlen);
+        dt::parallel_for_static(szlen,
+          [&](size_t i) {
+            target[i] = static_cast<int32_t>(start + i * step);
+          });
       }
       break;
     }

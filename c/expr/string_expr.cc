@@ -21,9 +21,10 @@
 //------------------------------------------------------------------------------
 #include <regex>
 #include "expr/base_expr.h"
+#include "parallel/api.h"
 #include "utils/exceptions.h"
-
 namespace dt {
+
 
 static Error translate_exception(const std::regex_error& e) {
   auto ret = ValueError() << "Invalid regular expression: ";
@@ -44,25 +45,25 @@ static Error translate_exception(const std::regex_error& e) {
 
 class expr_string_match_re : public base_expr {
   private:
-    base_expr* arg;
+    pexpr arg;
     std::string pattern;
     std::regex regex;
     // int flags;
 
   public:
-    expr_string_match_re(base_expr* expr, py::oobj params);
+    expr_string_match_re(pexpr&& expr, py::oobj params);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe& wf) override;
+    colptr evaluate_eager(workframe& wf) override;
 
   private:
     template <typename T>
-    Column* _compute(Column* src);
+    colptr _compute(Column* src);
 };
 
 
-expr_string_match_re::expr_string_match_re(base_expr* expr, py::oobj params) {
-  arg = expr;
+expr_string_match_re::expr_string_match_re(pexpr&& expr, py::oobj params) {
+  arg = std::move(expr);
   py::otuple tp = params.to_otuple();
   xassert(tp.size() == 2);
 
@@ -103,17 +104,17 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column* expr_string_match_re::evaluate_eager(workframe& wf) {
-  Column* arg_res = arg->evaluate_eager(wf);
+colptr expr_string_match_re::evaluate_eager(workframe& wf) {
+  auto arg_res = arg->evaluate_eager(wf);
   SType arg_stype = arg_res->stype();
   xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
-  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res)
-                                  : _compute<uint64_t>(arg_res);
+  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res.get())
+                                  : _compute<uint64_t>(arg_res.get());
 }
 
 
 template <typename T>
-Column* expr_string_match_re::_compute(Column* src) {
+colptr expr_string_match_re::_compute(Column* src) {
   auto ssrc = dynamic_cast<StringColumn<T>*>(src);
   size_t nrows = ssrc->nrows;
   RowIndex src_rowindex = ssrc->rowindex();
@@ -123,21 +124,21 @@ Column* expr_string_match_re::_compute(Column* src) {
   auto trg = new BoolColumn(nrows);
   int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
 
-  #pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < nrows; ++i) {
-    size_t j = src_rowindex[i];
-    T start = src_offsets[j - 1] & ~GETNA<T>();
-    T end = src_offsets[j];
-    if (ISNA<T>(end)) {
-      trg_data[i] = GETNA<int8_t>();
-      continue;
-    }
-    bool res = std::regex_match(src_strdata + start,
-                                src_strdata + end,
-                                regex);
-    trg_data[i] = res;
-  }
-  return trg;
+  dt::parallel_for_dynamic(nrows,
+    [&](size_t i) {
+      size_t j = src_rowindex[i];
+      T start = src_offsets[j - 1] & ~GETNA<T>();
+      T end = src_offsets[j];
+      if (ISNA<T>(end)) {
+        trg_data[i] = GETNA<int8_t>();
+        return;
+      }
+      bool res = std::regex_match(src_strdata + start,
+                                  src_strdata + end,
+                                  regex);
+      trg_data[i] = res;
+    });
+  return colptr(trg);
 }
 
 
@@ -147,10 +148,12 @@ Column* expr_string_match_re::_compute(Column* src) {
 // Factory function
 //------------------------------------------------------------------------------
 
-base_expr* expr_string_fn(size_t op, base_expr* arg, py::oobj params) {
+pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
   switch (static_cast<strop>(op)) {
-    case strop::RE_MATCH: return new expr_string_match_re(arg, params);
+    case strop::RE_MATCH:
+      return pexpr(new expr_string_match_re(std::move(arg), params));
   }
+  return pexpr();  // LCOV_EXCL_LINE
 }
 
 

@@ -25,7 +25,78 @@
 #include "expr/workframe.h"
 #include "python/ext_type.h"
 
+namespace dt {
 
+class base_expr;
+using pexpr = std::unique_ptr<base_expr>;
+using colptr = std::unique_ptr<Column>;
+
+
+//------------------------------------------------------------------------------
+// dt::base_expr
+//------------------------------------------------------------------------------
+
+class base_expr {  // move into expr?
+  public:
+    base_expr();
+    virtual ~base_expr();
+    virtual SType resolve(const workframe&) = 0;
+    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
+    virtual colptr evaluate_eager(workframe&) = 0;
+
+    virtual bool is_column_expr() const;
+    virtual bool is_negated_expr() const;
+    virtual pexpr get_negated_expr();
+    virtual size_t get_col_index(const workframe&);
+};
+
+
+}
+namespace expr {
+
+
+//------------------------------------------------------------------------------
+// Reduce
+//------------------------------------------------------------------------------
+
+// Synchronize with datatable/expr/reduce_expr.py
+enum class ReduceOp : size_t {
+  MEAN   = 1,
+  MIN    = 2,
+  MAX    = 3,
+  STDEV  = 4,
+  FIRST  = 5,
+  SUM    = 6,
+  COUNT  = 7,  // count of non-NA values in each group
+  MEDIAN = 8,
+};
+
+// Each ReduceOp must be < REDUCEOP_COUNT
+constexpr size_t REDUCEOP_COUNT = 8 + 1;
+
+
+
+
+class expr_reduce : public dt::base_expr {
+  private:
+    dt::pexpr arg;
+    ReduceOp opcode;
+
+  public:
+    expr_reduce(dt::pexpr&& a, size_t op);
+    SType resolve(const dt::workframe& wf) override;
+    dt::GroupbyMode get_groupby_mode(const dt::workframe&) const override;
+    std::unique_ptr<Column> evaluate_eager(dt::workframe& wf) override;
+};
+
+
+// Call once, during module initialization
+void init_reducers();
+
+
+
+
+}
 namespace dt {
 
 enum exprCode : size_t {
@@ -75,27 +146,6 @@ enum class strop : size_t {
   RE_MATCH = 1,
 };
 
-class base_expr;
-using pexpr = std::unique_ptr<base_expr>;
-
-
-//------------------------------------------------------------------------------
-// dt::base_expr
-//------------------------------------------------------------------------------
-
-class base_expr {
-  public:
-    base_expr();
-    virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column* evaluate_eager(workframe&) = 0;
-
-    virtual bool is_column_expr() const;
-    virtual bool is_negated_expr() const;
-    virtual pexpr get_negated_expr();
-    virtual size_t get_col_index(const workframe&);
-};
 
 
 class expr_column : public base_expr {
@@ -112,11 +162,11 @@ class expr_column : public base_expr {
     bool is_column_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column* evaluate_eager(workframe&) override;
+    colptr evaluate_eager(workframe&) override;
 };
 
 
-base_expr* expr_string_fn(size_t op, base_expr* arg, py::oobj params);
+pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params);
 
 
 
@@ -126,7 +176,7 @@ namespace py {
 
 class base_expr : public PyObject {
   private:
-    dt::base_expr* expr;
+    dt::base_expr* expr;  // owned
 
   public:
     class Type : public ExtType<base_expr> {
@@ -141,7 +191,7 @@ class base_expr : public PyObject {
     void m__init__(PKArgs&);
     void m__dealloc__();
 
-    dt::base_expr* release();
+    dt::pexpr release();
 };
 
 

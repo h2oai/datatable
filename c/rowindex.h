@@ -35,9 +35,6 @@ enum class RowIndexType : uint8_t {
   SLICE = 3,
 };
 
-using filterfn32 = int (size_t row0, size_t row1, int32_t* ind, size_t* nouts);
-using filterfn64 = int (size_t row0, size_t row1, int64_t* ind, size_t* nouts);
-
 
 
 //==============================================================================
@@ -90,30 +87,6 @@ class RowIndex {
      */
     RowIndex(const arr64_t& starts, const arr64_t& counts, const arr64_t& steps);
 
-    /**
-     * Construct a RowIndex object using an external filter function. The
-     * provided filter function is expected to take a range of rows `row0:row1`
-     * and an output buffer, and writes the indices of the selected rows into
-     * that buffer. This function then handles assembling that output into a
-     * final RowIndex structure, as well as distributing the work load among
-     * multiple threads.
-     *
-     * @param f
-     *     Pointer to the filter function with the signature `(row0, row1, out,
-     *     &nouts) -> int`. The filter function has to determine which rows in
-     *     the range `row0:row1` are to be included, and write their indices
-     *     into the array `out`. It should also store in the variable `nouts`
-     *     the number of rows selected.
-     *
-     * @param n
-     *     Number of rows in the datatable that is being filtered.
-     *
-     * @param sorted
-     *     When True indicates that the filter function is guaranteed to produce
-     *     row index in sorted order.
-     */
-    RowIndex(filterfn32* f, size_t n, bool sorted);
-    RowIndex(filterfn64* f, size_t n, bool sorted);
 
     /**
      * Create RowIndex from either a boolean or an integer column.
@@ -128,6 +101,7 @@ class RowIndex {
     RowIndexType type() const noexcept;
     bool isabsent() const;
     bool isslice() const;
+    bool is_simple_slice() const;  // is this a slice with step==1?
     bool isarr32() const;
     bool isarr64() const;
     bool isarray() const;

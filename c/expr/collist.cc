@@ -224,10 +224,9 @@ class collist_maker
       py::oobj res = elem.invoke("_core");
       xassert(res.typeobj() == &py::base_expr::Type::type);
       auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-      dt::base_expr* pexpr = pybe->release();
-      auto expr = std::unique_ptr<dt::base_expr>(pexpr);
+      auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
 
-      dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(pexpr);
+      dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(expr.get());
       if (colexpr) {
         size_t frid = colexpr->get_frame_id();
         if (frid == 0) {

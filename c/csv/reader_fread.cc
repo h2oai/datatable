@@ -5,23 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "csv/reader_fread.h"
-#include <string.h>    // memcpy
-#include <sys/mman.h>  // mmap
-#include <cmath>       // std::exp
-#include <exception>
-#include <map>         // std::map
-#include "csv/reader.h"
-#include "csv/reader_parsers.h"
-#include "csv/fread.h"
-#include "datatable.h"
-#include "column.h"
-#include "py_datatable.h"
-#include "py_encodings.h"
-#include "py_utils.h"
-#include "utils/assert.h"
-#include "utils/file.h"
-#include "utils.h"
+#include "csv/reader_fread.h"    // FreadReader
+#include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
+#include "utils/misc.h"          // wallclock
+#include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
 
 
@@ -45,14 +32,14 @@ FreadReader::FreadReader(const GenericReader& g)
   n_sample_lines = 0;
   whiteChar = '\0';
   quoteRule = -1;
-  LFpresent = false;
+  cr_is_newline = true;
   fo.input_size = input_size;
 }
 
 FreadReader::~FreadReader() {}
 
 
-FreadTokenizer FreadReader::makeTokenizer(
+dt::read::FreadTokenizer FreadReader::makeTokenizer(
     dt::read::field64* target, const char* anchor) const
 {
   return {
@@ -68,7 +55,7 @@ FreadTokenizer FreadReader::makeTokenizer(
     .quoteRule = quoteRule,
     .strip_whitespace = strip_whitespace,
     .blank_is_na = blank_is_na,
-    .LFpresent = LFpresent,
+    .cr_is_newline = cr_is_newline,
   };
 }
 
@@ -222,7 +209,7 @@ class HypothesisNoQC : public Hypothesis {
  * H1: QC = «"», starting with QR1 = 0
  * H2: QC = «'», starting with QR2 = 0
  */
-void FreadReader::detect_sep(FreadTokenizer&) {
+void FreadReader::detect_sep(dt::read::FreadTokenizer&) {
 }
 
 /**
@@ -263,7 +250,7 @@ void FreadReader::detect_sep_and_qr() {
                             //    lines of fewer)
 
   dt::read::field64 trash;
-  FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  dt::read::FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -383,12 +370,12 @@ void FreadReader::detect_sep_and_qr() {
 class ColumnTypeDetectionChunkster {
   public:
     const FreadReader& f;
-    FreadTokenizer fctx;
+    dt::read::FreadTokenizer fctx;
     size_t nchunks;
     size_t chunk_distance;
     const char* last_row_end;
 
-    ColumnTypeDetectionChunkster(FreadReader& fr, FreadTokenizer& ft)
+    ColumnTypeDetectionChunkster(FreadReader& fr, dt::read::FreadTokenizer& ft)
         : f(fr), fctx(ft)
     {
       nchunks = 0;
@@ -423,13 +410,13 @@ class ColumnTypeDetectionChunkster {
       dt::read::ChunkCoordinates cc(f.eof, f.eof);
       if (j == 0) {
         if (f.header == 0) {
-          cc.start = f.sof;
+          cc.set_start_exact(f.sof);
         } else {
           // If `header` is either True or <auto>, we skip the first row during
           // type detection.
           fctx.ch = f.sof;
           int n = fctx.countfields();
-          if (n >= 0) cc.start = fctx.ch;
+          if (n >= 0) cc.set_start_exact(fctx.ch);
         }
       } else {
         const char* tch =
@@ -447,7 +434,7 @@ class ColumnTypeDetectionChunkster {
         if (tch < f.eof) {
           bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),
                                               f.fill, f.skip_blank_lines);
-          if (ok) cc.start = fctx.ch;
+          if (ok) cc.set_start_approximate(fctx.ch);
         }
       }
       return cc;
@@ -468,7 +455,7 @@ class ColumnTypeDetectionChunkster {
  * If the line cannot be parsed (because it contains a string that is not
  * parseable under the current quoting rule), then return -1.
  */
-int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
+int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
 {
   const char*& tch = fctx.ch;
 
@@ -492,13 +479,13 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       tch = fieldStart;
       parsers[*ptype_iter](fctx);
       fctx.skip_whitespace();
-      if (fctx.end_of_field()) break;
+      if (fctx.at_end_of_field()) break;
 
       // Try to parse as NA
       // TODO: this API is awkward; better have smth like `fctx.parse_na();`
       tch = fctx.end_NA_string(fieldStart);
       fctx.skip_whitespace();
-      if (fctx.end_of_field()) break;
+      if (fctx.at_end_of_field()) break;
 
       if (ParserLibrary::info(*ptype_iter).isstring()) {
         // Do not bump the quote rule, since we cannot be sure that the jump
@@ -514,7 +501,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
         if (*tch == quote) {
           tch++;
           fctx.skip_whitespace();
-          if (fctx.end_of_field()) break;
+          if (fctx.at_end_of_field()) break;
         }
       }
 
@@ -552,7 +539,7 @@ void FreadReader::detect_column_types()
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
   ColumnTypeDetectionChunkster chunkster(*this, fctx);
@@ -573,7 +560,7 @@ void FreadReader::detect_column_types()
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
-    tch = cc.start;
+    tch = cc.get_start();
     if (tch >= eof) continue;
 
     columns.saveTypes(saved_types);
@@ -677,7 +664,7 @@ void FreadReader::detect_header() {
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
@@ -750,9 +737,9 @@ void FreadReader::detect_header() {
 
 /**
  * This helper method tests whether '\\n' characters are present in the file,
- * and sets the `LFpresent` flag accordingly.
+ * and sets the `cr_is_newline` flag accordingly.
  *
- * If '\\n' exists in the file, then `LFpresent` is set to true, and standalone
+ * If '\\n' exists in the file, then `cr_is_newline` is false, and standalone
  * '\\r' will be treated as a regular character. However if there are no '\\n's
  * in the file (at least within the first 100 lines), then we will treat '\\r'
  * as a newline character.
@@ -764,14 +751,13 @@ void FreadReader::detect_lf() {
     cnt += (*ch == '\r');
     ch++;
   }
-  LFpresent = (ch < eof && *ch == '\n');
-  cr_is_newline = !LFpresent;
-  if (LFpresent) {
-    trace("LF character (\\n) found in input, "
-          "\\r-only newlines will not be recognized");
-  } else {
+  cr_is_newline = !(ch < eof && *ch == '\n');
+  if (cr_is_newline) {
     trace("LF character (\\n) not found in input, "
           "CR character (\\r) will be treated as a newline");
+  } else {
+    trace("LF character (\\n) found in input, "
+          "\\r-only newlines will not be recognized");
   }
 
 }
@@ -844,7 +830,7 @@ void FreadReader::skip_preamble() {
  * not, a `RuntimeError` will be thrown.
  */
 // TODO name-cleaning should be a method of dt::read::Column
-void FreadReader::parse_column_names(FreadTokenizer& ctx) {
+void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.
@@ -919,224 +905,6 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
 
 
 
-
-//==============================================================================
-// FreadTokenizer
-//==============================================================================
-void parse_string(FreadTokenizer&);
-
-
-/**
- * skip_eol() is used to consume a "newline" token from the current parsing
- * location (`ch`). Specifically,
- *   (1) if there is a newline sequence at the current parsing position, this
- *       function advances the parsing position past the newline and returns
- *       true;
- *   (2) otherwise it returns false and the current parsing location remains
- *       unchanged.
- *
- * We recognize the following sequences as newlines (where "LF" is byte 0x0A
- * or '\\n', and "CR" is 0x0D or '\\r'):
- *     CR CR LF
- *     CR LF
- *     LF CR
- *     LF
- *     CR  (only if `LFpresent` is false)
- *
- * Here LF and CR-LF are the most commonly used line endings, while LF-CR and
- * CR are encountered much less frequently. The sequence CR-CR-LF is not
- * usually recognized as a single newline by most text editors. However we find
- * that occasionally a file with CR-LF endings gets recoded into CR-CR-LF line
- * endings by buggy software.
- *
- * In addition, CR (\\r) is treated specially: it is considered a newline only
- * when `LFpresent` is false. This is because it is common to find files created
- * by programs that don't account for '\\r's and fail to quote fields containing
- * these characters. If we were to treat these '\\r's as newlines, the data
- * would be parsed incorrectly. On the other hand, there are files where '\\r's
- * are used as valid newlines. In order to handle both of these cases, we
- * introduce parameter `LFpresent` which is set to true if there is any '\\n'
- * found in the file, in which case a standalone '\\r' will not be considered a
- * newline.
- */
-bool FreadTokenizer::skip_eol() {
-  // we call eol() when we expect to be at a newline, so optimize as if we are
-  // at the end of line.
-  if (*ch == '\n') {       // '\n\r' or '\n'
-    ch += 1 + (ch[1] == '\r');
-    return true;
-  }
-  if (*ch == '\r') {
-    if (ch[1] == '\n') {   // '\r\n'
-      ch += 2;
-      return true;
-    }
-    if (ch[1] == '\r' && ch[2] == '\n') {  // '\r\r\n'
-      ch += 3;
-      return true;
-    }
-    if (!LFpresent) {      // '\r'
-      ch++;
-      return true;
-    }
-  }
-  return false;
-}
-
-
-/**
- * Return true iff the tokenizer's current position `ch` is a valid field
- * terminator (either a `sep` or a newline). This does not advance the tokenizer
- * position.
- */
-bool FreadTokenizer::end_of_field() {
-  // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
-  // fact that the characters in the ASCII range 0..13 are very rare, so a
-  // single check `tch<=13` is almost equivalent to checking whether `tch` is one
-  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
-  // default, and therefore characters in the range 0x80-0xFF are negative.
-  // We use eol() because that looks at LFpresent inside it w.r.t. \r
-  char c = *ch;
-  if (c == sep) return true;
-  if (static_cast<uint8_t>(c) > 13) return false;
-  if (c == '\n' || (c == '\0' && ch == eof)) return true;
-  if (c == '\r') {
-    if (LFpresent) {
-      const char* tch = ch + 1;
-      while (*tch == '\r') tch++;
-      if (*tch == '\n') return true;
-    } else {
-      return true;
-    }
-  }
-  return false;
-}
-
-
-const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
-  const char* const* nastr = NAstrings;
-  const char* mostConsumed = fieldStart;
-  while (*nastr) {
-    const char* ch1 = fieldStart;
-    const char* ch2 = *nastr;
-    while (*ch1==*ch2 && *ch2!='\0') { ch1++; ch2++; }
-    if (*ch2=='\0' && ch1>mostConsumed) mostConsumed=ch1;
-    nastr++;
-  }
-  return mostConsumed;
-}
-
-
-/**
- * Skip whitespace at the beginning/end of a field.
- *
- * If `sep=' '` (Space), then whitespace shouldn't be skipped at all.
- * If `sep='\\t'` (Tab), then only ' ' characters are considered whitespace.
- * For all other seps we assume that both ' ' and '\\t' characters are
- * whitespace to be skipped.
- */
-void FreadTokenizer::skip_whitespace() {
-  // skip space so long as sep isn't space and skip tab so long as sep isn't tab
-  if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
-    while (*ch == ' ' || *ch == '\t') ch++;
-  } else {
-    while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
-  }
-}
-
-
-/**
- * Skip whitespace at the beginning of a line. This whitespace does not count
- * as a separator even if `sep=' '`.
- */
-void FreadTokenizer::skip_whitespace_at_line_start() {
-  if (sep == '\t') {
-    while (*ch == ' ') ch++;
-  } else {
-    while (*ch == ' ' || *ch == '\t') ch++;
-  }
-}
-
-
-/**
- * Compute the number of fields on the current line (taking into account the
- * global `sep`, and `quoteRule`), and move the parsing location to the
- * beginning of the next line.
- * Returns the number of fields on the current line, or -1 if the line cannot
- * be parsed using current settings, or 0 if the line is empty (even though an
- * empty line may be viewed as a single field).
- */
-int FreadTokenizer::countfields()
-{
-  const char* ch0 = ch;
-  if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
-  skip_whitespace();
-  if (skip_eol() || ch==eof) {
-    return 0;
-  }
-  int ncol = 1;
-  while (ch < eof) {
-    parse_string(*this);
-    // Field() leaves *ch resting on sep, eol or eof
-    if (*ch == sep) {
-      if (sep == ' ') {
-        while (*ch == ' ') ch++;
-        if (ch == eof || skip_eol()) break;
-        ncol++;
-        continue;
-      } else if (sep != '\n') {
-        ch++;
-        ncol++;
-        continue;
-      }
-    }
-    if (ch == eof || skip_eol()) {
-      break;
-    }
-    ch = ch0;
-    return -1;  // -1 means this line not valid for this sep and quote rule
-  }
-  return ncol;
-}
-
-
-// Find the next "good line", in the sense that we find at least 5 lines
-// with `ncols` fields from that point on.
-bool FreadTokenizer::next_good_line_start(
-  const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
-{
-  // int ncols = static_cast<int>(f.get_ncols());
-  // bool fill = f.fill;
-  // bool skipEmptyLines = f.skip_blank_lines;
-  ch = cc.start;
-  const char* end = cc.end;
-  int attempts = 0;
-  while (ch < end && attempts++ < 10) {
-    while (ch < end && *ch != '\n' && *ch != '\r') ch++;
-    if (ch == end) break;
-    skip_eol();  // updates `ch`
-    // countfields() below moves the parse location, so store it in `ch1` in
-    // order to revert to the current parsing location later.
-    const char* ch1 = ch;
-    int i = 0;
-    for (; i < 5; ++i) {
-      // `countfields()` advances `ch` to the beginning of the next line
-      int n = countfields();
-      if (n != ncols &&
-          !(ncols == 1 && n == 0) &&
-          !(skipEmptyLines && n == 0) &&
-          !(fill && n < ncols)) break;
-    }
-    ch = ch1;
-    // `i` is the count of consecutive consistent rows
-    if (i == 5) return true;
-  }
-  return false;
-}
-
-
-
-
 //==============================================================================
 // FreadObserver
 //==============================================================================
@@ -1149,8 +917,8 @@ FreadObserver::FreadObserver(const GenericReader& g_) : g(g_) {
   t_frame_allocated = 0;
   t_data_read = 0;
   t_data_reread = 0;
-  time_read_data = 0;
-  time_push_data = 0;
+  time_read_data = 0.0;
+  time_push_data = 0.0;
   input_size = 0;
   n_rows_read = 0;
   n_cols_read = 0;
@@ -1184,10 +952,9 @@ void FreadObserver::report() {
   double read_time = t_data_read - t_frame_allocated;
   double reread_time = t_data_reread - t_data_read;
   double makedt_time = t_end - t_data_reread;
-  time_read_data /= read_data_nthreads;
-  time_push_data /= read_data_nthreads;
-  double time_wait_data = read_time + reread_time
-                          - time_read_data - time_push_data;
+  double t_read = time_read_data.load() / read_data_nthreads;
+  double t_push = time_push_data.load() / read_data_nthreads;
+  double time_wait_data = read_time + reread_time - t_read - t_push;
   int p = total_time < 10 ? 5 :
           total_time < 100 ? 6 :
           total_time < 1000 ? 7 : 8;
@@ -1225,9 +992,9 @@ void FreadObserver::report() {
             n_cols_reread);
   }
   g.trace("    = %*.3fs (%2.0f%%) reading into row-major buffers", p,
-          time_read_data, 100 * time_read_data / total_time);
+          t_read, 100 * t_read / total_time);
   g.trace("    + %*.3fs (%2.0f%%) saving into the output frame", p,
-          time_push_data, 100 * time_push_data / total_time);
+          t_push, 100 * t_push / total_time);
   g.trace("    + %*.3fs (%2.0f%%) waiting", p,
           time_wait_data, 100 * time_wait_data / total_time);
   g.trace(" + %*.3fs (%2.0f%%) creating the final Frame", p,
@@ -1248,10 +1015,10 @@ void FreadObserver::type_bump_info(
   static const int BUF_SIZE = 1000;
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
-    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %lld",
+    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
-    static_cast<int>(len), field, lineno);
+    static_cast<int>(len), field, static_cast<size_t>(lineno));
   n = std::min(n, BUF_SIZE);
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

@@ -10,7 +10,6 @@
 #include "utils/parallel.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
 
@@ -254,75 +253,9 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * The resulting DataTable should have a NULL RowIndex and Stats array.
  * Do nothing if the DataTable is not a view.
  */
-void DataTable::reify() {
+void DataTable::materialize() {
   for (auto col : columns) {
-    col->reify();
+    col->materialize();
   }
 }
 
-
-
-/**
- * Verify that all internal constraints in the DataTable hold, and that there
- * are no any inappropriate values/elements.
- */
-void DataTable::verify_integrity() const
-{
-  if (nkeys > ncols) {
-    throw AssertionError()
-        << "Number of keys is greater than the number of columns in the Frame: "
-        << nkeys << " > " << ncols;
-  }
-
-  _integrity_check_names();
-  _integrity_check_pynames();
-
-  // Check the number of columns; the number of allocated columns should be
-  // equal to `ncols`.
-  if (columns.size() != ncols) {
-    throw AssertionError()
-        << "DataTable.columns array size is " << columns.size()
-        << " whereas ncols = " << ncols;
-  }
-
-  /**
-   * Check the structure and contents of the column array.
-   *
-   * DataTable's RowIndex and nrows are supposed to reflect the RowIndex and
-   * nrows of each column, so we will just check that the datatable's values
-   * are equal to those of each column.
-   */
-  for (size_t i = 0; i < ncols; ++i) {
-    std::string col_name = std::string("Column ") + std::to_string(i);
-    Column* col = columns[i];
-    if (col == nullptr) {
-      throw AssertionError() << col_name << " of Frame is null";
-    }
-    // Make sure the column and the datatable have the same value for `nrows`
-    if (nrows != col->nrows) {
-      throw AssertionError()
-          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
-          << ", while the Frame has nrows=" << nrows;
-    }
-    col->verify_integrity(col_name);
-  }
-
-  if (names.size() != ncols) {
-    throw AssertionError()
-        << "Number of column names, " << names.size() << ", is not equal "
-           "to the number of columns in the Frame: " << ncols;
-  }
-  for (size_t i = 0; i < names.size(); ++i) {
-    auto name = names[i];
-    auto data = name.data();
-    if (name.empty()) {
-      throw AssertionError() << "Column " << i << " has empty name";
-    }
-    for (size_t j = 0; j < name.size(); ++j) {
-      if (data[j] >= '\0' && data[j] < '\x20') {
-        throw AssertionError() << "Column " << i << "'s name contains "
-          "unprintable character " << data[j];
-      }
-    }
-  }
-}

@@ -10,7 +10,6 @@
 #include "expr/base_expr.h"
 #include "column.h"
 #include "groupby.h"
-#include "py_utils.h"
 
 
 namespace expr {
@@ -20,8 +19,6 @@ typedef void (*gmapperfn)(const int32_t* groups, int32_t grp, void** params);
 
 Column* unaryop(dt::unop opcode, Column* arg);
 Column* binaryop(size_t opcode, Column* lhs, Column* rhs);
-Column* reduceop(int opcode, Column* arg, const Groupby& groupby);
-Column* reduce_first(const Column* col, const Groupby& groupby);
 
 };
 

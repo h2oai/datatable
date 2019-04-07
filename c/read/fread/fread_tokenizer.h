@@ -5,32 +5,22 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_FREAD_h
-#define dt_FREAD_h
-#include <stdint.h>  // uint32_t
-#include <stdlib.h>  // size_t
-#include "utils.h"
-#include "utils/parallel.h"
-#include "memrange.h"
-#include "csv/reader.h"
-#include "read/field64.h"
-
-extern const long double pow10lookup[701];
-extern const uint8_t hexdigits[256];
-extern const uint8_t allowedseps[128];
+#ifndef dt_READ_FREAD_TOKENIZER_h
+#define dt_READ_FREAD_TOKENIZER_h
+#include "read/field64.h"            // field64
+#include "read/parallel_reader.h"    // ChunkCoordinates
 namespace dt {
 namespace read {
-  struct ChunkCoordinates;
-}}
 
 
-struct FreadTokenizer {
+struct FreadTokenizer
+{
   // Pointer to the current parsing location
   const char* ch;
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
-  dt::read::field64* target;
+  field64* target;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
@@ -64,21 +54,23 @@ struct FreadTokenizer {
   // Do we consider blank as NA string?
   bool blank_is_na;
 
-  bool LFpresent;
+  // Whether to consider a standalone '\r' a newline character
+  bool cr_is_newline;
 
   void skip_whitespace();
   void skip_whitespace_at_line_start();
-  bool end_of_field();
+  bool at_end_of_field();
   const char* end_NA_string(const char*);
   int countfields();
   bool skip_eol();
   bool at_eof() const { return ch == eof; }
 
   bool next_good_line_start(
-    const dt::read::ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines);
-
-
+    const ChunkCoordinates& cc, int ncols, bool fill,
+    bool skipEmptyLines);
 };
 
 
+
+}}  // namespace dt::read::
 #endif

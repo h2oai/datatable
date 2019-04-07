@@ -45,6 +45,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   The method matches the entire string, not just the beginning. Thus, it
   most closely resembles Python function `re.fullmatch()`.
 
+- Added early stopping support to FTRL algo, that can now do binomial and
+  multinomial classification for categorical targets, as well as regression
+  for continuous targets.
+
+- New function `dt.median()` can be used to compute median of a certain
+  column or expression, either per group or for the entire Frame (#1530).
+
 
 ### Fixed
 
@@ -64,6 +71,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - The reported frame size (`sys.getsizeof(DT)`) is now more accurate; in
   particular the content of string columns is no longer ignored (#1697).
 
+- Type casting into str32 no longer produces an error if the resulting column
+  is larger than 2GB. Now a str64 column will be returned instead (#1695).
+
+- Fixed memory leak during computation of a generic `DT[i, j]` expression.
+  Another memory leak was during generation of string columns, now also fixed
+  (#1705).
+
+- Fixed crash upon exiting from a python terminal, if the user ever called
+  function `frame_column_rowindex().type` (#1703).
+
+- Pandas "boolean column with NAs" (of dtype `object`) now converts into
+  datatable `bool8` column when pandas DataFrame is converted into a datatable
+  Frame (#1730).
+
+- Fixed conversion to numpy of a view Frame which contains NAs (#1738).
+
+- `datatable` can now be safely used with `multiprocessing`, or other modules
+  that perform fork-without-exec (#1758). The child process will spawn its
+  own thread pool that will have the same number of threads as the parent.
+  Adjust `dt.options.nthreads` in the child process(es) if different number
+  of threads is required.
+
 
 ### Changed
 
@@ -71,6 +100,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   The previous behavior can be restored with
   `dt.options.display.interactive = True`. Alternatively, you can explore a
   Frame interactively using `frame.view(True)`.
+
+- Improved performance of type-casting a view column: now the code avoids
+  materializing the column before performing the cast.
+
+- `Frame` class is now defined fully in C++, improving code robustness and
+  performance. The property `Frame.internal` was removed, as it no longer
+  represents anything. Certain internal properties of `Frame` can be accessed
+  via functions declared in the `dt.internal.` module.
 
 
 ### Deprecated
@@ -91,9 +128,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  [arno candel][] (#1619),
+  [arno candel][] (#1619, #1730, #1738),
   [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694, #1697)
+  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 
 
 

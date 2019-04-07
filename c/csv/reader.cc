@@ -5,20 +5,21 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <stdlib.h>             // strtod
+#include <strings.h>            // strcasecmp
+#include <cerrno>               // errno
+#include <cstring>              // std::memcmp
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
-#include <stdlib.h>   // strtod
-#include <strings.h>  // strcasecmp
-#include <cerrno>     // errno
-#include <cstring>    // std::memcmp
+#include "python/_all.h"
+#include "python/string.h"
+#include "utils/exceptions.h"
+#include "utils/parallel.h"
+#include "utils/misc.h"         // wallclock
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"
-#include "utils/exceptions.h"
-#include "utils/parallel.h"
-#include "python/list.h"
-#include "python/string.h"
 
 
 //------------------------------------------------------------------------------
@@ -348,9 +349,10 @@ void GenericReader::_message(
     msg = va_arg(args, char*);
   } else {
     msg = shared_buffer;
-    IGNORE_WARNING(-Wformat-nonliteral)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     vsnprintf(msg, 2000, format, args);
-    RESTORE_WARNINGS()
+    #pragma GCC diagnostic pop
   }
 
   if (omp_get_thread_num() == 0) {

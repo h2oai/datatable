@@ -55,7 +55,7 @@ static py::oobj make_pyframe(sort_result& sr, arr32_t&& arr) {
   // in the input are sorted before they are compared.
   RowIndex out_ri = RowIndex(std::move(arr), false);
   Column* out_col = sr.col->shallowcopy(out_ri);
-  out_col->reify();
+  out_col->materialize();
   DataTable* dt = new DataTable({out_col}, {sr.colname});
   return py::oobj::from_new_reference(py::Frame::from_datatable(dt));
 }
@@ -70,21 +70,21 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
   ccolvec res;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
-      DataTable* dt = va.to_frame();
+      DataTable* dt = va.to_datatable();
       if (dt->ncols == 0) continue;
       verify_frame_1column(dt);
       Column* col = dt->columns[0]->shallowcopy();
-      col->reify();
+      col->materialize();
       res.cols.push_back(col);
       if (res.colname.empty()) res.colname = dt->get_names()[0];
     }
     else if (va.is_iterable()) {
       for (auto item : va.to_oiter()) {
-        DataTable* dt = item.to_frame();
+        DataTable* dt = item.to_datatable();
         if (dt->ncols == 0) continue;
         verify_frame_1column(dt);
         Column* col = dt->columns[0]->shallowcopy();
-        col->reify();
+        col->materialize();
         res.cols.push_back(col);
         if (res.colname.empty()) res.colname = dt->get_names()[0];
       }
@@ -109,7 +109,7 @@ static sort_result sort_columns(ccolvec&& cv) {
   }
   if (cols.size() == 1) {
     res.col = std::unique_ptr<Column>(const_cast<Column*>(cols[0]));
-    res.col->reify();
+    res.col->materialize();
   } else {
     // Note: `rbind` will delete all the columns in the vector `cols`...
     // Therefore, `cols` cannot be used after this call
@@ -170,7 +170,7 @@ static py::oobj unique(const py::PKArgs& args) {
   if (!args[0]) {
     throw ValueError() << "Function `unique()` expects a Frame as a parameter";
   }
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
 
   ccolvec cc;
   for (auto col : dt->columns) {

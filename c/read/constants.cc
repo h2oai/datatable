@@ -5,8 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_FREAD_LOOKUPS_h
-#define dt_FREAD_LOOKUPS_h
+#include "read/constants.h"
+namespace dt {
+namespace read {
+
 
 // characters re-interpreted as hex digits (or 99 for characters that are not
 // valid digits). Thus, this table maps
@@ -136,4 +138,9 @@ const long double pow10lookup[701] = {
   1.0E+350L
 };
 
-#endif
+
+
+void foo() {}
+
+
+}}  // namespace dt::read::

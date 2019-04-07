@@ -23,8 +23,9 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, noop
+from tests import same_iterables, noop, isview
 from datatable import ltype, stype, f
+from datatable.internal import frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
@@ -84,7 +85,7 @@ def test_j_ellipsis(dt0):
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.stypes == dt0.stypes
-    assert not dt1.internal.isview
+    assert not isview(dt1)
 
 
 def test_j_none(dt0):
@@ -92,7 +93,7 @@ def test_j_none(dt0):
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.stypes == dt0.stypes
-    assert not dt1.internal.isview
+    assert not isview(dt1)
 
 
 def test_j_function(dt0):
@@ -115,7 +116,7 @@ def test_j_integer(dt0, tbl0):
         dt1 = dt0[:, i]
         assert dt1.shape == (6, 1)
         assert dt1.names == ("ABCD"[i], )
-        assert not dt1.internal.isview
+        assert not isview(dt1)
         assert dt1.to_list()[0] == tbl0[i]
 
 
@@ -141,7 +142,7 @@ def test_j_string(dt0, tbl0):
         dt1 = dt0[:, s]
         assert dt1.shape == (6, 1)
         assert dt1.names == (s, )
-        assert not dt1.internal.isview
+        assert not isview(dt1)
         assert dt1.to_list()[0] == tbl0["ABCD".index(s)]
 
 
@@ -190,7 +191,7 @@ def test_j_intslice2(dt0, tbl0, s):
     assert dt1.to_list() == tbl0[s]
     assert dt1.names == dt0.names[s]
     assert dt1.stypes == dt0.stypes[s]
-    assert not dt1.internal.isview
+    assert not isview(dt1)
 
 
 
@@ -317,7 +318,7 @@ def test_j_intlist1(dt0, tbl0):
     dt1 = dt0[:, [3, 1, 0]]
     assert dt1.shape == (6, 3)
     assert dt1.names == ("D", "B", "A")
-    assert not dt1.internal.isview
+    assert not isview(dt1)
     assert dt1.to_list() == [tbl0[3], tbl0[1], tbl0[0]]
 
 
@@ -325,7 +326,7 @@ def test_j_intlist2(dt0, tbl0):
     df1 = dt0[:, [slice(None, None, 2), slice(1, None, 2)]]
     assert df1.shape == (6, 4)
     assert df1.names == tuple("ACBD")
-    assert not df1.internal.isview
+    assert not isview(df1)
     assert df1.to_list() == [tbl0[0], tbl0[2], tbl0[1], tbl0[3]]
 
 
@@ -353,7 +354,7 @@ def test_j_strlist1(dt0, tbl0):
     df1 = dt0[:, ("D", "C", "B", "A")]
     assert df1.shape == (6, 4)
     assert df1.names == tuple("DCBA")
-    assert not df1.internal.isview
+    assert not isview(df1)
     assert df1.to_list() == tbl0[::-1]
 
 
@@ -427,10 +428,10 @@ def test_j_list_types2(dt0, tbl0):
 
 def test_j_dict(dt0, tbl0):
     dt1 = dt0[:, {"x": f[0], "y": f["D"]}]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (6, 2)
     assert same_iterables(dt1.names, ("x", "y"))
-    assert not dt1.internal.isview
+    assert not isview(dt1)
     assert same_iterables(dt1.to_list(), [tbl0[0], tbl0[3]])
 
 
@@ -458,38 +459,38 @@ def test_j_dict_bad2(dt0):
 
 def test_j_colselector1(dt0, tbl0):
     dt1 = dt0[:, f.B]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (6, 1)
     assert dt1.names == ("B", )
-    assert not dt1.internal.isview
+    assert not isview(dt1)
     assert dt1.to_list() == [tbl0[1]]
 
 
 def test_j_colselector2(dt0, tbl0):
     dt2 = dt0[:, [f.A, f.C]]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (6, 2)
     assert dt2.names == ("A", "C")
-    assert not dt2.internal.isview
+    assert not isview(dt2)
     assert dt2.to_list() == [tbl0[0], tbl0[2]]
 
 
 def test_j_colselector3(dt0, tbl0):
     dt3 = dt0[:, {"x": f.A, "y": f.D}]
-    dt3.internal.check()
+    frame_integrity_check(dt3)
     assert dt3.shape == (6, 2)
     assert same_iterables(dt3.names, ("x", "y"))
-    assert not dt3.internal.isview
+    assert not isview(dt3)
 
 
 def test_j_expression(dt0, tbl0):
     dt1 = dt0[:, f.A + f.B]
-    dt1.internal.check()
+    frame_integrity_check(dt1)
     assert dt1.shape == (6, 1)
     assert dt1.ltypes == (ltype.int, )
     assert dt1.to_list() == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
     dt2 = dt0[:, [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
-    dt2.internal.check()
+    frame_integrity_check(dt2)
     assert dt2.shape == (6, 4)
     assert dt2.ltypes == (ltype.int, ltype.real, ltype.real, ltype.int)
     assert dt2.to_list() == [[tbl0[0][i] + tbl0[1][i] for i in range(6)],
@@ -497,12 +498,12 @@ def test_j_expression(dt0, tbl0):
                             [tbl0[0][i] / tbl0[2][i] for i in range(6)],
                             [tbl0[1][i] * tbl0[3][i] for i in range(6)]]
     dt3 = dt0[:, {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": f[1], "c": f[2]}]
-    dt3.internal.check()
+    frame_integrity_check(dt3)
     assert dt3.shape == (6, 4)
     assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
     assert same_iterables(dt3.ltypes,
                           (ltype.real, ltype.int, ltype.int, ltype.real))
-    assert not dt3.internal.isview
+    assert not isview(dt3)
     assert dt3[:, "foo"].to_list() == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                        for i in range(6)]]
 
@@ -513,7 +514,7 @@ def test_j_expression2():
     selector = OrderedDict([("foo", f.A), ("bar", -f.A)])
     f0 = dt.Frame({"A": range(10)})
     f1 = f0[:, selector]
-    f1.internal.check()
+    frame_integrity_check(f1)
     assert f1.names == ("foo", "bar")
     assert f1.stypes == f0.stypes * 2
     assert f1.to_list() == [list(range(10)), list(range(0, -10, -1))]
@@ -548,9 +549,9 @@ def test_j_bad_arguments(dt0):
 
 def test_j_from_view(dt0):
     d1 = dt0[:3, :]
-    assert d1.internal.isview
+    assert isview(d1)
     d2 = d1[:, "B"]
-    d2.internal.check()
+    frame_integrity_check(d2)
     assert d2.to_list() == [[2, 3, 2]]
 
 
@@ -558,21 +559,21 @@ def test_j_on_empty_frame():
     df = dt.Frame()
     d1 = df[:, :]
     d2 = df[::-1, :5]
-    d1.internal.check()
-    d2.internal.check()
+    frame_integrity_check(d1)
+    frame_integrity_check(d2)
     assert d1.shape == (0, 0)
     assert d2.shape == (0, 0)
 
 
 def test_empty_selector1(dt0):
     d1 = dt0[:, []]
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.nrows == dt0.nrows
     assert d1.ncols == 0
 
 
 def test_empty_selector2(dt0):
     d1 = dt0[-3:, []]
-    d1.internal.check()
+    frame_integrity_check(d1)
     assert d1.nrows == 3
     assert d1.ncols == 0

@@ -26,13 +26,14 @@
 #
 #-------------------------------------------------------------------------------
 import pickle
-import datatable as dt
-from datatable.models import Ftrl
-from datatable import f, stype, DatatableWarning
 import pytest
 import collections
 import random
 import math
+import datatable as dt
+from datatable.models import Ftrl
+from datatable.internal import frame_integrity_check
+from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
 
 
@@ -41,19 +42,20 @@ from tests import assert_equals, noop
 # Define namedtuple of test parameters, test model and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("Params",["alpha", "beta", "lambda1", "lambda2",
-                                          "nbins", "nepochs", "interactions"])
+                                          "nbins", "nepochs",
+                                          "double_precision", "negative_class"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 nepochs = 6, interactions = True)
+                 nepochs = 6, double_precision = True, negative_class = False)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
                    names=['z', 'n'])
 
-default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 1,
-                        nbins = 1000000, nepochs = 1, interactions = False)
+default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
+                        nbins = 10**6, nepochs = 1, double_precision = False,
+                        negative_class = False)
 
 epsilon = 0.01
-
 
 
 #-------------------------------------------------------------------------------
@@ -102,10 +104,10 @@ def test_ftrl_construct_wrong_nepochs_type():
             "instead got <class 'float'>" == str(e.value))
 
 
-def test_ftrl_construct_wrong_interactions_type():
+def test_ftrl_construct_wrong_double_precision_type():
     with pytest.raises(TypeError) as e:
-        noop(Ftrl(interactions = 2))
-    assert ("Argument `interactions` in Ftrl() constructor should be a boolean, "
+        noop(Ftrl(double_precision = 2))
+    assert ("Argument `double_precision` in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
 
@@ -114,8 +116,8 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `nepochs` or `interactions` to Ftrl "
-            "constructor, but not both at the same time" == str(e.value))
+            "`lambda2`, `nbins`, `nepochs`, `double_precision` or `negative_class` "
+            "to Ftrl constructor, but not both at the same time" == str(e.value))
 
 
 def test_ftrl_construct_unknown_arg():
@@ -124,6 +126,20 @@ def test_ftrl_construct_unknown_arg():
     assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
             str(e.value))
 
+
+def test_ftrl_construct_wrong_params_type():
+    params = tparams._replace(alpha = "1.0")
+    with pytest.raises(TypeError) as e:
+        Ftrl(params)
+    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_ftrl_construct_wrong_params_name():
+    WrongParams = collections.namedtuple("WrongParams",["alpha", "lambda1"])
+    wrong_params = WrongParams(alpha = 1, lambda1 = 0.01)
+    with pytest.raises(AttributeError) as e:
+        Ftrl(wrong_params)
+    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -190,10 +206,11 @@ def test_ftrl_create_individual():
     ft = Ftrl(alpha = tparams.alpha, beta = tparams.beta,
                    lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
                    nbins = tparams.nbins, nepochs = tparams.nepochs,
-                   interactions = tparams.interactions)
+                   double_precision = tparams.double_precision)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
-                         tparams.nbins, tparams.nepochs, tparams.interactions)
+                         tparams.nbins, tparams.nepochs,
+                         tparams.double_precision, tparams.negative_class)
 
 
 #-------------------------------------------------------------------------------
@@ -203,48 +220,24 @@ def test_ftrl_create_individual():
 def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
-    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
-            ft.nbins, ft.nepochs, ft.interactions) == tparams
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.nepochs,
+            ft.double_precision, ft.negative_class) == tparams
 
 
 def test_ftrl_set_individual():
-    ft = Ftrl()
+    ft = Ftrl(double_precision = tparams.double_precision)
     ft.alpha = tparams.alpha
     ft.beta = tparams.beta
     ft.lambda1 = tparams.lambda1
     ft.lambda2 = tparams.lambda2
     ft.nbins = tparams.nbins
     ft.nepochs = tparams.nepochs
-    ft.interactions = tparams.interactions
-    assert ft.params == tparams
-
-
-def test_ftrl_set_params():
-    ft = Ftrl()
-    ft.params = tparams
     assert ft.params == tparams
 
 
 #-------------------------------------------------------------------------------
 # Test getters and setters for wrong types / names of FTRL parameters
 #-------------------------------------------------------------------------------
-
-def test_ftrl_set_wrong_params_type():
-    ft = Ftrl()
-    params = tparams._replace(alpha = "1.0")
-    with pytest.raises(TypeError) as e:
-        ft.params = params
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
-
-
-def test_ftrl_set_wrong_params_name():
-    ft = Ftrl()
-    WrongParams = collections.namedtuple("WrongParams",["alpha", "interactions"])
-    wrong_params = WrongParams(alpha = 1, interactions = True)
-    with pytest.raises(AttributeError) as e:
-        ft.params = wrong_params
-    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
-
 
 def test_ftrl_set_wrong_alpha_type():
     ft = Ftrl()
@@ -291,8 +284,32 @@ def test_ftrl_set_wrong_nepochs_type():
 def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
-        ft.interactions = 2
-    assert ("Expected a boolean, instead got <class 'int'>" == str(e.value))
+        ft.interactions = True
+    assert ("Expected an iterable, instead got <class 'bool'>"
+            == str(e.value))
+
+
+def test_ftrl_set_wrong_interactions_empty():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = [["C0"], []]
+    assert ("Interaction lists cannot be empty" == str(e.value))
+
+
+def test_ftrl_set_wrong_interactions_not_list():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = ["a", [1, 2]]
+    assert ("Interactions should be a list of lists, instead "
+            "encountered: 'a'" == str(e.value))
+
+
+def test_ftrl_set_wrong_interactions_not_string():
+    ft = Ftrl()
+    with pytest.raises(TypeError) as e:
+        ft.interactions = [["a", "b"], [1, 2]]
+    assert ("Interaction features should be strings, instead "
+            "encountered: 1" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -347,72 +364,6 @@ def test_ftrl_set_wrong_nepochs_value():
         ft.nepochs = -10
     assert ("Integer value cannot be negative" == str(e.value))
 
-#-------------------------------------------------------------------------------
-# Test getters, setters and reset methods for FTRL model
-#-------------------------------------------------------------------------------
-
-def test_ftrl_model_untrained():
-    ft = Ftrl()
-    assert ft.model == None
-
-
-def test_ftrl_set_negative_n_model():
-    ft = Ftrl(tparams)
-    with pytest.raises(ValueError) as e:
-        ft.model = (tmodel[:, {'z' : f.z, 'n' : -f.n}][:, ['z', 'n']],)
-    assert ("Element 0: Values in column `n` cannot be negative" == str(e.value))
-
-
-def test_ftrl_set_wrong_shape_model():
-    ft = Ftrl(tparams)
-    with pytest.raises(ValueError) as e:
-        ft.model = (tmodel[:, 'n'],)
-    assert ("Element 0: "
-            "FTRL model frame must have %d rows, and 2 columns, whereas your "
-            "frame has %d rows and 1 column" % (tparams.nbins, tparams.nbins)
-            == str(e.value))
-
-
-def test_ftrl_set_wrong_type_model():
-    ft = Ftrl(tparams)
-    model = (dt.Frame([["foo"] * tparams.nbins,
-                      [random.random() for _ in range(tparams.nbins)]],
-                      names=['z', 'n']),)
-    with pytest.raises(ValueError) as e:
-        ft.model = model
-    assert ("Element 0: "
-            "FTRL model frame must have both column types as `float64`, whereas"
-            " your frame has the following column types: `str32` and `float64`"
-            == str(e.value))
-
-
-def test_ftrl_get_set_model():
-    ft = Ftrl(tparams)
-    ft.model = (tmodel,)
-    assert_equals(ft.model[0], tmodel)
-
-
-def test_ftrl_reset_model():
-    ft = Ftrl(tparams)
-    ft.model = (tmodel,)
-    ft.reset()
-    assert ft.model == None
-
-
-def test_ftrl_none_model():
-    ft = Ftrl(tparams)
-    ft.model = None
-    assert ft.model == None
-
-
-def test_ftrl_model_shallowcopy():
-    model = dt.Frame(tmodel)
-    ft = Ftrl(tparams)
-    ft.model = (tmodel,)
-    ft.reset()
-    assert ft.model == None
-    assert_equals(tmodel, model)
-
 
 #-------------------------------------------------------------------------------
 # Test wrong training frame
@@ -444,7 +395,7 @@ def test_ftrl_fit_wrong_target_obj64():
     df_target = dt.Frame([3, "point", None, None, 14, 15, 92, "6"])
     with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
-    assert ("Cannot predict for a column of type `obj64`" ==
+    assert ("Targets of type `obj64` are not supported" ==
             str(e.value))
 
 
@@ -452,13 +403,13 @@ def test_ftrl_fit_wrong_target_obj64():
 # Test hash function
 #-------------------------------------------------------------------------------
 
-def test_ftrl_col_hashes():
+def test_ftrl_colname_hashes():
     ncols = 10
-    col_hashes_murmur2 = ( 1838936504594058908, 14027412581578625840,
+    col_hashes_murmur2 = [ 1838936504594058908, 14027412581578625840,
                           14296604503264754754,  3956937694466614811,
                           10071734010655191393,  6063711047550005084,
                            4309007444360962581,  4517980897659475069,
-                          17871586791652695964, 15779814813469047786)
+                          17871586791652695964, 15779814813469047786]
     ft = Ftrl()
     df_train = dt.Frame([[0]] * ncols)
     df_target = dt.Frame([[True]])
@@ -469,6 +420,10 @@ def test_ftrl_col_hashes():
 #-------------------------------------------------------------------------------
 # Test wrong parameters for `fit` and `predict` methods
 #-------------------------------------------------------------------------------
+
+def test_ftrl_model_untrained():
+    ft = Ftrl()
+    assert ft.model == None
 
 
 def test_ftrl_fit_no_frame():
@@ -499,7 +454,7 @@ def test_ftrl_predict_not_trained():
     df_train = dt.Frame([[1, 2, 3], [True, False, True]])
     with pytest.raises(ValueError) as e:
         ft.predict(df_train)
-    assert ("Cannot make any predictions, train or set the model first"
+    assert ("Cannot make any predictions, the model should be trained first"
             == str(e.value))
 
 
@@ -517,7 +472,7 @@ def test_ftrl_predict_wrong_frame():
 
 
 #-------------------------------------------------------------------------------
-# Test `fit` and `predict` methods
+# Test `fit` and `predict` methods for binomial classification
 #-------------------------------------------------------------------------------
 
 def test_ftrl_fit_unique():
@@ -526,7 +481,7 @@ def test_ftrl_fit_unique():
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
-    assert ft.model[0].to_list() == model
+    assert ft.model.to_list() == model
 
 
 def test_ftrl_fit_unique_ignore_none():
@@ -535,7 +490,7 @@ def test_ftrl_fit_unique_ignore_none():
     df_target = dt.Frame([True] * ft.nbins + [None] * ft.nbins)
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
-    assert ft.model[0].to_list() == model
+    assert ft.model.to_list() == model
 
 
 def test_ftrl_fit_predict_bool():
@@ -586,26 +541,6 @@ def test_ftrl_fit_predict_string():
     assert df_target[1, 0] < epsilon
 
 
-def test_ftrl_fit_predict_from_setters():
-    ft = Ftrl(nbins = 10)
-    df_train = dt.Frame(range(ft.nbins))
-    df_target = dt.Frame([True] * ft.nbins)
-    # Train `ft` to get a model
-    ft.fit(df_train, df_target)
-    # Set this model and parameters to `ft2`
-    ft2 = Ftrl()
-    ft2.params = ft.params
-    ft2.model = ft.model
-    # Train `ft2` and make predictions
-    ft2.fit(df_train, df_target)
-    target2 = ft2.predict(df_train)
-    # Train `ft` and make predictions
-    ft.fit(df_train, df_target)
-    target1 = ft.predict(df_train)
-    assert_equals(ft.model[0], ft2.model[0])
-    assert_equals(target1, target2)
-
-
 def test_ftrl_fit_predict_view():
     ft = Ftrl(nbins = 100)
     # Generate unique numbers, so that this test can be run in parallel
@@ -627,106 +562,301 @@ def test_ftrl_fit_predict_view():
     ft.fit(df_train_range, df_target_range)
     predictions_range = ft.predict(df_train_range)
 
-    assert_equals(model[0], ft.model[0])
+    assert_equals(model, ft.model)
     assert_equals(predictions, predictions_range)
 
 
-def test_ftrl_disable_nbins_setter_after_fit():
+@pytest.mark.parametrize('parameter, value',
+                         [("nbins", 100),
+                         ("interactions", [["C0", "C0"]])])
+def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
+
     with pytest.raises(ValueError) as e:
-        ft.nbins = 100
-    assert ("Cannot set `nbins` for a trained model, "
+        setattr(ft, parameter, value)
+    assert ("Cannot change `"+parameter+"` for a trained model, "
             "reset this model or create a new one"
             == str(e.value))
     ft.reset()
-    ft.nbins = 100
-    ft.fit(df_train, df_target)
-    assert ft.model[0].nrows == 100
-    assert ft.model[0].ncols == 2
+    setattr(ft, parameter, value)
 
 
 #-------------------------------------------------------------------------------
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-def test_ftrl_fit_multinomial_missing_labels():
-    ft = Ftrl(nbins = 10)
-    ft.labels = ["a", "b"]
-    df_train = dt.Frame(range(ft.nbins))
-    df_target = dt.Frame(["b"] * 10)
-    with pytest.warns(DatatableWarning) as ws:
-        ft.fit(df_train, df_target)
-    assert len(ws) == 1
-    assert "Label 'a' was not found in a target frame" in ws[0].message.args[0]
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
+    ft_binomial = Ftrl(nbins = 10, nepochs = 2)
+    df_train_binomial = dt.Frame(range(ft_binomial.nbins))
+    df_target_binomial = dt.Frame({"target" : [True, False] * 5})
+    ft_binomial.fit(df_train_binomial, df_target_binomial)
+    p_binomial = ft_binomial.predict(df_train_binomial)
+
+    ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
+                          negative_class = negative_class_value)
+    df_target_multinomial = dt.Frame(["target", None] * 5)
+    ft_multinomial.fit(df_train_binomial, df_target_multinomial)
+    p_multinomial = ft_multinomial.predict(df_train_binomial)
+
+    target_index = p_multinomial.colindex("target")
+    multinomial_model = ft_multinomial.model[:, {
+                          "C0" : f[target_index * 2],
+                          "C1" : f[target_index * 2 + 1]
+                        }]
+    assert_equals(ft_binomial.model, multinomial_model)
+    assert_equals(p_binomial, p_multinomial[:, "target"])
 
 
-def test_ftrl_fit_multinomial_unknown_labels():
-    ft = Ftrl(nbins = 10)
-    ft.labels = ["a", "b"]
-    df_train = dt.Frame(range(ft.nbins))
-    df_target = dt.Frame((ft.labels + ["c"] + ft.labels) * 2)
-    with pytest.raises(ValueError) as e:
-        ft.fit(df_train, df_target)
-    assert ("Target column contains unknown labels"
-            == str(e.value))
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial(negative_class_value):
+    nepochs = 1000
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ("blue", "green", "red")
+    if negative_class_value:
+      labels = ("_negative",) + labels
 
-
-def test_ftrl_fit_predict_multinomial_vs_binomial():
-    ft1 = Ftrl(nbins = 10, nepochs = 2)
-    df_train1 = dt.Frame(range(ft1.nbins))
-    df_target1 = dt.Frame([True, False] * 5)
-    ft1.fit(df_train1, df_target1)
-    p1 = ft1.predict(df_train1)
-    ft2 = Ftrl(nbins = 10, nepochs = 2)
-    ft2.labels = ["target", "target2"]
-    df_train2 = dt.Frame(range(ft2.nbins))
-    df_target2 = dt.Frame(ft2.labels * 5)
-    ft2.fit(df_train2, df_target2)
-    p2 = ft2.predict(df_train2)
-    assert_equals(ft1.model[0], ft2.model[0])
-    assert_equals(p1, p2[:, 0])
-
-
-def test_ftrl_fit_predict_multinomial():
-    ft = Ftrl(alpha = 0.2, nepochs = 10000)
-    labels = ("red", "green", "blue")
-    ft.labels = labels
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
                           "blue"])
     ft.fit(df_train, df_target)
-    ft.model[0].internal.check()
-    ft.model[1].internal.check()
-    ft.model[2].internal.check()
+    frame_integrity_check(ft.model)
     p = ft.predict(df_train)
-    p.internal.check()
+    frame_integrity_check(p)
+    p_none = 1 / p.ncols
+    p_dict = p.to_dict()
     p_list = p.to_list()
     sum_p =[sum(row) for row in zip(*p_list)]
     delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
     delta_red =   [abs(i - j) for i, j in
-                   zip(p_list[0], [0, 1, 1, 0, 0, 0.33, 0])]
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
     delta_green = [abs(i - j) for i, j in
-                   zip(p_list[1], [1, 0, 0, 0, 1, 0.33, 0])]
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
     delta_blue =  [abs(i - j) for i, j in
-                   zip(p_list[2], [0, 0, 0, 1, 0, 0.33, 1])]
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
+
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert ft.labels == labels
     assert p.names == labels
 
 
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_fit_predict_multinomial_online(negative_class_value):
+    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ["green", "red", "blue"]
+    if negative_class_value:
+      labels = ["_negative"] + labels
+
+    # Show only 1 label to the model
+    df_train = dt.Frame(["cucumber"])
+    df_target = dt.Frame(["green"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == labels[:1 + negative_class_value])
+    assert(ft.model.shape == (ft.nbins, 2 + 2*negative_class_value))
+
+    # Show one more
+    df_train = dt.Frame(["cucumber", None])
+    df_target = dt.Frame(["green", "red"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == labels[:2 + negative_class_value])
+    assert(ft.model.shape == (ft.nbins, 4 + 2*negative_class_value))
+
+    # And one more
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == labels)
+    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
+
+    # Do not add any new labels
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.fit(df_train, df_target)
+    assert(ft.labels == labels)
+    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
+
+    # Test predictions
+    p = ft.predict(df_train)
+    frame_integrity_check(p)
+    p_none = 1 / p.ncols
+    p_dict = p.to_dict()
+    p_list = p.to_list()
+    sum_p =[sum(row) for row in zip(*p_list)]
+    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
+    delta_red =   [abs(i - j) for i, j in
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
+    delta_green = [abs(i - j) for i, j in
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
+    delta_blue =  [abs(i - j) for i, j in
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
+
+    assert max(delta_sum)   < 1e-12
+    assert max(delta_red)   < epsilon
+    assert max(delta_green) < epsilon
+    assert max(delta_blue)  < epsilon
+    assert list(p.names) == labels
+
+
+
 #-------------------------------------------------------------------------------
-# Test regression
+# Test early stopping
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('double_precision_value', [False, True])
+def test_ftrl_no_validation_set(double_precision_value):
+    nepochs = 1234
+    nbins = 56
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs,
+              double_precision = double_precision_value)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    res = ft.fit(df_X, df_y)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped)
+
+
+def test_ftrl_no_early_stopping():
+    nepochs = 1234
+    nepochs_validation = 56
+    nbins = 78
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    assert epoch_stopped == nepochs
+    assert math.isnan(loss_stopped) == False
+
+
+def test_ftrl_early_stopping_int():
+    nepochs = 10000
+    nepochs_validation = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
+    assert int(epoch_stopped) % nepochs_validation == 0
+    assert max(delta) < epsilon
+
+
+def test_ftrl_early_stopping_float():
+    nepochs = 10000
+    nepochs_validation = 5.5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    res = ft.fit(df_X, df_y, df_X, df_y,
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
+    assert (epoch_stopped / nepochs_validation ==
+            int(epoch_stopped / nepochs_validation))
+    assert max(delta) < epsilon
+
+
+def test_ftrl_early_stopping_regression():
+    nepochs = 10000
+    nepochs_validation = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X_train = dt.Frame(r)
+    df_y_train = dt.Frame(r)
+    df_X_validate = dt.Frame(range(-nbins, nbins))
+    df_y_validate = df_X_validate
+    res = ft.fit(df_X_train, df_y_train,
+                 df_X_validate[nbins::,:], df_y_validate[nbins::,:],
+                 nepochs_validation = nepochs_validation)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    p = ft.predict(df_X_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert epoch_stopped < nepochs
+    assert loss_stopped < epsilon
+    assert int(epoch_stopped) % nepochs_validation == 0
+    assert max(delta) < epsilon
+
+
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_early_stopping_multinomial(negative_class_value):
+    nepochs = 2000
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
+              negative_class = negative_class_value)
+    labels = ["blue", "green", "red"]
+    if negative_class_value:
+      labels = ["_negative"] + labels
+
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    res = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
+                 nepochs_validation = 1, validation_error = 1e-3)
+    epoch_stopped = getattr(res, "epoch")
+    loss_stopped = getattr(res, "loss")
+    frame_integrity_check(ft.model)
+    p = ft.predict(df_train)
+    frame_integrity_check(p)
+    p_none = 1/p.ncols
+    p_dict = p.to_dict()
+    p_list = p.to_list()
+    sum_p =[sum(row) for row in zip(*p_list)]
+    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
+    delta_red =   [abs(i - j) for i, j in
+                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
+    delta_green = [abs(i - j) for i, j in
+                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
+    delta_blue =  [abs(i - j) for i, j in
+                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
+
+    assert epoch_stopped < nepochs
+    assert loss_stopped < 0.1
+    assert max(delta_sum)   < 1e-6
+    assert max(delta_red)   < epsilon
+    assert max(delta_green) < epsilon
+    assert max(delta_blue)  < epsilon
+    assert list(p.names) == labels
+
+
+#-------------------------------------------------------------------------------
+# Test regression for numerical targets
 #-------------------------------------------------------------------------------
 
 def test_ftrl_regression():
-    ft = Ftrl(alpha = 0.5, nbins = 10, nepochs = 1000)
+    ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
     r = range(ft.nbins)
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
@@ -742,7 +872,7 @@ def test_ftrl_regression():
 
 def test_ftrl_feature_importances():
     nrows = 10**4
-    feature_names = ['unique', 'boolean', 'mod10']
+    feature_names = ['unique', 'boolean', 'mod100']
     ft = Ftrl()
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],
@@ -751,7 +881,7 @@ def test_ftrl_feature_importances():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi.stypes == (stype.str32, stype.float64)
+    assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names]
     assert fi[0, 1] < fi[2, 1]
@@ -775,11 +905,34 @@ def test_ftrl_fi_shallowcopy():
 # Test feature interactions
 #-------------------------------------------------------------------------------
 
+def test_ftrl_interactions_wrong_features():
+    nrows = 10**4
+    feature_names = ['unique', 'boolean', 'mod100']
+    feature_interactions = [["unique", "boolean"],["unique", "mod1000"]]
+    ft = Ftrl()
+    ft.interactions = feature_interactions
+    df_train = dt.Frame([range(nrows),
+                         [i % 2 for i in range(nrows)],
+                         [i % 100 for i in range(nrows)]
+                        ], names = feature_names)
+    df_target = dt.Frame([False, True] * (nrows // 2))
+    with pytest.raises(ValueError) as e:
+        ft.fit(df_train, df_target)
+    assert ("Feature 'mod1000' is used for interactions, however, it is "
+            "missing in the training frame" == str(e.value))
+
+
 def test_ftrl_interactions():
     nrows = 10**4
-    feature_names = ['unique', 'boolean', 'mod10']
-    feature_interactions = ['unique:boolean', 'unique:mod10', 'boolean:mod10']
-    ft = Ftrl(interactions = True)
+    feature_names = ['unique', 'boolean', 'mod100']
+    feature_interactions = [["unique", "boolean"],
+                            ["unique", "mod100"],
+                            ["boolean", "mod100"],
+                            ["boolean", "boolean", "boolean"]]
+    interaction_names = ["unique:boolean", "unique:mod100",
+                         "boolean:mod100", "boolean:boolean:boolean"]
+    ft = Ftrl()
+    ft.interactions = feature_interactions
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],
                          [i % 100 for i in range(nrows)]
@@ -787,25 +940,20 @@ def test_ftrl_interactions():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi.stypes == (stype.str32, stype.float64)
+    assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
-    assert fi[:, 0].to_list() == [feature_names + feature_interactions]
+    assert fi[:, 0].to_list() == [feature_names + interaction_names]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
     assert fi[3, 1] < fi[1, 1]
     assert fi[4, 1] < fi[1, 1]
     assert fi[5, 1] < fi[1, 1]
-
-
-def test_ftrl_sync_fi_and_interactions():
-    X = dt.Frame([[3, None, 14, 15], [92, 6, 53, 59]], names = ['pi', 'more_pi'])
-    y = dt.Frame([None, False, True, True])
-    ft = Ftrl()
-    ft.fit(X, y)
-    ft.interactions = True
-    ft.fit(X, y)
-    assert (ft.feature_importances[:, 0].to_list() ==
-            [['pi', 'more_pi', 'pi:more_pi']])
+    # Make sure interaction of important features is still an important feature
+    assert fi[0, 1] < fi[6, 1]
+    assert fi[2, 1] < fi[6, 1]
+    assert fi[3, 1] < fi[6, 1]
+    assert fi[4, 1] < fi[6, 1]
+    assert fi[5, 1] < fi[6, 1]
 
 
 #-------------------------------------------------------------------------------
@@ -828,26 +976,72 @@ def test_ftrl_reuse_pickled_empty_model():
     df_target = dt.Frame([True] * ft_unpickled.nbins)
     ft_unpickled.fit(df_train, df_target)
     model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
-    fi = dt.Frame([["id"], [0.0]], names = ["feature_name", "feature_importance"])
-    assert ft_unpickled.model[0].to_list() == model
+    fi = dt.Frame([["id"], [0.0]])[:, [f[0], dt.float32(f[1])]]
+    fi.names = ["feature_name", "feature_importance"]
+    assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)
 
 
-def test_ftrl_pickling():
+def test_ftrl_pickling_binomial():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins), names = ["f1"])
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
-    ft_unpickled.model[0].internal.check()
-    assert len(ft_unpickled.model) == 1
-    assert ft_unpickled.model[0].names == ('z', 'n')
-    assert ft_unpickled.model[0].stypes == (stype.float64, stype.float64)
-    assert_equals(ft.model[0], ft_unpickled.model[0])
+    frame_integrity_check(ft_unpickled.model)
+    assert ft_unpickled.model.stypes == (stype.float32, stype.float32)
+    assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==
             ('feature_name', 'feature_importance',))
     assert (ft_unpickled.feature_importances.stypes ==
-            (stype.str32, stype.float64))
+            (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
+    assert ft.labels == ft_unpickled.labels
+    assert ft.colnames == ft_unpickled.colnames
+
+    # Fit and predict
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
+    ft.fit(df_train, df_target)
+    target = ft.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
+
+
+@pytest.mark.parametrize('negative_class_value', [False, True])
+def test_ftrl_pickling_multinomial(negative_class_value):
+    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False,
+              negative_class = negative_class_value)
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
+                         "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
+                          "blue"])
+    ft.interactions = [["C0", "C0"]]
+    ft.fit(df_train, df_target)
+
+    ft_pickled = pickle.dumps(ft)
+    ft_unpickled = pickle.loads(ft_pickled)
+    frame_integrity_check(ft_unpickled.model)
+    ncols = (6 + 2*negative_class_value)
+    assert ft_unpickled.model.stypes == (stype.float32,) * ncols
+    assert_equals(ft.model, ft_unpickled.model)
+    assert (ft_unpickled.feature_importances.names ==
+            ('feature_name', 'feature_importance',))
+    assert (ft_unpickled.feature_importances.stypes ==
+            (stype.str32, stype.float32))
+    assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
+    assert ft.params == ft_unpickled.params
+    assert ft.labels == ft_unpickled.labels
+    assert ft.colnames == ft_unpickled.colnames
+    assert ft.interactions == ft_unpickled.interactions
+
+    # Fit and predict
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
+    ft.fit(df_train, df_target)
+    target = ft.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
+

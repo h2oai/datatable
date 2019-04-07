@@ -126,6 +126,15 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
+#include "expr/sort_node.h"
+#include "expr/workframe.h"
+#include "frame/py_frame.h"
+#include "python/args.h"
+#include "utils/alloc.h"
+#include "utils/array.h"
+#include "utils/assert.h"
+#include "utils/misc.h"
+#include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -133,11 +142,6 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "types.h"
-#include "utils.h"
-#include "utils/alloc.h"
-#include "utils/array.h"
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
@@ -381,8 +385,17 @@ class SortContext {
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
     o = nullptr;
     next_o = nullptr;
-    strdata = nullptr;
     histogram = nullptr;
+    strdata = nullptr;
+    stroffs = nullptr;
+    nchunks = 0;
+    chunklen = 0;
+    nradixes = 0;
+    elemsize = 0;
+    next_elemsize = 0;
+    nsigbits = 0;
+    shift = 0;
+    strtype = 0;
     use_order = false;
     descending = false;
 
@@ -401,6 +414,21 @@ class SortContext {
       gg.init(groups.data() + 1, 0);
     }
   }
+
+  SortContext(size_t nrows, const RowIndex& rowindex, const Groupby& groupby,
+              bool make_groups)
+    : SortContext(nrows, rowindex, make_groups)
+  {
+    groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
+    gg.init(nullptr, 0, groupby.ngroups());
+    if (!rowindex) {
+      #pragma omp parallel for schedule(static) num_threads(nth)
+      for (size_t i = 0; i < n; ++i) {
+        o[i] = static_cast<int32_t>(i);
+      }
+    }
+  }
+
 
   SortContext(const SortContext&) = delete;
   SortContext(SortContext&&) = delete;
@@ -423,12 +451,12 @@ class SortContext {
       if (groups) radix_psort<true>();
       else        radix_psort<false>();
     }
+    use_order = true;  // if want to continue sort
   }
 
 
   void continue_sort(const Column* col, bool desc, bool make_groups) {
     nradixes = gg.size();
-    use_order = true;
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
@@ -1269,7 +1297,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   #endif
   if (!as_view) {
     for (auto& s : spec) {
-      columns[s.col_index]->reify();
+      columns[s.col_index]->materialize();
     }
   }
 
@@ -1323,4 +1351,82 @@ RowIndex Column::sort(Groupby* out_grps) const {
   } else {
     return sc.get_result_rowindex();
   }
+}
+
+
+RowIndex Column::sort_grouped(const RowIndex& rowindex,
+                              const Groupby& grps) const
+{
+  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
+  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
+  return sc.get_result_rowindex();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// py::Frame.sort
+//------------------------------------------------------------------------------
+
+static py::PKArgs args_sort(
+  0, 0, 0, true, false, {}, "sort",
+
+R"(sort(self, *cols)
+--
+
+Sort frame by the specified column(s).
+
+Parameters
+----------
+cols: List[str | int]
+    Names or indices of the columns to sort by. If no columns are
+    given, the Frame will be sorted on all columns.
+
+Returns
+-------
+New Frame sorted by the provided column(s). The current frame
+remains unmodified.
+)");
+
+py::oobj py::Frame::sort(const PKArgs& args) {
+  dt::workframe wf(dt);
+
+  if (args.num_vararg_args() == 0) {
+    py::otuple all_cols(dt->ncols);
+    for (size_t i = 0; i < dt->ncols; ++i) {
+      all_cols.set(i, py::oint(i));
+    }
+    wf.add_sortby(py::osort(all_cols));
+  }
+  else {
+    std::vector<py::robj> cols;
+    for (py::robj arg : args.varargs()) {
+      if (arg.is_list_or_tuple()) {
+        auto arg_as_list = arg.to_pylist();
+        for (size_t i = 0; i < arg_as_list.size(); ++i) {
+          cols.push_back(arg_as_list[i]);
+        }
+      } else {
+        cols.push_back(arg);
+      }
+    }
+
+    py::otuple sort_cols(cols.size());
+    for (size_t i = 0; i < cols.size(); ++i) {
+      sort_cols.set(i, cols[i]);
+    }
+    wf.add_sortby(py::osort(sort_cols));
+  }
+
+  wf.add_i(py::None());
+  wf.add_j(py::None());
+  wf.evaluate();
+  return wf.get_result();
+}
+
+
+
+void py::Frame::Type::_init_sort(Methods& mm) {
+  ADD_METHOD(mm, &Frame::sort, args_sort);
 }

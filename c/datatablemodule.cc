@@ -5,8 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <iostream>
-#include <unordered_map>
+#include <exception>       // std::exception
+#include <iostream>        // std::cerr
+#include <mutex>           // std::mutex, std::lock_guard
+#include <thread>          // std::this_thread
+#include <sstream>         // std::stringstream
+#include <unordered_map>   // std::unordered_map
+#include <utility>         // std::pair, std::make_pair, std::move
 #include <Python.h>
 #include "../datatable/include/datatable.h"
 #include "expr/base_expr.h"
@@ -19,13 +24,11 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "parallel/api.h"
 #include "datatablemodule.h"
 #include "options.h"
-#include "py_column.h"
-#include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
-#include "py_types.h"
 #include "utils/assert.h"
 #include "ztest.h"
 
@@ -40,9 +43,11 @@ namespace py {
 // These functions are exported as `datatable.internal.*`
 //------------------------------------------------------------------------------
 
-static std::pair<DataTable*, size_t> _unpack_args(const py::PKArgs& args) {
+static std::pair<DataTable*, size_t>
+_unpack_frame_column_args(const py::PKArgs& args)
+{
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
-  DataTable* dt = args[0].to_frame();
+  DataTable* dt = args[0].to_datatable();
   size_t col    = args[1].to_size_t();
 
   if (!dt) throw TypeError() << "First parameter should be a Frame";
@@ -62,7 +67,7 @@ has no row index.
 )");
 
 static py::oobj frame_column_rowindex(const py::PKArgs& args) {
-  auto u = _unpack_args(args);
+  auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
 
@@ -84,12 +89,33 @@ is returned as a `ctypes.c_void_p` object.
 static py::oobj frame_column_data_r(const py::PKArgs& args) {
   static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
 
-  auto u = _unpack_args(args);
+  auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
   size_t iptr = reinterpret_cast<size_t>(dt->columns[col]->data());
   return c_void_p.call({py::oint(iptr)});
 }
+
+
+static py::PKArgs args_frame_integrity_check(
+  1, 0, 0, false, false, {"frame"}, "frame_integrity_check",
+R"(frame_integrity_check(frame)
+--
+
+This function performs a range of tests on the `frame` to verify
+that its internal state is consistent. It returns None on success,
+or throws an AssertionError if any problems were found.
+)");
+
+static void frame_integrity_check(const py::PKArgs& args) {
+  if (!args[0].is_frame()) {
+    throw TypeError() << "Function `frame_integrity_check()` takes a Frame "
+        "as a single positional argument";
+  }
+  auto frame = static_cast<py::Frame*>(args[0].to_borrowed_ref());
+  frame->integrity_check();
+}
+
 
 
 static py::PKArgs args_in_debug_mode(
@@ -122,6 +148,34 @@ static py::oobj has_omp_support(const py::PKArgs&) {
 }
 
 
+static py::PKArgs args_get_thread_ids(
+    0, 0, 0, false, false, {}, "get_thread_ids",
+R"(Return system ids of all threads used internally by datatable)");
+
+static py::oobj get_thread_ids(const py::PKArgs&) {
+  std::mutex m;
+  size_t n = dt::num_threads_in_pool();
+  py::olist list(n);
+  xassert(dt::this_thread_index() == size_t(-1));
+
+  dt::parallel_region([&] {
+    std::stringstream ss;
+    size_t i = dt::this_thread_index();
+    ss << std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(m);
+    xassert(!list[i]);
+    list.set(i, py::ostring(ss.str()));
+  });
+
+  for (size_t i = 0; i < n; ++i) {
+    xassert(list[i]);
+  }
+  return std::move(list);
+}
+
+
+
+
 static py::PKArgs args__register_function(
     2, 0, 0, false, false, {"n", "fn"}, "_register_function", nullptr);
 
@@ -152,7 +206,7 @@ static py::PKArgs args__column_save_to_disk(
   "using the provided writing strategy.\n");
 
 static void _column_save_to_disk(const py::PKArgs& args) {
-  DataTable* dt        = args[0].to_frame();
+  DataTable* dt        = args[0].to_datatable();
   size_t i             = args[1].to_size_t();
   std::string filename = args[2].to_string();
   std::string strategy = args[3].to_string();
@@ -184,36 +238,36 @@ struct PtrInfo {
 };
 
 static std::unordered_map<void*, PtrInfo> tracked_objects;
+static std::mutex track_mutex;
 
 
 void TRACK(void* ptr, size_t size, const char* name) {
-  #pragma omp critical
-  {
-    if (tracked_objects.count(ptr)) {
-      std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
-          "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
-          << (PtrInfo {size, name}).to_string();
-    }
-    tracked_objects.insert({ptr, PtrInfo {size, name}});
+  std::lock_guard<std::mutex> lock(track_mutex);
+
+  if (tracked_objects.count(ptr)) {
+    std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
+        "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
+        << (PtrInfo {size, name}).to_string();
   }
+  tracked_objects.insert({ptr, PtrInfo {size, name}});
 }
 
 
 void UNTRACK(void* ptr) {
-  #pragma omp critical
-  {
-    if (tracked_objects.count(ptr) == 0) {
-      // UNTRACK() is usually called from a destructor, so cannot throw any
-      // exceptions there :(
-      std::cerr << "ERROR: Trying to remove pointer " << ptr
-                << " which is not tracked\n";
-    }
-    tracked_objects.erase(ptr);
+  std::lock_guard<std::mutex> lock(track_mutex);
+
+  if (tracked_objects.count(ptr) == 0) {
+    // UNTRACK() is usually called from a destructor, so cannot throw any
+    // exceptions there :(
+    std::cerr << "ERROR: Trying to remove pointer " << ptr
+              << " which is not tracked\n";
   }
+  tracked_objects.erase(ptr);
 }
 
 
 bool IS_TRACKED(void* ptr) {
+  std::lock_guard<std::mutex> lock(track_mutex);
   return (tracked_objects.count(ptr) > 0);
 }
 
@@ -245,6 +299,8 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
   ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
+  ADD_FN(&frame_integrity_check, args_frame_integrity_check);
+  ADD_FN(&get_thread_ids, args_get_thread_ids);
 
   init_methods_aggregate();
   init_methods_buffers();
@@ -259,6 +315,9 @@ void py::DatatableModule::init_methods() {
   init_methods_repeat();
   init_methods_sets();
   init_methods_str();
+
+  init_casts();
+
   #ifdef DTTEST
     init_tests();
   #endif
@@ -280,10 +339,10 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     m = dtmod.init();
 
     // Initialize submodules
-    if (!init_py_types(m)) return nullptr;
-    if (!pycolumn::static_init(m)) return nullptr;
-    if (!pydatatable::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
+
+    init_types();
+    expr::init_reducers();
 
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);

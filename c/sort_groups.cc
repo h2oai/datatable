@@ -15,9 +15,9 @@ GroupGatherer::GroupGatherer()
   : groups(nullptr) {}
 
 
-void GroupGatherer::init(int32_t* data, int32_t cumsize0) {
+void GroupGatherer::init(int32_t* data, int32_t cumsize0, size_t count_) {
   groups = data;
-  count = 0;
+  count = static_cast<int32_t>(count_);
   cumsize = cumsize0;
 }
 

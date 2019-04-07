@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable import stype, f
-from datatable.internal import frame_column_rowindex
+from datatable.internal import frame_column_rowindex, frame_integrity_check
 
 
 
@@ -17,15 +17,15 @@ def test_columns_rows():
 
     df1 = df0[::2, f.A + f.B]
     df2 = df0[::2, :][:, f.A + f.B]
-    df1.internal.check()
-    df2.internal.check()
+    frame_integrity_check(df1)
+    frame_integrity_check(df2)
     assert df1.to_list() == [[0, 6, 12, 18, 24]]
     assert df2.to_list() == [[0, 6, 12, 18, 24]]
 
     df3 = df0[::-2, {"res": f.A * f.B}]
     df4 = df0[::2, :][::-1, :][:, f.A * f.B]
-    df3.internal.check()
-    df4.internal.check()
+    frame_integrity_check(df3)
+    frame_integrity_check(df4)
     assert df3.to_list() == [[162, 98, 50, 18, 2]]
 
 

@@ -9,12 +9,11 @@
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
-#include "py_types.h"      // PyLong_AsInt64AndOverflow
 #include "python/_all.h"
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
-#include "utils.h"
 #include "utils/exceptions.h"
+#include "utils/misc.h"
 
 //------------------------------------------------------------------------------
 // Helper iterator classes

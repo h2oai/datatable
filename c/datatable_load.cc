@@ -9,9 +9,9 @@
 #include <string>  // memcpy
 #include "frame/py_frame.h"
 #include "python/args.h"
+#include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "utils.h"
 
 
 
@@ -95,7 +95,7 @@ static PKArgs args_open_nff(
   {"colspec", "nrows", "path", "recode", "names"}, "open_nff", nullptr);
 
 static oobj open_nff(const PKArgs& args) {
-  DataTable* colspec = args[0].to_frame();
+  DataTable* colspec = args[0].to_datatable();
   size_t nrows = args[1].to_size_t();
   std::string path = args[2].to_string();
   int recode = args[3].to_bool_strict();

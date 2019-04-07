@@ -37,11 +37,12 @@
 // In order to help tame this explosion of possibilities, templates are used
 // heavily in this source file.
 //------------------------------------------------------------------------------
-#include "expr/py_expr.h"
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
-#include "types.h"
+#include "expr/py_expr.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
+#include "types.h"
 
 
 namespace expr
@@ -424,7 +425,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
         if (opcode == OpCode::LogicalAnd) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
         if (opcode == OpCode::LogicalOr)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
       }
-      [[clang::fallthrough]];
+      FALLTHROUGH;
 
     case SType::INT8:
       switch (rhs_type) {
@@ -533,8 +534,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
 
 Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
 {
-  lhs->reify();
-  rhs->reify();
+  lhs->materialize();
+  rhs->materialize();
   size_t lhs_nrows = lhs->nrows;
   size_t rhs_nrows = rhs->nrows;
   if (lhs_nrows == 0 || rhs_nrows == 0) {

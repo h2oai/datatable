@@ -444,7 +444,7 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* col = i < rcols? exprs[i]->evaluate_eager(wf)
+    Column* col = i < rcols? exprs[i]->evaluate_eager(wf).release()
                            : dt0->columns[indices[0]]->shallowcopy();
     xassert(col->nrows == dt0->nrows);
     delete dt0->columns[j];
@@ -476,7 +476,7 @@ repl_node::~repl_node() {
 repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   repl_node* res = nullptr;
 
-  if (src.is_frame())       res = new frame_rn(src.to_frame());
+  if (src.is_frame())       res = new frame_rn(src.to_datatable());
   else if (src.is_none())   res = new scalar_na_rn();
   else if (src.is_bool())   res = new scalar_int_rn(src.to_bool());
   else if (src.is_int())    res = new scalar_int_rn(src.to_int64());

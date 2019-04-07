@@ -22,13 +22,14 @@
 #include <algorithm>           // std::min, std::swap, std::move
 #include <cstdlib>             // std::memcpy
 #include <limits>              // std::numeric_limits
+#include "parallel/api.h"      // parallel_for_static
+#include "parallel/atomic.h"
+#include "utils/exceptions.h"  // ValueError, RuntimeError
+#include "utils/assert.h"
 #include "column.h"            // Column, BoolColumn
 #include "memrange.h"          // MemoryRange
 #include "rowindex.h"
 #include "rowindex_impl.h"
-#include "utils/exceptions.h"  // ValueError, RuntimeError
-#include "utils/assert.h"
-#include "utils/parallel.h"
 
 #ifndef NDEBUG
   inline static void test(ArrayRowIndexImpl* o) {
@@ -183,143 +184,6 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, size_t n, bool sorted) {
-  xassert(n <= std::numeric_limits<int32_t>::max());
-  ascending = sorted;
-  data = nullptr;
-  owned = true;
-
-  // Output buffer, where we will write the indices of selected rows. This
-  // buffer is preallocated to the length of the original dataset, and it will
-  // be re-alloced to the proper length in the end. The reason we don't want
-  // to scale this array dynamically is because it reduces performance (at
-  // least some of the reallocs will have to memmove the data, and moreover
-  // the realloc has to occur within a critical section, slowing down the
-  // team of threads).
-  type = RowIndexType::ARR32;
-  length = n;
-  _resize_data();
-
-  // Number of elements that were written (or tentatively written) so far
-  // into the array `out`.
-  size_t out_length = 0;
-  // We divide the range of rows [0:n] into `num_chunks` pieces, each
-  // (except the very last one) having `rows_per_chunk` rows. Each such piece
-  // is a fundamental unit of work for this function: every thread in the team
-  // works on a single chunk at a time, and then moves on to the next chunk
-  // in the queue.
-  size_t rows_per_chunk = 65536;
-  size_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
-  int32_t* out_ptr = static_cast<int32_t*>(data);
-
-  #pragma omp parallel
-  {
-    // Intermediate buffer where each thread stores the row numbers it found
-    // before they are consolidated into the final output buffer.
-    arr32_t buf(rows_per_chunk);
-
-    // Number of elements that are currently being held in `buf`.
-    size_t buf_length = 0;
-    // Offset (within the output buffer) where this thread needs to save the
-    // contents of its temporary buffer `buf`.
-    // The algorithm works as follows: first, the thread calls `filterfn` to
-    // fill up its buffer `buf`. After `filterfn` finishes, the variable
-    // `buf_length` will contain the number of rows that were selected from
-    // the current (`i`th) chunk. Those row numbers are stored in `buf`.
-    // Then the thread enters the "ordered" section, where it stores the
-    // current length of the output buffer into the `out_offset` variable,
-    // and increases the `out_offset` as if it already copied the result
-    // there. However the actual copying is done outside the "ordered"
-    // section so as to block all other threads as little as possible.
-    size_t out_offset = 0;
-
-    #pragma omp for ordered schedule(dynamic, 1)
-    for (size_t i = 0; i < num_chunks; ++i) {
-      if (buf_length) {
-        // This clause is conceptually located after the "ordered"
-        // section -- however due to a bug in libgOMP the "ordered"
-        // section must come last in the loop. So in order to circumvent
-        // the bug, this block had to be moved to the front of the loop.
-        size_t bufsize = buf_length * sizeof(int32_t);
-        std::memcpy(out_ptr + out_offset, buf.data(), bufsize);
-        buf_length = 0;
-      }
-
-      size_t row0 = i * rows_per_chunk;
-      size_t row1 = std::min(row0 + rows_per_chunk, n);
-      (*ff)(row0, row1, buf.data(), &buf_length);
-
-      #pragma omp ordered
-      {
-        out_offset = out_length;
-        out_length += buf_length;
-      }
-    }
-    // Note: if the underlying array is small, then some threads may have
-    // done nothing at all, and their buffers would be empty.
-    if (buf_length) {
-      size_t bufsize = buf_length * sizeof(int32_t);
-      std::memcpy(out_ptr + out_offset, buf.data(), bufsize);
-      buf_length = 0;
-    }
-  }
-
-  // In the end we shrink the output buffer to the size corresponding to the
-  // actual number of elements written.
-  length = out_length;
-  _resize_data();
-  set_min_max();
-  test(this);
-}
-
-
-ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, size_t n, bool sorted) {
-  ascending = sorted;
-  data = nullptr;
-  owned = true;
-  type = RowIndexType::ARR64;
-  length = n;
-  _resize_data();
-  auto out_ptr = static_cast<int64_t*>(data);
-  size_t out_length = 0;
-  size_t rows_per_chunk = 65536;
-  size_t num_chunks = (n + rows_per_chunk - 1) / rows_per_chunk;
-
-  #pragma omp parallel
-  {
-    arr64_t buf(rows_per_chunk);
-    size_t buf_length = 0;
-    size_t out_offset = 0;
-
-    #pragma omp for ordered schedule(dynamic, 1)
-    for (size_t i = 0; i < num_chunks; ++i) {
-      if (buf_length) {
-        size_t bufsize = buf_length * sizeof(int64_t);
-        std::memcpy(out_ptr + out_offset, buf.data(), bufsize);
-        buf_length = 0;
-      }
-      size_t row0 = i * rows_per_chunk;
-      size_t row1 = std::min(row0 + rows_per_chunk, n);
-      (*ff)(row0, row1, buf.data(), &buf_length);
-      #pragma omp ordered
-      {
-        out_offset = out_length;
-        out_length += buf_length;
-      }
-    }
-    if (buf_length) {
-      size_t bufsize = buf_length * sizeof(int64_t);
-      memcpy(out_ptr + out_offset, buf.data(), bufsize);
-      buf_length = 0;
-    }
-  }
-  length = out_length;
-  _resize_data();
-  set_min_max();
-  test(this);
-}
-
-
 ArrayRowIndexImpl::~ArrayRowIndexImpl() {
   if (data && owned) {
     dt::free(data);
@@ -359,16 +223,24 @@ void ArrayRowIndexImpl::_set_min_max() {
     }
   }
   else {
-    T tmin = TMAX;
-    T tmax = -TMAX;
-    #pragma omp parallel for schedule(static) \
-        reduction(min:tmin) reduction(max:tmax)
-    for (size_t j = 0; j < length; ++j) {
-      T t = idata[j];
-      if (t == -1) continue;
-      if (t < tmin) tmin = t;
-      if (t > tmax) tmax = t;
-    }
+    std::atomic<T> amin { TMAX };
+    std::atomic<T> amax { -TMAX };
+    dt::parallel_region(
+      [&] {
+        T local_min = TMAX;
+        T local_max = -TMAX;
+        dt::parallel_for_static(length,
+          [&](size_t i) {
+            T t = idata[i];
+            if (t == -1) return;
+            if (t < local_min) local_min = t;
+            if (t > local_max) local_max = t;
+          });
+        dt::atomic_fetch_min(&amin, local_min);
+        dt::atomic_fetch_max(&amax, local_max);
+      });
+    T tmin = amin.load();
+    T tmax = amax.load();
     if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
     min = static_cast<size_t>(tmin);
     max = static_cast<size_t>(tmax);
@@ -430,7 +302,7 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     max = static_cast<size_t>(imax);
   }
   Column* col2 = col->shallowcopy();
-  col2->reify();  // noop if col has no rowindex
+  col2->materialize();  // noop if col has no rowindex
 
   length = col->nrows;
   Column* col3 = nullptr;

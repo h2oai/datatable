@@ -112,28 +112,17 @@ Frame* Frame::from_datatable(DataTable* dt) {
   Frame::internal_construction = false;
   if (!res) throw PyError();
 
-  PyObject* _dt = pydatatable::wrap(dt);
-  if (!_dt) throw PyError();
-
   Frame* frame = reinterpret_cast<Frame*>(res);
   frame->dt = dt;
-  frame->core_dt = reinterpret_cast<pydatatable::obj*>(_dt);
-  frame->core_dt->_frame = frame;
   return frame;
 }
 
 
 void Frame::m__dealloc__() {
-  Py_XDECREF(core_dt);
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
-  dt = nullptr;  // `dt` is already managed by `core_dt`
-}
-
-void Frame::m__get_buffer__(Py_buffer*, int) const {
-}
-
-void Frame::m__release_buffer__(Py_buffer*) const {
+  delete dt;
+  dt = nullptr;
 }
 
 
@@ -142,6 +131,32 @@ void Frame::_clear_types() const {
   Py_XDECREF(ltypes);
   stypes = nullptr;
   ltypes = nullptr;
+}
+
+
+static PKArgs args_materialize(
+  0, 0, 0, false, false, {}, "materialize",
+
+R"(materialize(self)
+--
+
+Convert a "view" frame into a regular data frame.
+
+Certain datatable operation produce frames that contain "view"
+columns. These columns refer to the data in some other column, via
+a RowIndex object that describes which values from the other column
+should be picked. This is done in order to improve performance and
+reduce memory usage of certain operations: a view column avoids
+copying data from its parent column.
+
+Usually view columns are created transparently to the user, and they
+are materialized by datatable when necessary. This method, on the
+other hand, will force all view columns in the frame to be
+materialized immediately.
+)");
+
+void Frame::materialize(const PKArgs&) {
+  dt->materialize();
 }
 
 
@@ -231,14 +246,6 @@ oobj Frame::get_ltypes() const {
 }
 
 
-static GSArgs args_internal("internal", "[DEPRECATED]");
-static GSArgs args__dt("_dt", "[DEPRECATED]");
-
-oobj Frame::get_internal() const {
-  return oobj(core_dt);
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -278,6 +285,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   _init_repr(mm);
   _init_sizeof(mm);
   _init_stats(mm);
+  _init_sort(mm);
   _init_tocsv(mm);
   _init_tonumpy(mm);
   _init_topython(mm);
@@ -287,12 +295,11 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   ADD_GETTER(gs, &Frame::get_shape, args_shape);
   ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
   ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
-  ADD_GETTER(gs, &Frame::get_internal, args_internal);
-  ADD_GETTER(gs, &Frame::get_internal, args__dt);
 
   ADD_METHOD(mm, &Frame::head, args_head);
   ADD_METHOD(mm, &Frame::tail, args_tail);
   ADD_METHOD(mm, &Frame::copy, args_copy);
+  ADD_METHOD(mm, &Frame::materialize, args_materialize);
 }
 
 
