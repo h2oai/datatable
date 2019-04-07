@@ -263,9 +263,11 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 {
   std::cout << "entering ordered::parallel()\n";
   if (sch->n_threads <= 1) {
+    std::cout << "nthreads = " << sch->n_threads << " (<=1)\n";
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
+    std::cout << "running " << sch->n_iterations << " iterations\n";
     for (size_t j = 0; j < sch->n_iterations; ++j) {
       pre_ordered(j);
       do_ordered(j);
@@ -296,22 +298,24 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 // parallel_for_ordered
 //------------------------------------------------------------------------------
 
-void parallel_for_ordered(size_t nrows, size_t nthreads,
+void parallel_for_ordered(size_t niters, size_t nthreads,
                           function<void(ordered*)> fn)
 {
-  std::cout << "Entered parallel_for_ordered(nrows=" << nrows << ", nthreads=" << nthreads << ")\n";
+  std::cout << "Entered parallel_for_ordered(niters=" << niters << ", nthreads=" << nthreads << ")\n";
+  if (!niters) return;
   thread_pool* thpool = thread_pool::get_instance();
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;
 
-  size_t ntasks = std::min(nrows, nthreads * 2);
-  if (nthreads > ntasks) nthreads = ntasks;
+  size_t ntasks = std::min(niters, nthreads * 2);
+  if (nthreads == 0) ntasks = 1;
+  else if (nthreads > ntasks) nthreads = ntasks;
   std::cout << "  nthreads=" << nthreads << "\n";
   std::cout << "  ntasks=" << ntasks << "\n";
   thread_team tt(nthreads, thpool);
   std::cout << "  created team\n";
-  ordered_scheduler sch(ntasks, nthreads, nrows);
+  ordered_scheduler sch(ntasks, nthreads, niters);
   std::cout << "  created scheduler\n";
   ordered octx(&sch, fn);
   std::cout << "  created ordered\n";

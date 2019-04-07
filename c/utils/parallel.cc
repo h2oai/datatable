@@ -51,6 +51,8 @@ void ordered_job::execute() {
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
   int k = 0;
+  bool doing_ordered = false;
+  size_t next_to_order = 0;
 
   std::cout << "calling parallel_for_ordered(nchunks=" << nchunks << ", nthreads=" << nthreads << ")\n";
   dt::parallel_for_ordered(
@@ -58,9 +60,9 @@ void ordered_job::execute() {
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
       int khere = k++;
-      std::cout << "Entered main lambda, with k=" << k << "\n";
+      std::cout << "Entered main lambda, with k=" << khere << "\n";
       ojcptr ctx = start_thread_context();
-      std::cout << '[' << k << "] context = " << (void*)(ctx.get()) << "\n";
+      std::cout << '[' << khere << "] context = " << (ctx.get()) << "\n";
       int state = 0;
 
       o->parallel(
@@ -71,18 +73,22 @@ void ordered_job::execute() {
           run(ctx, i0, i1);
           xassert(state == 1); state = 2;
         },
-        [&](size_t) {
+        [&](size_t j) {
+          xassert(!doing_ordered); doing_ordered = true;
           xassert(state == 2); state = 3;
+          xassert(j == next_to_order); next_to_order++;
           order(ctx);
           xassert(state == 3); state = 0;
+          xassert(doing_ordered); doing_ordered = false;
         },
         nullptr
       );
 
-      std::cout << '[' << k << "] closing context " << (void*)(ctx.get()) << "\n";
+      std::cout << '[' << khere << "] closing context " << (ctx.get()) << "\n";
       finish_thread_context(ctx);
-      std::cout << '[' << k << "] leaving main lambda\n";
+      std::cout << '[' << khere << "] leaving main lambda\n";
     });
+  xassert(next_to_order == nchunks);
 }
 
 

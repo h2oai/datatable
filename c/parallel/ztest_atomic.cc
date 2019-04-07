@@ -39,7 +39,7 @@ static void test_atomic_impl() {
     [&] {
       barrier--;
       while (barrier.load());
-      size_t i = dt::this_thread_index();
+      int i = static_cast<int>(dt::this_thread_index());
       if (i >= n) {
         throw AssertionError() << "Invalid thread index: " << i;
       }
