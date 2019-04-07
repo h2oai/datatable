@@ -158,7 +158,7 @@ def test_dt_properties(dt0):
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
                           ltype.bool, ltype.bool, ltype.str)
-    assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
+    assert dt0.stypes == (stype.int32, stype.bool8, stype.bool8, stype.float64,
                           stype.bool8, stype.bool8, stype.str32)
     assert sys.getsizeof(dt0) > 500
 
@@ -713,7 +713,7 @@ def test_topandas_nas():
                    [4587074, None, 109348, 1394, -343],
                    [None, None, None, None, 134918374091834]])
     frame_integrity_check(d0)
-    assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
+    assert d0.stypes == (dt.stype.bool8, dt.stype.int32, dt.stype.int32,
                          dt.stype.int32, dt.stype.int64)
     p0 = d0.to_pandas()
     # Check that each column in Pandas DataFrame has the correct number of NAs
@@ -753,10 +753,10 @@ def test_topandas_bool_nas():
 
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
-    assert d0.stypes == (stype.int8, )
+    assert d0.stypes == (stype.int32, )
     a0 = d0.to_numpy()
     assert a0.shape == d0.shape
-    assert a0.dtype == numpy.dtype("int8")
+    assert a0.dtype == numpy.dtype("int32")
     assert a0.tolist() == [[1], [3], [5], [7], [9]]
     a1 = numpy.array(d0)
     assert (a0 == a1).all()
@@ -777,11 +777,11 @@ def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.Frame(tbl)
     assert d0.shape == (5, 3)
-    assert d0.stypes == (stype.int8, stype.int8, stype.int8)
+    assert d0.stypes == (stype.int32, stype.int32, stype.int32)
     assert d0.to_list() == tbl
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
-    assert n0.dtype == numpy.dtype("int8")
+    assert n0.dtype == numpy.dtype("int32")
     assert n0.T.tolist() == tbl
 
 
@@ -800,7 +800,7 @@ def test_numpy_constructor_multi_types(numpy):
            [30498, 1349810, -134308],
            [1.454, 4.9e-23, 10000000]]
     d0 = dt.Frame(tbl)
-    assert d0.stypes == (stype.int8, stype.bool8, stype.int32, stype.float64)
+    assert d0.stypes == (stype.int32, stype.bool8, stype.int32, stype.float64)
     n0 = numpy.array(d0)
     assert n0.dtype == numpy.dtype("float64")
     assert n0.T.tolist() == [[1.0, 5.0, 10.0],
@@ -823,10 +823,10 @@ def test_numpy_constructor_view(numpy):
 
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.Frame([1, 1, 3, 5, 8, 13, 21, 34, 55])
-    assert d0.stypes == (stype.int8, )
+    assert d0.stypes == (stype.int32, )
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
-    assert n0.dtype == numpy.dtype("int8")
+    assert n0.dtype == numpy.dtype("int32")
     assert (n0 == d0.to_numpy()).all()
 
 
@@ -855,7 +855,7 @@ def test_tonumpy_with_stype(numpy):
     """
     src = [[1.5, 2.6, 5.4], [3, 7, 10]]
     d0 = dt.Frame(src)
-    assert d0.stypes == (stype.float64, stype.int8)
+    assert d0.stypes == (stype.float64, stype.int32)
     a1 = d0.to_numpy("float32")
     a2 = d0.to_numpy()
     del d0
