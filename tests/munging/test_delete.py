@@ -359,5 +359,4 @@ def test_del_rows_and_cols():
     del d0[[-1, 0], "A":"B"]
     assert_equals(d0, dt.Frame(A=[None, 3, None, 7, None],
                                B=[None, 7.4178, None, .2999, None],
-                               C=["what", "if not", None, None, "zaqve"],
-                               stypes={"A": "int16"}))
+                               C=["what", "if not", None, None, "zaqve"]))
