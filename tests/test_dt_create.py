@@ -564,8 +564,7 @@ def test_auto_int8():
     src = [0, 3, 12, None, -5]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    # TODO: after #1702 this will become int32
-    assert d0.stypes == (stype.int8,)
+    assert d0.stypes == (stype.int32,)
     assert d0.to_list()[0] == src
 
 
@@ -573,8 +572,7 @@ def test_auto_int16():
     src = [50, 2303, None, -45]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    # TODO: after #1702 this will become int32
-    assert d0.stypes == (stype.int16,)
+    assert d0.stypes == (stype.int32,)
     assert d0.to_list()[0] == src
 
 
