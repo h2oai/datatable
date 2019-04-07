@@ -56,14 +56,21 @@ void ordered_job::execute() {
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
       ojcptr ctx = start_thread_context();
+      int state = 0;
 
       o->parallel(
         [&](size_t j) {
+          xassert(state == 0); state = 1;
           size_t i0 = std::min(j * chunksize, nrows);
           size_t i1 = std::min(i0 + chunksize, nrows);
           run(ctx, i0, i1);
+          xassert(state == 1); state = 2;
         },
-        [&](size_t) { order(ctx); },
+        [&](size_t) {
+          xassert(state == 2); state = 3;
+          order(ctx);
+          xassert(state == 3); state = 0;
+        },
         nullptr
       );
 
@@ -110,12 +117,12 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
           for (size_t i = i0; i < i1; ++i) {
             fn(i, sb.get());
           }
-          state = 2;
+          xassert(state == 1); state = 2;
         },
         [&](size_t) {
           xassert(state == 2); state = 3;
           sb->order();
-          state = 0;
+          xassert(state == 3); state = 0;
         },
         nullptr
       );
