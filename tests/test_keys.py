@@ -63,13 +63,13 @@ def test_no_cache():
                    names=["A", "B", "C"])
     assert dt0.names == ("A", "B", "C")
     assert dt0.ltypes == (dt.ltype.real, dt.ltype.str, dt.ltype.int)
-    assert dt0.stypes == (dt.float64, dt.str32, dt.int8)
+    assert dt0.stypes == (dt.float64, dt.str32, dt.int32)
     assert dt0.colindex("B") == 1
     frame_integrity_check(dt0)
     dt0.key = "C"
     assert dt0.names == ("C", "A", "B")
     assert dt0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
-    assert dt0.stypes == (dt.int8, dt.float64, dt.str32)
+    assert dt0.stypes == (dt.int32, dt.float64, dt.str32)
     assert dt0.colindex("B") == 2
     frame_integrity_check(dt0)
 
