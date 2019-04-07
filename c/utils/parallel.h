@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_PARALLEL_h
 #define dt_UTILS_PARALLEL_h
+#include <iostream>
 #include <functional>     // std::function
 #include "utils/c+++.h"
 #include "utils/function.h"

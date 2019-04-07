@@ -50,12 +50,17 @@ void ordered_job::execute() {
   size_t nthreads = noomp? 0 : nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
+  int k = 0;
 
+  std::cout << "calling parallel_for_ordered(nchunks=" << nchunks << ", nthreads=" << nthreads << ")\n";
   dt::parallel_for_ordered(
     nchunks,
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
+      int khere = k++;
+      std::cout << "Entered main lambda, with k=" << k << "\n";
       ojcptr ctx = start_thread_context();
+      std::cout << '[' << k << "] context = " << (void*)(ctx.get()) << "\n";
       int state = 0;
 
       o->parallel(
@@ -74,7 +79,9 @@ void ordered_job::execute() {
         nullptr
       );
 
+      std::cout << '[' << k << "] closing context " << (void*)(ctx.get()) << "\n";
       finish_thread_context(ctx);
+      std::cout << '[' << k << "] leaving main lambda\n";
     });
 }
 

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <mutex>
 #include <thread>   // std::this_thread
 #include <vector>
@@ -260,6 +261,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> do_ordered,
                        function<void(size_t)> post_ordered)
 {
+  std::cout << "entering ordered::parallel()\n";
   if (sch->n_threads <= 1) {
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
@@ -271,14 +273,20 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
     }
   }
   else {
+    std::cout << "nthreads > 1\n";
     sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
+    std::cout << "tasks.size() = " << sch->tasks.size() << "\n";
     if (sch->tasks.size() == sch->n_tasks) {
       thread_pool* thpool = thread_pool::get_instance();
+      std::cout << "start executing job\n";
       thpool->execute_job(sch);
+      std::cout << "done executing job\n";
     } else {
+      std::cout << "recurse into init(" << this << ")\n";
       init(this);
     }
   }
+  std::cout << "exiting ordered::parallel()\n";
 }
 
 
@@ -291,6 +299,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 void parallel_for_ordered(size_t nrows, size_t nthreads,
                           function<void(ordered*)> fn)
 {
+  std::cout << "Entered parallel_for_ordered(nrows=" << nrows << ", nthreads=" << nthreads << ")\n";
   thread_pool* thpool = thread_pool::get_instance();
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
@@ -298,10 +307,17 @@ void parallel_for_ordered(size_t nrows, size_t nthreads,
 
   size_t ntasks = std::min(nrows, nthreads * 2);
   if (nthreads > ntasks) nthreads = ntasks;
+  std::cout << "  nthreads=" << nthreads << "\n";
+  std::cout << "  ntasks=" << ntasks << "\n";
   thread_team tt(nthreads, thpool);
+  std::cout << "  created team\n";
   ordered_scheduler sch(ntasks, nthreads, nrows);
+  std::cout << "  created scheduler\n";
   ordered octx(&sch, fn);
+  std::cout << "  created ordered\n";
+  std::cout << "  preparing to run fn(" << (void*)(&octx) << ")\n";
   fn(&octx);
+  std::cout << "  exiting parallel_for_ordered\n";
 }
 
 
