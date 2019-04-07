@@ -25,8 +25,9 @@ namespace dttest {
 
 template <typename T>
 static void test_atomic_impl() {
-  size_t n = dt::num_threads_in_pool();
-  std::atomic<int> barrier { static_cast<int>(n) };
+  // n must be signed, otherwise some expressions below overflow at n = 2
+  int n = static_cast<int>(dt::num_threads_in_pool());
+  std::atomic<int> barrier { n };
 
   dt::atomic<T> x { T(0.0) };
   dt::atomic<T> y { T(1.0) };
@@ -39,6 +40,9 @@ static void test_atomic_impl() {
       barrier--;
       while (barrier.load());
       size_t i = dt::this_thread_index();
+      if (i >= n) {
+        throw AssertionError() << "Invalid thread index: " << i;
+      }
 
       x += static_cast<T>(i);
       y *= static_cast<T>(2.0);
@@ -48,7 +52,7 @@ static void test_atomic_impl() {
       dt::atomic_fetch_min(&r, static_cast<int>(i));
     });
 
-  T x_exp = static_cast<T>(n * (n - 1) / 2 - n);
+  T x_exp = static_cast<T>(n * (n - 3) / 2);
   T y_exp = static_cast<T>(std::pow(2.0, n));
   T z_exp = static_cast<T>(1.3e20 / std::pow(7.0, n));
   T x_act = x.load();
@@ -56,7 +60,7 @@ static void test_atomic_impl() {
   T z_act = z.load();
   int q_act = q.load();  // max
   int r_act = r.load();  // min
-  int q_exp = static_cast<int>(n - 1);
+  int q_exp = n - 1;
   int r_exp = 0;
 
   T eps = static_cast<T>(sizeof(T) == 4? 1e-6 : 1e-10);

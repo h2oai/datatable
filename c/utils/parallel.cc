@@ -112,11 +112,9 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
       auto sb = force_str64
         ? sbptr(new writable_string_col::buffer_impl<uint64_t>(outcol))
         : sbptr(new writable_string_col::buffer_impl<uint32_t>(outcol));
-      int state = 0;
 
       o->parallel(
         [&](size_t j) {
-          xassert(state == 0); state = 1;
           size_t i0 = std::min(j * chunksize, nrows);
           size_t i1 = std::min(i0 + chunksize, nrows);
 
@@ -124,17 +122,13 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
           for (size_t i = i0; i < i1; ++i) {
             fn(i, sb.get());
           }
-          xassert(state == 1); state = 2;
         },
         [&](size_t) {
-          xassert(state == 2); state = 3;
           sb->order();
-          xassert(state == 3); state = 0;
         },
         nullptr
       );
 
-      xassert(state == 0);
       sb->commit_and_start_new_chunk(nrows);
     });
 
