@@ -35,8 +35,14 @@ void* _realloc(void* ptr, size_t n) {
     // | C11 DR 400.
     void* newptr = std::realloc(ptr, n);
     if (newptr) {
-      if (ptr) UNTRACK(ptr);
-      TRACK(newptr, n, "malloc");
+      // tracking/untracking should be done atomically in multi-threaded mode,
+      // together with std::realloc(). Otherwise, it is possible to get a
+      // situation where one thread reallocs freeing up an address, and then
+      // another thread picks up that address emitting an error that the address
+      // is in use (because the first thread hadn't had the chance to untrack it
+      // yet).
+      // if (ptr) UNTRACK(ptr);
+      // TRACK(newptr, n, "malloc");
       return newptr;
     }
     if (errno == 12 && attempts--) {
@@ -56,7 +62,7 @@ void* _realloc(void* ptr, size_t n) {
 void free(void* ptr) {
   if (!ptr) return;
   std::free(ptr);
-  UNTRACK(ptr);
+  // UNTRACK(ptr);
 }
 
 
