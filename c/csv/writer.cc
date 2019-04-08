@@ -342,8 +342,7 @@ void CsvWriter::write()
         log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
       }
       // Initialize thread-local variables
-      size_t thbufsize = bytes_per_chunk * 2;
-      char*  thbuf = dt::malloc<char>(thbufsize);
+      dt::array<char> thbuf(bytes_per_chunk * 2);
       size_t th_write_at = 0;
       size_t th_write_size = 0;
       std::vector<size_t> js(rcs.size());
@@ -354,11 +353,6 @@ void CsvWriter::write()
           size_t row0 = static_cast<size_t>(i * rows_per_chunk);
           size_t row1 = static_cast<size_t>((i + 1) * rows_per_chunk);
           if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
-
-          // write the thread-local buffer into the output
-          if (th_write_size) {
-            wb->write_at(th_write_at, th_write_size, thbuf);
-          }
 
           // Compute the required size of the thread-local buffer, and then
           // expand the buffer if necessary. The size of each column is multiplied
@@ -373,17 +367,10 @@ void CsvWriter::write()
           }
           reqsize *= 2;
           reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
-          if (thbufsize < reqsize) {
-            thbuf = dt::realloc<char>(thbuf, reqsize);
-            thbufsize = reqsize;
-            if (!thbuf) {
-              throw RuntimeError() << "Unable to allocate " << thbufsize
-                                   << " bytes for thread-local buffer";
-            }
-          }
+          thbuf.ensuresize(reqsize);
 
           // Write the data in rows row0..row1 and in all columns
-          char* thch = thbuf;
+          char* thch = thbuf.data();
           if (rcs.size() == 1) {
             ri0.iterate(row0, row1, 1,
               [&](size_t, size_t j) {
@@ -408,20 +395,18 @@ void CsvWriter::write()
               thch[-1] = '\n';
             }
           }
-          th_write_size = static_cast<size_t>(thch - thbuf);
-          xassert(th_write_size <= thbufsize);
+          th_write_size = static_cast<size_t>(thch - thbuf.data());
         }, // end of pre-ordered
 
         [&](size_t) {  // ordered
-          th_write_at = wb->prep_write(th_write_size, thbuf);
+          th_write_at = wb->prep_write(th_write_size, thbuf.data());
         },
 
-        nullptr  // post-ordered
+        [&](size_t) {  // post-ordered
+          wb->write_at(th_write_at, th_write_size, thbuf.data());
+          th_write_size = 0;
+        }
       );
-      if (th_write_size) {
-        wb->write_at(th_write_at, th_write_size, thbuf);
-      }
-      dt::free(thbuf);
     });
 
   finalize:
