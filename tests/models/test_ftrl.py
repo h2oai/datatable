@@ -192,7 +192,7 @@ def test_ftrl_construct_wrong_nbins_value():
 
 @pytest.mark.parametrize('value, message',
                          [[-1, "Argument `mantissa_nbits` in Ftrl() constructor cannot be negative: -1"],
-                         [53, "Argument `mantissa_nbits` in Ftrl() constructor should be less than 53, got: 53"]])
+                         [53, "Argument `mantissa_nbits` in Ftrl() constructor should be less than or equal to 52, got: 53"]])
 def test_ftrl_construct_wrong_mantissa_nbits_value(value, message):
     with pytest.raises(ValueError) as e:
         noop(Ftrl(mantissa_nbits = value))
@@ -387,7 +387,7 @@ def test_ftrl_set_wrong_nbins_value():
 
 @pytest.mark.parametrize('value, message',
                          [[-1, "Integer value cannot be negative"],
-                         [53, "Value should be less than 53, got: 53"]])
+                         [53, "Value should be less than or equal to 52, got: 53"]])
 def test_ftrl_set_wrong_mantissa_nbits_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:

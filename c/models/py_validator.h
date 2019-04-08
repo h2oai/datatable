@@ -28,13 +28,16 @@
 namespace py {
 namespace Validator {
 
+
+// Error manager
+
 struct error_manager {
   error_manager() = default;
   error_manager(const error_manager&) = default;
   Error error_not_positive (PyObject*, const std::string&) const;
   Error error_negative     (PyObject*, const std::string&) const;
   template <typename T>
-  Error error_larger_or_equal (PyObject*, const std::string&, T value_max) const;
+  Error error_greater_than (PyObject*, const std::string&, T value_max) const;
 };
 
 static std::string _name = "Value";
@@ -42,29 +45,29 @@ static error_manager _em;
 
 
 template <typename T>
-Error py::Validator::error_manager::error_larger_or_equal(PyObject* src,
-                                                   const std::string& name,
-                                                   T value_max
+Error py::Validator::error_manager::error_greater_than(PyObject* src,
+                                                       const std::string& name,
+                                                       T value_max
 ) const {
-  return ValueError() << name << " should be less than " << value_max << ", got: "
-                      << src;
+  return ValueError() << name << " should be less than or equal to " << value_max
+                      << ", got: " << src;
 }
 
 
 // py::_obj validators
 
 /**
- *  Less than check.
+ *  Less than or equal to check.
  */
 template <typename T>
-void check_less_than(const T value,
-                     const T value_max,
-                     const py::_obj& o,
-                     const std::string& name = _name,
-                     error_manager& em = _em)
+void check_less_than_or_equal_to(const T value,
+                                 const T value_max,
+                                 const py::_obj& o,
+                                 const std::string& name = _name,
+                                 error_manager& em = _em)
 {
-  if (!std::isinf(value) && value < value_max) return;
-  throw em.error_larger_or_equal<T>(o.to_borrowed_ref(), name, value_max);
+  if (!std::isinf(value) && value <= value_max) return;
+  throw em.error_greater_than<T>(o.to_borrowed_ref(), name, value_max);
 }
 
 
@@ -113,8 +116,8 @@ void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
 
 
 template <typename T>
-void check_less_than(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
-  check_less_than<T>(value, value_max, arg.to_pyobj(), arg.name(), em);
+void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
+  check_less_than_or_equal_to<T>(value, value_max, arg.to_pyobj(), arg.name(), em);
 }
 
 
