@@ -31,9 +31,9 @@
 namespace dt {
 
 
-/*
-* Class template that implements all the virtual methods declared in dt::Ftrl.
-*/
+/**
+ *  Class template that implements all the virtual methods declared in dt::Ftrl.
+ */
 template <typename T /* float or double */>
 class FtrlReal : public dt::Ftrl {
   private:
@@ -57,6 +57,8 @@ class FtrlReal : public dt::Ftrl {
     T lambda1;
     T lambda2;
     uint64_t nbins;
+    unsigned char mantissa_nbits;
+    size_t: 56;
     size_t nepochs;
     std::vector<sizetvec> interactions;
 
@@ -98,7 +100,7 @@ class FtrlReal : public dt::Ftrl {
 
     // Hashing methods
     std::vector<hasherptr> create_hashers(const DataTable*);
-    static hasherptr create_hasher(const Column*);
+    hasherptr create_hasher(const Column*);
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
@@ -149,6 +151,7 @@ class FtrlReal : public dt::Ftrl {
     double get_lambda1() override;
     double get_lambda2() override;
     uint64_t get_nbins() override;
+    unsigned char get_mantissa_nbits() override;
     size_t get_nepochs() override;
     const std::vector<sizetvec>& get_interactions() override;
     bool get_double_precision() override;
@@ -165,6 +168,7 @@ class FtrlReal : public dt::Ftrl {
     void set_lambda1(double) override;
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
+    void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<sizetvec>) override;
     void set_double_precision(bool) override;

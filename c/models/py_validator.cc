@@ -28,6 +28,7 @@ Error py::Validator::error_manager::error_not_positive(PyObject* src,
   return ValueError() << name << " should be positive: " << src;
 }
 
+
 Error py::Validator::error_manager::error_negative(PyObject* src,
                                                    const std::string& name
 ) const {

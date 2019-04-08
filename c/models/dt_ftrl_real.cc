@@ -28,9 +28,9 @@
 namespace dt {
 
 
-/*
-*  Constructor. Set up parameters and initialize weights.
-*/
+/**
+ *  Constructor. Set up parameters and initialize weights.
+ */
 template <typename T>
 FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   model_type(FtrlModelType::NONE),
@@ -40,6 +40,7 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   lambda1(static_cast<T>(params_in.lambda1)),
   lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
+  mantissa_nbits(params_in.mantissa_nbits),
   nepochs(params_in.nepochs),
   nfeatures(0),
   dt_X(nullptr),
@@ -52,13 +53,13 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
 }
 
 
-/*
-* Depending on the target column stype, this method does
-* - binomial logistic regression (BOOL);
-* - multinomial logistic regression (STR32, STR64);
-* - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
-* and returns epoch at which learning completed or was early stopped.
-*/
+/**
+ *  Depending on the target column stype, this method does
+ *  - binomial logistic regression (BOOL);
+ *  - multinomial logistic regression (STR32, STR64);
+ *  - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
+ *  and returns epoch at which learning completed or was early stopped.
+ */
 template <typename T>
 FtrlFitOutput FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
                                  const DataTable* dt_y_in,
@@ -174,9 +175,9 @@ FtrlFitOutput FtrlReal<T>::fit_multinomial() {
 }
 
 
-/*
-*  Create training targets.
-*/
+/**
+ *  Create training targets.
+ */
 template <typename T>
 dtptr FtrlReal<T>::create_y_train() {
   // Do nhot encoding and sort labels alphabetically.
@@ -227,9 +228,9 @@ dtptr FtrlReal<T>::create_y_train() {
 }
 
 
-/*
-*  Create a target frame with all the negatives.
-*/
+/**
+ *  Create a target frame with all the negatives.
+ */
 template <typename T>
 Column* FtrlReal<T>::create_negative_column(size_t nrows) {
   Column* col = Column::new_data_column(SType::BOOL, nrows);
@@ -239,11 +240,11 @@ Column* FtrlReal<T>::create_negative_column(size_t nrows) {
 }
 
 
-/*
-*  Create validation targets for early stopping. Only include the labels
-*  the model was already trained on. Also, create mapping between the validation
-*  labels and the model labels to be used during training.
-*/
+/**
+ *  Create validation targets for early stopping. Only include the labels
+ *  the model was already trained on. Also, create mapping between the validation
+ *  labels and the model labels to be used during training.
+ */
 template <typename T>
 dtptr FtrlReal<T>::create_y_val() {
   xassert(map_val.size() == 0);
@@ -276,9 +277,9 @@ dtptr FtrlReal<T>::create_y_val() {
 }
 
 
-/*
-*  Fit model on a datatable.
-*/
+/**
+ *  Fit model on a datatable.
+ */
 template <typename T>
 template <typename U> /* column data type */
 FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
@@ -408,9 +409,9 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
 }
 
 
-/*
-*  Make a prediction for an array of hashed features.
-*/
+/**
+ *  Make a prediction for an array of hashed features.
+ */
 template <typename T>
 template <typename F>
 T FtrlReal<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
@@ -430,9 +431,9 @@ T FtrlReal<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
 }
 
 
-/*
-*  Update weights based on a prediction p and the actual target y.
-*/
+/**
+ *  Update weights based on a prediction p and the actual target y.
+ */
 template <typename T>
 template <typename U /* column data type */>
 void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w,
@@ -449,10 +450,10 @@ void FtrlReal<T>::update(const uint64ptr& x, const tptr<T>& w,
 }
 
 
-/*
-*  Predict on a datatable and return a new datatable with
-*  the predicted probabilities.
-*/
+/**
+ *  Predict on a datatable and return a new datatable with
+ *  the predicted probabilities.
+ */
 template <typename T>
 dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
   if (model_type == FtrlModelType::NONE) {
@@ -479,7 +480,7 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
-                                                      linkfn = std::exp;
+                                                     linkfn = std::exp;
                                       break;
     default : throw ValueError() << "Cannot make any predictions, "
                                  << "the model was trained in an unknown mode";
@@ -509,9 +510,9 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
 }
 
 
-/*
-* Obtain pointers to column rowindexes and data.
-*/
+/**
+ *  Obtain pointers to column rowindexes and data.
+ */
 template <typename T>
 template <typename U /* column data type */>
 void FtrlReal<T>::fill_ri_data(const DataTable* dt,
@@ -527,9 +528,9 @@ void FtrlReal<T>::fill_ri_data(const DataTable* dt,
 }
 
 
-/*
-* Normalize rows in a datatable, so that their values sum up to one.
-*/
+/**
+ *  Normalize rows in a datatable, so that their values sum up to one.
+ */
 template <typename T>
 void FtrlReal<T>::normalize_rows(dtptr& dt) {
   size_t nrows = dt->nrows;
@@ -553,10 +554,10 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
 }
 
 
-/*
-* Crete model datatable of shape (nbins, 2 * nlabels) to store z and n
-* coefficients.
-*/
+/**
+ *  Create model datatable of shape (nbins, 2 * nlabels) to store z and n
+ *  coefficients.
+ */
 template <typename T>
 void FtrlReal<T>::create_model() {
   size_t nlabels = labels.size();
@@ -571,12 +572,12 @@ void FtrlReal<T>::create_model() {
 }
 
 
-/*
-* This method is invoked in the case when we get new labels
-* for multinomial classification and need to add them to the model.
-* In such a case, we make a copy of the "negative" z and n
-* coefficients adding them to the existing `dt_model` columns.
-*/
+/**
+ *  This method is invoked in the case when we get new labels
+ *  for multinomial classification and need to add them to the model.
+ *  In such a case, we make a copy of the "negative" z and n
+ *  coefficients adding them to the existing `dt_model` columns.
+ */
 template <typename T>
 void FtrlReal<T>::adjust_model() {
   size_t ncols_model = dt_model->ncols;
@@ -613,9 +614,9 @@ void FtrlReal<T>::adjust_model() {
 }
 
 
-/*
-* Create datatable for predictions.
-*/
+/**
+ *  Create datatable for predictions.
+ */
 template <typename T>
 dtptr FtrlReal<T>::create_p(size_t nrows) {
   size_t nlabels = labels.size();
@@ -630,9 +631,9 @@ dtptr FtrlReal<T>::create_p(size_t nrows) {
 }
 
 
-/*
-* Reset the model.
-*/
+/**
+ *  Reset the model.
+ */
 template <typename T>
 void FtrlReal<T>::reset() {
   dt_model = nullptr;
@@ -644,9 +645,9 @@ void FtrlReal<T>::reset() {
 }
 
 
-/*
-* Initialize model coefficients with zeros.
-*/
+/**
+ *  Initialize model coefficients with zeros.
+ */
 template <typename T>
 void FtrlReal<T>::init_model() {
   if (dt_model == nullptr) return;
@@ -657,9 +658,9 @@ void FtrlReal<T>::init_model() {
 }
 
 
-/*
-* Obtain pointers to the model column data.
-*/
+/**
+ *  Obtain pointers to the model column data.
+ */
 template <typename T>
 void FtrlReal<T>::init_weights() {
   size_t model_ncols = dt_model->ncols;
@@ -677,9 +678,9 @@ void FtrlReal<T>::init_weights() {
 }
 
 
-/*
-* Create feature importance datatable.
-*/
+/**
+ * Create feature importance datatable.
+ */
 template <typename T>
 void FtrlReal<T>::create_fi() {
   const strvec& colnames = dt_X->get_names();
@@ -713,9 +714,9 @@ void FtrlReal<T>::create_fi() {
 }
 
 
-/*
-* Initialize feature importances with zeros.
-*/
+/**
+ *  Initialize feature importances with zeros.
+ */
 template <typename T>
 void FtrlReal<T>::init_fi() {
   if (dt_fi == nullptr) return;
@@ -724,18 +725,18 @@ void FtrlReal<T>::init_fi() {
 }
 
 
-/*
-* Determine number of features.
-*/
+/**
+ *  Determine number of features.
+ */
 template <typename T>
 void FtrlReal<T>::define_features() {
   nfeatures = dt_X->ncols + interactions.size();
 }
 
 
-/*
-* Create hashers for all datatable column.
-*/
+/**
+ *  Create hashers for all datatable column.
+ */
 template <typename T>
 std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
   std::vector<hasherptr> hashers;
@@ -763,11 +764,12 @@ std::vector<hasherptr> FtrlReal<T>::create_hashers(const DataTable* dt) {
 }
 
 
-/*
-* Depending on a column type, create a corresponding hasher.
-*/
+/**
+ *  Depending on a column type, create a corresponding hasher.
+ */
 template <typename T>
 hasherptr FtrlReal<T>::create_hasher(const Column* col) {
+  unsigned char shift_nbits = dt::Ftrl::DBL_MANT_NBITS - mantissa_nbits;
   SType stype = col->stype();
   switch (stype) {
     case SType::BOOL:    return hasherptr(new HasherBool(col));
@@ -775,8 +777,8 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
-    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col));
-    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col));
+    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
+    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, shift_nbits));
     case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
     case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
     default:             throw  TypeError() << "Cannot hash a column of type "
@@ -785,9 +787,9 @@ hasherptr FtrlReal<T>::create_hasher(const Column* col) {
 }
 
 
-/*
-*  Hash each element of the datatable row, do feature interactions if requested.
-*/
+/**
+ *  Hash each element of the datatable row, do feature interactions if requested.
+ */
 template <typename T>
 void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
                            size_t row) {
@@ -813,18 +815,18 @@ void FtrlReal<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
 }
 
 
-/*
-*  Return training status.
-*/
+/**
+ *  Return training status.
+ */
 template <typename T>
 bool FtrlReal<T>::is_trained() {
   return model_type != FtrlModelType::NONE;
 }
 
 
-/*
-*  Get a shallow copy of a model if available.
-*/
+/**
+ *  Get a shallow copy of a model if available.
+ */
 template <typename T>
 DataTable* FtrlReal<T>::get_model() {
   if (dt_model == nullptr) return nullptr;
@@ -832,9 +834,9 @@ DataTable* FtrlReal<T>::get_model() {
 }
 
 
-/*
-*  Return model type.
-*/
+/**
+ *  Return model type.
+ */
 template <typename T>
 FtrlModelType FtrlReal<T>::get_model_type() {
   return model_type;
@@ -842,13 +844,13 @@ FtrlModelType FtrlReal<T>::get_model_type() {
 
 
 
-/*
-* Normalize a column of feature importances to [0; 1]
-* This column has only positive values, so we simply divide its
-* content by the maximum. Another option is to do min-max normalization,
-* but this may lead to some features having zero importance,
-* while in reality they don't.
-*/
+/**
+ *  Normalize a column of feature importances to [0; 1]
+ *  This column has only positive values, so we simply divide its
+ *  content by the maximum. Another option is to do min-max normalization,
+ *  but this may lead to some features having zero importance,
+ *  while in reality they don't.
+ */
 template <typename T>
 DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
   if (dt_fi == nullptr) return nullptr;
@@ -871,10 +873,10 @@ DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
 }
 
 
-/*
-*  Other getters and setters.
-*  Here we assume that all the validation for setters is done by py::Ftrl.
-*/
+/**
+ *  Other getters and setters.
+ *  Here we assume that all the validation for setters is done by py::Ftrl.
+ */
 template <typename T>
 const std::vector<uint64_t>& FtrlReal<T>::get_colname_hashes() {
   return colname_hashes;
@@ -920,6 +922,12 @@ double FtrlReal<T>::get_lambda2() {
 template <typename T>
 uint64_t FtrlReal<T>::get_nbins() {
   return params.nbins;
+}
+
+
+template <typename T>
+unsigned char FtrlReal<T>::get_mantissa_nbits() {
+  return params.mantissa_nbits;
 }
 
 
@@ -1012,6 +1020,15 @@ template <typename T>
 void FtrlReal<T>::set_nbins(uint64_t nbins_in) {
   params.nbins = nbins_in;
   nbins = nbins_in;
+}
+
+
+template <typename T>
+void FtrlReal<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
+  xassert(mantissa_nbits_in >= 0);
+  xassert(mantissa_nbits_in <= dt::Ftrl::DBL_MANT_NBITS);
+  params.mantissa_nbits = mantissa_nbits_in;
+  mantissa_nbits = mantissa_nbits_in;
 }
 
 

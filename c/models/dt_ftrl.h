@@ -30,10 +30,10 @@
 namespace dt {
 
 
-/*
-*  All the FTRL parameters provided in Python are stored in this structure,
-*  that also defines their default values.
-*/
+/**
+ *  All the FTRL parameters provided in Python are stored in this structure,
+ *  that also defines their default values.
+ */
 struct FtrlParams {
     double alpha;
     double beta;
@@ -41,29 +41,30 @@ struct FtrlParams {
     double lambda2;
     uint64_t nbins;
     size_t nepochs;
+    unsigned char mantissa_nbits;
     bool double_precision;
     bool negative_class;
-    size_t: 48;
+    size_t: 40;
     FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
-                   nbins(1000000), nepochs(1), double_precision(false),
-                   negative_class(false) {}
+                   nbins(1000000), nepochs(1), mantissa_nbits(10),
+                   double_precision(false), negative_class(false) {}
 };
 
 
-/*
-*  When FTRL fitting is completed, this structure is returned
-*  containing epoch at which fitting stopped, and, in the case validation set
-*  was provided, the corresponding final loss.
-*/
+/**
+ *  When FTRL fitting is completed, this structure is returned
+ *  containing epoch at which fitting stopped, and, in the case validation set
+ *  was provided, the corresponding final loss.
+ */
 struct FtrlFitOutput {
     double epoch;
     double loss;
 };
 
 
-/*
-* Supported FTRL model types.
-*/
+/**
+ * Supported FTRL model types.
+ */
 enum class FtrlModelType : size_t {
   NONE        = 0, // Untrained model
   REGRESSION  = 1, // Numerical regression
@@ -72,12 +73,13 @@ enum class FtrlModelType : size_t {
 };
 
 
-/*
-*  An abstract dt::Ftrl class that declares all the virtual functions
-*  needed by py::Ftrl.
-*/
+/**
+ *  An abstract dt::Ftrl class that declares all the virtual functions
+ *  needed by py::Ftrl.
+ */
 class Ftrl {
   public:
+    static constexpr unsigned char DBL_MANT_NBITS = 52;
     virtual ~Ftrl();
     // Depending on the target column stype, this method should do
     // - binomial logistic regression (BOOL);
@@ -102,6 +104,7 @@ class Ftrl {
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual uint64_t get_nbins() = 0;
+    virtual unsigned char get_mantissa_nbits() = 0;
     virtual size_t get_nepochs() = 0;
     virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_double_precision() = 0;
@@ -118,6 +121,7 @@ class Ftrl {
     virtual void set_lambda1(double) = 0;
     virtual void set_lambda2(double) = 0;
     virtual void set_nbins(uint64_t) = 0;
+    virtual void set_mantissa_nbits(unsigned char) = 0;
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_double_precision(bool) = 0;

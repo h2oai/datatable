@@ -28,23 +28,53 @@
 namespace py {
 namespace Validator {
 
+
+// Error manager
+
 struct error_manager {
   error_manager() = default;
   error_manager(const error_manager&) = default;
   Error error_not_positive (PyObject*, const std::string&) const;
   Error error_negative     (PyObject*, const std::string&) const;
+  template <typename T>
+  Error error_greater_than (PyObject*, const std::string&, T value_max) const;
 };
 
 static std::string _name = "Value";
 static error_manager _em;
 
 
+template <typename T>
+Error py::Validator::error_manager::error_greater_than(PyObject* src,
+                                                       const std::string& name,
+                                                       T value_max
+) const {
+  return ValueError() << name << " should be less than or equal to " << value_max
+                      << ", got: " << src;
+}
+
+
 // py::_obj validators
 
-/*
-*  Positive check. Will emit an error, when `value` is not positive, `NaN`
-*  or infinity.
-*/
+/**
+ *  Less than or equal to check.
+ */
+template <typename T>
+void check_less_than_or_equal_to(const T value,
+                                 const T value_max,
+                                 const py::_obj& o,
+                                 const std::string& name = _name,
+                                 error_manager& em = _em)
+{
+  if (!std::isinf(value) && value <= value_max) return;
+  throw em.error_greater_than<T>(o.to_borrowed_ref(), name, value_max);
+}
+
+
+/**
+ *  Positive check. Will emit an error, when `value` is not positive, `NaN`
+ *  or infinity.
+ */
 template <typename T>
 void check_positive(T value,
                     const py::_obj& o,
@@ -56,10 +86,10 @@ void check_positive(T value,
 }
 
 
-/*
-*  Not negative check. Will emit an error, when `value` is negative, `NaN`
-*  or infinity.
-*/
+/**
+ *  Not negative check. Will emit an error, when `value` is negative, `NaN`
+ *  or infinity.
+ */
 template <typename T>
 void check_not_negative(T value,
                         const py::_obj& o,
@@ -82,6 +112,12 @@ void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
   check_not_negative<T>(value, arg.to_pyobj(), arg.name(), em);
+}
+
+
+template <typename T>
+void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
+  check_less_than_or_equal_to<T>(value, value_max, arg.to_pyobj(), arg.name(), em);
 }
 
 

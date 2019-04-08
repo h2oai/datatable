@@ -35,9 +35,9 @@ using sizetvec = std::vector<size_t>;
 void calculate_coprimes(size_t, std::vector<size_t>&);
 
 
-/*
-*  Create list of sorting indexes.
-*/
+/**
+ *  Create list of sorting indexes.
+ */
 template <typename T>
 sizetvec sort_index(const std::vector<T> &v) {
 
@@ -55,30 +55,30 @@ sizetvec sort_index(const std::vector<T> &v) {
 }
 
 
-/*
-*  Sigmoid function.
-*/
+/**
+ *  Sigmoid function.
+ */
 template<typename T>
 inline T sigmoid(T x) {
   constexpr T one = static_cast<T>(1.0);
   return one / (one + std::exp(-x));
 }
 
-/*
-*  Identity function.
-*/
+/**
+ *  Identity function.
+ */
 template<typename T>
 inline T identity(T x) {
   return x;
 }
 
-/*
-*  Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
-*  where p is a prediction and y is the actual target:
-*  - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
-*    to prevent logloss being undefined;
-*  - simplify the logloss formula to more compact branchless code.
-*/
+/**
+ *  Calculate logloss(p, y) = -(y * log(p) + (1 - y) * log(1 - p)),
+ *  where p is a prediction and y is the actual target:
+ *  - apply minmax rule, so that p falls into the [epsilon; 1 - epsilon] interval,
+ *    to prevent logloss being undefined;
+ *  - simplify the logloss formula to more compact branchless code.
+ */
 template<typename T>
 inline T log_loss(T p, int8_t y) {
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
@@ -87,10 +87,10 @@ inline T log_loss(T p, int8_t y) {
 }
 
 
-/*
-*  Squared loss, T1 is either float or double,
-*  T2 is any other numerical type.
-*/
+/**
+ *  Squared loss, T1 is either float or double,
+ *  T2 is any other numerical type.
+ */
 template<typename T1, typename T2>
 inline T1 squared_loss(T1 p, T2 y) {
   T1 y_T1 = static_cast<T1>(y);
@@ -98,9 +98,9 @@ inline T1 squared_loss(T1 p, T2 y) {
 }
 
 
-/*
-*  Progress reporting function and parameters.
-*/
+/**
+ *  Progress reporting function and parameters.
+ */
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
 void print_progress(float, int);
