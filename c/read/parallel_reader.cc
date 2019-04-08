@@ -232,12 +232,12 @@ void ParallelReader::read_all()
       );  // o->parallel()
 
       // Report progress one last time
-      if (dt::this_thread_index() == 0) g.emit_delayed_messages();
       if (tShowAlways) {
         int status = 1;  // + oem.exception_caught() + oem.is_keyboard_interrupt();
         g.progress(work_done_amount(), status);
       }
     });
+  g.emit_delayed_messages();
 
   // Reallocate the output to have the correct number of rows
   g.columns.set_nrows(nrows_written);
