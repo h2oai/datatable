@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <functional>
-#include <mutex>
-#include <thread>   // std::this_thread
-#include <vector>   // std::vector
+#include <algorithm>  // std::min
+#include <mutex>      // std::mutex, std::lock_guard
+#include <thread>     // std::this_thread
+#include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
@@ -34,7 +34,7 @@ using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
-  public:
+  private:
     static constexpr size_t READY_TO_START = 0;
     static constexpr size_t STARTING = 1;
     static constexpr size_t READY_TO_ORDER = 2;
@@ -48,8 +48,6 @@ class ordered_task : public thread_task {
     f1t post_ordered;
     size_t state;
     size_t n_iter;
-  public:
-    size_t executing_thread;
 
   public:
     ordered_task(f1t pre, f1t ord, f1t post);
@@ -72,7 +70,7 @@ ordered_task::ordered_task(f1t pre, f1t ord, f1t post)
     ordered(ord? ord : noop),
     post_ordered(post? post : noop),
     state(READY_TO_START),
-    n_iter(0), executing_thread(-1) {}
+    n_iter(0) {}
 
 
 void ordered_task::advance_state() {
@@ -175,7 +173,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 
   ordered_task* task = assigned_tasks[ith];
   task->advance_state();
-  task->executing_thread = size_t(-1);
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
   }
@@ -183,9 +180,8 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // If `iorder`th frame is ready to be ordered, and no other thread is
   // doing ordering right now, then process that frame. Clearing up the
   // "to-be-ordered" queue should always be the highest priority.
-  int branch = -1;
-  if (ordering_thread_index == NO_THREAD && tasks[iorder].ready_to_order()) {
-    branch = 0;
+  if (ordering_thread_index == NO_THREAD &&
+      next_to_order < n_iterations && tasks[iorder].ready_to_order()) {
     ordering_thread_index = ith;
     task = &tasks[iorder];
     task->start_iteration(next_to_order);
@@ -194,7 +190,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
   else if (next_to_finish < n_iterations && tasks[ifinish].ready_to_finish()) {
-    branch = 1;
     task = &tasks[ifinish];
     task->start_iteration(next_to_finish);
     ifinish = (++next_to_finish) % n_tasks;
@@ -202,7 +197,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // Otherwise if there are still tasks in the start queue, and there are
   // tasks available where to execute those, then do the next "start" task.
   else if (next_to_start < n_iterations && tasks[istart].ready_to_start()) {
-    branch = 2;
     task = &tasks[istart];
     task->start_iteration(next_to_start);
     istart = (++next_to_start) % n_tasks;
@@ -211,7 +205,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // be some tasks in the future (not all iterations finished yet), then do a
   // simple wait task until more work becomes available.
   else if (next_to_finish < n_iterations) {
-    branch=3;
     task = &waittask;
   }
   // Otherwise (next_to_finish == n_iters) there isn't anything left to do:
@@ -220,13 +213,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
     return nullptr;
   }
   assigned_tasks[ith] = task;
-  if (task->executing_thread + 1 && branch != 3) {
-    throw RuntimeError() << "Assigned task " << task << " (state=" << task->state
-        << ", branch=" << branch << ") to thread " << ith
-        << ", but it is already executed in thread " << task->executing_thread
-        << ": " << assigned_tasks[task->executing_thread] << "\n";
-  }
-  task->executing_thread = ith;
 
   return task;
 }
@@ -237,7 +223,6 @@ void ordered_scheduler::abort_execution() {
   next_to_start = n_iterations;
   next_to_order = n_iterations;
   next_to_finish = n_iterations;
-  istart = ifinish = n_iterations % n_tasks;
   tasks[iorder].cancel();
 }
 

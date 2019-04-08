@@ -16,7 +16,6 @@
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
 #include <cstddef>
-#include <functional>
 #include "utils/function.h"
 namespace dt {
 using std::size_t;
