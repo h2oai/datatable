@@ -80,6 +80,16 @@ void parallel_region(function<void()> f);
 
 
 /**
+ * Make all threads within the current team wait until all threads have
+ * arrived to this point.
+ * Note: it is the user's responsibility to ensure that all threads CAN arrive
+ * at the barrier. If not, a deadlock will occur as the threads will be waiting
+ * for all the team to arrive before they could proceed.
+ */
+void barrier();
+
+
+/**
  * Run parallel loop `for i in range(nrows): f(i)`, with static scheduling.
  */
 template <typename F>
