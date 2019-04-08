@@ -327,7 +327,8 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
     std::mutex m;
 
-    dt::parallel_for_static(chunk_end - chunk_start,
+    // TODO: use standard parallel_for_static
+    dt::_parallel_for_static(chunk_end - chunk_start, 1024,
       [&](size_t i0, size_t i1) {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]);
@@ -368,7 +369,8 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     // if the loss does not improve.
     if (validation) {
       dt::atomic<T> loss_global { 0.0 };
-      dt::parallel_for_static(dt_X_val->nrows,
+      // TODO: replace with standard dt::parallel_for_static
+      dt::_parallel_for_static(dt_X_val->nrows, 1024,
         [&](size_t i0, size_t i1) {
           uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
           tptr<T> w = tptr<T>(new T[nfeatures]());
@@ -483,7 +485,8 @@ dtptr FtrlReal<T>::predict(const DataTable* dt_X_in) {
                                  << "the model was trained in an unknown mode";
   }
 
-  dt::parallel_for_static(dt_X->nrows,
+  // TODO: replace with standard dt::parallel_for_static
+  dt::_parallel_for_static(dt_X->nrows, 1024,
     [&](size_t i0, size_t i1) {
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
@@ -538,15 +541,13 @@ void FtrlReal<T>::normalize_rows(dtptr& dt) {
   }
 
   dt::parallel_for_static(nrows,
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) {
-        T denom = static_cast<T>(0.0);
-        for (size_t j = 0; j < ncols; ++j) {
-          denom += data[j][i];
-        }
-        for (size_t j = 0; j < ncols; ++j) {
-          data[j][i] /= denom;
-        }
+    [&](size_t i) {
+      T denom = static_cast<T>(0.0);
+      for (size_t j = 0; j < ncols; ++j) {
+        denom += data[j][i];
+      }
+      for (size_t j = 0; j < ncols; ++j) {
+        data[j][i] /= denom;
       }
     });
 }

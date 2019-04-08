@@ -19,19 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <random>
-#include <iostream>
-#include "frame/py_frame.h"
-#include "models/dt_ftrl.h"
+#include <limits>     // std::numeric_limits
+#include <memory>     // std::unique_ptr
+#include <vector>     // std::vector
 #include "models/column_convertor.h"
-#include "models/utils.h"
-#include "python/_all.h"
 #include "python/obj.h"
-#include "utils/parallel.h"
-#include "utils/shared_mutex.h"
-#include "datatablemodule.h"
-#include "options.h"
-#include "rowindex.h"
+
 
 // Number of steps for the aggregator progress bar
 #define PBSTEPS 100

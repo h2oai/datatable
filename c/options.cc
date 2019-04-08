@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/ext_type.h"
 #include "python/obj.h"

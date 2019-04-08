@@ -483,10 +483,8 @@ void StringColumn<T>::fill_na() {
   off_data[-1] = 0;
 
   dt::parallel_for_static(nrows,
-    [=](size_t i0, size_t i1){
-      for (size_t i = i0; i < i1; ++i) {
-        off_data[i] = GETNA<T>();
-      }
+    [=](size_t i){
+      off_data[i] = GETNA<T>();
     });
 }
 

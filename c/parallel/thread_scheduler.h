@@ -15,20 +15,24 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_SCHEDULER_h
 #define dt_PARALLEL_THREAD_SCHEDULER_h
-#include <atomic>      // std::atomic
-#include <memory>      // std::unique_ptr
-#include <mutex>       // std::mutex
-#include <vector>      // std::vector
-#include "parallel/thread_task.h"  // thread_task
-#include "utils/macros.h"          // cache_aligned
+#include <cstddef>  // size_t
 namespace dt {
 using std::size_t;
 
+// forward-declare
+class thread_worker;
 
 
-//------------------------------------------------------------------------------
-// Base scheduler
-//------------------------------------------------------------------------------
+class thread_task {
+  public:
+    thread_task() = default;
+    thread_task(const thread_task&) = default;
+    thread_task(thread_task&&) = default;
+    virtual ~thread_task();
+    virtual void execute(thread_worker*) = 0;
+};
+
+
 
 class thread_scheduler {
   public:
@@ -46,26 +50,8 @@ class thread_scheduler {
     // blocking. The default implementation does nothing (all scheduled tasks
     // continue being executed), which is allowed but sub-optimal.
     virtual void abort_execution();
-};
 
-
-
-
-//------------------------------------------------------------------------------
-// once scheduler
-//------------------------------------------------------------------------------
-
-/**
- * Implementation class for `dt::parallel_region()` function.
- */
-class once_scheduler : public thread_scheduler {
-  private:
-    std::vector<cache_aligned<size_t>> done;
-    thread_task* task;
-
-  public:
-    once_scheduler(size_t nthreads, thread_task*);
-    thread_task* get_next_task(size_t thread_index) override;
+    void execute_in_current_thread();
 };
 
 

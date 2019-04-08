@@ -208,6 +208,30 @@ def test_internal_atomic():
         core.test_atomic()
 
 
+def test_internal_parallel_for_dynamic():
+    from datatable.lib import core
+    if hasattr(core, "test_parallel_for_dynamic"):
+        core.test_parallel_for_dynamic(1000)
+
+
+def test_internal_parallel_for_ordered1():
+    from datatable.lib import core
+    if hasattr(core, "test_parallel_for_ordered"):
+        core.test_parallel_for_ordered(17234)
+
+
+def test_internal_parallel_for_ordered2():
+    from datatable.lib import core
+    if hasattr(core, "test_parallel_for_ordered"):
+        n0 = dt.options.nthreads
+        try:
+            dt.options.nthreads = 2
+            core.test_parallel_for_ordered(17234)
+        finally:
+            dt.options.nthreads = n0
+
+
+
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)
     out, err = capsys.readouterr()

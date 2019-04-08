@@ -21,6 +21,7 @@ static void test_coverage(const PKArgs&) {
   dttest::cover_names_integrity_checks();
 }
 
+
 static PKArgs arg_test_shmutex(3, 0, 0, false, false,
   {"n_iters", "n_threads", "impl"},
   "test_shmutex");
@@ -32,10 +33,30 @@ static void test_shmutex(const PKArgs& args) {
   dttest::test_shmutex(n_iters, n_threads, impl);
 }
 
+
 static PKArgs arg_test_atomic(0, 0, 0, false, false, {}, "test_atomic");
 
 static void test_atomic(const PKArgs&) {
   dttest::test_atomic();
+}
+
+
+static PKArgs arg_test_parallel_for_dynamic(
+  1, 0, 0, false, false, {"n"}, "test_parallel_for_dynamic");
+
+static void test_parallel_for_dynamic(const PKArgs& args) {
+  size_t n = args[0].to_size_t();
+  dttest::test_parallel_for_dynamic(n);
+  dttest::test_parallel_for_dynamic_nested(n);
+}
+
+
+static PKArgs arg_test_parallel_for_ordered(
+  1, 0, 0, false, false, {"n"}, "test_parallel_for_ordered");
+
+static void test_parallel_for_ordered(const PKArgs& args) {
+  size_t n = args[0].to_size_t();
+  dttest::test_parallel_for_ordered(n);
 }
 
 
@@ -44,6 +65,8 @@ void DatatableModule::init_tests() {
   ADD_FN(&test_coverage, arg_test_coverage);
   ADD_FN(&test_shmutex, arg_test_shmutex);
   ADD_FN(&test_atomic, arg_test_atomic);
+  ADD_FN(&test_parallel_for_dynamic, arg_test_parallel_for_dynamic);
+  ADD_FN(&test_parallel_for_ordered, arg_test_parallel_for_ordered);
 }
 
 

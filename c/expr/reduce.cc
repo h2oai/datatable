@@ -10,7 +10,7 @@
 #include <memory>            // std::unique_ptr
 #include <unordered_map>     // std::unordered_map
 #include "expr/base_expr.h"  // ReduceOp
-#include "utils/parallel.h"
+#include "parallel/api.h"
 #include "types.h"
 namespace expr {
 
@@ -346,12 +346,12 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
   else {
     const int32_t* groups = wf.get_groupby().offsets_r();
 
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < out_nrows; ++i) {
-      size_t row0 = static_cast<size_t>(groups[i]);
-      size_t row1 = static_cast<size_t>(groups[i + 1]);
-      reducer->f(rowindex, row0, row1, input, output, i);
-    }
+    dt::parallel_for_dynamic(out_nrows,
+      [&](size_t i) {
+        size_t row0 = static_cast<size_t>(groups[i]);
+        size_t row1 = static_cast<size_t>(groups[i + 1]);
+        reducer->f(rowindex, row0, row1, input, output, i);
+      });
   }
   return res;
 }

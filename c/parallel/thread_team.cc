@@ -13,31 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_TASK_h
-#define dt_PARALLEL_THREAD_TASK_h
-#include "utils/function.h"
+#include "parallel/thread_pool.h"
+#include "parallel/thread_scheduler.h"
+#include "parallel/thread_team.h"
+#include "utils/exceptions.h"
 namespace dt {
-using std::size_t;
-
-// forward-declare
-class thread_worker;
 
 
-class thread_task {
-  public:
-    virtual ~thread_task();
-    virtual void execute(thread_worker*) = 0;
-};
+thread_team::thread_team(size_t nth, thread_pool* pool)
+  : nthreads(nth),
+    thpool(pool),
+    nested_scheduler(nullptr)
+{
+  if (thpool->current_team) {
+    throw RuntimeError() << "Unable to create a nested thread team";
+  }
+  thpool->current_team = this;
+}
 
 
-class simple_task : public thread_task {
-  private:
-    function<void(size_t)> f;
-  public:
-    simple_task(function<void(size_t)>);
-    void execute(thread_worker*) override;
-};
+thread_team::~thread_team() {
+  thpool->current_team = nullptr;
+  delete nested_scheduler;
+}
+
+
+size_t thread_team::size() const noexcept {
+  return nthreads;
+}
+
 
 
 } // namespace dt
-#endif

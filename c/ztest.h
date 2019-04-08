@@ -26,6 +26,11 @@ void test_shmutex(size_t n_iters, size_t n_threads, int impl);
 // Defined in parallel/atomic_test.cc
 void test_atomic();
 
+// Defined in parallel/parallel_for_test.cc
+void test_parallel_for_dynamic(size_t);
+void test_parallel_for_dynamic_nested(size_t);
+void test_parallel_for_ordered(size_t);
+
 }  // namespace dttest
 
 #endif
