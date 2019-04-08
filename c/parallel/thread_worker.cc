@@ -144,7 +144,9 @@ void worker_controller::pretend_thread_went_to_sleep() {
 void worker_controller::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(tsleep[index].mutex);
-    saved_exception = std::current_exception();
+    if (!saved_exception) {
+      saved_exception = std::current_exception();
+    }
   } catch (...) {}
 }
 

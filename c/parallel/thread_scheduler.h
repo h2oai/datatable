@@ -25,6 +25,9 @@ class thread_worker;
 
 class thread_task {
   public:
+    thread_task() = default;
+    thread_task(const thread_task&) = default;
+    thread_task(thread_task&&) = default;
     virtual ~thread_task();
     virtual void execute(thread_worker*) = 0;
 };

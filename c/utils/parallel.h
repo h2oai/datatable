@@ -16,8 +16,10 @@
 #ifndef dt_UTILS_PARALLEL_h
 #define dt_UTILS_PARALLEL_h
 #include <functional>     // std::function
+#include <vector>
 #include "utils/c+++.h"
 #include "utils/function.h"
+#include "parallel/api.h"
 #include "rowindex.h"
 #include "wstringcol.h"
 
@@ -43,52 +45,6 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// Ordered iteration over range [0; n)
-//------------------------------------------------------------------------------
-
-class ojcontext {
-  public:
-    virtual ~ojcontext();
-};
-using ojcptr = std::unique_ptr<ojcontext>;
-
-class ordered_job {
-  public:
-    size_t nrows;
-    bool noomp;
-    size_t : 56;
-
-    ordered_job(size_t n, bool force_single_threaded = false);
-    virtual ~ordered_job();
-    virtual ojcptr start_thread_context();
-    virtual void run(ojcptr& ctx, size_t i0, size_t i1) = 0;
-    virtual void order(ojcptr& ctx) = 0;
-    virtual void finish_thread_context(ojcptr& ctx);
-
-    /**
-     * Run a job over the range `[0 .. nrows - 1]` in an ordered manner.
-     * Specifically, each thread will:
-     *   (1) create a new `ojcontext` object using the `start_thread_context()`
-     *       method;
-     *   (2) split the range `[0 .. nrows - 1]` into a sequence of chunks;
-     *   (3) execute `run(ctx, start, end)` method, in parallel;
-     *   (4) execute `order(ctx)` method within the "omp ordered" section,
-     *       meaning that only one thread at a time will be executing this method,
-     *       and in the order of the chunks.
-     *   (5) at the end of the iteration, each thread will call
-     *       `finish_thread_context(ctx)`, giving the threads a chance
-     *       to perform any necessary cleanup.
-     *
-     * This function is best suited for those cases when the processing has to run
-     * as-if sequentially. For example, writing or modifying a string column.
-     */
-    void execute();
-};
-
-
-
-
-//------------------------------------------------------------------------------
 // Iterate over range [0; n), producing a string column
 //------------------------------------------------------------------------------
 
@@ -107,69 +63,63 @@ Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 // Map over a string column producing a new ostring column
 //------------------------------------------------------------------------------
 
-template <typename T, typename F>
-class mapper_str2str : private ordered_job {
-  private:
-    StringColumn<T>* inpcol;
-    writable_string_col outcol;
-    F f;
-
-    struct thcontext : public ojcontext {
-      std::unique_ptr<string_buf> sb;
-      thcontext (writable_string_col& ws)
-        : sb(make_unique<writable_string_col::buffer_impl<uint32_t>>(ws)) {}
-    };
-
-  public:
-    mapper_str2str(StringColumn<T>* col, F _f)
-      : ordered_job(col->nrows),
-        inpcol(col),
-        outcol(col->nrows),
-        f(_f) {}
-    ~mapper_str2str() override = default;
-
-    Column* result() {
-      execute();
-      return std::move(outcol).to_column();
-    }
-
-  private:
-    ojcptr start_thread_context() override {
-      return ojcptr(new thcontext(outcol));
-    }
-
-    void run(ojcptr& ctx, size_t i0, size_t i1) override {
-      auto sb = static_cast<thcontext*>(ctx.get())->sb.get();
-      sb->commit_and_start_new_chunk(i0);
-      CString curr_str;
-      const T* offsets = inpcol->offsets();
-      const char* strdata = inpcol->strdata();
-      const RowIndex& rowindex = inpcol->rowindex();
-      for (size_t i = i0; i < i1; ++i) {
-        size_t j = rowindex[i];
-        if (j == RowIndex::NA || ISNA<T>(offsets[j])) {
-          curr_str.ch = nullptr;
-          curr_str.size = 0;
-        } else {
-          T offstart = offsets[j - 1] & ~GETNA<T>();
-          T offend = offsets[j];
-          curr_str.ch = strdata + offstart;
-          curr_str.size = static_cast<int64_t>(offend - offstart);
-        }
-        f(j, curr_str, sb);
-      }
-    }
-
-    void order(ojcptr& ctx) override {
-      static_cast<thcontext*>(ctx.get())->sb->order();
-    }
-};
-
 
 template <typename T, typename F>
-Column* map_str2str(StringColumn<T>* col, F f) {
-  return mapper_str2str<T, F>(col, f).result();
+Column* map_str2str(StringColumn<T>* input_col, F f) {
+  size_t nrows = input_col->nrows;
+  writable_string_col output_col(nrows);
+
+  constexpr size_t min_nrows_per_thread = 100;
+  size_t nthreads = nrows / min_nrows_per_thread;
+  size_t nchunks = 1 + (nrows - 1)/1000;
+  size_t chunksize = 1 + (nrows - 1)/nchunks;
+
+  dt::parallel_for_ordered(
+    nchunks,
+    nthreads,  // will be truncated to pool size if necessary
+    [&](ordered* o) {
+      std::unique_ptr<string_buf> sb(
+          new writable_string_col::buffer_impl<uint32_t>(output_col));
+
+      o->parallel(
+        [&](size_t iter) {
+          size_t i0 = std::min(iter * chunksize, nrows);
+          size_t i1 = std::min(i0 + chunksize, nrows);
+
+          sb->commit_and_start_new_chunk(i0);
+          CString curr_str;
+          const T* offsets = input_col->offsets();
+          const char* strdata = input_col->strdata();
+          const RowIndex& rowindex = input_col->rowindex();
+          for (size_t i = i0; i < i1; ++i) {
+            size_t j = rowindex[i];
+            if (j == RowIndex::NA || ISNA<T>(offsets[j])) {
+              curr_str.ch = nullptr;
+              curr_str.size = 0;
+            } else {
+              T offstart = offsets[j - 1] & ~GETNA<T>();
+              T offend = offsets[j];
+              curr_str.ch = strdata + offstart;
+              curr_str.size = static_cast<int64_t>(offend - offstart);
+            }
+            f(j, curr_str, sb.get());
+          }
+        },
+        [&](size_t) {
+          sb->order();
+        },
+        nullptr
+      );
+
+      sb->commit_and_start_new_chunk(nrows);
+    });
+
+  return std::move(output_col).to_column();
 }
+
+
+
+
 
 }  // namespace dt
 #endif

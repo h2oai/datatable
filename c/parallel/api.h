@@ -15,8 +15,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
+#include <cstddef>
 #include "utils/function.h"
 namespace dt {
+using std::size_t;
 
 // Private
 void _parallel_for_static(size_t, size_t, function<void(size_t, size_t)>);
@@ -101,6 +103,34 @@ void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
+
+
+
+/**
+ * Execute loop
+ *
+ *     for i in range(nrows):
+ *         pre-ordered(i)
+ *         ordered(i)
+ *         post-ordered(i)
+ *
+ * where `pre-ordered` and `post-ordered` are allowed to run in parallel,
+ * whereas the `ordered(i)` parts will run sequentially, in single-threaded
+ * mode.
+ */
+class ordered_scheduler;
+class ordered {
+  ordered_scheduler* sch;
+  function<void(ordered*)> init;
+  public:
+    ordered(ordered_scheduler*, function<void(ordered*)>);
+    void parallel(function<void(size_t)> pre_ordered,
+                  function<void(size_t)> do_ordered,
+                  function<void(size_t)> post_ordered);
+};
+
+void parallel_for_ordered(size_t nrows, size_t nthreads,
+                          function<void(ordered*)> fn);
 
 
 }  // namespace dt
