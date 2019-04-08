@@ -14,10 +14,11 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <algorithm>  // std::min
-#include <mutex>      // std::mutex, std::lock_guard
+#include <mutex>      // std::lock_guard
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
 #include "parallel/api.h"
+#include "parallel/spin_mutex.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
@@ -136,7 +137,8 @@ class ordered_scheduler : public thread_scheduler {
     // Runtime
     static constexpr size_t NO_THREAD = size_t(-1);
     wait_task waittask;
-    std::mutex mutex;   // todo: use spinlock mutex instead?
+    dt::spin_mutex mutex;  // 1 byte
+    size_t : 56;
     size_t next_to_start;
     size_t next_to_order;
     size_t next_to_finish;
@@ -169,7 +171,7 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
 
 thread_task* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<spin_mutex> lock(mutex);
 
   ordered_task* task = assigned_tasks[ith];
   task->advance_state();
@@ -219,7 +221,7 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 
 
 void ordered_scheduler::abort_execution() {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<spin_mutex> lock(mutex);
   next_to_start = n_iterations;
   next_to_order = n_iterations;
   next_to_finish = n_iterations;

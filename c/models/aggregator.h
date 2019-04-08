@@ -36,9 +36,9 @@ template <typename T>
 using ccptrvec = typename std::vector<ccptr<T>>;
 
 
-/*
-*  Aggregator base class.
-*/
+/**
+ *  Aggregator base class.
+ */
 class AggregatorBase {
   public :
     virtual void aggregate(DataTable*, dtptr&, dtptr&) = 0;
@@ -46,12 +46,12 @@ class AggregatorBase {
 };
 
 
-/*
-*  Aggregator main template class, where `T` is a type used for all the distance
-*  calculations. Templated with either `float` or `double`, aggregator
-*  converges to roughly the same number of exemplars, and members distribution.
-*  At the same time, using `float` can reduce memory usage.
-*/
+/**
+ *  Aggregator main template class, where `T` is a type used for all the distance
+ *  calculations. Templated with either `float` or `double`, aggregator
+ *  converges to roughly the same number of exemplars, and members distribution.
+ *  At the same time, using `float` can reduce memory usage.
+ */
 template <typename T>
 class Aggregator : public AggregatorBase {
   public:

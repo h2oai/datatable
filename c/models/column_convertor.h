@@ -26,10 +26,10 @@
 
 
 
-/*
-* An abstract base class for all the column convertors.
-* T is a destination type we are converting data to.
-*/
+/**
+ *  An abstract base class for all the column convertors.
+ *  T is a destination type we are converting data to.
+ */
 template<typename T>
 class ColumnConvertor {
   public:
@@ -49,10 +49,10 @@ class ColumnConvertor {
 };
 
 
-/*
-* Constructor for the base class, store rowindex and number of rows
-* to be used when the data are accessed.
-*/
+/**
+ *  Constructor for the base class, store rowindex and number of rows
+ *  to be used when the data are accessed.
+ */
 template<typename T>
 ColumnConvertor<T>::ColumnConvertor(const Column* col) :
   ri(col->rowindex()),
@@ -60,15 +60,15 @@ ColumnConvertor<T>::ColumnConvertor(const Column* col) :
 {}
 
 
-/*
-* Virtual destructor.
-*/
+/**
+ *  Virtual destructor.
+ */
 template<typename T>
 ColumnConvertor<T>::~ColumnConvertor() {}
 
-/*
-* Getters for min, max and nrows.
-*/
+/**
+ *  Getters for min, max and nrows.
+ */
 template<typename T>
 T ColumnConvertor<T>::get_min() {
   return min;
@@ -87,12 +87,12 @@ size_t ColumnConvertor<T>::get_nrows() {
 }
 
 
-/*
-* Template class to convert continuous columns data from type T1 to T2, where
-* - T1 is a source data type, i.e. int8_t/int16_t/int32_t/int64_t/float/double;
-* - T2 is a destination type, i.e. float/double;
-* - T3 is a column type, i.e. BoolColumn/IntColumn<*>/RealColumn<*>.
-*/
+/**
+ *  Template class to convert continuous columns data from type T1 to T2, where
+ *  - T1 is a source data type, i.e. int8_t/int16_t/int32_t/int64_t/float/double;
+ *  - T2 is a destination type, i.e. float/double;
+ *  - T3 is a column type, i.e. BoolColumn/IntColumn<*>/RealColumn<*>.
+ */
 template<typename T1, typename T2, typename T3>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
@@ -105,10 +105,10 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
 };
 
 
-/*
-* Constructor for the derived class. Pre-calculate stats, so that it is ready
-* for the multi-threaded ND aggregator.
-*/
+/**
+ *  Constructor for the derived class. Pre-calculate stats, so that it is ready
+ *  for the multi-threaded ND aggregator.
+ */
 template<typename T1, typename T2, typename T3>
 ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
   ColumnConvertor<T2>(column_in)
@@ -128,12 +128,12 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
 }
 
 
-/*
-* operator[] to get a converted column value by
-* - casting it to T2;
-* - applying a rowindex;
-* - properly handling NA's.
-*/
+/**
+ *  operator[] to get a converted column value by
+ *  - casting it to T2;
+ *  - applying a rowindex;
+ *  - properly handling NA's.
+ */
 template<typename T1, typename T2, typename T3>
 T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
   size_t i = row;
@@ -147,10 +147,10 @@ T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
 }
 
 
-/*
-* This method does the same as above just for a chunk of data.
-* No bound checks are performed.
-*/
+/**
+ *  This method does the same as above just for a chunk of data.
+ *  No bound checks are performed.
+ */
 template<typename T1, typename T2, typename T3>
 void ColumnConvertorReal<T1, T2, T3>::get_rows(std::vector<T2>& buffer,
                                                size_t from,
