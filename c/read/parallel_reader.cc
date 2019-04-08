@@ -5,11 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "read/parallel_reader.h"
 #include <algorithm>           // std::max
 #include "csv/reader.h"
+#include "parallel/api.h"
+#include "read/parallel_reader.h"
 #include "utils/assert.h"
-#include "utils/parallel.h"
 
 extern double wallclock();
 
@@ -191,7 +191,6 @@ void ParallelReader::read_all()
             tShowAlways = true;
           }
 
-          tctx->push_buffers();
           txcc = compute_chunk_boundaries(i, tctx);
 
           // Read the chunk with the expected coordinates `txcc`. The actual
@@ -204,10 +203,6 @@ void ParallelReader::read_all()
         },
 
         [&](size_t i) {
-          // if (oem.stop_requested()) {
-          //   tctx->used_nrows = 0;
-          //   return;
-          // }
           tctx->row0 = nrows_written;
           order_chunk(tacc, txcc, tctx);
 
@@ -230,25 +225,10 @@ void ParallelReader::read_all()
           tctx->orderBuffer();
         },
 
-        nullptr
-      );  // o->parallel()
-
-      // Stopped early because of error. Discard the content of the buffers,
-      // because they were not ordered, and trying to push them may lead to
-      // unexpected bugs...
-      // if (oem.exception_caught()) {
-      //   tctx->used_nrows = 0;
-      // }
-
-      // Push out the buffers one last time.
-      if (tctx->used_nrows) {
-        // try {
+        [&](size_t) {
           tctx->push_buffers();
-        // } catch (...) {
-        //   tctx->used_nrows = 0;
-        //   oem.capture_exception();
-        // }
-      }
+        }
+      );  // o->parallel()
 
       // Report progress one last time
       if (tMaster) g.emit_delayed_messages();
