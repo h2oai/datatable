@@ -75,7 +75,7 @@ void test_parallel_for_ordered(size_t n) {
   std::atomic_flag executing_ordered = ATOMIC_FLAG_INIT;
   std::vector<size_t> done(n, 0);
   std::atomic<int> ordered_section {0};
-  size_t next_ordered = 0;
+  std::atomic<size_t> next_ordered {0};
 
   dt::parallel_for_ordered(
     /* n_iters = */ n,
@@ -100,22 +100,18 @@ void test_parallel_for_ordered(size_t n) {
         },
         [&](size_t j) {
           if (executing_ordered.test_and_set()) {
-            throw AssertionError()
-              << "Another thread is executing ordered section";
+            throw AssertionError() << "Another thread is executing ordered section";
           }
           if (executing_local.test_and_set()) {
-            throw AssertionError() << "Frame " << k
-              << " is executed in another thread, ordered = " << j;
+            throw AssertionError() << "Frame " << k << " is executed in another thread, ordered = " << j;
           }
           // body of ordered section
           if (next_ordered != j) {
-            throw AssertionError() << "Wrong ordered iteration " << j
-                << ", expected " << next_ordered;
+            throw AssertionError() << "Wrong ordered iteration " << j << ", expected " << next_ordered;
           }
           next_ordered++;
           if (done[j] != 1) {
-            throw AssertionError() << "Iteration " << j
-                << " was ordered without being started: done=" << done[j];
+            throw AssertionError() << "Iteration " << j << " was ordered with done=" << done[j];
           }
           done[j] = 2;
           // end of ordered section
@@ -124,12 +120,10 @@ void test_parallel_for_ordered(size_t n) {
         },
         [&](size_t j) {
           if (executing_local.test_and_set()) {
-            throw AssertionError() << "Frame " << k
-              << " is executed in another thread, final = " << j;
+            throw AssertionError() << "Frame " << k << " is executed in another thread, final = " << j;
           }
           if (done[j] != 2) {
-            throw AssertionError() << "Iteration " << j
-                << " is finalized without being ordered: done=" << done[j];
+            throw AssertionError() << "Iteration " << j << " is finalized with done=" << done[j];
           }
           done[j] = 3;
 
