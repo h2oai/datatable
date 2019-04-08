@@ -190,7 +190,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   int branch = -1;
   if (ordering_thread_index == NO_THREAD && tasks[iorder].ready_to_order()) {
     branch = 0;
-    // std::cout << "Assign frame " << iorder << " to thread " << ith << " (order), next_to_order=" << next_to_order << "\n";
     ordering_thread_index = ith;
     task = &tasks[iorder];
     task->start_iteration(next_to_order);
@@ -199,7 +198,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
   else if (next_to_finish < n_iterations && tasks[ifinish].ready_to_finish()) {
-    // std::cout << "Assign frame " << ifinish << " to thread " << ith << " (finish), next_to_finish=" << next_to_finish << "\n";
     branch = 1;
     task = &tasks[ifinish];
     task->start_iteration(next_to_finish);
@@ -208,7 +206,6 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // Otherwise if there are still tasks in the start queue, and there are
   // tasks available where to execute those, then do the next "start" task.
   else if (next_to_start < n_iterations && tasks[istart].ready_to_start()) {
-    // std::cout << "Assign frame " << istart << " to thread " << ith << " (start), next_to_start=" << next_to_start << "\n";
     branch = 2;
     task = &tasks[istart];
     task->start_iteration(next_to_start);
@@ -218,18 +215,16 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // be some tasks in the future (not all iterations finished yet), then do a
   // simple wait task until more work becomes available.
   else if (next_to_finish < n_iterations) {
-    // std::cout << "Assign wait task to thread " << ith << ", next_to_finish=" << next_to_finish << "\n";
     branch=3;
     task = &waittask;
   }
   // Otherwise (next_to_finish == n_iters) there isn't anything left to do:
   // hooray! We allow the worker to go back to sleep by returning nullptr.
   else {
-    // std::cout << "Retiring thread " << ith << "\n";
     return nullptr;
   }
   assigned_tasks[ith] = task;
-  if (task->executing_thread + 1) {
+  if (task->executing_thread + 1 && branch != 3) {
     throw RuntimeError() << "Assigned task " << task << " (state=" << task->state
         << ", branch=" << branch << ") to thread " << ith
         << ", but it is already executed in thread " << task->executing_thread
@@ -308,13 +303,10 @@ void ordered::parallel(std::function<void(size_t)> pre_ordered,
                        std::function<void(size_t)> do_ordered,
                        std::function<void(size_t)> post_ordered)
 {
-  std::cout << "entering ordered::parallel()\n";
   if (sch->n_threads <= 1) {
-    std::cout << "nthreads = " << sch->n_threads << " (<=1)\n";
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
-    std::cout << "running " << sch->n_iterations << " iterations\n";
     for (size_t j = 0; j < sch->n_iterations; ++j) {
       pre_ordered(j);
       do_ordered(j);
@@ -322,20 +314,14 @@ void ordered::parallel(std::function<void(size_t)> pre_ordered,
     }
   }
   else {
-    std::cout << "nthreads > 1\n";
     sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
-    std::cout << "tasks.size() = " << sch->tasks.size() << "\n";
     if (sch->tasks.size() == sch->n_tasks) {
       thread_pool* thpool = thread_pool::get_instance();
-      std::cout << "start executing job\n";
       thpool->execute_job(sch);
-      std::cout << "done executing job\n";
     } else {
-      std::cout << "recurse into init(" << this << ")\n";
       init(this);
     }
   }
-  std::cout << "exiting ordered::parallel()\n";
 }
 
 
@@ -348,7 +334,6 @@ void ordered::parallel(std::function<void(size_t)> pre_ordered,
 void parallel_for_ordered(size_t niters, size_t nthreads,
                           std::function<void(ordered*)> fn)
 {
-  std::cout << "Entered parallel_for_ordered(niters=" << niters << ", nthreads=" << nthreads << ")\n";
   if (!niters) return;
   thread_pool* thpool = thread_pool::get_instance();
   xassert(!thpool->in_parallel_region());
@@ -358,17 +343,10 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
   size_t ntasks = std::min(niters, nthreads * 2);
   if (nthreads == 0) ntasks = 1;
   else if (nthreads > ntasks) nthreads = ntasks;
-  std::cout << "  nthreads=" << nthreads << "\n";
-  std::cout << "  ntasks=" << ntasks << "\n";
   thread_team tt(nthreads, thpool);
-  std::cout << "  created team\n";
   ordered_scheduler sch(ntasks, nthreads, niters);
-  std::cout << "  created scheduler\n";
   ordered octx(&sch, fn);
-  std::cout << "  created ordered\n";
-  std::cout << "  preparing to run fn(" << (void*)(&octx) << ")\n";
   fn(&octx);
-  std::cout << "  exiting parallel_for_ordered\n";
 }
 
 

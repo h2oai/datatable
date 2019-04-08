@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_PARALLEL_h
 #define dt_UTILS_PARALLEL_h
-#include <iostream>
 #include <functional>     // std::function
 #include <vector>
 #include "utils/c+++.h"
@@ -74,21 +73,16 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
   size_t nthreads = nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
-  int k = 0;
   bool doing_ordered = false;
   size_t next_to_order = 0;
   std::vector<size_t> done(nchunks, 0);
 
-  std::cout << "calling parallel_for_ordered(nchunks=" << nchunks << ", nthreads=" << nthreads << ")\n";
   dt::parallel_for_ordered(
     nchunks,
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
-      int khere = k++;
-      std::cout << "Entered main lambda, with k=" << khere << "\n";
       std::unique_ptr<string_buf> sb(
           new writable_string_col::buffer_impl<uint32_t>(output_col));
-      std::cout << '[' << khere << "] context = " << (sb.get()) << "\n";
       int state = 0;
 
       o->parallel(
@@ -132,9 +126,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
         nullptr
       );
 
-      std::cout << '[' << khere << "] closing context " << (sb.get()) << "\n";
       sb->commit_and_start_new_chunk(nrows);
-      std::cout << '[' << khere << "] leaving main lambda\n";
     });
   xassert(next_to_order == nchunks);
   for (size_t i = 0; i < nchunks; ++i) {
