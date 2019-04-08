@@ -12,9 +12,9 @@
 #include <stdio.h>      // printf
 #include "csv/toa.h"
 #include "csv/writer.h"
+#include "parallel/api.h"
 #include "utils/alloc.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -306,7 +306,6 @@ CsvWriter::~CsvWriter()
 
 void CsvWriter::write()
 {
-  OmpExceptionManager oem;
   checkpoint();
   std::vector<RowColIndex> rcs = dt->split_columns_by_rowindices();
   RowIndex ri0 = rcs.size() == 1? rcs[0].rowindex : RowIndex();
@@ -332,116 +331,100 @@ void CsvWriter::write()
   nstrcols64 = strcolumns64.size();
 
   // Start writing the CSV
-  #pragma omp parallel num_threads(nthreads)
-  {
-    #pragma omp master
-    {
-      log() << "Writing file using " << nchunks << " chunks, with "
-            << rows_per_chunk << " rows per chunk";
-      log() << "Using nthreads = " << omp_get_num_threads();
-      log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
-    }
-    // Initialize thread-local variables
-    size_t thbufsize = bytes_per_chunk * 2;
-    char*  thbuf = nullptr;
-    size_t th_write_at = 0;
-    size_t th_write_size = 0;
-    try {
-      // Note: do not use new[] here, as it can't be safely realloced
-      thbuf = dt::malloc<char>(thbufsize);
-    } catch (...) {
-      oem.capture_exception();
-    }
-    std::vector<size_t> js(rcs.size());
+  dt::parallel_for_ordered(
+    /* n_iterations = */ nchunks,
+    /* n_threads = */ nthreads,
+    [&](dt::ordered* o) {
+      if (dt::this_thread_index() == 0) {
+        log() << "Writing file using " << nchunks << " chunks, with "
+              << rows_per_chunk << " rows per chunk";
+        log() << "Using nthreads = " << dt::num_threads_in_team();
+        log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
+      }
+      // Initialize thread-local variables
+      size_t thbufsize = bytes_per_chunk * 2;
+      char*  thbuf = dt::malloc<char>(thbufsize);
+      size_t th_write_at = 0;
+      size_t th_write_size = 0;
+      std::vector<size_t> js(rcs.size());
 
-    // Main data-writing loop
-    #pragma omp for ordered schedule(dynamic)
-    for (size_t i = 0; i < nchunks; i++) {
-      if (oem.exception_caught()) continue;
-      size_t row0 = static_cast<size_t>(i * rows_per_chunk);
-      size_t row1 = static_cast<size_t>((i + 1) * rows_per_chunk);
-      if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
+      // Main data-writing loop
+      o->parallel(
+        [&](size_t i) {  // pre-ordered
+          size_t row0 = static_cast<size_t>(i * rows_per_chunk);
+          size_t row1 = static_cast<size_t>((i + 1) * rows_per_chunk);
+          if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
 
-      try {
-        // write the thread-local buffer into the output
-        if (th_write_size) {
-          wb->write_at(th_write_at, th_write_size, thbuf);
-        }
-
-        // Compute the required size of the thread-local buffer, and then
-        // expand the buffer if necessary. The size of each column is multiplied
-        // by 2 in order to account for the possibility that the buffer may
-        // expand twice in size (if every character needs to be escaped).
-        size_t reqsize = 0;
-        for (size_t col = 0; col < nstrcols32; col++) {
-          reqsize += strcolumns32[col]->strsize<uint32_t>(row0, row1);
-        }
-        for (size_t col = 0; col < nstrcols64; col++) {
-          reqsize += strcolumns64[col]->strsize<uint64_t>(row0, row1);
-        }
-        reqsize *= 2;
-        reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
-        if (thbufsize < reqsize) {
-          thbuf = dt::realloc<char>(thbuf, reqsize);
-          thbufsize = reqsize;
-          if (!thbuf) {
-            throw RuntimeError() << "Unable to allocate " << thbufsize
-                                 << " bytes for thread-local buffer";
+          // write the thread-local buffer into the output
+          if (th_write_size) {
+            wb->write_at(th_write_at, th_write_size, thbuf);
           }
-        }
 
-        // Write the data in rows row0..row1 and in all columns
-        char* thch = thbuf;
-        if (rcs.size() == 1) {
-          ri0.iterate(row0, row1, 1,
-            [&](size_t, size_t j) {
-              if (j == RowIndex::NA) return;
+          // Compute the required size of the thread-local buffer, and then
+          // expand the buffer if necessary. The size of each column is multiplied
+          // by 2 in order to account for the possibility that the buffer may
+          // expand twice in size (if every character needs to be escaped).
+          size_t reqsize = 0;
+          for (size_t col = 0; col < nstrcols32; col++) {
+            reqsize += strcolumns32[col]->strsize<uint32_t>(row0, row1);
+          }
+          for (size_t col = 0; col < nstrcols64; col++) {
+            reqsize += strcolumns64[col]->strsize<uint64_t>(row0, row1);
+          }
+          reqsize *= 2;
+          reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
+          if (thbufsize < reqsize) {
+            thbuf = dt::realloc<char>(thbuf, reqsize);
+            thbufsize = reqsize;
+            if (!thbuf) {
+              throw RuntimeError() << "Unable to allocate " << thbufsize
+                                   << " bytes for thread-local buffer";
+            }
+          }
+
+          // Write the data in rows row0..row1 and in all columns
+          char* thch = thbuf;
+          if (rcs.size() == 1) {
+            ri0.iterate(row0, row1, 1,
+              [&](size_t, size_t j) {
+                if (j == RowIndex::NA) return;
+                for (size_t col = 0; col < ncols; ++col) {
+                  columns[col]->write(&thch, j);
+                  *thch++ = ',';
+                }
+                thch[-1] = '\n';
+              });
+          } else {
+            for (size_t row = row0; row < row1; ++row) {
+              // Determine base row indices for the current row
+              for (size_t k = 0; k < rcs.size(); ++k) {
+                js[k] = rcs[k].rowindex[row];
+              }
+              // Run the serializer function
               for (size_t col = 0; col < ncols; ++col) {
-                columns[col]->write(&thch, j);
+                columns[col]->write(&thch, js[colmapping[col]]);
                 *thch++ = ',';
               }
               thch[-1] = '\n';
-            });
-        } else {
-          for (size_t row = row0; row < row1; ++row) {
-            // Determine base row indices for the current row
-            for (size_t k = 0; k < rcs.size(); ++k) {
-              js[k] = rcs[k].rowindex[row];
             }
-            // Run the serializer function
-            for (size_t col = 0; col < ncols; ++col) {
-              columns[col]->write(&thch, js[colmapping[col]]);
-              *thch++ = ',';
-            }
-            thch[-1] = '\n';
           }
-        }
-        th_write_size = static_cast<size_t>(thch - thbuf);
-        xassert(th_write_size <= thbufsize);
-      } catch (...) {
-        oem.capture_exception();
-      }
+          th_write_size = static_cast<size_t>(thch - thbuf);
+          xassert(th_write_size <= thbufsize);
+        }, // end of pre-ordered
 
-      #pragma omp ordered
-      {
-        try {
+        [&](size_t) {  // ordered
           th_write_at = wb->prep_write(th_write_size, thbuf);
-        } catch (...) {
-          oem.capture_exception();
-        }
-      }
-    }
-    try {
-      if (th_write_size && !oem.exception_caught()) {
+        },
+
+        nullptr  // post-ordered
+      );
+      if (th_write_size) {
         wb->write_at(th_write_at, th_write_size, thbuf);
       }
       dt::free(thbuf);
-    } catch (...) {
-      oem.capture_exception();
-    }
-  }
+    });
+
   finalize:
-  oem.rethrow_exception_if_any();
   t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
