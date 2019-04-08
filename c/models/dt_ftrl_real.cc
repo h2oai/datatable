@@ -329,41 +329,46 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     std::mutex m;
 
     // TODO: use standard parallel_for_static
-    dt::_parallel_for_static(chunk_end - chunk_start, 1024,
-      [&](size_t i0, size_t i1) {
+    dt::parallel_region(
+      [&]() {
         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
         tptr<T> w = tptr<T>(new T[nfeatures]);
         tptr<T> fi = tptr<T>(new T[nfeatures]());
-        for (size_t i = chunk_start + i0; i < chunk_start + i1; ++i) {
-          size_t ii = i % dt_X->nrows;
-          const size_t j0 = ri[0][ii];
-          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-          // dt_y has only one column that may contain NA's or be a view
-          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-          // columns as there are labels, and split_into_nhot() filters out
-          // NA's and can never be a view. Therefore, to ignore NA targets
-          // it is enough to check the condition below for the zero column only.
-          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
-            hash_row(x, hashers, ii);
-            for (size_t k = 0; k < dt_y->ncols; ++k) {
-              const size_t j = ri[k][ii];
-              T p = linkfn(predict_row(
-                        x, w, k,
-                        [&](size_t f_id, T f_imp) {
-                          fi[f_id] += f_imp;
-                        }
-                    ));
-              update(x, w, p, data[k][j], k);
-            }
-          }
-        }
 
+        dt::parallel_for_static(chunk_end - chunk_start,
+          [&](size_t i) {
+            // for (size_t i = i0; i < i1; ++i) {
+              size_t ii = (chunk_start + i) % dt_X->nrows;
+              const size_t j0 = ri[0][ii];
+              // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+              // dt_y has only one column that may contain NA's or be a view
+              // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+              // columns as there are labels, and split_into_nhot() filters out
+              // NA's and can never be a view. Therefore, to ignore NA targets
+              // it is enough to check the condition below for the zero column only.
+              // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
+              if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+                hash_row(x, hashers, ii);
+                for (size_t k = 0; k < dt_y->ncols; ++k) {
+                  const size_t j = ri[k][ii];
+                  T p = linkfn(predict_row(
+                            x, w, k,
+                            [&](size_t f_id, T f_imp) {
+                              fi[f_id] += f_imp;
+                            }
+                        ));
+                  update(x, w, p, data[k][j], k);
+                }
+              }
+            // }
+
+        });
         std::lock_guard<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
         }
-      });
+      }
+    );
 
 
     // Calculate loss on the validation dataset and do early stopping,
