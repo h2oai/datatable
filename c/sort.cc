@@ -123,6 +123,7 @@
 //
 //------------------------------------------------------------------------------
 #include <algorithm>  // std::min
+#include <atomic>     // std::atomic_flag
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
@@ -424,10 +425,8 @@ class SortContext {
     gg.init(nullptr, 0, groupby.ngroups());
     if (!rowindex) {
       dt::parallel_for_static(n,
-        [&](size_t i0, size_t i1) {
-          for (size_t i = i0; i < i1; ++i) {
-            o[i] = static_cast<int32_t>(i);
-          }
+        [&](size_t i) {
+          o[i] = static_cast<int32_t>(i);
         });
     }
   }
@@ -582,21 +581,17 @@ class SortContext {
 
     if (use_order) {
       dt::parallel_for_static(n,
-        [=](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; j++) {
-            xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
-                       : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
-          }
+        [=](size_t j) {
+          xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
+                     : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
         });
     } else {
       dt::parallel_for_static(n,
-        [=](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; j++) {
-            // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
-            // to int, which leads to wrong results after shift by 6.
-            xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
-                       : static_cast<uint8_t>(128 - xi[j]) >> 6;
-          }
+        [=](size_t j) {
+          // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
+          // to int, which leads to wrong results after shift by 6.
+          xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+                     : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
   }
@@ -633,23 +628,19 @@ class SortContext {
 
     if (use_order) {
       dt::parallel_for_static(n,
-        [&](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; ++j) {
-            TI t = xi[o[j]];
-            xo[j] = t == una? 0 :
-                    ASC? static_cast<TO>(t - uedge + 1)
-                       : static_cast<TO>(uedge - t + 1);
-          }
+        [&](size_t j) {
+          TI t = xi[o[j]];
+          xo[j] = t == una? 0 :
+                  ASC? static_cast<TO>(t - uedge + 1)
+                     : static_cast<TO>(uedge - t + 1);
         });
     } else {
       dt::parallel_for_static(n,
-        [&](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; ++j) {
-            TI t = xi[j];
-            xo[j] = t == una? 0 :
-                    ASC? static_cast<TO>(t - uedge + 1)
-                       : static_cast<TO>(uedge - t + 1);
-          }
+        [&](size_t j) {
+          TI t = xi[j];
+          xo[j] = t == una? 0 :
+                  ASC? static_cast<TO>(t - uedge + 1)
+                     : static_cast<TO>(uedge - t + 1);
         });
     }
   }
@@ -702,23 +693,19 @@ class SortContext {
 
     if (use_order) {
       dt::parallel_for_static(n,
-        [&](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; ++j) {
-            TO t = xi[o[j]];
-            xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                    ASC? t ^ (SBT | -(t>>SHIFT))
-                       : t ^ (~SBT & ((t>>SHIFT) - 1));
-          }
+        [&](size_t j) {
+          TO t = xi[o[j]];
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                  ASC? t ^ (SBT | -(t>>SHIFT))
+                     : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
     } else {
       dt::parallel_for_static(n,
-        [&](size_t i0, size_t i1) {
-          for (size_t j = i0; j < i1; ++j) {
-            TO t = xi[j];
-            xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                    ASC? t ^ (SBT | -(t>>SHIFT))
-                       : t ^ (~SBT & ((t>>SHIFT) - 1));
-          }
+        [&](size_t j) {
+          TO t = xi[j];
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+                  ASC? t ^ (SBT | -(t>>SHIFT))
+                     : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
     }
   }
@@ -747,27 +734,36 @@ class SortContext {
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
 
-    T maxlen = 0;
-    #pragma omp parallel for schedule(static) num_threads(nth) \
-            reduction(max:maxlen)
-    for (size_t j = 0; j < n; ++j) {
-      int32_t k = use_order? o[j] : static_cast<int32_t>(j);
-      T offend = offs[k];
-      if (ISNA<T>(offend)) {
-        xo[j] = 0;    // NA string
-      } else {
-        T offstart = offs[k - 1] & ~GETNA<T>();
-        if (offend > offstart) {
-          xo[j] = ASC? strdata[offstart] + 2
-                     : 0xFE - strdata[offstart];
-          T len = offend - offstart;
-          if (len > maxlen) maxlen = len;
-        } else {
-          xo[j] = ASC? 1 : 0xFF;  // empty string
-        }
-      }
-    }
-    next_elemsize = (maxlen > 1);
+    // `flong` is a flag that checks whether there is any string with len>1.
+    std::atomic_flag flong = ATOMIC_FLAG_INIT;
+
+    dt::parallel_region(
+      /* nthreads= */ nth,
+      [&] {
+        bool len_gt_1 = false;
+        dt::parallel_for_static(
+          /* n_iterations= */ n,
+          /* chunk_size= */ 1024,
+          [&](size_t j) {
+            int32_t k = use_order? o[j] : static_cast<int32_t>(j);
+            T offend = offs[k];
+            if (ISNA<T>(offend)) {
+              xo[j] = 0;    // NA string
+            } else {
+              T offstart = offs[k - 1] & ~GETNA<T>();
+              if (offend > offstart) {
+                xo[j] = ASC? strdata[offstart] + 2
+                           : 0xFE - strdata[offstart];
+                T len = offend - offstart;
+                len_gt_1 |= (len > 1);
+              } else {
+                xo[j] = ASC? 1 : 0xFF;  // empty string
+              }
+            }
+          });
+        if (len_gt_1) flong.test_and_set();
+      });
+    next_elemsize = flong.test_and_set();
   }
 
 
@@ -842,14 +838,12 @@ class SortContext {
   template<typename T> void _histogram_gather() {
     T* tx = x.data<T>();
     dt::parallel_for_static(nchunks, 1,
-      [&](size_t i0, size_t i1) {
-        for (size_t i = i0; i < i1; ++i) {
-          size_t* cnts = histogram + (nradixes * i);
-          size_t j0 = i * chunklen;
-          size_t j1 = std::min(j0 + chunklen, n);
-          for (size_t j = j0; j < j1; ++j) {
-            cnts[tx[j] >> shift]++;
-          }
+      [&](size_t i) {
+        size_t* cnts = histogram + (nradixes * i);
+        size_t j0 = i * chunklen;
+        size_t j1 = std::min(j0 + chunklen, n);
+        for (size_t j = j0; j < j1; ++j) {
+          cnts[tx[j] >> shift]++;
         }
       });
   }
@@ -938,18 +932,16 @@ class SortContext {
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
     dt::parallel_for_static(nchunks,
-      [&](size_t i0, size_t i1) {
-        for (size_t i = i0; i < i1; ++i) {
-          size_t j0 = i * chunklen;
-          size_t j1 = std::min(j0 + chunklen, n);
-          size_t* tcounts = histogram + (nradixes * i);
-          for (size_t j = j0; j < j1; ++j) {
-            size_t k = tcounts[xi[j] >> shift]++;
-            xassert(k < n);
-            next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
-            if (OUT) {
-              xo[k] = static_cast<TO>(xi[j] & mask);
-            }
+      [&](size_t i) {
+        size_t j0 = i * chunklen;
+        size_t j1 = std::min(j0 + chunklen, n);
+        size_t* tcounts = histogram + (nradixes * i);
+        for (size_t j = j0; j < j1; ++j) {
+          size_t k = tcounts[xi[j] >> shift]++;
+          xassert(k < n);
+          next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
+          if (OUT) {
+            xo[k] = static_cast<TO>(xi[j] & mask);
           }
         }
       });
