@@ -17,6 +17,7 @@
 #define dt_UTILS_PARALLEL_h
 #include <iostream>
 #include <functional>     // std::function
+#include <vector>
 #include "utils/c+++.h"
 #include "utils/function.h"
 #include "parallel/api.h"
@@ -76,6 +77,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
   int k = 0;
   bool doing_ordered = false;
   size_t next_to_order = 0;
+  std::vector<size_t> done(nchunks, 0);
 
   std::cout << "calling parallel_for_ordered(nchunks=" << nchunks << ", nthreads=" << nthreads << ")\n";
   dt::parallel_for_ordered(
@@ -94,6 +96,8 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
           xassert(state == 0); state = 1;
           size_t i0 = std::min(iter * chunksize, nrows);
           size_t i1 = std::min(i0 + chunksize, nrows);
+          xassert(done[iter] == 0);
+          done[iter] = 1;
 
           sb->commit_and_start_new_chunk(i0);
           CString curr_str;
@@ -120,6 +124,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
           xassert(!doing_ordered); doing_ordered = true;
           xassert(state == 2); state = 3;
           xassert(j == next_to_order); next_to_order++;
+          xassert(done[j] == 1); done[j] = 2;
           sb->order();
           xassert(state == 3); state = 0;
           xassert(doing_ordered); doing_ordered = false;
@@ -132,6 +137,9 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
       std::cout << '[' << khere << "] leaving main lambda\n";
     });
   xassert(next_to_order == nchunks);
+  for (size_t i = 0; i < nchunks; ++i) {
+    xassert(done[i] == 2);
+  }
 
   return std::move(output_col).to_column();
 }

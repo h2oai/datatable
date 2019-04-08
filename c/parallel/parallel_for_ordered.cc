@@ -40,6 +40,7 @@ class ordered_task : public thread_task {
     static constexpr size_t STARTED = 1;
     static constexpr size_t READY_TO_ORDER = 2;
     static constexpr size_t READY_TO_FINISH = 3;
+    static constexpr size_t CANCELLED = 42;
     f1t pre_ordered;
     f1t ordered;
     f1t post_ordered;
@@ -56,6 +57,7 @@ class ordered_task : public thread_task {
     bool ready_to_finish() const noexcept { return state == READY_TO_FINISH; }
 
     void advance_state();
+    void cancel();
     void start_iteration(size_t i);
     void execute(thread_worker*) override;
 };
@@ -65,12 +67,16 @@ ordered_task::ordered_task(f1t pre, f1t ord, f1t post)
   : pre_ordered(pre? pre : noop),
     ordered(ord? ord : noop),
     post_ordered(post? post : noop),
-    state(0),
+    state(READY_TO_START),
     n_iter(0) {}
 
 
 void ordered_task::advance_state() {
   state = (state + 1) & 3;
+}
+
+void ordered_task::cancel() {
+  state = CANCELLED;
 }
 
 void ordered_task::start_iteration(size_t i) {
@@ -140,6 +146,7 @@ class ordered_scheduler : public thread_scheduler {
   public:
     ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters);
     thread_task* get_next_task(size_t) override;
+    void abort_execution() override;
 };
 
 
@@ -172,19 +179,22 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // doing ordering right now, then process that frame. Clearing up the
   // "to-be-ordered" queue should always be the highest priority.
   if (ordering_thread_index == NO_THREAD && tasks[iorder].ready_to_order()) {
+    // std::cout << "Assign frame " << iorder << " to thread " << ith << " (order), next_to_order=" << next_to_order << "\n";
     ordering_thread_index = ith;
     task = &tasks[iorder];
     iorder = (++next_to_order) % n_tasks;
   }
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
-  else if (tasks[ifinish].ready_to_finish()) {
+  else if (next_to_finish < n_iterations && tasks[ifinish].ready_to_finish()) {
+    // std::cout << "Assign frame " << ifinish << " to thread " << ith << " (finish), next_to_finish=" << next_to_finish << "\n";
     task = &tasks[ifinish];
     ifinish = (++next_to_finish) % n_tasks;
   }
   // Otherwise if there are still tasks in the start queue, and there are
   // tasks available where to execute those, then do the next "start" task.
   else if (next_to_start < n_iterations && tasks[istart].ready_to_start()) {
+    // std::cout << "Assign frame " << istart << " to thread " << ith << " (start), next_to_start=" << next_to_start << "\n";
     task = &tasks[istart];
     task->start_iteration(next_to_start);
     istart = (++next_to_start) % n_tasks;
@@ -193,15 +203,26 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   // be some tasks in the future (not all iterations finished yet), then do a
   // simple wait task until more work becomes available.
   else if (next_to_finish < n_iterations) {
+    // std::cout << "Assign wait task to thread " << ith << ", next_to_finish=" << next_to_finish << "\n";
     task = &waittask;
   }
   // Otherwise (next_to_finish == n_iters) there isn't anything left to do:
   // hooray! We allow the worker to go back to sleep by returning nullptr.
   else {
+    // std::cout << "Retiring thread " << ith << "\n";
     return nullptr;
   }
   assigned_tasks[ith] = task;
   return task;
+}
+
+
+void ordered_scheduler::abort_execution() {
+  std::lock_guard<std::mutex> lock(mutex);
+  std::cout << "Aborting, an exception occurred\n";
+  next_to_start = n_iterations;
+  next_to_finish = n_iterations;
+  tasks[iorder].cancel();
 }
 
 

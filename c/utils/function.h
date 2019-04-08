@@ -18,12 +18,24 @@
 namespace dt {
 
 
-/// An efficient, type-erasing, non-owning reference to a callable. This is
-/// intended for use as the type of a function parameter that is not used
-/// after the function in question returns.
-///
-/// This class does not own the callable, so it is not in general safe to store
-/// a dt::function.
+/**
+ * An efficient, type-erasing, non-owning reference to a callable. This is
+ * intended for use as the type of a function parameter that is not used
+ * after the function in question returns.
+ *
+ * This class does not own the callable, so it is not in general safe to store
+ * a dt::function.
+ *
+ * In particular, beware of the following use pattern:
+ *
+ *     function<void()> f = [&]{ ... };
+ *
+ * Here the RHS is a lambda, which is created as a temporary variable. It is
+ * then assigned to `f`, at which point the temporary gets destroyed and its
+ * storage reclaimed. However, since `f` is a non-owning wrapper, any
+ * subsequent call to `f` will be invoking a dangling pointer, which may
+ * cause memory corruption and crashes.
+ */
 template<typename Fn> class function;
 
 

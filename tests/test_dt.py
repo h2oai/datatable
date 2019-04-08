@@ -214,6 +214,12 @@ def test_internal_parallel_for_dynamic():
         core.test_parallel_for_dynamic(1000)
 
 
+def test_internal_parallel_for_ordered():
+    from datatable.lib import core
+    if hasattr(core, "test_parallel_for_ordered"):
+        core.test_parallel_for_ordered(10000)
+
+
 
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)
