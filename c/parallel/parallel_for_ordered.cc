@@ -13,11 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include <functional>
 #include <mutex>
 #include <thread>   // std::this_thread
-#include <vector>
+#include <vector>   // std::vector
 #include "parallel/api.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
@@ -238,8 +237,8 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 
 void ordered_scheduler::abort_execution() {
   std::lock_guard<std::mutex> lock(mutex);
-  std::cout << "Aborting, an exception occurred\n";
   next_to_start = n_iterations;
+  next_to_order = n_iterations;
   next_to_finish = n_iterations;
   istart = ifinish = n_iterations % n_tasks;
   tasks[iorder].cancel();
