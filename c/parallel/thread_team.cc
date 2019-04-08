@@ -53,7 +53,7 @@ void thread_team::wait_at_barrier() {
 
 
 void barrier() {
-  get_team_unchecked()->wait_at_barrier();
+  thread_pool::get_team_unchecked()->wait_at_barrier();
 }
 
 

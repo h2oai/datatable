@@ -119,7 +119,7 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
 /**
  * Execute loop
  *
- *     for i in range(nrows):
+ *     for i in range(n_iterations):
  *         pre-ordered(i)
  *         ordered(i)
  *         post-ordered(i)
@@ -137,9 +137,10 @@ class ordered {
     void parallel(function<void(size_t)> pre_ordered,
                   function<void(size_t)> do_ordered,
                   function<void(size_t)> post_ordered);
+    void set_n_iterations(size_t n);
 };
 
-void parallel_for_ordered(size_t nrows, size_t nthreads,
+void parallel_for_ordered(size_t n_iterations, size_t n_threads,
                           function<void(ordered*)> fn);
 
 

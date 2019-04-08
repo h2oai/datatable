@@ -306,6 +306,12 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 }
 
 
+void ordered::set_n_iterations(size_t n) {
+  std::lock_guard<dt::spin_mutex> lock(sch->mutex);
+  sch->n_iterations = n;
+}
+
+
 
 
 //------------------------------------------------------------------------------
