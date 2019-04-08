@@ -164,8 +164,7 @@ void ParallelReader::read_all()
       // This is needed because we don't want the progress bar for really small
       // and fast files. However if the file is big enough (>256MB) then it's ok
       // to show the progress as soon as possible.
-      bool tMaster = (dt::this_thread_index() == 0);
-      bool tShowProgress = g.report_progress && tMaster;
+      bool tShowProgress = g.report_progress;
       bool tShowAlways = tShowProgress && (input_end - input_start > (1 << 28));
       double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
@@ -185,10 +184,12 @@ void ParallelReader::read_all()
       // Main data reading loop
       o->parallel(
         [&](size_t i) {
-          if (tMaster) g.emit_delayed_messages();
-          if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-            g.progress(work_done_amount());
-            tShowAlways = true;
+          if (dt::this_thread_index() == 0) {
+            g.emit_delayed_messages();
+            if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
+              g.progress(work_done_amount());
+              tShowAlways = true;
+            }
           }
 
           txcc = compute_chunk_boundaries(i, tctx);
@@ -231,7 +232,7 @@ void ParallelReader::read_all()
       );  // o->parallel()
 
       // Report progress one last time
-      if (tMaster) g.emit_delayed_messages();
+      if (dt::this_thread_index() == 0) g.emit_delayed_messages();
       if (tShowAlways) {
         int status = 1;  // + oem.exception_caught() + oem.is_keyboard_interrupt();
         g.progress(work_done_amount(), status);
