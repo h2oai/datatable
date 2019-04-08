@@ -30,7 +30,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 // ordered_task
 //------------------------------------------------------------------------------
-using f1t = std::function<void(size_t)>;
+using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
@@ -172,13 +172,10 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
 thread_task* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<std::mutex> lock(mutex);
-  xassert(istart == next_to_start % n_tasks);
-  xassert(iorder == next_to_order % n_tasks);
-  xassert(ifinish == next_to_finish % n_tasks);
 
   ordered_task* task = assigned_tasks[ith];
   task->advance_state();
-  task->executing_thread = -1;
+  task->executing_thread = size_t(-1);
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
   }
@@ -251,7 +248,7 @@ void ordered_scheduler::abort_execution() {
 // ordered
 //------------------------------------------------------------------------------
 
-ordered::ordered(ordered_scheduler* s, std::function<void(ordered*)> f)
+ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
   : sch(s), init(f) {}
 
 /**
@@ -298,9 +295,9 @@ ordered::ordered(ordered_scheduler* s, std::function<void(ordered*)> f)
  * exit each level of the `init()` function, running the "cleanup context" part
  * of its body.
  */
-void ordered::parallel(std::function<void(size_t)> pre_ordered,
-                       std::function<void(size_t)> do_ordered,
-                       std::function<void(size_t)> post_ordered)
+void ordered::parallel(function<void(size_t)> pre_ordered,
+                       function<void(size_t)> do_ordered,
+                       function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
     if (!pre_ordered)  pre_ordered = noop;
@@ -331,7 +328,7 @@ void ordered::parallel(std::function<void(size_t)> pre_ordered,
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered(size_t niters, size_t nthreads,
-                          std::function<void(ordered*)> fn)
+                          function<void(ordered*)> fn)
 {
   if (!niters) return;
   thread_pool* thpool = thread_pool::get_instance();

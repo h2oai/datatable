@@ -122,16 +122,16 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
 class ordered_scheduler;
 class ordered {
   ordered_scheduler* sch;
-  std::function<void(ordered*)> init;
+  function<void(ordered*)> init;
   public:
-    ordered(ordered_scheduler*, std::function<void(ordered*)>);
-    void parallel(std::function<void(size_t)> pre_ordered,
-                  std::function<void(size_t)> do_ordered,
-                  std::function<void(size_t)> post_ordered);
+    ordered(ordered_scheduler*, function<void(ordered*)>);
+    void parallel(function<void(size_t)> pre_ordered,
+                  function<void(size_t)> do_ordered,
+                  function<void(size_t)> post_ordered);
 };
 
 void parallel_for_ordered(size_t nrows, size_t nthreads,
-                          std::function<void(ordered*)> fn);
+                          function<void(ordered*)> fn);
 
 
 }  // namespace dt
