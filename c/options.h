@@ -25,7 +25,6 @@ extern std::string frame_names_auto_prefix;
 extern bool display_interactive;
 extern bool display_interactive_hint;
 
-int32_t normalize_nthreads(int32_t nth);
 void set_nthreads(int32_t n);
 void set_core_logger(PyObject*);
 void set_sort_insert_method_threshold(int64_t n);

@@ -33,26 +33,17 @@ bool display_interactive = false;
 bool display_interactive_hint = true;
 
 
-int32_t normalize_nthreads(int32_t nth) {
-  // Initialize `max_threads` only once, on the first run. This is because we
-  // use `omp_set_num_threads` below, and once it was used,
-  // `omp_get_max_threads` will return that number, and we won't be able to
-  // know the "real" maximum number of threads.
-  static const int max_threads = omp_get_max_threads();
-
-  if (nth <= 0) nth += max_threads;
+static int32_t normalize_nthreads(int32_t nth) {
+  if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
   if (nth <= 0) nth = 1;
   return nth;
 }
 
 void set_nthreads(int32_t n) {
   n = normalize_nthreads(n);
+  auto thpool = dt::thread_pool::get_instance();
+  thpool->resize(static_cast<size_t>(n));
   sort_nthreads = n;
-  // Default number of threads that will be used in all `#pragma omp` calls
-  // that do not use explicit `num_threads()` directive.
-  omp_set_num_threads(n);
-
-  dt::thread_pool::get_instance()->resize(static_cast<size_t>(n));
 }
 
 

@@ -24,7 +24,6 @@
 #include "wstringcol.h"
 
 #ifdef DTNOOPENMP
-  #define omp_get_max_threads() 1
   #define omp_get_num_threads() 1
   #define omp_set_num_threads(n)
   #define omp_get_thread_num() 0
