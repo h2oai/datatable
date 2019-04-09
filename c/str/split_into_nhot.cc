@@ -18,8 +18,8 @@
 #include <vector>         // std::vector
 #include "models/utils.h"        // sort_index
 #include "parallel/api.h"
+#include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
-#include "utils/shared_mutex.h"
 #include "str/py_str.h"
 #include "datatable.h"
 #include "options.h"
