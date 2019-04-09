@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - New function `dt.median()` can be used to compute median of a certain
   column or expression, either per group or for the entire Frame (#1530).
 
+- `Frame.__str__()` now returns a string containing the preview of the
+  frame's data. This allows datatable frames to be used with `print()`.
+
 
 ### Fixed
 
