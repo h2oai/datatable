@@ -80,6 +80,7 @@ class Frame : public PyObject {
 
     // Frame display
     oobj m__repr__();
+    oobj m__str__();
     oobj _repr_html_(const PKArgs&);
     oobj _repr_pretty_(const PKArgs&);
     void view(const PKArgs&);
