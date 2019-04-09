@@ -294,12 +294,12 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   auto hashers = create_hashers(dt_X);
 
   // Settings for parallel processing. By default we invoke
-  // `dt::parallel_for_static()` on all the data for all the epochs at once.
-  size_t total_nrows = dt_X->nrows * nepochs;
-  size_t nchunks = nepochs;
-  size_t chunk_nrows = dt_X->nrows;
+  // `dt::parallel_for_static()` on `dt_X->nrows` chunks.
+  size_t niterations = nepochs;
+  size_t iteration_nrows = dt_X->nrows;
+  size_t total_nrows = niterations * iteration_nrows;
 
-  // If a validation set is provided, we train on chunks of data.
+  // If a validation set is provided, we adjust chunk size to `nepochs_val`.
   // After each chunk, we calculate loss on the validation dataset,
   // and do early stopping if loss does not improve.
   T loss = std::numeric_limits<T>::quiet_NaN();;
@@ -308,9 +308,9 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    chunk_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
-    nchunks = static_cast<size_t>(
-                ceil(static_cast<double>(total_nrows) / chunk_nrows)
+    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
+    niterations = static_cast<size_t>(
+                ceil(static_cast<double>(total_nrows) / iteration_nrows)
               );
   }
 
@@ -321,67 +321,76 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   if (validation) fill_ri_data<U>(dt_y_val, ri_val, data_val);
   auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
 
-  size_t chunk_end = 0;
+  size_t iteration_end = 0;
   T loss_old = 0;
-  for (size_t c = 0; c < nchunks; ++c) {
-    size_t chunk_start = c * chunk_nrows;
-    chunk_end = std::min((c + 1) * chunk_nrows, total_nrows);
-    std::mutex m;
 
-    // TODO: use standard parallel_for_static
-    dt::parallel_region(
-      [&]() {
-        uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-        tptr<T> w = tptr<T>(new T[nfeatures]);
-        tptr<T> fi = tptr<T>(new T[nfeatures]());
+  size_t min_rows_per_thread = 1000;
+  size_t nthreads = std::min(1 + iteration_nrows / min_rows_per_thread, dt::num_threads_in_pool());
+  std::mutex m;
 
-        dt::parallel_for_static(chunk_end - chunk_start,
-          [&](size_t i) {
-            // for (size_t i = i0; i < i1; ++i) {
-              size_t ii = (chunk_start + i) % dt_X->nrows;
-              const size_t j0 = ri[0][ii];
-              // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-              // dt_y has only one column that may contain NA's or be a view
-              // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-              // columns as there are labels, and split_into_nhot() filters out
-              // NA's and can never be a view. Therefore, to ignore NA targets
-              // it is enough to check the condition below for the zero column only.
-              // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-              if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
-                hash_row(x, hashers, ii);
-                for (size_t k = 0; k < dt_y->ncols; ++k) {
-                  const size_t j = ri[k][ii];
-                  T p = linkfn(predict_row(
-                            x, w, k,
-                            [&](size_t f_id, T f_imp) {
-                              fi[f_id] += f_imp;
-                            }
-                        ));
-                  update(x, w, p, data[k][j], k);
-                }
-              }
-            // }
+  dt::parallel_region(nthreads,
+    [&]() {
+      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      tptr<T> w = tptr<T>(new T[nfeatures]);
+      tptr<T> fi = tptr<T>(new T[nfeatures]());
+      size_t ithread = this_thread_index();
 
-        });
-        std::lock_guard<std::mutex> lock(m);
+      for (size_t iter = 0; iter < niterations; ++iter) {
+        size_t iteration_start = iter * iteration_nrows;
+        iteration_end = std::min((iter + 1) * iteration_nrows, total_nrows);
+        size_t iteration_size = iteration_end - iteration_start;
+
+        size_t chunk_size = iteration_size / nthreads;
+        size_t i0 = ithread * chunk_size;
+        size_t i1 = i0 + chunk_size;
+        if (i1 > iteration_size) i1 = iteration_size;
+
+        // Training
+        for (size_t i = i0; i < i1; ++i) {
+          size_t ii = (iteration_start + i) % dt_X->nrows;
+          const size_t j0 = ri[0][ii];
+          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+          // dt_y has only one column that may contain NA's or be a view
+          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+          // columns as there are labels, and split_into_nhot() filters out
+          // NA's and can never be a view. Therefore, to ignore NA targets
+          // it is enough to check the condition below for the zero column only.
+          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
+          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+            hash_row(x, hashers, ii);
+            for (size_t k = 0; k < dt_y->ncols; ++k) {
+              const size_t j = ri[k][ii];
+              T p = linkfn(predict_row(
+                        x, w, k,
+                        [&](size_t f_id, T f_imp) {
+                          fi[f_id] += f_imp;
+                        }
+                    ));
+              update(x, w, p, data[k][j], k);
+            }
+          }
+        } // end training
+
+        std::unique_lock<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
         }
-      }
-    );
+        lock.unlock();
 
 
-    // Calculate loss on the validation dataset and do early stopping,
-    // if the loss does not improve.
-    if (validation) {
-      dt::atomic<T> loss_global { 0.0 };
-      // TODO: replace with standard dt::parallel_for_static
-      dt::_parallel_for_static(dt_X_val->nrows, 1024,
-        [&](size_t i0, size_t i1) {
-          uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-          tptr<T> w = tptr<T>(new T[nfeatures]());
+
+
+        // Calculate loss on the validation dataset and do early stopping,
+        // if the loss does not improve.
+        if (validation) {
+          dt::atomic<T> loss_global { 0.0 };
+          chunk_size = dt_X_val->nrows / nthreads;
+          i0 = ithread * chunk_size;
+          i1 = i0 + chunk_size;
+          if (i1 > iteration_size) i1 = iteration_size;
           T loss_local = 0.0;
 
+          // TODO: replace with standard dt::parallel_for_static
           for (size_t i = i0; i < i1; ++i) {
             const size_t j0 = ri_val[0][i];
             if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
@@ -391,24 +400,118 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
                 T p = linkfn(predict_row(
                         x, w, map_val[k], [&](size_t, T){}
                       ));
-
                 loss_local += lossfn(p, data_val[k][j]);
               }
             }
           }
+
           loss_global.fetch_add(loss_local);
-        });
 
-      // If loss does not decrease, do early stopping.
-      loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
-      T loss_diff = (loss_old - loss) / loss_old;
-      if (c && (loss < epsilon || loss_diff < val_error)) break;
+          // If loss does not decrease, do early stopping.
+          loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+          T loss_diff = (loss_old - loss) / loss_old;
+          if (iter && (loss < epsilon || loss_diff < val_error)) break;
 
-      // If loss decreases, save current loss and continue training.
-      loss_old = loss;
+          // If loss decreases, save current loss and continue training.
+          loss_old = loss;
+        } // end validation
+
+
+      } // end iteration
+
     }
-  }
-  double epoch_stopped = static_cast<double>(chunk_end) / dt_X->nrows;
+  );
+
+
+  // for (size_t iter = 0; iter < niterations; ++iter) {
+  //   size_t iteration_start = iter * iteration_nrows;
+  //   iteration_end = std::min((iter + 1) * iteration_nrows, total_nrows);
+  //   std::mutex m;
+
+  //   // TODO: use standard parallel_for_static
+  //   // printf("nthreads: %zu\n", nthreads);
+  //   dt::parallel_region(
+  //     [&]() {
+  //       // printf("nthreads in team: %zu\n", dt::num_threads_in_team());
+  //       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+  //       tptr<T> w = tptr<T>(new T[nfeatures]);
+  //       tptr<T> fi = tptr<T>(new T[nfeatures]());
+
+  //       dt::parallel_for_static(iteration_end - iteration_start,
+  //         [&](size_t i) {
+  //           // printf("nthreads in team: %zu\n", dt::num_threads_in_team());
+  //           // for (size_t i = i0; i < i1; ++i) {
+  //             size_t ii = (iteration_start + i) % dt_X->nrows;
+  //             const size_t j0 = ri[0][ii];
+  //             // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+  //             // dt_y has only one column that may contain NA's or be a view
+  //             // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+  //             // columns as there are labels, and split_into_nhot() filters out
+  //             // NA's and can never be a view. Therefore, to ignore NA targets
+  //             // it is enough to check the condition below for the zero column only.
+  //             // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
+  //             if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+  //               hash_row(x, hashers, ii);
+  //               for (size_t k = 0; k < dt_y->ncols; ++k) {
+  //                 const size_t j = ri[k][ii];
+  //                 T p = linkfn(predict_row(
+  //                           x, w, k,
+  //                           [&](size_t f_id, T f_imp) {
+  //                             fi[f_id] += f_imp;
+  //                           }
+  //                       ));
+  //                 update(x, w, p, data[k][j], k);
+  //               }
+  //             }
+  //           // }
+
+  //       });
+  //       std::lock_guard<std::mutex> lock(m);
+  //       for (size_t i = 0; i < nfeatures; ++i) {
+  //         data_fi[i] += fi[i];
+  //       }
+  //     }
+  //   );
+
+
+  //   // Calculate loss on the validation dataset and do early stopping,
+  //   // if the loss does not improve.
+  //   if (validation) {
+  //     dt::atomic<T> loss_global { 0.0 };
+  //     // TODO: replace with standard dt::parallel_for_static
+  //     dt::_parallel_for_static(dt_X_val->nrows, 1024,
+  //       [&](size_t i0, size_t i1) {
+  //         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+  //         tptr<T> w = tptr<T>(new T[nfeatures]());
+  //         T loss_local = 0.0;
+
+  //         for (size_t i = i0; i < i1; ++i) {
+  //           const size_t j0 = ri_val[0][i];
+  //           if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
+  //             hash_row(x, hashers_val, i);
+  //             for (size_t k = 0; k < dt_y_val->ncols; ++k) {
+  //               const size_t j = ri_val[k][i];
+  //               T p = linkfn(predict_row(
+  //                       x, w, map_val[k], [&](size_t, T){}
+  //                     ));
+
+  //               loss_local += lossfn(p, data_val[k][j]);
+  //             }
+  //           }
+  //         }
+  //         loss_global.fetch_add(loss_local);
+  //       });
+
+  //     // If loss does not decrease, do early stopping.
+  //     loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+  //     T loss_diff = (loss_old - loss) / loss_old;
+  //     if (iter && (loss < epsilon || loss_diff < val_error)) break;
+
+  //     // If loss decreases, save current loss and continue training.
+  //     loss_old = loss;
+  //   }
+  // }
+  double epoch_stopped = static_cast<double>(iteration_end) / dt_X->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
   return res;
 }
