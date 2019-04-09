@@ -20,7 +20,6 @@ namespace config
 {
 
 PyObject* logger = nullptr;
-int32_t nthreads = 1;
 size_t sort_insert_method_threshold = 64;
 size_t sort_thread_multiplier = 2;
 size_t sort_max_chunk_length = 1 << 20;
@@ -48,7 +47,6 @@ int32_t normalize_nthreads(int32_t nth) {
 
 void set_nthreads(int32_t n) {
   n = normalize_nthreads(n);
-  nthreads = n;
   sort_nthreads = n;
   // Default number of threads that will be used in all `#pragma omp` calls
   // that do not use explicit `num_threads()` directive.
@@ -169,7 +167,7 @@ static py::oobj get_option(const py::PKArgs& args) {
   std::string name = args[0].to_string();
 
   if (name == "nthreads") {
-    return py::oint(nthreads);
+    return py::oint(dt::num_threads_in_pool());
 
   } else if (name == "sort.insert_method_threshold") {
     return py::oint(sort_insert_method_threshold);

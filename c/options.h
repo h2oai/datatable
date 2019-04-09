@@ -13,7 +13,6 @@
 namespace config {
 
 extern PyObject* logger;
-extern int32_t nthreads;
 extern size_t sort_insert_method_threshold;
 extern size_t sort_thread_multiplier;
 extern size_t sort_max_chunk_length;

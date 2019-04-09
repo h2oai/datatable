@@ -99,10 +99,8 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   dt::shared_mutex shmutex;
   const RowIndex& ri = col->rowindex();
 
-  // TODO: reduce num threads on small data
-  // size_t nth0 = std::min(static_cast<size_t>(config::nthreads), nrows);
-
   dt::parallel_region(
+    /* nthreads = */ nrows,
     [&] {
       std::vector<std::string> chunks;
 
