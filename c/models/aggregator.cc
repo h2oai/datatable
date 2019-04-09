@@ -74,7 +74,7 @@ progress_fn: object
       progress on a scale from 0 to 1;
     - `status_code` takes two values: `0` – in progress, `1` – completed.
 nthreads: int
-    Number of OpenMP threads aggregator should use. `0` means
+    Number of threads aggregator should use. `0` means
     use all the threads.
 double_precision: bool
     Whether to use double precision arithmetic or not.

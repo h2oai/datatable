@@ -452,7 +452,7 @@ def test_aggregate_2d_mixed_random():
 
 
 #-------------------------------------------------------------------------------
-# Aggregate ND, take into account ND is parallelized with OpenMP
+# Aggregate ND, take into account ND is parallelized
 #-------------------------------------------------------------------------------
 
 def test_aggregate_3d_categorical():
