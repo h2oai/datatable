@@ -23,21 +23,6 @@
 #include "rowindex.h"
 #include "wstringcol.h"
 
-#ifdef DTNOOPENMP
-  #define omp_get_num_threads() 1
-  #define omp_set_num_threads(n)
-  #define omp_get_thread_num() 0
-#else
-  #ifdef __clang__
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wreserved-id-macro"
-    #include <omp.h>
-    #pragma clang diagnostic pop
-  #else
-    #include <omp.h>
-  #endif
-#endif
-
 namespace dt {
 
 
