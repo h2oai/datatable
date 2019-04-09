@@ -24,10 +24,10 @@
 //
 #include <unordered_map>
 #include "csv/toa.h"
-#include "parallel/api.h"    // dt::parallel_for_static
+#include "parallel/api.h"           // dt::parallel_for_static
+#include "parallel/string_utils.h"  // dt::generate_string_column
 #include "python/_all.h"
 #include "python/string.h"
-#include "utils/parallel.h"
 #include "column.h"
 #include "datatablemodule.h"
 

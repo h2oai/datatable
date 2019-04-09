@@ -12,10 +12,10 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/exceptions.h"
-#include "utils/parallel.h"
 #include "utils/misc.h"         // wallclock
 #include "datatable.h"
 #include "encodings.h"
@@ -100,21 +100,19 @@ void GenericReader::init_verbose() {
 }
 
 void GenericReader::init_nthreads() {
-  #ifdef DTNOOPENMP
-    nthreads = 1;
-    trace("Using 1 thread because datatable was built without OMP support");
-  #else
-    int32_t nth = freader.get_attr("nthreads").to_int32();
-    if (ISNA<int32_t>(nth)) {
-      nthreads = config::nthreads;
-      trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
-    } else {
-      nthreads = config::normalize_nthreads(nth);
-      int maxth = config::normalize_nthreads(0);
-      trace("Using %d thread%s (requested=%d, max.available=%d)",
-            nthreads, (nthreads==1? "" : "s"), nth, maxth);
-    }
-  #endif
+  int32_t nth = freader.get_attr("nthreads").to_int32();
+  int maxth = static_cast<int>(dt::num_threads_in_pool());
+  if (ISNA<int32_t>(nth)) {
+    nthreads = maxth;
+    trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
+  } else {
+    nthreads = nth;
+    if (nthreads > maxth) nthreads = maxth;
+    if (nthreads <= 0) nthreads += maxth;
+    if (nthreads <= 0) nthreads = 1;
+    trace("Using %d thread%s (requested=%d, max.available=%d)",
+          nthreads, (nthreads==1? "" : "s"), nth, maxth);
+  }
 }
 
 void GenericReader::init_fill() {

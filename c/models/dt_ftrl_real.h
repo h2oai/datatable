@@ -21,11 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_REAL_h
 #define dt_MODELS_FTRL_REAL_h
-#include "str/py_str.h"
-#include "utils/parallel.h"
 #include "models/column_hasher.h"
 #include "models/utils.h"
 #include "models/dt_ftrl.h"
+#include "str/py_str.h"
 
 
 namespace dt {

@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #include "csv/writer.h"
 #include "frame/py_frame.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "utils/parallel.h"
 #include "options.h"
 namespace py {
 
@@ -89,8 +89,8 @@ oobj Frame::to_csv(const PKArgs& args)
   std::string filename = path.to_string();
 
   // nthreads
-  int32_t nthreads = args[1].to<int32_t>(config::nthreads);
-  int32_t maxth = omp_get_max_threads();
+  int32_t maxth = static_cast<int32_t>(dt::num_threads_in_pool());
+  int32_t nthreads = args[1].to<int32_t>(maxth);
   if (nthreads > maxth) nthreads = maxth;
   if (nthreads <= 0) nthreads += maxth;
   if (nthreads <= 0) nthreads = 1;

@@ -10,7 +10,6 @@
 #include "csv/reader.h"
 #include "frame/py_frame.h"
 #include "python/string.h"
-#include "utils/parallel.h"
 #include "datatablemodule.h"
 #include "options.h"
 

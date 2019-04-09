@@ -22,11 +22,11 @@
 #include <type_traits>
 #include <unordered_set>
 #include "frame/py_frame.h"
-#include "parallel/api.h"    // dt::parallel_for_static
+#include "parallel/api.h"           // dt::parallel_for_static
+#include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
-#include "utils/parallel.h"  // dt::map_str2str
 
 namespace py {
 

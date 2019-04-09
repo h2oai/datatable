@@ -20,8 +20,8 @@
 #include <future>       // std::future, std::packaged_task
 #include <vector>       // std::vector
 #include <thread>
+#include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
-#include "utils/shared_mutex.h"
 #include "ztest.h"
 namespace dttest {
 
