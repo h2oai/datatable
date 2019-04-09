@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #include "csv/writer.h"
 #include "frame/py_frame.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "utils/parallel.h"
 #include "options.h"
 namespace py {
 

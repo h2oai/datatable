@@ -5,11 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "parallel/api.h"  // dt::parallel_for_static
+#include "parallel/api.h"           // dt::parallel_for_static
+#include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "utils/parallel.h"
 #include "column.h"
 
 // Returns the expected path of the string data file given

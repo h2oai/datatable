@@ -8,7 +8,6 @@
 #include "column.h"
 #include "csv/toa.h"
 #include "datatablemodule.h"
-#include "utils/parallel.h"
 #include "python/float.h"
 
 

@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <limits>
-#include "utils/parallel.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "rowindex.h"

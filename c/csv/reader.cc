@@ -12,10 +12,10 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/exceptions.h"
-#include "utils/parallel.h"
 #include "utils/misc.h"         // wallclock
 #include "datatable.h"
 #include "encodings.h"

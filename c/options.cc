@@ -11,7 +11,6 @@
 #include "python/ext_type.h"
 #include "python/obj.h"
 #include "python/string.h"
-#include "utils/parallel.h"
 #include "datatablemodule.h"
 #include "options.h"
 

@@ -14,9 +14,9 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
+#include "parallel/string_utils.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "utils/parallel.h"
 #include "options.h"
 
 namespace dt {
