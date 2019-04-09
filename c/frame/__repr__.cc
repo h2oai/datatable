@@ -435,6 +435,7 @@ void Frame::view(const PKArgs& args) {
 
 
 void Frame::Type::_init_repr(Methods& mm) {
+  mm.add("__repr__", cxx2py<Frame, &Frame::m__repr__>);
   ADD_METHOD(mm, &Frame::_repr_html_, args__repr_html_);
   ADD_METHOD(mm, &Frame::_repr_pretty_, args__repr_pretty_);
   ADD_METHOD(mm, &Frame::view, args_view);
