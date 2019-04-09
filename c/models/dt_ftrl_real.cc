@@ -23,6 +23,7 @@
 #include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
+#include "wstringcol.h"
 
 
 namespace dt {

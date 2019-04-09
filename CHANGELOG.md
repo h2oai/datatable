@@ -109,6 +109,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   represents anything. Certain internal properties of `Frame` can be accessed
   via functions declared in the `dt.internal.` module.
 
+- `datatable` no longer uses OpenMP for parallelism. Instead, we use our own
+  thread pool to perform multi-threaded computations (#1736).
+
 
 ### Deprecated
 

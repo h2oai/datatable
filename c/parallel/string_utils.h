@@ -15,33 +15,13 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_PARALLEL_h
 #define dt_UTILS_PARALLEL_h
-#include <functional>     // std::function
-#include <vector>
-#include "utils/c+++.h"
-#include "utils/function.h"
-#include "parallel/api.h"
-#include "rowindex.h"
-#include "wstringcol.h"
-
-#ifdef DTNOOPENMP
-  #define omp_get_max_threads() 1
-  #define omp_get_num_threads() 1
-  #define omp_set_num_threads(n)
-  #define omp_get_thread_num() 0
-#else
-  #ifdef __clang__
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wreserved-id-macro"
-    #include <omp.h>
-    #pragma clang diagnostic pop
-  #else
-    #include <omp.h>
-  #endif
-#endif
-
+#include <memory>             // std::unique_ptr
+#include <vector>             // std::vector
+#include "parallel/api.h"     // dt::parallel_for_ordered
+#include "utils/function.h"   // dt::function
+#include "rowindex.h"         // RowIndex
+#include "wstringcol.h"       // writable_string_col
 namespace dt {
-
-
 
 
 //------------------------------------------------------------------------------
@@ -62,7 +42,6 @@ Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 //------------------------------------------------------------------------------
 // Map over a string column producing a new ostring column
 //------------------------------------------------------------------------------
-
 
 template <typename T, typename F>
 Column* map_str2str(StringColumn<T>* input_col, F f) {
@@ -116,8 +95,6 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
 
   return std::move(output_col).to_column();
 }
-
-
 
 
 

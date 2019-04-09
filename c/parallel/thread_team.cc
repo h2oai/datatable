@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
@@ -23,7 +24,8 @@ namespace dt {
 thread_team::thread_team(size_t nth, thread_pool* pool)
   : nthreads(nth),
     thpool(pool),
-    nested_scheduler(nullptr)
+    nested_scheduler(nullptr),
+    barrier_counter {0}
 {
   if (thpool->current_team) {
     throw RuntimeError() << "Unable to create a nested thread team";
@@ -42,6 +44,17 @@ size_t thread_team::size() const noexcept {
   return nthreads;
 }
 
+
+void thread_team::wait_at_barrier() {
+  size_t n = ++barrier_counter;
+  if (n > nthreads) barrier_counter.compare_exchange_weak(n, n - nthreads);
+  while (barrier_counter.load() != nthreads);
+}
+
+
+void barrier() {
+  thread_pool::get_team_unchecked()->wait_at_barrier();
+}
 
 
 } // namespace dt

@@ -55,7 +55,15 @@ void thread_pool::resize_impl() {
   if (workers.size() < n) {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
-      workers.push_back(new thread_worker(i, &controller));
+      try {
+        auto worker = new thread_worker(i, &controller);
+        workers.push_back(worker);
+      } catch (...) {
+        // If threads cannot be created (for example if user has requested
+        // too many threads), then stop creating new workers and use as
+        // many as we were able to create thus far.
+        n = num_threads_requested = i;
+      }
     }
     // Wait until all threads are properly alive & safely asleep
     controller.join(n);

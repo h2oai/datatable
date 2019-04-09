@@ -232,19 +232,19 @@ options = DtConfig()
 
 options.register_option(
     "nthreads", int, default=0,
-    doc="The number of OMP threads used by datatable.\n\n"
-        "Many calculations in `datatable` module are parallelized using the\n"
-        "OpenMP library. This setting controls how many threads will be used\n"
-        "during such calculations.\n\n"
-        "Initially, this option is set to the value returned by the call\n"
-        "`omp_get_max_threads()`. This is usually equal to the number of\n"
-        "available processors, but can be altered via environment variables\n"
-        "`OMP_NUM_THREADS` or `OMP_THREAD_LIMIT`.\n\n"
+    doc="The number of threads used by datatable internally.\n"
+        "\n"
+        "Many calculations in `datatable` module are parallelized. This \n"
+        "setting controls how many threads will be used during such\n"
+        "calculations.\n"
+        "\n"
+        "Initially, this option is set to the value returned by C++ call\n"
+        "`std::thread::hardware_concurrency()`. This is usually equal to the\n"
+        "number of available cores.\n"
+        "\n"
         "You can set `nthreads` to a value greater or smaller than the\n"
         "initial setting. For example, setting `nthreads = 1` will force the\n"
         "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
-        "restore the initial `omp_get_max_threads()` value. Setting\n"
-        "`nthreads` to a value less than 0 is equivalent to requesting that\n"
-        "fewer threads than the maximum.\n\n"
-        "Note that requesting **too many** threads may exhaust your system\n"
-        "resources and cause the Python process to crash.\n")
+        "restore the initial value equal to the number of processor cores.\n"
+        "Setting `nthreads` to a value less than 0 is equivalent to\n"
+        "requesting that fewer threads than the maximum.\n")

@@ -18,8 +18,8 @@
 #include <vector>         // std::vector
 #include "models/utils.h"        // sort_index
 #include "parallel/api.h"
+#include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
-#include "utils/shared_mutex.h"
 #include "str/py_str.h"
 #include "datatable.h"
 #include "options.h"
@@ -99,10 +99,8 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   dt::shared_mutex shmutex;
   const RowIndex& ri = col->rowindex();
 
-  // TODO: reduce num threads on small data
-  // size_t nth0 = std::min(static_cast<size_t>(config::nthreads), nrows);
-
   dt::parallel_region(
+    /* nthreads = */ nrows,
     [&] {
       std::vector<std::string> chunks;
 

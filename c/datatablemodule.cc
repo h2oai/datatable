@@ -132,22 +132,6 @@ static py::oobj in_debug_mode(const py::PKArgs&) {
 
 
 
-static py::PKArgs args_has_omp_support(
-    0, 0, 0, false, false, {}, "has_omp_support",
-R"(Return True if datatable was built with OMP support, and False otherwise.
-Without OMP datatable will be significantly slower, performing all
-operations in single-threaded mode.
-)");
-
-static py::oobj has_omp_support(const py::PKArgs&) {
-  #ifdef DTNOOPENMP
-    return py::False();
-  #else
-    return py::True();
-  #endif
-}
-
-
 static py::PKArgs args_get_thread_ids(
     0, 0, 0, false, false, {}, "get_thread_ids",
 R"(Return system ids of all threads used internally by datatable)");
@@ -294,7 +278,6 @@ static py::oobj get_tracked_objects(const py::PKArgs&) {
 
 void py::DatatableModule::init_methods() {
   ADD_FN(&_register_function, args__register_function);
-  ADD_FN(&has_omp_support, args_has_omp_support);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);

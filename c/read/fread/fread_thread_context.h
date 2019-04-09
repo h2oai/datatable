@@ -7,10 +7,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_FREAD_THREAD_CONTEXT_h
 #define dt_READ_FREAD_THREAD_CONTEXT_h
-#include "read/fread/fread_tokenizer.h" // FreadTokenizer
+#include "parallel/shared_mutex.h"      // dt::shared_mutex
 #include "read/columns.h"               // Columns
+#include "read/fread/fread_tokenizer.h" // FreadTokenizer
 #include "read/thread_context.h"        // ThreadContext
-#include "utils/shared_mutex.h"         // dt::shared_mutex
 
 class FreadReader;
 enum PT : uint8_t;

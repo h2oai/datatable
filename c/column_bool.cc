@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include <Python.h>
 #include "python/_all.h"
-#include "utils/parallel.h"
 #include "column.h"
 #include "datatablemodule.h"
 

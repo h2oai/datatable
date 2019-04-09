@@ -9,8 +9,8 @@
 #define dt_WRITEBUF_H
 #include <memory>      // std::unique_ptr
 #include <string>      // std::string
+#include "parallel/shared_mutex.h"
 #include "utils/file.h"
-#include "utils/shared_mutex.h"
 using std::size_t;
 
 class MemoryRange;
