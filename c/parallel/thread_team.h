@@ -31,6 +31,8 @@ class thread_team {
     thread_pool* thpool;
     thread_scheduler* nested_scheduler;
 
+    std::atomic<size_t> barrier_counter;
+
   public:
     thread_team(size_t nth, thread_pool*);
     ~thread_team();
@@ -47,6 +49,8 @@ class thread_team {
       }
       return reinterpret_cast<S*>(nested_scheduler);
     }
+
+    void wait_at_barrier();
 };
 
 

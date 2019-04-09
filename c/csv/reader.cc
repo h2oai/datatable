@@ -355,7 +355,8 @@ void GenericReader::_message(
     #pragma GCC diagnostic pop
   }
 
-  if (omp_get_thread_num() == 0) {
+  size_t ith = dt::this_thread_index();
+  if (ith + 1 <= 1) {
     try {
       Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
       PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
@@ -376,12 +377,10 @@ void GenericReader::_message(
 }
 
 void GenericReader::progress(double progress, int statuscode) {
-  xassert(omp_get_thread_num() == 0);
   freader.invoke("_progress", "(di)", progress, statuscode);
 }
 
 void GenericReader::emit_delayed_messages() {
-  xassert(omp_get_thread_num() == 0);
   if (delayed_message.size()) {
     trace("%s", delayed_message.c_str());
     delayed_message.clear();

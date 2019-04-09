@@ -22,9 +22,10 @@ ThreadContext::ThreadContext(size_t ncols, size_t nrows)
 }
 
 
-ThreadContext::~ThreadContext() {
-  weak_assert(used_nrows == 0);
-}
+// Note: it is possible to have `used_nrows != 0` at the end: the content of
+// the buffer may be left un-pushed if an exception occurred, or the iterations
+// stopped early for some other reason.
+ThreadContext::~ThreadContext() {}
 
 
 void ThreadContext::allocate_tbuf(size_t ncols, size_t nrows) {
