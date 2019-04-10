@@ -329,12 +329,15 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   size_t nthreads = std::min(1 + iteration_nrows / min_rows_per_thread, dt::num_threads_in_pool());
   std::mutex m;
 
+  // printf("threads in pool: %zu; nthreads: %zu\n", dt::num_threads_in_pool(), nthreads);
+
   dt::parallel_region(nthreads,
     [&]() {
+      size_t ithread = this_thread_index();
+      // if (ithread == 0) printf("threads in team: %zu;\n", dt::num_threads_in_team());
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
       tptr<T> fi = tptr<T>(new T[nfeatures]());
-      size_t ithread = this_thread_index();
 
       for (size_t iter = 0; iter < niterations; ++iter) {
         size_t iteration_start = iter * iteration_nrows;
@@ -344,10 +347,11 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         size_t chunk_size = iteration_size / nthreads;
         size_t i0 = ithread * chunk_size;
         size_t i1 = i0 + chunk_size;
-        if (i1 > iteration_size) i1 = iteration_size;
+        if (ithread == nthreads - 1) i1 = iteration_size;
 
         // Training
         for (size_t i = i0; i < i1; ++i) {
+          // printf("ithread training: %zu\n", ithread);
           size_t ii = (iteration_start + i) % dt_X->nrows;
           const size_t j0 = ri[0][ii];
           // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
@@ -372,14 +376,10 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           }
         } // end training
 
-        std::unique_lock<std::mutex> lock(m);
-        for (size_t i = 0; i < nfeatures; ++i) {
-          data_fi[i] += fi[i];
-        }
-        lock.unlock();
 
-
-
+        printf("ithread at barrier: %zu\n", ithread);
+        barrier();
+        printf("ithread after barrier: %zu\n", ithread);
 
         // Calculate loss on the validation dataset and do early stopping,
         // if the loss does not improve.
@@ -388,7 +388,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           chunk_size = dt_X_val->nrows / nthreads;
           i0 = ithread * chunk_size;
           i1 = i0 + chunk_size;
-          if (i1 > iteration_size) i1 = iteration_size;
+          if (ithread == nthreads - 1) i1 = dt_X_val->nrows;
           T loss_local = 0.0;
 
           // TODO: replace with standard dt::parallel_for_static
@@ -405,17 +405,30 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               }
             }
           }
-
           loss_global.fetch_add(loss_local);
 
-          // If loss does not decrease, do early stopping.
-          loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
-          T loss_diff = (loss_old - loss) / loss_old;
-          if (iter && (loss < epsilon || loss_diff < val_error)) break;
+          // printf("ithread at val barrier: %zu\n", ithread);
+          barrier();
+          // printf("ithread after val barrier: %zu\n", ithread);
 
-          // If loss decreases, save current loss and continue training.
-          loss_old = loss;
+          if (ithread == 0) {
+            // If loss does not decrease, do early stopping.
+            loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+            T loss_diff = (loss_old - loss) / loss_old;
+            printf("ithread checking: %zu; loss: %f\n", ithread, static_cast<double>(loss_diff));
+            if (iter && (loss < epsilon || loss_diff < val_error)) {
+              printf("ithread exiting: %zu; loss: %f\n", ithread, static_cast<double>(loss_diff));
+              break;
+            }
+            If loss decreases, save current loss and continue training.
+            loss_old = loss;
+          }
         } // end validation
+
+        std::lock_guard<std::mutex> lock(m);
+        for (size_t i = 0; i < nfeatures; ++i) {
+          data_fi[i] += fi[i];
+        }
 
 
       } // end iteration
