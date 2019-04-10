@@ -46,7 +46,7 @@ static PKArgs arg_test_barrier(
 
 static void test_barrier(const PKArgs& args) {
   size_t n = args[0].to_size_t();
-  dttest::test_barrier(n);
+  dttest::test_barrier();
 }
 
 

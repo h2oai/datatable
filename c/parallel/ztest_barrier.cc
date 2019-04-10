@@ -22,29 +22,63 @@
 namespace dttest {
 
 
-void test_barrier(size_t n) {
+static void test_barrier_1() {
   size_t nthreads = dt::num_threads_in_pool();
-  std::vector<size_t> data(nthreads, n);
+  std::vector<size_t> data_old(nthreads, 0);
+  std::vector<size_t> data_new(nthreads, 0);
 
   dt::parallel_region(
     [&]() {
       size_t ithread = dt::this_thread_index();
-      data[ithread] += ithread;
+      data_old[ithread] = ithread + 1;
       dt::barrier();
-      std::vector<size_t>::iterator max = max_element(std::begin(data), std::end(data));
-      data[ithread] += *max;
-      dt::barrier();
-      max = max_element(std::begin(data), std::end(data));
-      data[ithread] += *max;
+      std::vector<size_t>::iterator max = max_element(std::begin(data_old),
+                                                      std::end(data_old));
+      std::vector<size_t>::iterator min = min_element(std::begin(data_old),
+                                                      std::end(data_old));
+      data_new[ithread] = data_old[ithread] + (*max) * (*min);
     });
 
   for (size_t i = 0; i < nthreads; ++i) {
-    size_t data_i = n + i + 3*(n + nthreads - 1);
-    if (data[i] != data_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_barrier(), expected " << data_i;
+    size_t reference_i = i + 1 + nthreads;
+    if (data_new[i] != reference_i) {
+      throw AssertionError() << "Incorrect data[" << i << "] = " << data_new[i]
+        << " in test_barrier(), expected " << reference_i;
     }
   }
+}
+
+
+static void test_barrier_2() {
+  size_t nthreads = dt::num_threads_in_pool();
+  std::vector<size_t> data(nthreads, 0);
+
+  dt::parallel_region(
+    [&]() {
+      size_t ithread = dt::this_thread_index();
+      data[ithread] = ithread + 1;
+      dt::barrier();
+      std::vector<size_t>::iterator max = max_element(std::begin(data),
+                                                      std::end(data));
+      std::vector<size_t>::iterator min = min_element(std::begin(data),
+                                                      std::end(data));
+      dt::barrier();
+      data[ithread] += (*max) * (*min);
+    });
+
+  for (size_t i = 0; i < nthreads; ++i) {
+    size_t reference_i = i + 1 + nthreads;
+    if (data[i] != reference_i) {
+      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
+        << " in test_barrier(), expected " << reference_i;
+    }
+  }
+}
+
+
+void test_barrier() {
+  test_barrier_1();
+  test_barrier_2();
 }
 
 

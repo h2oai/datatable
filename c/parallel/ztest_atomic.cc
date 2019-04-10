@@ -94,5 +94,5 @@ void test_atomic() {
 
 
 
-} // namespace dt
+} // namespace dttest
 #endif
