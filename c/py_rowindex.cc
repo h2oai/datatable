@@ -153,11 +153,13 @@ bool orowindex::pyobject::Type::is_subclassable() {
 void orowindex::pyobject::Type::init_methods_and_getsets(
     Methods& mm, GetSetters& gs)
 {
-  ADD_GETTER(gs, &orowindex::pyobject::get_type, args_type);
-  ADD_GETTER(gs, &orowindex::pyobject::get_nrows, args_nrows);
-  ADD_GETTER(gs, &orowindex::pyobject::get_min, args_min);
-  ADD_GETTER(gs, &orowindex::pyobject::get_max, args_max);
-  ADD_METHOD(mm, &orowindex::pyobject::to_list, args_to_list);
+  using ori = orowindex::pyobject;
+  ADD_GETTER(gs, &ori::get_type, args_type);
+  ADD_GETTER(gs, &ori::get_nrows, args_nrows);
+  ADD_GETTER(gs, &ori::get_min, args_min);
+  ADD_GETTER(gs, &ori::get_max, args_max);
+  ADD_METHOD(mm, &ori::to_list, args_to_list);
+  mm.add("__repr__", cxx2py<ori, &ori::m__repr__>);
 }
 
 
