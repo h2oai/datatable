@@ -24,7 +24,7 @@ void cover_names_integrity_checks();
 void test_atomic();
 
 // Defined in parallel/ztest_barrier.cc
-void test_barrier();
+void test_barrier(size_t);
 
 // Defined in parallel/ztest_parallel_for.cc
 void test_parallel_for_dynamic(size_t);
