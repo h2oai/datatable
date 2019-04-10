@@ -32,8 +32,8 @@ static void test_barrier_1() {
       size_t ithread = dt::this_thread_index();
       data_old[ithread] = ithread + 1;
       dt::barrier();
-      size_t min = *min_element(std::begin(data_old), std::end(data_old));
-      size_t max = *max_element(std::begin(data_old), std::end(data_old));
+      size_t min = *std::min_element(std::begin(data_old), std::end(data_old));
+      size_t max = *std::max_element(std::begin(data_old), std::end(data_old));
       data_new[ithread] = data_old[ithread] + min*max;
     });
 
@@ -56,8 +56,8 @@ static void test_barrier_2() {
       size_t ithread = dt::this_thread_index();
       data[ithread] = ithread + 1;
       dt::barrier();
-      size_t max = *max_element(std::begin(data), std::end(data));
-      size_t min = *min_element(std::begin(data), std::end(data));
+      size_t max = *std::max_element(std::begin(data), std::end(data));
+      size_t min = *std::min_element(std::begin(data), std::end(data));
       dt::barrier();
       data[ithread] += min*max;
     });
@@ -84,8 +84,8 @@ static void test_barrier_n(size_t n) {
       for (size_t i = 0; i < n; ++i) {
         data[ithread] += 1 + (min != i) + (max != i);
         dt::barrier();
-        min = *min_element(std::begin(data), std::end(data));
-        max = *max_element(std::begin(data), std::end(data));
+        min = *std::min_element(std::begin(data), std::end(data));
+        max = *std::max_element(std::begin(data), std::end(data));
         dt::barrier();
       }
     });
