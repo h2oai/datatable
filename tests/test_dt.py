@@ -208,6 +208,12 @@ def test_internal_atomic():
         core.test_atomic()
 
 
+def test_internal_barrier():
+    from datatable.lib import core
+    if hasattr(core, "test_barrier"):
+        core.test_barrier(1000)
+
+
 def test_internal_parallel_for_dynamic():
     from datatable.lib import core
     if hasattr(core, "test_parallel_for_dynamic"):
