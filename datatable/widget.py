@@ -136,8 +136,6 @@ class DataFrameWidget(object):
         self._draw()
         if self._interactive:
             self._interact()
-        else:
-            print()
 
 
     def as_string(self):

@@ -423,7 +423,7 @@ oobj Frame::_repr_pretty_(const PKArgs&) {
   if (in_jupyter()) {
     return py::None();
   } else {
-    return oobj(this).invoke("view");
+    return oobj(this).invoke("view", otuple{obool(false)});
   }
 }
 
