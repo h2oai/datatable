@@ -420,7 +420,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               printf("ithread exiting: %zu; loss: %f\n", ithread, static_cast<double>(loss_diff));
               break;
             }
-            If loss decreases, save current loss and continue training.
+            //If loss decreases, save current loss and continue training.
             loss_old = loss;
           }
         } // end validation
