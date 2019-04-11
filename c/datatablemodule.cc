@@ -300,6 +300,7 @@ void py::DatatableModule::init_methods() {
   init_methods_str();
 
   init_casts();
+  init_fuzzy();
 
   #ifdef DTTEST
     init_tests();

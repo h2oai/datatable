@@ -16,8 +16,10 @@
 #include <algorithm>   // std::min, std::swap
 #include <iostream>    // std::ostringstream
 #include <memory>      // std::unique_ptr
+#include "python/string.h"
 #include "utils/assert.h"
 #include "utils/fuzzy_match.h"
+#include "datatablemodule.h"
 namespace dt {
 using std::size_t;
 
@@ -140,3 +142,25 @@ std::string suggest_similar_strings(
 
 
 }  // namespace dt
+namespace py {
+
+
+static PKArgs args_fuzzy_match(
+  2, 0, 0, false, false, {"candidates", "name"}, "fuzzy_match");
+
+static oobj fuzzy_match(const PKArgs& args) {
+  std::vector<std::string> candidates;
+  for (auto item : args[0].to_oiter()) {
+    candidates.push_back(item.to_string());
+  }
+  std::string name = args[1].to_string();
+  return ostring(dt::suggest_similar_strings(candidates, name));
+}
+
+
+void DatatableModule::init_fuzzy() {
+  ADD_FN(&fuzzy_match, args_fuzzy_match);
+}
+
+
+}  // namespace py
