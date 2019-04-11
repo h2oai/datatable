@@ -99,7 +99,7 @@ class DataFrameWidget(object):
     VIEW_NROWS_MAX = 30
     RIGHT_MARGIN = 2
 
-    def __init__(self, obj, interactive):
+    def __init__(self, obj, interactive=None):
         if interactive is None:
             interactive = options.display.interactive
         if term.jupyter:
@@ -140,11 +140,21 @@ class DataFrameWidget(object):
             print()
 
 
+    def as_string(self):
+        self._interactive = False
+        self._show_navbar = False
+        colors = term.using_colors()
+        term.use_colors(False)
+        out = self._draw(to_string=True)
+        term.use_colors(colors)
+        return out
+
+
     #---------------------------------------------------------------------------
     # Private
     #---------------------------------------------------------------------------
 
-    def _draw(self):
+    def _draw(self, to_string=False):
         self._fetch_data()
         columns = []
 
@@ -195,16 +205,14 @@ class DataFrameWidget(object):
         if extra_space > 0:
             if self._view_col0 + self._view_ncols < self._conn.frame_ncols:
                 self._view_ncols += max(1, extra_space // 8)
-                self._draw()
-                return
+                return self._draw(to_string)
             elif self._view_col0 > 0:
                 w = self._fetch_column_width(self._view_col0 - 1)
                 if w + 2 <= extra_space:
                     self._view_col0 -= 1
                     self._view_ncols += 1
                     self._max_col0 = self._view_col0
-                    self._draw()
-                    return
+                    return self._draw(to_string)
         else:
             if self._max_col0 == self._view_col0:
                 self._max_col0 += 1
@@ -250,6 +258,8 @@ class DataFrameWidget(object):
 
         # Render the table
         lines = header + rows + footer
+        if to_string:
+            return "\n".join(lines)
         term.rewrite_lines(lines, self._n_displayed_lines)
         self._n_displayed_lines = len(lines) - 1
 

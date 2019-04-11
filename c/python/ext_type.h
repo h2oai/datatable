@@ -101,10 +101,6 @@ namespace py {
  *      This is the python-facing "destructor". Its job is to release any
  *      resources that the class is currently holding.
  *
- *   oobj m__repr__()
- *      Return the stringified representation of the class. This is equivalent
- *      to pythonic `__repr__(self)` method.
- *
  *   void m__get_buffer__(Py_buffer* buf, int flags)
  *   void m__release_buffer__(Py_buffer* buf)
  *      These 2 methods, if present, signify that the object supports "Buffers
@@ -198,17 +194,6 @@ namespace _impl {
   }
 
   template <typename T>
-  PyObject* _safe_repr(PyObject* self) {
-    try {
-      oobj res = static_cast<T*>(self)->m__repr__();
-      return std::move(res).release();
-    } catch (const std::exception& e) {
-      exception_to_python(e);
-      return nullptr;
-    }
-  }
-
-  template <typename T>
   void _safe_dealloc(PyObject* self) {
     try {
       T* tself = static_cast<T*>(self);
@@ -271,7 +256,6 @@ namespace _impl {
    *   has<T>::buffers  will return true if T has method `m__get_buffer__`
    *                    (signature is not verified)
    *   has<T>::_init_   returns true if T has method `m__init__`
-   *   has<T>::_repr_   returns true if T has method `m__repr__`
    *   has<T>::dealloc  returns true if T has method `m__dealloc__`
    *   has<T>::mthgtst  returns true if T::Type has `init_methods_and_getsets`
    *   has<T>::getitem  returns true if T has method `m__getitem__`
@@ -281,8 +265,6 @@ namespace _impl {
   class has {
     template <class C> static char test_init(decltype(&C::m__init__));
     template <class C> static long test_init(...);
-    template <class C> static char test_repr(decltype(&C::m__repr__));
-    template <class C> static long test_repr(...);
     template <class C> static char test_dealloc(decltype(&C::m__dealloc__));
     template <class C> static long test_dealloc(...);
     template <class C> static char test_buf(decltype(&C::m__get_buffer__));
@@ -296,7 +278,6 @@ namespace _impl {
 
   public:
     static constexpr bool _init_  = (sizeof(test_init<T>(nullptr)) == 1);
-    static constexpr bool _repr_  = (sizeof(test_repr<T>(nullptr)) == 1);
     static constexpr bool dealloc = (sizeof(test_dealloc<T>(nullptr)) == 1);
     static constexpr bool buffers = (sizeof(test_buf<T>(nullptr)) == 1);
     static constexpr bool mthgtst = (sizeof(test_mgs<T>(nullptr)) == 1);
@@ -316,7 +297,6 @@ namespace _impl {
   template <typename, bool>
   struct init {
     static void _init_(PyTypeObject&) {}
-    static void _repr_(PyTypeObject&) {}
     static void buffers(PyTypeObject&) {}
     static void methods_and_getsets(PyTypeObject&) {}
     static void getitem(PyTypeObject&) {}
@@ -328,10 +308,6 @@ namespace _impl {
     static void _init_(PyTypeObject& type) {
       T::Type::args___init__.set_class_name(T::Type::classname());
       type.tp_init = _safe_init<T>;
-    }
-
-    static void _repr_(PyTypeObject& type) {
-      type.tp_repr = _safe_repr<T>;
     }
 
     static void dealloc(PyTypeObject& type) {
@@ -347,7 +323,7 @@ namespace _impl {
 
     static void methods_and_getsets(PyTypeObject& type) {
       typename T::Type::GetSetters gs;
-      typename T::Type::Methods mm;
+      typename T::Type::Methods mm(&type);
       T::Type::init_methods_and_getsets(mm, gs);
       if (mm) type.tp_methods = mm.finalize();
       if (gs) type.tp_getset = gs.finalize();
@@ -406,7 +382,6 @@ void ExtType<T>::init(PyObject* module) {
   type.tp_new       = &PyType_GenericNew;
 
   _impl::init<T, _impl::has<T>::_init_ >::_init_(type);
-  _impl::init<T, _impl::has<T>::_repr_ >::_repr_(type);
   _impl::init<T, _impl::has<T>::dealloc>::dealloc(type);
   _impl::init<T, _impl::has<T>::buffers>::buffers(type);
   _impl::init<T, _impl::has<T>::mthgtst>::methods_and_getsets(type);
@@ -495,9 +470,12 @@ class ExtType<T>::GetSetters {
 template <class T>
 class ExtType<T>::Methods {
   private:
+    PyTypeObject* type_obj;
     std::vector<PyMethodDef> defs;
 
   public:
+    Methods(PyTypeObject* t) : type_obj(t) {}
+
     void add(PyCFunctionWithKeywords func, PKArgs& args) {
       args.set_class_name(T::Type::classname());
       defs.push_back(PyMethodDef {
@@ -506,6 +484,18 @@ class ExtType<T>::Methods {
         METH_VARARGS | METH_KEYWORDS,
         args.get_docstring()
       });
+    }
+
+    void add(std::string name, PyObject*(*fn)(PyObject*)) {
+      if (name == "__str__") {
+        type_obj->tp_str = fn;
+      }
+      else if (name == "__repr__") {
+        type_obj->tp_repr = fn;
+      }
+      else {
+        throw RuntimeError() << "Unknown function " << name;  // LCOV_EXCL_LINE
+      }
     }
 
     explicit operator bool() const {
@@ -526,6 +516,17 @@ class ExtType<T>::Methods {
       return ARGS.exec_method(self, args, kwds, METHOD);                       \
     }, ARGS)                                                                   \
 
+
+template <class T, oobj(T::*FN)()>
+PyObject* cxx2py(PyObject* self) {
+  try {
+    oobj res = (static_cast<T*>(self)->*FN)();
+    return std::move(res).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
 
 
 }  // namespace py

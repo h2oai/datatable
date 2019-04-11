@@ -108,6 +108,9 @@ class Terminal:
                 self._encoding = "UTF8"
                 self.jupyter = ipy
 
+    def using_colors(self):
+        return self._enable_colors
+
     def use_colors(self, f):
         self._enable_colors = f
 
