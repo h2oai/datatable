@@ -20,10 +20,10 @@
 #include "python/string.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
+#include "utils/fuzzy_match.h"
 #include "options.h"
 #include "ztest.h"
 
-static double _dlevenshtein(const std::string& a, const std::string& b, double* v);
 static Error _name_not_found_error(const DataTable* dt, const std::string& name);
 
 
@@ -215,49 +215,13 @@ void Frame::Type::_init_names(Methods& mm, GetSetters& gs) {
 
 
 
-static Error _name_not_found_error(
-    const DataTable* dt, const std::string& name
-) {
-  const std::vector<std::string>& names = dt->get_names();
-  auto tmp = std::unique_ptr<double[]>(new double[name.size() + 1]);
-  double* vtmp = tmp.get();
-  double maxdist = name.size() <= 3? 1 :
-                   name.size() <= 6? 2 :
-                   name.size() <= 9? 3 :
-                   name.size() <= 16? 4 : 5;
-  struct scored_column {
-    size_t index;
-    double score;
-  };
-  auto col0 = scored_column { 0, 100.0 };
-  auto col1 = scored_column { 0, 100.0 };
-  auto col2 = scored_column { 0, 100.0 };
-  for (size_t i = 0; i < names.size(); ++i) {
-    double dist = _dlevenshtein(name, names[i], vtmp);
-    if (dist <= maxdist) {
-      auto curr = scored_column { i, dist };
-      if (curr.score < col0.score) {
-        col2 = col1; col1 = col0; col0 = curr;
-      } else if (curr.score < col1.score) {
-        col2 = col1; col1 = curr;
-      } else if (curr.score < col2.score) {
-        col2 = curr;
-      }
-    }
-  }
-
-  auto err = ValueError();
+static Error _name_not_found_error(const DataTable* dt, const std::string& name)
+{
+  Error err = ValueError();
   err << "Column `" << name << "` does not exist in the Frame";
-  if (col0.score < 10) {
-    err << "; did you mean `" << names[col0.index] << "`";
-    if (col1.score < 10) {
-      err << (col2.score < 10? ", " : " or ");
-      err << "`" << names[col1.index] << "`";
-      if (col2.score < 10) {
-        err << " or `" << names[col2.index] << "`";
-      }
-    }
-    err << "?";
+  std::string suggested = dt::suggest_similar_strings(dt->get_names(), name);
+  if (!suggested.empty()) {
+    err << "; did you mean " << suggested << "?";
   }
   return err;
 }
@@ -649,80 +613,6 @@ void DataTable::_integrity_check_pynames() const {
   }
 }
 
-
-
-/**
- * Compute Levenshtein distance between two strings `a` and `b`, as described in
- * https://en.wikipedia.org/wiki/Levenshtein_distance
- *
- * Use iterative algorithm, single-row version. The temporary storage required
- * for the calculations is passed in array `v`, which must be allocated for at
- * least `min(a.size(), b.size()) + 1` elements.
- */
-static double _dlevenshtein(
-    const std::string& a, const std::string& b, double* v)
-{
-  const char* aa = a.data();
-  const char* bb = b.data();
-  int n = static_cast<int>(a.size());
-  int m = static_cast<int>(b.size());
-  if (n > m) {
-    std::swap(aa, bb);
-    std::swap(m, n);
-  }
-  // Remove common prefix from the strings
-  while (n && *aa == *bb) {
-    n--; m--;
-    aa++; bb++;
-  }
-  // Remove common suffix from the strings
-  while (n && aa[n - 1] == bb[m - 1]) {
-    n--; m--;
-  }
-  if (n == 0) return m;
-  xassert(0 < n && n <= m);
-  // Compute the Levenshtein distance
-  aa--;  // Shift pointers, so that we can use 1-based indexing below
-  bb--;
-  for (int j = 1; j <= n; ++j) v[j] = j;
-  for (int i = 1; i <= m; ++i) {
-    double w = i - 1;
-    v[0] = i;
-    for (int j = 1; j <= n; ++j) {
-      char ach = aa[j];
-      char bch = bb[i];
-      double c = 0.0;
-      if (ach != bch) {
-        // Use non-trivial cost function to compare character substitution:
-        //   * the cost is lowest when 2 characters differ by case only,
-        //     or if both are "space-like" (i.e. ' ', '_' or '.')
-        //   * medium cost for substituting letters with letters, or digits
-        //     with digits
-        //   * highest cost for all other substitutions.
-        //
-        bool a_lower = 'a' <= ach && ach <= 'z';
-        bool a_upper = 'A' <= ach && ach <= 'Z';
-        bool a_digit = '0' <= ach && ach <= '9';
-        bool a_space = ach == ' ' || ach == '_' || ach == '.';
-        bool b_lower = 'a' <= bch && bch <= 'z';
-        bool b_upper = 'A' <= bch && bch <= 'Z';
-        bool b_digit = '0' <= bch && bch <= '9';
-        bool b_space = bch == ' ' || bch == '_' || bch == '.';
-        c = (a_lower && ach == bch + ('a'-'A'))? 0.2 :
-            (a_upper && bch == ach + ('a'-'A'))? 0.2 :
-            (a_space && b_space)? 0.2 :
-            (a_digit && b_digit)? 0.75 :
-            ((a_lower|a_upper) && (b_lower|b_upper))? 0.75 : 1.0;
-      }
-      double del_cost = v[j] + 1;
-      double ins_cost = v[j - 1] + 1;
-      double sub_cost = w + c;
-      w = v[j];
-      v[j] = std::min(del_cost, std::min(ins_cost, sub_cost));
-    }
-  }
-  return v[n];
-}
 
 
 
