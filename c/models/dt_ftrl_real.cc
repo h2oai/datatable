@@ -303,7 +303,9 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // If a validation set is provided, we adjust chunk size to `nepochs_val`.
   // After each chunk, we calculate loss on the validation dataset,
   // and do early stopping if loss does not improve.
-  T loss = std::numeric_limits<T>::quiet_NaN();;
+  constexpr T tnan = std::numeric_limits<T>::quiet_NaN();
+  T loss = tnan;
+  T loss_old = 0;
   bool validation = !std::isnan(nepochs_val);
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
   std::vector<hasherptr> hashers_val;
@@ -323,7 +325,6 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
 
   size_t iteration_end = 0;
-  T loss_old = 0;
 
   size_t min_rows_per_thread = 1000;
   size_t nthreads = std::min(1 + iteration_nrows / min_rows_per_thread, dt::num_threads_in_pool());
@@ -362,16 +363,15 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             for (size_t k = 0; k < dt_y->ncols; ++k) {
               const size_t j = ri[k][ii];
               T p = linkfn(predict_row(
-                        x, w, k,
-                        [&](size_t f_id, T f_imp) {
-                          fi[f_id] += f_imp;
-                        }
+                      x, w, k,
+                      [&](size_t f_id, T f_imp) {
+                        fi[f_id] += f_imp;
+                      }
                     ));
               update(x, w, p, data[k][j], k);
             }
           }
         } // end training
-
 
         barrier();
 
@@ -404,22 +404,23 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           barrier();
 
           if (ithread == 0) {
-            // If loss does not decrease, do early stopping.
+            // If loss does not decrease, set loss_old to `nan`
+            // and stop all the threads.
             loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
             T loss_diff = (loss_old - loss) / loss_old;
-            if (iter && (loss < epsilon || loss_diff < val_error)) {
-              break;
-            }
-            //If loss decreases, save current loss and continue training.
-            loss_old = loss;
+
+            loss_old = (iter && (loss < epsilon || loss_diff < val_error)) ?
+                        tnan : loss;
           }
+
+          barrier();
+          if (std::isnan(loss_old)) break;
         } // end validation
 
         std::lock_guard<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
         }
-
 
       } // end iteration
 
