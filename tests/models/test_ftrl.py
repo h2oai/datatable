@@ -778,7 +778,6 @@ def test_ftrl_no_early_stopping():
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation)
-    print(res)
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     assert epoch_stopped == nepochs

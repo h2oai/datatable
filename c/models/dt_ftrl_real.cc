@@ -329,12 +329,9 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   size_t nthreads = std::min(1 + iteration_nrows / min_rows_per_thread, dt::num_threads_in_pool());
   std::mutex m;
 
-  // printf("threads in pool: %zu; nthreads: %zu\n", dt::num_threads_in_pool(), nthreads);
-
   dt::parallel_region(nthreads,
     [&]() {
       size_t ithread = this_thread_index();
-      // if (ithread == 0) printf("threads in team: %zu;\n", dt::num_threads_in_team());
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
       tptr<T> fi = tptr<T>(new T[nfeatures]());
@@ -351,7 +348,6 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
 
         // Training
         for (size_t i = i0; i < i1; ++i) {
-          // printf("ithread training: %zu\n", ithread);
           size_t ii = (iteration_start + i) % dt_X->nrows;
           const size_t j0 = ri[0][ii];
           // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
@@ -377,9 +373,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
         } // end training
 
 
-        printf("ithread at barrier: %zu\n", ithread);
         barrier();
-        printf("ithread after barrier: %zu\n", ithread);
 
         // Calculate loss on the validation dataset and do early stopping,
         // if the loss does not improve.
@@ -407,17 +401,13 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           }
           loss_global.fetch_add(loss_local);
 
-          // printf("ithread at val barrier: %zu\n", ithread);
           barrier();
-          // printf("ithread after val barrier: %zu\n", ithread);
 
           if (ithread == 0) {
             // If loss does not decrease, do early stopping.
             loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
             T loss_diff = (loss_old - loss) / loss_old;
-            printf("ithread checking: %zu; loss: %f\n", ithread, static_cast<double>(loss_diff));
             if (iter && (loss < epsilon || loss_diff < val_error)) {
-              printf("ithread exiting: %zu; loss: %f\n", ithread, static_cast<double>(loss_diff));
               break;
             }
             //If loss decreases, save current loss and continue training.
@@ -436,95 +426,6 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
     }
   );
 
-
-  // for (size_t iter = 0; iter < niterations; ++iter) {
-  //   size_t iteration_start = iter * iteration_nrows;
-  //   iteration_end = std::min((iter + 1) * iteration_nrows, total_nrows);
-  //   std::mutex m;
-
-  //   // TODO: use standard parallel_for_static
-  //   // printf("nthreads: %zu\n", nthreads);
-  //   dt::parallel_region(
-  //     [&]() {
-  //       // printf("nthreads in team: %zu\n", dt::num_threads_in_team());
-  //       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-  //       tptr<T> w = tptr<T>(new T[nfeatures]);
-  //       tptr<T> fi = tptr<T>(new T[nfeatures]());
-
-  //       dt::parallel_for_static(iteration_end - iteration_start,
-  //         [&](size_t i) {
-  //           // printf("nthreads in team: %zu\n", dt::num_threads_in_team());
-  //           // for (size_t i = i0; i < i1; ++i) {
-  //             size_t ii = (iteration_start + i) % dt_X->nrows;
-  //             const size_t j0 = ri[0][ii];
-  //             // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-  //             // dt_y has only one column that may contain NA's or be a view
-  //             // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-  //             // columns as there are labels, and split_into_nhot() filters out
-  //             // NA's and can never be a view. Therefore, to ignore NA targets
-  //             // it is enough to check the condition below for the zero column only.
-  //             // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-  //             if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
-  //               hash_row(x, hashers, ii);
-  //               for (size_t k = 0; k < dt_y->ncols; ++k) {
-  //                 const size_t j = ri[k][ii];
-  //                 T p = linkfn(predict_row(
-  //                           x, w, k,
-  //                           [&](size_t f_id, T f_imp) {
-  //                             fi[f_id] += f_imp;
-  //                           }
-  //                       ));
-  //                 update(x, w, p, data[k][j], k);
-  //               }
-  //             }
-  //           // }
-
-  //       });
-  //       std::lock_guard<std::mutex> lock(m);
-  //       for (size_t i = 0; i < nfeatures; ++i) {
-  //         data_fi[i] += fi[i];
-  //       }
-  //     }
-  //   );
-
-
-  //   // Calculate loss on the validation dataset and do early stopping,
-  //   // if the loss does not improve.
-  //   if (validation) {
-  //     dt::atomic<T> loss_global { 0.0 };
-  //     // TODO: replace with standard dt::parallel_for_static
-  //     dt::_parallel_for_static(dt_X_val->nrows, 1024,
-  //       [&](size_t i0, size_t i1) {
-  //         uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-  //         tptr<T> w = tptr<T>(new T[nfeatures]());
-  //         T loss_local = 0.0;
-
-  //         for (size_t i = i0; i < i1; ++i) {
-  //           const size_t j0 = ri_val[0][i];
-  //           if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
-  //             hash_row(x, hashers_val, i);
-  //             for (size_t k = 0; k < dt_y_val->ncols; ++k) {
-  //               const size_t j = ri_val[k][i];
-  //               T p = linkfn(predict_row(
-  //                       x, w, map_val[k], [&](size_t, T){}
-  //                     ));
-
-  //               loss_local += lossfn(p, data_val[k][j]);
-  //             }
-  //           }
-  //         }
-  //         loss_global.fetch_add(loss_local);
-  //       });
-
-  //     // If loss does not decrease, do early stopping.
-  //     loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
-  //     T loss_diff = (loss_old - loss) / loss_old;
-  //     if (iter && (loss < epsilon || loss_diff < val_error)) break;
-
-  //     // If loss decreases, save current loss and continue training.
-  //     loss_old = loss;
-  //   }
-  // }
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
   return res;
