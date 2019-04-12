@@ -21,119 +21,166 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_h
 #define dt_MODELS_FTRL_h
+#include "models/column_hasher.h"
 #include "models/utils.h"
+#include "models/dt_ftrl_base.h"
 #include "str/py_str.h"
-#include "options.h"
+
+
 namespace dt {
 
 
 /**
- *  All the FTRL parameters provided in Python are stored in this structure,
- *  that also defines their default values.
+ *  Class template that implements all the virtual methods declared in dt::Ftrl.
  */
-struct FtrlParams {
-    double alpha;
-    double beta;
-    double lambda1;
-    double lambda2;
+template <typename T /* float or double */>
+class Ftrl : public dt::FtrlBase {
+  private:
+    // Model datatable of shape (nbins, 2 * nlabels),
+    // a vector of weight pointers, and the model type.
+    dtptr dt_model;
+    std::vector<T*> z, n;
+    FtrlModelType model_type;
+
+    // Feature importances datatable of shape (nfeatures, 2),
+    // where the first column contains feature names and the second one
+    // feature importance values.
+    dtptr dt_fi;
+
+    // FTRL model parameters provided to constructor.
+    FtrlParams params;
+
+    // Individual parameters converted to T type.
+    T alpha;
+    T beta;
+    T lambda1;
+    T lambda2;
     uint64_t nbins;
-    size_t nepochs;
     unsigned char mantissa_nbits;
-    bool double_precision;
-    bool negative_class;
-    size_t: 40;
-    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
-                   nbins(1000000), nepochs(1), mantissa_nbits(10),
-                   double_precision(false), negative_class(false) {}
-};
+    size_t: 56;
+    size_t nepochs;
+    std::vector<sizetvec> interactions;
 
+    // Labels that are automatically extracted from the target column.
+    strvec labels;
 
-/**
- *  When FTRL fitting is completed, this structure is returned
- *  containing epoch at which fitting stopped, and, in the case validation set
- *  was provided, the corresponding final loss.
- */
-struct FtrlFitOutput {
-    double epoch;
-    double loss;
-};
+    // Total number of features used for training, this includes
+    // dt_X->ncols columns plus their interactions.
+    size_t nfeatures;
 
+    // Vector of hashed column names.
+    std::vector<uint64_t> colname_hashes;
 
-/**
- * Supported FTRL model types.
- */
-enum class FtrlModelType : size_t {
-  NONE        = 0, // Untrained model
-  REGRESSION  = 1, // Numerical regression
-  BINOMIAL    = 2, // Binomial logistic regression
-  MULTINOMIAL = 3  // Multinomial logistic regression
-};
+    // Pointers to training and validation datatables, they are
+    // only valid during training.
+    const DataTable* dt_X;
+    const DataTable* dt_y;
+    const DataTable* dt_X_val;
+    const DataTable* dt_y_val;
 
+    // Other temporary parameters that needed for validation.
+    T nepochs_val;
+    T val_error;
+    std::vector<size_t> map_val;
 
-/**
- *  An abstract dt::Ftrl class that declares all the virtual functions
- *  needed by py::Ftrl.
- */
-class Ftrl {
+    // Fitting methods
+    FtrlFitOutput fit_binomial();
+    FtrlFitOutput fit_multinomial();
+    template <typename U> FtrlFitOutput fit_regression();
+    template <typename U> FtrlFitOutput fit(T(*)(T), T(*)(T, U));
+    template <typename U>
+    void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
+
+    // Predicting methods
+    template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
+    dtptr create_p(size_t);
+
+    // Hashing methods
+    std::vector<hasherptr> create_hashers(const DataTable*);
+    hasherptr create_hasher(const Column*);
+    void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
+
+    // Model helper methods
+    void create_model();
+    void adjust_model();
+    void init_model();
+    void init_weights();
+    dtptr create_y_train();
+    dtptr create_y_val();
+    Column* create_negative_column(size_t);
+
+    // Feature importance helper methods
+    void create_fi();
+    void init_fi();
+    void define_features();
+    void normalize_rows(dtptr&);
+
+    // Other helpers
+    template <typename U>
+    void fill_ri_data(const DataTable*,
+                      std::vector<RowIndex>&,
+                      std::vector<const U*>&);
+
   public:
-    virtual ~Ftrl();
-    // Depending on the target column stype, this method should do
-    // - binomial logistic regression (BOOL);
-    // - multinomial logistic regression (STR32, STR64);
-    // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
-    virtual FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
-                                       const DataTable*, const DataTable*,
-                                       double, double) = 0;
-    virtual dtptr predict(const DataTable*) = 0;
-    virtual void reset() = 0;
-    virtual bool is_trained() = 0;
+    Ftrl(FtrlParams);
+
+    // Main fitting method
+    FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
+                               const DataTable*, const DataTable*,
+                               double, double) override;
+
+    // Main predicting method
+    dtptr predict(const DataTable*) override;
+
+    // Model methods
+    void reset() override;
+    bool is_trained() override;
 
     // Getters
-    virtual DataTable* get_model() = 0;
-    virtual FtrlModelType get_model_type() = 0;
-    virtual DataTable* get_fi(bool normaliza = true) = 0;
-    virtual size_t get_nfeatures() = 0;
-    virtual size_t get_ncols() = 0;
-    virtual const std::vector<uint64_t>& get_colname_hashes() = 0;
-    virtual double get_alpha() = 0;
-    virtual double get_beta() = 0;
-    virtual double get_lambda1() = 0;
-    virtual double get_lambda2() = 0;
-    virtual uint64_t get_nbins() = 0;
-    virtual unsigned char get_mantissa_nbits() = 0;
-    virtual size_t get_nepochs() = 0;
-    virtual const std::vector<sizetvec>& get_interactions() = 0;
-    virtual bool get_double_precision() = 0;
-    virtual bool get_negative_class() = 0;
-    virtual FtrlParams get_params() = 0;
-    virtual const strvec& get_labels() = 0;
+    DataTable* get_model() override;
+    DataTable* get_fi(bool normalize = true) override;
+    FtrlModelType get_model_type() override;
+    size_t get_nfeatures() override;
+    size_t get_ncols() override;
+    const std::vector<uint64_t>& get_colname_hashes() override;
+    double get_alpha() override;
+    double get_beta() override;
+    double get_lambda1() override;
+    double get_lambda2() override;
+    uint64_t get_nbins() override;
+    unsigned char get_mantissa_nbits() override;
+    size_t get_nepochs() override;
+    const std::vector<sizetvec>& get_interactions() override;
+    bool get_double_precision() override;
+    bool get_negative_class() override;
+    FtrlParams get_params() override;
+    const strvec& get_labels() override;
 
     // Setters
-    virtual void set_model(DataTable*) = 0;
-    virtual void set_fi(DataTable*) = 0;
-    virtual void set_model_type(FtrlModelType) = 0;
-    virtual void set_alpha(double) = 0;
-    virtual void set_beta(double) = 0;
-    virtual void set_lambda1(double) = 0;
-    virtual void set_lambda2(double) = 0;
-    virtual void set_nbins(uint64_t) = 0;
-    virtual void set_mantissa_nbits(unsigned char) = 0;
-    virtual void set_nepochs(size_t) = 0;
-    virtual void set_interactions(std::vector<sizetvec>) = 0;
-    virtual void set_double_precision(bool) = 0;
-    virtual void set_negative_class(bool) = 0;
-    virtual void set_labels(strvec) = 0;
+    void set_model(DataTable*) override;
+    void set_fi(DataTable*) override;
+    void set_model_type(FtrlModelType) override;
+    void set_alpha(double) override;
+    void set_beta(double) override;
+    void set_lambda1(double) override;
+    void set_lambda2(double) override;
+    void set_nbins(uint64_t) override;
+    void set_mantissa_nbits(unsigned char) override;
+    void set_nepochs(size_t) override;
+    void set_interactions(std::vector<sizetvec>) override;
+    void set_double_precision(bool) override;
+    void set_negative_class(bool) override;
+    void set_labels(strvec) override;
 
-    // Number of mantissa bits in a double number.
-    static constexpr unsigned char DBL_MANT_NBITS = 52;
-
-    // Separator used for nhot encoding splitter. Using it means that
-    // in principle we can also do multilabel regression.
-    static constexpr char sep = ',';
-
-    // Minimum number of rows a thread will get for fitting and predicting.
-    static constexpr size_t min_rows_per_thread = 1000;
+    // Some useful constants:
+    // T type NaN and epsilon.
+    static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
+    static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
 };
+
+
+extern template class Ftrl<float>;
+extern template class Ftrl<double>;
 
 
 } // namespace dt
