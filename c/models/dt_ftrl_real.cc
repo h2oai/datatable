@@ -48,8 +48,8 @@ FtrlReal<T>::FtrlReal(FtrlParams params_in) :
   dt_y(nullptr),
   dt_X_val(nullptr),
   dt_y_val(nullptr),
-  nepochs_val(std::numeric_limits<T>::quiet_NaN()),
-  val_error(std::numeric_limits<T>::quiet_NaN())
+  nepochs_val(t_nan),
+  val_error(t_nan)
 {
 }
 
@@ -95,8 +95,8 @@ FtrlFitOutput FtrlReal<T>::dispatch_fit(const DataTable* dt_X_in,
   dt_y = nullptr;
   dt_X_val = nullptr;
   dt_y_val = nullptr;
-  nepochs_val = std::numeric_limits<T>::quiet_NaN();
-  val_error = std::numeric_limits<T>::quiet_NaN();
+  nepochs_val = t_nan;
+  val_error = t_nan;
   map_val.clear();
 
   return res;
@@ -282,70 +282,68 @@ dtptr FtrlReal<T>::create_y_val() {
  *  Fit model on a datatable.
  */
 template <typename T>
-template <typename U> /* column data type */
+template <typename U> /* target column(s) data type */
 FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
-  // Define features and init weight pointers
+  // Define features, weight pointers, feature importances storage,
+  // as well as column hashers.
   define_features();
   init_weights();
-
-  // Create feature importance datatable.
   if (dt_fi == nullptr) create_fi();
-
-  // Create column hashers.
   auto hashers = create_hashers(dt_X);
 
-  // Settings for parallel processing. By default we invoke
-  // `dt::parallel_for_static()` on `dt_X->nrows` chunks.
+  // Obtain rowindex and data pointers for the target column(s).
+  std::vector<RowIndex> ri, ri_val;
+  std::vector<const U*> data, data_val;
+  fill_ri_data<U>(dt_y, ri, data);
+  auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
+
+  // Training settings. By default each training iteration consists of
+  // `dt_X->nrows` rows.
   size_t niterations = nepochs;
   size_t iteration_nrows = dt_X->nrows;
   size_t total_nrows = niterations * iteration_nrows;
 
-  // If a validation set is provided, we adjust chunk size to `nepochs_val`.
-  // After each chunk, we calculate loss on the validation dataset,
-  // and do early stopping if loss does not improve.
-  constexpr T tnan = std::numeric_limits<T>::quiet_NaN();
-  T loss = tnan;
-  T loss_old = 0;
+  // If a validation set is provided, we adjust batch size to `nepochs_val`.
+  // After each batch, we calculate loss on the validation dataset,
+  // and do early stopping if relative loss does not decrese by at least
+  // `val_error`.
   bool validation = !std::isnan(nepochs_val);
-  constexpr T epsilon = std::numeric_limits<T>::epsilon();
+  T loss = t_nan; // This value is returned when there is no validation
+  T loss_old = 0; // Value of `loss` for a previous iteraction
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
-    niterations = static_cast<size_t>(
-                ceil(static_cast<double>(total_nrows) / iteration_nrows)
-              );
+    niterations = total_nrows / iteration_nrows;
+    fill_ri_data<U>(dt_y_val, ri_val, data_val);
   }
 
-  // Gather rowindex and data pointers.
-  std::vector<RowIndex> ri, ri_val;
-  std::vector<const U*> data, data_val;
-  fill_ri_data<U>(dt_y, ri, data);
-  if (validation) fill_ri_data<U>(dt_y_val, ri_val, data_val);
-  auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
 
-  size_t iteration_end = 0;
-
-  size_t min_rows_per_thread = 1000;
-  size_t nthreads = std::min(1 + iteration_nrows / min_rows_per_thread, dt::num_threads_in_pool());
   std::mutex m;
+  size_t iteration_end = 0;
+  size_t nthreads = iteration_nrows / min_rows_per_thread;
+  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
 
   dt::parallel_region(nthreads,
     [&]() {
-      size_t ithread = this_thread_index();
+      size_t ithread = dt::this_thread_index();
+
+      // Each thread gets a private storage for hashes,
+      // temporary weights and feature importances.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
       tptr<T> w = tptr<T>(new T[nfeatures]);
       tptr<T> fi = tptr<T>(new T[nfeatures]());
 
       for (size_t iter = 0; iter < niterations; ++iter) {
         size_t iteration_start = iter * iteration_nrows;
-        iteration_end = std::min((iter + 1) * iteration_nrows, total_nrows);
+        iteration_end = (iter == niterations - 1)? total_nrows :
+                                                   (iter + 1) * iteration_nrows;
         size_t iteration_size = iteration_end - iteration_start;
 
+        // Set up a chunk to be handled by a particular thread.
         size_t chunk_size = iteration_size / nthreads;
         size_t i0 = ithread * chunk_size;
-        size_t i1 = i0 + chunk_size;
-        if (ithread == nthreads - 1) i1 = iteration_size;
+        size_t i1 = (ithread == nthreads - 1)? iteration_size : i0 + chunk_size;
 
         // Training
         for (size_t i = i0; i < i1; ++i) {
@@ -372,7 +370,6 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             }
           }
         } // end training
-
         barrier();
 
         // Calculate loss on the validation dataset and do early stopping,
@@ -381,8 +378,7 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           dt::atomic<T> loss_global { 0.0 };
           chunk_size = dt_X_val->nrows / nthreads;
           i0 = ithread * chunk_size;
-          i1 = i0 + chunk_size;
-          if (ithread == nthreads - 1) i1 = dt_X_val->nrows;
+          i1 = (ithread == nthreads - 1)? dt_X_val->nrows : i0 + chunk_size;
           T loss_local = 0.0;
 
           // TODO: replace with standard dt::parallel_for_static
@@ -400,23 +396,22 @@ FtrlFitOutput FtrlReal<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             }
           }
           loss_global.fetch_add(loss_local);
-
           barrier();
 
           if (ithread == 0) {
-            // If loss does not decrease, set loss_old to `nan`
-            // and stop all the threads.
+            // If loss does not decrease, set loss_old to NaN
+            // and this will stop all the threads.
             loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
             T loss_diff = (loss_old - loss) / loss_old;
-
-            loss_old = (iter && (loss < epsilon || loss_diff < val_error)) ?
-                        tnan : loss;
+            bool is_loss_bad = iter && (loss < t_epsilon || loss_diff < val_error);
+            loss_old = is_loss_bad? t_nan : loss;
           }
-
           barrier();
+
           if (std::isnan(loss_old)) break;
         } // end validation
 
+        // Update global feature importances with the local data.
         std::lock_guard<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures; ++i) {
           data_fi[i] += fi[i];
@@ -881,13 +876,12 @@ DataTable* FtrlReal<T>::get_fi(bool normalize /* = true */) {
 
   DataTable* dt_fi_copy = dt_fi->copy();
   if (normalize) {
-    constexpr T epsilon = std::numeric_limits<T>::epsilon();
     auto col = static_cast<RealColumn<T>*>(dt_fi_copy->columns[1]);
     T max = col->max();
     T* data = col->elements_w();
     T norm_factor = static_cast<T>(1.0);
 
-    if (fabs(max) > epsilon) norm_factor /= max;
+    if (fabs(max) > t_epsilon) norm_factor /= max;
     for (size_t i = 0; i < col->nrows; ++i) {
       data[i] *= norm_factor;
     }

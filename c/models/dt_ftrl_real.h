@@ -71,19 +71,21 @@ class FtrlReal : public dt::Ftrl {
     // Vector of hashed column names.
     std::vector<uint64_t> colname_hashes;
 
-    // Separator used for nhot encoding.
-    static const char sep = ',';
-
     // Pointers to training and validation datatables, they are
     // only valid during training.
     const DataTable* dt_X;
     const DataTable* dt_y;
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
-    // Other temporary parameters that might need for validation.
+
+    // Other temporary parameters that might be needed for validation.
     T nepochs_val;
     T val_error;
     std::vector<size_t> map_val;
+
+    // T type NaN and epsilon.
+    static constexpr T t_nan = std::numeric_limits<T>::quiet_NaN();
+    static constexpr T t_epsilon = std::numeric_limits<T>::epsilon();
 
     // Fitting methods
     FtrlFitOutput fit_binomial();

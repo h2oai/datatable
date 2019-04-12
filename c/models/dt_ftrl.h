@@ -76,7 +76,6 @@ enum class FtrlModelType : size_t {
  */
 class Ftrl {
   public:
-    static constexpr unsigned char DBL_MANT_NBITS = 52;
     virtual ~Ftrl();
     // Depending on the target column stype, this method should do
     // - binomial logistic regression (BOOL);
@@ -124,6 +123,16 @@ class Ftrl {
     virtual void set_double_precision(bool) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(strvec) = 0;
+
+    // Number of mantissa bits in a double number.
+    static constexpr unsigned char DBL_MANT_NBITS = 52;
+
+    // Separator used for nhot encoding splitter. Using it means that
+    // in principle we can also do multilabel regression.
+    static constexpr char sep = ',';
+
+    // Minimum number of rows a thread will get for fitting and predicting.
+    static constexpr size_t min_rows_per_thread = 1000;
 };
 
 
