@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 from contextlib import contextmanager
 from datatable.lib import core
-from datatable.utils.typechecks import TValueError
+from datatable.utils.typechecks import TTypeError, TValueError, name_type
 
 __all__ = ("options", "Option")
 
@@ -52,10 +52,15 @@ class Config:
 
     def __getattr__(self, key):
         opt = self._get_option(key)
+        if isinstance(opt, Config):
+            return opt
         return opt.get()
 
     def __setattr__(self, key, val):
         opt = self._get_option(key)
+        if isinstance(opt, Config):
+            raise TypeError("Cannot set the value of option set `%s`"
+                            % self._prefix)
         opt.set(val)
 
     def __delattr__(self, key):
@@ -86,24 +91,36 @@ class Config:
         fullname = opt.name
         if fullname.startswith("."):
             raise TValueError("Invalid option name `%s`" % fullname)
+        if fullname in self._options:
+            raise TValueError("Option `%s` already registered" % fullname)
         self._options[fullname] = opt
         prefix = fullname.rsplit('.', 1)[0]
         if prefix not in self._options:
             self.register(Config(options=self._options, prefix=prefix + "."))
 
-    # TODO: remove
-    def register_option(self, key, xtype, default, doc=None):
-        self.register(Option(key, default, doc))
+    def register_option(self, name, default, xtype=None, doc=None):
+        opt = Option(name, default, doc)
+        self.register(opt)
+
+    def register_option2(self, name, default, xtype=None, doc=None):
+        opt = Option2(name=name, default=default, doc=doc, xtype=xtype)
+        self.register(opt)
 
     @property
     def name(self):
         return self._prefix[:-1]
 
-    def get(self):
-        return self
+    def get(self, name):
+        opt = self._get_option(name)
+        return opt.get()
 
-    def set(self, val):
-        raise TypeError("Cannot set the value of option set `%s`" % self._prefix)
+    def set(self, name, value):
+        opt = self._get_option(name)
+        opt.set(value)
+
+    def reset(self, name):
+        opt = self._get_option(name)
+        opt.set(opt.default)
 
     @contextmanager
     def context(self, **kwargs):
@@ -166,7 +183,6 @@ class Option:
         self._name = name
         self._default = default
         self._doc = doc
-        # self._value = default
         core.set_option(name, default)
 
     @property
@@ -182,12 +198,46 @@ class Option:
         return self._doc
 
     def get(self):
-        # return self._value
         return core.get_option(self._name)
 
     def set(self, x):
-        # self._value = x
         core.set_option(self._name, x)
+
+
+class Option2:
+    def __init__(self, name, default, doc, xtype):
+        self._name = name
+        self._default = default
+        self._doc = doc
+        self._value = default
+        self._xtype = xtype
+        if xtype and not isinstance(default, xtype):
+            raise TTypeError("Default value `%r` is not of type %s"
+                             % (default, name_type(xtype)))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def default(self):
+        return self._default
+
+    @property
+    def doc(self):
+        return self._doc
+
+    def get(self):
+        return self._value
+
+    def set(self, x):
+        if self._xtype is not None:
+            if not isinstance(x, self._xtype):
+                raise TTypeError("Invalid value for option `%s`: expected %s, "
+                                 "instead got %s"
+                                 % (self._name, name_type(self._xtype),
+                                    name_type(type(x))))
+        self._value = x
 
 
 

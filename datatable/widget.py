@@ -8,7 +8,7 @@ import time
 
 import datatable
 from datatable.lib._datatable import Frame as coreFrame
-from datatable.options import options
+from datatable.options import options, Option
 from datatable.types import ltype
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
@@ -552,11 +552,15 @@ def _float_tail(x):
         return -1
 
 
-options.register_option(
-    "display.interactive_hint", xtype=bool, default=True,
+options.register_option2(
+    name="display.interactive_hint",
+    default=True,
+    xtype=bool,
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
 
-options.register_option(
-    "display.interactive", xtype=bool, default=False,
+options.register_option2(
+    name="display.interactive",
+    default=False,
+    xtype=bool,
     doc="Show datatable Frame interactively in a Python console.")

@@ -25,9 +25,10 @@ def test_options_all():
     assert set(dir(dt.options.fread)) == {"anonymize"}
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_option_api():
-    dt.options.register_option("fooo", int, 13, "a dozen")
+    dt.options.register_option2(name="fooo", xtype=int, default=13,
+                                doc="a dozen")
     assert "fooo" in dir(dt.options)
     assert dt.options.fooo == 13
     assert dt.options.get("fooo") == 13
@@ -46,24 +47,24 @@ def test_option_bad():
     with pytest.raises(AttributeError):
         noop(dt.options.gooo)
 
-    # with pytest.raises(ValueError) as e:
-    #     dt.options.register_option("gooo", str, 3, "??")
-    # assert "Default value `3` is not of type str" in str(e.value)
+    with pytest.raises(TypeError) as e:
+        dt.options.register_option2(name="gooo", xtype=str, default=3, doc="??")
+    assert "Default value `3` is not of type str" in str(e.value)
 
     with pytest.raises(ValueError) as e:
-        dt.options.register_option(".hidden", int, 0, "")
+        dt.options.register_option2(name=".hidden", xtype=int, default=0)
     assert "Invalid option name `.hidden`" in str(e.value)
 
-    # dt.options.register_option("gooo", int, 3, "???")
+    dt.options.register_option2(name="gooo", xtype=int, default=3)
 
-    # with pytest.raises(ValueError) as e:
-    #     dt.options.register_option("gooo", int, 3, "???")
-    # assert "Option `gooo` already registered" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt.options.register_option(name="gooo", xtype=int, default=4, doc="???")
+    assert "Option `gooo` already registered" in str(e.value)
 
-    # with pytest.raises(TypeError) as e:
-    #     dt.options.gooo = 2.5
-    # assert ("Invalid value for option `gooo`: expected type int, got float "
-    #         "instead" in str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.options.gooo = 2.5
+    assert ("Invalid value for option `gooo`: expected int, instead got float"
+            in str(e.value))
 
     # with pytest.raises(ValueError) as e:
     #     dt.options.register_option("gooo.maxima", int, 0, "")
