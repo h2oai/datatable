@@ -26,10 +26,6 @@ uint8_t sort_max_radix_bits = 16;
 uint8_t sort_over_radix_bits = 16;
 int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
-int64_t frame_names_auto_index = 0;
-std::string frame_names_auto_prefix = "C";
-bool display_interactive = false;
-bool display_interactive_hint = true;
 
 
 static int32_t normalize_nthreads(int32_t nth) {
@@ -117,18 +113,6 @@ static py::oobj set_option(const py::PKArgs& args) {
   } else if (name == "fread.anonymize") {
     set_fread_anonymize(value.to_bool_strict());
 
-  } else if (name == "frame.names_auto_index") {
-    frame_names_auto_index = value.to_int64_strict();
-
-  } else if (name == "frame.names_auto_prefix") {
-    frame_names_auto_prefix = value.to_string();
-
-  } else if (name == "display.interactive") {
-    display_interactive = value.to_bool_strict();
-
-  } else if (name == "display.interactive_hint") {
-    display_interactive_hint = value.to_bool_strict();
-
   } else {
     // throw ValueError() << "Unknown option `" << name << "`";
   }
@@ -168,18 +152,6 @@ static py::oobj get_option(const py::PKArgs& args) {
 
   } else if (name == "fread.anonymize") {
     return py::obool(fread_anonymize);
-
-  } else if (name == "frame.names_auto_index") {
-    return py::oint(frame_names_auto_index);
-
-  } else if (name == "frame.names_auto_prefix") {
-    return py::ostring(frame_names_auto_prefix);
-
-  } else if (name == "display.interactive") {
-    return py::obool(display_interactive);
-
-  } else if (name == "display.interactive_hint") {
-    return py::obool(display_interactive_hint);
 
   } else {
     throw ValueError() << "Unknown option `" << name << "`";

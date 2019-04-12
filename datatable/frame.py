@@ -155,19 +155,3 @@ options.register_option(
 
 options.register_option(
     "sort.nthreads", xtype=int, default=4)
-
-options.register_option(
-    "frame.names_auto_index", xtype=int, default=0,
-    doc="When Frame needs to auto-name columns, they will be assigned "
-        "names C0, C1, C2, ... by default. This option allows you to "
-        "control the starting index in this sequence. For example, setting "
-        "options.frame.names_auto_index=1 will cause the columns to be "
-        "named C1, C2, C3, ...")
-
-options.register_option(
-    "frame.names_auto_prefix", xtype=str, default="C",
-    doc="When Frame needs to auto-name columns, they will be assigned "
-        "names C0, C1, C2, ... by default. This option allows you to "
-        "control the prefix used in this sequence. For example, setting "
-        "options.frame.names_auto_prefix='Z' will cause the columns to be "
-        "named Z0, Z1, Z2, ...")

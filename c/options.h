@@ -22,12 +22,7 @@ extern uint8_t sort_max_radix_bits;
 extern uint8_t sort_over_radix_bits;
 extern int32_t sort_nthreads;
 extern bool fread_anonymize;
-extern int64_t frame_names_auto_index;
-extern std::string frame_names_auto_prefix;
-extern bool display_interactive;
-extern bool display_interactive_hint;
 
-void set_nthreads(int32_t n);
 void set_core_logger(PyObject*);
 void set_sort_insert_method_threshold(int64_t n);
 void set_sort_thread_multiplier(int64_t n);

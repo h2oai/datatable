@@ -124,6 +124,9 @@ class Frame : public PyObject {
     // Exposed to users as `dt.frame_integrity_check(frame)` function
     void integrity_check();
 
+    // Called once during module start-up
+    static void init_names_options();
+
   private:
     static bool internal_construction;
     class NameProvider;

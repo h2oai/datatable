@@ -24,7 +24,17 @@
 #include "options.h"
 #include "ztest.h"
 
-static Error _name_not_found_error(const DataTable* dt, const std::string& name);
+static Error _name_not_found_error(const DataTable* dt, const std::string& name)
+{
+  Error err = ValueError();
+  err << "Column `" << name << "` does not exist in the Frame";
+  std::string suggested = dt::suggest_similar_strings(dt->get_names(), name);
+  if (!suggested.empty()) {
+    err << "; did you mean " << suggested << "?";
+  }
+  return err;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -215,17 +225,35 @@ void Frame::Type::_init_names(Methods& mm, GetSetters& gs) {
 
 
 
-static Error _name_not_found_error(const DataTable* dt, const std::string& name)
-{
-  Error err = ValueError();
-  err << "Column `" << name << "` does not exist in the Frame";
-  std::string suggested = dt::suggest_similar_strings(dt->get_names(), name);
-  if (!suggested.empty()) {
-    err << "; did you mean " << suggested << "?";
-  }
-  return err;
-}
 
+//------------------------------------------------------------------------------
+// Options
+//------------------------------------------------------------------------------
+
+static int64_t     names_auto_index = 0;
+static std::string names_auto_prefix = "C";
+
+void py::Frame::init_names_options() {
+  config::register_option(
+    "frame.names_auto_index",
+    []{ return py::oint(names_auto_index); },
+    [](py::oobj value){ names_auto_index = value.to_int64_strict(); },
+    "When Frame needs to auto-name columns, they will be assigned\n"
+    "names C0, C1, C2, ... by default. This option allows you to\n"
+    "control the starting index in this sequence. For example, setting\n"
+    "options.frame.names_auto_index=1 will cause the columns to be\n"
+    "named C1, C2, C3, ...");
+
+  config::register_option(
+    "frame.names_auto_prefix",
+    []{ return py::ostring(names_auto_prefix); },
+    [](py::oobj value){ names_auto_prefix = value.to_string(); },
+    "When Frame needs to auto-name columns, they will be assigned\n"
+    "names C0, C1, C2, ... by default. This option allows you to\n"
+    "control the prefix used in this sequence. For example, setting\n"
+    "options.frame.names_auto_prefix='Z' will cause the columns to be\n"
+    "named Z0, Z1, Z2, ...");
+}
 
 
 
@@ -291,14 +319,13 @@ void DataTable::copy_names_from(const DataTable* other) {
  * Initialize DataTable's column names to the default "C0", "C1", "C2", ...
  */
 void DataTable::set_names_to_default() {
-  auto index0 = static_cast<size_t>(config::frame_names_auto_index);
-  auto prefix = config::frame_names_auto_prefix;
+  auto index0 = static_cast<size_t>(names_auto_index);
   py_names  = py::otuple();
   py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    names.push_back(prefix + std::to_string(i + index0));
+    names.push_back(names_auto_prefix + std::to_string(i + index0));
   }
 }
 
@@ -484,8 +511,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   // replaced with auto-generated ones.
   if (fill_default_names) {
     // Config variables to be used for name auto-generation
-    int64_t index0 = config::frame_names_auto_index;
-    std::string prefix = config::frame_names_auto_prefix;
+    int64_t index0 = names_auto_index;
+    std::string prefix = names_auto_prefix;
     const char* prefixptr = prefix.data();
     size_t prefixlen = prefix.size();
 

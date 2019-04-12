@@ -217,6 +217,7 @@ static void initialize_options(const py::PKArgs& args) {
 
   config::use_options_store(options);
   dt::thread_pool::init_options();
+  py::Frame::init_names_options();
 }
 
 
