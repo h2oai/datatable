@@ -6,14 +6,13 @@
 #-------------------------------------------------------------------------------
 from contextlib import contextmanager
 from datatable.lib import core
-from datatable.utils.typechecks import (is_type, name_type, TTypeError,
-                                        TValueError)
+from datatable.utils.typechecks import TValueError
 
 __all__ = ("options", "Option")
 
 
 class DtAttributeError(AttributeError):
-    _handle_ = TTypeError._handle_
+    _handle_ = TValueError._handle_
 
 
 
@@ -198,23 +197,4 @@ class Option:
 #-------------------------------------------------------------------------------
 
 options = Config(options={}, prefix="")
-
-
-options.register_option(
-    "nthreads", int, default=0,
-    doc="The number of threads used by datatable internally.\n"
-        "\n"
-        "Many calculations in `datatable` module are parallelized. This \n"
-        "setting controls how many threads will be used during such\n"
-        "calculations.\n"
-        "\n"
-        "Initially, this option is set to the value returned by C++ call\n"
-        "`std::thread::hardware_concurrency()`. This is usually equal to the\n"
-        "number of available cores.\n"
-        "\n"
-        "You can set `nthreads` to a value greater or smaller than the\n"
-        "initial setting. For example, setting `nthreads = 1` will force the\n"
-        "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
-        "restore the initial value equal to the number of processor cores.\n"
-        "Setting `nthreads` to a value less than 0 is equivalent to\n"
-        "requesting that fewer threads than the maximum.\n")
+core.initialize_options(options)

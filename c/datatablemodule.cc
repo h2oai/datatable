@@ -23,6 +23,7 @@
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
@@ -205,6 +206,23 @@ static void _column_save_to_disk(const py::PKArgs& args) {
 
 
 
+static py::PKArgs args_initialize_options(
+  1, 0, 0, false, false, {"options"}, "initialize_options",
+  "Signal to core C++ datatable to register all internal options\n"
+  "with the provided options manager.");
+
+static void initialize_options(const py::PKArgs& args) {
+  py::oobj options = args[0].to_oobj();
+  if (!options) return;
+
+  config::use_options_store(options);
+  dt::thread_pool::init_options();
+}
+
+
+
+
+
 //------------------------------------------------------------------------------
 // Support memory leak detection
 //------------------------------------------------------------------------------
@@ -284,6 +302,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
+  ADD_FN(&initialize_options, args_initialize_options);
 
   init_methods_aggregate();
   init_methods_buffers();
@@ -336,6 +355,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);
+
 
   } catch (const std::exception& e) {
     exception_to_python(e);

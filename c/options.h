@@ -39,10 +39,11 @@ void set_fread_anonymize(int8_t v);
 
 
 void register_option(const char* name,
-                     py::oobj default_value,
                      std::function<py::oobj()> getter,
                      std::function<void(py::oobj)> setter,
                      const char* docstring);
+
+void use_options_store(py::oobj options);
 
 
 }

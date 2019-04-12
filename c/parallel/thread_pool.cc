@@ -19,7 +19,9 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
+#include "python/_all.h"
 #include "utils/assert.h"
+#include "options.h"
 namespace dt {
 
 
@@ -172,6 +174,44 @@ size_t get_hardware_concurrency() noexcept {
   return static_cast<size_t>(nth);
 }
 
+
+void thread_pool::init_options() {
+  // By default, set the number of threads to `hardware_concurrency`
+  thread_pool::get_instance()->resize(get_hardware_concurrency());
+
+  config::register_option(
+    "nthreads",
+
+    /* getter= */[]() -> py::oobj {
+      return py::oint(num_threads_in_pool());
+    },
+
+    /* setter= */[](py::oobj value) {
+      int32_t nth = value.to_int32_strict();
+      if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
+      if (nth <= 0) nth = 1;
+      auto thpool = dt::thread_pool::get_instance();
+      thpool->resize(static_cast<size_t>(nth));
+      config::sort_nthreads = nth;
+    },
+
+    "The number of threads used by datatable internally.\n"
+    "\n"
+    "Many calculations in `datatable` module are parallelized. This \n"
+    "setting controls how many threads will be used during such\n"
+    "calculations.\n"
+    "\n"
+    "Initially, this option is set to the value returned by C++ call\n"
+    "`std::thread::hardware_concurrency()`. This is usually equal to the\n"
+    "number of available cores.\n"
+    "\n"
+    "You can set `nthreads` to a value greater or smaller than the\n"
+    "initial setting. For example, setting `nthreads = 1` will force the\n"
+    "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
+    "restore the initial value equal to the number of processor cores.\n"
+    "Setting `nthreads` to a value less than 0 is equivalent to\n"
+    "requesting that fewer threads than the maximum.\n");
+}
 
 
 }  // namespace dt

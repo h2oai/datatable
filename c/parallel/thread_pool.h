@@ -88,6 +88,8 @@ class thread_pool {
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
 
+    static void init_options();
+
   private:
     thread_pool();
     thread_pool(const thread_pool&) = delete;

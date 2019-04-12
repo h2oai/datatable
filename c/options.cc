@@ -38,14 +38,6 @@ static int32_t normalize_nthreads(int32_t nth) {
   return nth;
 }
 
-void set_nthreads(int32_t n) {
-  n = normalize_nthreads(n);
-  auto thpool = dt::thread_pool::get_instance();
-  thpool->resize(static_cast<size_t>(n));
-  sort_nthreads = n;
-}
-
-
 void set_core_logger(PyObject* o) {
   if (o == Py_None) {
     logger = nullptr;
@@ -101,10 +93,7 @@ static py::oobj set_option(const py::PKArgs& args) {
   std::string name = args[0].to_string();
   py::robj value = args[1];
 
-  if (name == "nthreads") {
-    set_nthreads(value.to_int32_strict());
-
-  } else if (name == "sort.insert_method_threshold") {
+  if (name == "sort.insert_method_threshold") {
     set_sort_insert_method_threshold(value.to_int64_strict());
 
   } else if (name == "sort.thread_multiplier") {
@@ -156,10 +145,7 @@ static py::PKArgs args_get_option(
 static py::oobj get_option(const py::PKArgs& args) {
   std::string name = args[0].to_string();
 
-  if (name == "nthreads") {
-    return py::oint(dt::num_threads_in_pool());
-
-  } else if (name == "sort.insert_method_threshold") {
+  if (name == "sort.insert_method_threshold") {
     return py::oint(sort_insert_method_threshold);
 
   } else if (name == "sort.thread_multiplier") {
@@ -201,20 +187,25 @@ static py::oobj get_option(const py::PKArgs& args) {
 }
 
 
+
+static py::oobj dt_options = nullptr;
+
+void use_options_store(py::oobj options) {
+  dt_options = options;
+}
+
 void register_option(const char* name,
-                     py::oobj default_value,
                      std::function<py::oobj()> getter,
                      std::function<void(py::oobj)> setter,
                      const char* docstring)
 {
-  static py::oobj dt_options = py::oobj::import("datatable", "options");
-
+  xassert(dt_options);
   auto pytype = reinterpret_cast<PyObject*>(&py::config_option::Type::type);
   auto v = PyObject_CallObject(pytype, nullptr);
   if (!v) throw PyError();
   auto p = static_cast<py::config_option*>(v);
   p->name = py::ostring(name);
-  p->default_value = default_value;
+  p->default_value = getter();
   p->docstring = py::ostring(docstring);
   p->getter = std::move(getter);
   p->setter = std::move(setter);
