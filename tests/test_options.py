@@ -19,7 +19,7 @@ def test_options_all():
         "insert_method_threshold", "thread_multiplier", "max_chunk_length",
         "max_radix_bits", "over_radix_bits", "nthreads"}
     assert set(dir(dt.options.display)) == {
-        "interactive", "interactive_hint"}
+        "interactive", "interactive_hint", "use_colors"}
     assert set(dir(dt.options.frame)) == {
         "names_auto_index", "names_auto_prefix"}
     assert set(dir(dt.options.fread)) == {"anonymize", "log"}

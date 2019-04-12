@@ -99,8 +99,10 @@ class Config:
         if prefix not in self._options:
             self.register(Config(options=self._options, prefix=prefix + "."))
 
-    def register_option(self, name, default, xtype=None, doc=None):
-        opt = Option(name=name, default=default, doc=doc, xtype=xtype)
+    def register_option(self, name, default, xtype=None, doc=None,
+                        onchange=None):
+        opt = Option(name=name, default=default, doc=doc, xtype=xtype,
+                     onchange=onchange)
         self.register(opt)
 
     @property
@@ -209,12 +211,13 @@ def _render_options_list(options, prefix, indent):
 #-------------------------------------------------------------------------------
 
 class Option:
-    def __init__(self, name, default, doc, xtype):
+    def __init__(self, name, default, doc=None, xtype=None, onchange=None):
         self._name = name
         self._default = default
         self._doc = doc
         self._value = default
         self._xtype = xtype
+        self._onchange = onchange
         if xtype and not isinstance(default, xtype):
             raise TTypeError("Default value `%r` is not of type %s"
                              % (default, name_type(xtype)))
@@ -242,6 +245,8 @@ class Option:
                                  % (self._name, name_type(self._xtype),
                                     name_type(type(x))))
         self._value = x
+        if self._onchange is not None:
+            self._onchange(x)
 
 
 
@@ -254,3 +259,11 @@ options = Config(options={}, prefix="")
 core.initialize_options(options)
 
 options.register_option("core_logger", default=None, doc="[DEPRECATED]")
+
+options.register_option(
+    "display.use_colors", True, xtype=bool,
+    onchange=lambda x: term.use_colors(x),
+    doc="Whether to use colors when printing various messages into the\n"
+        "console. Turn this off if your terminal is unable to display\n"
+        "ANSI escape sequences, or if the colors make output not\n"
+        "legible.")
