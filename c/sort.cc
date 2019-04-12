@@ -268,10 +268,10 @@ void sort_init_options() {
       if (n < 0) n = 0;
       sort_insert_method_threshold = static_cast<size_t>(n);
     },
-    "Largest n at which sorting will be performed using insert sort "
-      "method. This setting also governs the recursive parts of the "
-      "radix sort algorithm, when we need to sort smaller sub-parts of "
-      "the input.");
+    "Largest n at which sorting will be performed using insert sort\n"
+    "method. This setting also governs the recursive parts of the\n"
+    "radix sort algorithm, when we need to sort smaller sub-parts of\n"
+    "the input.");
 
   dt::register_option(
     "sort.thread_multiplier",

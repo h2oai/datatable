@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 from contextlib import contextmanager
 from datatable.lib import core
+from datatable.utils.terminal import term
 from datatable.utils.typechecks import TTypeError, TValueError, name_type
 
 __all__ = ("options", "Option")
@@ -139,6 +140,36 @@ class Config:
         finally:
             for opt, original_value in previous_settings:
                 opt.set(original_value)
+
+    def describe(self, name=None):
+        if name is None:  # describe all options
+            names = sorted(dir(self))
+        else:
+            opt = self._get_option(name)
+            if isinstance(opt, Config):
+                return opt.describe()
+            names = [name]
+        extras = ""
+        for name in names:
+            opt = self._get_option(name)
+            if isinstance(opt, Config):
+                extras += "%s [...]\n\n" % term.color("bold", opt.name)
+                continue
+            value = opt.get()
+            comment = ("(default)" if value == opt.default else
+                       "(default: %r)" % opt.default)
+            print("%s = %s %s" %
+                  (term.color("bold", opt.name),
+                   term.color("bright_green", repr(value)),
+                   term.color("bright_black", comment)))
+            for line in opt.doc.strip().split("\n"):
+                print("    " + line)
+            print()
+        if extras:
+            print(extras, end="")
+
+
+
 
 
 
