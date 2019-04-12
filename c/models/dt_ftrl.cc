@@ -312,7 +312,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // and do early stopping if relative loss does not decrese by at least
   // `val_error`.
   bool validation = !std::isnan(nepochs_val);
-  T loss = T_NAN; // This value is returned when there is no validation
+  T loss = T_NAN; // This value is returned when validation is not enabled
   T loss_old = 0; // Value of `loss` for a previous iteraction
   std::vector<hasherptr> hashers_val;
   if (validation) {
@@ -344,13 +344,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
                                                    (iter + 1) * iteration_nrows;
         size_t iteration_size = iteration_end - iteration_start;
 
-        // Set up a chunk to be handled by a particular thread.
-        size_t chunk_size = iteration_size / nthreads;
-        size_t i0 = ithread * chunk_size;
-        size_t i1 = (ithread == nthreads - 1)? iteration_size : i0 + chunk_size;
-
-        // Training
-        for (size_t i = i0; i < i1; ++i) {
+        // Training.
+        dt::parallel_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X->nrows;
           const size_t j0 = ri[0][ii];
           // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
@@ -373,21 +368,18 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
               update(x, w, p, data[k][j], k);
             }
           }
-        } // end training
+        }); // End training.
         barrier();
 
-        // Calculate loss on the validation dataset and do early stopping,
-        // if the loss does not improve.
+        // Validation and early stopping.
         if (validation) {
           dt::atomic<T> loss_global { 0.0 };
-          chunk_size = dt_X_val->nrows / nthreads;
-          i0 = ithread * chunk_size;
-          i1 = (ithread == nthreads - 1)? dt_X_val->nrows : i0 + chunk_size;
           T loss_local = 0.0;
 
-          // TODO: replace with standard dt::parallel_for_static
-          for (size_t i = i0; i < i1; ++i) {
+          dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
+            // This condition is kind of the same as for training, see comment
+            // above.
             if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < dt_y_val->ncols; ++k) {
@@ -398,13 +390,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
                 loss_local += lossfn(p, data_val[k][j]);
               }
             }
-          }
+          });
           loss_global.fetch_add(loss_local);
           barrier();
 
           if (ithread == 0) {
-            // If loss does not decrease, set loss_old to NaN
-            // and this will stop all the threads.
+            // If loss does not decrease, set loss_old to NaN,
+            // this will stop all the threads.
             loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
             T loss_diff = (loss_old - loss) / loss_old;
             bool is_loss_bad = iter && (loss < T_EPSILON || loss_diff < val_error);
@@ -413,7 +405,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           barrier();
 
           if (std::isnan(loss_old)) break;
-        } // end validation
+        } // End validation
 
         // Update global feature importances with the local data.
         std::lock_guard<std::mutex> lock(m);
@@ -421,7 +413,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           data_fi[i] += fi[i];
         }
 
-      } // end iteration
+      } // End iteration.
 
     }
   );
@@ -509,19 +501,21 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
                                  << "the model was trained in an unknown mode";
   }
 
-  // TODO: replace with standard dt::parallel_for_static
-  dt::_parallel_for_static(dt_X->nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD,
-    [&](size_t i0, size_t i1) {
-      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      tptr<T> w = tptr<T>(new T[nfeatures]);
 
-      for (size_t i = i0; i < i1; ++i) {
-        hash_row(x, hashers, i);
-        for (size_t k = 0; k < nlabels; ++k) {
-          data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
-        }
+  size_t nthreads = dt_X->nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
+  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
+
+  dt::parallel_region(nthreads, [&]() {
+    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+    tptr<T> w = tptr<T>(new T[nfeatures]);
+
+    dt::parallel_for_static(dt_X->nrows, [&](size_t i){
+      hash_row(x, hashers, i);
+      for (size_t k = 0; k < nlabels; ++k) {
+        data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
       }
     });
+  });
 
   // For multinomial case, when there is two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
@@ -552,7 +546,7 @@ void Ftrl<T>::fill_ri_data(const DataTable* dt,
 
 
 /**
- *  Normalize rows in a datatable, so that their values sum up to one.
+ *  Normalize rows in a datatable, so that their values sum up to 1.
  */
 template <typename T>
 void Ftrl<T>::normalize_rows(dtptr& dt) {
@@ -564,16 +558,15 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
     data[j] = static_cast<T*>(dt->columns[j]->data_w());
   }
 
-  dt::parallel_for_static(nrows,
-    [&](size_t i) {
-      T denom = static_cast<T>(0.0);
-      for (size_t j = 0; j < ncols; ++j) {
-        denom += data[j][i];
-      }
-      for (size_t j = 0; j < ncols; ++j) {
-        data[j][i] /= denom;
-      }
-    });
+  dt::parallel_for_static(nrows, [&](size_t i){
+    T sum = static_cast<T>(0.0);
+    for (size_t j = 0; j < ncols; ++j) {
+      sum += data[j][i];
+    }
+    for (size_t j = 0; j < ncols; ++j) {
+      data[j][i] /= sum;
+    }
+  });
 }
 
 
