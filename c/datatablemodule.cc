@@ -30,6 +30,7 @@
 #include "utils/assert.h"
 #include "datatablemodule.h"
 #include "options.h"
+#include "sort.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
 #include "ztest.h"
@@ -216,10 +217,11 @@ static void initialize_options(const py::PKArgs& args) {
   py::oobj options = args[0].to_oobj();
   if (!options) return;
 
-  config::use_options_store(options);
+  dt::use_options_store(options);
   dt::thread_pool::init_options();
   py::Frame::init_names_options();
   GenericReader::init_options();
+  sort_init_options();
 }
 
 
@@ -315,7 +317,6 @@ void py::DatatableModule::init_methods() {
   init_methods_join();
   init_methods_kfold();
   init_methods_nff();
-  init_methods_options();
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();

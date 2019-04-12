@@ -179,7 +179,7 @@ void thread_pool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
   thread_pool::get_instance()->resize(get_hardware_concurrency());
 
-  config::register_option(
+  dt::register_option(
     "nthreads",
 
     /* getter= */[]() -> py::oobj {
@@ -192,7 +192,6 @@ void thread_pool::init_options() {
       if (nth <= 0) nth = 1;
       auto thpool = dt::thread_pool::get_instance();
       thpool->resize(static_cast<size_t>(nth));
-      config::sort_nthreads = nth;
     },
 
     "The number of threads used by datatable internally.\n"

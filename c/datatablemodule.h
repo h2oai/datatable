@@ -39,7 +39,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
     void init_methods_nff();       // datatable_load.cc
-    void init_methods_options();   // options.cc
     void init_methods_rbind();     // frame/rbind.cc
     void init_methods_repeat();    // frame/repeat.cc
     void init_methods_sets();      // set_funcs.cc

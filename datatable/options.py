@@ -183,7 +183,7 @@ class Option:
         self._name = name
         self._default = default
         self._doc = doc
-        core.set_option(name, default)
+        # core.set_option(name, default)
 
     @property
     def name(self):
@@ -198,10 +198,12 @@ class Option:
         return self._doc
 
     def get(self):
-        return core.get_option(self._name)
+        # return core.get_option(self._name)
+        return None
 
     def set(self, x):
-        core.set_option(self._name, x)
+        # core.set_option(self._name, x)
+        pass
 
 
 class Option2:
@@ -248,3 +250,5 @@ class Option2:
 
 options = Config(options={}, prefix="")
 core.initialize_options(options)
+
+options.register_option2("core_logger", default=None, doc="[DEPRECATED]")

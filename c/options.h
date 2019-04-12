@@ -8,27 +8,9 @@
 #ifndef dt_OPTIONS_h
 #define dt_OPTIONS_h
 #include <functional>  // std::function
-#include <string>      // std::string
 #include "python/ext_type.h"
-namespace config {
-
-
-
-extern PyObject* logger;
-extern size_t sort_insert_method_threshold;
-extern size_t sort_thread_multiplier;
-extern size_t sort_max_chunk_length;
-extern uint8_t sort_max_radix_bits;
-extern uint8_t sort_over_radix_bits;
-extern int32_t sort_nthreads;
-
-void set_core_logger(PyObject*);
-void set_sort_insert_method_threshold(int64_t n);
-void set_sort_thread_multiplier(int64_t n);
-void set_sort_max_chunk_length(int64_t n);
-void set_sort_max_radix_bits(int64_t n);
-void set_sort_over_radix_bits(int64_t n);
-void set_sort_nthreads(int32_t n);
+#include "python/obj.h"
+namespace dt {
 
 
 void register_option(const char* name,

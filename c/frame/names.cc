@@ -234,7 +234,7 @@ static int64_t     names_auto_index = 0;
 static std::string names_auto_prefix = "C";
 
 void py::Frame::init_names_options() {
-  config::register_option(
+  dt::register_option(
     "frame.names_auto_index",
     []{ return py::oint(names_auto_index); },
     [](py::oobj value){ names_auto_index = value.to_int64_strict(); },
@@ -244,7 +244,7 @@ void py::Frame::init_names_options() {
     "options.frame.names_auto_index=1 will cause the columns to be\n"
     "named C1, C2, C3, ...");
 
-  config::register_option(
+  dt::register_option(
     "frame.names_auto_prefix",
     []{ return py::ostring(names_auto_prefix); },
     [](py::oobj value){ names_auto_prefix = value.to_string(); },

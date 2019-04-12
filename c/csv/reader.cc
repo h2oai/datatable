@@ -30,13 +30,13 @@ static bool log_anonymize = false;
 static bool log_escape_unicode = false;
 
 void GenericReader::init_options() {
-  config::register_option(
+  dt::register_option(
     "fread.anonymize",
     []{ return py::obool(log_anonymize); },
     [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
     "[DEPRECATED] same as fread.log.anonymize");
 
-  config::register_option(
+  dt::register_option(
     "fread.log.anonymize",
     []{ return py::obool(log_anonymize); },
     [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
@@ -48,7 +48,7 @@ void GenericReader::init_options() {
     "data that must not accidentally leak into log files or be printed\n"
     "with the error messages.");
 
-  config::register_option(
+  dt::register_option(
     "fread.log.escape_unicode",
     []{ return py::obool(log_escape_unicode); },
     [](py::oobj value){ log_escape_unicode = value.to_bool_strict(); },
