@@ -99,11 +99,7 @@ class Config:
             self.register(Config(options=self._options, prefix=prefix + "."))
 
     def register_option(self, name, default, xtype=None, doc=None):
-        opt = Option(name, default, doc)
-        self.register(opt)
-
-    def register_option2(self, name, default, xtype=None, doc=None):
-        opt = Option2(name=name, default=default, doc=doc, xtype=xtype)
+        opt = Option(name=name, default=default, doc=doc, xtype=xtype)
         self.register(opt)
 
     @property
@@ -137,9 +133,6 @@ class Config:
         finally:
             for opt, original_value in previous_settings:
                 opt.set(original_value)
-
-
-
 
 
 
@@ -179,34 +172,6 @@ def _render_options_list(options, prefix, indent):
 #-------------------------------------------------------------------------------
 
 class Option:
-    def __init__(self, name, default, doc):
-        self._name = name
-        self._default = default
-        self._doc = doc
-        # core.set_option(name, default)
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def default(self):
-        return self._default
-
-    @property
-    def doc(self):
-        return self._doc
-
-    def get(self):
-        # return core.get_option(self._name)
-        return None
-
-    def set(self, x):
-        # core.set_option(self._name, x)
-        pass
-
-
-class Option2:
     def __init__(self, name, default, doc, xtype):
         self._name = name
         self._default = default
@@ -251,4 +216,4 @@ class Option2:
 options = Config(options={}, prefix="")
 core.initialize_options(options)
 
-options.register_option2("core_logger", default=None, doc="[DEPRECATED]")
+options.register_option("core_logger", default=None, doc="[DEPRECATED]")

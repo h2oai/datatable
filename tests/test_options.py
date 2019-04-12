@@ -26,7 +26,7 @@ def test_options_all():
 
 
 def test_option_api():
-    dt.options.register_option2(name="fooo", xtype=int, default=13,
+    dt.options.register_option(name="fooo", xtype=int, default=13,
                                 doc="a dozen")
     assert "fooo" in dir(dt.options)
     assert dt.options.fooo == 13
@@ -47,14 +47,14 @@ def test_option_bad():
         noop(dt.options.gooo)
 
     with pytest.raises(TypeError) as e:
-        dt.options.register_option2(name="gooo", xtype=str, default=3, doc="??")
+        dt.options.register_option(name="gooo", xtype=str, default=3, doc="??")
     assert "Default value `3` is not of type str" in str(e.value)
 
     with pytest.raises(ValueError) as e:
-        dt.options.register_option2(name=".hidden", xtype=int, default=0)
+        dt.options.register_option(name=".hidden", xtype=int, default=0)
     assert "Invalid option name `.hidden`" in str(e.value)
 
-    dt.options.register_option2(name="gooo", xtype=int, default=3)
+    dt.options.register_option(name="gooo", xtype=int, default=3)
 
     with pytest.raises(ValueError) as e:
         dt.options.register_option(name="gooo", xtype=int, default=4, doc="???")

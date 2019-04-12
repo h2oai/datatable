@@ -552,14 +552,14 @@ def _float_tail(x):
         return -1
 
 
-options.register_option2(
+options.register_option(
     name="display.interactive_hint",
     default=True,
     xtype=bool,
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
 
-options.register_option2(
+options.register_option(
     name="display.interactive",
     default=False,
     xtype=bool,
