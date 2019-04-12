@@ -325,13 +325,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
 
   std::mutex m;
   size_t iteration_end = 0;
-  size_t nthreads = iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
-  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
+
+  // If we request more threads than is available, `dt::parallel_region()`
+  // will fall back to the possible maximum.
+  size_t nthreads = std::max(iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD, 1lu);
 
   dt::parallel_region(nthreads,
     [&]() {
-      size_t ithread = dt::this_thread_index();
-
       // Each thread gets a private storage for hashes,
       // temporary weights and feature importances.
       uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -394,9 +394,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           loss_global.fetch_add(loss_local);
           barrier();
 
-          if (ithread == 0) {
-            // If loss does not decrease, set loss_old to NaN,
-            // this will stop all the threads.
+          // Thread #0 checks relative loss change and, if it does not decrease
+          // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
+          // all the threads after `barrier()`.
+          if (dt::this_thread_index() == 0) {
             loss = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
             T loss_diff = (loss_old - loss) / loss_old;
             bool is_loss_bad = iter && (loss < T_EPSILON || loss_diff < val_error);

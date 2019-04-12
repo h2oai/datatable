@@ -357,10 +357,11 @@ oobj Ftrl::fit(const PKArgs& args) {
     if (!arg_nepochs_validation.is_none_or_undefined()) {
       nepochs_val = arg_nepochs_validation.to_double();
       py::Validator::check_positive<double>(nepochs_val, arg_nepochs_validation);
-      if (nepochs_val >= dtft->get_nepochs()) {
-        throw ValueError() << "`nepochs_validation` should be less than "
-                           << "`nepochs";
-      }
+      py::Validator::check_less_than_or_equal_to<double>(
+        nepochs_val,
+        dtft->get_nepochs(),
+        arg_nepochs_validation
+      );
     } else nepochs_val = 1;
 
     if (!arg_validation_error.is_none_or_undefined()) {
