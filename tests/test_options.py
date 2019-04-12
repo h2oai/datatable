@@ -66,6 +66,12 @@ def test_option_bad():
             in str(e.value))
 
 
+def test_option_suggest():
+    with pytest.raises(AttributeError) as e:
+        dt.options.fread.log.escapeunicode = False
+    assert ("did you mean `fread.log.escape_unicode`?" in str(e.value))
+
+
 def test_options_many():
     dt.options.register_option("tmp1.alpha", 1, doc="A", xtype=int)
     dt.options.register_option("tmp1.beta",  2, doc="B", xtype=int)
