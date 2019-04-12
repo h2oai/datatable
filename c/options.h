@@ -21,7 +21,6 @@ extern size_t sort_max_chunk_length;
 extern uint8_t sort_max_radix_bits;
 extern uint8_t sort_over_radix_bits;
 extern int32_t sort_nthreads;
-extern bool fread_anonymize;
 
 void set_core_logger(PyObject*);
 void set_sort_insert_method_threshold(int64_t n);
@@ -30,7 +29,6 @@ void set_sort_max_chunk_length(int64_t n);
 void set_sort_max_radix_bits(int64_t n);
 void set_sort_over_radix_bits(int64_t n);
 void set_sort_nthreads(int32_t n);
-void set_fread_anonymize(int8_t v);
 
 
 void register_option(const char* name,
@@ -46,6 +44,7 @@ void use_options_store(py::oobj options);
 // config_option
 //------------------------------------------------------------------------------
 namespace py {
+
 
 struct config_option : public PyObject {
   std::function<oobj()> getter;

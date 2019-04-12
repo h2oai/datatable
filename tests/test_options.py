@@ -22,10 +22,9 @@ def test_options_all():
         "interactive", "interactive_hint"}
     assert set(dir(dt.options.frame)) == {
         "names_auto_index", "names_auto_prefix"}
-    assert set(dir(dt.options.fread)) == {"anonymize"}
+    assert set(dir(dt.options.fread)) == {"anonymize", "log"}
 
 
-# @pytest.mark.skip()
 def test_option_api():
     dt.options.register_option2(name="fooo", xtype=int, default=13,
                                 doc="a dozen")

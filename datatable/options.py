@@ -167,7 +167,7 @@ def _render_options_list(options, prefix, indent):
         out += "%s%s = %r\n" % (indent, opt.name[n:], opt.get())
     for optset, opts in nested_options:
         prefix = optset._prefix
-        out += "%s%s\n" % (indent, prefix)
+        out += "%s%s\n" % (indent, prefix[n:])
         out += _render_options_list(opts, prefix, indent + "    ")
     return out
 

@@ -23,6 +23,45 @@
 
 
 //------------------------------------------------------------------------------
+// options
+//------------------------------------------------------------------------------
+
+static bool log_anonymize = false;
+static bool log_escape_unicode = false;
+
+void GenericReader::init_options() {
+  config::register_option(
+    "fread.anonymize",
+    []{ return py::obool(log_anonymize); },
+    [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
+    "[DEPRECATED] same as fread.log.anonymize");
+
+  config::register_option(
+    "fread.log.anonymize",
+    []{ return py::obool(log_anonymize); },
+    [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
+    "If True, any snippets of data being read that are printed in the\n"
+    "log will be first anonymized by converting all non-0 digits to 1,\n"
+    "all lowercase letters to a, all uppercase letters to A, and all\n"
+    "unicode characters to U.\n"
+    "This option is useful in production systems when reading sensitive\n"
+    "data that must not accidentally leak into log files or be printed\n"
+    "with the error messages.");
+
+  config::register_option(
+    "fread.log.escape_unicode",
+    []{ return py::obool(log_escape_unicode); },
+    [](py::oobj value){ log_escape_unicode = value.to_bool_strict(); },
+    "If True, all unicode characters in the verbose log will be written\n"
+    "in hexadecimal notation. Use this option if your terminal cannot\n"
+    "print unicode, or if the output gets somehow corrupted because of\n"
+    "the unicode characters.");
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
@@ -32,8 +71,6 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  printout_anonymize = config::fread_anonymize;
-  printout_escape_unicode = false;
   freader  = pyrdr;
   src_arg  = pyrdr.get_attr("src");
   file_arg = pyrdr.get_attr("file");
@@ -79,9 +116,7 @@ GenericReader::GenericReader(const GenericReader& g)
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
-  override_column_types   = g.override_column_types;
-  printout_anonymize      = g.printout_anonymize;
-  printout_escape_unicode = g.printout_escape_unicode;
+  override_column_types = g.override_column_types;
   t_open_input = g.t_open_input;
   // Runtime parameters
   input_mbuf = g.input_mbuf;
@@ -449,9 +484,9 @@ const char* GenericReader::repr_binary(
 
     // Normal ASCII characters
     else if (c < 0x80) {
-      *out++ = (printout_anonymize && c >= '1' && c <= '9')? '1' :
-               (printout_anonymize && c >= 'a' && c <= 'z')? 'a' :
-               (printout_anonymize && c >= 'A' && c <= 'Z')? 'A' :
+      *out++ = (log_anonymize && c >= '1' && c <= '9')? '1' :
+               (log_anonymize && c >= 'a' && c <= 'z')? 'a' :
+               (log_anonymize && c >= 'A' && c <= 'Z')? 'A' :
                static_cast<char>(c);
     }
 
@@ -461,9 +496,9 @@ const char* GenericReader::repr_binary(
       size_t cp_bytes = (c < 0xE0)? 2 : (c < 0xF0)? 3 : 4;
       bool cp_valid = (ch + cp_bytes - 2 < endch) &&
                       is_valid_utf8(usrc, cp_bytes);
-      if (!cp_valid || printout_escape_unicode) {
+      if (!cp_valid || log_escape_unicode) {
         print_byte(c, out);
-      } else if (printout_anonymize) {
+      } else if (log_anonymize) {
         *out++ = 'U';
         ch += cp_bytes - 1;
       } else {

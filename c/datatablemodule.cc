@@ -14,6 +14,7 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include <Python.h>
 #include "../datatable/include/datatable.h"
+#include "csv/reader.h"
 #include "expr/base_expr.h"
 #include "expr/by_node.h"
 #include "expr/join_node.h"
@@ -218,6 +219,7 @@ static void initialize_options(const py::PKArgs& args) {
   config::use_options_store(options);
   dt::thread_pool::init_options();
   py::Frame::init_names_options();
+  GenericReader::init_options();
 }
 
 
