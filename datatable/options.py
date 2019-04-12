@@ -59,8 +59,8 @@ class Config:
     def __setattr__(self, key, val):
         opt = self._get_option(key)
         if isinstance(opt, Config):
-            raise TypeError("Cannot set the value of option set `%s`"
-                            % self._prefix)
+            raise TypeError("Cannot assign a value to group of options `%s.*`"
+                            % (self._prefix + key))
         opt.set(val)
 
     def __delattr__(self, key):
@@ -114,9 +114,15 @@ class Config:
         opt = self._get_option(name)
         opt.set(value)
 
-    def reset(self, name):
-        opt = self._get_option(name)
-        opt.set(opt.default)
+    def reset(self, name=None):
+        if name is None:
+            # reset all options
+            for opt in self.__iter__():
+                if not isinstance(opt, Config):
+                    opt.set(opt.default)
+        else:
+            opt = self._get_option(name)
+            opt.set(opt.default)
 
     @contextmanager
     def context(self, **kwargs):
