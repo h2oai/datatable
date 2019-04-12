@@ -99,6 +99,45 @@ def test_options_many_bad():
             in str(e.value))
 
 
+def test_options_context1():
+    with dt.options.context(**{"fread.log.anonymize": True}):
+        assert dt.options.fread.log.anonymize is True
+    assert dt.options.fread.log.anonymize is False
+
+
+def test_options_context2():
+    with dt.options.fread.log.context(escape_unicode=True):
+        assert dt.options.fread.log.escape_unicode is True
+    assert dt.options.fread.log.escape_unicode is False
+
+
+def test_options_context3():
+    # Check that in case of exception the value still gets restored
+    dt.options.register_option("zoonk", 1, xtype=int)
+    try:
+        with dt.options.context(zoonk=100):
+            raise RuntimeError
+    except RuntimeError:
+        pass
+    assert dt.options.zoonk == 1
+
+
+def test_options_context4():
+    # Check that if context requires changing multiple parameters, that all
+    # their values are properly restored in the end, even if there is an
+    # exception during setting one of the parameters
+    dt.options.register_option("tmp1.odyn", 1, xtype=int)
+    dt.options.register_option("tmp1.dwa", 2, xtype=int)
+    try:
+        with dt.options.tmp1.context(odyn=10, dwa=None):
+            assert False, "Should not be able to enter this context"
+    except TypeError:
+        pass
+    assert dt.options.tmp1.odyn == 1
+    assert dt.options.tmp1.dwa == 2
+
+
+
 
 #-------------------------------------------------------------------------------
 # Individual options
