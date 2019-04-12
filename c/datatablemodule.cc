@@ -19,17 +19,17 @@
 #include "expr/join_node.h"
 #include "expr/py_expr.h"
 #include "expr/sort_node.h"
+#include "frame/py_frame.h"
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
-#include "frame/py_frame.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "parallel/api.h"
+#include "utils/assert.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
-#include "utils/assert.h"
 #include "ztest.h"
 
 
@@ -331,6 +331,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
+    py::config_option::Type::init(m);
     py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
