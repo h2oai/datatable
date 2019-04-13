@@ -15,6 +15,8 @@ struct radix_range {
   size_t offset;
 };
 
+// Called during module initialization
+void sort_init_options();
 
 
 /**

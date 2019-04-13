@@ -68,9 +68,6 @@ class GenericReader
     bool    blank_is_na;
     bool    number_is_na;
     bool    override_column_types;
-    bool    printout_anonymize;
-    bool    printout_escape_unicode;
-    size_t : 48;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -146,6 +143,9 @@ class GenericReader
 
     const char* repr_source(const char* ch, size_t limit) const;
     const char* repr_binary(const char* ch, const char* end, size_t limit) const;
+
+    // Called once during module initialization
+    static void init_options();
 
   // Helper functions
   private:

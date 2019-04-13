@@ -105,9 +105,11 @@ void Ftrl::m__init__(PKArgs& args) {
     py::Validator::check_not_negative<double>(ftrl_params.lambda1, py_lambda1);
     py::Validator::check_not_negative<double>(ftrl_params.lambda2, py_lambda2);
     py::Validator::check_not_negative<double>(ftrl_params.nbins, py_nbins);
-    py::Validator::check_less_than_or_equal_to<uint64_t>(mantissa_nbits,
-                                                         dt::Ftrl::DBL_MANT_NBITS,
-                                                         py_negative_class);
+    py::Validator::check_less_than_or_equal_to<uint64_t>(
+      mantissa_nbits,
+      dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
+      py_negative_class
+    );
     ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
 
   } else {
@@ -139,9 +141,11 @@ void Ftrl::m__init__(PKArgs& args) {
 
     if (defined_mantissa_nbits) {
       size_t mantissa_nbits = arg_mantissa_nbits.to_size_t();
-      py::Validator::check_less_than_or_equal_to<uint64_t>(mantissa_nbits,
-                                                           dt::Ftrl::DBL_MANT_NBITS,
-                                                           arg_mantissa_nbits);
+      py::Validator::check_less_than_or_equal_to<uint64_t>(
+        mantissa_nbits,
+        dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
+        arg_mantissa_nbits
+      );
       ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
     }
 
@@ -161,9 +165,9 @@ void Ftrl::m__init__(PKArgs& args) {
   py_interactions = py::None();
 
   if (ftrl_params.double_precision) {
-    dtft = new dt::FtrlReal<double>(ftrl_params);
+    dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
-    dtft = new dt::FtrlReal<float>(ftrl_params);
+    dtft = new dt::Ftrl<float>(ftrl_params);
   }
 }
 
@@ -353,10 +357,11 @@ oobj Ftrl::fit(const PKArgs& args) {
     if (!arg_nepochs_validation.is_none_or_undefined()) {
       nepochs_val = arg_nepochs_validation.to_double();
       py::Validator::check_positive<double>(nepochs_val, arg_nepochs_validation);
-      if (nepochs_val >= dtft->get_nepochs()) {
-        throw ValueError() << "`nepochs_validation` should be less than "
-                           << "`nepochs";
-      }
+      py::Validator::check_less_than_or_equal_to<double>(
+        nepochs_val,
+        dtft->get_nepochs(),
+        arg_nepochs_validation
+      );
     } else nepochs_val = 1;
 
     if (!arg_validation_error.is_none_or_undefined()) {
@@ -785,9 +790,11 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
   }
 
   size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
-  py::Validator::check_less_than_or_equal_to<uint64_t>(mantissa_nbits,
-                                           dt::Ftrl::DBL_MANT_NBITS,
-                                           py_mantissa_nbits);
+  py::Validator::check_less_than_or_equal_to<uint64_t>(
+    mantissa_nbits,
+    dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
+    py_mantissa_nbits
+  );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
 }
 
@@ -1001,9 +1008,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   bool double_precision = params[7].to_bool_strict();
   if (double_precision) {
-    dtft = new dt::FtrlReal<double>(ftrl_params);
+    dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
-    dtft = new dt::FtrlReal<float>(ftrl_params);
+    dtft = new dt::Ftrl<float>(ftrl_params);
   }
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);

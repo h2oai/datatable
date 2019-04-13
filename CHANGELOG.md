@@ -55,6 +55,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `Frame.__str__()` now returns a string containing the preview of the
   frame's data. This allows datatable frames to be used with `print()`.
 
+- Added method `dt.options.describe()`, which will print the available
+  options together with their values and descriptions.
+
+- Added `dt.options.context(option=value)`, which can be used in a with-
+  statement to temporarily change the value of one or more options, and
+  then go back to their original values at the end of the with-block.
+
+- Added options `fread.log.escape_unicode` (controls treatment of unicode
+  characters in fread's verbose log); and `display.use_colors` (allows
+  to turn on/off colored output in the console).
+
+- `dt.options` now helps the user when he/she makes a typo: if an option
+  with a certain name does not exist, the error message will suggest the
+  correct spelling.
+
 
 ### Fixed
 
