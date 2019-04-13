@@ -249,6 +249,83 @@ void swap(rmem& left, rmem& right) noexcept {
 
 
 //------------------------------------------------------------------------------
+// Options
+//------------------------------------------------------------------------------
+
+static size_t sort_insert_method_threshold = 64;
+static size_t sort_thread_multiplier = 2;
+static size_t sort_max_chunk_length = 1 << 20;
+static uint8_t sort_max_radix_bits = 12;
+static uint8_t sort_over_radix_bits = 8;
+static int32_t sort_nthreads = 4;
+
+void sort_init_options() {
+  dt::register_option(
+    "sort.insert_method_threshold",
+    []{ return py::oint(sort_insert_method_threshold); },
+    [](py::oobj value) {
+      int64_t n = value.to_int64_strict();
+      if (n < 0) n = 0;
+      sort_insert_method_threshold = static_cast<size_t>(n);
+    },
+    "Largest n at which sorting will be performed using insert sort\n"
+    "method. This setting also governs the recursive parts of the\n"
+    "radix sort algorithm, when we need to sort smaller sub-parts of\n"
+    "the input.");
+
+  dt::register_option(
+    "sort.thread_multiplier",
+    []{ return py::oint(sort_thread_multiplier); },
+    [](py::oobj value) {
+      int64_t n = value.to_int64_strict();
+      if (n < 1) n = 1;
+      sort_thread_multiplier = static_cast<size_t>(n);
+    }, "");
+
+  dt::register_option(
+    "sort.max_chunk_length",
+    []{ return py::oint(sort_max_chunk_length); },
+    [](py::oobj value) {
+      int64_t n = value.to_int64_strict();
+      if (n < 1) n = 1;
+      sort_max_chunk_length = static_cast<size_t>(n);
+    }, "");
+
+  dt::register_option(
+    "sort.max_radix_bits",
+    []{ return py::oint(sort_max_radix_bits); },
+    [](py::oobj value) {
+      int64_t n = value.to_int64_strict();
+      if (n <= 0)
+        throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
+      sort_max_radix_bits = static_cast<uint8_t>(n);
+    }, "");
+
+  dt::register_option(
+    "sort.over_radix_bits",
+    []{ return py::oint(sort_over_radix_bits); },
+    [](py::oobj value) {
+      int64_t n = value.to_int64_strict();
+      if (n <= 0)
+        throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
+      sort_over_radix_bits = static_cast<uint8_t>(n);
+    }, "");
+
+  dt::register_option(
+    "sort.nthreads",
+    []{ return py::oint(sort_nthreads); },
+    [](py::oobj value) {
+      int32_t nth = value.to_int32_strict();
+      if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
+      if (nth <= 0) nth = 1;
+      sort_over_radix_bits = static_cast<uint8_t>(nth);
+    }, "");
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // SortContext
 //------------------------------------------------------------------------------
 
@@ -400,7 +477,7 @@ class SortContext {
     use_order = false;
     descending = false;
 
-    nth = static_cast<size_t>(config::sort_nthreads);
+    nth = static_cast<size_t>(sort_nthreads);
     n = nrows;
     container_o.ensure_size(n * sizeof(int32_t));
     o = static_cast<int32_t*>(container_o.ptr);
@@ -442,7 +519,7 @@ class SortContext {
     } else {
       _prepare_data_for_column<true>(col);
     }
-    if (n <= config::sort_insert_method_threshold) {
+    if (n <= sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
       } else {
@@ -788,13 +865,13 @@ class SortContext {
    *      nth, nchunks, chunklen, shift, nradixes
    */
   void determine_sorting_parameters() {
-    size_t nch = nth * config::sort_thread_multiplier;
+    size_t nch = nth * sort_thread_multiplier;
     chunklen = std::max((n - 1) / nch + 1,
-                        config::sort_max_chunk_length);
+                        sort_max_chunk_length);
     nchunks = (n - 1)/chunklen + 1;
 
-    uint8_t nradixbits = nsigbits < config::sort_max_radix_bits
-                         ? nsigbits : config::sort_over_radix_bits;
+    uint8_t nradixbits = nsigbits < sort_max_radix_bits
+                         ? nsigbits : sort_over_radix_bits;
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 
@@ -1107,7 +1184,7 @@ class SortContext {
     constexpr size_t GROUPED = size_t(1) << 63;
     size_t size0 = 0;
     size_t nsmallgroups = 0;
-    size_t rrlarge = config::sort_insert_method_threshold;  // for now
+    size_t rrlarge = sort_insert_method_threshold;  // for now
     xassert(GROUPED > rrlarge);
 
     strstart = _strstart + 1;

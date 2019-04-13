@@ -12,22 +12,22 @@ from tests import noop
 
 def test_options_all():
     # Update this test every time a new option is added
-    assert repr(dt.options).startswith("<datatable.options.DtConfig:")
+    assert repr(dt.options).startswith("datatable.options.")
     assert set(dir(dt.options)) == {
         "nthreads", "core_logger", "sort", "display", "frame", "fread"}
     assert set(dir(dt.options.sort)) == {
         "insert_method_threshold", "thread_multiplier", "max_chunk_length",
         "max_radix_bits", "over_radix_bits", "nthreads"}
     assert set(dir(dt.options.display)) == {
-        "interactive", "interactive_hint"}
+        "interactive", "interactive_hint", "use_colors"}
     assert set(dir(dt.options.frame)) == {
         "names_auto_index", "names_auto_prefix"}
-    assert set(dir(dt.options.fread)) == {"anonymize"}
+    assert set(dir(dt.options.fread)) == {"anonymize", "log"}
 
 
-@pytest.mark.skip()
 def test_option_api():
-    dt.options.register_option("fooo", int, 13, "a dozen")
+    dt.options.register_option(name="fooo", xtype=int, default=13,
+                                doc="a dozen")
     assert "fooo" in dir(dt.options)
     assert dt.options.fooo == 13
     assert dt.options.get("fooo") == 13
@@ -46,39 +46,39 @@ def test_option_bad():
     with pytest.raises(AttributeError):
         noop(dt.options.gooo)
 
-    with pytest.raises(ValueError) as e:
-        dt.options.register_option("gooo", str, 3, "??")
+    with pytest.raises(TypeError) as e:
+        dt.options.register_option(name="gooo", xtype=str, default=3, doc="??")
     assert "Default value `3` is not of type str" in str(e.value)
 
     with pytest.raises(ValueError) as e:
-        dt.options.register_option(".hidden", int, 0, "")
+        dt.options.register_option(name=".hidden", xtype=int, default=0)
     assert "Invalid option name `.hidden`" in str(e.value)
 
-    # dt.options.register_option("gooo", int, 3, "???")
+    dt.options.register_option(name="gooo", xtype=int, default=3)
 
-    # with pytest.raises(ValueError) as e:
-    #     dt.options.register_option("gooo", int, 3, "???")
-    # assert "Option `gooo` already registered" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt.options.register_option(name="gooo", xtype=int, default=4, doc="???")
+    assert "Option `gooo` already registered" in str(e.value)
 
-    # with pytest.raises(TypeError) as e:
-    #     dt.options.gooo = 2.5
-    # assert ("Invalid value for option `gooo`: expected type int, got float "
-    #         "instead" in str(e.value))
-
-    # with pytest.raises(ValueError) as e:
-    #     dt.options.register_option("gooo.maxima", int, 0, "")
-    # assert ("Cannot register option `gooo.maxima` because `gooo` is already "
-    #         "registered as an option" in str(e.value))
+    with pytest.raises(TypeError) as e:
+        dt.options.gooo = 2.5
+    assert ("Invalid value for option `gooo`: expected int, instead got float"
+            in str(e.value))
 
 
-@pytest.mark.skip()
+def test_option_suggest():
+    with pytest.raises(AttributeError) as e:
+        dt.options.fread.log.escapeunicode = False
+    assert ("did you mean `fread.log.escape_unicode`?" in str(e.value))
+
+
 def test_options_many():
-    dt.options.register_option("tmp1.alpha", int, 1, "A")
-    dt.options.register_option("tmp1.beta",  int, 2, "B")
-    dt.options.register_option("tmp1.gamma", int, 3, "C")
-    dt.options.register_option("tmp1.delta.x", int, 4, "X")
-    dt.options.register_option("tmp1.delta.y", int, 5, "Y")
-    dt.options.register_option("tmp1.delta.z.zz", int, 6, "Z")
+    dt.options.register_option("tmp1.alpha", 1, doc="A", xtype=int)
+    dt.options.register_option("tmp1.beta",  2, doc="B", xtype=int)
+    dt.options.register_option("tmp1.gamma", 3, doc="C", xtype=int)
+    dt.options.register_option("tmp1.delta.x", 4, doc="X", xtype=int)
+    dt.options.register_option("tmp1.delta.y", 5, doc="Y", xtype=int)
+    dt.options.register_option("tmp1.delta.z.zz", 6, doc="Z", xtype=int)
     for _ in [1, 2]:
         assert dt.options.tmp1.alpha == 1
         assert dt.options.tmp1.beta == 2
@@ -87,24 +87,61 @@ def test_options_many():
         assert dt.options.tmp1.delta.y == 5
         assert dt.options.tmp1.delta.z.zz == 6
         assert set(dir(dt.options.tmp1)) == {"alpha", "beta", "gamma", "delta"}
-        assert set(dt.options.tmp1.get()) == {"tmp1.alpha", "tmp1.beta",
-                                              "tmp1.gamma", "tmp1.delta.x",
-                                              "tmp1.delta.y", "tmp1.delta.z.zz"}
+        assert set(dir(dt.options.tmp1.delta)) == {"x", "y", "z"}
         dt.options.tmp1.delta.x = 0
         dt.options.tmp1.delta.z.zz = 0
-        del dt.options.tmp1
+        dt.options.tmp1.reset()
 
 
-@pytest.mark.skip()
 def test_options_many_bad():
-    dt.options.register_option("tmp2.foo.x", int, 4, "")
-    dt.options.register_option("tmp2.foo.y", int, 5, "")
+    dt.options.register_option("tmp2.foo.x", 4, xtype=int)
+    dt.options.register_option("tmp2.foo.y", 5, xtype=int)
     dt.options.tmp2.foo.x = 8
     assert dt.options.tmp2.foo.x == 8
     assert dt.options.get("tmp2.foo.x") == 8
-    with pytest.raises(AttributeError) as e:
+    with pytest.raises(TypeError) as e:
         dt.options.tmp2.foo = 0
-    assert "Cannot modify group of options `tmp2.foo`" in str(e.value)
+    assert ("Cannot assign a value to group of options `tmp2.foo.*`"
+            in str(e.value))
+
+
+def test_options_context1():
+    with dt.options.context(**{"fread.log.anonymize": True}):
+        assert dt.options.fread.log.anonymize is True
+    assert dt.options.fread.log.anonymize is False
+
+
+def test_options_context2():
+    with dt.options.fread.log.context(escape_unicode=True):
+        assert dt.options.fread.log.escape_unicode is True
+    assert dt.options.fread.log.escape_unicode is False
+
+
+def test_options_context3():
+    # Check that in case of exception the value still gets restored
+    dt.options.register_option("zoonk", 1, xtype=int)
+    try:
+        with dt.options.context(zoonk=100):
+            raise RuntimeError
+    except RuntimeError:
+        pass
+    assert dt.options.zoonk == 1
+
+
+def test_options_context4():
+    # Check that if context requires changing multiple parameters, that all
+    # their values are properly restored in the end, even if there is an
+    # exception during setting one of the parameters
+    dt.options.register_option("tmp1.odyn", 1, xtype=int)
+    dt.options.register_option("tmp1.dwa", 2, xtype=int)
+    try:
+        with dt.options.tmp1.context(odyn=10, dwa=None):
+            assert False, "Should not be able to enter this context"
+    except TypeError:
+        pass
+    assert dt.options.tmp1.odyn == 1
+    assert dt.options.tmp1.dwa == 2
+
 
 
 
@@ -127,30 +164,6 @@ def test_nthreads():
         curr_threads = new_threads
 
     assert dt.options.nthreads == nthreads0
-
-
-
-def test_core_logger():
-    class MyLogger:
-        def __init__(self):
-            self.messages = ""
-        def info(self, msg):
-            self.messages += msg + '\n'
-
-    ml = MyLogger()
-    assert not dt.options.core_logger
-    dt.options.core_logger = ml
-    assert dt.options.core_logger == ml
-    f0 = dt.Frame([1, 2, 3])
-    assert f0.shape == (3, 1)
-    frame_integrity_check(f0)
-    # assert "call DataTable.datatable_from_list(...)" in ml.messages
-    # assert "call DataTable.ncols" in ml.messages
-    # assert "call DataTable.nrows" in ml.messages
-    # assert "call DataTable.check(...)" in ml.messages
-    # assert "done DataTable.check(...) in" in ml.messages
-    del dt.options.core_logger
-    assert not dt.options.core_logger
 
 
 def test_frame_names_auto_index():

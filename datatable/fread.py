@@ -1043,9 +1043,6 @@ class _DefaultLogger:
 _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
-options.register_option(
-    "fread.anonymize", xtype=bool, default=False)
-
 core._register_function(8, fread)
 
 

@@ -4,247 +4,266 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+from contextlib import contextmanager
 from datatable.lib import core
-from datatable.utils.typechecks import (is_type, name_type, TTypeError,
-                                        TValueError)
+from datatable.utils.terminal import term
+from datatable.utils.typechecks import TTypeError, TValueError, name_type
 
-__all__ = ("options", )
+__all__ = ("options", "Option")
 
 
 class DtAttributeError(AttributeError):
-    _handle_ = TTypeError._handle_
-
-class _bool(int):
-    def __str__(self):
-        if self == 1:
-            return "True"
-        if self == 0:
-            return "False"
-
-class _function:
-    def __init__(self, v):
-        self._obj = v
-
-    def __call__(self):
-        self._obj()
-
-    def __repr__(self):
-        return repr(self._obj)
-
-    def __str__(self):
-        return str(self._obj)
-
-    def __eq__(self, other):
-        return self._obj.__eq__(other)
-
-    def __bool__(self):
-        return bool(self._obj)
+    _handle_ = TValueError._handle_
 
 
 
 #-------------------------------------------------------------------------------
-# DtOption
+# Config
 #-------------------------------------------------------------------------------
 
-class DtOption:
+class Config:
     """
-    This is a 'lead node' class in the DtConfig tree of options. However, the
-    objects of this class are not directly returned to the user. Instead, the
-    DtConfig class invokes the following API:
-
-        dt.options.some_option      ->  return some_option.get()
-        dt.options.some_option = v  ->  some_option.set(v)
-        del dt.options.some_option  ->  some_option.reset()
-
-    The reasons why we don't return `some_option` directly to the user are:
-      - the return value must be derived from the appropriate base class,
-        such as `int`, `float`, `str`, so that the user may use the value
-        directly as if it was int / float / string;
-      - at the same time the option must be mutable (i.e. it should be
-        possible to change its value via assignment or a method), and base
-        classes listed above are immutable.
-
-    The value returned by `some_option.get()` is not the base value either: it
-    is additionally equipped with custom docstring.
+    Repository of datatable configuration options.
     """
-    __slots__ = ["_name", "_default", "_klass"]
+    # All options are stored in the dictionary ``self._options``,
+    # where the keys are full option names, and values are the objects
+    # of type ``DtOption`` or similar.
+    #
+    # In addition to each actual option, the ``_options`` dictionary
+    # stores nested ``Config`` objects corresponding to every prefix
+    # of all other options. For example, if the user declares option
+    # ``foo.bar.baz``, then ``Config``s will be created for ``foo.``
+    # and ``foo.bar.``. All these nested config objects share the same
+    # dictionary ``_options`` as their root.
+    #
+    __slots__ = ["_options", "_prefix"]
 
-    def __init__(self, name, xtype, default, doc=None):
-        if xtype == bool:
-            xtype = _bool
-        if xtype == callable:
-            xtype = _function
-        self._name = name
-        self._default = default
-        self._klass = type(xtype.__name__, (xtype,), dict(__doc__=doc))
-        self.set(default)
-
-    def get(self):
-        v = core.get_option(self._name)
-        return self._klass(v)
-
-    def set(self, v):
-        core.set_option(self._name, v)
-
-    def reset(self):
-        self.set(self._default)
-
-
-
-class DtConfig:
-    __slots__ = ["_keyvals", "_prefix"]
-
-    def __init__(self, prefix=""):
-        if prefix:
-            prefix += "."
+    def __init__(self, options, prefix):
         # Use object.__setattr__ instead of our own __setattr__ below; note:
         # __setattr__ is called for all attributes, regardless of whether they
         # exist in __slots__ or not.
-        object.__setattr__(self, "_keyvals", {})
+        object.__setattr__(self, "_options", options)
         object.__setattr__(self, "_prefix", prefix)
 
+    def __repr__(self):
+        options = sorted(self.__iter__(), key=lambda x: x.name)
+        s = "datatable.options.\n"
+        s += _render_options_list(options, self._prefix, "    ")
+        return s
 
     def __getattr__(self, key):
-        if key:
-            opt = self._get_opt(key)
-            if isinstance(opt, DtOption):
-                return opt.get()
-            else:
-                return opt
-        else:
-            res = {}
-            for k, v in self._keyvals.items():
-                if isinstance(v, DtOption):
-                    res[self._prefix + k] = v.get()
-                else:
-                    res.update(v.__getattr__(""))
-            return res
-
+        opt = self._get_option(key)
+        if isinstance(opt, Config):
+            return opt
+        return opt.get()
 
     def __setattr__(self, key, val):
-        opt = self._get_opt(key)
-        if isinstance(opt, DtOption):
-            opt.set(val)
-        else:
-            raise DtAttributeError("Cannot modify group of options `%s`"
-                                   % (self._prefix + key))
-
+        opt = self._get_option(key)
+        if isinstance(opt, Config):
+            raise TypeError("Cannot assign a value to group of options `%s.*`"
+                            % (self._prefix + key))
+        opt.set(val)
 
     def __delattr__(self, key):
-        """Deleting an option resets it to default value."""
-        if key:
-            opt = self._get_opt(key)
-            if isinstance(opt, DtOption):
-                opt.reset()
-            else:
-                opt.__delattr__("")
-        else:
-            for o in self._keyvals.values():
-                if isinstance(o, DtOption):
-                    o.reset()
-                else:
-                    o.__delattr__("")
+        opt = self._get_option(key)
+        opt.set(opt.default)
 
+    def __iter__(self):
+        for key, opt in self._options.items():
+            if key.startswith(self._prefix):
+                yield opt
 
     def __dir__(self):
-        return list(self._keyvals.keys())
+        n = len(self._prefix)
+        return [key[n:] for key, opt in self._options.items()
+                        if key.startswith(self._prefix) and "." not in key[n:]]
 
-    def __repr__(self):
-        return ("<datatable.options.DtConfig: %s>"
-                % ", ".join("%s=%s" % (k, repr(v.get())
-                                       if isinstance(v, DtOption) else "...")
-                            for k, v in self._keyvals.items()))
+    def _get_option(self, key):
+        kkey = self._prefix + key
+        if kkey in self._options:
+            return self._options[kkey]
+        msg = "Unknown datatable option `%s`" % kkey
+        alternatives = core.fuzzy_match(self._options, kkey)
+        if alternatives:
+            msg += "; did you mean %s?" % alternatives
+        raise DtAttributeError(msg)
 
-    def _repr_pretty_(self, p, cycle):
-        with p.indent(4):
-            p.text("dt.options." + self._prefix)
-            p.break_()
-            for k, v in self._keyvals.items():
-                p.text(k)
-                p.text(" = ")
-                if isinstance(v, DtOption):
-                    p.pretty(v.get())
-                else:
-                    p.text("[...]")
-                p.break_()
+    def register(self, opt):
+        fullname = opt.name
+        if fullname.startswith("."):
+            raise TValueError("Invalid option name `%s`" % fullname)
+        if fullname in self._options:
+            raise TValueError("Option `%s` already registered" % fullname)
+        self._options[fullname] = opt
+        prefix = fullname.rsplit('.', 1)[0]
+        if prefix not in self._options:
+            self.register(Config(options=self._options, prefix=prefix + "."))
 
+    def register_option(self, name, default, xtype=None, doc=None,
+                        onchange=None):
+        opt = Option(name=name, default=default, doc=doc, xtype=xtype,
+                     onchange=onchange)
+        self.register(opt)
 
-    def get(self, key=""):
-        return self.__getattr__(key)
+    @property
+    def name(self):
+        return self._prefix[:-1]
 
-    def set(self, key, val):
-        self.__setattr__(key, val)
+    def get(self, name):
+        opt = self._get_option(name)
+        return opt.get()
 
-    def reset(self, key=""):
-        self.__delattr__(key)
+    def set(self, name, value):
+        opt = self._get_option(name)
+        opt.set(value)
 
-
-    def register_option(self, key, xtype, default, doc=None):
-        assert isinstance(key, str)
-        idot = key.find(".")
-        if idot == 0:
-            raise TValueError("Invalid option name `%s`" % key)
-        elif idot > 0:
-            prekey = key[:idot]
-            preval = self._keyvals.get(prekey, None)
-            if preval is None:
-                preval = DtConfig(self._prefix + prekey)
-                self._keyvals[prekey] = preval
-            if isinstance(preval, DtConfig):
-                subkey = key[idot + 1:]
-                preval.register_option(subkey, xtype, default, doc)
-            else:
-                fullkey = self._prefix + key
-                fullprekey = self._prefix + prekey
-                raise TValueError("Cannot register option `%s` because `%s` "
-                                  "is already registered as an option"
-                                  % (fullkey, fullprekey))
-        elif key in self._keyvals:
-            fullkey = self._prefix + key
-            raise TValueError("Option `%s` already registered" % fullkey)
-        elif not (xtype is callable or is_type(default, xtype)):
-            raise TValueError("Default value `%s` is not of type %s"
-                              % (default, name_type(xtype)))
+    def reset(self, name=None):
+        if name is None:
+            # reset all options
+            for opt in self.__iter__():
+                if not isinstance(opt, Config):
+                    opt.set(opt.default)
         else:
-            opt = DtOption(xtype=xtype, default=default, doc=doc,
-                           name=self._prefix + key)
-            self._keyvals[key] = opt
+            opt = self._get_option(name)
+            opt.set(opt.default)
+
+    @contextmanager
+    def context(self, **kwargs):
+        previous_settings = []
+        try:
+            for key, value in kwargs.items():
+                opt = self._get_option(key)
+                original_value = opt.get()
+                opt.set(value)
+                previous_settings.append((opt, original_value))
+
+            yield
+
+        finally:
+            for opt, original_value in previous_settings:
+                opt.set(original_value)
+
+    def describe(self, name=None):
+        if name is None:  # describe all options
+            names = sorted(dir(self))
+        else:
+            opt = self._get_option(name)
+            if isinstance(opt, Config):
+                return opt.describe()
+            names = [name]
+        extras = ""
+        for name in names:
+            opt = self._get_option(name)
+            if isinstance(opt, Config):
+                extras += "%s [...]\n\n" % term.color("bold", opt.name)
+                continue
+            value = opt.get()
+            comment = ("(default)" if value == opt.default else
+                       "(default: %r)" % opt.default)
+            print("%s = %s %s" %
+                  (term.color("bold", opt.name),
+                   term.color("bright_green", repr(value)),
+                   term.color("bright_black", comment)))
+            for line in opt.doc.strip().split("\n"):
+                print("    " + line)
+            print()
+        if extras:
+            print(extras, end="")
 
 
-    def _get_opt(self, key):
-        if key in self._keyvals:
-            return self._keyvals[key]
-
-        idot = key.find(".")
-        if idot >= 0:
-            prefix = key[:idot]
-            if prefix in self._keyvals:
-                subkey = key[idot + 1:]
-                return self._keyvals[prefix].__getattr__(subkey)
-
-        fullkey = self._prefix + key
-        raise DtAttributeError("Unknown datatable option `%s`" % fullkey)
 
 
+
+
+def _render_options_list(options, prefix, indent):
+    simple_options = []
+    nested_options = []
+    skip_prefix = None
+    for opt in options:
+        if skip_prefix:
+            if opt.name.startswith(skip_prefix):
+                nested_options[-1][1].append(opt)
+                continue
+            else:
+                skip_prefix = None
+        if isinstance(opt, Config):
+            nested_options.append((opt, []))
+            skip_prefix = opt._prefix
+        else:
+            simple_options.append(opt)
+
+    n = len(prefix)
+    out = ""
+
+    for opt in simple_options:
+        out += "%s%s = %r\n" % (indent, opt.name[n:], opt.get())
+    for optset, opts in nested_options:
+        prefix = optset._prefix
+        out += "%s%s\n" % (indent, prefix[n:])
+        out += _render_options_list(opts, prefix, indent + "    ")
+    return out
+
+
+
+
+#-------------------------------------------------------------------------------
+# Option
+#-------------------------------------------------------------------------------
+
+class Option:
+    def __init__(self, name, default, doc=None, xtype=None, onchange=None):
+        self._name = name
+        self._default = default
+        self._doc = doc
+        self._value = default
+        self._xtype = xtype
+        self._onchange = onchange
+        if xtype and not isinstance(default, xtype):
+            raise TTypeError("Default value `%r` is not of type %s"
+                             % (default, name_type(xtype)))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def default(self):
+        return self._default
+
+    @property
+    def doc(self):
+        return self._doc
+
+    def get(self):
+        return self._value
+
+    def set(self, x):
+        if self._xtype is not None:
+            if not isinstance(x, self._xtype):
+                raise TTypeError("Invalid value for option `%s`: expected %s, "
+                                 "instead got %s"
+                                 % (self._name, name_type(self._xtype),
+                                    name_type(type(x))))
+        self._value = x
+        if self._onchange is not None:
+            self._onchange(x)
+
+
+
+
+#-------------------------------------------------------------------------------
 # Global options store
-options = DtConfig()
+#-------------------------------------------------------------------------------
 
+options = Config(options={}, prefix="")
+core.initialize_options(options)
+
+options.register_option("core_logger", default=None, doc="[DEPRECATED]")
 
 options.register_option(
-    "nthreads", int, default=0,
-    doc="The number of threads used by datatable internally.\n"
-        "\n"
-        "Many calculations in `datatable` module are parallelized. This \n"
-        "setting controls how many threads will be used during such\n"
-        "calculations.\n"
-        "\n"
-        "Initially, this option is set to the value returned by C++ call\n"
-        "`std::thread::hardware_concurrency()`. This is usually equal to the\n"
-        "number of available cores.\n"
-        "\n"
-        "You can set `nthreads` to a value greater or smaller than the\n"
-        "initial setting. For example, setting `nthreads = 1` will force the\n"
-        "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
-        "restore the initial value equal to the number of processor cores.\n"
-        "Setting `nthreads` to a value less than 0 is equivalent to\n"
-        "requesting that fewer threads than the maximum.\n")
+    "display.use_colors", True, xtype=bool,
+    onchange=term.use_colors,
+    doc="Whether to use colors when printing various messages into the\n"
+        "console. Turn this off if your terminal is unable to display\n"
+        "ANSI escape sequences, or if the colors make output not\n"
+        "legible.")

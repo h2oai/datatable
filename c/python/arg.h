@@ -10,8 +10,9 @@
 #include <string>     // std::string
 #include <vector>     // std::vector
 #include <Python.h>
-#include "python/obj.h"
+#include "python/iter.h"
 #include "python/list.h"
+#include "python/obj.h"
 #include "python/tuple.h"
 
 namespace py {
@@ -74,6 +75,7 @@ class Arg : public _obj::error_manager {
     SType       to_stype              (const error_manager&) const;
     py::oobj    to_oobj               () const { return oobj(pyobj); }
     py::robj    to_pyobj              () const { return pyobj; }
+    py::oiter   to_oiter              () const;
     DataTable*  to_datatable          () const;
 
 

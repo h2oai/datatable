@@ -14,22 +14,25 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include <Python.h>
 #include "../datatable/include/datatable.h"
+#include "csv/reader.h"
 #include "expr/base_expr.h"
 #include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/py_expr.h"
 #include "expr/sort_node.h"
+#include "frame/py_frame.h"
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
-#include "frame/py_frame.h"
+#include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "parallel/api.h"
+#include "utils/assert.h"
 #include "datatablemodule.h"
 #include "options.h"
+#include "sort.h"
 #include "py_encodings.h"
 #include "py_rowindex.h"
-#include "utils/assert.h"
 #include "ztest.h"
 
 
@@ -205,6 +208,26 @@ static void _column_save_to_disk(const py::PKArgs& args) {
 
 
 
+static py::PKArgs args_initialize_options(
+  1, 0, 0, false, false, {"options"}, "initialize_options",
+  "Signal to core C++ datatable to register all internal options\n"
+  "with the provided options manager.");
+
+static void initialize_options(const py::PKArgs& args) {
+  py::oobj options = args[0].to_oobj();
+  if (!options) return;
+
+  dt::use_options_store(options);
+  dt::thread_pool::init_options();
+  py::Frame::init_names_options();
+  GenericReader::init_options();
+  sort_init_options();
+}
+
+
+
+
+
 //------------------------------------------------------------------------------
 // Support memory leak detection
 //------------------------------------------------------------------------------
@@ -284,6 +307,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
+  ADD_FN(&initialize_options, args_initialize_options);
 
   init_methods_aggregate();
   init_methods_buffers();
@@ -293,13 +317,13 @@ void py::DatatableModule::init_methods() {
   init_methods_join();
   init_methods_kfold();
   init_methods_nff();
-  init_methods_options();
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();
   init_methods_str();
 
   init_casts();
+  init_fuzzy();
 
   #ifdef DTTEST
     init_tests();
@@ -330,10 +354,12 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
+    py::config_option::Type::init(m);
     py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);
+
 
   } catch (const std::exception& e) {
     exception_to_python(e);

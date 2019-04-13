@@ -553,10 +553,14 @@ def _float_tail(x):
 
 
 options.register_option(
-    "display.interactive_hint", xtype=bool, default=True,
+    name="display.interactive_hint",
+    default=True,
+    xtype=bool,
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
 
 options.register_option(
-    "display.interactive", xtype=bool, default=False,
+    name="display.interactive",
+    default=False,
+    xtype=bool,
     doc="Show datatable Frame interactively in a Python console.")
