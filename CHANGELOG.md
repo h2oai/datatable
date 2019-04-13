@@ -96,6 +96,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Adjust `dt.options.nthreads` in the child process(es) if different number
   of threads is required.
 
+- The interactive mode is no longer improperly turned on in IPython (#1789).
+
 
 ### Changed
 
@@ -134,9 +136,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  [arno candel][] (#1619, #1730, #1738),
-  [antorsae][] (#1639),
-  [pasha stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
+  - [Arno Candel][] (#1619, #1730, #1738),
+  - [Antorsae][] (#1639),
+  - [NachiGithub][] (#1789),
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
 
 
 
@@ -1057,6 +1060,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
+[nachigithub]: https://github.com/NachiGithub
 [nishant kalonia]: https://github.com/nkalonia1
 [oleksiy kononenko]: https://github.com/oleksiyskononenko
 [olivier]: https://github.com/goldentom42
