@@ -790,9 +790,11 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
   }
 
   size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
-  py::Validator::check_less_than_or_equal_to<uint64_t>(mantissa_nbits,
+  py::Validator::check_less_than_or_equal_to<uint64_t>(
+    mantissa_nbits,
     dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
-    py_mantissa_nbits);
+    py_mantissa_nbits
+  );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
 }
 
