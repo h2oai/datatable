@@ -8,7 +8,7 @@ import time
 
 import datatable
 from datatable.lib._datatable import Frame as coreFrame
-from datatable.options import options, Option
+from datatable.options import options
 from datatable.types import ltype
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
