@@ -24,7 +24,7 @@
 #include "str/py_str.h"
 #include "python/string.h"
 #include "models/dt_ftrl.h"
-#include "models/dt_ftrl_real.h"
+#include "models/dt_ftrl_base.h"
 #include "models/py_validator.h"
 
 namespace py {
@@ -35,7 +35,7 @@ namespace py {
  */
 class Ftrl : public PyObject {
   private:
-    dt::Ftrl* dtft;
+    dt::FtrlBase* dtft;
     py::oobj py_interactions;
     strvec colnames;
 
