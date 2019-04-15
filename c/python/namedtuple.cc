@@ -124,7 +124,7 @@ onamedtuple::onamedtuple(const onamedtupletype& type) {
   if (!v) throw PyError();
 
   // Set the new type and adjust number of references as needed
-  Py_DECREF(Py_TYPE(v));
+  // Py_DECREF(Py_TYPE(v));
   Py_TYPE(v) = type.v;
   Py_INCREF(type.v);
 }

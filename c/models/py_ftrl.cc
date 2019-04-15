@@ -919,7 +919,7 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda1.name,          args_lambda1.doc},
      {args_lambda2.name,          args_lambda2.doc},
      {args_nbins.name,            args_nbins.doc},
-     {args_mantissa_nbits.name,      args_mantissa_nbits.doc},
+     {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
      {args_nepochs.name,          args_nepochs.doc},
      {args_double_precision.name, args_double_precision.doc},
      {args_negative_class.name,   args_negative_class.doc}}
