@@ -35,7 +35,6 @@ PKArgs Ftrl::Type::args___init__(0, 2, 6, false, false,
                                  "lambda2", "nbins", "nepochs",
                                  "double_precision"}, "__init__", nullptr);
 
-
 /*
 *  Ftrl(...)
 *  Initialize Ftrl object with the provided parameters.
@@ -71,6 +70,7 @@ void Ftrl::m__init__(PKArgs& args) {
             << "or `double_precision` to Ftrl constructor, "
             << "but not both at the same time";
     }
+
     py::otuple py_params = arg_params.to_otuple();
     py::oobj py_alpha = py_params.get_attr("alpha");
     py::oobj py_beta = py_params.get_attr("beta");
@@ -228,12 +228,12 @@ epoch returned will be equal to `nepochs`.
 
 
 oobj Ftrl::fit(const PKArgs& args) {
-  const Arg& arg_X_train = args[0];
-  const Arg& arg_y_train = args[1];
-  const Arg& arg_X_validation = args[2];
-  const Arg& arg_y_validation = args[3];
+  const Arg& arg_X_train            = args[0];
+  const Arg& arg_y_train            = args[1];
+  const Arg& arg_X_validation       = args[2];
+  const Arg& arg_y_validation       = args[3];
   const Arg& arg_nepochs_validation = args[4];
-  const Arg& arg_validation_error = args[5];
+  const Arg& arg_validation_error   = args[5];
 
   // Training set handling
   if (arg_X_train.is_undefined()) {
