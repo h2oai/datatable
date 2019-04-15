@@ -32,9 +32,9 @@ namespace py {
 
 PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
                                  {"params", "alpha", "beta", "lambda1",
-                                 "lambda2", "nbins", "mantissa_nbits", "nepochs",
-                                 "double_precision", "negative_class"},
-                                 "__init__", nullptr);
+                                 "lambda2", "nbins", "mantissa_nbits",
+                                 "nepochs", "double_precision",
+                                 "negative_class"}, "__init__", nullptr);
 
 
 /**
@@ -62,7 +62,7 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_lambda1          = !arg_lambda1.is_none_or_undefined();
   bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
   bool defined_nbins            = !arg_nbins.is_none_or_undefined();
-  bool defined_mantissa_nbits      = !arg_mantissa_nbits.is_none_or_undefined();
+  bool defined_mantissa_nbits   = !arg_mantissa_nbits.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
@@ -79,26 +79,26 @@ void Ftrl::m__init__(PKArgs& args) {
         << "but not both at the same time";
     }
 
-    py::otuple py_params = arg_params.to_otuple();
-    py::oobj py_alpha = py_params.get_attr("alpha");
-    py::oobj py_beta = py_params.get_attr("beta");
-    py::oobj py_lambda1 = py_params.get_attr("lambda1");
-    py::oobj py_lambda2 = py_params.get_attr("lambda2");
-    py::oobj py_nbins = py_params.get_attr("nbins");
-    py::oobj py_mantissa_nbits = py_params.get_attr("mantissa_nbits");
-    py::oobj py_nepochs = py_params.get_attr("nepochs");
+    py::otuple py_params         = arg_params.to_otuple();
+    py::oobj py_alpha            = py_params.get_attr("alpha");
+    py::oobj py_beta             = py_params.get_attr("beta");
+    py::oobj py_lambda1          = py_params.get_attr("lambda1");
+    py::oobj py_lambda2          = py_params.get_attr("lambda2");
+    py::oobj py_nbins            = py_params.get_attr("nbins");
+    py::oobj py_mantissa_nbits   = py_params.get_attr("mantissa_nbits");
+    py::oobj py_nepochs          = py_params.get_attr("nepochs");
     py::oobj py_double_precision = py_params.get_attr("double_precision");
-    py::oobj py_negative_class = py_params.get_attr("negative_class");
+    py::oobj py_negative_class   = py_params.get_attr("negative_class");
 
-    ftrl_params.alpha = py_alpha.to_double();
-    ftrl_params.beta = py_beta.to_double();
-    ftrl_params.lambda1 = py_lambda1.to_double();
-    ftrl_params.lambda2 = py_lambda2.to_double();
-    ftrl_params.nbins = static_cast<uint64_t>(py_nbins.to_size_t());
-    size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
-    ftrl_params.nepochs = py_nepochs.to_size_t();
+    ftrl_params.alpha            = py_alpha.to_double();
+    ftrl_params.beta             = py_beta.to_double();
+    ftrl_params.lambda1          = py_lambda1.to_double();
+    ftrl_params.lambda2          = py_lambda2.to_double();
+    ftrl_params.nbins            = static_cast<uint64_t>(py_nbins.to_size_t());
+    size_t mantissa_nbits        = py_mantissa_nbits.to_size_t();
+    ftrl_params.nepochs          = py_nepochs.to_size_t();
     ftrl_params.double_precision = py_double_precision.to_bool_strict();
-    ftrl_params.negative_class = py_negative_class.to_bool_strict();
+    ftrl_params.negative_class   = py_negative_class.to_bool_strict();
 
     py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
     py::Validator::check_not_negative<double>(ftrl_params.beta, py_beta);
@@ -262,12 +262,12 @@ loss. When validation dataset is not provided, `epoch` returned is equal to
 
 
 oobj Ftrl::fit(const PKArgs& args) {
-  const Arg& arg_X_train = args[0];
-  const Arg& arg_y_train = args[1];
-  const Arg& arg_X_validation = args[2];
-  const Arg& arg_y_validation = args[3];
+  const Arg& arg_X_train            = args[0];
+  const Arg& arg_y_train            = args[1];
+  const Arg& arg_X_validation       = args[2];
+  const Arg& arg_y_validation       = args[3];
   const Arg& arg_nepochs_validation = args[4];
-  const Arg& arg_validation_error = args[5];
+  const Arg& arg_validation_error   = args[5];
 
   // Training set handling
   if (arg_X_train.is_undefined()) {
@@ -919,7 +919,7 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_lambda1.name,          args_lambda1.doc},
      {args_lambda2.name,          args_lambda2.doc},
      {args_nbins.name,            args_nbins.doc},
-     {args_mantissa_nbits.name,      args_mantissa_nbits.doc},
+     {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
      {args_nepochs.name,          args_nepochs.doc},
      {args_double_precision.name, args_double_precision.doc},
      {args_negative_class.name,   args_negative_class.doc}}
