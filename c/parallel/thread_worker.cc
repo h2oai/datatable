@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/progress.h"
 #include "parallel/thread_worker.h"
+#include "utils/exceptions.h"
 namespace dt {
 
 
@@ -120,24 +121,34 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
 // Wait until all threads go back to sleep (which would mean the job is done)
 void worker_controller::join(size_t nthreads) {
   progress::work* job = dt::progress::current_progress();
-  sleep_task& st = tsleep[index];
+
+  sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
+  sleep_task& curr_sleep_task = tsleep[index];
+
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
     if (job) {
       try { job->update_progress_bar(); }
-      catch(...) { catch_exception(); }
+      catch(...) {
+        catch_exception();
+        prev_sleep_task.next_scheduler->abort_execution();
+      }
     }
     std::this_thread::yield();
-    std::unique_lock<std::mutex> lock(st.mutex);
-    n_sleeping = st.n_threads_sleeping;
+    std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
+    n_sleeping = curr_sleep_task.n_threads_sleeping;
   }
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
-  tsleep[(index - 1) % N_SLEEP_TASKS].next_scheduler = nullptr;
+  prev_sleep_task.next_scheduler = nullptr;
 
   if (saved_exception) {
-    if (job) job->set_status(progress::Status::ERROR);
+    if (job) {
+      job->set_status(is_keyboard_interrupt_exception()
+                      ? progress::Status::CANCELLED
+                      : progress::Status::ERROR);
+    }
     std::rethrow_exception(saved_exception);
   }
   else {
@@ -159,6 +170,17 @@ void worker_controller::catch_exception() noexcept {
       saved_exception = std::current_exception();
     }
   } catch (...) {}
+}
+
+
+bool worker_controller::is_keyboard_interrupt_exception() noexcept {
+  if (!saved_exception) return false;
+  try {
+    std::rethrow_exception(saved_exception);
+  } catch (PyError& e) {
+    return e.is_keyboard_interrupt();
+  } catch (...) {}
+  return false;
 }
 
 
