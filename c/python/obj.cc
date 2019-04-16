@@ -669,6 +669,10 @@ oobj _obj::invoke(const char* fn, const py::otuple& args) const {
   return oobj::from_new_reference(res);
 }
 
+oobj _obj::invoke(const char* fn, const py::oobj& arg1) const {
+  return invoke(fn, py::otuple(arg1));
+}
+
 
 oobj _obj::invoke(const char* fn, const char* format, ...) const {
   PyObject* callable = nullptr;

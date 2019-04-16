@@ -24,6 +24,7 @@
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
 #include "parallel/api.h"
+#include "parallel/progress.h"
 #include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -219,6 +220,7 @@ static void initialize_options(const py::PKArgs& args) {
 
   dt::use_options_store(options);
   dt::thread_pool::init_options();
+  dt::progress::init_options();
   py::Frame::init_names_options();
   GenericReader::init_options();
   sort_init_options();

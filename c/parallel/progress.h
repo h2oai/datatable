@@ -15,9 +15,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_PROGRESS_h
 #define dt_PARALLEL_PROGRESS_h
+#include <memory>
 namespace dt {
 namespace progress {
 
+
+enum class Status : int8_t {
+  RUNNING = 0,
+  FINISHED = 1,
+  ERROR = 2,
+  CANCELLED = 3,
+};
+
+
+class progress_bar;
 
 class work {
   private:
@@ -26,15 +37,19 @@ class work {
     double subtask_amount;
 
     work* parent;
+    std::unique_ptr<progress_bar> pbar;
     double parent_progress;
     double multiplier;
 
   public:
-    explicit work(double amount, work* parent_work);
+    explicit work(double amount);
     ~work();
 
-    void done(double amount);
+    void set_progress(double p);
+    void set_status(Status s);
     double get_progress() const;
+
+    void update_progress_bar();
 };
 
 
@@ -42,9 +57,11 @@ class task {
   public:
     explicit task(double amount);
     ~task();
-}
+};
 
 
+void init_options();
+work* current_progress();
 
 
 }}  // namespace dt::progress

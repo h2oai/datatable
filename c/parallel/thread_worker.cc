@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "parallel/progress.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 
@@ -118,19 +119,29 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void worker_controller::join(size_t nthreads) {
+  progress::work* job = dt::progress::current_progress();
   sleep_task& st = tsleep[index];
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
+    if (job) {
+      try { job->update_progress_bar(); }
+      catch(...) { catch_exception(); }
+    }
     std::this_thread::yield();
     std::unique_lock<std::mutex> lock(st.mutex);
     n_sleeping = st.n_threads_sleeping;
   }
+
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   tsleep[(index - 1) % N_SLEEP_TASKS].next_scheduler = nullptr;
 
   if (saved_exception) {
+    if (job) job->set_status(progress::Status::ERROR);
     std::rethrow_exception(saved_exception);
+  }
+  else {
+    if (job) job->set_status(progress::Status::FINISHED);
   }
 }
 

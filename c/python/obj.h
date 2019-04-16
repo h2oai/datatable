@@ -135,6 +135,7 @@ class _obj {
     oobj get_iter() const;
     oobj invoke(const char* fn) const;
     oobj invoke(const char* fn, const otuple& args) const;
+    oobj invoke(const char* fn, const oobj& arg1) const;
     oobj invoke(const char* fn, const char* format, ...) const;
     oobj call() const;
     oobj call(otuple args) const;
