@@ -57,7 +57,9 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size, size_t nthreads,
       if (ith == 0) fn(0, nrows);
     }
     else {
-      size_t nth = std::min(num_threads_in_team(), nthreads);
+      size_t nth = num_threads_in_team();
+      // Cannot change numnber of threads, if in a parallel region
+      xassert(nth == nthreads);
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 
