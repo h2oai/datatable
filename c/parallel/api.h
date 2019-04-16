@@ -95,7 +95,7 @@ void barrier();
  */
 template <typename F>
 void parallel_for_static(size_t nrows, F f) {
-  _parallel_for_static(nrows, 4096, dt::num_threads_in_team(),
+  _parallel_for_static(nrows, 4096, dt::num_threads_in_pool(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
@@ -103,7 +103,7 @@ void parallel_for_static(size_t nrows, F f) {
 
 template <typename F>
 void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
-  _parallel_for_static(nrows, chunk_size, dt::num_threads_in_team(),
+  _parallel_for_static(nrows, chunk_size, dt::num_threads_in_pool(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });

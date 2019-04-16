@@ -27,7 +27,6 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size, size_t nthreads,
                           function<void(size_t, size_t)> fn)
 {
   size_t k = std::min(nrows / min_chunk_size, nthreads);
-
   size_t ith = dt::this_thread_index();
 
   // Standard parallel loop
