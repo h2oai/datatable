@@ -627,6 +627,15 @@ oobj _obj::get_attr(const char* attr) const {
   return oobj::from_new_reference(res);
 }
 
+oobj _obj::get_attrx(const char* attr) const {
+  PyObject* res = PyObject_GetAttrString(v, attr);
+  if (!res) {
+    PyErr_Clear();
+    return oobj();
+  }
+  return oobj::from_new_reference(res);
+}
+
 
 bool _obj::has_attr(const char* attr) const {
   return PyObject_HasAttrString(v, attr);

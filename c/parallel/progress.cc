@@ -40,7 +40,18 @@ static bool disabled = false;
 
 static PyObject* status_strings[4];
 
+static bool stdout_is_a_terminal() {
+  py::robj stdout(PySys_GetObject("stdout"));
+  if (stdout.is_none()) return false;
+  py::oobj isatty = stdout.get_attrx("isatty");
+  if (!isatty) return false;
+  py::oobj res = isatty.call();
+  return res.is_bool()? res.to_bool_strict() : false;
+}
+
 void init_options() {
+  disabled = !stdout_is_a_terminal();
+
   dt::register_option(
     "progress.enabled",
     []{ return py::obool(!disabled); },

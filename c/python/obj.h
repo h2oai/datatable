@@ -130,6 +130,7 @@ class _obj {
 
   public:
     oobj get_attr(const char* attr) const;
+    oobj get_attrx(const char* attr) const;
     bool has_attr(const char* attr) const;
     oobj get_item(const py::_obj& key) const;
     oobj get_iter() const;

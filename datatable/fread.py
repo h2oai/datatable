@@ -128,7 +128,7 @@ class GenericReader(object):
         self.header = header
         self.na_strings = na_strings
         self.fill = fill
-        self.show_progress = show_progress
+        self.show_progress = False  # show_progress
         self.skip_to_string = skip_to_string
         self.skip_to_line = skip_to_line
         self.skip_blank_lines = skip_blank_lines
