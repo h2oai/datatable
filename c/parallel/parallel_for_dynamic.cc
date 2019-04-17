@@ -120,6 +120,7 @@ void _parallel_for_dynamic(size_t nrows, size_t nthreads,
   else {
     thread_team* tt = thread_pool::get_team_unchecked();
     size_t tt_size = tt->size();
+    // Cannot change numnber of threads, if in a parallel region
     xassert(nthreads == tt_size);
     auto sch = tt->shared_scheduler<dynamic_scheduler>(tt_size, nrows);
     sch->set_task(fn, ith);
