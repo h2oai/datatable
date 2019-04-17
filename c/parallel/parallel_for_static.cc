@@ -23,11 +23,10 @@ namespace dt {
 // parallel_for_static
 //------------------------------------------------------------------------------
 
-void _parallel_for_static(size_t nrows, size_t min_chunk_size,
+void _parallel_for_static(size_t nrows, size_t min_chunk_size, size_t nthreads,
                           function<void(size_t, size_t)> fn)
 {
-  size_t k = nrows / min_chunk_size;
-
+  size_t k = std::min(nrows / min_chunk_size, nthreads);
   size_t ith = dt::this_thread_index();
 
   // Standard parallel loop
@@ -36,11 +35,11 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
       fn(0, nrows);
     }
     else {
-      size_t nth = num_threads_in_pool();
+      size_t nth = std::min(k, num_threads_in_pool());
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 
-      dt::parallel_region(
+      dt::parallel_region(nth,
         [=] {
           size_t ithread = this_thread_index();
           for (size_t j = ithread; j < nchunks; j += nth) {
@@ -59,6 +58,8 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
     }
     else {
       size_t nth = num_threads_in_team();
+      // Cannot change numnber of threads, if in a parallel region
+      xassert(nth == nthreads);
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 
