@@ -101,7 +101,7 @@ void dynamic_scheduler::abort_execution() {
 // parallel_for_dynamic
 //------------------------------------------------------------------------------
 
-void _parallel_for_dynamic(size_t nrows, size_t nthreads,
+void parallel_for_dynamic(size_t nrows, size_t nthreads,
                            function<void(size_t)> fn)
 {
   size_t ith = dt::this_thread_index();
@@ -130,14 +130,7 @@ void _parallel_for_dynamic(size_t nrows, size_t nthreads,
 
 
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
-  _parallel_for_dynamic(nrows, dt::num_threads_available(), fn);
-}
-
-void parallel_for_dynamic(size_t nrows,
-                          size_t nthreads,
-                          function<void(size_t)> fn)
-{
-  _parallel_for_dynamic(nrows, nthreads, fn);
+  parallel_for_dynamic(nrows, dt::num_threads_available(), fn);
 }
 
 

@@ -23,7 +23,6 @@ using std::size_t;
 // Private
 void _parallel_for_static(size_t, size_t, size_t,
                           function<void(size_t, size_t)>);
-void _parallel_for_dynamic(size_t, size_t, function<void(size_t)>);
 
 
 //------------------------------------------------------------------------------
