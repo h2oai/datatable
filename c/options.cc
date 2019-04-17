@@ -43,6 +43,11 @@ void register_option(const char* name,
 }
 
 
+py::oobj get_option(const char* name) {
+  return dt_options.invoke("get", py::ostring(name));
+}
+
+
 
 }  // namespace dt
 namespace py {

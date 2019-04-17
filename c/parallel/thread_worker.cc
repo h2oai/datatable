@@ -24,10 +24,9 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 /**
- * The worker creates its own thread of execution, and then detaches it. The
- * thread will be executing function `thread_worker::run()` continuously. The
- * only way to shut down the thread is to cause the `run()` function to stop
- * its loop.
+ * The worker creates its own thread of execution. The thread will be executing
+ * function `thread_worker::run()` continuously. The only way to shut down the
+ * thread is to cause the `run()` function to stop its loop.
  */
 thread_worker::thread_worker(size_t i, worker_controller* wc)
   : thread_index(i),

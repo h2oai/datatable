@@ -14,7 +14,14 @@ def test_options_all():
     # Update this test every time a new option is added
     assert repr(dt.options).startswith("datatable.options.")
     assert set(dir(dt.options)) == {
-        "nthreads", "core_logger", "sort", "display", "frame", "fread"}
+        "nthreads",
+        "core_logger",
+        "sort",
+        "display",
+        "frame",
+        "fread",
+        "progress"
+    }
     assert set(dir(dt.options.sort)) == {
         "insert_method_threshold", "thread_multiplier", "max_chunk_length",
         "max_radix_bits", "over_radix_bits", "nthreads"}

@@ -20,6 +20,8 @@ void register_option(const char* name,
 
 void use_options_store(py::oobj options);
 
+py::oobj get_option(const char* name);
+
 
 }
 //------------------------------------------------------------------------------

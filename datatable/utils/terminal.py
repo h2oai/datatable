@@ -16,6 +16,7 @@ __all__ = ("term", "register_onresize")
 _default_palette = {
     "reset": "\x1B[m",
     "bold": "\x1B[1m",
+    "dim": "\x1B[2m",
     "red": "\x1B[31m",
     "green": "\x1B[32m",
     "yellow": "\x1B[33m",
