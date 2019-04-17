@@ -18,7 +18,7 @@ from datatable.lib import core
 from datatable.frame import Frame
 from datatable.options import options
 from datatable.utils.typechecks import (typed, U, TValueError, TTypeError,
-                                        DatatableWarning)
+                                        DatatableWarning, dtwarn)
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
@@ -48,7 +48,6 @@ def fread(
         na_strings: List[str] = None,
         verbose: bool = False,
         fill: bool = False,
-        show_progress: bool = None,
         encoding: str = None,
         skip_to_string: str = None,
         skip_to_line: int = None,
@@ -74,7 +73,7 @@ class GenericReader(object):
     def __init__(self, anysource=None, *, file=None, text=None, url=None,
                  cmd=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
-                 fill=False, show_progress=None, encoding=None, dec=".",
+                 fill=False, encoding=None, dec=".",
                  skip_to_string=None, skip_to_line=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_whitespace=True, quotechar='"', **args):
@@ -93,7 +92,6 @@ class GenericReader(object):
         self._nastrings = []        # type: List[str]
         self._verbose = False       # type: bool
         self._fill = False          # type: bool
-        self._show_progress = True  # type: bool
         self._encoding = encoding   # type: str
         self._quotechar = None      # type: str
         self._skip_to_line = None
@@ -110,8 +108,6 @@ class GenericReader(object):
         self._bar_symbols = None
         self._result = None
 
-        if show_progress is None:
-            show_progress = term.is_a_tty
         if na_strings is None:
             na_strings = ["NA"]
         if "_tempdir" in args:
@@ -128,7 +124,6 @@ class GenericReader(object):
         self.header = header
         self.na_strings = na_strings
         self.fill = fill
-        self.show_progress = False  # show_progress
         self.skip_to_string = skip_to_string
         self.skip_to_line = skip_to_line
         self.skip_blank_lines = skip_blank_lines
@@ -137,14 +132,12 @@ class GenericReader(object):
 
         if "separator" in args:
             self.sep = args.pop("separator")
+        if "show_progress" in args:
+            dtwarn("Parameter `show_progress` is ignored")
+            args.pop("show_progress")
         if "progress_fn" in args:
-            progress = args.pop("progress_fn")
-            if progress is None or callable(progress):
-                self._progress = progress
-            else:
-                raise TTypeError("`progress_fn` argument should be a function")
-        else:
-            self._progress = self._progress_internal
+            dtwarn("Parameter `progress_fn` is ignored")
+            args.pop("progress_fn")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -577,18 +570,6 @@ class GenericReader(object):
 
 
     @property
-    def show_progress(self):
-        return self._show_progress
-
-    @show_progress.setter
-    @typed(show_progress=bool)
-    def show_progress(self, show_progress):
-        self._show_progress = show_progress
-        if show_progress:
-            self._prepare_progress_bar()
-
-
-    @property
     def skip_to_string(self):
         return self._skip_to_string
 
@@ -701,48 +682,6 @@ class GenericReader(object):
 
     #---------------------------------------------------------------------------
 
-    def _progress_internal(self, progress, status):
-        """
-        Invoked from the C level to inform that the file reading progress has
-        reached the specified level (expressed as a number from 0 to 1).
-
-        Parameters
-        ----------
-        progress: float
-            The overall progress in reading the file. This will be the number
-            between 0 and 1.
-
-        status: int
-            Status indicator: 0 = the job is running; 1 = the job finished
-            successfully; 2 = the job finished with an exception; 3 = the job
-            was cancelled by the user (via Ctrl+C or some other mechanism).
-        """
-        line_width = min(80, term.width)
-        if status == 1:
-            print("\r" + " " * line_width, end="\r", flush=True)
-            return
-        bs = self._bar_symbols
-        s0 = "Reading file: "
-        s1 = " %3d%%" % int(100 * progress)
-        bar_width = line_width - len(s0) - len(s1) - 2
-        n_chars = int(progress * bar_width + 0.001)
-        frac_chars = int((progress * bar_width - n_chars) * len(bs))
-        out = bs[-1] * n_chars
-        out += bs[frac_chars - 1] if frac_chars > 0 else ""
-        outlen = len(out)
-        if status == 2:
-            out += term.color("red", "(error)")
-            outlen += 7
-        elif status == 3:
-            out += term.color("yellow", "(cancelled)")
-            outlen += 11
-        out += " " * (bar_width - outlen)
-        endf, endl = self._bar_ends
-        out = "\r" + s0 + endf + out + endl + s1
-        print(term.color("bright_black", out),
-              end=("\n" if status else ""), flush=True)
-
-
     def _get_destination(self, estimated_size):
         """
         Invoked from the C level, this function will return either the name of
@@ -794,27 +733,6 @@ class GenericReader(object):
                            "of memory, and you don't have that much available "
                            "either in RAM or on a hard drive."
                            % humanize_bytes(estimated_size))
-
-
-    def _prepare_progress_bar(self):
-        tty_encoding = term._encoding
-        self._bar_ends = "[]"
-        self._bar_symbols = "#"
-        if not tty_encoding:
-            return
-        s1 = "\u258F\u258E\u258D\u258C\u258B\u258A\u2589\u2588"
-        s2 = "\u258C\u2588"
-        s3 = "\u2588"
-        for s in (s1, s2, s3):
-            try:
-                s.encode(tty_encoding)
-                self._bar_ends = "||"
-                self._bar_symbols = s
-                return
-            except UnicodeEncodeError:
-                pass
-            except LookupError:
-                print("Warning: unknown encoding %s" % tty_encoding)
 
 
     def _clear_temporary_files(self):

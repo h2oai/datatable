@@ -47,6 +47,7 @@ class work {
 
     void set_progress(double p);
     void set_status(Status s);
+    void set_message(std::string message);
     double get_progress() const;
 
     void update_progress_bar();
@@ -62,7 +63,6 @@ class task {
 
 void init_options();
 work* current_progress();
-
 
 }}  // namespace dt::progress
 #endif

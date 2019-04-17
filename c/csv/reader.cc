@@ -86,7 +86,6 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   init_sep();
   init_dec();
   init_quote();
-  init_showprogress();
   init_header();
   init_nastrings();
   init_skipstring();
@@ -112,7 +111,6 @@ GenericReader::GenericReader(const GenericReader& g)
   header           = g.header;
   strip_whitespace = g.strip_whitespace;
   skip_blank_lines = g.skip_blank_lines;
-  report_progress  = g.report_progress;
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
@@ -229,11 +227,6 @@ void GenericReader::init_quote() {
   } else {
     throw ValueError() << "quotechar = (" << ch << ") is not allowed";
   }
-}
-
-void GenericReader::init_showprogress() {
-  report_progress = freader.get_attr("show_progress").to_bool();
-  if (report_progress) trace("show_progress = True");
 }
 
 void GenericReader::init_header() {
@@ -407,10 +400,6 @@ void GenericReader::_message(
       // delayed_warning not implemented yet
     }
   }
-}
-
-void GenericReader::progress(double progress, int statuscode) {
-  freader.invoke("_progress", "(di)", progress, statuscode);
 }
 
 void GenericReader::emit_delayed_messages() {

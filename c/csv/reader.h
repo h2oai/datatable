@@ -63,11 +63,11 @@ class GenericReader
     int8_t  header;
     bool    strip_whitespace;
     bool    skip_blank_lines;
-    bool    report_progress;
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
     bool    override_column_types;
+    int : 8;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -138,7 +138,6 @@ class GenericReader
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;
-    void progress(double progress, int status = 0);
     void emit_delayed_messages();
 
     const char* repr_source(const char* ch, size_t limit) const;
@@ -157,7 +156,6 @@ class GenericReader
     void init_sep();
     void init_dec();
     void init_quote();
-    void init_showprogress();
     void init_header();
     void init_nastrings();
     void init_skipstring();

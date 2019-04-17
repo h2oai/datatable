@@ -34,7 +34,7 @@ static work* current_work = nullptr;
 //------------------------------------------------------------------------------
 
 static double updates_per_second = 25.0;
-static double min_duration = 0.7;
+static double min_duration = 0.5;
 static py::oobj progress_fn = nullptr;
 static bool disabled = false;
 
@@ -156,6 +156,24 @@ class progress_bar {
       status = Status::RUNNING;
     }
 
+    void set_progress(double progress_) {
+      xassert(progress_ >= 0 && progress_ <= 1.0);
+      progress = progress_;
+      _update(false);
+    }
+
+    void set_status(Status status_) {
+      if (status == status_) return;
+      status = status_;
+      _update(true);
+    }
+
+    void set_message(std::string&& msg) {
+      message = std::move(msg);
+      _update(true);
+    }
+
+  private:
     // When determining whether to display progress bar or not, we first
     // estimate the future duration of the task, and then compare it versus the
     // `min_duration` option. However, if the current progress is above 50%,
@@ -172,12 +190,8 @@ class progress_bar {
     // curves are much likelier to intersect at low levels of `progress`, than
     // at high levels.
     //
-    void update_progress(double progress_, Status status_) {
-      xassert(progress_ >= 0 && progress_ <= 1.0);
+    void _update(bool force_render) {
       auto now = std::chrono::steady_clock::now();
-      bool force_render = (status != status_);
-      progress = progress_;
-      status = status_;
 
       if (!visible) {
         auto tpassed = std::chrono::duration_cast<rtime_t>(now - time_start);
@@ -197,7 +211,6 @@ class progress_bar {
       }
     }
 
-  private:
     void _report_to_python() {
       PyObject* status_pyobj = status_strings[static_cast<int>(status)];
       progress_fn.call(py::otuple{ py::ofloat(progress),
@@ -309,9 +322,8 @@ work::~work() {
 
 
 void work::set_progress(double amount) {
-  xassert(amount >= 0);
+  xassert(amount >= 0 && amount <= total_amount);
   done_amount = amount;
-  xassert(done_amount <= total_amount * 1.00001);
 }
 
 
@@ -322,11 +334,17 @@ double work::get_progress() const {
 
 void work::update_progress_bar() {
   if (!pbar) return;
-  pbar->update_progress(get_progress(), Status::RUNNING);
+  pbar->set_progress(get_progress());
 }
 
 void work::set_status(Status s) {
-  if (pbar) pbar->update_progress(get_progress(), s);
+  if (!pbar) return;
+  pbar->set_status(s);
+}
+
+void work::set_message(std::string message) {
+  if (!pbar) return;
+  pbar->set_message(std::move(message));
 }
 
 

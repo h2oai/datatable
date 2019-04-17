@@ -8,6 +8,7 @@
 #include <algorithm>           // std::max
 #include "csv/reader.h"
 #include "parallel/api.h"
+#include "parallel/progress.h"
 #include "read/parallel_reader.h"
 #include "utils/assert.h"
 
@@ -148,25 +149,17 @@ void ParallelReader::read_all()
     g.trace("Actual number of threads: %zu", nthreads);
     determine_chunking_strategy();
   }
+  bool message_set = false;
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
     /* n_threads = */ nthreads,
 
     [&](dt::ordered* o) {
-      // These variables control how the progress bar is shown. `tShowProgress`
-      // is the main flag telling us whether the progress bar should be shown
-      // or not by the current thread (note that only master thread can have
-      // this flag on -- this is because progress-reporting reaches to python
-      // runtime, and we can do that from a single thread only). When
-      // `tShowProgress` is on, the flag `tShowAlways` controls whether we need
-      // to show the progress right away, or wait until time moment `tShowWhen`.
-      // This is needed because we don't want the progress bar for really small
-      // and fast files. However if the file is big enough (>256MB) then it's ok
-      // to show the progress as soon as possible.
-      bool tShowProgress = g.report_progress;
-      bool tShowAlways = tShowProgress && (input_end - input_start > (1 << 28));
-      double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
+      if (!message_set) {
+        dt::progress::current_progress()->set_message("Reading file");
+        message_set = true;
+      }
 
       // Thread-local parse context. This object does most of the parsing job.
       auto tctx = init_thread_context();
@@ -186,10 +179,6 @@ void ParallelReader::read_all()
         [&](size_t i) {
           if (dt::this_thread_index() == 0) {
             g.emit_delayed_messages();
-            if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-              g.progress(work_done_amount());
-              tShowAlways = true;
-            }
           }
 
           txcc = compute_chunk_boundaries(i, tctx);
@@ -230,13 +219,7 @@ void ParallelReader::read_all()
           tctx->push_buffers();
         }
       );  // o->parallel()
-
-      // Report progress one last time
-      if (tShowAlways) {
-        int status = 1;  // + oem.exception_caught() + oem.is_keyboard_interrupt();
-        g.progress(work_done_amount(), status);
-      }
-    });
+    });  // dt::parallel_for_ordered
   g.emit_delayed_messages();
 
   // Reallocate the output to have the correct number of rows
