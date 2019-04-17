@@ -158,6 +158,14 @@ size_t num_threads_in_team() {
   return _instance? _instance->n_threads_in_team() : 0;
 }
 
+size_t num_threads_available() {
+  size_t ith = dt::this_thread_index();
+  if (ith == size_t(-1)) {
+    return dt::num_threads_in_pool();
+  } else {
+    return dt::num_threads_in_team();
+  }
+}
 
 static thread_local size_t thread_index = size_t(-1);
 size_t this_thread_index() {

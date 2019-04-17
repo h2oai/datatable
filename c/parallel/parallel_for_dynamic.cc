@@ -101,15 +101,17 @@ void dynamic_scheduler::abort_execution() {
 // parallel_for_dynamic
 //------------------------------------------------------------------------------
 
-void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
+void _parallel_for_dynamic(size_t nrows, size_t nthreads,
+                           function<void(size_t)> fn)
+{
   size_t ith = dt::this_thread_index();
 
   // Running from the master thread
   if (ith == size_t(-1)) {
     thread_pool* thpool = thread_pool::get_instance_unchecked();
-    size_t nthreads = thpool->size();
-    thread_team tt(nthreads, thpool);
-    dynamic_scheduler sch(nthreads, nrows);
+    size_t tt_size = std::min(nthreads, thpool->size());
+    thread_team tt(tt_size, thpool);
+    dynamic_scheduler sch(tt_size, nrows);
     sch.set_task(fn);
 
     thpool->execute_job(&sch);
@@ -117,10 +119,24 @@ void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
   // Running inside a parallel region
   else {
     thread_team* tt = thread_pool::get_team_unchecked();
-    auto sch = tt->shared_scheduler<dynamic_scheduler>(tt->size(), nrows);
+    size_t tt_size = tt->size();
+    xassert(nthreads == tt_size);
+    auto sch = tt->shared_scheduler<dynamic_scheduler>(tt_size, nrows);
     sch->set_task(fn, ith);
     sch->execute_in_current_thread();
   }
+}
+
+
+void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn) {
+  _parallel_for_dynamic(nrows, dt::num_threads_available(), fn);
+}
+
+void parallel_for_dynamic(size_t nrows,
+                          size_t nthreads,
+                          function<void(size_t)> fn)
+{
+  _parallel_for_dynamic(nrows, nthreads, fn);
 }
 
 

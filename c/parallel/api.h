@@ -23,6 +23,7 @@ using std::size_t;
 // Private
 void _parallel_for_static(size_t, size_t, size_t,
                           function<void(size_t, size_t)>);
+void _parallel_for_dynamic(size_t, size_t, function<void(size_t)>);
 
 
 //------------------------------------------------------------------------------
@@ -50,6 +51,13 @@ size_t num_threads_in_pool();
  * of iterations was small enough that using all of them was deamed suboptimal.
  */
 size_t num_threads_in_team();
+
+
+/**
+ * Return the total number of threads in the thread pool, when called from the
+ * master thread, and the total number of threads in a team, otherwise.
+ */
+size_t num_threads_available();
 
 
 /**
@@ -95,7 +103,7 @@ void barrier();
  */
 template <typename F>
 void parallel_for_static(size_t nrows, F f) {
-  _parallel_for_static(nrows, 4096, dt::num_threads_in_pool(),
+  _parallel_for_static(nrows, 4096, dt::num_threads_available(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
@@ -103,7 +111,7 @@ void parallel_for_static(size_t nrows, F f) {
 
 template <typename F>
 void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
-  _parallel_for_static(nrows, chunk_size, dt::num_threads_in_pool(),
+  _parallel_for_static(nrows, chunk_size, dt::num_threads_available(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
@@ -112,7 +120,8 @@ void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
 
 template <typename F>
 void parallel_for_static(size_t nrows, size_t chunk_size, size_t nthreads,
-                         F f) {
+                         F f)
+{
   _parallel_for_static(nrows, chunk_size, nthreads,
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
@@ -124,6 +133,8 @@ void parallel_for_static(size_t nrows, size_t chunk_size, size_t nthreads,
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
+void parallel_for_dynamic(size_t nrows, size_t nthreads,
+                          function<void(size_t)> fn);
 
 
 
