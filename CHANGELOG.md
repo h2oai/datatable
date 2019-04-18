@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - The interactive mode is no longer improperly turned on in IPython (#1789).
 
 - Fixed issue with mis-aligned frame headers in IPython, caused by IPython
-  inserting "Out[X]:" in front of the rendered Frame display (#1793).
+  inserting `Out[X]:` in front of the rendered Frame display (#1793).
 
 - Improved rendering of Frames in terminals with white background: we no longer
   use 'bright_white' color for emphasis, only 'bold' (#1793).
