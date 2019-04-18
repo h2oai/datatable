@@ -79,6 +79,7 @@ class thread_pool {
     static thread_pool* get_instance_unchecked() noexcept;
     static thread_team* get_team_unchecked() noexcept;
 
+    void instantiate_threads();
     void execute_job(thread_scheduler*);
 
     size_t size() const noexcept;
@@ -95,8 +96,6 @@ class thread_pool {
     thread_pool(const thread_pool&) = delete;
     // Not moveable: workers hold pointers to this->controller.
     thread_pool(thread_pool&&) = delete;
-
-    void resize_impl();
 };
 
 

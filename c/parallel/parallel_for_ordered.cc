@@ -331,6 +331,7 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
 {
   if (!niters) return;
   thread_pool* thpool = thread_pool::get_instance();
+  thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;
