@@ -129,35 +129,33 @@ class progress_bar {
   using rtime_t = std::chrono::duration<double>;  // in seconds
   private:
     py::oobj outfile;
+    dtime_t update_interval;
     ptime_t time_start;
     ptime_t time_next_update;
-    dtime_t update_interval;
     std::string message;
     double progress;  // [0.0 .. 1.0]
     int bar_width;
     bool visible;
+    bool clear_on_success;
     bool use_colors;
     bool use_unicode;
-    bool clear_on_success;
     Status status;
     size_t : 56;
 
   public:
-    progress_bar() {
-      time_start = std::chrono::steady_clock::now();
-      rtime_t delta(1.0/updates_per_second);
-      update_interval = std::chrono::duration_cast<dtime_t>(delta);
-      time_next_update = time_start + update_interval;
-      // PySys_GetObject returns borrowed ref!
-      outfile = py::oobj(PySys_GetObject("stdout"));
-
-      bar_width = 40;
-      visible = false;
-      clear_on_success = true;
-      use_colors = dt::get_option("display.use_colors").to_bool_strict();
-      use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
-      status = Status::RUNNING;
-    }
+    progress_bar()
+      : outfile(PySys_GetObject("stdout")),
+        update_interval(std::chrono::duration_cast<dtime_t>(
+                            rtime_t(1.0/updates_per_second))),
+        time_start(std::chrono::steady_clock::now()),
+        time_next_update(time_start + update_interval),
+        progress(0.0),
+        bar_width(40),
+        visible(false),
+        clear_on_success(true),
+        use_colors(dt::get_option("display.use_colors").to_bool_strict()),
+        use_unicode(dt::get_option("display.allow_unicode").to_bool_strict()),
+        status(Status::RUNNING) {}
 
     void set_progress(double progress_) {
       xassert(progress_ >= 0 && progress_ <= 1.0);
