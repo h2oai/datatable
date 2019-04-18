@@ -54,11 +54,6 @@ class work {
 };
 
 
-class task {
-  public:
-    explicit task(double amount);
-    ~task();
-};
 
 
 void init_options();
