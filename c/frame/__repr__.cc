@@ -64,12 +64,12 @@ static const char* imgv =
     "i6KdW0w8AxFl+XL1lK8wAAAAASUVORK5CYII=');";
 
 static bool in_jupyter() {
-  static bool jup = !(py::oobj::import("datatable")
+  static bool jup = py::oobj::import("datatable")
                       .get_attr("utils")
                       .get_attr("terminal")
                       .get_attr("term")
                       .get_attr("jupyter")
-                      .is_none());
+                      .to_bool_strict();
   return jup;
 }
 
