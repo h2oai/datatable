@@ -20,16 +20,36 @@ def test_options_all():
         "display",
         "frame",
         "fread",
-        "progress"
+        "progress",
     }
     assert set(dir(dt.options.sort)) == {
-        "insert_method_threshold", "thread_multiplier", "max_chunk_length",
-        "max_radix_bits", "over_radix_bits", "nthreads"}
+        "insert_method_threshold",
+        "max_chunk_length",
+        "max_radix_bits",
+        "nthreads",
+        "over_radix_bits",
+        "thread_multiplier",
+    }
     assert set(dir(dt.options.display)) == {
-        "interactive", "interactive_hint", "use_colors"}
+        "allow_unicode",
+        "interactive",
+        "interactive_hint",
+        "use_colors"
+    }
     assert set(dir(dt.options.frame)) == {
-        "names_auto_index", "names_auto_prefix"}
-    assert set(dir(dt.options.fread)) == {"anonymize", "log"}
+        "names_auto_index",
+        "names_auto_prefix",
+    }
+    assert set(dir(dt.options.fread)) == {
+        "anonymize",
+        "log",
+    }
+    assert set(dir(dt.options.progress)) == {
+        "callback",
+        "enabled",
+        "min_duration",
+        "updates_per_second",
+    }
 
 
 def test_option_api():

@@ -137,8 +137,10 @@ class progress_bar {
     int bar_width;
     bool visible;
     bool use_colors;
+    bool use_unicode;
     bool clear_on_success;
     Status status;
+    size_t : 56;
 
   public:
     progress_bar() {
@@ -153,6 +155,7 @@ class progress_bar {
       visible = false;
       clear_on_success = true;
       use_colors = dt::get_option("display.use_colors").to_bool_strict();
+      use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
       status = Status::RUNNING;
     }
 
@@ -222,7 +225,8 @@ class progress_bar {
       std::stringstream out;
       if (visible) out << '\r';
       _render_percentage(out);
-      _render_progressbar_unicode(out);
+      if (use_unicode) _render_progressbar_unicode(out);
+      else             _render_progressbar_ascii(out);
       _render_message(out);
       _print_to_stdout(out);
     }
@@ -251,6 +255,17 @@ class progress_bar {
         out << ' ';
       }
       out << '|';
+      if (use_colors) out << "\x1B[m";
+    }
+
+    void _render_progressbar_ascii(std::stringstream& out) {
+      int n_chars = static_cast<int>(progress * bar_width + 0.001);
+      int i = 0;
+      if (use_colors) out << "\x1B[2m";
+      out << '[';
+      for (; i < n_chars; ++i) out << '#';
+      for (; i < bar_width; ++i) out << ' ';
+      out << ']';
       if (use_colors) out << "\x1B[m";
     }
 
