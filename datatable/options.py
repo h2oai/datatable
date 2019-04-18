@@ -256,14 +256,7 @@ class Option:
 #-------------------------------------------------------------------------------
 
 options = Config(options={}, prefix="")
+term.initialize_options(options)
 core.initialize_options(options)
 
 options.register_option("core_logger", default=None, doc="[DEPRECATED]")
-
-options.register_option(
-    "display.use_colors", True, xtype=bool,
-    onchange=term.use_colors,
-    doc="Whether to use colors when printing various messages into the\n"
-        "console. Turn this off if your terminal is unable to display\n"
-        "ANSI escape sequences, or if the colors make output not\n"
-        "legible.")

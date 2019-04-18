@@ -16,6 +16,7 @@ __all__ = ("term", "register_onresize")
 _default_palette = {
     "reset": "\x1B[m",
     "bold": "\x1B[1m",
+    "dim": "\x1B[2m",
     "red": "\x1B[31m",
     "green": "\x1B[32m",
     "yellow": "\x1B[33m",
@@ -57,10 +58,14 @@ class Terminal:
             for i, ll in enumerate(_lls):
                 _locale.setlocale(i, ll)
 
+            self._allow_unicode = False
             self._enable_keyboard = True
             self._enable_colors = True
             self._enable_terminal_codes = True
             self._encoding = self._blessed_term._encoding
+            enc = self._encoding.upper()
+            if enc == "UTF8" or enc == "UTF-8":
+                self._allow_unicode = True
             self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
             self._width = 0
             self._height = 0
@@ -70,6 +75,7 @@ class Terminal:
             self._enable_colors = False
             self._enable_terminal_codes = False
             self._encoding = "UTF8"
+            self._allow_unicode = True
             self.is_a_tty = False
             self._width = 80
             self._height = 25
@@ -81,6 +87,10 @@ class Terminal:
     @property
     def height(self):
         return self._height or self._blessed_term.height
+
+    @property
+    def is_utf8(self):
+        return self._allow_unicode
 
     def length(self, x):
         return self._blessed_term.length(x)
@@ -122,6 +132,9 @@ class Terminal:
     def use_terminal_codes(self, f):
         self._enable_terminal_codes = f
 
+    def set_allow_unicode(self, v):
+        self._allow_unicode = bool(v)
+
     def color(self, color, text):
         if self._enable_colors:
             return _default_palette[color] + text + "\x1B[m"
@@ -144,6 +157,24 @@ class Terminal:
         with self._blessed_term.cbreak():
             while True:
                 yield self._blessed_term.inkey(timeout=refresh_rate)
+
+    def initialize_options(self, options):
+        options.register_option(
+            "display.use_colors", True, xtype=bool,
+            onchange=self.use_colors,
+            doc="Whether to use colors when printing various messages into\n"
+                "the console. Turn this off if your terminal is unable to\n"
+                "display ANSI escape sequences, or if the colors make output\n"
+                "not legible.")
+        options.register_option(
+            "display.allow_unicode",
+            self.is_utf8,
+            xtype=bool,
+            onchange=self.set_allow_unicode,
+            doc="If True, datatable will allow unicode characters (encoded as\n"
+                "UTF-8) to be printed into the output.\n"
+                "If False, then unicode characters will either be avoided, or\n"
+                "hex-escaped as necessary.")
 
 
 

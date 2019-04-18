@@ -627,6 +627,15 @@ oobj _obj::get_attr(const char* attr) const {
   return oobj::from_new_reference(res);
 }
 
+oobj _obj::get_attrx(const char* attr) const {
+  PyObject* res = PyObject_GetAttrString(v, attr);
+  if (!res) {
+    PyErr_Clear();
+    return oobj();
+  }
+  return oobj::from_new_reference(res);
+}
+
 
 bool _obj::has_attr(const char* attr) const {
   return PyObject_HasAttrString(v, attr);
@@ -667,6 +676,10 @@ oobj _obj::invoke(const char* fn, const py::otuple& args) const {
   PyObject* res = PyObject_CallObject(method.v, args.v);  // new ref
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
+}
+
+oobj _obj::invoke(const char* fn, const py::oobj& arg1) const {
+  return invoke(fn, py::otuple(arg1));
 }
 
 

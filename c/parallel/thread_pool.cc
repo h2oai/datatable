@@ -46,12 +46,14 @@ size_t thread_pool::size() const noexcept {
 
 void thread_pool::resize(size_t n) {
   num_threads_requested = n;
+  // Adjust the actual threads count, but only if the threads were already
+  // instantiated.
   if (!workers.empty()) {
-    resize_impl();
+    instantiate_threads();
   }
 }
 
-void thread_pool::resize_impl() {
+void thread_pool::instantiate_threads() {
   size_t n = num_threads_requested;
   if (workers.size() == n) return;
   if (workers.size() < n) {
@@ -85,7 +87,7 @@ void thread_pool::resize_impl() {
 void thread_pool::execute_job(thread_scheduler* job) {
   xassert(in_master_thread());
   xassert(current_team);
-  if (workers.empty()) resize_impl();
+  if (workers.empty()) instantiate_threads();
   controller.awaken_and_run(job);
   controller.join(workers.size());
   // careful: workers.size() may not be equal to num_threads_requested during

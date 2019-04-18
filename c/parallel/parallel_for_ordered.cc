@@ -18,6 +18,7 @@
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
 #include "parallel/api.h"
+#include "parallel/progress.h"
 #include "parallel/spin_mutex.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
@@ -136,6 +137,8 @@ class ordered_scheduler : public thread_scheduler {
 
     // Runtime
     static constexpr size_t NO_THREAD = size_t(-1);
+    static constexpr size_t INVALID_THREAD = size_t(-2);
+    progress::work work;
     wait_task waittask;
     dt::spin_mutex mutex;  // 1 byte
     size_t : 56;
@@ -160,6 +163,7 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     n_threads(nthreads),
     n_iterations(niters),
     assigned_tasks(nthreads, &waittask),
+    work(niters),
     next_to_start(0),
     next_to_order(0),
     next_to_finish(0),
@@ -177,6 +181,7 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   task->advance_state();
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
+    work.set_progress(next_to_order);
   }
 
   // If `iorder`th frame is ready to be ordered, and no other thread is
@@ -223,8 +228,9 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
 void ordered_scheduler::abort_execution() {
   std::lock_guard<spin_mutex> lock(mutex);
   next_to_start = n_iterations;
-  next_to_order = n_iterations;
+  // next_to_order = n_iterations;
   next_to_finish = n_iterations;
+  ordering_thread_index = INVALID_THREAD;
   tasks[iorder].cancel();
 }
 
@@ -325,6 +331,7 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
 {
   if (!niters) return;
   thread_pool* thpool = thread_pool::get_instance();
+  thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;

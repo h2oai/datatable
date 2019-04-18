@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "parallel/progress.h"
 #include "parallel/thread_worker.h"
+#include "utils/exceptions.h"
 namespace dt {
 
 
@@ -22,10 +24,9 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 /**
- * The worker creates its own thread of execution, and then detaches it. The
- * thread will be executing function `thread_worker::run()` continuously. The
- * only way to shut down the thread is to cause the `run()` function to stop
- * its loop.
+ * The worker creates its own thread of execution. The thread will be executing
+ * function `thread_worker::run()` continuously. The only way to shut down the
+ * thread is to cause the `run()` function to stop its loop.
  */
 thread_worker::thread_worker(size_t i, worker_controller* wc)
   : thread_index(i),
@@ -118,19 +119,39 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void worker_controller::join(size_t nthreads) {
-  sleep_task& st = tsleep[index];
+  progress::work* job = dt::progress::current_progress();
+
+  sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
+  sleep_task& curr_sleep_task = tsleep[index];
+
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
+    if (job) {
+      try { job->update_progress_bar(); }
+      catch(...) {
+        catch_exception();
+        prev_sleep_task.next_scheduler->abort_execution();
+      }
+    }
     std::this_thread::yield();
-    std::unique_lock<std::mutex> lock(st.mutex);
-    n_sleeping = st.n_threads_sleeping;
+    std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
+    n_sleeping = curr_sleep_task.n_threads_sleeping;
   }
+
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
-  tsleep[(index - 1) % N_SLEEP_TASKS].next_scheduler = nullptr;
+  prev_sleep_task.next_scheduler = nullptr;
 
   if (saved_exception) {
+    if (job) {
+      job->set_status(is_keyboard_interrupt_exception()
+                      ? progress::Status::CANCELLED
+                      : progress::Status::ERROR);
+    }
     std::rethrow_exception(saved_exception);
+  }
+  else {
+    if (job) job->set_status(progress::Status::FINISHED);
   }
 }
 
@@ -148,6 +169,17 @@ void worker_controller::catch_exception() noexcept {
       saved_exception = std::current_exception();
     }
   } catch (...) {}
+}
+
+
+bool worker_controller::is_keyboard_interrupt_exception() noexcept {
+  if (!saved_exception) return false;
+  try {
+    std::rethrow_exception(saved_exception);
+  } catch (PyError& e) {
+    return e.is_keyboard_interrupt();
+  } catch (...) {}
+  return false;
 }
 
 
