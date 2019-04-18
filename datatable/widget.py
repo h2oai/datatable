@@ -255,6 +255,15 @@ class DataFrameWidget(object):
                 footer[2] = grey("Go to (row:col): ") + self._jump_string
 
         # Render the table
+        if term.ipython:
+            # In IPython, we insert an extra newline in front, because IPython
+            # prints "Out [3]: " in front of the output value, which causes all
+            # column headers to become misaligned.
+            # Likewise, IPython tends to insert an extra newline at the end of
+            # the output, so we remove our own extra newline.
+            header.insert(0, "")
+            if not footer[2]:
+                footer.pop()
         lines = header + rows + footer
         if to_string:
             return "\n".join(lines)
@@ -478,8 +487,7 @@ class _Column(object):
         if self._width == 0:
             return ""
         else:
-            return (term.color("bright_white", self._format(self._name)) +
-                    self._rmargin)
+            return term.color("bold", self._format(self._name)) + self._rmargin
 
     @property
     def divider(self):

@@ -36,8 +36,7 @@ def start_random_attack(n_attacks=None, maxfail=None):
             if n_errors >= maxfail:
                 raise KeyboardInterrupt
             if skip_successful_seeds:
-                print(term.color("bright_white",
-                        term.color("bold", " Seeds tried: %d" % (i + 1))),
+                print(term.color("bold", " Seeds tried: %d" % (i + 1)),
                       end="\r")
     except KeyboardInterrupt:
         errmsg = "errors: %d" % n_errors

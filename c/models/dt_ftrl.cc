@@ -329,7 +329,6 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // If we request more threads than is available, `dt::parallel_region()`
   // will fall back to the possible maximum.
   size_t nthreads = std::max(iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD, 1lu);
-
   dt::parallel_region(nthreads,
     [&]() {
       // Each thread gets a private storage for hashes,

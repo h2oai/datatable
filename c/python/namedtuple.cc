@@ -123,8 +123,10 @@ onamedtuple::onamedtuple(const onamedtupletype& type) {
   v = PyTuple_New(static_cast<Py_ssize_t>(type.nfields));
   if (!v) throw PyError();
 
-  // Set the new type and adjust number of references as needed
-  Py_DECREF(Py_TYPE(v));
+  // Replace `Py_TYPE(v)`, that is a standard Python tuple,
+  // with `type.v`, that is a named tuple type. Note, that
+  // there is no need to call `Py_DECREF` on `Py_TYPE(v)`,
+  // because tuple is a built-in type.
   Py_TYPE(v) = type.v;
   Py_INCREF(type.v);
 }

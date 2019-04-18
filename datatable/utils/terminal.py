@@ -37,6 +37,8 @@ _default_palette = {
 class Terminal:
 
     def __init__(self):
+        self.jupyter = False
+        self.ipython = False
         if sys.__stdin__ and sys.__stdout__:
             import blessed
             import _locale
@@ -63,7 +65,6 @@ class Terminal:
             self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
             self._width = 0
             self._height = 0
-            self.jupyter = None
             self._check_ipython()
         else:
             self._enable_keyboard = False
@@ -73,7 +74,6 @@ class Terminal:
             self.is_a_tty = False
             self._width = 80
             self._height = 25
-            self.jupyter = None
 
     @property
     def width(self):
@@ -101,13 +101,15 @@ class Terminal:
         # When running inside a Jupyter notebook, IPython and ipykernel will
         # already be preloaded (in sys.modules). We don't want to try to
         # import them, because it adds unnecessary startup delays.
-        if "IPython" in sys.modules and "ipykernel" in sys.modules:
-            IPython = sys.modules["IPython"]
-            ipykernel = sys.modules["ipykernel"]
-            ipy = IPython.get_ipython()
-            if ipy and isinstance(ipy, ipykernel.zmqshell.ZMQInteractiveShell):
+        if "IPython" in sys.modules:
+            ipy = sys.modules["IPython"].get_ipython()
+            ipy_type = str(type(ipy))
+            if "ZMQInteractiveShell" in ipy_type:
                 self._encoding = "UTF8"
-                self.jupyter = ipy
+                self.jupyter = True
+            elif "TerminalInteractiveShell" in ipy_type:
+                self.ipython = True
+
 
     def using_colors(self):
         return self._enable_colors
