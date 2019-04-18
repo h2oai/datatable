@@ -487,8 +487,7 @@ class _Column(object):
         if self._width == 0:
             return ""
         else:
-            return (term.color("bright_white", self._format(self._name)) +
-                    self._rmargin)
+            return term.color("bold", self._format(self._name)) + self._rmargin
 
     @property
     def divider(self):
