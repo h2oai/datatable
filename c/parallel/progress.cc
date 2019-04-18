@@ -150,7 +150,7 @@ class progress_bar {
         time_start(std::chrono::steady_clock::now()),
         time_next_update(time_start + update_interval),
         progress(0.0),
-        bar_width(40),
+        bar_width(50),
         visible(false),
         clear_on_success(true),
         use_colors(dt::get_option("display.use_colors").to_bool_strict()),
