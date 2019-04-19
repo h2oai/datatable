@@ -32,9 +32,15 @@ import time
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Check if we need to run C++ tests
+#-------------------------------------------------------------------------------
+
+cpp_tests_enabled = hasattr(core, "test_coverage")
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
@@ -171,8 +177,7 @@ def test_sizeof():
 
 def test_coverage():
     # Run additional C++ tests that ensure better coverage of underlying classes
-    from datatable.lib import core
-    if hasattr(core, "test_coverage"):
+    if cpp_tests_enabled:
         core.test_coverage()
 
 
@@ -191,44 +196,42 @@ def test_multiprocessing_threadpool():
 
 
 def test_internal_shared_mutex():
-    from datatable.lib import core
-    if hasattr(core, "test_shmutex"):
+    if cpp_tests_enabled:
         core.test_shmutex(500, dt.options.nthreads * 2, 1)
 
 
 def test_internal_shared_bmutex():
-    from datatable.lib import core
-    if hasattr(core, "test_shmutex"):
+    if cpp_tests_enabled:
         core.test_shmutex(1000, dt.options.nthreads * 2, 0)
 
 
 def test_internal_atomic():
-    from datatable.lib import core
-    if hasattr(core, "test_atomic"):
+    if cpp_tests_enabled:
         core.test_atomic()
 
 
 def test_internal_barrier():
-    from datatable.lib import core
-    if hasattr(core, "test_barrier"):
+    if cpp_tests_enabled:
         core.test_barrier(100)
 
 
+def test_internal_parallel_for_static():
+    if cpp_tests_enabled:
+        core.test_parallel_for_static(1000)
+
+
 def test_internal_parallel_for_dynamic():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_dynamic"):
+    if cpp_tests_enabled:
         core.test_parallel_for_dynamic(1000)
 
 
 def test_internal_parallel_for_ordered1():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_ordered"):
+    if cpp_tests_enabled:
         core.test_parallel_for_ordered(17234)
 
 
 def test_internal_parallel_for_ordered2():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_ordered"):
+    if cpp_tests_enabled:
         n0 = dt.options.nthreads
         try:
             dt.options.nthreads = 2
