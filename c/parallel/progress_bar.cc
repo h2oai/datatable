@@ -323,7 +323,7 @@ work::work(double amount) {
     multiplier = 1 / amount;
     parent_progress = 0;
     current_work = this;
-    pbar = std::unique_ptr<progress_bar>(new progress_bar);
+    if (!disabled) pbar = std::unique_ptr<progress_bar>(new progress_bar);
   }
 }
 
