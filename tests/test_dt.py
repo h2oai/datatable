@@ -1154,6 +1154,21 @@ def test_materialize():
     assert frame_column_rowindex(DT, 2) is None
 
 
+def test_materialize_object_col():
+    class A:
+        pass
+
+    DT = dt.Frame([A() for i in range(5)])
+    DT = DT[::-1, :]
+    frame_integrity_check(DT)
+    DT.materialize()
+    frame_integrity_check(DT)
+    assert DT.shape == (5, 1)
+    assert DT.stypes == (dt.obj64,)
+    assert all(isinstance(x, A) and sys.getrefcount(x) > 0
+               for x in DT.to_list()[0])
+
+
 
 
 
