@@ -516,6 +516,8 @@ protected:
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
   void materialize() override;
+  void verify_integrity(const std::string& name) const override;
+
   friend Column;
 };
 

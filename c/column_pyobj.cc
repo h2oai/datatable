@@ -82,17 +82,21 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
 
 
 void PyObjectColumn::materialize() {
-  if (ri.isabsent()) return;
-  FwColumn<PyObject*>::materialize();
+  if (!ri) return;
 
-  // ???
-  // After regular reification, we need to increment ref-counts for each
-  // element in the column, since we created a new independent reference of
-  // each python object.
-  PyObject** data = this->elements_w();
-  for (size_t i = 0; i < nrows; ++i) {
-    Py_INCREF(data[i]);
-  }
+  MemoryRange newmr = MemoryRange::mem(sizeof(PyObject*) * nrows);
+  newmr.set_pyobjects(/* clear_data = */ false);
+
+  auto data_dest = static_cast<PyObject**>(newmr.xptr());
+  auto data_src = elements_r();
+  ri.iterate(0, nrows, 1,
+    [&](size_t i, size_t j) {
+      data_dest[i] = (j == RowIndex::NA)? Py_None : data_src[j];
+      Py_INCREF(data_dest[i]);
+    });
+
+  mbuf = std::move(newmr);
+  ri.clear();
 }
 
 
