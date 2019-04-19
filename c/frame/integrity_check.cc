@@ -270,6 +270,37 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// PyObjColumn
+//------------------------------------------------------------------------------
+
+void PyObjectColumn::verify_integrity(const std::string& name) const {
+  FwColumn<PyObject*>::verify_integrity(name);
+
+  if (!mbuf.is_pyobjects()) {
+    throw AssertionError() << "(object) " << name << "'s internal buffer is "
+        "not marked as containing PyObjects";
+  }
+
+  // Check that all elements are valid pyobjects
+  size_t mbuf_nrows = data_nrows();
+  PyObject* const* vals = elements_r();
+  for (size_t i = 0; i < mbuf_nrows; ++i) {
+    PyObject* val = vals[i];
+    if (val == nullptr) {
+      throw AssertionError() << "Object column " << name << " has NULL value "
+          "in row " << i;
+    }
+    if (Py_REFCNT(val) <= 0) {
+      throw AssertionError()
+          << "Element " << i << " in object column " << name
+          << " has 0 refcount";
+    }
+  }
+}
+
+
 // Explicit instantiation of templates
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;
