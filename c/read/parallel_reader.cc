@@ -205,7 +205,7 @@ void ParallelReader::read_all()
               tctx->used_nrows = nrows_max - nrows_written;
               nrows_new = nrows_max;
               realloc_output_columns(i, nrows_new);
-              o->set_n_iterations(i);
+              o->set_n_iterations(i + 1);
             } else {
               realloc_output_columns(i, nrows_new);
             }
