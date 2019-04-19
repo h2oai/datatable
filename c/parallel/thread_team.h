@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_TEAM_h
 #define dt_PARALLEL_THREAD_TEAM_h
+#include <atomic>
 #include <cstddef>
 #include "parallel/thread_pool.h"
 namespace dt {
