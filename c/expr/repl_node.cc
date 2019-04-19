@@ -101,7 +101,12 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     Column* coli = dtr->columns[rcols == 1? 0 : i];
-    dt0->columns[j]->replace_values(ri0, coli);
+    Column* colj = dt0->columns[j];
+    if (!colj) {
+      colj = Column::new_na_column(coli->stype(), dt0->nrows);
+      dt0->columns[j] = colj;
+    }
+    colj->replace_values(ri0, coli);
   }
 }
 
