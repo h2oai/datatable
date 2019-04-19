@@ -491,3 +491,15 @@ def test_issue1233():
     # which means the re-read has to happen more than once too...
     d0 = dt.fread("NaN\n2\n")
     assert d0.to_list() == [[None, 2.0]]
+
+
+def test_issue1803():
+    ff = find_file("h2o-3", "smalldata", "airlines", "allyears2k.zip")
+    d0 = dt.fread(ff, max_nrows=10000)
+    frame_integrity_check(d0)
+    assert d0.nrows == 10000
+    assert d0[-1, :].to_tuples() == [(1992, 1, 6, 1, 752, 750, 838, 846, 'US',
+                                      53, None, 46, 56, None, -8, 2, 'CMH',
+                                      'IND', 182, None, None, False, None,
+                                      False, None, None, None, None, None,
+                                      'NO', 'YES')]
