@@ -87,6 +87,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed conversion to numpy of a view Frame which contains NAs (#1738).
 
+- Fixed crash when a new column was created via partial assignment, i.e.
+  `DT[i, "new_col"] = expr` (#1800).
+
 
 ### Changed
 

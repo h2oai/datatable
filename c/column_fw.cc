@@ -260,16 +260,24 @@ void FwColumn<T>::replace_values(
   if (replace_with->nrows == 1) {
     auto rcol = dynamic_cast<const FwColumn<T>*>(replace_with);
     xassert(rcol);
-    replace_values(replace_at, rcol->get_elem(0));
+    return replace_values(replace_at, rcol->get_elem(0));
   }
-  else {
-    size_t replace_n = replace_at.size();
-    const T* data_src = static_cast<const T*>(replace_with->data());
-    T* data_dest = elements_w();
-    xassert(replace_with->nrows == replace_n);
+  size_t replace_n = replace_at.size();
+  const T* data_src = static_cast<const T*>(replace_with->data());
+  const RowIndex& rowindex_src = replace_with->rowindex();
+  T* data_dest = elements_w();
+  xassert(replace_with->nrows == replace_n);
+  if (rowindex_src) {
     replace_at.iterate(0, replace_n, 1,
       [&](size_t i, size_t j) {
-        xassert(j != RowIndex::NA);
+        if (j == RowIndex::NA) return;
+        size_t k = rowindex_src[i];
+        data_dest[j] = (k == RowIndex::NA)? GETNA<T>() : data_src[k];
+      });
+  } else {
+    replace_at.iterate(0, replace_n, 1,
+      [&](size_t i, size_t j) {
+        if (j == RowIndex::NA) return;
         data_dest[j] = data_src[i];
       });
   }
