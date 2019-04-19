@@ -86,6 +86,24 @@ def test_assign_to_view():
     assert f0.to_list() == [list(range(10))]
 
 
+def test_assign_to_view2():
+    f0 = dt.Frame(A=range(10))
+    f0[::2, "B"] = 17
+    assert f0.to_list()[1] == [17, None] * 5
+
+
+def test_assign_to_view3():
+    f0 = dt.Frame(A=range(10))
+    f0[::2, "B"] = dt.Frame([5, 7, 9, 2, 1])
+    assert f0.to_list()[1] == [5, None, 7, None, 9, None, 2, None, 1, None]
+
+
+def test_assign_to_view4():
+    f0 = dt.Frame(A=range(10))
+    f0[1::2, "B"] = dt.Frame([3, 4])[[0, 1, 0, 1, 0], :]
+    assert f0.to_list()[1] == [None, 3, None, 4, None, 3, None, 4, None, 3]
+
+
 def test_assign_frame():
     f0 = dt.Frame({"A": range(10)})
     f1 = dt.Frame([i / 2 for i in range(100)])

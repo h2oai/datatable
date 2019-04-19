@@ -264,3 +264,15 @@ def test_issue1556():
     assert R.shape == (2, 2)
     assert R.to_dict() == {"A": ["Ahoy ye matey!", "hey"],
                            "B": [None, "Avast"]}
+
+
+def test_issue1800():
+    X1 = dt.Frame(A=range(5), B=[0.1, 0.2, 0.3, 0.4, 0.5])
+    X1.key = "A"
+    X2 = dt.Frame(A=[0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
+    joined = X2[:, :, dt.join(X1)]
+    idx = dt.Frame([True] * X2.nrows)
+    X2[idx, "N"] = joined[idx, "B"]
+    assert X2.to_dict() == {"A": [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
+                            "N": [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4,
+                                  0.5, 0.5, None, None]}
