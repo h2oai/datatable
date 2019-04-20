@@ -22,7 +22,6 @@
 #include "utils/assert.h"
 #include "utils/function.h"
 #include "utils/macros.h"          // cache_aligned
-#include <iostream>
 namespace dt {
 
 
