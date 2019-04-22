@@ -436,25 +436,24 @@ def get_extra_compile_flags():
         flags += ["-fPIC"]
 
         if "DTDEBUG" in os.environ:
-            flags += ["-g", "-ggdb", "-O0"]
-            flags += ["-DDTTEST"]
+            flags += ["-g3", "-ggdb", "-O0"]
+            flags += ["-DDTTEST", "-DDTDEBUG"]
         elif "DTASAN" in os.environ:
-            flags += ["-g", "-ggdb", "-O0",
+            flags += ["-g3", "-ggdb", "-O0",
+                      "-DDTDEBUG",
                       "-fsanitize=address",
                       "-fno-omit-frame-pointer",
                       "-fsanitize-address-use-after-scope",
                       "-shared-libasan"]
         elif "DTCOVERAGE" in os.environ:
-            flags += ["-g", "--coverage", "-O0"]
-            flags += ["-DDTTEST"]
+            flags += ["-g2", "--coverage", "-O0"]
+            flags += ["-DDTTEST", "-DDTDEBUG"]
         else:
-            flags += ["-O3", "-g0"]
+            # Optimize at best level, but still include some debug information
+            flags += ["-g2", "-O3"]
 
         if "CI_EXTRA_COMPILE_ARGS" in os.environ:
             flags += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
-
-        if "-O0" in flags:
-            flags += ["-DDTDEBUG"]
 
         if iswindows():
             flags += ["/W4"]
@@ -530,15 +529,9 @@ def get_extra_link_args():
     with TaskContext("Determine the extra linker flags") as log:
         flags += ["-Wl,-rpath,%s" % get_rpath()]
 
-        # Omit all symbol information from the output
-        # ld warns that this option is obsolete and is ignored. However with
-        # this option the size of the executable is ~25% smaller...
-        if "DTDEBUG" not in os.environ:
-            flags += ["-s"]
-
         if islinux() and is_clang():
             # On linux we need to pass -shared flag to clang linker which
-            # is not used for some reason at linux
+            # is not used for some reason
             flags += ["-lc++", "-shared"]
         if is_gcc():
             flags += ["-lstdc++"]
