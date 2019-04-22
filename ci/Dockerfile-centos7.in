@@ -12,7 +12,7 @@ RUN \
         wget \
         bzip2 && \
     wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
-    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
+    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python
 
 
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
