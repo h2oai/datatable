@@ -42,8 +42,8 @@ RSA_CRED_ID = 'master-id-rsa'
 X86_64_CENTOS_DOCKER_IMAGE_NAME = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7"
 EXPECTED_SHAS = [
     files: [
-        'ci/Dockerfile-centos7.in': '4ca4e09a511e0d8af723f2b2222fc818117e0c15',
-        'ci/Dockerfile-ubuntu.in': '801cf7132572c9fea31ebcf7b01d86ad76d24873',
+        'ci/Dockerfile-centos7.in': 'ef6d029c7bae9786f89b9c9a5a9526dafdffc9ee',
+        'ci/Dockerfile-ubuntu.in': '8dbbd6afe03062befa391c20be95daf58caee4ac',
     ]
 ]
 
