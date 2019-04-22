@@ -18,7 +18,7 @@
 #include <string>      // std::string
 #include <Python.h>
 #include "models/py_validator.h"
-#include "parallel/progress.h"
+#include "progress/all.h"
 #include "python/_all.h"          // py::oobj, py::ofloat
 #include "python/string.h"        // py::ostring
 #include "options.h"              // dt::register_option
@@ -134,6 +134,7 @@ class progress_bar {
     ptime_t time_next_update;
     std::string message;
     double progress;  // [0.0 .. 1.0]
+    double tentative_progress; // [progress .. 1.0]
     int bar_width;
     bool visible;
     bool clear_on_success;
@@ -150,6 +151,7 @@ class progress_bar {
         time_start(std::chrono::steady_clock::now()),
         time_next_update(time_start + update_interval),
         progress(0.0),
+        tentative_progress(0.0),
         bar_width(50),
         visible(false),
         clear_on_success(true),
@@ -303,50 +305,6 @@ class progress_bar {
       outfile.invoke("flush");
     }
 };
-
-
-
-//------------------------------------------------------------------------------
-// progress manager
-//------------------------------------------------------------------------------
-
-class progress_manager {
-  private:
-    progress_bar* pb;
-    std::stack<work> tasks;
-
-  public:
-    progress_manager();
-
-    void start_work(work* task);
-    void finish_work(work* task);
-};
-
-static progress_manager pm_instance;
-
-
-progress_manager::progress_manager()
-  : pb(nullptr) {}
-
-void progress_manager::start_work(work* task) {
-  xassert((pb == nullptr) == tasks.empty());
-  if (pb) {
-    work* previous_work = tasks.top();
-    previous_work->subtask(task);
-  } else {
-    pb = new progress_bar;
-  }
-  tasks.push(task);
-}
-
-void progress_manager::finish_work(work* task) {
-  xassert(!tasks.empty() && tasks.top() == task);
-  tasks.pop();
-  if (tasks.empty()) {
-    delete pb;
-    pb = nullptr;
-  }
-}
 
 
 
