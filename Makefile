@@ -245,7 +245,7 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.8.0-PR-1810.3
+DOCKER_IMAGE_TAG ?= 0.8.0-master.222
 CENTOS_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
