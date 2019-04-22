@@ -32,32 +32,48 @@ class progress_bar;
 
 class work {
   private:
-    double total_amount;
-    double done_amount;
-    double subtask_amount;
-
-    work* parent;
-    std::unique_ptr<progress_bar> pbar;
-    double parent_progress;
-    double multiplier;
+    size_t total_amount;
+    size_t done_amount;
+    size_t tentative_amount;
+    double pmin, pmax;
+    // borrowed ref, lifetime guaranteed by `progress_manager` holding a
+    // reference to this class
+    progress_bar* pbar;
 
   public:
-    explicit work(double amount);
+    explicit work(size_t amount);
     ~work();
 
-    void set_progress(double p);
+    void add_work(size_t amount);
+    void start_task(size_t amount);
+
+    void set_progress(size_t amount);
+    void add_progress(size_t amount);
     void set_status(Status s);
     void set_message(std::string message);
-    double get_progress() const;
+    size_t get_progress() const;
 
-    void update_progress_bar();
+  private:
+    void update_progress_bar() const;
 };
 
 
+class subtask {
+  private:
+    work& parent;
+    size_t work_amount;
+
+  public:
+    subtask(work& w, size_t amount) : parent(w), work_amount(amount) {
+      parent.start_task(work_amount);
+    }
+    ~subtask() {
+      parent.add_progress(work_amount);
+    }
+};
 
 
 void init_options();
-work* current_progress();
 
 }}  // namespace dt::progress
 #endif

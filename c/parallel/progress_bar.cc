@@ -307,63 +307,125 @@ class progress_bar {
 
 
 //------------------------------------------------------------------------------
-// work
+// progress manager
 //------------------------------------------------------------------------------
 
-work::work(double amount) {
-  xassert(amount > 0);
-  total_amount = amount;
-  done_amount = 0;
-  subtask_amount = 0;
-  parent = current_work;
-  if (parent) {
-    multiplier = parent->multiplier * parent->subtask_amount / amount;
-    parent_progress = parent->get_progress();
+class progress_manager {
+  private:
+    progress_bar* pb;
+    std::stack<work> tasks;
+
+  public:
+    progress_manager();
+
+    void start_work(work* task);
+    void finish_work(work* task);
+};
+
+static progress_manager pm_instance;
+
+
+progress_manager::progress_manager()
+  : pb(nullptr) {}
+
+void progress_manager::start_work(work* task) {
+  xassert((pb == nullptr) == tasks.empty());
+  if (pb) {
+    work* previous_work = tasks.top();
+    previous_work->subtask(task);
   } else {
-    multiplier = 1 / amount;
-    parent_progress = 0;
-    current_work = this;
-    if (!disabled) pbar = std::unique_ptr<progress_bar>(new progress_bar);
+    pb = new progress_bar;
+  }
+  tasks.push(task);
+}
+
+void progress_manager::finish_work(work* task) {
+  xassert(!tasks.empty() && tasks.top() == task);
+  tasks.pop();
+  if (tasks.empty()) {
+    delete pb;
+    pb = nullptr;
   }
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// work
+//------------------------------------------------------------------------------
+
+work::work(size_t amount)
+  : total_amount(amount),
+    done_amount(0),
+    tentative_amount(0),
+    pmin(0.0),
+    pmax(1.0),
+    pbar(nullptr)
+{
+  pm_instance.start_work(this);
+  // if (parent) {
+  //   multiplier = parent->multiplier * parent->subtask_amount / amount;
+  //   parent_progress = parent->get_progress();
+  // } else {
+  //   multiplier = 1 / amount;
+  //   parent_progress = 0;
+  //   current_work = this;
+  //   if (!disabled) pbar = std::unique_ptr<progress_bar>(new progress_bar);
+  // }
+}
+
 work::~work() {
-  // if (parent) parent->done();  // ?
-  if (current_work == this) current_work = nullptr;
+  pm_instance.finish_work(this);
 }
 
 
-void work::set_progress(double amount) {
-  xassert(amount >= 0 && amount <= total_amount);
+void work::add_work(size_t amount) {
+  total_amount += amount;
+  tentative_amount = amount;
+  update_progress_bar();
+}
+
+void work::start_task(size_t amount) {
+  tentative_amount = amount;
+  update_progress_bar();
+}
+
+
+void work::set_progress(size_t amount) {
   done_amount = amount;
+  tentative_amount = 0;
+  update_progress_bar();
 }
 
-
-double work::get_progress() const {
-  return parent_progress + done_amount * multiplier;
+void work::add_progress(size_t amount) {
+  done_amount += amount;
+  tentative_amount = 0;
+  update_progress_bar();
 }
 
-
-void work::update_progress_bar() {
-  if (!pbar) return;
-  pbar->set_progress(get_progress());
+size_t work::get_progress() const {
+  return done_amount;
 }
 
 void work::set_status(Status s) {
-  if (!pbar) return;
+  xassert(pbar);
   pbar->set_status(s);
 }
 
 void work::set_message(std::string message) {
-  if (!pbar) return;
+  xassert(pbar);
   pbar->set_message(std::move(message));
 }
 
 
-
-work* current_progress() {
-  return current_work;
+void work::update_progress_bar() const {
+  xassert(amount + tentative_amount <= total_amount);
+  xassert(pbar);
+  double progress1 = 1.0 * done_amount / total_amount;
+  double progress2 = 1.0 * (done_amount + tentative_amount) / total_amount;
+  pbar->set_progress(pmin + (pmax - pmin) * progress1,
+                     pmin + (pmax - pmin) * progress2);
 }
 
 
