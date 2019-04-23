@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/progress.h"
 #include "parallel/thread_worker.h"
+#include "progress/manager.h"   // dt::progress::manager
 #include "utils/exceptions.h"
 namespace dt {
 
@@ -127,8 +128,9 @@ void worker_controller::join(size_t nthreads) {
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
     if (job) {
-      try { job->update_progress_bar(); }
-      catch(...) {
+      try {
+        dt::progress::manager.update_view();
+      } catch(...) {
         catch_exception();
         prev_sleep_task.next_scheduler->abort_execution();
       }

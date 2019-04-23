@@ -13,49 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
-#include "progress/manager.h"
-#include "utils/assert.h"
+#ifndef dt_PROGRESS_PROGRESSBAR_h
+#define dt_PROGRESS_PROGRESSBAR_h
+#include <memory>
+#include "progress/common.h"
 namespace dt {
 namespace progress {
 
 
-// Static instance
-progress_manager manager;
-
-progress_manager::progress_manager()
-  : pbar(nullptr) {}
-
-
-void progress_manager::start_work(work* task) {
-  if (tasks.empty()) {
-    xassert(pbar == nullptr);
-    pbar = new progress_bar;
-    task->init(pbar, nullptr);
-  } else {
-    work* previous_work = tasks.top();
-    previous_work->subtask(task);
-  }
-  tasks.push(task);
-}
-
-
-void progress_manager::finish_work(work* task) {
-  xassert(!tasks.empty() && tasks.top() == task);
-  tasks.pop();
-  if (tasks.empty()) {
-    delete pbar;
-    pbar = nullptr;
-  }
-}
-
-
-void progress_manager::update_view() {
-  xassert(dt::this_thread_index() == size_t(-1));
-  if (pbar) {
-    pbar->refresh();
-  }
-}
 
 
 }} // namespace dt::progress
+#endif

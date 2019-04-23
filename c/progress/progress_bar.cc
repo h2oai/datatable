@@ -18,10 +18,10 @@
 #include <string>      // std::string
 #include <Python.h>
 #include "models/py_validator.h"
-#include "progress/all.h"
-#include "python/_all.h"          // py::oobj, py::ofloat
-#include "python/string.h"        // py::ostring
-#include "options.h"              // dt::register_option
+#include "progress/progress_bar.h"
+#include "python/_all.h"            // py::oobj, py::ofloat
+#include "python/string.h"          // py::ostring
+#include "options.h"                // dt::register_option
 namespace dt {
 namespace progress {
 
@@ -313,78 +313,6 @@ class progress_bar {
 // work
 //------------------------------------------------------------------------------
 
-work::work(size_t amount)
-  : total_amount(amount),
-    done_amount(0),
-    tentative_amount(0),
-    pmin(0.0),
-    pmax(1.0),
-    pbar(nullptr)
-{
-  pm_instance.start_work(this);
-  // if (parent) {
-  //   multiplier = parent->multiplier * parent->subtask_amount / amount;
-  //   parent_progress = parent->get_progress();
-  // } else {
-  //   multiplier = 1 / amount;
-  //   parent_progress = 0;
-  //   current_work = this;
-  //   if (!disabled) pbar = std::unique_ptr<progress_bar>(new progress_bar);
-  // }
-}
-
-work::~work() {
-  pm_instance.finish_work(this);
-}
-
-
-void work::add_work(size_t amount) {
-  total_amount += amount;
-  tentative_amount = amount;
-  update_progress_bar();
-}
-
-void work::start_task(size_t amount) {
-  tentative_amount = amount;
-  update_progress_bar();
-}
-
-
-void work::set_progress(size_t amount) {
-  done_amount = amount;
-  tentative_amount = 0;
-  update_progress_bar();
-}
-
-void work::add_progress(size_t amount) {
-  done_amount += amount;
-  tentative_amount = 0;
-  update_progress_bar();
-}
-
-size_t work::get_progress() const {
-  return done_amount;
-}
-
-void work::set_status(Status s) {
-  xassert(pbar);
-  pbar->set_status(s);
-}
-
-void work::set_message(std::string message) {
-  xassert(pbar);
-  pbar->set_message(std::move(message));
-}
-
-
-void work::update_progress_bar() const {
-  xassert(amount + tentative_amount <= total_amount);
-  xassert(pbar);
-  double progress1 = 1.0 * done_amount / total_amount;
-  double progress2 = 1.0 * (done_amount + tentative_amount) / total_amount;
-  pbar->set_progress(pmin + (pmax - pmin) * progress1,
-                     pmin + (pmax - pmin) * progress2);
-}
 
 
 

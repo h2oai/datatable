@@ -13,22 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_PROGRESS_h
-#define dt_PARALLEL_PROGRESS_h
-#include <memory>
+#ifndef dt_PROGRESS_WORK_h
+#define dt_PROGRESS_WORK_h
+#include "progress/common.h"
 namespace dt {
 namespace progress {
 
-
-enum class Status : int8_t {
-  RUNNING = 0,
-  FINISHED = 1,
-  ERROR = 2,
-  CANCELLED = 3,
-};
-
-
-class progress_bar;
 
 class work {
   private:
@@ -51,11 +41,11 @@ class work {
     void add_progress(size_t amount);
     void set_status(Status s);
     void set_message(std::string message);
-    size_t get_progress() const;
 
   private:
-    void update_progress_bar() const;
+    void push_to_progress_bar() const;
 };
+
 
 
 class subtask {
@@ -73,7 +63,6 @@ class subtask {
 };
 
 
-void init_options();
 
 }}  // namespace dt::progress
 #endif

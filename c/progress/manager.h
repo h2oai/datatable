@@ -16,12 +16,10 @@
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
 #include <stack>      // std::stack
+#include "progress/common.h"
 namespace dt {
 namespace progress {
 
-// forward-declare
-class progress_bar;
-class work;
 
 
 /**
@@ -29,11 +27,19 @@ class work;
  * multiple `work` instances.
  *
  * manager.update_view()
- *
+ *     This function should be called periodically from the master
+ *     thread to re-draw the progress bar (if needed) and check
+ *     for signals. This function may throw an exception if there
+ *     is a KeyboardInterrupt signal pending, or if the progress-
+ *     reporting function raised an exception in python.
  */
 class progress_manager {
   private:
-    progress_bar* pb;
+    // Owned reference. This class creates a progress_bar instance when
+    // the first task is pushed onto the stack. It destroyes the instance
+    // when the last task is popped off the stack. This cycle continues,
+    // while more and more top-level tasks are received.
+    progress_bar* pbar;
     std::stack<work*> tasks;
 
   public:
@@ -41,7 +47,9 @@ class progress_manager {
 
   public:  // package-private
     progress_manager();
+    // called by a new `work` object when it is constructed
     void start_work(work* task);
+    // called by a `work` instance when it is destructed
     void finish_work(work* task);
 };
 

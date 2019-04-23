@@ -13,49 +13,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
-#include "progress/manager.h"
-#include "utils/assert.h"
+#ifndef dt_PROGRESS_COMMON_h
+#define dt_PROGRESS_COMMON_h
+#include <cstddef>
 namespace dt {
 namespace progress {
+using std::size_t;
 
 
-// Static instance
-progress_manager manager;
-
-progress_manager::progress_manager()
-  : pbar(nullptr) {}
-
-
-void progress_manager::start_work(work* task) {
-  if (tasks.empty()) {
-    xassert(pbar == nullptr);
-    pbar = new progress_bar;
-    task->init(pbar, nullptr);
-  } else {
-    work* previous_work = tasks.top();
-    previous_work->subtask(task);
-  }
-  tasks.push(task);
-}
+enum class Status : int8_t {
+  RUNNING = 0,
+  FINISHED = 1,
+  ERROR = 2,
+  CANCELLED = 3,
+};
 
 
-void progress_manager::finish_work(work* task) {
-  xassert(!tasks.empty() && tasks.top() == task);
-  tasks.pop();
-  if (tasks.empty()) {
-    delete pbar;
-    pbar = nullptr;
-  }
-}
+// forward-declare
+class progress_bar;
+class progress_manager;
+class work;
 
 
-void progress_manager::update_view() {
-  xassert(dt::this_thread_index() == size_t(-1));
-  if (pbar) {
-    pbar->refresh();
-  }
-}
+// called from core.initialize_options() (see datatablemodule.cc)
+void init_options();
 
 
 }} // namespace dt::progress
+#endif
