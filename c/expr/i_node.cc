@@ -382,7 +382,7 @@ static i_node* _from_nparray(py::oobj src) {
     size_t dim0 = shape[0].to_size_t();
     size_t dim1 = shape[1].to_size_t();
     if (dim0 == 1 || dim1 == 1) {
-      src = src.invoke("reshape", {py::oint(dim0 * dim1)});
+      src = src.invoke("reshape", py::oint(dim0 * dim1));
       shape = src.get_attr("shape").to_otuple();
       ndims = shape.size();
     }

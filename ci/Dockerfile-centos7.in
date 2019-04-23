@@ -12,21 +12,15 @@ RUN \
         wget \
         bzip2 && \
     wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
-    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
-    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps/1.0-master-2/ARCH_SUBST-centos7/llvm.tar.bz2 && \
-    tar xvf llvm.tar.bz2 && \
-    cp -r llvm/* /opt/h2oai/dai/ && \
-    rm -rf llvm*
+    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python
 
-ENV LLVM6=/opt/h2oai/dai
-ENV LLVM_CONFIG=$LLVM6/bin/llvm-config
+
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
-ENV PATH=$LLVM6/bin:$PATH
 ENV PANDAS_VERSION=0.23.4
 ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
-RUN pip install llvmlite==0.23.0 wheel virtualenv && \
+RUN pip install wheel virtualenv && \
     \
     conda create -n datatable-py35-with-pandas python=3.5 && \
     . activate datatable-py35-with-pandas && \
@@ -52,9 +46,6 @@ RUN pip install llvmlite==0.23.0 wheel virtualenv && \
     \
     chmod -R a+w /opt/h2oai/dai/python/envs
 
-RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 
 # A separated layer to collect core dumps
 RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
-
-COPY ci/clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
