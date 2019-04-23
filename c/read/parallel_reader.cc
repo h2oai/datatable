@@ -8,7 +8,7 @@
 #include <algorithm>           // std::max
 #include "csv/reader.h"
 #include "parallel/api.h"
-#include "parallel/progress.h"
+#include "progress/work.h"
 #include "read/parallel_reader.h"
 #include "utils/assert.h"
 
@@ -157,7 +157,7 @@ void ParallelReader::read_all()
 
     [&](dt::ordered* o) {
       if (!message_set) {
-        dt::progress::current_progress()->set_message("Reading file");
+        // dt::progress::current_progress()->set_message("Reading file");
         message_set = true;
       }
 

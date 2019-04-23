@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
+#include "parallel/api.h"           // dt::this_thread_index
 #include "progress/manager.h"
+#include "progress/progress_bar.h"
+#include "progress/work.h"
 #include "utils/assert.h"
 namespace dt {
 namespace progress {
@@ -34,7 +36,7 @@ void progress_manager::start_work(work* task) {
     task->init(pbar, nullptr);
   } else {
     work* previous_work = tasks.top();
-    previous_work->subtask(task);
+    task->init(pbar, previous_work);
   }
   tasks.push(task);
 }
@@ -50,11 +52,15 @@ void progress_manager::finish_work(work* task) {
 }
 
 
-void progress_manager::update_view() {
+void progress_manager::update_view() const {
   xassert(dt::this_thread_index() == size_t(-1));
   if (pbar) {
     pbar->refresh();
   }
+}
+
+void progress_manager::set_status(Status status) const {
+  if (pbar) pbar->set_status(status);
 }
 
 

@@ -16,6 +16,7 @@
 #include "models/py_validator.h"
 #include "progress/common.h"
 #include "python/_all.h"
+#include "python/string.h"
 #include "options.h"                // dt::register_option
 namespace dt {
 namespace progress {
@@ -126,7 +127,7 @@ static py::oobj get_callback() {
 
 static void set_callback(py::oobj value) {
   Py_XSETREF(progress_fn,
-             value.is_none()? nullptr : value.release());
+             value.is_none()? nullptr : std::move(value).release());
 }
 
 static void init_option_callback(){

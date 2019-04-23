@@ -44,6 +44,7 @@ class progress_manager {
 
   public:
     void update_view() const;
+    void set_status(Status status) const;
 
   public:  // package-private
     progress_manager();

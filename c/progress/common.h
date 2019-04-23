@@ -16,6 +16,7 @@
 #ifndef dt_PROGRESS_COMMON_h
 #define dt_PROGRESS_COMMON_h
 #include <cstddef>
+#include <Python.h>
 namespace dt {
 namespace progress {
 using std::size_t;
@@ -36,10 +37,13 @@ class work;
 
 
 // options
-extern double updates_per_second = 25.0;
-extern double min_duration = 0.5;
-extern PyObject* progress_fn = nullptr;
-extern bool enabled = false;
+extern double updates_per_second;
+extern double min_duration;
+extern PyObject* progress_fn;
+extern bool enabled;
+
+
+extern PyObject* status_strings[4];
 
 
 // called from core.initialize_options() (see datatablemodule.cc)

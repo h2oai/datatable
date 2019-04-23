@@ -18,10 +18,10 @@
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
 #include "parallel/api.h"
-#include "parallel/progress.h"
 #include "parallel/spin_mutex.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
+#include "progress/work.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/function.h"
@@ -181,7 +181,7 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   task->advance_state();
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
-    work.set_progress(next_to_order);
+    work.set_done_amount(next_to_order);
   }
 
   // If `iorder`th frame is ready to be ordered, and no other thread is

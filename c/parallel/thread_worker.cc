@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "parallel/progress.h"
 #include "parallel/thread_worker.h"
 #include "progress/manager.h"   // dt::progress::manager
 #include "utils/exceptions.h"
@@ -120,20 +119,16 @@ void worker_controller::awaken_and_run(thread_scheduler* job) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void worker_controller::join(size_t nthreads) {
-  progress::work* job = dt::progress::current_progress();
-
   sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
   sleep_task& curr_sleep_task = tsleep[index];
 
   size_t n_sleeping = 0;
   while (n_sleeping < nthreads) {
-    if (job) {
-      try {
-        dt::progress::manager.update_view();
-      } catch(...) {
-        catch_exception();
-        prev_sleep_task.next_scheduler->abort_execution();
-      }
+    try {
+      progress::manager.update_view();
+    } catch(...) {
+      catch_exception();
+      prev_sleep_task.next_scheduler->abort_execution();
     }
     std::this_thread::yield();
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
@@ -145,15 +140,14 @@ void worker_controller::join(size_t nthreads) {
   prev_sleep_task.next_scheduler = nullptr;
 
   if (saved_exception) {
-    if (job) {
-      job->set_status(is_keyboard_interrupt_exception()
-                      ? progress::Status::CANCELLED
-                      : progress::Status::ERROR);
-    }
+    progress::manager.set_status(
+        is_keyboard_interrupt_exception() ? progress::Status::CANCELLED
+                                          : progress::Status::ERROR
+    );
     std::rethrow_exception(saved_exception);
   }
   else {
-    if (job) job->set_status(progress::Status::FINISHED);
+    progress::manager.set_status(progress::Status::FINISHED);
   }
 }
 

@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "progress/progress_manager.h"  // dt::progress::manager
+#include "progress/manager.h"       // dt::progress::manager
+#include "progress/progress_bar.h"  // dt::progress::progress_bar
 #include "progress/work.h"
+#include "utils/assert.h"
 namespace dt {
 namespace progress {
 
@@ -41,7 +43,7 @@ void work::init(progress_bar* pb, work* parent) {
   pbar = pb;
   if (parent) {
     pmin = parent->calculate_progress(parent->done_amount);
-    pmax = parent->calculate_progress(parent->tentative_amount);
+    pmax = parent->calculate_progress(parent->done_tentative);
   }
 }
 
@@ -54,18 +56,18 @@ void work::add_work_amount(size_t amount) {
 
 void work::set_done_amount(size_t amount) {
   done_amount = amount;
-  tentative_amount = amount;
+  done_tentative = amount;
   push_to_progress_bar();
 }
 
 void work::add_done_amount(size_t amount) {
   done_amount += amount;
-  tentative_amount = done_amount;
+  done_tentative = done_amount;
   push_to_progress_bar();
 }
 
 void work::add_tentative_amount(size_t amount) {
-  tentative_amount += amount;
+  done_tentative += amount;
   push_to_progress_bar();
 }
 
@@ -91,10 +93,10 @@ double work::calculate_progress(size_t amount) const {
 }
 
 void work::push_to_progress_bar() const {
-  xassert(amount <= tentative_amount && tentative_amount <= total_amount);
+  xassert(done_amount <= done_tentative && done_tentative <= total_amount);
   xassert(pbar);
   pbar->set_progress(calculate_progress(done_amount),
-                     calculate_progress(tentative_amount));
+                     calculate_progress(done_tentative));
 }
 
 

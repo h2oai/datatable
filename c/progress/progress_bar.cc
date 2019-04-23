@@ -17,6 +17,8 @@
 #include "progress/common.h"
 #include "progress/progress_bar.h"
 #include "python/string.h"          // py::ostring
+#include "options.h"                // dt::get_option
+#include "utils/assert.h"
 namespace dt {
 namespace progress {
 
@@ -128,7 +130,7 @@ void progress_bar::_report_to_python() {
   py_args.replace(0, py::ofloat(progress));
   py_args.replace(1, py::oobj(status_pyobj));
   py_args.replace(2, py::ostring(message));
-  progress_fn.call(py_args);
+  pyfn_external.call(py_args);
 }
 
 
