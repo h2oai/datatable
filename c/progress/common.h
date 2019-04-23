@@ -35,6 +35,13 @@ class progress_manager;
 class work;
 
 
+// options
+extern double updates_per_second = 25.0;
+extern double min_duration = 0.5;
+extern PyObject* progress_fn = nullptr;
+extern bool enabled = false;
+
+
 // called from core.initialize_options() (see datatablemodule.cc)
 void init_options();
 

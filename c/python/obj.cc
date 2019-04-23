@@ -797,6 +797,7 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
+robj stdout()   { return robj(PySys_GetObject("stdout")); }
 robj rnone()    { return robj(Py_None); }
 
 

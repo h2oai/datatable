@@ -30,37 +30,49 @@ class progress_bar {
   using dtime_t = std::chrono::steady_clock::duration;
   using rtime_t = std::chrono::duration<double>;  // in seconds
   private:
-    py::oobj outfile;
-    dtime_t update_interval;
-    ptime_t time_start;
-    ptime_t time_next_update;
-    std::string message;
+    // progress bar state
     double progress;           // [0.0 .. 1.0]
     double tentative_progress; // [progress .. 1.0]
+    std::string message;
+    Status status;
+    size_t : 56;
+
+    // parameters (constant during progress bar's lifetime)
     int bar_width;
-    bool visible;
+    bool enabled;
     bool clear_on_success;
     bool use_colors;
     bool use_unicode;
-    Status status;
-    size_t : 56;
+
+    // runtime support
+    dtime_t update_interval;
+    ptime_t time_started;
+    ptime_t time_next_update;
+    py::oobj pyfn_write;
+    py::oobj pyfn_flush;
+    py::oobj pyfn_external;
+    py::otuple py_args;
+    bool visible;
+    bool force_redraw;
+    size_t : 48;
 
   public:
     progress_bar();
 
-    void set_progress(double progress_);
-    void set_status(Status status_);
-    void set_message(std::string&& msg);
+    void set_progress(double actual, double tentative);
+    void set_status(Status);
+    void set_message(std::string&&);
+
+    void refresh();
 
   private:
-    void _update(bool force_render);
+    void _check_interrupts();
     void _report_to_python();
-    void _render();
+    void _render_to_stdout();
     void _render_percentage(std::stringstream& out);
     void _render_progressbar_unicode(std::stringstream& out);
     void _render_progressbar_ascii(std::stringstream& out);
     void _render_message(std::stringstream& out);
-    void _print_to_stdout(std::stringstream& out);
 };
 
 

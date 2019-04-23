@@ -14,140 +14,68 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <Python.h>
-#include "models/py_validator.h"
+#include "progress/common.h"
 #include "progress/progress_bar.h"
 #include "python/string.h"          // py::ostring
-#include "options.h"                // dt::register_option
 namespace dt {
 namespace progress {
 
 
 
-//------------------------------------------------------------------------------
-// options
-//------------------------------------------------------------------------------
+progress_bar::progress_bar() {
+  // Progress bar's state
+  progress = 0.0;
+  tentative_progress = 0.0;
+  status = Status::RUNNING;
 
-static double updates_per_second = 25.0;
-static double min_duration = 0.5;
-static py::oobj progress_fn = nullptr;
-static bool disabled = false;
+  // Parameters
+  bar_width = 50;
+  enabled = dt::progress::enabled;
+  clear_on_success = true;
+  if (enabled) {
+    use_colors = dt::get_option("display.use_colors").to_bool_strict();
+    use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
+  }
 
-static PyObject* status_strings[4];
-
-static bool stdout_is_a_terminal() {
-  py::robj stdout(PySys_GetObject("stdout"));
-  if (stdout.is_none()) return false;
-  py::oobj isatty = stdout.get_attrx("isatty");
-  if (!isatty) return false;
-  py::oobj res = isatty.call();
-  return res.is_bool()? res.to_bool_strict() : false;
-}
-
-void init_options() {
-  disabled = !stdout_is_a_terminal();
-
-  dt::register_option(
-    "progress.enabled",
-    []{ return py::obool(!disabled); },
-    [](py::oobj value){ disabled = !value.to_bool_strict(); },
-    "If False, then all progress reporting functionality will be turned off."
-  );
-
-  dt::register_option(
-    "progress.updates_per_second",
-    []{
-      return py::ofloat(updates_per_second);
-    },
-    [](py::oobj value){
-      double x = value.to_double();
-      py::Validator::check_positive(x, value);
-      updates_per_second = x;
-    },
-    "How often should the display of the progress bar be updated."
-  );
-
-  dt::register_option(
-    "progress.min_duration",
-    []{
-      return py::ofloat(min_duration);
-    },
-    [](py::oobj value){
-      double x = value.to_double();
-      py::Validator::check_not_negative(x, value);
-      min_duration = x;
-    },
-    "Do not show progress bar if the duration of an operation is\n"
-    "smaller than this value. If this setting is non-zero, then\n"
-    "the progress bar will only be shown for long-running operations,\n"
-    "whose duration (estimated or actual) exceeds this threshold."
-  );
-
-  dt::register_option(
-    "progress.callback",
-    []{
-      return progress_fn? progress_fn : py::None();
-    },
-    [](py::oobj value){
-      progress_fn = value.is_none()? nullptr : value;
-    },
-    "If None, then the builtin progress-reporting function will be used.\n"
-    "Otherwise, this value specifies a function or object to be called\n"
-    "at each progress event.\n"
-    "\n"
-    "The function is expected to have the following signature:\n"
-    "\n"
-    "    fn(progress, status, message)\n"
-    "\n"
-    "where `progress` is a float in the range 0.0 .. 1.0; `status` is a\n"
-    "string, one of 'running', 'finished', 'error' or 'cancelled'; and\n"
-    "`message` is a custom string describing the operation currently\n"
-    "being performed."
-  );
-
-  status_strings[0] = py::ostring("running").release();
-  status_strings[1] = py::ostring("finished").release();
-  status_strings[2] = py::ostring("error").release();
-  status_strings[3] = py::ostring("cancelled").release();
+  // Runtime support
+  rtime_t freq { 1.0/updates_per_second };
+  update_interval = std::chrono::duration_cast<dtime_t>(freq);
+  time_started = std::chrono::steady_clock::now();
+  time_next_update = time_started + update_interval;
+  if (enabled) {
+    if (dt::progress::progress_fn) {
+      pyfn_external = py::oobj(dt::progress::progress_fn);
+      py_args = py::otuple(3);
+    }
+    else {
+      auto stdout = py::stdout();
+      pyfn_write = stdout.get_attr("write");
+      pyfn_flush = stdout.get_attr("flush");
+      py_args = py::otuple(1);
+    }
+  }
+  visible = false;
+  force_redraw = false;
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// progress bar
-//------------------------------------------------------------------------------
-
-progress_bar::progress_bar()
-  : outfile(PySys_GetObject("stdout")),
-    update_interval(std::chrono::duration_cast<dtime_t>(
-                        rtime_t(1.0/updates_per_second))),
-    time_start(std::chrono::steady_clock::now()),
-    time_next_update(time_start + update_interval),
-    progress(0.0),
-    tentative_progress(0.0),
-    bar_width(50),
-    visible(false),
-    clear_on_success(true),
-    use_colors(dt::get_option("display.use_colors").to_bool_strict()),
-    use_unicode(dt::get_option("display.allow_unicode").to_bool_strict()),
-    status(Status::RUNNING) {}
-
-void progress_bar::set_progress(double progress_) {
-  xassert(progress_ >= 0 && progress_ <= 1.0);
-  progress = progress_;
-  _update(false);
+void progress_bar::set_progress(double actual, double tentative) {
+  xassert(0.0 <= actual && actual <= tentative && tentative <= 1.0);
+  progress = actual;
+  tentative_progress = tentative;
 }
 
 void progress_bar::set_status(Status status_) {
   if (status == status_) return;
   status = status_;
-  _update(true);
+  force_redraw = true;
 }
 
 void progress_bar::set_message(std::string&& msg) {
   message = std::move(msg);
-  _update(true);
+  force_redraw = true;
 }
+
 
 // When determining whether to display progress bar or not, we first
 // estimate the future duration of the task, and then compare it versus the
@@ -165,43 +93,59 @@ void progress_bar::set_message(std::string&& msg) {
 // curves are much likelier to intersect at low levels of `progress`, than
 // at high levels.
 //
-void progress_bar::_update(bool force_render) {
+void progress_bar::refresh() {
+  if (!enabled) return _check_interrupts();
+
   auto now = std::chrono::steady_clock::now();
 
   if (!visible) {
-    auto tpassed = std::chrono::duration_cast<rtime_t>(now - time_start);
+    auto tpassed = std::chrono::duration_cast<rtime_t>(now - time_started);
     double estimated_duration = tpassed.count() / std::max(progress, 0.1);
     double threshold_duration = min_duration * std::max(1.0, 2*progress);
     if (estimated_duration < threshold_duration) return;
     visible = true;
-    force_render = true;
+    force_redraw = true;
   }
 
-  if (now >= time_next_update || force_render) {
+  if (force_redraw || now >= time_next_update) {
     time_next_update = now + update_interval;
-    if (progress_fn)
+    if (pyfn_external)
       _report_to_python();
     else
-      _render();
+      _render_to_stdout();
   }
 }
+
+
+void progress_bar::_check_interrupts() {
+  int ret = PyErr_CheckSignals();
+  if (ret) throw PyError();
+}
+
 
 void progress_bar::_report_to_python() {
   PyObject* status_pyobj = status_strings[static_cast<int>(status)];
-  progress_fn.call(py::otuple{ py::ofloat(progress),
-                               py::oobj(status_pyobj),
-                               py::ostring(message) });
+  py_args.replace(0, py::ofloat(progress));
+  py_args.replace(1, py::oobj(status_pyobj));
+  py_args.replace(2, py::ostring(message));
+  progress_fn.call(py_args);
 }
 
-void progress_bar::_render() {
+
+void progress_bar::_render_to_stdout() {
   std::stringstream out;
+
   if (visible) out << '\r';
   _render_percentage(out);
   if (use_unicode) _render_progressbar_unicode(out);
   else             _render_progressbar_ascii(out);
   _render_message(out);
-  _print_to_stdout(out);
+
+  py_args.replace(0, py::ostring(out.str()));
+  pyfn_write.call(py_args);
+  pyfn_flush.call();
 }
+
 
 void progress_bar::_render_percentage(std::stringstream& out) {
   int percentage = static_cast<int>(progress * 100 + 0.1);
@@ -209,6 +153,7 @@ void progress_bar::_render_percentage(std::stringstream& out) {
   if (percentage < 10) out << ' ';
   if (percentage < 100) out << ' ';
 }
+
 
 void progress_bar::_render_progressbar_unicode(std::stringstream& out) {
   double x = progress * bar_width;
@@ -230,6 +175,7 @@ void progress_bar::_render_progressbar_unicode(std::stringstream& out) {
   if (use_colors) out << "\x1B[m";
 }
 
+
 void progress_bar::_render_progressbar_ascii(std::stringstream& out) {
   int n_chars = static_cast<int>(progress * bar_width + 0.001);
   int i = 0;
@@ -240,6 +186,7 @@ void progress_bar::_render_progressbar_ascii(std::stringstream& out) {
   out << ']';
   if (use_colors) out << "\x1B[m";
 }
+
 
 void progress_bar::_render_message(std::stringstream& out) {
   out << ' ';
@@ -270,13 +217,6 @@ void progress_bar::_render_message(std::stringstream& out) {
   if (use_colors) out << "\x1B[m";
   out << '\n';
 }
-
-void progress_bar::_print_to_stdout(std::stringstream& out) {
-  auto pystr = py::ostring(out.str());
-  outfile.invoke("write", pystr);
-  outfile.invoke("flush");
-}
-
 
 
 
