@@ -22,18 +22,41 @@
 namespace dttest {
 
 
+void test_parallel_for_static(size_t n) {
+  for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
+    std::vector<size_t> data(n, 0);
+
+    dt::parallel_for_static(n, 1, nth,
+      [&](size_t i) {
+        data[i] += 1 + 2 * i;
+      });
+
+    for (size_t i = 0; i < n; ++i) {
+      if (data[i] != 1 + 2*i) {
+        throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
+          << " in test_parallel_for_static() for nth = " << nth
+          << ", expected " << 1 + 2*i;
+      }
+    }
+  }
+}
+
+
 void test_parallel_for_dynamic(size_t n) {
-  std::vector<size_t> data(n, 0);
+  for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
+    std::vector<size_t> data(n, 0);
 
-  dt::parallel_for_dynamic(n,
-    [&](size_t i) {
-      data[i] += 1 + 2 * i;
-    });
+    dt::parallel_for_dynamic(n, nth,
+      [&](size_t i) {
+        data[i] += 1 + 2 * i;
+      });
 
-  for (size_t i = 0; i < n; ++i) {
-    if (data[i] != 1 + 2*i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_parallel_for_dynamic(), expected " << 1 + 2*i;
+    for (size_t i = 0; i < n; ++i) {
+      if (data[i] != 1 + 2*i) {
+        throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
+          << " in test_parallel_for_dynamic() for nth = " << nth
+          << ", expected " << 1 + 2*i;
+      }
     }
   }
 }

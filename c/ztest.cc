@@ -50,6 +50,15 @@ static void test_barrier(const PKArgs& args) {
 }
 
 
+static PKArgs arg_test_parallel_for_static(
+  1, 0, 0, false, false, {"n"}, "test_parallel_for_static");
+
+static void test_parallel_for_static(const PKArgs& args) {
+  size_t n = args[0].to_size_t();
+  dttest::test_parallel_for_static(n);
+}
+
+
 static PKArgs arg_test_parallel_for_dynamic(
   1, 0, 0, false, false, {"n"}, "test_parallel_for_dynamic");
 
@@ -75,6 +84,7 @@ void DatatableModule::init_tests() {
   ADD_FN(&test_shmutex, arg_test_shmutex);
   ADD_FN(&test_atomic, arg_test_atomic);
   ADD_FN(&test_barrier, arg_test_barrier);
+  ADD_FN(&test_parallel_for_static, arg_test_parallel_for_static);
   ADD_FN(&test_parallel_for_dynamic, arg_test_parallel_for_dynamic);
   ADD_FN(&test_parallel_for_ordered, arg_test_parallel_for_ordered);
 }
