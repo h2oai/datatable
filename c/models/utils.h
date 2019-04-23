@@ -24,6 +24,7 @@
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <cmath>
 #include "datatable.h"
 
 template <typename T>
