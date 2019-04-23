@@ -32,9 +32,16 @@ import time
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Check if we need to run C++ tests
+#-------------------------------------------------------------------------------
+
+cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
+                              reason="C++ tests were not compiled")
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
@@ -168,12 +175,9 @@ def test_sizeof():
     DT2 = dt.Frame(A=["foo" * 1001])
     assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
 
-
+@cpp_test
 def test_coverage():
-    # Run additional C++ tests that ensure better coverage of underlying classes
-    from datatable.lib import core
-    if hasattr(core, "test_coverage"):
-        core.test_coverage()
+    core.test_coverage()
 
 
 def test_multiprocessing_threadpool():
@@ -190,51 +194,49 @@ def test_multiprocessing_threadpool():
         assert chthreads != parent_threads
 
 
+@cpp_test
 def test_internal_shared_mutex():
-    from datatable.lib import core
-    if hasattr(core, "test_shmutex"):
-        core.test_shmutex(500, dt.options.nthreads * 2, 1)
+    core.test_shmutex(500, dt.options.nthreads * 2, 1)
 
 
+@cpp_test
 def test_internal_shared_bmutex():
-    from datatable.lib import core
-    if hasattr(core, "test_shmutex"):
-        core.test_shmutex(1000, dt.options.nthreads * 2, 0)
+    core.test_shmutex(1000, dt.options.nthreads * 2, 0)
 
 
+@cpp_test
 def test_internal_atomic():
-    from datatable.lib import core
-    if hasattr(core, "test_atomic"):
-        core.test_atomic()
+    core.test_atomic()
 
 
+@cpp_test
 def test_internal_barrier():
-    from datatable.lib import core
-    if hasattr(core, "test_barrier"):
-        core.test_barrier(100)
+    core.test_barrier(100)
 
 
+@cpp_test
+def test_internal_parallel_for_static():
+    core.test_parallel_for_static(1000)
+
+
+@cpp_test
 def test_internal_parallel_for_dynamic():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_dynamic"):
-        core.test_parallel_for_dynamic(1000)
+    core.test_parallel_for_dynamic(1000)
 
 
+@cpp_test
 def test_internal_parallel_for_ordered1():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_ordered"):
-        core.test_parallel_for_ordered(17234)
+    core.test_parallel_for_ordered(17234)
 
 
+@cpp_test
 def test_internal_parallel_for_ordered2():
-    from datatable.lib import core
-    if hasattr(core, "test_parallel_for_ordered"):
-        n0 = dt.options.nthreads
-        try:
-            dt.options.nthreads = 2
-            core.test_parallel_for_ordered(17234)
-        finally:
-            dt.options.nthreads = n0
+    n0 = dt.options.nthreads
+    try:
+        dt.options.nthreads = 2
+        core.test_parallel_for_ordered(17234)
+    finally:
+        dt.options.nthreads = n0
 
 
 
