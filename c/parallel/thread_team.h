@@ -17,6 +17,8 @@
 #define dt_PARALLEL_THREAD_TEAM_h
 #include <cstddef>
 #include "parallel/thread_pool.h"
+#include <atomic>
+
 namespace dt {
 using std::size_t;
 
