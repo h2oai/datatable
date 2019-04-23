@@ -20,11 +20,12 @@ namespace dt {
 namespace progress {
 
 
+
 class work {
   private:
     size_t total_amount;
     size_t done_amount;
-    size_t tentative_amount;
+    size_t done_tentative;
     double pmin, pmax;
     // borrowed ref, lifetime guaranteed by `progress_manager` holding a
     // reference to this class
@@ -33,16 +34,18 @@ class work {
   public:
     explicit work(size_t amount);
     ~work();
+    void init(progress_bar* pb, work* parent);
 
-    void add_work(size_t amount);
-    void start_task(size_t amount);
+    void add_work_amount(size_t);
+    void set_done_amount(size_t);
+    void add_done_amount(size_t);
+    void add_tentative_amount(size_t amount);
 
-    void set_progress(size_t amount);
-    void add_progress(size_t amount);
     void set_status(Status s);
     void set_message(std::string message);
 
   private:
+    double calculate_progress(size_t amount) const;
     void push_to_progress_bar() const;
 };
 
@@ -55,10 +58,10 @@ class subtask {
 
   public:
     subtask(work& w, size_t amount) : parent(w), work_amount(amount) {
-      parent.start_task(work_amount);
+      parent.add_tentative_amount(work_amount);
     }
     ~subtask() {
-      parent.add_progress(work_amount);
+      parent.add_done_amount(work_amount);
     }
 };
 

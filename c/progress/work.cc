@@ -23,62 +23,78 @@ namespace progress {
 work::work(size_t amount)
   : total_amount(amount),
     done_amount(0),
-    tentative_amount(0),
+    done_tentative(0),
     pmin(0.0),
     pmax(1.0),
     pbar(nullptr)
 {
   dt::progress::manager.start_work(this);
+  // progress manager will call this->init();
 }
 
 work::~work() {
   dt::progress::manager.finish_work(this);
 }
 
+void work::init(progress_bar* pb, work* parent) {
+  xassert(pb);
+  pbar = pb;
+  if (parent) {
+    pmin = parent->calculate_progress(parent->done_amount);
+    pmax = parent->calculate_progress(parent->tentative_amount);
+  }
+}
 
-void work::add_work(size_t amount) {
+
+
+void work::add_work_amount(size_t amount) {
   total_amount += amount;
-  tentative_amount = amount;
   push_to_progress_bar();
 }
 
-void work::start_task(size_t amount) {
-  tentative_amount = amount;
-  push_to_progress_bar();
-}
-
-
-void work::set_progress(size_t amount) {
+void work::set_done_amount(size_t amount) {
   done_amount = amount;
-  tentative_amount = 0;
+  tentative_amount = amount;
   push_to_progress_bar();
 }
 
-void work::add_progress(size_t amount) {
+void work::add_done_amount(size_t amount) {
   done_amount += amount;
-  tentative_amount = 0;
+  tentative_amount = done_amount;
   push_to_progress_bar();
 }
+
+void work::add_tentative_amount(size_t amount) {
+  tentative_amount += amount;
+  push_to_progress_bar();
+}
+
 
 
 void work::set_status(Status s) {
-  xassert(pbar);
   pbar->set_status(s);
 }
 
 void work::set_message(std::string message) {
-  xassert(pbar);
   pbar->set_message(std::move(message));
 }
 
 
+
+
+//-------- Private -------------------------------------------------------------
+
+double work::calculate_progress(size_t amount) const {
+  double progress = static_cast<double>(amount) /
+                    static_cast<double>(total_amount);
+  return pmin + (pmax - pmin) * progress;
+}
+
 void work::push_to_progress_bar() const {
-  xassert(amount + tentative_amount <= total_amount);
+  xassert(amount <= tentative_amount && tentative_amount <= total_amount);
   xassert(pbar);
-  double progress1 = 1.0 * done_amount / total_amount;
-  double progress2 = 1.0 * (done_amount + tentative_amount) / total_amount;
-  pbar->set_progress(pmin + (pmax - pmin) * progress1,
-                     pmin + (pmax - pmin) * progress2);
+  pbar->set_progress(calculate_progress(done_amount),
+                     calculate_progress(tentative_amount));
 }
 
 
