@@ -534,7 +534,7 @@ def get_extra_link_args():
             # is not used for some reason
             flags += ["-lc++", "-shared"]
         if is_gcc():
-            flags += ["-lstdc++"]
+            flags += ["-lstdc++", "-lm"]
 
         if "DTASAN" in os.environ:
             flags += ["-fsanitize=address", "-shared-libasan"]
