@@ -530,9 +530,11 @@ def get_extra_link_args():
         flags += ["-Wl,-rpath,%s" % get_rpath()]
 
         if islinux() and is_clang():
+            flags += ["-lc++"]
+        if islinux():
             # On linux we need to pass -shared flag to clang linker which
             # is not used for some reason
-            flags += ["-lc++", "-shared"]
+            flags += ["-shared"]
         if is_gcc():
             flags += ["-lstdc++", "-lm"]
 

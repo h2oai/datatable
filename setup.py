@@ -122,12 +122,6 @@ if cmd in ("build", "bdist_wheel", "build_ext", "install"):
         # Compiler
         os.environ["CC"] = os.environ["CXX"] = get_compiler()
 
-        # Linker
-        # On linux we need to pass proper flag to clang linker which
-        # is not used for some reason at linux
-        if islinux() and os.environ.get("DTCOVERAGE"):
-            os.environ["LDSHARED"] = os.environ["CC"]
-
         if ismacos() and not os.environ.get("MACOSX_DEPLOYMENT_TARGET"):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
 
