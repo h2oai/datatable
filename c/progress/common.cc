@@ -45,7 +45,10 @@ static void init_option_enabled() {
     "progress.enabled",
     []{ return py::obool(enabled); },
     [](py::oobj value){ enabled = value.to_bool_strict(); },
-    "When False, progress reporting functionality will be turned off."
+    "When False, progress reporting functionality will be turned off.\n"
+    "\n"
+    "This option is True by default if the `stdout` is connected to a\n"
+    "terminal or a Jupyter Notebook, and False otherwise."
   );
 }
 

@@ -61,6 +61,7 @@ class progress_bar {
 
     void set_progress(double actual, double tentative);
     void set_status(Status);
+    void set_status_finished();
     void set_message(std::string&&);
 
     void refresh();

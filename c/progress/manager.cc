@@ -25,6 +25,8 @@ namespace progress {
 // Static instance
 progress_manager manager;
 
+
+
 progress_manager::progress_manager()
   : pbar(nullptr) {}
 
@@ -44,8 +46,11 @@ void progress_manager::start_work(work* task) {
 
 void progress_manager::finish_work(work* task) {
   xassert(!tasks.empty() && tasks.top() == task);
+  xassert(pbar != nullptr);
   tasks.pop();
   if (tasks.empty()) {
+    pbar->set_status_finished();
+    pbar->refresh();
     delete pbar;
     pbar = nullptr;
   }

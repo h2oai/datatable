@@ -33,7 +33,7 @@ progress_bar::progress_bar() {
   // Parameters
   bar_width = 50;
   enabled = dt::progress::enabled;
-  clear_on_success = true;
+  clear_on_success = false;
   if (enabled) {
     use_colors = dt::get_option("display.use_colors").to_bool_strict();
     use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
@@ -72,6 +72,13 @@ void progress_bar::set_status(Status status_) {
   status = status_;
   force_redraw = true;
 }
+
+void progress_bar::set_status_finished() {
+  if (status != Status::RUNNING) return;
+  status = Status::FINISHED;
+  force_redraw = true;
+}
+
 
 void progress_bar::set_message(std::string&& msg) {
   message = std::move(msg);
@@ -119,6 +126,11 @@ void progress_bar::refresh() {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Rendering
+//------------------------------------------------------------------------------
+
 void progress_bar::_check_interrupts() {
   int ret = PyErr_CheckSignals();
   if (ret) throw PyError();
@@ -151,9 +163,9 @@ void progress_bar::_render_to_stdout() {
 
 void progress_bar::_render_percentage(std::stringstream& out) {
   int percentage = static_cast<int>(progress * 100 + 0.1);
-  out << percentage << "% ";
   if (percentage < 10) out << ' ';
   if (percentage < 100) out << ' ';
+  out << percentage << "% ";
 }
 
 
@@ -199,7 +211,7 @@ void progress_bar::_render_message(std::stringstream& out) {
 
     case Status::FINISHED:
       if (clear_on_success) {
-        out.str("");  // clear the percentage / progress bar
+        out.str("");  // clear the content generated thus far in `out`
         out << "\x1B[1G\x1B[K";
         return;
       }
