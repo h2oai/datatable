@@ -31,7 +31,7 @@ class thread_team {
   private:
     size_t nthreads;
     thread_pool* thpool;
-    thread_scheduler* nested_scheduler;
+    std::atomic<thread_scheduler*> nested_scheduler;
 
     std::atomic<size_t> barrier_counter;
 
@@ -43,13 +43,16 @@ class thread_team {
 
     template <typename S, typename... Args>
     S* shared_scheduler(Args&&... args) {
-      if (!nested_scheduler) {
+      auto tmp = nested_scheduler.load(std::memory_order_acquire);
+      if (!tmp) {
         std::lock_guard<std::mutex> lock(thpool->global_mutex);
-        if (!nested_scheduler) {
-          nested_scheduler = new S(std::forward<Args>(args)...);
+        tmp = nested_scheduler.load(std::memory_order_acquire);
+        if (!tmp) {
+          tmp = new S(std::forward<Args>(args)...);
+          nested_scheduler.store(tmp, std::memory_order_release);
         }
       }
-      return reinterpret_cast<S*>(nested_scheduler);
+      return reinterpret_cast<S*>(tmp);
     }
 
     void wait_at_barrier();

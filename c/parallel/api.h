@@ -16,13 +16,14 @@
 #ifndef dt_PARALLEL_API_h
 #define dt_PARALLEL_API_h
 #include <cstddef>
+#include <functional>    // std::function
 #include "utils/function.h"
 namespace dt {
 using std::size_t;
 
 // Private
 void _parallel_for_static(size_t, size_t, size_t,
-                          function<void(size_t, size_t)>);
+                          std::function<void(size_t, size_t)>);
 
 
 //------------------------------------------------------------------------------
@@ -131,9 +132,9 @@ void parallel_for_static(size_t nrows, size_t chunk_size, size_t nthreads,
 /**
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
-void parallel_for_dynamic(size_t nrows, function<void(size_t)> fn);
+void parallel_for_dynamic(size_t nrows, std::function<void(size_t)> fn);
 void parallel_for_dynamic(size_t nrows, size_t nthreads,
-                          function<void(size_t)> fn);
+                          std::function<void(size_t)> fn);
 
 
 

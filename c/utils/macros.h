@@ -43,6 +43,10 @@
   #define CACHELINE_SIZE 64
 #endif
 
+#define PAD_TO_CACHELINE(sz) \
+  char __attribute__((unused)) _padding[ \
+    (CACHELINE_SIZE - ((sz) % CACHELINE_SIZE)) % CACHELINE_SIZE]
+
 
 // Helper template to replace type `T` with a cache-aligned + padded wrapper
 // type. Using this structure may help reduce false sharing
