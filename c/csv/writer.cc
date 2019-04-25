@@ -13,6 +13,7 @@
 #include "csv/toa.h"
 #include "csv/writer.h"
 #include "parallel/api.h"
+#include "progress/work.h"   // dt::progress::work
 #include "utils/alloc.h"
 #include "utils/misc.h"
 #include "column.h"
@@ -30,6 +31,9 @@ typedef void (*writer_fn)(char** pch, CsvColumn* col, size_t row);
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
+static constexpr size_t WRITE_PREPARE = 1;
+static constexpr size_t WRITE_MAIN = 100;
+static constexpr size_t WRITE_FINALIZE = 2;
 
 
 // TODO: replace with classes that derive from CsvColumn and implement write()
@@ -306,6 +310,7 @@ CsvWriter::~CsvWriter()
 
 void CsvWriter::write()
 {
+  dt::progress::work job(WRITE_PREPARE + WRITE_MAIN + WRITE_FINALIZE);
   checkpoint();
   std::vector<RowColIndex> rcs = dt->split_columns_by_rowindices();
   RowIndex ri0 = rcs.size() == 1? rcs[0].rowindex : RowIndex();
@@ -323,6 +328,7 @@ void CsvWriter::write()
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
+  job.add_done_amount(WRITE_PREPARE);
   if (nrows == 0 || ncols == 0) goto finalize;
 
   determine_chunking_strategy(bytes_total, nrows);
@@ -331,6 +337,8 @@ void CsvWriter::write()
   nstrcols64 = strcolumns64.size();
 
   // Start writing the CSV
+  job.add_tentative_amount(WRITE_MAIN);
+  job.set_message("Writing CSV");
   dt::parallel_for_ordered(
     /* n_iterations = */ nchunks,
     /* n_threads = */ nthreads,
@@ -410,6 +418,7 @@ void CsvWriter::write()
     });
 
   finalize:
+  job.add_done_amount(WRITE_MAIN);
   t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
@@ -421,6 +430,8 @@ void CsvWriter::write()
   }
   wb->finalize();
   t_finalize = checkpoint();
+  job.add_done_amount(WRITE_FINALIZE);
+  job.done();
 
   double t_total = t_prepare_for_writing + t_size_estimation + t_create_target
                    + t_write_data + t_finalize;
