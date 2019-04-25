@@ -25,7 +25,7 @@
 #include "models/py_ftrl.h"
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
-#include "progress/common.h"
+#include "progress/_options.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
@@ -356,7 +356,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
     py::base_expr::Type::init(m);
-    py::config_option::Type::init(m);
+    dt::init_config_option(m);
     py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);

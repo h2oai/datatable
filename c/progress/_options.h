@@ -13,21 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PROGRESS_COMMON_h
-#define dt_PROGRESS_COMMON_h
-#include <cstddef>
+// This file is named with _ only because it would otherwise conflict with
+// "options.h" from the parent directory.
+#ifndef dt_PROGRESS_OPTIONS_h
+#define dt_PROGRESS_OPTIONS_h
 #include <Python.h>
 namespace dt {
 namespace progress {
-using std::size_t;
-
-
-enum class Status : int8_t {
-  RUNNING = 0,
-  FINISHED = 1,
-  ERROR = 2,
-  CANCELLED = 3,
-};
 
 
 // forward-declare
@@ -42,8 +34,6 @@ extern double min_duration;
 extern PyObject* progress_fn;
 extern bool enabled;
 
-
-extern PyObject* status_strings[4];
 
 
 // called from core.initialize_options() (see datatablemodule.cc)

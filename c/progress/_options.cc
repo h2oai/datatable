@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <Python.h>   // PyObject, Py_XSETREF
 #include "models/py_validator.h"
-#include "progress/common.h"
+#include "progress/_options.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "options.h"                // dt::register_option
@@ -156,22 +157,14 @@ static void init_option_callback(){
 
 
 //------------------------------------------------------------------------------
-// Miscellaneous
+// Init
 //------------------------------------------------------------------------------
-
-PyObject* status_strings[4];
-
 
 void init_options() {
   init_option_enabled();
   init_option_updates_per_second();
   init_option_min_duration();
   init_option_callback();
-
-  status_strings[int(Status::RUNNING)]   = py::ostring("running").release();
-  status_strings[int(Status::FINISHED)]  = py::ostring("finished").release();
-  status_strings[int(Status::ERROR)]     = py::ostring("error").release();
-  status_strings[int(Status::CANCELLED)] = py::ostring("cancelled").release();
 }
 
 

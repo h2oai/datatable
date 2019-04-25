@@ -14,13 +14,23 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <Python.h>
-#include "progress/common.h"
+#include "progress/_options.h"
 #include "progress/progress_bar.h"
 #include "python/string.h"          // py::ostring
-#include "options.h"                // dt::get_option
 #include "utils/assert.h"
+#include "options.h"                // dt::get_option
 namespace dt {
 namespace progress {
+
+static PyObject* status_strings[4];
+
+static void init_status_strings() {
+  if (status_strings[0]) return;
+  status_strings[int(Status::RUNNING)]   = py::ostring("running").release();
+  status_strings[int(Status::FINISHED)]  = py::ostring("finished").release();
+  status_strings[int(Status::ERROR)]     = py::ostring("error").release();
+  status_strings[int(Status::CANCELLED)] = py::ostring("cancelled").release();
+}
 
 
 
@@ -46,6 +56,7 @@ progress_bar::progress_bar() {
   time_next_update = time_started + update_interval;
   if (enabled) {
     if (dt::progress::progress_fn) {
+      init_status_strings();
       pyfn_external = py::oobj(dt::progress::progress_fn);
       py_args = py::otuple(3);
     }

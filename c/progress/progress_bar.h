@@ -15,13 +15,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PROGRESS_PROGRESSBAR_h
 #define dt_PROGRESS_PROGRESSBAR_h
-#include <chrono>      // std::chrono
-#include <sstream>     // std::stringstream
-#include <string>      // std::string
-#include "progress/common.h"
-#include "python/_all.h"
+#include <chrono>         // std::chrono
+#include <sstream>        // std::stringstream
+#include <string>         // std::string
+#include "python/_all.h"  // py::oobj
 namespace dt {
 namespace progress {
+
+
+enum class Status : size_t {
+  RUNNING = 0,
+  FINISHED = 1,
+  ERROR = 2,
+  CANCELLED = 3,
+};
 
 
 
@@ -35,7 +42,6 @@ class progress_bar {
     double tentative_progress; // [progress .. 1.0]
     std::string message;
     Status status;
-    size_t : 56;
 
     // parameters (constant during progress bar's lifetime)
     int bar_width;

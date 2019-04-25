@@ -15,9 +15,13 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PROGRESS_WORK_h
 #define dt_PROGRESS_WORK_h
-#include "progress/common.h"
+#include <string>   // std::string
 namespace dt {
 namespace progress {
+
+// forward-declare
+class progress_bar;
+class work;
 
 
 /**

@@ -16,10 +16,12 @@
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
 #include <stack>      // std::stack
-#include "progress/common.h"
 namespace dt {
 namespace progress {
 
+// forward-declare
+class progress_bar;
+class work;
 
 
 /**
