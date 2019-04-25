@@ -94,6 +94,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       fo.allocation_size = columns.totalAllocSize();
     }
   }
+  job->add_done_amount(WORK_PREPARE);
 
 
   //****************************************************************************
@@ -107,6 +108,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   trace("[6] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
+    job->set_message(firstTime? "Reading data" : "Rereading data");
+    dt::progress::subtask subwork(*job, firstTime? WORK_READ : WORK_REREAD);
     dt::read::FreadParallelReader scr(*this, types);
     scr.read_all();
 
@@ -117,6 +120,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     }
     size_t ncols = columns.size();
     size_t ncols_to_reread = columns.nColumnsToReread();
+    xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
       size_t n_type_bump_cols = 0;
@@ -135,6 +139,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
               : "%zu columns need to be re-read because their types have changed",
               n_type_bump_cols);
       }
+      reread_scheduled = false;
       goto read;
     }
 

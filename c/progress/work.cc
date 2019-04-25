@@ -28,7 +28,8 @@ work::work(size_t amount)
     done_tentative(0),
     pmin(0.0),
     pmax(1.0),
-    pbar(nullptr)
+    pbar(nullptr),
+    message_set(false)
 {
   dt::progress::manager.start_work(this);
   // progress manager will call this->init();
@@ -45,6 +46,7 @@ void work::init(progress_bar* pb, work* parent) {
 
 void work::done() {
   xassert(done_amount == total_amount);
+  if (message_set) pbar->set_message("");
   dt::progress::manager.finish_work(this, true);
   pbar = nullptr;
 }
@@ -80,6 +82,7 @@ void work::add_tentative_amount(size_t amount) noexcept {
 
 void work::set_message(std::string message) {
   pbar->set_message(std::move(message));
+  message_set = true;
 }
 
 

@@ -67,6 +67,7 @@ void GenericReader::init_options() {
 
 GenericReader::GenericReader(const py::robj& pyrdr)
 {
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   sof = nullptr;
   eof = nullptr;
   line = 0;
@@ -117,6 +118,7 @@ GenericReader::GenericReader(const GenericReader& g)
   override_column_types = g.override_column_types;
   t_open_input = g.t_open_input;
   // Runtime parameters
+  job     = g.job;
   input_mbuf = g.input_mbuf;
   sof     = g.sof;
   eof     = g.eof;
@@ -332,6 +334,7 @@ std::unique_ptr<DataTable> GenericReader::read_all()
   if (!dt) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
+  job->done();
   return dt;
 }
 
