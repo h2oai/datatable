@@ -44,13 +44,12 @@ void progress_manager::start_work(work* task) {
 }
 
 
-void progress_manager::finish_work(work* task) {
+void progress_manager::finish_work(work* task, bool successfully) {
   xassert(!tasks.empty() && tasks.top() == task);
   xassert(pbar != nullptr);
   tasks.pop();
-  if (tasks.empty()) {
+  if (successfully && tasks.empty()) {
     pbar->set_status_finished();
-    pbar->refresh();
     delete pbar;
     pbar = nullptr;
   }
@@ -64,9 +63,14 @@ void progress_manager::update_view() const {
   }
 }
 
-void progress_manager::set_status(Status status) const {
-  if (pbar) pbar->set_status(status);
+
+void progress_manager::set_error_status(bool cancelled) noexcept {
+  if (!pbar) return;
+  pbar->set_status_error(cancelled);
+  delete pbar;
+  pbar = nullptr;
 }
+
 
 
 }} // namespace dt::progress

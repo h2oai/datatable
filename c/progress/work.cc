@@ -34,10 +34,6 @@ work::work(size_t amount)
   // progress manager will call this->init();
 }
 
-work::~work() {
-  dt::progress::manager.finish_work(this);
-}
-
 void work::init(progress_bar* pb, work* parent) {
   xassert(pb);
   pbar = pb;
@@ -47,35 +43,40 @@ void work::init(progress_bar* pb, work* parent) {
   }
 }
 
+void work::done() {
+  xassert(done_amount == total_amount);
+  dt::progress::manager.finish_work(this, true);
+  pbar = nullptr;
+}
+
+work::~work() {
+  if (pbar) dt::progress::manager.finish_work(this, false);
+}
 
 
-void work::add_work_amount(size_t amount) {
+
+void work::add_work_amount(size_t amount) noexcept {
   total_amount += amount;
   push_to_progress_bar();
 }
 
-void work::set_done_amount(size_t amount) {
+void work::set_done_amount(size_t amount) noexcept {
   done_amount = amount;
   done_tentative = amount;
   push_to_progress_bar();
 }
 
-void work::add_done_amount(size_t amount) {
+void work::add_done_amount(size_t amount) noexcept {
   done_amount += amount;
   done_tentative = done_amount;
   push_to_progress_bar();
 }
 
-void work::add_tentative_amount(size_t amount) {
+void work::add_tentative_amount(size_t amount) noexcept {
   done_tentative += amount;
   push_to_progress_bar();
 }
 
-
-
-void work::set_status(Status s) {
-  pbar->set_status(s);
-}
 
 void work::set_message(std::string message) {
   pbar->set_message(std::move(message));
@@ -86,19 +87,35 @@ void work::set_message(std::string message) {
 
 //-------- Private -------------------------------------------------------------
 
-double work::calculate_progress(size_t amount) const {
+double work::calculate_progress(size_t amount) const noexcept {
   double progress = static_cast<double>(amount) /
                     static_cast<double>(total_amount);
   return pmin + (pmax - pmin) * progress;
 }
 
-void work::push_to_progress_bar() const {
-  xassert(done_amount <= done_tentative && done_tentative <= total_amount);
-  xassert(pbar);
+void work::push_to_progress_bar() const noexcept {
+  wassert(done_amount <= done_tentative && done_tentative <= total_amount);
+  wassert(pbar);
   pbar->set_progress(calculate_progress(done_amount),
                      calculate_progress(done_tentative));
 }
 
+
+
+//------------------------------------------------------------------------------
+// subtask
+//------------------------------------------------------------------------------
+
+subtask::subtask(work& w, size_t amount) noexcept
+  : parent(w), work_amount(amount)
+{
+  parent.add_tentative_amount(work_amount);
+}
+
+
+subtask::~subtask() {
+  parent.add_done_amount(work_amount);
+}
 
 
 }} // namespace dt::progress

@@ -5,12 +5,14 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "utils/exceptions.h"
 #include <algorithm>
+#include <iostream>
 #include <errno.h>
 #include <string.h>
+#include "progress/manager.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "utils/exceptions.h"
 
 
 // Singleton, used to write the current "errno" into the stream
@@ -23,7 +25,7 @@ static PyObject* datatable_warning_class;
 
 //==============================================================================
 
-static bool is_string_empty(const char* msg) {
+static bool is_string_empty(const char* msg) noexcept {
   if (!msg) return true;
   char c;
   while ((c = *msg)) {
@@ -35,11 +37,13 @@ static bool is_string_empty(const char* msg) {
 }
 
 
-void exception_to_python(const std::exception& e) {
+void exception_to_python(const std::exception& e) noexcept {
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
-    error->topython();
-  } else if (!PyErr_Occurred()) {
+    dt::progress::manager.set_error_status(error->is_keyboard_interrupt());
+    error->to_python();
+  }
+  else if (!PyErr_Occurred()) {
     const char* msg = e.what();
     if (is_string_empty(msg)) {
       PyErr_SetString(PyExc_Exception, "unknown error");
@@ -68,6 +72,10 @@ Error::Error(Error&& other) : Error() {
     std::swap(error, other.error);
   #endif
   std::swap(pycls, other.pycls);
+}
+
+void Error::to_stderr() {
+  std::cerr << error.str() << "\n";
 }
 
 
@@ -145,13 +153,22 @@ Error& Error::operator<<(char c) {
 }
 
 
-void Error::topython() const {
+void Error::to_python() const noexcept {
   // The pointer returned by errstr.c_str() is valid until errstr gets out
   // of scope. By contrast, `error.str().c_str()` returns a dangling pointer,
   // which usually works but sometimes doesn't...
   // See https://stackoverflow.com/questions/1374468
-  const std::string errstr = error.str();
-  PyErr_SetString(pycls, errstr.c_str());
+  try {
+    const std::string errstr = error.str();
+    PyErr_SetString(pycls, errstr.c_str());
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+  }
+}
+
+
+bool Error::is_keyboard_interrupt() const noexcept {
+  return false;
 }
 
 
@@ -177,18 +194,18 @@ PyError::~PyError() {
   Py_XDECREF(exc_traceback);
 }
 
-void PyError::topython() const {
+void PyError::to_python() const noexcept {
   PyErr_Restore(exc_type, exc_value, exc_traceback);
   exc_type = nullptr;
   exc_value = nullptr;
   exc_traceback = nullptr;
 }
 
-bool PyError::is_keyboard_interrupt() const {
+bool PyError::is_keyboard_interrupt() const noexcept {
   return exc_type == PyExc_KeyboardInterrupt;
 }
 
-bool PyError::is_assertion_error() const {
+bool PyError::is_assertion_error() const noexcept {
   return exc_type == PyExc_AssertionError;
 }
 
@@ -236,43 +253,3 @@ Warning DatatableWarning()  { return Warning(datatable_warning_class); }
 // Note, DeprecationWarnings are ignored by default in python
 Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
 
-
-
-//==============================================================================
-
-OmpExceptionManager::OmpExceptionManager() : ptr(nullptr), stop(false) {}
-
-
-bool OmpExceptionManager::stop_requested() const {
-  return stop;
-}
-
-bool OmpExceptionManager::exception_caught() const {
-  return bool(ptr);
-}
-
-void OmpExceptionManager::capture_exception() {
-  std::unique_lock<std::mutex> guard(this->lock);
-  if (!ptr) ptr = std::current_exception();
-  stop = true;
-}
-
-void OmpExceptionManager::stop_iterations() {
-  std::unique_lock<std::mutex> guard(this->lock);
-  stop = true;
-}
-
-void OmpExceptionManager::rethrow_exception_if_any() const {
-  if (ptr) std::rethrow_exception(ptr);
-}
-
-bool OmpExceptionManager::is_keyboard_interrupt() const {
-  if (!ptr) return false;
-  bool ret = false;
-  try {
-    std::rethrow_exception(ptr);
-  } catch (PyError& e) {
-    ret = e.is_keyboard_interrupt();
-  } catch (...) {}
-  return ret;
-}

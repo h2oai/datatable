@@ -44,14 +44,14 @@ class progress_manager {
 
   public:
     void update_view() const;
-    void set_status(Status status) const;
+    void set_error_status(bool cancelled) noexcept;
 
   public:  // package-private
     progress_manager();
     // called by a new `work` object when it is constructed
     void start_work(work* task);
-    // called by a `work` instance when it is destructed
-    void finish_work(work* task);
+    // called by `work.done()` / `~work()`
+    void finish_work(work* task, bool successfully);
 };
 
 

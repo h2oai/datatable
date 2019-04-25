@@ -8,7 +8,6 @@
 #include <algorithm>           // std::max
 #include "csv/reader.h"
 #include "parallel/api.h"
-#include "progress/work.h"
 #include "read/parallel_reader.h"
 #include "utils/assert.h"
 
@@ -149,18 +148,12 @@ void ParallelReader::read_all()
     g.trace("Actual number of threads: %zu", nthreads);
     determine_chunking_strategy();
   }
-  bool message_set = false;
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
     /* n_threads = */ nthreads,
 
     [&](dt::ordered* o) {
-      if (!message_set) {
-        // dt::progress::current_progress()->set_message("Reading file");
-        message_set = true;
-      }
-
       // Thread-local parse context. This object does most of the parsing job.
       auto tctx = init_thread_context();
       xassert(tctx);

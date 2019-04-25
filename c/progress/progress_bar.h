@@ -59,9 +59,9 @@ class progress_bar {
   public:
     progress_bar();
 
-    void set_progress(double actual, double tentative);
-    void set_status(Status);
+    void set_progress(double actual, double tentative) noexcept;
     void set_status_finished();
+    void set_status_error(bool cancelled);
     void set_message(std::string&&);
 
     void refresh();

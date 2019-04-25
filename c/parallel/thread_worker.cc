@@ -14,7 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
-#include "progress/manager.h"   // dt::progress::manager
+#include "progress/manager.h"  // dt::progress::manager
 #include "utils/exceptions.h"
 namespace dt {
 
@@ -140,14 +140,7 @@ void worker_controller::join(size_t nthreads) {
   prev_sleep_task.next_scheduler = nullptr;
 
   if (saved_exception) {
-    progress::manager.set_status(
-        is_keyboard_interrupt_exception() ? progress::Status::CANCELLED
-                                          : progress::Status::ERROR
-    );
     std::rethrow_exception(saved_exception);
-  }
-  else {
-    progress::manager.set_status(progress::Status::FINISHED);
   }
 }
 
@@ -165,17 +158,6 @@ void worker_controller::catch_exception() noexcept {
       saved_exception = std::current_exception();
     }
   } catch (...) {}
-}
-
-
-bool worker_controller::is_keyboard_interrupt_exception() noexcept {
-  if (!saved_exception) return false;
-  try {
-    std::rethrow_exception(saved_exception);
-  } catch (PyError& e) {
-    return e.is_keyboard_interrupt();
-  } catch (...) {}
-  return false;
 }
 
 

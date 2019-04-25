@@ -28,23 +28,19 @@
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
 #ifdef NDEBUG
-  #define weak_assert(EXPRESSION)
+  #define wassert(EXPRESSION)
   #define xassert(EXPRESSION)
 #else
-  #define aAPPLY(macro, arg) macro(arg)
-  #define aSTRINGIFY_(L) #L
-  #define aSTRINGIFY(x) aAPPLY(aSTRINGIFY_, x)
-
-  #define weak_assert(EXPRESSION) \
+  #define wassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
-      std::printf("Assertion '" #EXPRESSION "' failed in " \
-          aSTRINGIFY(__FILE__) ", line " aSTRINGIFY(__LINE__)); \
+      (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+          << __FILE__ << ", line " << __LINE__).to_stderr(); \
     }
 
   #define xassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
-      throw AssertionError() << "Assertion '" << #EXPRESSION << "' failed in " \
-          aSTRINGIFY(__FILE__) ", line " aSTRINGIFY(__LINE__); \
+      throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+          << __FILE__ << ", line " << __LINE__; \
     }
 #endif
 

@@ -61,22 +61,24 @@ progress_bar::progress_bar() {
 }
 
 
-void progress_bar::set_progress(double actual, double tentative) {
-  xassert(0.0 <= actual && actual <= tentative && tentative <= 1.0);
+void progress_bar::set_progress(double actual, double tentative) noexcept {
+  wassert(0.0 <= actual && actual <= tentative && tentative <= 1.0);
   progress = actual;
   tentative_progress = tentative;
 }
 
-void progress_bar::set_status(Status status_) {
-  if (status == status_) return;
-  status = status_;
-  force_redraw = true;
-}
-
 void progress_bar::set_status_finished() {
-  if (status != Status::RUNNING) return;
+  wassert(status == Status::RUNNING);
   status = Status::FINISHED;
   force_redraw = true;
+  refresh();
+}
+
+void progress_bar::set_status_error(bool cancelled) {
+  wassert(status == Status::RUNNING);
+  status = cancelled? Status::CANCELLED : Status::ERROR;
+  force_redraw = true;
+  refresh();
 }
 
 
