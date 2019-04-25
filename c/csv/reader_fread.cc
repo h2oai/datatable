@@ -511,10 +511,6 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
     }
     if (j < ncols && ptype_iter.has_incremented()) {
       col.set_ptype(ptype_iter);
-      if (!reread_scheduled) {
-        reread_scheduled = true;
-        job->add_work_amount(WORK_REREAD);
-      }
     }
     j++;
 

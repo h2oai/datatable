@@ -19,6 +19,7 @@
 //==============================================================================
 std::unique_ptr<DataTable> FreadReader::read_all()
 {
+  job->add_work_amount(WORK_PREPARE);
   detect_lf();
   skip_preamble();
 
