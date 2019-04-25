@@ -705,13 +705,13 @@ oobj _obj::invoke(const char* fn, const char* format, ...) const {
 
 
 oobj _obj::call() const {
-  PyObject* res = PyObject_Call(v, otuple(0).v, nullptr);
+  PyObject* res = PyObject_CallObject(v, nullptr);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
 
 oobj _obj::call(otuple args) const {
-  PyObject* res = PyObject_Call(v, args.v, nullptr);
+  PyObject* res = PyObject_CallObject(v, args.v);
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
@@ -797,6 +797,7 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
+robj stdout()   { return robj(PySys_GetObject("stdout")); }
 robj rnone()    { return robj(Py_None); }
 
 

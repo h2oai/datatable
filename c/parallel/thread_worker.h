@@ -157,8 +157,6 @@ class worker_controller : public thread_scheduler {
     bool is_running() const noexcept;
 
   private:
-    bool is_keyboard_interrupt_exception() noexcept;
-
     // Helper for thread_shutdown_scheduler: mark the current thread as if it
     // went to sleep, whereas in reality it shut down.
     void pretend_thread_went_to_sleep();

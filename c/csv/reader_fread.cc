@@ -30,6 +30,7 @@ FreadReader::FreadReader(const GenericReader& g)
 
   first_jump_size = 0;
   n_sample_lines = 0;
+  reread_scheduled = false;
   whiteChar = '\0';
   quoteRule = -1;
   cr_is_newline = true;

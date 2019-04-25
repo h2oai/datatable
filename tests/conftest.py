@@ -7,6 +7,7 @@
 # This file is used by `pytest` to define common fixtures shared across all
 # tests.
 #-------------------------------------------------------------------------------
+import datatable as dt
 import os
 import sys
 import pytest
@@ -18,6 +19,7 @@ import tempfile as mod_tempfile
 def setup():
     """This fixture will be run once only."""
     assert sys.version_info >= (3, 5), "Python version 3.5+ is required"
+    dt.options.progress.enabled = False
 
 
 @pytest.fixture(scope="session")

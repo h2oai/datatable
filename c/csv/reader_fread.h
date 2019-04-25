@@ -92,6 +92,7 @@ class FreadReader : public GenericReader
   double meanLineLen;
   size_t first_jump_size;
   size_t n_sample_lines;
+  bool reread_scheduled;
 
   //----- Parse parameters -----------------------------------------------------
   // quoteRule:
@@ -111,7 +112,7 @@ class FreadReader : public GenericReader
   //
   char whiteChar;
   int8_t quoteRule;
-  int64_t : 48;
+  int64_t : 40;
 
 public:
   explicit FreadReader(const GenericReader&);

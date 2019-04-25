@@ -315,6 +315,7 @@ oobj None();
 oobj True();
 oobj False();
 oobj Ellipsis();
+robj stdout();
 robj rnone();
 
 

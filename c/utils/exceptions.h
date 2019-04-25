@@ -10,15 +10,14 @@
 #include <Python.h>
 #include <stdint.h>
 #include <exception>
-#include <mutex>
-#include <sstream>
+#include <sstream>    // std::ostringstream
 #include <stdexcept>
 #include "types.h"
 
 class CErrno {};
 extern CErrno Errno;
 
-void exception_to_python(const std::exception&);
+void exception_to_python(const std::exception&) noexcept;
 
 namespace py {
   class _obj;
@@ -62,11 +61,16 @@ public:
     Error& operator<<(ssize_t);
   #endif
 
+  void to_stderr();
+
   /**
    * Translate this exception into a Python error by calling PyErr_SetString
    * with the appropriate exception class and message.
    */
-  virtual void topython() const;
+  virtual void to_python() const noexcept;
+
+  // Check whether this is a "KeyboardInterrupt" exception
+  virtual bool is_keyboard_interrupt() const noexcept;
 };
 
 
@@ -83,9 +87,9 @@ public:
   PyError(PyError&&);
   virtual ~PyError() override;
 
-  void topython() const override;
-  bool is_keyboard_interrupt() const;
-  bool is_assertion_error() const;
+  void to_python() const noexcept override;
+  bool is_keyboard_interrupt() const noexcept override;
+  bool is_assertion_error() const noexcept;
   std::string message() const;
 };
 
@@ -120,36 +124,6 @@ class Warning : public Error {
 Warning DatatableWarning();
 Warning DeprecationWarning();
 
-
-
-//------------------------------------------------------------------------------
-
-/**
- * Helper class for dealing with exceptions inside OMP code: it allows one to
- * capture exceptions that occur, and then re-throw them later after the OMP
- * region.
- * ----
- * Adapted from StackOverflow question <stackoverflow.com/questions/11828539>
- * by user Grizzly <stackoverflow.com/users/201270/grizzly>.
- * Licensed under CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>
- */
-class OmpExceptionManager
-{
-  std::exception_ptr ptr;
-  std::mutex lock;
-  bool stop;
-  size_t : 56;
-
-public:
-  OmpExceptionManager();
-
-  bool stop_requested() const;
-  bool exception_caught() const;
-  bool is_keyboard_interrupt() const;
-  void capture_exception();
-  void stop_iterations();
-  void rethrow_exception_if_any() const;
-};
 
 
 #endif

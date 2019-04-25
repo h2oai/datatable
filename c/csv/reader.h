@@ -7,8 +7,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
-#include <memory>           // std::unique_ptr
+#include <memory>           // std::unique_ptr, std::shared_ptr
 #include "memrange.h"       // MemoryRange
+#include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "read/columns.h"   // dt::read::Columns
 
@@ -76,6 +77,11 @@ class GenericReader
   //   Line number (within the original input) of the `offset` pointer.
   //
   public:
+    static constexpr size_t WORK_PREPARE = 2;
+    static constexpr size_t WORK_READ = 100;
+    static constexpr size_t WORK_REREAD = 60;
+    static constexpr size_t WORK_DECODE_UTF16 = 50;
+    std::shared_ptr<dt::progress::work> job; // owned
     MemoryRange input_mbuf;
     const char* sof;
     const char* eof;

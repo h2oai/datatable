@@ -67,6 +67,7 @@ void GenericReader::init_options() {
 
 GenericReader::GenericReader(const py::robj& pyrdr)
 {
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   sof = nullptr;
   eof = nullptr;
   line = 0;
@@ -117,6 +118,7 @@ GenericReader::GenericReader(const GenericReader& g)
   override_column_types = g.override_column_types;
   t_open_input = g.t_open_input;
   // Runtime parameters
+  job     = g.job;
   input_mbuf = g.input_mbuf;
   sof     = g.sof;
   eof     = g.eof;
@@ -323,6 +325,7 @@ std::unique_ptr<DataTable> GenericReader::read_all()
   skip_to_line_with_string();
   skip_initial_whitespace();
   skip_trailing_whitespace();
+  job->add_done_amount(WORK_PREPARE);
 
   std::unique_ptr<DataTable> dt(nullptr);
   if (!dt) dt = read_empty_input();
@@ -332,6 +335,7 @@ std::unique_ptr<DataTable> GenericReader::read_all()
   if (!dt) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
+  job->done();
   return dt;
 }
 
@@ -730,6 +734,7 @@ std::unique_ptr<DataTable> GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
+    job->add_done_amount(WORK_READ);
     return std::unique_ptr<DataTable>(new DataTable());
   }
   return nullptr;
@@ -762,6 +767,9 @@ void GenericReader::decode_utf16() {
   const char* ch = sof;
   size_t size = datasize();
   if (!size) return;
+  job->add_work_amount(WORK_DECODE_UTF16);
+  job->set_message("Decoding UTF-16");
+  dt::progress::subtask subjob(*job, WORK_DECODE_UTF16);
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;

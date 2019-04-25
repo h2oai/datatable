@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <cstdio>
 #include "python/arg.h"
 #include "python/args.h"        // py::PKArgs
 #include "python/dict.h"
@@ -136,7 +137,7 @@ Error Arg::error_not_double(PyObject* src) const {
 //------------------------------------------------------------------------------
 
 void Arg::print() const {
-  PyObject_Print(pyobj.v, stdout, Py_PRINT_RAW);
+  PyObject_Print(pyobj.v, ::stdout, Py_PRINT_RAW);
   std::printf("\n");
 }
 

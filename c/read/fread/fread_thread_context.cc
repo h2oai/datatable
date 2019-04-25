@@ -164,6 +164,10 @@ void FreadThreadContext::read_chunk(
           }
           types[j] = *ptype_iter;
           columns[j].set_ptype(ptype_iter);
+          if (!freader.reread_scheduled) {
+            freader.reread_scheduled = true;
+            freader.job->add_work_amount(GenericReader::WORK_REREAD);
+          }
         }
         tokenizer.target += columns[j].is_in_buffer();
         j++;

@@ -13,51 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_PROGRESS_h
-#define dt_PARALLEL_PROGRESS_h
-#include <memory>
+// This file is named with _ only because it would otherwise conflict with
+// "options.h" from the parent directory.
+#ifndef dt_PROGRESS_OPTIONS_h
+#define dt_PROGRESS_OPTIONS_h
+#include <Python.h>
 namespace dt {
 namespace progress {
 
 
-enum class Status : int8_t {
-  RUNNING = 0,
-  FINISHED = 1,
-  ERROR = 2,
-  CANCELLED = 3,
-};
-
-
+// forward-declare
 class progress_bar;
+class progress_manager;
+class work;
 
-class work {
-  private:
-    double total_amount;
-    double done_amount;
-    double subtask_amount;
 
-    work* parent;
-    std::unique_ptr<progress_bar> pbar;
-    double parent_progress;
-    double multiplier;
-
-  public:
-    explicit work(double amount);
-    ~work();
-
-    void set_progress(double p);
-    void set_status(Status s);
-    void set_message(std::string message);
-    double get_progress() const;
-
-    void update_progress_bar();
-};
+// options
+extern double updates_per_second;
+extern double min_duration;
+extern PyObject* progress_fn;
+extern bool enabled;
 
 
 
-
+// called from core.initialize_options() (see datatablemodule.cc)
 void init_options();
-work* current_progress();
 
-}}  // namespace dt::progress
+
+}} // namespace dt::progress
 #endif

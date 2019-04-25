@@ -13,47 +13,41 @@
 #include "python/string.h"
 #include "datatablemodule.h"
 #include "options.h"
-namespace dt {
 
 
-static py::oobj dt_options = nullptr;
-
-void use_options_store(py::oobj options) {
-  dt_options = options;
-}
-
-
-void register_option(const char* name,
-                     std::function<py::oobj()> getter,
-                     std::function<void(py::oobj)> setter,
-                     const char* docstring)
-{
-  xassert(dt_options);
-  auto pytype = reinterpret_cast<PyObject*>(&py::config_option::Type::type);
-  auto v = PyObject_CallObject(pytype, nullptr);
-  if (!v) throw PyError();
-  auto p = static_cast<py::config_option*>(v);
-  p->name = py::ostring(name);
-  p->default_value = getter();
-  p->docstring = py::ostring(docstring);
-  p->getter = std::move(getter);
-  p->setter = std::move(setter);
-  py::oobj opt = py::oobj::from_new_reference(v);
-  dt_options.invoke("register", py::otuple{ opt });
-}
-
-
-py::oobj get_option(const char* name) {
-  return dt_options.invoke("get", py::ostring(name));
-}
-
-
-
-}  // namespace dt
-namespace py {
 //------------------------------------------------------------------------------
 // config_option
 //------------------------------------------------------------------------------
+namespace py {
+
+struct config_option : public PyObject {
+  std::function<oobj()> getter;
+  std::function<void(oobj)> setter;
+  oobj name;
+  oobj default_value;
+  oobj docstring;
+  size_t : 64;
+
+  class Type : public ExtType<config_option> {
+    public:
+      static PKArgs args___init__;
+      static const char* classname();
+      static const char* classdoc();
+      static bool is_subclassable();
+      static void init_methods_and_getsets(Methods&, GetSetters&);
+  };
+
+  void m__init__(PKArgs&);
+  void m__dealloc__();
+  oobj get(const PKArgs&);
+  void set(const PKArgs&);
+
+  oobj get_name() const;
+  oobj get_doc() const;
+  oobj get_default() const;
+};
+
+
 
 static GSArgs args_name("name");
 static GSArgs args_doc("doc");
@@ -116,3 +110,48 @@ PKArgs config_option::Type::args___init__(
 
 
 }  // namespace py
+
+
+//------------------------------------------------------------------------------
+// dt::
+//------------------------------------------------------------------------------
+namespace dt {
+
+
+static py::oobj dt_options = nullptr;
+
+void use_options_store(py::oobj options) {
+  dt_options = options;
+}
+
+
+void register_option(const char* name,
+                     std::function<py::oobj()> getter,
+                     std::function<void(py::oobj)> setter,
+                     const char* docstring)
+{
+  xassert(dt_options);
+  auto pytype = reinterpret_cast<PyObject*>(&py::config_option::Type::type);
+  auto v = PyObject_CallObject(pytype, nullptr);
+  if (!v) throw PyError();
+  auto p = static_cast<py::config_option*>(v);
+  p->name = py::ostring(name);
+  p->default_value = getter();
+  p->docstring = py::ostring(docstring);
+  p->getter = std::move(getter);
+  p->setter = std::move(setter);
+  py::oobj opt = py::oobj::from_new_reference(v);
+  dt_options.invoke("register", py::otuple{ opt });
+}
+
+
+py::oobj get_option(const char* name) {
+  return dt_options.invoke("get", py::ostring(name));
+}
+
+void init_config_option(void* module) {
+  py::config_option::Type::init(static_cast<PyObject*>(module));
+}
+
+
+}  // namespace dt

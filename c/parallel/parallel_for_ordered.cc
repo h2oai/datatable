@@ -18,10 +18,10 @@
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
 #include "parallel/api.h"
-#include "parallel/progress.h"
 #include "parallel/spin_mutex.h"
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_team.h"
+#include "progress/work.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/function.h"
@@ -138,7 +138,7 @@ class ordered_scheduler : public thread_scheduler {
     // Runtime
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
-    progress::work work;
+    progress::work& work;
     wait_task waittask;
     dt::spin_mutex mutex;  // 1 byte
     size_t : 56;
@@ -151,19 +151,20 @@ class ordered_scheduler : public thread_scheduler {
     size_t ifinish;
 
   public:
-    ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters);
+    ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters,
+                      progress::work&);
     thread_task* get_next_task(size_t) override;
     void abort_execution() override;
 };
 
 
 ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
-                                     size_t niters)
+                                     size_t niters, progress::work& work_)
   : n_tasks(ntasks),
     n_threads(nthreads),
     n_iterations(niters),
     assigned_tasks(nthreads, &waittask),
-    work(niters),
+    work(work_),
     next_to_start(0),
     next_to_order(0),
     next_to_finish(0),
@@ -181,7 +182,7 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   task->advance_state();
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
-    work.set_progress(next_to_order);
+    work.set_done_amount(next_to_order);
   }
 
   // If `iorder`th frame is ready to be ordered, and no other thread is
@@ -300,6 +301,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
       pre_ordered(j);
       do_ordered(j);
       post_ordered(j);
+      sch->work.add_done_amount(1);
     }
   }
   else {
@@ -316,7 +318,9 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 
 void ordered::set_n_iterations(size_t n) {
   std::lock_guard<dt::spin_mutex> lock(sch->mutex);
+  size_t delta = n - sch->n_iterations;
   sch->n_iterations = n;
+  sch->work.add_work_amount(delta);
 }
 
 
@@ -330,6 +334,8 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
                           function<void(ordered*)> fn)
 {
   if (!niters) return;
+  dt::progress::work job(niters);
+
   thread_pool* thpool = thread_pool::get_instance();
   thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
@@ -340,9 +346,10 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
   if (nthreads == 0) ntasks = 1;
   else if (nthreads > ntasks) nthreads = ntasks;
   thread_team tt(nthreads, thpool);
-  ordered_scheduler sch(ntasks, nthreads, niters);
+  ordered_scheduler sch(ntasks, nthreads, niters, job);
   ordered octx(&sch, fn);
   fn(&octx);
+  job.done();
 }
 
 
