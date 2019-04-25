@@ -51,6 +51,7 @@ void dynamic_task::execute(thread_worker*) {
 class dynamic_scheduler : public thread_scheduler {
   private:
     std::vector<cache_aligned<dynamic_task>> tasks;
+    size_t nthreads;
     size_t num_iterations;
     std::atomic<size_t> iteration_index;
 
@@ -63,15 +64,16 @@ class dynamic_scheduler : public thread_scheduler {
 };
 
 
-dynamic_scheduler::dynamic_scheduler(size_t nthreads, size_t niters)
-  : tasks(nthreads),
+dynamic_scheduler::dynamic_scheduler(size_t nthreads_, size_t niters)
+  : tasks(nthreads_),
+    nthreads(nthreads_),
     num_iterations(niters),
     iteration_index(0) {}
 
 
 void dynamic_scheduler::set_task(function<void(size_t)> f) {
-  for (auto& task : tasks)
-    task.v.fn = f;
+  for (size_t i = 0; i < nthreads; ++i)
+    tasks[i].v.fn = f;
 }
 
 void dynamic_scheduler::set_task(function<void(size_t)> f, size_t i) {
@@ -80,6 +82,7 @@ void dynamic_scheduler::set_task(function<void(size_t)> f, size_t i) {
 
 
 thread_task* dynamic_scheduler::get_next_task(size_t thread_index) {
+  if (thread_index >= nthreads) return nullptr;
   size_t next_iter = iteration_index.fetch_add(1);
   if (next_iter >= num_iterations) {
     return nullptr;
@@ -97,6 +100,7 @@ void dynamic_scheduler::abort_execution() {
 
 
 
+
 //------------------------------------------------------------------------------
 // parallel_for_dynamic
 //------------------------------------------------------------------------------
@@ -109,7 +113,10 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads,
   // Running from the master thread
   if (ith == size_t(-1)) {
     thread_pool* thpool = thread_pool::get_instance_unchecked();
-    size_t tt_size = std::min(nthreads, thpool->size());
+
+    size_t tp_size = thpool->size();
+    if (nthreads == 0) nthreads = tp_size;
+    size_t tt_size = std::min(nthreads, tp_size);
     thread_team tt(tt_size, thpool);
     dynamic_scheduler sch(tt_size, nrows);
     sch.set_task(fn);

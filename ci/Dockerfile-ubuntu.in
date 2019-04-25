@@ -8,7 +8,6 @@ MAINTAINER H2O.ai <ops@h2o.ai>
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-ENV LLVM_VERSION=6.0.1
 
 RUN \
   apt-get -q -y update && \
@@ -45,7 +44,6 @@ RUN \
   pip install --upgrade colorama && \
   pip install --upgrade typesentry && \
   pip install --upgrade blessed && \
-  pip install --upgrade llvmlite && \
   pip install --upgrade pandas && \
   pip install --upgrade pytest && \
   pip install --upgrade virtualenv && \
@@ -72,18 +70,6 @@ RUN \
     pip install --upgrade pandas numpy && \
     deactivate && \
     chmod -R a+w /envs
-
-# Install LLVM for pydatatable
-RUN \
-  wget http://releases.llvm.org/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
-  tar xf clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
-  rm clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
-  cp /clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
-
-ENV \
-  LLVM6=/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04 \
-  LLVM_CONFIG=/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
-  CLANG=/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
 # A separated layer to collect core dumps
 RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores

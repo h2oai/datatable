@@ -23,9 +23,10 @@ namespace dt {
 // parallel_for_static
 //------------------------------------------------------------------------------
 
-void _parallel_for_static(size_t nrows, size_t min_chunk_size, size_t nthreads,
-                          function<void(size_t, size_t)> fn)
+void _parallel_for_static(size_t nrows, size_t min_chunk_size,
+                          size_t nthreads_in, function<void(size_t, size_t)> fn)
 {
+  size_t nthreads = nthreads_in? nthreads_in : dt::num_threads_in_pool();
   size_t k = std::min(nrows / min_chunk_size, nthreads);
   size_t ith = dt::this_thread_index();
 

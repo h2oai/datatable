@@ -27,6 +27,7 @@ void test_atomic();
 void test_barrier(size_t);
 
 // Defined in parallel/ztest_parallel_for.cc
+void test_parallel_for_static(size_t);
 void test_parallel_for_dynamic(size_t);
 void test_parallel_for_dynamic_nested(size_t);
 void test_parallel_for_ordered(size_t);
