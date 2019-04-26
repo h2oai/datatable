@@ -127,6 +127,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed creating a Frame from a pandas DataFrame that has duplicate column
   names (#1816).
 
+- Fixed a UnicodeDecodeError that could be thrown when viewing a Frame with
+  unicode characters in Jupyter notebook. The error only manifested for
+  strings that were longer than 50 bytes in length (#1825).
+
 
 ### Changed
 
@@ -171,6 +175,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [NachiGithub][] (#1789, #1793),
   - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
   - [Tom Kraljevic][] (#1805)
+  - [XiaomoWu][] (#1825)
 
 
 
@@ -1098,3 +1103,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [pasha stetsenko]: https://github.com/st-pasha
 [qiang kou]: https://github.com/thirdwing
 [tom kraljevic]: https://github.com/tomkraljevic
+[xiaomowu]: https://github.com/XiaomoWu

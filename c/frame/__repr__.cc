@@ -231,12 +231,23 @@ class HtmlWidget {
 
     void render_escaped_string(const char* ch, size_t len) {
       size_t maxi = std::min(len, size_t(50));
+      uint8_t uc;
       for (size_t i = 0; i < maxi; ++i) {
         char c = ch[i];
         if (c == '&') html << "&amp;";
         else if (c == '<') html << "&lt;";
         else if (c == '>') html << "&gt;";
-        else html << c;
+        else {
+          html << c;
+          if (maxi < len && (uc = static_cast<uint8_t>(c)) >= 0xC0) {
+            // for Unicode characters, make sure they are calculated as a
+            // single char, and also not truncated in the middle.
+            if ((uc & 0xE0) == 0xC0)      maxi += 1;
+            else if ((uc & 0xF0) == 0xE0) maxi += 2;
+            else if ((uc & 0xF8) == 0xF0) maxi += 3;
+            if (maxi > len) maxi = len;
+          }
+        }
       }
       if (len > maxi) html << "&#133;";
     }
