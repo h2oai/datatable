@@ -241,7 +241,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
                               dtptr& dt_exemplars_in,
                               dtptr& dt_members_in)
 {
-  dt::progress::work job(WORK_PREPARE + WORK_AGGREGATE + WORK_SAMPLE);
+  dt::progress::work job(WORK_PREPARE + WORK_AGGREGATE + WORK_SAMPLE + WORK_FINALIZE);
   dt = dt_in;
   bool was_sampled = false;
 
@@ -320,7 +320,12 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   // Do not aggregate `dt` in-place, instead, make a shallow copy
   // and apply rowindex based on the `exemplar_id`s gathered in `dt_members`.
   dt_exemplars = dtptr(dt->copy());
-  aggregate_exemplars(was_sampled);
+  {
+    job.set_message("Finalizing");
+    dt::progress::subtask subjob(job, WORK_FINALIZE);
+    aggregate_exemplars(was_sampled);
+  }
+
   dt_exemplars_in = std::move(dt_exemplars);
   dt_members_in = std::move(dt_members);
 

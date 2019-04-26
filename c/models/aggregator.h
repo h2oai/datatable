@@ -86,6 +86,7 @@ class Aggregator : public AggregatorBase {
     static constexpr size_t WORK_PREPARE = 1;
     static constexpr size_t WORK_AGGREGATE = 100;
     static constexpr size_t WORK_SAMPLE = 20;
+    static constexpr size_t WORK_FINALIZE = 20;
 
     // Final aggregation method
     void aggregate_exemplars(bool);
