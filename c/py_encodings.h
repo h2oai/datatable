@@ -7,11 +7,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PY_ENCODINGS_H
 #define dt_PY_ENCODINGS_H
-#include <Python.h>
+#include "python/python.h"
 #include "encodings.h"
 
 
-int init_py_encodings(PyObject *module);
+int init_py_encodings(PyObject* module);
 
 int decode_iso8859(const uint8_t* src, int len, uint8_t* dest);
 int decode_win1252(const uint8_t* src, int len, uint8_t* dest);

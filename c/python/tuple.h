@@ -22,7 +22,6 @@
 #ifndef dt_PYTHON_TUPLE_h
 #define dt_PYTHON_TUPLE_h
 #include <initializer_list>
-#include <Python.h>
 #include "python/obj.h"
 
 namespace py {

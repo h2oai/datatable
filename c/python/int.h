@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_INT_h
 #define dt_PYTHON_INT_h
-#include <Python.h>
 #include "python/obj.h"
 
 namespace py {

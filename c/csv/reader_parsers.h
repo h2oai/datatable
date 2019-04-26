@@ -9,7 +9,6 @@
 #define dt_CSV_READER_PARSERS_h
 #include <string>
 #include <vector>
-#include <Python.h>
 #include "types.h"
 
 namespace dt {

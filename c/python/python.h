@@ -19,24 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PYTHON_BOOL_h
-#define dt_PYTHON_BOOL_h
-#include "python/obj.h"
 
-namespace py {
-
-
-class obool : public oobj {
-  public:
-    obool() = default;
-    obool(const obool&) = default;
-    obool(obool&&) = default;
-    obool& operator=(const obool&) = default;
-    obool& operator=(obool&&) = default;
-
-    explicit obool(bool x);
-};
-
-
-}  // namespace py
-#endif
+// This header must be included before <Python.h>, otherwise datatable won't
+// compile on MacOS with Apple LLVM clang 9.1.0
+#include <locale>
+#include <Python.h>

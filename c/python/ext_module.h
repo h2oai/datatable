@@ -16,7 +16,6 @@
 #ifndef dt_PYTHON_EXT_MODULE_h
 #define dt_PYTHON_EXT_MODULE_h
 #include <vector>
-#include <Python.h>
 #include "python/args.h"
 #include "python/obj.h"
 #include "utils/exceptions.h"

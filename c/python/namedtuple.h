@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_NAMEDTUPLE_h
 #define dt_PYTHON_NAMEDTUPLE_h
-#include <Python.h>
 #include "python/obj.h"
 #include "python/tuple.h"
 

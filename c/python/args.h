@@ -17,7 +17,6 @@
 #define dt_PYTHON_ARGS_h
 #include <unordered_map>   // std::unordered_map
 #include <vector>          // std::vector
-#include <Python.h>
 #include "python/arg.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"

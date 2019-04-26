@@ -23,7 +23,6 @@
 #define dt_COLUMN_h
 #include <string>
 #include <vector>
-#include <Python.h>
 #include "groupby.h"
 #include "memrange.h"     // MemoryRange
 #include "python/list.h"

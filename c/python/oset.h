@@ -7,9 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_OSET_h
 #define dt_PYTHON_OSET_h
-#include <Python.h>
 #include "python/obj.h"
-
 namespace py {
 
 

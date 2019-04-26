@@ -9,7 +9,6 @@
 #define dt_PYTHON_OBJ_h
 #include <string>
 #include <vector>
-#include <Python.h>
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 

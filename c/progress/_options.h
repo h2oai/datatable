@@ -17,7 +17,7 @@
 // "options.h" from the parent directory.
 #ifndef dt_PROGRESS_OPTIONS_h
 #define dt_PROGRESS_OPTIONS_h
-#include <Python.h>
+#include "python/python.h"
 namespace dt {
 namespace progress {
 

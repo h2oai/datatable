@@ -12,7 +12,6 @@
 #include <sstream>         // std::stringstream
 #include <unordered_map>   // std::unordered_map
 #include <utility>         // std::pair, std::make_pair, std::move
-#include <Python.h>
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
 #include "expr/base_expr.h"

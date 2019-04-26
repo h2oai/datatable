@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_LIST_h
 #define dt_PYTHON_LIST_h
-#include <Python.h>
 #include "python/obj.h"
 
 namespace py {

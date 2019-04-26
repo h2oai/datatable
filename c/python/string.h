@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_STRING_h
 #define dt_PYTHON_STRING_h
-#include <Python.h>
 #include <string>
 #include "python/obj.h"
 

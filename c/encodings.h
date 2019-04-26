@@ -7,7 +7,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ENCODINGS_H
 #define dt_ENCODINGS_H
-#include <stdint.h>
+#include <cstdint>
+using std::size_t;
 
 
 int is_valid_utf8(const uint8_t* src, size_t len);
@@ -19,5 +20,6 @@ int decode_escaped_csv_string(const uint8_t* src, int len, uint8_t* dest, uint8_
 int decode_sbcs(const uint8_t* src, int len, uint8_t* dest, uint32_t *map);
 
 int64_t utf32_to_utf8(uint32_t* buf, size_t maxchars, char* ch);
+
 
 #endif
