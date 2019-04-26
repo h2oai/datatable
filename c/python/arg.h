@@ -9,12 +9,8 @@
 #define dt_PYTHON_ARG_h
 #include <string>     // std::string
 #include <vector>     // std::vector
-#include <Python.h>
-#include "python/iter.h"
+#include "python/_all.h"
 #include "python/list.h"
-#include "python/obj.h"
-#include "python/tuple.h"
-
 namespace py {
 
 class PKArgs;

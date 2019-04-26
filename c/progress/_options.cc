@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <Python.h>   // PyObject, Py_XSETREF
 #include "models/py_validator.h"
 #include "progress/_options.h"
 #include "python/_all.h"

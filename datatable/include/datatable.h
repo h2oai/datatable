@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_API_h
 #define dt_API_h
+#include <locale>  // do not remove (#1824)
 #include <Python.h>
 
 // This header file may be included from C code

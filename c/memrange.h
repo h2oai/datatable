@@ -11,7 +11,6 @@
 #include <memory>             // std::unique_ptr
 #include <string>             // std::string
 #include <type_traits>        // std::is_same
-#include <Python.h>
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "writebuf.h"

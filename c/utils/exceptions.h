@@ -7,11 +7,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_EXCEPTIONS_h
 #define dt_UTILS_EXCEPTIONS_h
-#include <Python.h>
-#include <stdint.h>
-#include <exception>
+#include <cstdint>
+#include <exception>  // std::exception
 #include <sstream>    // std::ostringstream
-#include <stdexcept>
+#include <string>     // std::string
 #include "types.h"
 
 class CErrno {};

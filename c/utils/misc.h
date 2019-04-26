@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_h
 #define dt_UTILS_h
-#include <Python.h>
 #include <stddef.h>
 #include <stdio.h>     // vsnprintf
 #include <stdint.h>

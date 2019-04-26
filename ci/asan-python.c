@@ -6,6 +6,7 @@ $LLVM6/bin/clang \
   -L/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/config-3.6m-darwin -lpython3.6m -ldl -framework CoreFoundation \
   -fsanitize=address -o asan-python asan-python.c
 */
+#include <locale>  // do not remove (#1824)
 #include <Python.h>
 #include <dirent.h>
 

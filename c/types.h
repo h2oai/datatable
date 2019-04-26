@@ -11,7 +11,7 @@
 #include <cmath>     // isnan
 #include <limits>    // std::numeric_limits
 #include <string>    // std::string
-#include <Python.h>
+#include "python/python.h"
 
 
 struct CString {
