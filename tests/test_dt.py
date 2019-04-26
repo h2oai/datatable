@@ -1233,6 +1233,14 @@ def test_html_repr_slice():
     assert hr.data == [["4"], ["3"], ["2"], ["1"], ["0"]]
 
 
+def test_html_repr_unicode():
+    src = "用起来还是很不稳定。很多按键都要点好几次才行。" * 2  # len=46
+    DT = dt.Frame(U=[src[:n+1] for n in range(len(src))])
+    html = DT._repr_html_()
+    # Check that the string didn't get truncated
+    assert src in html
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
