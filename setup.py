@@ -31,7 +31,13 @@ Build script for the `datatable` module.
 import os
 import shutil
 import sys
-assert sys.version_info >= (3, 5), "Unsupported python version: " + sys.version
+if sys.version_info < (3, 5):
+    # Check python version here, otherwise the import from ci.setup_utils
+    # below will fail in Python 2.7 with confusing error message
+    raise SystemExit("\x1B[91m\nSystemExit: datatable requires Python 3.5+, "
+                     "whereas your Python is %s\n\x1B[39m"
+                     % ".".join(str(d) for d in sys.version_info))
+
 from setuptools import setup, find_packages, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_compiler, get_extra_compile_flags,
