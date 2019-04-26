@@ -47,7 +47,7 @@ class function<TReturn(TArgs...)>
     using callback_t = TReturn (*)(fptr, TArgs...);
 
     callback_t _callback = nullptr;
-    fptr _callable;
+    fptr _callable = nullptr;
 
     template<typename F>
     static TReturn callback_fn(fptr callable, TArgs ...params) {
@@ -58,6 +58,8 @@ class function<TReturn(TArgs...)>
   public:
     function() = default;
     function(std::nullptr_t) {}
+    function(const function&) = default;
+    function& operator=(const function&) = default;
 
     template <typename F, typename = typename std::enable_if<
                      !std::is_same<typename std::remove_reference<F>::type,

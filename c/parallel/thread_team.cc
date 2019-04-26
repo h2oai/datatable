@@ -36,7 +36,8 @@ thread_team::thread_team(size_t nth, thread_pool* pool)
 
 thread_team::~thread_team() {
   thpool->current_team = nullptr;
-  delete nested_scheduler;
+  auto tmp = nested_scheduler.load();
+  delete tmp;
 }
 
 
