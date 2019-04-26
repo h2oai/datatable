@@ -33,6 +33,15 @@ from datatable.internal import frame_column_rowindex, frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
+# Test progress callback function
+#-------------------------------------------------------------------------------
+
+def progress_fn(progress, status_code, message):
+    assert status_code in ("running", "finished", "cancelled", "error")
+    assert progress >= 0 and progress <= 1
+
+
+#-------------------------------------------------------------------------------
 # Aggregate 0D
 #-------------------------------------------------------------------------------
 
@@ -53,6 +62,7 @@ def test_aggregate_0d_continuous_integer_random():
     assert d_exemplars.to_list() == [[None, None, None, 0, 1, 2, 3, 3, 5, 5, 8, 8, 9],
                                      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
     assert_equals(d_in, d_in_copy)
+
 
 #-------------------------------------------------------------------------------
 # Aggregate 1D
@@ -501,7 +511,12 @@ def aggregate_nd(nd):
 
     d_in = dt.Frame(matrix)
     d_in_copy = dt.Frame(d_in)
-    [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nd_max_bins=div, seed=1)
+
+    with dt.options.progress.context(callback = progress_fn,
+                                     enabled=True,
+                                     min_duration=0):
+        [d_exemplars, d_members] = aggregate(d_in, min_rows=0,
+                                             nd_max_bins=div, seed=1)
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")

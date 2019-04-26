@@ -128,7 +128,8 @@ void worker_controller::join(size_t nthreads) {
       progress::manager.update_view();
     } catch(...) {
       catch_exception();
-      prev_sleep_task.next_scheduler->abort_execution();
+      if (prev_sleep_task.next_scheduler)
+        prev_sleep_task.next_scheduler->abort_execution();
     }
     std::this_thread::yield();
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
