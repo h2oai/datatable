@@ -53,17 +53,3 @@ void calculate_coprimes(size_t n, std::vector<size_t>& coprimes) {
     }
   }
 }
-
-
-/**
- *  Print a progress bar if `status_code == 0`, i.e. in-progress;
- *  clear the progress bar when `status_code != 0`, i.e. finished.
- */
-void print_progress(float progress, int status_code) {
-  int val = static_cast<int>(progress * 100);
-  int lpad = static_cast<int>(progress * PBWIDTH);
-  int rpad = PBWIDTH - lpad;
-  printf("\rProgress: [%.*s%*s] %3d%%", lpad, PBSTR, rpad, "", val);
-  if (status_code) printf("\33[2K\r");
-  fflush (stdout);
-}

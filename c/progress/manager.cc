@@ -66,7 +66,9 @@ void progress_manager::update_view() const {
 
 void progress_manager::set_error_status(bool cancelled) noexcept {
   if (!pbar) return;
-  pbar->set_status_error(cancelled);
+  try {
+    pbar->set_status_error(cancelled);
+  } catch (...) {}
   delete pbar;
   pbar = nullptr;
 }

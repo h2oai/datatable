@@ -66,9 +66,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   characters in fread's verbose log); and `display.use_colors` (allows
   to turn on/off colored output in the console).
 
-- `dt.options` now helps the user when he/she makes a typo: if an option
+- `dt.options` now helps the user when they make a typo: if an option
   with a certain name does not exist, the error message will suggest the
   correct spelling.
+
+- most long-running operations in `datatable` will now show a progress bar.
+  Its behavior can be controlled via `dt.options.progress` set of options.
 
 
 ### Fixed
@@ -162,6 +165,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame method `.save()` was renamed into `.to_jay()` (for consistency with
   other `.to_*()` methods). The old name is still usable, but marked as
   deprecated and will be removed in 0.10.0.
+
+- Parameter `progress_fn` in function `dt.models.aggregate()` is deprecated,
+  to be removed in 0.9.0. In its place you can set the global option
+  `dt.options.progress.callback`.
 
 
 ### Notes

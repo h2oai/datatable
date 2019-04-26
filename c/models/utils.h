@@ -99,11 +99,4 @@ inline T1 squared_loss(T1 p, T2 y) {
 }
 
 
-/**
- *  Progress reporting function and parameters.
- */
-#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define PBWIDTH 60
-void print_progress(float, int);
-
 #endif
