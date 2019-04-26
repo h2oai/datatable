@@ -26,9 +26,6 @@
 #include "python/obj.h"
 
 
-// Number of steps for the aggregator progress bar
-#define PBSTEPS 100
-
 // Define templated types for Aggregator
 template <typename T>
 using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
@@ -61,7 +58,7 @@ class Aggregator : public AggregatorBase {
     };
     using exptr = std::unique_ptr<exemplar>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, py::oobj, unsigned int);
+               unsigned int, unsigned int);
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
@@ -77,7 +74,6 @@ class Aggregator : public AggregatorBase {
     size_t max_dimensions;
     unsigned int seed;
     unsigned int nthreads;
-    py::oobj progress_fn;
 
     // Output exemplar and member datatables
     dtptr dt_exemplars;
@@ -86,6 +82,10 @@ class Aggregator : public AggregatorBase {
     // Continuous column convertors and datatable with categorical columns
     ccptrvec<T> contconvs;
     dtptr dt_cat;
+
+    static constexpr size_t WORK_PREPARE = 1;
+    static constexpr size_t WORK_AGGREGATE = 100;
+    static constexpr size_t WORK_SAMPLE = 20;
 
     // Final aggregation method
     void aggregate_exemplars(bool);
@@ -117,7 +117,6 @@ class Aggregator : public AggregatorBase {
     void adjust_delta(T&, std::vector<exptr>&, std::vector<size_t>&, size_t);
     void adjust_members(std::vector<size_t>&);
     size_t calculate_map(std::vector<size_t>&, size_t);
-    void progress(float, int status_code=0);
 };
 
 

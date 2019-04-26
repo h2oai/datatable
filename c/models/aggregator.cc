@@ -24,6 +24,7 @@
 #include "models/aggregator.h"
 #include "models/utils.h"
 #include "parallel/api.h"       // dt::parallel_for_static
+#include "progress/work.h"      // dt::progress::work
 #include "utils/c+++.h"
 #include "datatablemodule.h"
 #include "options.h"
@@ -67,12 +68,9 @@ max_dimensions: int
     Number of columns at which start using the projection method.
 seed: int
     Seed to be used for the projection method.
-progress_fn: object
-    Python function for progress reporting with the signature
-    `progress_fn(progress, status_code)`, where:
-    - `progress` is a float value that corresponds to the aggregation
-      progress on a scale from 0 to 1;
-    - `status_code` takes two values: `0` – in progress, `1` – completed.
+progress_fn:
+    [DEPRECATED]
+    Please use ``dt.options.progress.callback`` instead.
 nthreads: int
     Number of threads aggregator should use. `0` means
     use all the threads.
@@ -105,7 +103,6 @@ static oobj aggregate(const PKArgs& args) {
   unsigned int seed = 0;
   unsigned int nthreads = 0;
   bool double_precision = false;
-  py::oobj progress_fn = py::None();
 
   bool undefined_dt = args[0].is_none_or_undefined();
   bool defined_min_rows = !args[1].is_none_or_undefined();
@@ -154,7 +151,9 @@ static oobj aggregate(const PKArgs& args) {
   }
 
   if (defined_progress_fn) {
-    progress_fn = py::oobj(args[8]);
+    DeprecationWarning() << "Parameter `progress_fn` is ignored. It will be "
+        "removed in datatable 0.9.0. Please set `options.progress.callback` "
+        "instead";
   }
 
   if (defined_nthreads) {
@@ -170,13 +169,11 @@ static oobj aggregate(const PKArgs& args) {
   if (double_precision) {
     agg = make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
                                           nd_max_bins, max_dimensions, seed,
-                                          progress_fn, nthreads
-                                         );
+                                          nthreads);
   } else {
     agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
                                          nd_max_bins, max_dimensions, seed,
-                                         progress_fn, nthreads
-                                        );
+                                         nthreads);
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
@@ -217,8 +214,7 @@ template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nx_bins_in, size_t ny_bins_in,
                           size_t nd_max_bins_in, size_t max_dimensions_in,
-                          unsigned int seed_in, py::oobj progress_fn_in,
-                          unsigned int nthreads_in) :
+                          unsigned int seed_in, unsigned int nthreads_in) :
   dt(nullptr),
   min_rows(min_rows_in),
   n_bins(n_bins_in),
@@ -227,8 +223,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
   seed(seed_in),
-  nthreads(nthreads_in),
-  progress_fn(progress_fn_in)
+  nthreads(nthreads_in)
 {
 }
 
@@ -246,7 +241,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
                               dtptr& dt_exemplars_in,
                               dtptr& dt_members_in)
 {
-  progress(0.0, 0);
+  dt::progress::work job(WORK_PREPARE + WORK_AGGREGATE + WORK_SAMPLE);
   dt = dt_in;
   bool was_sampled = false;
 
@@ -287,29 +282,39 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
 
     dt_cat = dtptr(new DataTable(std::move(catcols)));
     ncols = contconvs.size() + dt_cat->ncols;
+    job.add_done_amount(WORK_PREPARE);
 
     // Depending on number of columns call a corresponding aggregating method.
     // If `dt` has too few rows, do not aggregate it, instead, just sort it by
     // the first column calling `group_0d()`.
-    switch (ncols) {
-      case 0:  group_0d();
-               max_bins = nd_max_bins;
-               break;
-      case 1:  group_1d();
-               max_bins = n_bins;
-               n_na_bins = 1;
-               break;
-      case 2:  group_2d();
-               max_bins = nx_bins * ny_bins;
-               n_na_bins = 3;
-               break;
-      default: group_nd();
-               max_bins = nd_max_bins;
+    {
+      job.set_message("Aggregating");
+      dt::progress::subtask subjob(job, WORK_AGGREGATE);
+      switch (ncols) {
+        case 0:  group_0d();
+                 max_bins = nd_max_bins;
+                 break;
+        case 1:  group_1d();
+                 max_bins = n_bins;
+                 n_na_bins = 1;
+                 break;
+        case 2:  group_2d();
+                 max_bins = nx_bins * ny_bins;
+                 n_na_bins = 3;
+                 break;
+        default: group_nd();
+                 max_bins = nd_max_bins;
+      }
     }
-    // Sample members if we gathered too many exempalrs.
-    was_sampled = sample_exemplars(max_bins, n_na_bins);
+    {
+      // Sample members if we gathered too many exempalrs.
+      job.set_message("Sampling");
+      dt::progress::subtask subjob(job, WORK_SAMPLE);
+      was_sampled = sample_exemplars(max_bins, n_na_bins);
+    }
   } else {
     group_0d();
+    job.add_done_amount(WORK_PREPARE + WORK_AGGREGATE + WORK_SAMPLE);
   }
 
   // Do not aggregate `dt` in-place, instead, make a shallow copy
@@ -324,7 +329,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = nullptr;
   contconvs.clear();
   dt_cat = nullptr;
-  progress(1.0, 1);
+  job.done();
 }
 
 
@@ -740,6 +745,7 @@ void Aggregator<T>::group_nd() {
 
   // Figuring out how many threads to use.
   size_t nth = std::min(get_nthreads(nrows), dt::num_threads_in_pool());
+  size_t nrows_per_thread = nrows / nth;
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   T delta = epsilon;
@@ -748,13 +754,12 @@ void Aggregator<T>::group_nd() {
   // meanwhile, so restart is needed for the `test_member` procedure.
   size_t ecounter = 0;
 
+  dt::progress::work job(nrows_per_thread);
   dt::parallel_region(nth,
     [&] {
       size_t ith = dt::this_thread_index();
-      size_t nrows_per_thread = nrows / nth;
       size_t i0 = ith * nrows_per_thread;
       size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
-      size_t rstep = (PBSTEPS > nrows_per_thread)? 1 : nrows_per_thread / PBSTEPS;
 
       T distance;
       auto member = tptr<T>(new T[ndims]);
@@ -823,8 +828,8 @@ void Aggregator<T>::group_nd() {
           }
         }
 
-        if (ith == 0 && (i - i0) % rstep == 0) {
-          progress(static_cast<float>(i+1) / nrows_per_thread);
+        if (ith == 0) {
+          job.set_done_amount(i - i0);
         }
       } // End main loop over all the rows
     });
@@ -1059,19 +1064,6 @@ void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
   }
 }
 
-
-/**
- *  Helper function to invoke the Python progress function if supplied,
- *  otherwise just print the progress bar.
- */
-template <typename T>
-void Aggregator<T>::progress(float progress, int status_code /*= 0*/) {
-  if (progress_fn.is_none()) {
-    print_progress(progress, status_code);
-  } else {
-    progress_fn.call({py::ofloat(progress), py::oint(status_code)});
-  }
-}
 
 
 template class Aggregator<float>;
