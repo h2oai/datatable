@@ -392,14 +392,19 @@ class FrameInitializationManager {
       py::robj pdsrc = src.to_pyobj();
       py::olist colnames(0);
       if (src.is_pandas_frame()) {
+        py::oobj pd_iloc = pdsrc.get_attr("iloc");
         py::oiter pdcols = pdsrc.get_attr("columns").to_oiter();
         size_t ncols = pdcols.size();
         if (ncols != size_t(-1)) {
           check_names_count(ncols);
         }
+        auto na = py::oslice::NA;
+        py::otuple index {py::oslice(na, na, na), py::oint(na)};
+        size_t i = 0;
         for (auto col : pdcols) {
           if (!names_arg) colnames.append(col.to_pystring_force());
-          py::oobj colsrc = pdsrc.get_item(col).get_attr("values");
+          index.replace(1, py::oint(i++));
+          py::oobj colsrc = pd_iloc.get_item(index).get_attr("values");
           make_column(colsrc, SType::VOID);
         }
         if (ncols == size_t(-1)) {

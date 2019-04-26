@@ -750,11 +750,12 @@ def test_create_names_bad4():
 #-------------------------------------------------------------------------------
 
 def test_create_from_pandas(pandas):
-    p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
+    src = {"A": [2, 5, 8], "B": ["e", "r", "qq"]}
+    p = pandas.DataFrame(src)
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.shape == (3, 2)
-    assert same_iterables(d.names, ("A", "B"))
+    assert d.to_dict() == src
 
 
 def test_create_from_pandas2(pandas, numpy):
@@ -766,11 +767,12 @@ def test_create_from_pandas2(pandas, numpy):
 
 
 def test_create_from_pandas_series(pandas):
-    p = pandas.Series([1, 5, 9, -12])
+    src = [1, 5, 9, -12, 0, 123]
+    p = pandas.Series(src)
     d = dt.Frame(p)
     frame_integrity_check(d)
-    assert d.shape == (4, 1)
-    assert d.to_list() == [[1, 5, 9, -12]]
+    assert d.shape == (len(src), 1)
+    assert d.to_list() == [src]
 
 
 def test_create_from_pandas_with_names(pandas):
@@ -846,6 +848,16 @@ def test_create_from_pandas_boolean_with_nans(pandas):
     df = dt.Frame(pf)
     assert df.stypes == (dt.bool8,)
     assert df.to_list() == [[True, None, False]]
+
+
+def test_create_from_pandas_with_duplicate_names(pandas):
+    # See issue 1816
+    Y = pandas.DataFrame([[1, 2, 3]], columns=list("AAA"))
+    with pytest.warns(DatatableWarning):
+        X = dt.Frame(Y)
+    assert X.shape == (1, 3)
+    assert X.names == ("A", "A.1", "A.2")
+    assert X.to_list() == [[1], [2], [3]]
 
 
 
