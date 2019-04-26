@@ -36,9 +36,9 @@ from datatable.internal import frame_column_rowindex, frame_integrity_check
 # Test progress callback function
 #-------------------------------------------------------------------------------
 
-def progress_fn(progress, status_code, message):
-    assert status_code in ("running", "finished", "cancelled", "error")
+def progress_fn(progress, status, message):
     assert progress >= 0 and progress <= 1
+    assert status in ("running", "finished", "cancelled", "error")
 
 
 #-------------------------------------------------------------------------------
