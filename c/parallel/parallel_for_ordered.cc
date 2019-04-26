@@ -54,7 +54,7 @@ class ordered_task : public thread_task {
   public:
     ordered_task(f1t pre, f1t ord, f1t post);
     ordered_task(const ordered_task&) = delete;
-    ordered_task(ordered_task&&) = default;
+    ordered_task(ordered_task&&);
 
     bool ready_to_start()  const noexcept { return state == READY_TO_START; }
     bool ready_to_order()  const noexcept { return state == READY_TO_ORDER; }
@@ -74,6 +74,12 @@ ordered_task::ordered_task(f1t pre, f1t ord, f1t post)
     state(READY_TO_START),
     n_iter(0) {}
 
+ordered_task::ordered_task(ordered_task&& other)
+  : pre_ordered(std::move(other.pre_ordered)),
+    ordered(std::move(other.ordered)),
+    post_ordered(std::move(other.post_ordered)),
+    state(other.state),
+    n_iter(other.n_iter) {}
 
 void ordered_task::advance_state() {
   state++;
