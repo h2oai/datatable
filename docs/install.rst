@@ -1,14 +1,22 @@
 Installation
 ============
 
-This section describes how to install H2O's ``datatable``.
+This section describes how to install Python ``datatable`` on various systems.
 
+Python 3.5 or newer is a prerequisite. You can check your python version via
 
+.. code-block:: bash
 
-Requirements
-------------
+   $ python --version
 
-- Python 3.5+
+If you don't have Python 3.5 or later, you may want to download and install
+the newest version of Python, and then create and activate a virtual
+environment for that Python. For example:
+
+.. code-block:: bash
+
+   $ virtualenv --python=python3.6 ~/py36
+   $ source ~/py36/bin/activate
 
 
 
@@ -17,108 +25,106 @@ Install on Mac OS X
 
 Run the following command to install ``datatable`` on Mac OS X.
 
-::
+.. code-block:: bash
 
-  pip install datatable
+  $ pip install datatable
 
 
 
 Install on Linux
 ----------------
 
-Run one of the following commands to retrieve the ``datatable`` whl file for Linux environments.
+Run one of the following commands to retrieve the ``datatable`` wheel file for Linux environments.
 
-::
+.. code-block:: bash
 
   # Python 3.5
-  pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp35-cp35m-linux_x86_64.whl
+  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp35-cp35m-linux_x86_64.whl
 
   # Python 3.6
-  pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.2/datatable-0.3.2-cp36-cp36m-linux_x86_64.whl
+  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp36-cp36m-linux_x86_64.whl
+
+  # Python 3.7
+  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp37-cp37m-linux_x86_64.whl
+
+
+
+Install on Windows
+------------------
+
+Currently `datatable` does not work on Windows. There is an open issue
+`#1114 <https://github.com/h2oai/datatable/issues/1114>`__ to add support
+for Windows platforms, and there is a certain amount of progress in that
+direction; however, there are still some unresolved problems.
 
 
 
 Build from Source
 -----------------
 
-The key component needed for building the ``datatable`` package from source is the `Clang/Llvm <https://releases.llvm.org/download.html>`__ distribution. The same distribution is also required for building the ``llvmlite`` package, which is a prerequisite for ``datatable``. Note that the ``clang`` compiler which is shipped with MacOS is too old, and in particular it doesn't have support for the OpenMP technology.
+In order to install the latest development version of `datatable` directly
+from GitHub, run the following command:
 
-Installing the ``Clang/Llvm`` distribution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: bash
 
-1. Visit https://releases.llvm.org/download.html and **download** the most recent version of Clang/Llvm available for your platform (but no older than version 4.0.0).
-2. Extract the downloaded archive into any suitable location on your hard drive.
-3. Create one of the environment variables ``LLVM4`` / ``LLVM5`` / ``LLVM6`` (depending on the version of Clang/Llvm that you installed). The variable should point to the directory where you placed the Clang/Llvm distribution.
+  $ pip install git+https://github.com/h2oai/datatable
 
- For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz`` the sequence of steps might look like:
+Since ``datatable`` is written mostly in C++, you will need to have a C++
+compiler on your computer. We recommend either `Clang 4+`, or `gcc 5+`,
+however in theory any compiler that supports C++11 should work.
 
- ::
+It is also possible to build `datatable` with `gcc 4.8`, which has only
+partial support of C++11 features. In this case `datatable`'s functionality
+will be limited, and any function using regular expressions will not be
+supported.
 
-    $ mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz  /opt
-    $ cd /opt
-    $ sudo tar xvf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz
-    $ export LLVM4=/opt/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10
 
-You probably also want to put the last ``export`` line into your ``~/.bash_profile``.
 
-Building ``datatable``
-~~~~~~~~~~~~~~~~~~~~~~
+Build modified ``datatable``
+----------------------------
 
-1. Verify that you have Python 3.5 or above:
+If you want to tweak certain features of ``datatable``, or even add your
+own functionality, you are welcome to do so.
 
- ::
+1. First, clone ``datatable`` repository from GitHub:
 
-   $ python --V
+  .. code-block:: bash
 
- If you don't have Python 3.5 or later, you may want to download and install the newest version of Python, and then create and activate a virtual environment for that Python. For example:
+    $ git clone https://github.com/h2oai/datatable
 
- ::
+2. Make ``datatable``:
 
-   $ virtualenv --python=python3.6 ~/py36
-   $ source ~/py36/bin/activate
+  .. code-block:: bash
 
-2. Build ``datatable``:
-
- ::
-
-   $ make build
-   $ make install
-   $ make test
+    $ make test_install
+    $ make
 
 3. Additional commands you may find occasionally interesting:
 
- ::
-
-   # Uninstall previously installed datatable
-   make uninstall
+  .. code-block:: bash
 
    # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
-   make debug
+   $ make debug
 
    # Generate code coverage report
-   make coverage
+   $ make coverage
+
+   # Build a debug version of datatable using an auto-generated makefile.
+   # This does not work on all systems, but when it does it will work
+   # way faster than standard "make debug".
+   $ make fast
 
 
 
 Troubleshooting
 ---------------
 
-- If you get an error like ``ImportError: This package should not be accessible on Python 3``, then you may have a ``PYTHONPATH`` environment variable that causes conflicts. See `this SO question <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>`__ for details.
-
-- If you see errors such as ``"implicit declaration of function 'PyUnicode_AsUTF8' is invalid in C99"`` or ``"unknown type name 'PyModuleDef'"`` or ``"void function 'PyInit__datatable' should not return a value "``, it means your current Python is Python 2. Please revisit step 1 in the build instructions above.
+- If you get the error ``ImportError: This package should not be accessible on Python 3``, then you may have a ``PYTHONPATH`` environment variable that causes conflicts. See `this SO question <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>`__ for details.
 
 - If you are seeing an error ``'Python.h' file not found``, then it means you have an incomplete version of Python installed. This is known to sometimes happen on Ubuntu systems. The solution is to run ``apt-get install python-dev`` or ``apt-get install python3.6-dev``.
 
-- If you run into installation errors with ``llvmlite`` dependency, then your best bet is to attempt to install it manually before trying to build ``datatable``:
+- On OS X, if you are getting an error ``fatal error: 'sys/mman.h' file not found``, this can be fixed by installing the Xcode Command Line Tools:
 
-   ::
-
-       $ pip install llvmlite
-
-   Consult the ``llvmlite`` `Installation Guide <http://llvmlite.pydata.org/en/latest/admin-guide/install.html>`__ for additional information.
-
-- On OS X, if you are getting an error ``fatal error: 'sys/mman.h' file not found`` or similar, this can be fixed by installing the Xcode Command Line Tools:
-
-   ::
+  .. code-block:: bash
 
        $ xcode-select --install
