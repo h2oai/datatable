@@ -57,13 +57,11 @@ progress_bar::progress_bar() {
     if (dt::progress::progress_fn) {
       init_status_strings();
       pyfn_external = py::oobj(dt::progress::progress_fn);
-      py_args = py::otuple(3);
     }
     else {
       auto stdout = py::stdout();
       pyfn_write = stdout.get_attr("write");
       pyfn_flush = stdout.get_attr("flush");
-      py_args = py::otuple(1);
     }
   }
   visible = false;
@@ -150,11 +148,20 @@ void progress_bar::_check_interrupts() {
 
 
 void progress_bar::_report_to_python() {
-  PyObject* status_pyobj = status_strings[static_cast<int>(status)];
-  py_args.replace(0, py::ofloat(progress));
-  py_args.replace(1, py::oobj(status_pyobj));
-  py_args.replace(2, py::ostring(message));
-  pyfn_external.call(py_args);
+  static py::onamedtupletype ntt(
+    "ProgressStatus",
+    "Progress state for dt.options.progress.callback function",
+    {{"progress", "The percentage of job done, a number between 0 and 1"},
+     {"status", "One of: 'running', 'finished', 'error' or 'cancelled'"},
+     {"message", "General description of what is currently being done"}}
+  );
+  py::onamedtuple nt(ntt);
+  nt.set(0, py::ofloat(progress));
+  nt.set(1, py::oobj(status_strings[static_cast<int>(status)]));
+  nt.set(2, py::ostring(message));
+  py::otuple arg(1);
+  arg.set(0, std::move(nt));
+  pyfn_external.call(std::move(arg));
 }
 
 
@@ -167,8 +174,7 @@ void progress_bar::_render_to_stdout() {
   else             _render_progressbar_ascii(out);
   _render_message(out);
 
-  py_args.replace(0, py::ostring(out.str()));
-  pyfn_write.call(py_args);
+  pyfn_write.call(py::otuple{ py::ostring(out.str()) });
   pyfn_flush.call();
 }
 
