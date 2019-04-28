@@ -138,18 +138,16 @@ static void init_option_callback(){
     "progress.callback",
     get_callback,
     set_callback,
-    "If None, then the builtin progress-reporting function will be used.\n"
-    "Otherwise, this value specifies a function or object to be called\n"
-    "at each progress event.\n"
+    "If None, then the built-in progress-reporting function will be used.\n"
+    "Otherwise, this value specifies a function to be called at each\n"
+    "progress event. The function takes a single parameter `p`, which is\n"
+    "a namedtuple with the following fields:\n"
     "\n"
-    "The function is expected to have the following signature:\n"
-    "\n"
-    "    fn(progress, status, message)\n"
-    "\n"
-    "where `progress` is a float in the range 0.0 .. 1.0; `status` is a\n"
-    "string, one of 'running', 'finished', 'error' or 'cancelled'; and\n"
-    "`message` is a custom string describing the operation currently\n"
-    "being performed."
+    "  - `p.progress` is a float in the range 0.0 .. 1.0;\n"
+    "  - `p.status` is a string, one of 'running', 'finished', 'error' or \n"
+    "    'cancelled'; and\n"
+    "  - `p.message` is a custom string describing the operation currently\n"
+    "    being performed."
   );
 }
 
