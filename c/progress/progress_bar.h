@@ -57,7 +57,6 @@ class progress_bar {
     py::oobj pyfn_write;
     py::oobj pyfn_flush;
     py::oobj pyfn_external;
-    py::otuple py_args;
     bool visible;
     bool force_redraw;
     size_t : 48;
