@@ -3,6 +3,9 @@ Installation
 
 This section describes how to install Python ``datatable`` on various systems.
 
+Prerequisites
+-------------
+
 Python 3.5 or newer is a prerequisite. You can check your python version via
 
 .. code-block:: bash
@@ -74,7 +77,7 @@ compiler on your computer. We recommend either `Clang 4+`, or `gcc 5+`,
 however in theory any compiler that supports C++11 should work.
 
 It is also possible to build `datatable` with `gcc 4.8`, which has only
-partial support of C++11 features. In this case `datatable`'s functionality
+partial support of C++11 features. In this case, `datatable`'s functionality
 will be limited, and any function using regular expressions will not be
 supported.
 
@@ -111,7 +114,7 @@ own functionality, you are welcome to do so.
 
    # Build a debug version of datatable using an auto-generated makefile.
    # This does not work on all systems, but when it does it will work
-   # way faster than standard "make debug".
+   # much faster than standard "make debug".
    $ make fast
 
 
@@ -121,7 +124,7 @@ Troubleshooting
 
 - If you get the error ``ImportError: This package should not be accessible on Python 3``, then you may have a ``PYTHONPATH`` environment variable that causes conflicts. See `this SO question <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>`__ for details.
 
-- If you are seeing an error ``'Python.h' file not found``, then it means you have an incomplete version of Python installed. This is known to sometimes happen on Ubuntu systems. The solution is to run ``apt-get install python-dev`` or ``apt-get install python3.6-dev``.
+- If you see an error ``'Python.h' file not found``, then it means you have an incomplete version of Python installed. This is known to sometimes happen on Ubuntu systems. The solution is to run ``apt-get install python-dev`` or ``apt-get install python3.6-dev``.
 
 - On OS X, if you are getting an error ``fatal error: 'sys/mman.h' file not found``, this can be fixed by installing the Xcode Command Line Tools:
 
