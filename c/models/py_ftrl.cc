@@ -224,8 +224,8 @@ std::vector<sizetvec> Ftrl::convert_interactions() {
 static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
                        "nepochs_validation", "validation_error",
-                       "validation_naverage"}, "fit",
-R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error = 0.01, validation_naverage = 1)
+                       "validation_average_niterations"}, "fit",
+R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error=0.01, validation_average_niterations=1)
 --
 
 Train FTRL model on a dataset.
@@ -246,14 +246,15 @@ y_validation: Frame
 
 nepochs_validation: float
     Parameter that specifies how often, in epoch units, validation
-    error is checked.
+    error should be checked.
 
 validation_error: float
     If within `nepochs_validation` relative validation error does not improve
     by at least `validation_error`, training stops.
 
-validation_naverage: int
-    Number of iterations to average relative validation error for.
+validation_average_niterations: int
+    Number of iterations that are used to calculate average loss. Here, each
+    iteration corresponds to `nepochs_validation` epochs.
 
 Returns
 -------
@@ -265,13 +266,13 @@ loss. When validation dataset is not provided, `epoch` returned is equal to
 
 
 oobj Ftrl::fit(const PKArgs& args) {
-  const Arg& arg_X_train             = args[0];
-  const Arg& arg_y_train             = args[1];
-  const Arg& arg_X_validation        = args[2];
-  const Arg& arg_y_validation        = args[3];
-  const Arg& arg_nepochs_validation  = args[4];
-  const Arg& arg_validation_error    = args[5];
-  const Arg& arg_validation_naverage = args[6];
+  const Arg& arg_X_train                        = args[0];
+  const Arg& arg_y_train                        = args[1];
+  const Arg& arg_X_validation                   = args[2];
+  const Arg& arg_y_validation                   = args[3];
+  const Arg& arg_nepochs_validation             = args[4];
+  const Arg& arg_validation_error               = args[5];
+  const Arg& arg_validation_average_niterations = args[6];
 
   // Training set handling
   if (arg_X_train.is_undefined()) {
@@ -323,7 +324,7 @@ oobj Ftrl::fit(const PKArgs& args) {
   DataTable* dt_y_val = nullptr;
   double nepochs_val = std::numeric_limits<double>::quiet_NaN();
   double val_error = std::numeric_limits<double>::quiet_NaN();
-  size_t val_naverage = 0;
+  size_t val_niters = 0;
 
   if (!arg_X_validation.is_none_or_undefined() &&
       !arg_y_validation.is_none_or_undefined()) {
@@ -374,15 +375,15 @@ oobj Ftrl::fit(const PKArgs& args) {
       // py::Validator::check_positive<double>(val_error, arg_validation_error);
     } else val_error = 0.01;
 
-    if (!arg_validation_naverage.is_none_or_undefined()) {
-      val_naverage = arg_validation_naverage.to_size_t();
-      py::Validator::check_positive<size_t>(val_naverage, arg_validation_naverage);
-    } else val_naverage = 1;
+    if (!arg_validation_average_niterations.is_none_or_undefined()) {
+      val_niters = arg_validation_average_niterations.to_size_t();
+      py::Validator::check_positive<size_t>(val_niters, arg_validation_average_niterations);
+    } else val_niters = 1;
   }
 
   dt::FtrlFitOutput output = dtft->dispatch_fit(dt_X, dt_y,
                                                 dt_X_val, dt_y_val,
-                                                nepochs_val, val_error, val_naverage);
+                                                nepochs_val, val_error, val_niters);
 
   static onamedtupletype ntt(
     "FtrlFitOutput",
@@ -1059,20 +1060,28 @@ Parameters
 ----------
 alpha : float
     `alpha` in per-coordinate learning rate algorithm, defaults to `0.005`.
+
 beta : float
     `beta` in per-coordinate learning rate algorithm, defaults to `1`.
+
 lambda1 : float
     L1 regularization parameter, defaults to `0`.
+
 lambda2 : float
     L2 regularization parameter, defaults to `0`.
+
 nbins : int
     Number of bins to be used for the hashing trick, defaults to `10**6`.
+
 mantissa_nbits : int
     Number of bits from mantissa to be used for hashing, defaults to `10`.
+
 nepochs : int
     Number of training epochs, defaults to `1`.
+
 double_precision : bool
     Whether to use double precision arithmetic or not, defaults to `False`.
+
 negative_class : bool
     Whether to create and train on a "negative" class in the case of multinomial classification.
 )";

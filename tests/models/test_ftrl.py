@@ -763,6 +763,28 @@ def test_ftrl_fit_predict_multinomial_online(negative_class_value):
 # Test early stopping
 #-------------------------------------------------------------------------------
 
+
+def test_ftrl_wrong_validation_parameters():
+    nepochs = 1234
+    nepochs_validation = 56
+    nbins = 78
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+
+    with pytest.raises(ValueError) as e:
+        res = ft.fit(df_X, df_y, df_X, df_y,
+                     nepochs_validation = 0)
+    assert ("Argument `nepochs_validation` in Ftrl.fit() should be "
+            "positive: 0" == str(e.value))
+
+    with pytest.raises(ValueError) as e:
+        res = ft.fit(df_X, df_y, df_X, df_y,
+                     validation_average_niterations = 0)
+    assert ("Argument `validation_average_niterations` in Ftrl.fit() should be "
+            "positive: 0" == str(e.value))
+
 @pytest.mark.parametrize('double_precision_value', [False, True])
 def test_ftrl_no_validation_set(double_precision_value):
     nepochs = 1234
@@ -795,7 +817,8 @@ def test_ftrl_no_early_stopping():
     assert math.isnan(loss_stopped) == False
 
 
-def test_ftrl_early_stopping_int():
+@pytest.mark.parametrize('validation_average_niterations', [1,5,10])
+def test_ftrl_early_stopping_int(validation_average_niterations):
     nepochs = 10000
     nepochs_validation = 5
     nbins = 10
@@ -804,7 +827,8 @@ def test_ftrl_early_stopping_int():
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y, df_X, df_y,
-                 nepochs_validation = nepochs_validation)
+                 nepochs_validation = nepochs_validation,
+                 validation_average_niterations = validation_average_niterations)
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
@@ -815,7 +839,8 @@ def test_ftrl_early_stopping_int():
     assert max(delta) < epsilon
 
 
-def test_ftrl_early_stopping_float():
+@pytest.mark.parametrize('validation_average_niterations', [1,5,10])
+def test_ftrl_early_stopping_float(validation_average_niterations):
     nepochs = 10000
     nepochs_validation = 5.5
     nbins = 10
@@ -824,7 +849,8 @@ def test_ftrl_early_stopping_float():
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y, df_X, df_y,
-                 nepochs_validation = nepochs_validation)
+                 nepochs_validation = nepochs_validation,
+                 validation_average_niterations = validation_average_niterations)
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
@@ -836,7 +862,8 @@ def test_ftrl_early_stopping_float():
     assert max(delta) < epsilon
 
 
-def test_ftrl_early_stopping_regression():
+@pytest.mark.parametrize('validation_average_niterations', [1,5,10])
+def test_ftrl_early_stopping_regression(validation_average_niterations):
     nepochs = 10000
     nepochs_validation = 5
     nbins = 10
@@ -848,7 +875,8 @@ def test_ftrl_early_stopping_regression():
     df_y_validate = df_X_validate
     res = ft.fit(df_X_train, df_y_train,
                  df_X_validate[nbins::,:], df_y_validate[nbins::,:],
-                 nepochs_validation = nepochs_validation)
+                 nepochs_validation = nepochs_validation,
+                 validation_average_niterations = validation_average_niterations)
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X_train)

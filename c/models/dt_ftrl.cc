@@ -53,7 +53,7 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   dt_y_val(nullptr),
   nepochs_val(T_NAN),
   val_error(T_NAN),
-  val_naverage(0)
+  val_niters(0)
 {
 }
 
@@ -72,14 +72,14 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
                                     const DataTable* dt_y_val_in,
                                     double nepochs_val_in,
                                     double val_error_in,
-                                    size_t val_naverage_in) {
+                                    size_t val_niters_in) {
   dt_X = dt_X_in;
   dt_y = dt_y_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
   nepochs_val = static_cast<T>(nepochs_val_in);
   val_error = static_cast<T>(val_error_in);
-  val_naverage = val_naverage_in;
+  val_niters = val_niters_in;
   FtrlFitOutput res;
 
   SType stype_y = dt_y->columns[0]->stype();
@@ -319,14 +319,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
   // `val_error`.
   bool validation = !std::isnan(nepochs_val);
   T loss = T_NAN; // This value is returned when validation is not enabled
-  T loss_old = 0; // Value of `loss` for a previous iteraction
-  std::queue<T> loss_queue;
+  T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
+  std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
   if (validation) {
-    loss = 0;
     hashers_val = create_hashers(dt_X_val);
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
     niterations = total_nrows / iteration_nrows;
+    loss_history.resize(val_niters, 0.0);
     fill_ri_data<U>(dt_y_val, ri_val, data_val);
   }
 
@@ -406,16 +406,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           // all the threads after `barrier()`.
           if (dt::this_thread_index() == 0) {
             T loss_current = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
-            loss += loss_current;
-            loss_queue.push(loss_current);
-
-            if (loss_queue.size() > val_naverage) {
-              loss -= loss_queue.front();
-              loss_queue.pop();
-            }
-
-            T loss_diff = (loss_old - loss) / (loss_old * val_naverage);
-            bool is_loss_bad = (iter >= val_naverage) && (loss < T_EPSILON || loss_diff < val_error);
+            loss_history[iter % val_niters] = loss_current / val_niters;
+            loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
+            T loss_diff = (loss_old - loss) / loss_old;
+            bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
             loss_old = is_loss_bad? T_NAN : loss;
           }
           barrier();
