@@ -507,6 +507,7 @@ def aggregate_nd(nd):
     def progress_fn(p):
         assert 0 <= p.progress <= 1
         assert p.status in ("running", "finished", "cancelled", "error")
+        assert p.message in ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
         messages.append(p)
 
     with dt.options.progress.context(callback = progress_fn,
@@ -516,8 +517,10 @@ def aggregate_nd(nd):
                                              nd_max_bins=div, seed=1)
         assert messages[0].progress == 0
         assert messages[0].status == "running"
+        assert messages[0].message == ""
         assert messages[-1].progress == 1.0
         assert messages[-1].status == "finished"
+        assert messages[-1].message == ""
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
