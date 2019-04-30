@@ -87,16 +87,18 @@ not improve. For this the model should be fit as
 
 ::
 
-  res = ftrl_model.fit(X_train, y_train, X_validation, y_validation, nepochs_validation, validation_error)
+  res = ftrl_model.fit(X_train, y_train, X_validation, y_validation, nepochs_validation, validation_error, validation_average_niterations)
 
 
 where ``X_train`` and ``y_train`` are training and target frames,
 respectively, ``X_validation`` and ``y_validation`` are validation frames,
 ``nepochs_validation`` specifies how often, in epoch units, validation
-error should be checked, and ``validation_error`` is the relative
+error should be checked, ``validation_error`` is the relative
 validation error improvement that the model should demonstrate within
-``nepochs_validation`` to continue training. Returned ``res`` tuple
-contains epoch at which training stopped and the corresponding loss.
+``nepochs_validation`` to continue training, and
+``validation_average_niterations`` is the number of iterations
+to average when calculating the validation error. Returned ``res``
+tuple contains epoch at which training stopped and the corresponding loss.
 
 
 Resetting a Model
