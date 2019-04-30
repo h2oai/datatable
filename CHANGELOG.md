@@ -134,6 +134,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   unicode characters in Jupyter notebook. The error only manifested for
   strings that were longer than 50 bytes in length (#1825).
 
+- Fixed crash when `Frame.colindex()` was used without any arguments, now this
+  raises an exception instead (#1834).
+
 
 ### Changed
 
@@ -178,6 +181,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803),
   - [Antorsae][] (#1639),
+  - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816),
   - [NachiGithub][] (#1789, #1793),
   - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
@@ -1098,6 +1102,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [antorsae]: https://github.com/antorsae
 [arno candel]: https://github.com/arnocandel
 [carlosthinkbig]: https://github.com/CarlosThinkBig
+[hawk berry]: https://github.com/hawkberry
 [jonathan mckinney]: https://github.com/pseudotensor
 [joseph granados]: https://github.com/g-eoj
 [megan kurka]: https://github.com/meganjkurka

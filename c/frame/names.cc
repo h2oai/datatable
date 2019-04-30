@@ -139,6 +139,10 @@ name: str
 
 oobj Frame::colindex(const PKArgs& args) {
   auto col = args[0];
+  if (!col) {
+    throw TypeError() << "Frame.colindex() is missing the required "
+                         "positional argument `name`";
+  }
 
   if (col.is_string()) {
     int64_t index = dt->colindex(col.to_pyobj());
