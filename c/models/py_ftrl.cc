@@ -253,7 +253,7 @@ validation_error: float
     by at least `validation_error`, training stops.
 
 validation_average_niterations: int
-    Number of iterations that are used to calculate average loss. Here, each
+    Number of iterations that is used to calculate average loss. Here, each
     iteration corresponds to `nepochs_validation` epochs.
 
 Returns
