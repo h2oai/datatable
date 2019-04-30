@@ -81,6 +81,7 @@ class Ftrl : public dt::FtrlBase {
     // Other temporary parameters that needed for validation.
     T nepochs_val;
     T val_error;
+    size_t val_niters;
     std::vector<size_t> map_val;
 
     // Fitting methods
@@ -127,7 +128,7 @@ class Ftrl : public dt::FtrlBase {
     // Main fitting method
     FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
                                const DataTable*, const DataTable*,
-                               double, double) override;
+                               double, double, size_t) override;
 
     // Main predicting method
     dtptr predict(const DataTable*) override;
@@ -173,9 +174,9 @@ class Ftrl : public dt::FtrlBase {
     void set_labels(strvec) override;
 
     // Some useful constants:
-    // T type NaN and epsilon.
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
+    static constexpr T T_ZERO = static_cast<T>(0.0);
 };
 
 

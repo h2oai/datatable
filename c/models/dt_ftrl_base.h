@@ -83,7 +83,7 @@ class FtrlBase {
     // - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
     virtual FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
                                        const DataTable*, const DataTable*,
-                                       double, double) = 0;
+                                       double, double, size_t) = 0;
     virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
     virtual bool is_trained() = 0;
