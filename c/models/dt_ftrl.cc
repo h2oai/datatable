@@ -24,10 +24,6 @@
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 #include "wstringcol.h"
-#include <queue>
-#include <deque>
-#include <iostream>
-
 
 namespace dt {
 
