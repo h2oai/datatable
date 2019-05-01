@@ -242,6 +242,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
                               dtptr& dt_members_in)
 {
   dt::progress::work job(WORK_PREPARE + WORK_AGGREGATE + WORK_SAMPLE + WORK_FINALIZE);
+  job.set_message("Preparing");
   dt = dt_in;
   bool was_sampled = false;
 
