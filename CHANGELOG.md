@@ -137,6 +137,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash when `Frame.colindex()` was used without any arguments, now this
   raises an exception instead (#1834).
 
+- Fixed possible crash when writing to disk that doesn't have enough free space
+  on it (#1837).
+
 
 ### Changed
 
@@ -182,7 +185,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803),
   - [Antorsae][] (#1639),
   - [Hawk Berry][] (#1834),
-  - [Jonathan McKinney][] (#1816),
+  - [Jonathan McKinney][] (#1816, #1837),
   - [NachiGithub][] (#1789, #1793),
   - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
   - [Tom Kraljevic][] (#1805)

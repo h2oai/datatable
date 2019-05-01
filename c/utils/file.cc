@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <errno.h>      // errno
-#include <fcntl.h>      // open
+#include <fcntl.h>      // open, posix_fallocate[?]
 #include <stdio.h>      // remove
 #include <string.h>     // strerror
 #include <sys/stat.h>   // fstat
@@ -85,10 +85,27 @@ const char* File::cname() const {
 void File::resize(size_t newsize) {
   int ret = ftruncate(fd, static_cast<off_t>(newsize));
   if (ret == -1) {
-    throw RuntimeError() << "Unable to truncate() file " << name
-                         << " to size " << newsize << ": " << Errno;
+    throw IOError() << "Unable to truncate() file " << name
+                    << " to size " << newsize << ": " << Errno;
   }
   statbuf.st_size = -1;  // force reload stats on next request
+
+  // The function posix_fallocate() ensures that disk space is allocated
+  // for the file referred to by the descriptor fd for the bytes in the
+  // range starting at offset and continuing for len bytes. After a successful
+  // call to posix_fallocate(), subsequent writes to bytes in the specified
+  // range are guaranteed not to fail because of lack of disk space.
+  #ifdef HAVE_POSIX_FALLOCATE
+    ret = fallocate(fd, 0, static_cast<off_t>(newsize));
+    if (ret == ENOSPC) {
+      throw IOError() << "Unable to create file " << name << " of size "
+          << newsize << ": not enough space left on device";
+    }
+    if (ret) {
+      throw IOError() << "Unable to fallocate() file " << name
+          << ": error " << ret;
+    }
+  #endif
 }
 
 
