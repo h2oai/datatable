@@ -95,8 +95,10 @@ void File::resize(size_t newsize) {
   // range starting at offset and continuing for len bytes. After a successful
   // call to posix_fallocate(), subsequent writes to bytes in the specified
   // range are guaranteed not to fail because of lack of disk space.
+  // (https://linux.die.net/man/3/posix_fallocate)
+  //
   #ifdef HAVE_POSIX_FALLOCATE
-    ret = fallocate(fd, 0, static_cast<off_t>(newsize));
+    ret = posix_fallocate(fd, 0, static_cast<off_t>(newsize));
     if (ret == ENOSPC) {
       throw IOError() << "Unable to create file " << name << " of size "
           << newsize << ": not enough space left on device";
