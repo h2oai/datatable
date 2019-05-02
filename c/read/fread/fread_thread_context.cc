@@ -308,15 +308,6 @@ void FreadThreadContext::orderBuffer() {
       WritableBuffer* wb = col.strdata_w();
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
-
-      if (col.get_ptype() == PT::Str32 && write_at + sz > 0x80000000) {
-        dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
-        col.convert_to_str64();
-        types[i] = PT::Str64;
-        if (verbose) {
-          freader.fo.str64_bump(i, col);
-        }
-      }
     }
     ++j;
   }

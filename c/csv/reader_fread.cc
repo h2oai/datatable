@@ -1023,15 +1023,3 @@ void FreadObserver::type_bump_info(
   n = std::min(n, BUF_SIZE);
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }
-
-
-void FreadObserver::str64_bump(size_t icol, const dt::read::Column& col) {
-  static const int BUF_SIZE = 1000;
-  char temp[BUF_SIZE + 1];
-  int n = snprintf(temp, BUF_SIZE,
-    "Column %zu (%s) switched from Str32 to Str64 because its size "
-    "exceeded 2GB",
-    icol, col.repr_name(g));
-  n = std::min(n, BUF_SIZE);
-  messages.push_back(std::string(temp, static_cast<size_t>(n)));
-}
