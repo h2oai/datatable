@@ -112,12 +112,16 @@ void File::resize(size_t newsize) {
     // allocation: F_ALLOCATECONTIG and F_ALLOCATEALL. We will try both in
     // turn, hoping at least one succeeds.
     // See https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fcntl.2.html
+    //
+    // On MacOS pre 10.14.4 `fnctl()` sometimes returned EINVAL when called
+    // shortly after the file was created...
+    //
     fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, sz, 0};
     ret = fcntl(fd, F_PREALLOCATE, &store);
     if (ret == -1) {
       store.fst_flags = F_ALLOCATEALL;
       ret = fcntl(fd, F_PREALLOCATE, &store);
-      if (ret == -1) {
+      if (ret == -1 && errno != EINVAL) {
         throw IOError() << "Unable to create file " << name << " of size "
             << newsize << ": " << Errno;
       }

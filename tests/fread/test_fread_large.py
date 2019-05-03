@@ -229,3 +229,21 @@ def test_fread_maxnrows_with_large_file():
     d0 = dt.fread(f, max_nrows=111)
     frame_integrity_check(d0)
     assert d0.nrows == 111
+
+
+def test_fread_large_file_with_string_na_column():
+    if not os.environ.get(root_env_name, ""):
+        pytest.skip("%s is not defined" % root_env_name)
+    # Create a CSV file with string column > 2GB in size, and containing an NA value
+    value = "Abcdefghij" * 100
+    target_size = 2500 * 10**6
+    nrows = target_size // len(value)
+    src = [value] * nrows
+    na_pos = nrows // 2
+    src[na_pos] = "NA"
+    srctext = "\n".join(src)
+    DT = dt.fread(text=srctext, na_strings=["NA"], header=False)
+    assert DT.shape == (nrows, 1)
+    assert DT.stypes == (dt.str64,)
+    assert DT[na_pos, 0] is None
+    frame_integrity_check(DT)

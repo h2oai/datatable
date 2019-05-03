@@ -140,6 +140,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed possible crash when writing to disk that doesn't have enough free space
   on it (#1837).
 
+- Fixed invalid Frame being created when reading a large string column (str64)
+  with fread, and the column contains NA values.
+
 
 ### Changed
 
