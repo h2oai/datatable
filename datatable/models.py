@@ -20,6 +20,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from datatable.lib._datatable import aggregate, Ftrl, kfold
+from datatable.lib._datatable import (
+	Ftrl,
+	aggregate,
+	kfold,
+	kfold_random,
+)
 
-__all__ = ("aggregate", "Ftrl", "kfold")
+__all__ = ("aggregate", "Ftrl", "kfold", "kfold_random")
