@@ -194,19 +194,6 @@ void Column::set_in_buffer(bool f) {
 
 //---- Misc --------------------------------------------------------------------
 
-void Column::convert_to_str64() {
-  xassert(ptype == PT::Str32);
-  size_t nelems = databuf.size() / sizeof(int32_t);
-  MemoryRange new_mbuf = MemoryRange::mem(nelems * sizeof(int64_t));
-  const int32_t* old_data = static_cast<const int32_t*>(databuf.rptr());
-  int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
-  for (size_t i = 0; i < nelems; ++i) {
-    new_data[i] = old_data[i];
-  }
-  ptype = PT::Str64;
-  databuf = std::move(new_mbuf);
-}
-
 static PyTypeObject* init_nametypepytuple() {
   static const char* tuple_name = "column_descriptor";
   static const char* field0 = "name";

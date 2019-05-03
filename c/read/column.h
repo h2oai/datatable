@@ -97,7 +97,6 @@ class Column {
     void set_in_buffer(bool f);
 
     // Misc
-    void convert_to_str64();
     py::oobj py_descriptor() const;
     size_t memory_footprint() const;
 };
