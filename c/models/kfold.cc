@@ -58,6 +58,21 @@ static void extract_args(const PKArgs& args,
   *out_nsplits = nsplits;
 }
 
+
+// Draws random samples from a HyperGeometric[N, K, n] distribution
+// with parameters
+//     N = population_size
+//     K = positive_size
+//     n = num_draws
+// (see https://en.wikipedia.org/wiki/Hypergeometric_distribution)
+//
+// We approximate the exact HyperGeometric distribution with normal,
+// since it's much easier to compute, and we do not care much about
+// drawing from the exact HyperGeometric distribution, in the sense
+// that if our approximation spreads the observation slightly more
+// evenly across chunks than afforded by pure chance, then it will
+// not deteriorate the resulting random folds in any way.
+//
 static size_t hypergeom(dt::function<double(void)> rnd,
                         size_t population_size,
                         size_t positive_size,
@@ -199,12 +214,30 @@ each tuple containing `(train_rows, test_rows)`. Here `train_rows` and
 `test_rows` are "row selectors": they can be applied to any frame with
 `nrows` rows to select the desired folds.
 
-The optional `seed` argument, if passed, is used as a seed value for
-the random number generator. Calling this function several times with
-same seed values will produce same results, unless:
-  - you change the number of threads used; or
-  - the RNG implementation in the standard C++ library changes.
+The train/test subsets produced by this function will have these
+properties:
+  - All test folds will be of approximately same size nrows/nsplits;
+  - All observations have equal ex-ante chance of getting assigned
+    into each fold;
+  - The row indices in all train and test folds will be sorted.
 
+The function uses single-pass parallelized algorithm to construct the
+folds, which is why the final assignment is dependent on the number
+of threads being used.
+
+Parameters
+----------
+nrows: int
+    The number of rows in the frame that you want to split.
+
+nsplits: int
+    Number of folds, must be at least 2, but not larger than `nrows`.
+
+seed: int (optional)
+    Seed value for the random number generator used by this function.
+    Calling ``kfold_random()`` several times with same seed value
+    will produce same results each time, provided that the number
+    of threads remains constant.
 )");
 
 
