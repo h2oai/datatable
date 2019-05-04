@@ -29,10 +29,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added function `dt.models.kfold(k, n)` to prepare indices for k-fold
-  splitting. This function will return `k` pairs of row selectors such that
-  when these selectors are applied to an `n`-rows frame, that frame will be
-  split into train and test part according to the K-fold splitting scheme.
+- Added function `dt.models.kfold(nrows, nsplits)` to prepare indices for
+  k-fold splitting. This function will return `nsplits` pairs of row selectors
+  such that when these selectors are applied to an `nrows`-rows frame, that
+  frame will be split into train and test part according to the K-fold
+  splitting scheme.
+
+- Added function `dt.models.kfold_random(nrows, nsplits)`, which is similar to
+  `kfold(nrows, nsplits)`, except that the assignment of rows into folds is
+  randomized, not deterministic.
 
 - `Frame.rbind()` can now also accept a list or tuple of frames (previously
   only a vararg sequence was allowed).
