@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/base_expr.h"
+#include "expr/expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
 #include "expr/py_expr.h"
@@ -82,6 +82,7 @@ void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
     n_group_columns += isgrp * n;
   }
   if (cl_expr) {
+    using pexpr = std::unique_ptr<dt::expr::base_expr>;
     bool has_names = !cl_expr->names.empty();
     size_t n = cl_expr->exprs.size();
     size_t n_computed = 0;

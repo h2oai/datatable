@@ -20,10 +20,12 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <regex>
-#include "expr/base_expr.h"
+#include "expr/expr.h"
+#include "expr/expr_column.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 namespace dt {
+namespace expr {
 
 
 static Error translate_exception(const std::regex_error& e) {
@@ -149,8 +151,8 @@ colptr expr_string_match_re::_compute(Column* src) {
 //------------------------------------------------------------------------------
 
 pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
-  switch (static_cast<strop>(op)) {
-    case strop::RE_MATCH:
+  switch (static_cast<Op>(op)) {
+    case Op::RE_MATCH:
       return pexpr(new expr_string_match_re(std::move(arg), params));
   }
   return pexpr();  // LCOV_EXCL_LINE
@@ -158,4 +160,4 @@ pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
 
 
 
-} // namespace dt
+}} // namespace dt::expr

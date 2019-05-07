@@ -15,13 +15,15 @@
 # limitations under the License.
 #-------------------------------------------------------------------------------
 import enum
+from datatable.lib import core
 
-__all__ = ("Expr", "f", "g")
+
+__all__ = ("Expr", "OpCodes", "f", "g")
 
 
 @enum.unique
 class OpCodes(enum.Enum):
-    # The values in this enum must be kept in sync with C++ enum OpCodes in
+    # The values in this enum must be kept in sync with C++ enum `Op` in
     # file "c/expr/expr.h"
 
     # Misc
@@ -358,3 +360,4 @@ class FrameProxy:
 
 f = FrameProxy(0)
 g = FrameProxy(1)
+core._register_function(9, Expr);

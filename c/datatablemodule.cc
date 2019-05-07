@@ -14,10 +14,12 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
-#include "expr/base_expr.h"
 #include "expr/by_node.h"
+#include "expr/expr.h"
+#include "expr/expr_binaryop.h"
+#include "expr/expr_reduce.h"
+#include "expr/expr_unaryop.h"
 #include "expr/join_node.h"
-#include "expr/py_expr.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
 #include "models/aggregator.h"
@@ -179,6 +181,7 @@ static void _register_function(const py::PKArgs& args) {
     case 6: replace_dtWarning(fnref); break;
     case 7: py::Frame_Type = fnref; break;
     case 8: py::fread_fn = fnref; break;
+    case 9: py::Expr_Type = fnref; break;
     default: throw ValueError() << "Unknown index: " << n;
   }
 }
@@ -350,17 +353,17 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!init_py_encodings(m)) return nullptr;
 
     init_types();
-    expr::init_reducers();
+    dt::expr::init_reducers();
+    dt::expr::init_unops();
+    dt::expr::init_binops();
 
     py::Frame::Type::init(m);
     py::Ftrl::Type::init(m);
-    py::base_expr::Type::init(m);
     dt::init_config_option(m);
     py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);
-
 
   } catch (const std::exception& e) {
     exception_to_python(e);

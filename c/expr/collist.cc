@@ -19,12 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/base_expr.h"
 #include "expr/collist.h"
+#include "expr/expr.h"
+#include "expr/expr_column.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
-
 namespace dt {
 
 
@@ -80,7 +80,7 @@ class collist_maker
 
 
     void process(py::robj src) {
-      if (is_PyBaseExpr(src))   _process_element_expr(src);
+      if (src.is_dtexpr())      _process_element_expr(src);
       else if (src.is_int())    _process_element_int(src);
       else if (src.is_string()) _process_element_string(src);
       else if (src.is_slice())  _process_element_slice(src);
@@ -165,7 +165,7 @@ class collist_maker
     }
 
     void _process_element(py::robj elem) {
-      if (is_PyBaseExpr(elem))   _process_element_expr(elem);
+      if (elem.is_dtexpr())      _process_element_expr(elem);
       else if (elem.is_int())    _process_element_int(elem);
       else if (elem.is_bool())   _process_element_bool(elem);
       else if (elem.is_string()) _process_element_string(elem);
@@ -221,12 +221,8 @@ class collist_maker
 
     void _process_element_expr(py::robj elem) {
       _set_type(list_type::EXPR);
-      py::oobj res = elem.invoke("_core");
-      xassert(res.typeobj() == &py::base_expr::Type::type);
-      auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-      auto expr = std::unique_ptr<dt::base_expr>(pybe->release());
-
-      dt::expr_column* colexpr = dynamic_cast<dt::expr_column*>(expr.get());
+      auto expr = elem.to_dtexpr();
+      auto colexpr = dynamic_cast<dt::expr::expr_column*>(expr.get());
       if (colexpr) {
         size_t frid = colexpr->get_frame_id();
         if (frid == 0) {

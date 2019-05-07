@@ -57,8 +57,8 @@
 // each subframe's RowIndex).
 //
 //------------------------------------------------------------------------------
-#include "expr/base_expr.h"
 #include "expr/by_node.h"
+#include "expr/expr.h"
 #include "expr/i_node.h"
 #include "expr/j_node.h"
 #include "expr/join_node.h"
@@ -159,7 +159,7 @@ oobj Frame::_main_getset(robj item, robj value) {
       continue;
     }
     if (arg.is_none()) continue;
-    if (k == 2 && (arg.is_string() || is_PyBaseExpr(arg))) {
+    if (k == 2 && (arg.is_string() || arg.is_dtexpr())) {
       oby byexpr = oby::make(arg);
       wf.add_groupby(byexpr);
       continue;

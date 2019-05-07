@@ -20,7 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <numeric>            // std::iota
-#include "expr/base_expr.h"
+#include "expr/expr.h"
+#include "expr/expr_column.h"
 #include "expr/collist.h"
 #include "expr/j_node.h"
 #include "expr/repl_node.h"
@@ -248,7 +249,7 @@ void collist_jn::update(workframe& wf, repl_node* repl) {
 //------------------------------------------------------------------------------
 // exprlist_jn
 //------------------------------------------------------------------------------
-using exprvec = std::vector<std::unique_ptr<dt::base_expr>>;
+using exprvec = std::vector<std::unique_ptr<dt::expr::base_expr>>;
 
 class exprlist_jn : public j_node {
   private:
@@ -302,7 +303,7 @@ void exprlist_jn::select(workframe& wf) {
 
 void exprlist_jn::delete_(workframe&) {
   for (size_t i = 0; i < exprs.size(); ++i) {
-    auto colexpr = dynamic_cast<dt::expr_column*>(exprs[i].get());
+    auto colexpr = dynamic_cast<dt::expr::expr_column*>(exprs[i].get());
     if (!colexpr) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "computed expression and cannot be deleted";
