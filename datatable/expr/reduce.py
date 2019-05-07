@@ -20,66 +20,67 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from .base_expr import BaseExpr
-from datatable.frame import Frame
+from .expr import Expr, OpCodes
 from datatable.lib import core
+from builtins import sum as _builtin_sum
+from builtins import min as _builtin_min
+from builtins import max as _builtin_max
 
-_builtin_sum = sum
-_builtin_min = min
-_builtin_max = max
+__all__ = (
+    "count",
+    "first",
+    "max",
+    "mean",
+    "median",
+    "min",
+    "sd",
+    "sum",
+)
 
-# See "c/expr/base_expr.h"
-BASEEXPR_OPCODE_UNARY_REDUCE = 6
-BASEEXPR_OPCODE_NULLARY_REDUCE = 7
 
-
-
-#-------------------------------------------------------------------------------
-# Exported functions
-#-------------------------------------------------------------------------------
 
 def count(iterable=None):
-    if isinstance(iterable, BaseExpr):
-        return ReduceExpr("count", iterable)
+    if isinstance(iterable, Expr):
+        return Expr(OpCodes.COUNT, iterable)
     elif iterable is None:
-        return CountExpr()
+        return Expr(OpCodes.COUNT0)
     else:
         return _builtin_sum((x is not None) for x in iterable)
 
 
 def first(iterable):
-    if isinstance(iterable, BaseExpr):
-        return ReduceExpr("first", iterable)
+    if isinstance(iterable, Expr):
+        return Expr(OpCodes.FIRST, iterable)
     else:
         for x in iterable:
             return x
 
 
 def mean(expr):
-    return ReduceExpr("mean", expr)
+    return Expr(Opcodes.MEAN, expr)
 
 
 def sd(expr):
-    return ReduceExpr("stdev", expr)
+    return Expr(Opcodes.STDEV, expr)
 
 
 def median(expr):
-    return ReduceExpr("median", expr)
+    return Expr(Opcodes.MEDIAN, expr)
 
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
-    if isinstance(iterable, BaseExpr):
-        return ReduceExpr("sum", iterable)
+    if isinstance(iterable, Expr):
+        return Expr(Opcodes.SUM, iterable)
     else:
         return _builtin_sum(iterable, start)
 
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], BaseExpr):
-        return ReduceExpr("min", args[0])
-    elif len(args) == 1 and isinstance(args[0], Frame):
+    if len(args) == 1 and isinstance(args[0], Expr):
+        return Expr(OpCodes.MIN, args[0])
+    elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
     else:
         return _builtin_min(*args, **kwds)
@@ -87,9 +88,9 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], BaseExpr):
-        return ReduceExpr("max", args[0])
-    elif len(args) == 1 and isinstance(args[0], Frame):
+    if len(args) == 1 and isinstance(args[0], Expr):
+        return Expr(OpCodes.MAX, args[0])
+    elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()
     else:
         return _builtin_max(*args, **kwds)
@@ -98,46 +99,3 @@ def max(*args, **kwds):
 sum.__doc__ = _builtin_sum.__doc__
 min.__doc__ = _builtin_min.__doc__
 max.__doc__ = _builtin_max.__doc__
-
-
-
-
-class CountExpr(BaseExpr):
-
-    def __str__(self):
-        return "count()"
-
-    def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_NULLARY_REDUCE, 0)
-
-
-
-class ReduceExpr(BaseExpr):
-    __slots__ = ["_op", "_expr"]
-
-    def __init__(self, op, expr):
-        self._op = op
-        self._expr = expr
-
-
-    def __str__(self):
-        return "%s(%s)" % (self._op, self._expr)
-
-
-    def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_UNARY_REDUCE,
-                              reduce_opcodes[self._op],
-                              self._expr._core())
-
-
-# Synchronize with c/expr/reduceop.cc
-reduce_opcodes = {
-    "mean": 1,
-    "min": 2,
-    "max": 3,
-    "stdev": 4,
-    "first": 5,
-    "sum": 6,
-    "count": 7,
-    "median": 8,
-}

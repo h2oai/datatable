@@ -14,21 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #-------------------------------------------------------------------------------
-from .base_expr import BaseExpr
-from .unary_expr import UnaryOpExpr
-from .dtproxy import f
+from .expr import f, Expr, OpCodes
 from datatable.lib import core
+from builtins import abs as _builtin_abs
 import math
 
-__all__ = ("exp", "log", "log10")
+__all__ = ("abs", "exp", "log", "log10", "isna")
+
+
+def abs(x):
+    if isinstance(x, Expr):
+        return Expr(OpCodes.ABS, x)
+    if isinstance(x, core.Frame):
+        return x[:, {col: Expr(OpCodes.ABS, f[i])
+        			 for i in range(x.ncols)}]
+    if x is None:
+        return None
+    return _builtin_abs(x)
+
+
+def isna(x):
+    if isinstance(x, Expr):
+        return Expr(OpCodes.ISNA, x)
+    if isinstance(x, core.Frame):
+        return x[:, {col: Expr(OpCodes.EXP, f[i])
+        			 for i in range(x.ncols)}]
+    return (x is None) or (isinstance(x, float) and math.isnan(x))
+
 
 
 def exp(x):
-    if isinstance(x, BaseExpr):
-        return UnaryOpExpr("exp", x)
+    if isinstance(x, Expr):
+        return Expr(OpCodes.EXP, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: UnaryOpExpr("exp", f[col])
-                     for col in x.names}]
+        return x[:, {col: Expr(OpCodes.EXP, f[i])
+        			 for i in range(x.ncols)}]
     if x is None:
         return None
     try:
@@ -38,11 +58,11 @@ def exp(x):
 
 
 def log(x):
-    if isinstance(x, BaseExpr):
-        return UnaryOpExpr("log", x)
+    if isinstance(x, Expr):
+        return Expr(OpCodes.LOG, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: UnaryOpExpr("log", f[col])
-                     for col in x.names}]
+        return x[:, {col: Expr(OpCodes.LOG, f[i])
+        			 for i in range(x.ncols)}]
     if x is None or x < 0:
         return None
     elif x == 0:
@@ -52,11 +72,11 @@ def log(x):
 
 
 def log10(x):
-    if isinstance(x, BaseExpr):
-        return UnaryOpExpr("log10", x)
+    if isinstance(x, Expr):
+        return Expr(OpCodes.LOG10, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: UnaryOpExpr("log10", f[col])
-                     for col in x.names}]
+        return x[:, {col: Expr(OpCodes.LOG10, f[i])
+        			 for i in range(x.ncols)}]
     if x is None or x < 0:
         return None
     elif x == 0:
