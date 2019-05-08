@@ -239,6 +239,11 @@ def test_internal_parallel_for_ordered2():
         dt.options.nthreads = n0
 
 
+def test_internal_compiler_version():
+    ver = dt.internal.compiler_version()
+    assert ver
+    assert ver != "Unknown"
+
 
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view(interactive=False)

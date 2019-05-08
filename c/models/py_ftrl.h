@@ -61,7 +61,7 @@ class Ftrl : public PyObject {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
-    std::vector<sizetvec> convert_interactions();
+    void init_dt_interactions();
 
     // Getters
     oobj get_labels() const;

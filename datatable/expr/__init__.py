@@ -20,27 +20,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-
-from .abs_expr import abs
-from .base_expr import BaseExpr
-from .binary_expr import BinaryOpExpr
-from .cast_expr import CastExpr
-from .column_expr import ColSelectorExpr, NewColumnExpr
-from .dtproxy import f, g
-from .exp_expr import exp, log, log10
-from .literal_expr import LiteralExpr
-from .reduce_expr import (ReduceExpr, sum, count, first, mean, median, min,
-    max, sd)
-from .relop_expr import RelationalOpExpr
-from .string_expr import StringExpr
-from .unary_expr import UnaryOpExpr, isna
+from .expr import f, g, Expr
+from .math import abs, log, log10, exp, isna
+from .reduce import sum, count, first, mean, median, min, max, sd
 
 __all__ = (
+    "Expr",
     "abs",
     "count",
     "exp",
     "f",
     "first",
+    "g",
     "isna",
     "log",
     "log10",
@@ -50,13 +41,4 @@ __all__ = (
     "min",
     "sd",
     "sum",
-    "BinaryOpExpr",
-    "CastExpr",
-    "ColSelectorExpr",
-    "NewColumnExpr",
-    "BaseExpr",
-    "LiteralExpr",
-    "ReduceExpr",
-    "RelationalOpExpr",
-    "UnaryOpExpr",
 )

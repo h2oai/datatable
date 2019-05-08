@@ -22,19 +22,23 @@
 #-------------------------------------------------------------------------------
 
 from .lib._datatable import (
+    compiler_version,
     frame_column_data_r,
     frame_column_rowindex,
     frame_integrity_check,
     get_thread_ids,
     in_debug_mode,
+    regex_supported,
     RowIndex
 )
 
 __all__ = [
+    "compiler_version",
     "frame_column_data_r",
     "frame_column_rowindex",
     "frame_integrity_check",
     "get_thread_ids",
     "in_debug_mode",
+    "regex_supported",
     "RowIndex",
 ]

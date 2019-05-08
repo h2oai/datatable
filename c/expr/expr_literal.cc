@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,53 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_COLLIST_h
-#define dt_EXPR_COLLIST_h
-#include <memory>
-#include <string>
-#include <vector>
-#include "python/obj.h"
+#include "expr/expr_literal.h"
 namespace dt {
-
-class collist;
-class base_expr;
-class workframe;
-
-using strvec = std::vector<std::string>;
-using exprvec = std::vector<std::unique_ptr<dt::expr::base_expr>>;
-using intvec = std::vector<size_t>;
-using collist_ptr = std::unique_ptr<collist>;
+namespace expr {
 
 
-
-class collist {
-  public:
-    static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
-    virtual ~collist();
-};
-
+expr_literal::expr_literal(py::robj v) {
+  py::olist lst(1);
+  lst.set(0, v);
+  col = colptr(Column::from_pylist(lst, 0));
+}
 
 
-struct cols_intlist : public collist {
-  intvec indices;
-  strvec names;
+SType expr_literal::resolve(const workframe&) {
+  return col->stype();
+}
 
-  cols_intlist(intvec&& indices_, strvec&& names_);
-  ~cols_intlist() override;
-};
+
+GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
+}
+
+
+colptr expr_literal::evaluate_eager(workframe&) {
+  return colptr(col->shallowcopy());
+}
 
 
 
-struct cols_exprlist : public collist {
-  exprvec exprs;
-  strvec  names;
-
-  cols_exprlist(exprvec&& exprs_, strvec&& names_);
-  ~cols_exprlist() override;
-};
-
-
-
-
-}  // namespace dt
-#endif
+}}

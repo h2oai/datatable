@@ -22,7 +22,6 @@
 #include <tuple>
 #include "datatablemodule.h"
 #include "datatable.h"
-#include "expr/py_expr.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/args.h"

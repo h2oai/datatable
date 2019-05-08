@@ -7,14 +7,17 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_OBJ_h
 #define dt_PYTHON_OBJ_h
-#include <string>
-#include <vector>
+#include <memory>   // std::unique_ptr
+#include <string>   // std::string
+#include <vector>   // std::vector
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
 class Column;
 class DataTable;
 class RowIndex;
+
+namespace dt { namespace expr { class base_expr; }}
 
 namespace py {
 
@@ -156,6 +159,7 @@ class _obj {
     bool is_by_node()       const noexcept;
     bool is_bytes()         const noexcept;
     bool is_dict()          const noexcept;
+    bool is_dtexpr()        const noexcept;
     bool is_ellipsis()      const noexcept;
     bool is_false()         const noexcept;
     bool is_float()         const noexcept;
@@ -219,6 +223,8 @@ class _obj {
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
+    // Defined in expr/base_expr.cc
+    std::unique_ptr<dt::expr::base_expr> to_dtexpr() const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }
@@ -317,6 +323,8 @@ oobj Ellipsis();
 robj stdout();
 robj rnone();
 
+
+extern PyObject* Expr_Type;
 
 }  // namespace py
 
