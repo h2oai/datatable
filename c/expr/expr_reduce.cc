@@ -5,13 +5,14 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <cmath>             // std::sqrt
-#include <limits>            // std::numeric_limits<?>::max, ::infinity
-#include <memory>            // std::unique_ptr
-#include <unordered_map>     // std::unordered_map
-#include "expr/base_expr.h"  // ReduceOp
+#include <cmath>              // std::sqrt
+#include <limits>             // std::numeric_limits<?>::max, ::infinity
+#include <memory>             // std::unique_ptr
+#include <unordered_map>      // std::unordered_map
+#include "expr/expr_reduce.h"
 #include "parallel/api.h"
 #include "types.h"
+namespace dt {
 namespace expr {
 
 
@@ -24,8 +25,8 @@ constexpr T infinity() {
 
 using colptr = std::unique_ptr<Column>;
 
-static const char* reducer_names[REDUCEOP_COUNT] = {
-  "", "mean", "min", "max", "stdev", "first", "sum", "count", "median"
+static const char* reducer_names[REDUCER_COUNT] = {
+  "mean", "min", "max", "stdev", "first", "sum", "count", "count", "median"
 };
 
 
@@ -48,22 +49,22 @@ class ReducerLibrary {
     std::unordered_map<size_t, Reducer> reducers;
 
   public:
-    void add(ReduceOp op, reducer_fn f, SType inp_stype, SType out_stype) {
+    void add(Op op, reducer_fn f, SType inp_stype, SType out_stype) {
       size_t id = key(op, inp_stype);
       xassert(reducers.count(id) == 0);
       reducers[id] = Reducer {f, out_stype};
     }
 
-    const Reducer* lookup(ReduceOp op, SType stype) const {
+    const Reducer* lookup(Op op, SType stype) const {
       size_t id = key(op, stype);
       if (reducers.count(id) == 0) return nullptr;
       return &(reducers.at(id));
     }
 
   private:
-    static constexpr size_t key(ReduceOp op, SType stype) {
+    static constexpr size_t key(Op op, SType stype) {
       return static_cast<size_t>(op) +
-             REDUCEOP_COUNT * static_cast<size_t>(stype);
+             REDUCER_COUNT * static_cast<size_t>(stype);
     }
 };
 
@@ -278,39 +279,37 @@ static void median_reducer(const RowIndex& ri, size_t row0, size_t row1,
 
 
 //------------------------------------------------------------------------------
-// expr_reduce
+// expr_reduce1
 //------------------------------------------------------------------------------
 
-expr_reduce::expr_reduce(dt::pexpr&& a, size_t op) : arg(std::move(a))
+expr_reduce1::expr_reduce1(pexpr&& a, size_t o)
+  : arg(std::move(a)), opcode(static_cast<Op>(o))
 {
-  if (op == 0 || op >= REDUCEOP_COUNT) {
-    throw ValueError() << "Invalid op code in expr_reduce: " << op;
-  }
-  opcode = static_cast<ReduceOp>(op);
+  xassert(o >= REDUCER_FIRST && o <= REDUCER_LAST);
 }
 
 
-SType expr_reduce::resolve(const dt::workframe& wf) {
+SType expr_reduce1::resolve(const dt::workframe& wf) {
   SType arg_stype = arg->resolve(wf);
-  if (opcode == ReduceOp::FIRST) {
+  if (opcode == Op::FIRST) {
     return arg_stype;
   }
   auto reducer = library.lookup(opcode, arg_stype);
   if (!reducer) {
     throw TypeError() << "Unable to apply reduce function `"
-        << reducer_names[static_cast<size_t>(opcode)]
+        << reducer_names[static_cast<size_t>(opcode) - REDUCER_FIRST]
         << "()` to a column of type `" << arg_stype << "`";
   }
   return reducer->output_stype;
 }
 
 
-dt::GroupbyMode expr_reduce::get_groupby_mode(const dt::workframe&) const {
-  return dt::GroupbyMode::GtoONE;
+GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
 }
 
 
-dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
+colptr expr_reduce1::evaluate_eager(workframe& wf)
 {
   auto input_col = arg->evaluate_eager(wf);
   Groupby gb = wf.get_groupby();
@@ -319,7 +318,7 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
   size_t out_nrows = gb.ngroups();
   if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
 
-  if (opcode == ReduceOp::FIRST) {
+  if (opcode == Op::FIRST) {
     return reduce_first(input_col, gb);
   }
 
@@ -331,7 +330,7 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
   auto res = colptr(Column::new_data_column(out_stype, out_nrows));
 
   RowIndex rowindex = input_col->rowindex();
-  if (opcode == ReduceOp::MEDIAN && gb) {
+  if (opcode == Op::MEDIAN && gb) {
     rowindex = input_col->sort_grouped(rowindex, gb);
   }
 
@@ -346,7 +345,7 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
   else {
     const int32_t* groups = wf.get_groupby().offsets_r();
 
-    dt::parallel_for_dynamic(out_nrows,
+    parallel_for_dynamic(out_nrows,
       [&](size_t i) {
         size_t row0 = static_cast<size_t>(groups[i]);
         size_t row1 = static_cast<size_t>(groups[i + 1]);
@@ -360,76 +359,118 @@ dt::colptr expr_reduce::evaluate_eager(dt::workframe& wf)
 
 
 //------------------------------------------------------------------------------
+// expr_reduce0
+//------------------------------------------------------------------------------
+
+expr_reduce0::expr_reduce0(size_t op)
+  : opcode(static_cast<Op>(op)) {}
+
+
+SType expr_reduce0::resolve(const workframe&) {
+  return SType::INT64;
+}
+
+
+GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
+  return GroupbyMode::GtoONE;
+}
+
+
+colptr expr_reduce0::evaluate_eager(workframe& wf) {
+  Column* res = nullptr;
+  if (opcode == Op::COUNT0) {  // COUNT
+    if (wf.has_groupby()) {
+      const Groupby& grpby = wf.get_groupby();
+      size_t ng = grpby.ngroups();
+      const int32_t* offsets = grpby.offsets_r();
+      res = Column::new_data_column(SType::INT32, ng);
+      auto d_res = static_cast<int32_t*>(res->data_w());
+      for (size_t i = 0; i < ng; ++i) {
+        d_res[i] = offsets[i + 1] - offsets[i];
+      }
+    } else {
+      res = Column::new_data_column(SType::INT64, 1);
+      auto d_res = static_cast<int64_t*>(res->data_w());
+      d_res[0] = static_cast<int64_t>(wf.nrows());
+    }
+  }
+  return colptr(res);
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
 
 void init_reducers()
 {
   // Count
-  library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<int16_t>,  SType::INT16, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<int32_t>,  SType::INT32, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<int64_t>,  SType::INT64, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<float>,    SType::FLOAT32, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<double>,   SType::FLOAT64, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<uint32_t>, SType::STR32, SType::INT64);
-  library.add(ReduceOp::COUNT, count_reducer<uint64_t>, SType::STR64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int16_t>,  SType::INT16, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int32_t>,  SType::INT32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int64_t>,  SType::INT64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<float>,    SType::FLOAT32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<double>,   SType::FLOAT64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<uint32_t>, SType::STR32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<uint64_t>, SType::STR64, SType::INT64);
 
   // Min
-  library.add(ReduceOp::MIN, min_reducer<int8_t>,  SType::BOOL, SType::BOOL);
-  library.add(ReduceOp::MIN, min_reducer<int8_t>,  SType::INT8, SType::INT8);
-  library.add(ReduceOp::MIN, min_reducer<int16_t>, SType::INT16, SType::INT16);
-  library.add(ReduceOp::MIN, min_reducer<int32_t>, SType::INT32, SType::INT32);
-  library.add(ReduceOp::MIN, min_reducer<int64_t>, SType::INT64, SType::INT64);
-  library.add(ReduceOp::MIN, min_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::MIN, min_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::MIN, min_reducer<int8_t>,  SType::BOOL, SType::BOOL);
+  library.add(Op::MIN, min_reducer<int8_t>,  SType::INT8, SType::INT8);
+  library.add(Op::MIN, min_reducer<int16_t>, SType::INT16, SType::INT16);
+  library.add(Op::MIN, min_reducer<int32_t>, SType::INT32, SType::INT32);
+  library.add(Op::MIN, min_reducer<int64_t>, SType::INT64, SType::INT64);
+  library.add(Op::MIN, min_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::MIN, min_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
 
   // Max
-  library.add(ReduceOp::MAX, max_reducer<int8_t>,  SType::BOOL, SType::BOOL);
-  library.add(ReduceOp::MAX, max_reducer<int8_t>,  SType::INT8, SType::INT8);
-  library.add(ReduceOp::MAX, max_reducer<int16_t>, SType::INT16, SType::INT16);
-  library.add(ReduceOp::MAX, max_reducer<int32_t>, SType::INT32, SType::INT32);
-  library.add(ReduceOp::MAX, max_reducer<int64_t>, SType::INT64, SType::INT64);
-  library.add(ReduceOp::MAX, max_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::MAX, max_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::MAX, max_reducer<int8_t>,  SType::BOOL, SType::BOOL);
+  library.add(Op::MAX, max_reducer<int8_t>,  SType::INT8, SType::INT8);
+  library.add(Op::MAX, max_reducer<int16_t>, SType::INT16, SType::INT16);
+  library.add(Op::MAX, max_reducer<int32_t>, SType::INT32, SType::INT32);
+  library.add(Op::MAX, max_reducer<int64_t>, SType::INT64, SType::INT64);
+  library.add(Op::MAX, max_reducer<float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::MAX, max_reducer<double>,  SType::FLOAT64, SType::FLOAT64);
 
   // Sum
-  library.add(ReduceOp::SUM, sum_reducer<int8_t,  int64_t>,  SType::BOOL, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<int8_t,  int64_t>,  SType::INT8, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<int16_t, int64_t>,  SType::INT16, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<int32_t, int64_t>,  SType::INT32, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<int64_t, int64_t>,  SType::INT64, SType::INT64);
-  library.add(ReduceOp::SUM, sum_reducer<float,   float>,    SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::SUM, sum_reducer<double,  double>,   SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::SUM, sum_reducer<int8_t,  int64_t>,  SType::BOOL, SType::INT64);
+  library.add(Op::SUM, sum_reducer<int8_t,  int64_t>,  SType::INT8, SType::INT64);
+  library.add(Op::SUM, sum_reducer<int16_t, int64_t>,  SType::INT16, SType::INT64);
+  library.add(Op::SUM, sum_reducer<int32_t, int64_t>,  SType::INT32, SType::INT64);
+  library.add(Op::SUM, sum_reducer<int64_t, int64_t>,  SType::INT64, SType::INT64);
+  library.add(Op::SUM, sum_reducer<float,   float>,    SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::SUM, sum_reducer<double,  double>,   SType::FLOAT64, SType::FLOAT64);
 
   // Mean
-  library.add(ReduceOp::MEAN, mean_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
-  library.add(ReduceOp::MEAN, mean_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
-  library.add(ReduceOp::MEAN, mean_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
-  library.add(ReduceOp::MEAN, mean_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
-  library.add(ReduceOp::MEAN, mean_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
-  library.add(ReduceOp::MEAN, mean_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::MEAN, mean_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
+  library.add(Op::MEAN, mean_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::MEAN, mean_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
 
   // Standard Deviation
-  library.add(ReduceOp::STDEV, stdev_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
-  library.add(ReduceOp::STDEV, stdev_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
-  library.add(ReduceOp::STDEV, stdev_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
-  library.add(ReduceOp::STDEV, stdev_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
-  library.add(ReduceOp::STDEV, stdev_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
-  library.add(ReduceOp::STDEV, stdev_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::STDEV, stdev_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<int8_t,  double>,  SType::BOOL, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<int8_t,  double>,  SType::INT8, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<int16_t, double>,  SType::INT16, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<int32_t, double>,  SType::INT32, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<int64_t, double>,  SType::INT64, SType::FLOAT64);
+  library.add(Op::STDEV, stdev_reducer<float,   float>,   SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::STDEV, stdev_reducer<double,  double>,  SType::FLOAT64, SType::FLOAT64);
 
   // Median
-  library.add(ReduceOp::MEDIAN, median_reducer<int8_t, double>,  SType::BOOL, SType::FLOAT64);
-  library.add(ReduceOp::MEDIAN, median_reducer<int8_t, double>,  SType::INT8, SType::FLOAT64);
-  library.add(ReduceOp::MEDIAN, median_reducer<int16_t, double>, SType::INT16, SType::FLOAT64);
-  library.add(ReduceOp::MEDIAN, median_reducer<int32_t, double>, SType::INT32, SType::FLOAT64);
-  library.add(ReduceOp::MEDIAN, median_reducer<int64_t, double>, SType::INT64, SType::FLOAT64);
-  library.add(ReduceOp::MEDIAN, median_reducer<float, float>,    SType::FLOAT32, SType::FLOAT32);
-  library.add(ReduceOp::MEDIAN, median_reducer<double, double>,  SType::FLOAT64, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<int8_t, double>,  SType::BOOL, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<int8_t, double>,  SType::INT8, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<int16_t, double>, SType::INT16, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<int32_t, double>, SType::INT32, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<int64_t, double>, SType::INT64, SType::FLOAT64);
+  library.add(Op::MEDIAN, median_reducer<float, float>,    SType::FLOAT32, SType::FLOAT32);
+  library.add(Op::MEDIAN, median_reducer<double, double>,  SType::FLOAT64, SType::FLOAT64);
 }
 
 
-};  // namespace expr
+}}  // namespace dt::expr

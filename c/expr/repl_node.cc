@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
-#include "expr/base_expr.h"
+#include "expr/expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
 #include "expr/workframe.h"
@@ -487,7 +487,7 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   else if (src.is_int())    res = new scalar_int_rn(src.to_int64());
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());
-  else if (is_PyBaseExpr(src) || src.is_list_or_tuple()) {
+  else if (src.is_dtexpr() || src.is_list_or_tuple()) {
     auto cl = collist::make(wf, src, "replacement");
     auto intcl = dynamic_cast<cols_intlist*>(cl.get());
     auto expcl = dynamic_cast<cols_exprlist*>(cl.get());

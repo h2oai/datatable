@@ -19,11 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <regex>
-#include "expr/base_expr.h"
+#include "expr/expr.h"
+#include "expr/expr_column.h"
+#include "expr/expr_str.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
+#include "datatablemodule.h"
 namespace dt {
+namespace expr {
 
 
 static Error translate_exception(const std::regex_error& e) {
@@ -43,49 +47,38 @@ static Error translate_exception(const std::regex_error& e) {
 // re_match()
 //------------------------------------------------------------------------------
 
-class expr_string_match_re : public base_expr {
-  private:
-    pexpr arg;
-    std::string pattern;
-    std::regex regex;
-    // int flags;
-
-  public:
-    expr_string_match_re(pexpr&& expr, py::oobj params);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
-
-  private:
-    template <typename T>
-    colptr _compute(Column* src);
-};
-
-
 expr_string_match_re::expr_string_match_re(pexpr&& expr, py::oobj params) {
-  arg = std::move(expr);
-  py::otuple tp = params.to_otuple();
-  xassert(tp.size() == 2);
+  #if REGEX_SUPPORTED
+    arg = std::move(expr);
+    py::otuple tp = params.to_otuple();
+    xassert(tp.size() == 2);
 
-  // Pattern
-  py::oobj pattern_arg = tp[0];
-  if (pattern_arg.is_string()) {
-    pattern = pattern_arg.to_string();
-  } else if (pattern_arg.has_attr("pattern")) {
-    pattern = pattern_arg.get_attr("pattern").to_string();
-  } else {
-    throw TypeError() << "Parameter `pattern` in .match_re() should be "
-        "a string, instead got " << pattern_arg.typeobj();
-  }
+    // Pattern
+    py::oobj pattern_arg = tp[0];
+    if (pattern_arg.is_string()) {
+      pattern = pattern_arg.to_string();
+    } else if (pattern_arg.has_attr("pattern")) {
+      pattern = pattern_arg.get_attr("pattern").to_string();
+    } else {
+      throw TypeError() << "Parameter `pattern` in .match_re() should be "
+          "a string, instead got " << pattern_arg.typeobj();
+    }
 
-  // Flags (ignore for now)
-  // py::oobj flags_arg = tp[1];
+    // Flags (ignore for now)
+    // py::oobj flags_arg = tp[1];
 
-  try {
-    regex = std::regex(pattern, std::regex::nosubs);
-  } catch (const std::regex_error& e) {
-    throw translate_exception(e);
-  }
+    try {
+      regex = std::regex(pattern, std::regex::nosubs);
+    } catch (const std::regex_error& e) {
+      throw translate_exception(e);
+    }
+  #else
+    (void) expr;
+    (void) params;
+    throw NotImplError() << "Regular expressions are not supported in your "
+        "build of datatable (compiler: "
+        << get_compiler_version_string() << ')';
+  #endif
 }
 
 
@@ -143,19 +136,4 @@ colptr expr_string_match_re::_compute(Column* src) {
 
 
 
-
-//------------------------------------------------------------------------------
-// Factory function
-//------------------------------------------------------------------------------
-
-pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params) {
-  switch (static_cast<strop>(op)) {
-    case strop::RE_MATCH:
-      return pexpr(new expr_string_match_re(std::move(arg), params));
-  }
-  return pexpr();  // LCOV_EXCL_LINE
-}
-
-
-
-} // namespace dt
+}} // namespace dt::expr
