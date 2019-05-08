@@ -30,6 +30,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -192,25 +193,39 @@ static py::PKArgs args_compiler_version(
   0, 0, 0, false, false, {}, "compiler_version",
   "Return the version of the C++ compiler used to compile this module");
 
-static py::oobj compiler_version(const py::PKArgs&) {
+const char* get_compiler_version_string() {
   #define STR(x) STR1(x)
   #define STR1(x) #x
-  return py::ostring(
-    #ifdef __clang__
-      "CLang " STR(__clang_major__) "." STR(__clang_minor__) "."
-      STR(__clang_patchlevel__)
-    #elif defined(_MSC_VER)
-      "MSVC " STR(_MSC_FULL_VER)
-    #elif defined(__GNUC__)
-      "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
-    #elif defined(__MINGW64__)
-      "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "." STR(__MINGW64_VERSION_MINOR)
-    #else
-      "Unknown"
-    #endif
-  );
+  #ifdef __clang__
+    return "CLang " STR(__clang_major__) "." STR(__clang_minor__) "."
+           STR(__clang_patchlevel__);
+  #elif defined(_MSC_VER)
+    return "MSVC " STR(_MSC_FULL_VER);
+  #elif defined(__MINGW64__)
+    return "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "."
+           STR(__MINGW64_VERSION_MINOR);
+  #elif defined(__GNUC__)
+    return "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "."
+           STR(__GNUC_PATCHLEVEL__);
+  #else
+    return "Unknown";
+  #endif
   #undef STR
   #undef STR1
+}
+
+static py::oobj compiler_version(const py::PKArgs&) {
+  return py::ostring(get_compiler_version_string());
+}
+
+
+
+static py::PKArgs args_regex_supported(
+  0, 0, 0, false, false, {}, "regex_supported",
+  "Was the datatable built with regular expression support?");
+
+static py::oobj regex_supported(const py::PKArgs&) {
+  return py::obool(REGEX_SUPPORTED);
 }
 
 
@@ -340,6 +355,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
   ADD_FN(&compiler_version, args_compiler_version);
+  ADD_FN(&regex_supported, args_regex_supported);
 
   init_methods_aggregate();
   init_methods_buffers();

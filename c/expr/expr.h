@@ -118,15 +118,5 @@ class base_expr {
 
 
 
-
 }}  // namespace dt::expr
-
-
-
-
-// pexpr expr_string_fn(size_t op, pexpr&& arg, py::oobj params);
-
-
-
-
 #endif

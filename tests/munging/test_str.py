@@ -176,8 +176,8 @@ def test_len_wrong_col():
 # re_match()
 #-------------------------------------------------------------------------------
 
-# TODO: re-enable these tests, perhaps conditionally?
-regexp_test = pytest.mark.skip(reason="Disable due to GCC4.8 incompatibility")
+regexp_test = pytest.mark.skipif(not dt.internal.regex_supported(),
+                                 reason="Regex not supported")
 
 @regexp_test
 def test_re_match():

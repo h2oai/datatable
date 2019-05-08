@@ -261,7 +261,7 @@ class Expr:
         return Expr(OpCodes.LEN, self)
 
     def re_match(self, pattern, flags=None):
-        return Expr(OpCodes.RE_MATCH, self, pattern, flags)
+        return Expr(OpCodes.RE_MATCH, self, (pattern, flags))
 
 
 

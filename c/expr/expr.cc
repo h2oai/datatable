@@ -27,6 +27,7 @@
 #include "expr/expr_column.h"
 #include "expr/expr_literal.h"
 #include "expr/expr_reduce.h"
+#include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
 #include "expr/workframe.h"
 #include "datatable.h"
@@ -58,98 +59,8 @@ size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
 
 
 
+
 }}  // namespace dt::expr
-//------------------------------------------------------------------------------
-// py::base_expr
-//------------------------------------------------------------------------------
-
-
-// static void check_args_count(const std::vector<py::robj>& va, size_t n) {
-//   if (va.size() == n) return;
-//   throw TypeError() << "Expected " << n << " additional arguments, but "
-//       "received " << va.size();
-// }
-
-// static std::unique_ptr<dt::base_expr> to_base_expr(const py::robj& arg) {
-//   PyObject* v = arg.to_borrowed_ref();
-//   if (Py_TYPE(v) != &py::base_expr::Type::type) {
-//     throw TypeError()
-//         << "Expected a base_expr object, but got " << arg.typeobj();
-//   }
-//   auto vv = reinterpret_cast<py::base_expr*>(v);
-//   return vv->release();
-// }
-
-
-// void py::base_expr::m__init__(py::PKArgs& args) {
-//   expr = nullptr;
-
-//   size_t opcode = args[0].to_size_t();
-//   std::vector<py::robj> va;
-//   va.reserve(args.num_vararg_args());
-//   for (auto item : args.varargs()) va.push_back(std::move(item));
-
-//   switch (opcode) {
-//     // case dt::exprCode::COL: {
-//     //   check_args_count(va, 2);
-//     //   expr = new dt::expr_column(va[0].to_size_t(), va[1]);
-//     //   break;
-//     // }
-//     // case dt::exprCode::BINOP: {
-//     //   check_args_count(va, 3);
-//     //   size_t binop_code = va[0].to_size_t();
-//     //   auto lhs = to_base_expr(va[1]);
-//     //   auto rhs = to_base_expr(va[2]);
-//     //   expr = new dt::expr_binaryop(binop_code, std::move(lhs), std::move(rhs));
-//     //   break;
-//     // }
-//     // case dt::exprCode::LITERAL: {
-//     //   check_args_count(va, 1);
-//     //   expr = new dt::expr_literal(va[0]);
-//     //   break;
-//     // }
-//     // case dt::exprCode::UNOP: {
-//     //   check_args_count(va, 2);
-//     //   size_t unop_code = va[0].to_size_t();
-//     //   auto arg = to_base_expr(va[1]);
-//     //   expr = new dt::expr_unaryop(unop_code, std::move(arg));
-//     //   break;
-//     // }
-//     // case dt::exprCode::CAST: {
-//     //   check_args_count(va, 2);
-//     //   auto arg = to_base_expr(va[0]);
-//     //   SType stype = static_cast<SType>(va[1].to_size_t());
-//     //   expr = new dt::expr_cast(std::move(arg), stype);
-//     //   break;
-//     // }
-//     // case dt::exprCode::UNREDUCE: {
-//     //   check_args_count(va, 2);
-//     //   size_t op = va[0].to_size_t();
-//     //   auto arg = to_base_expr(va[1]);
-//     //   expr = new expr::expr_reduce(std::move(arg), op);
-//     //   break;
-//     // }
-//     // case dt::exprCode::NUREDUCE: {
-//     //   check_args_count(va, 1);
-//     //   size_t op = va[0].to_size_t();
-//     //   xassert(op == 0);
-//     //   expr = new dt::expr_reduce_nullary(op);
-//     //   break;
-//     // }
-//     case dt::exprCode::STRINGFN: {
-//       check_args_count(va, 3);
-//       size_t op = va[0].to_size_t();
-//       auto arg = to_base_expr(va[1]);
-//       oobj params = va[2];
-//       expr = dt::expr_string_fn(op, std::move(arg), params).release();
-//       break;
-//     }
-//   }
-// }
-
-
-
-
 //------------------------------------------------------------------------------
 // Factory function for creating `base_expr` objects from python
 //------------------------------------------------------------------------------
@@ -199,6 +110,12 @@ pexpr py::_obj::to_dtexpr() const {
     check_args_count(args, 1);
     pexpr arg = args[0].to_dtexpr();
     return pexpr(new expr_reduce1(std::move(arg), op));
+  }
+  if (op == static_cast<size_t>(Op::RE_MATCH)) {
+    check_args_count(args, 2);
+    pexpr arg = args[0].to_dtexpr();
+    py::oobj params = args[1];
+    return pexpr(new expr_string_match_re(std::move(arg), params));
   }
   throw ValueError() << "Invalid opcode in Expr(): " << op;
 }
