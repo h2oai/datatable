@@ -1078,6 +1078,12 @@ def test_ftrl_pickling_binomial():
     assert ft.labels == ft_unpickled.labels
     assert ft.colnames == ft_unpickled.colnames
 
+    # Predict
+    target = ft.predict(df_train)
+    target_unpickled = ft_unpickled.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
+
     # Fit and predict
     ft_unpickled.fit(df_train, df_target)
     target_unpickled = ft_unpickled.predict(df_train)
