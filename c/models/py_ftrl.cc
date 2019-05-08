@@ -187,7 +187,7 @@ void Ftrl::m__dealloc__() {
  *  Check if provided interactions are consistent with the column names
  *  of the training frame.
  */
-std::vector<sizetvec> Ftrl::convert_interactions() {
+void Ftrl::init_dt_interactions() {
   std::vector<sizetvec> interactions;
   auto py_iter = py_interactions.to_oiter();
   interactions.reserve(py_iter.size());
@@ -212,8 +212,7 @@ std::vector<sizetvec> Ftrl::convert_interactions() {
 
     interactions.push_back(std::move(interaction));
   }
-
-  return interactions;
+  dtft->set_interactions(std::move(interactions));
 }
 
 
@@ -314,9 +313,8 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "model";
   }
 
-  if (!py_interactions.is_none()) {
-    std::vector<sizetvec> inters = convert_interactions();
-    dtft->set_interactions(std::move(inters));
+  if (!py_interactions.is_none() && !dtft->get_interactions().size()) {
+    init_dt_interactions();
   }
 
   // Validtion set handling
@@ -448,6 +446,10 @@ oobj Ftrl::predict(const PKArgs& args) {
   if (dt_X->get_names() != colnames) {
     throw ValueError() << "Frames used for training and predictions "
                        << "should have the same column names";
+  }
+
+  if (!py_interactions.is_none() && !dtft->get_interactions().size()) {
+    init_dt_interactions();
   }
 
 
