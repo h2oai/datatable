@@ -25,6 +25,7 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
+#include "expr/expr_literal.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
 #include "expr/workframe.h"
@@ -37,7 +38,6 @@ namespace expr {
 //------------------------------------------------------------------------------
 // base_expr
 //------------------------------------------------------------------------------
-
 
 base_expr::base_expr() {
   TRACK(this, sizeof(*this), "dt::base_expr");
@@ -54,46 +54,6 @@ bool base_expr::is_negated_expr() const { return false; }
 pexpr base_expr::get_negated_expr() { return pexpr(); }
 
 size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
-
-
-
-
-//------------------------------------------------------------------------------
-// expr_literal
-//------------------------------------------------------------------------------
-
-class expr_literal : public base_expr {
-  private:
-    colptr col;
-
-  public:
-    explicit expr_literal(const py::robj&);
-    SType resolve(const workframe&) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe&) override;
-};
-
-
-expr_literal::expr_literal(const py::robj& v) {
-  py::olist lst(1);
-  lst.set(0, v);
-  col = colptr(Column::from_pylist(lst, 0));
-}
-
-
-SType expr_literal::resolve(const workframe&) {
-  return col->stype();
-}
-
-
-GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
-  return GroupbyMode::GtoONE;
-}
-
-
-colptr expr_literal::evaluate_eager(workframe&) {
-  return colptr(col->shallowcopy());
-}
 
 
 
@@ -143,11 +103,11 @@ colptr expr_literal::evaluate_eager(workframe&) {
 //     //   expr = new dt::expr_binaryop(binop_code, std::move(lhs), std::move(rhs));
 //     //   break;
 //     // }
-//     case dt::exprCode::LITERAL: {
-//       check_args_count(va, 1);
-//       expr = new dt::expr_literal(va[0]);
-//       break;
-//     }
+//     // case dt::exprCode::LITERAL: {
+//     //   check_args_count(va, 1);
+//     //   expr = new dt::expr_literal(va[0]);
+//     //   break;
+//     // }
 //     // case dt::exprCode::UNOP: {
 //     //   check_args_count(va, 2);
 //     //   size_t unop_code = va[0].to_size_t();
@@ -203,6 +163,9 @@ static void check_args_count(const py::otuple& args, size_t n) {
 
 
 pexpr py::_obj::to_dtexpr() const {
+  if (!is_dtexpr()) {
+    return pexpr(new expr_literal(py::robj(v)));
+  }
   const size_t op = get_attr("_op").to_size_t();
   const py::otuple args = get_attr("_args").to_otuple();
 
