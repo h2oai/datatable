@@ -188,6 +188,33 @@ static void _register_function(const py::PKArgs& args) {
 
 
 
+static py::PKArgs args_compiler_version(
+  0, 0, 0, false, false, {}, "compiler_version",
+  "Return the version of the C++ compiler used to compile this module");
+
+static py::oobj compiler_version(const py::PKArgs&) {
+  #define STR(x) STR1(x)
+  #define STR1(x) #x
+  return py::ostring(
+    #ifdef __clang__
+      "CLang " STR(__clang_major__) "." STR(__clang_minor__) "."
+      STR(__clang_patchlevel__)
+    #elif defined(_MSC_VER)
+      "MSVC " STR(_MSC_FULL_VER)
+    #elif defined(__GNUC__)
+      "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
+    #elif defined(__MINGW64__)
+      "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "." STR(__MINGW64_VERSION_MINOR)
+    #else
+      "Unknown"
+    #endif
+  );
+  #undef STR
+  #undef STR1
+}
+
+
+
 static py::PKArgs args__column_save_to_disk(
   4, 0, 0, false, false,
   {"frame", "i", "filename", "strategy"},
@@ -312,6 +339,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
+  ADD_FN(&compiler_version, args_compiler_version);
 
   init_methods_aggregate();
   init_methods_buffers();

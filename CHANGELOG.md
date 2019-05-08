@@ -78,6 +78,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - most long-running operations in `datatable` will now show a progress bar.
   Its behavior can be controlled via `dt.options.progress` set of options.
 
+- internal function `dt.internal.compiler_version()`.
+
 
 ### Fixed
 
