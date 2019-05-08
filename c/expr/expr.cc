@@ -177,7 +177,7 @@ pexpr py::_obj::to_dtexpr() const {
   if (op == static_cast<size_t>(Op::CAST)) {
     check_args_count(args, 2);
     pexpr arg = args[0].to_dtexpr();
-    SType stype = static_cast<SType>(args[1].to_size_t());
+    SType stype = args[1].to_stype();
     return pexpr(new expr_cast(std::move(arg), stype));
   }
   if (op == static_cast<size_t>(Op::COUNT0)) {

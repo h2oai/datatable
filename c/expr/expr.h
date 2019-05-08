@@ -88,6 +88,7 @@ enum class Op : size_t {
 
 static constexpr size_t BINOP_FIRST = static_cast<size_t>(Op::PLUS);
 static constexpr size_t BINOP_LAST  = static_cast<size_t>(Op::GE);
+static constexpr size_t BINOP_COUNT = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t UNOP_FIRST = static_cast<size_t>(Op::UPLUS);
 static constexpr size_t UNOP_LAST  = static_cast<size_t>(Op::LEN);
 static constexpr size_t REDUCER_FIRST = static_cast<size_t>(Op::MEAN);

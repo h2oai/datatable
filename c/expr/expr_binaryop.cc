@@ -604,11 +604,13 @@ colptr expr_binaryop::evaluate_eager(workframe& wf) {
 //------------------------------------------------------------------------------
 
 static size_t id(Op opcode) {
-  return static_cast<size_t>(opcode);
+  size_t res = static_cast<size_t>(opcode) - BINOP_FIRST;
+  xassert(res < BINOP_COUNT);
+  return res;
 }
 
 static size_t id(Op opcode, SType st1, SType st2) {
-  return (static_cast<size_t>(opcode) << 16) +
+  return ((static_cast<size_t>(opcode) - BINOP_FIRST) << 16) +
          (static_cast<size_t>(st1) << 8) +
          (static_cast<size_t>(st2));
 }
@@ -663,7 +665,7 @@ void init_binops() {
   binop_rules[id(Op::AND, bool8, bool8)] = bool8;
   binop_rules[id(Op::OR, bool8, bool8)] = bool8;
 
-  binop_names.resize(18);
+  binop_names.resize(BINOP_COUNT);
   binop_names[id(Op::PLUS)] = "+";
   binop_names[id(Op::MINUS)] = "-";
   binop_names[id(Op::MULTIPLY)] = "*";

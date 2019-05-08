@@ -57,21 +57,21 @@ def first(iterable):
 
 
 def mean(expr):
-    return Expr(Opcodes.MEAN, expr)
+    return Expr(OpCodes.MEAN, expr)
 
 
 def sd(expr):
-    return Expr(Opcodes.STDEV, expr)
+    return Expr(OpCodes.STDEV, expr)
 
 
 def median(expr):
-    return Expr(Opcodes.MEDIAN, expr)
+    return Expr(OpCodes.MEDIAN, expr)
 
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
     if isinstance(iterable, Expr):
-        return Expr(Opcodes.SUM, iterable)
+        return Expr(OpCodes.SUM, iterable)
     else:
         return _builtin_sum(iterable, start)
 
