@@ -148,6 +148,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed invalid Frame being created when reading a large string column (str64)
   with fread, and the column contains NA values.
 
+- Fixed FTRL model not resuming properly after unpickling (#1846).
+
 
 ### Changed
 
@@ -190,7 +192,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846),
   - [Antorsae][] (#1639),
   - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816, #1837),
