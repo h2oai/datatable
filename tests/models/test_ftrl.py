@@ -1114,11 +1114,17 @@ def test_ftrl_pickling_multinomial(negative_class_value):
     assert ft.colnames == ft_unpickled.colnames
     assert ft.interactions == ft_unpickled.interactions
 
-    # Fit and predict
-    ft_unpickled.fit(df_train, df_target)
+    # Predict
+    target = ft.predict(df_train)
     target_unpickled = ft_unpickled.predict(df_train)
+    assert_equals(ft.model, ft_unpickled.model)
+    assert_equals(target, target_unpickled)
+
+    # Fit and predict
     ft.fit(df_train, df_target)
     target = ft.predict(df_train)
+    ft_unpickled.fit(df_train, df_target)
+    target_unpickled = ft_unpickled.predict(df_train)
     assert_equals(ft.model, ft_unpickled.model)
     assert_equals(target, target_unpickled)
 
