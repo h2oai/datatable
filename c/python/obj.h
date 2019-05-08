@@ -7,8 +7,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_OBJ_h
 #define dt_PYTHON_OBJ_h
-#include <string>
-#include <vector>
+#include <memory>   // std::unique_ptr
+#include <string>   // std::string
+#include <vector>   // std::vector
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
