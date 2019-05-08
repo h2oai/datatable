@@ -22,7 +22,6 @@
 #include "expr/expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
-#include "expr/py_expr.h"
 #include "expr/workframe.h"
 #include "python/arg.h"
 #include "python/tuple.h"
