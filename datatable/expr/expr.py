@@ -30,12 +30,17 @@ class OpCodes(enum.Enum):
     NOOP = 0
     COL = 1
     CAST = 2
-    COUNT0 = 3
 
     # Unary
     UPLUS = 101
     UMINUS = 102
     INVERT = 103
+    ISNA = 104
+    ABS = 105
+    EXP = 106
+    LOGE = 107
+    LOG10 = 108
+    LEN = 109
 
     # Binary
     PLUS = 201
@@ -58,8 +63,7 @@ class OpCodes(enum.Enum):
     GE = 218
 
     # String
-    LEN = 301
-    RE_MATCH = 302
+    RE_MATCH = 301
 
     # Reducers
     MEAN = 401
@@ -69,33 +73,9 @@ class OpCodes(enum.Enum):
     FIRST = 405
     SUM = 406
     COUNT = 407
-    MEDIAN = 408
+    COUNT0 = 408
+    MEDIAN = 409
 
-
-_opnames = {
-    OpCodes.OR: "?",
-    OpCodes.PLUS: "+",
-    OpCodes.MINUS: "-",
-    OpCodes.MULTIPLY: "*",
-    OpCodes.DIVIDE: "/",
-    OpCodes.INTDIV: "//",
-    OpCodes.MODULO: "%",
-    OpCodes.POWER: "**",
-    OpCodes.AND: "&",
-    OpCodes.XOR: "^",
-    OpCodes.OR: "|",
-    OpCodes.LSHIFT: "<<",
-    OpCodes.RSHIFT: ">>",
-    OpCodes.EQ: "==",
-    OpCodes.NE: "!=",
-    OpCodes.LT: "<",
-    OpCodes.GT: ">",
-    OpCodes.LE: "<=",
-    OpCodes.GE: ">=",
-    OpCodes.UPLUS: "+",
-    OpCodes.UMINUS: "-",
-    OpCodes.INVERT: "~",
-}
 
 
 #-------------------------------------------------------------------------------
@@ -133,9 +113,8 @@ class Expr:
         self._args = args
 
     def __repr__(self):
-        op = OpCodes(self._op)
-        opname = _opnames.get(op, op.name.lower())
-        return "Expr(%s, %r)" % (opname, ", ".join(repr(x) for x in self._args))
+        return "Expr:%s(%s)" % (OpCodes(self._op).name.lower(),
+                                ", ".join(repr(x) for x in self._args))
 
 
     #----- Binary operators ----------------------------------------------------
@@ -350,10 +329,14 @@ class FrameProxy:
 
     def __getattr__(self, name):
         """Retrieve column `name` from the datatable."""
-        return Expr(OpCodes.COL, self._id, name)
+        return self[name]
 
 
     def __getitem__(self, item):
+        if not isinstance(item, (int, str)):
+            from datatable import TypeError
+            raise TypeError("Column selector should be an integer or a string, "
+                            "not %r" % type(item))
         return Expr(OpCodes.COL, self._id, item)
 
 

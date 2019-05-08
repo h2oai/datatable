@@ -35,61 +35,61 @@ using colptr = std::unique_ptr<Column>;
 // The values in this enum must be kept in sync with Python enum OpCodes in
 // file "datatable/expr/expr.py"
 enum class Op : size_t {
-    // Misc
-    NOOP = 0,
-    COL = 1,
-    CAST = 2,
+  // Misc
+  NOOP = 0,
+  COL = 1,
+  CAST = 2,
 
-    // Unary
-    UPLUS = 101,
-    UMINUS = 102,
-    INVERT = 103,
-    ISNA = 104,
-    ABS = 105,
-    EXP = 106,
-    LOGE = 107,
-    LOG10 = 108,
+  // Unary
+  UPLUS = 101,
+  UMINUS = 102,
+  INVERT = 103,
+  ISNA = 104,
+  ABS = 105,
+  EXP = 106,
+  LOGE = 107,
+  LOG10 = 108,
+  LEN = 109,
 
-    // Binary
-    PLUS = 201,
-    MINUS = 202,
-    MULTIPLY = 203,
-    DIVIDE = 204,
-    INTDIV = 205,
-    MODULO = 206,
-    POWER = 207,
-    AND = 208,
-    XOR = 209,
-    OR = 210,
-    LSHIFT = 211,
-    RSHIFT = 212,
-    EQ = 213,
-    NE = 214,
-    LT = 215,
-    GT = 216,
-    LE = 217,
-    GE = 218,
+  // Binary
+  PLUS = 201,
+  MINUS = 202,
+  MULTIPLY = 203,
+  DIVIDE = 204,
+  INTDIV = 205,
+  MODULO = 206,
+  POWER = 207,
+  AND = 208,
+  XOR = 209,
+  OR = 210,
+  LSHIFT = 211,
+  RSHIFT = 212,
+  EQ = 213,
+  NE = 214,
+  LT = 215,
+  GT = 216,
+  LE = 217,
+  GE = 218,
 
-    // String
-    LEN = 301,
-    RE_MATCH = 302,
+  // String
+  RE_MATCH = 301,
 
-    // Reducers
-    MEAN = 401,
-    MIN = 402,
-    MAX = 403,
-    STDEV = 404,
-    FIRST = 405,
-    SUM = 406,
-    COUNT = 407,
-    COUNT0 = 408,
-    MEDIAN = 409,
+  // Reducers
+  MEAN = 401,
+  MIN = 402,
+  MAX = 403,
+  STDEV = 404,
+  FIRST = 405,
+  SUM = 406,
+  COUNT = 407,
+  COUNT0 = 408,
+  MEDIAN = 409,
 };
 
 static constexpr size_t BINOP_FIRST = static_cast<size_t>(Op::PLUS);
 static constexpr size_t BINOP_LAST  = static_cast<size_t>(Op::GE);
 static constexpr size_t UNOP_FIRST = static_cast<size_t>(Op::UPLUS);
-static constexpr size_t UNOP_LAST  = static_cast<size_t>(Op::INVERT);
+static constexpr size_t UNOP_LAST  = static_cast<size_t>(Op::LEN);
 static constexpr size_t REDUCER_FIRST = static_cast<size_t>(Op::MEAN);
 static constexpr size_t REDUCER_LAST  = static_cast<size_t>(Op::MEDIAN);
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;

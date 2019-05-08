@@ -26,7 +26,7 @@ def abs(x):
     if isinstance(x, Expr):
         return Expr(OpCodes.ABS, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: Expr(OpCodes.ABS, f[i])
+        return x[:, {x.names[i]: Expr(OpCodes.ABS, f[i])
         			 for i in range(x.ncols)}]
     if x is None:
         return None
@@ -37,7 +37,7 @@ def isna(x):
     if isinstance(x, Expr):
         return Expr(OpCodes.ISNA, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: Expr(OpCodes.EXP, f[i])
+        return x[:, {x.names[i]: Expr(OpCodes.EXP, f[i])
         			 for i in range(x.ncols)}]
     return (x is None) or (isinstance(x, float) and math.isnan(x))
 
@@ -47,7 +47,7 @@ def exp(x):
     if isinstance(x, Expr):
         return Expr(OpCodes.EXP, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: Expr(OpCodes.EXP, f[i])
+        return x[:, {x.names[i]: Expr(OpCodes.EXP, f[i])
         			 for i in range(x.ncols)}]
     if x is None:
         return None
@@ -59,9 +59,9 @@ def exp(x):
 
 def log(x):
     if isinstance(x, Expr):
-        return Expr(OpCodes.LOG, x)
+        return Expr(OpCodes.LOGE, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: Expr(OpCodes.LOG, f[i])
+        return x[:, {x.names[i]: Expr(OpCodes.LOGE, f[i])
         			 for i in range(x.ncols)}]
     if x is None or x < 0:
         return None
@@ -75,7 +75,7 @@ def log10(x):
     if isinstance(x, Expr):
         return Expr(OpCodes.LOG10, x)
     if isinstance(x, core.Frame):
-        return x[:, {col: Expr(OpCodes.LOG10, f[i])
+        return x[:, {x.names[i]: Expr(OpCodes.LOG10, f[i])
         			 for i in range(x.ncols)}]
     if x is None or x < 0:
         return None

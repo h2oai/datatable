@@ -137,7 +137,7 @@ template<typename IT>
 static mapperfn resolve1(Op opcode) {
   switch (opcode) {
     case Op::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
-    case Op::MINUS:   return map_n<IT, IT, op_minus<IT>>;
+    case Op::UMINUS:   return map_n<IT, IT, op_minus<IT>>;
     case Op::ABS:     return map_n<IT, IT, op_abs<IT>>;
     case Op::EXP:     return map_n<IT, double, op_exp<IT>>;
     case Op::LOGE:    return map_n<IT, double, op_loge<IT>>;
@@ -182,14 +182,14 @@ static mapperfn resolve0(SType stype, Op opcode) {
 
 static Column* unaryop(Op opcode, Column* arg)
 {
-  if (opcode == Op::PLUS) return arg->shallowcopy();
+  if (opcode == Op::UPLUS) return arg->shallowcopy();
   arg->materialize();
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;
   if (opcode == Op::ISNA) {
     res_type = SType::BOOL;
-  } else if (arg_type == SType::BOOL && opcode == Op::MINUS) {
+  } else if (arg_type == SType::BOOL && opcode == Op::UMINUS) {
     res_type = SType::INT8;
   } else if (opcode == Op::EXP || opcode == Op::LOGE ||
              opcode == Op::LOG10) {
@@ -228,12 +228,12 @@ expr_unaryop::expr_unaryop(pexpr&& a, size_t op)
 
 
 bool expr_unaryop::is_negated_expr() const {
-  return opcode == Op::MINUS;
+  return opcode == Op::UMINUS;
 }
 
 pexpr expr_unaryop::get_negated_expr() {
   pexpr res;
-  if (opcode == Op::MINUS) {
+  if (opcode == Op::UMINUS) {
     res = std::move(arg);
   }
   return res;
@@ -301,15 +301,15 @@ void init_unops() {
     unop_rules[id(Op::INVERT, st)] = st;
   }
   for (SType st : numeric_stypes) {
-    unop_rules[id(Op::MINUS, st)] = st;
-    unop_rules[id(Op::PLUS, st)] = st;
+    unop_rules[id(Op::UMINUS, st)] = st;
+    unop_rules[id(Op::UPLUS, st)] = st;
     unop_rules[id(Op::ABS, st)] = st;
     unop_rules[id(Op::EXP, st)] = flt64;
     unop_rules[id(Op::LOGE, st)] = flt64;
     unop_rules[id(Op::LOG10, st)] = flt64;
   }
-  unop_rules[id(Op::MINUS, bool8)] = int8;
-  unop_rules[id(Op::PLUS, bool8)] = int8;
+  unop_rules[id(Op::UMINUS, bool8)] = int8;
+  unop_rules[id(Op::UPLUS, bool8)] = int8;
   unop_rules[id(Op::ABS, bool8)] = int8;
   unop_rules[id(Op::INVERT, bool8)] = bool8;
   unop_rules[id(Op::LEN, str32)] = int32;
@@ -317,8 +317,8 @@ void init_unops() {
 
   unop_names.resize(1 + id(Op::LEN));
   unop_names[id(Op::ISNA)]   = "isna";
-  unop_names[id(Op::MINUS)]  = "-";
-  unop_names[id(Op::PLUS)]   = "+";
+  unop_names[id(Op::UMINUS)] = "-";
+  unop_names[id(Op::UPLUS)]  = "+";
   unop_names[id(Op::INVERT)] = "~";
   unop_names[id(Op::ABS)]    = "abs";
   unop_names[id(Op::EXP)]    = "exp";
