@@ -900,33 +900,7 @@ static GSArgs args_params(
 
 
 oobj Ftrl::get_params_namedtuple() const {
-  static onamedtupletype ntt(
-    "FtrlParams",
-    args_params.doc,
-    {{args_alpha.name,            args_alpha.doc},
-     {args_beta.name,             args_beta.doc},
-     {args_lambda1.name,          args_lambda1.doc},
-     {args_lambda2.name,          args_lambda2.doc},
-     {args_nbins.name,            args_nbins.doc},
-     {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
-     {args_nepochs.name,          args_nepochs.doc},
-     {args_double_precision.name, args_double_precision.doc},
-     {args_negative_class.name,   args_negative_class.doc},
-     {args_interactions.name,     args_interactions.doc}}
-  );
-
-  py::onamedtuple params(ntt);
-  params.set(0, get_alpha());
-  params.set(1, get_beta());
-  params.set(2, get_lambda1());
-  params.set(3, get_lambda2());
-  params.set(4, get_nbins());
-  params.set(5, get_mantissa_nbits());
-  params.set(6, get_nepochs());
-  params.set(7, get_double_precision());
-  params.set(8, get_negative_class());
-  params.set(9, get_interactions());
-  return std::move(params);
+  return py_params;
 }
 
 
@@ -1142,19 +1116,20 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
 
 onamedtupletype Ftrl::py_ntt(
-    "FtrlParams",
-    args_params.doc,
-    {{args_alpha.name,            args_alpha.doc},
-     {args_beta.name,             args_beta.doc},
-     {args_lambda1.name,          args_lambda1.doc},
-     {args_lambda2.name,          args_lambda2.doc},
-     {args_nbins.name,            args_nbins.doc},
-     {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
-     {args_nepochs.name,          args_nepochs.doc},
-     {args_double_precision.name, args_double_precision.doc},
-     {args_negative_class.name,   args_negative_class.doc},
-     {args_interactions.name,     args_interactions.doc}}
-  );
+  "FtrlParams",
+  args_params.doc, {
+    {args_alpha.name,            args_alpha.doc},
+    {args_beta.name,             args_beta.doc},
+    {args_lambda1.name,          args_lambda1.doc},
+    {args_lambda2.name,          args_lambda2.doc},
+    {args_nbins.name,            args_nbins.doc},
+    {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
+    {args_nepochs.name,          args_nepochs.doc},
+    {args_double_precision.name, args_double_precision.doc},
+    {args_negative_class.name,   args_negative_class.doc},
+    {args_interactions.name,     args_interactions.doc}
+  }
+);
 
 
 } // namespace py
