@@ -75,6 +75,9 @@ void Ftrl::m__init__(PKArgs& args) {
                                   defined_nepochs || defined_double_precision ||
                                   defined_negative_class || defined_interactions;
 
+  py::onamedtuple py_params_temp(py_ntt);
+  py_params = std::move(py_params_temp);
+  init_params();
 
   if (defined_params) {
     if (defined_individual_param) {
@@ -98,8 +101,6 @@ void Ftrl::m__init__(PKArgs& args) {
     set_params_namedtuple(py_params_in);
 
   } else {
-    py::onamedtuple py_params_in(py_ntt);
-    py_params = std::move(py_params_in);
     if (defined_double_precision) {
       double_precision = arg_double_precision.to_bool_strict();
     }
@@ -110,7 +111,6 @@ void Ftrl::m__init__(PKArgs& args) {
       dtft = new dt::Ftrl<float>();
     }
 
-    init_params();
 
     if (defined_alpha) set_alpha(arg_alpha);
     if (defined_beta) set_beta(arg_beta);
@@ -137,6 +137,8 @@ void Ftrl::init_params() {
   py_params.replace(8, py::obool(params.negative_class));
   py_params.replace(9, py::None());
 }
+
+
 /**
  *  Deallocate underlying data for an Ftrl object
  */

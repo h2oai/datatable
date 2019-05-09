@@ -43,10 +43,11 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambda2",
                                           "nbins", "mantissa_nbits", "nepochs",
-                                          "double_precision", "negative_class"])
+                                          "double_precision", "negative_class",
+                                          "interactions"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  mantissa_nbits = 6, nepochs = 7, double_precision = True,
-                 negative_class = False)
+                 negative_class = False, interactions = None)
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
@@ -54,7 +55,8 @@ tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
 
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 10**6, mantissa_nbits = 10, nepochs = 1,
-                        double_precision = False, negative_class = False)
+                        double_precision = False, negative_class = False,
+                        interactions = None)
 
 epsilon = 0.01
 
@@ -124,8 +126,8 @@ def test_ftrl_construct_wrong_combination():
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, `double_precision` or "
-            "`negative_class` to Ftrl constructor, but not both at the same time"
+            "`lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, `double_precision`, "
+            "`negative_class` or `interactions` to Ftrl constructor, but not both at the same time"
             == str(e.value))
 
 
