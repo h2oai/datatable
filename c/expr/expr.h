@@ -40,6 +40,7 @@ static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 409;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 534;
+static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
 

@@ -35,12 +35,17 @@ class OpCodes(enum.Enum):
     UPLUS = 101
     UMINUS = 102
     INVERT = 103
-    ISNA = 104
-    ABS = 105
-    EXP = 106
-    LOGE = 107
-    LOG10 = 108
-    LEN = 109
+    ISFINITE = 104
+    ISINF = 105
+    ISNA = 106
+    ABS = 107
+    EXP = 108
+    LOGE = 109
+    LOG10 = 110
+    CEIL = 111
+    FLOOR = 112
+    TRUNC = 113
+    LEN = 114
 
     # Binary
     PLUS = 201
@@ -97,11 +102,28 @@ class OpCodes(enum.Enum):
     ARCTANH = 516
 
     # Math: exponential/power
+    CBRT = 517
     EXP2 = 518
     EXPM1 = 519
-    SQRT = 520
-    CBRT = 521
+    LOG = 520
+    LOG1P = 521
+    LOG2 = 522
+    POW = 523
+    SQRT = 524
 
+    # Math: special
+    ERF = 525
+    ERFC = 526
+    GAMMA = 527
+    LGAMMA = 528
+
+    # Math: misc
+    COPYSIGN = 529
+    FABS = 530
+    FCEIL = 531
+    FFLOOR = 532
+    FMOD = 533
+    FTRUNC = 534
 
 
 #-------------------------------------------------------------------------------

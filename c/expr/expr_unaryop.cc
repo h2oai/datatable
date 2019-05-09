@@ -137,7 +137,7 @@ template<typename IT>
 static mapperfn resolve1(Op opcode) {
   switch (opcode) {
     case Op::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
-    case Op::UMINUS:   return map_n<IT, IT, op_minus<IT>>;
+    case Op::UMINUS:  return map_n<IT, IT, op_minus<IT>>;
     case Op::ABS:     return map_n<IT, IT, op_abs<IT>>;
     case Op::EXP:     return map_n<IT, double, op_exp<IT>>;
     case Op::LOGE:    return map_n<IT, double, op_loge<IT>>;
@@ -242,7 +242,7 @@ SType expr_unaryop::resolve(const workframe& wf) {
   size_t op_id = id(opcode, arg_stype);
   if (unop_rules.count(op_id) == 0) {
     throw TypeError() << "Unary operator `"
-        << unop_names[static_cast<size_t>(opcode)]
+        << unop_names[id(opcode)]
         << "` cannot be applied to a column with stype `" << arg_stype << "`";
   }
   return unop_rules.at(op_id);
@@ -267,7 +267,7 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
 //------------------------------------------------------------------------------
 
 static size_t id(Op opcode) {
-  return static_cast<size_t>(opcode);
+  return static_cast<size_t>(opcode) - UNOP_FIRST;
 }
 static size_t id(Op opcode, SType st1) {
   return (static_cast<size_t>(opcode) << 8) + static_cast<size_t>(st1);
@@ -312,7 +312,7 @@ void init_unops() {
   unop_rules[id(Op::LEN, str32)] = int32;
   unop_rules[id(Op::LEN, str64)] = int64;
 
-  unop_names.resize(1 + id(Op::LEN));
+  unop_names.resize(UNOP_COUNT);
   unop_names[id(Op::ISNA)]   = "isna";
   unop_names[id(Op::UMINUS)] = "-";
   unop_names[id(Op::UPLUS)]  = "+";
