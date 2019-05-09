@@ -26,6 +26,7 @@
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
 #include "expr/expr_literal.h"
+#include "expr/expr_math.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
@@ -110,6 +111,11 @@ pexpr py::_obj::to_dtexpr() const {
     check_args_count(args, 1);
     pexpr arg = args[0].to_dtexpr();
     return pexpr(new expr_reduce1(std::move(arg), op));
+  }
+  if (op >= MATH_FIRST && op <= MATH_LAST) {
+    check_args_count(args, 1);
+    pexpr arg = args[0].to_dtexpr();
+    return pexpr(new expr_math(std::move(arg), op));
   }
   if (op == static_cast<size_t>(Op::RE_MATCH)) {
     check_args_count(args, 2);

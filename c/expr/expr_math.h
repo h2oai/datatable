@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,38 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cmath>
-#include <unordered_map>
-#include "datatablemodule.h"
+#ifndef dt_EXPR_EXPR_MATH_h
+#define dt_EXPR_EXPR_MATH_h
+#include "expr/expr.h"
+#include "python/_all.h"
+namespace dt {
+namespace expr {
 
-struct fninfo {
-  const char* name;
+
+class expr_math : public base_expr {
+  private:
+    pexpr arg;
+    Op opcode;
+
+  public:
+    expr_math(pexpr&& a, size_t op);
+    SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
+    colptr evaluate_eager(workframe& wf) override;
 };
 
-static std::unordered_map<const py::PKArgs*, fninfo> fninfos;
 
-
-
-static py::PKArgs args_acos(
-  1, 0, 0, false, false, {"x"}, "acos",
-  "Return the arc cosine of x, in radians.");
-
-
-static py::oobj generic_unary_fn(const py::PKArgs& args) {
-  xassert(fninfos.count(&args) == 1);
-  auto& arg = args[0];
-  if (arg.is_undefined()) {
-    throw TypeError() << '`' << fninfos[&args].name << "()` takes exactly one "
-        "argument, 0 given";
-  }
-
-}
-
-
-
-
-void py::DatatableModule::init_methods_math() {
-  ADD_FN(&generic_unary_fn, args_acos);
-
-  fninfos[&args_acos] = {"acos"};
-}
+}}
+#endif

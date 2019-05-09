@@ -31,6 +31,17 @@ class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
 using colptr = std::unique_ptr<Column>;
 
+static constexpr size_t UNOP_FIRST    = 101;
+static constexpr size_t UNOP_LAST     = 114;
+static constexpr size_t BINOP_FIRST   = 201;
+static constexpr size_t BINOP_LAST    = 218;
+static constexpr size_t STRING_FIRST  = 301;
+static constexpr size_t REDUCER_FIRST = 401;
+static constexpr size_t REDUCER_LAST  = 409;
+static constexpr size_t MATH_FIRST    = 501;
+static constexpr size_t MATH_LAST     = 534;
+static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
+static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
 
 // The values in this enum must be kept in sync with Python enum OpCodes in
 // file "datatable/expr/expr.py"
@@ -41,59 +52,101 @@ enum class Op : size_t {
   CAST = 2,
 
   // Unary
-  UPLUS = 101,
-  UMINUS = 102,
-  INVERT = 103,
-  ISNA = 104,
-  ABS = 105,
-  EXP = 106,
-  LOGE = 107,
-  LOG10 = 108,
-  LEN = 109,
+  UPLUS = UNOP_FIRST,
+  UMINUS,
+  INVERT,
+  ISFINITE,
+  ISINF,
+  ISNA,
+  ABS,
+  EXP,
+  LOGE,
+  LOG10,
+  CEIL,
+  FLOOR,
+  TRUNC,
+  LEN = UNOP_LAST,
 
   // Binary
-  PLUS = 201,
-  MINUS = 202,
-  MULTIPLY = 203,
-  DIVIDE = 204,
-  INTDIV = 205,
-  MODULO = 206,
-  POWER = 207,
-  AND = 208,
-  XOR = 209,
-  OR = 210,
-  LSHIFT = 211,
-  RSHIFT = 212,
-  EQ = 213,
-  NE = 214,
-  LT = 215,
-  GT = 216,
-  LE = 217,
-  GE = 218,
+  PLUS = BINOP_FIRST,
+  MINUS,
+  MULTIPLY,
+  DIVIDE,
+  INTDIV,
+  MODULO,
+  POWER,
+  AND,
+  XOR,
+  OR,
+  LSHIFT,
+  RSHIFT,
+  EQ,
+  NE,
+  LT,
+  GT,
+  LE,
+  GE = BINOP_LAST,
 
   // String
-  RE_MATCH = 301,
+  RE_MATCH = STRING_FIRST,
 
   // Reducers
-  MEAN = 401,
-  MIN = 402,
-  MAX = 403,
-  STDEV = 404,
-  FIRST = 405,
-  SUM = 406,
-  COUNT = 407,
-  COUNT0 = 408,
-  MEDIAN = 409,
-};
+  MEAN = REDUCER_FIRST,
+  MIN,
+  MAX,
+  STDEV,
+  FIRST,
+  SUM,
+  COUNT,
+  COUNT0,
+  MEDIAN = REDUCER_LAST,
 
-static constexpr size_t BINOP_FIRST = static_cast<size_t>(Op::PLUS);
-static constexpr size_t BINOP_LAST  = static_cast<size_t>(Op::GE);
-static constexpr size_t BINOP_COUNT = BINOP_LAST - BINOP_FIRST + 1;
-static constexpr size_t UNOP_FIRST = static_cast<size_t>(Op::UPLUS);
-static constexpr size_t UNOP_LAST  = static_cast<size_t>(Op::LEN);
-static constexpr size_t REDUCER_FIRST = static_cast<size_t>(Op::MEAN);
-static constexpr size_t REDUCER_LAST  = static_cast<size_t>(Op::MEDIAN);
-static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
+  // Math: trigonometric
+  SIN = MATH_FIRST,
+  COS,
+  TAN,
+  ARCSIN,
+  ARCCOS,
+  ARCTAN,
+  ARCTAN2,
+  HYPOT,
+  DEG2RAD,
+  RAD2DEG,
+
+  // Math: hyperbolic
+  SINH,
+  COSH,
+  TANH,
+  ARCSINH,
+  ARCCOSH,
+  ARCTANH,
+
+  // Math: exponential/power
+  CBRT,
+  // EXP,
+  EXP2,
+  EXPM1,
+  LOG,
+  // LOG10,
+  LOG1P,
+  LOG2,
+  POW,
+  SQRT,
+
+  // Math: special
+  ERF,
+  ERFC,
+  GAMMA,
+  LGAMMA,
+
+  // Math: misc
+  COPYSIGN,
+  FABS,
+  FCEIL,
+  FFLOOR,
+  FMOD,
+  FTRUNC = MATH_LAST,
+};
 
 
 

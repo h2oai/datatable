@@ -76,6 +76,32 @@ class OpCodes(enum.Enum):
     COUNT0 = 408
     MEDIAN = 409
 
+    # Math: trigonometric
+    SIN = 501
+    COS = 502
+    TAN = 503
+    ARCSIN = 504
+    ARCCOS = 505
+    ARCTAN = 506
+    ARCTAN2 = 507
+    HYPOT = 508
+    DEG2RAD = 509
+    RAD2DEG = 510
+
+    # Math: hyperbolic
+    SINH = 511
+    COSH = 512
+    TANH = 513
+    ARCSINH = 514
+    ARCCOSH = 515
+    ARCTANH = 516
+
+    # Math: exponential/power
+    EXP2 = 518
+    EXPM1 = 519
+    SQRT = 520
+    CBRT = 521
+
 
 
 #-------------------------------------------------------------------------------
@@ -108,8 +134,7 @@ class Expr:
 
 
     def __init__(self, op, *args):
-        assert isinstance(op, OpCodes)
-        self._op = op.value
+        self._op = op if isinstance(op, int) else op.value
         self._args = args
 
     def __repr__(self):
