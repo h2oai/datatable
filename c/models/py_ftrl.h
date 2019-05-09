@@ -36,8 +36,11 @@ namespace py {
 class Ftrl : public PyObject {
   private:
     dt::FtrlBase* dtft;
-    py::oobj py_interactions;
     strvec colnames;
+    py::onamedtuple py_params;
+    static py::onamedtupletype py_ntt;
+    bool double_precision;
+    size_t: 56;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -61,7 +64,8 @@ class Ftrl : public PyObject {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
-    std::vector<sizetvec> convert_interactions();
+    void init_dt_interactions();
+    void init_params();
 
     // Getters
     oobj get_labels() const;
@@ -88,6 +92,7 @@ class Ftrl : public PyObject {
     void set_labels(robj);            // Not exposed, used for unpickling only
     void set_colnames(robj);          // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
+    void set_params_namedtuple(robj); // Not exposed
     void set_alpha(robj);
     void set_beta(robj);
     void set_lambda1(robj);

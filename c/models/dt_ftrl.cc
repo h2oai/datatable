@@ -29,7 +29,7 @@ namespace dt {
 
 
 /**
- *  Constructor. Set up parameters and initialize weights.
+ *  Constructor based on the provided parameters.
  */
 template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
@@ -53,6 +53,13 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
 {
 }
 
+
+/**
+ *  Constructor with default parameters.
+ */
+template <typename T>
+Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {
+}
 
 /**
  *  Depending on the target column stype, this method does
@@ -965,12 +972,6 @@ size_t Ftrl<T>::get_nepochs() {
 
 
 template <typename T>
-bool Ftrl<T>::get_double_precision() {
-  return params.double_precision;
-}
-
-
-template <typename T>
 bool Ftrl<T>::get_negative_class() {
   return params.negative_class;
 }
@@ -1063,12 +1064,6 @@ template <typename T>
 void Ftrl<T>::set_nepochs(size_t nepochs_in) {
   params.nepochs = nepochs_in;
   nepochs = nepochs_in;
-}
-
-
-template <typename T>
-void Ftrl<T>::set_double_precision(bool double_precision_in) {
-  params.double_precision = double_precision_in;
 }
 
 

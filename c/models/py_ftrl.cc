@@ -30,11 +30,12 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
+PKArgs Ftrl::Type::args___init__(0, 1, 10, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "mantissa_nbits",
                                  "nepochs", "double_precision",
-                                 "negative_class"}, "__init__", nullptr);
+                                 "negative_class", "interactions"},
+                                 "__init__", nullptr);
 
 
 /**
@@ -43,7 +44,7 @@ PKArgs Ftrl::Type::args___init__(0, 2, 8, false, false,
  */
 void Ftrl::m__init__(PKArgs& args) {
   dtft = nullptr;
-  dt::FtrlParams ftrl_params;
+  double_precision = dt::FtrlParams().double_precision;
 
   const Arg& arg_params           = args[0];
   const Arg& arg_alpha            = args[1];
@@ -55,6 +56,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_nepochs          = args[7];
   const Arg& arg_double_precision = args[8];
   const Arg& arg_negative_class   = args[9];
+  const Arg& arg_interactions     = args[10];
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -66,112 +68,75 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
+  bool defined_interactions     = !arg_interactions.is_none_or_undefined();
+  bool defined_individual_param = defined_alpha || defined_beta ||
+                                  defined_lambda1 || defined_lambda2 ||
+                                  defined_nbins || defined_mantissa_nbits ||
+                                  defined_nepochs || defined_double_precision ||
+                                  defined_negative_class || defined_interactions;
+
 
   if (defined_params) {
-    if (defined_alpha || defined_beta || defined_lambda1 ||
-        defined_lambda2 || defined_nbins || defined_mantissa_nbits ||
-        defined_nepochs || defined_double_precision || defined_negative_class) {
-
+    if (defined_individual_param) {
       throw TypeError() << "You can either pass all the parameters with "
         << "`params` or any of the individual parameters with `alpha`, "
         << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
-        << "`double_precision` or `negative_class` to Ftrl constructor, "
+        << "`double_precision`, `negative_class` or `interactions` to Ftrl constructor, "
         << "but not both at the same time";
     }
 
-    py::otuple py_params         = arg_params.to_otuple();
-    py::oobj py_alpha            = py_params.get_attr("alpha");
-    py::oobj py_beta             = py_params.get_attr("beta");
-    py::oobj py_lambda1          = py_params.get_attr("lambda1");
-    py::oobj py_lambda2          = py_params.get_attr("lambda2");
-    py::oobj py_nbins            = py_params.get_attr("nbins");
-    py::oobj py_mantissa_nbits   = py_params.get_attr("mantissa_nbits");
-    py::oobj py_nepochs          = py_params.get_attr("nepochs");
-    py::oobj py_double_precision = py_params.get_attr("double_precision");
-    py::oobj py_negative_class   = py_params.get_attr("negative_class");
+    py::otuple py_params_in         = arg_params.to_otuple();
+    py::oobj py_double_precision    = py_params_in.get_attr("double_precision");
+    double_precision                = py_double_precision.to_bool_strict();
 
-    ftrl_params.alpha            = py_alpha.to_double();
-    ftrl_params.beta             = py_beta.to_double();
-    ftrl_params.lambda1          = py_lambda1.to_double();
-    ftrl_params.lambda2          = py_lambda2.to_double();
-    ftrl_params.nbins            = static_cast<uint64_t>(py_nbins.to_size_t());
-    size_t mantissa_nbits        = py_mantissa_nbits.to_size_t();
-    ftrl_params.nepochs          = py_nepochs.to_size_t();
-    ftrl_params.double_precision = py_double_precision.to_bool_strict();
-    ftrl_params.negative_class   = py_negative_class.to_bool_strict();
+    if (double_precision) {
+      dtft = new dt::Ftrl<double>();
+    } else {
+      dtft = new dt::Ftrl<float>();
+    }
 
-    py::Validator::check_positive<double>(ftrl_params.alpha, py_alpha);
-    py::Validator::check_not_negative<double>(ftrl_params.beta, py_beta);
-    py::Validator::check_not_negative<double>(ftrl_params.lambda1, py_lambda1);
-    py::Validator::check_not_negative<double>(ftrl_params.lambda2, py_lambda2);
-    py::Validator::check_not_negative<double>(ftrl_params.nbins, py_nbins);
-    py::Validator::check_less_than_or_equal_to<uint64_t>(
-      mantissa_nbits,
-      dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
-      py_negative_class
-    );
-    ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
+    set_params_namedtuple(py_params_in);
 
   } else {
-
-    if (defined_alpha) {
-      ftrl_params.alpha = arg_alpha.to_double();
-      py::Validator::check_positive<double>(ftrl_params.alpha, arg_alpha);
-    }
-
-    if (defined_beta) {
-      ftrl_params.beta = arg_beta.to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.beta, arg_beta);
-    }
-
-    if (defined_lambda1) {
-      ftrl_params.lambda1 = arg_lambda1.to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.lambda1, arg_lambda1);
-    }
-
-    if (defined_lambda2) {
-      ftrl_params.lambda2 = arg_lambda2.to_double();
-      py::Validator::check_not_negative<double>(ftrl_params.lambda2, arg_lambda2);
-    }
-
-    if (defined_nbins) {
-      ftrl_params.nbins = static_cast<uint64_t>(arg_nbins.to_size_t());
-      py::Validator::check_positive<uint64_t>(ftrl_params.nbins, arg_nbins);
-    }
-
-    if (defined_mantissa_nbits) {
-      size_t mantissa_nbits = arg_mantissa_nbits.to_size_t();
-      py::Validator::check_less_than_or_equal_to<uint64_t>(
-        mantissa_nbits,
-        dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
-        arg_mantissa_nbits
-      );
-      ftrl_params.mantissa_nbits = static_cast<unsigned char>(mantissa_nbits);
-    }
-
-    if (defined_nepochs) {
-      ftrl_params.nepochs = arg_nepochs.to_size_t();
-    }
-
+    py::onamedtuple py_params_in(py_ntt);
+    py_params = std::move(py_params_in);
     if (defined_double_precision) {
-      ftrl_params.double_precision = arg_double_precision.to_bool_strict();
+      double_precision = arg_double_precision.to_bool_strict();
     }
 
-    if (defined_negative_class) {
-      ftrl_params.negative_class = arg_negative_class.to_bool_strict();
+    if (double_precision) {
+      dtft = new dt::Ftrl<double>();
+    } else {
+      dtft = new dt::Ftrl<float>();
     }
-  }
 
-  py_interactions = py::None();
+    init_params();
 
-  if (ftrl_params.double_precision) {
-    dtft = new dt::Ftrl<double>(ftrl_params);
-  } else {
-    dtft = new dt::Ftrl<float>(ftrl_params);
+    if (defined_alpha) set_alpha(arg_alpha);
+    if (defined_beta) set_beta(arg_beta);
+    if (defined_lambda1) set_lambda1(arg_lambda1);
+    if (defined_lambda2) set_lambda2(arg_lambda2);
+    if (defined_nbins) set_nbins(arg_nbins);
+    if (defined_mantissa_nbits) set_mantissa_nbits(arg_mantissa_nbits);
+    if (defined_nepochs) set_nepochs(arg_nepochs);
+    if (defined_negative_class) set_nepochs(arg_negative_class);
   }
 }
 
 
+void Ftrl::init_params() {
+  dt::FtrlParams params;
+  py_params.replace(0, py::ofloat(params.alpha));
+  py_params.replace(1, py::ofloat(params.beta));
+  py_params.replace(2, py::ofloat(params.lambda1));
+  py_params.replace(3, py::ofloat(params.lambda2));
+  py_params.replace(4, py::oint(static_cast<size_t>(params.nbins)));
+  py_params.replace(5, py::oint(params.mantissa_nbits));
+  py_params.replace(6, py::oint(params.nepochs));
+  py_params.replace(7, py::obool(params.double_precision));
+  py_params.replace(8, py::obool(params.negative_class));
+  py_params.replace(9, py::None());
+}
 /**
  *  Deallocate underlying data for an Ftrl object
  */
@@ -187,9 +152,9 @@ void Ftrl::m__dealloc__() {
  *  Check if provided interactions are consistent with the column names
  *  of the training frame.
  */
-std::vector<sizetvec> Ftrl::convert_interactions() {
+void Ftrl::init_dt_interactions() {
   std::vector<sizetvec> interactions;
-  auto py_iter = py_interactions.to_oiter();
+  auto py_iter = py_params[9].to_oiter();
   interactions.reserve(py_iter.size());
 
   for (auto py_interaction : py_iter) {
@@ -212,8 +177,7 @@ std::vector<sizetvec> Ftrl::convert_interactions() {
 
     interactions.push_back(std::move(interaction));
   }
-
-  return interactions;
+  dtft->set_interactions(std::move(interactions));
 }
 
 
@@ -314,9 +278,8 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "model";
   }
 
-  if (!py_interactions.is_none()) {
-    std::vector<sizetvec> inters = convert_interactions();
-    dtft->set_interactions(std::move(inters));
+  if (!py_params[9].is_none() && !dtft->get_interactions().size()) {
+    init_dt_interactions();
   }
 
   // Validtion set handling
@@ -451,6 +414,11 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
 
+  if (!py_params[9].is_none() && !dtft->get_interactions().size()) {
+    init_dt_interactions();
+  }
+
+
   DataTable* dt_p = dtft->predict(dt_X).release();
   py::oobj df_p = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_p)
@@ -483,7 +451,6 @@ None
 
 void Ftrl::reset(const PKArgs&) {
   dtft->reset();
-  py_interactions = py::None();
   colnames.clear();
 }
 
@@ -567,7 +534,6 @@ void Ftrl::set_model(robj model) {
 
   }
 
-  bool double_precision = dtft->get_double_precision();
   SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
   bool (*has_negatives)(const Column*) = (double_precision)?
                                          py::Validator::has_negatives<double>:
@@ -685,7 +651,7 @@ static GSArgs args_alpha(
 
 
 oobj Ftrl::get_alpha() const {
-  return py::ofloat(dtft->get_alpha());
+  return py_params[0];
 }
 
 
@@ -693,6 +659,7 @@ void Ftrl::set_alpha(robj py_alpha) {
   double alpha = py_alpha.to_double();
   py::Validator::check_positive(alpha, py_alpha);
   dtft->set_alpha(alpha);
+  py_params.replace(0, py_alpha);
 }
 
 
@@ -705,7 +672,7 @@ static GSArgs args_beta(
 
 
 oobj Ftrl::get_beta() const {
-  return py::ofloat(dtft->get_beta());
+  return py_params[1];
 }
 
 
@@ -713,6 +680,7 @@ void Ftrl::set_beta(robj py_beta) {
   double beta = py_beta.to_double();
   py::Validator::check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
+  py_params.replace(1, py_beta);
 }
 
 
@@ -725,7 +693,7 @@ static GSArgs args_lambda1(
 
 
 oobj Ftrl::get_lambda1() const {
-  return py::ofloat(dtft->get_lambda1());
+  return py_params[2];
 }
 
 
@@ -733,6 +701,7 @@ void Ftrl::set_lambda1(robj py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
+  py_params.replace(2, py_lambda1);
 }
 
 
@@ -745,7 +714,7 @@ static GSArgs args_lambda2(
 
 
 oobj Ftrl::get_lambda2() const {
-  return py::ofloat(dtft->get_lambda2());
+  return py_params[3];
 }
 
 
@@ -753,6 +722,7 @@ void Ftrl::set_lambda2(robj py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
+  py_params.replace(3, py_lambda2);
 }
 
 
@@ -765,7 +735,7 @@ static GSArgs args_nbins(
 
 
 oobj Ftrl::get_nbins() const {
-  return py::oint(static_cast<size_t>(dtft->get_nbins()));
+  return py_params[4];
 }
 
 
@@ -778,6 +748,7 @@ void Ftrl::set_nbins(robj py_nbins) {
   size_t nbins = py_nbins.to_size_t();
   py::Validator::check_positive(nbins, py_nbins);
   dtft->set_nbins(static_cast<uint64_t>(nbins));
+  py_params.replace(4, py_nbins);
 }
 
 
@@ -790,7 +761,7 @@ static GSArgs args_mantissa_nbits(
 
 
 oobj Ftrl::get_mantissa_nbits() const {
-  return py::oint(static_cast<size_t>(dtft->get_mantissa_nbits()));
+  return py_params[5];
 }
 
 
@@ -807,6 +778,7 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
     py_mantissa_nbits
   );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
+  py_params.replace(5, py_mantissa_nbits);
 }
 
 
@@ -819,13 +791,60 @@ static GSArgs args_nepochs(
 
 
 oobj Ftrl::get_nepochs() const {
-  return py::oint(dtft->get_nepochs());
+  return py_params[6];
 }
 
 
 void Ftrl::set_nepochs(robj py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
   dtft->set_nepochs(nepochs);
+  py_params.replace(6, py_nepochs);
+}
+
+
+/**
+ *  .double_precision
+ */
+static GSArgs args_double_precision(
+  "double_precision",
+  "Whether to use double precision arithmetic for modeling");
+
+
+oobj Ftrl::get_double_precision() const {
+  return py_params[7];
+}
+
+void Ftrl::set_double_precision(robj py_double_precision) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `double_precision` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+  double_precision = py_double_precision.to_bool_strict();
+  py_params.replace(7, py_double_precision);
+}
+
+
+/**
+ *  .negative_class
+ */
+static GSArgs args_negative_class(
+  "negative_class",
+  "Whether to train on negatives in the case of multinomial classification.");
+
+
+oobj Ftrl::get_negative_class() const {
+  return py_params[8];
+}
+
+
+void Ftrl::set_negative_class(robj py_negative_class) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `negative_class` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+  bool negative_class = py_negative_class.to_bool_strict();
+  dtft->set_negative_class(negative_class);
+  py_params.replace(8, py_negative_class);
 }
 
 
@@ -838,7 +857,7 @@ static GSArgs args_interactions(
 
 
 oobj Ftrl::get_interactions() const {
-  return py_interactions;
+  return py_params[9];
 }
 
 
@@ -864,53 +883,9 @@ void Ftrl::set_interactions(robj arg_interactions) {
     }
   }
 
-  py_interactions = std::move(arg_interactions);
+  py_params.replace(9, arg_interactions);
 }
 
-
-/**
- *  .double_precision
- */
-static GSArgs args_double_precision(
-  "double_precision",
-  "Whether to use double precision arithmetic for modeling");
-
-
-oobj Ftrl::get_double_precision() const {
-  return dtft->get_double_precision()? True() : False();
-}
-
-void Ftrl::set_double_precision(robj py_double_precision) {
-  if (dtft->is_trained()) {
-    throw ValueError() << "Cannot change `double_precision` for a trained model, "
-                       << "reset this model or create a new one";
-  }
-  bool double_precision = py_double_precision.to_bool_strict();
-  dtft->set_double_precision(double_precision);
-}
-
-
-/**
- *  .negative_class
- */
-static GSArgs args_negative_class(
-  "negative_class",
-  "Whether to train on negatives in the case of multinomial classification.");
-
-
-oobj Ftrl::get_negative_class() const {
-  return dtft->get_negative_class()? True() : False();
-}
-
-
-void Ftrl::set_negative_class(robj py_negative_class) {
-  if (dtft->is_trained()) {
-    throw ValueError() << "Cannot change `negative_class` for a trained model, "
-                       << "reset this model or create a new one";
-  }
-  bool negative_class = py_negative_class.to_bool_strict();
-  dtft->set_negative_class(negative_class);
-}
 
 
 /**
@@ -933,7 +908,8 @@ oobj Ftrl::get_params_namedtuple() const {
      {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
      {args_nepochs.name,          args_nepochs.doc},
      {args_double_precision.name, args_double_precision.doc},
-     {args_negative_class.name,   args_negative_class.doc}}
+     {args_negative_class.name,   args_negative_class.doc},
+     {args_interactions.name,     args_interactions.doc}}
   );
 
   py::onamedtuple params(ntt);
@@ -946,7 +922,40 @@ oobj Ftrl::get_params_namedtuple() const {
   params.set(6, get_nepochs());
   params.set(7, get_double_precision());
   params.set(8, get_negative_class());
+  params.set(9, get_interactions());
   return std::move(params);
+}
+
+
+
+void Ftrl::set_params_namedtuple(robj params_in) {
+  py::otuple params_tuple = params_in.to_otuple();
+  size_t n_params = params_tuple.size();
+  if (n_params != 10) {
+    throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
+                       << "got: " << n_params;
+  }
+
+  py::oobj py_alpha            = params_in.get_attr("alpha");
+  py::oobj py_beta             = params_in.get_attr("beta");
+  py::oobj py_lambda1          = params_in.get_attr("lambda1");
+  py::oobj py_lambda2          = params_in.get_attr("lambda2");
+  py::oobj py_nbins            = params_in.get_attr("nbins");
+  py::oobj py_mantissa_nbits   = params_in.get_attr("mantissa_nbits");
+  py::oobj py_nepochs          = params_in.get_attr("nepochs");
+  py::oobj py_double_precision = params_in.get_attr("double_precision");
+  py::oobj py_negative_class   = params_in.get_attr("negative_class");
+  py::oobj py_interactions     = params_in.get_attr("interactions");
+
+  set_alpha(py_alpha);
+  set_beta(py_beta);
+  set_lambda1(py_lambda1);
+  set_lambda2(py_lambda2);
+  set_nbins(py_nbins);
+  set_mantissa_nbits(py_mantissa_nbits);
+  set_nepochs(py_nepochs);
+  set_negative_class(py_negative_class);
+  set_interactions(py_interactions);
 }
 
 
@@ -959,15 +968,17 @@ oobj Ftrl::get_params_tuple() const {
                  get_mantissa_nbits(),
                  get_nepochs(),
                  get_double_precision(),
-                 get_negative_class()};
+                 get_negative_class(),
+                 get_interactions()
+                };
 }
 
 
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 9) {
-    throw ValueError() << "Tuple of FTRL parameters should have 9 elements, "
+  if (n_params != 10) {
+    throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
                        << "got: " << n_params;
   }
   set_alpha(params_tuple[0]);
@@ -979,6 +990,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_nepochs(params_tuple[6]);
   set_double_precision(params_tuple[7]);
   set_negative_class(params_tuple[8]);
+  set_interactions(params_tuple[9]);
 }
 
 
@@ -990,7 +1002,6 @@ static PKArgs args___getstate__(
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
-  py::oobj py_params = get_params_tuple();
   py::oobj py_model = get_model();
   py::oobj py_fi = get_normalized_fi(false);
   py::oobj py_model_type = py::oint(static_cast<int32_t>(
@@ -1000,7 +1011,7 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_colnames = get_colnames();
 
   return otuple {py_params, py_model, py_fi, py_model_type, py_labels,
-                 py_interactions, py_colnames};
+                 py_colnames};
 }
 
 
@@ -1017,7 +1028,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::otuple params = pickle[0].to_otuple();
 
-  bool double_precision = params[7].to_bool_strict();
+  double_precision = params[7].to_bool_strict();
   if (double_precision) {
     dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
@@ -1031,8 +1042,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
   set_labels(pickle[4]);
-  py_interactions = pickle[5];
-  set_colnames(pickle[6]);
+  set_colnames(pickle[5]);
 }
 
 
@@ -1123,6 +1133,22 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
 }
+
+
+onamedtupletype Ftrl::py_ntt(
+    "FtrlParams",
+    args_params.doc,
+    {{args_alpha.name,            args_alpha.doc},
+     {args_beta.name,             args_beta.doc},
+     {args_lambda1.name,          args_lambda1.doc},
+     {args_lambda2.name,          args_lambda2.doc},
+     {args_nbins.name,            args_nbins.doc},
+     {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
+     {args_nepochs.name,          args_nepochs.doc},
+     {args_double_precision.name, args_double_precision.doc},
+     {args_negative_class.name,   args_negative_class.doc},
+     {args_interactions.name,     args_interactions.doc}}
+  );
 
 
 } // namespace py
