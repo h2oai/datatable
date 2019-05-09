@@ -75,8 +75,6 @@ void Ftrl::m__init__(PKArgs& args) {
                                   defined_nepochs || defined_double_precision ||
                                   defined_negative_class || defined_interactions;
 
-  py::onamedtuple py_params_temp(py_ntt);
-  py_params = std::move(py_params_temp);
   init_params();
 
   if (defined_params) {
@@ -111,7 +109,7 @@ void Ftrl::m__init__(PKArgs& args) {
       dtft = new dt::Ftrl<float>();
     }
 
-
+    if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_alpha) set_alpha(arg_alpha);
     if (defined_beta) set_beta(arg_beta);
     if (defined_lambda1) set_lambda1(arg_lambda1);
@@ -119,13 +117,16 @@ void Ftrl::m__init__(PKArgs& args) {
     if (defined_nbins) set_nbins(arg_nbins);
     if (defined_mantissa_nbits) set_mantissa_nbits(arg_mantissa_nbits);
     if (defined_nepochs) set_nepochs(arg_nepochs);
-    if (defined_negative_class) set_nepochs(arg_negative_class);
+    if (defined_negative_class) set_negative_class(arg_negative_class);
   }
 }
 
 
 void Ftrl::init_params() {
   dt::FtrlParams params;
+  py::onamedtuple py_params_temp(py_ntt);
+  py_params = std::move(py_params_temp);
+
   py_params.replace(0, py::ofloat(params.alpha));
   py_params.replace(1, py::ofloat(params.beta));
   py_params.replace(2, py::ofloat(params.lambda1));
@@ -956,6 +957,7 @@ void Ftrl::set_params_namedtuple(robj params_in) {
   set_nbins(py_nbins);
   set_mantissa_nbits(py_mantissa_nbits);
   set_nepochs(py_nepochs);
+  set_double_precision(py_double_precision);
   set_negative_class(py_negative_class);
   set_interactions(py_interactions);
 }
@@ -1011,8 +1013,9 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
                            ));
   py::oobj py_labels = get_labels();
   py::oobj py_colnames = get_colnames();
+  py::oobj py_params_tuple = get_params_tuple();
 
-  return otuple {py_params, py_model, py_fi, py_model_type, py_labels,
+  return otuple {py_params_tuple, py_model, py_fi, py_model_type, py_labels,
                  py_colnames};
 }
 
@@ -1028,14 +1031,15 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   dt::FtrlParams ftrl_params;
 
   py::otuple pickle = args[0].to_otuple();
-  py::otuple params = pickle[0].to_otuple();
+  py::otuple py_params_tuple = pickle[0].to_otuple();
 
-  double_precision = params[7].to_bool_strict();
+  double_precision = py_params_tuple[7].to_bool_strict();
   if (double_precision) {
     dtft = new dt::Ftrl<double>(ftrl_params);
   } else {
     dtft = new dt::Ftrl<float>(ftrl_params);
   }
+  init_params();
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {

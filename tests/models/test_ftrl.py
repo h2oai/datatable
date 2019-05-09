@@ -242,7 +242,8 @@ def test_ftrl_create_individual():
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
                          tparams.nbins, tparams.mantissa_nbits, tparams.nepochs,
-                         tparams.double_precision, tparams.negative_class)
+                         tparams.double_precision, tparams.negative_class,
+                         tparams.interactions)
 
 
 #-------------------------------------------------------------------------------
@@ -252,8 +253,9 @@ def test_ftrl_create_individual():
 def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
-    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
-            ft.nepochs, ft.double_precision, ft.negative_class) == tparams
+    assert ((ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
+            ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions)
+            == tparams)
 
 
 def test_ftrl_set_individual():
