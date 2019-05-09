@@ -90,6 +90,7 @@ void File::resize(size_t newsize) {
   statbuf.st_size = -1;  // force reload stats on next request
 
   off_t sz = static_cast<off_t>(newsize);
+  if (!sz) return;
   #ifdef HAVE_POSIX_FALLOCATE
     // The function posix_fallocate() ensures that disk space is allocated
     // for the file referred to by the descriptor fd for the bytes in the
