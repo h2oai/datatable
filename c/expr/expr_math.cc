@@ -30,28 +30,25 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// expr_math
+// expr_math11
 //------------------------------------------------------------------------------
 
-expr_math::expr_math(pexpr&& a, size_t o)
-  : arg(std::move(a)), opcode(static_cast<Op>(o))
-{
-  xassert(o >= REDUCER_FIRST && o <= REDUCER_LAST);
-}
+expr_math11::expr_math11(pexpr&& a, Op op)
+  : arg(std::move(a)), opcode(op) {}
 
 
-SType expr_math::resolve(const workframe& wf) {
+SType expr_math11::resolve(const workframe& wf) {
   (void) arg->resolve(wf);
   return SType::FLOAT64;
 }
 
 
-GroupbyMode expr_math::get_groupby_mode(const workframe& wf) const {
+GroupbyMode expr_math11::get_groupby_mode(const workframe& wf) const {
   return arg->get_groupby_mode(wf);
 }
 
 
-colptr expr_math::evaluate_eager(workframe& wf) {
+colptr expr_math11::evaluate_eager(workframe& wf) {
   auto arg_res = arg->evaluate_eager(wf);
   Column* col = arg_res.get();
   size_t nrows = col->nrows;

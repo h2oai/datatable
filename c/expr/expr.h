@@ -169,6 +169,8 @@ class base_expr {
 };
 
 
+// Initialize once
+void init_expr();
 
 
 }}  // namespace dt::expr

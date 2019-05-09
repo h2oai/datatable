@@ -220,11 +220,8 @@ static Column* unaryop(Op opcode, Column* arg)
 // expr_unaryop
 //------------------------------------------------------------------------------
 
-expr_unaryop::expr_unaryop(pexpr&& a, size_t op)
-  : arg(std::move(a)), opcode(static_cast<Op>(op))
-{
-  xassert(op >= UNOP_FIRST && op <= UNOP_LAST);
-}
+expr_unaryop::expr_unaryop(pexpr&& a, Op op)
+  : arg(std::move(a)), opcode(op) {}
 
 
 bool expr_unaryop::is_negated_expr() const {

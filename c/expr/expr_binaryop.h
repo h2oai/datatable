@@ -34,7 +34,7 @@ class expr_binaryop : public base_expr {
     Op opcode;
 
   public:
-    expr_binaryop(pexpr&& l, pexpr&& r, size_t op);
+    expr_binaryop(pexpr&& l, pexpr&& r, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;

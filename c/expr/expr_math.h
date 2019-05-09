@@ -27,13 +27,13 @@ namespace dt {
 namespace expr {
 
 
-class expr_math : public base_expr {
+class expr_math11 : public base_expr {
   private:
     pexpr arg;
     Op opcode;
 
   public:
-    expr_math(pexpr&& a, size_t op);
+    expr_math11(pexpr&& a, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;

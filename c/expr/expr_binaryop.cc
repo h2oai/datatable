@@ -564,10 +564,10 @@ static Column* binaryop(Op opcode, Column* lhs, Column* rhs)
 // expr_binaryop
 //------------------------------------------------------------------------------
 
-expr_binaryop::expr_binaryop(pexpr&& l, pexpr&& r, size_t op)
+expr_binaryop::expr_binaryop(pexpr&& l, pexpr&& r, Op op)
   : lhs(std::move(l)),
     rhs(std::move(r)),
-    opcode(static_cast<Op>(op)) {}
+    opcode(op) {}
 
 
 SType expr_binaryop::resolve(const workframe& wf) {
