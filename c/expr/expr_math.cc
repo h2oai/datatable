@@ -368,88 +368,47 @@ static double fn_sign(double x) {
 
 
 #define ADD11(OP, ARGS, NAME, FN)  \
-  ADD_FN(&mathfn_11, ARGS); \
-  fninfos[&ARGS] = {OP, NAME, FN};
+  ADD_FN(&mathfn_11, ARGS);        \
+  fninfos[&ARGS] = {OP, NAME, FN}; \
+  fn11s[OP] = FN;
 
 void py::DatatableModule::init_methods_math() {
-  // ADD_FN(&mathfn_11, args_acos);
-  ADD_FN(&mathfn_11, args_acosh);
-  ADD_FN(&mathfn_11, args_asin);
-  ADD_FN(&mathfn_11, args_asinh);
-  ADD_FN(&mathfn_11, args_atan);
-  ADD_FN(&mathfn_11, args_atanh);
-  ADD_FN(&mathfn_11, args_cos);
-  ADD_FN(&mathfn_11, args_cosh);
-  ADD_FN(&mathfn_11, args_deg2rad);
-  ADD_FN(&mathfn_11, args_rad2deg);
-  ADD_FN(&mathfn_11, args_sin);
-  ADD_FN(&mathfn_11, args_sinh);
-  ADD_FN(&mathfn_11, args_tan);
-  ADD_FN(&mathfn_11, args_tanh);
-
-  ADD_FN(&mathfn_11, args_cbrt);
-  // ADD_FN(&mathfn_11, args_exp);
-  ADD_FN(&mathfn_11, args_exp2);
-  ADD_FN(&mathfn_11, args_expm1);
-  ADD_FN(&mathfn_11, args_log);
-  ADD_FN(&mathfn_11, args_log10);
-  ADD_FN(&mathfn_11, args_log1p);
-  ADD_FN(&mathfn_11, args_log2);
-  ADD_FN(&mathfn_11, args_sqrt);
-  ADD_FN(&mathfn_11, args_square);
-
-  ADD_FN(&mathfn_11, args_erf);
-  ADD_FN(&mathfn_11, args_erfc);
-  ADD_FN(&mathfn_11, args_gamma);
-  ADD_FN(&mathfn_11, args_lgamma);
-
-  ADD_FN(&mathfn_11, args_fabs);
-  ADD_FN(&mathfn_11, args_sign);
-
   using namespace dt::expr;
-  ADD11(Op::ARCCOS, args_acos, "arccos", &std::acos);
+  ADD11(Op::ARCCOS,  args_acos,    "arccos",  &std::acos);
+  ADD11(Op::ARCCOSH, args_acosh,   "arccosh", &std::acosh);
+  ADD11(Op::ARCSIN,  args_asin,    "arsin",   &std::asin);
+  ADD11(Op::ARCSINH, args_asinh,   "arcsinh", &std::asinh);
+  ADD11(Op::ARCTAN,  args_atan,    "arctan",  &std::atan);
+  ADD11(Op::ARCTANH, args_atanh,   "arctanh", &std::atanh);
+  ADD11(Op::COS,     args_cos,     "cos",     &std::cos);
+  ADD11(Op::COSH,    args_cosh,    "cosh",    &std::cosh);
+  ADD11(Op::DEG2RAD, args_deg2rad, "deg2rad", &fn_deg2rad);
+  ADD11(Op::RAD2DEG, args_rad2deg, "rad2deg", &fn_rad2deg);
+  ADD11(Op::SIN,     args_sin,     "sin",     &std::sin);
+  ADD11(Op::SINH,    args_sinh,    "sinh",    &std::sinh);
+  ADD11(Op::TAN,     args_tan,     "tan",     &std::tan);
+  ADD11(Op::TANH,    args_tanh,    "tanh",    &std::tanh);
 
-  // fninfos[&args_acos]    = {Op::ARCCOS,  "arccos",  &std::acos};
-  fninfos[&args_acosh]   = {Op::ARCCOSH, "arccosh", &std::acosh};
-  fninfos[&args_asin]    = {Op::ARCSIN,  "arcsin",  &std::asin};
-  fninfos[&args_asinh]   = {Op::ARCSINH, "arcsinh", &std::asinh};
-  fninfos[&args_atan]    = {Op::ARCTAN,  "arctan",  &std::atan};
-  fninfos[&args_atanh]   = {Op::ARCTANH, "arctanh", &std::atanh};
-  fninfos[&args_cos]     = {Op::COS,     "cos",     &std::cos};
-  fninfos[&args_cosh]    = {Op::COSH,    "cosh",    &std::cosh};
-  fninfos[&args_deg2rad] = {Op::DEG2RAD, "deg2rad", &fn_deg2rad};
-  fninfos[&args_rad2deg] = {Op::RAD2DEG, "rad2deg", &fn_rad2deg};
-  fninfos[&args_sin]     = {Op::SIN,     "sin",     &std::sin};
-  fninfos[&args_sinh]    = {Op::SINH,    "sinh",    &std::sinh};
-  fninfos[&args_tan]     = {Op::TAN,     "tan",     &std::tan};
-  fninfos[&args_tanh]    = {Op::TANH,    "tanh",    &std::tanh};
+  ADD11(Op::CBRT,    args_cbrt,    "cbrt",    &std::cbrt);
+  ADD11(Op::EXP,     args_exp,     "exp",     &std::exp);
+  ADD11(Op::EXP2,    args_exp2,    "exp2",    &std::exp2);
+  ADD11(Op::EXPM1,   args_exp2,    "expm1",   &std::expm1);
+  ADD11(Op::LOG,     args_log,     "log",     &std::log);
+  ADD11(Op::LOG10,   args_log10,   "log10",   &std::log10);
+  ADD11(Op::LOG1P,   args_log1p,   "log1p",   &std::log1p);
+  ADD11(Op::LOG2,    args_log2,    "log2",    &std::log2);
+  ADD11(Op::SQRT,    args_sqrt,    "sqrt",    &std::sqrt);
+  ADD11(Op::SQUARE,  args_square,  "square",  &fn_square);
 
-  fninfos[&args_cbrt]    = {Op::CBRT,    "cbrt",    &std::cbrt};
-  ADD11(Op::EXP, args_exp, "exp", &std::exp);
-  // fninfos[&args_exp]     = {Op::EXP,     "exp",     &std::exp};
-  fninfos[&args_exp2]    = {Op::EXP2,    "exp2",    &std::exp2};
-  fninfos[&args_exp2]    = {Op::EXPM1,   "expm1",   &std::expm1};
-  fninfos[&args_log]     = {Op::LOG,     "log",     &std::log};
-  fninfos[&args_log10]   = {Op::LOG10,   "log10",   &std::log10};
-  fninfos[&args_log1p]   = {Op::LOG1P,   "log1p",   &std::log1p};
-  fninfos[&args_log2]    = {Op::LOG2,    "log2",    &std::log2};
-  fninfos[&args_sqrt]    = {Op::SQRT,    "sqrt",    &std::sqrt};
-  fninfos[&args_square]  = {Op::SQUARE,  "square",  &fn_square};
+  ADD11(Op::ERF,     args_erf,     "erf",     &std::erf);
+  ADD11(Op::ERFC,    args_erfc,    "erfc",    &std::erfc);
+  ADD11(Op::GAMMA,   args_gamma,   "gamma",   &std::tgamma);
+  ADD11(Op::LGAMMA,  args_lgamma,  "lgamma",  &std::lgamma);
 
-  fninfos[&args_erf]     = {Op::ERF,     "erf",     &std::erf};
-  fninfos[&args_erfc]    = {Op::ERFC,    "erfc",    &std::erfc};
-  fninfos[&args_gamma]   = {Op::GAMMA,   "gamma",   &std::tgamma};
-  fninfos[&args_lgamma]  = {Op::LGAMMA,  "lgamma",  &std::lgamma};  // Check thread-safety...
-
-  fninfos[&args_fabs]    = {Op::FABS,    "fabs",    &std::fabs};
-  fninfos[&args_sign]    = {Op::SIGN,    "sign",    &fn_sign};
-
-  for (const auto& kv : fninfos) {
-    Op op = kv.second.opcode;
-    dt::expr::ufunc_t fn = kv.second.corefn;
-    fn11s[op] = fn;
-  }
+  ADD11(Op::FABS,    args_fabs,    "fabs",    &std::fabs);
+  ADD11(Op::SIGN,    args_sign,    "sign",    &fn_sign);
 }
 
+#undef ADD11
 
 } // namespace py
