@@ -70,25 +70,6 @@ inline static T op_abs(T x) {
   return (x < 0) ? -x : x;
 }
 
-template <typename T>
-inline static double op_exp(T x) {
-  return ISNA<T>(x) ? GETNA<double>() : std::exp(static_cast<double>(x));
-}
-
-
-template <typename T>
-inline static double op_loge(T x) {
-  return ISNA<T>(x) || x < 0 ? GETNA<double>()
-                             : std::log(static_cast<double>(x));
-}
-
-
-template <typename T>
-inline static double op_log10(T x) {
-  return ISNA<T>(x) || x < 0 ? GETNA<double>()
-                             : std::log10(static_cast<double>(x));
-}
-
 
 template<typename T>
 struct Inverse {
@@ -139,9 +120,6 @@ static mapperfn resolve1(Op opcode) {
     case Op::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
     case Op::UMINUS:  return map_n<IT, IT, op_minus<IT>>;
     case Op::ABS:     return map_n<IT, IT, op_abs<IT>>;
-    case Op::EXP:     return map_n<IT, double, op_exp<IT>>;
-    case Op::LOGE:    return map_n<IT, double, op_loge<IT>>;
-    case Op::LOG10:   return map_n<IT, double, op_log10<IT>>;
     case Op::INVERT:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
@@ -191,9 +169,6 @@ static Column* unaryop(Op opcode, Column* arg)
     res_type = SType::BOOL;
   } else if (arg_type == SType::BOOL && opcode == Op::UMINUS) {
     res_type = SType::INT8;
-  } else if (opcode == Op::EXP || opcode == Op::LOGE ||
-             opcode == Op::LOG10) {
-    res_type = SType::FLOAT64;
   } else if (opcode == Op::LEN) {
     res_type = arg_type == SType::STR32? SType::INT32 : SType::INT64;
   }
@@ -301,9 +276,6 @@ void init_unops() {
     unop_rules[id(Op::UMINUS, st)] = st;
     unop_rules[id(Op::UPLUS, st)] = st;
     unop_rules[id(Op::ABS, st)] = st;
-    unop_rules[id(Op::EXP, st)] = flt64;
-    unop_rules[id(Op::LOGE, st)] = flt64;
-    unop_rules[id(Op::LOG10, st)] = flt64;
   }
   unop_rules[id(Op::UMINUS, bool8)] = int8;
   unop_rules[id(Op::UPLUS, bool8)] = int8;
@@ -318,9 +290,6 @@ void init_unops() {
   unop_names[id(Op::UPLUS)]  = "+";
   unop_names[id(Op::INVERT)] = "~";
   unop_names[id(Op::ABS)]    = "abs";
-  unop_names[id(Op::EXP)]    = "exp";
-  unop_names[id(Op::LOGE)]   = "log";
-  unop_names[id(Op::LOG10)]  = "log10";
   unop_names[id(Op::LEN)]    = "len";
 }
 

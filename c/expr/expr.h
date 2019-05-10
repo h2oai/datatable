@@ -32,14 +32,14 @@ using pexpr = std::unique_ptr<base_expr>;
 using colptr = std::unique_ptr<Column>;
 
 static constexpr size_t UNOP_FIRST    = 101;
-static constexpr size_t UNOP_LAST     = 114;
+static constexpr size_t UNOP_LAST     = 111;
 static constexpr size_t BINOP_FIRST   = 201;
 static constexpr size_t BINOP_LAST    = 218;
 static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 409;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 534;
+static constexpr size_t MATH_LAST     = 536;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -60,9 +60,6 @@ enum class Op : size_t {
   ISINF,
   ISNA,
   ABS,
-  EXP,
-  LOGE,
-  LOG10,
   CEIL,
   FLOOR,
   TRUNC,
@@ -124,11 +121,11 @@ enum class Op : size_t {
 
   // Math: exponential/power
   CBRT,
-  // EXP,
+  EXP,
   EXP2,
   EXPM1,
   LOG,
-  // LOG10,
+  LOG10,
   LOG1P,
   LOG2,
   POW,
@@ -175,4 +172,15 @@ void init_expr();
 
 
 }}  // namespace dt::expr
+
+
+// hashing support
+namespace std {
+  template <> struct hash<dt::expr::Op> {
+    std::size_t operator()(const dt::expr::Op& op) const {
+      return static_cast<size_t>(op);
+    }
+  };
+}
+
 #endif

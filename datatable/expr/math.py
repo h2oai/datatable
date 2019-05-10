@@ -42,44 +42,7 @@ def isna(x):
     return (x is None) or (isinstance(x, float) and math.isnan(x))
 
 
-
-def exp(x):
-    if isinstance(x, Expr):
-        return Expr(OpCodes.EXP, x)
-    if isinstance(x, core.Frame):
-        return x[:, {x.names[i]: Expr(OpCodes.EXP, f[i])
-                     for i in range(x.ncols)}]
-    if x is None:
-        return None
-    try:
-        return math.exp(x)
-    except OverflowError:
-        return math.inf
-
-
-def log(x):
-    if isinstance(x, Expr):
-        return Expr(OpCodes.LOGE, x)
-    if isinstance(x, core.Frame):
-        return x[:, {x.names[i]: Expr(OpCodes.LOGE, f[i])
-                     for i in range(x.ncols)}]
-    if x is None or x < 0:
-        return None
-    elif x == 0:
-        return -math.inf
-    else:
-        return math.log(x)
-
-
-def log10(x):
-    if isinstance(x, Expr):
-        return Expr(OpCodes.LOG10, x)
-    if isinstance(x, core.Frame):
-        return x[:, {x.names[i]: Expr(OpCodes.LOG10, f[i])
-                     for i in range(x.ncols)}]
-    if x is None or x < 0:
-        return None
-    elif x == 0:
-        return -math.inf
-    else:
-        return math.log10(x)
+# Deprecated, use math namespace instead
+exp = core.exp
+log = core.log
+log10 = core.log10

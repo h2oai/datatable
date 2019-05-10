@@ -23,10 +23,16 @@
 #include <unordered_map>
 #include "expr/expr.h"
 #include "expr/expr_math.h"
+#include "frame/py_frame.h"
+#include "parallel/api.h"
+#include "utils/exceptions.h"
 #include "datatablemodule.h"
 #include "types.h"
 namespace dt {
 namespace expr {
+
+using ufunc_t = double(*)(double);
+static std::unordered_map<Op, ufunc_t> fn11s;
 
 
 //------------------------------------------------------------------------------
@@ -38,7 +44,11 @@ expr_math11::expr_math11(pexpr&& a, Op op)
 
 
 SType expr_math11::resolve(const workframe& wf) {
-  (void) arg->resolve(wf);
+  auto arg_stype = arg->resolve(wf);
+  if (!is_numeric(arg_stype)) {
+    throw TypeError() << "Cannot apply function `` to a column of type "
+        << arg_stype;
+  }
   return SType::FLOAT64;
 }
 
@@ -49,39 +59,65 @@ GroupbyMode expr_math11::get_groupby_mode(const workframe& wf) const {
 
 
 colptr expr_math11::evaluate_eager(workframe& wf) {
-  auto arg_res = arg->evaluate_eager(wf);
-  Column* col = arg_res.get();
-  size_t nrows = col->nrows;
+  colptr input_column = arg->evaluate_eager(wf);
+  if (input_column->stype() != SType::FLOAT64) {
+    input_column = colptr(input_column->cast(SType::FLOAT64));
+  }
+  input_column->materialize();
 
-  // return colptr(unaryop(opcode, arg_res.get()));
+  size_t nrows = input_column->nrows;
+  const MemoryRange& input_mbuf = input_column->data_buf();
+  auto inp = static_cast<const double*>(input_mbuf.rptr());
+
+  // If the input column's data buffer "is_writable", then we're
+  // dealing with a temporary column that was just created from `arg`.
+  // In this case, instead of creating data buffer for the resulting
+  // column, we just reuse the data buffer of the input. This works,
+  // because we need to read each value in the input only once, and
+  // then we can replace it with the output value immediately.
+  MemoryRange output_mbuf;
+  double* out = nullptr;
+  if (input_mbuf.is_writable()) {
+    out = static_cast<double*>(input_mbuf.xptr());
+    output_mbuf = MemoryRange(input_mbuf);
+  } else {
+    output_mbuf = MemoryRange::mem(sizeof(double) * nrows);
+    out = static_cast<double*>(output_mbuf.xptr());
+  }
+  colptr output_column = colptr(
+      Column::new_mbuf_column(SType::FLOAT64, std::move(output_mbuf)));
+
+  ufunc_t f = fn11s[opcode];
+
+  parallel_for_static(nrows,
+    [&](size_t i) {
+      out[i] = f(inp[i]);
+    });
+
+  return output_column;
 }
 
 
 
 }}  // namespace dt::expr
+namespace py {
 
 
-using ufunc_t = double(*)(double);
 
 struct fninfo {
   dt::expr::Op opcode;
   const char* name;
-  ufunc_t corefn;
+  dt::expr::ufunc_t corefn;
 };
 
-static std::unordered_map<const py::PKArgs*, fninfo> fninfos;
-
-static py::oobj make_pyexpr(dt::expr::Op opcode, py::oobj arg) {
-  size_t op = static_cast<size_t>(opcode);
-  return py::robj(py::Expr_Type).call({ py::oint(op), arg });
-}
+static std::unordered_map<const PKArgs*, fninfo> fninfos;
 
 
 //------------------------------------------------------------------------------
 // Trigonometric/hyperbolic functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_acos(
+static PKArgs args_acos(
   1, 0, 0, false, false, {"x"}, "arccos",
 R"(Inverse trigonometric cosine of x.
 
@@ -90,11 +126,11 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 cos() in the sense that `cos(arccos(x)) == x`.
 )");
 
-static py::PKArgs args_acosh(
+static PKArgs args_acosh(
   1, 0, 0, false, false, {"x"}, "arccosh",
 R"(Inverse hyperbolic cosine of x.)");
 
-static py::PKArgs args_asin(
+static PKArgs args_asin(
   1, 0, 0, false, false, {"x"}, "arcsin",
 R"(Inverse trigonometric sine of x.
 
@@ -103,41 +139,41 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 sin() in the sense that `sin(arcsin(x)) == x`.
 )");
 
-static py::PKArgs args_asinh(
+static PKArgs args_asinh(
   1, 0, 0, false, false, {"x"}, "arcsinh",
 R"(Inverse hyperbolic sine of x.)");
 
-static py::PKArgs args_atan(
+static PKArgs args_atan(
   1, 0, 0, false, false, {"x"}, "arctan",
 R"(Inverse trigonometric tangent of x.)");
 
-static py::PKArgs args_atanh(
+static PKArgs args_atanh(
   1, 0, 0, false, false, {"x"}, "arctanh",
 R"(Inverse hyperbolic tangent of x.)");
 
-static py::PKArgs args_cos(
+static PKArgs args_cos(
   1, 0, 0, false, false, {"x"}, "cos", "Trigonometric cosine of x.");
 
-static py::PKArgs args_cosh(
+static PKArgs args_cosh(
   1, 0, 0, false, false, {"x"}, "cosh", "Hyperbolic cosine of x.");
 
-static py::PKArgs args_sin(
+static PKArgs args_sin(
   1, 0, 0, false, false, {"x"}, "sin", "Trigonometric sine of x.");
 
-static py::PKArgs args_sinh(
+static PKArgs args_sinh(
   1, 0, 0, false, false, {"x"}, "sinh", "Hyperbolic sine of x.");
 
-static py::PKArgs args_tan(
+static PKArgs args_tan(
   1, 0, 0, false, false, {"x"}, "tan", "Trigonometric tangent of x.");
 
-static py::PKArgs args_tanh(
+static PKArgs args_tanh(
   1, 0, 0, false, false, {"x"}, "tanh", "Hyperbolic tangent of x.");
 
-static py::PKArgs args_rad2deg(
+static PKArgs args_rad2deg(
   1, 0, 0, false, false, {"x"}, "rad2deg",
 "Convert angle measured in radians into degrees.");
 
-static py::PKArgs args_deg2rad(
+static PKArgs args_deg2rad(
   1, 0, 0, false, false, {"x"}, "deg2rad",
 "Convert angle measured in degrees into radians.");
 
@@ -147,35 +183,35 @@ static py::PKArgs args_deg2rad(
 // Power/exponent functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_cbrt(
+static PKArgs args_cbrt(
   1, 0, 0, false, false, {"x"}, "cbrt", "Cubic root of x.");
 
-static py::PKArgs args_exp(
+static PKArgs args_exp(
   1, 0, 0, false, false, {"x"}, "exp",
 "The Euler's constant (e = 2.71828...) raised to the power of x.");
 
-static py::PKArgs args_exp2(
+static PKArgs args_exp2(
   1, 0, 0, false, false, {"x"}, "exp2", "Compute 2 raised to the power of x.");
 
-static py::PKArgs args_expm1(
+static PKArgs args_expm1(
   1, 0, 0, false, false, {"x"}, "expm1",
 R"(Compute e raised to the power of x, minus 1. This function is
 equivalent to `exp(x) - 1`, but it is more accurate for arguments
 `x` close to zero.)");
 
-static py::PKArgs args_log(
+static PKArgs args_log(
   1, 0, 0, false, false, {"x"}, "log", "Natural logarithm of x.");
 
-static py::PKArgs args_log10(
+static PKArgs args_log10(
   1, 0, 0, false, false, {"x"}, "log10", "Base-10 logarithm of x.");
 
-static py::PKArgs args_log1p(
+static PKArgs args_log1p(
   1, 0, 0, false, false, {"x"}, "log1p", "Natural logarithm of (1 + x).");
 
-static py::PKArgs args_log2(
+static PKArgs args_log2(
   1, 0, 0, false, false, {"x"}, "log2", "Base-2 logarithm of x.");
 
-static py::PKArgs args_sqrt(
+static PKArgs args_sqrt(
   1, 0, 0, false, false, {"x"}, "sqrt", "Square root of x.");
 
 
@@ -184,7 +220,7 @@ static py::PKArgs args_sqrt(
 // Special mathematical functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_erf(
+static PKArgs args_erf(
   1, 0, 0, false, false, {"x"}, "erf",
 R"(Error function erf(x).
 
@@ -192,7 +228,7 @@ The error function is defined as the integral
   erf(x) = 2/sqrt(pi) * Integrate[exp(-t**2), {t, 0, x}]
 )");
 
-static py::PKArgs args_erfc(
+static PKArgs args_erfc(
   1, 0, 0, false, false, {"x"}, "erfc",
 R"(Complementary error function `erfc(x) = 1 - erf(x)`.
 
@@ -204,7 +240,7 @@ suffers catastrophic loss of precision at large values of `x`. This
 function, however, does not have such drawback.
 )");
 
-static py::PKArgs args_gamma(
+static PKArgs args_gamma(
   1, 0, 0, false, false, {"x"}, "gamma",
 R"(Euler Gamma function of x.
 
@@ -219,26 +255,76 @@ via the relationship
 If `x` is a positive integer, then `gamma(x) = (x - 1)!`.
 )");
 
-static py::PKArgs args_lgamma(
+static PKArgs args_lgamma(
   1, 0, 0, false, false, {"x"}, "lgamma",
 R"(Natural logarithm of absolute value of gamma function of x.)");
 
 
 
-static py::oobj mathfn_11(const py::PKArgs& args) {
+//------------------------------------------------------------------------------
+// Miscellaneous mathematical functions
+//------------------------------------------------------------------------------
+
+static PKArgs args_fabs(
+  1, 0, 0, false, false, {"x"}, "fabs",
+  "Absolute value of x, returned as float64.");
+
+
+
+//------------------------------------------------------------------------------
+// Implement Python API
+//------------------------------------------------------------------------------
+
+static oobj make_pyexpr1(dt::expr::Op opcode, oobj arg) {
+  size_t op = static_cast<size_t>(opcode);
+  return robj(Expr_Type).call({ oint(op), arg });
+}
+
+static oobj make_pyexpr2(dt::expr::Op opcode, oobj arg1, oobj arg2) {
+  size_t op = static_cast<size_t>(opcode);
+  return robj(Expr_Type).call({ oint(op), arg1, arg2 });
+}
+
+
+// This helper function will apply `opcode` to the entire frame, and
+// return the resulting frame (same shape as the original).
+static oobj process_frame(dt::expr::Op opcode, oobj arg) {
+  xassert(arg.is_frame());
+  Frame* frame = static_cast<Frame*>(arg.to_borrowed_ref());
+  DataTable* dt = frame->get_datatable();
+
+  olist columns(dt->ncols);
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    oobj col_selector = make_pyexpr2(dt::expr::Op::COL, oint(0), oint(i));
+    columns.set(i, make_pyexpr1(opcode, col_selector));
+  }
+
+  oobj res = frame->m__getitem__(otuple{ None(), columns });
+  DataTable* res_dt = res.to_datatable();
+  res_dt->copy_names_from(dt);
+
+  return res;
+}
+
+
+static oobj mathfn_11(const PKArgs& args) {
   xassert(fninfos.count(&args) == 1);
   fninfo& fn = fninfos[&args];
 
-  py::robj arg = args[0].to_robj();
+  robj arg = args[0].to_robj();
+  if (arg.is_numeric() || arg.is_none()) {
+    double res = fn.corefn(arg.to_double());
+    return std::isnan(res)? None() : ofloat(res);
+  }
+  if (arg.is_dtexpr()) {
+    return make_pyexpr1(fn.opcode, arg);
+  }
+  if (arg.is_frame()) {
+    return process_frame(fn.opcode, arg);
+  }
   if (!arg) {
     throw TypeError() << '`' << fn.name << "()` takes exactly one "
         "argument, 0 given";
-  }
-  if (arg.is_dtexpr()) {
-    return make_pyexpr(fn.opcode, arg);
-  }
-  if (arg.is_float() || arg.is_int()) {
-    return py::ofloat(fn.corefn(arg.to_double()));
   }
   throw TypeError() << '`' << fn.name << "()` cannot be applied to "
       "an argument of type " << arg.typeobj();
@@ -294,6 +380,8 @@ void py::DatatableModule::init_methods_math() {
   ADD_FN(&mathfn_11, args_gamma);
   ADD_FN(&mathfn_11, args_lgamma);
 
+  ADD_FN(&mathfn_11, args_fabs);
+
   using namespace dt::expr;
   fninfos[&args_acos]    = {Op::ARCCOS,  "arccos",  &std::acos};
   fninfos[&args_acosh]   = {Op::ARCCOSH, "arccosh", &std::acosh};
@@ -324,4 +412,15 @@ void py::DatatableModule::init_methods_math() {
   fninfos[&args_erfc]    = {Op::ERFC,    "erfc",    &std::erfc};
   fninfos[&args_gamma]   = {Op::GAMMA,   "gamma",   &std::tgamma};
   fninfos[&args_lgamma]  = {Op::LGAMMA,  "lgamma",  &std::lgamma};  // Check thread-safety...
+
+  fninfos[&args_fabs]    = {Op::FABS,    "fabs",    &std::fabs};
+
+  for (const auto& kv : fninfos) {
+    Op op = kv.second.opcode;
+    dt::expr::ufunc_t fn = kv.second.corefn;
+    fn11s[op] = fn;
+  }
 }
+
+
+} // namespace py
