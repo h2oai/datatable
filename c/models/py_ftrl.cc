@@ -90,11 +90,8 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_double_precision    = py_params_in.get_attr("double_precision");
     double_precision                = py_double_precision.to_bool_strict();
 
-    if (double_precision) {
-      dtft = new dt::Ftrl<double>();
-    } else {
-      dtft = new dt::Ftrl<float>();
-    }
+    dtft = (double_precision)? static_cast<dt::FtrlBase*>(new dt::Ftrl<double>()):
+                               static_cast<dt::FtrlBase*>(new dt::Ftrl<float>());
 
     set_params_namedtuple(py_params_in);
 
@@ -103,13 +100,9 @@ void Ftrl::m__init__(PKArgs& args) {
       double_precision = arg_double_precision.to_bool_strict();
     }
 
-    if (double_precision) {
-      dtft = new dt::Ftrl<double>();
-    } else {
-      dtft = new dt::Ftrl<float>();
-    }
+    dtft = (double_precision)? static_cast<dt::FtrlBase*>(new dt::Ftrl<double>()):
+                               static_cast<dt::FtrlBase*>(new dt::Ftrl<float>());
 
-    if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_alpha) set_alpha(arg_alpha);
     if (defined_beta) set_beta(arg_beta);
     if (defined_lambda1) set_lambda1(arg_lambda1);
@@ -117,7 +110,9 @@ void Ftrl::m__init__(PKArgs& args) {
     if (defined_nbins) set_nbins(arg_nbins);
     if (defined_mantissa_nbits) set_mantissa_nbits(arg_mantissa_nbits);
     if (defined_nepochs) set_nepochs(arg_nepochs);
+    if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_negative_class) set_negative_class(arg_negative_class);
+    if (defined_interactions) set_interactions(arg_interactions);
   }
 }
 
@@ -157,7 +152,7 @@ void Ftrl::m__dealloc__() {
  */
 void Ftrl::init_dt_interactions() {
   std::vector<sizetvec> interactions;
-  auto py_iter = py_params[9].to_oiter();
+  auto py_iter = py_params.get_attr("interactions").to_oiter();
   interactions.reserve(py_iter.size());
 
   for (auto py_interaction : py_iter) {
@@ -654,7 +649,7 @@ static GSArgs args_alpha(
 
 
 oobj Ftrl::get_alpha() const {
-  return py_params[0];
+  return py_params.get_attr("alpha");
 }
 
 
@@ -675,7 +670,7 @@ static GSArgs args_beta(
 
 
 oobj Ftrl::get_beta() const {
-  return py_params[1];
+  return py_params.get_attr("beta");
 }
 
 
@@ -696,7 +691,7 @@ static GSArgs args_lambda1(
 
 
 oobj Ftrl::get_lambda1() const {
-  return py_params[2];
+  return py_params.get_attr("lambda1");
 }
 
 
@@ -717,7 +712,7 @@ static GSArgs args_lambda2(
 
 
 oobj Ftrl::get_lambda2() const {
-  return py_params[3];
+  return py_params.get_attr("lambda2");
 }
 
 
@@ -738,7 +733,7 @@ static GSArgs args_nbins(
 
 
 oobj Ftrl::get_nbins() const {
-  return py_params[4];
+  return py_params.get_attr("nbins");
 }
 
 
@@ -764,7 +759,7 @@ static GSArgs args_mantissa_nbits(
 
 
 oobj Ftrl::get_mantissa_nbits() const {
-  return py_params[5];
+  return py_params.get_attr("mantissa_nbits");
 }
 
 
@@ -794,7 +789,7 @@ static GSArgs args_nepochs(
 
 
 oobj Ftrl::get_nepochs() const {
-  return py_params[6];
+  return py_params.get_attr("nepochs");
 }
 
 
@@ -814,7 +809,7 @@ static GSArgs args_double_precision(
 
 
 oobj Ftrl::get_double_precision() const {
-  return py_params[7];
+  return py_params.get_attr("double_precision");
 }
 
 void Ftrl::set_double_precision(robj py_double_precision) {
@@ -836,7 +831,7 @@ static GSArgs args_negative_class(
 
 
 oobj Ftrl::get_negative_class() const {
-  return py_params[8];
+  return py_params.get_attr("negative_class");
 }
 
 
@@ -860,7 +855,7 @@ static GSArgs args_interactions(
 
 
 oobj Ftrl::get_interactions() const {
-  return py_params[9];
+  return py_params.get_attr("interactions");
 }
 
 
@@ -1093,7 +1088,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_mantissa_nbits, &Ftrl::set_mantissa_nbits, args_mantissa_nbits);
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
-  ADD_GETTER(gs, &Ftrl::get_negative_class, args_negative_class);
+  ADD_GETSET(gs, &Ftrl::get_negative_class, &Ftrl::set_negative_class, args_negative_class);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
                  args_interactions);
 

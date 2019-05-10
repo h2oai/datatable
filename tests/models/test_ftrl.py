@@ -47,7 +47,7 @@ Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambd
                                           "interactions"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  mantissa_nbits = 6, nepochs = 7, double_precision = True,
-                 negative_class = False, interactions = None)
+                 negative_class = True, interactions = [["C0"]])
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
@@ -121,6 +121,17 @@ def test_ftrl_construct_wrong_double_precision_type():
             "instead got <class 'int'>" == str(e.value))
 
 
+def test_ftrl_construct_wrong_interactions_type():
+    with pytest.raises(TypeError) as e:
+        noop(Ftrl(interactions = 2))
+    assert ("Argument `interactions` in Ftrl() constructor should be an iterable, "
+            "instead got <class 'int'>" == str(e.value))
+    with pytest.raises(ValueError) as e:
+        noop(Ftrl(interactions = ["C0"]))
+    assert ("Argument `nepochs` in Ftrl() constructor should be a list of "
+            "lists, instead encountered: 'C0'" == str(e.value))
+
+
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
@@ -150,7 +161,8 @@ def test_ftrl_construct_wrong_params_name():
     wrong_params = WrongParams(alpha = 1, lambda1 = 0.01)
     with pytest.raises(AttributeError) as e:
         Ftrl(wrong_params)
-    assert ("'WrongParams' object has no attribute 'beta'" == str(e.value))
+    assert ("'WrongParams' object has no attribute 'double_precision'"
+            == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -238,7 +250,9 @@ def test_ftrl_create_individual():
               lambda1 = tparams.lambda1, lambda2 = tparams.lambda2,
               nbins = tparams.nbins, mantissa_nbits = tparams.mantissa_nbits,
               nepochs = tparams.nepochs,
-              double_precision = tparams.double_precision)
+              double_precision = tparams.double_precision,
+              negative_class = tparams.negative_class,
+              interactions = tparams.interactions)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
                          tparams.nbins, tparams.mantissa_nbits, tparams.nepochs,
@@ -267,6 +281,8 @@ def test_ftrl_set_individual():
     ft.nbins = tparams.nbins
     ft.mantissa_nbits = tparams.mantissa_nbits
     ft.nepochs = tparams.nepochs
+    ft.negative_class = tparams.negative_class
+    ft.interactions = tparams.interactions
     assert ft.params == tparams
 
 
@@ -1012,8 +1028,7 @@ def test_ftrl_interactions():
                             ["boolean", "boolean", "boolean"]]
     interaction_names = ["unique:boolean", "unique:mod100",
                          "boolean:mod100", "boolean:boolean:boolean"]
-    ft = Ftrl()
-    ft.interactions = feature_interactions
+    ft = Ftrl(interactions = feature_interactions)
     df_train = dt.Frame([range(nrows),
                          [i % 2 for i in range(nrows)],
                          [i % 100 for i in range(nrows)]
