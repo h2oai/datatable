@@ -39,7 +39,7 @@ static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 409;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 536;
+static constexpr size_t MATH_LAST     = 538;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -130,6 +130,7 @@ enum class Op : size_t {
   LOG2,
   POW,
   SQRT,
+  SQUARE,
 
   // Math: special
   ERF,
@@ -143,7 +144,8 @@ enum class Op : size_t {
   FCEIL,
   FFLOOR,
   FMOD,
-  FTRUNC = MATH_LAST,
+  FTRUNC,
+  SIGN = MATH_LAST,
 };
 
 

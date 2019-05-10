@@ -214,6 +214,9 @@ static PKArgs args_log2(
 static PKArgs args_sqrt(
   1, 0, 0, false, false, {"x"}, "sqrt", "Square root of x.");
 
+static PKArgs args_square(
+  1, 0, 0, false, false, {"x"}, "square", "Square of x, i.e. same as x**2.");
+
 
 
 //------------------------------------------------------------------------------
@@ -269,6 +272,13 @@ static PKArgs args_fabs(
   1, 0, 0, false, false, {"x"}, "fabs",
   "Absolute value of x, returned as float64.");
 
+static PKArgs args_sign(
+  1, 0, 0, false, false, {"x"}, "sign",
+R"(The sign of x, returned as float64.
+
+This function returns 1 if x is positive (including positive
+infinity), -1 if x is negative, 0 if x is zero, and NA if
+x is NA.)");
 
 
 //------------------------------------------------------------------------------
@@ -347,10 +357,22 @@ static double fn_deg2rad(double x) {
   return x * RADIANS_IN_DEGREE;
 }
 
+static double fn_square(double x) {
+  return x * x;
+}
 
+static double fn_sign(double x) {
+  return (x > 0)? 1.0 : (x < 0)? -1.0 : (x == 0)? 0.0 : GETNA<double>();
+}
+
+
+
+#define ADD11(OP, ARGS, NAME, FN)  \
+  ADD_FN(&mathfn_11, ARGS); \
+  fninfos[&ARGS] = {OP, NAME, FN};
 
 void py::DatatableModule::init_methods_math() {
-  ADD_FN(&mathfn_11, args_acos);
+  // ADD_FN(&mathfn_11, args_acos);
   ADD_FN(&mathfn_11, args_acosh);
   ADD_FN(&mathfn_11, args_asin);
   ADD_FN(&mathfn_11, args_asinh);
@@ -366,7 +388,7 @@ void py::DatatableModule::init_methods_math() {
   ADD_FN(&mathfn_11, args_tanh);
 
   ADD_FN(&mathfn_11, args_cbrt);
-  ADD_FN(&mathfn_11, args_exp);
+  // ADD_FN(&mathfn_11, args_exp);
   ADD_FN(&mathfn_11, args_exp2);
   ADD_FN(&mathfn_11, args_expm1);
   ADD_FN(&mathfn_11, args_log);
@@ -374,6 +396,7 @@ void py::DatatableModule::init_methods_math() {
   ADD_FN(&mathfn_11, args_log1p);
   ADD_FN(&mathfn_11, args_log2);
   ADD_FN(&mathfn_11, args_sqrt);
+  ADD_FN(&mathfn_11, args_square);
 
   ADD_FN(&mathfn_11, args_erf);
   ADD_FN(&mathfn_11, args_erfc);
@@ -381,9 +404,12 @@ void py::DatatableModule::init_methods_math() {
   ADD_FN(&mathfn_11, args_lgamma);
 
   ADD_FN(&mathfn_11, args_fabs);
+  ADD_FN(&mathfn_11, args_sign);
 
   using namespace dt::expr;
-  fninfos[&args_acos]    = {Op::ARCCOS,  "arccos",  &std::acos};
+  ADD11(Op::ARCCOS, args_acos, "arccos", &std::acos);
+
+  // fninfos[&args_acos]    = {Op::ARCCOS,  "arccos",  &std::acos};
   fninfos[&args_acosh]   = {Op::ARCCOSH, "arccosh", &std::acosh};
   fninfos[&args_asin]    = {Op::ARCSIN,  "arcsin",  &std::asin};
   fninfos[&args_asinh]   = {Op::ARCSINH, "arcsinh", &std::asinh};
@@ -399,7 +425,8 @@ void py::DatatableModule::init_methods_math() {
   fninfos[&args_tanh]    = {Op::TANH,    "tanh",    &std::tanh};
 
   fninfos[&args_cbrt]    = {Op::CBRT,    "cbrt",    &std::cbrt};
-  fninfos[&args_exp]     = {Op::EXP,     "exp",     &std::exp};
+  ADD11(Op::EXP, args_exp, "exp", &std::exp);
+  // fninfos[&args_exp]     = {Op::EXP,     "exp",     &std::exp};
   fninfos[&args_exp2]    = {Op::EXP2,    "exp2",    &std::exp2};
   fninfos[&args_exp2]    = {Op::EXPM1,   "expm1",   &std::expm1};
   fninfos[&args_log]     = {Op::LOG,     "log",     &std::log};
@@ -407,6 +434,7 @@ void py::DatatableModule::init_methods_math() {
   fninfos[&args_log1p]   = {Op::LOG1P,   "log1p",   &std::log1p};
   fninfos[&args_log2]    = {Op::LOG2,    "log2",    &std::log2};
   fninfos[&args_sqrt]    = {Op::SQRT,    "sqrt",    &std::sqrt};
+  fninfos[&args_square]  = {Op::SQUARE,  "square",  &fn_square};
 
   fninfos[&args_erf]     = {Op::ERF,     "erf",     &std::erf};
   fninfos[&args_erfc]    = {Op::ERFC,    "erfc",    &std::erfc};
@@ -414,6 +442,7 @@ void py::DatatableModule::init_methods_math() {
   fninfos[&args_lgamma]  = {Op::LGAMMA,  "lgamma",  &std::lgamma};  // Check thread-safety...
 
   fninfos[&args_fabs]    = {Op::FABS,    "fabs",    &std::fabs};
+  fninfos[&args_sign]    = {Op::SIGN,    "sign",    &fn_sign};
 
   for (const auto& kv : fninfos) {
     Op op = kv.second.opcode;

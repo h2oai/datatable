@@ -109,20 +109,22 @@ class OpCodes(enum.Enum):
     LOG2 = 524
     POW = 525
     SQRT = 526
+    SQUARE = 527
 
     # Math: special
-    ERF = 527
-    ERFC = 528
-    GAMMA = 529
-    LGAMMA = 530
+    ERF = 528
+    ERFC = 529
+    GAMMA = 530
+    LGAMMA = 531
 
     # Math: misc
-    COPYSIGN = 531
-    FABS = 532
-    FCEIL = 533
-    FFLOOR = 534
-    FMOD = 535
-    FTRUNC = 536
+    COPYSIGN = 532
+    FABS = 533
+    FCEIL = 534
+    FFLOOR = 535
+    FMOD = 536
+    FTRUNC = 537
+    SIGN = 538
 
 
 #-------------------------------------------------------------------------------
