@@ -75,7 +75,7 @@ void Ftrl::m__init__(PKArgs& args) {
                                   defined_nepochs || defined_double_precision ||
                                   defined_negative_class || defined_interactions;
 
-  init_params();
+  init_py_params();
 
   if (defined_params) {
     if (defined_individual_param) {
@@ -90,9 +90,7 @@ void Ftrl::m__init__(PKArgs& args) {
     py::oobj py_double_precision    = py_params_in.get_attr("double_precision");
     double_precision                = py_double_precision.to_bool_strict();
 
-    dtft = (double_precision)? static_cast<dt::FtrlBase*>(new dt::Ftrl<double>()):
-                               static_cast<dt::FtrlBase*>(new dt::Ftrl<float>());
-
+    init_dt_ftrl();
     set_params_namedtuple(py_params_in);
 
   } else {
@@ -100,8 +98,7 @@ void Ftrl::m__init__(PKArgs& args) {
       double_precision = arg_double_precision.to_bool_strict();
     }
 
-    dtft = (double_precision)? static_cast<dt::FtrlBase*>(new dt::Ftrl<double>()):
-                               static_cast<dt::FtrlBase*>(new dt::Ftrl<float>());
+    init_dt_ftrl();
 
     if (defined_alpha) set_alpha(arg_alpha);
     if (defined_beta) set_beta(arg_beta);
@@ -117,7 +114,16 @@ void Ftrl::m__init__(PKArgs& args) {
 }
 
 
-void Ftrl::init_params() {
+void Ftrl::init_dt_ftrl() {
+  if (double_precision) {
+    dtft = new dt::Ftrl<double>();
+  } else {
+    dtft = new dt::Ftrl<float>();
+  }
+}
+
+
+void Ftrl::init_py_params() {
   dt::FtrlParams params;
   py::onamedtuple py_params_temp(py_ntt);
   py_params = std::move(py_params_temp);
@@ -1003,12 +1009,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   py::otuple py_params_tuple = pickle[0].to_otuple();
 
   double_precision = py_params_tuple[7].to_bool_strict();
-  if (double_precision) {
-    dtft = new dt::Ftrl<double>(ftrl_params);
-  } else {
-    dtft = new dt::Ftrl<float>(ftrl_params);
-  }
-  init_params();
+  init_dt_ftrl();
+  init_py_params();
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {

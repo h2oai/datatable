@@ -55,6 +55,9 @@ class Ftrl : public PyObject {
     // Initializers and deallocator
     void m__init__(PKArgs&);
     void m__dealloc__();
+    void init_py_params();
+    void init_dt_ftrl();
+    void init_dt_interactions();
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
@@ -64,8 +67,6 @@ class Ftrl : public PyObject {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
-    void init_dt_interactions();
-    void init_params();
 
     // Getters
     oobj get_labels() const;
