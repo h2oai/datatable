@@ -23,7 +23,7 @@ std::string _nth(size_t i);
 // Construction / initialization
 //------------------------------------------------------------------------------
 
-Arg::Arg() : pos(0), parent(nullptr), pyobj(nullptr) {}
+Arg::Arg(PyObject* value) : pos(0), parent(nullptr), pyobj(value) {}
 
 Arg::~Arg() {}
 

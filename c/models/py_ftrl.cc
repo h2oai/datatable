@@ -86,9 +86,9 @@ void Ftrl::m__init__(PKArgs& args) {
         << "but not both at the same time";
     }
 
-    py::otuple py_params_in         = arg_params.to_otuple();
-    py::oobj py_double_precision    = py_params_in.get_attr("double_precision");
-    double_precision                = py_double_precision.to_bool_strict();
+    py::otuple py_params_in = arg_params.to_otuple();
+    py::oobj py_double_precision = py_params_in.get_attr("double_precision");
+    double_precision = py_double_precision.to_bool_strict();
 
     init_dt_ftrl();
     set_params_namedtuple(py_params_in);
@@ -99,7 +99,6 @@ void Ftrl::m__init__(PKArgs& args) {
     }
 
     init_dt_ftrl();
-
     if (defined_alpha) set_alpha(arg_alpha);
     if (defined_beta) set_beta(arg_beta);
     if (defined_lambda1) set_lambda1(arg_lambda1);
@@ -659,11 +658,11 @@ oobj Ftrl::get_alpha() const {
 }
 
 
-void Ftrl::set_alpha(robj py_alpha) {
+void Ftrl::set_alpha(const Arg& py_alpha) {
   double alpha = py_alpha.to_double();
   py::Validator::check_positive(alpha, py_alpha);
   dtft->set_alpha(alpha);
-  py_params.replace(0, py_alpha);
+  py_params.replace(0, py_alpha.robj());
 }
 
 
@@ -680,11 +679,11 @@ oobj Ftrl::get_beta() const {
 }
 
 
-void Ftrl::set_beta(robj py_beta) {
+void Ftrl::set_beta(const Arg& py_beta) {
   double beta = py_beta.to_double();
   py::Validator::check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
-  py_params.replace(1, py_beta);
+  py_params.replace(1, py_beta.to_pyobj());
 }
 
 
@@ -701,11 +700,11 @@ oobj Ftrl::get_lambda1() const {
 }
 
 
-void Ftrl::set_lambda1(robj py_lambda1) {
+void Ftrl::set_lambda1(const Arg& py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
-  py_params.replace(2, py_lambda1);
+  py_params.replace(2, py_lambda1.to_pyobj());
 }
 
 
@@ -722,11 +721,11 @@ oobj Ftrl::get_lambda2() const {
 }
 
 
-void Ftrl::set_lambda2(robj py_lambda2) {
+void Ftrl::set_lambda2(const Arg& py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
-  py_params.replace(3, py_lambda2);
+  py_params.replace(3, py_lambda2.to_pyobj());
 }
 
 
@@ -743,7 +742,7 @@ oobj Ftrl::get_nbins() const {
 }
 
 
-void Ftrl::set_nbins(robj py_nbins) {
+void Ftrl::set_nbins(const Arg& py_nbins) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `nbins` for a trained model, "
                        << "reset this model or create a new one";
@@ -752,7 +751,7 @@ void Ftrl::set_nbins(robj py_nbins) {
   size_t nbins = py_nbins.to_size_t();
   py::Validator::check_positive(nbins, py_nbins);
   dtft->set_nbins(static_cast<uint64_t>(nbins));
-  py_params.replace(4, py_nbins);
+  py_params.replace(4, py_nbins.to_pyobj());
 }
 
 
@@ -769,7 +768,7 @@ oobj Ftrl::get_mantissa_nbits() const {
 }
 
 
-void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
+void Ftrl::set_mantissa_nbits(const Arg& py_mantissa_nbits) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `mantissa_nbits` for a trained model, "
                        << "reset this model or create a new one";
@@ -782,7 +781,7 @@ void Ftrl::set_mantissa_nbits(robj py_mantissa_nbits) {
     py_mantissa_nbits
   );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
-  py_params.replace(5, py_mantissa_nbits);
+  py_params.replace(5, py_mantissa_nbits.to_pyobj());
 }
 
 
@@ -799,10 +798,10 @@ oobj Ftrl::get_nepochs() const {
 }
 
 
-void Ftrl::set_nepochs(robj py_nepochs) {
+void Ftrl::set_nepochs(const Arg& py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
   dtft->set_nepochs(nepochs);
-  py_params.replace(6, py_nepochs);
+  py_params.replace(6, py_nepochs.to_pyobj());
 }
 
 
@@ -818,13 +817,13 @@ oobj Ftrl::get_double_precision() const {
   return py_params.get_attr("double_precision");
 }
 
-void Ftrl::set_double_precision(robj py_double_precision) {
+void Ftrl::set_double_precision(const Arg& py_double_precision) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `double_precision` for a trained model, "
                        << "reset this model or create a new one";
   }
   double_precision = py_double_precision.to_bool_strict();
-  py_params.replace(7, py_double_precision);
+  py_params.replace(7, py_double_precision.to_pyobj());
 }
 
 
@@ -841,14 +840,14 @@ oobj Ftrl::get_negative_class() const {
 }
 
 
-void Ftrl::set_negative_class(robj py_negative_class) {
+void Ftrl::set_negative_class(const Arg& py_negative_class) {
   if (dtft->is_trained()) {
     throw ValueError() << "Cannot change `negative_class` for a trained model, "
                        << "reset this model or create a new one";
   }
   bool negative_class = py_negative_class.to_bool_strict();
   dtft->set_negative_class(negative_class);
-  py_params.replace(8, py_negative_class);
+  py_params.replace(8, py_negative_class.to_pyobj());
 }
 
 
@@ -865,7 +864,7 @@ oobj Ftrl::get_interactions() const {
 }
 
 
-void Ftrl::set_interactions(robj arg_interactions) {
+void Ftrl::set_interactions(const Arg& arg_interactions) {
   if (dtft->is_trained())
     throw ValueError() << "Cannot change `interactions` for a trained model, "
                        << "reset this model or create a new one";
@@ -887,7 +886,7 @@ void Ftrl::set_interactions(robj arg_interactions) {
     }
   }
 
-  py_params.replace(9, arg_interactions);
+  py_params.replace(9, arg_interactions.to_pyobj());
 }
 
 
@@ -914,16 +913,16 @@ void Ftrl::set_params_namedtuple(robj params_in) {
                        << "got: " << n_params;
   }
 
-  py::oobj py_alpha            = params_in.get_attr("alpha");
-  py::oobj py_beta             = params_in.get_attr("beta");
-  py::oobj py_lambda1          = params_in.get_attr("lambda1");
-  py::oobj py_lambda2          = params_in.get_attr("lambda2");
-  py::oobj py_nbins            = params_in.get_attr("nbins");
-  py::oobj py_mantissa_nbits   = params_in.get_attr("mantissa_nbits");
-  py::oobj py_nepochs          = params_in.get_attr("nepochs");
-  py::oobj py_double_precision = params_in.get_attr("double_precision");
-  py::oobj py_negative_class   = params_in.get_attr("negative_class");
-  py::oobj py_interactions     = params_in.get_attr("interactions");
+  py::Arg py_alpha            (params_in.get_attr("alpha").to_borrowed_ref());
+  py::Arg py_beta             (params_in.get_attr("beta").to_borrowed_ref());
+  py::Arg py_lambda1          (params_in.get_attr("lambda1").to_borrowed_ref());
+  py::Arg py_lambda2          (params_in.get_attr("lambda2").to_borrowed_ref());
+  py::Arg py_nbins            (params_in.get_attr("nbins").to_borrowed_ref());
+  py::Arg py_mantissa_nbits   (params_in.get_attr("mantissa_nbits").to_borrowed_ref());
+  py::Arg py_nepochs          (params_in.get_attr("nepochs").to_borrowed_ref());
+  py::Arg py_double_precision (params_in.get_attr("double_precision").to_borrowed_ref());
+  py::Arg py_negative_class   (params_in.get_attr("negative_class").to_borrowed_ref());
+  py::Arg py_interactions     (params_in.get_attr("interactions").to_borrowed_ref());
 
   set_alpha(py_alpha);
   set_beta(py_beta);
@@ -960,16 +959,16 @@ void Ftrl::set_params_tuple(robj params) {
     throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
                        << "got: " << n_params;
   }
-  set_alpha(params_tuple[0]);
-  set_beta(params_tuple[1]);
-  set_lambda1(params_tuple[2]);
-  set_lambda2(params_tuple[3]);
-  set_nbins(params_tuple[4]);
-  set_mantissa_nbits(params_tuple[5]);
-  set_nepochs(params_tuple[6]);
-  set_double_precision(params_tuple[7]);
-  set_negative_class(params_tuple[8]);
-  set_interactions(params_tuple[9]);
+  set_alpha(py::Arg(params_tuple[0].to_borrowed_ref()));
+  set_beta(py::Arg(params_tuple[1].to_borrowed_ref()));
+  set_lambda1(py::Arg(params_tuple[2].to_borrowed_ref()));
+  set_lambda2(py::Arg(params_tuple[3].to_borrowed_ref()));
+  set_nbins(py::Arg(params_tuple[4].to_borrowed_ref()));
+  set_mantissa_nbits(py::Arg(params_tuple[5].to_borrowed_ref()));
+  set_nepochs(py::Arg(params_tuple[6].to_borrowed_ref()));
+  set_double_precision(py::Arg(params_tuple[7].to_borrowed_ref()));
+  set_negative_class(py::Arg(params_tuple[8].to_borrowed_ref()));
+  set_interactions(py::Arg(params_tuple[9].to_borrowed_ref()));
 }
 
 
@@ -1091,8 +1090,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_GETSET(gs, &Ftrl::get_negative_class, &Ftrl::set_negative_class, args_negative_class);
-  ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions,
-                 args_interactions);
+  ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions, args_interactions);
 
   // Model and features
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);

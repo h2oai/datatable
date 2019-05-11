@@ -20,6 +20,7 @@
 #include "python/arg.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include <iostream>
 
 namespace py {
 
@@ -53,10 +54,12 @@ class GSArgs {
     }
 
     template <typename T>
-    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(robj)) noexcept {
+    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(const Arg&)) noexcept {
+      std::cout << "\nValue: " << value << "\n";
+      // printf("\n\nName: %s\n\n", name);
       try {
         T* t = static_cast<T*>(obj);
-        (t->*func)(robj(value));
+        (t->*func)(value);
         return 0;
       } catch (const std::exception& e) {
         exception_to_python(e);

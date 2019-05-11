@@ -94,16 +94,16 @@ class Ftrl : public PyObject {
     void set_colnames(robj);          // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
     void set_params_namedtuple(robj); // Not exposed
-    void set_alpha(robj);
-    void set_beta(robj);
-    void set_lambda1(robj);
-    void set_lambda2(robj);
-    void set_nepochs(robj);
-    void set_nbins(robj);             // Disabled for a trained model
-    void set_mantissa_nbits(robj);    // Disabled for a trained model
-    void set_interactions(robj);      // Disabled for a trained model
-    void set_double_precision(robj);  // Not exposed, used for unpickling only
-    void set_negative_class(robj);    // Disabled for a trained model
+    void set_alpha(const Arg&);
+    void set_beta(const Arg&);
+    void set_lambda1(const Arg&);
+    void set_lambda2(const Arg&);
+    void set_nepochs(const Arg&);
+    void set_nbins(const Arg&);             // Disabled for a trained model
+    void set_mantissa_nbits(const Arg&);    // Disabled for a trained model
+    void set_interactions(const Arg&);      // Disabled for a trained model
+    void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
+    void set_negative_class(const Arg&);    // Disabled for a trained model
 };
 
 

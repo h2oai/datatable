@@ -201,7 +201,7 @@ oobj Frame::get_names() const {
 }  // LCOV_EXCL_LINE
 
 
-void Frame::set_names(robj arg)
+void Frame::set_names(const Arg& arg)
 {
   if (arg.is_undefined() || arg.is_none()) {
     dt->set_names_to_default();

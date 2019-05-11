@@ -29,7 +29,7 @@ class Arg : public _obj::error_manager {
     mutable std::string cached_name;
 
   public:
-    Arg();
+    Arg(PyObject* value = nullptr);
     Arg(const Arg&) = default;
     virtual ~Arg() override;
     void init(size_t i, PKArgs* args);

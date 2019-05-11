@@ -52,13 +52,13 @@ oobj Frame::get_key() const {
 }
 
 
-void Frame::set_key(robj val) {
+void Frame::set_key(const Arg& val) {
   if (val.is_none()) {
     return dt->clear_key();
   }
   std::vector<size_t> col_indices;
   if (val.is_string()) {
-    size_t index = dt->xcolindex(val);
+    size_t index = dt->xcolindex(robj(val));
     col_indices.push_back(index);
   }
   else if (val.is_list_or_tuple()) {
