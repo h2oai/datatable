@@ -392,7 +392,7 @@ void py::DatatableModule::init_methods_math() {
   ADD11(Op::CBRT,    args_cbrt,    "cbrt",    &std::cbrt);
   ADD11(Op::EXP,     args_exp,     "exp",     &std::exp);
   ADD11(Op::EXP2,    args_exp2,    "exp2",    &std::exp2);
-  ADD11(Op::EXPM1,   args_exp2,    "expm1",   &std::expm1);
+  ADD11(Op::EXPM1,   args_expm1,   "expm1",   &std::expm1);
   ADD11(Op::LOG,     args_log,     "log",     &std::log);
   ADD11(Op::LOG10,   args_log10,   "log10",   &std::log10);
   ADD11(Op::LOG1P,   args_log1p,   "log1p",   &std::log1p);
