@@ -33,7 +33,7 @@ class expr_unaryop : public base_expr {
     Op opcode;
 
   public:
-    expr_unaryop(pexpr&& a, size_t op);
+    expr_unaryop(pexpr&& a, Op op);
     bool is_negated_expr() const override;
     pexpr get_negated_expr() override;
     SType resolve(const workframe& wf) override;

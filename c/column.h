@@ -165,7 +165,7 @@ public:
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
-  MemoryRange data_buf() const { return mbuf; }
+  const MemoryRange& data_buf() const { return mbuf; }
   const void* data() const { return mbuf.rptr(); }
   void* data_w() { return mbuf.wptr(); }
   PyObject* mbuf_repr() const;

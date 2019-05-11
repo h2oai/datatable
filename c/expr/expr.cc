@@ -26,6 +26,7 @@
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
 #include "expr/expr_literal.h"
+#include "expr/expr_math.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
@@ -59,12 +60,9 @@ size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
 
 
 
-
-}}  // namespace dt::expr
 //------------------------------------------------------------------------------
 // Factory function for creating `base_expr` objects from python
 //------------------------------------------------------------------------------
-using namespace dt::expr;
 
 static void check_args_count(const py::otuple& args, size_t n) {
   if (args.size() == n) return;
@@ -73,6 +71,76 @@ static void check_args_count(const py::otuple& args, size_t n) {
 }
 
 
+static pexpr make_col(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  size_t frame_id = args[0].to_size_t();
+  return pexpr(new expr_column(frame_id, args[1]));
+}
+
+static pexpr make_cast(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg = args[0].to_dtexpr();
+  SType stype = args[1].to_stype();
+  return pexpr(new expr_cast(std::move(arg), stype));
+}
+
+static pexpr make_count0(Op op, const py::otuple& args) {
+  check_args_count(args, 0);
+  return pexpr(new expr_reduce0(op));
+}
+
+static pexpr make_unop(Op op, const py::otuple& args) {
+  check_args_count(args, 1);
+  pexpr arg = args[0].to_dtexpr();
+  return pexpr(new expr_unaryop(std::move(arg), op));
+}
+
+static pexpr make_binop(Op op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg1 = args[0].to_dtexpr();
+  pexpr arg2 = args[1].to_dtexpr();
+  return pexpr(new expr_binaryop(std::move(arg1), std::move(arg2), op));
+}
+
+static pexpr make_reduce(Op op, const py::otuple& args) {
+  check_args_count(args, 1);
+  pexpr arg = args[0].to_dtexpr();
+  return pexpr(new expr_reduce1(std::move(arg), op));
+}
+
+static pexpr make_math11(Op op, const py::otuple& args) {
+  check_args_count(args, 1);
+  pexpr arg = args[0].to_dtexpr();
+  return pexpr(new expr_math11(std::move(arg), op));
+}
+
+static pexpr make_string(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg = args[0].to_dtexpr();
+  py::oobj params = args[1];
+  return pexpr(new expr_string_match_re(std::move(arg), params));
+}
+
+
+using expr_maker_t = pexpr(*)(Op, const py::otuple&);
+static std::unordered_map<size_t, expr_maker_t> factory;
+
+void init_expr() {
+  for (size_t i = UNOP_FIRST;    i <= UNOP_LAST;    ++i) factory[i] = make_unop;
+  for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
+  for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce;
+  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_math11;
+  factory[static_cast<size_t>(Op::COL)]      = make_col;
+  factory[static_cast<size_t>(Op::CAST)]     = make_cast;
+  factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
+  factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
+}
+
+
+
+}}  // namespace dt::expr
+
+using namespace dt::expr;
 pexpr py::_obj::to_dtexpr() const {
   if (!is_dtexpr()) {
     return pexpr(new expr_literal(py::robj(v)));
@@ -80,42 +148,8 @@ pexpr py::_obj::to_dtexpr() const {
   const size_t op = get_attr("_op").to_size_t();
   const py::otuple args = get_attr("_args").to_otuple();
 
-  if (op == static_cast<size_t>(Op::COL)) {
-    check_args_count(args, 2);
-    size_t frame_id = args[0].to_size_t();
-    return pexpr(new expr_column(frame_id, args[1]));
+  if (factory.count(op) == 0) {
+    throw ValueError() << "Unknown opcode in Expr(): " << op;
   }
-  if (op == static_cast<size_t>(Op::CAST)) {
-    check_args_count(args, 2);
-    pexpr arg = args[0].to_dtexpr();
-    SType stype = args[1].to_stype();
-    return pexpr(new expr_cast(std::move(arg), stype));
-  }
-  if (op == static_cast<size_t>(Op::COUNT0)) {
-    check_args_count(args, 0);
-    return pexpr(new expr_reduce0(op));
-  }
-  if (op >= UNOP_FIRST && op <= UNOP_LAST) {
-    check_args_count(args, 1);
-    pexpr arg = args[0].to_dtexpr();
-    return pexpr(new expr_unaryop(std::move(arg), op));
-  }
-  if (op >= BINOP_FIRST && op <= BINOP_LAST) {
-    check_args_count(args, 2);
-    pexpr arg1 = args[0].to_dtexpr();
-    pexpr arg2 = args[1].to_dtexpr();
-    return pexpr(new expr_binaryop(std::move(arg1), std::move(arg2), op));
-  }
-  if (op >= REDUCER_FIRST && op <= REDUCER_LAST) {
-    check_args_count(args, 1);
-    pexpr arg = args[0].to_dtexpr();
-    return pexpr(new expr_reduce1(std::move(arg), op));
-  }
-  if (op == static_cast<size_t>(Op::RE_MATCH)) {
-    check_args_count(args, 2);
-    pexpr arg = args[0].to_dtexpr();
-    py::oobj params = args[1];
-    return pexpr(new expr_string_match_re(std::move(arg), params));
-  }
-  throw ValueError() << "Invalid opcode in Expr(): " << op;
+  return factory[op](static_cast<Op>(op), args);
 }

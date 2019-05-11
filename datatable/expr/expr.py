@@ -35,12 +35,14 @@ class OpCodes(enum.Enum):
     UPLUS = 101
     UMINUS = 102
     INVERT = 103
-    ISNA = 104
-    ABS = 105
-    EXP = 106
-    LOGE = 107
-    LOG10 = 108
-    LEN = 109
+    ISFINITE = 104
+    ISINF = 105
+    ISNA = 106
+    ABS = 107
+    CEIL = 108
+    FLOOR = 109
+    TRUNC = 110
+    LEN = 111
 
     # Binary
     PLUS = 201
@@ -76,6 +78,53 @@ class OpCodes(enum.Enum):
     COUNT0 = 408
     MEDIAN = 409
 
+    # Math: trigonometric
+    SIN = 501
+    COS = 502
+    TAN = 503
+    ARCSIN = 504
+    ARCCOS = 505
+    ARCTAN = 506
+    ARCTAN2 = 507
+    HYPOT = 508
+    DEG2RAD = 509
+    RAD2DEG = 510
+
+    # Math: hyperbolic
+    SINH = 511
+    COSH = 512
+    TANH = 513
+    ARCSINH = 514
+    ARCCOSH = 515
+    ARCTANH = 516
+
+    # Math: exponential/power
+    CBRT = 517
+    EXP = 518
+    EXP2 = 519
+    EXPM1 = 520
+    LOG = 521
+    LOG10 = 522
+    LOG1P = 523
+    LOG2 = 524
+    POW = 525
+    SQRT = 526
+    SQUARE = 527
+
+    # Math: special
+    ERF = 528
+    ERFC = 529
+    GAMMA = 530
+    LGAMMA = 531
+
+    # Math: misc
+    COPYSIGN = 532
+    FABS = 533
+    FCEIL = 534
+    FFLOOR = 535
+    FMOD = 536
+    FTRUNC = 537
+    SIGN = 538
 
 
 #-------------------------------------------------------------------------------
@@ -108,8 +157,7 @@ class Expr:
 
 
     def __init__(self, op, *args):
-        assert isinstance(op, OpCodes)
-        self._op = op.value
+        self._op = op if isinstance(op, int) else op.value
         self._args = args
 
     def __repr__(self):

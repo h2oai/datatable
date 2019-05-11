@@ -282,11 +282,8 @@ static void median_reducer(const RowIndex& ri, size_t row0, size_t row1,
 // expr_reduce1
 //------------------------------------------------------------------------------
 
-expr_reduce1::expr_reduce1(pexpr&& a, size_t o)
-  : arg(std::move(a)), opcode(static_cast<Op>(o))
-{
-  xassert(o >= REDUCER_FIRST && o <= REDUCER_LAST);
-}
+expr_reduce1::expr_reduce1(pexpr&& a, Op op)
+  : arg(std::move(a)), opcode(op) {}
 
 
 SType expr_reduce1::resolve(const dt::workframe& wf) {
@@ -362,8 +359,8 @@ colptr expr_reduce1::evaluate_eager(workframe& wf)
 // expr_reduce0
 //------------------------------------------------------------------------------
 
-expr_reduce0::expr_reduce0(size_t op)
-  : opcode(static_cast<Op>(op)) {}
+expr_reduce0::expr_reduce0(Op op)
+  : opcode(op) {}
 
 
 SType expr_reduce0::resolve(const workframe&) {

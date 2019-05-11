@@ -33,7 +33,7 @@ class expr_reduce1 : public base_expr {
     Op opcode;
 
   public:
-    expr_reduce1(pexpr&& a, size_t op);
+    expr_reduce1(pexpr&& a, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;
@@ -46,7 +46,7 @@ class expr_reduce0 : public base_expr {
     Op opcode;
 
   public:
-    explicit expr_reduce0(size_t op);
+    explicit expr_reduce0(Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;

@@ -105,19 +105,19 @@ void check_not_negative(T value,
 
 template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
-  check_positive<T>(value, arg.to_pyobj(), arg.name(), em);
+  check_positive<T>(value, arg.to_robj(), arg.name(), em);
 }
 
 
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
-  check_not_negative<T>(value, arg.to_pyobj(), arg.name(), em);
+  check_not_negative<T>(value, arg.to_robj(), arg.name(), em);
 }
 
 
 template <typename T>
 void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
-  check_less_than_or_equal_to<T>(value, value_max, arg.to_pyobj(), arg.name(), em);
+  check_less_than_or_equal_to<T>(value, value_max, arg.to_robj(), arg.name(), em);
 }
 
 

@@ -70,25 +70,6 @@ inline static T op_abs(T x) {
   return (x < 0) ? -x : x;
 }
 
-template <typename T>
-inline static double op_exp(T x) {
-  return ISNA<T>(x) ? GETNA<double>() : std::exp(static_cast<double>(x));
-}
-
-
-template <typename T>
-inline static double op_loge(T x) {
-  return ISNA<T>(x) || x < 0 ? GETNA<double>()
-                             : std::log(static_cast<double>(x));
-}
-
-
-template <typename T>
-inline static double op_log10(T x) {
-  return ISNA<T>(x) || x < 0 ? GETNA<double>()
-                             : std::log10(static_cast<double>(x));
-}
-
 
 template<typename T>
 struct Inverse {
@@ -137,11 +118,8 @@ template<typename IT>
 static mapperfn resolve1(Op opcode) {
   switch (opcode) {
     case Op::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
-    case Op::UMINUS:   return map_n<IT, IT, op_minus<IT>>;
+    case Op::UMINUS:  return map_n<IT, IT, op_minus<IT>>;
     case Op::ABS:     return map_n<IT, IT, op_abs<IT>>;
-    case Op::EXP:     return map_n<IT, double, op_exp<IT>>;
-    case Op::LOGE:    return map_n<IT, double, op_loge<IT>>;
-    case Op::LOG10:   return map_n<IT, double, op_log10<IT>>;
     case Op::INVERT:
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
@@ -191,9 +169,6 @@ static Column* unaryop(Op opcode, Column* arg)
     res_type = SType::BOOL;
   } else if (arg_type == SType::BOOL && opcode == Op::UMINUS) {
     res_type = SType::INT8;
-  } else if (opcode == Op::EXP || opcode == Op::LOGE ||
-             opcode == Op::LOG10) {
-    res_type = SType::FLOAT64;
   } else if (opcode == Op::LEN) {
     res_type = arg_type == SType::STR32? SType::INT32 : SType::INT64;
   }
@@ -220,11 +195,8 @@ static Column* unaryop(Op opcode, Column* arg)
 // expr_unaryop
 //------------------------------------------------------------------------------
 
-expr_unaryop::expr_unaryop(pexpr&& a, size_t op)
-  : arg(std::move(a)), opcode(static_cast<Op>(op))
-{
-  xassert(op >= UNOP_FIRST && op <= UNOP_LAST);
-}
+expr_unaryop::expr_unaryop(pexpr&& a, Op op)
+  : arg(std::move(a)), opcode(op) {}
 
 
 bool expr_unaryop::is_negated_expr() const {
@@ -245,7 +217,7 @@ SType expr_unaryop::resolve(const workframe& wf) {
   size_t op_id = id(opcode, arg_stype);
   if (unop_rules.count(op_id) == 0) {
     throw TypeError() << "Unary operator `"
-        << unop_names[static_cast<size_t>(opcode)]
+        << unop_names[id(opcode)]
         << "` cannot be applied to a column with stype `" << arg_stype << "`";
   }
   return unop_rules.at(op_id);
@@ -270,7 +242,7 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
 //------------------------------------------------------------------------------
 
 static size_t id(Op opcode) {
-  return static_cast<size_t>(opcode);
+  return static_cast<size_t>(opcode) - UNOP_FIRST;
 }
 static size_t id(Op opcode, SType st1) {
   return (static_cast<size_t>(opcode) << 8) + static_cast<size_t>(st1);
@@ -304,9 +276,6 @@ void init_unops() {
     unop_rules[id(Op::UMINUS, st)] = st;
     unop_rules[id(Op::UPLUS, st)] = st;
     unop_rules[id(Op::ABS, st)] = st;
-    unop_rules[id(Op::EXP, st)] = flt64;
-    unop_rules[id(Op::LOGE, st)] = flt64;
-    unop_rules[id(Op::LOG10, st)] = flt64;
   }
   unop_rules[id(Op::UMINUS, bool8)] = int8;
   unop_rules[id(Op::UPLUS, bool8)] = int8;
@@ -315,15 +284,12 @@ void init_unops() {
   unop_rules[id(Op::LEN, str32)] = int32;
   unop_rules[id(Op::LEN, str64)] = int64;
 
-  unop_names.resize(1 + id(Op::LEN));
+  unop_names.resize(UNOP_COUNT);
   unop_names[id(Op::ISNA)]   = "isna";
   unop_names[id(Op::UMINUS)] = "-";
   unop_names[id(Op::UPLUS)]  = "+";
   unop_names[id(Op::INVERT)] = "~";
   unop_names[id(Op::ABS)]    = "abs";
-  unop_names[id(Op::EXP)]    = "exp";
-  unop_names[id(Op::LOGE)]   = "log";
-  unop_names[id(Op::LOG10)]  = "log10";
   unop_names[id(Op::LEN)]    = "len";
 }
 

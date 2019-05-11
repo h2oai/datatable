@@ -364,6 +364,7 @@ void py::DatatableModule::init_methods() {
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
+  init_methods_math();
   init_methods_nff();
   init_methods_rbind();
   init_methods_repeat();
@@ -397,6 +398,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!init_py_encodings(m)) return nullptr;
 
     init_types();
+    dt::expr::init_expr();
     dt::expr::init_reducers();
     dt::expr::init_unops();
     dt::expr::init_binops();

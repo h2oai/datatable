@@ -19,30 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_EXPR_BINARYOP_h
-#define dt_EXPR_EXPR_BINARYOP_h
+#ifndef dt_EXPR_EXPR_MATH_h
+#define dt_EXPR_EXPR_MATH_h
 #include "expr/expr.h"
 #include "python/_all.h"
 namespace dt {
 namespace expr {
 
 
-class expr_binaryop : public base_expr {
+class expr_math11 : public base_expr {
   private:
-    pexpr lhs;
-    pexpr rhs;
+    pexpr arg;
     Op opcode;
 
   public:
-    expr_binaryop(pexpr&& l, pexpr&& r, Op op);
+    expr_math11(pexpr&& a, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;
 };
-
-
-// Called once at module initialization
-void init_binops();
 
 
 }}
