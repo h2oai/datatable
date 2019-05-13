@@ -38,6 +38,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
+    void init_methods_math();      // expr/math.cc
     void init_methods_nff();       // datatable_load.cc
     void init_methods_rbind();     // frame/rbind.cc
     void init_methods_repeat();    // frame/repeat.cc
@@ -71,6 +72,8 @@ namespace pybuffers {
   extern SType force_stype;
 }
 
+
+const char* get_compiler_version_string();
 
 PyMODINIT_FUNC PyInit__datatable() noexcept;
 

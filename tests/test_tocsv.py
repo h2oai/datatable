@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import os
 import random
 import re
 import pytest
@@ -374,6 +375,15 @@ def test_save_empty_frame():
     assert DT.to_csv() == "A" + "\n" * 6
     DT.nrows = 0
     assert DT.to_csv() == "A\n"
+
+
+def test_save_empty_frame_to_file(tempfile):
+    # Check that saving an empty frame to a file will succeed. There was
+    # a problem once with `fallocate()` not being able to execute on
+    # 0-size file.
+    dt.Frame().to_csv(tempfile)
+    assert os.path.isfile(tempfile)
+    assert os.stat(tempfile).st_size == 0
 
 
 def test_issue1615():

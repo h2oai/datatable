@@ -340,6 +340,11 @@ class info {
 
 //==============================================================================
 
+inline bool is_numeric(SType st) {
+  return static_cast<uint8_t>(st) <= static_cast<uint8_t>(SType::FLOAT64);
+}
+
+
 /**
  * NA constants
  */

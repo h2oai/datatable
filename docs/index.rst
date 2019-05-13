@@ -97,6 +97,7 @@ messages, and powerful API similar to R ``data.table``'s.
 
     api/frame
     api/ftrl
+    api/math
 
 .. toctree::
     :maxdepth: 2

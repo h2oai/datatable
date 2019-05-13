@@ -22,14 +22,14 @@
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
 #include <memory>            // std::unique_ptr
-#include "datatable.h"
-#include "groupby.h"         // Groupby
 #include "python/ext_type.h"
 #include "python/obj.h"
+#include "datatable.h"
+#include "groupby.h"         // Groupby
+namespace dt {
 
-namespace dt
-{
-class base_expr;
+namespace expr { class base_expr; }
+
 class by_node;
 class collist;
 class workframe;
@@ -50,7 +50,7 @@ enum class GroupbyMode : uint8_t {
 
 class by_node {
   private:
-    using exprptr = std::unique_ptr<dt::base_expr>;
+    using exprptr = std::unique_ptr<dt::expr::base_expr>;
     struct column_descriptor {
       size_t      index;
       exprptr     expr;

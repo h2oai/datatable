@@ -38,6 +38,10 @@ static PyObject* numpy_MaskedArray_type = nullptr;
 static void init_pandas();
 static void init_numpy();
 
+// Set from datatablemodule.cc
+PyObject* Expr_Type = nullptr;
+
+
 
 //------------------------------------------------------------------------------
 // Constructors/destructors
@@ -222,6 +226,11 @@ bool _obj::is_numpy_marray() const noexcept {
   if (!numpy_MaskedArray_type) init_numpy();
   if (!v || !numpy_MaskedArray_type) return false;
   return PyObject_IsInstance(v, numpy_MaskedArray_type);
+}
+
+bool _obj::is_dtexpr() const noexcept {
+  if (!Expr_Type) return false;
+  return PyObject_IsInstance(v, Expr_Type);
 }
 
 

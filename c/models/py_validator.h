@@ -64,7 +64,7 @@ template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value > 0) return;
 
-  py::oobj py_obj = arg.to_pyobj();
+  py::oobj py_obj = arg.to_robj();
   throw em.error_not_positive(py_obj.to_borrowed_ref(), arg.name());
 }
 
@@ -77,17 +77,17 @@ template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value >= 0) return;
 
-  py::oobj py_obj = arg.to_pyobj();
+  py::oobj py_obj = arg.to_robj();
   throw em.error_negative(py_obj.to_borrowed_ref(), arg.name());
-
 }
 
 
 template <typename T>
 void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
+
   if (!std::isinf(value) && value <= value_max) return;
 
-  py::oobj py_obj = arg.to_pyobj();
+  py::oobj py_obj = arg.to_robj();
   throw em.error_greater_than(py_obj.to_borrowed_ref(), arg.name(), value_max);
 }
 

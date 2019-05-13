@@ -32,6 +32,16 @@
 #endif
 
 
+#if defined(__clang__) || defined(_MSC_VER)
+  #define REGEX_SUPPORTED 1
+#elif defined(__GNUC__) && __GNUC__ <= 4
+  #define REGEX_SUPPORTED 0
+#else
+  #define REGEX_SUPPORTED 1
+#endif
+
+
+
 // Cache line size: equivalent of std::hardware_destructive_interference_size
 // from C++17.
 #if defined(__i386__) || defined(__x86_64__)

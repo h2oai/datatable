@@ -145,7 +145,7 @@ oobj Frame::colindex(const PKArgs& args) {
   }
 
   if (col.is_string()) {
-    int64_t index = dt->colindex(col.to_pyobj());
+    int64_t index = dt->colindex(col.to_robj());
     if (index == -1) {
       throw _name_not_found_error(dt, col.to_string());
     }

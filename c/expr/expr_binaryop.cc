@@ -39,35 +39,20 @@
 //------------------------------------------------------------------------------
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
-#include "expr/py_expr.h"
+#include "expr/expr_binaryop.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column.h"
 #include "types.h"
+namespace dt {
+namespace expr {
 
+static size_t id(Op opcode);
+static size_t id(Op opcode, SType st1, SType st2);
 
-namespace expr
-{
+static std::vector<std::string> binop_names;
+static std::unordered_map<size_t, SType> binop_rules;
 
-// Should be in sync with a map in binary_expr.py
-enum OpCode {
-  Plus           = 1,
-  Minus          = 2,
-  Multiply       = 3,
-  Divide         = 4,
-  IntDivide      = 5,
-  Power          = 6,
-  Modulo         = 7,
-  LogicalAnd     = 8,
-  LogicalOr      = 9,
-  LeftShift      = 10,
-  RightShift     = 11,
-  Equal          = 12,  // ==
-  NotEqual       = 13,  // !=
-  Greater        = 14,  // >
-  Less           = 15,  // <
-  GreaterOrEqual = 16,  // >=
-  LessOrEqual    = 17,  // <=
-};
 
 enum OpMode {
   Error = 0,
@@ -75,6 +60,8 @@ enum OpMode {
   N_to_One = 2,
   One_to_N = 3,
 };
+
+typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
 
 
 
@@ -366,33 +353,36 @@ static mapperfn resolve2str(OpMode mode) {
 
 
 template<typename LT, typename RT, typename VT>
-static mapperfn resolve1(size_t opcode, SType stype, void** params, size_t nrows, OpMode mode) {
-  if (opcode >= OpCode::Equal) {
+static mapperfn resolve1(Op opcode, SType stype, void** params, size_t nrows, OpMode mode) {
+  if (static_cast<size_t>(opcode) >= static_cast<size_t>(Op::EQ) &&
+      static_cast<size_t>(opcode) <= static_cast<size_t>(Op::GE)) {
     // override stype for relational operators
     stype = SType::BOOL;
-  } else if (opcode == OpCode::Divide && std::is_integral<VT>::value) {
+  } else if (opcode == Op::DIVIDE && std::is_integral<VT>::value) {
     stype = SType::FLOAT64;
   }
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
-    case OpCode::Plus:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>(mode);
-    case OpCode::Minus:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>(mode);
-    case OpCode::Multiply:  return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>(mode);
-    case OpCode::IntDivide: return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
-    case OpCode::Modulo:    return resolve2<LT, RT, VT, Mod<LT, RT, VT>::impl>(mode);
-    case OpCode::Divide:
+    case Op::PLUS:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>(mode);
+    case Op::MINUS:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>(mode);
+    case Op::MULTIPLY:  return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>(mode);
+    case Op::INTDIV:    return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
+    case Op::MODULO:    return resolve2<LT, RT, VT, Mod<LT, RT, VT>::impl>(mode);
+    case Op::DIVIDE:
       if (std::is_integral<VT>::value)
         return resolve2<LT, RT, double, op_div<LT, RT, double>>(mode);
       else
         return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
 
     // Relational operators
-    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT, VT>>(mode);
-    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT, VT>>(mode);
-    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT, VT>>(mode);
-    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT, VT>>(mode);
-    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT, VT>>(mode);
-    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT, VT>>(mode);
+    case Op::EQ: return resolve2<LT, RT, int8_t, op_eq<LT, RT, VT>>(mode);
+    case Op::NE: return resolve2<LT, RT, int8_t, op_ne<LT, RT, VT>>(mode);
+    case Op::GT: return resolve2<LT, RT, int8_t, op_gt<LT, RT, VT>>(mode);
+    case Op::LT: return resolve2<LT, RT, int8_t, op_lt<LT, RT, VT>>(mode);
+    case Op::GE: return resolve2<LT, RT, int8_t, op_ge<LT, RT, VT>>(mode);
+    case Op::LE: return resolve2<LT, RT, int8_t, op_le<LT, RT, VT>>(mode);
+
+    default: break;
   }
   delete static_cast<Column*>(params[2]);
   return nullptr;
@@ -400,30 +390,30 @@ static mapperfn resolve1(size_t opcode, SType stype, void** params, size_t nrows
 
 
 template<typename T0, typename T1>
-static mapperfn resolve1str(size_t opcode, void** params, size_t nrows, OpMode mode) {
+static mapperfn resolve1str(Op opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::One_to_N) {
     mode = OpMode::N_to_One;
     std::swap(params[0], params[1]);
   }
   params[2] = Column::new_data_column(SType::BOOL, nrows);
   switch (opcode) {
-    case OpCode::Equal:    return resolve2str<T0, T1, int8_t, strop_eq<T0, T1>>(mode);
-    case OpCode::NotEqual: return resolve2str<T0, T1, int8_t, strop_ne<T0, T1>>(mode);
+    case Op::EQ: return resolve2str<T0, T1, int8_t, strop_eq<T0, T1>>(mode);
+    case Op::NE: return resolve2str<T0, T1, int8_t, strop_ne<T0, T1>>(mode);
+    default: break;
   }
   delete static_cast<Column*>(params[2]);
   return nullptr;
 }
 
 
-static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** params, size_t nrows, OpMode mode) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, void** params, size_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
-      if (rhs_type == SType::BOOL && (opcode == OpCode::LogicalAnd ||
-                                      opcode == OpCode::LogicalOr)) {
+      if (rhs_type == SType::BOOL && (opcode == Op::AND || opcode == Op::OR)) {
         params[2] = Column::new_data_column(SType::BOOL, nrows);
-        if (opcode == OpCode::LogicalAnd) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
-        if (opcode == OpCode::LogicalOr)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
+        if (opcode == Op::AND) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
+        if (opcode == Op::OR)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
       }
       FALLTHROUGH;
 
@@ -528,11 +518,12 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, size_t opcode, void** p
 }
 
 
+
 //------------------------------------------------------------------------------
-// Exported binaryop function
+// binaryop
 //------------------------------------------------------------------------------
 
-Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
+static Column* binaryop(Op opcode, Column* lhs, Column* rhs)
 {
   lhs->materialize();
   rhs->materialize();
@@ -556,7 +547,8 @@ Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
                    lhs_nrows == 1? OpMode::One_to_N : OpMode::Error);
   if (!mapfn) {
     throw RuntimeError()
-      << "Unable to apply op " << opcode << " to column1(stype=" << lhs_type
+      << "Unable to apply op " << static_cast<size_t>(opcode)
+      << " to column1(stype=" << lhs_type
       << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
       << ", nrows=" << rhs->nrows << ")";
   }
@@ -565,4 +557,134 @@ Column* binaryop(size_t opcode, Column* lhs, Column* rhs)
   return static_cast<Column*>(params[2]);
 }
 
-};  // namespace expr
+
+
+
+//------------------------------------------------------------------------------
+// expr_binaryop
+//------------------------------------------------------------------------------
+
+expr_binaryop::expr_binaryop(pexpr&& l, pexpr&& r, Op op)
+  : lhs(std::move(l)),
+    rhs(std::move(r)),
+    opcode(op) {}
+
+
+SType expr_binaryop::resolve(const workframe& wf) {
+  SType lhs_stype = lhs->resolve(wf);
+  SType rhs_stype = rhs->resolve(wf);
+  size_t triple = id(opcode, lhs_stype, rhs_stype);
+  if (binop_rules.count(triple) == 0) {
+    throw TypeError() << "Binary operator `"
+        << binop_names[static_cast<size_t>(opcode)]
+        << "` cannot be applied to columns with stypes `" << lhs_stype
+        << "` and `" << rhs_stype << "`";
+  }
+  return binop_rules.at(triple);
+}
+
+
+GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
+  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(wf));
+  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(wf));
+  return static_cast<GroupbyMode>(std::max(lmode, rmode));
+}
+
+
+colptr expr_binaryop::evaluate_eager(workframe& wf) {
+  auto lhs_res = lhs->evaluate_eager(wf);
+  auto rhs_res = rhs->evaluate_eager(wf);
+  return colptr(expr::binaryop(opcode, lhs_res.get(), rhs_res.get()));
+}
+
+
+
+//------------------------------------------------------------------------------
+// one-time initialization
+//------------------------------------------------------------------------------
+
+static size_t id(Op opcode) {
+  size_t res = static_cast<size_t>(opcode) - BINOP_FIRST;
+  xassert(res < BINOP_COUNT);
+  return res;
+}
+
+static size_t id(Op opcode, SType st1, SType st2) {
+  return ((static_cast<size_t>(opcode) - BINOP_FIRST) << 16) +
+         (static_cast<size_t>(st1) << 8) +
+         (static_cast<size_t>(st2));
+}
+
+void init_binops() {
+  constexpr SType bool8 = SType::BOOL;
+  constexpr SType int8  = SType::INT8;
+  constexpr SType int16 = SType::INT16;
+  constexpr SType int32 = SType::INT32;
+  constexpr SType int64 = SType::INT64;
+  constexpr SType flt32 = SType::FLOAT32;
+  constexpr SType flt64 = SType::FLOAT64;
+  constexpr SType str32 = SType::STR32;
+  constexpr SType str64 = SType::STR64;
+
+  using styvec = std::vector<SType>;
+  styvec integer_stypes = {int8, int16, int32, int64};
+  styvec numeric_stypes = {bool8, int8, int16, int32, int64, flt32, flt64};
+  styvec string_types = {str32, str64};
+
+  for (SType st1 : numeric_stypes) {
+    for (SType st2 : numeric_stypes) {
+      SType stm = std::max(st1, st2);
+      binop_rules[id(Op::PLUS, st1, st2)] = stm;
+      binop_rules[id(Op::MINUS, st1, st2)] = stm;
+      binop_rules[id(Op::MULTIPLY, st1, st2)] = stm;
+      binop_rules[id(Op::POWER, st1, st2)] = stm;
+      binop_rules[id(Op::DIVIDE, st1, st2)] = flt64;
+      binop_rules[id(Op::EQ, st1, st2)] = bool8;
+      binop_rules[id(Op::NE, st1, st2)] = bool8;
+      binop_rules[id(Op::LT, st1, st2)] = bool8;
+      binop_rules[id(Op::GT, st1, st2)] = bool8;
+      binop_rules[id(Op::LE, st1, st2)] = bool8;
+      binop_rules[id(Op::GE, st1, st2)] = bool8;
+    }
+  }
+  for (SType st1 : integer_stypes) {
+    for (SType st2 : integer_stypes) {
+      SType stm = std::max(st1, st2);
+      binop_rules[id(Op::INTDIV, st1, st2)] = stm;
+      binop_rules[id(Op::MODULO, st1, st2)] = stm;
+      binop_rules[id(Op::LSHIFT, st1, st2)] = stm;
+      binop_rules[id(Op::RSHIFT, st1, st2)] = stm;
+    }
+  }
+  for (SType st1 : string_types) {
+    for (SType st2 : string_types) {
+      binop_rules[id(Op::EQ, st1, st2)] = bool8;
+      binop_rules[id(Op::NE, st1, st2)] = bool8;
+    }
+  }
+  binop_rules[id(Op::AND, bool8, bool8)] = bool8;
+  binop_rules[id(Op::OR, bool8, bool8)] = bool8;
+
+  binop_names.resize(BINOP_COUNT);
+  binop_names[id(Op::PLUS)] = "+";
+  binop_names[id(Op::MINUS)] = "-";
+  binop_names[id(Op::MULTIPLY)] = "*";
+  binop_names[id(Op::DIVIDE)] = "/";
+  binop_names[id(Op::INTDIV)] = "//";
+  binop_names[id(Op::POWER)] = "**";
+  binop_names[id(Op::MODULO)] = "%";
+  binop_names[id(Op::AND)] = "&";
+  binop_names[id(Op::OR)] = "|";
+  binop_names[id(Op::LSHIFT)] = "<<";
+  binop_names[id(Op::RSHIFT)] = ">>";
+  binop_names[id(Op::EQ)] = "==";
+  binop_names[id(Op::NE)] = "!=";
+  binop_names[id(Op::GT)] = ">";
+  binop_names[id(Op::LT)] = "<";
+  binop_names[id(Op::GE)] = ">=";
+  binop_names[id(Op::LE)] = "<=";
+}
+
+
+
+}}  // namespace dt::expr

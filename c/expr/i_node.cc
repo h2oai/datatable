@@ -19,7 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/base_expr.h"
+#include "expr/expr.h"
+#include "expr/expr_column.h"
 #include "expr/i_node.h"
 #include "expr/workframe.h"   // dt::workframe
 #include "frame/py_frame.h"
@@ -259,7 +260,7 @@ void slice_in::execute_grouped(workframe& wf) {
 
 class expr_in : public i_node {
   private:
-    std::unique_ptr<dt::base_expr> expr;
+    std::unique_ptr<dt::expr::base_expr> expr;
 
   public:
     explicit expr_in(py::robj src);
@@ -269,11 +270,7 @@ class expr_in : public i_node {
 
 
 expr_in::expr_in(py::robj src) {
-  expr = nullptr;
-  py::oobj res = src.invoke("_core");
-  xassert(res.typeobj() == &py::base_expr::Type::type);
-  auto pybe = reinterpret_cast<py::base_expr*>(res.to_borrowed_ref());
-  expr = pybe->release();
+  expr = src.to_dtexpr();
 }
 
 
@@ -611,7 +608,7 @@ static i_node* _make(py::robj src) {
     throw TypeError() << src << " is not integer-valued";
   }
   // The second most-common case is an expression
-  if (is_PyBaseExpr(src)) {
+  if (src.is_dtexpr()) {
     return new expr_in(src);
   }
   if (src.is_frame()) {

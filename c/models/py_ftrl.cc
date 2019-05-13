@@ -417,6 +417,11 @@ oobj Ftrl::predict(const PKArgs& args) {
                        << "should have the same column names";
   }
 
+  if (!py_params.get_attr("interactions").is_none()
+      && !dtft->get_interactions().size()) {
+    init_dt_interactions();
+  }
+
 
   if (!py_params.get_attr("interactions").is_none()
       && !dtft->get_interactions().size()) {
@@ -685,7 +690,7 @@ void Ftrl::set_beta(const Arg& py_beta) {
   double beta = py_beta.to_double();
   py::Validator::check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
-  py_params.replace(1, py_beta.to_pyobj());
+  py_params.replace(1, py_beta.to_robj());
 }
 
 
@@ -706,7 +711,7 @@ void Ftrl::set_lambda1(const Arg& py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
-  py_params.replace(2, py_lambda1.to_pyobj());
+  py_params.replace(2, py_lambda1.to_robj());
 }
 
 
@@ -727,7 +732,7 @@ void Ftrl::set_lambda2(const Arg& py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
-  py_params.replace(3, py_lambda2.to_pyobj());
+  py_params.replace(3, py_lambda2.to_robj());
 }
 
 
@@ -753,7 +758,7 @@ void Ftrl::set_nbins(const Arg& py_nbins) {
   size_t nbins = py_nbins.to_size_t();
   py::Validator::check_positive(nbins, py_nbins);
   dtft->set_nbins(static_cast<uint64_t>(nbins));
-  py_params.replace(4, py_nbins.to_pyobj());
+  py_params.replace(4, py_nbins.to_robj());
 }
 
 
@@ -783,7 +788,7 @@ void Ftrl::set_mantissa_nbits(const Arg& py_mantissa_nbits) {
     py_mantissa_nbits
   );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
-  py_params.replace(5, py_mantissa_nbits.to_pyobj());
+  py_params.replace(5, py_mantissa_nbits.to_robj());
 }
 
 
@@ -803,7 +808,7 @@ oobj Ftrl::get_nepochs() const {
 void Ftrl::set_nepochs(const Arg& py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
   dtft->set_nepochs(nepochs);
-  py_params.replace(6, py_nepochs.to_pyobj());
+  py_params.replace(6, py_nepochs.to_robj());
 }
 
 
@@ -825,7 +830,7 @@ void Ftrl::set_double_precision(const Arg& py_double_precision) {
                        << "reset this model or create a new one";
   }
   double_precision = py_double_precision.to_bool_strict();
-  py_params.replace(7, py_double_precision.to_pyobj());
+  py_params.replace(7, py_double_precision.to_robj());
 }
 
 
@@ -849,7 +854,7 @@ void Ftrl::set_negative_class(const Arg& py_negative_class) {
   }
   bool negative_class = py_negative_class.to_bool_strict();
   dtft->set_negative_class(negative_class);
-  py_params.replace(8, py_negative_class.to_pyobj());
+  py_params.replace(8, py_negative_class.to_robj());
 }
 
 
@@ -889,7 +894,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
     }
   }
 
-  py_params.replace(9, arg_interactions.to_pyobj());
+  py_params.replace(9, arg_interactions.to_robj());
 }
 
 

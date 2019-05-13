@@ -7,6 +7,7 @@
 import ctypes
 import enum
 import datatable
+from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
@@ -73,7 +74,7 @@ class stype(enum.Enum):
         return str(self)
 
     def __call__(self, arg):
-        return datatable.expr.cast_expr.CastExpr(arg, self)
+        return Expr(OpCodes.CAST, arg, self)
 
     @property
     def code(self):

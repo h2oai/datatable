@@ -286,7 +286,7 @@ class FrameInitializationManager {
       check_names_count(1);
       check_stypes_count(1);
       SType s = get_stype_for_column(0);
-      make_column(src.to_pyobj(), s);
+      make_column(src.to_robj(), s);
       make_datatable(names_arg);
     }
 
@@ -362,7 +362,7 @@ class FrameInitializationManager {
 
 
     void init_from_string() {
-      py::oobj res = py::robj(py::fread_fn).call({src.to_pyobj()});
+      py::oobj res = py::robj(py::fread_fn).call({src.to_robj()});
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);
@@ -389,7 +389,7 @@ class FrameInitializationManager {
         throw TypeError() << "Argument `stypes` is not supported in Frame() "
             "constructor when creating a Frame from pandas DataFrame";
       }
-      py::robj pdsrc = src.to_pyobj();
+      py::robj pdsrc = src.to_robj();
       py::olist colnames(0);
       if (src.is_pandas_frame()) {
         py::oobj pd_iloc = pdsrc.get_attr("iloc");
@@ -429,7 +429,7 @@ class FrameInitializationManager {
         throw TypeError() << "Argument `stypes` is not supported in Frame() "
             "constructor when creating a Frame from a numpy array";
       }
-      py::oobj npsrc = src.to_pyobj();
+      py::oobj npsrc = src.to_robj();
       size_t ndims = npsrc.get_attr("shape").to_pylist().size();
       if (ndims > 2) {
         throw ValueError() << "Cannot create Frame from a " << ndims << "-D "

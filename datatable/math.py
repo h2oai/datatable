@@ -20,34 +20,39 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from .base_expr import BaseExpr
-# from datatable.frame import Frame
-from datatable.lib import core
+from math import e, inf, nan, pi, tau
 
-# See "c/expr/base_expr.h"
-BASEEXPR_OPCODE_STRINGFN = 8
+from .lib._datatable import (
+    arccos,
+    arccosh,
+    arcsin,
+    arcsinh,
+    arctan,
+    arctanh,
+    cbrt,
+    cos,
+    cosh,
+    deg2rad,
+    erf,
+    erfc,
+    exp,
+    exp2,
+    expm1,
+    fabs,
+    gamma,
+    lgamma,
+    log,
+    log10,
+    log1p,
+    log2,
+    rad2deg,
+    sign,
+    sin,
+    sinh,
+    sqrt,
+    square,
+    tan,
+    tanh,
+)
 
-
-
-class StringExpr(BaseExpr):
-    __slots__ = ["_op", "_expr", "_params"]
-
-    def __init__(self, opcode, expr, *args):
-        super().__init__()
-        self._op = opcode
-        self._expr = expr
-        self._params = args
-
-    def __str__(self):
-        return "%s(%s, %r)" % (self._op, self._expr, self._params)
-
-    def _core(self):
-        return core.base_expr(BASEEXPR_OPCODE_STRINGFN,
-                              string_opcodes[self._op],
-                              self._expr._core(),
-                              self._params)
-
-
-string_opcodes = {
-    "re_match": 1,
-}
+golden = 1.618033988749895
