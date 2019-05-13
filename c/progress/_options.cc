@@ -67,7 +67,7 @@ static py::oobj get_ups() {
 
 static void set_ups(py::oobj value) {
   double x = value.to_double();
-  py::Validator::check_positive(x, {value, "ups"});
+  py::Validator::check_positive(x, {value, "updates_per_second"});
   updates_per_second = x;
 }
 

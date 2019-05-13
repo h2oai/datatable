@@ -30,8 +30,8 @@ class Arg : public _obj::error_manager {
 
   public:
     Arg();
-    Arg(py::_obj, const std::string&);
     explicit Arg(const std::string&);
+    Arg(py::_obj, const std::string&);
     Arg(const Arg&) = default;
     virtual ~Arg() override;
     void init(size_t i, PKArgs* args);

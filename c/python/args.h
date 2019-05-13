@@ -20,7 +20,6 @@
 #include "python/arg.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include <iostream>
 
 namespace py {
 

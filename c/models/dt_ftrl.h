@@ -123,8 +123,8 @@ class Ftrl : public dt::FtrlBase {
                       std::vector<const U*>&);
 
   public:
-    Ftrl(FtrlParams);
     Ftrl();
+    Ftrl(FtrlParams);
 
     // Main fitting method
     FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,

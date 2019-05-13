@@ -281,7 +281,8 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "model";
   }
 
-  if (!py_params[9].is_none() && !dtft->get_interactions().size()) {
+  if (!py_params.get_attr("interactions").is_none()
+      && !dtft->get_interactions().size()) {
     init_dt_interactions();
   }
 
@@ -417,7 +418,8 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
 
-  if (!py_params[9].is_none() && !dtft->get_interactions().size()) {
+  if (!py_params.get_attr("interactions").is_none()
+      && !dtft->get_interactions().size()) {
     init_dt_interactions();
   }
 

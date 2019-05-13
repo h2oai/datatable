@@ -63,7 +63,9 @@ Error py::Validator::error_manager::error_greater_than(PyObject* src,
 template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value > 0) return;
-  throw em.error_not_positive(arg.to_pyobj().to_borrowed_ref(), arg.name());
+
+  py::oobj py_obj = arg.to_pyobj();
+  throw em.error_not_positive(py_obj.to_borrowed_ref(), arg.name());
 }
 
 
@@ -74,7 +76,9 @@ void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value >= 0) return;
-  throw em.error_negative(arg.to_pyobj().to_borrowed_ref(), arg.name());
+
+  py::oobj py_obj = arg.to_pyobj();
+  throw em.error_negative(py_obj.to_borrowed_ref(), arg.name());
 
 }
 
@@ -82,7 +86,9 @@ void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
 template <typename T>
 void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value <= value_max) return;
-  throw em.error_greater_than(arg.to_pyobj().to_borrowed_ref(), arg.name(), value_max);
+
+  py::oobj py_obj = arg.to_pyobj();
+  throw em.error_greater_than(py_obj.to_borrowed_ref(), arg.name(), value_max);
 }
 
 

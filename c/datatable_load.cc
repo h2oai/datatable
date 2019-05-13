@@ -99,7 +99,6 @@ static oobj open_nff(const PKArgs& args) {
   size_t nrows = args[1].to_size_t();
   std::string path = args[2].to_string();
   int recode = args[3].to_bool_strict();
-  // oobj names = args[4].to_oobj();
 
   DataTable* dt = DataTable::load(colspec, nrows, path, recode);
   Frame* frame = Frame::from_datatable(dt);
