@@ -48,6 +48,7 @@ namely:
 -  ``mantissa_nbits`` – the number of bits from mantissa to be used for hashing, defaults to ``10``.
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
 -  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
+- ``interactions`` — list of feature lists to do interactions for, defaults to ``None``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
