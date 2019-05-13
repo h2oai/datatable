@@ -32,7 +32,18 @@ namespace dt {
 namespace expr {
 
 using ufunc_t = double(*)(double);
+using bfunc_t = double(*)(double, double);
 static std::unordered_map<Op, ufunc_t> fn11s;
+static std::unordered_map<Op, bfunc_t> fn21s;
+
+struct fninfo {
+  Op opcode;
+  const char* name;
+  ufunc_t fn11;
+  bfunc_t fn21;
+};
+
+static std::unordered_map<const py::PKArgs*, fninfo> fninfos;
 
 
 //------------------------------------------------------------------------------
@@ -100,24 +111,17 @@ colptr expr_math11::evaluate_eager(workframe& wf) {
 
 
 }}  // namespace dt::expr
-namespace py {
+//==============================================================================
 
-
-
-struct fninfo {
-  dt::expr::Op opcode;
-  const char* name;
-  dt::expr::ufunc_t corefn;
-};
-
-static std::unordered_map<const PKArgs*, fninfo> fninfos;
 
 
 //------------------------------------------------------------------------------
 // Trigonometric/hyperbolic functions
 //------------------------------------------------------------------------------
+namespace py {
+using namespace dt::expr;
 
-static PKArgs args_acos(
+static PKArgs args_arccos(
   1, 0, 0, false, false, {"x"}, "arccos",
 R"(Inverse trigonometric cosine of x.
 
@@ -126,11 +130,11 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 cos() in the sense that `cos(arccos(x)) == x`.
 )");
 
-static PKArgs args_acosh(
+static PKArgs args_arccosh(
   1, 0, 0, false, false, {"x"}, "arccosh",
 R"(Inverse hyperbolic cosine of x.)");
 
-static PKArgs args_asin(
+static PKArgs args_arcsin(
   1, 0, 0, false, false, {"x"}, "arcsin",
 R"(Inverse trigonometric sine of x.
 
@@ -139,15 +143,23 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 sin() in the sense that `sin(arcsin(x)) == x`.
 )");
 
-static PKArgs args_asinh(
+static PKArgs args_arcsinh(
   1, 0, 0, false, false, {"x"}, "arcsinh",
 R"(Inverse hyperbolic sine of x.)");
 
-static PKArgs args_atan(
+static PKArgs args_arctan(
   1, 0, 0, false, false, {"x"}, "arctan",
 R"(Inverse trigonometric tangent of x.)");
 
-static PKArgs args_atanh(
+static PKArgs args_arctan2(
+  2, 0, 0, false, false, {"x", "y"}, "arctan2",
+R"(Arc-tangent of y/x, taking into account the signs of x and y.
+
+This function returns the measure of the angle between the ray O(x,y)
+and the horizontal abscissae Ox. When both x and y are zero, this
+function returns zero.)");
+
+static PKArgs args_arctanh(
   1, 0, 0, false, false, {"x"}, "arctanh",
 R"(Inverse hyperbolic tangent of x.)");
 
@@ -171,11 +183,16 @@ static PKArgs args_tanh(
 
 static PKArgs args_rad2deg(
   1, 0, 0, false, false, {"x"}, "rad2deg",
-"Convert angle measured in radians into degrees.");
+  "Convert angle measured in radians into degrees.");
 
 static PKArgs args_deg2rad(
   1, 0, 0, false, false, {"x"}, "deg2rad",
-"Convert angle measured in degrees into radians.");
+  "Convert angle measured in degrees into radians.");
+
+static PKArgs args_hypot(
+  2, 0, 0, false, false, {"x", "y"}, "hypot",
+  "The length of the hypotenuse of a right triangle with sides x and y.");
+
 
 
 
@@ -281,6 +298,8 @@ infinity), -1 if x is negative, 0 if x is zero, and NA if
 x is NA.)");
 
 
+
+
 //------------------------------------------------------------------------------
 // Implement Python API
 //------------------------------------------------------------------------------
@@ -317,13 +336,20 @@ static oobj process_frame(dt::expr::Op opcode, oobj arg) {
 }
 
 
+/**
+ * Function that takes a single argument (of type FLOAT64) and
+ * produces a single output column, also of type FLOAT64.
+ * Most mathematical functions fall into this category, such as
+ * `sin`, `exp`, `log1m`, `arctanh`, etc.
+ */
 static oobj mathfn_11(const PKArgs& args) {
   xassert(fninfos.count(&args) == 1);
   fninfo& fn = fninfos[&args];
+  xassert(fn.fn11);
 
   robj arg = args[0].to_robj();
   if (arg.is_numeric() || arg.is_none()) {
-    double res = fn.corefn(arg.to_double());
+    double res = fn.fn11(arg.to_double());
     return std::isnan(res)? None() : ofloat(res);
   }
   if (arg.is_dtexpr()) {
@@ -340,6 +366,39 @@ static oobj mathfn_11(const PKArgs& args) {
       "an argument of type " << arg.typeobj();
 }
 
+
+/**
+ * Function that takes two arguments of type FLOAT64 and produces a
+ * single output column of type FLOAT64. Examples: `pow`, `hypot`,
+ * `logaddexp`, etc.
+ */
+static oobj mathfn_21(const PKArgs& args) {
+  xassert(fninfos.count(&args) == 1);
+  fninfo& fn = fninfos[&args];
+  xassert(fn.fn21);
+
+  robj arg1 = args[0].to_robj();
+  robj arg2 = args[1].to_robj();
+  if (arg1.is_numeric() || arg1.is_none()) {
+    if (arg2.is_numeric() || arg2.is_none()) {
+      double x = arg1.to_double();
+      double y = arg1.to_double();
+      double res = fn.fn21(x, y);
+      return std::isnan(res)? None() : ofloat(res);
+    }
+    if (arg2.is_dtexpr()) {
+      return make_pyexpr2(fn.opcode, arg1, arg2);
+    }
+  }
+  if (arg1.is_dtexpr()) {
+    if (arg2.is_dtexpr() || arg2.is_numeric() || arg2.is_none()) {
+      return make_pyexpr2(fn.opcode, arg1, arg2);
+    }
+  }
+
+  throw TypeError() << '`' << fn.name << "()` cannot be applied to "
+      "arguments of type " << arg1.typeobj() << " and " << arg2.typeobj();
+}
 
 
 
@@ -367,48 +426,56 @@ static double fn_sign(double x) {
 
 
 
-#define ADD11(OP, ARGS, NAME, FN)  \
-  ADD_FN(&mathfn_11, ARGS);        \
-  fninfos[&ARGS] = {OP, NAME, FN}; \
+#define ADD11(OP, NAME, FN)                            \
+  ADD_FN(&mathfn_11, args_##NAME);                     \
+  fninfos[&(args_##NAME)] = {OP, #NAME, FN, nullptr};  \
   fn11s[OP] = FN;
 
+#define ADD21(OP, NAME, FN)                            \
+  ADD_FN(&mathfn_21, args_##NAME);                     \
+  fninfos[&(args_##NAME)] = {OP, #NAME, nullptr, FN};  \
+  fn21s[OP] = FN;
+
+
 void py::DatatableModule::init_methods_math() {
-  using namespace dt::expr;
-  ADD11(Op::ARCCOS,  args_acos,    "arccos",  &std::acos);
-  ADD11(Op::ARCCOSH, args_acosh,   "arccosh", &std::acosh);
-  ADD11(Op::ARCSIN,  args_asin,    "arsin",   &std::asin);
-  ADD11(Op::ARCSINH, args_asinh,   "arcsinh", &std::asinh);
-  ADD11(Op::ARCTAN,  args_atan,    "arctan",  &std::atan);
-  ADD11(Op::ARCTANH, args_atanh,   "arctanh", &std::atanh);
-  ADD11(Op::COS,     args_cos,     "cos",     &std::cos);
-  ADD11(Op::COSH,    args_cosh,    "cosh",    &std::cosh);
-  ADD11(Op::DEG2RAD, args_deg2rad, "deg2rad", &fn_deg2rad);
-  ADD11(Op::RAD2DEG, args_rad2deg, "rad2deg", &fn_rad2deg);
-  ADD11(Op::SIN,     args_sin,     "sin",     &std::sin);
-  ADD11(Op::SINH,    args_sinh,    "sinh",    &std::sinh);
-  ADD11(Op::TAN,     args_tan,     "tan",     &std::tan);
-  ADD11(Op::TANH,    args_tanh,    "tanh",    &std::tanh);
+  ADD11(Op::ARCCOS,  arccos,  &std::acos)
+  ADD11(Op::ARCCOSH, arccosh, &std::acosh)
+  ADD11(Op::ARCSIN,  arcsin,  &std::asin)
+  ADD11(Op::ARCSINH, arcsinh, &std::asinh)
+  ADD11(Op::ARCTAN,  arctan,  &std::atan)
+  ADD21(Op::ARCTAN2, arctan2, &std::atan2)
+  ADD11(Op::ARCTANH, arctanh, &std::atanh)
+  ADD11(Op::COS,     cos,     &std::cos)
+  ADD11(Op::COSH,    cosh,    &std::cosh)
+  ADD11(Op::DEG2RAD, deg2rad, &fn_deg2rad)
+  ADD21(Op::HYPOT,   hypot,   &std::hypot)
+  ADD11(Op::RAD2DEG, rad2deg, &fn_rad2deg)
+  ADD11(Op::SIN,     sin,     &std::sin)
+  ADD11(Op::SINH,    sinh,    &std::sinh)
+  ADD11(Op::TAN,     tan,     &std::tan)
+  ADD11(Op::TANH,    tanh,    &std::tanh)
 
-  ADD11(Op::CBRT,    args_cbrt,    "cbrt",    &std::cbrt);
-  ADD11(Op::EXP,     args_exp,     "exp",     &std::exp);
-  ADD11(Op::EXP2,    args_exp2,    "exp2",    &std::exp2);
-  ADD11(Op::EXPM1,   args_expm1,   "expm1",   &std::expm1);
-  ADD11(Op::LOG,     args_log,     "log",     &std::log);
-  ADD11(Op::LOG10,   args_log10,   "log10",   &std::log10);
-  ADD11(Op::LOG1P,   args_log1p,   "log1p",   &std::log1p);
-  ADD11(Op::LOG2,    args_log2,    "log2",    &std::log2);
-  ADD11(Op::SQRT,    args_sqrt,    "sqrt",    &std::sqrt);
-  ADD11(Op::SQUARE,  args_square,  "square",  &fn_square);
+  ADD11(Op::CBRT,    cbrt,    &std::cbrt)
+  ADD11(Op::EXP,     exp,     &std::exp)
+  ADD11(Op::EXP2,    exp2,    &std::exp2)
+  ADD11(Op::EXPM1,   expm1,   &std::expm1)
+  ADD11(Op::LOG,     log,     &std::log)
+  ADD11(Op::LOG10,   log10,   &std::log10)
+  ADD11(Op::LOG1P,   log1p,   &std::log1p)
+  ADD11(Op::LOG2,    log2,    &std::log2)
+  ADD11(Op::SQRT,    sqrt,    &std::sqrt)
+  ADD11(Op::SQUARE,  square,  &fn_square)
 
-  ADD11(Op::ERF,     args_erf,     "erf",     &std::erf);
-  ADD11(Op::ERFC,    args_erfc,    "erfc",    &std::erfc);
-  ADD11(Op::GAMMA,   args_gamma,   "gamma",   &std::tgamma);
-  ADD11(Op::LGAMMA,  args_lgamma,  "lgamma",  &std::lgamma);
+  ADD11(Op::ERF,     erf,     &std::erf)
+  ADD11(Op::ERFC,    erfc,    &std::erfc)
+  ADD11(Op::GAMMA,   gamma,   &std::tgamma)
+  ADD11(Op::LGAMMA,  lgamma,  &std::lgamma)
 
-  ADD11(Op::FABS,    args_fabs,    "fabs",    &std::fabs);
-  ADD11(Op::SIGN,    args_sign,    "sign",    &fn_sign);
+  ADD11(Op::FABS,    fabs,    &std::fabs)
+  ADD11(Op::SIGN,    sign,    &fn_sign)
 }
 
 #undef ADD11
+#undef ADD21
 
 } // namespace py

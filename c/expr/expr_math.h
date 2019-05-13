@@ -40,5 +40,19 @@ class expr_math11 : public base_expr {
 };
 
 
+class expr_math21 : public base_expr {
+  private:
+    pexpr arg1;
+    pexpr arg2;
+    Op opcode;
+
+  public:
+    expr_math21(pexpr&& a, pexpr&& b, Op op);
+    SType resolve(const workframe& wf) override;
+    GroupbyMode get_groupby_mode(const workframe&) const override;
+    colptr evaluate_eager(workframe& wf) override;
+};
+
+
 }}
 #endif

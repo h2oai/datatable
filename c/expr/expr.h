@@ -39,7 +39,7 @@ static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 409;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 538;
+static constexpr size_t MATH_LAST     = 542;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -128,7 +128,9 @@ enum class Op : size_t {
   LOG10,
   LOG1P,
   LOG2,
-  POW,
+  LOGADDEXP,
+  LOGADDEXP2,
+  // POWER,
   SQRT,
   SQUARE,
 
@@ -138,14 +140,28 @@ enum class Op : size_t {
   GAMMA,
   LGAMMA,
 
-  // Math: misc
+  // Math: floating-point
+  // CEIL,
   COPYSIGN,
   FABS,
-  FCEIL,
-  FFLOOR,
-  FMOD,
-  FTRUNC,
-  SIGN = MATH_LAST,
+  // FLOOR,
+  // FREXP: double->(double, int)
+  // ISCLOSE: non-trivial signature
+  LDEXP,
+  NEXTAFTER,
+  // RINT ?
+  SIGN,
+  SIGNBIT,
+  // SPACING ?
+  // TRUNC,
+
+  // Math: misc
+  CLIP,
+  // DIVMOD (double,double)->(double,double)
+  // MODF double->(double,double)
+  MAXIMUM,
+  MINIMUM,
+  FMOD = MATH_LAST,
 };
 
 

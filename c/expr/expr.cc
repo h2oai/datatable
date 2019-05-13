@@ -114,6 +114,13 @@ static pexpr make_math11(Op op, const py::otuple& args) {
   return pexpr(new expr_math11(std::move(arg), op));
 }
 
+// static pexpr make_math21(Op op, const py::otuple& args) {
+//   check_args_count(args, 2);
+//   pexpr arg1 = args[0].to_dtexpr();
+//   pexpr arg2 = args[1].to_dtexpr();
+//   return pexpr(new expr_math21(std::move(arg1), std::move(arg2), op));
+// }
+
 static pexpr make_string(Op, const py::otuple& args) {
   check_args_count(args, 2);
   pexpr arg = args[0].to_dtexpr();
@@ -134,6 +141,10 @@ void init_expr() {
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
   factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
+  // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
+  // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
+  // factory[static_cast<size_t>(Op::POWER)]    = make_math21;
+  // factory[static_cast<size_t>(Op::COPYSIGN)] = make_math21;
 }
 
 

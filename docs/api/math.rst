@@ -20,14 +20,14 @@ math                numpy                 datatable
 ``asin(x)``         ``arcsin(x)``         ``arcsin(x)``
 ``acos(x)``         ``arccos(x)``         ``arccos(x)``
 ``atan(x)``         ``arctan(x)``         ``arctan(x)``
-``atan2(x, y)``     ``arctan2(x, y)``
+``atan2(x, y)``     ``arctan2(x, y)``     ``arctan2(x, y)``
 ``sinh(x)``         ``sinh(x)``           ``sinh(x)``
 ``cosh(x)``         ``cosh(x)``           ``cosh(x)``
 ``tanh(x)``         ``tanh(x)``           ``tanh(x)``
 ``asinh(x)``        ``arcsinh(x)``        ``arcsinh(x)``
 ``acosh(x)``        ``arccosh(x)``        ``arccosh(x)``
 ``atanh(x)``        ``arctanh(x)``        ``arctanh(x)``
-``hypot(x, y)``     ``hypot(x, y)``
+``hypot(x, y)``     ``hypot(x, y)``       ``hypot(x, y)``
 ``radians(x)``      ``deg2rad(x)``        ``deg2rad(x)``
 ``degrees(x)``      ``rad2deg(x)``        ``rad2deg(x)``
 
