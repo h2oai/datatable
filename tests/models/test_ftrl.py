@@ -126,9 +126,9 @@ def test_ftrl_construct_wrong_interactions_type():
         noop(Ftrl(interactions = 2))
     assert ("Argument `interactions` in Ftrl() constructor should be an iterable, "
             "instead got <class 'int'>" == str(e.value))
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = ["C0"]))
-    assert ("Argument `nepochs` in Ftrl() constructor should be a list of "
+    assert ("Argument `interactions` in Ftrl() constructor should be a list of "
             "lists, instead encountered: 'C0'" == str(e.value))
 
 
@@ -153,7 +153,7 @@ def test_ftrl_construct_wrong_params_type():
     params = tparams._replace(alpha = "1.0")
     with pytest.raises(TypeError) as e:
         Ftrl(params)
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+    assert ("`FtrlParams.alpha` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_params_name():
@@ -294,56 +294,56 @@ def test_ftrl_set_wrong_alpha_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.alpha = "0.0"
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+    assert ("`.alpha` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.beta = "-1.0"
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+    assert ("`.beta` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda1 = "-1.0"
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+    assert ("`.lambda1` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda2 = "-1.0"
-    assert ("Expected a float, instead got <class 'str'>" == str(e.value))
+    assert ("`.lambda2` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_nbins_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nbins = "0"
-    assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
+    assert ("`.nbins` should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_mantissa_nbits_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.mantissa_nbits = "0"
-    assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
+    assert ("`.mantissa_nbits` should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_nepochs_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nepochs = "-10.0"
-    assert ("Expected an integer, instead got <class 'str'>" == str(e.value))
+    assert ("`.nepochs` should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = True
-    assert ("Expected an iterable, instead got <class 'bool'>"
+    assert ("`.interactions` should be an iterable, instead got <class 'bool'>"
             == str(e.value))
 
 
@@ -358,7 +358,7 @@ def test_ftrl_set_wrong_interactions_not_list():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = ["a", [1, 2]]
-    assert ("Interactions should be a list of lists, instead "
+    assert ("`.interactions` should be a list of lists, instead "
             "encountered: 'a'" == str(e.value))
 
 
@@ -379,7 +379,7 @@ def test_ftrl_set_bad_alpha_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = value
-    assert ("Value should be positive: %s" % str(value) == str(e.value))
+    assert ("`.alpha` should be positive: %s" % str(value) == str(e.value))
 
 
 @pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
@@ -387,7 +387,7 @@ def test_ftrl_set_bad_beta_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = value
-    assert ("Value should be greater than or equal to zero: %s" % str(value)
+    assert ("`.beta` should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
@@ -396,7 +396,7 @@ def test_ftrl_set_bad_lambda1_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = value
-    assert ("Value should be greater than or equal to zero: %s" % str(value)
+    assert ("`.lambda1` should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
@@ -405,7 +405,7 @@ def test_ftrl_set_bad_lambda2_value(value):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = value
-    assert ("Value should be greater than or equal to zero: %s" % str(value)
+    assert ("`.lambda2` should be greater than or equal to zero: %s" % str(value)
             == str(e.value))
 
 
@@ -413,12 +413,12 @@ def test_ftrl_set_wrong_nbins_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.nbins = 0
-    assert ("Value should be positive: 0" == str(e.value))
+    assert ("`.nbins` should be positive: 0" == str(e.value))
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1, "Integer value cannot be negative"],
-                         [53, "Value should be less than or equal to 52, got: 53"]])
+                         [[-1, "`.mantissa_nbits` cannot be negative: -1"],
+                         [53, "`.mantissa_nbits` should be less than or equal to 52, got: 53"]])
 def test_ftrl_set_wrong_mantissa_nbits_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
@@ -430,7 +430,7 @@ def test_ftrl_set_wrong_nepochs_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.nepochs = -10
-    assert ("Integer value cannot be negative" == str(e.value))
+    assert ("`.nepochs` cannot be negative: -10" == str(e.value))
 
 
 #-------------------------------------------------------------------------------

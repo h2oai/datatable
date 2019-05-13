@@ -23,7 +23,16 @@ std::string _nth(size_t i);
 // Construction / initialization
 //------------------------------------------------------------------------------
 
-Arg::Arg(PyObject* value) : pos(0), parent(nullptr), pyobj(value) {}
+Arg::Arg()
+  : pos(0), parent(nullptr), pyobj(nullptr) {}
+
+Arg::Arg(py::_obj py_object, const std::string& cached_name_)
+  : pyobj(py_object.to_borrowed_ref()), cached_name(cached_name_) {}
+
+
+Arg::Arg(const std::string& cached_name_)
+  : pyobj(nullptr), cached_name(cached_name_) {}
+
 
 Arg::~Arg() {}
 
@@ -128,6 +137,11 @@ Error Arg::error_int_negative(PyObject* src) const {
 
 Error Arg::error_not_double(PyObject* src) const {
   return TypeError() << name() << " should be a float, instead got "
+      << Py_TYPE(src);
+}
+
+Error Arg::error_not_iterable(PyObject* src) const {
+  return TypeError() << name() << " should be an iterable, instead got "
       << Py_TYPE(src);
 }
 

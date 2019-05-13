@@ -872,7 +872,8 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
   auto py_interactions_in = arg_interactions.to_oiter();
   for (auto py_interaction : py_interactions_in) {
     if (!py_interaction.is_list())
-      throw TypeError() << "Interactions should be a list of lists, "
+      throw TypeError() << arg_interactions.name()
+                        << " should be a list of lists, "
                         << "instead encountered: " << py_interaction;
 
     auto py_interaction_iter = py_interaction.to_oiter();
@@ -912,28 +913,27 @@ void Ftrl::set_params_namedtuple(robj params_in) {
     throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
                        << "got: " << n_params;
   }
+  py::oobj py_alpha = params_in.get_attr("alpha");
+  py::oobj py_beta = params_in.get_attr("beta");
+  py::oobj py_lambda1 = params_in.get_attr("lambda1");
+  py::oobj py_lambda2 = params_in.get_attr("lambda2");
+  py::oobj py_nbins = params_in.get_attr("nbins");
+  py::oobj py_mantissa_nbits = params_in.get_attr("mantissa_nbits");
+  py::oobj py_nepochs = params_in.get_attr("nepochs");
+  py::oobj py_double_precision = params_in.get_attr("double_precision");
+  py::oobj py_negative_class = params_in.get_attr("negative_class");
+  py::oobj py_interactions = params_in.get_attr("interactions");
 
-  py::Arg py_alpha            (params_in.get_attr("alpha").to_borrowed_ref());
-  py::Arg py_beta             (params_in.get_attr("beta").to_borrowed_ref());
-  py::Arg py_lambda1          (params_in.get_attr("lambda1").to_borrowed_ref());
-  py::Arg py_lambda2          (params_in.get_attr("lambda2").to_borrowed_ref());
-  py::Arg py_nbins            (params_in.get_attr("nbins").to_borrowed_ref());
-  py::Arg py_mantissa_nbits   (params_in.get_attr("mantissa_nbits").to_borrowed_ref());
-  py::Arg py_nepochs          (params_in.get_attr("nepochs").to_borrowed_ref());
-  py::Arg py_double_precision (params_in.get_attr("double_precision").to_borrowed_ref());
-  py::Arg py_negative_class   (params_in.get_attr("negative_class").to_borrowed_ref());
-  py::Arg py_interactions     (params_in.get_attr("interactions").to_borrowed_ref());
-
-  set_alpha(py_alpha);
-  set_beta(py_beta);
-  set_lambda1(py_lambda1);
-  set_lambda2(py_lambda2);
-  set_nbins(py_nbins);
-  set_mantissa_nbits(py_mantissa_nbits);
-  set_nepochs(py_nepochs);
-  set_double_precision(py_double_precision);
-  set_negative_class(py_negative_class);
-  set_interactions(py_interactions);
+  set_alpha({py_alpha, "`FtrlParams.alpha`"});
+  set_beta({py_beta, "`FtrlParams.beta`"});
+  set_lambda1({py_lambda1, "`FtrlParams.lambda1`"});
+  set_lambda2({py_lambda2, "`FtrlParams.lambda2`"});
+  set_nbins({py_nbins, "`FtrlParams.nbins`"});
+  set_mantissa_nbits({py_mantissa_nbits, "`FtrlParams.mantissa_nbits`"});
+  set_nepochs({py_nepochs, "`FtrlParams.nepochs`"});
+  set_double_precision({py_double_precision, "`FtrlParams.double_precision`"});
+  set_negative_class({py_negative_class, "`FtrlParams.negative_class`"});
+  set_interactions({py_interactions, "`FtrlParams.interactions`"});
 }
 
 
@@ -959,16 +959,16 @@ void Ftrl::set_params_tuple(robj params) {
     throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
                        << "got: " << n_params;
   }
-  set_alpha(py::Arg(params_tuple[0].to_borrowed_ref()));
-  set_beta(py::Arg(params_tuple[1].to_borrowed_ref()));
-  set_lambda1(py::Arg(params_tuple[2].to_borrowed_ref()));
-  set_lambda2(py::Arg(params_tuple[3].to_borrowed_ref()));
-  set_nbins(py::Arg(params_tuple[4].to_borrowed_ref()));
-  set_mantissa_nbits(py::Arg(params_tuple[5].to_borrowed_ref()));
-  set_nepochs(py::Arg(params_tuple[6].to_borrowed_ref()));
-  set_double_precision(py::Arg(params_tuple[7].to_borrowed_ref()));
-  set_negative_class(py::Arg(params_tuple[8].to_borrowed_ref()));
-  set_interactions(py::Arg(params_tuple[9].to_borrowed_ref()));
+  set_alpha({params_tuple[0], "alpha"});
+  set_beta({params_tuple[1], "beta"});
+  set_lambda1({params_tuple[2], "lambda1"});
+  set_lambda2({params_tuple[3], "lambda2"});
+  set_nbins({params_tuple[4], "nbins"});
+  set_mantissa_nbits({params_tuple[5], "mantissa_nbits"});
+  set_nepochs({params_tuple[6], "nepochs"});
+  set_double_precision({params_tuple[7], "double_precision"});
+  set_negative_class({params_tuple[8], "negative_class"});
+  set_interactions({params_tuple[9], "interactions"});
 }
 
 

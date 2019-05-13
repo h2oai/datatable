@@ -67,7 +67,7 @@ static py::oobj get_ups() {
 
 static void set_ups(py::oobj value) {
   double x = value.to_double();
-  py::Validator::check_positive(x, value);
+  py::Validator::check_positive(x, {value, "ups"});
   updates_per_second = x;
 }
 
@@ -95,7 +95,7 @@ static py::oobj get_min_duration() {
 
 static void set_min_duration(py::oobj value) {
   double x = value.to_double();
-  py::Validator::check_not_negative(x, value);
+  py::Validator::check_not_negative(x, {value, "min_duration"});
   min_duration = x;
 }
 

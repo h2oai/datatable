@@ -29,7 +29,9 @@ class Arg : public _obj::error_manager {
     mutable std::string cached_name;
 
   public:
-    Arg(PyObject* value = nullptr);
+    Arg();
+    Arg(py::_obj, const std::string&);
+    explicit Arg(const std::string&);
     Arg(const Arg&) = default;
     virtual ~Arg() override;
     void init(size_t i, PKArgs* args);
@@ -82,6 +84,7 @@ class Arg : public _obj::error_manager {
     virtual Error error_not_integer        (PyObject*) const override;
     virtual Error error_int_negative       (PyObject*) const override;
     virtual Error error_not_double         (PyObject*) const override;
+    virtual Error error_not_iterable       (PyObject*) const override;
 
     // ?
     explicit operator bool() const noexcept { return pyobj.operator bool(); }
