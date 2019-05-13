@@ -208,3 +208,20 @@ def test_kfold_random_any(seed):
 
     all_folds.sort()
     assert all_folds == list(range(n))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_kfold_random_stable(seed):
+    random.seed(seed)
+    k = 2 + int(random.expovariate(0.2))
+    n = k + int(random.expovariate(0.000001))
+    splits1 = kfold_random(nrows=n, nsplits=k, seed=seed)
+    with dt.options.context(nthreads=dt.options.nthreads // 2):
+        splits2 = kfold_random(nrows=n, nsplits=k, seed=seed)
+    assert len(splits1) == len(splits2) == k
+    for i in range(k):
+        assert len(splits1[i]) == len(splits2[i]) == 2
+        for j in range(2):
+            values1 = splits1[i][j].to_list()[0]
+            values2 = splits2[i][j].to_list()[0]
+            assert values1 == values2
