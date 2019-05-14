@@ -55,7 +55,7 @@ enum class Op : size_t {
   // Unary
   UPLUS = UNOP_FIRST,
   UMINUS,
-  INVERT,
+  UINVERT,
   ISFINITE,
   ISINF,
   ISNA,

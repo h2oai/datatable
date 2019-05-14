@@ -42,8 +42,38 @@ class expr_unaryop : public base_expr {
 };
 
 
-// Called once at module initialization
-void init_unops();
+
+//------------------------------------------------------------------------------
+// unary_infos
+//------------------------------------------------------------------------------
+
+
+
+class unary_infos {
+  using unary_func_t = void(*)(const Column* inputcol, Column* outputcol);
+  public:
+    struct uinfo {
+      unary_func_t fn;
+      SType output_stype;
+      size_t : 56;
+    };
+
+    unary_infos();
+    const uinfo& xget(Op opcode, SType input_stype) const;
+
+  private:
+    std::unordered_map<size_t, uinfo> info;
+    std::unordered_map<size_t, std::string> names;
+
+    static constexpr size_t id(Op) noexcept;
+    static constexpr size_t id(Op, SType) noexcept;
+    void set_name(Op, const std::string&);
+    void add(Op, SType, SType, unary_func_t);
+};
+
+
+extern unary_infos unary_library;
+
 
 
 }}

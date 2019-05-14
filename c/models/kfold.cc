@@ -222,8 +222,7 @@ properties:
   - The row indices in all train and test folds will be sorted.
 
 The function uses single-pass parallelized algorithm to construct the
-folds, which is why the final assignment is dependent on the number
-of threads being used.
+folds.
 
 Parameters
 ----------
@@ -235,10 +234,16 @@ nsplits: int
 
 seed: int (optional)
     Seed value for the random number generator used by this function.
-    Calling ``kfold_random()`` several times with same seed value
-    will produce same results each time, provided that the number
-    of threads remains constant.
+    Calling ``kfold_random()`` several times with the same seed values
+    will produce same results each time.
 )");
+
+
+static constexpr size_t CHUNK_SIZE = 4096;
+
+inline static size_t chunk_start(size_t i, size_t nchunks, size_t nrows) {
+  return (i * nrows / nchunks);
+}
 
 
 static oobj kfold_random(const PKArgs& args) {
@@ -256,7 +261,10 @@ static oobj kfold_random(const PKArgs& args) {
   // The data will be processed in parallel, split by rows into
   // `nchunks` chunks. Each chunk has size at least 1, and is comprised
   // of rows `[i * nrows / nchunks .. (i + 1) * nrows / nchunks)`.
-  size_t nchunks = std::min(dt::num_threads_in_pool(), nrows);
+  // The number or chunks may not be a function of the number of threads,
+  // because that would cause the random assignment to be non-reproducible.
+  size_t nchunks = nrows / CHUNK_SIZE;
+  if (nchunks == 0) nchunks = 1;
 
   // Now, we want each fold to have predetermined size of approximately
   // `nrows/nsplits` (up to round-off error, more precisely each fold's
@@ -277,7 +285,8 @@ static oobj kfold_random(const PKArgs& args) {
 
     std::vector<size_t> rows_in_chunk(nchunks);
     for (size_t i = 0; i < nchunks; ++i) {
-      rows_in_chunk[i] = (i + 1) * nrows / nchunks - i * nrows / nchunks;
+      rows_in_chunk[i] = chunk_start(i + 1, nchunks, nrows) -
+                         chunk_start(i, nchunks, nrows);
     }
     for (size_t x = 0; x < nsplits; ++x) {
       size_t fold_size = (x + 1) * nrows / nsplits - x * nrows / nsplits;
@@ -294,7 +303,8 @@ static oobj kfold_random(const PKArgs& args) {
     }
     #ifndef NDEBUG
       for (size_t i = 0; i < nchunks; ++i) {
-        size_t chunk_size = (i + 1) * nrows / nchunks - i * nrows / nchunks;
+        size_t chunk_size = chunk_start(i + 1, nchunks, nrows) -
+                            chunk_start(i, nchunks, nrows);
         size_t actual = 0;
         for (size_t x = 0; x < nsplits; ++x) actual += s[x][i];
         xassert(actual == chunk_size);
@@ -335,20 +345,19 @@ static oobj kfold_random(const PKArgs& args) {
   }
 
   // Fill-in the folds arrays
-  dt::parallel_region(
-    /* nthreads = */ nchunks,
-    [&] {
-      size_t i = dt::this_thread_index();
-      size_t row0 = i * nrows / nchunks;
-      size_t row1 = (i + 1) * nrows / nchunks;
+  dt::parallel_for_dynamic(
+    /* niterations = */ nchunks,
+    [&](size_t i) {
+      size_t row0 = chunk_start(i, nchunks, nrows);
+      size_t row1 = chunk_start(i + 1, nchunks, nrows);
 
       // Copy into a thread-private array so that arrays don't trample
       // each other's cachelines.
       std::vector<size_t> xcounts(nsplits);
       for (size_t x = 0; x < nsplits; ++x) xcounts[x] = s[x][i];
-      // Each thread carries its own copy of a random generator
+      // Each chunk starts from a predetermined seed value
       std::mt19937 gen;
-      gen.seed(static_cast<uint32_t>(seed + i * 134368500));
+      gen.seed(static_cast<uint32_t>(seed + i * 134368501));
       std::uniform_int_distribution<size_t> dis(0, nsplits - 1);
 
       for (size_t j = row0; j < row1; ++j) {
