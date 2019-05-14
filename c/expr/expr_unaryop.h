@@ -50,7 +50,7 @@ class expr_unaryop : public base_expr {
 
 
 class unary_infos {
-  using unary_func_t = void(*)(const Column* inputcol, Column* outputcol);
+  using unary_func_t = void(*)(Op op, size_t nrows, const void* inp, void* out);
   public:
     struct uinfo {
       unary_func_t fn;
