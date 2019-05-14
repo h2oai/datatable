@@ -241,7 +241,7 @@ unary_infos::unary_infos() {
   add(Op::CEIL, int16, int16, nullptr);
   add(Op::CEIL, int32, int32, nullptr);
   add(Op::CEIL, int64, int64, nullptr);
-  add(Op::CEIL, flt32, flt32, map11<float,  float,  std::ceilf>);
+  add(Op::CEIL, flt32, flt32, map11<float,  float,  std::ceil>);
   add(Op::CEIL, flt64, flt64, map11<double, double, std::ceil>);
 
   add(Op::FLOOR, bool8, int8,  nullptr);
@@ -249,7 +249,7 @@ unary_infos::unary_infos() {
   add(Op::FLOOR, int16, int16, nullptr);
   add(Op::FLOOR, int32, int32, nullptr);
   add(Op::FLOOR, int64, int64, nullptr);
-  add(Op::FLOOR, flt32, flt32, map11<float,  float,  std::floorf>);
+  add(Op::FLOOR, flt32, flt32, map11<float,  float,  std::floor>);
   add(Op::FLOOR, flt64, flt64, map11<double, double, std::floor>);
 
   add(Op::TRUNC, bool8, int8,  nullptr);
@@ -257,7 +257,7 @@ unary_infos::unary_infos() {
   add(Op::TRUNC, int16, int16, nullptr);
   add(Op::TRUNC, int32, int32, nullptr);
   add(Op::TRUNC, int64, int64, nullptr);
-  add(Op::TRUNC, flt32, flt32, map11<float,  float,  std::truncf>);
+  add(Op::TRUNC, flt32, flt32, map11<float,  float,  std::trunc>);
   add(Op::TRUNC, flt64, flt64, map11<double, double, std::trunc>);
 
   add(Op::LEN, str32, int32, map_str_len<uint32_t, int32_t>);
