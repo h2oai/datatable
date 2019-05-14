@@ -196,7 +196,7 @@ void thread_pool::init_options() {
       return py::oint(num_threads_in_pool());
     },
 
-    /* setter= */[](py::oobj value) {
+    /* setter= */[](const py::Arg& value) {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
       if (nth <= 0) nth = 1;

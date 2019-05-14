@@ -9,7 +9,6 @@
 #include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/ext_type.h"
-#include "python/obj.h"
 #include "python/string.h"
 #include "datatablemodule.h"
 #include "options.h"
@@ -22,7 +21,7 @@ namespace py {
 
 struct config_option : public PyObject {
   std::function<oobj()> getter;
-  std::function<void(oobj)> setter;
+  std::function<void(const py::Arg&)> setter;
   oobj name;
   oobj default_value;
   oobj docstring;
@@ -73,7 +72,7 @@ static PKArgs args_get(0, 0, 0, false, false, {}, "get", nullptr);
 static PKArgs args_set(1, 0, 0, false, false, {"x"}, "set", nullptr);
 
 oobj config_option::get(const PKArgs&) { return getter(); }
-void config_option::set(const PKArgs& args) { setter(args[0].to_oobj()); }
+void config_option::set(const PKArgs& args) { setter(args[0]); }
 
 
 
@@ -127,7 +126,7 @@ void use_options_store(py::oobj options) {
 
 void register_option(const char* name,
                      std::function<py::oobj()> getter,
-                     std::function<void(py::oobj)> setter,
+                     std::function<void(const py::Arg&)> setter,
                      const char* docstring)
 {
   xassert(dt_options);
