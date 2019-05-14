@@ -129,7 +129,7 @@ static py::oobj get_callback() {
 }
 
 static void set_callback(const py::Arg& value) {
-  auto py_obj = value.to_oobj();
+  py::oobj py_obj = value.to_oobj();
   Py_XSETREF(progress_fn,
              value.is_none()? nullptr : std::move(py_obj).release());
 }

@@ -144,10 +144,8 @@ void Ftrl::init_py_params() {
  *  Deallocate underlying data for an Ftrl object
  */
 void Ftrl::m__dealloc__() {
-  if (dtft != nullptr) {
-    delete dtft;
-    dtft = nullptr;
-  }
+  delete dtft;
+  dtft = nullptr;
 }
 
 
