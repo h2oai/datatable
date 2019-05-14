@@ -29,7 +29,6 @@
 
 namespace py {
 
-
 /**
  *  Main class that controls Python FTRL API.
  */
@@ -87,6 +86,7 @@ class Ftrl : public PyObject {
     oobj get_interactions() const;
     oobj get_double_precision() const;
     oobj get_negative_class() const;
+    oobj get_model_type() const;
 
     // Setters
     void set_model(robj);             // Not exposed, used for unpickling only
@@ -104,6 +104,7 @@ class Ftrl : public PyObject {
     void set_interactions(const Arg&);      // Disabled for a trained model
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model
+    void set_model_type(const Arg&);
 };
 
 

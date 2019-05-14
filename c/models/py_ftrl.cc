@@ -30,11 +30,20 @@
 
 namespace py {
 
-PKArgs Ftrl::Type::args___init__(0, 1, 10, false, false,
+static std::map<std::string, dt::FtrlModelType> FtrlModelType = {
+   {"auto", dt::FtrlModelType::AUTO},
+   {"regression", dt::FtrlModelType::REGRESSION},
+   {"binomial", dt::FtrlModelType::BINOMIAL},
+   {"multinomial", dt::FtrlModelType::MULTINOMIAL}
+};
+
+
+PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "mantissa_nbits",
                                  "nepochs", "double_precision",
-                                 "negative_class", "interactions"},
+                                 "negative_class", "interactions",
+                                 "model_type"},
                                  "__init__", nullptr);
 
 
@@ -57,6 +66,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_double_precision = args[8];
   const Arg& arg_negative_class   = args[9];
   const Arg& arg_interactions     = args[10];
+  const Arg& arg_model_type       = args[11];
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -69,6 +79,7 @@ void Ftrl::m__init__(PKArgs& args) {
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
   bool defined_interactions     = !arg_interactions.is_none_or_undefined();
+  bool defined_model_type       = !arg_model_type.is_none_or_undefined();
   bool defined_individual_param = defined_alpha || defined_beta ||
                                   defined_lambda1 || defined_lambda2 ||
                                   defined_nbins || defined_mantissa_nbits ||
@@ -82,8 +93,8 @@ void Ftrl::m__init__(PKArgs& args) {
       throw TypeError() << "You can either pass all the parameters with "
         << "`params` or any of the individual parameters with `alpha`, "
         << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
-        << "`double_precision`, `negative_class` or `interactions` to Ftrl constructor, "
-        << "but not both at the same time";
+        << "`double_precision`, `negative_class`, `interactions` or `model_type` "
+        << "to Ftrl constructor, but not both at the same time";
     }
 
     py::otuple py_params_in = arg_params.to_otuple();
@@ -109,6 +120,7 @@ void Ftrl::m__init__(PKArgs& args) {
     if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_negative_class) set_negative_class(arg_negative_class);
     if (defined_interactions) set_interactions(arg_interactions);
+    if (defined_model_type) set_model_type(arg_model_type);
   }
 }
 
@@ -137,6 +149,7 @@ void Ftrl::init_py_params() {
   py_params.replace(7, py::obool(params.double_precision));
   py_params.replace(8, py::obool(params.negative_class));
   py_params.replace(9, py::None());
+  py_params.replace(10, py::ostring("auto"));
 }
 
 
@@ -898,6 +911,33 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
 }
 
 
+/**
+ *  .model_type
+ */
+static GSArgs args_model_type(
+  "model_type",
+  "FTRL model tyoe: 'auto', 'regression', 'binomial' or 'multinomial.");
+
+
+oobj Ftrl::get_model_type() const {
+  return py_params.get_attr("model_type");
+}
+
+
+void Ftrl::set_model_type(const Arg& py_model_type) {
+  if (dtft->is_trained()) {
+    throw ValueError() << "Cannot change `model_type` for a trained model, "
+                       << "reset this model or create a new one";
+  }
+  std::string model_type = py_model_type.to_string();
+  if (py::FtrlModelType.find(model_type) == py::FtrlModelType.end() ) {
+    throw ValueError() << "Model type `" << model_type << "` is not supported";
+  }
+
+  dtft->set_model_type(FtrlModelType[model_type]);
+  py_params.replace(10, py_model_type.to_robj());
+}
+
 
 /**
  *  .params
@@ -916,8 +956,8 @@ oobj Ftrl::get_params_namedtuple() const {
 void Ftrl::set_params_namedtuple(robj params_in) {
   py::otuple params_tuple = params_in.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 10) {
-    throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
+  if (n_params != 11) {
+    throw ValueError() << "Tuple of FTRL parameters should have 11 elements, "
                        << "got: " << n_params;
   }
   py::oobj py_alpha = params_in.get_attr("alpha");
@@ -930,6 +970,7 @@ void Ftrl::set_params_namedtuple(robj params_in) {
   py::oobj py_double_precision = params_in.get_attr("double_precision");
   py::oobj py_negative_class = params_in.get_attr("negative_class");
   py::oobj py_interactions = params_in.get_attr("interactions");
+  py::oobj py_model_type = params_in.get_attr("model_type");
 
   set_alpha({py_alpha, "`FtrlParams.alpha`"});
   set_beta({py_beta, "`FtrlParams.beta`"});
@@ -941,6 +982,7 @@ void Ftrl::set_params_namedtuple(robj params_in) {
   set_double_precision({py_double_precision, "`FtrlParams.double_precision`"});
   set_negative_class({py_negative_class, "`FtrlParams.negative_class`"});
   set_interactions({py_interactions, "`FtrlParams.interactions`"});
+  set_model_type({py_model_type, "`FtrlParams.model_type`"});
 }
 
 
@@ -954,7 +996,8 @@ oobj Ftrl::get_params_tuple() const {
                  get_nepochs(),
                  get_double_precision(),
                  get_negative_class(),
-                 get_interactions()
+                 get_interactions(),
+                 get_model_type()
                 };
 }
 
@@ -962,8 +1005,8 @@ oobj Ftrl::get_params_tuple() const {
 void Ftrl::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 10) {
-    throw ValueError() << "Tuple of FTRL parameters should have 10 elements, "
+  if (n_params != 11) {
+    throw ValueError() << "Tuple of FTRL parameters should have 11 elements, "
                        << "got: " << n_params;
   }
   set_alpha({params_tuple[0], "alpha"});
@@ -976,6 +1019,7 @@ void Ftrl::set_params_tuple(robj params) {
   set_double_precision({params_tuple[7], "double_precision"});
   set_negative_class({params_tuple[8], "negative_class"});
   set_interactions({params_tuple[9], "interactions"});
+  set_model_type({params_tuple[10], "model_type"});
 }
 
 
@@ -989,15 +1033,11 @@ static PKArgs args___getstate__(
 oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_model = get_model();
   py::oobj py_fi = get_normalized_fi(false);
-  py::oobj py_model_type = py::oint(static_cast<int32_t>(
-                             dtft->get_model_type()
-                           ));
   py::oobj py_labels = get_labels();
   py::oobj py_colnames = get_colnames();
   py::oobj py_params_tuple = get_params_tuple();
 
-  return otuple {py_params_tuple, py_model, py_fi, py_model_type, py_labels,
-                 py_colnames};
+  return otuple {py_params_tuple, py_model, py_fi, py_labels, py_colnames};
 }
 
 
@@ -1023,9 +1063,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
     dtft->set_fi(pickle[2].to_datatable()->copy());
   }
 
-  dtft->set_model_type(static_cast<dt::FtrlModelType>(pickle[3].to_int32()));
-  set_labels(pickle[4]);
-  set_colnames(pickle[5]);
+  set_labels(pickle[3]);
+  set_colnames(pickle[4]);
 }
 
 
@@ -1098,6 +1137,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
   ADD_GETSET(gs, &Ftrl::get_negative_class, &Ftrl::set_negative_class, args_negative_class);
   ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions, args_interactions);
+  ADD_GETSET(gs, &Ftrl::get_model_type, &Ftrl::set_model_type, args_model_type);
 
   // Model and features
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
@@ -1129,7 +1169,8 @@ onamedtupletype Ftrl::py_ntt(
     {args_nepochs.name,          args_nepochs.doc},
     {args_double_precision.name, args_double_precision.doc},
     {args_negative_class.name,   args_negative_class.doc},
-    {args_interactions.name,     args_interactions.doc}
+    {args_interactions.name,     args_interactions.doc},
+    {args_model_type.name,       args_model_type.doc}
   }
 );
 

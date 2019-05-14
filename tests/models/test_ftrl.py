@@ -44,10 +44,11 @@ from tests import assert_equals, noop
 Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambda2",
                                           "nbins", "mantissa_nbits", "nepochs",
                                           "double_precision", "negative_class",
-                                          "interactions"])
+                                          "interactions", "model_type"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  mantissa_nbits = 6, nepochs = 7, double_precision = True,
-                 negative_class = True, interactions = [["C0"]])
+                 negative_class = True, interactions = [["C0"]],
+                 model_type = 'binomial')
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
                    [random.random() for _ in range(tparams.nbins)]],
@@ -56,7 +57,7 @@ tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 10**6, mantissa_nbits = 10, nepochs = 1,
                         double_precision = False, negative_class = False,
-                        interactions = None)
+                        interactions = None, model_type = 'auto')
 
 epsilon = 0.01
 
@@ -138,7 +139,8 @@ def test_ftrl_construct_wrong_combination():
     assert ("You can either pass all the parameters with `params` or any of "
             "the individual parameters with `alpha`, `beta`, `lambda1`, "
             "`lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, `double_precision`, "
-            "`negative_class` or `interactions` to Ftrl constructor, but not both at the same time"
+            "`negative_class`, `interactions` or `model_type` to Ftrl constructor, "
+            "but not both at the same time"
             == str(e.value))
 
 
@@ -252,12 +254,13 @@ def test_ftrl_create_individual():
               nepochs = tparams.nepochs,
               double_precision = tparams.double_precision,
               negative_class = tparams.negative_class,
-              interactions = tparams.interactions)
+              interactions = tparams.interactions,
+              model_type = tparams.model_type)
     assert ft.params == (tparams.alpha, tparams.beta,
                          tparams.lambda1, tparams.lambda2,
                          tparams.nbins, tparams.mantissa_nbits, tparams.nepochs,
                          tparams.double_precision, tparams.negative_class,
-                         tparams.interactions)
+                         tparams.interactions, tparams.model_type)
 
 
 #-------------------------------------------------------------------------------
@@ -268,8 +271,8 @@ def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert ((ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
-            ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions)
-            == tparams)
+            ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions,
+            ft.model_type) == tparams)
 
 
 def test_ftrl_set_individual():
@@ -283,6 +286,7 @@ def test_ftrl_set_individual():
     ft.nepochs = tparams.nepochs
     ft.negative_class = tparams.negative_class
     ft.interactions = tparams.interactions
+    ft.model_type = tparams.model_type
     assert ft.params == tparams
 
 
