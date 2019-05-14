@@ -35,9 +35,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   frame will be split into train and test part according to the K-fold
   splitting scheme.
 
-- Added function `dt.models.kfold_random(nrows, nsplits)`, which is similar to
-  `kfold(nrows, nsplits)`, except that the assignment of rows into folds is
-  randomized, not deterministic.
+- Added function `dt.models.kfold_random(nrows, nsplits, seed)`, which is
+  similar to `kfold(nrows, nsplits)`, except that the assignment of rows into
+  folds is randomized, not deterministic.
 
 - `Frame.rbind()` can now also accept a list or tuple of frames (previously
   only a vararg sequence was allowed).
@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Its behavior can be controlled via `dt.options.progress` set of options.
 
 - internal function `dt.internal.compiler_version()`.
+
+-
 
 - New `datatable.math` module is a library of various mathematical functions
   that can be applied to datatable Frames. The set of functions is close to
