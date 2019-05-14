@@ -33,7 +33,8 @@ namespace dt {
  */
 template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
-  model_type(FtrlModelType::NONE),
+  model_type(FtrlModelType::AUTO),
+  is_model_trained(false),
   params(params_in),
   alpha(static_cast<T>(params_in.alpha)),
   beta(static_cast<T>(params_in.beta)),
@@ -86,18 +87,22 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   FtrlFitOutput res;
 
   SType stype_y = dt_y->columns[0]->stype();
-  switch (stype_y) {
-    case SType::BOOL:    res = fit_binomial(); break;
-    case SType::INT8:    res = fit_regression<int8_t>(); break;
-    case SType::INT16:   res = fit_regression<int16_t>(); break;
-    case SType::INT32:   res = fit_regression<int32_t>(); break;
-    case SType::INT64:   res = fit_regression<int64_t>(); break;
-    case SType::FLOAT32: res = fit_regression<float>(); break;
-    case SType::FLOAT64: res = fit_regression<double>(); break;
-    case SType::STR32:   FALLTHROUGH;
-    case SType::STR64:   res = fit_multinomial(); break;
-    default:             throw TypeError() << "Targets of type `"
-                                           << stype_y << "` are not supported";
+
+  if (is_model_trained || model_type == FtrlModelType::AUTO) {
+    switch (stype_y) {
+      case SType::BOOL:    res = fit_binomial(); break;
+      case SType::INT8:    res = fit_regression<int8_t>(); break;
+      case SType::INT16:   res = fit_regression<int16_t>(); break;
+      case SType::INT32:   res = fit_regression<int32_t>(); break;
+      case SType::INT64:   res = fit_regression<int64_t>(); break;
+      case SType::FLOAT32: res = fit_regression<float>(); break;
+      case SType::FLOAT64: res = fit_regression<double>(); break;
+      case SType::STR32:   FALLTHROUGH;
+      case SType::STR64:   res = fit_multinomial(); break;
+      default:             throw TypeError() << "Targets of type `"
+                                             << stype_y << "` are not supported";
+    }
+    is_model_trained = true;
   }
 
   dt_X = nullptr;
@@ -116,13 +121,12 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
   xassert(dt_y->ncols == 1);
-  if (model_type != FtrlModelType::NONE &&
-      model_type != FtrlModelType::BINOMIAL) {
+  if (is_model_trained && model_type != FtrlModelType::BINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from binomial. To train it "
                          "in a binomial mode this model should be reset.";
   }
-  if (model_type == FtrlModelType::NONE) {
+  if (model_type == FtrlModelType::AUTO) {
     labels = dt_y->get_names();
     create_model();
     model_type = FtrlModelType::BINOMIAL;
@@ -136,13 +140,12 @@ template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
   xassert(dt_y->ncols == 1);
-  if (model_type != FtrlModelType::NONE &&
-      model_type != FtrlModelType::REGRESSION) {
+  if (is_model_trained && model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
-  if (model_type == FtrlModelType::NONE) {
+  if (model_type == FtrlModelType::AUTO) {
     labels = dt_y->get_names();
     create_model();
     model_type = FtrlModelType::REGRESSION;
@@ -154,14 +157,13 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_multinomial() {
-  if (model_type != FtrlModelType::NONE &&
-      model_type != FtrlModelType::MULTINOMIAL) {
+  if (is_model_trained && model_type != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from multinomial. To train it "
                          "in a multinomial mode this model should be reset.";
   }
 
-  if (model_type == FtrlModelType::NONE) {
+  if (model_type == FtrlModelType::AUTO) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
     if (params.negative_class) {
@@ -182,6 +184,255 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
   }
 
   return fit<int8_t>(sigmoid<T>, log_loss<T>);
+}
+
+
+/**
+ *  Fit model on a datatable.
+ */
+template <typename T>
+template <typename U> /* target column(s) data type */
+FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
+  // Define features, weight pointers, feature importances storage,
+  // as well as column hashers.
+  define_features();
+  init_weights();
+  if (dt_fi == nullptr) create_fi();
+  auto hashers = create_hashers(dt_X);
+
+  // Obtain rowindex and data pointers for the target column(s).
+  std::vector<RowIndex> ri, ri_val;
+  std::vector<const U*> data, data_val;
+  fill_ri_data<U>(dt_y, ri, data);
+  auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
+
+  // Training settings. By default each training iteration consists of
+  // `dt_X->nrows` rows.
+  size_t niterations = nepochs;
+  size_t iteration_nrows = dt_X->nrows;
+  size_t total_nrows = niterations * iteration_nrows;
+
+  // If a validation set is provided, we adjust batch size to `nepochs_val`.
+  // After each batch, we calculate loss on the validation dataset,
+  // and do early stopping if relative loss does not decrese by at least
+  // `val_error`.
+  bool validation = !std::isnan(nepochs_val);
+  T loss = T_NAN; // This value is returned when validation is not enabled
+  T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
+  std::vector<T> loss_history;
+  std::vector<hasherptr> hashers_val;
+  if (validation) {
+    hashers_val = create_hashers(dt_X_val);
+    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
+    niterations = total_nrows / iteration_nrows;
+    loss_history.resize(val_niters, 0.0);
+    fill_ri_data<U>(dt_y_val, ri_val, data_val);
+  }
+
+
+  std::mutex m;
+  size_t iteration_end = 0;
+
+  // If we request more threads than is available, `dt::parallel_region()`
+  // will fall back to the possible maximum.
+  size_t nthreads = std::max(iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD, 1lu);
+  dt::parallel_region(nthreads,
+    [&]() {
+      // Each thread gets a private storage for hashes,
+      // temporary weights and feature importances.
+      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+      tptr<T> w = tptr<T>(new T[nfeatures]);
+      tptr<T> fi = tptr<T>(new T[nfeatures]());
+
+      for (size_t iter = 0; iter < niterations; ++iter) {
+        size_t iteration_start = iter * iteration_nrows;
+        iteration_end = (iter == niterations - 1)? total_nrows :
+                                                   (iter + 1) * iteration_nrows;
+        size_t iteration_size = iteration_end - iteration_start;
+
+        // Training.
+        dt::parallel_for_static(iteration_size, [&](size_t i) {
+          size_t ii = (iteration_start + i) % dt_X->nrows;
+          const size_t j0 = ri[0][ii];
+          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
+          // dt_y has only one column that may contain NA's or be a view
+          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
+          // columns as there are labels, and split_into_nhot() filters out
+          // NA's and can never be a view. Therefore, to ignore NA targets
+          // it is enough to check the condition below for the zero column only.
+          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
+          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+            hash_row(x, hashers, ii);
+            for (size_t k = 0; k < dt_y->ncols; ++k) {
+              const size_t j = ri[k][ii];
+              T p = linkfn(predict_row(
+                      x, w, k,
+                      [&](size_t f_id, T f_imp) {
+                        fi[f_id] += f_imp;
+                      }
+                    ));
+              update(x, w, p, data[k][j], k);
+            }
+          }
+        }); // End training.
+        barrier();
+
+        // Validation and early stopping.
+        if (validation) {
+          dt::atomic<T> loss_global {0.0};
+          T loss_local = 0.0;
+
+          dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
+            const size_t j0 = ri_val[0][i];
+            // This condition is kind of the same as for training, see comment
+            // above.
+            if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
+              hash_row(x, hashers_val, i);
+              for (size_t k = 0; k < dt_y_val->ncols; ++k) {
+                const size_t j = ri_val[k][i];
+                T p = linkfn(predict_row(
+                        x, w, map_val[k], [&](size_t, T){}
+                      ));
+                loss_local += lossfn(p, data_val[k][j]);
+              }
+            }
+          });
+          loss_global.fetch_add(loss_local);
+          barrier();
+
+          // Thread #0 checks relative loss change and, if it does not decrease
+          // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
+          // all the threads after `barrier()`.
+          if (dt::this_thread_index() == 0) {
+            T loss_current = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+            loss_history[iter % val_niters] = loss_current / val_niters;
+            loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
+            T loss_diff = (loss_old - loss) / loss_old;
+            bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
+            loss_old = is_loss_bad? T_NAN : loss;
+          }
+          barrier();
+
+          if (std::isnan(loss_old)) break;
+        } // End validation
+
+        // Update global feature importances with the local data.
+        std::lock_guard<std::mutex> lock(m);
+        for (size_t i = 0; i < nfeatures; ++i) {
+          data_fi[i] += fi[i];
+        }
+
+      } // End iteration.
+
+    }
+  );
+
+  double epoch_stopped = static_cast<double>(iteration_end) / dt_X->nrows;
+  FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  return res;
+}
+
+
+/**
+ *  Make a prediction for an array of hashed features.
+ */
+template <typename T>
+template <typename F>
+T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
+  T zero = static_cast<T>(0.0);
+  T wTx = zero;
+  T ia = 1 / alpha;
+  T rr = beta * ia + lambda2;
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    T absw = std::max(std::abs(z[k][j]) - lambda1, zero) /
+             (std::sqrt(n[k][j]) * ia + rr);
+    w[i] = -std::copysign(absw, z[k][j]);
+    wTx += w[i];
+    fifn(i, absw);
+  }
+  return wTx;
+}
+
+
+/**
+ *  Update weights based on a prediction p and the actual target y.
+ */
+template <typename T>
+template <typename U /* column data type */>
+void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
+                         T p, U y, size_t k) {
+  T ia = 1 / alpha;
+  T g = p - static_cast<T>(y);
+  T gsq = g * g;
+  for (size_t i = 0; i < nfeatures; ++i) {
+    size_t j = x[i];
+    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ia;
+    z[k][j] += g - sigma * w[i];
+    n[k][j] += gsq;
+  }
+}
+
+
+/**
+ *  Predict on a datatable and return a new datatable with
+ *  the predicted probabilities.
+ */
+template <typename T>
+dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
+  if (!is_model_trained) {
+    throw ValueError() << "To make predictions, the model should be trained "
+                          "first";
+  }
+  dt_X = dt_X_in;
+  init_weights();
+
+  // Re-create hashers, as stypes for predictions may be different.
+  auto hashers = create_hashers(dt_X);
+
+  // Create datatable for predictions and obtain column data pointers.
+  size_t nlabels = labels.size();
+  dtptr dt_p = create_p(dt_X->nrows);
+  std::vector<T*> data_p(nlabels);
+  for (size_t i = 0; i < nlabels; ++i) {
+    data_p[i] = static_cast<T*>(dt_p->columns[i]->data_w());
+  }
+
+  // Determine which link function we should use.
+  T (*linkfn)(T);
+  switch (model_type) {
+    case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
+    case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
+    case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
+                                                     linkfn = std::exp;
+                                      break;
+    default : throw ValueError() << "Cannot make any predictions, "
+                                 << "the model was trained in an unknown mode";
+  }
+
+
+  size_t nthreads = dt_X->nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
+  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
+
+  dt::parallel_region(nthreads, [&]() {
+    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
+    tptr<T> w = tptr<T>(new T[nfeatures]);
+
+    dt::parallel_for_static(dt_X->nrows, [&](size_t i){
+      hash_row(x, hashers, i);
+      for (size_t k = 0; k < nlabels; ++k) {
+        data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
+      }
+    });
+  });
+
+  // For multinomial case, when there is two labels, we match binomial
+  // classifier by using `sigmoid` link function. When there is more
+  // than two labels, we use `std::exp` link function, and do normalization,
+  // so that predictions sum up to 1, effectively doing `softmax` linking.
+  if (nlabels > 2) normalize_rows(dt_p);
+  dt_X = nullptr;
+  return dt_p;
 }
 
 
@@ -288,255 +539,6 @@ dtptr Ftrl<T>::create_y_val() {
   }
 
   return dtptr(new DataTable(std::move(cols)));
-}
-
-
-/**
- *  Fit model on a datatable.
- */
-template <typename T>
-template <typename U> /* target column(s) data type */
-FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
-  // Define features, weight pointers, feature importances storage,
-  // as well as column hashers.
-  define_features();
-  init_weights();
-  if (dt_fi == nullptr) create_fi();
-  auto hashers = create_hashers(dt_X);
-
-  // Obtain rowindex and data pointers for the target column(s).
-  std::vector<RowIndex> ri, ri_val;
-  std::vector<const U*> data, data_val;
-  fill_ri_data<U>(dt_y, ri, data);
-  auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
-
-  // Training settings. By default each training iteration consists of
-  // `dt_X->nrows` rows.
-  size_t niterations = nepochs;
-  size_t iteration_nrows = dt_X->nrows;
-  size_t total_nrows = niterations * iteration_nrows;
-
-  // If a validation set is provided, we adjust batch size to `nepochs_val`.
-  // After each batch, we calculate loss on the validation dataset,
-  // and do early stopping if relative loss does not decrese by at least
-  // `val_error`.
-  bool validation = !std::isnan(nepochs_val);
-  T loss = T_NAN; // This value is returned when validation is not enabled
-  T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
-  std::vector<T> loss_history;
-  std::vector<hasherptr> hashers_val;
-  if (validation) {
-    hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
-    niterations = total_nrows / iteration_nrows;
-    loss_history.resize(val_niters, 0.0);
-    fill_ri_data<U>(dt_y_val, ri_val, data_val);
-  }
-
-
-  std::mutex m;
-  size_t iteration_end = 0;
-
-  // If we request more threads than is available, `dt::parallel_region()`
-  // will fall back to the possible maximum.
-  size_t nthreads = std::max(iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD, 1lu);
-  dt::parallel_region(nthreads,
-    [&]() {
-      // Each thread gets a private storage for hashes,
-      // temporary weights and feature importances.
-      uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-      tptr<T> w = tptr<T>(new T[nfeatures]);
-      tptr<T> fi = tptr<T>(new T[nfeatures]());
-
-      for (size_t iter = 0; iter < niterations; ++iter) {
-        size_t iteration_start = iter * iteration_nrows;
-        iteration_end = (iter == niterations - 1)? total_nrows :
-                                                   (iter + 1) * iteration_nrows;
-        size_t iteration_size = iteration_end - iteration_start;
-
-        // Training.
-        dt::parallel_for_static(iteration_size, [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X->nrows;
-          const size_t j0 = ri[0][ii];
-          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-          // dt_y has only one column that may contain NA's or be a view
-          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-          // columns as there are labels, and split_into_nhot() filters out
-          // NA's and can never be a view. Therefore, to ignore NA targets
-          // it is enough to check the condition below for the zero column only.
-          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
-            hash_row(x, hashers, ii);
-            for (size_t k = 0; k < dt_y->ncols; ++k) {
-              const size_t j = ri[k][ii];
-              T p = linkfn(predict_row(
-                      x, w, k,
-                      [&](size_t f_id, T f_imp) {
-                        fi[f_id] += f_imp;
-                      }
-                    ));
-              update(x, w, p, data[k][j], k);
-            }
-          }
-        }); // End training.
-        barrier();
-
-        // Validation and early stopping.
-        if (validation) {
-          dt::atomic<T> loss_global { 0.0 };
-          T loss_local = 0.0;
-
-          dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
-            const size_t j0 = ri_val[0][i];
-            // This condition is kind of the same as for training, see comment
-            // above.
-            if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
-              hash_row(x, hashers_val, i);
-              for (size_t k = 0; k < dt_y_val->ncols; ++k) {
-                const size_t j = ri_val[k][i];
-                T p = linkfn(predict_row(
-                        x, w, map_val[k], [&](size_t, T){}
-                      ));
-                loss_local += lossfn(p, data_val[k][j]);
-              }
-            }
-          });
-          loss_global.fetch_add(loss_local);
-          barrier();
-
-          // Thread #0 checks relative loss change and, if it does not decrease
-          // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
-          // all the threads after `barrier()`.
-          if (dt::this_thread_index() == 0) {
-            T loss_current = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
-            loss_history[iter % val_niters] = loss_current / val_niters;
-            loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
-            T loss_diff = (loss_old - loss) / loss_old;
-            bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
-            loss_old = is_loss_bad? T_NAN : loss;
-          }
-          barrier();
-
-          if (std::isnan(loss_old)) break;
-        } // End validation
-
-        // Update global feature importances with the local data.
-        std::lock_guard<std::mutex> lock(m);
-        for (size_t i = 0; i < nfeatures; ++i) {
-          data_fi[i] += fi[i];
-        }
-
-      } // End iteration.
-
-    }
-  );
-
-  double epoch_stopped = static_cast<double>(iteration_end) / dt_X->nrows;
-  FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
-  return res;
-}
-
-
-/**
- *  Make a prediction for an array of hashed features.
- */
-template <typename T>
-template <typename F>
-T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
-  T zero = static_cast<T>(0.0);
-  T wTx = zero;
-  T ia = 1 / alpha;
-  T rr = beta * ia + lambda2;
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    T absw = std::max(std::abs(z[k][j]) - lambda1, zero) /
-             (std::sqrt(n[k][j]) * ia + rr);
-    w[i] = -std::copysign(absw, z[k][j]);
-    wTx += w[i];
-    fifn(i, absw);
-  }
-  return wTx;
-}
-
-
-/**
- *  Update weights based on a prediction p and the actual target y.
- */
-template <typename T>
-template <typename U /* column data type */>
-void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
-                         T p, U y, size_t k) {
-  T ia = 1 / alpha;
-  T g = p - static_cast<T>(y);
-  T gsq = g * g;
-  for (size_t i = 0; i < nfeatures; ++i) {
-    size_t j = x[i];
-    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ia;
-    z[k][j] += g - sigma * w[i];
-    n[k][j] += gsq;
-  }
-}
-
-
-/**
- *  Predict on a datatable and return a new datatable with
- *  the predicted probabilities.
- */
-template <typename T>
-dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
-  if (model_type == FtrlModelType::NONE) {
-    throw ValueError() << "To make predictions, the model should be trained "
-                          "first";
-  }
-  dt_X = dt_X_in;
-  init_weights();
-
-  // Re-create hashers, as stypes for predictions may be different.
-  auto hashers = create_hashers(dt_X);
-
-  // Create datatable for predictions and obtain column data pointers.
-  size_t nlabels = labels.size();
-  dtptr dt_p = create_p(dt_X->nrows);
-  std::vector<T*> data_p(nlabels);
-  for (size_t i = 0; i < nlabels; ++i) {
-    data_p[i] = static_cast<T*>(dt_p->columns[i]->data_w());
-  }
-
-  // Determine which link function we should use.
-  T (*linkfn)(T);
-  switch (model_type) {
-    case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
-    case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
-    case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
-                                                     linkfn = std::exp;
-                                      break;
-    default : throw ValueError() << "Cannot make any predictions, "
-                                 << "the model was trained in an unknown mode";
-  }
-
-
-  size_t nthreads = dt_X->nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
-  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
-
-  dt::parallel_region(nthreads, [&]() {
-    uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
-    tptr<T> w = tptr<T>(new T[nfeatures]);
-
-    dt::parallel_for_static(dt_X->nrows, [&](size_t i){
-      hash_row(x, hashers, i);
-      for (size_t k = 0; k < nlabels; ++k) {
-        data_p[k][i] = linkfn(predict_row(x, w, k, [&](size_t, T){}));
-      }
-    });
-  });
-
-  // For multinomial case, when there is two labels, we match binomial
-  // classifier by using `sigmoid` link function. When there is more
-  // than two labels, we use `std::exp` link function, and do normalization,
-  // so that predictions sum up to 1, effectively doing `softmax` linking.
-  if (nlabels > 2) normalize_rows(dt_p);
-  dt_X = nullptr;
-  return dt_p;
 }
 
 
@@ -667,7 +669,8 @@ template <typename T>
 void Ftrl<T>::reset() {
   dt_model = nullptr;
   dt_fi = nullptr;
-  model_type = FtrlModelType::NONE;
+  is_model_trained = false;
+  model_type = FtrlModelType::AUTO; // FIXME
   labels.clear();
   colname_hashes.clear();
   interactions.clear();
@@ -849,7 +852,7 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
  */
 template <typename T>
 bool Ftrl<T>::is_trained() {
-  return model_type != FtrlModelType::NONE;
+  return is_model_trained;
 }
 
 
@@ -1000,6 +1003,7 @@ void Ftrl<T>::set_model(DataTable* dt_model_in) {
 template <typename T>
 void Ftrl<T>::set_model_type(FtrlModelType model_type_in) {
   model_type = model_type_in;
+  if (model_type_in != FtrlModelType::AUTO) is_model_trained = true;
 }
 
 

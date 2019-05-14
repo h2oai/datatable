@@ -41,6 +41,8 @@ class Ftrl : public dt::FtrlBase {
     dtptr dt_model;
     std::vector<T*> z, n;
     FtrlModelType model_type;
+    bool is_model_trained;
+    size_t: 56;
 
     // Feature importances datatable of shape (nfeatures, 2),
     // where the first column contains feature names and the second one

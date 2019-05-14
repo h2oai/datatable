@@ -28,10 +28,22 @@ namespace dt {
 
 
 /**
+ *  Supported FTRL model types.
+ */
+enum class FtrlModelType : size_t {
+  AUTO        = 0, // Automatically detect model type
+  REGRESSION  = 1, // Numerical regression
+  BINOMIAL    = 2, // Binomial logistic regression
+  MULTINOMIAL = 3  // Multinomial logistic regression
+};
+
+
+/**
  *  All the FTRL parameters provided in Python are stored in this structure,
  *  that also defines their default values.
  */
 struct FtrlParams {
+    FtrlModelType model_type;
     double alpha;
     double beta;
     double lambda1;
@@ -41,8 +53,9 @@ struct FtrlParams {
     unsigned char mantissa_nbits;
     bool double_precision;
     bool negative_class;
-    size_t: 40;
-    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
+    size_t : 40;
+    FtrlParams() : model_type(FtrlModelType::AUTO),
+                   alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
                    nbins(1000000), nepochs(1), mantissa_nbits(10),
                    double_precision(false), negative_class(false)
                    {}
@@ -59,16 +72,6 @@ struct FtrlFitOutput {
     double loss;
 };
 
-
-/**
- *  Supported FTRL model types.
- */
-enum class FtrlModelType : size_t {
-  NONE        = 0, // Untrained model
-  REGRESSION  = 1, // Numerical regression
-  BINOMIAL    = 2, // Binomial logistic regression
-  MULTINOMIAL = 3  // Multinomial logistic regression
-};
 
 
 /**
