@@ -400,7 +400,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     init_types();
     dt::expr::init_expr();
     dt::expr::init_reducers();
-    dt::expr::init_unops();
     dt::expr::init_binops();
 
     py::Frame::Type::init(m);

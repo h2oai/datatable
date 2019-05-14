@@ -34,7 +34,7 @@ class OpCodes(enum.Enum):
     # Unary
     UPLUS = 101
     UMINUS = 102
-    INVERT = 103
+    UINVERT = 103
     ISFINITE = 104
     ISINF = 105
     ISNA = 106
@@ -292,7 +292,7 @@ class Expr:
 
     def __invert__(self):
         """Unary inversion: ~expr."""
-        return Expr(OpCodes.INVERT, self)
+        return Expr(OpCodes.UINVERT, self)
 
     def __neg__(self):
         """Unary minus: -expr."""
