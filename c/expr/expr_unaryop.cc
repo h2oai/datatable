@@ -3,63 +3,91 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
+#include <cmath>
 #include "expr/expr_unaryop.h"
+#include "parallel/api.h"
 #include "types.h"
 namespace dt {
 namespace expr {
 
-typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
-
-
-static std::vector<std::string> unop_names;
-static std::unordered_map<size_t, SType> unop_rules;
-static size_t id(Op opcode);
-static size_t id(Op opcode, SType st1);
+// Singleton instance
+unary_infos unary_library;
 
 
 
 //------------------------------------------------------------------------------
-// Final mapper function
+// Mapper functions
 //------------------------------------------------------------------------------
 
-template<typename IT, typename OT, OT (*OP)(IT)>
-static void map_n(int64_t row0, int64_t row1, void** params) {
-  Column* col0 = static_cast<Column*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* arg_data = static_cast<const IT*>(col0->data());
-  OT* res_data = static_cast<OT*>(col1->data_w());
-  for (int64_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(arg_data[i]);
-  }
+template<typename IT, typename OT, OT(*OP)(IT)>
+void map11(const Column* inputcol, Column* outputcol) {
+  xassert(inputcol->nrows == outputcol->nrows);
+  size_t nrows = inputcol->nrows;
+  auto inp = static_cast<const IT*>(inputcol->data());
+  auto out = static_cast<OT*>(outputcol->data_w());
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      out[i] = OP(inp[i]);
+    });
 }
 
-template<typename IT, typename OT, OT (*OP)(IT, IT)>
-static void strmap_n(int64_t row0, int64_t row1, void** params) {
-  StringColumn<IT>* col0 = static_cast<StringColumn<IT>*>(params[0]);
-  Column* col1 = static_cast<Column*>(params[1]);
-  const IT* arg_data = col0->offsets();
-  OT* res_data = static_cast<OT*>(col1->data_w());
-  for (int64_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(arg_data[i - 1] & ~GETNA<IT>(), arg_data[i]);
-  }
+
+template<typename IT, typename OT>
+void map_str_len(const Column* inputcol, Column* outputcol) {
+  size_t nrows = inputcol->nrows;
+  auto inp = dynamic_cast<const StringColumn<IT>*>(inputcol)->offsets();
+  auto out = static_cast<OT*>(outputcol->data_w());
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      out[i] = ISNA<IT>(inp[i])
+                  ? GETNA<OT>()
+                  : static_cast<OT>((inp[i] - inp[i-1]) & ~GETNA<IT>());
+    });
 }
+
+
+template<typename T>
+void map_str_isna(const Column* inputcol, Column* outputcol) {
+  size_t nrows = inputcol->nrows;
+  const T* inp = dynamic_cast<const StringColumn<T>*>(inputcol)->offsets();
+  auto out = static_cast<int8_t*>(outputcol->data_w());
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      out[i] = ISNA<T>(inp[i]);
+    });
+}
+
+
+template <int8_t VAL>
+void set_const(const Column*, Column* outputcol) {
+  xassert(outputcol->stype() == SType::BOOL);
+  size_t nrows = outputcol->nrows;
+  auto out = static_cast<int8_t*>(outputcol->data_w());
+  dt::parallel_for_static(nrows, [=](size_t i){ out[i] = VAL; });
+}
+
+
 
 
 //------------------------------------------------------------------------------
 // Operator implementations
 //------------------------------------------------------------------------------
 
-template<typename T>
+// If `x` is integer NA, then (-(INT_MIN)) == INT_MIN due to overflow.
+// If `x` is floating-point NA, then (-NaN) == NaN by rules of IEEE754.
+// Thus, in both cases (-NA)==NA, as desired.
+template <typename T>
 inline static T op_minus(T x) {
-  return IsIntNA<T>(x) ? x : -x;
+  return -x;
 }
 
-template<typename T>
-inline static int8_t op_isna(T x) {
+template <typename T>
+inline static bool op_isna(T x) {
   return ISNA<T>(x);
 }
+
 
 template <typename T>
 inline static T op_abs(T x) {
@@ -71,121 +99,13 @@ inline static T op_abs(T x) {
 }
 
 
-template<typename T>
-struct Inverse {
-  inline static T impl(T x) {
-    return ISNA<T>(x) ? x : ~x;
-  }
-};
-
-template<>
-struct Inverse<float> {
-  inline static float impl(float) { return 0; }
-};
-
-template<>
-struct Inverse<double> {
-  inline static double impl(double) { return 0; }
-};
-
-inline static int8_t bool_inverse(int8_t x) {
+inline static int8_t op_invert_bool(int8_t x) {
   return ISNA<int8_t>(x)? x : !x;
 }
 
-
-
-//------------------------------------------------------------------------------
-// String operators
-//------------------------------------------------------------------------------
-
 template <typename T>
-inline static int8_t op_isna_str(T, T end) {
-  return ISNA<T>(end);
-}
-
-template <typename IT, typename OT>
-inline static OT op_len_str(IT start, IT end) {
-  return ISNA<IT>(end)? GETNA<OT>() : static_cast<OT>(end - start);
-}
-
-
-
-//------------------------------------------------------------------------------
-// Method resolution
-//------------------------------------------------------------------------------
-
-template<typename IT>
-static mapperfn resolve1(Op opcode) {
-  switch (opcode) {
-    case Op::ISNA:    return map_n<IT, int8_t, op_isna<IT>>;
-    case Op::UMINUS:  return map_n<IT, IT, op_minus<IT>>;
-    case Op::ABS:     return map_n<IT, IT, op_abs<IT>>;
-    case Op::INVERT:
-      if (std::is_floating_point<IT>::value) return nullptr;
-      return map_n<IT, IT, Inverse<IT>::impl>;
-    default:                return nullptr;
-  }
-}
-
-
-template<typename T>
-static mapperfn resolve_str(Op opcode) {
-  using OT = typename std::make_signed<T>::type;
-  switch (opcode) {
-    case Op::ISNA: return strmap_n<T, int8_t, op_isna_str<T>>;
-    case Op::LEN:  return strmap_n<T, OT, op_len_str<T, OT>>;
-    default:             return nullptr;
-  }
-}
-
-
-static mapperfn resolve0(SType stype, Op opcode) {
-  switch (stype) {
-    case SType::BOOL:
-      if (opcode == Op::INVERT) return map_n<int8_t, int8_t, bool_inverse>;
-      return resolve1<int8_t>(opcode);
-    case SType::INT8:    return resolve1<int8_t>(opcode);
-    case SType::INT16:   return resolve1<int16_t>(opcode);
-    case SType::INT32:   return resolve1<int32_t>(opcode);
-    case SType::INT64:   return resolve1<int64_t>(opcode);
-    case SType::FLOAT32: return resolve1<float>(opcode);
-    case SType::FLOAT64: return resolve1<double>(opcode);
-    case SType::STR32:   return resolve_str<uint32_t>(opcode);
-    case SType::STR64:   return resolve_str<uint64_t>(opcode);
-    default: break;
-  }
-  return nullptr;
-}
-
-
-static Column* unaryop(Op opcode, Column* arg)
-{
-  if (opcode == Op::UPLUS) return arg->shallowcopy();
-  arg->materialize();
-
-  SType arg_type = arg->stype();
-  SType res_type = arg_type;
-  if (opcode == Op::ISNA) {
-    res_type = SType::BOOL;
-  } else if (arg_type == SType::BOOL && opcode == Op::UMINUS) {
-    res_type = SType::INT8;
-  } else if (opcode == Op::LEN) {
-    res_type = arg_type == SType::STR32? SType::INT32 : SType::INT64;
-  }
-  void* params[2];
-  params[0] = arg;
-  params[1] = Column::new_data_column(res_type, arg->nrows);
-
-  mapperfn fn = resolve0(arg_type, opcode);
-  if (!fn) {
-    throw RuntimeError()
-      << "Unable to apply unary op " << int(opcode) << " to column(stype="
-      << arg_type << ")";
-  }
-
-  (*fn)(0, static_cast<int64_t>(arg->nrows), params);
-
-  return static_cast<Column*>(params[1]);
+inline static T op_inverse(T x) {
+  return ISNA<T>(x)? x : ~x;
 }
 
 
@@ -213,14 +133,8 @@ pexpr expr_unaryop::get_negated_expr() {
 
 
 SType expr_unaryop::resolve(const workframe& wf) {
-  SType arg_stype = arg->resolve(wf);
-  size_t op_id = id(opcode, arg_stype);
-  if (unop_rules.count(op_id) == 0) {
-    throw TypeError() << "Unary operator `"
-        << unop_names[id(opcode)]
-        << "` cannot be applied to a column with stype `" << arg_stype << "`";
-  }
-  return unop_rules.at(op_id);
+  SType input_stype = arg->resolve(wf);
+  return unary_library.xget(opcode, input_stype).output_stype;
 }
 
 
@@ -230,8 +144,22 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 
 
 colptr expr_unaryop::evaluate_eager(workframe& wf) {
-  auto arg_res = arg->evaluate_eager(wf);
-  return colptr(unaryop(opcode, arg_res.get()));
+  auto input_column = arg->evaluate_eager(wf);
+
+  // Already checked existence of key in `resolve()`
+  SType input_stype = input_column->stype();
+  const auto& ui = unary_library.xget(opcode, input_stype);
+  SType output_stype = ui.output_stype;
+
+  if (ui.fn == nullptr) {
+    return colptr(input_column->shallowcopy());
+  }
+  input_column->materialize();
+
+  auto output_column = Column::new_data_column(output_stype, input_column->nrows);
+  ui.fn(input_column.get(), output_column);
+
+  return colptr(output_column);
 }
 
 
@@ -241,14 +169,7 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
 // one-time initialization
 //------------------------------------------------------------------------------
 
-static size_t id(Op opcode) {
-  return static_cast<size_t>(opcode) - UNOP_FIRST;
-}
-static size_t id(Op opcode, SType st1) {
-  return (static_cast<size_t>(opcode) << 8) + static_cast<size_t>(st1);
-}
-
-void init_unops() {
+unary_infos::unary_infos() {
   constexpr SType bool8 = SType::BOOL;
   constexpr SType int8  = SType::INT8;
   constexpr SType int16 = SType::INT16;
@@ -259,40 +180,142 @@ void init_unops() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  using styvec = std::vector<SType>;
-  styvec integer_stypes = {int8, int16, int32, int64};
-  styvec numeric_stypes = {bool8, int8, int16, int32, int64, flt32, flt64};
-  styvec string_types = {str32, str64};
-  styvec all_stypes = {bool8, int8, int16, int32, int64,
-                       flt32, flt64, str32, str64};
+  add(Op::UPLUS, bool8, int8,  nullptr);
+  add(Op::UPLUS, int8, int8,  nullptr);
+  add(Op::UPLUS, int16, int16, nullptr);
+  add(Op::UPLUS, int32, int32, nullptr);
+  add(Op::UPLUS, int64, int64, nullptr);
+  add(Op::UPLUS, flt32, flt32, nullptr);
+  add(Op::UPLUS, flt64, flt64, nullptr);
 
-  for (SType st : all_stypes) {
-    unop_rules[id(Op::ISNA, st)] = bool8;
-  }
-  for (SType st : integer_stypes) {
-    unop_rules[id(Op::INVERT, st)] = st;
-  }
-  for (SType st : numeric_stypes) {
-    unop_rules[id(Op::UMINUS, st)] = st;
-    unop_rules[id(Op::UPLUS, st)] = st;
-    unop_rules[id(Op::ABS, st)] = st;
-  }
-  unop_rules[id(Op::UMINUS, bool8)] = int8;
-  unop_rules[id(Op::UPLUS, bool8)] = int8;
-  unop_rules[id(Op::ABS, bool8)] = int8;
-  unop_rules[id(Op::INVERT, bool8)] = bool8;
-  unop_rules[id(Op::LEN, str32)] = int32;
-  unop_rules[id(Op::LEN, str64)] = int64;
+  add(Op::UMINUS, bool8, int8,  map11<int8_t,  int8_t,  op_minus<int8_t>>);
+  add(Op::UMINUS, int8,  int8,  map11<int8_t,  int8_t,  op_minus<int8_t>>);
+  add(Op::UMINUS, int16, int16, map11<int16_t, int16_t, op_minus<int16_t>>);
+  add(Op::UMINUS, int32, int32, map11<int32_t, int32_t, op_minus<int32_t>>);
+  add(Op::UMINUS, int64, int64, map11<int64_t, int64_t, op_minus<int64_t>>);
+  add(Op::UMINUS, flt32, flt32, map11<float,   float,   op_minus<float>>);
+  add(Op::UMINUS, flt64, flt64, map11<double,  double,  op_minus<double>>);
 
-  unop_names.resize(UNOP_COUNT);
-  unop_names[id(Op::ISNA)]   = "isna";
-  unop_names[id(Op::UMINUS)] = "-";
-  unop_names[id(Op::UPLUS)]  = "+";
-  unop_names[id(Op::INVERT)] = "~";
-  unop_names[id(Op::ABS)]    = "abs";
-  unop_names[id(Op::LEN)]    = "len";
+  add(Op::UINVERT, bool8, bool8, map11<int8_t,  int8_t,  op_invert_bool>);
+  add(Op::UINVERT, int8,  int8,  map11<int8_t,  int8_t,  op_inverse<int8_t>>);
+  add(Op::UINVERT, int16, int16, map11<int16_t, int16_t, op_inverse<int16_t>>);
+  add(Op::UINVERT, int32, int32, map11<int32_t, int32_t, op_inverse<int32_t>>);
+  add(Op::UINVERT, int64, int64, map11<int64_t, int64_t, op_inverse<int64_t>>);
+
+  add(Op::ISNA, bool8, bool8, map11<int8_t,   bool, op_isna<int8_t>>);
+  add(Op::ISNA, int8,  bool8, map11<int8_t,   bool, op_isna<int8_t>>);
+  add(Op::ISNA, int16, bool8, map11<int16_t,  bool, op_isna<int16_t>>);
+  add(Op::ISNA, int32, bool8, map11<int32_t,  bool, op_isna<int32_t>>);
+  add(Op::ISNA, int64, bool8, map11<int64_t,  bool, op_isna<int64_t>>);
+  add(Op::ISNA, flt32, bool8, map11<float,    bool, std::isnan>);
+  add(Op::ISNA, flt64, bool8, map11<double,   bool, std::isnan>);
+  add(Op::ISNA, str32, bool8, map_str_isna<uint32_t>);
+  add(Op::ISNA, str64, bool8, map_str_isna<uint64_t>);
+
+  add(Op::ISFINITE, bool8, bool8, set_const<1>);
+  add(Op::ISFINITE, int8,  bool8, set_const<1>);
+  add(Op::ISFINITE, int16, bool8, set_const<1>);
+  add(Op::ISFINITE, int32, bool8, set_const<1>);
+  add(Op::ISFINITE, int64, bool8, set_const<1>);
+  add(Op::ISFINITE, flt32, bool8, map11<float,  bool, std::isfinite>);
+  add(Op::ISFINITE, flt64, bool8, map11<double, bool, std::isfinite>);
+
+  add(Op::ISINF, bool8, bool8, set_const<0>);
+  add(Op::ISINF, int8,  bool8, set_const<0>);
+  add(Op::ISINF, int16, bool8, set_const<0>);
+  add(Op::ISINF, int32, bool8, set_const<0>);
+  add(Op::ISINF, int64, bool8, set_const<0>);
+  add(Op::ISINF, flt32, bool8, map11<float,  bool, std::isinf>);
+  add(Op::ISINF, flt64, bool8, map11<double, bool, std::isinf>);
+
+  add(Op::ABS, bool8, int8, nullptr);
+  add(Op::ABS, int8,  int8,  map11<int8_t,  int8_t,  op_abs<int8_t>>);
+  add(Op::ABS, int16, int16, map11<int16_t, int16_t, op_abs<int16_t>>);
+  add(Op::ABS, int32, int32, map11<int32_t, int32_t, op_abs<int32_t>>);
+  add(Op::ABS, int64, int64, map11<int64_t, int64_t, op_abs<int64_t>>);
+  add(Op::ABS, flt32, flt32, map11<float,   float,   std::abs>);
+  add(Op::ABS, flt64, flt64, map11<double,  double,  std::abs>);
+
+  add(Op::CEIL, bool8, int8,  nullptr);
+  add(Op::CEIL, int8,  int8,  nullptr);
+  add(Op::CEIL, int16, int16, nullptr);
+  add(Op::CEIL, int32, int32, nullptr);
+  add(Op::CEIL, int64, int64, nullptr);
+  add(Op::CEIL, flt32, flt32, map11<float,  float,  std::ceil>);
+  add(Op::CEIL, flt64, flt64, map11<double, double, std::ceil>);
+
+  add(Op::FLOOR, bool8, int8,  nullptr);
+  add(Op::FLOOR, int8,  int8,  nullptr);
+  add(Op::FLOOR, int16, int16, nullptr);
+  add(Op::FLOOR, int32, int32, nullptr);
+  add(Op::FLOOR, int64, int64, nullptr);
+  add(Op::FLOOR, flt32, flt32, map11<float,  float,  std::floor>);
+  add(Op::FLOOR, flt64, flt64, map11<double, double, std::floor>);
+
+  add(Op::TRUNC, bool8, int8,  nullptr);
+  add(Op::TRUNC, int8,  int8,  nullptr);
+  add(Op::TRUNC, int16, int16, nullptr);
+  add(Op::TRUNC, int32, int32, nullptr);
+  add(Op::TRUNC, int64, int64, nullptr);
+  add(Op::TRUNC, flt32, flt32, map11<float,  float,  std::trunc>);
+  add(Op::TRUNC, flt64, flt64, map11<double, double, std::trunc>);
+
+  add(Op::LEN, str32, int32, map_str_len<uint32_t, int32_t>);
+  add(Op::LEN, str64, int64, map_str_len<uint64_t, int64_t>);
+
+  set_name(Op::UPLUS, "+");
+  set_name(Op::UMINUS, "-");
+  set_name(Op::UINVERT, "~");
+  set_name(Op::ISNA, "isna");
+  set_name(Op::ISFINITE, "isfinite");
+  set_name(Op::ISINF, "isinf");
+  set_name(Op::ABS, "abs");
+  set_name(Op::CEIL, "ceil");
+  set_name(Op::FLOOR, "floor");
+  set_name(Op::TRUNC, "trunc");
+  set_name(Op::LEN, "len");
 }
 
+
+constexpr size_t unary_infos::id(Op op) noexcept {
+  return static_cast<size_t>(op) - UNOP_FIRST;
+}
+
+constexpr size_t unary_infos::id(Op op, SType stype) noexcept {
+  return static_cast<size_t>(op) * DT_STYPES_COUNT +
+         static_cast<size_t>(stype);
+}
+
+void unary_infos::set_name(Op op, const std::string& name) {
+  names[id(op)] = name;
+}
+
+void unary_infos::add(Op op, SType input_stype, SType output_stype,
+                      unary_func_t fn)
+{
+  size_t entry_id = id(op, input_stype);
+  xassert(info.count(entry_id) == 0);
+  info[entry_id] = {fn, output_stype};
+}
+
+
+const unary_infos::uinfo& unary_infos::xget(Op op, SType input_stype) const {
+  size_t entry_id = id(op, input_stype);
+  if (info.count(entry_id)) {
+    return info.at(entry_id);
+  }
+  size_t name_id = id(op);
+  const std::string& opname = names.count(name_id)? names.at(name_id) : "";
+  auto err = TypeError();
+  err << "Cannot apply ";
+  if (op == Op::UPLUS || op == Op::UMINUS || op == Op::UINVERT) {
+    err << "unary `operator " << opname << "`";
+  } else {
+    err << "function `" << opname << "()`";
+  }
+  err << " to a column with stype `" << input_stype << "`";
+  throw err;
+}
 
 
 

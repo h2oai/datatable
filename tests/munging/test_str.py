@@ -167,8 +167,8 @@ def test_len_wrong_col():
     f0 = dt.Frame(range(34))
     with pytest.raises(TypeError) as e:
         noop(f0[:, f[0].len()])
-    assert ("Unary operator `len` cannot be applied to a column with stype "
-            "`int32`" == str(e.value))
+    assert ("Cannot apply function `len()` to a column with stype `int32`"
+            == str(e.value))
 
 
 

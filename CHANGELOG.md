@@ -80,8 +80,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - internal function `dt.internal.compiler_version()`.
 
--
-
 - New `datatable.math` module is a library of various mathematical functions
   that can be applied to datatable Frames. The set of functions is close to
   what is available in the standard python `math` module. See documentation

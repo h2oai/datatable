@@ -121,8 +121,8 @@ def test_dt_invert_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         noop(dt0[:, ~f[0]])
-    assert ("Unary operator `~` cannot be applied to a column with stype "
-            "`%s`" % dt0.stypes[0].name == str(e.value))
+    assert ("Cannot apply unary `operator ~` to a column with stype `%s`"
+            % dt0.stypes[0].name == str(e.value))
 
 
 
@@ -150,8 +150,8 @@ def test_dt_neg_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         noop(dt0[:, -f[0]])
-    assert ("Unary operator `-` cannot be applied to a column with stype "
-            "`%s`" % dt0.stypes[0].name == str(e.value))
+    assert ("Cannot apply unary `operator -` to a column with stype `%s`"
+            % dt0.stypes[0].name == str(e.value))
 
 
 
@@ -173,8 +173,8 @@ def test_dt_pos_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         noop(dt0[:, +f[0]])
-    assert ("Unary operator `+` cannot be applied to a column with stype "
-            "`%s`" % dt0.stypes[0].name == str(e.value))
+    assert ("Cannot apply unary `operator +` to a column with stype `%s`"
+            % dt0.stypes[0].name == str(e.value))
 
 
 
