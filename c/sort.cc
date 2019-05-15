@@ -549,6 +549,7 @@ class SortContext {
     // to be expanded.
     next_elemsize = elemsize;
     allocate_xx();
+    allocate_oo();
 
     dt::array<radix_range> rrmap(nradixes);
     radix_range* rrmap_ptr = rrmap.data();
@@ -1150,6 +1151,7 @@ class SortContext {
    */
   template <bool make_groups>
   void _radix_recurse(radix_range* rrmap) {
+    xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;
