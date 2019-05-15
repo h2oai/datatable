@@ -36,8 +36,11 @@ namespace py {
 class Ftrl : public PyObject {
   private:
     dt::FtrlBase* dtft;
-    py::oobj py_interactions;
     strvec colnames;
+    py::onamedtuple py_params;
+    static py::onamedtupletype py_ntt;
+    bool double_precision;
+    size_t: 56;
 
   public:
     class Type : public ExtType<Ftrl> {
@@ -52,6 +55,9 @@ class Ftrl : public PyObject {
     // Initializers and deallocator
     void m__init__(PKArgs&);
     void m__dealloc__();
+    void init_py_params();
+    void init_dt_ftrl();
+    void init_dt_interactions();
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
@@ -61,7 +67,6 @@ class Ftrl : public PyObject {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
-    void init_dt_interactions();
 
     // Getters
     oobj get_labels() const;
@@ -88,16 +93,17 @@ class Ftrl : public PyObject {
     void set_labels(robj);            // Not exposed, used for unpickling only
     void set_colnames(robj);          // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
-    void set_alpha(robj);
-    void set_beta(robj);
-    void set_lambda1(robj);
-    void set_lambda2(robj);
-    void set_nepochs(robj);
-    void set_nbins(robj);             // Disabled for a trained model
-    void set_mantissa_nbits(robj);    // Disabled for a trained model
-    void set_interactions(robj);      // Disabled for a trained model
-    void set_double_precision(robj);  // Not exposed, used for unpickling only
-    void set_negative_class(robj);    // Disabled for a trained model
+    void set_params_namedtuple(robj); // Not exposed, used in `m__init__` only
+    void set_alpha(const Arg&);
+    void set_beta(const Arg&);
+    void set_lambda1(const Arg&);
+    void set_lambda2(const Arg&);
+    void set_nepochs(const Arg&);
+    void set_nbins(const Arg&);             // Disabled for a trained model
+    void set_mantissa_nbits(const Arg&);    // Disabled for a trained model
+    void set_interactions(const Arg&);      // Disabled for a trained model
+    void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
+    void set_negative_class(const Arg&);    // Disabled for a trained model
 };
 
 

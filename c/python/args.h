@@ -36,9 +36,10 @@ class GSArgs {
   public:
     const char* name;
     const char* doc;
+    Arg _arg;
 
     GSArgs(const char* name_, const char* doc_=nullptr)
-      : name(name_), doc(doc_) {}
+      : name(name_), doc(doc_), _arg(std::string("`.") + name_ + "`") {}
 
     template <typename T>
     PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
@@ -53,10 +54,11 @@ class GSArgs {
     }
 
     template <typename T>
-    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(robj)) noexcept {
+    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(const Arg&)) noexcept {
       try {
         T* t = static_cast<T*>(obj);
-        (t->*func)(robj(value));
+        _arg.set(value);
+        (t->*func)(_arg);
         return 0;
       } catch (const std::exception& e) {
         exception_to_python(e);

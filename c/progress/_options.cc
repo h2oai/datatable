@@ -44,7 +44,7 @@ static void init_option_enabled() {
   dt::register_option(
     "progress.enabled",
     []{ return py::obool(enabled); },
-    [](py::oobj value){ enabled = value.to_bool_strict(); },
+    [](const py::Arg& value){ enabled = value.to_bool_strict(); },
     "When False, progress reporting functionality will be turned off.\n"
     "\n"
     "This option is True by default if the `stdout` is connected to a\n"
@@ -65,7 +65,7 @@ static py::oobj get_ups() {
   return py::ofloat(updates_per_second);
 }
 
-static void set_ups(py::oobj value) {
+static void set_ups(const py::Arg& value) {
   double x = value.to_double();
   py::Validator::check_positive(x, value);
   updates_per_second = x;
@@ -93,7 +93,7 @@ static py::oobj get_min_duration() {
   return py::ofloat(min_duration);
 }
 
-static void set_min_duration(py::oobj value) {
+static void set_min_duration(const py::Arg& value) {
   double x = value.to_double();
   py::Validator::check_not_negative(x, value);
   min_duration = x;
@@ -128,9 +128,10 @@ static py::oobj get_callback() {
   return progress_fn? py::oobj(progress_fn) : py::None();
 }
 
-static void set_callback(py::oobj value) {
+static void set_callback(const py::Arg& value) {
+  py::oobj py_obj = value.to_oobj();
   Py_XSETREF(progress_fn,
-             value.is_none()? nullptr : std::move(value).release());
+             value.is_none()? nullptr : std::move(py_obj).release());
 }
 
 static void init_option_callback(){

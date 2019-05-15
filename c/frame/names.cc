@@ -201,7 +201,7 @@ oobj Frame::get_names() const {
 }  // LCOV_EXCL_LINE
 
 
-void Frame::set_names(robj arg)
+void Frame::set_names(const Arg& arg)
 {
   if (arg.is_undefined() || arg.is_none()) {
     dt->set_names_to_default();
@@ -241,7 +241,7 @@ void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_index",
     []{ return py::oint(names_auto_index); },
-    [](py::oobj value){ names_auto_index = value.to_int64_strict(); },
+    [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
     "When Frame needs to auto-name columns, they will be assigned\n"
     "names C0, C1, C2, ... by default. This option allows you to\n"
     "control the starting index in this sequence. For example, setting\n"
@@ -251,7 +251,7 @@ void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_prefix",
     []{ return py::ostring(names_auto_prefix); },
-    [](py::oobj value){ names_auto_prefix = value.to_string(); },
+    [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
     "When Frame needs to auto-name columns, they will be assigned\n"
     "names C0, C1, C2, ... by default. This option allows you to\n"
     "control the prefix used in this sequence. For example, setting\n"

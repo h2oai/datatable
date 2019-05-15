@@ -8,6 +8,8 @@
 #ifndef dt_OPTIONS_h
 #define dt_OPTIONS_h
 #include <functional>         // std::function
+#include "python/arg.h"
+
 namespace py { class oobj; }  // forward-declare py::oobj
 
 namespace dt {
@@ -15,7 +17,7 @@ namespace dt {
 
 void register_option(const char* name,
                      std::function<py::oobj()> getter,
-                     std::function<void(py::oobj)> setter,
+                     std::function<void(const py::Arg&)> setter,
                      const char* docstring);
 
 void use_options_store(py::oobj options);

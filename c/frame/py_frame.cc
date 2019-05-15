@@ -190,7 +190,7 @@ oobj Frame::get_nrows() const {
   return py::oint(dt->nrows);
 }
 
-void Frame::set_nrows(py::robj nr) {
+void Frame::set_nrows(const Arg& nr) {
   if (!nr.is_int()) {
     throw TypeError() << "Number of rows must be an integer, not "
         << nr.typeobj();

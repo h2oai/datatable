@@ -54,35 +54,18 @@ Error py::Validator::error_manager::error_greater_than(PyObject* src,
 }
 
 
-// py::_obj validators
-
-/**
- *  Less than or equal to check.
- */
-template <typename T>
-void check_less_than_or_equal_to(const T value,
-                                 const T value_max,
-                                 const py::_obj& o,
-                                 const std::string& name = _name,
-                                 error_manager& em = _em)
-{
-  if (!std::isinf(value) && value <= value_max) return;
-  throw em.error_greater_than<T>(o.to_borrowed_ref(), name, value_max);
-}
-
+// py::Arg validators
 
 /**
  *  Positive check. Will emit an error, when `value` is not positive, `NaN`
  *  or infinity.
  */
 template <typename T>
-void check_positive(T value,
-                    const py::_obj& o,
-                    const std::string& name = _name,
-                    error_manager& em = _em)
-{
+void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value) && value > 0) return;
-  throw em.error_not_positive(o.to_borrowed_ref(), name);
+
+  py::oobj py_obj = arg.to_robj();
+  throw em.error_not_positive(py_obj.to_borrowed_ref(), arg.name());
 }
 
 
@@ -91,33 +74,21 @@ void check_positive(T value,
  *  or infinity.
  */
 template <typename T>
-void check_not_negative(T value,
-                        const py::_obj& o,
-                        const std::string& name = _name,
-                        error_manager& em = _em)
-{
-  if (!std::isinf(value) && value >= 0) return;
-  throw em.error_negative(o.to_borrowed_ref(), name);
-}
-
-
-// py::Arg validators
-
-template <typename T>
-void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
-  check_positive<T>(value, arg.to_robj(), arg.name(), em);
-}
-
-
-template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
-  check_not_negative<T>(value, arg.to_robj(), arg.name(), em);
+  if (!std::isinf(value) && value >= 0) return;
+
+  py::oobj py_obj = arg.to_robj();
+  throw em.error_negative(py_obj.to_borrowed_ref(), arg.name());
 }
 
 
 template <typename T>
 void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
-  check_less_than_or_equal_to<T>(value, value_max, arg.to_robj(), arg.name(), em);
+
+  if (!std::isinf(value) && value <= value_max) return;
+
+  py::oobj py_obj = arg.to_robj();
+  throw em.error_greater_than(py_obj.to_borrowed_ref(), arg.name(), value_max);
 }
 
 

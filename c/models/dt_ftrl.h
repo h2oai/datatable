@@ -123,6 +123,7 @@ class Ftrl : public dt::FtrlBase {
                       std::vector<const U*>&);
 
   public:
+    Ftrl();
     Ftrl(FtrlParams);
 
     // Main fitting method
@@ -152,7 +153,6 @@ class Ftrl : public dt::FtrlBase {
     unsigned char get_mantissa_nbits() override;
     size_t get_nepochs() override;
     const std::vector<sizetvec>& get_interactions() override;
-    bool get_double_precision() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
     const strvec& get_labels() override;
@@ -169,7 +169,6 @@ class Ftrl : public dt::FtrlBase {
     void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<sizetvec>) override;
-    void set_double_precision(bool) override;
     void set_negative_class(bool) override;
     void set_labels(strvec) override;
 

@@ -44,7 +44,8 @@ struct FtrlParams {
     size_t: 40;
     FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
                    nbins(1000000), nepochs(1), mantissa_nbits(10),
-                   double_precision(false), negative_class(false) {}
+                   double_precision(false), negative_class(false)
+                   {}
 };
 
 
@@ -60,7 +61,7 @@ struct FtrlFitOutput {
 
 
 /**
- * Supported FTRL model types.
+ *  Supported FTRL model types.
  */
 enum class FtrlModelType : size_t {
   NONE        = 0, // Untrained model
@@ -103,7 +104,6 @@ class FtrlBase {
     virtual unsigned char get_mantissa_nbits() = 0;
     virtual size_t get_nepochs() = 0;
     virtual const std::vector<sizetvec>& get_interactions() = 0;
-    virtual bool get_double_precision() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual const strvec& get_labels() = 0;
@@ -120,15 +120,14 @@ class FtrlBase {
     virtual void set_mantissa_nbits(unsigned char) = 0;
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<sizetvec>) = 0;
-    virtual void set_double_precision(bool) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(strvec) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;
 
-    // Separator used for nhot encoding splitter. Using it means that
-    // in principle we can also do multilabel regression.
+    // Separator for nhot encoding splitter.
+    // Can also be useful for multilabel regression.
     static constexpr char SEPARATOR = ',';
 
     // Minimum number of rows a thread will get for fitting and predicting.

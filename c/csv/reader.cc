@@ -33,13 +33,13 @@ void GenericReader::init_options() {
   dt::register_option(
     "fread.anonymize",
     []{ return py::obool(log_anonymize); },
-    [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
+    [](const py::Arg& value){ log_anonymize = value.to_bool_strict(); },
     "[DEPRECATED] same as fread.log.anonymize");
 
   dt::register_option(
     "fread.log.anonymize",
     []{ return py::obool(log_anonymize); },
-    [](py::oobj value){ log_anonymize = value.to_bool_strict(); },
+    [](const py::Arg& value){ log_anonymize = value.to_bool_strict(); },
     "If True, any snippets of data being read that are printed in the\n"
     "log will be first anonymized by converting all non-0 digits to 1,\n"
     "all lowercase letters to a, all uppercase letters to A, and all\n"
@@ -51,7 +51,7 @@ void GenericReader::init_options() {
   dt::register_option(
     "fread.log.escape_unicode",
     []{ return py::obool(log_escape_unicode); },
-    [](py::oobj value){ log_escape_unicode = value.to_bool_strict(); },
+    [](const py::Arg& value){ log_escape_unicode = value.to_bool_strict(); },
     "If True, all unicode characters in the verbose log will be written\n"
     "in hexadecimal notation. Use this option if your terminal cannot\n"
     "print unicode, or if the output gets somehow corrupted because of\n"
