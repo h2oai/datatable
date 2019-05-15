@@ -37,7 +37,6 @@ class Ftrl : public PyObject {
     dt::FtrlBase* dtft;
     strvec colnames;
     py::onamedtuple py_params;
-    static py::onamedtupletype py_ntt;
     bool double_precision;
     size_t: 56;
 

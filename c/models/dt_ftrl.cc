@@ -24,6 +24,7 @@
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 #include "wstringcol.h"
+#include "c/utils/c+++.h"
 
 namespace dt {
 
@@ -88,22 +89,41 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
   SType stype_y = dt_y->columns[0]->stype();
 
-  if (is_model_trained || model_type == FtrlModelType::AUTO) {
-    switch (stype_y) {
-      case SType::BOOL:    res = fit_binomial(); break;
-      case SType::INT8:    res = fit_regression<int8_t>(); break;
-      case SType::INT16:   res = fit_regression<int16_t>(); break;
-      case SType::INT32:   res = fit_regression<int32_t>(); break;
-      case SType::INT64:   res = fit_regression<int64_t>(); break;
-      case SType::FLOAT32: res = fit_regression<float>(); break;
-      case SType::FLOAT64: res = fit_regression<double>(); break;
-      case SType::STR32:   FALLTHROUGH;
-      case SType::STR64:   res = fit_multinomial(); break;
-      default:             throw TypeError() << "Targets of type `"
-                                             << stype_y << "` are not supported";
-    }
-    is_model_trained = true;
+  switch (model_type) {
+    case FtrlModelType::AUTO :        switch (stype_y) {
+                                        case SType::BOOL:    res = fit_binomial(); break;
+                                        case SType::INT8:    res = fit_regression<int8_t>(); break;
+                                        case SType::INT16:   res = fit_regression<int16_t>(); break;
+                                        case SType::INT32:   res = fit_regression<int32_t>(); break;
+                                        case SType::INT64:   res = fit_regression<int64_t>(); break;
+                                        case SType::FLOAT32: res = fit_regression<float>(); break;
+                                        case SType::FLOAT64: res = fit_regression<double>(); break;
+                                        case SType::STR32:   FALLTHROUGH;
+                                        case SType::STR64:   res = fit_multinomial(); break;
+                                        default:             throw TypeError() << "Target column type `"
+                                                                               << stype_y << "` is not supported";
+                                      }
+                                      break;
+
+    case FtrlModelType::REGRESSION :  switch (stype_y) {
+                                        case SType::BOOL:    res = fit_regression<int8_t>(); break;
+                                        case SType::INT8:    res = fit_regression<int8_t>(); break;
+                                        case SType::INT16:   res = fit_regression<int16_t>(); break;
+                                        case SType::INT32:   res = fit_regression<int32_t>(); break;
+                                        case SType::INT64:   res = fit_regression<int64_t>(); break;
+                                        case SType::FLOAT32: res = fit_regression<float>(); break;
+                                        case SType::FLOAT64: res = fit_regression<double>(); break;
+                                        default:             throw TypeError() << "Target column type `"
+                                                                               << stype_y << "` is not supported by "
+                                                                               << "the numeric regression";
+                                      }
+                                      break;
+
+    case FtrlModelType::BINOMIAL :    res = fit_binomial(); break;
+    case FtrlModelType::MULTINOMIAL : res = fit_multinomial(); break;
   }
+
+  is_model_trained = true;
 
   dt_X = nullptr;
   dt_y = nullptr;
@@ -120,13 +140,30 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
-  xassert(dt_y->ncols == 1);
-  if (is_model_trained && model_type != FtrlModelType::BINOMIAL) {
-    throw TypeError() << "This model has already been trained in a "
-                         "mode different from binomial. To train it "
-                         "in a binomial mode this model should be reset.";
+  dtptr dt_y_nhot;
+  SType stype_y = dt_y->columns[0]->stype();
+  if (stype_y != SType::BOOL) {
+    dt_y_nhot = dtptr(split_into_nhot(
+                        dt_y->columns[0]->cast(SType::STR32),
+                        dt::FtrlBase::SEPARATOR,
+                        true // also do sorting
+                      ));
+    if (dt_y_nhot->ncols > 2) {
+      throw ValueError() << "Binomial model cannot be applied to target column, that has "
+                         << dt_y_nhot->ncols
+                         << " unique values";
+    }
+
+    if (dt_y_nhot->ncols == 2) {
+      std::vector<size_t> indices({1});
+      dt_y_nhot->delete_columns(indices);
+    }
+
+    dt_y = dt_y_nhot.get();
+
   }
-  if (model_type == FtrlModelType::AUTO) {
+
+  if (!is_model_trained) {
     labels = dt_y->get_names();
     create_model();
     model_type = FtrlModelType::BINOMIAL;
@@ -145,7 +182,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
-  if (model_type == FtrlModelType::AUTO) {
+  if (!is_model_trained) {
     labels = dt_y->get_names();
     create_model();
     model_type = FtrlModelType::REGRESSION;
@@ -163,7 +200,7 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
                          "in a multinomial mode this model should be reset.";
   }
 
-  if (model_type == FtrlModelType::AUTO) {
+  if (!is_model_trained) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
     if (params.negative_class) {
@@ -548,8 +585,8 @@ dtptr Ftrl<T>::create_y_val() {
 template <typename T>
 template <typename U /* column data type */>
 void Ftrl<T>::fill_ri_data(const DataTable* dt,
-                               std::vector<RowIndex>& ri,
-                               std::vector<const U*>& data) {
+                           std::vector<RowIndex>& ri,
+                           std::vector<const U*>& data) {
   size_t ncols = dt->ncols;
   ri.reserve(ncols);
   data.reserve(ncols);

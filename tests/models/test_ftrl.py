@@ -467,7 +467,7 @@ def test_ftrl_fit_wrong_target_obj64():
     df_target = dt.Frame([3, "point", None, None, 14, 15, 92, "6"])
     with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
-    assert ("Targets of type `obj64` are not supported" ==
+    assert ("Target column type `obj64` is not supported" ==
             str(e.value))
 
 

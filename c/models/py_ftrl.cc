@@ -30,6 +30,10 @@
 
 namespace py {
 
+
+/**
+ *  Model type options and their corresponding dt::FtrlModelType's
+ */
 static std::map<std::string, dt::FtrlModelType> FtrlModelType = {
    {"auto", dt::FtrlModelType::AUTO},
    {"regression", dt::FtrlModelType::REGRESSION},
@@ -131,25 +135,6 @@ void Ftrl::init_dt_ftrl() {
   } else {
     dtft = new dt::Ftrl<float>();
   }
-}
-
-
-void Ftrl::init_py_params() {
-  dt::FtrlParams params;
-  py::onamedtuple py_params_temp(py_ntt);
-  py_params = std::move(py_params_temp);
-
-  py_params.replace(0, py::ofloat(params.alpha));
-  py_params.replace(1, py::ofloat(params.beta));
-  py_params.replace(2, py::ofloat(params.lambda1));
-  py_params.replace(3, py::ofloat(params.lambda2));
-  py_params.replace(4, py::oint(static_cast<size_t>(params.nbins)));
-  py_params.replace(5, py::oint(params.mantissa_nbits));
-  py_params.replace(6, py::oint(params.nepochs));
-  py_params.replace(7, py::obool(params.double_precision));
-  py_params.replace(8, py::obool(params.negative_class));
-  py_params.replace(9, py::None());
-  py_params.replace(10, py::ostring("auto"));
 }
 
 
@@ -365,14 +350,16 @@ oobj Ftrl::fit(const PKArgs& args) {
                                                 dt_X_val, dt_y_val,
                                                 nepochs_val, val_error, val_niters);
 
-  static onamedtupletype ntt(
+  static onamedtupletype py_fit_output_ntt(
     "FtrlFitOutput",
     "Tuple of fit output",
-    {{"epoch", "epoch at which fitting stopped"},
-     {"loss",  "final loss calculated on the validation dataset"}}
+    {
+      {"epoch", "epoch at which fitting stopped"},
+      {"loss",  "final loss calculated on the validation dataset"}
+    }
   );
 
-  py::onamedtuple res(ntt);
+  py::onamedtuple res(py_fit_output_ntt);
   res.set(0, py::ofloat(output.epoch));
   res.set(1, py::ofloat(output.loss));
   return std::move(res);
@@ -1023,6 +1010,43 @@ void Ftrl::set_params_tuple(robj params) {
 }
 
 
+void Ftrl::init_py_params() {
+  static onamedtupletype py_params_ntt(
+    "FtrlParams",
+    args_params.doc, {
+      {args_alpha.name,            args_alpha.doc},
+      {args_beta.name,             args_beta.doc},
+      {args_lambda1.name,          args_lambda1.doc},
+      {args_lambda2.name,          args_lambda2.doc},
+      {args_nbins.name,            args_nbins.doc},
+      {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
+      {args_nepochs.name,          args_nepochs.doc},
+      {args_double_precision.name, args_double_precision.doc},
+      {args_negative_class.name,   args_negative_class.doc},
+      {args_interactions.name,     args_interactions.doc},
+      {args_model_type.name,       args_model_type.doc}
+    }
+  );
+
+  dt::FtrlParams params;
+  py::onamedtuple py_params_temp(py_params_ntt);
+  py_params = std::move(py_params_temp);
+
+  py_params.replace(0, py::ofloat(params.alpha));
+  py_params.replace(1, py::ofloat(params.beta));
+  py_params.replace(2, py::ofloat(params.lambda1));
+  py_params.replace(3, py::ofloat(params.lambda2));
+  py_params.replace(4, py::oint(static_cast<size_t>(params.nbins)));
+  py_params.replace(5, py::oint(params.mantissa_nbits));
+  py_params.replace(6, py::oint(params.nepochs));
+  py_params.replace(7, py::obool(params.double_precision));
+  py_params.replace(8, py::obool(params.negative_class));
+  py_params.replace(9, py::None());
+  py_params.replace(10, py::ostring("auto"));
+}
+
+
+
 /**
  *  Pickling support.
  */
@@ -1155,24 +1179,6 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
   ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
   ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
 }
-
-
-onamedtupletype Ftrl::py_ntt(
-  "FtrlParams",
-  args_params.doc, {
-    {args_alpha.name,            args_alpha.doc},
-    {args_beta.name,             args_beta.doc},
-    {args_lambda1.name,          args_lambda1.doc},
-    {args_lambda2.name,          args_lambda2.doc},
-    {args_nbins.name,            args_nbins.doc},
-    {args_mantissa_nbits.name,   args_mantissa_nbits.doc},
-    {args_nepochs.name,          args_nepochs.doc},
-    {args_double_precision.name, args_double_precision.doc},
-    {args_negative_class.name,   args_negative_class.doc},
-    {args_interactions.name,     args_interactions.doc},
-    {args_model_type.name,       args_model_type.doc}
-  }
-);
 
 
 } // namespace py
