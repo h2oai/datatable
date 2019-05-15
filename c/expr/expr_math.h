@@ -27,18 +27,6 @@ namespace dt {
 namespace expr {
 
 
-class expr_math11 : public base_expr {
-  private:
-    pexpr arg;
-    Op opcode;
-
-  public:
-    expr_math11(pexpr&& a, Op op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
-};
-
 
 class expr_math21 : public base_expr {
   private:

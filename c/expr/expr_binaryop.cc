@@ -576,7 +576,7 @@ SType expr_binaryop::resolve(const workframe& wf) {
   size_t triple = id(opcode, lhs_stype, rhs_stype);
   if (binop_rules.count(triple) == 0) {
     throw TypeError() << "Binary operator `"
-        << binop_names[static_cast<size_t>(opcode)]
+        << binop_names[id(opcode)]
         << "` cannot be applied to columns with stypes `" << lhs_stype
         << "` and `" << rhs_stype << "`";
   }

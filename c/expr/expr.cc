@@ -108,12 +108,6 @@ static pexpr make_reduce(Op op, const py::otuple& args) {
   return pexpr(new expr_reduce1(std::move(arg), op));
 }
 
-static pexpr make_math11(Op op, const py::otuple& args) {
-  check_args_count(args, 1);
-  pexpr arg = args[0].to_dtexpr();
-  return pexpr(new expr_math11(std::move(arg), op));
-}
-
 // static pexpr make_math21(Op op, const py::otuple& args) {
 //   check_args_count(args, 2);
 //   pexpr arg1 = args[0].to_dtexpr();
@@ -136,7 +130,7 @@ void init_expr() {
   for (size_t i = UNOP_FIRST;    i <= UNOP_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce;
-  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_math11;
+  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;

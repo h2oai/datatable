@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include "expr/expr.h"
 #include "expr/expr_math.h"
+#include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
@@ -44,70 +45,6 @@ struct fninfo {
 };
 
 static std::unordered_map<const py::PKArgs*, fninfo> fninfos;
-
-
-//------------------------------------------------------------------------------
-// expr_math11
-//------------------------------------------------------------------------------
-
-expr_math11::expr_math11(pexpr&& a, Op op)
-  : arg(std::move(a)), opcode(op) {}
-
-
-SType expr_math11::resolve(const workframe& wf) {
-  auto arg_stype = arg->resolve(wf);
-  if (!is_numeric(arg_stype)) {
-    throw TypeError() << "Cannot apply function `` to a column of type "
-        << arg_stype;
-  }
-  return SType::FLOAT64;
-}
-
-
-GroupbyMode expr_math11::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
-}
-
-
-colptr expr_math11::evaluate_eager(workframe& wf) {
-  colptr input_column = arg->evaluate_eager(wf);
-  if (input_column->stype() != SType::FLOAT64) {
-    input_column = colptr(input_column->cast(SType::FLOAT64));
-  }
-  input_column->materialize();
-
-  size_t nrows = input_column->nrows;
-  const MemoryRange& input_mbuf = input_column->data_buf();
-  auto inp = static_cast<const double*>(input_mbuf.rptr());
-
-  // If the input column's data buffer "is_writable", then we're
-  // dealing with a temporary column that was just created from `arg`.
-  // In this case, instead of creating data buffer for the resulting
-  // column, we just reuse the data buffer of the input. This works,
-  // because we need to read each value in the input only once, and
-  // then we can replace it with the output value immediately.
-  MemoryRange output_mbuf;
-  double* out = nullptr;
-  if (input_mbuf.is_writable()) {
-    out = static_cast<double*>(input_mbuf.xptr());
-    output_mbuf = MemoryRange(input_mbuf);
-  } else {
-    output_mbuf = MemoryRange::mem(sizeof(double) * nrows);
-    out = static_cast<double*>(output_mbuf.xptr());
-  }
-  colptr output_column = colptr(
-      Column::new_mbuf_column(SType::FLOAT64, std::move(output_mbuf)));
-
-  ufunc_t f = fn11s[opcode];
-
-  parallel_for_static(nrows,
-    [&](size_t i) {
-      out[i] = f(inp[i]);
-    });
-
-  return output_column;
-}
-
 
 
 }}  // namespace dt::expr
@@ -410,12 +347,23 @@ static double fn_rad2deg(double x) {
   static constexpr double DEGREES_IN_RADIAN = 57.295779513082323;
   return x * DEGREES_IN_RADIAN;
 }
+static float fn_rad2deg(float x) {
+  static constexpr float DEGREES_IN_RADIAN = 57.2957802f;
+  return x * DEGREES_IN_RADIAN;
+}
 
 static double fn_deg2rad(double x) {
   static constexpr double RADIANS_IN_DEGREE = 0.017453292519943295;
   return x * RADIANS_IN_DEGREE;
 }
+static float fn_deg2rad(float x) {
+  static constexpr float RADIANS_IN_DEGREE = 0.0174532924f;
+  return x * RADIANS_IN_DEGREE;
+}
 
+static float fn_square(float x) {
+  return x * x;
+}
 static double fn_square(double x) {
   return x * x;
 }
@@ -423,13 +371,16 @@ static double fn_square(double x) {
 static double fn_sign(double x) {
   return (x > 0)? 1.0 : (x < 0)? -1.0 : (x == 0)? 0.0 : GETNA<double>();
 }
+static float fn_sign(float x) {
+  return (x > 0)? 1.0f : (x < 0)? -1.0f : (x == 0)? 0.0f : GETNA<float>();
+}
 
 
 
 #define ADD11(OP, NAME, FN)                            \
   ADD_FN(&mathfn_11, args_##NAME);                     \
   fninfos[&(args_##NAME)] = {OP, #NAME, FN, nullptr};  \
-  fn11s[OP] = FN;
+  unary_library.add_math<FN, FN>(OP, #NAME);
 
 #define ADD21(OP, NAME, FN)                            \
   ADD_FN(&mathfn_21, args_##NAME);                     \
@@ -479,3 +430,32 @@ void py::DatatableModule::init_methods_math() {
 #undef ADD21
 
 } // namespace py
+
+namespace dt {
+namespace expr {
+
+template <typename T, T(*FN)(T)>
+static void map11(size_t nrows, const T* inp, T* out) {
+  dt::parallel_for_static(nrows,
+    [&](size_t i) {
+      out[i] = FN(inp[i]);
+    });
+}
+
+template <float(*F32)(float), double(*F64)(double)>
+inline void unary_infos::add_math(Op opcode, const std::string& name) {
+  auto f32 = reinterpret_cast<unary_func_t>(map11<float, F32>);
+  auto f64 = reinterpret_cast<unary_func_t>(map11<double, F64>);
+  set_name(opcode, name);
+  add(opcode, SType::BOOL,  SType::FLOAT64, f64, SType::FLOAT64);
+  add(opcode, SType::INT8,  SType::FLOAT64, f64, SType::FLOAT64);
+  add(opcode, SType::INT16, SType::FLOAT64, f64, SType::FLOAT64);
+  add(opcode, SType::INT32, SType::FLOAT64, f64, SType::FLOAT64);
+  add(opcode, SType::INT64, SType::FLOAT64, f64, SType::FLOAT64);
+  add(opcode, SType::FLOAT32, SType::FLOAT32, f32);
+  add(opcode, SType::FLOAT64, SType::FLOAT64, f64);
+}
+
+
+
+}}

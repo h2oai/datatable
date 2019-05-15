@@ -22,7 +22,7 @@ unary_infos unary_library;
 //------------------------------------------------------------------------------
 
 template<typename IT, typename OT, OT(*OP)(IT)>
-void map11(Op, size_t nrows, const IT* inp, OT* out) {
+void map11(size_t nrows, const IT* inp, OT* out) {
   dt::parallel_for_static(nrows,
     [=](size_t i) {
       out[i] = OP(inp[i]);
@@ -31,7 +31,7 @@ void map11(Op, size_t nrows, const IT* inp, OT* out) {
 
 
 template<typename IT, typename OT>
-void map_str_len(Op, size_t nrows, const IT* inp, OT* out) {
+void map_str_len(size_t nrows, const IT* inp, OT* out) {
   inp++;
   dt::parallel_for_static(nrows,
     [=](size_t i) {
@@ -43,7 +43,7 @@ void map_str_len(Op, size_t nrows, const IT* inp, OT* out) {
 
 
 template<typename T>
-void map_str_isna(Op, size_t nrows, const T* inp, int8_t* out) {
+void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
   inp++;
   dt::parallel_for_static(nrows,
     [=](size_t i) {
@@ -53,7 +53,7 @@ void map_str_isna(Op, size_t nrows, const T* inp, int8_t* out) {
 
 
 template <int8_t VAL>
-void set_const(Op, size_t nrows, const void*, int8_t* out) {
+void set_const(size_t nrows, const void*, int8_t* out) {
   dt::parallel_for_static(nrows,
     [=](size_t i){
       out[i] = VAL;
@@ -158,6 +158,9 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
   if (ui.fn == nullptr) {
     return colptr(input_column->shallowcopy());
   }
+  if (ui.cast_stype != SType::VOID && input_stype != ui.cast_stype) {
+    input_column = colptr(input_column->cast(ui.cast_stype));
+  }
   input_column->materialize();
 
   size_t nrows = input_column->nrows;
@@ -182,7 +185,7 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
   auto output_column = colptr(
       Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf)));
 
-  ui.fn(opcode, nrows, inp, out);
+  ui.fn(nrows, inp, out);
 
   return output_column;
 }
@@ -318,11 +321,11 @@ void unary_infos::set_name(Op op, const std::string& name) {
 }
 
 void unary_infos::add(Op op, SType input_stype, SType output_stype,
-                      unary_func_t fn)
+                      unary_func_t fn, SType cast)
 {
   size_t entry_id = id(op, input_stype);
   xassert(info.count(entry_id) == 0);
-  info[entry_id] = {fn, output_stype};
+  info[entry_id] = {fn, output_stype, cast};
 }
 
 

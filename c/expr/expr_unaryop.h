@@ -47,19 +47,22 @@ class expr_unaryop : public base_expr {
 // unary_infos
 //------------------------------------------------------------------------------
 
-
-
 class unary_infos {
-  using unary_func_t = void(*)(Op op, size_t nrows, const void* inp, void* out);
+  using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
+
   public:
     struct uinfo {
       unary_func_t fn;
       SType output_stype;
-      size_t : 56;
+      SType cast_stype;
+      size_t : 48;
     };
 
     unary_infos();
     const uinfo& xget(Op opcode, SType input_stype) const;
+
+    template <float(*F32)(float), double(*F64)(double)>
+    inline void add_math(Op opcode, const std::string& name);
 
   private:
     std::unordered_map<size_t, uinfo> info;
@@ -68,7 +71,8 @@ class unary_infos {
     static constexpr size_t id(Op) noexcept;
     static constexpr size_t id(Op, SType) noexcept;
     void set_name(Op, const std::string&);
-    void add(Op, SType, SType, unary_func_t);
+    void add(Op, SType input_stype, SType output_stype, unary_func_t fn,
+             SType cast=SType::VOID);
 };
 
 
