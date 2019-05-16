@@ -895,6 +895,19 @@ def test_issue1401():
     assert res.to_list()[1] == sorted(col)
 
 
+def test_issue1857(numpy):
+    nrows = 3620
+    numpy.random.seed(364)
+    DT = dt.Frame(n1=numpy.random.rand(nrows).astype(numpy.float32),
+                  g1=numpy.random.randint(0, 10, nrows),
+                  g2=numpy.random.randint(0, 10, nrows))
+    agg1 = DT[:, {"M": dt.median(f.n1)}, by(f.g1, f.g2)]
+    assert agg1.shape == (100, 3)
+    assert agg1.names == ("g1", "g2", "M")
+    assert agg1.stypes == (stype.int64, stype.int64, stype.float32)
+    assert agg1.sum().to_tuples()[0] == (450, 450, 51.63409462571144)
+
+
 def test_sort_expr():
     df = dt.Frame(A=[1, 2, 1, 2], B=[3.9, 2.7, 0.1, 4.5])
     assert_equals(df[:, :, sort("A")],
