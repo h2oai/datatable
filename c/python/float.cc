@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cmath>
 #include "python/float.h"
 #include "utils/exceptions.h"
 
@@ -30,7 +31,8 @@ namespace py {
 //------------------------------------------------------------------------------
 
 ofloat::ofloat(double src) {
-  v = PyFloat_FromDouble(src);  // new ref
+  v = std::isnan(src)? py::None().release()
+                     : PyFloat_FromDouble(src);  // new ref
 }
 
 ofloat::ofloat(float src) : ofloat(static_cast<double>(src)) {}

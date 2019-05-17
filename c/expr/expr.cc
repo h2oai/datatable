@@ -26,7 +26,6 @@
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
 #include "expr/expr_literal.h"
-#include "expr/expr_math.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"

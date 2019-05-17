@@ -115,6 +115,9 @@ class unary_infos {
     void add_scalarfn_l(bool(*)(int64_t));
     void add_scalarfn_d(double(*)(double));
     void add_scalarfn_d(bool(*)(double));
+
+    template <float(*F32)(float), double(*F64)(double)>
+    void register_math_op(Op, const std::string&, const py::PKArgs&);
 };
 
 

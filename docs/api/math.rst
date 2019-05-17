@@ -63,8 +63,8 @@ math                numpy                 datatable
 ``floor(x)``        ``floor(x)``
 ``frexp(x)``        ``frexp(x)``
 ``isclose(x, y)``   ``isclose(x, y)``
-``isfinite(x)``     ``isfinite(x)``
-``isinf(x)``        ``isinf(x)``
+``isfinite(x)``     ``isfinite(x)``       :func:`isfinite(x) <isfinite>`
+``isinf(x)``        ``isinf(x)``          :func:`isinf(x) <isinf>`
 ``isnan(x)``        ``isnan(x)``          :func:`isna(x) <isna>`
 ``ldexp(x, n)``     ``ldexp(x, n)``
 \                   ``nextafter(x)``
@@ -343,6 +343,46 @@ Special mathemetical functions
 Floating-point functions
 ------------------------
 
+.. function:: isna(x)
+
+    Returns True if ``x`` is an NA value, and False otherwise.
+
+    - If ``x`` is a :class:`Frame`, the function is applied separately to each
+      element in the frame. The result is a new Frame where all columns are
+      boolean, and with the same shape as ``x``. Each element in this new frame
+      is a boolean indicator of whether the corresponding element in ``x`` is
+      an NA value or not.
+
+    - If ``x`` is a column-expression, then ``isna(x)`` is also an expression.
+      The argument column ``x`` can be of any stype, and the result is a column
+      with stype `bool8`. When evaluated within ``DT[i, j, ...]``, the expression
+      ``isna(x)`` produces a column where each element is an indicator of whether
+      the corresponding value in ``x`` is NA or not.
+
+    - When ``x`` is a python integer, ``isna(x)`` returns False.
+
+    - When ``x`` is a python float, ``isna(x)`` returns False for all values of
+      ``x`` except for the float ``nan`` value.
+
+    - ``isna(None)`` produces True.
+
+
+.. function:: isfinite(x)
+
+    Returns True if ``x`` is a finite value, and False if ``x`` is a
+    positive/negative infinity of NA.
+
+
+.. function:: isinf(x)
+
+    Returns True if ``x`` is a positive or negative infinity, and False
+    otherwise.
+
+
+
+Miscellaneous functions
+-----------------------
+
 .. function:: abs(x)
 
     Return the absolute value of ``x``. This function can only be applied
@@ -379,28 +419,6 @@ Floating-point functions
     - :func:`fabs`
 
 
-.. function:: isna(x)
-
-    Returns True if ``x`` is an NA value, and False otherwise.
-
-    - If ``x`` is a :class:`Frame`, the function is applied separately to each
-      element in the frame. The result is a new Frame where all columns are
-      boolean, and with the same shape as ``x``. Each element in this new frame
-      is a boolean indicator of whether the corresponding element in ``x`` is
-      an NA value or not.
-
-    - If ``x`` is a column-expression, then ``isna(x)`` is also an expression.
-      The argument column ``x`` can be of any stype, and the result is a column
-      with stype `bool8`. When evaluated within ``DT[i, j, ...]``, the expression
-      ``isna(x)`` produces a column where each element is an indicator of whether
-      the corresponding value in ``x`` is NA or not.
-
-    - When ``x`` is a python integer, ``isna(x)`` returns False.
-
-    - When ``x`` is a python float, ``isna(x)`` returns False for all values of
-      ``x`` except for the float ``nan`` value.
-
-    - ``isna(None)`` produces True.
 
 
 
