@@ -40,9 +40,8 @@ class Ftrl : public dt::FtrlBase {
     // a vector of weight pointers, and the model type.
     dtptr dt_model;
     std::vector<T*> z, n;
-    FtrlModelType model_type;
-    bool is_model_trained;
-    size_t: 56;
+    FtrlModelType model_type_requested;
+    FtrlModelType model_type_trained;
 
     // Feature importances datatable of shape (nfeatures, 2),
     // where the first column contains feature names and the second one
@@ -108,9 +107,11 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
-    dtptr create_y_train();
-    dtptr create_y_val();
+    dtptr create_y_binomial(const DataTable*);
+    dtptr create_y_train_multinomial();
+    dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);
+    void check_binomial_labels(dtptr&);
 
     // Feature importance helper methods
     void create_fi();
@@ -138,7 +139,7 @@ class Ftrl : public dt::FtrlBase {
 
     // Model methods
     void reset() override;
-    bool is_trained() override;
+    bool is_model_trained() override;
 
     // Getters
     DataTable* get_model() override;

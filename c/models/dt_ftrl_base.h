@@ -91,7 +91,7 @@ class FtrlBase {
                                        double, double, size_t) = 0;
     virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
-    virtual bool is_trained() = 0;
+    virtual bool is_model_trained() = 0;
 
     // Getters
     virtual DataTable* get_model() = 0;

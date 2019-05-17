@@ -270,11 +270,11 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
-  if (!dtft->is_trained()) {
+  if (!dtft->is_model_trained()) {
     colnames = dt_X->get_names();
   }
 
-  if (dtft->is_trained() && dt_X->get_names() != colnames) {
+  if (dtft->is_model_trained() && dt_X->get_names() != colnames) {
     throw ValueError() << "Training frame names cannot change for a trained "
                        << "model";
   }
@@ -399,7 +399,7 @@ oobj Ftrl::predict(const PKArgs& args) {
   DataTable* dt_X = arg_X.to_datatable();
   if (dt_X == nullptr) return Py_None;
 
-  if (!dtft->is_trained()) {
+  if (!dtft->is_model_trained()) {
     throw ValueError() << "Cannot make any predictions, the model "
                           "should be trained first";
   }
@@ -474,7 +474,7 @@ static GSArgs args_labels(
 
 
 oobj Ftrl::get_labels() const {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     const strvec& labels = dtft->get_labels();
     size_t nlabels = labels.size();
 
@@ -517,7 +517,7 @@ contain z model coefficients, and even columns n model coefficients.)");
 
 
 oobj Ftrl::get_model() const {
-  if (!dtft->is_trained()) return py::None();
+  if (!dtft->is_model_trained()) return py::None();
 
   DataTable* dt_model = dtft->get_model();
   py::oobj df_model = py::oobj::from_new_reference(
@@ -581,7 +581,7 @@ oobj Ftrl::get_fi() const {
 }
 
 oobj Ftrl::get_normalized_fi(bool normalize) const {
-  if (!dtft->is_trained()) return py::None();
+  if (!dtft->is_model_trained()) return py::None();
 
   DataTable* dt_fi = dtft->get_fi(normalize);
   py::oobj df_fi = py::oobj::from_new_reference(
@@ -601,7 +601,7 @@ static GSArgs args_colnames(
 
 
 oobj Ftrl::get_colnames() const {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     size_t ncols = colnames.size();
     py::olist py_colnames(ncols);
     for (size_t i = 0; i < ncols; ++i) {
@@ -637,7 +637,7 @@ static GSArgs args_colname_hashes(
 
 
 oobj Ftrl::get_colname_hashes() const {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     size_t ncols = dtft->get_ncols();
     py::olist py_colname_hashes(ncols);
     const std::vector<uint64_t>& colname_hashes = dtft->get_colname_hashes();
@@ -750,7 +750,7 @@ oobj Ftrl::get_nbins() const {
 
 
 void Ftrl::set_nbins(const Arg& py_nbins) {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     throw ValueError() << "Cannot change `nbins` for a trained model, "
                        << "reset this model or create a new one";
   }
@@ -776,7 +776,7 @@ oobj Ftrl::get_mantissa_nbits() const {
 
 
 void Ftrl::set_mantissa_nbits(const Arg& py_mantissa_nbits) {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     throw ValueError() << "Cannot change `mantissa_nbits` for a trained model, "
                        << "reset this model or create a new one";
   }
@@ -825,7 +825,7 @@ oobj Ftrl::get_double_precision() const {
 }
 
 void Ftrl::set_double_precision(const Arg& py_double_precision) {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     throw ValueError() << "Cannot change `double_precision` for a trained model, "
                        << "reset this model or create a new one";
   }
@@ -848,7 +848,7 @@ oobj Ftrl::get_negative_class() const {
 
 
 void Ftrl::set_negative_class(const Arg& py_negative_class) {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     throw ValueError() << "Cannot change `negative_class` for a trained model, "
                        << "reset this model or create a new one";
   }
@@ -872,7 +872,7 @@ oobj Ftrl::get_interactions() const {
 
 
 void Ftrl::set_interactions(const Arg& arg_interactions) {
-  if (dtft->is_trained())
+  if (dtft->is_model_trained())
     throw ValueError() << "Cannot change `interactions` for a trained model, "
                        << "reset this model or create a new one";
 
@@ -912,7 +912,7 @@ oobj Ftrl::get_model_type() const {
 
 
 void Ftrl::set_model_type(const Arg& py_model_type) {
-  if (dtft->is_trained()) {
+  if (dtft->is_model_trained()) {
     throw ValueError() << "Cannot change `model_type` for a trained model, "
                        << "reset this model or create a new one";
   }

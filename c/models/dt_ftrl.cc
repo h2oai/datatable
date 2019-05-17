@@ -34,8 +34,8 @@ namespace dt {
  */
 template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
-  model_type(FtrlModelType::AUTO),
-  is_model_trained(false),
+  model_type_requested(FtrlModelType::AUTO),
+  model_type_trained(FtrlModelType::AUTO), // AUTO means model was not trained
   params(params_in),
   alpha(static_cast<T>(params_in.alpha)),
   beta(static_cast<T>(params_in.beta)),
@@ -88,7 +88,8 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   FtrlFitOutput res;
 
   SType stype_y = dt_y->columns[0]->stype();
-
+  FtrlModelType model_type = !is_model_trained()? model_type_requested :
+                                                  model_type_trained;
   switch (model_type) {
     case FtrlModelType::AUTO :        switch (stype_y) {
                                         case SType::BOOL:    res = fit_binomial(); break;
@@ -123,8 +124,6 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
     case FtrlModelType::MULTINOMIAL : res = fit_multinomial(); break;
   }
 
-  is_model_trained = true;
-
   dt_X = nullptr;
   dt_y = nullptr;
   dt_X_val = nullptr;
@@ -140,33 +139,35 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
-  dtptr dt_y_nhot;
+  dtptr dt_y_nhot, dt_y_val_nhot;
   SType stype_y = dt_y->columns[0]->stype();
+  bool validation = !std::isnan(nepochs_val);
+
+  // Convert target column to boolean if needed
   if (stype_y != SType::BOOL) {
-    dt_y_nhot = dtptr(split_into_nhot(
-                        dt_y->columns[0]->cast(SType::STR32),
-                        dt::FtrlBase::SEPARATOR,
-                        true // also do sorting
-                      ));
-    if (dt_y_nhot->ncols > 2) {
-      throw ValueError() << "Binomial model cannot be applied to target column, that has "
-                         << dt_y_nhot->ncols
-                         << " unique values";
-    }
+    dt_y_nhot = create_y_binomial(dt_y);
 
-    if (dt_y_nhot->ncols == 2) {
-      std::vector<size_t> indices({1});
-      dt_y_nhot->delete_columns(indices);
-    }
+    if (validation) {
+      dt_y_val_nhot = create_y_binomial(dt_y_val);
+      const strvec& colnames = dt_y_nhot->get_names();
+      const strvec& colnames_val = dt_y_val_nhot->get_names();
 
+      if (colnames[0] != colnames_val[0]) {
+        throw ValueError() << "Positive class name is different between the "
+                           << "training target column: "
+                           << colnames[0]
+                           << ", and the validation target column: "
+                           << colnames_val[0];
+      }
+      dt_y_val = dt_y_val_nhot.get();
+    }
     dt_y = dt_y_nhot.get();
-
   }
 
-  if (!is_model_trained) {
+  if (!is_model_trained()) {
     labels = dt_y->get_names();
     create_model();
-    model_type = FtrlModelType::BINOMIAL;
+    model_type_trained = FtrlModelType::BINOMIAL;
   }
   map_val = {0};
   return fit<int8_t>(sigmoid<T>, log_loss<T>);
@@ -174,18 +175,115 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 
 template <typename T>
+dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
+  dtptr dt_nhot;
+  dt_nhot = dtptr(split_into_nhot(
+                      dt->columns[0]->cast(SType::STR32),
+                      dt::FtrlBase::SEPARATOR,
+                      true // also do sorting
+                    ));
+
+  if (dt_nhot->ncols > 2) {
+    throw ValueError() << "Binomial model cannot be applied to target column, "
+                       << "that has "
+                       << dt_nhot->ncols
+                       << " unique labels";
+  }
+
+  if (model_type_trained != FtrlModelType::AUTO) check_binomial_labels(dt_nhot);
+
+  if (dt_nhot->ncols == 2) {
+
+    std::vector<size_t> indices({1});
+    dt_nhot->delete_columns(indices);
+  }
+
+  xassert(dt_nhot->ncols == 1);
+  return dt_nhot;
+}
+
+
+template <typename T>
+void Ftrl<T>::check_binomial_labels(dtptr& dt) {
+  const strvec& labels_in = dt->get_names();
+  xassert(labels.size() > 0);
+  xassert(labels.size() < 3);
+  size_t nlabels = labels.size();
+  size_t nlabels_in = labels_in.size();
+  bool is_negative_label = false;
+  bool positive_label_index = 0;
+
+
+  // Check if the incoming labels are consistent with the existing ones
+  switch (nlabels) {
+    case 1: switch (nlabels_in) {
+              case 1: if (labels[0] != labels_in [0]) {
+                        is_negative_label = true;
+                        labels.push_back(labels_in[0]);
+                      }
+                      break;
+              case 2: {
+                        auto it = std::find(labels_in.begin(), labels_in.end(), labels[0]);
+                        if (it == labels_in.end()) {
+                          throw ValueError() << "Target column got two labels, but none of them is the positive class label `" << labels[0] << "`";
+                        }
+                        positive_label_index = std::distance(labels_in.begin(), it);
+                        labels.push_back(labels_in[!positive_label_index]);
+                      }
+                      break;
+            }
+            break;
+
+    case 2: switch (nlabels_in) {
+              case 1: {
+                        auto it = std::find(labels.begin(), labels.end(), labels_in[0]);
+                        if (it == labels.end()) {
+                          throw ValueError() << "The model was trained with the following labels: `" << labels[0] << "` and `" << labels[1] << "`, however got `" << labels_in[0] << "` in the target column";
+                        } else {
+                          is_negative_label = std::distance(labels.begin(), it);
+                        }
+                      }
+                      break;
+
+              case 2: if (labels[0] == labels_in[1] && labels[1] == labels_in[0]) {
+                        positive_label_index = 1;
+                      } else if (labels != labels_in) {
+                        throw ValueError() << "The model was trained with the following labels: `" << labels[0] << "` and `" << labels[1] << "`, however got `" << labels_in[0] << "` and `" << labels_in[1] << "in the target column";
+                      }
+                      break;
+            }
+            break;
+
+  }
+
+
+  // If we only got a negative label, train the model on all
+  // negatives. Otherwise, pick up a positive label to train on.
+  if (is_negative_label) {
+    colvec cols(1);
+    cols.push_back(create_negative_column(dt->nrows));
+    dt = dtptr(new DataTable(std::move(cols)));
+  } else if (nlabels_in == 2) {
+    std::vector<size_t> indices({!positive_label_index});
+    dt->delete_columns(indices);
+  }
+}
+
+
+
+template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
   xassert(dt_y->ncols == 1);
-  if (is_model_trained && model_type != FtrlModelType::REGRESSION) {
+  if (is_model_trained() && model_type_trained != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
-  if (!is_model_trained) {
+  if (!is_model_trained()) {
     labels = dt_y->get_names();
     create_model();
-    model_type = FtrlModelType::REGRESSION;
+    model_type_trained = FtrlModelType::REGRESSION;
   }
   map_val = {0};
   return fit<U>(identity<T>, squared_loss<T, U>);
@@ -194,29 +292,29 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_multinomial() {
-  if (is_model_trained && model_type != FtrlModelType::MULTINOMIAL) {
+  if (is_model_trained() && model_type_trained != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from multinomial. To train it "
                          "in a multinomial mode this model should be reset.";
   }
 
-  if (!is_model_trained) {
+  if (!is_model_trained()) {
     xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
     if (params.negative_class) {
       labels.push_back("_negative");
     }
     create_model();
-    model_type = FtrlModelType::MULTINOMIAL;
+    model_type_trained = FtrlModelType::MULTINOMIAL;
   }
 
-  dtptr dt_y_train = create_y_train();
+  dtptr dt_y_train = create_y_train_multinomial();
   dt_y = dt_y_train.get();
 
   // Create validation targets if needed.
   dtptr dt_y_val_filtered;
   if (!std::isnan(nepochs_val)) {
-    dt_y_val_filtered = create_y_val();
+    dt_y_val_filtered = create_y_val_multinomial();
     dt_y_val = dt_y_val_filtered.get();
   }
 
@@ -417,7 +515,7 @@ void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
  */
 template <typename T>
 dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
-  if (!is_model_trained) {
+  if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
@@ -437,7 +535,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
   // Determine which link function we should use.
   T (*linkfn)(T);
-  switch (model_type) {
+  switch (model_type_trained) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
@@ -477,7 +575,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
  *  Create training targets.
  */
 template <typename T>
-dtptr Ftrl<T>::create_y_train() {
+dtptr Ftrl<T>::create_y_train_multinomial() {
   // Do nhot encoding and sort labels alphabetically.
   dtptr dt_y_nhot = dtptr(split_into_nhot(
                       dt_y->columns[0],
@@ -548,7 +646,7 @@ Column* Ftrl<T>::create_negative_column(size_t nrows) {
  *  labels and the model labels to be used during training.
  */
 template <typename T>
-dtptr Ftrl<T>::create_y_val() {
+dtptr Ftrl<T>::create_y_val_multinomial() {
   xassert(map_val.size() == 0);
   xassert(dt_X_val != nullptr && dt_y_val != nullptr)
   xassert(dt_X_val->nrows == dt_y_val->nrows)
@@ -706,8 +804,8 @@ template <typename T>
 void Ftrl<T>::reset() {
   dt_model = nullptr;
   dt_fi = nullptr;
-  is_model_trained = false;
-  model_type = FtrlModelType::AUTO; // FIXME
+  model_type_requested = FtrlModelType::AUTO;
+  model_type_trained = FtrlModelType::AUTO;
   labels.clear();
   colname_hashes.clear();
   interactions.clear();
@@ -888,8 +986,8 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
  *  Return training status.
  */
 template <typename T>
-bool Ftrl<T>::is_trained() {
-  return is_model_trained;
+bool Ftrl<T>::is_model_trained() {
+  return model_type_trained != FtrlModelType::AUTO;
 }
 
 
@@ -908,7 +1006,7 @@ DataTable* Ftrl<T>::get_model() {
  */
 template <typename T>
 FtrlModelType Ftrl<T>::get_model_type() {
-  return model_type;
+  return model_type_requested;
 }
 
 
@@ -1039,8 +1137,7 @@ void Ftrl<T>::set_model(DataTable* dt_model_in) {
 
 template <typename T>
 void Ftrl<T>::set_model_type(FtrlModelType model_type_in) {
-  model_type = model_type_in;
-  if (model_type_in != FtrlModelType::AUTO) is_model_trained = true;
+  model_type_requested = model_type_in;
 }
 
 
