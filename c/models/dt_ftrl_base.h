@@ -32,10 +32,11 @@ namespace dt {
  *  Supported FTRL model types.
  */
 enum class FtrlModelType : size_t {
-  AUTO        = 0, // Automatically detect model type
-  REGRESSION  = 1, // Numerical regression
-  BINOMIAL    = 2, // Binomial logistic regression
-  MULTINOMIAL = 3  // Multinomial logistic regression
+  NONE        = 0, // Untrained model
+  AUTO        = 1, // Automatically detect model type
+  REGRESSION  = 2, // Numerical regression
+  BINOMIAL    = 3, // Binomial logistic regression
+  MULTINOMIAL = 4  // Multinomial logistic regression
 };
 
 
@@ -96,6 +97,7 @@ class FtrlBase {
     // Getters
     virtual DataTable* get_model() = 0;
     virtual FtrlModelType get_model_type() = 0;
+    virtual FtrlModelType get_model_type_trained() = 0;
     virtual DataTable* get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_ncols() = 0;
@@ -116,6 +118,7 @@ class FtrlBase {
     virtual void set_model(DataTable*) = 0;
     virtual void set_fi(DataTable*) = 0;
     virtual void set_model_type(FtrlModelType) = 0;
+    virtual void set_model_type_trained(FtrlModelType) = 0;
     virtual void set_alpha(double) = 0;
     virtual void set_beta(double) = 0;
     virtual void set_lambda1(double) = 0;

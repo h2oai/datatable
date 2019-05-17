@@ -86,6 +86,7 @@ class Ftrl : public PyObject {
     oobj get_double_precision() const;
     oobj get_negative_class() const;
     oobj get_model_type() const;
+    oobj get_model_type_trained() const;
 
     // Setters
     void set_model(robj);             // Not exposed, used for unpickling only

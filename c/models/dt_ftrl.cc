@@ -34,8 +34,7 @@ namespace dt {
  */
 template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
-  model_type_requested(FtrlModelType::AUTO),
-  model_type_trained(FtrlModelType::AUTO), // AUTO means model was not trained
+  model_type(FtrlModelType::NONE), // `NONE` means model was not trained
   params(params_in),
   alpha(static_cast<T>(params_in.alpha)),
   beta(static_cast<T>(params_in.beta)),
@@ -88,9 +87,11 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   FtrlFitOutput res;
 
   SType stype_y = dt_y->columns[0]->stype();
-  FtrlModelType model_type = !is_model_trained()? model_type_requested :
-                                                  model_type_trained;
-  switch (model_type) {
+  FtrlModelType model_type_train = !is_model_trained()? params.model_type :
+                                                        model_type;
+
+  xassert(model_type_train != FtrlModelType::NONE);
+  switch (model_type_train) {
     case FtrlModelType::AUTO :        switch (stype_y) {
                                         case SType::BOOL:    res = fit_binomial(); break;
                                         case SType::INT8:    res = fit_regression<int8_t>(); break;
@@ -122,6 +123,9 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
     case FtrlModelType::BINOMIAL :    res = fit_binomial(); break;
     case FtrlModelType::MULTINOMIAL : res = fit_multinomial(); break;
+
+    // If this error is thrown, there is a bug in how we determine model types.
+    case FtrlModelType::NONE : throw ValueError() << "Cannot train model in an unknown mode";
   }
 
   dt_X = nullptr;
@@ -167,7 +171,7 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
   if (!is_model_trained()) {
     labels = dt_y->get_names();
     create_model();
-    model_type_trained = FtrlModelType::BINOMIAL;
+    model_type = FtrlModelType::BINOMIAL;
   }
   map_val = {0};
   return fit<int8_t>(sigmoid<T>, log_loss<T>);
@@ -190,7 +194,7 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
                        << " unique labels";
   }
 
-  if (model_type_trained != FtrlModelType::AUTO) check_binomial_labels(dt_nhot);
+  if (model_type != FtrlModelType::AUTO) check_binomial_labels(dt_nhot);
 
   if (dt_nhot->ncols == 2) {
 
@@ -275,7 +279,7 @@ template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
   xassert(dt_y->ncols == 1);
-  if (is_model_trained() && model_type_trained != FtrlModelType::REGRESSION) {
+  if (is_model_trained() && model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
@@ -283,7 +287,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   if (!is_model_trained()) {
     labels = dt_y->get_names();
     create_model();
-    model_type_trained = FtrlModelType::REGRESSION;
+    model_type = FtrlModelType::REGRESSION;
   }
   map_val = {0};
   return fit<U>(identity<T>, squared_loss<T, U>);
@@ -292,7 +296,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_multinomial() {
-  if (is_model_trained() && model_type_trained != FtrlModelType::MULTINOMIAL) {
+  if (is_model_trained() && model_type != FtrlModelType::MULTINOMIAL) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from multinomial. To train it "
                          "in a multinomial mode this model should be reset.";
@@ -305,7 +309,7 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
       labels.push_back("_negative");
     }
     create_model();
-    model_type_trained = FtrlModelType::MULTINOMIAL;
+    model_type = FtrlModelType::MULTINOMIAL;
   }
 
   dtptr dt_y_train = create_y_train_multinomial();
@@ -535,7 +539,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
   // Determine which link function we should use.
   T (*linkfn)(T);
-  switch (model_type_trained) {
+  switch (model_type) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
@@ -804,8 +808,8 @@ template <typename T>
 void Ftrl<T>::reset() {
   dt_model = nullptr;
   dt_fi = nullptr;
-  model_type_requested = FtrlModelType::AUTO;
-  model_type_trained = FtrlModelType::AUTO;
+  params.model_type = FtrlModelType::AUTO;
+  model_type = FtrlModelType::NONE;
   labels.clear();
   colname_hashes.clear();
   interactions.clear();
@@ -987,7 +991,7 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
  */
 template <typename T>
 bool Ftrl<T>::is_model_trained() {
-  return model_type_trained != FtrlModelType::AUTO;
+  return model_type != FtrlModelType::NONE;
 }
 
 
@@ -1006,9 +1010,17 @@ DataTable* Ftrl<T>::get_model() {
  */
 template <typename T>
 FtrlModelType Ftrl<T>::get_model_type() {
-  return model_type_requested;
+  return params.model_type;
 }
 
+
+/**
+ *  Return trained model type.
+ */
+template <typename T>
+FtrlModelType Ftrl<T>::get_model_type_trained() {
+  return model_type;
+}
 
 
 /**
@@ -1137,7 +1149,13 @@ void Ftrl<T>::set_model(DataTable* dt_model_in) {
 
 template <typename T>
 void Ftrl<T>::set_model_type(FtrlModelType model_type_in) {
-  model_type_requested = model_type_in;
+  params.model_type = model_type_in;
+}
+
+
+template <typename T>
+void Ftrl<T>::set_model_type_trained(FtrlModelType model_type_trained_in) {
+  model_type = model_type_trained_in;
 }
 
 

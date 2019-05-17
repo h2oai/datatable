@@ -903,7 +903,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
  */
 static GSArgs args_model_type(
   "model_type",
-  "FTRL model tyoe: 'auto', 'regression', 'binomial' or 'multinomial.");
+  "FTRL model type: 'auto', 'regression', 'binomial' or 'multinomial.");
 
 
 oobj Ftrl::get_model_type() const {
@@ -925,6 +925,18 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
   py_params.replace(10, py_model_type.to_robj());
 }
 
+
+/**
+ *  .model_type_trained
+ */
+static GSArgs args_model_type_trained(
+  "model_type_trained",
+  "FTRL trained model type: 'none', 'regression', 'binomial' or 'multinomial.");
+
+
+oobj Ftrl::get_model_type_trained() const {
+  return py::oint(static_cast<size_t>(dtft->get_model_type_trained()));
+}
 
 /**
  *  .params
@@ -1060,8 +1072,10 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_labels = get_labels();
   py::oobj py_colnames = get_colnames();
   py::oobj py_params_tuple = get_params_tuple();
+  py::oobj py_model_type = get_model_type_trained();
 
-  return otuple {py_params_tuple, py_model, py_fi, py_labels, py_colnames};
+  return otuple {py_params_tuple, py_model, py_fi, py_labels,
+                 py_colnames, py_model_type};
 }
 
 
@@ -1089,6 +1103,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 
   set_labels(pickle[3]);
   set_colnames(pickle[4]);
+
+  auto model_type = static_cast<dt::FtrlModelType>(pickle[5].to_size_t());
+  dtft->set_model_type_trained(model_type);
 }
 
 
@@ -1165,6 +1182,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
   // Model and features
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
+  ADD_GETTER(gs, &Ftrl::get_model_type_trained, args_model_type_trained);
   ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
   ADD_GETTER(gs, &Ftrl::get_colnames, args_colnames);

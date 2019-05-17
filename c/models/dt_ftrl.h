@@ -40,8 +40,7 @@ class Ftrl : public dt::FtrlBase {
     // a vector of weight pointers, and the model type.
     dtptr dt_model;
     std::vector<T*> z, n;
-    FtrlModelType model_type_requested;
-    FtrlModelType model_type_trained;
+    FtrlModelType model_type;
 
     // Feature importances datatable of shape (nfeatures, 2),
     // where the first column contains feature names and the second one
@@ -145,6 +144,7 @@ class Ftrl : public dt::FtrlBase {
     DataTable* get_model() override;
     DataTable* get_fi(bool normalize = true) override;
     FtrlModelType get_model_type() override;
+    FtrlModelType get_model_type_trained() override;
     size_t get_nfeatures() override;
     size_t get_ncols() override;
     const std::vector<uint64_t>& get_colname_hashes() override;
@@ -164,6 +164,7 @@ class Ftrl : public dt::FtrlBase {
     void set_model(DataTable*) override;
     void set_fi(DataTable*) override;
     void set_model_type(FtrlModelType) override;
+    void set_model_type_trained(FtrlModelType) override;
     void set_alpha(double) override;
     void set_beta(double) override;
     void set_lambda1(double) override;
