@@ -373,6 +373,7 @@ void py::DatatableModule::init_methods() {
 
   init_casts();
   init_fuzzy();
+  init_unops();
 
   #ifdef DTTEST
     init_tests();

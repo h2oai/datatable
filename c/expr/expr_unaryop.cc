@@ -7,7 +7,9 @@
 //------------------------------------------------------------------------------
 #include <cmath>
 #include "expr/expr_unaryop.h"
+#include "frame/py_frame.h"
 #include "parallel/api.h"
+#include "datatablemodule.h"
 #include "types.h"
 namespace dt {
 namespace expr {
@@ -20,6 +22,15 @@ unary_infos unary_library;
 //------------------------------------------------------------------------------
 // Mapper functions
 //------------------------------------------------------------------------------
+
+template<typename T, T(*OP)(T)>
+void map1(size_t nrows, const T* inp, T* out) {
+  dt::parallel_for_static(nrows,
+    [=](size_t i) {
+      out[i] = OP(inp[i]);
+    });
+}
+
 
 template<typename IT, typename OT, OT(*OP)(IT)>
 void map11(size_t nrows, const IT* inp, OT* out) {
@@ -76,9 +87,13 @@ inline static T op_minus(T x) {
 }
 
 template <typename T>
-inline static bool op_isna(T x) {
-  return ISNA<T>(x);
-}
+inline static bool op_isna(T x) { return ISNA<T>(x); }
+
+template <typename T>
+inline static bool op_notna(T x) { return !ISNA<T>(x); }
+
+template <typename T>
+inline static bool op_false(T) { return false; }
 
 
 template <typename T>
@@ -126,7 +141,7 @@ pexpr expr_unaryop::get_negated_expr() {
 
 SType expr_unaryop::resolve(const workframe& wf) {
   SType input_stype = arg->resolve(wf);
-  return unary_library.xget(opcode, input_stype).output_stype;
+  return unary_library.get_infox(opcode, input_stype).output_stype;
 }
 
 
@@ -154,9 +169,13 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
   auto input_column = arg->evaluate_eager(wf);
 
   auto input_stype = input_column->stype();
-  const auto& ui = unary_library.xget(opcode, input_stype);
+  const auto& ui = unary_library.get_infox(opcode, input_stype);
   if (ui.fn == nullptr) {
-    return colptr(input_column->shallowcopy());
+    if (input_stype == ui.output_stype) {
+      return colptr(input_column->shallowcopy());
+    } else {
+      return colptr(input_column->cast(ui.output_stype));
+    }
   }
   if (ui.cast_stype != SType::VOID && input_stype != ui.cast_stype) {
     input_column = colptr(input_column->cast(ui.cast_stype));
@@ -192,10 +211,115 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
 
 
 
+//------------------------------------------------------------------------------
+// unary_pyfn
+//------------------------------------------------------------------------------
+
+// This helper function will apply `opcode` to the entire frame, and
+// return the resulting frame (same shape as the original).
+static py::oobj process_frame(Op opcode, py::robj arg) {
+  xassert(arg.is_frame());
+  auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());
+  DataTable* dt = frame->get_datatable();
+
+  py::olist columns(dt->ncols);
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    py::oobj col_selector = make_pyexpr(Op::COL, py::oint(0), py::oint(i));
+    columns.set(i, make_pyexpr(opcode, col_selector));
+  }
+
+  py::oobj res = frame->m__getitem__(py::otuple{ py::None(), columns });
+  DataTable* res_dt = res.to_datatable();
+  res_dt->copy_names_from(dt);
+  return res;
+}
+
+
+py::oobj unary_pyfn(const py::PKArgs& args) {
+  using uinfo = unary_infos::uinfo;
+  Op opcode = unary_library.resolve_opcode(args);
+
+  py::robj arg = args[0].to_robj();
+  if (arg.is_dtexpr()) {
+    return make_pyexpr(opcode, arg);
+  }
+  if (arg.is_frame()) {
+    return process_frame(opcode, arg);
+  }
+  if (arg.is_float() || arg.is_none()) {
+    double v = arg.to_double();
+    const uinfo* info = unary_library.get_infon(opcode, SType::FLOAT64);
+    if (info && info->output_stype == SType::FLOAT64) {
+      auto res = info->scalarfn.d_d(v);
+      return py::ofloat(res);
+    }
+    if (info && info->output_stype == SType::BOOL) {
+      auto res = info->scalarfn.d_b(v);
+      return py::obool(res);
+    }
+    if (!arg.is_none()) {
+      throw TypeError() << "Function `" << args.get_short_name()
+        << "` cannot be applied to a float argument";
+    }
+    // Fall-through if arg is None
+  }
+  if (arg.is_int() || arg.is_none()) {
+    int64_t v = arg.to_int64_strict();
+    const uinfo* info = unary_library.get_infon(opcode, SType::INT64);
+    if (info && info->output_stype == SType::INT64) {
+      auto res = info->scalarfn.l_l(v);
+      return py::oint(res);
+    }
+    if (info && info->output_stype == SType::BOOL) {
+      auto res = info->scalarfn.l_b(v);
+      return py::obool(res);
+    }
+    if (!arg.is_none()) {
+      throw TypeError() << "Function `" << args.get_short_name()
+        << "` cannot be applied to an integer argument";
+    }
+  }
+  if (arg.is_string() || arg.is_none()) {
+
+  }
+  if (!arg) {
+    throw TypeError() << "Function `" << args.get_short_name() << "()` takes "
+        "exactly one argument, 0 given";
+  }
+  throw TypeError() << "Function `" << args.get_short_name() << "()` cannot "
+      "be applied to an argument of type " << arg.typeobj();
+}
+
+
 
 //------------------------------------------------------------------------------
-// one-time initialization
+// Args for python functions
 //------------------------------------------------------------------------------
+
+static py::PKArgs args_abs(
+  1, 0, 0, false, false, {"x"}, "abs",
+  "Absolute value of a number.");
+
+static py::PKArgs args_isna(
+  1, 0, 0, false, false, {"x"}, "isna",
+  "Returns True if the argument is NA, and False otherwise.");
+
+static py::PKArgs args_isfinite(
+  1, 0, 0, false, false, {"x"}, "isfinite",
+R"(Returns True if the argument has a finite value, and
+False if the argument is +/- infinity or NaN.)");
+
+static py::PKArgs args_isinf(
+  1, 0, 0, false, false, {"x"}, "isinf",
+  "Returns True if the argument is +/- infinity, and False otherwise.");
+
+
+
+//------------------------------------------------------------------------------
+// unary_infos
+//------------------------------------------------------------------------------
+
+#define U reinterpret_cast<unary_func_t>
 
 unary_infos::unary_infos() {
   constexpr SType bool8 = SType::BOOL;
@@ -208,15 +332,15 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
+  set_name(Op::UPLUS, "+");
   add(Op::UPLUS, bool8, int8,  nullptr);
-  add(Op::UPLUS, int8, int8,  nullptr);
+  add(Op::UPLUS, int8,  int8,  nullptr);
   add(Op::UPLUS, int16, int16, nullptr);
   add(Op::UPLUS, int32, int32, nullptr);
   add(Op::UPLUS, int64, int64, nullptr);
   add(Op::UPLUS, flt32, flt32, nullptr);
   add(Op::UPLUS, flt64, flt64, nullptr);
 
-  #define U reinterpret_cast<unary_func_t>
   add(Op::UMINUS, bool8, int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
   add(Op::UMINUS, int8,  int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
   add(Op::UMINUS, int16, int16, U(map11<int16_t, int16_t, op_minus<int16_t>>));
@@ -231,39 +355,59 @@ unary_infos::unary_infos() {
   add(Op::UINVERT, int32, int32, U(map11<int32_t, int32_t, op_inverse<int32_t>>));
   add(Op::UINVERT, int64, int64, U(map11<int64_t, int64_t, op_inverse<int64_t>>));
 
-  add(Op::ISNA, bool8, bool8, U(map11<int8_t,   bool, op_isna<int8_t>>));
-  add(Op::ISNA, int8,  bool8, U(map11<int8_t,   bool, op_isna<int8_t>>));
-  add(Op::ISNA, int16, bool8, U(map11<int16_t,  bool, op_isna<int16_t>>));
-  add(Op::ISNA, int32, bool8, U(map11<int32_t,  bool, op_isna<int32_t>>));
-  add(Op::ISNA, int64, bool8, U(map11<int64_t,  bool, op_isna<int64_t>>));
-  add(Op::ISNA, flt32, bool8, U(map11<float,    bool, std::isnan>));
-  add(Op::ISNA, flt64, bool8, U(map11<double,   bool, std::isnan>));
-  add(Op::ISNA, str32, bool8, U(map_str_isna<uint32_t>));
-  add(Op::ISNA, str64, bool8, U(map_str_isna<uint64_t>));
+  register_op(Op::ABS, "abs", args_abs,
+    [=]{
+      add_copy_converter(bool8, int8);
+      add_converter(map1<int8_t,  op_abs<int8_t>>);
+      add_converter(map1<int16_t, op_abs<int16_t>>);
+      add_converter(map1<int32_t, op_abs<int32_t>>);
+      add_converter(map1<int64_t, op_abs<int64_t>>);
+      add_converter(map1<float,   std::abs>);
+      add_converter(map1<double,  std::abs>);
+      add_scalarfn_l(op_abs<int64_t>);
+      add_scalarfn_d(std::abs);
+    });
 
-  add(Op::ISFINITE, bool8, bool8, U(set_const<1>));
-  add(Op::ISFINITE, int8,  bool8, U(set_const<1>));
-  add(Op::ISFINITE, int16, bool8, U(set_const<1>));
-  add(Op::ISFINITE, int32, bool8, U(set_const<1>));
-  add(Op::ISFINITE, int64, bool8, U(set_const<1>));
-  add(Op::ISFINITE, flt32, bool8, U(map11<float,  bool, std::isfinite>));
-  add(Op::ISFINITE, flt64, bool8, U(map11<double, bool, std::isfinite>));
+  register_op(Op::ISNA, "isna", args_isna,
+    [=]{
+      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
+      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
+      add_converter(int16, bool8, U(map11<int16_t, bool, op_isna<int16_t>>));
+      add_converter(int32, bool8, U(map11<int32_t, bool, op_isna<int32_t>>));
+      add_converter(int64, bool8, U(map11<int64_t, bool, op_isna<int64_t>>));
+      add_converter(flt32, bool8, U(map11<float,   bool, std::isnan>));
+      add_converter(flt64, bool8, U(map11<double,  bool, std::isnan>));
+      add_converter(str32, bool8, U(map_str_isna<uint32_t>));
+      add_converter(str64, bool8, U(map_str_isna<uint64_t>));
+      add_scalarfn_l(op_isna<int64_t>);
+      add_scalarfn_d(std::isnan);
+    });
 
-  add(Op::ISINF, bool8, bool8, U(set_const<0>));
-  add(Op::ISINF, int8,  bool8, U(set_const<0>));
-  add(Op::ISINF, int16, bool8, U(set_const<0>));
-  add(Op::ISINF, int32, bool8, U(set_const<0>));
-  add(Op::ISINF, int64, bool8, U(set_const<0>));
-  add(Op::ISINF, flt32, bool8, U(map11<float,  bool, std::isinf>));
-  add(Op::ISINF, flt64, bool8, U(map11<double, bool, std::isinf>));
+  register_op(Op::ISFINITE, "isfinite", args_isfinite,
+    [&]{
+      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
+      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
+      add_converter(int16, bool8, U(map11<int16_t, bool, op_notna<int16_t>>));
+      add_converter(int32, bool8, U(map11<int32_t, bool, op_notna<int32_t>>));
+      add_converter(int64, bool8, U(map11<int64_t, bool, op_notna<int64_t>>));
+      add_converter(flt32, bool8, U(map11<float,   bool, std::isfinite>));
+      add_converter(flt64, bool8, U(map11<double,  bool, std::isfinite>));
+      add_scalarfn_l(op_notna<int64_t>);
+      add_scalarfn_d(std::isfinite);
+    });
 
-  add(Op::ABS, bool8, int8,  nullptr);
-  add(Op::ABS, int8,  int8,  U(map11<int8_t,  int8_t,  op_abs<int8_t>>));
-  add(Op::ABS, int16, int16, U(map11<int16_t, int16_t, op_abs<int16_t>>));
-  add(Op::ABS, int32, int32, U(map11<int32_t, int32_t, op_abs<int32_t>>));
-  add(Op::ABS, int64, int64, U(map11<int64_t, int64_t, op_abs<int64_t>>));
-  add(Op::ABS, flt32, flt32, U(map11<float,   float,   std::abs>));
-  add(Op::ABS, flt64, flt64, U(map11<double,  double,  std::abs>));
+  register_op(Op::ISINF, "isinf", args_isinf,
+    [&]{
+      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
+      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
+      add_converter(int16, bool8, U(map11<int16_t, bool, op_false<int16_t>>));
+      add_converter(int32, bool8, U(map11<int32_t, bool, op_false<int32_t>>));
+      add_converter(int64, bool8, U(map11<int64_t, bool, op_false<int64_t>>));
+      add_converter(flt32, bool8, U(map11<float,   bool, std::isinf>));
+      add_converter(flt64, bool8, U(map11<double,  bool, std::isinf>));
+      add_scalarfn_l(op_false<int64_t>);
+      add_scalarfn_d(std::isinf);
+    });
 
   add(Op::CEIL, bool8, int8,  nullptr);
   add(Op::CEIL, int8,  int8,  nullptr);
@@ -291,20 +435,19 @@ unary_infos::unary_infos() {
 
   add(Op::LEN, str32, int32, U(map_str_len<uint32_t, int32_t>));
   add(Op::LEN, str64, int64, U(map_str_len<uint64_t, int64_t>));
-  #undef U
 
-  set_name(Op::UPLUS, "+");
   set_name(Op::UMINUS, "-");
   set_name(Op::UINVERT, "~");
   set_name(Op::ISNA, "isna");
   set_name(Op::ISFINITE, "isfinite");
   set_name(Op::ISINF, "isinf");
-  set_name(Op::ABS, "abs");
   set_name(Op::CEIL, "ceil");
   set_name(Op::FLOOR, "floor");
   set_name(Op::TRUNC, "trunc");
   set_name(Op::LEN, "len");
 }
+
+#undef U
 
 
 constexpr size_t unary_infos::id(Op op) noexcept {
@@ -325,11 +468,19 @@ void unary_infos::add(Op op, SType input_stype, SType output_stype,
 {
   size_t entry_id = id(op, input_stype);
   xassert(info.count(entry_id) == 0);
-  info[entry_id] = {fn, output_stype, cast};
+  info[entry_id] = {fn, {nullptr}, output_stype, cast};
 }
 
 
-const unary_infos::uinfo& unary_infos::xget(Op op, SType input_stype) const {
+const unary_infos::uinfo* unary_infos::get_infon(Op op, SType input_stype) const
+{
+  size_t entry_id = id(op, input_stype);
+  return info.count(entry_id)? &info.at(entry_id) : nullptr;
+}
+
+
+const unary_infos::uinfo& unary_infos::get_infox(Op op, SType input_stype) const
+{
   size_t entry_id = id(op, input_stype);
   if (info.count(entry_id)) {
     return info.at(entry_id);
@@ -348,5 +499,87 @@ const unary_infos::uinfo& unary_infos::xget(Op op, SType input_stype) const {
 }
 
 
+Op unary_infos::resolve_opcode(const py::PKArgs& args) const {
+  return opcodes.at(&args);
+}
+
+
+void unary_infos::register_op(
+  Op opcode, const std::string& name, const py::PKArgs& args,
+  dt::function<void()> more)
+{
+  names[id(opcode)] = name;
+  opcodes[&args] = opcode;
+  current_opcode = opcode;
+  more();
+}
+
+void unary_infos::add_converter(SType in, SType out, unary_func_t fn) {
+  add(current_opcode, in, out, fn);
+}
+
+void unary_infos::add_copy_converter(SType in, SType out) {
+  if (out == SType::VOID) out = in;
+  add(current_opcode, in, out, nullptr);
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const int8_t*, int8_t*)) {
+  add(current_opcode, SType::INT8, SType::INT8, reinterpret_cast<unary_func_t>(f));
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const int16_t*, int16_t*)) {
+  add(current_opcode, SType::INT16, SType::INT16, reinterpret_cast<unary_func_t>(f));
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const int32_t*, int32_t*)) {
+  add(current_opcode, SType::INT32, SType::INT32, reinterpret_cast<unary_func_t>(f));
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const int64_t*, int64_t*)) {
+  add(current_opcode, SType::INT64, SType::INT64, reinterpret_cast<unary_func_t>(f));
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const float*, float*)) {
+  add(current_opcode, SType::FLOAT32, SType::FLOAT32, reinterpret_cast<unary_func_t>(f));
+}
+
+void unary_infos::add_converter(void(*f)(size_t, const double*, double*)) {
+  add(current_opcode, SType::FLOAT64, SType::FLOAT64, reinterpret_cast<unary_func_t>(f));
+}
+
+
+void unary_infos::add_scalarfn_l(int64_t(*f)(int64_t)) {
+  size_t entry_id = id(current_opcode, SType::INT64);
+  xassert(info.count(entry_id) && !info[entry_id].scalarfn.l_l);
+  info[entry_id].scalarfn.l_l = f;
+}
+
+void unary_infos::add_scalarfn_l(bool(*f)(int64_t)) {
+  size_t entry_id = id(current_opcode, SType::INT64);
+  xassert(info.count(entry_id) && !info[entry_id].scalarfn.l_b);
+  info[entry_id].scalarfn.l_b = f;
+}
+
+void unary_infos::add_scalarfn_d(double(*f)(double)) {
+  size_t entry_id = id(current_opcode, SType::FLOAT64);
+  xassert(info.count(entry_id) && !info[entry_id].scalarfn.d_d);
+  info[entry_id].scalarfn.d_d = f;
+}
+
+void unary_infos::add_scalarfn_d(bool(*f)(double)) {
+  size_t entry_id = id(current_opcode, SType::FLOAT64);
+  xassert(info.count(entry_id) && !info[entry_id].scalarfn.d_b);
+  info[entry_id].scalarfn.d_b = f;
+}
+
 
 }}  // namespace dt::expr
+
+
+void py::DatatableModule::init_unops() {
+  using namespace dt::expr;
+  ADD_FN(&unary_pyfn, args_abs);
+  ADD_FN(&unary_pyfn, args_isna);
+  ADD_FN(&unary_pyfn, args_isfinite);
+  ADD_FN(&unary_pyfn, args_isinf);
+}

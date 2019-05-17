@@ -143,6 +143,18 @@ void init_expr() {
 
 
 
+py::oobj make_pyexpr(Op opcode, py::oobj arg) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op), arg });
+}
+
+
+py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op), arg1, arg2 });
+}
+
+
 }}  // namespace dt::expr
 
 using namespace dt::expr;

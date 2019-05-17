@@ -167,7 +167,7 @@ enum class Op : size_t {
 
 
 //------------------------------------------------------------------------------
-// dt::base_expr
+// dt::expr::base_expr
 //------------------------------------------------------------------------------
 
 class base_expr {
@@ -187,6 +187,11 @@ class base_expr {
 
 // Initialize once
 void init_expr();
+
+
+py::oobj make_pyexpr(Op opcode, py::oobj arg);
+py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2);
+
 
 
 }}  // namespace dt::expr

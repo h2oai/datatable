@@ -23,6 +23,7 @@
 from math import e, inf, nan, pi, tau
 
 from .lib._datatable import (
+    abs,
     arccos,
     arccosh,
     arcsin,
@@ -40,6 +41,9 @@ from .lib._datatable import (
     expm1,
     fabs,
     gamma,
+    isna,
+    isfinite,
+    isinf,
     lgamma,
     log,
     log10,

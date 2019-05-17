@@ -67,8 +67,8 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 cos() in the sense that `cos(arccos(x)) == x`.
 )");
 
-static PKArgs args_arccosh(
-  1, 0, 0, false, false, {"x"}, "arccosh",
+static PKArgs args_arcosh(
+  1, 0, 0, false, false, {"x"}, "arcosh",
 R"(Inverse hyperbolic cosine of x.)");
 
 static PKArgs args_arcsin(
@@ -80,8 +80,8 @@ x that lie outside the interval [-1, 1]. This function is the inverse of
 sin() in the sense that `sin(arcsin(x)) == x`.
 )");
 
-static PKArgs args_arcsinh(
-  1, 0, 0, false, false, {"x"}, "arcsinh",
+static PKArgs args_arsinh(
+  1, 0, 0, false, false, {"x"}, "arsinh",
 R"(Inverse hyperbolic sine of x.)");
 
 static PKArgs args_arctan(
@@ -96,8 +96,8 @@ This function returns the measure of the angle between the ray O(x,y)
 and the horizontal abscissae Ox. When both x and y are zero, this
 function returns zero.)");
 
-static PKArgs args_arctanh(
-  1, 0, 0, false, false, {"x"}, "arctanh",
+static PKArgs args_artanh(
+  1, 0, 0, false, false, {"x"}, "artanh",
 R"(Inverse hyperbolic tangent of x.)");
 
 static PKArgs args_cos(
@@ -277,7 +277,7 @@ static oobj process_frame(dt::expr::Op opcode, oobj arg) {
  * Function that takes a single argument (of type FLOAT64) and
  * produces a single output column, also of type FLOAT64.
  * Most mathematical functions fall into this category, such as
- * `sin`, `exp`, `log1m`, `arctanh`, etc.
+ * `sin`, `exp`, `log1m`, `artanh`, etc.
  */
 static oobj mathfn_11(const PKArgs& args) {
   xassert(fninfos.count(&args) == 1);
@@ -378,7 +378,7 @@ static float fn_sign(float x) {
 
 
 #define ADD11(OP, NAME, FN)                            \
-  ADD_FN(&mathfn_11, args_##NAME);                     \
+  ADD_FN(&unary_pyfn, args_##NAME);                     \
   fninfos[&(args_##NAME)] = {OP, #NAME, FN, nullptr};  \
   unary_library.add_math<FN, FN>(OP, #NAME);
 
@@ -390,12 +390,12 @@ static float fn_sign(float x) {
 
 void py::DatatableModule::init_methods_math() {
   ADD11(Op::ARCCOS,  arccos,  &std::acos)
-  ADD11(Op::ARCCOSH, arccosh, &std::acosh)
+  ADD11(Op::ARCCOSH, arcosh,  &std::acosh)
   ADD11(Op::ARCSIN,  arcsin,  &std::asin)
-  ADD11(Op::ARCSINH, arcsinh, &std::asinh)
+  ADD11(Op::ARCSINH, arsinh,  &std::asinh)
   ADD11(Op::ARCTAN,  arctan,  &std::atan)
   ADD21(Op::ARCTAN2, arctan2, &std::atan2)
-  ADD11(Op::ARCTANH, arctanh, &std::atanh)
+  ADD11(Op::ARCTANH, artanh,  &std::atanh)
   ADD11(Op::COS,     cos,     &std::cos)
   ADD11(Op::COSH,    cosh,    &std::cosh)
   ADD11(Op::DEG2RAD, deg2rad, &fn_deg2rad)
