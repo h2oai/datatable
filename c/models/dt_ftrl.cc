@@ -24,7 +24,6 @@
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 #include "wstringcol.h"
-#include "c/utils/c+++.h"
 
 namespace dt {
 
@@ -182,7 +181,7 @@ template <typename T>
 dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
   dtptr dt_nhot;
   dt_nhot = dtptr(split_into_nhot(
-                      dt->columns[0]->cast(SType::STR32),
+                      dt->columns[0]->cast(SType::STR64),
                       dt::FtrlBase::SEPARATOR,
                       true // also do sorting
                     ));
@@ -210,8 +209,8 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
 template <typename T>
 void Ftrl<T>::check_binomial_labels(dtptr& dt) {
   const strvec& labels_in = dt->get_names();
-  xassert(labels.size() > 0);
-  xassert(labels.size() < 3);
+  xassert(labels_in.size() > 0);
+  xassert(labels_in.size() < 3);
   size_t nlabels = labels.size();
   size_t nlabels_in = labels_in.size();
   bool is_negative_label = false;
@@ -580,9 +579,18 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
  */
 template <typename T>
 dtptr Ftrl<T>::create_y_train_multinomial() {
+  colptr col0_ptr;
+  Column* col0 = dt_y->columns[0];
+  LType ltype_y = col0->ltype();
+
+  if (ltype_y != LType::STRING) {
+    col0_ptr = colptr(dt_y->columns[0]->cast(SType::STR32));
+    col0 = col0_ptr.get();
+  }
+
   // Do nhot encoding and sort labels alphabetically.
   dtptr dt_y_nhot = dtptr(split_into_nhot(
-                      dt_y->columns[0],
+                      col0,
                       dt::FtrlBase::SEPARATOR,
                       true // also do sorting
                     ));

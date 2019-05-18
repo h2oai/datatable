@@ -577,6 +577,18 @@ def test_ftrl_fit_predict_bool():
     assert df_target[1, 0] < epsilon
 
 
+def test_ftrl_fit_predict_bool_string():
+    ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
+    df_train = dt.Frame([[True, False]])
+    df_target = dt.Frame([["0", "1"]])
+    ft.fit(df_train, df_target)
+    df_target = ft.predict(df_train[:,0])
+    assert df_target[0, 0] <= 1
+    assert df_target[0, 0] >= 1 - epsilon
+    assert df_target[1, 0] >= 0
+    assert df_target[1, 0] < epsilon
+
+
 def test_ftrl_fit_predict_int():
     ft = Ftrl(alpha = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0, 1]])

@@ -35,12 +35,20 @@ namespace py {
  *  Model type options and their corresponding dt::FtrlModelType's
  */
 static std::map<std::string, dt::FtrlModelType> FtrlModelType = {
+   {"none", dt::FtrlModelType::NONE},
    {"auto", dt::FtrlModelType::AUTO},
    {"regression", dt::FtrlModelType::REGRESSION},
    {"binomial", dt::FtrlModelType::BINOMIAL},
    {"multinomial", dt::FtrlModelType::MULTINOMIAL}
 };
 
+static std::map<dt::FtrlModelType, std::string> FtrlModelTypeInverse = {
+   {dt::FtrlModelType::NONE, "none"},
+   {dt::FtrlModelType::AUTO, "auto"},
+   {dt::FtrlModelType::REGRESSION, "regression"},
+   {dt::FtrlModelType::BINOMIAL, "binomial"},
+   {dt::FtrlModelType::MULTINOMIAL, "multinomial"}
+};
 
 PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
@@ -917,11 +925,12 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
                        << "reset this model or create a new one";
   }
   std::string model_type = py_model_type.to_string();
-  if (py::FtrlModelType.find(model_type) == py::FtrlModelType.end() ) {
+  auto it = py::FtrlModelType.find(model_type);
+  if (it == py::FtrlModelType.end() || it->second == dt::FtrlModelType::NONE) {
     throw ValueError() << "Model type `" << model_type << "` is not supported";
   }
 
-  dtft->set_model_type(FtrlModelType[model_type]);
+  dtft->set_model_type(it->second);
   py_params.replace(10, py_model_type.to_robj());
 }
 
@@ -935,7 +944,9 @@ static GSArgs args_model_type_trained(
 
 
 oobj Ftrl::get_model_type_trained() const {
-  return py::oint(static_cast<size_t>(dtft->get_model_type_trained()));
+  std::string model_type = FtrlModelTypeInverse[dtft->get_model_type_trained()];
+  return py::ostring(model_type);
+
 }
 
 /**
