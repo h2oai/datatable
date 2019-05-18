@@ -229,6 +229,8 @@ def test_ftrl_construct_wrong_nepochs_value():
 def test_ftrl_create_default():
     ft = Ftrl()
     assert ft.params == default_params
+    assert ft.model_type_trained == "none"
+    assert ft.labels == None
 
 
 def test_ftrl_access_params():
@@ -554,6 +556,7 @@ def test_ftrl_fit_unique():
     ft.fit(df_train, df_target)
     model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
     assert ft.model.to_list() == model
+    assert ft.model_type_trained == "binomial"
 
 
 def test_ftrl_fit_unique_ignore_none():

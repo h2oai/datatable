@@ -42,13 +42,6 @@ static std::map<std::string, dt::FtrlModelType> FtrlModelType = {
    {"multinomial", dt::FtrlModelType::MULTINOMIAL}
 };
 
-static std::map<dt::FtrlModelType, std::string> FtrlModelTypeInverse = {
-   {dt::FtrlModelType::NONE, "none"},
-   {dt::FtrlModelType::AUTO, "auto"},
-   {dt::FtrlModelType::REGRESSION, "regression"},
-   {dt::FtrlModelType::BINOMIAL, "binomial"},
-   {dt::FtrlModelType::MULTINOMIAL, "multinomial"}
-};
 
 PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
@@ -944,7 +937,17 @@ static GSArgs args_model_type_trained(
 
 
 oobj Ftrl::get_model_type_trained() const {
-  std::string model_type = FtrlModelTypeInverse[dtft->get_model_type_trained()];
+  dt::FtrlModelType dt_model_type = dtft->get_model_type_trained();
+  auto it = std::find_if(py::FtrlModelType.begin(),
+                         py::FtrlModelType.end(),
+                         [&](const std::pair<std::string, dt::FtrlModelType>& v) {
+                           return v.second == dt_model_type;
+                         }
+                        );
+
+  xassert(it != py::FtrlModelType.end())
+
+  std::string model_type = it->first;
   return py::ostring(model_type);
 
 }
@@ -1115,7 +1118,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_labels(pickle[3]);
   set_colnames(pickle[4]);
 
-  auto model_type = static_cast<dt::FtrlModelType>(pickle[5].to_size_t());
+  auto model_type = py::FtrlModelType[pickle[5].to_string()];
   dtft->set_model_type_trained(model_type);
 }
 
