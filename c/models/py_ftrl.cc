@@ -32,15 +32,30 @@ namespace py {
 
 
 /**
- *  Model type options and their corresponding dt::FtrlModelType's
+ *  Model type names and their corresponding dt::FtrlModelType's
  */
-static std::map<std::string, dt::FtrlModelType> FtrlModelType = {
+static const std::map<std::string, dt::FtrlModelType> FtrlModelNameType {
    {"none", dt::FtrlModelType::NONE},
    {"auto", dt::FtrlModelType::AUTO},
    {"regression", dt::FtrlModelType::REGRESSION},
    {"binomial", dt::FtrlModelType::BINOMIAL},
    {"multinomial", dt::FtrlModelType::MULTINOMIAL}
 };
+
+
+/**
+ *  Create and set inverse map for py::FtrlModelNameType
+ */
+static const std::map<dt::FtrlModelType, std::string> FtrlModelTypeName
+  = Ftrl::create_model_type_name();
+
+std::map<dt::FtrlModelType, std::string> Ftrl::create_model_type_name() {
+  std::map<dt::FtrlModelType, std::string> m;
+  for (const auto& v : py::FtrlModelNameType) {
+    m.insert(std::pair<dt::FtrlModelType, std::string>(v.second, v.first));
+  }
+  return m;
+}
 
 
 PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
@@ -50,7 +65,6 @@ PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
                                  "negative_class", "interactions",
                                  "model_type"},
                                  "__init__", nullptr);
-
 
 /**
  *  Ftrl(...)
@@ -918,8 +932,8 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
                        << "reset this model or create a new one";
   }
   std::string model_type = py_model_type.to_string();
-  auto it = py::FtrlModelType.find(model_type);
-  if (it == py::FtrlModelType.end() || it->second == dt::FtrlModelType::NONE) {
+  auto it = py::FtrlModelNameType.find(model_type);
+  if (it == py::FtrlModelNameType.end() || it->second == dt::FtrlModelType::NONE) {
     throw ValueError() << "Model type `" << model_type << "` is not supported";
   }
 
@@ -938,17 +952,8 @@ static GSArgs args_model_type_trained(
 
 oobj Ftrl::get_model_type_trained() const {
   dt::FtrlModelType dt_model_type = dtft->get_model_type_trained();
-  auto it = std::find_if(py::FtrlModelType.begin(),
-                         py::FtrlModelType.end(),
-                         [&](const std::pair<std::string, dt::FtrlModelType>& v) {
-                           return v.second == dt_model_type;
-                         }
-                        );
-
-  xassert(it != py::FtrlModelType.end())
-
-  std::string model_type = it->first;
-  return py::ostring(model_type);
+  std::string model_type = FtrlModelTypeName.at(dt_model_type);
+  return py::ostring(std::move(model_type));
 
 }
 
@@ -1118,7 +1123,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_labels(pickle[3]);
   set_colnames(pickle[4]);
 
-  auto model_type = py::FtrlModelType[pickle[5].to_string()];
+  auto model_type = py::FtrlModelNameType.at(pickle[5].to_string());
   dtft->set_model_type_trained(model_type);
 }
 

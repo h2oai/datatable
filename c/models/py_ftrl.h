@@ -56,6 +56,7 @@ class Ftrl : public PyObject {
     void init_py_params();
     void init_dt_ftrl();
     void init_dt_interactions();
+    static std::map<dt::FtrlModelType, std::string> create_model_type_name();
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
