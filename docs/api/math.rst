@@ -57,10 +57,10 @@ math                numpy                 datatable
 
 **Floating-point functions**
 --------------------------------------------------------------------------
-``ceil(x)``         ``ceil(x)``
+``ceil(x)``         ``ceil(x)``           :func:`ceil(x) <ceil>`
 ``copysign(x, y)``  ``copysign(x, y)``
-``fabs(x)``         ``fabs(x)``           ``fabs(x)``
-``floor(x)``        ``floor(x)``
+``fabs(x)``         ``fabs(x)``           :func:`fabs(x) <fabs>`
+``floor(x)``        ``floor(x)``          :func:`floor(x) <floor>`
 ``frexp(x)``        ``frexp(x)``
 ``isclose(x, y)``   ``isclose(x, y)``
 ``isfinite(x)``     ``isfinite(x)``       :func:`isfinite(x) <isfinite>`
@@ -69,10 +69,10 @@ math                numpy                 datatable
 ``ldexp(x, n)``     ``ldexp(x, n)``
 \                   ``nextafter(x)``
 \                   ``rint(x)``
-\                   ``sign(x)``           ``sign(x)``
+\                   ``sign(x)``           :func:`sign(x) <sign>`
 \                   ``spacing(x)``
 \                   ``signbit(x)``
-``trunc(x)``        ``trunc(x)``
+``trunc(x)``        ``trunc(x)``          :func:`trunc(x) <trunc>`
 
 **Miscellaneous**
 --------------------------------------------------------------------------
@@ -102,20 +102,15 @@ Trigonometric/hyperbolic functions
 
 .. function:: sin(x)
 
-    Compute the trigonometric sine of ``x``. If ``x`` is a measure in radians
-    of a point on a unit circle, then ``sin(x)`` is the y-coordinate of
-    this point.
+    Compute the trigonometric sine of angle ``x`` measured in radians.
 
     This function can only be applied to numeric columns (real, integer, or
     boolean), and produces a float64 result, except when the argument ``x`` is
     float32, in which case the result is float32 as well.
 
-
 .. function:: cos(x)
 
-    Compute the trigonometric cosine of ``x``. If ``x`` is a measure in radians
-    of a point on a unit circle, then ``cos(x)`` is the x-coordinate of
-    this point.
+    Compute the trigonometric cosine of angle ``x`` measured in radians.
 
     This function can only be applied to numeric columns (real, integer, or
     boolean), and produces a float64 result, except when the argument ``x`` is

@@ -94,9 +94,9 @@ class OpCodes(enum.Enum):
     SINH = 511
     COSH = 512
     TANH = 513
-    ARCSINH = 514
-    ARCCOSH = 515
-    ARCTANH = 516
+    ARSINH = 514
+    ARCOSH = 515
+    ARTANH = 516
 
     # Math: exponential/power
     CBRT = 517
@@ -107,24 +107,28 @@ class OpCodes(enum.Enum):
     LOG10 = 522
     LOG1P = 523
     LOG2 = 524
-    POW = 525
-    SQRT = 526
-    SQUARE = 527
+    LOGADDEXP = 525
+    LOGADDEXP2 = 526
+    SQRT = 527
+    SQUARE = 528
 
     # Math: special
-    ERF = 528
-    ERFC = 529
-    GAMMA = 530
-    LGAMMA = 531
+    ERF = 529
+    ERFC = 530
+    GAMMA = 531
+    LGAMMA = 532
 
     # Math: misc
-    COPYSIGN = 532
-    FABS = 533
-    FCEIL = 534
-    FFLOOR = 535
-    FMOD = 536
-    FTRUNC = 537
-    SIGN = 538
+    COPYSIGN = 533
+    FABS = 534
+    LDEXP = 535
+    NEXTAFTER = 536
+    SIGN = 537
+    SIGNBIT = 538
+    CLIP = 539
+    MAXIMUM = 540
+    MINIMUM = 541
+    FMOD = 542
 
 
 #-------------------------------------------------------------------------------

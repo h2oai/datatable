@@ -115,9 +115,9 @@ enum class Op : size_t {
   SINH,
   COSH,
   TANH,
-  ARCSINH,
-  ARCCOSH,
-  ARCTANH,
+  ARSINH,
+  ARCOSH,
+  ARTANH,
 
   // Math: exponential/power
   CBRT,

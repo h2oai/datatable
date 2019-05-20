@@ -527,6 +527,22 @@ static py::PKArgs args_abs(
   1, 0, 0, false, false, {"x"}, "abs",
   "Absolute value of a number.");
 
+static py::PKArgs args_ceil(
+  1, 0, 0, false, false, {"x"}, "ceil",
+  "The smallest integer value not less than `x`.");
+
+static py::PKArgs args_floor(
+  1, 0, 0, false, false, {"x"}, "floor",
+  "The largest integer value not greater than `x`.");
+
+static py::PKArgs args_trunc(
+  1, 0, 0, false, false, {"x"}, "trunc",
+  "The nearest integer value not greater than `x` in absolute value.");
+
+static py::PKArgs args_len(
+  1, 0, 0, false, false, {"s"}, "len",
+  "The length of the string `s`.");
+
 
 
 
@@ -699,6 +715,7 @@ unary_infos::unary_infos() {
   add(Op::UPLUS, flt32, flt32, nullptr);
   add(Op::UPLUS, flt64, flt64, nullptr);
 
+  set_name(Op::UMINUS, "-");
   add(Op::UMINUS, bool8, int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
   add(Op::UMINUS, int8,  int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
   add(Op::UMINUS, int16, int16, U(map11<int16_t, int16_t, op_minus<int16_t>>));
@@ -707,6 +724,7 @@ unary_infos::unary_infos() {
   add(Op::UMINUS, flt32, flt32, U(map11<float,   float,   op_minus<float>>));
   add(Op::UMINUS, flt64, flt64, U(map11<double,  double,  op_minus<double>>));
 
+  set_name(Op::UINVERT, "~");
   add(Op::UINVERT, bool8, bool8, U(map11<int8_t,  int8_t,  op_invert_bool>));
   add(Op::UINVERT, int8,  int8,  U(map11<int8_t,  int8_t,  op_inverse<int8_t>>));
   add(Op::UINVERT, int16, int16, U(map11<int16_t, int16_t, op_inverse<int16_t>>));
@@ -767,46 +785,57 @@ unary_infos::unary_infos() {
       add_scalarfn_d(std::isinf);
     });
 
-  add(Op::CEIL, bool8, int8,  nullptr);
-  add(Op::CEIL, int8,  int8,  nullptr);
-  add(Op::CEIL, int16, int16, nullptr);
-  add(Op::CEIL, int32, int32, nullptr);
-  add(Op::CEIL, int64, int64, nullptr);
-  add(Op::CEIL, flt32, flt32, U(map11<float,  float,  std::ceil>));
-  add(Op::CEIL, flt64, flt64, U(map11<double, double, std::ceil>));
+  register_op(Op::CEIL, "ceil", args_ceil,
+    [&]{
+      add_copy_converter(bool8, flt64);
+      add_copy_converter(int8,  flt64);
+      add_copy_converter(int16, flt64);
+      add_copy_converter(int32, flt64);
+      add_copy_converter(int64, flt64);
+      add_converter(flt32, flt32, U(map11<float,  float,  std::ceil>));
+      add_converter(flt64, flt64, U(map11<double, double, std::ceil>));
+      add_scalarfn_d(std::ceil);
+    });
 
-  add(Op::FLOOR, bool8, int8,  nullptr);
-  add(Op::FLOOR, int8,  int8,  nullptr);
-  add(Op::FLOOR, int16, int16, nullptr);
-  add(Op::FLOOR, int32, int32, nullptr);
-  add(Op::FLOOR, int64, int64, nullptr);
-  add(Op::FLOOR, flt32, flt32, U(map11<float,  float,  std::floor>));
-  add(Op::FLOOR, flt64, flt64, U(map11<double, double, std::floor>));
+  register_op(Op::FLOOR, "floor", args_floor,
+    [&]{
+      add_copy_converter(bool8, flt64);
+      add_copy_converter(int8,  flt64);
+      add_copy_converter(int16, flt64);
+      add_copy_converter(int32, flt64);
+      add_copy_converter(int64, flt64);
+      add_converter(flt32, flt32, U(map11<float,  float,  std::floor>));
+      add_converter(flt64, flt64, U(map11<double, double, std::floor>));
+      add_scalarfn_d(std::floor);
+    });
 
-  add(Op::TRUNC, bool8, int8,  nullptr);
-  add(Op::TRUNC, int8,  int8,  nullptr);
-  add(Op::TRUNC, int16, int16, nullptr);
-  add(Op::TRUNC, int32, int32, nullptr);
-  add(Op::TRUNC, int64, int64, nullptr);
-  add(Op::TRUNC, flt32, flt32, U(map11<float,  float,  std::trunc>));
-  add(Op::TRUNC, flt64, flt64, U(map11<double, double, std::trunc>));
+  register_op(Op::TRUNC, "trunc", args_trunc,
+    [&]{
+      add_copy_converter(bool8, flt64);
+      add_copy_converter(int8,  flt64);
+      add_copy_converter(int16, flt64);
+      add_copy_converter(int32, flt64);
+      add_copy_converter(int64, flt64);
+      add_converter(flt32, flt32, U(map11<float,  float,  std::trunc>));
+      add_converter(flt64, flt64, U(map11<double, double, std::trunc>));
+      add_scalarfn_d(std::trunc);
+    });
 
-  add(Op::LEN, str32, int32, U(map_str_len<uint32_t, int32_t>));
-  add(Op::LEN, str64, int64, U(map_str_len<uint64_t, int64_t>));
+  register_op(Op::LEN, "len", args_len,
+    [&]{
+      add_converter(str32, int32, U(map_str_len<uint32_t, int32_t>));
+      add_converter(str64, int64, U(map_str_len<uint64_t, int64_t>));
+    });
 
-  set_name(Op::UMINUS, "-");
-  set_name(Op::UINVERT, "~");
-  set_name(Op::CEIL, "ceil");
   set_name(Op::FLOOR, "floor");
   set_name(Op::TRUNC, "trunc");
-  set_name(Op::LEN, "len");
 
   register_math_op<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
-  register_math_op<&std::acosh, &std::acosh>(Op::ARCCOSH, "arcosh",  args_arcosh);
+  register_math_op<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
   register_math_op<&std::asin,  &std::asin> (Op::ARCSIN,  "arcsin",  args_arcsin);
-  register_math_op<&std::asinh, &std::asinh>(Op::ARCSINH, "arsinh",  args_arsinh);
+  register_math_op<&std::asinh, &std::asinh>(Op::ARSINH,  "arsinh",  args_arsinh);
   register_math_op<&std::atan,  &std::atan> (Op::ARCTAN,  "arctan",  args_arctan);
-  register_math_op<&std::atanh, &std::atanh>(Op::ARCTANH, "artanh",  args_artanh);
+  register_math_op<&std::atanh, &std::atanh>(Op::ARTANH,  "artanh",  args_artanh);
   register_math_op<&std::cos,   &std::cos>  (Op::COS,     "cos",     args_cos);
   register_math_op<&std::cosh,  &std::cosh> (Op::COSH,    "cosh",    args_cosh);
   register_math_op<&fn_deg2rad, &fn_deg2rad>(Op::DEG2RAD, "deg2rad", args_deg2rad);
@@ -844,37 +873,40 @@ unary_infos::unary_infos() {
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_abs);
-  ADD_FN(&unary_pyfn, args_isna);
-  ADD_FN(&unary_pyfn, args_isfinite);
-  ADD_FN(&unary_pyfn, args_isinf);
-  ADD_FN(&unary_pyfn, args_sin);
-  ADD_FN(&unary_pyfn, args_sinh);
-  ADD_FN(&unary_pyfn, args_tan);
-  ADD_FN(&unary_pyfn, args_tanh);
   ADD_FN(&unary_pyfn, args_arccos);
   ADD_FN(&unary_pyfn, args_arcosh);
   ADD_FN(&unary_pyfn, args_arcsin);
-  ADD_FN(&unary_pyfn, args_arsinh);
   ADD_FN(&unary_pyfn, args_arctan);
+  ADD_FN(&unary_pyfn, args_arsinh);
   ADD_FN(&unary_pyfn, args_artanh);
+  ADD_FN(&unary_pyfn, args_cbrt);
+  ADD_FN(&unary_pyfn, args_ceil);
   ADD_FN(&unary_pyfn, args_cos);
   ADD_FN(&unary_pyfn, args_cosh);
   ADD_FN(&unary_pyfn, args_deg2rad);
-  ADD_FN(&unary_pyfn, args_rad2deg);
-  ADD_FN(&unary_pyfn, args_cbrt);
+  ADD_FN(&unary_pyfn, args_erf);
+  ADD_FN(&unary_pyfn, args_erfc);
   ADD_FN(&unary_pyfn, args_exp);
   ADD_FN(&unary_pyfn, args_exp2);
   ADD_FN(&unary_pyfn, args_expm1);
+  ADD_FN(&unary_pyfn, args_fabs);
+  ADD_FN(&unary_pyfn, args_floor);
+  ADD_FN(&unary_pyfn, args_gamma);
+  ADD_FN(&unary_pyfn, args_isfinite);
+  ADD_FN(&unary_pyfn, args_isinf);
+  ADD_FN(&unary_pyfn, args_isna);
+  ADD_FN(&unary_pyfn, args_lgamma);
   ADD_FN(&unary_pyfn, args_log);
   ADD_FN(&unary_pyfn, args_log10);
   ADD_FN(&unary_pyfn, args_log1p);
   ADD_FN(&unary_pyfn, args_log2);
+  ADD_FN(&unary_pyfn, args_rad2deg);
+  ADD_FN(&unary_pyfn, args_sign);
+  ADD_FN(&unary_pyfn, args_sin);
+  ADD_FN(&unary_pyfn, args_sinh);
   ADD_FN(&unary_pyfn, args_sqrt);
   ADD_FN(&unary_pyfn, args_square);
-  ADD_FN(&unary_pyfn, args_erf);
-  ADD_FN(&unary_pyfn, args_erfc);
-  ADD_FN(&unary_pyfn, args_gamma);
-  ADD_FN(&unary_pyfn, args_lgamma);
-  ADD_FN(&unary_pyfn, args_fabs);
-  ADD_FN(&unary_pyfn, args_sign);
+  ADD_FN(&unary_pyfn, args_tan);
+  ADD_FN(&unary_pyfn, args_tanh);
+  ADD_FN(&unary_pyfn, args_trunc);
 }
