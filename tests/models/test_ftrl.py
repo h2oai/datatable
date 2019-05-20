@@ -818,7 +818,7 @@ def test_ftrl_no_validation_set(double_precision_value):
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     assert epoch_stopped == nepochs
-    assert math.isnan(loss_stopped)
+    assert loss_stopped is None
 
 
 def test_ftrl_no_early_stopping():
@@ -834,7 +834,7 @@ def test_ftrl_no_early_stopping():
     epoch_stopped = getattr(res, "epoch")
     loss_stopped = getattr(res, "loss")
     assert epoch_stopped == nepochs
-    assert math.isnan(loss_stopped) == False
+    assert math.isfinite(loss_stopped)
 
 
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])

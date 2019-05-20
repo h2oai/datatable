@@ -164,7 +164,10 @@ def test_dt_pos(src):
     dt0 = dt.Frame(src)
     dtr = dt0[:, +f[0]]
     frame_integrity_check(dtr)
-    assert dtr.stypes == dt0.stypes
+    stype0 = dt0.stypes[0]
+    if stype0 == stype.bool8:
+        stype0 = stype.int8
+    assert dtr.stypes == (stype0,)
     assert list_equals(dtr.to_list()[0], list(src))
 
 
