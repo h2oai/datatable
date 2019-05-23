@@ -64,12 +64,107 @@ py::oobj unary_pyfn(const py::PKArgs&);
 // unary_infos
 //------------------------------------------------------------------------------
 
+/**
+ * Singleton class (the instance is `unary_library`) containing the
+ * information about all unary functions, and how they should be
+ * applied.
+ *
+ * Specifically, a unary function is selected via an opcode + the
+ * argument's stype. For example, `abs(x)` is a unary function with
+ * opcode `Op::ABS` and several overloads for inputs of types INT8,
+ * INT16, INT32, INT64, FLOAT32, FLOAT64, etc.
+ *
+ * Public API
+ * ----------
+ *
+ * - get_infon(opcode, input_stype) -> const uinfo*
+ * - get_infox(opcode, input_stype) -> const uinfo&
+ *
+ *     For a given opcode+stype return the record describing this
+ *     unary function. The two methods only differ in their behavior
+ *     when such record is not found: `get_infon` returns a nullptr
+ *     in this case, whereas `get_infox` throws an exception.
+ *
+ *     See below for the description of `uinfo` object returned from
+ *     this function.
+ *
+ * - get_opcode_from_args(args) -> Op
+ *
+ *     If a function for a certain opcode was exported into python,
+ *     then such function will have an associated `py::PKArgs`
+ *     object. The method `get_opcode_from_args` retrieves the
+ *     opcode corresponding to this PKArgs object.
+ *
+ *     This method is only used inside `unary_pyfn()`, allowing us
+ *     to reuse the same function (albeit with different PKArgs)
+ *     for all unary funcs exposed into python.
+ *
+ * uinfo
+ * -----
+ * Information about each valid unary function is stored in the
+ * `uinfo` struct, which has the following fields:
+ *
+ * - vectorfn (unary_func_t)
+ *
+ *     Function that can be applied to a vector of inputs in order
+ *     to produce the outputs. The signature of this function is
+ *     `void(*)(size_t nrows, const void* input, void* output)`.
+ *
+ *     The `input` and `output` arrays are type-erased in the
+ *     function's signature, but internally it is expected to know
+ *     what the actual types are. Often, `vectorfn` will be declared
+ *     as a function with concrete types, and then reinterpret-casted
+ *     into `unary_func_t` in order to store in the `uinfo` struct.
+ *
+ *     This function will be called with `input` pointing to an
+ *     existing contiguous input data array, and likewise `output`
+ *     will be pre-allocated for `nrows` elements too, according to
+ *     the `output_stype` field.
+ *
+ *     This field could be `nullptr`, indicating that no transform
+ *     is necessary: the output can be simply copied from the input.
+ *
+ * - scalarfn (union)
+ *
+ *     Function that can be applied to a single (scalar) input. In
+ *     order to accommodate multiple possible signatures within the
+ *     same `uinfo` struct, we use a union here. A particular member
+ *     of the union will be selected according to the type of the
+ *     input and the `output_stype` field.
+ *
+ *     Specifically, the following signatures are recognized:
+ *
+ *         (double | int64_t) -> (double | bool)
+ *
+ *     The input type corresponds to python `float` and `int` types,
+ *     the output is wrapped as python `float` or `bool`. In the
+ *     future we may add support for more signatures, as the need
+ *     arises.
+ *
+ *     This field can be `nullptr` indicating that the ufunc cannot
+ *     be applied to this input type. This field will be `nullptr`
+ *     for `uinfo`s corresponding to all input stypes other than
+ *     INT64 or FLOAT64. If this field is non-null, then output_stype
+ *     must be either FLOAT64 or BOOL.
+ *
+ * - output_stype (SType)
+ *
+ *     The SType of the output column produced from this ufunc.
+ *
+ * - cast_stype (SType)
+ *
+ *     If this field is non-empty (empty being SType::VOID), then the
+ *     input column must be cast into this stype before being passed
+ *     to `vectorfn` (or before being returned, if `vectorfn` is
+ *     nullptr).
+ *
+ */
 class unary_infos {
   using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
 
   public:
     struct uinfo {
-      unary_func_t fn;
+      unary_func_t vectorfn;
       union {
         double(*d_d)(double);
         bool(*d_b)(double);
@@ -84,10 +179,7 @@ class unary_infos {
     unary_infos();
     const uinfo* get_infon(Op opcode, SType input_stype) const;
     const uinfo& get_infox(Op opcode, SType input_stype) const;
-    Op resolve_opcode(const py::PKArgs&) const;
-
-    template <float(*F32)(float), double(*F64)(double)>
-    inline void add_math(Op opcode, const std::string& name);
+    Op get_opcode_from_args(const py::PKArgs&) const;
 
   private:
     std::unordered_map<size_t /* Op, SType */, uinfo> info;
@@ -97,11 +189,10 @@ class unary_infos {
 
     static constexpr size_t id(Op) noexcept;
     static constexpr size_t id(Op, SType) noexcept;
-    void set_name(Op, const std::string&);
     void add(Op, SType input_stype, SType output_stype, unary_func_t fn,
              SType cast=SType::VOID);
 
-    void register_op(Op opcode, const std::string& name, const py::PKArgs&,
+    void register_op(Op opcode, const std::string& name, const py::PKArgs*,
                      dt::function<void()>);
     void add_copy_converter(SType in, SType out = SType::VOID);
     void add_converter(SType in, SType out, unary_func_t);
