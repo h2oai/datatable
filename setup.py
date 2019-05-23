@@ -84,19 +84,6 @@ def get_py_sources():
 
 def get_main_dependencies():
     deps = ["typesentry>=0.2.6", "blessed"]
-    # If there is an active LLVM installation, then also require the
-    # `llvmlite` module.
-    # llvmdir, llvmver = get_llvm(True)
-    # if llvmdir:
-    #     llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
-    #                     ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
-    #                     ">=0.23.0,<0.27.0" if llvmver == "LLVM6" else
-    #                     ">=0.27.0")
-    #     deps += ["llvmlite" + llvmlite_req]
-    #     # If we need to install llvmlite, this can help
-    #     if not os.environ.get("LLVM_CONFIG"):
-    #         os.environ["LLVM_CONFIG"] = \
-    #             os.path.join(llvmdir, "bin", "llvm-config")
     return deps
 
 
@@ -104,6 +91,7 @@ def get_test_dependencies():
     # Test dependencies are exposed as extras, see
     # https://stackoverflow.com/questions/29870629
     return [
+        "docutils>=0.14",
         "pytest>=3.1",
         "pytest-cov",
         "pytest-benchmark>=3.1",
