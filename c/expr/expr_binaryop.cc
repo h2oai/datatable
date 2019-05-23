@@ -53,6 +53,9 @@ static size_t id(Op opcode, SType st1, SType st2);
 static std::vector<std::string> binop_names;
 static std::unordered_map<size_t, SType> binop_rules;
 
+// Singleton instance
+_binary_infos binary_infos;
+
 
 enum OpMode {
   Error = 0,
@@ -685,6 +688,27 @@ void init_binops() {
   binop_names[id(Op::LE)] = "<=";
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// binary_infos
+//------------------------------------------------------------------------------
+
+constexpr size_t _binary_infos::id(Op opcode) noexcept {
+  return static_cast<size_t>(opcode) - BINOP_FIRST;
+}
+
+constexpr size_t _binary_infos::id(Op op, SType stype1, SType stype2) noexcept {
+  return ((static_cast<size_t>(op) - BINOP_FIRST) << 16) +
+         (static_cast<size_t>(stype1) << 8) +
+         static_cast<size_t>(stype2);
+}
+
+
+_binary_infos::_binary_infos() {
+
+}
 
 
 }}  // namespace dt::expr

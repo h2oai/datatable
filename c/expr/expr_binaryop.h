@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_BINARYOP_h
 #define dt_EXPR_EXPR_BINARYOP_h
+#include <unordered_map>
 #include "expr/expr.h"
 #include "python/_all.h"
 namespace dt {
@@ -41,7 +42,52 @@ class expr_binaryop : public base_expr {
 };
 
 
+
+//------------------------------------------------------------------------------
+// binary_infos
+//------------------------------------------------------------------------------
+
+class _binary_infos {
+  using binary_func_t = void(*)(size_t nrows, const void* lhs,
+                                const void* rhs, void* out);
+
+  public:
+    struct binfo {
+      binary_func_t vectorfn;
+      union {
+        double(*d_d)(double, double);
+        int64_t(*l_l)(int64_t, int64_t);
+      } scalarfn;
+      SType output_stype;
+      SType lhs_cast_stype;
+      SType rhs_cast_stype;
+      size_t : 40;
+    };
+
+    _binary_infos();
+    const binfo* get_info_n(Op opcode, SType stype1, SType stype2) const;
+    const binfo* get_info_x(Op opcode, SType stype1, SType stype2) const;
+    Op get_opcode_from_args(const py::PKArgs&) const;
+
+  private:
+    using binfo_index_t = size_t;
+    using opinfo_index_t = size_t;
+    std::unordered_map<binfo_index_t, binfo> infos;
+    std::unordered_map<opinfo_index_t, std::string> names;
+    Op current_opcode;  // used only when registering opcodes
+
+    static constexpr opinfo_index_t id(Op) noexcept;
+    static constexpr binfo_index_t id(Op, SType, SType) noexcept;
+
+    void register_op(Op opcode, const std::string& name, const py::PKArgs*,
+                     dt::function<void()>);
+};
+
+extern _binary_infos binary_infos;
+
+
 // Called once at module initialization
+// TODO: remove
 void init_binops();
 
 
