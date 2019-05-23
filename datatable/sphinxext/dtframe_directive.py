@@ -327,6 +327,7 @@ class DtframeDirective(Directive):
         "shape": parse_shape,
         "types": parse_types,
         "names": parse_names,
+        "output": directives.flag,  # temporary
     }
 
     def run(self):
@@ -336,7 +337,12 @@ class DtframeDirective(Directive):
         root_node = div_node(classes=["datatable"])
         root_node += self._make_table(names, types, frame_data)
         root_node += self._make_footer(shape)
-        return [root_node]
+        if "output" in self.options:
+            div = div_node(classes=["output-cell"])
+            div += root_node
+            return [div]
+        else:
+            return [root_node]
 
 
     def _parse_options(self):
@@ -447,8 +453,11 @@ class DtframeDirective(Directive):
                     row_node += td_node(classes=[html_class], text=text)
             else:
                 for i, text in enumerate(datarow):
-                    classes = ["row_index"] if i == 0 else []
-                    if i == ellipsis_column:
+                    classes = []
+                    if i == 0:
+                        classes = ["row_index"]
+                        text = comma_separated(int(text))
+                    elif i == ellipsis_column:
                         classes = ["vellipsis"]
                         text = "\u2026"
                     elif text is None:
@@ -486,6 +495,8 @@ def html_page_context(app, pagename, templatename, context, doctree):
     a CSS declaration into the generated page.
     """
     style = """
+        .rst-content dl dd .datatable { line-height: normal; }
+        .rst-content .datatable table.frame,
         .datatable table.frame {
             border: none;
             border-collapse: collapse;
@@ -493,7 +504,7 @@ def html_page_context(app, pagename, templatename, context, doctree):
             color: #222;
             cursor: default;
             font-size: 12px;
-            margin: 0;
+            margin: 0 !important;
         }
         .datatable table.frame thead {
             border-bottom: none;
