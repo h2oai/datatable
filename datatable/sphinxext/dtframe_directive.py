@@ -115,6 +115,8 @@ stype2width = {
 
 def comma_separated(n):
     """Render number `n` as a comma-separated string"""
+    if n < 0:
+        return "-" + comma_separated(-n)
     if n < 10000:
         return str(n)
     else:
@@ -148,11 +150,13 @@ def parse_csv_line(line):
         iend -= 1
     # Iterate over the string, parsing the tokens
     i = istart
+    token_pending = True
     while i < iend:
         ch = line[i]
         i += 1
         if ch == "'" or ch == '"':
             # Parse a quoted token
+            token_pending = False
             quote = ch
             chars = []
             quote_ended = False
@@ -182,24 +186,34 @@ def parse_csv_line(line):
             if i < iend:
                 if line[i] == ',':
                     i += 1
+                    token_pending = True
                 else:
                     raise ValueError("Expected a comma after a quoted string "
                                      "at pos %d in line %r" % (i, line))
             tokens.append("".join(chars))
         elif ch in WHITESPACE:
             pass
+        elif ch == ",":
+            tokens.append("")
         else:
             # Parse a non-quoted token
+            token_pending = False
             token_start = i - 1
             while i < iend and line[i] != ',':
                 i += 1
-            tok = line[token_start:i]
+            token_end = i
+            while token_end > token_start and line[token_end-1] in WHITESPACE:
+                token_end -= 1
+            tok = line[token_start:token_end]
             if tok == "NA":
                 tok = None
             tokens.append(tok)
             if i < iend:
                 assert line[i] == ','
                 i += 1
+                token_pending = True
+    if token_pending:
+        tokens.append("")
     return tokens
 
 
@@ -211,7 +225,7 @@ def parse_shape(s):
     """
     if not s:
         raise ValueError("Option :shape: is required")
-    mm = re.match(r"^\s*([\[\(]?)\s*(\d+),\s*(\d+)\s*([\]\)]?)\s*$", s)
+    mm = re.fullmatch(r"\s*([\[\(]?)\s*(\d+)\s*,\s*(\d+)\s*([\]\)]?)\s*", s)
     if not mm:
         raise ValueError("Invalid shape value: %r" % s)
     p1, str_rows, str_cols, p2  = mm.groups()
@@ -226,15 +240,16 @@ def parse_types(s):
     """
     if s is None:
         raise ValueError("Option :types: is required")
-    mm = re.match(r"^\s*([\[\(]?)(.*?)([\[\(]?)\s*$", s)
-    assert mm, "parse_types regular expression failed for %r?" % s
+    mm = re.fullmatch(r"\s*([\[\(]?)(.*?)([\]\)]?)\s*", s, re.DOTALL)
+    assert mm, "parse_types regular expression failed for %r" % s
     p1, middle, p2 = mm.groups()
     if not check_parens(p1, p2):
-        raise ValueError("Mismatched parentheses in :types: %r" % s)
+        raise ValueError("Mismatched parentheses in :types: %r (%r, %r)" % (s, p1, p2))
     items = parse_csv_line(middle)
+    if items == [""]:
+        items = []
     ellipsis_found = False
     for i, item in enumerate(items):
-        assert isinstance(item, str)
         if item == "...":
             if ellipsis_found:
                 raise ValueError("More than one ellipsis in :types: is not "
@@ -243,7 +258,7 @@ def parse_types(s):
             items[i] = Ellipsis
             continue
         if item not in stype2ltype:
-            raise ValueError("Invalid stype '%s' at index %d in :types:"
+            raise ValueError("Invalid stype %r at index %d in :types:"
                              % (item, i))
     return items
 
@@ -251,13 +266,14 @@ def parse_types(s):
 def parse_names(s):
     if s is None:
         raise ValueError("Option :names: is required")
-    mm = re.match(r"^\s*([\[\(]?)(.*?)([\[\(]?)\s*$", s)
+    mm = re.fullmatch(r"\s*([\[\(]?)(.*?)([\]\)]?)\s*", s, re.DOTALL)
     assert mm, "parse_types regular expression failed for %r?" % s
     p1, middle, p2 = mm.groups()
     if not check_parens(p1, p2):
         raise ValueError("Mismatched parentheses in :names: %r" % s)
     names = parse_csv_line(middle)
-    assert all(isinstance(name, str) for name in names)
+    if names == [""]:
+        names = []
     return names
 
 
