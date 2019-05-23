@@ -424,7 +424,7 @@ class DtframeDirective(Directive):
 
     def _make_column_names_row(self, names):
         row = nodes.row(classes=["colnames"])
-        row += th_node(classes=["row_index"])
+        row += td_node(classes=["row_index"])
         for name in names:
             classes = []
             if name is Ellipsis:
@@ -436,7 +436,7 @@ class DtframeDirective(Directive):
 
     def _make_column_types_row(self, types):
         row = nodes.row(classes=["coltypes"])
-        row += th_node(classes=["row_index"])
+        row += td_node(classes=["row_index"])
         for stype in types:
             if stype is Ellipsis:
                 row += th_node()
