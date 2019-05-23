@@ -414,7 +414,7 @@ Miscellaneous functions
         3,  17
         4,   0
 
-    :See also:
+    **See also**
 
     - :func:`fabs`
 

@@ -85,6 +85,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   what is available in the standard python `math` module. See documentation
   for more details.
 
+- New module `datatable.sphinxext.dtframe_directive`, which can be used as
+  a plugin for Sphinx. This module adds directive `.. dtframe` that allows
+  to easily include a Frame display in an .rst document.
+
 
 ### Fixed
 
