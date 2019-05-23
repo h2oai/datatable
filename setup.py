@@ -38,7 +38,7 @@ if sys.version_info < (3, 5):
                      "whereas your Python is %s\n\x1B[39m"
                      % ".".join(str(d) for d in sys.version_info))
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_compiler, get_extra_compile_flags,
                             get_extra_link_args, find_linked_dynamic_libraries,
@@ -78,8 +78,15 @@ def get_c_sources(folder, include_headers=False):
 
 def get_py_sources():
     """Find python source directories."""
-    packages = find_packages(exclude=["tests", "tests.munging", "temp", "c"])
-    return packages
+    # setuptools.find_packages() cannot find directories without __init__.py
+    # files, so it can't be used reliably
+    return [
+        'datatable',
+        'datatable.expr',
+        'datatable.lib',
+        'datatable.sphinxext',
+        'datatable.utils',
+    ]
 
 
 def get_main_dependencies():
