@@ -428,7 +428,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Replacing aggregated exemplar_id's with group id's based on groupby,
   // because:
-  // - for 1D and 2D some bins may be empty, and we want to exlude them;
+  // - for 1D and 2D some bins may be empty, and we want to exclude them;
   // - for ND we first generate exemplar_id's based on the exemplar row ids
   //   from the original dataset, so those should be replaced with the
   //   actual exemplar_id's from the exemplar column.

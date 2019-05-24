@@ -580,16 +580,41 @@ def test_ftrl_fit_predict_bool():
     assert df_target[1, 0] < epsilon
 
 
+from datatable import *
 def test_ftrl_fit_predict_bool_string():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
-    df_train = dt.Frame([[True, False]])
-    df_target = dt.Frame([["0", "1"]])
+    df_train = dt.Frame([[True, False, False, True]])
+    df_target = dt.Frame([[None, "cat", "cat", "cat"]])
     ft.fit(df_train, df_target)
-    df_target = ft.predict(df_train[:,0])
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
+    print(df_target)
+    print(ft.dt_labels)
+
+    df_train = dt.Frame([[False, True, False, True]])
+    df_target = dt.Frame([["cat", None, None, "at"]])
+    ft.fit(df_train, df_target)
+    print(df_target)
+    print(ft.dt_labels)
+
+    # df_res = ft.predict(df_train[:,0])
+    # assert df_res[0, 0] <= 1
+    # assert df_res[0, 0] >= 1 - epsilon
+    # assert df_res[1, 0] >= 0
+    # assert df_res[1, 0] < epsilon
+
+
+def test_ftrl_fit_predict_bool_int():
+    ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
+    df_train = dt.Frame([[True, False, False, True]])
+    df_target = dt.Frame([[10, 10, 10, 10]])
+    ft.fit(df_train, df_target)
+    print(df_target)
+    print(ft.dt_labels)
+
+    df_train = dt.Frame([[False, True, False, True]])
+    df_target = dt.Frame([[10, None, None, 5]])
+    ft.fit(df_train, df_target)
+    print(df_target)
+    print(ft.dt_labels)
 
 
 def test_ftrl_fit_predict_int():
@@ -977,6 +1002,7 @@ def test_ftrl_regression():
     df_train = dt.Frame(r)
     df_target = dt.Frame(r)
     ft.fit(df_train, df_target)
+    print(ft.dt_labels)
     p = ft.predict(df_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
     assert max(delta) < epsilon

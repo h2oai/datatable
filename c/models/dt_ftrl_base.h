@@ -113,6 +113,7 @@ class FtrlBase {
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual const strvec& get_labels() = 0;
+    virtual DataTable* get_dt_labels() = 0;
 
     // Setters
     virtual void set_model(DataTable*) = 0;

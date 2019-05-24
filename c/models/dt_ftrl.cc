@@ -24,6 +24,9 @@
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 #include "wstringcol.h"
+#include <iostream>
+#include "column.h"
+
 
 namespace dt {
 
@@ -142,29 +145,21 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
-  dtptr dt_y_nhot, dt_y_val_nhot;
-  SType stype_y = dt_y->columns[0]->stype();
+  dtptr dt_y_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
 
-  // Convert target column to boolean if needed
-  if (stype_y != SType::BOOL) {
-    dt_y_nhot = create_y_binomial(dt_y);
+  if (dt_y->columns[0]->stype() != SType::BOOL) {
+    dt_y_binomial = convert_to_binomial(dt_y);
+    dt_y = dt_y_binomial.get();
+  } else {
+    // FIXME: set-up true/false labels
+  }
 
-    if (validation) {
-      dt_y_val_nhot = create_y_binomial(dt_y_val);
-      const strvec& colnames = dt_y_nhot->get_names();
-      const strvec& colnames_val = dt_y_val_nhot->get_names();
-
-      if (colnames[0] != colnames_val[0]) {
-        throw ValueError() << "Positive class name is different between the "
-                           << "training target column: "
-                           << colnames[0]
-                           << ", and the validation target column: "
-                           << colnames_val[0];
-      }
-      dt_y_val = dt_y_val_nhot.get();
-    }
-    dt_y = dt_y_nhot.get();
+  if (validation && dt_y->columns[0]->stype() != SType::BOOL) {
+    dt_y_val_binomial = convert_to_binomial(dt_y_val);
+    dt_y_val = dt_y_val_binomial.get();
+  } else {
+    // FIXME: set-up true/false labels?
   }
 
   if (!is_model_trained()) {
@@ -172,106 +167,143 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
     create_model();
     model_type = FtrlModelType::BINOMIAL;
   }
-  map_val = {0};
+  map_val = { 0 };
   return fit<int8_t>(sigmoid<T>, log_loss<T>);
 }
 
 
 template <typename T>
-dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
-  dtptr dt_nhot;
-  dt_nhot = dtptr(split_into_nhot(
-                      dt->columns[0]->cast(SType::STR64),
-                      dt::FtrlBase::SEPARATOR,
-                      true // also do sorting
-                    ));
+dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
+  xassert(dt_y->columns[0]->stype() != SType::BOOL);
 
-  if (dt_nhot->ncols > 2) {
-    throw ValueError() << "Binomial model cannot be applied to target column, "
-                       << "that has "
-                       << dt_nhot->ncols
-                       << " unique labels";
+  static const std::vector<std::vector<int8_t>>
+  binomial_labels{ {GETNA<int8_t>(), 0, 1}, {GETNA<int8_t>(), 1, 0} };
+  bool first_positive = true;
+
+  // First, group target column to gather all the incoming labels
+  auto res = dt->group({ sort_spec(0) });
+  RowIndex ri = std::move(res.first);
+  Groupby gb = std::move(res.second);
+  size_t ngroups = gb.ngroups();
+  xassert(ngroups > 0);
+  const auto& offsets = gb.offsets_r();
+
+  // Second, check if target column has any NA's,
+  // and get number of incoming labels
+  size_t index = ri[static_cast<size_t>(offsets[0])];
+  py::oobj value = dt->columns[0]->get_value_at_index(index);
+  bool has_nas = value.is_none();
+  size_t nlabels_in = ngroups - has_nas;
+
+  if (nlabels_in > 2) {
+    throw ValueError() << "Target column that has "
+                       << nlabels_in
+                       << " unique labels cannot be used for "
+                       << "binomial regression";
   }
 
-  if (model_type != FtrlModelType::AUTO) check_binomial_labels(dt_nhot);
+  // Third, extract all the labels into a datatable, setting up
+  // a key for later join operation
+  dtptr dt_labels_in;
+  arr64_t label_indices(nlabels_in);
+  int64_t* data = label_indices.data();
+  for (size_t i = 0; i < nlabels_in; ++i) {
+    size_t offset = static_cast<size_t>(offsets[i + has_nas]);
+    data[i] = static_cast<int64_t>(ri[offset]);
+  }
+  RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
+  dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
+  std::vector<size_t> keys{ 0 };
+  dt_labels_in->set_key(keys);
 
-  if (dt_nhot->ncols == 2) {
 
-    std::vector<size_t> indices({1});
-    dt_nhot->delete_columns(indices);
+  // Fourth, check consistency between the incoming labels
+  // and the existing ones
+  if (dt_labels == nullptr) dt_labels = std::move(dt_labels_in);
+  else {
+    auto ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
+    size_t nlabels = dt_labels->nrows;
+
+    std::vector<size_t> na_ri;
+    for (size_t i = 0; i < ri_join.size(); ++i) {
+      if (ri_join[i] == RowIndex::NA) na_ri.push_back(i);
+    }
+
+    switch (nlabels) {
+      case 1: switch (nlabels_in) {
+                 case 1: if (ri_join[0] == RowIndex::NA) {
+                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }});
+                           first_positive = false;
+                         }
+                         break;
+                 case 2: if (na_ri.size() == 1) {
+                           if (na_ri[0] == 0) {
+                             first_positive = false;
+                             std::vector<sort_spec> spec_labels {sort_spec(0 , true, false, true)};
+                             res = dt_labels_in->group(spec_labels);
+                             dt_labels_in->apply_rowindex(res.first);
+                           }
+                           dt_labels = std::move(dt_labels_in);
+                         } else {
+                           throw ValueError() << "Encoutered two unknown labels, only one is allowed";
+                         }
+              }
+              break;
+
+      case 2: switch (nlabels_in) {
+                case 1: if (na_ri.size()) throw ValueError() << "Encoutered one unknown label in a target column, positive and negative labels were already defined";
+                        first_positive = !ri_join[0];
+                        break;
+                case 2: if (na_ri.size()) throw ValueError() << "Encoutered two unknown labels in a target column, positive and negative labels were already defined";
+                        break;
+              }
+              break;
+
+      default: throw ValueError() << "Model has invalid number of labels: " << nlabels;
+    }
+
   }
 
-  xassert(dt_nhot->ncols == 1);
-  return dt_nhot;
+  // Finally, convert target column to boolean
+  Column* c_binomial = new BoolColumn(dt->nrows);
+  auto data_binomial = static_cast<int8_t*>(c_binomial->data_w());
+
+  std::cout << "first_positive: " << static_cast<int16_t>(first_positive) << "\n";
+  for (size_t i = 0; i < ngroups; ++i) {
+    for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
+      data_binomial[ri[static_cast<size_t>(j)]] = binomial_labels[first_positive][i + !has_nas];
+      std::cout << ri[static_cast<size_t>(j)] << ": " << static_cast<int16_t>(data_binomial[ri[static_cast<size_t>(j)]]) << "\n";
+
+    }
+  }
+
+  return dtptr(new DataTable({ c_binomial }, dt->get_names()));
 }
+
 
 
 template <typename T>
-void Ftrl<T>::check_binomial_labels(dtptr& dt) {
-  const strvec& labels_in = dt->get_names();
-  xassert(labels_in.size() > 0);
-  xassert(labels_in.size() < 3);
-  size_t nlabels = labels.size();
-  size_t nlabels_in = labels_in.size();
-  bool is_negative_label = false;
-  bool positive_label_index = 0;
+template <SType U>
+void Ftrl<T>::create_labels_str(const strvec& labels_in) {
+  size_t nlabels = labels_in.size();
+  std::cout << "nlabels: " << nlabels << "\n";
 
 
-  // Check if the incoming labels are consistent with the existing ones
-  switch (nlabels) {
-    case 1: switch (nlabels_in) {
-              case 1: if (labels[0] != labels_in [0]) {
-                        is_negative_label = true;
-                        labels.push_back(labels_in[0]);
-                      }
-                      break;
-              case 2: {
-                        auto it = std::find(labels_in.begin(), labels_in.end(), labels[0]);
-                        if (it == labels_in.end()) {
-                          throw ValueError() << "Target column got two labels, but none of them is the positive class label `" << labels[0] << "`";
-                        }
-                        positive_label_index = std::distance(labels_in.begin(), it);
-                        labels.push_back(labels_in[!positive_label_index]);
-                      }
-                      break;
-            }
-            break;
+  dt::writable_string_col c_label_names(nlabels);
+  dt::writable_string_col::buffer_impl<uint32_t> sb(c_label_names);
+  sb.commit_and_start_new_chunk(0);
 
-    case 2: switch (nlabels_in) {
-              case 1: {
-                        auto it = std::find(labels.begin(), labels.end(), labels_in[0]);
-                        if (it == labels.end()) {
-                          throw ValueError() << "The model was trained with the following labels: `" << labels[0] << "` and `" << labels[1] << "`, however got `" << labels_in[0] << "` in the target column";
-                        } else {
-                          is_negative_label = std::distance(labels.begin(), it);
-                        }
-                      }
-                      break;
-
-              case 2: if (labels[0] == labels_in[1] && labels[1] == labels_in[0]) {
-                        positive_label_index = 1;
-                      } else if (labels != labels_in) {
-                        throw ValueError() << "The model was trained with the following labels: `" << labels[0] << "` and `" << labels[1] << "`, however got `" << labels_in[0] << "` and `" << labels_in[1] << "in the target column";
-                      }
-                      break;
-            }
-            break;
-
+  for (const auto& label : labels_in) {
+    sb.write(label);
   }
 
-
-  // If we only got a negative label, train the model on all
-  // negatives. Otherwise, pick up a positive label to train on.
-  if (is_negative_label) {
-    colvec cols(1);
-    cols.push_back(create_negative_column(dt->nrows));
-    dt = dtptr(new DataTable(std::move(cols)));
-  } else if (nlabels_in == 2) {
-    std::vector<size_t> indices({!positive_label_index});
-    dt->delete_columns(indices);
-  }
+  sb.order();
+  sb.commit_and_start_new_chunk(nlabels);
+  dt_labels = dtptr(new DataTable(
+                {std::move(c_label_names).to_column()},
+                {"label"}
+              ));
 }
-
 
 
 template <typename T>
@@ -284,11 +316,12 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
                          "in a regression mode this model should be reset.";
   }
   if (!is_model_trained()) {
+    create_labels_str<SType::STR32>(dt_y->get_names());
     labels = dt_y->get_names();
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
-  map_val = {0};
+  map_val = { 0 };
   return fit<U>(identity<T>, squared_loss<T, U>);
 }
 
@@ -1144,6 +1177,14 @@ FtrlParams Ftrl<T>::get_params() {
 template <typename T>
 const strvec& Ftrl<T>::get_labels() {
   return labels;
+}
+
+
+template <typename T>
+DataTable* Ftrl<T>::get_dt_labels() {
+  if (dt_labels == nullptr) return nullptr;
+  DataTable* dt_labels_copy = dt_labels->copy();
+  return dt_labels_copy;
 }
 
 

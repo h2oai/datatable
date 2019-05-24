@@ -519,6 +519,26 @@ void Ftrl::set_labels(robj py_labels) {
 }
 
 
+/**
+ *  .labels
+ */
+static GSArgs args_dt_labels(
+  "dt_labels",
+  R"(Column of labels used for classification.)");
+
+
+oobj Ftrl::get_dt_labels() const {
+  if (!dtft->is_model_trained()) return py::None();
+
+  DataTable* dt_labels = dtft->get_dt_labels();
+  py::oobj df_labels = py::oobj::from_new_reference(
+                     py::Frame::from_datatable(dt_labels)
+                   );
+  return df_labels;
+}
+
+
+
 
 /**
  *  .model
@@ -1201,6 +1221,7 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
   // Model and features
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
+  ADD_GETTER(gs, &Ftrl::get_dt_labels, args_dt_labels);
   ADD_GETTER(gs, &Ftrl::get_model_type_trained, args_model_type_trained);
   ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);

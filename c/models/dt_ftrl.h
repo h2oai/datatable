@@ -63,6 +63,7 @@ class Ftrl : public dt::FtrlBase {
 
     // Labels that are automatically extracted from the target column.
     strvec labels;
+    dtptr dt_labels;
 
     // Total number of features used for training, this includes
     // dt_X->ncols columns plus their interactions.
@@ -106,11 +107,12 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
-    dtptr create_y_binomial(const DataTable*);
+    dtptr convert_to_binomial(const DataTable*);
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);
-    void check_binomial_labels(dtptr&);
+    template <SType U>
+    void create_labels_str(const strvec&);
 
     // Feature importance helper methods
     void create_fi();
@@ -159,6 +161,7 @@ class Ftrl : public dt::FtrlBase {
     bool get_negative_class() override;
     FtrlParams get_params() override;
     const strvec& get_labels() override;
+    DataTable* get_dt_labels() override;
 
     // Setters
     void set_model(DataTable*) override;
