@@ -42,6 +42,7 @@ class expr_unaryop : public base_expr {
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;
+    vcolptr evaluate_lazy(workframe& wf) override;
 
     bool is_negated_expr() const override;
     pexpr get_negated_expr() override;
@@ -194,14 +195,7 @@ class unary_infos {
 
     void register_op(Op opcode, const std::string& name, const py::PKArgs*,
                      dt::function<void()>);
-    void add_copy_converter(SType in, SType out = SType::VOID);
-    void add_converter(SType in, SType out, unary_func_t);
-    void add_converter(void(*)(size_t, const int8_t*, int8_t*));
-    void add_converter(void(*)(size_t, const int16_t*, int16_t*));
-    void add_converter(void(*)(size_t, const int32_t*, int32_t*));
-    void add_converter(void(*)(size_t, const int64_t*, int64_t*));
-    void add_converter(void(*)(size_t, const float*, float*));
-    void add_converter(void(*)(size_t, const double*, double*));
+    void add_vectorfn(SType in, SType out, unary_func_t);
     void add_scalarfn_l(int64_t(*)(int64_t));
     void add_scalarfn_l(bool(*)(int64_t));
     void add_scalarfn_d(double(*)(double));

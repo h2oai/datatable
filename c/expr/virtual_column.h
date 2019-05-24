@@ -19,26 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_EXPR_LITERAL_h
-#define dt_EXPR_EXPR_LITERAL_h
-#include "expr/expr.h"
-#include "python/_all.h"
+#ifndef dt_EXPR_VIRTUAL_COLUMN_h
+#define dt_EXPR_VIRTUAL_COLUMN_h
+#include <memory>
+#include "column.h"
+#include "types.h"
 namespace dt {
 namespace expr {
 
+class virtual_column;
+using colptr = std::unique_ptr<Column>;
+using vcolptr = std::unique_ptr<virtual_column>;
 
-class expr_literal : public base_expr {
-  private:
-    colptr col;
 
+/**
+ * This class is a basic building block in creating lazy evaluation
+ * pipelines. This is an abstract base class, each `base_expr` is
+ * expected to create its own derived class(es) to implement actual
+ * computations.
+ *
+ * A `virtual_column` is conceptually similar to a regular column:
+ * it has an `stype()`, the number of rows `nrows()`, and a way to
+ * retrieve its `i`-th element via a set of `compute()` overloads.
+ */
+class virtual_column {
   public:
-    explicit expr_literal(py::robj);
-    SType resolve(const workframe&) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe&) override;
-    // vcolptr evaluate_lazy(workframe&) override;
+    virtual ~virtual_column();
+
+    virtual void compute(size_t i, int8_t*  out);
+    virtual void compute(size_t i, int16_t* out);
+    virtual void compute(size_t i, int32_t* out);
+    virtual void compute(size_t i, int64_t* out);
+    virtual void compute(size_t i, float*   out);
+    virtual void compute(size_t i, double*  out);
+    virtual void compute(size_t i, CString* out);
+
+    virtual SType stype() const = 0;
+    virtual size_t nrows() const = 0;
+    virtual colptr materialize();
 };
 
 
-}}
+vcolptr virtualize(colptr&& column);
+
+
+
+}}  // namespace dt::expr
 #endif

@@ -56,6 +56,10 @@ pexpr base_expr::get_negated_expr() { return pexpr(); }
 
 size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
 
+vcolptr base_expr::evaluate_lazy(workframe& wf) {
+  return virtualize(evaluate_eager(wf));
+}
+
 
 
 
@@ -154,7 +158,10 @@ py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2) {
 }
 
 
+
+
 }}  // namespace dt::expr
+
 
 using namespace dt::expr;
 pexpr py::_obj::to_dtexpr() const {

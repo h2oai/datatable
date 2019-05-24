@@ -244,6 +244,19 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
 }
 
 
+vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
+  auto varg = arg->evaluate_lazy(wf);
+  auto input_stype = varg->stype();
+  const auto& ui = unary_library.get_infox(opcode, input_stype);
+  auto output_stype = ui.output_stype;
+  if (ui.vectorfn == nullptr) {
+    // return (input_stype == output_stype)? varg
+    //                                     : cast(std::move(varg), output_stype);
+  }
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // unary_pyfn
@@ -564,7 +577,9 @@ void unary_infos::add(Op op, SType input_stype, SType output_stype,
                       unary_func_t fn, SType cast)
 {
   size_t entry_id = id(op, input_stype);
+  if (!fn && input_stype != output_stype) cast = output_stype;
   xassert(info.count(entry_id) == 0);
+  xassert(cast != input_stype);
   info[entry_id] = {fn, {nullptr}, output_stype, cast};
 }
 
@@ -611,37 +626,8 @@ void unary_infos::register_op(
   more();
 }
 
-void unary_infos::add_converter(SType in, SType out, unary_func_t fn) {
+void unary_infos::add_vectorfn(SType in, SType out, unary_func_t fn) {
   add(current_opcode, in, out, fn);
-}
-
-void unary_infos::add_copy_converter(SType in, SType out) {
-  if (out == SType::VOID) out = in;
-  add(current_opcode, in, out, nullptr);
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int8_t*, int8_t*)) {
-  add(current_opcode, SType::INT8, SType::INT8, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int16_t*, int16_t*)) {
-  add(current_opcode, SType::INT16, SType::INT16, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int32_t*, int32_t*)) {
-  add(current_opcode, SType::INT32, SType::INT32, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int64_t*, int64_t*)) {
-  add(current_opcode, SType::INT64, SType::INT64, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const float*, float*)) {
-  add(current_opcode, SType::FLOAT32, SType::FLOAT32, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const double*, double*)) {
-  add(current_opcode, SType::FLOAT64, SType::FLOAT64, reinterpret_cast<unary_func_t>(f));
 }
 
 
@@ -685,8 +671,8 @@ inline void unary_infos::register_math_op(
   add(opcode, SType::INT16, float64, f64, float64);
   add(opcode, SType::INT32, float64, f64, float64);
   add(opcode, SType::INT64, float64, f64, float64);
-  add_converter(float32, float32, f32);
-  add_converter(float64, float64, f64);
+  add_vectorfn(float32, float32, f32);
+  add_vectorfn(float64, float64, f64);
   add_scalarfn_d(F64);
 }
 
@@ -705,129 +691,129 @@ unary_infos::unary_infos() {
 
   register_op(Op::UPLUS, "+", nullptr,
     [=]{
-      add_copy_converter(bool8, int8);
-      add_copy_converter(int8,  int8);
-      add_copy_converter(int16, int16);
-      add_copy_converter(int32, int32);
-      add_copy_converter(int64, int64);
-      add_copy_converter(flt32, flt32);
-      add_copy_converter(flt64, flt64);
+      add_vectorfn(bool8, int8, nullptr);
+      add_vectorfn(int8,  int8, nullptr);
+      add_vectorfn(int16, int16, nullptr);
+      add_vectorfn(int32, int32, nullptr);
+      add_vectorfn(int64, int64, nullptr);
+      add_vectorfn(flt32, flt32, nullptr);
+      add_vectorfn(flt64, flt64, nullptr);
     });
 
   register_op(Op::UMINUS, "-", nullptr,
     [=]{
-      add_converter(bool8, int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
-      add_converter(int8,  int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
-      add_converter(int16, int16, U(map11<int16_t, int16_t, op_minus<int16_t>>));
-      add_converter(int32, int32, U(map11<int32_t, int32_t, op_minus<int32_t>>));
-      add_converter(int64, int64, U(map11<int64_t, int64_t, op_minus<int64_t>>));
-      add_converter(flt32, flt32, U(map11<float,   float,   op_minus<float>>));
-      add_converter(flt64, flt64, U(map11<double,  double,  op_minus<double>>));
+      add_vectorfn(bool8, int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
+      add_vectorfn(int8,  int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
+      add_vectorfn(int16, int16, U(map11<int16_t, int16_t, op_minus<int16_t>>));
+      add_vectorfn(int32, int32, U(map11<int32_t, int32_t, op_minus<int32_t>>));
+      add_vectorfn(int64, int64, U(map11<int64_t, int64_t, op_minus<int64_t>>));
+      add_vectorfn(flt32, flt32, U(map11<float,   float,   op_minus<float>>));
+      add_vectorfn(flt64, flt64, U(map11<double,  double,  op_minus<double>>));
     });
 
   register_op(Op::UINVERT, "~", nullptr,
     [=]{
-      add_converter(bool8, bool8, U(map11<int8_t,  int8_t,  op_invert_bool>));
-      add_converter(int8,  int8,  U(map11<int8_t,  int8_t,  op_inverse<int8_t>>));
-      add_converter(int16, int16, U(map11<int16_t, int16_t, op_inverse<int16_t>>));
-      add_converter(int32, int32, U(map11<int32_t, int32_t, op_inverse<int32_t>>));
-      add_converter(int64, int64, U(map11<int64_t, int64_t, op_inverse<int64_t>>));
+      add_vectorfn(bool8, bool8, U(map11<int8_t,  int8_t,  op_invert_bool>));
+      add_vectorfn(int8,  int8,  U(map11<int8_t,  int8_t,  op_inverse<int8_t>>));
+      add_vectorfn(int16, int16, U(map11<int16_t, int16_t, op_inverse<int16_t>>));
+      add_vectorfn(int32, int32, U(map11<int32_t, int32_t, op_inverse<int32_t>>));
+      add_vectorfn(int64, int64, U(map11<int64_t, int64_t, op_inverse<int64_t>>));
     });
 
   register_op(Op::ABS, "abs", &args_abs,
     [=]{
-      add_copy_converter(bool8, int8);
-      add_converter(map1<int8_t,  op_abs<int8_t>>);
-      add_converter(map1<int16_t, op_abs<int16_t>>);
-      add_converter(map1<int32_t, op_abs<int32_t>>);
-      add_converter(map1<int64_t, op_abs<int64_t>>);
-      add_converter(map1<float,   std::abs>);
-      add_converter(map1<double,  std::abs>);
+      add_vectorfn(bool8, int8, nullptr);
+      add_vectorfn(int8,  int8,  U(map1<int8_t,  op_abs<int8_t>>));
+      add_vectorfn(int16, int16, U(map1<int16_t, op_abs<int16_t>>));
+      add_vectorfn(int32, int32, U(map1<int32_t, op_abs<int32_t>>));
+      add_vectorfn(int64, int64, U(map1<int64_t, op_abs<int64_t>>));
+      add_vectorfn(flt32, flt32, U(map1<float,   std::abs>));
+      add_vectorfn(flt64, flt64, U(map1<double,  std::abs>));
       add_scalarfn_l(op_abs<int64_t>);
       add_scalarfn_d(std::abs);
     });
 
   register_op(Op::ISNA, "isna", &args_isna,
     [=]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_isna<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_isna<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_isna<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isnan>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isnan>));
-      add_converter(str32, bool8, U(map_str_isna<uint32_t>));
-      add_converter(str64, bool8, U(map_str_isna<uint64_t>));
+      add_vectorfn(bool8, bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
+      add_vectorfn(int8,  bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
+      add_vectorfn(int16, bool8, U(map11<int16_t, bool, op_isna<int16_t>>));
+      add_vectorfn(int32, bool8, U(map11<int32_t, bool, op_isna<int32_t>>));
+      add_vectorfn(int64, bool8, U(map11<int64_t, bool, op_isna<int64_t>>));
+      add_vectorfn(flt32, bool8, U(map11<float,   bool, std::isnan>));
+      add_vectorfn(flt64, bool8, U(map11<double,  bool, std::isnan>));
+      add_vectorfn(str32, bool8, U(map_str_isna<uint32_t>));
+      add_vectorfn(str64, bool8, U(map_str_isna<uint64_t>));
       add_scalarfn_l(op_isna<int64_t>);
       add_scalarfn_d(std::isnan);
     });
 
   register_op(Op::ISFINITE, "isfinite", &args_isfinite,
     [&]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_notna<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_notna<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_notna<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isfinite>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isfinite>));
+      add_vectorfn(bool8, bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
+      add_vectorfn(int8,  bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
+      add_vectorfn(int16, bool8, U(map11<int16_t, bool, op_notna<int16_t>>));
+      add_vectorfn(int32, bool8, U(map11<int32_t, bool, op_notna<int32_t>>));
+      add_vectorfn(int64, bool8, U(map11<int64_t, bool, op_notna<int64_t>>));
+      add_vectorfn(flt32, bool8, U(map11<float,   bool, std::isfinite>));
+      add_vectorfn(flt64, bool8, U(map11<double,  bool, std::isfinite>));
       add_scalarfn_l(op_notna<int64_t>);
       add_scalarfn_d(std::isfinite);
     });
 
   register_op(Op::ISINF, "isinf", &args_isinf,
     [&]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_false<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_false<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_false<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isinf>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isinf>));
+      add_vectorfn(bool8, bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
+      add_vectorfn(int8,  bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
+      add_vectorfn(int16, bool8, U(map11<int16_t, bool, op_false<int16_t>>));
+      add_vectorfn(int32, bool8, U(map11<int32_t, bool, op_false<int32_t>>));
+      add_vectorfn(int64, bool8, U(map11<int64_t, bool, op_false<int64_t>>));
+      add_vectorfn(flt32, bool8, U(map11<float,   bool, std::isinf>));
+      add_vectorfn(flt64, bool8, U(map11<double,  bool, std::isinf>));
       add_scalarfn_l(op_false<int64_t>);
       add_scalarfn_d(std::isinf);
     });
 
   register_op(Op::CEIL, "ceil", &args_ceil,
     [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::ceil>));
-      add_converter(flt64, flt64, U(map11<double, double, std::ceil>));
+      add_vectorfn(bool8, flt64, nullptr);
+      add_vectorfn(int8,  flt64, nullptr);
+      add_vectorfn(int16, flt64, nullptr);
+      add_vectorfn(int32, flt64, nullptr);
+      add_vectorfn(int64, flt64, nullptr);
+      add_vectorfn(flt32, flt32, U(map11<float,  float,  std::ceil>));
+      add_vectorfn(flt64, flt64, U(map11<double, double, std::ceil>));
       add_scalarfn_d(std::ceil);
     });
 
   register_op(Op::FLOOR, "floor", &args_floor,
     [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::floor>));
-      add_converter(flt64, flt64, U(map11<double, double, std::floor>));
+      add_vectorfn(bool8, flt64, nullptr);
+      add_vectorfn(int8,  flt64, nullptr);
+      add_vectorfn(int16, flt64, nullptr);
+      add_vectorfn(int32, flt64, nullptr);
+      add_vectorfn(int64, flt64, nullptr);
+      add_vectorfn(flt32, flt32, U(map11<float,  float,  std::floor>));
+      add_vectorfn(flt64, flt64, U(map11<double, double, std::floor>));
       add_scalarfn_d(std::floor);
     });
 
   register_op(Op::TRUNC, "trunc", &args_trunc,
     [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::trunc>));
-      add_converter(flt64, flt64, U(map11<double, double, std::trunc>));
+      add_vectorfn(bool8, flt64, nullptr);
+      add_vectorfn(int8,  flt64, nullptr);
+      add_vectorfn(int16, flt64, nullptr);
+      add_vectorfn(int32, flt64, nullptr);
+      add_vectorfn(int64, flt64, nullptr);
+      add_vectorfn(flt32, flt32, U(map11<float,  float,  std::trunc>));
+      add_vectorfn(flt64, flt64, U(map11<double, double, std::trunc>));
       add_scalarfn_d(std::trunc);
     });
 
   register_op(Op::LEN, "len", &args_len,
     [&]{
-      add_converter(str32, int32, U(map_str_len<uint32_t, int32_t>));
-      add_converter(str64, int64, U(map_str_len<uint64_t, int64_t>));
+      add_vectorfn(str32, int32, U(map_str_len<uint32_t, int32_t>));
+      add_vectorfn(str64, int64, U(map_str_len<uint64_t, int64_t>));
     });
 
   register_math_op<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);

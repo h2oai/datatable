@@ -707,8 +707,27 @@ constexpr size_t _binary_infos::id(Op op, SType stype1, SType stype2) noexcept {
 
 
 _binary_infos::_binary_infos() {
+  static Op relops[] = {Op::EQ, Op::NE, Op::GT, Op::LT, Op::GE, Op::LE};
+  static const char* relnames[] = {"==", "!=", ">", "<", ">=", "<="};
+  for (size_t i = 0; i < 6; ++i) {
+    register_op(relops[i], relnames[i], nullptr,
+      [=]{
 
+      });
+  }
 }
+
+
+void _binary_infos::register_op(Op opcode, const std::string& name,
+                                const py::PKArgs*,
+                                dt::function<void()> more)
+{
+  current_opcode = opcode;
+  names[id(opcode)] = std::move(name);
+  more();
+}
+
+
 
 
 }}  // namespace dt::expr

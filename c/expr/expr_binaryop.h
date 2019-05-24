@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include "expr/expr.h"
 #include "python/_all.h"
+#include "utils/function.h"
 namespace dt {
 namespace expr {
 
