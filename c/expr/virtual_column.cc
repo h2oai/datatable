@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "csv/toa.h"
 #include "expr/virtual_column.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
@@ -26,8 +27,19 @@ namespace dt {
 namespace expr {
 
 
+virtual_column::virtual_column(size_t nrows, SType stype)
+  : _nrows(nrows), _stype(stype) {}
+
 virtual_column::~virtual_column() {}
 
+
+size_t virtual_column::nrows() const noexcept {
+  return _nrows;
+}
+
+SType virtual_column::stype() const noexcept {
+  return _stype;
+}
 
 
 void virtual_column::compute(size_t, int8_t*) {
@@ -66,7 +78,6 @@ void virtual_column::compute(size_t, CString*) {
 
 template <typename T>
 void materialize_fw(virtual_column* self, Column* outcol) {
-  xassert(self->nrows() == outcol->nrows);
   T* out_data = static_cast<T*>(outcol->data_w());
   dt::parallel_for_static(
     outcol->nrows,
@@ -77,10 +88,9 @@ void materialize_fw(virtual_column* self, Column* outcol) {
 
 
 colptr virtual_column::materialize() {
-  SType out_stype = stype();
-  Column* out = Column::new_data_column(out_stype, nrows());
+  Column* out = Column::new_data_column(_stype, _nrows);
   colptr out_colptr(out);
-  switch (out_stype) {
+  switch (_stype) {
     case SType::BOOL:
     case SType::INT8:    materialize_fw<int8_t> (this, out); break;
     case SType::INT16:   materialize_fw<int16_t>(this, out); break;
@@ -89,7 +99,7 @@ colptr virtual_column::materialize() {
     case SType::FLOAT32: materialize_fw<float>  (this, out); break;
     case SType::FLOAT64: materialize_fw<double> (this, out); break;
     default:
-      throw NotImplError() << "virtual_column of stype " << out_stype
+      throw NotImplError() << "virtual_column of stype " << _stype
           << " cannot be materialized";
   }
   return out_colptr;
@@ -107,15 +117,16 @@ class _vcolumn : public virtual_column {
 
   public:
     _vcolumn(colptr&& col);
-    SType stype() const override;
-    size_t nrows() const override;
     colptr materialize() override;
 };
 
-_vcolumn::_vcolumn(colptr&& col) : column(std::move(col)) {}
-SType _vcolumn::stype() const { return column->stype(); }
-size_t _vcolumn::nrows() const { return column->nrows; }
-colptr _vcolumn::materialize() { return std::move(column); }
+_vcolumn::_vcolumn(colptr&& col)
+  : virtual_column(col->nrows, col->stype()),
+    column(std::move(col)) {}
+
+colptr _vcolumn::materialize() {
+  return std::move(column);
+}
 
 
 
@@ -309,6 +320,87 @@ vcolptr virtualize(colptr&& col) {
   }
   throw NotImplError() << "Cannot create virtual column of stype " << st;  // LCOV_EXCL_LINE
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// cast
+//------------------------------------------------------------------------------
+
+template <typename T>
+class cast_fw_vcol : public virtual_column {
+  private:
+    vcolptr arg;
+
+  public:
+    cast_fw_vcol(vcolptr&& col, SType new_stype)
+      : virtual_column(col->nrows(), new_stype),
+        arg(std::move(col)) {}
+
+    void compute(size_t i, int8_t* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<int8_t>(x);
+    }
+
+    void compute(size_t i, int16_t* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<int16_t>(x);
+    }
+
+    void compute(size_t i, int32_t* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<int32_t>(x);
+    }
+
+    void compute(size_t i, int64_t* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<int64_t>(x);
+    }
+
+    void compute(size_t i, float* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<float>(x);
+    }
+
+    void compute(size_t i, double* out) override {
+      T x;
+      arg->compute(i, &x);
+      *out = static_cast<double>(x);
+    }
+
+    void compute(size_t i, CString* out) override {
+      static thread_local char buffer[30];
+      T x;
+      arg->compute(i, &x);
+      char* ch = buffer;
+      toa<T>(&ch, x);
+      out->ch = buffer;
+      out->size = ch - buffer;
+    }
+};
+
+
+vcolptr cast(vcolptr&& vcol, SType new_stype) {
+  SType old_stype = vcol->stype();
+  switch (old_stype) {
+    case SType::BOOL:
+    case SType::INT8:    return vcolptr(new cast_fw_vcol<int8_t> (std::move(vcol), new_stype));
+    case SType::INT16:   return vcolptr(new cast_fw_vcol<int16_t>(std::move(vcol), new_stype));
+    case SType::INT32:   return vcolptr(new cast_fw_vcol<int32_t>(std::move(vcol), new_stype));
+    case SType::INT64:   return vcolptr(new cast_fw_vcol<int64_t>(std::move(vcol), new_stype));
+    case SType::FLOAT32: return vcolptr(new cast_fw_vcol<float>  (std::move(vcol), new_stype));
+    case SType::FLOAT64: return vcolptr(new cast_fw_vcol<double> (std::move(vcol), new_stype));
+    default: break;
+  }
+  throw NotImplError() << "Cannot virtual-cast column of stype " << old_stype;
+}
+
 
 
 

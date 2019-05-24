@@ -39,12 +39,21 @@ using vcolptr = std::unique_ptr<virtual_column>;
  * computations.
  *
  * A `virtual_column` is conceptually similar to a regular column:
- * it has an `stype()`, the number of rows `nrows()`, and a way to
+ * it has an `_stype`, the number of rows `_nrows`, and a way to
  * retrieve its `i`-th element via a set of `compute()` overloads.
  */
 class virtual_column {
+  private:
+    size_t _nrows;
+    SType  _stype;
+    size_t : 56;
+
   public:
+    virtual_column(size_t nrows, SType stype);
     virtual ~virtual_column();
+
+    size_t nrows() const noexcept;
+    SType stype() const noexcept;
 
     virtual void compute(size_t i, int8_t*  out);
     virtual void compute(size_t i, int16_t* out);
@@ -54,14 +63,13 @@ class virtual_column {
     virtual void compute(size_t i, double*  out);
     virtual void compute(size_t i, CString* out);
 
-    virtual SType stype() const = 0;
-    virtual size_t nrows() const = 0;
     virtual colptr materialize();
 };
 
 
 vcolptr virtualize(colptr&& column);
 
+vcolptr cast(vcolptr&& vcol, SType new_stype);
 
 
 }}  // namespace dt::expr
