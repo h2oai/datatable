@@ -583,14 +583,18 @@ def test_ftrl_fit_predict_bool():
 from datatable import *
 def test_ftrl_fit_predict_bool_string():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
-    df_train = dt.Frame([[True, False, False, True]])
-    df_target = dt.Frame([[None, "cat", "cat", "cat"]])
-    ft.fit(df_train, df_target)
-    print(df_target)
+    # df_train = dt.Frame([[True, False, False, True]])
+    # df_target = dt.Frame([[None, "cat", "cat", "cat"]])
+
+    df_train = dt.Frame([[True]])
+    df_target = dt.Frame([[None]])
+    res = ft.fit(df_train, df_target)
+    print(res)
+    # print(df_target)
     print(ft.dt_labels)
 
     df_train = dt.Frame([[False, True, False, True]])
-    df_target = dt.Frame([["cat", None, None, "at"]])
+    df_target = dt.Frame([[False, None, None, True]])
     ft.fit(df_train, df_target)
     print(df_target)
     print(ft.dt_labels)

@@ -148,18 +148,18 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
   dtptr dt_y_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
 
-  if (dt_y->columns[0]->stype() != SType::BOOL) {
-    dt_y_binomial = convert_to_binomial(dt_y);
-    dt_y = dt_y_binomial.get();
-  } else {
-    // FIXME: set-up true/false labels
-  }
+  dt_y_binomial = convert_to_binomial(dt_y);
+  if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
+  if (dt_y->columns[0]->stype() != SType::BOOL) dt_y = dt_y_binomial.get();
 
-  if (validation && dt_y->columns[0]->stype() != SType::BOOL) {
+  if (validation) {
     dt_y_val_binomial = convert_to_binomial(dt_y_val);
-    dt_y_val = dt_y_val_binomial.get();
-  } else {
-    // FIXME: set-up true/false labels?
+    if (dt_y_val_binomial == nullptr) {
+      throw ValueError() << "Validation target column should have values other "
+                            "than `NA`";
+    }
+    if (dt_y_val->columns[0]->stype() != SType::BOOL)
+      dt_y_val = dt_y_val_binomial.get();
   }
 
   if (!is_model_trained()) {
@@ -174,18 +174,13 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 template <typename T>
 dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
-  xassert(dt_y->columns[0]->stype() != SType::BOOL);
-
-  static const std::vector<std::vector<int8_t>>
-  binomial_labels{ {GETNA<int8_t>(), 0, 1}, {GETNA<int8_t>(), 1, 0} };
-  bool first_positive = true;
+  xassert(dt_y->nrows);
 
   // First, group target column to gather all the incoming labels
   auto res = dt->group({ sort_spec(0) });
   RowIndex ri = std::move(res.first);
   Groupby gb = std::move(res.second);
   size_t ngroups = gb.ngroups();
-  xassert(ngroups > 0);
   const auto& offsets = gb.offsets_r();
 
   // Second, check if target column has any NA's,
@@ -195,30 +190,36 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
   bool has_nas = value.is_none();
   size_t nlabels_in = ngroups - has_nas;
 
+  if (nlabels_in == 0) return nullptr;
   if (nlabels_in > 2) {
-    throw ValueError() << "Target column that has "
-                       << nlabels_in
-                       << " unique labels cannot be used for "
-                       << "binomial regression";
+    throw ValueError() << "For binomial regression target column should have "
+                       << "two labels at maximum, got: " << nlabels_in;
   }
 
   // Third, extract all the labels into a datatable, setting up
   // a key for later join operation
   dtptr dt_labels_in;
-  arr64_t label_indices(nlabels_in);
-  int64_t* data = label_indices.data();
-  for (size_t i = 0; i < nlabels_in; ++i) {
-    size_t offset = static_cast<size_t>(offsets[i + has_nas]);
-    data[i] = static_cast<int64_t>(ri[offset]);
-  }
-  RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
-  dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
-  std::vector<size_t> keys{ 0 };
-  dt_labels_in->set_key(keys);
 
+  {
+    arr64_t label_indices(nlabels_in);
+    int64_t* data = label_indices.data();
+    for (size_t i = 0; i < nlabels_in; ++i) {
+      size_t offset = static_cast<size_t>(offsets[i + has_nas]);
+      data[i] = static_cast<int64_t>(ri[offset]);
+    }
+    RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
+    dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
+    std::vector<size_t> keys{ 0 };
+    dt_labels_in->set_key(keys);
+    dt_labels_in->set_names({"label"});
+  }
 
   // Fourth, check consistency between the incoming labels
   // and the existing ones
+  static const std::vector<std::vector<int8_t>>
+  binomial_labels{ {GETNA<int8_t>(), 0, 1}, {GETNA<int8_t>(), 1, 0} };
+  bool first_positive = true;
+
   if (dt_labels == nullptr) dt_labels = std::move(dt_labels_in);
   else {
     auto ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
@@ -264,20 +265,23 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
 
   }
 
-  // Finally, convert target column to boolean
-  Column* c_binomial = new BoolColumn(dt->nrows);
-  auto data_binomial = static_cast<int8_t*>(c_binomial->data_w());
+  // Finally, convert target column to boolean if needed
+  if (dt->columns[0]->stype() != SType::BOOL) {
+    Column* c_binomial = new BoolColumn(dt->nrows);
+    auto data_binomial = static_cast<int8_t*>(c_binomial->data_w());
 
-  std::cout << "first_positive: " << static_cast<int16_t>(first_positive) << "\n";
-  for (size_t i = 0; i < ngroups; ++i) {
-    for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
-      data_binomial[ri[static_cast<size_t>(j)]] = binomial_labels[first_positive][i + !has_nas];
-      std::cout << ri[static_cast<size_t>(j)] << ": " << static_cast<int16_t>(data_binomial[ri[static_cast<size_t>(j)]]) << "\n";
+    std::cout << "first_positive: " << static_cast<int16_t>(first_positive) << "\n";
+    for (size_t i = 0; i < ngroups; ++i) {
+      for (int32_t j = offsets[i]; j < offsets[i+1]; ++j) {
+        data_binomial[ri[static_cast<size_t>(j)]] = binomial_labels[first_positive][i + !has_nas];
+        std::cout << ri[static_cast<size_t>(j)] << ": " << static_cast<int16_t>(data_binomial[ri[static_cast<size_t>(j)]]) << "\n";
 
+      }
     }
+    return dtptr(new DataTable({ c_binomial }, dt->get_names()));
   }
 
-  return dtptr(new DataTable({ c_binomial }, dt->get_names()));
+  return dtptr(new DataTable({ }, { }));
 }
 
 
