@@ -147,8 +147,8 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
                 outdata.push_back(data);
                 outnames.push_back(s);
               } else {
-                // In case the name was already added from another thread while we
-                // were waiting for the exclusive lock
+                // In case the name was already added from another thread while
+                // we were waiting for the exclusive lock
                 size_t j = colsmap[s];
                 outdata[j][irow] = 1;
               }
@@ -158,7 +158,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
         });
     });  // dt::parallel_region()
 
-  // // Set NA's .
+  // The above algo encoded NA's with zeros, here we encode them with NA's.
   size_t ncols = outcols.size();
   std::vector<int8_t*> coldata(ncols);
   for (size_t i = 0; i < ncols; ++i) {
