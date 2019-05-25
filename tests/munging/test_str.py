@@ -122,7 +122,8 @@ def test_split_into_nhot_long(seed, st):
     data = [",".join(["liberty"] * col1[i] +
                      ["equality"] * col2[i] +
                      ["justice"] * col3[i]) for i in range(n)]
-    # Introduce 1% of None's, making sure we preserve freedom_index
+
+    # Introduce 1% of None's, making sure we preserve data at freedom_index
     na_indices = random.sample(range(n), n // 100)
     freedom_index = random.randint(0, n - 1)
     for i in na_indices:
