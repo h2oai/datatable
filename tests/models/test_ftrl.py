@@ -667,7 +667,7 @@ def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
 
     ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
                           negative_class = negative_class_value)
-    df_target_multinomial = dt.Frame(["target", None] * 5)
+    df_target_multinomial = dt.Frame(["target", "target_negative"] * 5)
     ft_multinomial.fit(df_train_binomial, df_target_multinomial)
     p_multinomial = ft_multinomial.predict(df_train_binomial)
 
