@@ -158,9 +158,29 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
         });
     });  // dt::parallel_region()
 
+  // // Set NA's .
+  size_t ncols = outcols.size();
+  std::vector<int8_t*> coldata(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    coldata[i] = static_cast<int8_t*>(outcols[i]->data_w());
+  }
+
+  dt::parallel_for_dynamic(nrows,
+    [&](size_t irow) {
+      size_t jrow = ri[irow];
+      if (jrow == RowIndex::NA ||
+          (is32? ISNA(offsets32[jrow]) : ISNA(offsets64[jrow]))) {
+
+        for (size_t i = 0; i < ncols; ++i) {
+          coldata[i][irow] = GETNA<int8_t>();
+        }
+
+      }
+    }
+  );
+
   // Re-order columns, so that column names go in alphabetical order.
   if (sort) {
-    size_t ncols = outcols.size();
     std::vector<std::string> outnames_sorted(ncols);
     std::vector<Column*> outcols_sorted(ncols);
     std::vector<size_t> colindex = sort_index<std::string>(outnames);
