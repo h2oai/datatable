@@ -16,7 +16,7 @@
 #include <string>         // std::string
 #include <unordered_map>  // std::unordered_map
 #include <vector>         // std::vector
-#include "models/utils.h"        // sort_index
+#include "models/utils.h" // sort_index
 #include "parallel/api.h"
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
@@ -74,6 +74,51 @@ static void tokenize_string(
 }
 
 
+/**
+ * Encode NA's with NA's
+ */
+template<typename T>
+static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) {
+  size_t ncols = outcols.size();
+  if (ncols == 0) return;
+
+  size_t nrows = outcols[0]->nrows;
+  std::vector<int8_t*> coldata(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    coldata[i] = static_cast<int8_t*>(outcols[i]->data_w());
+  }
+
+  dt::parallel_for_dynamic(nrows,
+    [&](size_t irow) {
+      size_t jrow = ri[irow];
+      if (jrow == RowIndex::NA || ISNA(offsets[jrow])) {
+        for (size_t i = 0; i < ncols; ++i) {
+          coldata[i][irow] = GETNA<int8_t>();
+        }
+
+      }
+    }
+  );
+}
+
+
+/**
+ * Re-order columns, so that column names go in alphabetical order.
+ */
+static void sort_colnames(colvec& outcols, strvec& outnames) {
+  size_t ncols = outcols.size();
+  std::vector<std::string> outnames_sorted(ncols);
+  std::vector<Column*> outcols_sorted(ncols);
+  std::vector<size_t> colindex = sort_index<std::string>(outnames);
+  for (size_t i = 0; i < ncols; ++i) {
+    size_t j = colindex[i];
+    outnames_sorted[i] = std::move(outnames[j]);
+    outcols_sorted[i] = outcols[j];
+  }
+  outcols = std::move(outcols_sorted);
+  outnames = std::move(outnames_sorted);
+}
+
 
 DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   bool is32 = (col->stype() == SType::STR32);
@@ -93,9 +138,9 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
 
   size_t nrows = col->nrows;
   std::unordered_map<std::string, size_t> colsmap;
-  std::vector<Column*> outcols;
+  strvec outnames;
+  colvec outcols;
   std::vector<int8_t*> outdata;
-  std::vector<std::string> outnames;
   dt::shared_mutex shmutex;
   const RowIndex& ri = col->rowindex();
 
@@ -158,40 +203,13 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
         });
     });  // dt::parallel_region()
 
-  // The above algo encoded NA's with zeros, here we encode them with NA's.
-  size_t ncols = outcols.size();
-  std::vector<int8_t*> coldata(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    coldata[i] = static_cast<int8_t*>(outcols[i]->data_w());
+  // At this point NA's are encoded with zeros, here we encode them with NA's.
+  if (is32) {
+    encode_nones<uint32_t>(offsets32, ri, outcols);
+  } else {
+    encode_nones<uint64_t>(offsets64, ri, outcols);
   }
-
-  dt::parallel_for_dynamic(nrows,
-    [&](size_t irow) {
-      size_t jrow = ri[irow];
-      if (jrow == RowIndex::NA ||
-          (is32? ISNA(offsets32[jrow]) : ISNA(offsets64[jrow]))) {
-
-        for (size_t i = 0; i < ncols; ++i) {
-          coldata[i][irow] = GETNA<int8_t>();
-        }
-
-      }
-    }
-  );
-
-  // Re-order columns, so that column names go in alphabetical order.
-  if (sort) {
-    std::vector<std::string> outnames_sorted(ncols);
-    std::vector<Column*> outcols_sorted(ncols);
-    std::vector<size_t> colindex = sort_index<std::string>(outnames);
-    for (size_t i = 0; i < ncols; ++i) {
-      size_t j = colindex[i];
-      outnames_sorted[i] = std::move(outnames[j]);
-      outcols_sorted[i] = outcols[j];
-    }
-    outcols = std::move(outcols_sorted);
-    outnames = std::move(outnames_sorted);
-  }
+  if (sort) sort_colnames(outcols, outnames);
 
   return new DataTable(std::move(outcols), std::move(outnames));
 }

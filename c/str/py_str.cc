@@ -29,6 +29,8 @@ static PKArgs args_split_into_nhot(
 
 static oobj split_into_nhot(const PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
+  if (dt == nullptr) return py::None();
+
   std::string sep = args[1]? args[1].to_string() : ",";
   bool sort = args[2]? args[2].to_bool_strict() : false;
 

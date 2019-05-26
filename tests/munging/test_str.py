@@ -20,12 +20,22 @@ import random
 import re
 from datatable import stype, f
 from datatable.internal import frame_integrity_check
-from tests import noop, random_string
+from tests import noop, random_string, assert_equals
 
 
 #-------------------------------------------------------------------------------
 # split_into_nhot
 #-------------------------------------------------------------------------------
+
+def test_split_into_nhot_none():
+    f0 = dt.split_into_nhot(None)
+    assert(f0 == None)
+
+
+def test_split_into_nhot_empty():
+    f0 = dt.split_into_nhot(dt.Frame(["", None]))
+    assert_equals(f0, dt.Frame())
+
 
 @pytest.mark.parametrize('sort', [False, True])
 def test_split_into_nhot0(sort):
@@ -87,7 +97,6 @@ def test_split_into_nhot_quotes():
     f1 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz']))
     assert set(f0.names) == {"foo", "bar, baz"}
     assert set(f1.names) == {"foo", '"bar', "baz"}
-
 
 
 def test_split_into_nhot_bad():
