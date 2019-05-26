@@ -90,13 +90,14 @@ static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) 
 
   dt::parallel_for_dynamic(nrows,
     [&](size_t irow) {
+
       size_t jrow = ri[irow];
       if (jrow == RowIndex::NA || ISNA(offsets[jrow])) {
         for (size_t i = 0; i < ncols; ++i) {
           coldata[i][irow] = GETNA<int8_t>();
         }
-
       }
+
     }
   );
 }
@@ -110,11 +111,13 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
   std::vector<std::string> outnames_sorted(ncols);
   std::vector<Column*> outcols_sorted(ncols);
   std::vector<size_t> colindex = sort_index<std::string>(outnames);
+
   for (size_t i = 0; i < ncols; ++i) {
     size_t j = colindex[i];
     outnames_sorted[i] = std::move(outnames[j]);
     outcols_sorted[i] = outcols[j];
   }
+
   outcols = std::move(outcols_sorted);
   outnames = std::move(outnames_sorted);
 }
@@ -209,6 +212,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   } else {
     encode_nones<uint64_t>(offsets64, ri, outcols);
   }
+
   if (sort) sort_colnames(outcols, outnames);
 
   return new DataTable(std::move(outcols), std::move(outnames));
