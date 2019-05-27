@@ -62,8 +62,13 @@ class Ftrl : public dt::FtrlBase {
     std::vector<sizetvec> interactions;
 
     // Labels that are automatically extracted from the target column.
-    strvec labels;
+    // For binomial classification, labels are stored as
+    //  index 0 - positive label
+    //  index 1 - negative label
+    // This is because we consider the first incoming label as a
+    // positive class.
     dtptr dt_labels;
+    strvec labels;
 
     // Total number of features used for training, this includes
     // dt_X->ncols columns plus their interactions.
@@ -108,7 +113,7 @@ class Ftrl : public dt::FtrlBase {
     void init_model();
     void init_weights();
     dtptr convert_to_binomial(const DataTable*);
-    void create_boolean_labels();
+    dtptr create_boolean_labels();
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);

@@ -148,18 +148,17 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
   dtptr dt_y_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
 
-  if (dt_y->columns[0]->stype() == SType::BOOL) create_boolean_labels();
-  else {
-    dt_y_binomial = convert_to_binomial(dt_y);
-    if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
-    dt_y = dt_y_binomial.get();
-  }
+  dt_y_binomial = convert_to_binomial(dt_y);
+  // If we only got NA targets, stop training right away.
+  if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
+  if (dt_y->columns[0]->stype() != SType::BOOL) dt_y = dt_y_binomial.get();
 
-  if (validation && dt_y_val->columns[0]->stype() != SType::BOOL) {
+  if (validation) {
     dt_y_val_binomial = convert_to_binomial(dt_y_val);
+    // Cannot do any validation, if only got NA targets.
     if (dt_y_val_binomial == nullptr)
       throw ValueError() << "Validation target column got only `NA` targets";
-    dt_y_val = dt_y_val_binomial.get();
+    if (dt_y_val->columns[0]->stype() != SType::BOOL) dt_y_val = dt_y_val_binomial.get();
   }
 
   if (!is_model_trained()) {
@@ -173,22 +172,22 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 
 template <typename T>
-void Ftrl<T>::create_boolean_labels() {
+dtptr Ftrl<T>::create_boolean_labels() {
   auto col = new BoolColumn(2);
   auto data = static_cast<int8_t*>(col->data_w());
-  data[0] = 0;
-  data[1] = 1;
-  dt_labels = dtptr(new DataTable({ col }, {"label"}));
-  std::vector<size_t> keys{ 0 };
-  dt_labels->set_key(keys);
+  data[0] = 1;
+  data[1] = 0;
+  return dtptr(new DataTable({ col }, {"label"}));
 }
 
 template <typename T>
 dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
   xassert(dt_y->nrows);
 
-  // First, group target column to gather all the incoming labels
-  auto res = dt->group({ sort_spec(0) });
+  // First, sort and group target column to gather all the incoming labels.
+  // We do desc sorting here, because if we get boolean column containing
+  // zeros and ones, we need one to become a positive class label.
+  auto res = dt->group({ sort_spec(0 , /* descending = */ true, false, false) });
   RowIndex ri = std::move(res.first);
   Groupby gb = std::move(res.second);
   size_t ngroups = gb.ngroups();
@@ -209,9 +208,12 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
   }
 
   // Third, extract all the labels into a datatable, setting up
-  // a key for later join operation
+  // a key for later join operation. If we got boolean column,
+  // just set labels as 1 (positive) and 0 (negative).
   dtptr dt_labels_in;
-  {
+  bool is_bool = dt->columns[0]->stype() == SType::BOOL;
+  if (is_bool) dt_labels_in = create_boolean_labels();
+  else {
     arr64_t label_indices(nlabels_in);
     int64_t* data = label_indices.data();
     for (size_t i = 0; i < nlabels_in; ++i) {
@@ -220,14 +222,15 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
     }
     RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
     dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
-    std::vector<size_t> keys{ 0 };
-    dt_labels_in->set_key(keys);
-    dt_labels_in->set_names({"label"});
   }
+
+  std::vector<size_t> keys{ 0 };
+  dt_labels_in->set_key(keys);
+  dt_labels_in->set_names({"label"});
 
   // Fourth, check consistency between the incoming labels
   // and the existing ones.
-  RowIndex ri_join(0, 2, 1);
+  RowIndex ri_join(/* start = */ 0, /* count = */ 2, /* step = */ 1);
   if (dt_labels == nullptr) dt_labels = std::move(dt_labels_in);
   else {
     ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
@@ -261,6 +264,8 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
     }
   }
 
+  if (is_bool) return dtptr(new DataTable({ new BoolColumn(0)}, { "" }));
+
   // Finally, convert target column to boolean
   Column* c_binomial = new BoolColumn(dt->nrows);
   auto data_binomial = static_cast<int8_t*>(c_binomial->data_w());
@@ -274,7 +279,7 @@ dtptr Ftrl<T>::convert_to_binomial(const DataTable* dt) {
   // label has zero index.
   for (size_t i = 0; i < nlabels_in; ++i) {
     for (int32_t j = offsets[i + has_nas]; j < offsets[i + 1 + has_nas]; ++j) {
-      data_binomial[ri[static_cast<size_t>(j)]] = !static_cast<bool>(ri_join[i]);
+      data_binomial[ri[static_cast<size_t>(j)]] = (ri_join[i] == 0);
     }
   }
   return dtptr(new DataTable({ c_binomial }, dt->get_names()));

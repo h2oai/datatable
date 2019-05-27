@@ -528,9 +528,8 @@ static GSArgs args_dt_labels(
 
 
 oobj Ftrl::get_dt_labels() const {
-  if (!dtft->is_model_trained()) return py::None();
-
   DataTable* dt_labels = dtft->get_dt_labels();
+  if (dt_labels ==nullptr) return py::None();
   py::oobj df_labels = py::oobj::from_new_reference(
                      py::Frame::from_datatable(dt_labels)
                    );

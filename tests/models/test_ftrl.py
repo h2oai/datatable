@@ -583,7 +583,7 @@ def test_ftrl_fit_predict_bool():
 def test_ftrl_fit_predict_bool_binomial_string():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([[True, False]])
-    df_target = dt.Frame([["cat", "dog"]])
+    df_target = dt.Frame([["yes", "no"]])
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train[:,0])
     assert df_res[0, 0] <= 1
@@ -595,7 +595,7 @@ def test_ftrl_fit_predict_bool_binomial_string():
 def test_ftrl_fit_predict_bool_binomial_int():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([[True, False]])
-    df_target = dt.Frame([["cat", "dog"]])
+    df_target = dt.Frame([["yes", "donog"]])
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train[:,0])
     assert df_res[0, 0] <= 1
