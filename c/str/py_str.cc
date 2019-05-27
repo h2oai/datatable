@@ -32,9 +32,11 @@ static oobj split_into_nhot(const PKArgs& args) {
     throw ValueError() << "Required parameter `frame` is missing";
   }
 
-  DataTable* dt = args[0].to_datatable();
-  if (dt == nullptr) return py::None();
+  if (args[0].is_none()) {
+    return py::None();
+  }
 
+  DataTable* dt = args[0].to_datatable();
   std::string sep = args[1]? args[1].to_string() : ",";
   bool sort = args[2]? args[2].to_bool_strict() : false;
 
