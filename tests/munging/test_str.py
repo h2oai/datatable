@@ -27,6 +27,12 @@ from tests import noop, random_string, assert_equals
 # split_into_nhot
 #-------------------------------------------------------------------------------
 
+def test_split_into_nhot_noarg():
+    with pytest.raises(ValueError) as e:
+        noop(dt.split_into_nhot())
+    assert ("Required parameter `frame` is missing" == str(e.value))
+
+
 def test_split_into_nhot_none():
     f0 = dt.split_into_nhot(None)
     assert(f0 == None)

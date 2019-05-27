@@ -23,11 +23,15 @@ namespace py {
 
 static PKArgs args_split_into_nhot(
     1, 0, 2, false, false,
-    {"col", "sep", "sort"}, "split_into_nhot", nullptr
+    {"frame", "sep", "sort"}, "split_into_nhot", nullptr
 );
 
 
 static oobj split_into_nhot(const PKArgs& args) {
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Required parameter `frame` is missing";
+  }
+
   DataTable* dt = args[0].to_datatable();
   if (dt == nullptr) return py::None();
 
