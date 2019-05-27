@@ -29,7 +29,7 @@ list in your documentations's "conf.py" file:
 
     extensions = [
         ...,
-        'sphinxext.dtframe_directive'
+        'datatable.sphinxext.dtframe_directive'
     ]
 
 After that, you can use the `.. dtframe::` directive in your .rst
@@ -58,7 +58,7 @@ The following rules apply:
 
       One of the types may be "...", indicating a place where some of
       the columns were omitted. In this case the `:names:` list must
-      also have "..." at the same position, and likewise all data
+      also have "..." at the same position, and similarly all data
       rows.
 
     - Option `:names:` lists the column names in the frame. This is a
@@ -76,11 +76,11 @@ The following rules apply:
       same number of elements as lists `:types:` and `:names:`.
 
       One of the rows (but not the first one) may contain a single
-      "...". This indicates a place where the rows were omitted,
-      and will be rendered appropriately.
+      "...". This indicates the place where some rows were omitted,
+      and will be rendered accordingly.
 
-    - All entries whose value is `NA` and which are not quoted, will
-      be rendered as a special "NA" token in the output.
+    - All non-quoted `NA` entries will be rendered as special "NA"
+      tokens in the output.
 
 """
 import re
