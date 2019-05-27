@@ -94,6 +94,15 @@ A list `[frame_exemplars, frame_members]`, where
  *  of two frames: `df_exemplars` and `df_members`.
  */
 static oobj aggregate(const PKArgs& args) {
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Required parameter `frame` is missing";
+  }
+
+  if (args[0].is_none()) {
+    return py::None();
+  }
+
+  DataTable* dt = args[0].to_datatable();
   size_t min_rows = 500;
   size_t n_bins = 500;
   size_t nx_bins = 50;
@@ -104,7 +113,6 @@ static oobj aggregate(const PKArgs& args) {
   unsigned int nthreads = 0;
   bool double_precision = false;
 
-  bool undefined_dt = args[0].is_none_or_undefined();
   bool defined_min_rows = !args[1].is_none_or_undefined();
   bool defined_n_bins = !args[2].is_none_or_undefined();
   bool defined_nx_bins = !args[3].is_none_or_undefined();
@@ -115,12 +123,6 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_progress_fn = !args[8].is_none_or_undefined();
   bool defined_nthreads = !args[9].is_none_or_undefined();
   bool defined_double_precision = !args[10].is_none_or_undefined();
-
-  if (undefined_dt) {
-    throw ValueError() << "Required parameter `frame` is missing";
-  }
-
-  DataTable* dt = args[0].to_datatable();
 
   if (defined_min_rows) {
     min_rows = args[1].to_size_t();
