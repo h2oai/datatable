@@ -34,9 +34,8 @@ using vcolptr = std::unique_ptr<virtual_column>;
 
 /**
  * This class is a basic building block in creating lazy evaluation
- * pipelines. This is an abstract base class, each `base_expr` is
- * expected to create its own derived class(es) to implement actual
- * computations.
+ * pipelines. This is an abstract base class, the derived classes
+ * are expected to implement actual computations.
  *
  * A `virtual_column` is conceptually similar to a regular column:
  * it has an `_stype`, the number of rows `_nrows`, and a way to

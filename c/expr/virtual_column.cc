@@ -341,47 +341,51 @@ class cast_fw_vcol : public virtual_column {
     void compute(size_t i, int8_t* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<int8_t>(x);
+      *out = ISNA<T>(x)? GETNA<int8_t>() : static_cast<int8_t>(x);
     }
 
     void compute(size_t i, int16_t* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<int16_t>(x);
+      *out = ISNA<T>(x)? GETNA<int16_t>() : static_cast<int16_t>(x);
     }
 
     void compute(size_t i, int32_t* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<int32_t>(x);
+      *out = ISNA<T>(x)? GETNA<int32_t>() : static_cast<int32_t>(x);
     }
 
     void compute(size_t i, int64_t* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<int64_t>(x);
+      *out = ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
     }
 
     void compute(size_t i, float* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<float>(x);
+      *out = ISNA<T>(x)? GETNA<float>() : static_cast<float>(x);
     }
 
     void compute(size_t i, double* out) override {
       T x;
       arg->compute(i, &x);
-      *out = static_cast<double>(x);
+      *out = ISNA<T>(x)? GETNA<double>() : static_cast<double>(x);
     }
 
     void compute(size_t i, CString* out) override {
       static thread_local char buffer[30];
       T x;
       arg->compute(i, &x);
-      char* ch = buffer;
-      toa<T>(&ch, x);
-      out->ch = buffer;
-      out->size = ch - buffer;
+      if (ISNA<T>(x)) {
+        out->ch = nullptr;
+      } else {
+        char* ch = buffer;
+        toa<T>(&ch, x);
+        out->ch = buffer;
+        out->size = ch - buffer;
+      }
     }
 };
 
