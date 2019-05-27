@@ -397,19 +397,24 @@ Miscellaneous functions
     - an ``int``, or a ``float``, in which case ``abs(x)`` returns the absolute
       value of that number, similar to the python built-in function ``abs()``.
 
-    :Examples:
+    **Examples**::
 
-    >>> DT = dt.Frame(A=[-3, 2, 4, -17, 0])
-    >>> DT[:, abs(f.A)]
-      A
-     --
-    0   3
-    1   2
-    2   4
-    3  17
-    4   0
+        DT = dt.Frame(A=[-3, 2, 4, -17, 0])
+        DT[:, abs(f.A)]
 
-    :See also:
+    .. dtframe::
+        :names: C0
+        :types: int8
+        :shape: 5, 1
+        :output:
+
+        0,   3
+        1,   2
+        2,   4
+        3,  17
+        4,   0
+
+    **See also**
 
     - :func:`fabs`
 
