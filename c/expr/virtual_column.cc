@@ -116,7 +116,7 @@ class _vcolumn : public virtual_column {
     colptr column;
 
   public:
-    _vcolumn(colptr&& col);
+    explicit _vcolumn(colptr&& col);
     colptr materialize() override;
 };
 
@@ -136,7 +136,7 @@ class fw_vcol : public _vcolumn {
     const T* data;
 
   public:
-    fw_vcol(colptr&& col)
+    explicit fw_vcol(colptr&& col)
       : _vcolumn(std::move(col)),
         data(static_cast<const T*>(column->data())) {}
 
@@ -190,7 +190,7 @@ class str_vcol : public _vcolumn {
     const char* strdata;
 
   public:
-    str_vcol(colptr&& col)
+    explicit str_vcol(colptr&& col)
       : _vcolumn(std::move(col)),
         offsets(static_cast<StringColumn<T>*>(column.get())->offsets()),
         strdata(static_cast<StringColumn<T>*>(column.get())->strdata()) {}
