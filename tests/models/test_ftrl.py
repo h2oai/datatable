@@ -657,17 +657,15 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
+def test_ftrl_fit_predict_multinomial_vs_binomial():
     ft_binomial = Ftrl(nbins = 10, nepochs = 2)
     df_train_binomial = dt.Frame(range(ft_binomial.nbins))
     df_target_binomial = dt.Frame({"target" : [True, False] * 5})
     ft_binomial.fit(df_train_binomial, df_target_binomial)
     p_binomial = ft_binomial.predict(df_train_binomial)
 
-    ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
-                          negative_class = negative_class_value)
-    df_target_multinomial = dt.Frame(["target", None] * 5)
+    ft_multinomial = Ftrl(nbins = 10, nepochs = 2)
+    df_target_multinomial = dt.Frame(["target", "target_negative"] * 5)
     ft_multinomial.fit(df_train_binomial, df_target_multinomial)
     p_multinomial = ft_multinomial.predict(df_train_binomial)
 

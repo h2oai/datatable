@@ -361,11 +361,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
           // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
           // dt_y has only one column that may contain NA's or be a view
           // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-          // columns as there are labels, and split_into_nhot() filters out
-          // NA's and can never be a view. Therefore, to ignore NA targets
-          // it is enough to check the condition below for the zero column only.
-          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
-          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+          // columns as there is labels, plus possibly a `_negative` column
+          // populated with all the negateves. Therefore, to ignore NA targets
+          // during training, it is enough to check the last column value only.
+          // FIXME: `j0 != RowIndex::NA` condition can be safely
+          // removed for FtrlModelType::MULTINOMIAL, because in this case
+          // the target columns are coming directly from `split_into_nhot()`.
+          if (j0 != RowIndex::NA && !ISNA<U>(data[dt_y->ncols - 1][j0])) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < dt_y->ncols; ++k) {
               const size_t j = ri[k][ii];
@@ -390,7 +392,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T,U)) {
             const size_t j0 = ri_val[0][i];
             // This condition is kind of the same as for training, see comment
             // above.
-            if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
+            if (j0 != RowIndex::NA && !ISNA<U>(data_val[dt_y_val->ncols - 1][j0])) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < dt_y_val->ncols; ++k) {
                 const size_t j = ri_val[k][i];

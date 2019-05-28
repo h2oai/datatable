@@ -20,31 +20,48 @@ import random
 import re
 from datatable import stype, f
 from datatable.internal import frame_integrity_check
-from tests import noop, random_string
+from tests import noop, random_string, assert_equals
 
 
 #-------------------------------------------------------------------------------
 # split_into_nhot
 #-------------------------------------------------------------------------------
 
+def test_split_into_nhot_noarg():
+    with pytest.raises(ValueError) as e:
+        noop(dt.split_into_nhot())
+    assert ("Required parameter `frame` is missing" == str(e.value))
+
+
+def test_split_into_nhot_none():
+    f0 = dt.split_into_nhot(None)
+    assert(f0 == None)
+
+
+def test_split_into_nhot_empty():
+    f0 = dt.split_into_nhot(dt.Frame(["", None]))
+    assert_equals(f0, dt.Frame())
+
+
 @pytest.mark.parametrize('sort', [False, True])
 def test_split_into_nhot0(sort):
     f0 = dt.Frame(["cat, dog, mouse, peacock, frog",
                    "armadillo, fox, hedgehog",
+                   None,
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
     f1 = dt.split_into_nhot(f0, sort = sort)
     frame_integrity_check(f1)
-    fr = dt.Frame({"cat":       [1, 0, 1, 1],
-                   "dog":       [1, 0, 1, 1],
-                   "mouse":     [1, 0, 1, 0],
-                   "peacock":   [1, 0, 1, 0],
-                   "frog":      [1, 0, 0, 1],
-                   "armadillo": [0, 1, 0, 0],
-                   "fox":       [0, 1, 1, 0],
-                   "hedgehog":  [0, 1, 0, 0],
-                   "horse":     [0, 0, 0, 1],
-                   "raccoon":   [0, 0, 0, 1]})
+    fr = dt.Frame({"cat":       [1, 0, None, 1, 1],
+                   "dog":       [1, 0, None, 1, 1],
+                   "mouse":     [1, 0, None, 1, 0],
+                   "peacock":   [1, 0, None, 1, 0],
+                   "frog":      [1, 0, None, 0, 1],
+                   "armadillo": [0, 1, None, 0, 0],
+                   "fox":       [0, 1, None, 1, 0],
+                   "hedgehog":  [0, 1, None, 0, 0],
+                   "horse":     [0, 0, None, 0, 1],
+                   "raccoon":   [0, 0, None, 0, 1]})
     assert set(f1.names) == set(fr.names)
     if sort :
         assert list(f1.names) == sorted(fr.names)
@@ -57,25 +74,26 @@ def test_split_into_nhot0(sort):
 
 def test_split_into_nhot1():
     f0 = dt.Frame(["  meow  \n",
+                   None,
                    "[ meow]",
                    "['meow' ,purr]",
                    '(\t"meow", \'purr\')',
                    "{purr}"])
     f1 = dt.split_into_nhot(f0)
     frame_integrity_check(f1)
-    fr = dt.Frame(meow=[1, 1, 1, 1, 0], purr=[0, 0, 1, 1, 1])
+    fr = dt.Frame(meow=[1, None, 1, 1, 1, 0], purr=[0, None, 0, 1, 1, 1])
     assert set(f1.names) == set(fr.names)
     fr = fr[..., f1.names]
-    assert f1.shape == fr.shape == (5, 2)
+    assert f1.shape == fr.shape == (6, 2)
     assert f1.stypes == (dt.stype.bool8, dt.stype.bool8)
     assert f1.to_list() == fr.to_list()
 
 
 def test_split_into_nhot_sep():
-    f0 = dt.Frame(["a|b|c", "b|a", "a|c"])
+    f0 = dt.Frame(["a|b|c", "b|a", None, "a|c"])
     f1 = dt.split_into_nhot(f0, sep="|")
     assert set(f1.names) == {"a", "b", "c"}
-    fr = dt.Frame(a=[1, 1, 1], b=[1, 1, 0], c=[1, 0, 1])
+    fr = dt.Frame(a=[1, 1, None, 1], b=[1, 1, None, 0], c=[1, 0, None, 1])
     assert set(f1.names) == set(fr.names)
     assert f1.to_list() == fr[:, f1.names].to_list()
 
@@ -85,7 +103,6 @@ def test_split_into_nhot_quotes():
     f1 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz']))
     assert set(f0.names) == {"foo", "bar, baz"}
     assert set(f1.names) == {"foo", '"bar', "baz"}
-
 
 
 def test_split_into_nhot_bad():
@@ -116,12 +133,24 @@ def test_split_into_nhot_long(seed, st):
     col2 = [random.getrandbits(1) for _ in range(n)]
     col3 = [random.getrandbits(1) for _ in range(n)]
     col4 = [0] * n
+
     data = [",".join(["liberty"] * col1[i] +
                      ["equality"] * col2[i] +
                      ["justice"] * col3[i]) for i in range(n)]
-    i = random.randint(0, n - 1)
-    col4[i] = 1
-    data[i] += ", freedom"
+
+    # Introduce 1% of None's, making sure we preserve data at freedom_index
+    na_indices = random.sample(range(n), n // 100)
+    freedom_index = random.randint(0, n - 1)
+    for i in na_indices:
+        if i == freedom_index: continue
+        col1[i] = None
+        col2[i] = None
+        col3[i] = None
+        col4[i] = None
+        data[i] = None
+    col4[freedom_index] = 1
+    data[freedom_index] += ", freedom"
+
     f0 = dt.Frame(data, stype=st)
     assert f0.stypes == (st,)
     assert f0.shape == (n, 1)
@@ -139,7 +168,7 @@ def test_split_into_nhot_view():
     f2 = dt.split_into_nhot(f0[3, :])
     assert set(f1.names) == {"cat", "dog", "mouse"}
     assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
-           [[1, 0, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]]
+           [[1, None, 0, 1], [1, None, 0, 1], [0, None, 1, 1]]
     assert set(f2.names) == {"cat", "dog"}
     assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
 
