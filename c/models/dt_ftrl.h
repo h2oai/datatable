@@ -112,11 +112,13 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
-    dtptr convert_to_binomial(const DataTable*);
     dtptr create_boolean_labels();
+    dtptr create_y_binomial(const DataTable*);
+    dtptr create_y_multinomial(const DataTable*);
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);
+    dtptr create_labels_from_strvec(const strvec&);
 
     // Feature importance helper methods
     void create_fi();
