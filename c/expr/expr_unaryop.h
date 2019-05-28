@@ -190,8 +190,6 @@ class unary_infos {
     void add_copy(Op op, SType input_stype, SType output_stype);
     template <Op OP, SType SI, SType SO, element_t<SO>(*)(element_t<SI>)>
     void add();
-    template <Op OP, SType SI, bool(*FN)(element_t<SI>)>
-    void add_bool();
     template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
     void add_str(unary_func_t mapfn);
     template <float(*F32)(float), double(*F64)(double)>

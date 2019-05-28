@@ -145,6 +145,14 @@ inline static T op_abs(T x) {
   return (x < 0) ? -x : x;
 }
 
+// Redefine functions isinf / isfinite here, because apparently the standard
+// library implementation is not that standard: in some implementation the
+// return value is `bool`, in others it's `int`.
+template <typename T>
+inline static int8_t op_isinf(T x) { return std::isinf(x); }
+
+template <typename T>
+inline static int8_t op_isfinite(T x) { return std::isfinite(x); }
 
 inline static int8_t op_invert_bool(int8_t x) {
   return ISNA<int8_t>(x)? x : !x;
@@ -675,20 +683,6 @@ void unary_infos::add() {
   };
 }
 
-template <Op OP, SType SI, bool(*FN)(element_t<SI>)>
-void unary_infos::add_bool() {
-  using TI = element_t<SI>;
-  constexpr size_t entry_id = id(OP, SI);
-  xassert(info.count(entry_id) == 0);
-  info[entry_id] = {
-    reinterpret_cast<unary_func_t>(mapfw<TI, bool, FN>),
-    reinterpret_cast<erased_func_t>(FN),
-    vcol_factory_bool<SI, FN>,
-    SType::BOOL,
-    SType::VOID
-  };
-}
-
 template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
 void unary_infos::add_str(unary_func_t mapfn)
 {
@@ -791,8 +785,8 @@ unary_infos::unary_infos() {
   add<Op::ISNA, int16, bool8, op_isna<int16_t>>();
   add<Op::ISNA, int32, bool8, op_isna<int32_t>>();
   add<Op::ISNA, int64, bool8, op_isna<int64_t>>();
-  add_bool<Op::ISNA, flt32, std::isnan>();
-  add_bool<Op::ISNA, flt64, std::isnan>();
+  add<Op::ISNA, flt32, bool8, op_isna<float>>();
+  add<Op::ISNA, flt64, bool8, op_isna<double>>();
   add_str<Op::ISNA, str32, bool8, op_str_isna>(U(map_str_isna<uint32_t>));
   add_str<Op::ISNA, str64, bool8, op_str_isna>(U(map_str_isna<uint64_t>));
 
@@ -802,8 +796,8 @@ unary_infos::unary_infos() {
   add<Op::ISFINITE, int16, bool8, op_notna<int16_t>>();
   add<Op::ISFINITE, int32, bool8, op_notna<int32_t>>();
   add<Op::ISFINITE, int64, bool8, op_notna<int64_t>>();
-  add_bool<Op::ISFINITE, flt32, std::isfinite>();
-  add_bool<Op::ISFINITE, flt64, std::isfinite>();
+  add<Op::ISFINITE, flt32, bool8, op_isfinite<float>>();
+  add<Op::ISFINITE, flt64, bool8, op_isfinite<double>>();
 
   add_op(Op::ISINF, "isinf", &args_isinf);
   add<Op::ISINF, bool8, bool8, op_false<int8_t>>();
@@ -811,8 +805,8 @@ unary_infos::unary_infos() {
   add<Op::ISINF, int16, bool8, op_false<int16_t>>();
   add<Op::ISINF, int32, bool8, op_false<int32_t>>();
   add<Op::ISINF, int64, bool8, op_false<int64_t>>();
-  add_bool<Op::ISINF, flt32, std::isinf>();
-  add_bool<Op::ISINF, flt64, std::isinf>();
+  add<Op::ISINF, flt32, bool8, op_isinf<float>>();
+  add<Op::ISINF, flt64, bool8, op_isinf<double>>();
 
   add_op(Op::CEIL, "ceil", &args_ceil);
   add_copy(Op::CEIL, bool8, flt64);
