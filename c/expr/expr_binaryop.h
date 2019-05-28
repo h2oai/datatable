@@ -49,16 +49,10 @@ class expr_binaryop : public base_expr {
 //------------------------------------------------------------------------------
 
 class _binary_infos {
-  using binary_func_t = void(*)(size_t nrows, const void* lhs,
-                                const void* rhs, void* out);
-
   public:
+    using erased_func_t = void(*)();
     struct binfo {
-      binary_func_t vectorfn;
-      union {
-        double(*d_d)(double, double);
-        int64_t(*l_l)(int64_t, int64_t);
-      } scalarfn;
+      erased_func_t scalarfn;
       SType output_stype;
       SType lhs_cast_stype;
       SType rhs_cast_stype;
@@ -80,8 +74,7 @@ class _binary_infos {
     static constexpr opinfo_index_t id(Op) noexcept;
     static constexpr binfo_index_t id(Op, SType, SType) noexcept;
 
-    void register_op(Op opcode, const std::string& name, const py::PKArgs*,
-                     dt::function<void()>);
+    void add_relop(Op op, const char* name);
 };
 
 extern _binary_infos binary_infos;

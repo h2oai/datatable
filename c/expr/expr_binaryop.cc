@@ -231,12 +231,34 @@ inline static int8_t op_eq(LT x, RT y) {  // x == y
          (x_isna && y_isna);
 }
 
+template <typename T>
+static int8_t op_eq1(T x, T y) {
+  if (std::is_integral<T>::value) {
+    return (x == y);
+  } else {
+    bool x_isna = ISNA<T>(x);
+    bool y_isna = ISNA<T>(y);
+    return (!x_isna && !y_isna && x == y) || (x_isna && y_isna);
+  }
+}
+
 template<typename LT, typename RT, typename VT>
 inline static int8_t op_ne(LT x, RT y) {  // x != y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
   return (x_isna || y_isna || static_cast<VT>(x) != static_cast<VT>(y)) &&
          !(x_isna && y_isna);
+}
+
+template <typename T>
+static int8_t op_ne1(T x, T y) {
+  if (std::is_integral<T>::value) {
+    return (x != y);
+  } else {
+    bool x_isna = ISNA<T>(x);
+    bool y_isna = ISNA<T>(y);
+    return (x_isna || y_isna || x != y) && !(x_isna && y_isna);
+  }
 }
 
 template<typename LT, typename RT, typename VT>
@@ -694,6 +716,7 @@ void init_binops() {
 //------------------------------------------------------------------------------
 // binary_infos
 //------------------------------------------------------------------------------
+using erased_func_t = _binary_infos::erased_func_t;
 
 constexpr size_t _binary_infos::id(Op opcode) noexcept {
   return static_cast<size_t>(opcode) - BINOP_FIRST;
@@ -706,25 +729,58 @@ constexpr size_t _binary_infos::id(Op op, SType stype1, SType stype2) noexcept {
 }
 
 
-_binary_infos::_binary_infos() {
-  static Op relops[] = {Op::EQ, Op::NE, Op::GT, Op::LT, Op::GE, Op::LE};
-  static const char* relnames[] = {"==", "!=", ">", "<", ">=", "<="};
-  for (size_t i = 0; i < 6; ++i) {
-    register_op(relops[i], relnames[i], nullptr,
-      [=]{
-
-      });
+template <typename T>
+static erased_func_t resolve_op2(Op op) {
+  switch (op) {
+    case Op::EQ: return reinterpret_cast<erased_func_t>(op_eq1<T>);
+    case Op::NE: return reinterpret_cast<erased_func_t>(op_ne1<T>);
+    default: return nullptr;
   }
 }
 
+static erased_func_t resolve_op(Op op, SType stype) {
+  switch (stype) {
+    case SType::INT8:    return resolve_op2<int8_t>(op);
+    case SType::INT16:   return resolve_op2<int16_t>(op);
+    case SType::INT32:   return resolve_op2<int32_t>(op);
+    case SType::INT64:   return resolve_op2<int64_t>(op);
+    case SType::FLOAT32: return resolve_op2<float>(op);
+    case SType::FLOAT64: return resolve_op2<double>(op);
+    case SType::STR32:
+    case SType::STR64:   return resolve_op2<CString>(op);
+    default: return nullptr;  // LCOV_EXCL_LINE
+  }
+}
 
-void _binary_infos::register_op(Op opcode, const std::string& name,
-                                const py::PKArgs*,
-                                dt::function<void()> more)
-{
-  current_opcode = opcode;
-  names[id(opcode)] = std::move(name);
-  more();
+void _binary_infos::add_relop(Op op, const char* name) {
+  static SType stypes[] = {
+    SType::BOOL, SType::INT8, SType::INT16, SType::INT32, SType::INT64,
+    SType::FLOAT32, SType::FLOAT64, SType::STR32, SType::STR64
+  };
+  for (int i = 0; i < 9; ++i) {
+    for (int j = 0; j < 9; ++ j) {
+      if ((i < 7) != (j < 7)) continue;  // strings do not mix with numbers
+      int m = std::max(1, std::max(i, j));
+      size_t entry_id = id(op, stypes[i], stypes[j]);
+      infos[entry_id] = {
+        resolve_op(op, stypes[m]),
+        SType::BOOL,  // output_stype
+        (i == m || i >= 7)? SType::VOID : stypes[m],
+        (j == m || j >= 7)? SType::VOID : stypes[m]
+      };
+    }
+  }
+  names[id(op)] = name;
+}
+
+
+_binary_infos::_binary_infos() {
+  add_relop(Op::EQ, "==");
+  add_relop(Op::NE, "!=");
+  add_relop(Op::GT, ">");
+  add_relop(Op::LT, "<");
+  add_relop(Op::GE, ">=");
+  add_relop(Op::LE, "<=");
 }
 
 
