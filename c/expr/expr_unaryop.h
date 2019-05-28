@@ -42,6 +42,7 @@ class expr_unaryop : public base_expr {
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;
+    vcolptr evaluate_lazy(workframe& wf) override;
 
     bool is_negated_expr() const override;
     pexpr get_negated_expr() override;
@@ -124,28 +125,26 @@ py::oobj unary_pyfn(const py::PKArgs&);
  *     This field could be `nullptr`, indicating that no transform
  *     is necessary: the output can be simply copied from the input.
  *
- * - scalarfn (union)
+ *     If the input column is of string type, then only the offsets
+ *     will be passed in the `input` field. More precisely, the
+ *     starting offsets of each string, and the array will be
+ *     `nrows + 1` elements long. There is no support for output
+ *     string columns. [Note: this may change in the future]
  *
- *     Function that can be applied to a single (scalar) input. In
- *     order to accommodate multiple possible signatures within the
- *     same `uinfo` struct, we use a union here. A particular member
- *     of the union will be selected according to the type of the
- *     input and the `output_stype` field.
+ * - scalarfn (erased_func_t)
  *
- *     Specifically, the following signatures are recognized:
+ *     Function that can be applied to a single (scalar) input. This
+ *     function is even more type-erased than `vectorfn`, but
+ *     generally it has signature `TO(*)(TI)`. The caller is expected
+ *     to know the actual signature in order to use this function.
  *
- *         (double | int64_t) -> (double | bool)
+ * - vcolfn (vcol_func_t)
  *
- *     The input type corresponds to python `float` and `int` types,
- *     the output is wrapped as python `float` or `bool`. In the
- *     future we may add support for more signatures, as the need
- *     arises.
- *
- *     This field can be `nullptr` indicating that the ufunc cannot
- *     be applied to this input type. This field will be `nullptr`
- *     for `uinfo`s corresponding to all input stypes other than
- *     INT64 or FLOAT64. If this field is non-null, then output_stype
- *     must be either FLOAT64 or BOOL.
+ *     Function that can be used to produce a virtual column
+ *     corresponding to this unary transform. This function takes a
+ *     single argument: a virtual column that is the argument of the
+ *     transform (possibly after applying cast specified in the
+ *     `cast_type` field).
  *
  * - output_stype (SType)
  *
@@ -160,17 +159,15 @@ py::oobj unary_pyfn(const py::PKArgs&);
  *
  */
 class unary_infos {
+  using vcol_func_t = vcolptr(*)(vcolptr&& arg);
   using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
+  using erased_func_t = void(*)();
 
   public:
     struct uinfo {
-      unary_func_t vectorfn;
-      union {
-        double(*d_d)(double);
-        bool(*d_b)(double);
-        int64_t(*l_l)(int64_t);
-        bool(*l_b)(int64_t);
-      } scalarfn;
+      unary_func_t  vectorfn;
+      erased_func_t scalarfn;
+      vcol_func_t   vcolfn;
       SType output_stype;
       SType cast_stype;
       size_t : 48;
@@ -185,30 +182,18 @@ class unary_infos {
     std::unordered_map<size_t /* Op, SType */, uinfo> info;
     std::unordered_map<size_t /* Op */, std::string> names;
     std::unordered_map<const py::PKArgs*, Op> opcodes;
-    Op current_opcode;  // used only when registering opcodes
 
     static constexpr size_t id(Op) noexcept;
     static constexpr size_t id(Op, SType) noexcept;
-    void add(Op, SType input_stype, SType output_stype, unary_func_t fn,
-             SType cast=SType::VOID);
 
-    void register_op(Op opcode, const std::string& name, const py::PKArgs*,
-                     dt::function<void()>);
-    void add_copy_converter(SType in, SType out = SType::VOID);
-    void add_converter(SType in, SType out, unary_func_t);
-    void add_converter(void(*)(size_t, const int8_t*, int8_t*));
-    void add_converter(void(*)(size_t, const int16_t*, int16_t*));
-    void add_converter(void(*)(size_t, const int32_t*, int32_t*));
-    void add_converter(void(*)(size_t, const int64_t*, int64_t*));
-    void add_converter(void(*)(size_t, const float*, float*));
-    void add_converter(void(*)(size_t, const double*, double*));
-    void add_scalarfn_l(int64_t(*)(int64_t));
-    void add_scalarfn_l(bool(*)(int64_t));
-    void add_scalarfn_d(double(*)(double));
-    void add_scalarfn_d(bool(*)(double));
-
+    void add_op(Op op, const char* name, const py::PKArgs* args);
+    void add_copy(Op op, SType input_stype, SType output_stype);
+    template <Op OP, SType SI, SType SO, element_t<SO>(*)(element_t<SI>)>
+    void add();
+    template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
+    void add_str(unary_func_t mapfn);
     template <float(*F32)(float), double(*F64)(double)>
-    void register_math_op(Op, const std::string&, const py::PKArgs&);
+    void add_math(Op, const char*, const py::PKArgs&);
 };
 
 

@@ -36,6 +36,7 @@ class expr_literal : public base_expr {
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe&) override;
+    // vcolptr evaluate_lazy(workframe&) override;
 };
 
 

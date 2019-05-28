@@ -21,8 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_BINARYOP_h
 #define dt_EXPR_EXPR_BINARYOP_h
+#include <unordered_map>
 #include "expr/expr.h"
 #include "python/_all.h"
+#include "utils/function.h"
 namespace dt {
 namespace expr {
 
@@ -41,7 +43,45 @@ class expr_binaryop : public base_expr {
 };
 
 
+
+//------------------------------------------------------------------------------
+// binary_infos
+//------------------------------------------------------------------------------
+
+class _binary_infos {
+  public:
+    using erased_func_t = void(*)();
+    struct binfo {
+      erased_func_t scalarfn;
+      SType output_stype;
+      SType lhs_cast_stype;
+      SType rhs_cast_stype;
+      size_t : 40;
+    };
+
+    _binary_infos();
+    const binfo* get_info_n(Op opcode, SType stype1, SType stype2) const;
+    const binfo* get_info_x(Op opcode, SType stype1, SType stype2) const;
+    Op get_opcode_from_args(const py::PKArgs&) const;
+
+  private:
+    using binfo_index_t = size_t;
+    using opinfo_index_t = size_t;
+    std::unordered_map<binfo_index_t, binfo> infos;
+    std::unordered_map<opinfo_index_t, std::string> names;
+    Op current_opcode;  // used only when registering opcodes
+
+    static constexpr opinfo_index_t id(Op) noexcept;
+    static constexpr binfo_index_t id(Op, SType, SType) noexcept;
+
+    void add_relop(Op op, const char* name);
+};
+
+extern _binary_infos binary_infos;
+
+
 // Called once at module initialization
+// TODO: remove
 void init_binops();
 
 
