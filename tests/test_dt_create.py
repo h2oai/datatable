@@ -1070,7 +1070,8 @@ def test_duplicate_names1():
         frame_integrity_check(d)
         assert d.names == ("A", "A.1", "A.2")
     assert len(ws) == 1
-    assert "Duplicate column names found: 'A' and 'A'" in ws[0].message.args[0]
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.1', 'A' -> 'A.2'" in ws[0].message.args[0])
 
 
 def test_duplicate_names2():
@@ -1078,6 +1079,27 @@ def test_duplicate_names2():
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
         frame_integrity_check(d)
         assert d.names == ("A", "A.1", "A.2", "A.3")
+
+
+def test_duplicate_names3():
+    with pytest.warns(DatatableWarning) as ws:
+        d = dt.Frame([[1]] * 4, names=["A"] * 4)
+        frame_integrity_check(d)
+        assert d.names == ("A", "A.1", "A.2", "A.3")
+    assert len(ws) == 1
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.1', 'A' -> 'A.2', 'A' -> 'A.3'" in ws[0].message.args[0])
+
+
+def test_duplicate_names4():
+    with pytest.warns(DatatableWarning) as ws:
+        d = dt.Frame([[1]] * 5, names=["A"] * 5)
+        frame_integrity_check(d)
+        assert d.names == ("A", "A.1", "A.2", "A.3", "A.4")
+    assert len(ws) == 1
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.1', 'A' -> 'A.2', ..., 'A' -> 'A.4'"
+            in ws[0].message.args[0])
 
 
 def test_special_characters_in_names():
@@ -1088,6 +1110,15 @@ def test_special_characters_in_names():
                         "A\n\rB\n\rC\n\rD\n\r"))
     frame_integrity_check(d)
     assert d.names == (".", "help.needed", "foo.bar. .baz", "A.B.C.D.")
+
+
+def test_duplicate_mangled():
+    with pytest.warns(DatatableWarning) as ws:
+        DT = dt.Frame([[2]] * 5, names=["\n\n\n"] * 3 + ["\n\t2"] * 2)
+        frame_integrity_check(DT)
+        assert DT.names == (".", ".1", ".2", ".3", ".4")
+    assert ("Duplicate column names found" in ws[0].message.args[0])
+
 
 
 
