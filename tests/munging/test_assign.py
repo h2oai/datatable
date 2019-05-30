@@ -188,7 +188,8 @@ def test_assign_list_duplicates():
     assert DT.names == ("A", "B", "B.1")
     assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
     assert len(ws) == 1
-    assert "Duplicate column name 'B' found" in ws[0].message.args[0]
+    assert ("Duplicate column name found, and was assigned a unique name: "
+            "'B' -> 'B.1'" in ws[0].message.args[0])
 
 
 def test_stats_after_assign():
