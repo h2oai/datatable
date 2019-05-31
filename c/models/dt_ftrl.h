@@ -114,7 +114,7 @@ class Ftrl : public dt::FtrlBase {
     void init_weights();
     dtptr create_boolean_labels();
     dtptr create_y_binomial(const DataTable*);
-    dtptr create_y_multinomial(const DataTable*);
+    dtptr create_y_multinomial(const DataTable*, bool validation = false);
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);

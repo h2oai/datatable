@@ -695,20 +695,23 @@ def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
     df_target_binomial = dt.Frame({"target" : [True, False] * 5})
     ft_binomial.fit(df_train_binomial, df_target_binomial)
     p_binomial = ft_binomial.predict(df_train_binomial)
+    print(ft_binomial.dt_labels)
 
     ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
-                          negative_class = negative_class_value)
-    df_target_multinomial = dt.Frame(["target", None] * 5)
+                          negative_class = negative_class_value,
+                          model_type = "multinomial")
+    df_target_multinomial = dt.Frame(["cat", "dog"] * 5)
     ft_multinomial.fit(df_train_binomial, df_target_multinomial)
     p_multinomial = ft_multinomial.predict(df_train_binomial)
 
-    target_index = p_multinomial.colindex("target")
+    print (p_binomial, p_multinomial)
+    target_index = p_multinomial.colindex("cat")
     multinomial_model = ft_multinomial.model[:, {
                           "C0" : f[target_index * 2],
                           "C1" : f[target_index * 2 + 1]
                         }]
     assert_equals(ft_binomial.model, multinomial_model)
-    assert_equals(p_binomial, p_multinomial[:, "target"])
+    assert_equals(p_binomial, p_multinomial[:, "cat"])
 
 
 @pytest.mark.parametrize('negative_class_value', [False, True])

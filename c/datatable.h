@@ -132,7 +132,7 @@ class DataTable {
 
     // Key
     size_t get_nkeys() const;
-    void set_key(intvec& col_indices);
+    RowIndex set_key(intvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);
 
