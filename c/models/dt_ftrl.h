@@ -119,6 +119,7 @@ class Ftrl : public dt::FtrlBase {
     dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);
     dtptr create_labels_from_strvec(const strvec&);
+    dtptr create_label_ids(size_t, size_t);
 
     // Feature importance helper methods
     void create_fi();

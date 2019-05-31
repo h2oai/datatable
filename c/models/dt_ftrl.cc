@@ -231,6 +231,8 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
   // and the existing ones.
   RowIndex ri_join(/* start = */ 0, /* count = */ 2, /* step = */ 1);
   if (dt_labels == nullptr) {
+    dtptr dt_labels_ids = create_label_ids(0, 1);
+    dt_labels_in->cbind({ dt_labels_ids.get() });
     dt_labels = std::move(dt_labels_in);
   } else {
     std::vector<size_t> keys{ 0 };
@@ -244,6 +246,8 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
     switch (nlabels) {
       case 1: switch (nlabels_in) {
                  case 1: if (ri_join[0] == RowIndex::NA) {
+                           dtptr dt_labels_ids = create_label_ids(1, 2);
+                           dt_labels_in->cbind({ dt_labels_ids.get() });
                            dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }});
                          }
                          break;
@@ -259,6 +263,8 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
                            res = dt_labels_in->group({sort_spec(0 , /* descending = */ true, false, true)});
                            dt_labels_in->apply_rowindex(res.first);
                          }
+                         dtptr dt_labels_ids = create_label_ids(0, 2);
+                         dt_labels_in->cbind({ dt_labels_ids.get() });
                          dt_labels = std::move(dt_labels_in);
               }
               break;
@@ -483,6 +489,7 @@ dtptr Ftrl<T>::create_y_multinomial(const DataTable* dt, bool validation /* = fa
 
     RowIndex ri_new_labels(std::move(new_label_indices), /* sorted = */ true);
     dtptr dt_new_labels = dtptr(apply_rowindex(dt_labels_in.get(), ri_new_labels));
+
     dt_labels->rbind({ dt_new_labels.get() }, {{ 0 }});
   }
 
@@ -937,6 +944,18 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
 }
 
 
+template <typename T>
+dtptr Ftrl<T>::create_label_ids(size_t i0, size_t i1) {
+  auto col_label_ids = new IntColumn<int32_t>(i1 - i0);
+  auto data_label_ids = col_label_ids->elements_w();
+  for (size_t i = i0; i < i1; ++i) {
+    data_label_ids[i] = static_cast<int32_t>(i);
+  }
+  dtptr dt_label_ids = dtptr(new DataTable({std::move(col_label_ids)}, {"label_id"}));
+  return dt_label_ids;
+}
+
+
 /**
  *  Create model datatable of shape (nbins, 2 * nlabels) to store z and n
  *  coefficients.
@@ -946,12 +965,7 @@ void Ftrl<T>::create_model() {
   size_t nlabels = (dt_labels == nullptr)? 0 : dt_labels->nrows;
 
   // Create and cbind label id's to dt_labels
-  auto col_label_ids = new IntColumn<int32_t>(nlabels);
-  auto data_label_ids = col_label_ids->elements_w();
-  for (int32_t i = 0; i < static_cast<int32_t>(nlabels); ++i) {
-    data_label_ids[i] = i;
-  }
-  dtptr dt_label_ids = dtptr(new DataTable({std::move(col_label_ids)}, {"label_id"}));
+  dtptr dt_label_ids = create_label_ids(0, nlabels);
   dt_labels->cbind({ dt_label_ids.get() });
 
   if (model_type == FtrlModelType::BINOMIAL) nlabels--; // FIXME
