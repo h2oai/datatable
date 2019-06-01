@@ -27,11 +27,12 @@ class thread_team;
 
 
 /**
- * Pool of threads, capable of executing a given work load in parallel.
+ * Pool of threads, capable of executing a given workload in parallel.
  *
  * The pool contains a certain number of `thread_worker`s, each running on its
- * own thread. The number of workers can be adjusted up or down using method
- * `set_number_of_threads()`.
+ * own thread, except for the 0th worker which represents the master thread and
+ * should be invoked manually. The number of workers can be adjusted up or down
+ * using `set_number_of_threads()`.
  *
  * Normally, the thread pool is in the "sleeping" state. This means all workers
  * are idling, consuming sleep tasks from the `worker_controller`
@@ -41,11 +42,6 @@ class thread_team;
  * use the supplied scheduler to perform the job. The method `execute_job()` is
  * blocking, and will return only after the job is completely finished and the
  * thread pool has been put back to sleep.
- *
- * The main thread of execution (which runs `execute_job()` and is connected to
- * Python) does not perform any tasks. Instead, it only performs high-level
- * maintenance: progress reporting, message logs, exception handling, checking
- * for user interrupts, etc.
  *
  */
 class thread_pool {
@@ -60,8 +56,13 @@ class thread_pool {
     // (these pointers are stored within each thread).
     std::vector<thread_worker*> workers;
 
-    // Number of threads requested by the user; however, we will only create
-    // the threads when `execute_job()` is first called.
+    // Number of threads in the pool, as requested by the user. This is
+    // usually the same as `workers.size()` except in two cases: (1) when
+    // the thread_pool was just created: we don't spawn the workers until
+    // executing the first parallel task, so before then the workers array
+    // is empty; (2) while executing shutdown job, this variable reflects
+    // the "new" number of threads that should be, whereas `workers` array
+    // still holds as many workers as we had originally.
     size_t num_threads_requested;
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
@@ -72,6 +73,7 @@ class thread_pool {
     // across all threads.
     std::mutex global_mutex;
 
+    // TODO: merge thread_team functionality into the pool?
     thread_team* current_team;
 
   public:
@@ -85,7 +87,6 @@ class thread_pool {
     size_t size() const noexcept;
     void resize(size_t n);
 
-    bool in_master_thread() const noexcept;
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
 

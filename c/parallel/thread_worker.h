@@ -55,6 +55,7 @@ class thread_worker {
     ~thread_worker();
 
     void run() noexcept;
+    void run_master(thread_scheduler*) noexcept;
     size_t get_index() const noexcept;
 };
 
@@ -135,6 +136,9 @@ class worker_controller : public thread_scheduler {
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception;
 
+    // Thread-worker object corresponding to the master thread.
+    thread_worker* master_worker;
+
   public:
     thread_task* get_next_task(size_t thread_index) override;
 
@@ -158,6 +162,7 @@ class worker_controller : public thread_scheduler {
     bool is_running() const noexcept;
 
     void expect_new_thread();
+    void set_master_worker(thread_worker*) noexcept;
 
   private:
     // Helper for thread_shutdown_scheduler: mark the current thread as if it

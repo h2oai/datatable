@@ -146,7 +146,7 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   std::mutex m;
   size_t n = dt::num_threads_in_pool();
   py::olist list(n);
-  xassert(dt::this_thread_index() == size_t(-1));
+  xassert(dt::this_thread_index() == 0);
 
   dt::parallel_region([&] {
     std::stringstream ss;

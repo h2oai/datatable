@@ -86,7 +86,6 @@ void thread_pool::instantiate_threads() {
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
-  xassert(in_master_thread());
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
   controller.awaken_and_run(job, workers.size());
@@ -95,10 +94,6 @@ void thread_pool::execute_job(thread_scheduler* job) {
   // shutdown
 }
 
-
-bool thread_pool::in_master_thread() const noexcept {
-  return this_thread_index() == size_t(-1);
-}
 
 bool thread_pool::in_parallel_region() const noexcept {
   return (current_team != nullptr);
@@ -120,18 +115,17 @@ size_t thread_pool::n_threads_in_team() const noexcept {
 static thread_pool* _instance = nullptr;
 
 void _child_cleanup_after_fork() {
-  if (!_instance) return;
+  // Replace the current thread pool instance with a new one, ensuring that all
+  // schedulers and workers have new mutexes/condition variables.
+  // The previous value of `_instance` is abandoned without deleting since that
+  // memory is owned by the parent process.
   size_t n = _instance->size();
   _instance = new thread_pool;
   _instance->resize(n);
 }
 
 thread_pool* thread_pool::get_instance() {
-  if (!_instance) {
-    // Replace the current thread pool instance with a new one, ensuring that all
-    // schedulers and workers have new mutexes/condition variables.
-    // The previous value of `_instance` is abandoned without deleting since that
-    // memory is owned by the parent process.
+  if (_instance == nullptr) {
     _instance = new thread_pool;
     pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
   }
@@ -170,7 +164,7 @@ size_t num_threads_available() {
   }
 }
 
-static thread_local size_t thread_index = size_t(-1);
+static thread_local size_t thread_index = 0;
 size_t this_thread_index() {
   return thread_index;
 }
