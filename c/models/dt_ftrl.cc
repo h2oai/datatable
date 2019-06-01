@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl.h"
+#include "models/encode.h"
 #include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
