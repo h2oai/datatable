@@ -34,6 +34,7 @@ thread_worker::thread_worker(size_t i, worker_controller* wc)
     controller(wc)
 {
   // Create actual execution thread only when `this` is fully initialized
+  wc->expect_new_thread();
   thread = std::thread(&thread_worker::run, this);
 }
 
@@ -84,15 +85,15 @@ size_t thread_worker::get_index() const noexcept {
 
 void worker_controller::sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
-  n_threads_sleeping++;
+  n_threads_running--;
   while (!next_scheduler) {
-    // Wait for the `alarm` condition variable to be notified, but may also
-    // wake up spuriously, in which case we check `next_scheduler` to decide
-    // whether we need to keep waiting or not.
-    alarm.wait(lock);
+    // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
+    // but may also wake up spuriously, in which case we check `next_scheduler`
+    // to decide whether we need to keep waiting or not.
+    wakeup_all_threads_cv.wait(lock);
   }
   worker->scheduler = next_scheduler;
-  n_threads_sleeping--;
+  n_threads_running++;
 }
 
 
@@ -101,29 +102,28 @@ thread_task* worker_controller::get_next_task(size_t) {
 }
 
 
-void worker_controller::awaken_and_run(thread_scheduler* job) {
+void worker_controller::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   size_t i = index;
   size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
   {
     std::lock_guard<std::mutex> lock(tsleep[i].mutex);
     tsleep[i].next_scheduler = job;
     tsleep[j].next_scheduler = nullptr;
-    tsleep[j].n_threads_sleeping = 0;
+    tsleep[j].n_threads_running = nthreads;
     index = j;
     saved_exception = nullptr;
   }
   // Unlock mutex before awaking all sleeping threads
-  tsleep[i].alarm.notify_all();
+  tsleep[i].wakeup_all_threads_cv.notify_all();
 }
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
-void worker_controller::join(size_t nthreads) {
+void worker_controller::join() {
   sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
   sleep_task& curr_sleep_task = tsleep[index];
 
-  size_t n_sleeping = 0;
-  while (n_sleeping < nthreads) {
+  while (true) {
     try {
       progress::manager.update_view();
     } catch(...) {
@@ -133,7 +133,7 @@ void worker_controller::join(size_t nthreads) {
     }
     std::this_thread::yield();
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
-    n_sleeping = curr_sleep_task.n_threads_sleeping;
+    if (curr_sleep_task.n_threads_running == 0) break;
   }
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
@@ -148,7 +148,12 @@ void worker_controller::join(size_t nthreads) {
 
 void worker_controller::pretend_thread_went_to_sleep() {
   std::lock_guard<std::mutex> lock(tsleep[index].mutex);
-  tsleep[index].n_threads_sleeping++;
+  tsleep[index].n_threads_running--;
+}
+
+void worker_controller::expect_new_thread() {
+  std::lock_guard<std::mutex> lock(tsleep[index].mutex);
+  tsleep[index].n_threads_running++;
 }
 
 

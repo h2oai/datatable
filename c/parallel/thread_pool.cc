@@ -70,7 +70,7 @@ void thread_pool::instantiate_threads() {
       }
     }
     // Wait until all threads are properly alive & safely asleep
-    controller.join(n);
+    controller.join();
   }
   else {
     thread_team tt(n, this);
@@ -81,6 +81,7 @@ void thread_pool::instantiate_threads() {
     }
     workers.resize(n);
   }
+  xassert(workers.size() == num_threads_requested);
 }
 
 
@@ -88,8 +89,8 @@ void thread_pool::execute_job(thread_scheduler* job) {
   xassert(in_master_thread());
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
-  controller.awaken_and_run(job);
-  controller.join(workers.size());
+  controller.awaken_and_run(job, workers.size());
+  controller.join();
   // careful: workers.size() may not be equal to num_threads_requested during
   // shutdown
 }
