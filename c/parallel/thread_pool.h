@@ -35,8 +35,8 @@ class thread_team;
  * using `set_number_of_threads()`.
  *
  * Normally, the thread pool is in the "sleeping" state. This means all workers
- * are idling, consuming sleep tasks from the `worker_controller`
- * (see documentation of `worker_controller` in "thread_worker.h").
+ * are idling, consuming sleep tasks from the `idle_job` (see documentation of
+ * this class in "thread_worker.h").
  *
  * However, once a user requests `execute_job()`, the threads are awakened and
  * use the supplied scheduler to perform the job. The method `execute_job()` is
@@ -66,7 +66,7 @@ class thread_pool {
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
     // See definition in thread_worker.h
-    worker_controller controller;
+    idle_job controller;
 
     // Mutex which can be used to guard operations that must be protected
     // across all threads.

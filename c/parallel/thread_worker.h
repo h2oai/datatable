@@ -17,14 +17,16 @@
 #define dt_PARALLEL_THREAD_WORKER_h
 #include <condition_variable>   // std::condition_variable
 #include <cstddef>              // std::size_t
+#include <memory>               // std::unique_ptr
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
 #include "parallel/thread_scheduler.h"
+#include "parallel/monitor_thread.h"
 namespace dt {
 using std::size_t;
 
 // Forward-declare
-class worker_controller;
+class idle_job;
 
 
 /**
@@ -40,16 +42,16 @@ class worker_controller;
  */
 class thread_worker {
   friend class thread_shutdown_scheduler;
-  friend class worker_controller;
+  friend class idle_job;
 
   private:
     const size_t thread_index;
     std::thread  thread;
     thread_scheduler*  scheduler;
-    worker_controller* controller;
+    idle_job* controller;
 
   public:
-    thread_worker(size_t i, worker_controller*);
+    thread_worker(size_t i, idle_job*);
     thread_worker(const thread_worker&) = delete;
     thread_worker(thread_worker&&) = delete;
     ~thread_worker();
@@ -99,7 +101,7 @@ class thread_worker {
  *
  * When a thread's queue is exhausted and there are no more tasks to do, that
  * worker receives a `nullptr` from `get_next_task()`. At this moment the
- * worker switches back to `worker_controller`, and requests a task. The
+ * worker switches back to `idle_job`, and requests a task. The
  * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
  * and a condition variable, and its `.next_scheduler` is null, indicating the
  * sleeping state. This will allow the thread to go safely to sleep, while other
@@ -111,7 +113,7 @@ class thread_worker {
  * thread ensures that all threads are sleeping again before the next call to
  * `awaken`.
  */
-class worker_controller : public thread_scheduler {
+class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
       std::mutex mutex;
@@ -131,7 +133,7 @@ class worker_controller : public thread_scheduler {
     // where "current" means that all sleeping threads are waiting on the
     // condition variable within that task, and its `n_sleeping_threads` holds
     // the total count of workers that are currently sleeping.
-    size_t index = 0;
+    size_t index;
 
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception;
@@ -139,7 +141,11 @@ class worker_controller : public thread_scheduler {
     // Thread-worker object corresponding to the master thread.
     thread_worker* master_worker;
 
+    std::unique_ptr<monitor_thread> monitor;
+
   public:
+    idle_job();
+
     thread_task* get_next_task(size_t thread_index) override;
 
     // Called from the master thread, this function will awaken all threads
@@ -161,14 +167,14 @@ class worker_controller : public thread_scheduler {
     // Return true if there is a task currently being run in parallel.
     bool is_running() const noexcept;
 
-    void expect_new_thread();
+    // This function should be called before a new thread is spawned.
+    void on_before_thread_added();
+
     void set_master_worker(thread_worker*) noexcept;
 
-  private:
-    // Helper for thread_shutdown_scheduler: mark the current thread as if it
-    // went to sleep, whereas in reality it shut down.
-    void pretend_thread_went_to_sleep();
-    friend class thread_shutdown_scheduler;
+    // This callback should be called before a thread is removed from the
+    // threadpool.
+    void on_before_thread_removed();
 };
 
 
@@ -185,11 +191,11 @@ class thread_shutdown_scheduler : public thread_scheduler {
     };
 
     size_t n_threads_to_keep;
-    worker_controller* sleep_scheduler;
+    idle_job* controller;
     shutdown_task shutdown;
 
   public:
-    thread_shutdown_scheduler(size_t nnew, worker_controller*);
+    thread_shutdown_scheduler(size_t nnew, idle_job*);
     thread_task* get_next_task(size_t thread_index) override;
 };
 

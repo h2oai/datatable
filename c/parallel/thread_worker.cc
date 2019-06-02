@@ -28,7 +28,7 @@ namespace dt {
  * function `thread_worker::run()` continuously. The only way to shut down the
  * thread is to cause the `run()` function to stop its loop.
  */
-thread_worker::thread_worker(size_t i, worker_controller* wc)
+thread_worker::thread_worker(size_t i, idle_job* wc)
   : thread_index(i),
     scheduler(wc),
     controller(wc)
@@ -39,7 +39,7 @@ thread_worker::thread_worker(size_t i, worker_controller* wc)
     _set_thread_num(0);
   } else {
     // Create actual execution thread only when `this` is fully initialized
-    wc->expect_new_thread();
+    wc->on_before_thread_added();
     thread = std::thread(&thread_worker::run, this);
   }
 }
@@ -113,7 +113,7 @@ size_t thread_worker::get_index() const noexcept {
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
 
-void worker_controller::sleep_task::execute(thread_worker* worker) {
+void idle_job::sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
   n_threads_running--;
   while (!next_scheduler) {
@@ -127,12 +127,17 @@ void worker_controller::sleep_task::execute(thread_worker* worker) {
 }
 
 
-thread_task* worker_controller::get_next_task(size_t) {
+idle_job::idle_job() : index(0) {
+  monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
+}
+
+
+thread_task* idle_job::get_next_task(size_t) {
   return &tsleep[index];
 }
 
 
-void worker_controller::awaken_and_run(thread_scheduler* job, size_t nthreads) {
+void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   size_t i = index;
   size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
   {
@@ -145,24 +150,17 @@ void worker_controller::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   }
   // Unlock mutex before awaking all sleeping threads
   tsleep[i].wakeup_all_threads_cv.notify_all();
+  monitor->set_active(true);
 }
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
-void worker_controller::join() {
+void idle_job::join() {
   sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
   sleep_task& curr_sleep_task = tsleep[index];
 
   master_worker->run_master(prev_sleep_task.next_scheduler);
   while (true) {
-    // try {
-    //   progress::manager.update_view();
-    // } catch(...) {
-    //   catch_exception();
-    //   if (prev_sleep_task.next_scheduler)
-    //     prev_sleep_task.next_scheduler->abort_execution();
-    // }
-    // std::this_thread::yield();
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
     if (curr_sleep_task.n_threads_running == 0) break;
   }
@@ -170,6 +168,7 @@ void worker_controller::join() {
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   prev_sleep_task.next_scheduler = nullptr;
+  monitor->set_active(false);
 
   if (saved_exception) {
     std::rethrow_exception(saved_exception);
@@ -177,22 +176,22 @@ void worker_controller::join() {
 }
 
 
-void worker_controller::set_master_worker(thread_worker* worker) noexcept {
+void idle_job::set_master_worker(thread_worker* worker) noexcept {
   master_worker = worker;
 }
 
-void worker_controller::pretend_thread_went_to_sleep() {
+void idle_job::on_before_thread_removed() {
   std::lock_guard<std::mutex> lock(tsleep[index].mutex);
   tsleep[index].n_threads_running--;
 }
 
-void worker_controller::expect_new_thread() {
+void idle_job::on_before_thread_added() {
   std::lock_guard<std::mutex> lock(tsleep[index].mutex);
   tsleep[index].n_threads_running++;
 }
 
 
-void worker_controller::catch_exception() noexcept {
+void idle_job::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(tsleep[index].mutex);
     if (!saved_exception) {
@@ -202,7 +201,7 @@ void worker_controller::catch_exception() noexcept {
 }
 
 
-bool worker_controller::is_running() const noexcept {
+bool idle_job::is_running() const noexcept {
   size_t j = (index - 1) % N_SLEEP_TASKS;
   return (tsleep[j].next_scheduler != nullptr);
 }
@@ -220,16 +219,16 @@ void thread_shutdown_scheduler::shutdown_task::execute(thread_worker* worker) {
 
 
 thread_shutdown_scheduler::thread_shutdown_scheduler(
-    size_t nnew, worker_controller* sch)
+    size_t nnew, idle_job* sch)
   : n_threads_to_keep(nnew),
-    sleep_scheduler(sch) {}
+    controller(sch) {}
 
 
 thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
   if (thread_index < n_threads_to_keep) {
     return nullptr;  // thread goes back to sleep
   }
-  sleep_scheduler->pretend_thread_went_to_sleep();
+  controller->on_before_thread_removed();
   return &shutdown;
 }
 
