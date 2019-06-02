@@ -38,7 +38,7 @@ class thread_team;
  * are idling, consuming sleep tasks from the `worker_controller`
  * (see documentation of `worker_controller` in "thread_worker.h").
  *
- * However, once a user requests `execute_job()`, the threads are awaken and
+ * However, once a user requests `execute_job()`, the threads are awakened and
  * use the supplied scheduler to perform the job. The method `execute_job()` is
  * blocking, and will return only after the job is completely finished and the
  * thread pool has been put back to sleep.
@@ -46,7 +46,6 @@ class thread_team;
  */
 class thread_pool {
   friend class thread_team;
-  friend void _child_cleanup_after_fork();
   private:
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long
@@ -77,8 +76,11 @@ class thread_pool {
     thread_team* current_team;
 
   public:
-    static thread_pool* get_instance();
-    static thread_pool* get_instance_unchecked() noexcept;
+    thread_pool();
+    thread_pool(const thread_pool&) = delete;
+    // Not moveable: workers hold pointers to this->controller.
+    thread_pool(thread_pool&&) = delete;
+
     static thread_team* get_team_unchecked() noexcept;
 
     void instantiate_threads();
@@ -91,14 +93,9 @@ class thread_pool {
     size_t n_threads_in_team() const noexcept;
 
     static void init_options();
-
-  private:
-    thread_pool();
-    thread_pool(const thread_pool&) = delete;
-    // Not moveable: workers hold pointers to this->controller.
-    thread_pool(thread_pool&&) = delete;
 };
 
+extern thread_pool* thpool;
 
 
 }  // namespace dt

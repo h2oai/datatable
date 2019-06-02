@@ -313,7 +313,6 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
   else {
     sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
     if (sch->tasks.size() == sch->n_tasks) {
-      thread_pool* thpool = thread_pool::get_instance();
       thpool->execute_job(sch);
     } else {
       init(this);
@@ -342,7 +341,6 @@ void parallel_for_ordered(size_t niters, size_t nthreads,
   if (!niters) return;
   dt::progress::work job(niters);
 
-  thread_pool* thpool = thread_pool::get_instance();
   thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();

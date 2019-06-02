@@ -33,7 +33,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
   size_t ith = dt::this_thread_index();
 
   // Standard parallel loop
-  if (!dt::thread_pool::get_instance()->in_parallel_region()) {
+  if (!thpool->in_parallel_region()) {
     if (k == 0) {
       fn(0, nrows);
     }
