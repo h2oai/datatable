@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
 #include "progress/manager.h"  // dt::progress::manager
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
 
@@ -114,20 +115,20 @@ size_t thread_worker::get_index() const noexcept {
 //------------------------------------------------------------------------------
 
 idle_job::sleep_task::sleep_task(idle_job* ij)
-  : controller(ij), next_scheduler(nullptr) {}
+  : controller(ij), next_scheduler{nullptr} {}
 
 void idle_job::sleep_task::execute(thread_worker* worker) {
   // Atomic; notifies controller that this thread is now sleeping
   controller->n_threads_running--;
 
   std::unique_lock<std::mutex> lock(controller->mutex);
-  while (!next_scheduler) {
+  while (next_scheduler.load() == nullptr) {
     // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
     // but may also wake up spuriously, in which case we check `next_scheduler`
     // to decide whether we need to keep waiting or not.
     controller->wakeup_all_threads_cv.wait(lock);
   }
-  worker->scheduler = next_scheduler;
+  worker->scheduler = next_scheduler.load();
 }
 
 
@@ -165,14 +166,16 @@ thread_task* idle_job::get_next_task(size_t) {
  * zero, even though no work has been done yet.
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
+  xassert(n_threads_running == 0);
+  xassert(curr_sleep_task->next_scheduler == nullptr);
+  // nthreads - 1, because the master never goes to sleep
+  n_threads_running = static_cast<int>(nthreads) - 1;
+  saved_exception = nullptr;
   {
     std::lock_guard<std::mutex> lock(mutex);
     std::swap(curr_sleep_task, prev_sleep_task);
-    prev_sleep_task->next_scheduler = job;
     curr_sleep_task->next_scheduler = nullptr;
-    saved_exception = nullptr;
-    // nthreads - 1, because the master never goes to sleep
-    n_threads_running = static_cast<int>(nthreads) - 1;
+    prev_sleep_task->next_scheduler = job;
     // Unlock mutex before awaking all sleeping threads
   }
   wakeup_all_threads_cv.notify_all();
@@ -222,7 +225,7 @@ void idle_job::catch_exception() noexcept {
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }
-    auto current_job = prev_sleep_task->next_scheduler;
+    thread_scheduler* current_job = prev_sleep_task->next_scheduler.load();
     if (current_job) {
       current_job->abort_execution();
     }
@@ -231,7 +234,7 @@ void idle_job::catch_exception() noexcept {
 
 
 bool idle_job::is_running() const noexcept {
-  return (prev_sleep_task->next_scheduler != nullptr);
+  return (prev_sleep_task->next_scheduler.load() != nullptr);
 }
 
 

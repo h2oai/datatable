@@ -117,7 +117,7 @@ class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
       idle_job* const controller;
-      thread_scheduler* next_scheduler;
+      std::atomic<thread_scheduler*> next_scheduler;
 
       sleep_task(idle_job*);
       void execute(thread_worker* worker) override;
