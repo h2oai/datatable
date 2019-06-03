@@ -166,9 +166,8 @@ def test_kfold_random_2_2():
     splits = kfold_random(nrows=2, nsplits=2)
     assert isinstance(splits, list) and len(splits) == 2
     assert all(isinstance(s, tuple) and len(s) == 2 for s in splits)
-    assert all(frame.shape == (1, 1)
-               for split in splits
-               for frame in split)
+    assert all(s[0].shape == (1, 1) and s[1].shape == (1, 1)
+               for s in splits)
     a = splits[0][0][0, 0]
     assert a == 0 or a == 1
     assert splits[0][1][0, 0] == 1 - a
