@@ -142,12 +142,25 @@ thread_task* idle_job::get_next_task(size_t) {
 }
 
 
+/**
+ * When this method is run, all other threads are inside the
+ * `curr_sleep_task->execute()` method. When we modify variables
+ * `curr_sleep_task` / `prev_sleep_task`, we do so under the
+ * protection of a mutex, ensuring that the other threads cannot
+ * attempt to read those variables at this time. The other methods
+ * of this class can treat these variables as if they were constant,
+ * meaning that they can be safely read even without mutex protection.
+ *
+ * The second part of this method (after the lock is unlocked) is
+ * already multi-threaded: at that point other threads wake up and
+ * may call arbitrary API of `idle_job`.
+ */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   {
     std::lock_guard<std::mutex> lock(mutex);
-    curr_sleep_task->next_scheduler = job;
-    prev_sleep_task->next_scheduler = nullptr;
     std::swap(curr_sleep_task, prev_sleep_task);
+    prev_sleep_task->next_scheduler = job;
+    curr_sleep_task->next_scheduler = nullptr;
     saved_exception = nullptr;
     n_threads_running = nthreads - 1; // master never sleeps!
   }
