@@ -59,13 +59,13 @@ void monitor_thread::run() noexcept {
 
     // Wake state
     while (is_active && running) {
+      lock.unlock();
       try {
         progress::manager.update_view();
       } catch(...) {
         controller->catch_exception();
-        // if (prev_sleep_task.next_scheduler)
-        //   prev_sleep_task.next_scheduler->abort_execution();
       }
+      lock.lock();
       sleep_state_cv.wait_for(lock, SLEEP_TIME);
     }
   }

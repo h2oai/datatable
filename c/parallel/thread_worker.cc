@@ -113,61 +113,61 @@ size_t thread_worker::get_index() const noexcept {
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
 
+idle_job::sleep_task::sleep_task(idle_job* ij)
+  : controller(ij), next_scheduler(nullptr) {}
+
 void idle_job::sleep_task::execute(thread_worker* worker) {
-  std::unique_lock<std::mutex> lock(mutex);
-  n_threads_running--;
+  std::unique_lock<std::mutex> lock(controller->mutex);
+  controller->n_threads_running--;
   while (!next_scheduler) {
     // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
     // but may also wake up spuriously, in which case we check `next_scheduler`
     // to decide whether we need to keep waiting or not.
-    wakeup_all_threads_cv.wait(lock);
+    controller->wakeup_all_threads_cv.wait(lock);
   }
   worker->scheduler = next_scheduler;
-  n_threads_running++;
 }
 
 
-idle_job::idle_job() : index(0) {
+idle_job::idle_job() {
+  curr_sleep_task = new sleep_task(this);
+  prev_sleep_task = new sleep_task(this);
+  n_threads_running = 0;
   monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
 }
 
 
 thread_task* idle_job::get_next_task(size_t) {
-  return &tsleep[index];
+  return curr_sleep_task;
 }
 
 
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
-  size_t i = index;
-  size_t j = (i + 1) % N_SLEEP_TASKS;  // next value for `index`
   {
-    std::lock_guard<std::mutex> lock(tsleep[i].mutex);
-    tsleep[i].next_scheduler = job;
-    tsleep[j].next_scheduler = nullptr;
-    tsleep[j].n_threads_running = nthreads - 1; // master never sleeps!
-    index = j;
+    std::lock_guard<std::mutex> lock(mutex);
+    curr_sleep_task->next_scheduler = job;
+    prev_sleep_task->next_scheduler = nullptr;
+    std::swap(curr_sleep_task, prev_sleep_task);
     saved_exception = nullptr;
+    n_threads_running = nthreads - 1; // master never sleeps!
   }
   // Unlock mutex before awaking all sleeping threads
-  tsleep[i].wakeup_all_threads_cv.notify_all();
+  wakeup_all_threads_cv.notify_all();
   monitor->set_active(true);
+  master_worker->run_master(job);
 }
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void idle_job::join() {
-  sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
-  sleep_task& curr_sleep_task = tsleep[index];
-
-  master_worker->run_master(prev_sleep_task.next_scheduler);
   while (true) {
-    std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
-    if (curr_sleep_task.n_threads_running == 0) break;
+    std::unique_lock<std::mutex> lock(mutex);
+    if (n_threads_running == 0) break;
   }
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
-  prev_sleep_task.next_scheduler = nullptr;
+  prev_sleep_task->next_scheduler = nullptr;
   monitor->set_active(false);
 
   if (saved_exception) {
@@ -181,29 +181,34 @@ void idle_job::set_master_worker(thread_worker* worker) noexcept {
 }
 
 void idle_job::on_before_thread_removed() {
-  std::lock_guard<std::mutex> lock(tsleep[index].mutex);
-  tsleep[index].n_threads_running--;
+  std::lock_guard<std::mutex> lock(mutex);
+  n_threads_running--;
 }
 
 void idle_job::on_before_thread_added() {
-  std::lock_guard<std::mutex> lock(tsleep[index].mutex);
-  tsleep[index].n_threads_running++;
+  std::lock_guard<std::mutex> lock(mutex);
+  n_threads_running++;
 }
 
 
 void idle_job::catch_exception() noexcept {
   try {
-    std::lock_guard<std::mutex> lock(tsleep[index].mutex);
-    if (!saved_exception) {
-      saved_exception = std::current_exception();
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (!saved_exception) {
+        saved_exception = std::current_exception();
+      }
+    }
+    auto current_job = prev_sleep_task->next_scheduler;
+    if (current_job) {
+      current_job->abort_execution();
     }
   } catch (...) {}
 }
 
 
 bool idle_job::is_running() const noexcept {
-  size_t j = (index - 1) % N_SLEEP_TASKS;
-  return (tsleep[j].next_scheduler != nullptr);
+  return (prev_sleep_task->next_scheduler != nullptr);
 }
 
 

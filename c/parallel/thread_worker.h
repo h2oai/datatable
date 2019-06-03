@@ -116,24 +116,26 @@ class thread_worker {
 class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
-      std::mutex mutex;
-      std::condition_variable wakeup_all_threads_cv;
-      thread_scheduler* next_scheduler = nullptr;
-      size_t n_threads_running = 0;
+      idle_job* const controller;
+      thread_scheduler* next_scheduler;
 
+      sleep_task(idle_job*);
       void execute(thread_worker* worker) override;
     };
 
-    // `tsleep` is an array of sleep tasks, used to manage the awake/sleep
-    // cycle as described above.
-    static constexpr size_t N_SLEEP_TASKS = 2;
-    sleep_task tsleep[N_SLEEP_TASKS];
+    // "Current" sleep task, meaning that all sleeping threads are executing
+    // `curr_sleep_task->execute()`.
+    sleep_task* curr_sleep_task;
 
-    // Index within array `tsleep` indicating which sleep task is "current";
-    // where "current" means that all sleeping threads are waiting on the
-    // condition variable within that task, and its `n_sleeping_threads` holds
-    // the total count of workers that are currently sleeping.
-    size_t index;
+    // The "previous" sleep task. The pointers `prev_sleep_task` and
+    // `curr_sleep_task` flip-flop.
+    sleep_task* prev_sleep_task;
+
+    std::mutex mutex;
+    std::condition_variable wakeup_all_threads_cv;
+
+    // How many threads are currently active (i.e. not sleeping)
+    size_t n_threads_running;
 
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception;
@@ -161,7 +163,8 @@ class idle_job : public thread_scheduler {
 
     // Called from worker threads, within the `catch(...){ }` block, this method
     // is used to signal that an exception have occurred. The method will save
-    // this exception, so that it can be re-thrown in the master thread.
+    // this exception, so that it can be re-thrown after the parallel region
+    // exits.
     void catch_exception() noexcept;
 
     // Return true if there is a task currently being run in parallel.
