@@ -517,11 +517,11 @@ def aggregate_nd(nd):
 
         messages = ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
         message_index = 0
-        for i in range(len(progress_reports)):
+        for i, p in enumerate(progress_reports):
             if i > 0:
-                assert progress_reports[i].progress >= progress_reports[i-1].progress
-            message_index_new = messages.index(progress_reports[i].message)
-            assert message_index <= message_index_new or progress_reports[i].status == "finished"
+                assert p.progress >= progress_reports[i-1].progress
+            message_index_new = messages.index(p.message)
+            assert message_index <= message_index_new or p.status == "finished"
             message_index = message_index_new
 
         assert progress_reports[-1].progress == 1.0
