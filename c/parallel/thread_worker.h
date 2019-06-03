@@ -135,7 +135,8 @@ class idle_job : public thread_scheduler {
     std::condition_variable wakeup_all_threads_cv;
 
     // How many threads are currently active (i.e. not sleeping)
-    size_t n_threads_running;
+    std::atomic<int> n_threads_running;
+    int : 32;
 
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception;

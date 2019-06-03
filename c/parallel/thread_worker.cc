@@ -117,8 +117,10 @@ idle_job::sleep_task::sleep_task(idle_job* ij)
   : controller(ij), next_scheduler(nullptr) {}
 
 void idle_job::sleep_task::execute(thread_worker* worker) {
-  std::unique_lock<std::mutex> lock(controller->mutex);
+  // Atomic; notifies controller that this thread is now sleeping
   controller->n_threads_running--;
+
+  std::unique_lock<std::mutex> lock(controller->mutex);
   while (!next_scheduler) {
     // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
     // but may also wake up spuriously, in which case we check `next_scheduler`
@@ -154,6 +156,13 @@ thread_task* idle_job::get_next_task(size_t) {
  * The second part of this method (after the lock is unlocked) is
  * already multi-threaded: at that point other threads wake up and
  * may call arbitrary API of `idle_job`.
+ *
+ * Note that we set the variable `n_threads_running` explicitly here
+ * (as opposed to, say, allowing each thread to increment this counter
+ * upon awaking). This is necessary, because we want to prevent the
+ * situation where the OS would delay waking up the threads, so that
+ * by the time we run `join()` the number of running threads would be
+ * zero, even though no work has been done yet.
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   {
@@ -162,9 +171,10 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
     prev_sleep_task->next_scheduler = job;
     curr_sleep_task->next_scheduler = nullptr;
     saved_exception = nullptr;
-    n_threads_running = nthreads - 1; // master never sleeps!
+    // nthreads - 1, because the master never goes to sleep
+    n_threads_running = static_cast<int>(nthreads) - 1;
+    // Unlock mutex before awaking all sleeping threads
   }
-  // Unlock mutex before awaking all sleeping threads
   wakeup_all_threads_cv.notify_all();
   monitor->set_active(true);
   master_worker->run_master(job);
@@ -173,10 +183,8 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void idle_job::join() {
-  while (true) {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (n_threads_running == 0) break;
-  }
+  // Busy-wait until all threads finish running
+  while (n_threads_running.load() != 0);
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
@@ -194,23 +202,25 @@ void idle_job::set_master_worker(thread_worker* worker) noexcept {
 }
 
 void idle_job::on_before_thread_removed() {
-  std::lock_guard<std::mutex> lock(mutex);
   n_threads_running--;
 }
 
 void idle_job::on_before_thread_added() {
-  std::lock_guard<std::mutex> lock(mutex);
   n_threads_running++;
 }
 
 
+// Multiple threads may throw exceptions simultaneously, thus
+// need to protect access to `saved_exception` with a mutex.
+// In addition, `job->abort_execution()` is also protected,
+// just in case, ensuring that only one thread can call that
+// method at a time.
+//
 void idle_job::catch_exception() noexcept {
   try {
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-      if (!saved_exception) {
-        saved_exception = std::current_exception();
-      }
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!saved_exception) {
+      saved_exception = std::current_exception();
     }
     auto current_job = prev_sleep_task->next_scheduler;
     if (current_job) {
