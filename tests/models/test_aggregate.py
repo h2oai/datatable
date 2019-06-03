@@ -503,24 +503,30 @@ def aggregate_nd(nd):
     d_in = dt.Frame(matrix)
     d_in_copy = dt.Frame(d_in)
 
-    messages = []
+    progress_reports = []
     def progress_fn(p):
         assert 0 <= p.progress <= 1
         assert p.status in ("running", "finished", "cancelled", "error")
-        assert p.message in ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
-        messages.append(p)
+        progress_reports.append(p)
 
     with dt.options.progress.context(callback = progress_fn,
                                      enabled=True,
                                      min_duration=0):
         [d_exemplars, d_members] = aggregate(d_in, min_rows=0,
                                              nd_max_bins=div, seed=1)
-        assert messages[0].progress == 0
-        assert messages[0].status == "running"
-        assert messages[0].message == "Preparing"
-        assert messages[-1].progress == 1.0
-        assert messages[-1].status == "finished"
-        assert messages[-1].message == ""
+
+        messages = ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
+        message_index = 0
+        for i in range(len(progress_reports)):
+            if i > 0:
+                assert progress_reports[i].progress >= progress_reports[i-1].progress
+            message_index_new = messages.index(progress_reports[i].message)
+            assert message_index <= message_index_new or progress_reports[i].status == "finished"
+            message_index = message_index_new
+
+        assert progress_reports[-1].progress == 1.0
+        assert progress_reports[-1].status == "finished"
+        assert progress_reports[-1].message == ""
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
