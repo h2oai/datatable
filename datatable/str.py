@@ -14,7 +14,7 @@
 # limitations under the License.
 #-------------------------------------------------------------------------------
 
-from datatable.lib._datatable import split_into_nhot
+from datatable.lib._datatable import split_into_nhot, encode
 
 
-__all__ = ["split_into_nhot"]
+__all__ = ["split_into_nhot", "encode"]

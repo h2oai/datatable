@@ -35,6 +35,33 @@ from datatable.models import Ftrl
 from datatable.internal import frame_integrity_check
 from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
+from datatable import encode
+
+def test_encode_int() :
+    df = dt.Frame([1, 2, 3])
+    res = encode(df)
+    print("\n")
+    print(df)
+    print(res[0])
+    print(res[1])
+
+
+def test_encode_bool() :
+    df = dt.Frame([1, 0, 1])
+    res = encode(df)
+    print("\n")
+    print(df)
+    print(res[0])
+    print(res[1])
+
+
+def test_encode_str() :
+    df = dt.Frame(["a", "b", "c"])
+    res = encode(df)
+    print("\n")
+    print(df)
+    print(res[0])
+    print(res[1])
 
 
 

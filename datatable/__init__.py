@@ -31,7 +31,7 @@ from .lib._datatable import (
 )
 from .nff import open
 from .options import options
-from .str import split_into_nhot
+from .str import split_into_nhot, encode
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError

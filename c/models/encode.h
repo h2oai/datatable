@@ -16,6 +16,7 @@
 #ifndef dt_MODELS_ENCODE_h
 #define dt_MODELS_ENCODE_h
 #include "datatable.h"
+#include <unordered_map>  // std::unordered_map
 
 
 namespace dt {
@@ -28,6 +29,8 @@ namespace dt {
   EncodedLabels encode(Column*);
   template <SType>
   EncodedLabels encode_impl(Column*);
+  template <SType stype>
+  dtptr create_dt_labels(const std::unordered_map<element_t<stype>, int32_t>&);
   EncodedLabels encode_bool(Column*);
 }
 
