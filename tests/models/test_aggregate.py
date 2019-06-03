@@ -518,9 +518,6 @@ def aggregate_nd(nd):
         assert messages[0].progress == 0
         assert messages[0].status == "running"
         assert messages[0].message == "Preparing"
-        assert messages[-2].progress <= 1.0
-        assert messages[-2].status == "running"
-        assert messages[-2].message == "Finalizing"
         assert messages[-1].progress == 1.0
         assert messages[-1].status == "finished"
         assert messages[-1].message == ""
