@@ -121,13 +121,26 @@ void idle_job::sleep_task::execute(thread_worker* worker) {
   // Atomic; notifies controller that this thread is now sleeping
   controller->n_threads_running--;
 
-  std::unique_lock<std::mutex> lock(controller->mutex);
-  while (next_scheduler.load() == nullptr) {
-    // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
-    // but may also wake up spuriously, in which case we check `next_scheduler`
-    // to decide whether we need to keep waiting or not.
-    controller->wakeup_all_threads_cv.wait(lock);
+  // First, the thread goes into a "light sleep", where it busy-waits
+  // for few thousand iterations for a next job to appear. If during
+  // that time a new job is scheduled - we will pick it up almost
+  // immediately, without having to acquire locks / set up condition
+  // variables, etc.
+  for (int i = 0; i < LIGHT_SLEEP_ITERATIONS; ++i) {
+    if (next_scheduler.load() != nullptr)
+      goto end_of_sleep;
   }
+
+  // "Deep sleep" state: wait for the `wakeup_all_threads_cv`
+  // condition variable to be notified.
+  {
+    std::unique_lock<std::mutex> lock(controller->mutex);
+    while (next_scheduler.load() == nullptr) {
+      controller->wakeup_all_threads_cv.wait(lock);
+    }
+  }
+
+  end_of_sleep:
   worker->scheduler = next_scheduler.load();
 }
 

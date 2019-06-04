@@ -116,6 +116,7 @@ class thread_worker {
 class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
+      static constexpr int LIGHT_SLEEP_ITERATIONS = 65536;
       idle_job* const controller;
       std::atomic<thread_scheduler*> next_scheduler;
 
