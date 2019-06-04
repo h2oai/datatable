@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl.h"
-#include "models/encode.h"
 #include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "utils/macros.h"
@@ -138,6 +137,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   nepochs_val = T_NAN;
   val_error = T_NAN;
   map_val.clear();
+  map.clear();
   return res;
 }
 
@@ -145,17 +145,17 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
+  dtptr dt_y_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
-  dtptr dt_y_binomial = create_y_binomial(dt_y);
+  create_y_binomial(dt_y, dt_y_binomial, map);
 
   // NA values are ignored during training, so if we only got NA's
   // stop training right away.
   if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
   if (dt_y->columns[0]->stype() != SType::BOOL) dt_y = dt_y_binomial.get();
 
-  dtptr dt_y_val_binomial;
   if (validation) {
-    dt_y_val_binomial = create_y_binomial(dt_y_val);
+    create_y_binomial(dt_y_val, dt_y_val_binomial, map_val);
     if (dt_y_val_binomial == nullptr)
       throw ValueError() << "Cannot set early stopping criteria as validation "
                             "target column got only `NA` targets";
@@ -182,74 +182,50 @@ dtptr Ftrl<T>::create_boolean_labels() {
   return dtptr(new DataTable({ col }, {"label"}));
 }
 
+
 template <typename T>
-dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
-  xassert(dt_y->nrows);
+void Ftrl<T>::shift_ids(dtptr& dt, size_t id0) {
+  auto col = static_cast<IntColumn<int32_t>*>(dt->columns[1]);
+  auto data = col->elements_w();
+  for (size_t i = 0; i < col->nrows; ++i) {
+    data[i] += id0;
+  }
+}
 
-  // First, sort and group target column to gather all the incoming labels.
-  // We do desc sorting here, because if we get boolean column containing
-  // zeros and ones, we need one to become a positive class label.
-  auto res = dt->group({ sort_spec(0 , /* descending = */ true, false, false) });
-  RowIndex ri = std::move(res.first);
-  Groupby gb = std::move(res.second);
-  size_t ngroups = gb.ngroups();
-  const auto& offsets = gb.offsets_r();
 
-  // Second, check if target column has any NA's,
-  // and get number of incoming labels
-  size_t index = ri[static_cast<size_t>(offsets[0])];
-  py::oobj value = dt->columns[0]->get_value_at_index(index);
-  bool has_nas = value.is_none();
-  size_t nlabels_in = ngroups - has_nas;
+template <typename T>
+void Ftrl<T>::create_y_binomial(const DataTable* dt,
+                                 dtptr& dt_binomial,
+                                 std::vector<size_t>& model_map) {
+  EncodedLabels en_labels_in = encode(dt->columns[0]);
+  dtptr dt_labels_in = std::move(en_labels_in.dt_labels);
+  dt_binomial = std::move(en_labels_in.dt_encoded);
+
+  size_t nlabels_in = dt_labels_in->nrows;
 
   // If we only got NA targets, return `nullptr` to stop training.
-  if (nlabels_in == 0) return nullptr;
+  if (dt_labels_in == nullptr) return;
   if (nlabels_in > 2) {
     throw ValueError() << "For binomial regression target column should have "
                        << "two labels at maximum, got: " << nlabels_in;
   }
 
-  // Third, extract all the labels into a datatable, setting up
-  // a key for later join operation. If we got boolean column,
-  // just set labels as 1 (positive) and 0 (negative).
-  dtptr dt_labels_in;
-  bool is_bool = dt->columns[0]->stype() == SType::BOOL;
-  if (is_bool) {
-    dt_labels_in = create_boolean_labels();
-  } else {
-    arr64_t label_indices(nlabels_in);
-    int64_t* data = label_indices.data();
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      size_t offset = static_cast<size_t>(offsets[i + has_nas]);
-      data[i] = static_cast<int64_t>(ri[offset]);
-    }
-    RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
-    dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
-  }
 
-
-  // Fourth, check consistency between the incoming labels
-  // and the existing ones.
-  RowIndex ri_join(/* start = */ 0, /* count = */ 2, /* step = */ 1);
   if (dt_labels == nullptr) {
-    dtptr dt_labels_ids = create_label_ids(0, 1);
-    dt_labels_in->cbind({ dt_labels_ids.get() });
     dt_labels = std::move(dt_labels_in);
   } else {
-    std::vector<size_t> keys{ 0 };
-    dt_labels_in->set_key({ keys });
-    dt_labels_in->set_names({"label"});
-
-    ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
+    RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
 
     switch (nlabels) {
       case 1: switch (nlabels_in) {
                  case 1: if (ri_join[0] == RowIndex::NA) {
-                           dtptr dt_labels_ids = create_label_ids(1, 2);
-                           dt_labels_in->cbind({ dt_labels_ids.get() });
-                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }});
+                           model_map.push_back(1);
+                           shift_ids(dt_labels_in, 1);
+                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0, 1 }});
+                         } else {
+                           model_map.push_back(0);
                          }
                          break;
                  case 2: if (ri_join[0] == RowIndex::NA && ri_join[1] == RowIndex::NA) {
@@ -261,41 +237,34 @@ dtptr Ftrl<T>::create_y_binomial(const DataTable* dt) {
                          // we need to change labels order, because we store labels as
                          // positive first.
                          if (ri_join[0] == RowIndex::NA) {
-                           res = dt_labels_in->group({sort_spec(0 , /* descending = */ true, false, true)});
-                           dt_labels_in->apply_rowindex(res.first);
+                           model_map.push_back(1);
+                           model_map.push_back(0);
+                         } else {
+                           model_map.push_back(0);
+                           model_map.push_back(1);
                          }
-                         dtptr dt_labels_ids = create_label_ids(0, 2);
-                         dt_labels_in->cbind({ dt_labels_ids.get() });
                          dt_labels = std::move(dt_labels_in);
               }
               break;
 
-      case 2: if (ri_join[0] == RowIndex::NA || (nlabels_in == 2 && ri_join[1] == RowIndex::NA))
-              throw ValueError() << "Got a new label in the target column, however, both "
-                                 << "positive and negative labels are already set";
+      case 2: switch (nlabels_in) {
+                case 1: if (ri_join[0] == RowIndex::NA) {
+                          throw ValueError() << "Got a new label in the target column, however, both "
+                                             << "positive and negative labels are already set";
+                        }
+                        model_map.push_back(ri_join[0] != 0);
+                        break;
+                case 2: if (ri_join[0] == RowIndex::NA || ri_join[1] == RowIndex::NA) {
+                          throw ValueError() << "Got a new label in the target column, however, both "
+                                             << "positive and negative labels are already set";
+                        }
+                        model_map.push_back(ri_join[0] != 0);
+                        model_map.push_back(ri_join[1] == 1);
+                        break;
+              }
               break;
     }
   }
-
-  if (is_bool) return dtptr(new DataTable({ new BoolColumn(0)}, { "" }));
-
-  // Finally, convert target column to boolean
-  Column* c_binomial = new BoolColumn(dt->nrows);
-  auto data_binomial = static_cast<int8_t*>(c_binomial->data_w());
-  // Set up all the NA's
-  if (has_nas) {
-    for (int32_t j = offsets[0]; j < offsets[1]; ++j) {
-      data_binomial[ri[static_cast<size_t>(j)]] = GETNA<int8_t>();
-    }
-  }
-  // Set up all the booleans taking into account that the positive
-  // label has zero index.
-  for (size_t i = 0; i < nlabels_in; ++i) {
-    for (int32_t j = offsets[i + has_nas]; j < offsets[i + 1 + has_nas]; ++j) {
-      data_binomial[ri[static_cast<size_t>(j)]] = (ri_join[i] == 0);
-    }
-  }
-  return dtptr(new DataTable({ c_binomial }, dt->get_names()));
 }
 
 

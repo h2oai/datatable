@@ -25,6 +25,7 @@
 #include "models/utils.h"
 #include "models/dt_ftrl_base.h"
 #include "str/py_str.h"
+#include "models/encode.h"
 
 
 namespace dt {
@@ -89,6 +90,7 @@ class Ftrl : public dt::FtrlBase {
     T val_error;
     size_t val_niters;
     std::vector<size_t> map_val;
+    std::vector<size_t> map;
 
     // Fitting methods
     FtrlFitOutput fit_binomial();
@@ -108,12 +110,13 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
+    void shift_ids(dtptr&, size_t);
     void create_model();
     void adjust_model();
     void init_model();
     void init_weights();
     dtptr create_boolean_labels();
-    dtptr create_y_binomial(const DataTable*);
+    void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
     dtptr create_y_multinomial(const DataTable*, bool validation = false);
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();

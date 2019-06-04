@@ -38,12 +38,13 @@ from tests import assert_equals, noop
 from datatable import encode
 
 def test_encode_int() :
-    df = dt.Frame([1, 2, 3])
+    df = dt.Frame([1, 2, 1])
     res = encode(df)
     print("\n")
     print(df)
     print(res[0])
     print(res[1])
+    print(res[1].stypes)
 
 
 def test_encode_bool() :
@@ -53,15 +54,17 @@ def test_encode_bool() :
     print(df)
     print(res[0])
     print(res[1])
+    print(res[1].stypes)
 
 
 def test_encode_str() :
-    df = dt.Frame(["a", "b", "c"])
+    df = dt.Frame(["a,a", "b", "a,a"])
     res = encode(df)
     print("\n")
     print(df)
     print(res[0])
     print(res[1])
+    print(res[1].stypes)
 
 
 def test_encode_empty() :
@@ -71,6 +74,7 @@ def test_encode_empty() :
     print(df)
     print(res[0])
     print(res[1])
+    print(res[1].stypes)
 
 
 

@@ -32,118 +32,135 @@ EncodedLabels encode(Column* col) {
   SType stype = col->stype();
   switch (stype) {
     case SType::BOOL:    res = encode_bool(col); break;
-    case SType::INT8:    res = encode_impl<SType::INT8>(col); break;
-    case SType::INT16:   res = encode_impl<SType::INT16>(col); break;
-    case SType::INT32:   res = encode_impl<SType::INT32>(col); break;
-    case SType::INT64:   res = encode_impl<SType::INT64>(col); break;
-    case SType::FLOAT32: res = encode_impl<SType::FLOAT32>(col); break;
-    case SType::FLOAT64: res = encode_impl<SType::FLOAT64>(col); break;
-    case SType::STR32:   res = encode_impl<SType::STR32>(col); break;
-    case SType::STR64:   res = encode_impl<SType::STR64>(col); break;
+    case SType::INT8:    res = encode_fw<SType::INT8>(col); break;
+    case SType::INT16:   res = encode_fw<SType::INT16>(col); break;
+    case SType::INT32:   res = encode_fw<SType::INT32>(col); break;
+    case SType::INT64:   res = encode_fw<SType::INT64>(col); break;
+    case SType::FLOAT32: res = encode_fw<SType::FLOAT32>(col); break;
+    case SType::FLOAT64: res = encode_fw<SType::FLOAT64>(col); break;
+    case SType::STR32:   res = encode_str<uint32_t>(col); break;
+    case SType::STR64:   res = encode_str<uint64_t>(col); break;
     default:             throw TypeError() << "Column type `"
                                            << stype << "` is not supported";
   }
+
+  std::vector<size_t> keys{ 0 };
+  res.dt_labels->set_key({ keys });
+
   return res;
 }
 
 
 template <SType stype>
-EncodedLabels encode_impl(Column* col){
+EncodedLabels encode_fw(Column* col){
   EncodedLabels res;
   using T = element_t<stype>;
   size_t nrows = col->nrows;
   const RowIndex& ri = col->rowindex();
-  auto outcol = new IntColumn<int32_t>(nrows);
-  auto outdata = outcol->elements_w();
-  std::unordered_map<T, int32_t> labels_map_fw;
-  std::unordered_map<std::string, int32_t> labels_map_str;
-
+  colptr outcol = colptr(new IntColumn<int32_t>(nrows));
+  auto outdata = static_cast<int32_t*>(outcol->data_w());
+  std::unordered_map<T, int32_t> labels_map;
   dt::shared_mutex shmutex;
 
 
-  if (col->ltype() == LType::STRING) {
-    using U = typename std::conditional<stype == SType::STR32, uint32_t, uint64_t>::type;
-    auto scol = static_cast<StringColumn<U>*>(col);
-    const U* offsets = scol->offsets();
-    const char* strdata = scol->strdata();
+  auto data = static_cast<const T*>(col->data());
+  dt::parallel_for_static(nrows,
+    [&](size_t irow) {
+      size_t jrow = ri[irow];
+      T v = data[jrow];
 
-    dt::parallel_for_static(nrows,
-      [&](size_t irow) {
-        size_t jrow = ri[irow];
+      if (jrow == RowIndex::NA || ISNA<T>(v)) {
+        outdata[irow] = GETNA<int32_t>();
+        return;
+      }
 
-        if (jrow == RowIndex::NA || ISNA<U>(offsets[jrow])) {
-          outdata[irow] = GETNA<int32_t>();
-          return;
-        }
-
-        const U strstart = offsets[jrow - 1] & ~GETNA<U>();
-        auto len = offsets[jrow] - strstart;
-        if (len == 0) {
-          outdata[irow] = GETNA<int32_t>();
-          return;
-        }
-
-        const char* c_str = strdata + strstart;
-        std::string v(c_str, len);
-
-
-        dt::shared_lock<dt::shared_mutex> lock(shmutex);
-        if (labels_map_str.count(v)) {
-          outdata[irow] = labels_map_str[v];
+      dt::shared_lock<dt::shared_mutex> lock(shmutex);
+      if (labels_map.count(v)) {
+        outdata[irow] = labels_map[v];
+      } else {
+        lock.exclusive_start();
+        if (labels_map.count(v) == 0) {
+          labels_map[v] = static_cast<int32_t>(labels_map.size());
+          outdata[irow] = labels_map[v];
         } else {
-          lock.exclusive_start();
-          if (labels_map_str.count(v) == 0) {
-            labels_map_str[v] = static_cast<int32_t>(labels_map_str.size());
-            outdata[irow] = labels_map_str[v];
-          } else {
-            // In case the label was already added from another thread while
-            // we were waiting for the exclusive lock
-            outdata[irow] = labels_map_str[v];
-          }
-          lock.exclusive_end();
+          // In case the label was already added from another thread while
+          // we were waiting for the exclusive lock
+          outdata[irow] = labels_map[v];
         }
-      });
+        lock.exclusive_end();
+      }
+    });
 
-    // If we only got NA labels, return {nullptr, nullptr}
-    if (labels_map_str.size() == 0) return res;
-    res.dt_labels = create_dt_labels_str<U>(labels_map_str);
-  } else {
+  // If we only got NA labels, return {nullptr, nullptr}
+  if (labels_map.size() == 0) return res;
+  if (labels_map.size() < 3) outcol = colptr(outcol->cast(SType::BOOL));
 
-    auto data = static_cast<const T*>(col->data());
-    dt::parallel_for_static(nrows,
-      [&](size_t irow) {
-        size_t jrow = ri[irow];
-        T v = data[jrow];
+  res.dt_labels = create_dt_labels_fw<stype>(labels_map);
+  res.dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
+  return res;
+}
 
-        if (jrow == RowIndex::NA || ISNA<T>(v)) {
-          outdata[irow] = GETNA<int32_t>();
-          return;
-        }
 
-        dt::shared_lock<dt::shared_mutex> lock(shmutex);
-        if (labels_map_fw.count(v)) {
-          outdata[irow] = labels_map_fw[v];
+template <typename U>
+EncodedLabels encode_str(Column* col){
+  EncodedLabels res;
+  size_t nrows = col->nrows;
+  const RowIndex& ri = col->rowindex();
+  colptr outcol = colptr(new IntColumn<int32_t>(nrows));
+  auto outdata = static_cast<int32_t*>(outcol->data_w());
+  std::unordered_map<std::string, int32_t> labels_map;
+  dt::shared_mutex shmutex;
+
+
+  // using U = typename std::conditional<stype == SType::STR32, uint32_t, uint64_t>::type;
+  auto scol = static_cast<StringColumn<U>*>(col);
+  const U* offsets = scol->offsets();
+  const char* strdata = scol->strdata();
+
+  dt::parallel_for_static(nrows,
+    [&](size_t irow) {
+      size_t jrow = ri[irow];
+
+      if (jrow == RowIndex::NA || ISNA<U>(offsets[jrow])) {
+        outdata[irow] = GETNA<int32_t>();
+        return;
+      }
+
+      const U strstart = offsets[jrow - 1] & ~GETNA<U>();
+      auto len = offsets[jrow] - strstart;
+      if (len == 0) {
+        outdata[irow] = GETNA<int32_t>();
+        return;
+      }
+
+      const char* c_str = strdata + strstart;
+      std::string v(c_str, len);
+
+
+      dt::shared_lock<dt::shared_mutex> lock(shmutex);
+      if (labels_map.count(v)) {
+        outdata[irow] = labels_map[v];
+      } else {
+        lock.exclusive_start();
+        if (labels_map.count(v) == 0) {
+          labels_map[v] = static_cast<int32_t>(labels_map.size());
+          outdata[irow] = labels_map[v];
         } else {
-          lock.exclusive_start();
-          if (labels_map_fw.count(v) == 0) {
-            labels_map_fw[v] = static_cast<int32_t>(labels_map_fw.size());
-            outdata[irow] = labels_map_fw[v];
-          } else {
-            // In case the label was already added from another thread while
-            // we were waiting for the exclusive lock
-            outdata[irow] = labels_map_fw[v];
-          }
-          lock.exclusive_end();
+          // In case the label was already added from another thread while
+          // we were waiting for the exclusive lock
+          outdata[irow] = labels_map[v];
         }
-      });
+        lock.exclusive_end();
+      }
+    });
 
-    // If we only got NA labels, return {nullptr, nullptr}
-    if (labels_map_fw.size() == 0) return res;
-    res.dt_labels = create_dt_labels_fw<stype>(labels_map_fw);
-  }
+  // If we only got NA labels, return {nullptr, nullptr}
+  if (labels_map.size() == 0) return res;
+  if (labels_map.size() < 3) outcol = colptr(outcol->cast(SType::BOOL));
 
+  res.dt_labels = create_dt_labels_str<U>(labels_map);
+  res.dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
 
-  res.dt_encoded = dtptr(new DataTable({outcol}, {"label_id"}));
   return res;
 }
 
@@ -161,7 +178,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype>, int32_t>& l
     labels_data[label.second] = label.first;
     ids_data[label.second] = label.second;
   }
-  return dtptr(new DataTable({ids_col, labels_col}, {"id", "label"}));
+  return dtptr(new DataTable({labels_col, ids_col}, {"label", "id"}));
 }
 
 
@@ -184,8 +201,8 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, int32_t>& label
   sb.order();
   sb.commit_and_start_new_chunk(nlabels);
   return dtptr(new DataTable(
-           {ids_col, std::move(c_label_names).to_column()},
-           {"id", "label"}
+           {std::move(c_label_names).to_column(), ids_col},
+           {"label", "id"}
          ));
 }
 
