@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_THREAD_WORKER_h
 #define dt_PARALLEL_THREAD_WORKER_h
+#include <atomic>               // std::atomic
 #include <condition_variable>   // std::condition_variable
 #include <cstddef>              // std::size_t
 #include <memory>               // std::unique_ptr
