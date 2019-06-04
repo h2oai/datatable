@@ -30,7 +30,10 @@ namespace dt {
   template <SType>
   EncodedLabels encode_impl(Column*);
   template <SType stype>
-  dtptr create_dt_labels(const std::unordered_map<element_t<stype>, int32_t>&);
+  dtptr
+  create_dt_labels_fw(const std::unordered_map<element_t<stype>, int32_t>&);
+  template <typename T>
+  dtptr create_dt_labels_str(const std::unordered_map<std::string, int32_t>&);
   EncodedLabels encode_bool(Column*);
 }
 

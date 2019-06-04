@@ -64,6 +64,16 @@ def test_encode_str() :
     print(res[1])
 
 
+def test_encode_empty() :
+    df = dt.Frame([])
+    res = encode(df)
+    print("\n")
+    print(df)
+    print(res[0])
+    print(res[1])
+
+
+
 
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters, test model and accuracy
