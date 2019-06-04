@@ -9,7 +9,7 @@ BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
 ifneq ($(CI),)
-PYTEST_FLAGS := -vv -s
+PYTEST_FLAGS := -vv -s --showlocals
 endif
 
 # Platform details

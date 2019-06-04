@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "utils/assert.h"
 #include "utils/function.h"
 namespace dt {
@@ -32,7 +33,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
   size_t ith = dt::this_thread_index();
 
   // Standard parallel loop
-  if (ith == size_t(-1)) {
+  if (!thpool->in_parallel_region()) {
     if (k == 0) {
       fn(0, nrows);
     }

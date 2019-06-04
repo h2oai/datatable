@@ -25,14 +25,35 @@
 namespace dt {
 
 
+// Singleton instance of the thread_pool
+thread_pool* thpool = new thread_pool;
+
+static void _child_cleanup_after_fork() {
+  // Replace the current thread pool instance with a new one, ensuring that all
+  // schedulers and workers have new mutexes/condition variables.
+  // The previous value of `thpool` is abandoned without deleting since that
+  // memory is owned by the parent process.
+  size_t n = thpool->size();
+  thpool = new thread_pool;
+  thpool->resize(n);
+}
+
+
 
 //------------------------------------------------------------------------------
 // thread_pool
 //------------------------------------------------------------------------------
+static bool after_fork_handler_registered = false;
 
 thread_pool::thread_pool()
   : num_threads_requested(0),
-    current_team(nullptr) {}
+    current_team(nullptr)
+{
+  if (!after_fork_handler_registered) {
+    pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
+    after_fork_handler_registered = true;
+  }
+}
 
 // In the current implementation the thread_pool instance never gets deleted
 // thread_pool::~thread_pool() {
@@ -46,7 +67,7 @@ size_t thread_pool::size() const noexcept {
 
 void thread_pool::resize(size_t n) {
   num_threads_requested = n;
-  // Adjust the actual threads count, but only if the threads were already
+  // Adjust the actual thread count, but only if the threads were already
   // instantiated.
   if (!workers.empty()) {
     instantiate_threads();
@@ -70,7 +91,7 @@ void thread_pool::instantiate_threads() {
       }
     }
     // Wait until all threads are properly alive & safely asleep
-    controller.join(n);
+    controller.join();
   }
   else {
     thread_team tt(n, this);
@@ -81,23 +102,19 @@ void thread_pool::instantiate_threads() {
     }
     workers.resize(n);
   }
+  xassert(workers.size() == num_threads_requested);
 }
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
-  xassert(in_master_thread());
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
-  controller.awaken_and_run(job);
-  controller.join(workers.size());
+  controller.awaken_and_run(job, workers.size());
+  controller.join();
   // careful: workers.size() may not be equal to num_threads_requested during
   // shutdown
 }
 
-
-bool thread_pool::in_master_thread() const noexcept {
-  return this_thread_index() == size_t(-1);
-}
 
 bool thread_pool::in_parallel_region() const noexcept {
   return (current_team != nullptr);
@@ -108,41 +125,8 @@ size_t thread_pool::n_threads_in_team() const noexcept {
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// thread_pool static instance
-//------------------------------------------------------------------------------
-
-// Singleton instance of the thread_pool, returned by
-// `thread_pool::get_instance()`.
-static thread_pool* _instance = nullptr;
-
-void _child_cleanup_after_fork() {
-  if (!_instance) return;
-  size_t n = _instance->size();
-  _instance = new thread_pool;
-  _instance->resize(n);
-}
-
-thread_pool* thread_pool::get_instance() {
-  if (!_instance) {
-    // Replace the current thread pool instance with a new one, ensuring that all
-    // schedulers and workers have new mutexes/condition variables.
-    // The previous value of `_instance` is abandoned without deleting since that
-    // memory is owned by the parent process.
-    _instance = new thread_pool;
-    pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
-  }
-  return _instance;
-}
-
-thread_pool* thread_pool::get_instance_unchecked() noexcept {
-  return _instance;
-}
-
 thread_team* thread_pool::get_team_unchecked() noexcept {
-  return _instance->current_team;
+  return thpool->current_team;
 }
 
 
@@ -153,23 +137,19 @@ thread_team* thread_pool::get_team_unchecked() noexcept {
 //------------------------------------------------------------------------------
 
 size_t num_threads_in_pool() {
-  return thread_pool::get_instance()->size();
+  return thpool->size();
 }
 
 size_t num_threads_in_team() {
-  return _instance? _instance->n_threads_in_team() : 0;
+  return thpool->n_threads_in_team();
 }
 
 size_t num_threads_available() {
-  size_t ith = dt::this_thread_index();
-  if (ith == size_t(-1)) {
-    return dt::num_threads_in_pool();
-  } else {
-    return dt::num_threads_in_team();
-  }
+  auto tt = thpool->get_team_unchecked();
+  return tt? tt->size() : thpool->size();
 }
 
-static thread_local size_t thread_index = size_t(-1);
+static thread_local size_t thread_index = 0;
 size_t this_thread_index() {
   return thread_index;
 }
@@ -187,7 +167,7 @@ size_t get_hardware_concurrency() noexcept {
 
 void thread_pool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
-  thread_pool::get_instance()->resize(get_hardware_concurrency());
+  thpool->resize(get_hardware_concurrency());
 
   dt::register_option(
     "nthreads",
@@ -200,7 +180,6 @@ void thread_pool::init_options() {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
       if (nth <= 0) nth = 1;
-      auto thpool = dt::thread_pool::get_instance();
       thpool->resize(static_cast<size_t>(nth));
     },
 

@@ -467,6 +467,8 @@ def get_extra_compile_flags():
             #   -Wswitch-enum: generates spurious warnings about missing
             #       cases even if `default` clause is present. -Wswitch
             #       does not suffer from this drawback.
+            #   -Wreserved-id-macros: macro _XOPEN_SOURCE is standard on Linux
+            #       platform, unclear why Clang would complain about it.
             #   -Wweak-template-vtables: this waning's purpose is unclear, and
             #       it is also unclear how to prevent it...
             #   -Wglobal-constructors, -Wexit-time-destructors: having static
@@ -480,6 +482,7 @@ def get_extra_compile_flags():
                 "-Wno-exit-time-destructors",
                 "-Wno-float-equal",
                 "-Wno-global-constructors",
+                "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
             ]

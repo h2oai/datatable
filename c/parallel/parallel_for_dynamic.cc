@@ -135,9 +135,7 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
   size_t ith = dt::this_thread_index();
 
   // Running from the master thread
-  if (ith == size_t(-1)) {
-    thread_pool* thpool = thread_pool::get_instance_unchecked();
-
+  if (!thpool->in_parallel_region()) {
     size_t tp_size = thpool->size();
     if (nthreads == 0) nthreads = tp_size;
     size_t tt_size = std::min(nthreads, tp_size);
