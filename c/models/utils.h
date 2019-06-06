@@ -80,9 +80,9 @@ inline T identity(T x) {
  *    to prevent logloss being undefined;
  *  - simplify the logloss formula to more compact branchless code.
  */
-template<typename T>
-inline T log_loss(T p, int8_t y) {
-  constexpr T epsilon = std::numeric_limits<T>::epsilon();
+template<typename T1, typename T2>
+inline T1 log_loss(T1 p, T2 y) {
+  constexpr T1 epsilon = std::numeric_limits<T1>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
 }

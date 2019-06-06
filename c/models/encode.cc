@@ -27,19 +27,19 @@
 namespace dt {
 
 
-EncodedLabels encode(Column* col) {
+EncodedLabels encode(Column* col, bool cast_to_bool /* = false =*/) {
   EncodedLabels res;
   SType stype = col->stype();
   switch (stype) {
     case SType::BOOL:    res = encode_bool(col); break;
-    case SType::INT8:    res = encode_fw<SType::INT8>(col); break;
-    case SType::INT16:   res = encode_fw<SType::INT16>(col); break;
-    case SType::INT32:   res = encode_fw<SType::INT32>(col); break;
-    case SType::INT64:   res = encode_fw<SType::INT64>(col); break;
-    case SType::FLOAT32: res = encode_fw<SType::FLOAT32>(col); break;
-    case SType::FLOAT64: res = encode_fw<SType::FLOAT64>(col); break;
-    case SType::STR32:   res = encode_str<uint32_t>(col); break;
-    case SType::STR64:   res = encode_str<uint64_t>(col); break;
+    case SType::INT8:    res = encode_fw<SType::INT8>(col, cast_to_bool); break;
+    case SType::INT16:   res = encode_fw<SType::INT16>(col, cast_to_bool); break;
+    case SType::INT32:   res = encode_fw<SType::INT32>(col, cast_to_bool); break;
+    case SType::INT64:   res = encode_fw<SType::INT64>(col, cast_to_bool); break;
+    case SType::FLOAT32: res = encode_fw<SType::FLOAT32>(col, cast_to_bool); break;
+    case SType::FLOAT64: res = encode_fw<SType::FLOAT64>(col, cast_to_bool); break;
+    case SType::STR32:   res = encode_str<uint32_t>(col, cast_to_bool); break;
+    case SType::STR64:   res = encode_str<uint64_t>(col, cast_to_bool); break;
     default:             throw TypeError() << "Column type `"
                                            << stype << "` is not supported";
   }
@@ -52,7 +52,7 @@ EncodedLabels encode(Column* col) {
 
 
 template <SType stype>
-EncodedLabels encode_fw(Column* col){
+EncodedLabels encode_fw(Column* col, bool cast_to_bool){
   EncodedLabels res;
   using T = element_t<stype>;
   size_t nrows = col->nrows;
@@ -93,7 +93,7 @@ EncodedLabels encode_fw(Column* col){
 
   // If we only got NA labels, return {nullptr, nullptr}
   if (labels_map.size() == 0) return res;
-  if (labels_map.size() < 3) outcol = colptr(outcol->cast(SType::BOOL));
+  if (cast_to_bool && labels_map.size() < 3) outcol = colptr(outcol->cast(SType::BOOL));
 
   res.dt_labels = create_dt_labels_fw<stype>(labels_map);
   res.dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
@@ -102,7 +102,7 @@ EncodedLabels encode_fw(Column* col){
 
 
 template <typename U>
-EncodedLabels encode_str(Column* col){
+EncodedLabels encode_str(Column* col, bool cast_to_bool){
   EncodedLabels res;
   size_t nrows = col->nrows;
   const RowIndex& ri = col->rowindex();
@@ -156,7 +156,9 @@ EncodedLabels encode_str(Column* col){
 
   // If we only got NA labels, return {nullptr, nullptr}
   if (labels_map.size() == 0) return res;
-  if (labels_map.size() < 3) outcol = colptr(outcol->cast(SType::BOOL));
+  if (cast_to_bool && labels_map.size() < 3) {
+    outcol = colptr(outcol->cast(SType::BOOL));
+  }
 
   res.dt_labels = create_dt_labels_str<U>(labels_map);
   res.dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
@@ -232,7 +234,7 @@ EncodedLabels encode_bool(Column* col) {
   labels_data[0] = 0;
   labels_data[1] = 1;
 
-  res.dt_labels = dtptr(new DataTable({ids_col, labels_col}, {"id", "label"}));
+  res.dt_labels = dtptr(new DataTable({labels_col, ids_col}, {"label", "id"}));
   res.dt_encoded = dtptr(new DataTable({col->shallowcopy()}));
   return res;
 }

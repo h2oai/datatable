@@ -26,11 +26,11 @@ namespace dt {
   };
 
 
-  EncodedLabels encode(Column*);
+  EncodedLabels encode(Column*, bool cast_to_bool = false);
   template <SType>
-  EncodedLabels encode_fw(Column*);
+  EncodedLabels encode_fw(Column*, bool);
   template <typename>
-  EncodedLabels encode_str(Column*);
+  EncodedLabels encode_str(Column*, bool);
   template <SType stype>
   dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype>, int32_t>&);
   template <typename>

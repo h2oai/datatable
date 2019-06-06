@@ -89,6 +89,9 @@ class Ftrl : public dt::FtrlBase {
     T nepochs_val;
     T val_error;
     size_t val_niters;
+
+    // For each model_id in map (the same as label_id in dt_labels)
+    // contains information on the integer indicator
     std::vector<size_t> map_val;
     std::vector<size_t> map;
 
