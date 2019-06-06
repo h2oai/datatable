@@ -67,14 +67,14 @@ def test_encode_str() :
     print(res[1].stypes)
 
 
-def test_encode_empty() :
-    df = dt.Frame([])
-    res = encode(df)
-    print("\n")
-    print(df)
-    print(res[0])
-    print(res[1])
-    print(res[1].stypes)
+# def test_encode_empty() :
+#     df = dt.Frame([])
+#     res = encode(df)
+#     print("\n")
+#     print(df)
+#     print(res[0])
+#     print(res[1])
+#     print(res[1].stypes)
 
 
 
@@ -595,7 +595,7 @@ def test_ftrl_fit_unique():
     df_train = dt.Frame(range(ft.nbins))
     df_target = dt.Frame([True] * ft.nbins)
     ft.fit(df_train, df_target)
-    model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
+    model = [[0.5] * ft.nbins, [0.25] * ft.nbins]
     assert ft.model.to_list() == model
     assert ft.model_type_trained == "binomial"
 
@@ -605,7 +605,7 @@ def test_ftrl_fit_unique_ignore_none():
     df_train = dt.Frame(range(2 * ft.nbins))
     df_target = dt.Frame([True] * ft.nbins + [None] * ft.nbins)
     ft.fit(df_train, df_target)
-    model = [[-0.5] * ft.nbins, [0.25] * ft.nbins]
+    model = [[0.5] * ft.nbins, [0.25] * ft.nbins]
     assert ft.model.to_list() == model
 
 
@@ -615,10 +615,10 @@ def test_ftrl_fit_predict_bool():
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
 
 
 def test_ftrl_fit_predict_bool_binomial_string():
@@ -651,10 +651,10 @@ def test_ftrl_fit_predict_int():
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
 
 
 def test_ftrl_fit_predict_float():
@@ -663,10 +663,10 @@ def test_ftrl_fit_predict_float():
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
 
 
 def test_ftrl_fit_predict_string():
@@ -675,10 +675,10 @@ def test_ftrl_fit_predict_string():
     df_target = dt.Frame([[True, False, False, True]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
-    assert df_target[0, 0] <= 1
-    assert df_target[0, 0] >= 1 - epsilon
-    assert df_target[1, 0] >= 0
-    assert df_target[1, 0] < epsilon
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
 
 
 def test_ftrl_fit_predict_view():
@@ -729,40 +729,34 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_fit_predict_multinomial_vs_binomial(negative_class_value):
-    ft_binomial = Ftrl(nbins = 10, nepochs = 2)
-    df_train_binomial = dt.Frame(range(ft_binomial.nbins))
-    df_target_binomial = dt.Frame({"target" : [True, False] * 5})
+def test_ftrl_fit_predict_multinomial_vs_binomial():
+    target_names = ["cat", "dog"]
+    ft_binomial = Ftrl(nbins = 10, nepochs = 1)
+    df_train_binomial = dt.Frame(range(10))
+    df_target_binomial = dt.Frame({"target" : [False, True] * 5})
     ft_binomial.fit(df_train_binomial, df_target_binomial)
     p_binomial = ft_binomial.predict(df_train_binomial)
-    print(ft_binomial.dt_labels)
+    p_binomial.names = target_names
 
-    ft_multinomial = Ftrl(nbins = 10, nepochs = 2,
-                          negative_class = negative_class_value,
+    ft_multinomial = Ftrl(nbins = 10, nepochs = 1,
                           model_type = "multinomial")
-    df_target_multinomial = dt.Frame(["cat", "dog"] * 5)
+    df_target_multinomial = dt.Frame(target_names * 5)
     ft_multinomial.fit(df_train_binomial, df_target_multinomial)
     p_multinomial = ft_multinomial.predict(df_train_binomial)
 
-    print (p_binomial, p_multinomial)
     target_index = p_multinomial.colindex("cat")
     multinomial_model = ft_multinomial.model[:, {
                           "C0" : f[target_index * 2],
                           "C1" : f[target_index * 2 + 1]
                         }]
     assert_equals(ft_binomial.model, multinomial_model)
-    assert_equals(p_binomial, p_multinomial[:, "cat"])
+    assert_equals(p_binomial[:, 0], p_multinomial[:, 0])
 
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_fit_predict_multinomial(negative_class_value):
+def test_ftrl_fit_predict_multinomial():
     nepochs = 1000
-    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
-              negative_class = negative_class_value)
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ("blue", "green", "red")
-    if negative_class_value:
-      labels = ("_negative",) + labels
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
@@ -771,6 +765,7 @@ def test_ftrl_fit_predict_multinomial(negative_class_value):
     ft.fit(df_train, df_target)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
+
     frame_integrity_check(p)
     p_none = 1 / p.ncols
     p_dict = p.to_dict()

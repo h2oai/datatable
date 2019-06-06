@@ -110,6 +110,7 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
+    void reverse_ids(dtptr&);
     void shift_ids(dtptr&, size_t);
     void create_model();
     void adjust_model();
@@ -117,6 +118,8 @@ class Ftrl : public dt::FtrlBase {
     void init_weights();
     dtptr create_boolean_labels();
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
+    void create_y_multinomial_en(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
+
     dtptr create_y_multinomial(const DataTable*, bool validation = false);
     dtptr create_y_train_multinomial();
     dtptr create_y_val_multinomial();
@@ -193,6 +196,7 @@ class Ftrl : public dt::FtrlBase {
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
     static constexpr T T_ZERO = static_cast<T>(0.0);
+    static constexpr T T_ONE = static_cast<T>(1.0);
 };
 
 
