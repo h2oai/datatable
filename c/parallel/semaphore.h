@@ -202,10 +202,15 @@ class LightweightSemaphore {
     }
 
     void wait() {
-      int spin_count = 10000000;
+      int spin_count = 1000000;
       do {
         if (try_wait()) return;
-        std::atomic_signal_fence(std::memory_order_acquire);
+        // This line significantly boosts the performance.
+        // When a thread busy-waits, it consumes its CPU quota, so that when
+        // the "real" work arrives, the thread my receive a priority penalty
+        // from the OS (especially when the total number of threads is equal
+        // to the number of cores in the system).
+        std::this_thread::yield();
       } while (spin_count--);
 
       int old_count = m_count.fetch_sub(1, std::memory_order_acquire);
