@@ -115,6 +115,7 @@ class Ftrl : public dt::FtrlBase {
     // Model helper methods
     void reverse_ids(dtptr&);
     void shift_ids(dtptr&, size_t);
+    void set_ids(dtptr&, size_t);
     void create_model();
     void adjust_model();
     void init_model();

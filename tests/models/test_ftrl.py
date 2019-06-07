@@ -40,31 +40,31 @@ from datatable import encode
 def test_encode_int() :
     df = dt.Frame([1, 2, 1])
     res = encode(df)
-    print("\n")
-    print(df)
-    print(res[0])
-    print(res[1])
-    print(res[1].stypes)
+    # print("\n")
+    # print(df)
+    # print(res[0])
+    # print(res[1])
+    # print(res[1].stypes)
 
 
 def test_encode_bool() :
     df = dt.Frame([1, 0, 1])
     res = encode(df)
-    print("\n")
-    print(df)
-    print(res[0])
-    print(res[1])
-    print(res[1].stypes)
+    # print("\n")
+    # print(df)
+    # print(res[0])
+    # print(res[1])
+    # print(res[1].stypes)
 
 
 def test_encode_str() :
     df = dt.Frame(["a,a", "b", "a,a"])
     res = encode(df)
-    print("\n")
-    print(df)
-    print(res[0])
-    print(res[1])
-    print(res[1].stypes)
+    # print("\n")
+    # print(df)
+    # print(res[0])
+    # print(res[1])
+    # print(res[1].stypes)
 
 
 # def test_encode_empty() :
@@ -628,22 +628,33 @@ def test_ftrl_fit_predict_bool_binomial_string():
     e = encode(df_target)
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train)
-    assert df_res[0, 0] <= 1
-    assert df_res[0, 0] >= 1 - epsilon
-    assert df_res[1, 0] >= 0
-    assert df_res[1, 0] < epsilon
+    # print(ft.dt_labels)
+    # print(df_res)
+
+    assert df_res[0, "yes"] <= 1
+    assert df_res[0, "yes"] >= 1 - epsilon
+    assert df_res[1, "yes"] >= 0
+    assert df_res[1, "yes"] < epsilon
+    assert df_res[0, "no"] >= 0
+    assert df_res[0, "no"] < epsilon
+    assert df_res[1, "no"] <= 1
+    assert df_res[1, "no"] >= 1 - epsilon
 
 
 def test_ftrl_fit_predict_bool_binomial_int():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([[True, False]])
-    df_target = dt.Frame([["yes", "donog"]])
+    df_target = dt.Frame([[20, 10]])
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train[:,0])
-    assert df_res[0, 0] <= 1
-    assert df_res[0, 0] >= 1 - epsilon
-    assert df_res[1, 0] >= 0
-    assert df_res[1, 0] < epsilon
+    assert df_res[0, "20"] <= 1
+    assert df_res[0, "20"] >= 1 - epsilon
+    assert df_res[1, "20"] >= 0
+    assert df_res[1, "20"] < epsilon
+    assert df_res[0, "10"] >= 0
+    assert df_res[0, "10"] < epsilon
+    assert df_res[1, "10"] <= 1
+    assert df_res[1, "10"] >= 1 - epsilon
 
 
 def test_ftrl_fit_predict_int():
@@ -761,12 +772,12 @@ def test_ftrl_fit_predict_multinomial():
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
-    print("\n", df_target)
-    print(encode(df_target)[0], encode(df_target)[1])
+    # print("\n", df_target)
+    # print(encode(df_target)[0], encode(df_target)[1])
     ft.fit(df_train, df_target)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
-    print(p)
+    # print(p)
 
     frame_integrity_check(p)
     p_none = 1 / p.ncols
@@ -788,49 +799,55 @@ def test_ftrl_fit_predict_multinomial():
     assert p.names == labels
 
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_fit_predict_multinomial_online(negative_class_value):
-    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True,
-              negative_class = negative_class_value)
+def test_ftrl_fit_predict_multinomial_online():
+    ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
     labels = ["green", "red", "blue"]
-    if negative_class_value:
-      labels = ["_negative"] + labels
 
     # Show only 1 label to the model
     df_train = dt.Frame(["cucumber"])
     df_target = dt.Frame(["green"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == labels[:1 + negative_class_value])
-    assert(ft.model.shape == (ft.nbins, 2 + 2*negative_class_value))
+    assert(ft.dt_labels[:, 0].to_list() == [["green"]])
+    assert(ft.model.shape == (ft.nbins, 2))
+    # print(ft.dt_labels)
+    # p = ft.predict(df_train)
+    # print(p)
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
     df_target = dt.Frame(["green", "red"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == labels[:2 + negative_class_value])
-    assert(ft.model.shape == (ft.nbins, 4 + 2*negative_class_value))
+    assert(ft.dt_labels[:, 0].to_list() == [["green", "red"]])
+    assert(ft.model.shape == (ft.nbins, 4))
+    # print(ft.dt_labels)
+    # p = ft.predict(df_train)
+    # print(p)
 
     # And one more
-    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
-                         "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
-                          "blue"])
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
     ft.fit(df_train, df_target)
-    assert(ft.labels == labels)
-    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
+    assert(ft.dt_labels[:, 0].to_list() == [["blue", "green", "red"]])
+    assert(ft.model.shape == (ft.nbins, 6))
+    # print(ft.dt_labels)
+    # p = ft.predict(df_train)
+    # print(p)
 
     # Do not add any new labels
-    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
-                         "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
-                          "blue"])
+    df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
+    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
+
     ft.fit(df_train, df_target)
-    assert(ft.labels == labels)
-    assert(ft.model.shape == (ft.nbins, 6 + 2*negative_class_value))
+    assert(ft.dt_labels[:, 0].to_list() == [["blue", "green", "red"]])
+    assert(ft.model.shape == (ft.nbins, 6))
 
     # Test predictions
+    # print(ft.dt_labels)
     p = ft.predict(df_train)
-    frame_integrity_check(p)
+    # print(p)
+
+
+    # frame_integrity_check(p)
     p_none = 1 / p.ncols
     p_dict = p.to_dict()
     p_list = p.to_list()
@@ -847,8 +864,22 @@ def test_ftrl_fit_predict_multinomial_online(negative_class_value):
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert list(p.names) == labels
+    assert list(p.names) == ["blue", "green", "red"]
 
+
+#-------------------------------------------------------------------------------
+# Test regression for numerical targets
+#-------------------------------------------------------------------------------
+
+def test_ftrl_regression():
+    ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
+    r = range(ft.nbins)
+    df_train = dt.Frame(r)
+    df_target = dt.Frame(r)
+    ft.fit(df_train, df_target)
+    p = ft.predict(df_train)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert max(delta) < epsilon
 
 
 #-------------------------------------------------------------------------------
@@ -1018,22 +1049,6 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
     assert list(p.names) == labels
-
-
-#-------------------------------------------------------------------------------
-# Test regression for numerical targets
-#-------------------------------------------------------------------------------
-
-def test_ftrl_regression():
-    ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
-    r = range(ft.nbins)
-    df_train = dt.Frame(r)
-    df_target = dt.Frame(r)
-    ft.fit(df_train, df_target)
-    print(ft.dt_labels)
-    p = ft.predict(df_train)
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert max(delta) < epsilon
 
 
 #-------------------------------------------------------------------------------

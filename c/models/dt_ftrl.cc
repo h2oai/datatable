@@ -203,6 +203,16 @@ void Ftrl<T>::shift_ids(dtptr& dt, size_t id0) {
 
 
 template <typename T>
+void Ftrl<T>::set_ids(dtptr& dt, size_t id0) {
+  auto col = static_cast<IntColumn<int32_t>*>(dt->columns[1]);
+  auto data = col->elements_w();
+  for (size_t i = 0; i < col->nrows; ++i) {
+    data[i] = static_cast<int32_t>(id0 + i);
+  }
+}
+
+
+template <typename T>
 void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 dtptr& dt_binomial,
                                 std::vector<size_t>& model_map) {
@@ -242,7 +252,9 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                            // so we train the model on all negatives: 1 == 0
                            model_map[0] = 1;
                            shift_ids(dt_labels_in, 1);
-                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0, 1 }});
+                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
+                           std::vector<size_t> keys{ 0 };
+                           dt_labels->set_key(keys);
                          }
                          break;
                  case 2: if (ri_join[0] == RowIndex::NA && ri_join[1] == RowIndex::NA) {
@@ -292,9 +304,17 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   }
   if (!is_model_trained()) {
     labels = dt_y->get_names();
+    const strvec& colnames = dt_y->get_names();
+    std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
+
+
+    dt_labels = create_dt_labels_str<uint32_t>(colnames_map);
+
+
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
+  map = { 0 };
   map_val = { 0 };
   return fit<U>(identity<T>, squared_loss<T, U>);
 }
@@ -364,27 +384,28 @@ void Ftrl<T>::create_y_multinomial_en(const DataTable* dt,
                                       dtptr& dt_multinomial,
                                       std::vector<size_t>& model_map,
                                       bool validation /* = false */) {
+  xassert(model_map.size() == 0)
   EncodedLabels en_labels_in = encode(dt->columns[0]);
   dtptr dt_labels_in = std::move(en_labels_in.dt_labels);
   dt_multinomial = std::move(en_labels_in.dt_encoded);
-  auto label_ids = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
+  auto label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
 
   size_t nlabels_in = dt_labels_in->nrows;
 
   // If we only got NA targets, return `nullptr` to stop training.
   if (dt_labels_in == nullptr) return;
 
-  model_map.clear();
-
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
     model_map.resize(nlabels_in);
     for (size_t i = 0; i < nlabels_in; ++i) {
-      size_t label_id = static_cast<size_t>(label_ids[i]);
-      model_map[i] = label_id;
+      // size_t label_id = static_cast<size_t>(label_ids_in[i]);
+      // model_map[i] = label_id;
+      model_map[i] = i;
     }
     adjust_model();
   } else {
+    auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
 
@@ -397,25 +418,40 @@ void Ftrl<T>::create_y_multinomial_en(const DataTable* dt,
     size_t n_new_labels = 0;
     for (size_t i = 0; i < nlabels_in; ++i) {
       size_t ri = ri_join[i];
+      size_t label_id_in = static_cast<size_t>(label_ids_in[i]);
       if (ri != RowIndex::NA) {
-        model_map[ri] = i;
+        size_t label_id = static_cast<size_t>(label_ids[ri]);
+        model_map[label_id] = label_id_in;
       } else {
+        // std::cout << "i: " << i << "; ri: " << ri << "\n";
         data[n_new_labels] = static_cast<int64_t>(i);
-        model_map.push_back(i);
+        model_map.push_back(label_id_in);
         n_new_labels++;
       }
     }
-    new_label_indices.resize(n_new_labels);
-    RowIndex ri_labels(std::move(new_label_indices));
-    dt_labels_in->apply_rowindex(ri_labels);
 
-    if (validation && n_new_labels) {
-      throw ValueError() << "Validation target column cannot contain labels, "
-                         << "the model was not trained on";
+    // std::cout << "n_new_labels: " << n_new_labels << "\n";
+
+    if (n_new_labels) {
+      if (validation) {
+        throw ValueError() << "Validation target column cannot contain labels, "
+                           << "the model was not trained on";
+      }
+      // std::cout << dt_labels_in->ncols << " " << dt_labels->ncols << "\n";
+
+
+      new_label_indices.resize(n_new_labels);
+      RowIndex ri_labels(std::move(new_label_indices));
+      dt_labels_in->apply_rowindex(ri_labels);
+      set_ids(dt_labels_in, dt_labels->nrows);
+
+      dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
+      std::vector<size_t> keys{ 0 };
+      dt_labels->set_key(keys);
+
+      if (n_new_labels) adjust_model();
     }
 
-    dt_labels->rbind({ dt_labels_in.get() }, {{ 0, 1 }});
-    if (n_new_labels) adjust_model();
   }
 }
 
@@ -599,7 +635,6 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
   std::vector<const U*> data, data_val;
   fill_ri_data<U>(dt_y, ri, data);
   auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
-  auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
 
   // Training settings. By default each training iteration consists of
   // `dt_X->nrows` rows.
@@ -668,9 +703,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
                       }
                     ));
 
-              size_t label_id = static_cast<size_t>(label_ids[k]);
-              bool y = static_cast<size_t>(data[0][j]) == map[k];
-              // std::cout << "j: " << j << "; k: " << k << " label_id: " << label_id << " map[label_id]: " << map[label_id] << " data: " << static_cast<int32_t>(data[0][j]) << " y: " << y << "\n";
+              // size_t label_id = static_cast<size_t>(label_ids[k]);
+              U y = (model_type == FtrlModelType::REGRESSION)? data[0][j] :
+                    static_cast<size_t>(data[0][j]) == map[k]; // FIXME
+              // std::cout << "\nj: " << j << "; k: " << k << " label_id: " << label_id << " map[label_id]: " << map[label_id] << " data: " << static_cast<int32_t>(data[0][j]) << " y: " << y << "\n";
               update(x, w, p, y, k);
             }
           }
@@ -816,6 +852,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
   size_t nthreads = dt_X->nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
+  bool k_binomial;
 
   dt::parallel_region(nthreads, [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -825,10 +862,13 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
         size_t label_id = static_cast<size_t>(label_ids[k]);
-        if (model_type == FtrlModelType::BINOMIAL && label_id == 1) continue;
+        if (model_type == FtrlModelType::BINOMIAL && label_id == 1) {
+          k_binomial = k;
+          continue;
+        }
 
         // std::cout << "predicting label: " << k << "; label_id: " << label_id << "\n";
-        data_p[label_id][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
+        data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
     });
   });
@@ -836,7 +876,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
   if (model_type == FtrlModelType::BINOMIAL) {
     dt::parallel_for_static(dt_X->nrows, [&](size_t i){
-      data_p[1][i] = T_ONE - data_p[0][i];
+      data_p[k_binomial][i] = T_ONE - data_p[!k_binomial][i];
     });
   }
 
@@ -1559,6 +1599,8 @@ void Ftrl<T>::set_labels(strvec labels_in) {
 
 template class Ftrl<float>;
 template class Ftrl<double>;
+template <>
+dtptr create_dt_labels_str<uint32_t>(const std::unordered_map<std::string, int32_t>&);
 
 
 } // namespace dt
