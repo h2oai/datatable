@@ -207,7 +207,7 @@ class LightweightSemaphore {
         if (try_wait()) return;
         // This line significantly boosts the performance.
         // When a thread busy-waits, it consumes its CPU quota, so that when
-        // the "real" work arrives, the thread my receive a priority penalty
+        // the "real" work arrives, the thread may receive a priority penalty
         // from the OS (especially when the total number of threads is equal
         // to the number of cores in the system).
         std::this_thread::yield();
