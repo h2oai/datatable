@@ -1107,7 +1107,7 @@ static PKArgs args___getstate__(
 oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_model = get_model();
   py::oobj py_fi = get_normalized_fi(false);
-  py::oobj py_labels = get_labels();
+  py::oobj py_labels = get_dt_labels();
   py::oobj py_colnames = get_colnames();
   py::oobj py_params_tuple = get_params_tuple();
   py::oobj py_model_type = get_model_type_trained();
@@ -1136,10 +1136,12 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_params_tuple(pickle[0]);
   set_model(pickle[1]);
   if (pickle[2].is_frame()) {
-    dtft->set_fi(pickle[2].to_datatable()->copy());
+    dtft->set_fi(pickle[2].to_datatable());
   }
 
-  set_labels(pickle[3]);
+  if (pickle[3].is_frame()) {
+    dtft->set_dt_labels(pickle[3].to_datatable());
+  }
   set_colnames(pickle[4]);
 
   auto model_type = py::FtrlModelNameType.at(pickle[5].to_string());

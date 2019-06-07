@@ -918,10 +918,8 @@ def test_ftrl_no_validation_set(double_precision_value):
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
-    assert epoch_stopped == nepochs
-    assert math.isnan(loss_stopped)
+    assert res.epoch == nepochs
+    assert math.isnan(res.loss)
 
 
 def test_ftrl_no_early_stopping():
@@ -934,10 +932,8 @@ def test_ftrl_no_early_stopping():
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
-    assert epoch_stopped == nepochs
-    assert math.isnan(loss_stopped) == False
+    assert res.epoch == nepochs
+    assert math.isnan(res.loss) == False
 
 
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])
@@ -952,13 +948,11 @@ def test_ftrl_early_stopping_int(validation_average_niterations):
     res = ft.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation,
                  validation_average_niterations = validation_average_niterations)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch_stopped < nepochs
-    assert loss_stopped < epsilon
-    assert int(epoch_stopped) % nepochs_validation == 0
+    assert res.epoch < nepochs
+    assert res.loss < epsilon
+    assert int(res.epoch) % nepochs_validation == 0
     assert max(delta) < epsilon
 
 
@@ -974,14 +968,12 @@ def test_ftrl_early_stopping_float(validation_average_niterations):
     res = ft.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation,
                  validation_average_niterations = validation_average_niterations)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch_stopped < nepochs
-    assert loss_stopped < epsilon
-    assert (epoch_stopped / nepochs_validation ==
-            int(epoch_stopped / nepochs_validation))
+    assert res.epoch < nepochs
+    assert res.loss < epsilon
+    assert (res.epoch / nepochs_validation ==
+            int(res.epoch / nepochs_validation))
     assert max(delta) < epsilon
 
 
@@ -1000,24 +992,18 @@ def test_ftrl_early_stopping_regression(validation_average_niterations):
                  df_X_validate[nbins::,:], df_y_validate[nbins::,:],
                  nepochs_validation = nepochs_validation,
                  validation_average_niterations = validation_average_niterations)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
     p = ft.predict(df_X_train)
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
-    assert epoch_stopped < nepochs
-    assert loss_stopped < epsilon
-    assert int(epoch_stopped) % nepochs_validation == 0
+    assert res.epoch < nepochs
+    assert res.loss < epsilon
+    assert int(res.epoch) % nepochs_validation == 0
     assert max(delta) < epsilon
 
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_early_stopping_multinomial(negative_class_value):
+def test_ftrl_early_stopping_multinomial():
     nepochs = 2000
-    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True,
-              negative_class = negative_class_value)
+    ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
     labels = ["blue", "green", "red"]
-    if negative_class_value:
-      labels = ["_negative"] + labels
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
@@ -1025,8 +1011,6 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
                           "blue"])
     res = ft.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
                  nepochs_validation = 1, validation_error = 1e-3)
-    epoch_stopped = getattr(res, "epoch")
-    loss_stopped = getattr(res, "loss")
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
     frame_integrity_check(p)
@@ -1042,8 +1026,8 @@ def test_ftrl_early_stopping_multinomial(negative_class_value):
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
 
-    assert epoch_stopped < nepochs
-    assert loss_stopped < 0.1
+    assert res.epoch < nepochs
+    assert res.loss < 0.1
     assert max(delta_sum)   < 1e-6
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
@@ -1159,7 +1143,7 @@ def test_ftrl_reuse_pickled_empty_model():
     df_train = dt.Frame({"id" : range(ft_unpickled.nbins)})
     df_target = dt.Frame([True] * ft_unpickled.nbins)
     ft_unpickled.fit(df_train, df_target)
-    model = [[-0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
+    model = [[0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
     fi = dt.Frame([["id"], [0.0]])[:, [f[0], dt.float32(f[1])]]
     fi.names = ["feature_name", "feature_importance"]
     assert ft_unpickled.model.to_list() == model
@@ -1182,7 +1166,7 @@ def test_ftrl_pickling_binomial():
             (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
-    assert ft.labels == ft_unpickled.labels
+    assert_equals(ft.dt_labels, ft_unpickled.dt_labels)
     assert ft.colnames == ft_unpickled.colnames
 
     # Predict
@@ -1200,10 +1184,8 @@ def test_ftrl_pickling_binomial():
     assert_equals(target, target_unpickled)
 
 
-@pytest.mark.parametrize('negative_class_value', [False, True])
-def test_ftrl_pickling_multinomial(negative_class_value):
-    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False,
-              negative_class = negative_class_value)
+def test_ftrl_pickling_multinomial():
+    ft = Ftrl(alpha = 0.2, nbins = 100, nepochs = 1, double_precision = False)
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
@@ -1214,8 +1196,7 @@ def test_ftrl_pickling_multinomial(negative_class_value):
     ft_pickled = pickle.dumps(ft)
     ft_unpickled = pickle.loads(ft_pickled)
     frame_integrity_check(ft_unpickled.model)
-    ncols = (6 + 2*negative_class_value)
-    assert ft_unpickled.model.stypes == (stype.float32,) * ncols
+    assert ft_unpickled.model.stypes == (stype.float32,) * 6
     assert_equals(ft.model, ft_unpickled.model)
     assert (ft_unpickled.feature_importances.names ==
             ('feature_name', 'feature_importance',))

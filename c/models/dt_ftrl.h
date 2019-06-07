@@ -195,6 +195,7 @@ class Ftrl : public dt::FtrlBase {
     void set_interactions(std::vector<sizetvec>) override;
     void set_negative_class(bool) override;
     void set_labels(strvec) override;
+    void set_dt_labels(DataTable*) override;
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();

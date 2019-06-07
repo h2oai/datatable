@@ -130,6 +130,7 @@ class FtrlBase {
     virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(strvec) = 0;
+    virtual void set_dt_labels(DataTable*) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;

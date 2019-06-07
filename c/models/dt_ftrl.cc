@@ -729,8 +729,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
                 T p = linkfn(predict_row(
                         x, w, k, [&](size_t, T){}
                       ));
-                bool y = static_cast<size_t>(data_val[0][j]) == map_val[k];
+                U y = (model_type == FtrlModelType::REGRESSION)? data_val[0][j] :
+                      static_cast<size_t>(data_val[0][j]) == map_val[k]; // FIXME
                 loss_local += lossfn(p, y);
+                // std::cout << k << " " << p << " " << y << " " << lossfn(p, y) << "\n";
               }
             }
           });
@@ -1594,6 +1596,12 @@ void Ftrl<T>::set_negative_class(bool negative_class_in) {
 template <typename T>
 void Ftrl<T>::set_labels(strvec labels_in) {
   labels = labels_in;
+}
+
+
+template <typename T>
+void Ftrl<T>::set_dt_labels(DataTable* dt_labels_in) {
+  dt_labels = dtptr(dt_labels_in->copy());
 }
 
 
