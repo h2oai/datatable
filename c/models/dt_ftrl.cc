@@ -168,18 +168,15 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
     labels = dt_y->get_names();
     create_model();
   }
-  return fit<int8_t>(sigmoid<T>, log_loss<T>);
-}
 
 
-template <typename T>
-dtptr Ftrl<T>::create_boolean_labels() {
-  auto col = new BoolColumn(2);
-  auto data = col->elements_w();
-  data[0] = 1; // first label is `true`
-  data[1] = 0;
-  return dtptr(new DataTable({ col }, {"label"}));
+  return fit<int8_t>(sigmoid<T>,
+                     [] (int8_t y, size_t label_indicator) -> int8_t {
+                       return static_cast<size_t>(y) == label_indicator;
+                     },
+                     log_loss<T>);
 }
+
 
 
 template <typename T>
@@ -316,26 +313,13 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   }
   map = { 0 };
   map_val = { 0 };
-  return fit<U>(identity<T>, squared_loss<T, U>);
-}
 
-
-template <typename T>
-dtptr Ftrl<T>::create_labels_from_strvec(const strvec& labels_in) {
-  size_t nlabels = labels_in.size();
-  dt::writable_string_col c_label_names(nlabels);
-  dt::writable_string_col::buffer_impl<uint32_t> sb(c_label_names);
-  sb.commit_and_start_new_chunk(0);
-
-  for (const auto& label : labels_in) {
-    sb.write(label);
-  }
-
-  sb.order();
-  sb.commit_and_start_new_chunk(nlabels);
-  return dtptr(new DataTable(
-           {std::move(c_label_names).to_column()}
-         ));
+  return fit<U>(identity<T>,
+                [](U y, size_t label_indicator) -> U {
+                  (void) label_indicator;
+                  return y;
+                },
+                squared_loss<T, U>);
 }
 
 
@@ -348,18 +332,13 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
   }
 
   if (!is_model_trained()) {
-    xassert(labels.size() == 0);
     xassert(dt_model == nullptr);
-    if (params.negative_class) {
-      labels.push_back("_negative");
-      // dt_labels = create_labels_from_strvec({ "_negative"});
-    }
     create_model();
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
   dtptr dt_y_multinomial;
-  create_y_multinomial_en(dt_y, dt_y_multinomial, map);
+  create_y_multinomial(dt_y, dt_y_multinomial, map);
 
   if (dt_y_multinomial == nullptr) return {0, static_cast<double>(T_NAN)};
   dt_y = dt_y_multinomial.get();
@@ -367,20 +346,24 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
   // Create validation targets if needed.
   dtptr dt_y_val_multinomial;
   if (!std::isnan(nepochs_val)) {
-    create_y_multinomial_en(dt_y_val, dt_y_val_multinomial, map_val, true);
+    create_y_multinomial(dt_y_val, dt_y_val_multinomial, map_val, true);
     if (dt_y_val_multinomial == nullptr)
       throw ValueError() << "Cannot set early stopping criteria as validation "
                          << "target column got only `NA` targets";
     dt_y_val = dt_y_val_multinomial.get();
   }
 
-  return fit<int32_t>(sigmoid<T>, log_loss<T>);
+  return fit<int32_t>(sigmoid<T>,
+                      [] (int32_t y, size_t label_indicator) -> int32_t {
+                        return static_cast<size_t>(y) == label_indicator;
+                      },
+                      log_loss<T>);
 }
 
 
 
 template <typename T>
-void Ftrl<T>::create_y_multinomial_en(const DataTable* dt,
+void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       dtptr& dt_multinomial,
                                       std::vector<size_t>& model_map,
                                       bool validation /* = false */) {
@@ -457,172 +440,11 @@ void Ftrl<T>::create_y_multinomial_en(const DataTable* dt,
 
 
 /**
- *  Create training targets.
- */
-template <typename T>
-dtptr Ftrl<T>::create_y_multinomial(const DataTable* dt, bool validation /* = false */) {
-  LType ltype_y = dt->columns[0]->ltype();
-  dtptr dt_booleans;
-  dtptr dt_labels_in;
-
-  size_t nlabels_in;
-  if (ltype_y == LType::STRING) { // split_into_nhot and do multilabel
-    dt_booleans = dtptr(split_into_nhot(
-               dt->columns[0],
-               dt::FtrlBase::SEPARATOR,
-               /* sort = */ true
-             ));
-    dt_labels_in = create_labels_from_strvec(dt_booleans->get_names());
-    nlabels_in = dt_labels_in->nrows;
-  } else {
-    auto res = dt->group({ sort_spec(0) });
-    RowIndex ri = std::move(res.first);
-    Groupby gb = std::move(res.second);
-    size_t ngroups = gb.ngroups();
-    const auto& offsets = gb.offsets_r();
-
-    // Second, check if target column has any NA's,
-    // and get number of incoming labels
-    size_t index = ri[static_cast<size_t>(offsets[0])];
-    py::oobj value = dt->columns[0]->get_value_at_index(index);
-    bool has_nas = value.is_none();
-    nlabels_in = ngroups - has_nas;
-
-    // If we only got NA targets, return `nullptr` to stop training.
-    if (nlabels_in == 0) return nullptr;
-
-    // Third, extract all the labels into a datatable.
-    arr64_t label_indices(nlabels_in);
-    int64_t* data = label_indices.data();
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      size_t offset = static_cast<size_t>(offsets[i + has_nas]);
-      data[i] = static_cast<int64_t>(ri[offset]);
-    }
-    RowIndex ri_labels(std::move(label_indices), /* sorted = */ false);
-    dt_labels_in = dtptr(apply_rowindex(dt, ri_labels));
-
-    colvec cols(nlabels_in);
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      Column* newcol = create_negative_column(dt->nrows);
-      cols[i] = newcol;
-      int8_t* data_boolean = static_cast<int8_t*>(newcol->data_w());
-
-      // Set up NA's
-      if (has_nas) {
-        for (int32_t k = offsets[0]; k < offsets[1]; ++k) {
-          data_boolean[ri[static_cast<size_t>(k)]] = GETNA<int8_t>();
-        }
-      }
-
-      // Set up positives
-      for (size_t j = 1; j < ngroups; ++j) {
-        for (int32_t k = offsets[j]; k < offsets[j + 1]; ++k) {
-          data_boolean[ri[static_cast<size_t>(k)]] = 1;
-        }
-      }
-    }
-
-    // Set NA's and positives
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      BoolColumn* newcol = new BoolColumn(dt->nrows);
-      cols[i] = newcol;
-      int8_t* data_boolean = newcol->elements_w();
-      std::memset(data_boolean, 0, dt->nrows);
-    }
-
-    dt_booleans = dtptr(new DataTable(std::move(cols)));
-  }
-
-  std::vector<size_t> keys{ 0 };
-  dt_labels_in->set_key(keys);
-  dt_labels_in->set_names({ "label" });
-
-  // RowIndex ri_join( start =  0, /* count = */ dt_labels_in->nrows, /* step = */ 1);
-  if (dt_labels == nullptr) {
-    xassert(validation == false);
-    dt_labels = std::move(dt_labels_in);
-    adjust_model();
-    return dt_booleans;
-  }
-
-
-  size_t n_old_labels = dt_labels->nrows;
-
-  // Filter out new labels and add them to `dt_labels`
-  RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
-  RowIndex ri_join_inv = natural_join(dt_labels.get(), dt_labels_in.get());
-
-  arr64_t new_label_indices(nlabels_in);
-  int64_t* data = new_label_indices.data();
-  size_t n_new_labels = 0;
-  for (size_t i = 0; i < nlabels_in; ++i) {
-    if (ri_join[i] == RowIndex::NA) {
-      data[n_new_labels] = static_cast<int64_t>(i);
-      ++n_new_labels;
-    }
-  }
-  new_label_indices.resize(n_new_labels);
-
-  if (new_label_indices.size()) {
-    if (validation) {
-      throw ValueError() << "Validation target column contains labels, "
-                         << "the model was not trained on";
-    }
-
-    RowIndex ri_new_labels(std::move(new_label_indices), /* sorted = */ true);
-    dtptr dt_new_labels = dtptr(apply_rowindex(dt_labels_in.get(), ri_new_labels));
-
-    dt_labels->rbind({ dt_new_labels.get() }, {{ 0 }});
-  }
-
-
-  colvec cols(dt_labels->nrows);
-
-  // Create a target column with all negatives.
-  colptr col_negative = std::unique_ptr<Column>(
-                          create_negative_column(dt->nrows)
-                        );
-
-  if (params.negative_class) {
-    cols.push_back(col_negative->shallowcopy());
-  }
-
-
-  // First, process existing labels
-  for (size_t i = 0; i < n_old_labels; ++i) {
-    if (ri_join_inv[i] == RowIndex::NA) {
-      cols[i] = col_negative->shallowcopy();
-    } else {
-      cols[i] = dt_booleans->columns[ri_join_inv[i]]->shallowcopy();
-    }
-  }
-
-
-  // Second, process new labels
-  for (size_t i = n_old_labels; i < dt_labels->nrows; ++i) {
-    if (ri_join_inv[i] == RowIndex::NA) {
-      cols[i] = col_negative->shallowcopy();
-    } else {
-      size_t col_index = static_cast<size_t>(data[i]);
-      cols[i] = dt_booleans->columns[col_index]->shallowcopy();
-    }
-  }
-
-
-  // Add new model columns for the new labels. The new columns are
-  // shallow copies of the corresponding ones for the "_negative" classifier.
-  if (n_new_labels) adjust_model();
-
-  return dtptr(new DataTable(std::move(cols)));
-}
-
-
-/**
  *  Fit model on a datatable.
  */
 template <typename T>
 template <typename U> /* target column(s) data type */
-FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
+FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T, U)) {
   // Define features, weight pointers, feature importances storage,
   // as well as column hashers.
   define_features();
@@ -684,13 +506,6 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
         dt::parallel_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X->nrows;
           const size_t j0 = ri[0][ii];
-          // Note that for FtrlModelType::BINOMIAL and FtrlModelType::REGRESSION
-          // dt_y has only one column that may contain NA's or be a view
-          // with an NA rowindex. For FtrlModelType::MULTINOMIAL we have as many
-          // columns as there are labels, and split_into_nhot() filters out
-          // NA's and can never be a view. Therefore, to ignore NA targets
-          // it is enough to check the condition below for the zero column only.
-          // FIXME: this condition can be removed for FtrlModelType::MULTINOMIAL.
           if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < map.size(); ++k) {
@@ -703,10 +518,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
                       }
                     ));
 
-              // size_t label_id = static_cast<size_t>(label_ids[k]);
-              U y = (model_type == FtrlModelType::REGRESSION)? data[0][j] :
-                    static_cast<size_t>(data[0][j]) == map[k]; // FIXME
-              // std::cout << "\nj: " << j << "; k: " << k << " label_id: " << label_id << " map[label_id]: " << map[label_id] << " data: " << static_cast<int32_t>(data[0][j]) << " y: " << y << "\n";
+              U y = targetfn(data[0][j], map[k]);
               update(x, w, p, y, k);
             }
           }
@@ -720,8 +532,6 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
 
           dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
-            // This condition is kind of the same as for training, see comment
-            // above.
             if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < map_val.size(); ++k) {
@@ -729,10 +539,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), T(*lossfn)(T, U)) {
                 T p = linkfn(predict_row(
                         x, w, k, [&](size_t, T){}
                       ));
-                U y = (model_type == FtrlModelType::REGRESSION)? data_val[0][j] :
-                      static_cast<size_t>(data_val[0][j]) == map_val[k]; // FIXME
+                U y = targetfn(data_val[0][j], map_val[k]);
                 loss_local += lossfn(p, y);
-                // std::cout << k << " " << p << " " << y << " " << lossfn(p, y) << "\n";
               }
             }
           });
@@ -895,72 +703,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
 
 /**
- *  Create training targets.
- */
-template <typename T>
-dtptr Ftrl<T>::create_y_train_multinomial() {
-  colptr col0_ptr;
-  Column* col0 = dt_y->columns[0];
-  LType ltype_y = col0->ltype();
-
-  if (ltype_y != LType::STRING) {
-    col0_ptr = colptr(dt_y->columns[0]->cast(SType::STR32));
-    col0 = col0_ptr.get();
-  }
-
-  // Do nhot encoding and sort labels alphabetically.
-  dtptr dt_y_nhot = dtptr(split_into_nhot(
-                      col0,
-                      dt::FtrlBase::SEPARATOR,
-                      true // also do sorting
-                    ));
-  strvec labels_in = dt_y_nhot->get_names();
-
-  colvec cols;
-  cols.reserve(labels.size());
-
-  // Create a target column with all negatives.
-  colptr col_negative = std::unique_ptr<Column>(
-                          create_negative_column(dt_y_nhot->nrows)
-                        );
-
-  if (params.negative_class) {
-    cols.push_back(col_negative->shallowcopy());
-  }
-
-  // First, process labels that are already in the model.
-  for (size_t i = params.negative_class; i < labels.size(); ++i) {
-    auto it = find(labels_in.begin(), labels_in.end(), labels[i]);
-    if (it == labels_in.end()) {
-      // If existing label is not found in the new label list,
-      // train it on all the negatives.
-      cols.push_back(col_negative->shallowcopy());
-    } else {
-      // Otherwise, use the actual targets.
-      auto pos = static_cast<size_t>(std::distance(labels_in.begin(), it));
-      cols.push_back(dt_y_nhot->columns[pos]->shallowcopy());
-      labels_in[pos] = "";
-    }
-  }
-
-  // Second, process new labels.
-  size_t n_new_labels = 0;
-  for (size_t i = 0; i < labels_in.size(); ++i) {
-    if (labels_in[i] == "") continue;
-    cols.push_back(dt_y_nhot->columns[i]->shallowcopy());
-    labels.push_back(labels_in[i]);
-    n_new_labels++;
-  }
-
-  // Add new model columns for the new labels. The new columns are
-  // shallow copies of the corresponding ones for the "_negative" classifier.
-  if (n_new_labels) adjust_model();
-
-  return dtptr(new DataTable(std::move(cols)));
-}
-
-
-/**
  *  Create a target frame with all the negatives.
  */
 template <typename T>
@@ -969,43 +711,6 @@ Column* Ftrl<T>::create_negative_column(size_t nrows) {
   auto data = col->elements_w();
   std::memset(data, 0, nrows * sizeof(bool));
   return col;
-}
-
-
-/**
- *  Create validation targets for early stopping. Only include the labels
- *  the model was already trained on. Also, create mapping between the validation
- *  labels and the model labels to be used during training.
- */
-template <typename T>
-dtptr Ftrl<T>::create_y_val_multinomial() {
-  xassert(map_val.size() == 0);
-  xassert(dt_X_val != nullptr && dt_y_val != nullptr)
-  xassert(dt_X_val->nrows == dt_y_val->nrows)
-
-  dtptr dt_y_val_nhot = dtptr(split_into_nhot(dt_y_val->columns[0], dt::FtrlBase::SEPARATOR));
-  const strvec& labels_val = dt_y_val_nhot->get_names();
-  xassert(dt_y_val_nhot->nrows == dt_y_val->nrows)
-  colvec cols;
-
-  // First, add a "_negative" target column and its mapping info.
-  if (params.negative_class) {
-    Column* col = create_negative_column(dt_y_val_nhot->nrows);
-    cols.push_back(col);
-    map_val.push_back(0);
-  }
-
-  // Second, filter out only the model known labels.
-  for (size_t i = 0; i < labels_val.size(); ++i) {
-    auto it = find(labels.begin(), labels.end(), labels_val[i]);
-    if (it == labels.end()) continue;
-
-    cols.push_back(dt_y_val_nhot->columns[i]->shallowcopy());
-    auto pos = static_cast<size_t>(std::distance(labels.begin(), it));
-    map_val.push_back(pos);
-  }
-
-  return dtptr(new DataTable(std::move(cols)));
 }
 
 
@@ -1050,18 +755,6 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
       data[j][i] /= sum;
     }
   });
-}
-
-
-template <typename T>
-dtptr Ftrl<T>::create_label_ids(size_t i0, size_t i1) {
-  auto col_label_ids = new IntColumn<int32_t>(i1 - i0);
-  auto data_label_ids = col_label_ids->elements_w();
-  for (size_t i = i0; i < i1; ++i) {
-    data_label_ids[i] = static_cast<int32_t>(i);
-  }
-  dtptr dt_label_ids = dtptr(new DataTable({std::move(col_label_ids)}, {"label_id"}));
-  return dt_label_ids;
 }
 
 

@@ -99,7 +99,7 @@ class Ftrl : public dt::FtrlBase {
     FtrlFitOutput fit_binomial();
     FtrlFitOutput fit_multinomial();
     template <typename U> FtrlFitOutput fit_regression();
-    template <typename U> FtrlFitOutput fit(T(*)(T), T(*)(T, U));
+    template <typename U> FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
@@ -120,16 +120,10 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
-    dtptr create_boolean_labels();
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
-    void create_y_multinomial_en(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
+    void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
 
-    dtptr create_y_multinomial(const DataTable*, bool validation = false);
-    dtptr create_y_train_multinomial();
-    dtptr create_y_val_multinomial();
     Column* create_negative_column(size_t);
-    dtptr create_labels_from_strvec(const strvec&);
-    dtptr create_label_ids(size_t, size_t);
 
     // Feature importance helper methods
     void create_fi();
