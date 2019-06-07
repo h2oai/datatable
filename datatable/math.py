@@ -20,15 +20,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from math import e, inf, nan, pi, tau
+from math import inf, nan
 
 from .lib._datatable import (
+    abs,
     arccos,
-    arccosh,
+    arcosh,
     arcsin,
-    arcsinh,
+    arsinh,
     arctan,
-    arctanh,
+    artanh,
     cbrt,
     cos,
     cosh,
@@ -40,6 +41,9 @@ from .lib._datatable import (
     expm1,
     fabs,
     gamma,
+    isna,
+    isfinite,
+    isinf,
     lgamma,
     log,
     log10,
@@ -55,4 +59,7 @@ from .lib._datatable import (
     tanh,
 )
 
+e = 2.718281828459045
 golden = 1.618033988749895
+pi = 3.141592653589793
+tau = 6.283185307179586

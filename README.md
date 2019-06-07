@@ -111,7 +111,7 @@ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.
 ```
 
 On all other platforms a source distribution will be needed. For more
-information see [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions).
+information see [Build instructions](https://datatable.readthedocs.io/en/latest/install.html).
 
 
 ## See also

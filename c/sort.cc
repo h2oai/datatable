@@ -263,7 +263,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.insert_method_threshold",
     []{ return py::oint(sort_insert_method_threshold); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int64_t n = value.to_int64_strict();
       if (n < 0) n = 0;
       sort_insert_method_threshold = static_cast<size_t>(n);
@@ -276,7 +276,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.thread_multiplier",
     []{ return py::oint(sort_thread_multiplier); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int64_t n = value.to_int64_strict();
       if (n < 1) n = 1;
       sort_thread_multiplier = static_cast<size_t>(n);
@@ -285,7 +285,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.max_chunk_length",
     []{ return py::oint(sort_max_chunk_length); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int64_t n = value.to_int64_strict();
       if (n < 1) n = 1;
       sort_max_chunk_length = static_cast<size_t>(n);
@@ -294,7 +294,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.max_radix_bits",
     []{ return py::oint(sort_max_radix_bits); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int64_t n = value.to_int64_strict();
       if (n <= 0)
         throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
@@ -304,7 +304,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.over_radix_bits",
     []{ return py::oint(sort_over_radix_bits); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int64_t n = value.to_int64_strict();
       if (n <= 0)
         throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
@@ -314,7 +314,7 @@ void sort_init_options() {
   dt::register_option(
     "sort.nthreads",
     []{ return py::oint(sort_nthreads); },
-    [](py::oobj value) {
+    [](const py::Arg& value) {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
@@ -549,6 +549,7 @@ class SortContext {
     // to be expanded.
     next_elemsize = elemsize;
     allocate_xx();
+    allocate_oo();
 
     dt::array<radix_range> rrmap(nradixes);
     radix_range* rrmap_ptr = rrmap.data();
@@ -1150,6 +1151,7 @@ class SortContext {
    */
   template <bool make_groups>
   void _radix_recurse(radix_range* rrmap) {
+    xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
     size_t   _n        = n;

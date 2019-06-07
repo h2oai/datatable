@@ -83,8 +83,7 @@ void parallel_region(function<void()> fn) {
 }
 
 void parallel_region(size_t nthreads, function<void()> fn) {
-  thread_pool* thpool = thread_pool::get_instance();
-  xassert(thpool->in_master_thread());
+  xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
   thread_team tt(nthreads, thpool);

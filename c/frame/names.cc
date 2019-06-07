@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <sstream>
 #include "frame/py_frame.h"
 #include <unordered_set>
 #include "python/dict.h"
@@ -124,15 +125,15 @@ static PKArgs args_colindex(
 R"(colindex(self, name)
 --
 
-Return index of the column ``name``, or raises a `ValueError` if the requested
-column does not exist.
+Return index of the column ``name``, or raises a `ValueError` if the
+requested column does not exist.
 
 Parameters
 ----------
-name: str
-    The name of the column for which the index is sought. This can also
-    be an index of a column, in which case the index is checked that
-    it doesn't go out-of-bounds, and negative index is converted into
+name: str or int
+    The name of the column for which the index is sought. This can
+    also be a numeric index, in which case the index is checked that
+    it doesn't go out-of-bounds, and negative index is replaced with a
     positive.
 )");
 
@@ -241,7 +242,7 @@ void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_index",
     []{ return py::oint(names_auto_index); },
-    [](py::oobj value){ names_auto_index = value.to_int64_strict(); },
+    [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
     "When Frame needs to auto-name columns, they will be assigned\n"
     "names C0, C1, C2, ... by default. This option allows you to\n"
     "control the starting index in this sequence. For example, setting\n"
@@ -251,7 +252,7 @@ void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_prefix",
     []{ return py::ostring(names_auto_prefix); },
-    [](py::oobj value){ names_auto_prefix = value.to_string(); },
+    [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
     "When Frame needs to auto-name columns, they will be assigned\n"
     "names C0, C1, C2, ... by default. This option allows you to\n"
     "control the prefix used in this sequence. For example, setting\n"
@@ -412,6 +413,78 @@ void DataTable::_init_pynames() const {
 }
 
 
+// Ensure there are no invalid characters in a column's name. Invalid
+// are considered characters with ASCII codes \x00 - \x1F. If any of them
+// are found, we perform substitution s/[\x00-\x1F]+/./g.
+//
+static std::string _mangle_name(CString name, bool* was_mangled) {
+  auto chars = reinterpret_cast<const uint8_t*>(name.ch);
+  auto len = static_cast<size_t>(name.size);
+
+  size_t j = 0;
+  for (; j < len && chars[j] >= 0x20; ++j);
+  if (j == len) {
+    *was_mangled = false;
+    return std::string(name.ch, len);
+  }
+
+  std::ostringstream out;
+  bool written_dot = false;
+  for (j = 0; j < len; ++j) {
+    uint8_t ch = chars[j];
+    if (ch < 0x20) {
+      if (!written_dot) {
+        out << '.';
+        written_dot = true;
+      }
+    } else {
+      out << static_cast<char>(ch);
+      written_dot = false;
+    }
+  }
+  *was_mangled = true;
+  return out.str();
+}
+
+
+static void _deduplicate(std::string* name, py::oobj* pyname,
+                         py::odict& seen_names,
+                         std::unordered_map<std::string, size_t>& stems)
+{
+  size_t n = name->size();
+  const char* chars = name->data();
+  // Find the "stem" of the name: the part of its name without the trailing
+  // digits.
+  size_t j = n;
+  for (; j > 0; --j) {
+    char ch = chars[j - 1];
+    if (ch < '0' || ch > '9') break;
+  }
+  std::string stem(*name, 0, j);
+
+  // Find the "count" part of the name: digits that follow the stem
+  size_t count = 0;
+  if (j < n) {
+    for (; j < n; ++j) {
+      char ch = chars[j];
+      count = count * 10 + static_cast<size_t>(ch - '0');
+    }
+  } else if (chars[j-1] != '.') {
+    stem += '.';
+  }
+
+  if (stems.count(stem)) {
+    count = std::max(count, stems[stem]);
+  }
+  while (seen_names.has(*pyname)) {
+    count++;
+    *name = stem + std::to_string(count);
+    *pyname = py::ostring(*name);
+  }
+  stems[stem] = count;
+}
+
+
 /**
  * This is a main method to assign column names to a Frame. It checks that the
  * names are valid, not duplicate, and if necessary modifies them to enforce
@@ -430,7 +503,11 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
-  std::vector<std::string> duplicates;
+  std::unordered_map<std::string, size_t> stems;
+  static constexpr size_t MAX_DUPLICATES = 3;
+  size_t n_duplicates = 0;
+  std::vector<std::string> duplicates(MAX_DUPLICATES);
+  std::vector<std::string> replacements(MAX_DUPLICATES);
 
   // If any name is empty or None, it will be replaced with the default name
   // in the end. The reason we don't replace immediately upon seeing an empty
@@ -442,67 +519,24 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
     CString cname = nameslist->item_as_cstring(i);
-    char* strname = const_cast<char*>(cname.ch);
-    size_t namelen = static_cast<size_t>(cname.size);
-    if (namelen == 0) {
+    if (cname.size == 0) {
       fill_default_names = true;
       names.push_back(std::string());
       continue;
     }
-    // Ensure there are no invalid characters in the column's name. Invalid
-    // characters are considered those with ASCII codes \x00 - \x1F. If any
-    // such characters found, we perform substitution s/[\x00-\x1F]+/./g.
-    std::string resname;
-    bool name_mangled = false;
-    for (size_t j = 0; j < namelen; ++j) {
-      if (static_cast<uint8_t>(strname[j]) < 0x20) {
-        name_mangled = true;
-        resname = std::string(strname, j) + ".";
-        bool written_dot = true;
-        for (; j < namelen; ++j) {
-          char ch = strname[j];
-          if (static_cast<uint8_t>(ch) < 0x20) {
-            if (!written_dot) {
-              resname += ".";
-              written_dot = true;
-            }
-          } else {
-            resname += ch;
-            written_dot = false;
-          }
-        }
-      }
-    }
-    if (!name_mangled) {
-      resname = std::string(strname, namelen);
-    }
+    bool name_mangled;
+    std::string resname = _mangle_name(cname, &name_mangled);
     py::oobj newname = name_mangled? py::ostring(resname)
                                    : nameslist->item_as_pyoobj(i);
     // Check for name duplicates. If the name was already seen before, we
     // replace it with a modified name (by incrementing the name's digital
     // suffix if it has one, or otherwise by adding such a suffix).
     if (py_inames.has(newname)) {
-      duplicates.push_back(resname);
-      size_t j = namelen;
-      for (; j > 0; --j) {
-        char ch = strname[j - 1];
-        if (ch < '0' || ch > '9') break;
-      }
-      std::string basename(resname, 0, j);
-      int64_t count = 0;
-      if (j < namelen) {
-        for (; j < namelen; ++j) {
-          char ch = strname[j];
-          count = count * 10 + static_cast<int64_t>(ch - '0');
-        }
-      } else {
-        basename += ".";
-      }
-      while (py_inames.has(newname)) {
-        count++;
-        resname = basename + std::to_string(count);
-        newname = py::ostring(resname);
-      }
+      size_t k = std::min(n_duplicates, MAX_DUPLICATES - 1);
+      duplicates[k] = resname;
+      _deduplicate(&resname, &newname, py_inames, stems);
+      replacements[k] = resname;
+      n_duplicates++;
     }
 
     // Store the name in all containers
@@ -552,20 +586,20 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   }
 
   // If there were any duplicate names, issue a warning
-  size_t ndup = duplicates.size();
-  if (ndup) {
+  if (n_duplicates) {
     Warning w = DatatableWarning();
-    if (ndup == 1) {
-      w << "Duplicate column name '" << duplicates[0] << "' found, and was "
-           "assigned a unique name";
+    if (n_duplicates == 1) {
+      w << "Duplicate column name found, and was assigned a unique name: "
+        << "'" << duplicates[0] << "' -> '" << replacements[0] << "'";
     } else {
-      w << "Duplicate column names found: ";
-      for (size_t i = 0; i < ndup; ++i) {
-        w << (i == 0? "'" :
-              i < ndup - 1? ", '" : " and '");
-        w << duplicates[i] << "'";
+      w << "Duplicate column names found, and were assigned unique names: ";
+      size_t n = std::min(n_duplicates, MAX_DUPLICATES);
+      for (size_t i = 0; i < n; ++i) {
+        w << ((i == 0)? "'" :
+              (i < n - 1 || i == n_duplicates - 1) ? ", '" : ", ..., '")
+          << duplicates[i] << "' -> '"
+          << replacements[i] << "'";
       }
-      w << "; they were assigned unique names";
     }
     // as `w` goes out of scope, the warning is sent to Python
   }

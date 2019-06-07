@@ -229,7 +229,7 @@ bool _obj::is_numpy_marray() const noexcept {
 }
 
 bool _obj::is_dtexpr() const noexcept {
-  if (!Expr_Type) return false;
+  if (!Expr_Type || !v) return false;
   return PyObject_IsInstance(v, Expr_Type);
 }
 

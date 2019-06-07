@@ -10,8 +10,8 @@
 //   +/5de42e6621b3d0131472c3f8838b7f0ccf3e8963/sources/cxx-stl/llvm-libc++/
 //   libcxx/include/shared_mutex
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_SHARED_MUTEX_h
-#define dt_UTILS_SHARED_MUTEX_h
+#ifndef dt_PARALLEL_SHARED_MUTEX_h
+#define dt_PARALLEL_SHARED_MUTEX_h
 #include <atomic>              // std::atomic
 #include <condition_variable>  // std::condition_variable
 #include <mutex>               // std::mutex, std::unique_lock

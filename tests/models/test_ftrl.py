@@ -37,47 +37,6 @@ from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
 from datatable import encode
 
-def test_encode_int() :
-    df = dt.Frame([1, 2, 1])
-    res = encode(df)
-    # print("\n")
-    # print(df)
-    # print(res[0])
-    # print(res[1])
-    # print(res[1].stypes)
-
-
-def test_encode_bool() :
-    df = dt.Frame([1, 0, 1])
-    res = encode(df)
-    # print("\n")
-    # print(df)
-    # print(res[0])
-    # print(res[1])
-    # print(res[1].stypes)
-
-
-def test_encode_str() :
-    df = dt.Frame(["a,a", "b", "a,a"])
-    res = encode(df)
-    # print("\n")
-    # print(df)
-    # print(res[0])
-    # print(res[1])
-    # print(res[1].stypes)
-
-
-# def test_encode_empty() :
-#     df = dt.Frame([])
-#     res = encode(df)
-#     print("\n")
-#     print(df)
-#     print(res[0])
-#     print(res[1])
-#     print(res[1].stypes)
-
-
-
 
 #-------------------------------------------------------------------------------
 # Define namedtuple of test parameters, test model and accuracy
@@ -99,7 +58,6 @@ default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 10**6, mantissa_nbits = 10, nepochs = 1,
                         double_precision = False, negative_class = False,
                         interactions = None, model_type = 'auto')
-
 epsilon = 0.01
 
 
@@ -628,8 +586,6 @@ def test_ftrl_fit_predict_bool_binomial_string():
     e = encode(df_target)
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train)
-    # print(ft.dt_labels)
-    # print(df_res)
 
     assert df_res[0, "yes"] <= 1
     assert df_res[0, "yes"] >= 1 - epsilon
@@ -772,12 +728,9 @@ def test_ftrl_fit_predict_multinomial():
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
-    # print("\n", df_target)
-    # print(encode(df_target)[0], encode(df_target)[1])
     ft.fit(df_train, df_target)
     frame_integrity_check(ft.model)
     p = ft.predict(df_train)
-    # print(p)
 
     frame_integrity_check(p)
     p_none = 1 / p.ncols
@@ -809,9 +762,6 @@ def test_ftrl_fit_predict_multinomial_online():
     ft.fit(df_train, df_target)
     assert(ft.dt_labels[:, 0].to_list() == [["green"]])
     assert(ft.model.shape == (ft.nbins, 2))
-    # print(ft.dt_labels)
-    # p = ft.predict(df_train)
-    # print(p)
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
@@ -819,9 +769,6 @@ def test_ftrl_fit_predict_multinomial_online():
     ft.fit(df_train, df_target)
     assert(ft.dt_labels[:, 0].to_list() == [["green", "red"]])
     assert(ft.model.shape == (ft.nbins, 4))
-    # print(ft.dt_labels)
-    # p = ft.predict(df_train)
-    # print(p)
 
     # And one more
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
@@ -829,9 +776,6 @@ def test_ftrl_fit_predict_multinomial_online():
     ft.fit(df_train, df_target)
     assert(ft.dt_labels[:, 0].to_list() == [["blue", "green", "red"]])
     assert(ft.model.shape == (ft.nbins, 6))
-    # print(ft.dt_labels)
-    # p = ft.predict(df_train)
-    # print(p)
 
     # Do not add any new labels
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
@@ -842,12 +786,8 @@ def test_ftrl_fit_predict_multinomial_online():
     assert(ft.model.shape == (ft.nbins, 6))
 
     # Test predictions
-    # print(ft.dt_labels)
     p = ft.predict(df_train)
-    # print(p)
-
-
-    # frame_integrity_check(p)
+    frame_integrity_check(p)
     p_none = 1 / p.ncols
     p_dict = p.to_dict()
     p_list = p.to_list()
@@ -908,6 +848,7 @@ def test_ftrl_wrong_validation_parameters():
     assert ("Argument `validation_average_niterations` in Ftrl.fit() should be "
             "positive: 0" == str(e.value))
 
+
 @pytest.mark.parametrize('double_precision_value', [False, True])
 def test_ftrl_no_validation_set(double_precision_value):
     nepochs = 1234
@@ -919,7 +860,7 @@ def test_ftrl_no_validation_set(double_precision_value):
     df_y = dt.Frame(r)
     res = ft.fit(df_X, df_y)
     assert res.epoch == nepochs
-    assert math.isnan(res.loss)
+    assert res.loss is None
 
 
 def test_ftrl_no_early_stopping():

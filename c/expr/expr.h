@@ -21,15 +21,17 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
-#include "column.h"
+#include "expr/virtual_column.h"
 #include "expr/workframe.h"
 #include "python/ext_type.h"
+#include "column.h"
 namespace dt {
 namespace expr {
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
 using colptr = std::unique_ptr<Column>;
+using vcolptr = std::unique_ptr<virtual_column>;
 
 static constexpr size_t UNOP_FIRST    = 101;
 static constexpr size_t UNOP_LAST     = 111;
@@ -39,7 +41,7 @@ static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 409;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 538;
+static constexpr size_t MATH_LAST     = 542;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -55,7 +57,7 @@ enum class Op : size_t {
   // Unary
   UPLUS = UNOP_FIRST,
   UMINUS,
-  INVERT,
+  UINVERT,
   ISFINITE,
   ISINF,
   ISNA,
@@ -115,9 +117,9 @@ enum class Op : size_t {
   SINH,
   COSH,
   TANH,
-  ARCSINH,
-  ARCCOSH,
-  ARCTANH,
+  ARSINH,
+  ARCOSH,
+  ARTANH,
 
   // Math: exponential/power
   CBRT,
@@ -128,7 +130,9 @@ enum class Op : size_t {
   LOG10,
   LOG1P,
   LOG2,
-  POW,
+  LOGADDEXP,
+  LOGADDEXP2,
+  // POWER,
   SQRT,
   SQUARE,
 
@@ -138,20 +142,34 @@ enum class Op : size_t {
   GAMMA,
   LGAMMA,
 
-  // Math: misc
+  // Math: floating-point
+  // CEIL,
   COPYSIGN,
   FABS,
-  FCEIL,
-  FFLOOR,
-  FMOD,
-  FTRUNC,
-  SIGN = MATH_LAST,
+  // FLOOR,
+  // FREXP: double->(double, int)
+  // ISCLOSE: non-trivial signature
+  LDEXP,
+  NEXTAFTER,
+  // RINT ?
+  SIGN,
+  SIGNBIT,
+  // SPACING ?
+  // TRUNC,
+
+  // Math: misc
+  CLIP,
+  // DIVMOD (double,double)->(double,double)
+  // MODF double->(double,double)
+  MAXIMUM,
+  MINIMUM,
+  FMOD = MATH_LAST,
 };
 
 
 
 //------------------------------------------------------------------------------
-// dt::base_expr
+// dt::expr::base_expr
 //------------------------------------------------------------------------------
 
 class base_expr {
@@ -161,6 +179,7 @@ class base_expr {
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
     virtual colptr evaluate_eager(workframe&) = 0;
+    virtual vcolptr evaluate_lazy(workframe&);
 
     virtual bool is_column_expr() const;
     virtual bool is_negated_expr() const;
@@ -171,6 +190,11 @@ class base_expr {
 
 // Initialize once
 void init_expr();
+
+
+py::oobj make_pyexpr(Op opcode, py::oobj arg);
+py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2);
+
 
 
 }}  // namespace dt::expr

@@ -30,7 +30,6 @@
 
 namespace py {
 
-
 /**
  *  Model type names and their corresponding dt::FtrlModelType's
  */
@@ -66,6 +65,7 @@ PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
                                  "model_type"},
                                  "__init__", nullptr);
 
+
 /**
  *  Ftrl(...)
  *  Initialize Ftrl object with the provided parameters.
@@ -86,6 +86,7 @@ void Ftrl::m__init__(PKArgs& args) {
   const Arg& arg_negative_class   = args[9];
   const Arg& arg_interactions     = args[10];
   const Arg& arg_model_type       = args[11];
+
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_alpha            = !arg_alpha.is_none_or_undefined();
@@ -157,10 +158,8 @@ void Ftrl::init_dt_ftrl() {
  *  Deallocate underlying data for an Ftrl object
  */
 void Ftrl::m__dealloc__() {
-  if (dtft != nullptr) {
-    delete dtft;
-    dtft = nullptr;
-  }
+  delete dtft;
+  dtft = nullptr;
 }
 
 
@@ -811,6 +810,7 @@ oobj Ftrl::get_mantissa_nbits() const {
 
 void Ftrl::set_mantissa_nbits(const Arg& py_mantissa_nbits) {
   if (dtft->is_model_trained()) {
+
     throw ValueError() << "Cannot change `mantissa_nbits` for a trained model, "
                        << "reset this model or create a new one";
   }
@@ -973,8 +973,8 @@ oobj Ftrl::get_model_type_trained() const {
   dt::FtrlModelType dt_model_type = dtft->get_model_type_trained();
   std::string model_type = FtrlModelTypeName.at(dt_model_type);
   return py::ostring(std::move(model_type));
-
 }
+
 
 /**
  *  .params
@@ -993,6 +993,7 @@ oobj Ftrl::get_params_namedtuple() const {
 void Ftrl::set_params_namedtuple(robj params_in) {
   py::otuple params_tuple = params_in.to_otuple();
   size_t n_params = params_tuple.size();
+
   if (n_params != 11) {
     throw ValueError() << "Tuple of FTRL parameters should have 11 elements, "
                        << "got: " << n_params;
@@ -1008,6 +1009,7 @@ void Ftrl::set_params_namedtuple(robj params_in) {
   py::oobj py_negative_class = params_in.get_attr("negative_class");
   py::oobj py_interactions = params_in.get_attr("interactions");
   py::oobj py_model_type = params_in.get_attr("model_type");
+
 
   set_alpha({py_alpha, "`FtrlParams.alpha`"});
   set_beta({py_beta, "`FtrlParams.beta`"});

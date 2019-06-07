@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_PARALLEL_h
-#define dt_UTILS_PARALLEL_h
+#ifndef dt_PARALLEL_STRING_UTILS_h
+#define dt_PARALLEL_STRING_UTILS_h
 #include <memory>             // std::unique_ptr
 #include <vector>             // std::vector
 #include "parallel/api.h"     // dt::parallel_for_ordered

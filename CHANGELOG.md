@@ -35,9 +35,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   frame will be split into train and test part according to the K-fold
   splitting scheme.
 
-- Added function `dt.models.kfold_random(nrows, nsplits)`, which is similar to
-  `kfold(nrows, nsplits)`, except that the assignment of rows into folds is
-  randomized, not deterministic.
+- Added function `dt.models.kfold_random(nrows, nsplits, seed)`, which is
+  similar to `kfold(nrows, nsplits)`, except that the assignment of rows into
+  folds is randomized, not deterministic.
 
 - `Frame.rbind()` can now also accept a list or tuple of frames (previously
   only a vararg sequence was allowed).
@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   that can be applied to datatable Frames. The set of functions is close to
   what is available in the standard python `math` module. See documentation
   for more details.
+
+- New module `datatable.sphinxext.dtframe_directive`, which can be used as
+  a plugin for Sphinx. This module adds directive `.. dtframe` that allows
+  to easily include a Frame display in an .rst document.
 
 
 ### Fixed
@@ -157,6 +161,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed FTRL model not resuming properly after unpickling (#1846).
 
+- Fixed crash that occurred when sorting by multiple columns, and the first
+  column is of low cardinality (#1857).
+
+- Fixed display of NA values produced during a join, when a Frame was displayed
+  in Jupyter Lab (#1872).
+
 
 ### Changed
 
@@ -199,8 +209,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857),
   - [Antorsae][] (#1639),
+  - [Olivier][] (#1872),
   - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816, #1837),
   - [NachiGithub][] (#1789, #1793),

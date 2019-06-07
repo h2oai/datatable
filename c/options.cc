@@ -9,7 +9,6 @@
 #include "parallel/thread_pool.h"
 #include "python/_all.h"
 #include "python/ext_type.h"
-#include "python/obj.h"
 #include "python/string.h"
 #include "datatablemodule.h"
 #include "options.h"
@@ -22,11 +21,11 @@ namespace py {
 
 struct config_option : public PyObject {
   std::function<oobj()> getter;
-  std::function<void(oobj)> setter;
+  std::function<void(const py::Arg&)> setter;
   oobj name;
   oobj default_value;
   oobj docstring;
-  size_t : 64;
+  Arg* arg;
 
   class Type : public ExtType<config_option> {
     public:
@@ -61,11 +60,13 @@ oobj config_option::get_default() const { return default_value; }
 void config_option::m__init__(PKArgs&) {}
 
 void config_option::m__dealloc__() {
+  delete arg;
   name = nullptr;
   docstring = nullptr;
   default_value = nullptr;
   getter = nullptr;
   setter = nullptr;
+  arg = nullptr;
 }
 
 
@@ -73,7 +74,10 @@ static PKArgs args_get(0, 0, 0, false, false, {}, "get", nullptr);
 static PKArgs args_set(1, 0, 0, false, false, {"x"}, "set", nullptr);
 
 oobj config_option::get(const PKArgs&) { return getter(); }
-void config_option::set(const PKArgs& args) { setter(args[0].to_oobj()); }
+void config_option::set(const PKArgs& args) {
+  arg->set(args[0].to_borrowed_ref());
+  setter(*arg);
+}
 
 
 
@@ -127,20 +131,21 @@ void use_options_store(py::oobj options) {
 
 void register_option(const char* name,
                      std::function<py::oobj()> getter,
-                     std::function<void(py::oobj)> setter,
+                     std::function<void(const py::Arg&)> setter,
                      const char* docstring)
 {
   xassert(dt_options);
   auto pytype = reinterpret_cast<PyObject*>(&py::config_option::Type::type);
   auto v = PyObject_CallObject(pytype, nullptr);
   if (!v) throw PyError();
+  py::oobj opt = py::oobj::from_new_reference(v);
   auto p = static_cast<py::config_option*>(v);
   p->name = py::ostring(name);
   p->default_value = getter();
   p->docstring = py::ostring(docstring);
   p->getter = std::move(getter);
   p->setter = std::move(setter);
-  py::oobj opt = py::oobj::from_new_reference(v);
+  p->arg = new py::Arg(name);
   dt_options.invoke("register", py::otuple{ opt });
 }
 

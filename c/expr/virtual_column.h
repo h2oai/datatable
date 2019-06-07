@@ -19,28 +19,57 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_EXPR_CAST_h
-#define dt_EXPR_EXPR_CAST_h
-#include "expr/expr.h"
-#include "python/_all.h"
+#ifndef dt_EXPR_VIRTUAL_COLUMN_h
+#define dt_EXPR_VIRTUAL_COLUMN_h
+#include <memory>
+#include "column.h"
+#include "types.h"
 namespace dt {
 namespace expr {
 
+class virtual_column;
+using colptr = std::unique_ptr<Column>;
+using vcolptr = std::unique_ptr<virtual_column>;
 
-class expr_cast : public base_expr {
+
+/**
+ * This class is a basic building block in creating lazy evaluation
+ * pipelines. This is an abstract base class, the derived classes
+ * are expected to implement actual computations.
+ *
+ * A `virtual_column` is conceptually similar to a regular column:
+ * it has an `_stype`, the number of rows `_nrows`, and a way to
+ * retrieve its `i`-th element via a set of `compute()` overloads.
+ */
+class virtual_column {
   private:
-    pexpr arg;
-    SType stype;
+    size_t _nrows;
+    SType  _stype;
     size_t : 56;
 
   public:
-    expr_cast(pexpr&& a, SType s);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
-    vcolptr evaluate_lazy(workframe& wf) override;
+    virtual_column(size_t nrows, SType stype);
+    virtual ~virtual_column();
+
+    size_t nrows() const noexcept;
+    SType stype() const noexcept;
+
+    virtual void compute(size_t i, int8_t*  out);
+    virtual void compute(size_t i, int16_t* out);
+    virtual void compute(size_t i, int32_t* out);
+    virtual void compute(size_t i, int64_t* out);
+    virtual void compute(size_t i, float*   out);
+    virtual void compute(size_t i, double*  out);
+    virtual void compute(size_t i, CString* out);
+
+    virtual colptr materialize();
 };
 
 
-}}
+vcolptr virtualize(colptr&& column);
+
+vcolptr cast(vcolptr&& vcol, SType new_stype);
+
+
+}}  // namespace dt::expr
 #endif

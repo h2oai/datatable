@@ -51,5 +51,11 @@ colptr expr_cast::evaluate_eager(workframe& wf) {
 }
 
 
+vcolptr expr_cast::evaluate_lazy(workframe& wf) {
+  auto arg_vcol = arg->evaluate_lazy(wf);
+  return cast(std::move(arg_vcol), stype);
+}
+
+
 
 }} // namespace dt::expr

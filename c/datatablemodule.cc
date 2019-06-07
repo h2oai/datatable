@@ -146,7 +146,7 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   std::mutex m;
   size_t n = dt::num_threads_in_pool();
   py::olist list(n);
-  xassert(dt::this_thread_index() == size_t(-1));
+  xassert(dt::this_thread_index() == 0);
 
   dt::parallel_region([&] {
     std::stringstream ss;
@@ -364,7 +364,6 @@ void py::DatatableModule::init_methods() {
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
-  init_methods_math();
   init_methods_nff();
   init_methods_rbind();
   init_methods_repeat();
@@ -373,6 +372,7 @@ void py::DatatableModule::init_methods() {
 
   init_casts();
   init_fuzzy();
+  init_unops();
 
   #ifdef DTTEST
     init_tests();
@@ -400,7 +400,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     init_types();
     dt::expr::init_expr();
     dt::expr::init_reducers();
-    dt::expr::init_unops();
     dt::expr::init_binops();
 
     py::Frame::Type::init(m);

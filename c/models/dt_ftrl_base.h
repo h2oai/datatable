@@ -75,7 +75,6 @@ struct FtrlFitOutput {
 };
 
 
-
 /**
  *  An abstract dt::FtrlBase class that declares all the virtual functions
  *  needed by py::Ftrl.

@@ -26,7 +26,6 @@
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
 #include "expr/expr_literal.h"
-#include "expr/expr_math.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
@@ -56,6 +55,10 @@ bool base_expr::is_negated_expr() const { return false; }
 pexpr base_expr::get_negated_expr() { return pexpr(); }
 
 size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
+
+vcolptr base_expr::evaluate_lazy(workframe& wf) {
+  return virtualize(evaluate_eager(wf));
+}
 
 
 
@@ -108,11 +111,12 @@ static pexpr make_reduce(Op op, const py::otuple& args) {
   return pexpr(new expr_reduce1(std::move(arg), op));
 }
 
-static pexpr make_math11(Op op, const py::otuple& args) {
-  check_args_count(args, 1);
-  pexpr arg = args[0].to_dtexpr();
-  return pexpr(new expr_math11(std::move(arg), op));
-}
+// static pexpr make_math21(Op op, const py::otuple& args) {
+//   check_args_count(args, 2);
+//   pexpr arg1 = args[0].to_dtexpr();
+//   pexpr arg2 = args[1].to_dtexpr();
+//   return pexpr(new expr_math21(std::move(arg1), std::move(arg2), op));
+// }
 
 static pexpr make_string(Op, const py::otuple& args) {
   check_args_count(args, 2);
@@ -129,16 +133,35 @@ void init_expr() {
   for (size_t i = UNOP_FIRST;    i <= UNOP_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce;
-  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_math11;
+  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
   factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
+  // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
+  // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
+  // factory[static_cast<size_t>(Op::POWER)]    = make_math21;
+  // factory[static_cast<size_t>(Op::COPYSIGN)] = make_math21;
 }
 
 
 
+py::oobj make_pyexpr(Op opcode, py::oobj arg) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op), arg });
+}
+
+
+py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op), arg1, arg2 });
+}
+
+
+
+
 }}  // namespace dt::expr
+
 
 using namespace dt::expr;
 pexpr py::_obj::to_dtexpr() const {

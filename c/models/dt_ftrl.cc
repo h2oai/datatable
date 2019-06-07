@@ -406,22 +406,17 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
         size_t label_id = static_cast<size_t>(label_ids[ri]);
         model_map[label_id] = label_id_in;
       } else {
-        // std::cout << "i: " << i << "; ri: " << ri << "\n";
         data[n_new_labels] = static_cast<int64_t>(i);
         model_map.push_back(label_id_in);
         n_new_labels++;
       }
     }
 
-    // std::cout << "n_new_labels: " << n_new_labels << "\n";
-
     if (n_new_labels) {
       if (validation) {
         throw ValueError() << "Validation target column cannot contain labels, "
                            << "the model was not trained on";
       }
-      // std::cout << dt_labels_in->ncols << " " << dt_labels->ncols << "\n";
-
 
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
@@ -506,6 +501,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
         dt::parallel_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X->nrows;
           const size_t j0 = ri[0][ii];
+
           if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < map.size(); ++k) {
@@ -532,6 +528,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
           dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
+
             if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < map_val.size(); ++k) {
@@ -677,7 +674,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
           continue;
         }
 
-        // std::cout << "predicting label: " << k << "; label_id: " << label_id << "\n";
         data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
     });
