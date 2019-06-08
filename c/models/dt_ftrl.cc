@@ -134,8 +134,8 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   dt_y_val = nullptr;
   nepochs_val = T_NAN;
   val_error = T_NAN;
-  map_val.clear();
   map.clear();
+  map_val.clear();
   return res;
 }
 
@@ -714,18 +714,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
   if (nlabels > 2) normalize_rows(dt_p);
   dt_X = nullptr;
   return dt_p;
-}
-
-
-/**
- *  Create a target frame with all the negatives.
- */
-template <typename T>
-Column* Ftrl<T>::create_negative_column(size_t nrows) {
-  BoolColumn* col = new BoolColumn(nrows);
-  auto data = col->elements_w();
-  std::memset(data, 0, nrows * sizeof(bool));
-  return col;
 }
 
 

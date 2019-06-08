@@ -89,10 +89,12 @@ class Ftrl : public dt::FtrlBase {
     T val_error;
     size_t val_niters;
 
-    // For each model_id in map (the same as label_id in dt_labels)
-    // contains information on the integer indicator
-    std::vector<size_t> map_val;
+    // These vectors relate model_id with the incoming label
+    // indicators, i.e. if map[i] == j, we train i-th model
+    // on positives, when encounter j in the encoded data,
+    // and train on negatives otherwise.
     std::vector<size_t> map;
+    std::vector<size_t> map_val;
 
     // Fitting methods
     FtrlFitOutput fit_binomial();
@@ -102,9 +104,9 @@ class Ftrl : public dt::FtrlBase {
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
     template <typename>
-    dtptr predict(const DataTable*);
 
     // Predicting methods
+    dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 
@@ -114,17 +116,19 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
-    void reverse_ids(dtptr&);
-    void shift_ids(dtptr&, size_t);
-    void set_ids(dtptr&, size_t);
     void create_model();
     void adjust_model();
     void init_model();
     void init_weights();
+
+    // Do label encoding and set up mapping information
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
     void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
+    // Adjust ids in the labels datatable
+    void reverse_ids(dtptr&);
+    void shift_ids(dtptr&, size_t);
+    void set_ids(dtptr&, size_t);
 
-    Column* create_negative_column(size_t);
 
     // Feature importance helper methods
     void create_fi();

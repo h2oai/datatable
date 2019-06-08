@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <vector>         // std::vector
+#include <vector>
+#include "wstringcol.h"
 #include "parallel/api.h"
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "models/label_encode.h"
-#include "wstringcol.h"
-#include <iostream>
 
 
 namespace dt {
