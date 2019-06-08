@@ -214,7 +214,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 std::vector<size_t>& model_map) {
   xassert(model_map.size() == 0);
   dtptr dt_labels_in;
-  label_encode(dt, dt_labels_in, dt_binomial, true);
+  label_encode(dt->columns[0], dt_labels_in, dt_binomial, true);
 
   size_t nlabels_in = dt_labels_in->nrows;
 
@@ -366,7 +366,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       bool validation /* = false */) {
   xassert(model_map.size() == 0)
   dtptr dt_labels_in;
-  label_encode(dt, dt_labels_in, dt_multinomial);
+  label_encode(dt->columns[0], dt_labels_in, dt_multinomial);
   auto label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
 
   size_t nlabels_in = dt_labels_in->nrows;
