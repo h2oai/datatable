@@ -69,7 +69,6 @@ class Ftrl : public dt::FtrlBase {
     // This is because we consider the first incoming label as a
     // positive class.
     dtptr dt_labels;
-    strvec labels;
 
     // Total number of features used for training, this includes
     // dt_X->ncols columns plus their interactions.
@@ -173,8 +172,7 @@ class Ftrl : public dt::FtrlBase {
     const std::vector<sizetvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
-    const strvec& get_labels() override;
-    DataTable* get_dt_labels() override;
+    DataTable* get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;
@@ -190,8 +188,7 @@ class Ftrl : public dt::FtrlBase {
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<sizetvec>) override;
     void set_negative_class(bool) override;
-    void set_labels(strvec) override;
-    void set_dt_labels(DataTable*) override;
+    void set_labels(DataTable*) override;
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();

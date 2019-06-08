@@ -111,8 +111,7 @@ class FtrlBase {
     virtual const std::vector<sizetvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual const strvec& get_labels() = 0;
-    virtual DataTable* get_dt_labels() = 0;
+    virtual DataTable* get_labels() = 0;
 
     // Setters
     virtual void set_model(DataTable*) = 0;
@@ -128,8 +127,7 @@ class FtrlBase {
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<sizetvec>) = 0;
     virtual void set_negative_class(bool) = 0;
-    virtual void set_labels(strvec) = 0;
-    virtual void set_dt_labels(DataTable*) = 0;
+    virtual void set_labels(DataTable*) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;

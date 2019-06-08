@@ -154,16 +154,17 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
   if (validation) {
     create_y_binomial(dt_y_val, dt_y_val_binomial, map_val);
-    if (dt_y_val_binomial == nullptr)
+    if (dt_y_val_binomial == nullptr) {
       throw ValueError() << "Cannot set early stopping criteria as validation "
                             "target column got only `NA` targets";
-    if (dt_y_val->columns[0]->stype() != SType::BOOL)
+    }
+    if (dt_y_val->columns[0]->stype() != SType::BOOL) {
       dt_y_val = dt_y_val_binomial.get();
+    }
   }
 
   if (!is_model_trained()) {
     model_type = FtrlModelType::BINOMIAL;
-    labels = dt_y->get_names();
     create_model();
   }
 
@@ -297,7 +298,6 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
                          "in a regression mode this model should be reset.";
   }
   if (!is_model_trained()) {
-    labels = dt_y->get_names();
     const strvec& colnames = dt_y->get_names();
     std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
 
@@ -874,7 +874,6 @@ void Ftrl<T>::reset() {
   dt_model = nullptr;
   dt_fi = nullptr;
   model_type = FtrlModelType::NONE;
-  labels.clear();
   dt_labels = nullptr;
   colname_hashes.clear();
 }
@@ -1198,13 +1197,7 @@ FtrlParams Ftrl<T>::get_params() {
 
 
 template <typename T>
-const strvec& Ftrl<T>::get_labels() {
-  return labels;
-}
-
-
-template <typename T>
-DataTable* Ftrl<T>::get_dt_labels() {
+DataTable* Ftrl<T>::get_labels() {
   if (dt_labels == nullptr) return nullptr;
   DataTable* dt_labels_copy = dt_labels->copy();
   return dt_labels_copy;
@@ -1302,13 +1295,7 @@ void Ftrl<T>::set_negative_class(bool negative_class_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_labels(strvec labels_in) {
-  labels = labels_in;
-}
-
-
-template <typename T>
-void Ftrl<T>::set_dt_labels(DataTable* dt_labels_in) {
+void Ftrl<T>::set_labels(DataTable* dt_labels_in) {
   dt_labels = dtptr(dt_labels_in->copy());
 }
 

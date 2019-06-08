@@ -741,7 +741,6 @@ def test_ftrl_fit_predict_multinomial():
                    zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
     delta_blue =  [abs(i - j) for i, j in
                    zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
-
     assert max(delta_sum)   < 1e-12
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
@@ -757,21 +756,21 @@ def test_ftrl_fit_predict_multinomial_online():
     df_train = dt.Frame(["cucumber"])
     df_target = dt.Frame(["green"])
     ft.fit(df_train, df_target)
-    assert(ft.dt_labels[:, 0].to_list() == [["green"]])
+    assert(ft.labels[:, 0].to_list() == [["green"]])
     assert(ft.model.shape == (ft.nbins, 2))
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
     df_target = dt.Frame(["green", "red"])
     ft.fit(df_train, df_target)
-    assert(ft.dt_labels[:, 0].to_list() == [["green", "red"]])
+    assert(ft.labels[:, 0].to_list() == [["green", "red"]])
     assert(ft.model.shape == (ft.nbins, 4))
 
     # And one more
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
     ft.fit(df_train, df_target)
-    assert(ft.dt_labels[:, 0].to_list() == [["blue", "green", "red"]])
+    assert(ft.labels[:, 0].to_list() == [["blue", "green", "red"]])
     assert(ft.model.shape == (ft.nbins, 6))
 
     # Do not add any new labels
@@ -779,7 +778,7 @@ def test_ftrl_fit_predict_multinomial_online():
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
 
     ft.fit(df_train, df_target)
-    assert(ft.dt_labels[:, 0].to_list() == [["blue", "green", "red"]])
+    assert(ft.labels[:, 0].to_list() == [["blue", "green", "red"]])
     assert(ft.model.shape == (ft.nbins, 6))
 
     # Test predictions
@@ -1104,7 +1103,7 @@ def test_ftrl_pickling_binomial():
             (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
-    assert_equals(ft.dt_labels, ft_unpickled.dt_labels)
+    assert_equals(ft.labels, ft_unpickled.labels)
     assert ft.colnames == ft_unpickled.colnames
 
     # Predict
@@ -1142,7 +1141,7 @@ def test_ftrl_pickling_multinomial():
             (stype.str32, stype.float32))
     assert_equals(ft.feature_importances, ft_unpickled.feature_importances)
     assert ft.params == ft_unpickled.params
-    assert ft.labels == ft_unpickled.labels
+    assert_equals(ft.labels, ft_unpickled.labels)
     assert ft.colnames == ft_unpickled.colnames
     assert ft.interactions == ft_unpickled.interactions
 

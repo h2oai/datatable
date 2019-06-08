@@ -484,58 +484,17 @@ void Ftrl::reset(const PKArgs&) {
  */
 static GSArgs args_labels(
   "labels",
-  R"(List of labels used for classification.)");
+  R"(Frame of labels used for classification.)");
 
 
 oobj Ftrl::get_labels() const {
-  if (dtft->is_model_trained()) {
-    const strvec& labels = dtft->get_labels();
-    size_t nlabels = labels.size();
-
-    py::olist py_labels(nlabels);
-    for (size_t i = 0; i < nlabels; ++i) {
-      py::ostring py_label = py::ostring(labels[i]);
-      py_labels.set(i, std::move(py_label));
-    }
-    return std::move(py_labels);
-  } else {
-    return py::None();
-  }
-}
-
-
-void Ftrl::set_labels(robj py_labels) {
-  if (py_labels.is_list()) {
-    py::olist py_labels_list = py_labels.to_pylist();
-    size_t nlabels = py_labels_list.size();
-
-    strvec labels(nlabels);
-    for (size_t i = 0; i < nlabels; ++i) {
-      labels[i] = py_labels_list[i].to_string();
-    }
-    dtft->set_labels(labels);
-  }
-}
-
-
-/**
- *  .labels
- */
-static GSArgs args_dt_labels(
-  "dt_labels",
-  R"(Column of labels used for classification.)");
-
-
-oobj Ftrl::get_dt_labels() const {
-  DataTable* dt_labels = dtft->get_dt_labels();
+  DataTable* dt_labels = dtft->get_labels();
   if (dt_labels ==nullptr) return py::None();
   py::oobj df_labels = py::oobj::from_new_reference(
                      py::Frame::from_datatable(dt_labels)
                    );
   return df_labels;
 }
-
-
 
 
 /**
@@ -1109,7 +1068,7 @@ static PKArgs args___getstate__(
 oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_model = get_model();
   py::oobj py_fi = get_normalized_fi(false);
-  py::oobj py_labels = get_dt_labels();
+  py::oobj py_labels = get_labels();
   py::oobj py_colnames = get_colnames();
   py::oobj py_params_tuple = get_params_tuple();
   py::oobj py_model_type = get_model_type_trained();
@@ -1142,7 +1101,7 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   }
 
   if (pickle[3].is_frame()) {
-    dtft->set_dt_labels(pickle[3].to_datatable());
+    dtft->set_labels(pickle[3].to_datatable());
   }
   set_colnames(pickle[4]);
 
@@ -1224,7 +1183,6 @@ void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
 
   // Model and features
   ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
-  ADD_GETTER(gs, &Ftrl::get_dt_labels, args_dt_labels);
   ADD_GETTER(gs, &Ftrl::get_model_type_trained, args_model_type_trained);
   ADD_GETTER(gs, &Ftrl::get_model, args_model);
   ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
