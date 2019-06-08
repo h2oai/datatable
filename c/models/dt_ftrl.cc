@@ -125,8 +125,6 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 
     case FtrlModelType::BINOMIAL :    res = fit_binomial(); break;
     case FtrlModelType::MULTINOMIAL : res = fit_multinomial(); break;
-
-    // If this error is thrown, there is a bug in how we determine model types.
     case FtrlModelType::NONE : throw ValueError() << "Cannot train model in an unknown mode";
   }
 
@@ -214,9 +212,8 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 dtptr& dt_binomial,
                                 std::vector<size_t>& model_map) {
   xassert(model_map.size() == 0);
-  EncodedLabels en_labels_in = encode(dt->columns[0], true);
-  dtptr dt_labels_in = std::move(en_labels_in.dt_labels);
-  dt_binomial = std::move(en_labels_in.dt_encoded);
+  dtptr dt_labels_in;
+  label_encode(dt, dt_labels_in, dt_binomial, true);
 
   size_t nlabels_in = dt_labels_in->nrows;
 
@@ -238,8 +235,8 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto label_in_ids = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
-    auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
+    auto label_in_ids = static_cast<const int8_t*>(dt_labels_in->columns[1]->data());
+    auto label_ids = static_cast<const int8_t*>(dt_labels->columns[1]->data());
 
 
     switch (nlabels) {
@@ -302,10 +299,10 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   if (!is_model_trained()) {
     labels = dt_y->get_names();
     const strvec& colnames = dt_y->get_names();
-    std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
+    std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
 
 
-    dt_labels = create_dt_labels_str<uint32_t>(colnames_map);
+    dt_labels = create_dt_labels_str<uint32_t, SType::BOOL>(colnames_map);
 
 
     create_model();
@@ -368,9 +365,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       std::vector<size_t>& model_map,
                                       bool validation /* = false */) {
   xassert(model_map.size() == 0)
-  EncodedLabels en_labels_in = encode(dt->columns[0]);
-  dtptr dt_labels_in = std::move(en_labels_in.dt_labels);
-  dt_multinomial = std::move(en_labels_in.dt_encoded);
+  dtptr dt_labels_in;
+  label_encode(dt, dt_labels_in, dt_multinomial);
   auto label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
 
   size_t nlabels_in = dt_labels_in->nrows;
@@ -618,11 +614,33 @@ void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
 }
 
 
+
+template <typename T>
+dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X_in) {
+  if (!is_model_trained()) {
+    throw ValueError() << "To make predictions, the model should be trained "
+                          "first";
+  }
+  SType label_id_stype = dt_labels->columns[1]->stype();
+  dtptr dt_p;
+
+  switch (label_id_stype) {
+    case SType::BOOL:  dt_p = predict<int8_t>(dt_X_in); break;
+    case SType::INT32: dt_p = predict<int32_t>(dt_X_in); break;
+    default: throw TypeError() << "Label id type  `"
+                               << label_id_stype << "` is not supported";
+  }
+  return dt_p;
+}
+
+
+
 /**
  *  Predict on a datatable and return a new datatable with
  *  the predicted probabilities.
  */
 template <typename T>
+template <typename U /* label id type */>
 dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
@@ -636,7 +654,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
 
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows;
-  auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
+
+  auto label_ids = static_cast<const U*>(dt_labels->columns[1]->data());
 
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
@@ -1297,7 +1316,7 @@ void Ftrl<T>::set_dt_labels(DataTable* dt_labels_in) {
 template class Ftrl<float>;
 template class Ftrl<double>;
 template <>
-dtptr create_dt_labels_str<uint32_t>(const std::unordered_map<std::string, int32_t>&);
+dtptr create_dt_labels_str<uint32_t, SType::BOOL>(const std::unordered_map<std::string, element_t<SType::BOOL>>&);
 
 
 } // namespace dt

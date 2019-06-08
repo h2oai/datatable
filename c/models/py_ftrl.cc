@@ -443,7 +443,7 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
 
-  DataTable* dt_p = dtft->predict(dt_X).release();
+  DataTable* dt_p = dtft->dispatch_predict(dt_X).release();
   py::oobj df_p = py::oobj::from_new_reference(
                          py::Frame::from_datatable(dt_p)
                   );

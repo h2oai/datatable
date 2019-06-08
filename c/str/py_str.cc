@@ -18,7 +18,6 @@
 #include "frame/py_frame.h"
 #include "types.h"
 #include "utils/exceptions.h"
-#include "models/encode.h"
 namespace py {
 
 
@@ -62,26 +61,9 @@ static oobj split_into_nhot(const PKArgs& args) {
   return Frame::from_datatable(res);
 }
 
-static PKArgs args_encode(
-    1, 0, 0, false, false,
-    {"col"}, "encode", nullptr
-);
-
-
-static oobj encode(const PKArgs& args) {
-  DataTable* dt = args[0].to_datatable();
-
-  Column* col0 = dt->ncols == 1? dt->columns[0] : nullptr;
-
-  dt::EncodedLabels res = dt::encode(col0);
-  return py::otuple(Frame::from_datatable(res.dt_labels->copy()), Frame::from_datatable(res.dt_encoded->copy()));
-}
-
-
 
 void DatatableModule::init_methods_str() {
   ADD_FN(&split_into_nhot, args_split_into_nhot);
-  ADD_FN(&encode, args_encode);
 }
 
 } // namespace py

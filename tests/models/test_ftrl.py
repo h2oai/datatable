@@ -35,7 +35,6 @@ from datatable.models import Ftrl
 from datatable.internal import frame_integrity_check
 from datatable import f, stype, DatatableWarning
 from tests import assert_equals, noop
-from datatable import encode
 
 
 #-------------------------------------------------------------------------------
@@ -583,10 +582,8 @@ def test_ftrl_fit_predict_bool_binomial_string():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([True, False])
     df_target = dt.Frame(["yes", "no"])
-    e = encode(df_target)
     ft.fit(df_train, df_target)
     df_res = ft.predict(df_train)
-
     assert df_res[0, "yes"] <= 1
     assert df_res[0, "yes"] >= 1 - epsilon
     assert df_res[1, "yes"] >= 0

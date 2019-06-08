@@ -25,7 +25,7 @@
 #include "models/utils.h"
 #include "models/dt_ftrl_base.h"
 #include "str/py_str.h"
-#include "models/encode.h"
+#include "models/label_encode.h"
 
 
 namespace dt {
@@ -102,6 +102,8 @@ class Ftrl : public dt::FtrlBase {
     template <typename U> FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
+    template <typename>
+    dtptr predict(const DataTable*);
 
     // Predicting methods
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
@@ -147,7 +149,7 @@ class Ftrl : public dt::FtrlBase {
                                double, double, size_t) override;
 
     // Main predicting method
-    dtptr predict(const DataTable*) override;
+    dtptr dispatch_predict(const DataTable*) override;
 
     // Model methods
     void reset() override;
