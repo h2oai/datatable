@@ -248,8 +248,9 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
 
 
 /**
- *  For boolean columns NA check is performed, and a shallow copy
- *  along with the boolean labels is returned.
+ *  For boolean columns we do NA check and create boolean labels, i.e.
+ *  false/true. No encoding in this case is necessary, so `dt_encoded`
+ *  just uses a shallow copy of `col`.
  */
 void label_encode_bool(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   auto data = static_cast<const int8_t*>(col->data());

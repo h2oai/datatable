@@ -17,7 +17,7 @@
 #define dt_MODELS_ENCODE_h
 
 #include "datatable.h"
-#include <unordered_map>  // std::unordered_map
+#include <unordered_map>
 
 
 namespace dt {

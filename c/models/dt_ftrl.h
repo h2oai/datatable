@@ -106,7 +106,7 @@ class Ftrl : public dt::FtrlBase {
     template <typename>
 
     // Predicting methods
-    dtptr predict(const DataTable*);
+    dtptr predict();
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 

@@ -64,12 +64,11 @@ template <typename T>
 Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {
 }
 
+
 /**
- *  Depending on the target column stype, this method does
- *  - binomial logistic regression (BOOL);
- *  - multinomial logistic regression (STR32, STR64);
- *  - numerical regression (INT8, INT16, INT32, INT64, FLOAT32, FLOAT64).
- *  and returns epoch at which learning completed or was early stopped.
+ *  Depending on a requested problem type, this method calls
+ *  an appropriate `fit_*` method, and returns epoch at which
+ *  training stopped, and the corresponding loss.
  */
 template <typename T>
 FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
@@ -140,17 +139,19 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
 }
 
 
-
+/**
+ *  Prepare data for binomial problem, and call the main fit method.
+ */
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
   dtptr dt_y_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
   create_y_binomial(dt_y, dt_y_binomial, map);
 
-  // NA values are ignored during training, so if we only got NA's
-  // stop training right away.
+  // NA values are ignored during training, so if we stop training right away,
+  // if got only NA's.
   if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
-  if (dt_y->columns[0]->stype() != SType::BOOL) dt_y = dt_y_binomial.get();
+  dt_y = dt_y_binomial.get();
 
   if (validation) {
     create_y_binomial(dt_y_val, dt_y_val_binomial, map_val);
@@ -158,16 +159,13 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
       throw ValueError() << "Cannot set early stopping criteria as validation "
                             "target column got only `NA` targets";
     }
-    if (dt_y_val->columns[0]->stype() != SType::BOOL) {
-      dt_y_val = dt_y_val_binomial.get();
-    }
+    dt_y_val = dt_y_val_binomial.get();
   }
 
   if (!is_model_trained()) {
     model_type = FtrlModelType::BINOMIAL;
     create_model();
   }
-
 
   return fit<int8_t>(sigmoid<T>,
                      [] (int8_t y, size_t label_indicator) -> int8_t {
@@ -208,6 +206,10 @@ void Ftrl<T>::set_ids(dtptr& dt, size_t id0) {
 }
 
 
+/**
+ *  Convert target column to boolean type, and set up mapping
+ *  between models and the incoming label inficators.
+ */
 template <typename T>
 void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 dtptr& dt_binomial,
@@ -218,7 +220,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 
   size_t nlabels_in = dt_labels_in->nrows;
 
-  // If we only got NA targets, return `nullptr` to stop training.
+  // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
   if (nlabels_in > 2) {
     throw ValueError() << "For binomial regression target column should have "
@@ -288,6 +290,12 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 }
 
 
+/**
+ *  Create labels (in the case of numeric regression there is no actual
+ *  labeles, so we just use a column name for this purpose),
+ *  set up identity mapping between models and the incoming label inficators,
+ *  call to the main `fit` method.
+ */
 template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
@@ -300,10 +308,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   if (!is_model_trained()) {
     const strvec& colnames = dt_y->get_names();
     std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
-
-
     dt_labels = create_dt_labels_str<uint32_t, SType::BOOL>(colnames_map);
-
 
     create_model();
     model_type = FtrlModelType::REGRESSION;
@@ -320,6 +325,9 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 }
 
 
+/**
+ *  Prepare data for multinomial problem, and call the main fit method.
+ */
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_multinomial() {
   if (is_model_trained() && model_type != FtrlModelType::MULTINOMIAL) {
@@ -358,7 +366,10 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
 }
 
 
-
+/**
+ *  Encode target column with the integer labels, and set up mapping
+ *  between models and the incoming label inficators.
+ */
 template <typename T>
 void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       dtptr& dt_multinomial,
@@ -371,19 +382,22 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
 
   size_t nlabels_in = dt_labels_in->nrows;
 
-  // If we only got NA targets, return `nullptr` to stop training.
+  // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
 
+  // When we only start training, all the incoming labels become the model
+  // labels. Mapping is trivial in this case.
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
     model_map.resize(nlabels_in);
     for (size_t i = 0; i < nlabels_in; ++i) {
-      // size_t label_id = static_cast<size_t>(label_ids_in[i]);
-      // model_map[i] = label_id;
       model_map[i] = i;
     }
     adjust_model();
   } else {
+    // When we already have some labels, and got new ones, we first
+    // set up mapping in such a way, so that models will train
+    // on all the negatives.
     auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
@@ -392,6 +406,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       model_map.push_back(std::numeric_limits<size_t>::max());
     }
 
+    // Then we go through the list of new labels and relate existing models
+    // to the incoming label indicators.
     arr64_t new_label_indices(nlabels_in);
     int64_t* data = new_label_indices.data();
     size_t n_new_labels = 0;
@@ -402,6 +418,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
         size_t label_id = static_cast<size_t>(label_ids[ri]);
         model_map[label_id] = label_id_in;
       } else {
+        // If there is no corresponding label already set,
+        // we will need to create a new one and its  model.
         data[n_new_labels] = static_cast<int64_t>(i);
         model_map.push_back(label_id_in);
         n_new_labels++;
@@ -409,20 +427,25 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     }
 
     if (n_new_labels) {
+      // In the case of validation we don't allow unseen labels.
       if (validation) {
         throw ValueError() << "Validation target column cannot contain labels, "
                            << "the model was not trained on";
       }
 
+      // Extract new labels from `dt_labels_in`, and rbind them to `dt_labels`.
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
       set_ids(dt_labels_in, dt_labels->nrows);
-
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
+
+      // It is necessary to re-key the column, because there is no guarantee
+      // that rbind didn't break data ordering.
       std::vector<size_t> keys{ 0 };
       dt_labels->set_key(keys);
 
+      // Add new models for the new labels.
       if (n_new_labels) adjust_model();
     }
 
@@ -614,25 +637,31 @@ void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
 }
 
 
-
+/**
+ *  This method calls `predict` with the proper label id type:
+ *  - for binomial and numeric regression label ids are `int8`;
+ *  - for multinomial regression label ids are `int32`.
+ */
 template <typename T>
 dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X_in) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
+  dt_X = dt_X_in;
+
   SType label_id_stype = dt_labels->columns[1]->stype();
   dtptr dt_p;
-
   switch (label_id_stype) {
-    case SType::BOOL:  dt_p = predict<int8_t>(dt_X_in); break;
-    case SType::INT32: dt_p = predict<int32_t>(dt_X_in); break;
+    case SType::BOOL:  dt_p = predict<int8_t>(); break;
+    case SType::INT32: dt_p = predict<int32_t>(); break;
     default: throw TypeError() << "Label id type  `"
                                << label_id_stype << "` is not supported";
   }
+  dt_X = nullptr;
+
   return dt_p;
 }
-
 
 
 /**
@@ -641,12 +670,13 @@ dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X_in) {
  */
 template <typename T>
 template <typename U /* label id type */>
-dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
+dtptr Ftrl<T>::predict() {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
-  dt_X = dt_X_in;
+
+  // Re-acquire model weight pointers.
   init_weights();
 
   // Re-create hashers, as stypes for predictions may be different.
@@ -705,14 +735,11 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X_in) {
     });
   }
 
-
-
   // For multinomial case, when there is two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
   // than two labels, we use `std::exp` link function, and do normalization,
   // so that predictions sum up to 1, effectively doing `softmax` linking.
   if (nlabels > 2) normalize_rows(dt_p);
-  dt_X = nullptr;
   return dt_p;
 }
 
