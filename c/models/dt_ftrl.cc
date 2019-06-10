@@ -175,33 +175,15 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 }
 
 
-
+/**
+ *  Set up sequential ids starting from `i0` for the new labels encoutered
+ *  in multinomial case.
+ */
 template <typename T>
-void Ftrl<T>::reverse_ids(dtptr& dt) {
-  auto col = static_cast<IntColumn<int32_t>*>(dt->columns[1]);
-  auto data = col->elements_w();
+void Ftrl<T>::set_ids(Column* col, size_t i0) {
+  auto data = static_cast<int32_t*>(col->data_w());
   for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] = static_cast<int32_t>(col->nrows - i - 1);
-  }
-}
-
-
-template <typename T>
-void Ftrl<T>::shift_ids(dtptr& dt, size_t id0) {
-  auto col = static_cast<IntColumn<int32_t>*>(dt->columns[1]);
-  auto data = col->elements_w();
-  for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] += id0;
-  }
-}
-
-
-template <typename T>
-void Ftrl<T>::set_ids(dtptr& dt, size_t id0) {
-  auto col = static_cast<IntColumn<int32_t>*>(dt->columns[1]);
-  auto data = col->elements_w();
-  for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] = static_cast<int32_t>(id0 + i);
+    data[i] = static_cast<int32_t>(i0 + i);
   }
 }
 
@@ -238,7 +220,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto label_in_ids = static_cast<const int8_t*>(dt_labels_in->columns[1]->data());
+    auto label_in_ids = static_cast<int8_t*>(dt_labels_in->columns[1]->data_w());
     auto label_ids = static_cast<const int8_t*>(dt_labels->columns[1]->data());
 
 
@@ -248,7 +230,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                            // The new label we got was encoded with zeros,
                            // so we train the model on all negatives: 1 == 0
                            model_map[0] = 1;
-                           shift_ids(dt_labels_in, 1);
+                           label_in_ids[0] = 1;
                            dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
                            std::vector<size_t> keys{ 0 };
                            dt_labels->set_key(keys);
@@ -262,8 +244,11 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                          // then we need to train on the existing label indicator
                          // i.e. the first one.
                          model_map[0] = static_cast<size_t>(label_in_ids[ri_join[0] == RowIndex::NA]);
-                         if (model_map[0] == 1) reverse_ids(dt_labels_in);
-
+                         // Reverse labels id order if the new label comes first.
+                         if (model_map[0] == 1) {
+                           label_in_ids[0] = 1;
+                           label_in_ids[1] = 0;
+                         }
                          dt_labels = std::move(dt_labels_in);
               }
               break;
@@ -437,7 +422,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      set_ids(dt_labels_in, dt_labels->nrows);
+      set_ids(dt_labels_in->columns[1], dt_labels->nrows);
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
 
       // It is necessary to re-key the column, because there is no guarantee
@@ -744,6 +729,7 @@ dtptr Ftrl<T>::predict() {
 }
 
 
+// FIXME: we only have one target columns now
 /**
  *  Obtain pointers to column rowindexes and data.
  */

@@ -125,9 +125,7 @@ class Ftrl : public dt::FtrlBase {
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
     void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
     // Adjust ids in the labels datatable
-    void reverse_ids(dtptr&);
-    void shift_ids(dtptr&, size_t);
-    void set_ids(dtptr&, size_t);
+    void set_ids(Column*, size_t);
 
 
     // Feature importance helper methods
