@@ -46,8 +46,8 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   mantissa_nbits(params_in.mantissa_nbits),
   nepochs(params_in.nepochs),
   nfeatures(0),
-  dt_X(nullptr),
-  dt_y(nullptr),
+  dt_X_train(nullptr),
+  dt_y_train(nullptr),
   dt_X_val(nullptr),
   dt_y_val(nullptr),
   nepochs_val(T_NAN),
@@ -71,15 +71,15 @@ Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {
  *  training stopped, and the corresponding loss.
  */
 template <typename T>
-FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
-                                    const DataTable* dt_y_in,
+FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
+                                    const DataTable* dt_y_train_in,
                                     const DataTable* dt_X_val_in,
                                     const DataTable* dt_y_val_in,
                                     double nepochs_val_in,
                                     double val_error_in,
                                     size_t val_niters_in) {
-  dt_X = dt_X_in;
-  dt_y = dt_y_in;
+  dt_X_train = dt_X_train_in;
+  dt_y_train = dt_y_train_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
   nepochs_val = static_cast<T>(nepochs_val_in);
@@ -87,7 +87,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
   val_niters = val_niters_in;
   FtrlFitOutput res;
 
-  SType stype_y = dt_y->columns[0]->stype();
+  SType stype_y = dt_y_train->columns[0]->stype();
   FtrlModelType model_type_train = !is_model_trained()? params.model_type :
                                                         model_type;
 
@@ -127,14 +127,14 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
     case FtrlModelType::NONE : throw ValueError() << "Cannot train model in an unknown mode";
   }
 
-  dt_X = nullptr;
-  dt_y = nullptr;
+  dt_X_train = nullptr;
+  dt_y_train = nullptr;
   dt_X_val = nullptr;
   dt_y_val = nullptr;
   nepochs_val = T_NAN;
   val_error = T_NAN;
-  map.clear();
-  map_val.clear();
+  label_ids_train.clear();
+  label_ids_val.clear();
   return res;
 }
 
@@ -144,17 +144,17 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_in,
  */
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
-  dtptr dt_y_binomial, dt_y_val_binomial;
+  dtptr dt_y_train_binomial, dt_y_val_binomial;
   bool validation = !std::isnan(nepochs_val);
-  create_y_binomial(dt_y, dt_y_binomial, map);
+  create_y_binomial(dt_y_train, dt_y_train_binomial, label_ids_train);
 
   // NA values are ignored during training, so if we stop training right away,
   // if got only NA's.
-  if (dt_y_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
-  dt_y = dt_y_binomial.get();
+  if (dt_y_train_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
+  dt_y_train = dt_y_train_binomial.get();
 
   if (validation) {
-    create_y_binomial(dt_y_val, dt_y_val_binomial, map_val);
+    create_y_binomial(dt_y_val, dt_y_val_binomial, label_ids_val);
     if (dt_y_val_binomial == nullptr) {
       throw ValueError() << "Cannot set early stopping criteria as validation "
                             "target column got only `NA` targets";
@@ -168,8 +168,8 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
   }
 
   return fit<int8_t>(sigmoid<T>,
-                     [] (int8_t y, size_t label_indicator) -> int8_t {
-                       return static_cast<size_t>(y) == label_indicator;
+                     [] (int8_t y, size_t label_id) -> int8_t {
+                       return static_cast<size_t>(y) == label_id;
                      },
                      log_loss<T>);
 }
@@ -195,8 +195,8 @@ void Ftrl<T>::set_ids(Column* col, size_t i0) {
 template <typename T>
 void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 dtptr& dt_binomial,
-                                std::vector<size_t>& model_map) {
-  xassert(model_map.size() == 0);
+                                std::vector<size_t>& label_ids) {
+  xassert(label_ids.size() == 0);
   dtptr dt_labels_in;
   label_encode(dt->columns[0], dt_labels_in, dt_binomial, true);
 
@@ -211,7 +211,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 
   // By default we assume zero model got zero indicator
   // [label_id] -> indicator_id
-  model_map.push_back(0);
+  label_ids.push_back(0);
 
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
@@ -220,8 +220,8 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto label_in_ids = static_cast<int8_t*>(dt_labels_in->columns[1]->data_w());
-    auto label_ids = static_cast<const int8_t*>(dt_labels->columns[1]->data());
+    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->columns[1]->data_w());
+    auto data_label_ids = static_cast<const int8_t*>(dt_labels->columns[1]->data());
 
 
     switch (nlabels) {
@@ -229,8 +229,8 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                  case 1: if (ri_join[0] == RowIndex::NA) {
                            // The new label we got was encoded with zeros,
                            // so we train the model on all negatives: 1 == 0
-                           model_map[0] = 1;
-                           label_in_ids[0] = 1;
+                           label_ids[0] = 1;
+                           data_label_ids_in[0] = 1;
                            dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
                            std::vector<size_t> keys{ 0 };
                            dt_labels->set_key(keys);
@@ -243,11 +243,11 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                          // If the new label is the zero label,
                          // then we need to train on the existing label indicator
                          // i.e. the first one.
-                         model_map[0] = static_cast<size_t>(label_in_ids[ri_join[0] == RowIndex::NA]);
+                         label_ids[0] = static_cast<size_t>(data_label_ids_in[ri_join[0] == RowIndex::NA]);
                          // Reverse labels id order if the new label comes first.
-                         if (model_map[0] == 1) {
-                           label_in_ids[0] = 1;
-                           label_in_ids[1] = 0;
+                         if (label_ids[0] == 1) {
+                           data_label_ids_in[0] = 1;
+                           data_label_ids_in[1] = 0;
                          }
                          dt_labels = std::move(dt_labels_in);
               }
@@ -258,14 +258,14 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                           throw ValueError() << "Got a new label in the target column, however, both "
                                              << "positive and negative labels are already set";
                         }
-                        model_map[0] = (label_ids[ri_join[0]] == 1);
+                        label_ids[0] = (data_label_ids[ri_join[0]] == 1);
                         break;
                 case 2: if (ri_join[0] == RowIndex::NA || ri_join[1] == RowIndex::NA) {
                           throw ValueError() << "Got a new label in the target column, however, both "
                                              << "positive and negative labels are already set";
                         }
-                        size_t label_id = static_cast<size_t>(label_ids[ri_join[0]] != 0);
-                        model_map[0] = static_cast<size_t>(label_in_ids[label_id]);
+                        size_t label_id = static_cast<size_t>(data_label_ids[ri_join[0]] != 0);
+                        label_ids[0] = static_cast<size_t>(data_label_ids_in[label_id]);
 
                         break;
               }
@@ -284,22 +284,22 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
-  xassert(dt_y->ncols == 1);
+  xassert(dt_y_train->ncols == 1);
   if (is_model_trained() && model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
   if (!is_model_trained()) {
-    const strvec& colnames = dt_y->get_names();
+    const strvec& colnames = dt_y_train->get_names();
     std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
     dt_labels = create_dt_labels_str<uint32_t, SType::BOOL>(colnames_map);
 
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
-  map = { 0 };
-  map_val = { 0 };
+  label_ids_train = { 0 };
+  label_ids_val = { 0 };
 
   return fit<U>(identity<T>,
                 [](U y, size_t label_indicator) -> U {
@@ -327,16 +327,16 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
-  dtptr dt_y_multinomial;
-  create_y_multinomial(dt_y, dt_y_multinomial, map);
+  dtptr dt_y_train_multinomial;
+  create_y_multinomial(dt_y_train, dt_y_train_multinomial, label_ids_train);
 
-  if (dt_y_multinomial == nullptr) return {0, static_cast<double>(T_NAN)};
-  dt_y = dt_y_multinomial.get();
+  if (dt_y_train_multinomial == nullptr) return {0, static_cast<double>(T_NAN)};
+  dt_y_train = dt_y_train_multinomial.get();
 
   // Create validation targets if needed.
   dtptr dt_y_val_multinomial;
   if (!std::isnan(nepochs_val)) {
-    create_y_multinomial(dt_y_val, dt_y_val_multinomial, map_val, true);
+    create_y_multinomial(dt_y_val, dt_y_val_multinomial, label_ids_val, true);
     if (dt_y_val_multinomial == nullptr)
       throw ValueError() << "Cannot set early stopping criteria as validation "
                          << "target column got only `NA` targets";
@@ -353,17 +353,17 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
 
 /**
  *  Encode target column with the integer labels, and set up mapping
- *  between models and the incoming label inficators.
+ *  between models and the incoming label indicators.
  */
 template <typename T>
 void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       dtptr& dt_multinomial,
-                                      std::vector<size_t>& model_map,
+                                      std::vector<size_t>& label_ids,
                                       bool validation /* = false */) {
-  xassert(model_map.size() == 0)
+  xassert(label_ids.size() == 0)
   dtptr dt_labels_in;
   label_encode(dt->columns[0], dt_labels_in, dt_multinomial);
-  auto label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
+  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
 
   size_t nlabels_in = dt_labels_in->nrows;
 
@@ -374,21 +374,21 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   // labels. Mapping is trivial in this case.
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
-    model_map.resize(nlabels_in);
+    label_ids.resize(nlabels_in);
     for (size_t i = 0; i < nlabels_in; ++i) {
-      model_map[i] = i;
+      label_ids[i] = i;
     }
     adjust_model();
   } else {
     // When we already have some labels, and got new ones, we first
     // set up mapping in such a way, so that models will train
     // on all the negatives.
-    auto label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
+    auto data_label_ids = static_cast<const int32_t*>(dt_labels->columns[1]->data());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
 
     for (size_t i = 0; i < nlabels; ++i) {
-      model_map.push_back(std::numeric_limits<size_t>::max());
+      label_ids.push_back(std::numeric_limits<size_t>::max());
     }
 
     // Then we go through the list of new labels and relate existing models
@@ -398,15 +398,15 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     size_t n_new_labels = 0;
     for (size_t i = 0; i < nlabels_in; ++i) {
       size_t ri = ri_join[i];
-      size_t label_id_in = static_cast<size_t>(label_ids_in[i]);
+      size_t label_id_in = static_cast<size_t>(data_label_ids_in[i]);
       if (ri != RowIndex::NA) {
-        size_t label_id = static_cast<size_t>(label_ids[ri]);
-        model_map[label_id] = label_id_in;
+        size_t label_id = static_cast<size_t>(data_label_ids[ri]);
+        label_ids[label_id] = label_id_in;
       } else {
         // If there is no corresponding label already set,
         // we will need to create a new one and its  model.
         data[n_new_labels] = static_cast<int64_t>(i);
-        model_map.push_back(label_id_in);
+        label_ids.push_back(label_id_in);
         n_new_labels++;
       }
     }
@@ -449,18 +449,18 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   define_features();
   init_weights();
   if (dt_fi == nullptr) create_fi();
-  auto hashers = create_hashers(dt_X);
+  auto hashers = create_hashers(dt_X_train);
 
   // Obtain rowindex and data pointers for the target column(s).
   std::vector<RowIndex> ri, ri_val;
-  std::vector<const U*> data, data_val;
-  fill_ri_data<U>(dt_y, ri, data);
+  std::vector<const U*> data_y, data_y_val;
+  fill_ri_data<U>(dt_y_train, ri, data_y);
   auto data_fi = static_cast<T*>(dt_fi->columns[1]->data_w());
 
   // Training settings. By default each training iteration consists of
-  // `dt_X->nrows` rows.
+  // `dt_X_train->nrows` rows.
   size_t niterations = nepochs;
-  size_t iteration_nrows = dt_X->nrows;
+  size_t iteration_nrows = dt_X_train->nrows;
   size_t total_nrows = niterations * iteration_nrows;
 
   // If a validation set is provided, we adjust batch size to `nepochs_val`.
@@ -474,10 +474,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   std::vector<hasherptr> hashers_val;
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X->nrows);
+    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);
     niterations = total_nrows / iteration_nrows;
     loss_history.resize(val_niters, 0.0);
-    fill_ri_data<U>(dt_y_val, ri_val, data_val);
+    fill_ri_data<U>(dt_y_val, ri_val, data_y_val);
   }
 
 
@@ -503,12 +503,12 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
         // Training.
         dt::parallel_for_static(iteration_size, [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X->nrows;
+          size_t ii = (iteration_start + i) % dt_X_train->nrows;
           const size_t j0 = ri[0][ii];
 
-          if (j0 != RowIndex::NA && !ISNA<U>(data[0][j0])) {
+          if (j0 != RowIndex::NA && !ISNA<U>(data_y[0][j0])) {
             hash_row(x, hashers, ii);
-            for (size_t k = 0; k < map.size(); ++k) {
+            for (size_t k = 0; k < label_ids_train.size(); ++k) {
               const size_t j = ri[0][ii];
 
               T p = linkfn(predict_row(
@@ -518,7 +518,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
                       }
                     ));
 
-              U y = targetfn(data[0][j], map[k]);
+              // `targetfn` returns the actual target for the k-th model,
+              // depending on the data in the y column and the label indicator.
+              // When we do multilabel, we will have a set of y columns
+              // and some sort of loop over the data_y[i] here.
+              U y = targetfn(data_y[0][j], label_ids_train[k]);
               update(x, w, p, y, k);
             }
           }
@@ -533,14 +537,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
-            if (j0 != RowIndex::NA && !ISNA<U>(data_val[0][j0])) {
+            if (j0 != RowIndex::NA && !ISNA<U>(data_y_val[0][j0])) {
               hash_row(x, hashers_val, i);
-              for (size_t k = 0; k < map_val.size(); ++k) {
+              for (size_t k = 0; k < label_ids_val.size(); ++k) {
                 const size_t j = ri_val[0][i];
                 T p = linkfn(predict_row(
                         x, w, k, [&](size_t, T){}
                       ));
-                U y = targetfn(data_val[0][j], map_val[k]);
+                U y = targetfn(data_y_val[0][j], label_ids_val[k]);
                 loss_local += lossfn(p, y);
               }
             }
@@ -575,7 +579,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
     }
   );
 
-  double epoch_stopped = static_cast<double>(iteration_end) / dt_X->nrows;
+  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
   return res;
 }
@@ -628,22 +632,20 @@ void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
  *  - for multinomial regression label ids are `int32`.
  */
 template <typename T>
-dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X_in) {
+dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
-  dt_X = dt_X_in;
 
   SType label_id_stype = dt_labels->columns[1]->stype();
   dtptr dt_p;
   switch (label_id_stype) {
-    case SType::BOOL:  dt_p = predict<int8_t>(); break;
-    case SType::INT32: dt_p = predict<int32_t>(); break;
+    case SType::BOOL:  dt_p = predict<int8_t>(dt_X); break;
+    case SType::INT32: dt_p = predict<int32_t>(dt_X); break;
     default: throw TypeError() << "Label id type  `"
                                << label_id_stype << "` is not supported";
   }
-  dt_X = nullptr;
 
   return dt_p;
 }
@@ -655,7 +657,7 @@ dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X_in) {
  */
 template <typename T>
 template <typename U /* label id type */>
-dtptr Ftrl<T>::predict() {
+dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
@@ -670,7 +672,7 @@ dtptr Ftrl<T>::predict() {
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows;
 
-  auto label_ids = static_cast<const U*>(dt_labels->columns[1]->data());
+  auto data_label_ids = static_cast<const U*>(dt_labels->columns[1]->data());
 
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
@@ -702,7 +704,7 @@ dtptr Ftrl<T>::predict() {
     dt::parallel_for_static(dt_X->nrows, [&](size_t i){
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
-        size_t label_id = static_cast<size_t>(label_ids[k]);
+        size_t label_id = static_cast<size_t>(data_label_ids[k]);
         if (model_type == FtrlModelType::BINOMIAL && label_id == 1) {
           k_binomial = k;
           continue;
@@ -729,7 +731,6 @@ dtptr Ftrl<T>::predict() {
 }
 
 
-// FIXME: we only have one target columns now
 /**
  *  Obtain pointers to column rowindexes and data.
  */
@@ -918,7 +919,7 @@ void Ftrl<T>::init_weights() {
  */
 template <typename T>
 void Ftrl<T>::create_fi() {
-  const strvec& colnames = dt_X->get_names();
+  const strvec& colnames = dt_X_train->get_names();
 
   dt::writable_string_col c_fi_names(nfeatures);
   dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
@@ -965,7 +966,7 @@ void Ftrl<T>::init_fi() {
  */
 template <typename T>
 void Ftrl<T>::define_features() {
-  nfeatures = dt_X->ncols + interactions.size();
+  nfeatures = dt_X_train->ncols + interactions.size();
 }
 
 
@@ -1030,7 +1031,7 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
                            size_t row) {
   // Hash column values adding a column name hash, so that the same value
   // in different columns results in different hashes.
-  for (size_t i = 0; i < dt_X->ncols; ++i) {
+  for (size_t i = 0; i < hashers.size(); ++i) {
     x[i] = (hashers[i]->hash(row) + colname_hashes[i]) % nbins;
   }
 
@@ -1038,7 +1039,7 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
   if (interactions.size() > 0) {
     size_t count = 0;
     for (auto interaction : interactions) {
-      size_t i = dt_X->ncols + count;
+      size_t i = hashers.size() + count;
       x[i] = 0;
       for (auto feature_id : interaction) {
         x[i] += x[feature_id];

@@ -79,8 +79,8 @@ class Ftrl : public dt::FtrlBase {
 
     // Pointers to training and validation datatables, they are
     // only valid during training.
-    const DataTable* dt_X;
-    const DataTable* dt_y;
+    const DataTable* dt_X_train;
+    const DataTable* dt_y_train;
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
 
@@ -93,8 +93,8 @@ class Ftrl : public dt::FtrlBase {
     // indicators, i.e. if map[i] == j, we train i-th model
     // on positives, when encounter j in the encoded data,
     // and train on negatives otherwise.
-    std::vector<size_t> map;
-    std::vector<size_t> map_val;
+    std::vector<size_t> label_ids_train;
+    std::vector<size_t> label_ids_val;
 
     // Fitting methods
     FtrlFitOutput fit_binomial();
@@ -106,7 +106,7 @@ class Ftrl : public dt::FtrlBase {
     template <typename>
 
     // Predicting methods
-    dtptr predict();
+    dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 

@@ -262,16 +262,16 @@ oobj Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame parameter is missing";
   }
 
-  DataTable* dt_X = arg_X_train.to_datatable();
+  DataTable* dt_X_train = arg_X_train.to_datatable();
   DataTable* dt_y = arg_y_train.to_datatable();
 
-  if (dt_X == nullptr || dt_y == nullptr) return py::None();
+  if (dt_X_train == nullptr || dt_y == nullptr) return py::None();
 
-  if (dt_X->ncols == 0) {
+  if (dt_X_train->ncols == 0) {
     throw ValueError() << "Training frame must have at least one column";
   }
 
-  if (dt_X->nrows == 0) {
+  if (dt_X_train->nrows == 0) {
     throw ValueError() << "Training frame cannot be empty";
   }
 
@@ -279,16 +279,16 @@ oobj Ftrl::fit(const PKArgs& args) {
     throw ValueError() << "Target frame must have exactly one column";
   }
 
-  if (dt_X->nrows != dt_y->nrows) {
+  if (dt_X_train->nrows != dt_y->nrows) {
     throw ValueError() << "Target column must have the same number of rows "
                        << "as the training frame";
   }
 
   if (!dtft->is_model_trained()) {
-    colnames = dt_X->get_names();
+    colnames = dt_X_train->get_names();
   }
 
-  if (dtft->is_model_trained() && dt_X->get_names() != colnames) {
+  if (dtft->is_model_trained() && dt_X_train->get_names() != colnames) {
     throw ValueError() << "Training frame names cannot change for a trained "
                        << "model";
   }
@@ -310,7 +310,7 @@ oobj Ftrl::fit(const PKArgs& args) {
     dt_X_val = arg_X_validation.to_datatable();
     dt_y_val = arg_y_validation.to_datatable();
 
-    if (dt_X_val->ncols != dt_X->ncols) {
+    if (dt_X_val->ncols != dt_X_train->ncols) {
       throw ValueError() << "Validation frame must have the same number of "
                          << "columns as the training frame";
     }
@@ -360,7 +360,7 @@ oobj Ftrl::fit(const PKArgs& args) {
     } else val_niters = 1;
   }
 
-  dt::FtrlFitOutput output = dtft->dispatch_fit(dt_X, dt_y,
+  dt::FtrlFitOutput output = dtft->dispatch_fit(dt_X_train, dt_y,
                                                 dt_X_val, dt_y_val,
                                                 nepochs_val, val_error, val_niters);
 
