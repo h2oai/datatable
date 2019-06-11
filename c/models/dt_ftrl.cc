@@ -200,17 +200,16 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
   dtptr dt_labels_in;
   label_encode(dt->columns[0], dt_labels_in, dt_binomial, true);
 
-  size_t nlabels_in = dt_labels_in->nrows;
-
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
+  size_t nlabels_in = dt_labels_in->nrows;
+
   if (nlabels_in > 2) {
     throw ValueError() << "For binomial regression target column should have "
                        << "two labels at maximum, got: " << nlabels_in;
   }
 
-  // By default we assume zero model got zero indicator
-  // [label_id] -> indicator_id
+  // By default we assume zero model got zero label id
   label_ids.push_back(0);
 
   if (dt_labels == nullptr) {
@@ -321,11 +320,6 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
                          "in a multinomial mode this model should be reset.";
   }
 
-  if (!is_model_trained()) {
-    xassert(dt_model == nullptr);
-    create_model();
-    model_type = FtrlModelType::MULTINOMIAL;
-  }
 
   dtptr dt_y_train_multinomial;
   create_y_multinomial(dt_y_train, dt_y_train_multinomial, label_ids_train);
@@ -341,6 +335,12 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
       throw ValueError() << "Cannot set early stopping criteria as validation "
                          << "target column got only `NA` targets";
     dt_y_val = dt_y_val_multinomial.get();
+  }
+
+  if (!is_model_trained()) {
+    xassert(dt_model == nullptr);
+    create_model();
+    model_type = FtrlModelType::MULTINOMIAL;
   }
 
   return fit<int32_t>(sigmoid<T>,
@@ -363,12 +363,12 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   xassert(label_ids.size() == 0)
   dtptr dt_labels_in;
   label_encode(dt->columns[0], dt_labels_in, dt_multinomial);
-  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
-
-  size_t nlabels_in = dt_labels_in->nrows;
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
+
+  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->columns[1]->data());
+  size_t nlabels_in = dt_labels_in->nrows;
 
   // When we only start training, all the incoming labels become the model
   // labels. Mapping is trivial in this case.
@@ -378,7 +378,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     for (size_t i = 0; i < nlabels_in; ++i) {
       label_ids[i] = i;
     }
-    adjust_model();
+
   } else {
     // When we already have some labels, and got new ones, we first
     // set up mapping in such a way, so that models will train

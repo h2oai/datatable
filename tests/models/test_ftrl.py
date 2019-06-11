@@ -547,6 +547,17 @@ def test_ftrl_predict_wrong_frame():
 # Test `fit` and `predict` methods for binomial classification
 #-------------------------------------------------------------------------------
 
+def test_ftrl_fit_none():
+    ft = Ftrl(nbins = 10, model_type = "binomial")
+    df_train = dt.Frame(range(ft.nbins))
+    df_target = dt.Frame([None] * ft.nbins)
+    res = ft.fit(df_train, df_target)
+    assert ft.model_type == "binomial"
+    assert ft.model_type_trained == "none"
+    assert res.epoch == 0.0
+    assert res.loss is None
+
+
 def test_ftrl_fit_unique():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
@@ -828,9 +839,21 @@ def test_ftrl_fit_predict_binomial_online_2_2():
     assert max(delta_odd) < epsilon
     assert max(delta_even) < epsilon
 
+
 #-------------------------------------------------------------------------------
 # Test multinomial regression
 #-------------------------------------------------------------------------------
+
+def test_ftrl_fit_multinomial_none():
+    ft = Ftrl(nbins = 10, model_type = "multinomial")
+    df_train = dt.Frame(range(ft.nbins))
+    df_target = dt.Frame([None] * ft.nbins)
+    res = ft.fit(df_train, df_target)
+    assert ft.model_type == "multinomial"
+    assert ft.model_type_trained == "none"
+    assert res.epoch == 0.0
+    assert res.loss is None
+
 
 def test_ftrl_fit_predict_multinomial_vs_binomial():
     target_names = ["cat", "dog"]
@@ -953,7 +976,19 @@ def test_ftrl_fit_predict_multinomial_online():
 # Test regression for numerical targets
 #-------------------------------------------------------------------------------
 
-def test_ftrl_regression():
+# FIXME: we shouldn't start numeric regression when get only None's
+def test_ftrl_regression_fit_none():
+    ft = Ftrl(nbins = 10, model_type = "regression")
+    df_train = dt.Frame(range(ft.nbins))
+    df_target = dt.Frame([None] * ft.nbins)
+    res = ft.fit(df_train, df_target)
+    assert ft.model_type == "regression"
+    assert ft.model_type_trained == "regression"
+    assert res.epoch == 1.0
+    assert res.loss is None
+
+
+def test_ftrl_regression_fit():
     ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
     r = range(ft.nbins)
     df_train = dt.Frame(r)
@@ -970,7 +1005,6 @@ def test_ftrl_regression():
 #-------------------------------------------------------------------------------
 # Test early stopping
 #-------------------------------------------------------------------------------
-
 
 def test_ftrl_wrong_validation_parameters():
     nepochs = 1234
