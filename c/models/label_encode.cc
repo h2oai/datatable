@@ -65,8 +65,7 @@ void label_encode(const Column* col, dtptr& dt_labels, dtptr& dt_encoded,
     }
   }
 
-  // Set key to the labels column for later joining
-  // with the new labels.
+  // Set key to the labels column for later joining with the new labels.
   if (dt_labels != nullptr) {
     std::vector<size_t> keys{ 0 };
     dt_labels->set_key({ keys });

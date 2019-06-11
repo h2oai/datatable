@@ -64,10 +64,9 @@ class Ftrl : public dt::FtrlBase {
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
-    //  index 0 - positive label
-    //  index 1 - negative label
-    // This is because we consider the first incoming label as a
-    // positive class.
+    //   index 0: negative label
+    //   index 1: positive label
+    // and we only train the zero model.
     dtptr dt_labels;
 
     // Total number of features used for training, this includes
@@ -89,8 +88,8 @@ class Ftrl : public dt::FtrlBase {
     T val_error;
     size_t val_niters;
 
-    // These vectors relate model_id with the incoming label
-    // indicators, i.e. if map[i] == j, we train i-th model
+    // These mappings relate model_id's to the incoming label
+    // indicators, i.e. if label_ids_train[i] == j, we train i-th model
     // on positives, when encounter j in the encoded data,
     // and train on negatives otherwise.
     std::vector<size_t> label_ids_train;
@@ -124,9 +123,9 @@ class Ftrl : public dt::FtrlBase {
     // Do label encoding and set up mapping information
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
     void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
-    // Adjust ids in the labels datatable
-    void set_ids(Column*, size_t);
 
+    // Set up ids in the labels datatable
+    void set_ids(Column*, size_t);
 
     // Feature importance helper methods
     void create_fi();

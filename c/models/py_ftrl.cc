@@ -33,7 +33,7 @@ namespace py {
 /**
  *  Model type names and their corresponding dt::FtrlModelType's
  */
-static const std::map<std::string, dt::FtrlModelType> FtrlModelNameType {
+static const std::unordered_map<std::string, dt::FtrlModelType> FtrlModelNameType {
    {"none", dt::FtrlModelType::NONE},
    {"auto", dt::FtrlModelType::AUTO},
    {"regression", dt::FtrlModelType::REGRESSION},

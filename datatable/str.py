@@ -17,4 +17,4 @@
 from datatable.lib._datatable import split_into_nhot
 
 
-__all__ = ["split_into_nhot",]
+__all__ = ["split_into_nhot"]

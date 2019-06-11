@@ -104,10 +104,10 @@ void DataTable::clear_key() {
 }
 
 
-RowIndex DataTable::set_key(std::vector<size_t>& col_indices) {
+void DataTable::set_key(std::vector<size_t>& col_indices) {
   if (col_indices.empty()) {
     nkeys = 0;
-    return RowIndex();
+    return;
   }
   // Check that col_indices are unique
   size_t K = col_indices.size();
@@ -159,7 +159,6 @@ RowIndex DataTable::set_key(std::vector<size_t>& col_indices) {
   materialize();
 
   nkeys = K;
-  return ri;
 }
 
 

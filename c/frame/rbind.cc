@@ -266,7 +266,6 @@ void DatatableModule::init_methods_rbind() {
  * number `cols[i][j]` in Frame `dts[j]` (if `cols[i][j] >= 0`, otherwise
  * NAs).
  */
-#include <iostream>
 void DataTable::rbind(
     const std::vector<DataTable*>& dts, const std::vector<intvec>& cols)
 {

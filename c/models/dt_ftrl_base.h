@@ -24,7 +24,6 @@
 #include "models/utils.h"
 #include "str/py_str.h"
 #include "options.h"
-#include <map>
 namespace dt {
 
 

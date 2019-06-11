@@ -23,9 +23,7 @@
 namespace dt {
 
   void label_encode(const Column*, dtptr&, dtptr&, bool is_binomial = false);
-
   void label_encode_bool(const Column*, dtptr&, dtptr&);
-
   template <SType, SType>
   void label_encode_fw(const Column*, dtptr&, dtptr&);
   template <typename, SType>

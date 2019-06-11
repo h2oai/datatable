@@ -26,6 +26,7 @@
 #include "models/dt_ftrl.h"
 #include "models/dt_ftrl_base.h"
 #include "models/py_validator.h"
+#include <map>
 
 namespace py {
 
@@ -69,6 +70,7 @@ class Ftrl : public PyObject {
 
     // Getters
     oobj get_labels() const;
+    oobj get_dt_labels() const;
     oobj get_fi() const;
     oobj get_normalized_fi(bool) const;
     oobj get_model() const;
@@ -91,6 +93,7 @@ class Ftrl : public PyObject {
 
     // Setters
     void set_model(robj);             // Not exposed, used for unpickling only
+    void set_labels(robj);            // Not exposed, used for unpickling only
     void set_colnames(robj);          // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
     void set_params_namedtuple(robj); // Not exposed, used in `m__init__` only
