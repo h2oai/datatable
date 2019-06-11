@@ -168,13 +168,13 @@ void Ftrl::m__dealloc__() {
  *  of the training frame.
  */
 void Ftrl::init_dt_interactions() {
-  std::vector<sizetvec> interactions;
+  std::vector<intvec> interactions;
   auto py_iter = py_params.get_attr("interactions").to_oiter();
   interactions.reserve(py_iter.size());
 
   for (auto py_interaction : py_iter) {
     size_t nfeatures = py_interaction.to_pylist().size();
-    sizetvec interaction;
+    intvec interaction;
     interaction.reserve(nfeatures);
     for (auto py_feature : py_interaction.to_oiter()) {
       std::string feature = py_feature.to_string();

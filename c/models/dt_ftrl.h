@@ -60,7 +60,7 @@ class Ftrl : public dt::FtrlBase {
     unsigned char mantissa_nbits;
     size_t: 56;
     size_t nepochs;
-    std::vector<sizetvec> interactions;
+    std::vector<intvec> interactions;
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
@@ -170,7 +170,7 @@ class Ftrl : public dt::FtrlBase {
     uint64_t get_nbins() override;
     unsigned char get_mantissa_nbits() override;
     size_t get_nepochs() override;
-    const std::vector<sizetvec>& get_interactions() override;
+    const std::vector<intvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
     DataTable* get_labels() override;
@@ -187,7 +187,7 @@ class Ftrl : public dt::FtrlBase {
     void set_nbins(uint64_t) override;
     void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(size_t) override;
-    void set_interactions(std::vector<sizetvec>) override;
+    void set_interactions(std::vector<intvec>) override;
     void set_negative_class(bool) override;
     void set_labels(DataTable*) override;
 

@@ -107,7 +107,7 @@ class FtrlBase {
     virtual uint64_t get_nbins() = 0;
     virtual unsigned char get_mantissa_nbits() = 0;
     virtual size_t get_nepochs() = 0;
-    virtual const std::vector<sizetvec>& get_interactions() = 0;
+    virtual const std::vector<intvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual DataTable* get_labels() = 0;
@@ -124,7 +124,7 @@ class FtrlBase {
     virtual void set_nbins(uint64_t) = 0;
     virtual void set_mantissa_nbits(unsigned char) = 0;
     virtual void set_nepochs(size_t) = 0;
-    virtual void set_interactions(std::vector<sizetvec>) = 0;
+    virtual void set_interactions(std::vector<intvec>) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(DataTable*) = 0;
 

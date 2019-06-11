@@ -31,19 +31,18 @@ template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 using sizetptr = std::unique_ptr<size_t[]>;
-using sizetvec = std::vector<size_t>;
 
-void calculate_coprimes(size_t, std::vector<size_t>&);
+void calculate_coprimes(size_t, intvec&);
 
 
 /**
  *  Create list of sorting indexes.
  */
 template <typename T>
-sizetvec sort_index(const std::vector<T> &v) {
+intvec sort_index(const std::vector<T> &v) {
 
   // Initialize original index locations
-  sizetvec index(v.size());
+  intvec index(v.size());
   std::iota(index.begin(), index.end(), 0);
 
   // Sort index based on comparing values in v

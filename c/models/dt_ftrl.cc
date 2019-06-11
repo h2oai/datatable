@@ -231,7 +231,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                            label_ids[0] = 1;
                            data_label_ids_in[0] = 1;
                            dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
-                           std::vector<size_t> keys{ 0 };
+                           intvec keys{ 0 };
                            dt_labels->set_key(keys);
                          }
                          break;
@@ -427,7 +427,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
 
       // It is necessary to re-key the column, because there is no guarantee
       // that rbind didn't break data ordering.
-      std::vector<size_t> keys{ 0 };
+      intvec keys{ 0 };
       dt_labels->set_key(keys);
 
       // Add new models for the new labels.
@@ -1175,7 +1175,7 @@ unsigned char Ftrl<T>::get_mantissa_nbits() {
 
 
 template <typename T>
-const std::vector<sizetvec>& Ftrl<T>::get_interactions() {
+const std::vector<intvec>& Ftrl<T>::get_interactions() {
   return interactions;
 }
 
@@ -1278,7 +1278,7 @@ void Ftrl<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_interactions(std::vector<sizetvec> interactions_in) {
+void Ftrl<T>::set_interactions(std::vector<intvec> interactions_in) {
   interactions = std::move(interactions_in);
 }
 
