@@ -85,6 +85,8 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   nepochs_val = static_cast<T>(nepochs_val_in);
   val_error = static_cast<T>(val_error_in);
   val_niters = val_niters_in;
+  label_ids_train.clear();
+  label_ids_val.clear();
   FtrlFitOutput res;
 
   SType stype_y = dt_y_train->columns[0]->stype();
@@ -133,8 +135,6 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   dt_y_val = nullptr;
   nepochs_val = T_NAN;
   val_error = T_NAN;
-  label_ids_train.clear();
-  label_ids_val.clear();
   return res;
 }
 
