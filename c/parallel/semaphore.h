@@ -37,6 +37,7 @@
 //      misrepresented as being the original software.
 //   3. This notice may not be removed or altered from any source distribution.
 //
+//------------------------------------------------------------------------------
 // This file was modified from the original.
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_SEMAPHORE_h
