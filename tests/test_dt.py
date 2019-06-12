@@ -1266,8 +1266,8 @@ def test_html_repr_unicode():
 
 
 def test_html_repr_joined_frame():
-    L_dt = dt.Frame(A=[5, 6, 7, 9], B=[7, 8, 9, 10])
-    R_dt = dt.Frame(A=[5, 7], B=[7, 9], yhat=[1,2])
+    L_dt = dt.Frame([[5, 6, 7, 9], [7, 8, 9, 10]], names = ["A", "B"])
+    R_dt = dt.Frame([[5, 7], [7, 9], [1, 2]], names = ["A", "B", "yhat"])
     R_dt.key = ["A", "B"]
     DT = L_dt[:, :, dt.join(R_dt)]
     html = DT._repr_html_()
