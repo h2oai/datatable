@@ -24,7 +24,6 @@
 #include "parallel/atomic.h"
 #include "utils/macros.h"
 #include "wstringcol.h"
-#include <iostream>
 #include "column.h"
 
 
@@ -172,19 +171,6 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
                        return static_cast<size_t>(y) == label_id;
                      },
                      log_loss<T>);
-}
-
-
-/**
- *  Set up sequential ids starting from `i0` for the new labels encoutered
- *  in multinomial case.
- */
-template <typename T>
-void Ftrl<T>::set_ids(Column* col, size_t i0) {
-  auto data = static_cast<int32_t*>(col->data_w());
-  for (size_t i = 0; i < col->nrows; ++i) {
-    data[i] = static_cast<int32_t>(i0 + i);
-  }
 }
 
 
@@ -422,7 +408,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      set_ids(dt_labels_in->columns[1], dt_labels->nrows);
+      set_ids(dt_labels_in->columns[1], static_cast<int32_t>(dt_labels->nrows));
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
 
       // It is necessary to re-key the column, because there is no guarantee
@@ -1304,8 +1290,6 @@ void Ftrl<T>::set_labels(DataTable* dt_labels_in) {
 
 template class Ftrl<float>;
 template class Ftrl<double>;
-template <>
-dtptr create_dt_labels_str<uint32_t, SType::BOOL>(const std::unordered_map<std::string, element_t<SType::BOOL>>&);
 
 
 } // namespace dt
