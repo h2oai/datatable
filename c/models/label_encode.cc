@@ -111,7 +111,8 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
         }
 
         if (labels_map.count(v) == 0) {
-          labels_map[v] = static_cast<T_to>(labels_map.size());
+          size_t nlabels = labels_map.size();
+          labels_map[v] = static_cast<T_to>(nlabels);
           outdata[irow] = labels_map[v];
         } else {
           // In case the label was already added from another thread while
@@ -178,7 +179,8 @@ void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
         }
 
         if (labels_map.count(v) == 0) {
-          labels_map[v] = static_cast<T_to>(labels_map.size());
+          size_t nlabels = labels_map.size();
+          labels_map[v] = static_cast<T_to>(nlabels);
           outdata[irow] = labels_map[v];
         } else {
           // In case the label was already added from another thread while
