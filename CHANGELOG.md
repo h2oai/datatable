@@ -164,6 +164,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash that occurred when sorting by multiple columns, and the first
   column is of low cardinality (#1857).
 
+- Fixed display of NA values produced during a join, when a Frame was displayed
+  in Jupyter Lab (#1872).
+
 
 ### Changed
 
@@ -208,6 +211,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
   - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857),
   - [Antorsae][] (#1639),
+  - [Olivier][] (#1872),
   - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816, #1837),
   - [NachiGithub][] (#1789, #1793),

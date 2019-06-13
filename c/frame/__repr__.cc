@@ -256,6 +256,7 @@ class HtmlWidget {
     void render_fw_value(const Column* col, size_t row) {
       auto scol = static_cast<const FwColumn<T>*>(col);
       auto irow = scol->rowindex()[row];
+      if (irow == size_t(-1)) return render_na();
       T val = scol->get_elem(irow);
       if (ISNA<T>(val)) render_na();
       else {
@@ -272,6 +273,7 @@ class HtmlWidget {
     void render_str_value(const Column* col, size_t row) {
       auto scol = static_cast<const StringColumn<T>*>(col);
       auto irow = scol->rowindex()[row];
+      if (irow == size_t(-1)) return render_na();
       const T* offsets = scol->offsets();
       const char* strdata = scol->strdata();
       T str0 = offsets[irow - 1] & ~GETNA<T>();
@@ -286,6 +288,7 @@ class HtmlWidget {
     void render_obj_value(const Column* col, size_t row) {
       auto scol = static_cast<const PyObjectColumn*>(col);
       auto irow = scol->rowindex()[row];
+      if (irow == size_t(-1)) return render_na();
       PyObject* val = scol->get_elem(irow);
       if (ISNA<PyObject*>(val)) render_na();
       else {

@@ -1226,6 +1226,9 @@ def parse_html_repr(html):
     rows = []
     for str_row in str_rows:
         row = re.findall("<td>(.*?)</td>", str_row, re.S)
+        for i, elem in enumerate(row):
+            if elem == "<span class=na>NA</span>":
+                row[i] = None
         rows.append(row)
     html_repr = namedtuple("html_repr", ["names", "stypes", "shape", "data"])
     return html_repr(names=tuple(colnames),
@@ -1260,6 +1263,21 @@ def test_html_repr_unicode():
     html = DT._repr_html_()
     # Check that the string didn't get truncated
     assert src in html
+
+
+def test_html_repr_joined_frame():
+    L_dt = dt.Frame([[5, 6, 7, 9], [7, 8, 9, 10]], names = ["A", "B"])
+    R_dt = dt.Frame([[5, 7], [7, 9], [1, 2]], names = ["A", "B", "yhat"])
+    R_dt.key = ["A", "B"]
+    DT = L_dt[:, :, dt.join(R_dt)]
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == ("A", "B", "yhat")
+    assert hr.shape == (4, 3)
+    assert hr.data == [['5', '7', '1'],
+                       ['6', '8', None],
+                       ['7', '9', '2'],
+                       ['9', '10', None]]
 
 
 
