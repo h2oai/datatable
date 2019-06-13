@@ -21,8 +21,9 @@
 #include <memory>               // std::unique_ptr
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
-#include "parallel/thread_scheduler.h"
 #include "parallel/monitor_thread.h"
+#include "parallel/semaphore.h"
+#include "parallel/thread_scheduler.h"
 namespace dt {
 using std::size_t;
 
@@ -117,9 +118,9 @@ class thread_worker {
 class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
-      static constexpr int LIGHT_SLEEP_ITERATIONS = 65536;
       idle_job* const controller;
-      std::atomic<thread_scheduler*> next_scheduler;
+      thread_scheduler* next_scheduler;
+      LightweightSemaphore semaphore;
 
       sleep_task(idle_job*);
       void execute(thread_worker* worker) override;
@@ -133,8 +134,8 @@ class idle_job : public thread_scheduler {
     // `curr_sleep_task` flip-flop.
     sleep_task* prev_sleep_task;
 
+    // Global mutex
     std::mutex mutex;
-    std::condition_variable wakeup_all_threads_cv;
 
     // How many threads are currently active (i.e. not sleeping)
     std::atomic<int> n_threads_running;

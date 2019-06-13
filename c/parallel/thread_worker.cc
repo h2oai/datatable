@@ -118,30 +118,10 @@ idle_job::sleep_task::sleep_task(idle_job* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
 void idle_job::sleep_task::execute(thread_worker* worker) {
-  // Atomic; notifies controller that this thread is now sleeping
   controller->n_threads_running--;
-
-  // First, the thread goes into a "light sleep", where it busy-waits
-  // for few thousand iterations for a next job to appear. If during
-  // that time a new job is scheduled - we will pick it up almost
-  // immediately, without having to acquire locks / set up condition
-  // variables, etc.
-  for (int i = 0; i < LIGHT_SLEEP_ITERATIONS; ++i) {
-    if (next_scheduler.load() != nullptr)
-      goto end_of_sleep;
-  }
-
-  // "Deep sleep" state: wait for the `wakeup_all_threads_cv`
-  // condition variable to be notified.
-  {
-    std::unique_lock<std::mutex> lock(controller->mutex);
-    while (next_scheduler.load() == nullptr) {
-      controller->wakeup_all_threads_cv.wait(lock);
-    }
-  }
-
-  end_of_sleep:
-  worker->scheduler = next_scheduler.load();
+  semaphore.wait();
+  xassert(next_scheduler);
+  worker->scheduler = next_scheduler;
 }
 
 
@@ -179,19 +159,18 @@ thread_task* idle_job::get_next_task(size_t) {
  * zero, even though no work has been done yet.
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
+  xassert(job);
   xassert(n_threads_running == 0);
+  xassert(prev_sleep_task->next_scheduler == nullptr);
   xassert(curr_sleep_task->next_scheduler == nullptr);
-  // nthreads - 1, because the master never goes to sleep
-  n_threads_running = static_cast<int>(nthreads) - 1;
+  int nth = static_cast<int>(nthreads) - 1;
+
+  std::swap(curr_sleep_task, prev_sleep_task);
+  n_threads_running += nth;
   saved_exception = nullptr;
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    std::swap(curr_sleep_task, prev_sleep_task);
-    curr_sleep_task->next_scheduler = nullptr;
-    prev_sleep_task->next_scheduler = job;
-    // Unlock mutex before awaking all sleeping threads
-  }
-  wakeup_all_threads_cv.notify_all();
+
+  prev_sleep_task->next_scheduler = job;
+  prev_sleep_task->semaphore.signal(nth);
   monitor->set_active(true);
   master_worker->run_master(job);
 }
@@ -238,7 +217,7 @@ void idle_job::catch_exception() noexcept {
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }
-    thread_scheduler* current_job = prev_sleep_task->next_scheduler.load();
+    thread_scheduler* current_job = prev_sleep_task->next_scheduler;
     if (current_job) {
       current_job->abort_execution();
     }
@@ -247,7 +226,7 @@ void idle_job::catch_exception() noexcept {
 
 
 bool idle_job::is_running() const noexcept {
-  return (prev_sleep_task->next_scheduler.load() != nullptr);
+  return (prev_sleep_task->next_scheduler != nullptr);
 }
 
 
