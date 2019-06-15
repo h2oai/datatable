@@ -59,10 +59,9 @@ void progress_manager::finish_work(work* task, bool successfully) {
 
 void progress_manager::update_view() {
   xassert(dt::this_thread_index() == size_t(-1));
-  if (pbar) {
-    std::lock_guard<std::mutex> lock(mutex);
-    pbar->refresh();
-  }
+  if (!pbar) return;
+  std::lock_guard<std::mutex> lock(mutex);
+  pbar->refresh();
 }
 
 
