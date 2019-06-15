@@ -67,8 +67,8 @@ void progress_manager::update_view() {
 
 
 void progress_manager::set_error_status(bool cancelled) noexcept {
-  std::lock_guard<std::mutex> lock(mutex);
   if (!pbar) return;
+  std::lock_guard<std::mutex> lock(mutex);
   try {
     pbar->set_status_error(cancelled);
   } catch (...) {}
