@@ -49,6 +49,7 @@ void progress_manager::finish_work(work* task, bool successfully) {
   xassert(pbar != nullptr);
   tasks.pop();
   if (successfully && tasks.empty()) {
+    std::lock_guard<std::mutex> lock(mutex);
     pbar->set_status_finished();
     delete pbar;
     pbar = nullptr;
@@ -56,15 +57,17 @@ void progress_manager::finish_work(work* task, bool successfully) {
 }
 
 
-void progress_manager::update_view() const {
+void progress_manager::update_view() {
   xassert(dt::this_thread_index() == size_t(-1));
   if (pbar) {
+    std::lock_guard<std::mutex> lock(mutex);
     pbar->refresh();
   }
 }
 
 
 void progress_manager::set_error_status(bool cancelled) noexcept {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!pbar) return;
   try {
     pbar->set_status_error(cancelled);

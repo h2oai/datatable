@@ -16,6 +16,7 @@
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
 #include <stack>      // std::stack
+#include <mutex>      // std::mutex, std::lock_guard
 namespace dt {
 namespace progress {
 
@@ -43,9 +44,10 @@ class progress_manager {
     // while more and more top-level tasks are received.
     progress_bar* pbar;
     std::stack<work*> tasks;
+    std::mutex mutex;
 
   public:
-    void update_view() const;
+    void update_view();
     void set_error_status(bool cancelled) noexcept;
 
   public:  // package-private
