@@ -9,10 +9,12 @@
 #include <iostream>
 #include <errno.h>
 #include <string.h>
+#include "parallel/api.h"
 #include "progress/manager.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/exceptions.h"
+#include "utils/assert.h"
 
 
 // Singleton, used to write the current "errno" into the stream
@@ -38,6 +40,7 @@ static bool is_string_empty(const char* msg) noexcept {
 
 
 void exception_to_python(const std::exception& e) noexcept {
+  wassert(dt::num_threads_in_team() == 0);
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
     dt::progress::manager.set_error_status(error->is_keyboard_interrupt());

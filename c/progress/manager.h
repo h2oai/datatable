@@ -16,6 +16,7 @@
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
 #include <stack>      // std::stack
+#include <mutex>      // std::mutex, std::lock_guard
 namespace dt {
 namespace progress {
 
@@ -43,6 +44,14 @@ class progress_manager {
     // while more and more top-level tasks are received.
     progress_bar* pbar;
     std::stack<work*> tasks;
+
+    // This mutex is used to protect access to `pbar`. In particular,
+    // `finish_work()` method can delete `pbar` from one thread
+    // during finalization, while at the same time another thread
+    // can start doing `update_view()` or `set_error_status()`
+    // also accessing `pbar`. Without the mutex protection such an access
+    // can result in a segfault.
+    mutable std::mutex mutex;
 
   public:
     void update_view() const;
