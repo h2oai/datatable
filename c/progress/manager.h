@@ -44,10 +44,17 @@ class progress_manager {
     // while more and more top-level tasks are received.
     progress_bar* pbar;
     std::stack<work*> tasks;
-    std::mutex mutex;
+
+    // This mutex is used to protect access to `pbar`. In particular,
+    // `finish_work()` method can delete `pbar` from one thread
+    // during finalization, while at the same time another thread
+    // can start doing `update_view()` or `set_error_status()`
+    // also accessing `pbar`. Without the mutex protection such an access
+    // can result in a segfault.
+    mutable std::mutex mutex;
 
   public:
-    void update_view();
+    void update_view() const;
     void set_error_status(bool cancelled) noexcept;
 
   public:  // package-private
