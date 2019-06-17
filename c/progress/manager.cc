@@ -33,8 +33,8 @@ progress_manager::progress_manager()
 
 void progress_manager::start_work(work* task) {
   if (tasks.empty()) {
-    xassert(pbar == nullptr);
     std::lock_guard<std::mutex> lock(mutex);
+    xassert(pbar == nullptr);
     pbar = new progress_bar;
     task->init(pbar, nullptr);
   } else {
