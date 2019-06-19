@@ -59,13 +59,18 @@ void monitor_thread::run() noexcept {
 
     // Wake state
     while (is_active && running) {
-      lock.unlock();
       try {
+        // update_view() should run under the protection of a mutex. This way
+        // when the master thread calls `set_active(false)`, it would have to
+        // wait until progress manager finishes its communication with the
+        // python runtime. Thus, the mutex ensures that after the thread team
+        // joins the master thread is free to do any communication with the
+        // python without feat that monitor thread might be doing the same at
+        // the same time.
         progress::manager.update_view();
       } catch(...) {
         controller->catch_exception();
       }
-      lock.lock();
       sleep_state_cv.wait_for(lock, SLEEP_TIME);
     }
   }
