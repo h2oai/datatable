@@ -28,7 +28,7 @@
  *  For a given `n` calculate all the coprime numbers and return them
  *  as a `coprimes` vector.
  */
-void calculate_coprimes(size_t n, std::vector<size_t>& coprimes) {
+void calculate_coprimes(size_t n, intvec& coprimes) {
   coprimes.clear();
   if (n == 1) {
     coprimes.push_back(1);

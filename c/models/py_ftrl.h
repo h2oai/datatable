@@ -26,9 +26,9 @@
 #include "models/dt_ftrl.h"
 #include "models/dt_ftrl_base.h"
 #include "models/py_validator.h"
+#include <map>
 
 namespace py {
-
 
 /**
  *  Main class that controls Python FTRL API.
@@ -38,11 +38,13 @@ class Ftrl : public PyObject {
     dt::FtrlBase* dtft;
     strvec colnames;
     py::onamedtuple py_params;
-    static py::onamedtupletype py_ntt;
     bool double_precision;
     size_t: 56;
 
   public:
+    // FTRL API version to be used for backward compatibility
+    static const size_t API_VERSION = 23;
+
     class Type : public ExtType<Ftrl> {
       public:
         static PKArgs args___init__;
@@ -58,6 +60,7 @@ class Ftrl : public PyObject {
     void init_py_params();
     void init_dt_ftrl();
     void init_dt_interactions();
+    static std::map<dt::FtrlModelType, std::string> create_model_type_name();
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
@@ -70,6 +73,7 @@ class Ftrl : public PyObject {
 
     // Getters
     oobj get_labels() const;
+    oobj get_dt_labels() const;
     oobj get_fi() const;
     oobj get_normalized_fi(bool) const;
     oobj get_model() const;
@@ -87,6 +91,8 @@ class Ftrl : public PyObject {
     oobj get_interactions() const;
     oobj get_double_precision() const;
     oobj get_negative_class() const;
+    oobj get_model_type() const;
+    oobj get_model_type_trained() const;
 
     // Setters
     void set_model(robj);             // Not exposed, used for unpickling only
@@ -104,6 +110,7 @@ class Ftrl : public PyObject {
     void set_interactions(const Arg&);      // Disabled for a trained model
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model
+    void set_model_type(const Arg&);        // Disabled for a trained model
 };
 
 
