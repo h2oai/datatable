@@ -42,6 +42,9 @@ class Ftrl : public PyObject {
     size_t: 56;
 
   public:
+    // FTRL API version to be used for backward compatibility
+    static const size_t API_VERSION = 23;
+
     class Type : public ExtType<Ftrl> {
       public:
         static PKArgs args___init__;
@@ -107,7 +110,7 @@ class Ftrl : public PyObject {
     void set_interactions(const Arg&);      // Disabled for a trained model
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model
-    void set_model_type(const Arg&);
+    void set_model_type(const Arg&);        // Disabled for a trained model
 };
 
 

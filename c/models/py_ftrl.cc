@@ -1066,6 +1066,7 @@ static PKArgs args___getstate__(
 
 
 oobj Ftrl::m__getstate__(const PKArgs&) {
+  py::oobj py_api_version = py::oint(API_VERSION);
   py::oobj py_model = get_model();
   py::oobj py_fi = get_normalized_fi(false);
   py::oobj py_labels = get_labels();
@@ -1073,8 +1074,14 @@ oobj Ftrl::m__getstate__(const PKArgs&) {
   py::oobj py_params_tuple = get_params_tuple();
   py::oobj py_model_type = get_model_type_trained();
 
-  return otuple {py_params_tuple, py_model, py_fi, py_labels,
-                 py_colnames, py_model_type};
+  return otuple {py_api_version,
+                 py_params_tuple,
+                 py_model,
+                 py_fi,
+                 py_labels,
+                 py_colnames,
+                 py_model_type
+                };
 }
 
 
@@ -1086,26 +1093,32 @@ static PKArgs args___setstate__(
 
 void Ftrl::m__setstate__(const PKArgs& args) {
   m__dealloc__();
-  dt::FtrlParams ftrl_params;
-
   py::otuple pickle = args[0].to_otuple();
-  py::otuple py_params_tuple = pickle[0].to_otuple();
+
+  if (!pickle[0].is_int()) {
+    throw TypeError() << "This FTRL model was pickled with the old "
+                      << "version of datatable, that has no information "
+                      << "on the FTRL API version";
+  }
+
+  py::oint py_api_version = pickle[0].to_size_t(); // Not used for the moment
+  py::otuple py_params_tuple = pickle[1].to_otuple();
 
   double_precision = py_params_tuple[7].to_bool_strict();
   init_dt_ftrl();
   init_py_params();
-  set_params_tuple(pickle[0]);
-  set_model(pickle[1]);
-  if (pickle[2].is_frame()) {
-    dtft->set_fi(pickle[2].to_datatable());
-  }
-
+  set_params_tuple(pickle[1]);
+  set_model(pickle[2]);
   if (pickle[3].is_frame()) {
-    dtft->set_labels(pickle[3].to_datatable());
+    dtft->set_fi(pickle[3].to_datatable());
   }
-  set_colnames(pickle[4]);
 
-  auto model_type = py::FtrlModelNameType.at(pickle[5].to_string());
+  if (pickle[4].is_frame()) {
+    dtft->set_labels(pickle[4].to_datatable());
+  }
+  set_colnames(pickle[5]);
+
+  auto model_type = py::FtrlModelNameType.at(pickle[6].to_string());
   dtft->set_model_type_trained(model_type);
 }
 
