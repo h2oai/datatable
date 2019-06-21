@@ -48,8 +48,10 @@ from ci.setup_utils import (get_datatable_version, make_git_version_file,
 print()
 cmd = ""
 with TaskContext("Start setup.py") as log:
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1]
+    for arg in sys.argv[1:]:
+        if not arg.startswith("--"):
+            cmd = arg
+            break
     log.info("command = `%s`" % cmd)
 
 
