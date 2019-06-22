@@ -49,6 +49,7 @@ namely:
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
 -  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
 - ``interactions`` — list of feature lists to do interactions for, defaults to ``None``.
+- ``model_type`` — training mode that can be one of the following: "auto" to automatically set model type based on the target column type, "binomial" for binomial classification, "multinomial" for multinomial classification or "regression" for continuous targets. This setting defaults to ``auto``.
 
 If some parameters need to be changed, this can be done either
 when creating the model, as
