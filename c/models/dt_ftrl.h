@@ -25,6 +25,7 @@
 #include "models/utils.h"
 #include "models/dt_ftrl_base.h"
 #include "str/py_str.h"
+#include "models/label_encode.h"
 
 
 namespace dt {
@@ -59,10 +60,14 @@ class Ftrl : public dt::FtrlBase {
     unsigned char mantissa_nbits;
     size_t: 56;
     size_t nepochs;
-    std::vector<sizetvec> interactions;
+    std::vector<intvec> interactions;
 
     // Labels that are automatically extracted from the target column.
-    strvec labels;
+    // For binomial classification, labels are stored as
+    //   index 0: negative label
+    //   index 1: positive label
+    // and we only train the zero model.
+    dtptr dt_labels;
 
     // Total number of features used for training, this includes
     // dt_X->ncols columns plus their interactions.
@@ -73,8 +78,8 @@ class Ftrl : public dt::FtrlBase {
 
     // Pointers to training and validation datatables, they are
     // only valid during training.
-    const DataTable* dt_X;
-    const DataTable* dt_y;
+    const DataTable* dt_X_train;
+    const DataTable* dt_y_train;
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
 
@@ -82,17 +87,25 @@ class Ftrl : public dt::FtrlBase {
     T nepochs_val;
     T val_error;
     size_t val_niters;
-    std::vector<size_t> map_val;
+
+    // These mappings relate model_id's to the incoming label
+    // indicators, i.e. if label_ids_train[i] == j, we train i-th model
+    // on positives, when encounter j in the encoded data,
+    // and train on negatives otherwise.
+    std::vector<size_t> label_ids_train;
+    std::vector<size_t> label_ids_val;
 
     // Fitting methods
     FtrlFitOutput fit_binomial();
     FtrlFitOutput fit_multinomial();
     template <typename U> FtrlFitOutput fit_regression();
-    template <typename U> FtrlFitOutput fit(T(*)(T), T(*)(T, U));
+    template <typename U> FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), T(*)(T, U));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
+    template <typename>
 
     // Predicting methods
+    dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 
@@ -106,9 +119,10 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
-    dtptr create_y_train();
-    dtptr create_y_val();
-    Column* create_negative_column(size_t);
+
+    // Do label encoding and set up mapping information
+    void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
+    void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
 
     // Feature importance helper methods
     void create_fi();
@@ -132,16 +146,17 @@ class Ftrl : public dt::FtrlBase {
                                double, double, size_t) override;
 
     // Main predicting method
-    dtptr predict(const DataTable*) override;
+    dtptr dispatch_predict(const DataTable*) override;
 
     // Model methods
     void reset() override;
-    bool is_trained() override;
+    bool is_model_trained() override;
 
     // Getters
     DataTable* get_model() override;
     DataTable* get_fi(bool normalize = true) override;
     FtrlModelType get_model_type() override;
+    FtrlModelType get_model_type_trained() override;
     size_t get_nfeatures() override;
     size_t get_ncols() override;
     const std::vector<uint64_t>& get_colname_hashes() override;
@@ -152,15 +167,16 @@ class Ftrl : public dt::FtrlBase {
     uint64_t get_nbins() override;
     unsigned char get_mantissa_nbits() override;
     size_t get_nepochs() override;
-    const std::vector<sizetvec>& get_interactions() override;
+    const std::vector<intvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
-    const strvec& get_labels() override;
+    DataTable* get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;
     void set_fi(DataTable*) override;
     void set_model_type(FtrlModelType) override;
+    void set_model_type_trained(FtrlModelType) override;
     void set_alpha(double) override;
     void set_beta(double) override;
     void set_lambda1(double) override;
@@ -168,20 +184,20 @@ class Ftrl : public dt::FtrlBase {
     void set_nbins(uint64_t) override;
     void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(size_t) override;
-    void set_interactions(std::vector<sizetvec>) override;
+    void set_interactions(std::vector<intvec>) override;
     void set_negative_class(bool) override;
-    void set_labels(strvec) override;
+    void set_labels(DataTable*) override;
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
     static constexpr T T_ZERO = static_cast<T>(0.0);
+    static constexpr T T_ONE = static_cast<T>(1.0);
 };
 
 
 extern template class Ftrl<float>;
 extern template class Ftrl<double>;
-
 
 } // namespace dt
 

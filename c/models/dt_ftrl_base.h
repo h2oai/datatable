@@ -28,10 +28,23 @@ namespace dt {
 
 
 /**
+ *  Supported FTRL model types.
+ */
+enum class FtrlModelType : size_t {
+  NONE        = 0, // Untrained model
+  AUTO        = 1, // Automatically detect model type
+  REGRESSION  = 2, // Numerical regression
+  BINOMIAL    = 3, // Binomial logistic regression
+  MULTINOMIAL = 4  // Multinomial logistic regression
+};
+
+
+/**
  *  All the FTRL parameters provided in Python are stored in this structure,
  *  that also defines their default values.
  */
 struct FtrlParams {
+    FtrlModelType model_type;
     double alpha;
     double beta;
     double lambda1;
@@ -41,8 +54,9 @@ struct FtrlParams {
     unsigned char mantissa_nbits;
     bool double_precision;
     bool negative_class;
-    size_t: 40;
-    FtrlParams() : alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
+    size_t : 40;
+    FtrlParams() : model_type(FtrlModelType::AUTO),
+                   alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
                    nbins(1000000), nepochs(1), mantissa_nbits(10),
                    double_precision(false), negative_class(false)
                    {}
@@ -61,17 +75,6 @@ struct FtrlFitOutput {
 
 
 /**
- *  Supported FTRL model types.
- */
-enum class FtrlModelType : size_t {
-  NONE        = 0, // Untrained model
-  REGRESSION  = 1, // Numerical regression
-  BINOMIAL    = 2, // Binomial logistic regression
-  MULTINOMIAL = 3  // Multinomial logistic regression
-};
-
-
-/**
  *  An abstract dt::FtrlBase class that declares all the virtual functions
  *  needed by py::Ftrl.
  */
@@ -85,13 +88,14 @@ class FtrlBase {
     virtual FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
                                        const DataTable*, const DataTable*,
                                        double, double, size_t) = 0;
-    virtual dtptr predict(const DataTable*) = 0;
+    virtual dtptr dispatch_predict(const DataTable*) = 0;
     virtual void reset() = 0;
-    virtual bool is_trained() = 0;
+    virtual bool is_model_trained() = 0;
 
     // Getters
     virtual DataTable* get_model() = 0;
     virtual FtrlModelType get_model_type() = 0;
+    virtual FtrlModelType get_model_type_trained() = 0;
     virtual DataTable* get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_ncols() = 0;
@@ -103,15 +107,16 @@ class FtrlBase {
     virtual uint64_t get_nbins() = 0;
     virtual unsigned char get_mantissa_nbits() = 0;
     virtual size_t get_nepochs() = 0;
-    virtual const std::vector<sizetvec>& get_interactions() = 0;
+    virtual const std::vector<intvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual const strvec& get_labels() = 0;
+    virtual DataTable* get_labels() = 0;
 
     // Setters
     virtual void set_model(DataTable*) = 0;
     virtual void set_fi(DataTable*) = 0;
     virtual void set_model_type(FtrlModelType) = 0;
+    virtual void set_model_type_trained(FtrlModelType) = 0;
     virtual void set_alpha(double) = 0;
     virtual void set_beta(double) = 0;
     virtual void set_lambda1(double) = 0;
@@ -119,9 +124,9 @@ class FtrlBase {
     virtual void set_nbins(uint64_t) = 0;
     virtual void set_mantissa_nbits(unsigned char) = 0;
     virtual void set_nepochs(size_t) = 0;
-    virtual void set_interactions(std::vector<sizetvec>) = 0;
+    virtual void set_interactions(std::vector<intvec>) = 0;
     virtual void set_negative_class(bool) = 0;
-    virtual void set_labels(strvec) = 0;
+    virtual void set_labels(DataTable*) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;

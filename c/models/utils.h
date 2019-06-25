@@ -31,19 +31,18 @@ template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 using sizetptr = std::unique_ptr<size_t[]>;
-using sizetvec = std::vector<size_t>;
 
-void calculate_coprimes(size_t, std::vector<size_t>&);
+void calculate_coprimes(size_t, intvec&);
 
 
 /**
  *  Create list of sorting indexes.
  */
 template <typename T>
-sizetvec sort_index(const std::vector<T> &v) {
+intvec sort_index(const std::vector<T> &v) {
 
   // Initialize original index locations
-  sizetvec index(v.size());
+  intvec index(v.size());
   std::iota(index.begin(), index.end(), 0);
 
   // Sort index based on comparing values in v
@@ -80,9 +79,9 @@ inline T identity(T x) {
  *    to prevent logloss being undefined;
  *  - simplify the logloss formula to more compact branchless code.
  */
-template<typename T>
-inline T log_loss(T p, int8_t y) {
-  constexpr T epsilon = std::numeric_limits<T>::epsilon();
+template<typename T1, typename T2>
+inline T1 log_loss(T1 p, T2 y) {
+  constexpr T1 epsilon = std::numeric_limits<T1>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
 }

@@ -62,7 +62,6 @@ static oobj split_into_nhot(const PKArgs& args) {
 }
 
 
-
 void DatatableModule::init_methods_str() {
   ADD_FN(&split_into_nhot, args_split_into_nhot);
 }
