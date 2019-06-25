@@ -29,7 +29,7 @@
           <a class="reference internal" href="using-datatable.html">
             <i class="fa fa-chevron-circle-right"></i> User Guide
           </a>
-          <a class="reference internal" href="api-reference.html">
+          <a class="reference internal" href="api/frame.html">
             <i class="fa fa-chevron-circle-right"></i> API Reference
           </a>
         </div>
