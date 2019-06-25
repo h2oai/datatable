@@ -1008,7 +1008,9 @@ class SortContext {
       xo = xx.data<TO>();
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
-    dt::parallel_for_static(nchunks,
+    dt::parallel_for_static(
+      /* n_iterations = */ nchunks,
+      /* chunk_size = */ 1,
       [&](size_t i) {
         size_t j0 = i * chunklen;
         size_t j1 = std::min(j0 + chunklen, n);
