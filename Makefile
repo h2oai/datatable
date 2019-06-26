@@ -30,6 +30,13 @@ ci/fast.mk:
 	@$(PYTHON) ci/make_fast.py
 endif
 
+ifeq ($(MAKECMDGOALS), dfast)
+-include ci/fast.mk
+ci/fast.mk:
+	@echo • Regenerating ci/fast.mk [debug mode]
+	@$(PYTHON) ci/make_fast.py debug
+endif
+
 ifeq ($(MAKECMDGOALS), main-fast)
 -include ci/fast.mk
 endif
