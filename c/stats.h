@@ -100,6 +100,7 @@ class Stats {
     virtual void verify_more(Stats*, const Column*) const;
 
     virtual void compute_countna(const Column*) = 0;
+    virtual void compute_nunique(const Column*);
     virtual void compute_sorted_stats(const Column*) = 0;
     void set_computed(Stat s);
     void set_computed(Stat s, bool flag);
@@ -259,6 +260,7 @@ class StringStats : public Stats {
   protected:
     StringStats<T>* make() const override;
     void compute_countna(const Column*) override;
+    void compute_nunique(const Column*) override;
     void compute_sorted_stats(const Column*) override;
 };
 

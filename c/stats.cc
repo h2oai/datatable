@@ -9,6 +9,8 @@
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "lib/parallel_hashmap/phmap.h"
+#include "models/murmurhash.h"
 #include "parallel/api.h"
 #include "utils/misc.h"
 #include "column.h"
@@ -75,6 +77,10 @@ void Stats::set_computed(Stat s, bool flag) {
   _computed.set(static_cast<size_t>(s), flag);
 }
 
+void Stats::compute_nunique(const Column* col) {
+  compute_sorted_stats(col);
+}
+
 
 size_t Stats::countna(const Column* col) {
   if (!is_computed(Stat::NaCount)) compute_countna(col);
@@ -82,7 +88,7 @@ size_t Stats::countna(const Column* col) {
 }
 
 size_t Stats::nunique(const Column* col) {
-  if (!is_computed(Stat::NUnique)) compute_sorted_stats(col);
+  if (!is_computed(Stat::NUnique)) compute_nunique(col);
   return _nunique;
 }
 
@@ -586,6 +592,61 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
   }
   set_computed(Stat::NModal);
   set_computed(Stat::Mode);
+}
+
+
+struct StrHasher {
+  size_t operator()(const CString& s) const {
+    return hash_murmur2(s.ch, static_cast<size_t>(s.size), 0);
+  }
+};
+
+struct StrEqual {
+  bool operator()(const CString& lhs, const CString& rhs) const {
+    return (lhs.size == rhs.size) &&
+           ((lhs.ch == rhs.ch) ||  // This ensures NAs are properly handled too
+            (std::strncmp(lhs.ch, rhs.ch, static_cast<size_t>(lhs.size)) == 0));
+  }
+};
+
+
+template <typename T>
+void StringStats<T>::compute_nunique(const Column* col) {
+  auto scol = reinterpret_cast<const StringColumn<T>*>(col);
+  const RowIndex& rowindex = scol->rowindex();
+  const char* strdata = scol->strdata();
+  const T* offsets = scol->offsets();
+
+  dt::shared_bmutex rwmutex;
+  phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
+
+  size_t batch_size = 8;
+  size_t nbatches = (col->nrows + batch_size - 1) / batch_size;
+  dt::parallel_for_dynamic(
+    nbatches,
+    [&](size_t i) {
+      size_t j0 = i * batch_size;
+      size_t j1 = std::min(j0 + batch_size, col->nrows);
+      for (size_t j = j0; j < j1; ++j) {
+        size_t jj = rowindex[j];
+        if (static_cast<int64_t>(jj) < 0) continue;
+        T start = offsets[jj-1] & ~GETNA<T>();
+        T end = offsets[jj];
+        if (ISNA<T>(end)) continue;
+        CString str(strdata+start, static_cast<int64_t>(end - start));
+        {
+          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
+          if (values_seen.contains(str)) continue;
+        }
+        {
+          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, true);
+          values_seen.insert(str);
+        }
+      }
+    });
+
+  _nunique = values_seen.size();
+  set_computed(Stat::NUnique);
 }
 
 
