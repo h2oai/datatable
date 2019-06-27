@@ -773,7 +773,6 @@ if __name__ == "__main__":
         if cmd == "--help":
             usage()
         elif cmd == "ccflags":
-            os.environ["DTDEBUG"] = "1"  # Force the debug flag
             flags = [get_default_compile_flags()] + get_extra_compile_flags()
             print(" ".join(flags))
         elif cmd == "compiler":
@@ -781,7 +780,6 @@ if __name__ == "__main__":
         elif cmd == "ext_suffix":
             print(sysconfig.get_config_var("EXT_SUFFIX"))
         elif cmd == "ldflags":
-            os.environ["DTDEBUG"] = "1"  # Force the debug flag
             flags = [get_default_link_flags()] + get_extra_link_args()
             print(" ".join(flags))
         elif cmd == "version":
