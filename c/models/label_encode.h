@@ -65,7 +65,7 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
   sb.commit_and_start_new_chunk(0);
 
   size_t i = 0;
-  for (const std::pair<std::string, element_t<stype_to>>& label : labels_map) {
+  for (const auto& label : labels_map) {
     sb.write(label.first);
     ids_data[i] = label.second;
     i++;

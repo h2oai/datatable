@@ -312,9 +312,10 @@ struct GroupSse2Impl
     // Returns a bitmask representing the positions of slots that match hash.
     // ----------------------------------------------------------------------
     BitMask<uint32_t, kWidth> Match(h2_t hash) const {
-        auto match = _mm_set1_epi8(hash);
-        return BitMask<uint32_t, kWidth>(
-            _mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl)));
+        static_assert(sizeof(h2_t) == sizeof(char), "h2_t should be 1 byte");
+        auto match = _mm_set1_epi8(static_cast<char>(hash));
+        return BitMask<uint32_t, kWidth>(static_cast<uint32_t>(
+            _mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl))));
     }
 
     // Returns a bitmask representing the positions of empty slots.
@@ -322,8 +323,8 @@ struct GroupSse2Impl
     BitMask<uint32_t, kWidth> MatchEmpty() const {
 #if PHMAP_HAVE_SSSE3
         // This only works because kEmpty is -128.
-        return BitMask<uint32_t, kWidth>(
-            _mm_movemask_epi8(_mm_sign_epi8(ctrl, ctrl)));
+        return BitMask<uint32_t, kWidth>(static_cast<uint32_t>(
+            _mm_movemask_epi8(_mm_sign_epi8(ctrl, ctrl))));
 #else
         return Match(kEmpty);
 #endif
@@ -333,16 +334,16 @@ struct GroupSse2Impl
     // -----------------------------------------------------------------------
     BitMask<uint32_t, kWidth> MatchEmptyOrDeleted() const {
         auto special = _mm_set1_epi8(kSentinel);
-        return BitMask<uint32_t, kWidth>(
-            _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl)));
+        return BitMask<uint32_t, kWidth>(static_cast<uint32_t>(
+            _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl))));
     }
 
     // Returns the number of trailing empty or deleted elements in the group.
     // ----------------------------------------------------------------------
     uint32_t CountLeadingEmptyOrDeleted() const {
         auto special = _mm_set1_epi8(kSentinel);
-        return TrailingZeros(
-            _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl)) + 1);
+        return static_cast<uint32_t>(TrailingZeros(
+            _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl)) + 1));
     }
 
     // ----------------------------------------------------------------------
@@ -404,7 +405,8 @@ struct GroupPortableImpl
 
     uint32_t CountLeadingEmptyOrDeleted() const {
         constexpr uint64_t gaps = 0x00FEFEFEFEFEFEFEULL;
-        return (TrailingZeros(((~ctrl & (ctrl >> 7)) | gaps) + 1) + 7) >> 3;
+        return static_cast<uint32_t>(
+                (TrailingZeros(((~ctrl & (ctrl >> 7)) | gaps) + 1) + 7) >> 3);
     }
 
     void ConvertSpecialToEmptyAndFullToDeleted(ctrl_t* dst) const {
@@ -689,7 +691,7 @@ template <size_t Alignment, class Alloc>
 void* Allocate(Alloc* alloc, size_t n) {
   static_assert(Alignment > 0, "");
   assert(n && "n must be positive");
-  struct alignas(Alignment) M {};
+  struct alignas(Alignment) M { size_t : 64; };
   using A = typename phmap::allocator_traits<Alloc>::template rebind_alloc<M>;
   using AT = typename phmap::allocator_traits<Alloc>::template rebind_traits<M>;
   A mem_alloc(*alloc);
@@ -707,7 +709,7 @@ template <size_t Alignment, class Alloc>
 void Deallocate(Alloc* alloc, void* p, size_t n) {
   static_assert(Alignment > 0, "");
   assert(n && "n must be positive");
-  struct alignas(Alignment) M {};
+  struct alignas(Alignment) M { size_t : 64; };
   using A = typename phmap::allocator_traits<Alloc>::template rebind_alloc<M>;
   using AT = typename phmap::allocator_traits<Alloc>::template rebind_traits<M>;
   A mem_alloc(*alloc);
@@ -1595,11 +1597,13 @@ public:
         auto seq = probe(hash);
         while (true) {
             Group g{ctrl_ + seq.offset()};
-            for (int i : g.Match(H2(hash))) {
+            auto hh = static_cast<h2_t>(H2(hash));
+            for (int i : g.Match(hh)) {
+                size_t offset = seq.offset(static_cast<size_t>(i));
                 if (PHMAP_PREDICT_TRUE(PolicyTraits::apply(
                                           EqualElement<K>{key, eq_ref()},
-                                          PolicyTraits::element(slots_ + seq.offset(i)))))
-                    return iterator_at(seq.offset(i));
+                                          PolicyTraits::element(slots_ + offset))))
+                    return iterator_at(offset);
             }
             if (PHMAP_PREDICT_TRUE(g.MatchEmpty()))
                 return end();
@@ -1929,8 +1933,10 @@ private:
         auto seq = probe(hash);
         while (true) {
             Group g{ctrl_ + seq.offset()};
-            for (int i : g.Match(H2(hash))) {
-                if (PHMAP_PREDICT_TRUE(PolicyTraits::element(slots_ + seq.offset(i)) ==
+            auto hh = static_cast<h2_t>(H2(hash));
+            for (int i : g.Match(hh)) {
+                auto offset = seq.offset(static_cast<size_t>(i));
+                if (PHMAP_PREDICT_TRUE(PolicyTraits::element(slots_ + offset) ==
                                       elem))
                     return true;
             }
@@ -1966,7 +1972,8 @@ private:
             Group g{ctrl_ + seq.offset()};
             auto mask = g.MatchEmptyOrDeleted();
             if (mask) {
-                return {seq.offset(mask.LowestBitSet()), seq.index()};
+                return {seq.offset(static_cast<size_t>(mask.LowestBitSet())),
+                        seq.index()};
             }
             assert(seq.index() < capacity_ && "full table!");
             seq.next();
@@ -1991,11 +1998,13 @@ protected:
         auto seq = probe(hash);
         while (true) {
             Group g{ctrl_ + seq.offset()};
-            for (int i : g.Match(H2(hash))) {
+            auto hh = static_cast<h2_t>(H2(hash));
+            for (int i : g.Match(hh)) {
+                size_t offset = seq.offset(static_cast<size_t>(i));
                 if (PHMAP_PREDICT_TRUE(PolicyTraits::apply(
                                           EqualElement<K>{key, eq_ref()},
-                                          PolicyTraits::element(slots_ + seq.offset(i)))))
-                    return {seq.offset(i), false};
+                                          PolicyTraits::element(slots_ + offset))))
+                    return {offset, false};
             }
             if (PHMAP_PREDICT_TRUE(g.MatchEmpty())) break;
             seq.next();
@@ -2122,6 +2131,7 @@ private:
     size_t size_ = 0;                // number of full slots
     size_t capacity_ = 0;            // total number of slots
     HashtablezInfoHandle infoz_;
+    size_t : 56;
     phmap::container_internal::CompressedTuple<size_t /* growth_left */, hasher,
                                               key_equal, allocator_type>
     settings_{0, hasher{}, key_equal{}, allocator_type{}};
@@ -2349,6 +2359,8 @@ public:
 
 protected:
     using Lockable = phmap::LockableImpl<Mtx_>;
+    size_t : 64;
+    size_t : 64;
 
     // --------------------------------------------------------------------
     struct alignas(64) Inner : public Lockable
@@ -2360,6 +2372,8 @@ protected:
         }
 
         EmbeddedSet set_;
+        size_t : 64;
+        size_t : 64;
     };
 
 private:
@@ -3259,6 +3273,12 @@ private:
         return sets_[0].set_.alloc_ref();
     }
 
+    size_t : 64;
+    size_t : 64;
+    size_t : 64;
+    size_t : 64;
+    size_t : 64;
+    size_t : 64;
     std::array<Inner, num_tables> sets_;
 };
 
@@ -3533,8 +3553,8 @@ namespace memory_internal {
 // ----------------------------------------------------------------------------
 template <class Pair, class = std::true_type>
 struct OffsetOf {
-  static constexpr size_t kFirst = -1;
-  static constexpr size_t kSecond = -1;
+  static constexpr size_t kFirst = size_t(-1);
+  static constexpr size_t kSecond = size_t(-1);
 };
 
 template <class Pair>
@@ -4072,7 +4092,8 @@ struct HashtableDebugAccess<Set, phmap::void_t<typename Set::raw_hash_set>>
         auto seq = set.probe(hash);
         while (true) {
             container_internal::Group g{set.ctrl_ + seq.offset()};
-            for (int i : g.Match(container_internal::H2(hash))) {
+            auto hh = static_cast<h2_t>(container_internal::H2(hash));
+            for (int i : g.Match(hh)) {
                 if (Traits::apply(
                         typename Set::template EqualElement<typename Set::key_type>{
                             key, set.eq_ref()},

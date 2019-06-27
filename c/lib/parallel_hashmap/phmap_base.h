@@ -785,71 +785,75 @@ template <typename T>
 #endif
 }  // namespace
 
-static inline void ThrowStdLogicError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdLogicError(const std::string& what_arg) {
   Throw(std::logic_error(what_arg));
 }
-static inline void ThrowStdLogicError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdLogicError(const char* what_arg) {
   Throw(std::logic_error(what_arg));
 }
-static inline void ThrowStdInvalidArgument(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdInvalidArgument(const std::string& what_arg) {
   Throw(std::invalid_argument(what_arg));
 }
-static inline void ThrowStdInvalidArgument(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdInvalidArgument(const char* what_arg) {
   Throw(std::invalid_argument(what_arg));
 }
 
-static inline void ThrowStdDomainError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdDomainError(const std::string& what_arg) {
   Throw(std::domain_error(what_arg));
 }
-static inline void ThrowStdDomainError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdDomainError(const char* what_arg) {
   Throw(std::domain_error(what_arg));
 }
 
-static inline void ThrowStdLengthError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdLengthError(const std::string& what_arg) {
   Throw(std::length_error(what_arg));
 }
-static inline void ThrowStdLengthError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdLengthError(const char* what_arg) {
   Throw(std::length_error(what_arg));
 }
 
-static inline void ThrowStdOutOfRange(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdOutOfRange(const std::string& what_arg) {
   Throw(std::out_of_range(what_arg));
 }
-static inline void ThrowStdOutOfRange(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdOutOfRange(const char* what_arg) {
   Throw(std::out_of_range(what_arg));
 }
 
-static inline void ThrowStdRuntimeError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdRuntimeError(const std::string& what_arg) {
   Throw(std::runtime_error(what_arg));
 }
-static inline void ThrowStdRuntimeError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdRuntimeError(const char* what_arg) {
   Throw(std::runtime_error(what_arg));
 }
 
-static inline void ThrowStdRangeError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdRangeError(const std::string& what_arg) {
   Throw(std::range_error(what_arg));
 }
-static inline void ThrowStdRangeError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdRangeError(const char* what_arg) {
   Throw(std::range_error(what_arg));
 }
 
-static inline void ThrowStdOverflowError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdOverflowError(const std::string& what_arg) {
   Throw(std::overflow_error(what_arg));
 }
-static inline void ThrowStdOverflowError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdOverflowError(const char* what_arg) {
   Throw(std::overflow_error(what_arg));
 }
 
-static inline void ThrowStdUnderflowError(const std::string& what_arg) {
+[[noreturn]] static inline void ThrowStdUnderflowError(const std::string& what_arg) {
   Throw(std::underflow_error(what_arg));
 }
-static inline void ThrowStdUnderflowError(const char* what_arg) {
+[[noreturn]] static inline void ThrowStdUnderflowError(const char* what_arg) {
   Throw(std::underflow_error(what_arg));
 }
 
-static inline void ThrowStdBadFunctionCall() { Throw(std::bad_function_call()); }
+[[noreturn]] static inline void ThrowStdBadFunctionCall() {
+  Throw(std::bad_function_call());
+}
 
-static inline void ThrowStdBadAlloc() { Throw(std::bad_alloc()); }
+[[noreturn]] static inline void ThrowStdBadAlloc() {
+  Throw(std::bad_alloc());
+}
 
 }  // namespace base_internal
 }  // namespace phmap
@@ -2908,6 +2912,7 @@ protected:
 
 private:
     phmap::optional<allocator_type> alloc_;
+    size_t : 48;
     mutable phmap::aligned_storage_t<sizeof(slot_type), alignof(slot_type)>
     slot_space_;
 };
