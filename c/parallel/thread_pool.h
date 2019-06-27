@@ -46,6 +46,7 @@ class thread_team;
  */
 class thread_pool {
   friend class thread_team;
+  friend std::mutex& python_mutex();
   private:
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long

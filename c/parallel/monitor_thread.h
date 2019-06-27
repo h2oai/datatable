@@ -26,6 +26,7 @@ class idle_job;
 
 
 class monitor_thread {
+  friend std::mutex& python_mutex();
   private:
     std::thread thread;
     idle_job* controller;

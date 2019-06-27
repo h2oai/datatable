@@ -165,6 +165,11 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
+std::mutex& python_mutex() {
+  return thpool->controller.monitor->mutex;
+}
+
+
 void thread_pool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
   thpool->resize(get_hardware_concurrency());
