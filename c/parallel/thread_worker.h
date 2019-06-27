@@ -116,6 +116,7 @@ class thread_worker {
  * `awaken`.
  */
 class idle_job : public thread_scheduler {
+  friend std::mutex& python_mutex();
   private:
     struct sleep_task : public thread_task {
       idle_job* const controller;

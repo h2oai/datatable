@@ -17,6 +17,7 @@
 #define dt_PARALLEL_API_h
 #include <cstddef>
 #include <functional>    // std::function
+#include <mutex>         // std::mutex
 #include "utils/function.h"
 namespace dt {
 using std::size_t;
@@ -165,6 +166,8 @@ class ordered {
 void parallel_for_ordered(size_t n_iterations, size_t n_threads,
                           function<void(ordered*)> fn);
 
+
+std::mutex& python_mutex();
 
 }  // namespace dt
 #endif

@@ -257,7 +257,12 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
     new_nrows = nrows_max;
   }
   nrows_allocated = new_nrows;
-  g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
+
+  {
+    // Prevent the message interfering with the main monitor thread
+    std::lock_guard<std::mutex> lock(dt::python_mutex());
+    g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
+  }
 
   { // Acquire a lock and then resize all columns
     shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
