@@ -167,6 +167,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed display of NA values produced during a join, when a Frame was displayed
   in Jupyter Lab (#1872).
 
+- Fixed a crash when replacing values in a str64 column (#1890).
+
 
 ### Changed
 
@@ -209,7 +211,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1891),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890, #1891),
   - [Antorsae][] (#1639),
   - [Olivier][] (#1872),
   - [Hawk Berry][] (#1834),
