@@ -283,6 +283,14 @@ def test_replace_str64():
     assert Y.to_list() == [["*"] * 4, [3, 4, 1, 2]]
 
 
+def test_replace_str64_2():
+    Y = dt.Frame([["a"], [0]], names=["A", "B"], stypes=["str64", "int32"])
+    Y[f.B < 100, f.A] = "hello"
+    frame_integrity_check(Y)
+    assert Y.stypes == (dt.str64, dt.int32)
+    assert Y.to_list() == [["hello"], [0]]
+
+
 
 
 #-------------------------------------------------------------------------------
