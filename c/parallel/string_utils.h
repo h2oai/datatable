@@ -46,7 +46,7 @@ Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 template <typename T, typename F>
 Column* map_str2str(StringColumn<T>* input_col, F f) {
   size_t nrows = input_col->nrows;
-  writable_string_col output_col(nrows);
+  writable_string_col output_col(nrows, /* str64= */ sizeof(T)==8);
 
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = nrows / min_nrows_per_thread;
@@ -58,7 +58,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
       std::unique_ptr<string_buf> sb(
-          new writable_string_col::buffer_impl<uint32_t>(output_col));
+          new writable_string_col::buffer_impl<T>(output_col));
 
       o->parallel(
         [&](size_t iter) {

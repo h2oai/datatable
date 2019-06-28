@@ -376,6 +376,10 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
+  if (rescol->stype() != stype()) {
+    throw NotImplError() << "When replacing string values, the size of the "
+      "resulting column exceeds the maximum for str32";
+  }
   StringColumn<T>* scol = static_cast<StringColumn<T>*>(rescol);
   std::swap(mbuf, scol->mbuf);
   std::swap(strbuf, scol->strbuf);
