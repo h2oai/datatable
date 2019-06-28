@@ -358,6 +358,9 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
 }
 
 colptr scalar_string_rn::make_column(SType st, size_t nrows) const {
+  if (nrows == 0) {
+    return colptr(new StringColumn<uint32_t>(0));
+  }
   size_t len = value.size();
   SType rst = (st == SType::VOID)? SType::STR32 : st;
   size_t elemsize = (rst == SType::STR32)? 4 : 8;
