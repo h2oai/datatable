@@ -12,6 +12,7 @@
  */
 uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed)
 {
+  if (!key) return 0;
   constexpr uint64_t m = 0xc6a4a7935bd1e995LLU;
   constexpr int r = 47;
 
