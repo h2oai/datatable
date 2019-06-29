@@ -34,7 +34,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
 
   // Standard parallel loop
   if (!thpool->in_parallel_region()) {
-    if (k == 0) {
+    if (k <= 1) {
       fn(0, nrows);
     }
     else {
@@ -56,7 +56,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
   }
   // Parallel loop within a parallel region
   else {
-    if (k == 0) {
+    if (k <= 1) {
       if (ith == 0) fn(0, nrows);
     }
     else {

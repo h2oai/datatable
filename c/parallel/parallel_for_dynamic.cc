@@ -132,6 +132,7 @@ void dynamic_scheduler::abort_execution() {
 //------------------------------------------------------------------------------
 
 void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
+  if (nrows == 1) return fn(0);
   size_t ith = dt::this_thread_index();
 
   // Running from the master thread
