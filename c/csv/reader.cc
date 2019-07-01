@@ -408,6 +408,7 @@ void GenericReader::_message(
 
 void GenericReader::emit_delayed_messages() {
   if (delayed_message.size()) {
+    std::lock_guard<std::mutex> lock(dt::python_mutex());
     trace("%s", delayed_message.c_str());
     delayed_message.clear();
   }
