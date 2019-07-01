@@ -69,7 +69,7 @@ def test_fread_from_cmd3(tempfile):
 def test_fread_from_url1():
     with pytest.raises(ValueError) as e:
         dt.fread(url="A")
-    assert "unknown url type" in str(e)
+    assert "unknown url type" in str(e.value)
 
 
 def test_fread_from_url2():
@@ -187,14 +187,14 @@ def test_fread_file_not_exists():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(name)
-    assert ("File %s`/%s` does not exist" % (path, name)) in str(e)
+    assert ("File %s`/%s` does not exist" % (path, name)) in str(e.value)
 
 
 def test_fread_file_is_directory():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(path)
-    assert ("Path `%s` is not a file" % path) in str(e)
+    assert ("Path `%s` is not a file" % path) in str(e.value)
 
 
 def test_fread_xz_file(tempfile, capsys):
@@ -289,7 +289,7 @@ def test_fread_zip_file_bad1(tempfile):
         pass
     with pytest.raises(ValueError) as e:
         dt.fread(zfname)
-    assert ("Zip file %s is empty" % zfname) in str(e)
+    assert ("Zip file %s is empty" % zfname) in str(e.value)
     os.unlink(zfname)
 
 
@@ -300,53 +300,54 @@ def test_fread_zip_file_bad2(tempfile):
         zf.writestr("data1.csv", "Egeustimentis")
     with pytest.raises(ValueError) as e:
         dt.fread(zfname + "/out.csv")
-    assert "File `out.csv` does not exist in archive" in str(e)
+    assert "File `out.csv` does not exist in archive" in str(e.value)
     os.unlink(zfname)
 
 
 def test_fread_bad_source_none():
     with pytest.raises(ValueError) as e:
         dt.fread()
-    assert "No input source" in str(e)
+    assert "No input source" in str(e.value)
 
 
 def test_fread_bad_source_any_and_source():
     with pytest.raises(ValueError) as e:
         dt.fread("a", text="b")
     assert "When an unnamed argument is passed, it is invalid to also " \
-           "provide the `text` parameter" in str(e)
+           "provide the `text` parameter" in str(e.value)
 
 
 def test_fread_bad_source_2sources():
     with pytest.raises(ValueError) as e:
         dt.fread(file="a", text="b")
     assert "Both parameters `file` and `text` cannot be passed to fread " \
-           "simultaneously" in str(e)
+           "simultaneously" in str(e.value)
 
 
 def test_fread_bad_source_anysource():
     with pytest.raises(TypeError) as e:
         dt.fread(12345)
-    assert "Unknown type for the first argument in fread" in str(e)
+    assert "Unknown type for the first argument in fread" in str(e.value)
 
 
 def test_fread_bad_source_text():
     with pytest.raises(TypeError) as e:
         dt.fread(text=["a", "b", "c"])
-    assert "Invalid parameter `text` in fread: expected str or bytes" in str(e)
+    assert ("Invalid parameter `text` in fread: expected str or bytes"
+            in str(e.value))
 
 
 def test_fread_bad_source_file():
     with pytest.raises(TypeError) as e:
         dt.fread(file=TypeError)
     assert ("Invalid parameter `file` in fread: expected a str/bytes/PathLike"
-            in str(e))
+            in str(e.value))
 
 
 def test_fread_bad_source_cmd():
     with pytest.raises(TypeError) as e:
         dt.fread(cmd=["ls", "-l", ".."])
-    assert "Invalid parameter `cmd` in fread: expected str" in str(e)
+    assert "Invalid parameter `cmd` in fread: expected str" in str(e.value)
 
 
 def test_fread_from_glob(tempfile):
@@ -460,7 +461,7 @@ def test_fread_columns_list_bad3():
     with pytest.raises(ValueError) as e:
         dt.fread(text="C1,C2\n1,2", columns=["C1", ("C2", bytes)])
     assert "Unknown type <class 'bytes'> used as an override for column 'C2'" \
-           in str(e)
+           in str(e.value)
 
 
 def test_fread_columns_list_bad4():
@@ -471,7 +472,7 @@ def test_fread_columns_list_bad4():
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, columns=[str, float, float])
     assert "Attempt to override column 2 \"B\" with detected type 'Str32' " \
-           in str(e)
+           in str(e.value)
     with pytest.raises(ValueError) as e:
         dt.fread(src, columns=[str, str])
     assert ("Input contains 3 columns, whereas `columns` parameter "
@@ -643,13 +644,13 @@ def test_sep_invalid():
     with pytest.raises(TypeError) as e:
         dt.fread("A,,B\n", sep=12)
     assert ("Parameter `sep` of type `Optional[str]` received value 12 "
-            "of type int" in str(e))
+            "of type int" in str(e.value))
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep=",,")
-    assert "Multi-character separator ',,' not supported" in str(e)
+    assert "Multi-character separator ',,' not supported" in str(e.value)
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep="⌘")
-    assert "The separator should be an ASCII character, got '⌘'" in str(e)
+    assert "The separator should be an ASCII character, got '⌘'" in str(e.value)
 
 
 
@@ -818,7 +819,8 @@ def test_fread_skip_to_string():
 def test_skip_to_string_bad():
     with pytest.raises(Exception) as e:
         dt.fread("A,B\n1,2", skip_to_string="bazinga!")
-    assert 'skip_to_string = "bazinga!" was not found in the input' in str(e)
+    assert ('skip_to_string = "bazinga!" was not found in the input'
+            in str(e.value))
 
 
 
@@ -945,7 +947,7 @@ def test_fillna_and_skipblanklines():
 def test_nastrings_invalid(na):
     with pytest.raises(Exception) as e:
         dt.fread("A\n1", na_strings=[na])
-    assert "has whitespace or control characters" in str(e)
+    assert "has whitespace or control characters" in str(e.value)
 
 
 

@@ -503,7 +503,7 @@ def test_input_htmlfile():
     with pytest.raises(Exception) as e:
         dt.fread("  \n  <!DOCTYPE html>\n"
                  "<html><body>HA!</body></html>", verbose=True)
-    assert "<text> is an HTML file" in str(e)
+    assert "<text> is an HTML file" in str(e.value)
 
 
 
