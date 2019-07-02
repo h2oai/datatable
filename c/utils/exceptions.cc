@@ -43,7 +43,7 @@ void exception_to_python(const std::exception& e) noexcept {
   wassert(dt::num_threads_in_team() == 0);
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
-    dt::progress::manager.set_error_status(error->is_keyboard_interrupt());
+    dt::progress::manager->set_error_status(error->is_keyboard_interrupt());
     error->to_python();
   }
   else if (!PyErr_Occurred()) {

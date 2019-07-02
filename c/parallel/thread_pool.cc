@@ -19,6 +19,7 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
+#include "progress/manager.h"
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "options.h"
@@ -35,6 +36,7 @@ static void _child_cleanup_after_fork() {
   // memory is owned by the parent process.
   size_t n = thpool->size();
   thpool = new thread_pool;
+  progress::manager = new progress::progress_manager;
   thpool->resize(n);
 }
 

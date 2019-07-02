@@ -66,7 +66,7 @@ class progress_manager {
 };
 
 
-extern progress_manager manager;
+extern progress_manager* manager;
 
 
 }} // dt::progress
