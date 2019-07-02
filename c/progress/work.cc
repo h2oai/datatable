@@ -31,7 +31,7 @@ work::work(size_t amount)
     pbar(nullptr),
     message_set(false)
 {
-  dt::progress::manager.start_work(this);
+  dt::progress::manager->start_work(this);
   // progress manager will call this->init();
 }
 
@@ -47,12 +47,12 @@ void work::init(progress_bar* pb, work* parent) {
 void work::done() {
   xassert(done_amount == total_amount);
   if (message_set) pbar->set_message("");
-  dt::progress::manager.finish_work(this, true);
+  dt::progress::manager->finish_work(this, true);
   pbar = nullptr;
 }
 
 work::~work() {
-  if (pbar) dt::progress::manager.finish_work(this, false);
+  if (pbar) dt::progress::manager->finish_work(this, false);
 }
 
 

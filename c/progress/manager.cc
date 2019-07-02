@@ -22,8 +22,9 @@ namespace dt {
 namespace progress {
 
 
-// Static instance
-progress_manager manager;
+// Static instance; it will be re-initialized when forking -- see
+// `parallel/thread_pool.cc::_child_cleanup_after_fork()`
+progress_manager* manager = new progress_manager;
 
 
 

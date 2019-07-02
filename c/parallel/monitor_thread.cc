@@ -67,7 +67,7 @@ void monitor_thread::run() noexcept {
         // joins the master thread is free to do any communication with the
         // python without feat that monitor thread might be doing the same at
         // the same time.
-        progress::manager.update_view();
+        progress::manager->update_view();
       } catch(...) {
         controller->catch_exception();
       }
