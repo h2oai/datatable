@@ -28,10 +28,9 @@
 //   - https://en.wikipedia.org/wiki/Insertion_sort
 //   - datatable/microbench/insertsort
 //------------------------------------------------------------------------------
-#include <algorithm>  // std::copy
-#include <cstdlib>    // std::abs
-#include <cstring>    // std::memcpy
 #include "sort.h"
+#include <cstdlib>  // std::abs
+#include <cstring>  // std::memcpy
 
 
 
@@ -160,42 +159,29 @@ void insert_sort_keys_str(
 {
   auto compfn = descending? compare_offstrings<-1, T>
                           : compare_offstrings<1, T>;
-  int i, k, jl, jr, jm;
-  T off0i, off1i, off0k, off1k;
+  int j;
   tmp[0] = 0;
-  for (i = 1; i < n; ++i) {
-    k = i;
-    off0i = (stroffs[o[i] - 1] + strstart) & ~GETNA<T>();
-    off1i = (stroffs[o[i]]);
-    off0k = (stroffs[o[tmp[i-1]] - 1] + strstart) & ~GETNA<T>();
-    off1k = (stroffs[o[tmp[i-1]]]);
-    if (compfn(strdata, off0i, off1i, off0k, off1k) == 1) {
-      jl = 0;
-      jr = i - 1;
-      while (jl < jr) {
-        jm = (jl + jr) >> 1;
-        off0k = (stroffs[o[tmp[jm]] - 1] + strstart) & ~GETNA<T>();
-        off1k = (stroffs[o[tmp[jm]]]);
-        if (compfn(strdata, off0i, off1i, off0k, off1k) == 1) {
-          jr = jm;
-        } else {
-          jl = jm + 1;
-        }
-      }
-      for (k = i; k > jl; --k) {
-        tmp[k] = tmp[k - 1];
-      }
+  for (int i = 1; i < n; ++i) {
+    T off0i = (stroffs[o[i] - 1] + strstart) & ~GETNA<T>();
+    T off1i = stroffs[o[i]];
+    for (j = i; j > 0; --j) {
+      V k = tmp[j - 1];
+      T off0k = (stroffs[o[k] - 1] + strstart) & ~GETNA<T>();
+      T off1k = stroffs[o[k]];
+      int cmp = compfn(strdata, off0i, off1i, off0k, off1k);
+      if (cmp != 1) break;
+      tmp[j] = tmp[j-1];
     }
-    tmp[k] = static_cast<V>(i);
+    tmp[j] = static_cast<V>(i);
   }
-  for (i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     tmp[i] = o[tmp[i]];
   }
   if (gg) {
     gg.from_data(strdata, stroffs, strstart, tmp,
                  static_cast<size_t>(n), descending);
   }
-  std::copy(tmp, tmp + n, o);
+  std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
 
 
@@ -206,33 +192,20 @@ void insert_sort_values_str(
 {
   auto compfn = descending? compare_offstrings<-1, T>
                           : compare_offstrings<1, T>;
-  int i, k, jl, jr, jm;
-  T off0i, off1i, off0k, off1k;
+  int j;
   o[0] = 0;
-  for (i = 1; i < n; ++i) {
-    k = i;
-    off0i = (stroffs[i - 1] + strstart) & ~GETNA<T>();
-    off1i = (stroffs[i]);
-    off0k = (stroffs[o[i-1] - 1] + strstart) & ~GETNA<T>();
-    off1k = (stroffs[o[i-1]]);
-    if (compfn(strdata, off0i, off1i, off0k, off1k) == 1) {
-      jl = 0;
-      jr = i - 1;
-      while (jl < jr) {
-        jm = (jl + jr) >> 1;
-        off0k = (stroffs[o[jm] - 1] + strstart) & ~GETNA<T>();
-        off1k = (stroffs[o[jm]]);
-        if (compfn(strdata, off0i, off1i, off0k, off1k) == 1) {
-          jr = jm;
-        } else {
-          jl = jm + 1;
-        }
-      }
-      for (k = i; k > jl; --k) {
-        o[k] = o[k - 1];
-      }
+  for (int i = 1; i < n; ++i) {
+    T off0i = (stroffs[i - 1] + strstart) & ~GETNA<T>();
+    T off1i = stroffs[i];
+    for (j = i; j > 0; j--) {
+      V k = o[j - 1];
+      T off0k = (stroffs[k - 1] + strstart) & ~GETNA<T>();
+      T off1k = stroffs[k];
+      int cmp = compfn(strdata, off0i, off1i, off0k, off1k);
+      if (cmp != 1) break;
+      o[j] = o[j-1];
     }
-    o[k] = static_cast<V>(i);
+    o[j] = static_cast<V>(i);
   }
   if (gg) {
     gg.from_data(strdata, stroffs, strstart, o,
