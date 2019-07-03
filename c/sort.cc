@@ -818,9 +818,7 @@ class SortContext {
       /* nthreads= */ nth,
       [&] {
         bool len_gt_1 = false;
-        dt::parallel_for_static(
-          /* n_iterations= */ n,
-          /* chunk_size= */ 1024,
+        dt::nested_for_static(n, dt::ChunkSize(1024),
           [&](size_t j) {
             int32_t k = use_order? o[j] : static_cast<int32_t>(j);
             T offend = offs[k];
@@ -914,7 +912,7 @@ class SortContext {
 
   template<typename T> void _histogram_gather() {
     T* tx = x.data<T>();
-    dt::parallel_for_static(nchunks, 1,
+    dt::parallel_for_static(nchunks, dt::ChunkSize(1),
       [&](size_t i) {
         size_t* cnts = histogram + (nradixes * i);
         size_t j0 = i * chunklen;
@@ -1008,9 +1006,7 @@ class SortContext {
       xo = xx.data<TO>();
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
-    dt::parallel_for_static(
-      /* n_iterations = */ nchunks,
-      /* chunk_size = */ 1,
+    dt::parallel_for_static(nchunks, dt::ChunkSize(1),
       [&](size_t i) {
         size_t j0 = i * chunklen;
         size_t j1 = std::min(j0 + chunklen, n);
@@ -1038,9 +1034,7 @@ class SortContext {
     dt::parallel_region(nth,
       [&] {
         bool tlong = false;
-        dt::parallel_for_static(
-          /* n_iterations= */ nchunks,
-          /* chunk_size= */ 1,
+        dt::nested_for_static(nchunks, dt::ChunkSize(1),
           [&](size_t i) {
             size_t j0 = i * chunklen;
             size_t j1 = std::min(j0 + chunklen, n);

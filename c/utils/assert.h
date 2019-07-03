@@ -15,10 +15,11 @@
 // may add it as a default compilation flag, so in order to combat this we have
 // defined a new `DTDEBUG` macro. This macro may be passed from the Makefile,
 // and if declared it means to ignore the NDEBUG macro even if it is present.
-#ifdef NDEBUG
-  #ifdef DTDEBUG
-    #undef NDEBUG
-  #endif
+#if defined(DTDEBUG) && defined(NDEBUG)
+  #undef NDEBUG
+#endif
+#if !defined(DTDEBUG) && !defined(NDEBUG)
+  #define NDEBUG 1
 #endif
 
 // This will include the standard `assert` and `static_assert` macros.
