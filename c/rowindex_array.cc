@@ -22,7 +22,7 @@
 #include <algorithm>           // std::min, std::swap, std::move
 #include <cstdlib>             // std::memcpy
 #include <limits>              // std::numeric_limits
-#include "parallel/api.h"      // parallel_for_static
+#include "parallel/api.h"      // nested_for_static
 #include "parallel/atomic.h"
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
@@ -229,7 +229,7 @@ void ArrayRowIndexImpl::_set_min_max() {
       [&] {
         T local_min = TMAX;
         T local_max = -TMAX;
-        dt::parallel_for_static(length,
+        dt::nested_for_static(length,
           [&](size_t i) {
             T t = idata[i];
             if (t == -1) return;

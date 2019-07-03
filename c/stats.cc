@@ -179,7 +179,7 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
       T t_min = infinity<T>();
       T t_max = -infinity<T>();
 
-      dt::parallel_for_static(nrows,
+      dt::nested_for_static(nrows,
         [&](size_t i) {
           size_t j = rowindex[i];
           if (j == RowIndex::NA) return;
@@ -467,7 +467,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
       size_t tcount0 = 0;
       size_t tcount1 = 0;
 
-      dt::parallel_for_static(nrows,
+      dt::nested_for_static(nrows,
         [&](size_t i) {
           size_t j = rowindex[i];
           if (j == RowIndex::NA) return;
@@ -533,7 +533,7 @@ void StringStats<T>::compute_countna(const Column* col) {
     [&] {
       size_t tcountna = 0;
 
-      dt::parallel_for_static(nrows,
+      dt::nested_for_static(nrows,
         [&](size_t i) {
           size_t j = rowindex[i];
           if (j == RowIndex::NA) return;
@@ -683,7 +683,7 @@ void PyObjectStats::compute_countna(const Column* col) {
     [&] {
       size_t tcountna = 0;
 
-      dt::parallel_for_static(nrows,
+      dt::nested_for_static(nrows,
         [&](size_t i) {
           size_t j = rowindex[i];
           if (j == RowIndex::NA) return;

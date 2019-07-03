@@ -23,10 +23,10 @@ namespace dttest {
 
 
 void test_parallel_for_static(size_t n) {
-  for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
+  for (size_t nth = 0; nth <= dt::num_threads_in_pool() * 2; ++nth) {
     std::vector<size_t> data(n, 0);
 
-    dt::parallel_for_static(n, 1, nth,
+    dt::parallel_for_static(n, dt::ChunkSize(1), dt::NThreads(nth),
       [&](size_t i) {
         data[i] += 1 + 2 * i;
       });

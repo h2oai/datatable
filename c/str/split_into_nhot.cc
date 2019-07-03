@@ -152,7 +152,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
     [&] {
       std::vector<std::string> chunks;
 
-      dt::parallel_for_static(nrows,
+      dt::nested_for_static(nrows,
         [&](size_t irow) {
           const char* strstart, *strend;
           size_t jrow = ri[irow];
