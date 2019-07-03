@@ -47,6 +47,7 @@ void progress_manager::start_work(work* task) {
 
 
 void progress_manager::finish_work(work* task, bool successfully) {
+  (void) task;
   xassert(!tasks.empty() && tasks.top() == task);
   xassert(pbar != nullptr);
   tasks.pop();

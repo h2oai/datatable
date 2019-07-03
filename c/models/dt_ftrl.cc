@@ -488,7 +488,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
         size_t iteration_size = iteration_end - iteration_start;
 
         // Training.
-        dt::parallel_for_static(iteration_size, [&](size_t i) {
+        dt::nested_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           const size_t j0 = ri[0][ii];
 
@@ -520,7 +520,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
 
-          dt::parallel_for_static(dt_X_val->nrows, [&](size_t i) {
+          dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
             if (j0 != RowIndex::NA && !ISNA<U>(data_y_val[0][j0])) {
@@ -687,7 +687,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
-    dt::parallel_for_static(dt_X->nrows, [&](size_t i){
+    dt::nested_for_static(dt_X->nrows, [&](size_t i){
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
         size_t label_id = static_cast<size_t>(data_label_ids[k]);

@@ -418,7 +418,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
         // Creating the comparator may fail if xcols and jcols are incompatible
         MultiCmp comparator(xcols, jcols, xdt, jdt);
 
-        dt::parallel_for_static(xdt->nrows,
+        dt::nested_for_static(xdt->nrows,
           [&](size_t i) {
             int r = comparator.set_xrow(i);
             if (r == 0) {
