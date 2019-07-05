@@ -36,8 +36,9 @@ FtrlBase::~FtrlBase() {}
  *  Calculate how many threads we need to run FTRL on.
  */
 size_t FtrlBase::get_nthreads(size_t nrows) {
-  size_t nth = (nrows > MIN_ROWS_PER_THREAD)? std::min(dt::num_threads_in_pool(), nrows / MIN_ROWS_PER_THREAD) :
-  																						1;
+  size_t nth = (nrows > MIN_ROWS_PER_THREAD)?
+  						 std::min(dt::num_threads_in_pool(), nrows / MIN_ROWS_PER_THREAD) :
+  						 1;
   return nth;
 }
 
