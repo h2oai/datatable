@@ -254,7 +254,7 @@ void swap(rmem& left, rmem& right) noexcept {
 
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
-static size_t sort_max_chunk_length = 1 << 20;
+static size_t sort_max_chunk_length = 1 << 8;
 static uint8_t sort_max_radix_bits = 12;
 static uint8_t sort_over_radix_bits = 8;
 static int32_t sort_nthreads = 4;
@@ -318,7 +318,7 @@ void sort_init_options() {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
-      sort_over_radix_bits = static_cast<uint8_t>(nth);
+      sort_nthreads = static_cast<uint8_t>(nth);
     }, "");
 }
 
