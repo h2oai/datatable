@@ -1223,7 +1223,6 @@ class SortContext {
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
     // method.
-    size_t nthreads = std::min(nth, nsmallgroups);
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
@@ -1232,18 +1231,18 @@ class SortContext {
       //   tmp = (int32_t*)_x;
       // } else {
       own_tmp = true;
-      tmp = new int32_t[size0 * nthreads];
+      tmp = new int32_t[size0 * nth];
       TRACK(tmp, sizeof(tmp), "sort.tmp");
       // }
     }
 
-    dt::parallel_region(nthreads,
+    dt::parallel_region(nth,
       [&] {
         size_t tnum = dt::this_thread_index();
         int32_t* oo = tmp + tnum * size0;
         GroupGatherer tgg;
 
-        dt::parallel_for_dynamic(
+        dt::nested_for_static(
           /* n_iterations */ _nradixes,
           [&](size_t i) {
             size_t zn  = rrmap[i].size;
