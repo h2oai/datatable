@@ -257,7 +257,7 @@ static size_t sort_thread_multiplier = 2;
 static size_t sort_max_chunk_length = 1 << 8;
 static uint8_t sort_max_radix_bits = 12;
 static uint8_t sort_over_radix_bits = 8;
-static int32_t sort_nthreads = dt::get_hardware_concurrency();
+static int32_t sort_nthreads = static_cast<int>(dt::get_hardware_concurrency());
 
 void sort_init_options() {
   dt::register_option(
