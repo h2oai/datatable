@@ -211,7 +211,8 @@ class LightweightSemaphore {
         // the "real" work arrives, the thread may receive a priority penalty
         // from the OS (especially when the total number of threads is equal
         // to the number of cores in the system).
-        std::this_thread::yield();
+        __asm__ volatile(".byte 0xf3,0x90");
+        // std::this_thread::yield();
       } while (spin_count--);
 
       int old_count = m_count.fetch_sub(1, std::memory_order_acquire);
