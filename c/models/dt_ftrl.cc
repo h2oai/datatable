@@ -472,7 +472,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
   // If we request more threads than is available, `dt::parallel_region()`
   // will fall back to the possible maximum.
-  size_t nthreads = std::max(iteration_nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD, 1lu);
+  size_t nthreads = get_nthreads(iteration_nrows);
   dt::parallel_region(nthreads,
     [&]() {
       // Each thread gets a private storage for hashes,
@@ -678,8 +678,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
                                  << "the model was trained in an unknown mode";
   }
 
-
-  size_t nthreads = dt_X->nrows / dt::FtrlBase::MIN_ROWS_PER_THREAD;
+  size_t nthreads = get_nthreads(dt_X->nrows);
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
 

@@ -773,7 +773,6 @@ def test_ftrl_fit_predict_binomial_online_1_2():
     assert max(delta_even) < epsilon
 
 
-@pytest.mark.skip(reason="Unstable since #1899")
 def test_ftrl_fit_predict_binomial_online_2_1():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
@@ -812,7 +811,6 @@ def test_ftrl_fit_predict_binomial_online_2_1():
     assert max(delta_even) < epsilon
 
 
-@pytest.mark.skip(reason="Unstable since #1899")
 def test_ftrl_fit_predict_binomial_online_2_2():
     ft = Ftrl(alpha = 0.1, nepochs = 10000, model_type = "binomial")
     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
@@ -857,7 +855,6 @@ def test_ftrl_fit_multinomial_none():
     assert res.loss is None
 
 
-@pytest.mark.skip(reason="Unstable since #1899")
 def test_ftrl_fit_predict_multinomial_vs_binomial():
     target_names = ["cat", "dog"]
     ft_binomial = Ftrl(nbins = 10, nepochs = 1)
@@ -915,7 +912,6 @@ def test_ftrl_fit_predict_multinomial():
     assert p.names == labels
 
 
-@pytest.mark.skip(reason="Unstable since #1899")
 def test_ftrl_fit_predict_multinomial_online():
     ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
     labels = ["green", "red", "blue"]

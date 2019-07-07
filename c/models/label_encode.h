@@ -23,9 +23,11 @@
 #include "parallel/api.h"
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
+#include "models/dt_ftrl_base.h"
 
 
 namespace dt {
+
 
 void label_encode(const Column*, dtptr&, dtptr&, bool is_binomial = false);
 void label_encode_bool(const Column*, dtptr&, dtptr&);
@@ -109,7 +111,8 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
 
 
   auto data = static_cast<const T_from*>(col->data());
-  dt::parallel_for_static(nrows,
+
+  dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
       size_t jrow = ri[irow];
       T_from v = data[jrow];
@@ -154,7 +157,6 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
  */
 template <typename U, SType stype_to>
 void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
-  // std::cout << "stype_to bool: " << (stype_to == SType::BOOL) << "\n";
   using T_to = element_t<stype_to>;
   const size_t nrows = col->nrows;
   const RowIndex& ri = col->rowindex();
@@ -167,7 +169,7 @@ void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   const U* offsets = scol->offsets();
   const char* strdata = scol->strdata();
 
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
       size_t jrow = ri[irow];
 

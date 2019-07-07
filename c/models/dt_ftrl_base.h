@@ -111,6 +111,7 @@ class FtrlBase {
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual DataTable* get_labels() = 0;
+    static size_t get_nthreads(size_t);
 
     // Setters
     virtual void set_model(DataTable*) = 0;
