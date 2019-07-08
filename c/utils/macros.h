@@ -43,7 +43,7 @@
 
 #if defined(__linux) || defined(__linux__)
   #undef  DT_OS_LINUX
-  #define DT_OS_LINUX
+  #define DT_OS_LINUX 1
 #endif
 
 #if (DT_OS_LINUX || DT_OS_DARWIN)
