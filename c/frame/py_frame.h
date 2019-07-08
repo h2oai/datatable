@@ -87,6 +87,7 @@ class Frame : public PyObject {
 
     oobj get_ncols() const;
     oobj get_nrows() const;
+    oobj get_ndims() const;
     oobj get_shape() const;
     oobj get_stypes() const;
     oobj get_ltypes() const;

@@ -212,6 +212,15 @@ oobj Frame::get_shape() const {
 }
 
 
+static GSArgs args_ndims(
+  "ndims",
+  "Number of dimensions in the Frame, always 2\n");
+
+oobj Frame::get_ndims() const {
+  return oint(2);
+}
+
+
 static GSArgs args_stypes(
   "stypes",
   "The tuple of each column's stypes (\"storage types\")\n");
@@ -293,6 +302,7 @@ void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
   ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
   ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
   ADD_GETTER(gs, &Frame::get_shape, args_shape);
+  ADD_GETTER(gs, &Frame::get_ndims, args_ndims);
   ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
   ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
 

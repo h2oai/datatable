@@ -162,6 +162,7 @@ def test_dt_properties(dt0):
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
+    assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
                           ltype.bool, ltype.bool, ltype.str)
