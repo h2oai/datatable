@@ -16,6 +16,7 @@
 #include <memory>      // std::unique_ptr
 #include <string>
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 
 
 // On Windows variables of type `size_t` cannot be printed with "%zu" in the
@@ -57,12 +58,12 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count);
 
 
 
-#ifdef __APPLE__
+#if DT_OS_DARWIN
   #include <malloc/malloc.h>  // size_t malloc_size(const void *)
-#elif defined _WIN32
+#elif DT_OS_WINDOWS
   #include <malloc.h>  // size_t _msize(void *)
   #define malloc_size  _msize
-#elif defined __linux__
+#elif DT_OS_LINUX
   #include <malloc.h>  // size_t malloc_usable_size(void *) __THROW
   #define malloc_size  malloc_usable_size
 #else
