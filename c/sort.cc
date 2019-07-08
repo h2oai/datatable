@@ -254,10 +254,10 @@ void swap(rmem& left, rmem& right) noexcept {
 
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
-static size_t sort_max_chunk_length = 1 << 20;
+static size_t sort_max_chunk_length = 1 << 8;
 static uint8_t sort_max_radix_bits = 12;
 static uint8_t sort_over_radix_bits = 8;
-static int32_t sort_nthreads = 4;
+static int32_t sort_nthreads = static_cast<int>(dt::get_hardware_concurrency());
 
 void sort_init_options() {
   dt::register_option(
@@ -318,7 +318,7 @@ void sort_init_options() {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
-      sort_over_radix_bits = static_cast<uint8_t>(nth);
+      sort_nthreads = static_cast<uint8_t>(nth);
     }, "");
 }
 
@@ -1223,7 +1223,6 @@ class SortContext {
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
     // method.
-    size_t nthreads = std::min(nth, nsmallgroups);
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
@@ -1232,18 +1231,18 @@ class SortContext {
       //   tmp = (int32_t*)_x;
       // } else {
       own_tmp = true;
-      tmp = new int32_t[size0 * nthreads];
+      tmp = new int32_t[size0 * nth];
       TRACK(tmp, sizeof(tmp), "sort.tmp");
       // }
     }
 
-    dt::parallel_region(nthreads,
+    dt::parallel_region(nth,
       [&] {
         size_t tnum = dt::this_thread_index();
         int32_t* oo = tmp + tnum * size0;
         GroupGatherer tgg;
 
-        dt::parallel_for_dynamic(
+        dt::nested_for_static(
           /* n_iterations */ _nradixes,
           [&](size_t i) {
             size_t zn  = rrmap[i].size;
