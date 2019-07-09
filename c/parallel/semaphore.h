@@ -45,13 +45,14 @@
 #include <atomic>
 #include <algorithm>
 #include "utils/assert.h"
+#include "utils/macros.h"
 namespace dt {
 
 
 //------------------------------------------------------------------------------
 // Semaphore (Windows)
 //------------------------------------------------------------------------------
-#if defined(_WIN32)
+#if DT_OS_WINDOWS
 #include <windows.h>
 #undef min
 #undef max
@@ -89,7 +90,7 @@ class Semaphore {
 // Can't use POSIX semaphores due to
 // http://lists.apple.com/archives/darwin-kernel/2009/Apr/msg00010.html
 //------------------------------------------------------------------------------
-#elif defined(__MACH__)
+#elif DT_OS_DARWIN
 #include <mach/mach.h>
 
 class Semaphore {
@@ -129,7 +130,7 @@ class Semaphore {
 //------------------------------------------------------------------------------
 // Semaphore (POSIX, Linux)
 //------------------------------------------------------------------------------
-#elif defined(__unix__)
+#elif DT_OS_LINUX
 #include <semaphore.h>
 
 class Semaphore {
@@ -167,11 +168,10 @@ class Semaphore {
     }
 };
 
-
-
 #else
-#error Unsupported platform!
+  #error Unsupported operating system
 #endif
+
 
 
 //------------------------------------------------------------------------------
@@ -211,8 +211,11 @@ class LightweightSemaphore {
         // the "real" work arrives, the thread may receive a priority penalty
         // from the OS (especially when the total number of threads is equal
         // to the number of cores in the system).
-        __asm__ volatile(".byte 0xf3,0x90");
-        // std::this_thread::yield();
+        #if DT_ARCH_X86_64
+          __asm__ volatile(".byte 0xf3,0x90");
+        #else
+          std::this_thread::yield();
+        #endif
       } while (spin_count--);
 
       int old_count = m_count.fetch_sub(1, std::memory_order_acquire);
