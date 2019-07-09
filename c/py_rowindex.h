@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PY_ROWINDEX_h
 #define dt_PY_ROWINDEX_h
-#include "python/ext_type.h"
 #include "python/obj.h"
+#include "python/xobject.h"
 #include "rowindex.h"
 namespace py {
 
@@ -38,34 +38,26 @@ class orowindex : public oobj {
 
     static bool check(PyObject*);
 
-    // Declare class orowindex::pyobject
-    struct pyobject;
+
+    struct pyobject : public XObject<pyobject> {
+      RowIndex* ri;  // owned ref
+
+      void m__init__(const PKArgs&);
+      void m__dealloc__();
+      oobj m__repr__();
+      oobj get_type() const;
+      oobj get_nrows() const;
+      oobj get_min() const;
+      oobj get_max() const;
+
+      oobj to_list(const PKArgs&);
+
+      static void impl_init_type(XTypeMaker&);
+    };
 };
 
 
 
-struct orowindex::pyobject : public PyObject {
-  RowIndex* ri;  // owned ref
-
-  class Type : public ExtType<pyobject> {
-    public:
-      static PKArgs args___init__;
-      static const char* classname();
-      static const char* classdoc();
-      static bool is_subclassable();
-      static void init_methods_and_getsets(Methods&, GetSetters&);
-  };
-
-  void m__init__(PKArgs&);
-  void m__dealloc__();
-  oobj m__repr__();
-  oobj get_type() const;
-  oobj get_nrows() const;
-  oobj get_min() const;
-  oobj get_max() const;
-
-  oobj to_list(const PKArgs&);
-};
 
 
 

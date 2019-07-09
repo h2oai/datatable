@@ -24,63 +24,6 @@
 namespace py {
 
 
-//------------------------------------------------------------------------------
-// Helper macros
-//------------------------------------------------------------------------------
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-template"
-
-template <typename T>
-static T class_of(oobj(T::*)(const PKArgs&));
-
-template <typename T>
-static T class_of(void(T::*)(const PKArgs&));
-
-template <typename T>
-static T class_of(void(T::*)());
-
-#pragma clang diagnostic pop
-
-
-
-#define CONSTRUCTOR(METH, ARGS)                                                \
-    [](PyObject* self, PyObject* args, PyObject* kwargs) -> int {              \
-      return ARGS.exec_intfn(self, args, kwargs,                               \
-         [](PyObject* obj, const py::PKArgs& a){                               \
-            (*reinterpret_cast<decltype(class_of(METH))*>(obj).*METH)(a);      \
-         });                                                                   \
-    }, py::XTypeMaker::constructor_tag
-
-
-#define DESTRUCTOR(METH)                                                       \
-    [](PyObject* self) -> void {                                               \
-      (*reinterpret_cast<decltype(class_of(METH))*>(self).*METH)();            \
-    }, py::XTypeMaker::destructor_tag
-
-
-#define GETTER(GETFN, ARGS)                                                    \
-    [](PyObject* self, void*) -> PyObject* {                                   \
-      return ARGS.exec_getter(self, GETFN);                                    \
-    }, nullptr, ARGS, py::XTypeMaker::getset_tag
-
-
-#define GETSET(GETFN, SETFN, ARGS)                                             \
-    [](PyObject* self, void*) -> PyObject* {                                   \
-      return ARGS.exec_getter(self, GETFN);                                    \
-    },                                                                         \
-    [](PyObject* self, PyObject* value, void*) -> int {                        \
-      return ARGS.exec_setter(self, value, SETFN);                             \
-    }, ARGS, py::XTypeMaker::getset_tag
-
-
-#define METHOD(METH, ARGS)                                                     \
-    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
-      return ARGS.exec_method(self, args, kwds, METH);                         \
-    }, ARGS, py::XTypeMaker::method_tag
-
-
-
 
 //------------------------------------------------------------------------------
 // XTypeMaker
@@ -98,6 +41,8 @@ class XTypeMaker {
     static struct DestructorTag {} destructor_tag;
     static struct GetSetTag {} getset_tag;
     static struct MethodTag {} method_tag;
+    static struct ReprTag {} repr_tag;
+    static struct StrTag {} str_tag;
 
     XTypeMaker(PyTypeObject* t) : type(t) {
       std::memset(type, 0, sizeof(PyTypeObject));
@@ -183,6 +128,15 @@ class XTypeMaker {
       });
     }
 
+    void add(reprfunc _repr, ReprTag) {
+      type->tp_repr = _repr;
+    }
+
+    void add(reprfunc _str, StrTag) {
+      type->tp_str = _str;
+    }
+
+
   private:
     PyGetSetDef* finalize_getsets() {
       size_t n = get_defs.size();
@@ -209,7 +163,7 @@ class XTypeMaker {
 // XObject
 //------------------------------------------------------------------------------
 
-template <class Derived>
+template <typename Derived>
 struct XObject : public PyObject {
   static PyTypeObject type;
 
@@ -229,9 +183,103 @@ struct XObject : public PyObject {
 };
 
 
+template <typename D>
+PyTypeObject XObject<D>::type;
 
-template <class T>
-PyTypeObject XObject<T>::type;
+
+
+
+//------------------------------------------------------------------------------
+// Helper macros
+//------------------------------------------------------------------------------
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-template"
+
+template <typename T>
+static T class_of(oobj(T::*)(const PKArgs&));
+
+template <typename T>
+static T class_of(void(T::*)(const PKArgs&));
+
+template <typename T>
+static T class_of(oobj(T::*)());
+
+template <typename T>
+static T class_of(void(T::*)());
+
+
+using fn11_t = PyObject*(*)(PyObject*);
+
+template <typename = int>
+static PyObject* execute_and_catch_exceptions(PyObject* o, fn11_t fn) noexcept
+{
+  try {
+    return fn(o);
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+#define impl_WRAP11(METH)                                                      \
+    [](PyObject* self) -> PyObject* {                                          \
+      return execute_and_catch_exceptions(self,                                \
+        [](PyObject* obj) -> PyObject* {                                       \
+          using T = decltype(class_of(METH));                                  \
+          return (static_cast<T*>(obj)->*METH)().release();                    \
+        });                                                                    \
+    }
+
+#pragma clang diagnostic pop
+
+
+
+#define CONSTRUCTOR(METH, ARGS)                                                \
+    [](PyObject* self, PyObject* args, PyObject* kwargs) -> int {              \
+      return ARGS.exec_intfn(self, args, kwargs,                               \
+         [](PyObject* obj, const py::PKArgs& a){                               \
+            (*reinterpret_cast<decltype(class_of(METH))*>(obj).*METH)(a);      \
+         });                                                                   \
+    }, py::XTypeMaker::constructor_tag
+
+
+#define DESTRUCTOR(METH)                                                       \
+    [](PyObject* self) -> void {                                               \
+      (*reinterpret_cast<decltype(class_of(METH))*>(self).*METH)();            \
+    }, py::XTypeMaker::destructor_tag
+
+
+#define GETTER(GETFN, ARGS)                                                    \
+    [](PyObject* self, void*) -> PyObject* {                                   \
+      return ARGS.exec_getter(self, GETFN);                                    \
+    }, nullptr, ARGS, py::XTypeMaker::getset_tag
+
+
+#define GETSET(GETFN, SETFN, ARGS)                                             \
+    [](PyObject* self, void*) -> PyObject* {                                   \
+      return ARGS.exec_getter(self, GETFN);                                    \
+    },                                                                         \
+    [](PyObject* self, PyObject* value, void*) -> int {                        \
+      return ARGS.exec_setter(self, value, SETFN);                             \
+    }, ARGS, py::XTypeMaker::getset_tag
+
+
+#define METHOD(METH, ARGS)                                                     \
+    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
+      return ARGS.exec_method(self, args, kwds, METH);                         \
+    }, ARGS, py::XTypeMaker::method_tag
+
+
+
+#define METHOD__REPR__(METH)                                                   \
+    impl_WRAP11(METH), py::XTypeMaker::repr_tag
+
+
+#define METHOD__STR__(METH)                                                    \
+    impl_WRAP11(METH), py::XTypeMaker::str_tag
+
+
 
 
 } // namespace py
