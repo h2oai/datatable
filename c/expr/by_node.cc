@@ -186,41 +186,59 @@ void by_node::execute(workframe& wf) const {
 
 
 }  // namespace dt
+//------------------------------------------------------------------------------
+// py::oby
+//------------------------------------------------------------------------------
 namespace py {
 
 
-//------------------------------------------------------------------------------
-// py::oby::pyobj::Type
-//------------------------------------------------------------------------------
+oby::oby(const robj& src) : oobj(src) {}
+oby::oby(const oobj& src) : oobj(src) {}
 
-PKArgs oby::pyobj::Type::args___init__(
-    0, 0, 0, true, false, {}, "__init__", nullptr);
 
-const char* oby::pyobj::Type::classname() {
-  return "datatable.by";
+oby oby::make(const robj& r) {
+  robj oby_type(reinterpret_cast<PyObject*>(&oby::oby_pyobject::type));
+  return oby(oby_type.call({r}));
 }
 
-const char* oby::pyobj::Type::classdoc() {
-  return "by() clause for use in DT[i, j, ...]";
+
+bool oby::check(PyObject* v) {
+  return oby::oby_pyobject::check(v);
 }
 
-bool oby::pyobj::Type::is_subclassable() {
-  return true;  // TODO: make false
+
+void oby::init(PyObject* m) {
+  oby::oby_pyobject::init_type(m);
 }
 
-void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+
+dt::collist_ptr oby::cols(dt::workframe& wf) const {
+  // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
+  robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
+  return dt::collist::make(wf, cols, "`by`");
+}
+
+
+
+
+static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
+
+
+void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
+  xt.set_object_size(sizeof(oby::oby_pyobject));
+  xt.set_class_name("datatable.by");
+  xt.set_class_doc("by() clause for use in DT[i, j, ...]");
+  xt.set_subclassable(true);
+
+  xt.add(CONSTRUCTOR(&oby::oby_pyobject::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&oby::oby_pyobject::m__dealloc__));
+
   static GSArgs args__cols("_cols");
-  ADD_GETTER(gs, &pyobj::get_cols, args__cols);
+  xt.add(GETTER(&oby::oby_pyobject::get_cols, args__cols));
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// py::oby::pyobj
-//------------------------------------------------------------------------------
-
-void oby::pyobj::m__init__(PKArgs& args) {
+void oby::oby_pyobject::m__init__(const PKArgs& args) {
   olist colslist(args.num_vararg_args());
   size_t i = 0;
   for (robj arg : args.varargs()) {
@@ -230,49 +248,13 @@ void oby::pyobj::m__init__(PKArgs& args) {
 }
 
 
-void oby::pyobj::m__dealloc__() {
+void oby::oby_pyobject::m__dealloc__() {
   cols = nullptr;  // Releases the stored oobj
 }
 
 
-oobj oby::pyobj::get_cols() const {
+oobj oby::oby_pyobject::get_cols() const {
   return cols;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// py::oby
-//------------------------------------------------------------------------------
-
-oby::oby(const robj& src) : oobj(src) {}
-oby::oby(const oobj& src) : oobj(src) {}
-
-
-oby oby::make(const robj& r) {
-  robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
-  return oby(oby_type.call({r}));
-}
-
-
-bool oby::check(PyObject* v) {
-  if (!v) return false;
-  auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
-  int ret = PyObject_IsInstance(v, typeptr);
-  if (ret == -1) PyErr_Clear();
-  return (ret == 1);
-}
-
-
-void oby::init(PyObject* m) {
-  pyobj::Type::init(m);
-}
-
-
-dt::collist_ptr oby::cols(dt::workframe& wf) const {
-  robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  return dt::collist::make(wf, cols, "`by`");
 }
 
 

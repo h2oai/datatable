@@ -146,6 +146,10 @@ class PKArgs {
         PyObject* self, PyObject* args, PyObject* kwds,
         void (T::*)(const PKArgs&)) const noexcept;
 
+    int exec_intfn(
+        PyObject* self, PyObject* args, PyObject* kwds,
+        void (*)(PyObject*, const PKArgs&)) noexcept;
+
     //---- API for ExtType<T> ----------
     void set_class_name(const char* name);
 
