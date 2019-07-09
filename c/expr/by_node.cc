@@ -225,7 +225,6 @@ static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
 
 
 void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
-  xt.set_object_size(sizeof(oby::oby_pyobject));
   xt.set_class_name("datatable.by");
   xt.set_class_doc("by() clause for use in DT[i, j, ...]");
   xt.set_subclassable(true);

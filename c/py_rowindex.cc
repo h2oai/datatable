@@ -110,7 +110,6 @@ oobj orowindex::pyobject::to_list(const PKArgs&) {
 
 void orowindex::pyobject::impl_init_type(XTypeMaker& xt) {
   using ori = orowindex::pyobject;
-  xt.set_object_size(sizeof(ori));
   xt.set_class_name("datatable.internal.RowIndex");
   xt.add(CONSTRUCTOR(&ori::m__init__, args___init__));
   xt.add(DESTRUCTOR(&ori::m__dealloc__));

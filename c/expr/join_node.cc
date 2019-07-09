@@ -25,37 +25,15 @@
 namespace py {
 
 
-//------------------------------------------------------------------------------
-// ojoin::pyobj::Type
-//------------------------------------------------------------------------------
-
-PKArgs ojoin::pyobj::Type::args___init__(
-    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
-
-const char* ojoin::pyobj::Type::classname() {
-  return "datatable.join";
-}
-
-const char* ojoin::pyobj::Type::classdoc() {
-  return "join() clause for use in DT[i, j, ...]";
-}
-
-bool ojoin::pyobj::Type::is_subclassable() {
-  return true;  // TODO: make false
-}
-
-void ojoin::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
-  static GSArgs args_joinframe("joinframe");
-  ADD_GETTER(gs, &pyobj::get_joinframe, args_joinframe);
-}
-
-
 
 //------------------------------------------------------------------------------
 // ojoin::pyobj
 //------------------------------------------------------------------------------
 
-void ojoin::pyobj::m__init__(PKArgs& args) {
+static PKArgs args___init__(
+    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
+
+void ojoin::pyobj::m__init__(const PKArgs& args) {
   if (!args[0]) {
     throw TypeError() << "join() is missing the required parameter `frame`";
   }
@@ -79,6 +57,17 @@ oobj ojoin::pyobj::get_joinframe() const {
   return join_frame;
 }
 
+void ojoin::pyobj::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.join");
+  xt.set_class_doc("join() clause for use in DT[i, j, ...]");
+  xt.set_subclassable(true);
+
+  static GSArgs args_joinframe("joinframe");
+  xt.add(CONSTRUCTOR(&pyobj::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&pyobj::m__dealloc__));
+  xt.add(GETTER(&pyobj::get_joinframe, args_joinframe));
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -95,16 +84,12 @@ DataTable* ojoin::get_datatable() const {
 
 
 bool ojoin::check(PyObject* v) {
-  if (!v) return false;
-  auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
-  int ret = PyObject_IsInstance(v, typeptr);
-  if (ret == -1) PyErr_Clear();
-  return (ret == 1);
+  return pyobj::check(v);
 }
 
 
 void ojoin::init(PyObject* m) {
-  pyobj::Type::init(m);
+  pyobj::init_type(m);
 }
 
 

@@ -44,16 +44,17 @@ class XTypeMaker {
     static struct ReprTag {} repr_tag;
     static struct StrTag {} str_tag;
 
-    XTypeMaker(PyTypeObject* t) : type(t) {
+    XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
       std::memset(type, 0, sizeof(PyTypeObject));
       Py_INCREF(type);
+      type->tp_basicsize = static_cast<Py_ssize_t>(objsize);
+      type->tp_itemsize = 0;
       type->tp_flags = Py_TPFLAGS_DEFAULT;
       type->tp_alloc = &PyType_GenericAlloc;
       type->tp_new   = &PyType_GenericNew;
     }
 
     void attach_to_module(PyObject* module) {
-      xassert(type->tp_basicsize > 0);
       xassert(type->tp_dealloc);
       xassert(type->tp_init);
       xassert(type->tp_name);
@@ -94,11 +95,6 @@ class XTypeMaker {
       } else {
         type->tp_flags &= ~Py_TPFLAGS_BASETYPE;
       }
-    }
-
-    void set_object_size(size_t sz) {
-      type->tp_basicsize = static_cast<Py_ssize_t>(sz);
-      type->tp_itemsize = 0;
     }
 
     void add(initproc _init, ConstructorTag) {
@@ -168,7 +164,7 @@ struct XObject : public PyObject {
   static PyTypeObject type;
 
   static void init_type(PyObject* module) {
-    XTypeMaker xt(&type);
+    XTypeMaker xt(&type, sizeof(Derived));
     Derived::impl_init_type(xt);
     xt.attach_to_module(module);
   }

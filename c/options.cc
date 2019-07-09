@@ -67,7 +67,6 @@ static PKArgs args_set(1, 0, 0, false, false, {"x"}, "set", nullptr);
 void config_option::impl_init_type(XTypeMaker& xt) {
   using co = config_option;
   xt.set_class_name("datatable.internal.Option");
-  xt.set_object_size(sizeof(co));
 
   xt.add(CONSTRUCTOR(&co::m__init__, args___init__));
   xt.add(DESTRUCTOR(&co::m__dealloc__));
