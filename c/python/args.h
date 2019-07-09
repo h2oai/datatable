@@ -30,7 +30,7 @@ namespace py {
 //------------------------------------------------------------------------------
 
 /**
- * Helper class for getters/setters in ExtType<T>::GetSetters.
+ * Helper class for getters/setters in XTypeMaker.
  */
 class GSArgs {
   public:
@@ -54,7 +54,9 @@ class GSArgs {
     }
 
     template <typename T>
-    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(const Arg&)) noexcept {
+    int exec_setter(PyObject* obj, PyObject* value,
+                    void (T::*func)(const Arg&)) noexcept
+    {
       try {
         T* t = static_cast<T*>(obj);
         _arg.set(value);
@@ -80,7 +82,7 @@ class VarKwdsIterable;
 
 
 /**
- * Helper class for ExtType: it encapsulates arguments passed to a function
+ * Helper class for XTypeMaker: it encapsulates arguments passed to a function
  * and helps verify / parse them. This is the base class for a family of
  * args-related functions, each designed to handle different calling
  * convention.
@@ -150,7 +152,7 @@ class PKArgs {
         PyObject* self, PyObject* args, PyObject* kwds,
         void (*)(PyObject*, const PKArgs&)) noexcept;
 
-    //---- API for ExtType<T> ----------
+    //---- API for XTypeMaker ----------
     void set_class_name(const char* name);
 
     // Each `Args` object describes a certain function, or method in a class.

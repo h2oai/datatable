@@ -8,18 +8,18 @@
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "python/_all.h"
-#include "python/ext_type.h"
 #include "python/string.h"
+#include "python/xobject.h"
 #include "datatablemodule.h"
 #include "options.h"
+namespace py {
 
 
 //------------------------------------------------------------------------------
 // config_option
 //------------------------------------------------------------------------------
-namespace py {
 
-struct config_option : public PyObject {
+struct config_option : public XObject<config_option> {
   std::function<oobj()> getter;
   std::function<void(const py::Arg&)> setter;
   oobj name;
@@ -27,23 +27,31 @@ struct config_option : public PyObject {
   oobj docstring;
   Arg* arg;
 
-  class Type : public ExtType<config_option> {
-    public:
-      static PKArgs args___init__;
-      static const char* classname();
-      static const char* classdoc();
-      static bool is_subclassable();
-      static void init_methods_and_getsets(Methods&, GetSetters&);
-  };
+  void m__init__(const PKArgs&) {}
+  void m__dealloc__() {
+    delete arg;
+    name = nullptr;
+    docstring = nullptr;
+    default_value = nullptr;
+    getter = nullptr;
+    setter = nullptr;
+    arg = nullptr;
+  }
 
-  void m__init__(PKArgs&);
-  void m__dealloc__();
-  oobj get(const PKArgs&);
-  void set(const PKArgs&);
+  oobj get(const PKArgs&) {
+    return getter();
+  }
 
-  oobj get_name() const;
-  oobj get_doc() const;
-  oobj get_default() const;
+  void set(const PKArgs& args) {
+    arg->set(args[0].to_borrowed_ref());
+    setter(*arg);
+  }
+
+  oobj get_name() const { return name; }
+  oobj get_doc() const { return docstring; }
+  oobj get_default() const { return default_value; }
+
+  static void impl_init_type(XTypeMaker&);
 };
 
 
@@ -51,71 +59,29 @@ struct config_option : public PyObject {
 static GSArgs args_name("name");
 static GSArgs args_doc("doc");
 static GSArgs args_default("default");
-
-oobj config_option::get_name() const { return name; }
-oobj config_option::get_doc() const { return docstring; }
-oobj config_option::get_default() const { return default_value; }
-
-
-void config_option::m__init__(PKArgs&) {}
-
-void config_option::m__dealloc__() {
-  delete arg;
-  name = nullptr;
-  docstring = nullptr;
-  default_value = nullptr;
-  getter = nullptr;
-  setter = nullptr;
-  arg = nullptr;
-}
-
-
+static PKArgs args___init__(0, 0, 0, false, false, {}, "__init__", nullptr);
 static PKArgs args_get(0, 0, 0, false, false, {}, "get", nullptr);
 static PKArgs args_set(1, 0, 0, false, false, {"x"}, "set", nullptr);
 
-oobj config_option::get(const PKArgs&) { return getter(); }
-void config_option::set(const PKArgs& args) {
-  arg->set(args[0].to_borrowed_ref());
-  setter(*arg);
-}
 
-
-
-//------------------------------------------------------------------------------
-// config_option::Type
-//------------------------------------------------------------------------------
-
-const char* config_option::Type::classname() {
-  return "datatable.internal.Option";
-}
-
-const char* config_option::Type::classdoc() {
-  return nullptr;
-}
-
-bool config_option::Type::is_subclassable() {
-  return false;
-}
-
-void config_option::Type::init_methods_and_getsets(
-    Methods& mm, GetSetters& gs)
-{
+void config_option::impl_init_type(XTypeMaker& xt) {
   using co = config_option;
-  ADD_GETTER(gs, &co::get_name, args_name);
-  ADD_GETTER(gs, &co::get_doc, args_doc);
-  ADD_GETTER(gs, &co::get_default, args_default);
-  ADD_METHOD(mm, &co::get, args_get);
-  ADD_METHOD(mm, &co::set, args_set);
+  xt.set_class_name("datatable.internal.Option");
+  xt.set_object_size(sizeof(co));
+
+  xt.add(CONSTRUCTOR(&co::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&co::m__dealloc__));
+  xt.add(GETTER(&co::get_name, args_name));
+  xt.add(GETTER(&co::get_doc, args_doc));
+  xt.add(GETTER(&co::get_default, args_default));
+  xt.add(METHOD(&co::get, args_get));
+  xt.add(METHOD(&co::set, args_set));
 }
 
 
-PKArgs config_option::Type::args___init__(
-  0, 0, 0, false, false, {}, "__init__", nullptr);
 
 
 }  // namespace py
-
-
 //------------------------------------------------------------------------------
 // dt::
 //------------------------------------------------------------------------------
@@ -135,7 +101,7 @@ void register_option(const char* name,
                      const char* docstring)
 {
   xassert(dt_options);
-  auto pytype = reinterpret_cast<PyObject*>(&py::config_option::Type::type);
+  auto pytype = reinterpret_cast<PyObject*>(&py::config_option::type);
   auto v = PyObject_CallObject(pytype, nullptr);
   if (!v) throw PyError();
   py::oobj opt = py::oobj::from_new_reference(v);
@@ -155,8 +121,10 @@ py::oobj get_option(const char* name) {
 }
 
 void init_config_option(void* module) {
-  py::config_option::Type::init(static_cast<PyObject*>(module));
+  py::config_option::init_type(static_cast<PyObject*>(module));
 }
+
+
 
 
 }  // namespace dt

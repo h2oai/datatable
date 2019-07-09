@@ -18,6 +18,7 @@
 #include <cstring>    // std::memcpy, std::memset, std::strrchr
 #include <vector>     // std::vector
 #include <Python.h>
+#include "python/args.h"
 #include "python/obj.h"
 #include "utils/assert.h"
 namespace py {
@@ -130,6 +131,7 @@ class XTypeMaker {
     }
 
     void set_class_name(const char* name) {
+      xassert(meth_defs.size() == 0);
       type->tp_name = name;
     }
 
@@ -172,6 +174,7 @@ class XTypeMaker {
     }
 
     void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
+      args.set_class_name(type->tp_name);
       meth_defs.push_back(PyMethodDef {
         args.get_short_name(),
         reinterpret_cast<PyCFunction>(meth),
@@ -190,9 +193,6 @@ class XTypeMaker {
     }
 
     PyMethodDef* finalize_methods() {
-      for (auto& meth_def : meth_defs) {
-        meth_def.set_class_name(type->tp_name);
-      }
       size_t n = meth_defs.size();
       PyMethodDef* res = new PyMethodDef[n + 1];
       std::memcpy(res, meth_defs.data(), n * sizeof(PyMethodDef));
