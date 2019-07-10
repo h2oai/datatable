@@ -31,7 +31,8 @@ namespace py {
 
 /**
  * Helper class for initializing the `PyTypeObject type` variable.
- * See: https://docs.python.org/3/c-api/typeobj.html
+ *
+ * See also: https://docs.python.org/3/c-api/typeobj.html
  */
 class XTypeMaker {
   private:
@@ -192,6 +193,41 @@ class XTypeMaker {
 // XObject
 //------------------------------------------------------------------------------
 
+/**
+ * This functionality can be used in order to create new Python classes
+ * from C++. In Python documentation they are called "extension types".
+ *
+ * This framework is the syntactic sugar over the "native" Python C API, as
+ * described e.g. here: https://docs.python.org/3/extending/newtypes.html
+ * You do not need to know the native API in order to use this framework.
+ *
+ * Here's a minimal example of how to declare a new python class:
+ *
+ *    class MyObject : public XObject<MyObject> {
+ *      ...
+ *      public:
+ *        static void impl_init_type(XTypeMaker& xt) {
+ *          xt.set_class_name("datatable.MyObject");
+ *          static PKArgs args_init(0,0,0,false,false,{},"__init__",nullptr);
+ *          xt.add(CONSTRUCTOR(&MyObject::m__init__, args_init));
+ *          xt.add(DESTRUCTOR(&MyObject::m__dealloc__));
+ *        }
+ *        void m__init__(const py::PKArgs&);
+ *        void m__dealloc__();
+ *    };
+ *
+ * Then, in order to attach this class to a python module, call at the module
+ * initialization stage:
+ *
+ *    Please::init_type(module);
+ *
+ * If an error occur during initialization, an exception will be thrown.
+ *
+ * There are multiple class properties that can be set up within the
+ * `impl_init_type()`, check `XTypeMaker` for more info. The three properties
+ * shown in the example above are required, all other are optional.
+ *
+ */
 template <typename Derived>
 struct XObject : public PyObject {
   static PyTypeObject type;
