@@ -273,6 +273,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(DESTRUCTOR(&Frame::m__dealloc__));
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
+  xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
 
   _init_cbind(xt);
   _init_key(xt);

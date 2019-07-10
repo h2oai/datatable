@@ -48,6 +48,7 @@ class XTypeMaker {
     static struct StrTag {} str_tag;
     static struct GetitemTag {} getitem_tag;
     static struct SetitemTag {} setitem_tag;
+    static struct BuffersTag {} buffers_tag;
 
     XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
       std::memset(type, 0, sizeof(PyTypeObject));
@@ -149,6 +150,13 @@ class XTypeMaker {
       type->tp_as_mapping->mp_ass_subscript = _setitem;
     }
 
+    void add(getbufferproc _get, releasebufferproc _del, BuffersTag) {
+      xassert(type->tp_as_buffer == nullptr);
+      PyBufferProcs* bufs = new PyBufferProcs();
+      bufs->bf_getbuffer = _get;
+      bufs->bf_releasebuffer = _del;
+      type->tp_as_buffer = bufs;
+    }
 
   private:
     PyGetSetDef* finalize_getsets() {
@@ -248,6 +256,28 @@ int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
   }
 }
 
+template <typename T, void(T::*METH)(Py_buffer*, int)>
+int _safe_getbuffer(PyObject* self, Py_buffer* buf, int flags) {
+  try {
+    T* tself = static_cast<T*>(self);
+    (tself->*METH)(buf, flags);
+    return 0;
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
+  }
+}
+
+template <typename T, void(T::*METH)(Py_buffer*)>
+void _safe_releasebuffer(PyObject* self, Py_buffer* buf) {
+  try {
+    T* tself = static_cast<T*>(self);
+    (tself->*METH)(buf);
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+  }
+}
+
 
 
 
@@ -302,6 +332,11 @@ static T _class_of_impl(R(T::*)(Args...));
       return ARGS.exec_method(self, args, kwds, METH);                         \
     }, ARGS, py::XTypeMaker::method_tag
 
+
+#define BUFFERS(GETMETH, DELMETH)                                              \
+    _safe_getbuffer<CLASS_OF(GETMETH), GETMETH>,                               \
+    _safe_releasebuffer<CLASS_OF(DELMETH), DELMETH>,                           \
+    py::XTypeMaker::buffers_tag
 
 
 #define METHOD__REPR__(METH)  \
