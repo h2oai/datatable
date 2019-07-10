@@ -297,10 +297,10 @@ oobj Frame::to_dict(const PKArgs&) {
 
 
 
-void Frame::Type::_init_topython(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_dict, args_to_dict);
-  ADD_METHOD(mm, &Frame::to_list, args_to_list);
-  ADD_METHOD(mm, &Frame::to_tuples, args_to_tuples);
+void Frame::_init_topython(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_dict, args_to_dict));
+  xt.add(METHOD(&Frame::to_list, args_to_list));
+  xt.add(METHOD(&Frame::to_tuples, args_to_tuples));
 }
 
 

@@ -215,9 +215,9 @@ oobj Frame::to_pandas(const PKArgs&) {
 // Declare Frame methods
 //------------------------------------------------------------------------------
 
-void Frame::Type::_init_tonumpy(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_numpy, args_to_numpy);
-  ADD_METHOD(mm, &Frame::to_pandas, args_to_pandas);
+void Frame::_init_tonumpy(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_numpy, args_to_numpy));
+  xt.add(METHOD(&Frame::to_pandas, args_to_pandas));
 }
 
 

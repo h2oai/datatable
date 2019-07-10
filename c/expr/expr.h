@@ -23,7 +23,6 @@
 #define dt_EXPR_EXPR_h
 #include "expr/virtual_column.h"
 #include "expr/workframe.h"
-#include "python/ext_type.h"
 #include "column.h"
 namespace dt {
 namespace expr {

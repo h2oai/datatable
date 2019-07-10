@@ -277,8 +277,8 @@ oobj Frame::to_jay(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_jay(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_jay, args_to_jay);
+void Frame::_init_jay(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_jay, args_to_jay));
 
   stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
   stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;

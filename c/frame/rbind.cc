@@ -236,8 +236,8 @@ static oobj dt_rbind(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_rbind(Methods& mm) {
-  ADD_METHOD(mm, &Frame::rbind, args_rbind);
+void Frame::_init_rbind(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::rbind, args_rbind));
 }
 
 

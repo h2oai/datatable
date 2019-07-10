@@ -220,9 +220,9 @@ void Frame::set_names(const Arg& arg)
 
 
 
-void Frame::Type::_init_names(Methods& mm, GetSetters& gs) {
-  ADD_METHOD(mm, &Frame::colindex, args_colindex);
-  ADD_GETSET(gs, &Frame::get_names, &Frame::set_names, args_names);
+void Frame::_init_names(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::colindex, args_colindex));
+  xt.add(GETSET(&Frame::get_names, &Frame::set_names, args_names));
 }
 
 

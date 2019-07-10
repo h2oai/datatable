@@ -301,26 +301,26 @@ oobj Frame::stat1(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_stats(Methods& mm) {
-  ADD_METHOD(mm, &Frame::stat, args_countna);
-  ADD_METHOD(mm, &Frame::stat, args_sum);
-  ADD_METHOD(mm, &Frame::stat, args_min);
-  ADD_METHOD(mm, &Frame::stat, args_max);
-  ADD_METHOD(mm, &Frame::stat, args_mode);
-  ADD_METHOD(mm, &Frame::stat, args_mean);
-  ADD_METHOD(mm, &Frame::stat, args_sd);
-  ADD_METHOD(mm, &Frame::stat, args_nunique);
-  ADD_METHOD(mm, &Frame::stat, args_nmodal);
+void Frame::_init_stats(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::stat, args_countna));
+  xt.add(METHOD(&Frame::stat, args_sum));
+  xt.add(METHOD(&Frame::stat, args_min));
+  xt.add(METHOD(&Frame::stat, args_max));
+  xt.add(METHOD(&Frame::stat, args_mode));
+  xt.add(METHOD(&Frame::stat, args_mean));
+  xt.add(METHOD(&Frame::stat, args_sd));
+  xt.add(METHOD(&Frame::stat, args_nunique));
+  xt.add(METHOD(&Frame::stat, args_nmodal));
 
-  ADD_METHOD(mm, &Frame::stat1, args_countna1);
-  ADD_METHOD(mm, &Frame::stat1, args_sum1);
-  ADD_METHOD(mm, &Frame::stat1, args_mean1);
-  ADD_METHOD(mm, &Frame::stat1, args_sd1);
-  ADD_METHOD(mm, &Frame::stat1, args_min1);
-  ADD_METHOD(mm, &Frame::stat1, args_max1);
-  ADD_METHOD(mm, &Frame::stat1, args_mode1);
-  ADD_METHOD(mm, &Frame::stat1, args_nmodal1);
-  ADD_METHOD(mm, &Frame::stat1, args_nunique1);
+  xt.add(METHOD(&Frame::stat1, args_countna1));
+  xt.add(METHOD(&Frame::stat1, args_sum1));
+  xt.add(METHOD(&Frame::stat1, args_mean1));
+  xt.add(METHOD(&Frame::stat1, args_sd1));
+  xt.add(METHOD(&Frame::stat1, args_min1));
+  xt.add(METHOD(&Frame::stat1, args_max1));
+  xt.add(METHOD(&Frame::stat1, args_mode1));
+  xt.add(METHOD(&Frame::stat1, args_nmodal1));
+  xt.add(METHOD(&Frame::stat1, args_nunique1));
 
   for (size_t i = 0; i < NSTATS * DT_STYPES_COUNT; ++i) {
     statfns[i] = _nacol;

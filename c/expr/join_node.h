@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_JOIN_NODE_h
 #define dt_EXPR_JOIN_NODE_h
-#include "python/ext_type.h"
 #include "python/obj.h"
+#include "python/xobject.h"
 
 namespace py {
 
@@ -30,22 +30,15 @@ namespace py {
 
 class ojoin : public oobj
 {
-  class pyobj : public PyObject {
+  class pyobj : public XObject<pyobj> {
     public:
       oobj join_frame;
 
-      class Type : public ExtType<pyobj> {
-        public:
-          static PKArgs args___init__;
-          static const char* classname();
-          static const char* classdoc();
-          static bool is_subclassable();
-          static void init_methods_and_getsets(Methods&, GetSetters&);
-      };
-
-      void m__init__(PKArgs&);
+      void m__init__(const PKArgs&);
       void m__dealloc__();
       oobj get_joinframe() const;
+
+      static void impl_init_type(XTypeMaker& xt);
 
     private:
       // The class does not use traditional constructor/destructor mechanism.

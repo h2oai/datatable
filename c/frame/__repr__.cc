@@ -455,12 +455,12 @@ void Frame::view(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_repr(Methods& mm) {
-  mm.add("__repr__", cxx2py<Frame, &Frame::m__repr__>);
-  mm.add("__str__", cxx2py<Frame, &Frame::m__str__>);
-  ADD_METHOD(mm, &Frame::_repr_html_, args__repr_html_);
-  ADD_METHOD(mm, &Frame::_repr_pretty_, args__repr_pretty_);
-  ADD_METHOD(mm, &Frame::view, args_view);
+void Frame::_init_repr(XTypeMaker& xt) {
+  xt.add(METHOD__REPR__(&Frame::m__repr__));
+  xt.add(METHOD__STR__(&Frame::m__str__));
+  xt.add(METHOD(&Frame::_repr_html_, args__repr_html_));
+  xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
+  xt.add(METHOD(&Frame::view, args_view));
 }
 
 
