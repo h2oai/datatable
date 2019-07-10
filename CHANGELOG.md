@@ -89,6 +89,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a plugin for Sphinx. This module adds directive `.. dtframe` that allows
   to easily include a Frame display in an .rst document.
 
+- Frame can now be treated as an iterable over the columns. Thus, a Frame
+  object can now be used in a for-loop, producing its individual columns.
+
 
 ### Fixed
 

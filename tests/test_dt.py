@@ -309,6 +309,25 @@ def test_dt_getitem(dt0):
             in str(e.value))
 
 
+def test_frame_as_iterable(dt0):
+    assert iter(dt0)
+    assert iter(dt0).__length_hint__() == dt0.ncols
+    for i, col in enumerate(dt0):
+        assert_equals(col, dt0[:, i])
+    for i, col in enumerate(reversed(dt0)):
+        assert_equals(col, dt0[:, -i-1])
+
+
+def test_frame_star_expansion(dt0):
+    def foo(*args):
+        for arg in args:
+            assert isinstance(arg, dt.Frame)
+            assert arg.shape == (dt0.nrows, 1)
+            frame_integrity_check(arg)
+
+    foo(*dt0)
+
+
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])

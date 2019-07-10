@@ -287,6 +287,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_cbind(xt);
   _init_key(xt);
   _init_init(xt);
+  _init_iter(xt);
   _init_jay(xt);
   _init_names(xt);
   _init_rbind(xt);

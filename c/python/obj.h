@@ -164,6 +164,7 @@ class _obj {
     bool is_false()         const noexcept;
     bool is_float()         const noexcept;
     bool is_frame()         const noexcept;
+    bool is_generator()     const noexcept;
     bool is_int()           const noexcept;
     bool is_iterable()      const noexcept;
     bool is_join_node()     const noexcept;
