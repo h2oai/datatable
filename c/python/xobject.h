@@ -211,49 +211,36 @@ PyTypeObject XObject<D>::type;
 
 
 //------------------------------------------------------------------------------
-// Helper macros
+// Exception-safe function implementations
 //------------------------------------------------------------------------------
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-template"
-
-template <typename T, typename R, typename ...Args>
-static T class_of(R(T::*)(Args...));
-
-using fn01_t = PyObject*(*)(PyObject*);
-using fn11_t = PyObject*(*)(PyObject*, PyObject*);
-using fn21_t = PyObject*(*)(PyObject*, PyObject*, PyObject*);
-using fn20_t = void(PyObject*, PyObject*, PyObject*);
-
-template <typename = int>
-static PyObject* execute_and_catch_exceptions(PyObject* o, fn01_t fn) noexcept
-{
+template <typename T, py::oobj(T::*METH)()>
+PyObject* _safe_repr(PyObject* self) noexcept {
   try {
-    return fn(o);
+    T* tself = static_cast<T*>(self);
+    return (tself->*METH)().release();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }
 }
 
-template <typename = int>
-static PyObject* execute_and_catch_exceptions(
-    PyObject* o, PyObject* arg, fn11_t fn) noexcept
-{
+template <typename T, py::oobj(T::*METH)(py::robj)>
+PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
   try {
-    return fn(o, arg);
+    T* tself = static_cast<T*>(self);
+    return (tself->*METH)(py::robj(key)).release();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }
 }
 
-template <typename = int>
-static int execute_and_catch_exceptions(
-    PyObject* o, PyObject* arg1, PyObject* arg2, fn20_t fn) noexcept
-{
+template <typename T, void(T::*METH)(py::robj, py::robj)>
+int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
   try {
-    fn(o, arg1, arg2);
+    T* tself = static_cast<T*>(self);
+    (tself->*METH)(py::robj(key), py::robj(val));
     return 0;
   } catch (const std::exception& e) {
     exception_to_python(e);
@@ -262,25 +249,19 @@ static int execute_and_catch_exceptions(
 }
 
 
-#define impl_WRAP01(METH)                                                      \
-    [](PyObject* self) -> PyObject* {                                          \
-      return execute_and_catch_exceptions(self,                                \
-        [](PyObject* obj) -> PyObject* {                                       \
-          using T = decltype(class_of(METH));                                  \
-          return (static_cast<T*>(obj)->*METH)().release();                    \
-        });                                                                    \
-    }
-
-#define impl_WRAP11(METH)                                                      \
-    [](PyObject* self, PyObject* arg) -> PyObject* {                           \
-      return execute_and_catch_exceptions(self, arg,                           \
-        [](PyObject* obj, PyObject* a) -> PyObject* {                          \
-          using T = decltype(class_of(METH));                                  \
-          return (static_cast<T*>(obj)->*METH)(py::robj(a)).release();         \
-        });                                                                    \
-    }
 
 
+//------------------------------------------------------------------------------
+// Helper macros
+//------------------------------------------------------------------------------
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-template"
+
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...));
+
+#define CLASS_OF(METH) decltype(_class_of_impl(METH))
 
 #pragma clang diagnostic pop
 
@@ -290,14 +271,14 @@ static int execute_and_catch_exceptions(
     [](PyObject* self, PyObject* args, PyObject* kwargs) -> int {              \
       return ARGS.exec_intfn(self, args, kwargs,                               \
          [](PyObject* obj, const py::PKArgs& a){                               \
-            (*reinterpret_cast<decltype(class_of(METH))*>(obj).*METH)(a);      \
+            (*reinterpret_cast<CLASS_OF(METH)*>(obj).*METH)(a);                \
          });                                                                   \
     }, ARGS, py::XTypeMaker::constructor_tag
 
 
 #define DESTRUCTOR(METH)                                                       \
     [](PyObject* self) -> void {                                               \
-      (*reinterpret_cast<decltype(class_of(METH))*>(self).*METH)();            \
+      (*reinterpret_cast<CLASS_OF(METH)*>(self).*METH)();                      \
     }, py::XTypeMaker::destructor_tag
 
 
@@ -323,26 +304,22 @@ static int execute_and_catch_exceptions(
 
 
 
-#define METHOD__REPR__(METH)                                                   \
-    impl_WRAP01(METH), py::XTypeMaker::repr_tag
+#define METHOD__REPR__(METH)  \
+    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::repr_tag
 
 
-#define METHOD__STR__(METH)                                                    \
-    impl_WRAP01(METH), py::XTypeMaker::str_tag
+#define METHOD__STR__(METH)  \
+    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::str_tag
 
 
-#define METHOD__GETITEM__(METH)                                                \
-    impl_WRAP11(METH), py::XTypeMaker::getitem_tag
+#define METHOD__GETITEM__(METH)  \
+    _safe_getitem<CLASS_OF(METH), METH>, py::XTypeMaker::getitem_tag
 
 
-#define METHOD__SETITEM__(METH)                                                \
-    [](PyObject* self, PyObject* arg1, PyObject* arg2) -> int {                \
-      return execute_and_catch_exceptions(self, arg1, arg2,                    \
-        [](PyObject* obj, PyObject* a1, PyObject* a2) -> void {                \
-          using T = decltype(class_of(METH));                                  \
-          (static_cast<T*>(obj)->*METH)(py::robj(a1), py::robj(a2));           \
-        });                                                                    \
-    }, py::XTypeMaker::setitem_tag
+#define METHOD__SETITEM__(METH)  \
+    _safe_setitem<CLASS_OF(METH), METH>, py::XTypeMaker::setitem_tag
+
+
 
 
 } // namespace py
