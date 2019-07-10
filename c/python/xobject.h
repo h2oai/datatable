@@ -219,9 +219,9 @@ class XTypeMaker {
  * Then, in order to attach this class to a python module, call at the module
  * initialization stage:
  *
- *    Please::init_type(module);
+ *    MyObject::init_type(module);
  *
- * If an error occur during initialization, an exception will be thrown.
+ * If an error occurs during initialization, an exception will be thrown.
  *
  * There are multiple class properties that can be set up within the
  * `impl_init_type()`, check `XTypeMaker` for more info. The three properties
@@ -258,16 +258,42 @@ PyTypeObject XObject<D>::type;
 // Exception-safe function implementations
 //------------------------------------------------------------------------------
 
+template <typename T, void(T::*METH)()>
+void _safe_dealloc(PyObject* self) noexcept {
+  try {
+    (static_cast<T*>(self)->*METH)();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+  }
+}
+
+
 template <typename T, py::oobj(T::*METH)()>
 PyObject* _safe_repr(PyObject* self) noexcept {
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)().release();
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }
 }
+
+
+template <class T, oobj(T::*METH)() const>
+PyObject* _safe_getter(PyObject* obj, void*) noexcept {
+  try {
+    T* t = static_cast<T*>(obj);
+    return (t->*METH)().release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
 
 template <typename T, py::oobj(T::*METH)(py::robj)>
 PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
@@ -280,40 +306,115 @@ PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
   }
 }
 
+
 template <typename T, void(T::*METH)(py::robj, py::robj)>
 int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
   try {
     T* tself = static_cast<T*>(self);
     (tself->*METH)(py::robj(key), py::robj(val));
     return 0;
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
     return -1;
   }
 }
 
+
 template <typename T, void(T::*METH)(Py_buffer*, int)>
-int _safe_getbuffer(PyObject* self, Py_buffer* buf, int flags) {
+int _safe_getbuffer(PyObject* self, Py_buffer* buf, int flags) noexcept {
   try {
     T* tself = static_cast<T*>(self);
     (tself->*METH)(buf, flags);
     return 0;
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
     return -1;
   }
 }
 
+
 template <typename T, void(T::*METH)(Py_buffer*)>
-void _safe_releasebuffer(PyObject* self, Py_buffer* buf) {
+void _safe_releasebuffer(PyObject* self, Py_buffer* buf) noexcept {
   try {
     T* tself = static_cast<T*>(self);
     (tself->*METH)(buf);
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
   }
 }
 
+
+template <class T>
+PyObject* _call_method(
+    oobj(T::*fn)(const PKArgs&), PKArgs& ARGS,
+    PyObject* obj, PyObject* args, PyObject* kwds) noexcept
+{
+  try {
+    ARGS.bind(args, kwds);
+    T* tobj = reinterpret_cast<T*>(obj);
+    return (tobj->*fn)(ARGS).release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+template <class T>
+PyObject* _call_method(
+    void(T::*fn)(const PKArgs&), PKArgs& ARGS,
+    PyObject* obj, PyObject* args, PyObject* kwds) noexcept
+{
+  try {
+    ARGS.bind(args, kwds);
+    T* tobj = static_cast<T*>(obj);
+    (tobj->*fn)(ARGS);
+    return py::None().release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+template <class T>
+int _call_method_int(
+    void(T::*fn)(const PKArgs&), PKArgs& ARGS,
+    PyObject* obj, PyObject* args, PyObject* kwds) noexcept
+{
+  try {
+    ARGS.bind(args, kwds);
+    T* tobj = static_cast<T*>(obj);
+    (tobj->*fn)(ARGS);
+    return 0;
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
+  }
+}
+
+
+template <class T>
+int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
+                 PyObject* obj, PyObject* value) noexcept
+{
+  try {
+    ARG.set(value);
+    T* tobj = static_cast<T*>(obj);
+    (tobj->*fn)(ARG);
+    return 0;
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
+  }
+}
 
 
 
@@ -327,6 +428,9 @@ void _safe_releasebuffer(PyObject* self, Py_buffer* buf) {
 template <typename T, typename R, typename... Args>
 static T _class_of_impl(R(T::*)(Args...));
 
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...) const);
+
 #define CLASS_OF(METH) decltype(_class_of_impl(METH))
 
 #pragma clang diagnostic pop
@@ -334,38 +438,31 @@ static T _class_of_impl(R(T::*)(Args...));
 
 
 #define CONSTRUCTOR(METH, ARGS)                                                \
-    [](PyObject* self, PyObject* args, PyObject* kwargs) -> int {              \
-      return ARGS.exec_intfn(self, args, kwargs,                               \
-         [](PyObject* obj, const py::PKArgs& a){                               \
-            (*reinterpret_cast<CLASS_OF(METH)*>(obj).*METH)(a);                \
-         });                                                                   \
+    [](PyObject* self, PyObject* args, PyObject* kwds) noexcept -> int {       \
+      return _call_method_int(METH, ARGS, self, args, kwds);                   \
     }, ARGS, py::XTypeMaker::constructor_tag
 
 
 #define DESTRUCTOR(METH)                                                       \
-    [](PyObject* self) -> void {                                               \
-      (*reinterpret_cast<CLASS_OF(METH)*>(self).*METH)();                      \
-    }, py::XTypeMaker::destructor_tag
+    _safe_dealloc<CLASS_OF(METH), METH>, py::XTypeMaker::destructor_tag
 
 
 #define GETTER(GETFN, ARGS)                                                    \
-    [](PyObject* self, void*) -> PyObject* {                                   \
-      return ARGS.exec_getter(self, GETFN);                                    \
-    }, nullptr, ARGS, py::XTypeMaker::getset_tag
+    _safe_getter<CLASS_OF(GETFN), GETFN>, nullptr,                             \
+    ARGS, py::XTypeMaker::getset_tag
 
 
 #define GETSET(GETFN, SETFN, ARGS)                                             \
-    [](PyObject* self, void*) -> PyObject* {                                   \
-      return ARGS.exec_getter(self, GETFN);                                    \
+    _safe_getter<CLASS_OF(GETFN), GETFN>,                                      \
+    [](PyObject* self, PyObject* value, void*) noexcept -> int {               \
+      return _call_setter(SETFN, ARGS._arg, self, value);                      \
     },                                                                         \
-    [](PyObject* self, PyObject* value, void*) -> int {                        \
-      return ARGS.exec_setter(self, value, SETFN);                             \
-    }, ARGS, py::XTypeMaker::getset_tag
+    ARGS, py::XTypeMaker::getset_tag
 
 
 #define METHOD(METH, ARGS)                                                     \
-    [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {          \
-      return ARGS.exec_method(self, args, kwds, METH);                         \
+    [](PyObject* self, PyObject* args, PyObject* kwds) noexcept -> PyObject* { \
+      return _call_method(METH, ARGS, self, args, kwds);                       \
     }, ARGS, py::XTypeMaker::method_tag
 
 
@@ -375,19 +472,19 @@ static T _class_of_impl(R(T::*)(Args...));
     py::XTypeMaker::buffers_tag
 
 
-#define METHOD__REPR__(METH)  \
+#define METHOD__REPR__(METH)                                                   \
     _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::repr_tag
 
 
-#define METHOD__STR__(METH)  \
+#define METHOD__STR__(METH)                                                    \
     _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::str_tag
 
 
-#define METHOD__GETITEM__(METH)  \
+#define METHOD__GETITEM__(METH)                                                \
     _safe_getitem<CLASS_OF(METH), METH>, py::XTypeMaker::getitem_tag
 
 
-#define METHOD__SETITEM__(METH)  \
+#define METHOD__SETITEM__(METH)                                                \
     _safe_setitem<CLASS_OF(METH), METH>, py::XTypeMaker::setitem_tag
 
 
