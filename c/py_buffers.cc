@@ -484,7 +484,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 {
   auto obj = args[0].to_borrowed_ref();
   if (obj) {
-    auto frame_type = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
+    auto frame_type = reinterpret_cast<PyObject*>(&py::Frame::type);
     int ret = PyObject_IsSubclass(obj, frame_type);
     if (ret == -1) throw PyError();
     if (ret == 0) {

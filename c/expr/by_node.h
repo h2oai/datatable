@@ -22,7 +22,6 @@
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
 #include <memory>            // std::unique_ptr
-#include "python/ext_type.h"
 #include "python/obj.h"
 #include "python/xobject.h"
 #include "datatable.h"

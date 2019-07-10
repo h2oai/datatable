@@ -1519,6 +1519,6 @@ py::oobj py::Frame::sort(const PKArgs& args) {
 
 
 
-void py::Frame::Type::_init_sort(Methods& mm) {
-  ADD_METHOD(mm, &Frame::sort, args_sort);
+void py::Frame::_init_sort(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::sort, args_sort));
 }

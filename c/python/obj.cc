@@ -185,11 +185,7 @@ bool _obj::is_iterable() const noexcept {
 }
 
 bool _obj::is_frame() const noexcept {
-  if (!v) return false;
-  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
-  int ret = PyObject_IsInstance(v, typeptr);
-  if (ret == -1) PyErr_Clear();
-  return (ret == 1);
+  return py::Frame::check(v);
 }
 
 bool _obj::is_join_node() const noexcept {

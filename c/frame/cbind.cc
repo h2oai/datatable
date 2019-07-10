@@ -123,8 +123,8 @@ static Error item_error(const py::_obj& item) {
 }
 
 
-void Frame::Type::_init_cbind(Methods& mm) {
-  ADD_METHOD(mm, &Frame::cbind, args_cbind);
+void Frame::_init_cbind(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::cbind, args_cbind));
 }
 
 

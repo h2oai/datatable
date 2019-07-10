@@ -397,7 +397,7 @@ static i_node* _from_nparray(py::oobj src) {
         "for an `i` selector, got array of dtype `" << dtype_str << "`";
   }
   // Now convert numpy array into a datatable Frame
-  auto dt_Frame = py::oobj(reinterpret_cast<PyObject*>(&py::Frame::Type::type));
+  auto dt_Frame = py::oobj(reinterpret_cast<PyObject*>(&py::Frame::type));
   py::oobj frame = dt_Frame.call({src});
   return new frame_in(frame);
 }

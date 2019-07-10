@@ -59,7 +59,7 @@ size_t DtABIVersion() {
 
 int DtFrame_Check(PyObject* ob) {
   if (ob == nullptr) return 0;
-  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
+  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::type);
   int ret = PyObject_IsInstance(ob, typeptr);
   if (ret == -1) {
     PyErr_Clear();
