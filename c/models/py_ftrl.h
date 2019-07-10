@@ -21,19 +21,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_PY_FTRL_h
 #define dt_MODELS_PY_FTRL_h
+#include <map>
 #include "str/py_str.h"
 #include "python/string.h"
+#include "python/xobject.h"
 #include "models/dt_ftrl.h"
 #include "models/dt_ftrl_base.h"
 #include "models/py_validator.h"
-#include <map>
-
 namespace py {
+
 
 /**
  *  Main class that controls Python FTRL API.
  */
-class Ftrl : public PyObject {
+class Ftrl : public XObject<Ftrl> {
   private:
     dt::FtrlBase* dtft;
     strvec colnames;
@@ -44,18 +45,10 @@ class Ftrl : public PyObject {
   public:
     // FTRL API version to be used for backward compatibility
     static const size_t API_VERSION = 23;
-
-    class Type : public ExtType<Ftrl> {
-      public:
-        static PKArgs args___init__;
-        static const char* classname();
-        static const char* classdoc();
-        static bool is_subclassable() { return true; }
-        static void init_methods_and_getsets(Methods&, GetSetters&);
-    };
+    static void impl_init_type(XTypeMaker&);
 
     // Initializers and deallocator
-    void m__init__(PKArgs&);
+    void m__init__(const PKArgs&);
     void m__dealloc__();
     void init_py_params();
     void init_dt_ftrl();

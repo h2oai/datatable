@@ -403,7 +403,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     dt::expr::init_binops();
 
     py::Frame::Type::init(m);
-    py::Ftrl::Type::init(m);
+    py::Ftrl::init_type(m);
     dt::init_config_option(m);
     py::orowindex::pyobject::init_type(m);
     py::oby::init(m);

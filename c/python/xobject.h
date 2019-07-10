@@ -78,6 +78,7 @@ class XTypeMaker {
 
     void set_class_name(const char* name) {
       xassert(meth_defs.size() == 0);
+      xassert(type->tp_init == nullptr);
       type->tp_name = name;
     }
 
@@ -97,7 +98,8 @@ class XTypeMaker {
       }
     }
 
-    void add(initproc _init, ConstructorTag) {
+    void add(initproc _init, PKArgs& args, ConstructorTag) {
+      args.set_class_name(type->tp_name);
       type->tp_init = _init;
     }
 
@@ -237,7 +239,7 @@ static PyObject* execute_and_catch_exceptions(PyObject* o, fn11_t fn) noexcept
          [](PyObject* obj, const py::PKArgs& a){                               \
             (*reinterpret_cast<decltype(class_of(METH))*>(obj).*METH)(a);      \
          });                                                                   \
-    }, py::XTypeMaker::constructor_tag
+    }, ARGS, py::XTypeMaker::constructor_tag
 
 
 #define DESTRUCTOR(METH)                                                       \
