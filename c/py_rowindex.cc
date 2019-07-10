@@ -31,7 +31,9 @@ namespace py {
 // orowindex::pyobject
 //------------------------------------------------------------------------------
 
-void orowindex::pyobject::m__init__(PKArgs&) {
+static PKArgs args___init__(0, 0, 0, false, false, {}, "__init__", nullptr);
+
+void orowindex::pyobject::m__init__(const PKArgs&) {
   ri = nullptr;
 }
 
@@ -106,13 +108,28 @@ oobj orowindex::pyobject::to_list(const PKArgs&) {
 
 
 
+void orowindex::pyobject::impl_init_type(XTypeMaker& xt) {
+  using ori = orowindex::pyobject;
+  xt.set_class_name("datatable.internal.RowIndex");
+  xt.add(CONSTRUCTOR(&ori::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&ori::m__dealloc__));
+  xt.add(GETTER(&ori::get_type, args_type));
+  xt.add(GETTER(&ori::get_nrows, args_nrows));
+  xt.add(GETTER(&ori::get_min, args_min));
+  xt.add(GETTER(&ori::get_max, args_max));
+  xt.add(METHOD(&ori::to_list, args_to_list));
+  xt.add(METHOD__REPR__(&ori::m__repr__));
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // orowindex
 //------------------------------------------------------------------------------
 
 orowindex::orowindex(const RowIndex& rowindex) {
-  PyObject* pytype = reinterpret_cast<PyObject*>(&pyobject::Type::type);
+  PyObject* pytype = reinterpret_cast<PyObject*>(&pyobject::type);
   v = PyObject_CallObject(pytype, nullptr);
   if (!v) throw PyError();
   auto p = static_cast<orowindex::pyobject*>(v);
@@ -121,50 +138,8 @@ orowindex::orowindex(const RowIndex& rowindex) {
 
 
 bool orowindex::check(PyObject* v) {
-  if (v == nullptr) return false;
-  PyObject* pytype = reinterpret_cast<PyObject*>(&pyobject::Type::type);
-  int ret = PyObject_IsInstance(v, pytype);
-  if (ret == -1) {
-    PyErr_Clear();
-    return false;
-  }
-  return true;
+  return pyobject::check(v);
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// orowindex::pyobject::Type
-//------------------------------------------------------------------------------
-
-const char* orowindex::pyobject::Type::classname() {
-  return "datatable.internal.RowIndex";
-}
-
-const char* orowindex::pyobject::Type::classdoc() {
-  return nullptr;
-}
-
-bool orowindex::pyobject::Type::is_subclassable() {
-  return false;
-}
-
-void orowindex::pyobject::Type::init_methods_and_getsets(
-    Methods& mm, GetSetters& gs)
-{
-  using ori = orowindex::pyobject;
-  ADD_GETTER(gs, &ori::get_type, args_type);
-  ADD_GETTER(gs, &ori::get_nrows, args_nrows);
-  ADD_GETTER(gs, &ori::get_min, args_min);
-  ADD_GETTER(gs, &ori::get_max, args_max);
-  ADD_METHOD(mm, &ori::to_list, args_to_list);
-  mm.add("__repr__", cxx2py<ori, &ori::m__repr__>);
-}
-
-
-PKArgs orowindex::pyobject::Type::args___init__(
-  0, 0, 0, false, false, {}, "__init__", nullptr);
 
 
 

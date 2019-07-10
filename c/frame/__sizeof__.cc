@@ -47,8 +47,8 @@ oobj Frame::m__sizeof__(const PKArgs&) {
 }
 
 
-void Frame::Type::_init_sizeof(Methods& mm) {
-  ADD_METHOD(mm, &Frame::m__sizeof__, args__sizeof__);
+void Frame::_init_sizeof(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::m__sizeof__, args__sizeof__));
 }
 
 

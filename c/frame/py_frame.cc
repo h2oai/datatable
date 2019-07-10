@@ -261,17 +261,13 @@ oobj Frame::get_ltypes() const {
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
-PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
-                                  {"src", "names", "stypes", "stype"},
-                                  "__init__", nullptr);
+static PKArgs args___init__(1, 0, 3, false, true,
+                            {"src", "names", "stypes", "stype"},
+                            "__init__", nullptr);
 
-
-const char* Frame::Type::classname() {
-  return "datatable.core.Frame";
-}
-
-const char* Frame::Type::classdoc() {
-  return
+void Frame::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.core.Frame");
+  xt.set_class_doc(
     "Two-dimensional column-oriented table of data. Each column has its own\n"
     "name and type. Types may vary across columns but cannot vary within\n"
     "each column.\n"
@@ -279,37 +275,41 @@ const char* Frame::Type::classdoc() {
     "Internally the data is stored as C primitives, and processed using\n"
     "multithreaded native C++ code.\n"
     "\n"
-    "This is a primary data structure for the `datatable` module.\n";
-}
+    "This is a primary data structure for the `datatable` module.\n"
+  );
+  xt.set_subclassable(true);
+  xt.add(CONSTRUCTOR(&Frame::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&Frame::m__dealloc__));
+  xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
+  xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
+  xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
 
+  _init_cbind(xt);
+  _init_key(xt);
+  _init_init(xt);
+  _init_jay(xt);
+  _init_names(xt);
+  _init_rbind(xt);
+  _init_replace(xt);
+  _init_repr(xt);
+  _init_sizeof(xt);
+  _init_stats(xt);
+  _init_sort(xt);
+  _init_tocsv(xt);
+  _init_tonumpy(xt);
+  _init_topython(xt);
 
-void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  _init_cbind(mm);
-  _init_key(gs);
-  _init_init(mm);
-  _init_jay(mm);
-  _init_names(mm, gs);
-  _init_rbind(mm);
-  _init_replace(mm);
-  _init_repr(mm);
-  _init_sizeof(mm);
-  _init_stats(mm);
-  _init_sort(mm);
-  _init_tocsv(mm);
-  _init_tonumpy(mm);
-  _init_topython(mm);
+  xt.add(GETTER(&Frame::get_ncols, args_ncols));
+  xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
+  xt.add(GETTER(&Frame::get_shape, args_shape));
+  xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
+  xt.add(GETTER(&Frame::get_ndims, args_ndims));
 
-  ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
-  ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
-  ADD_GETTER(gs, &Frame::get_shape, args_shape);
-  ADD_GETTER(gs, &Frame::get_ndims, args_ndims);
-  ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
-  ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
-
-  ADD_METHOD(mm, &Frame::head, args_head);
-  ADD_METHOD(mm, &Frame::tail, args_tail);
-  ADD_METHOD(mm, &Frame::copy, args_copy);
-  ADD_METHOD(mm, &Frame::materialize, args_materialize);
+  xt.add(METHOD(&Frame::head, args_head));
+  xt.add(METHOD(&Frame::tail, args_tail));
+  xt.add(METHOD(&Frame::copy, args_copy));
+  xt.add(METHOD(&Frame::materialize, args_materialize));
 }
 
 

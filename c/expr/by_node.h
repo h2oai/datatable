@@ -22,8 +22,8 @@
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
 #include <memory>            // std::unique_ptr
-#include "python/ext_type.h"
 #include "python/obj.h"
+#include "python/xobject.h"
 #include "datatable.h"
 #include "groupby.h"         // Groupby
 namespace dt {
@@ -88,24 +88,20 @@ class by_node {
 //------------------------------------------------------------------------------
 // py::oby
 //------------------------------------------------------------------------------
+namespace py {
 
-class py::oby : public oobj
+
+class oby : public oobj
 {
-  class pyobj : public PyObject {
-    public:
+  class oby_pyobject : public XObject<oby_pyobject> {
+    private:
       oobj cols;
 
-      class Type : public ExtType<pyobj> {
-        public:
-          static PKArgs args___init__;
-          static const char* classname();
-          static const char* classdoc();
-          static bool is_subclassable();
-          static void init_methods_and_getsets(Methods&, GetSetters&);
-      };
-
-      void m__init__(PKArgs&);
+      void m__init__(const PKArgs&);
       void m__dealloc__();
+
+    public:
+      static void impl_init_type(XTypeMaker& xt);
       oobj get_cols() const;
   };
 
@@ -136,4 +132,5 @@ class py::oby : public oobj
 
 
 
+} // namespace py
 #endif

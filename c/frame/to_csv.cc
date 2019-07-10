@@ -141,8 +141,8 @@ oobj Frame::to_csv(const PKArgs& args)
 // Declare Frame methods
 //------------------------------------------------------------------------------
 
-void Frame::Type::_init_tocsv(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_csv, args_to_csv);
+void Frame::_init_tocsv(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_csv, args_to_csv));
 
   init_csvwrite_constants();
 }

@@ -57,7 +57,7 @@ std::map<dt::FtrlModelType, std::string> Ftrl::create_model_type_name() {
 }
 
 
-PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
+static PKArgs args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "mantissa_nbits",
                                  "nepochs", "double_precision",
@@ -70,7 +70,7 @@ PKArgs Ftrl::Type::args___init__(0, 1, 11, false, false,
  *  Ftrl(...)
  *  Initialize Ftrl object with the provided parameters.
  */
-void Ftrl::m__init__(PKArgs& args) {
+void Ftrl::m__init__(const PKArgs& args) {
   dtft = nullptr;
   double_precision = dt::FtrlParams().double_precision;
 
@@ -204,7 +204,9 @@ static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
                        "nepochs_validation", "validation_error",
                        "validation_average_niterations"}, "fit",
-R"(fit(self, X_train, y_train, X_validation=None, y_validation=None, nepochs_validation=1, validation_error=0.01, validation_average_niterations=1)
+R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
+       nepochs_validation=1, validation_error=0.01,
+       validation_average_niterations=1)
 --
 
 Train FTRL model on a dataset.
@@ -1123,16 +1125,15 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 }
 
 
-/**
- *  py::Ftrl::Type
- */
-const char* Ftrl::Type::classname() {
-  return "datatable.models.Ftrl";
-}
 
 
-const char* Ftrl::Type::classdoc() {
-  return R"(Follow the Regularized Leader (FTRL) model.
+//------------------------------------------------------------------------------
+// py::Ftrl::Type
+//------------------------------------------------------------------------------
+
+void Ftrl::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.models.Ftrl");
+  xt.set_class_doc(R"(Follow the Regularized Leader (FTRL) model.
 
 FTRL model is a datatable implementation of the FTRL-Proximal online
 learning algorithm for binomial logistic regression. It uses a hashing
@@ -1171,46 +1172,44 @@ double_precision : bool
 
 negative_class : bool
     Whether to create and train on a "negative" class in the case of multinomial classification.
-)";
-}
+)");
 
+  xt.add(CONSTRUCTOR(&Ftrl::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&Ftrl::m__dealloc__));
 
-/**
- *  Initialize all the exposed methods and getters/setters.
- */
-void Ftrl::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs)
-{
   // Input parameters
-  ADD_GETTER(gs, &Ftrl::get_params_namedtuple, args_params);
-  ADD_GETSET(gs, &Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha);
-  ADD_GETSET(gs, &Ftrl::get_beta, &Ftrl::set_beta, args_beta);
-  ADD_GETSET(gs, &Ftrl::get_lambda1, &Ftrl::set_lambda1, args_lambda1);
-  ADD_GETSET(gs, &Ftrl::get_lambda2, &Ftrl::set_lambda2, args_lambda2);
-  ADD_GETSET(gs, &Ftrl::get_nbins, &Ftrl::set_nbins, args_nbins);
-  ADD_GETSET(gs, &Ftrl::get_mantissa_nbits, &Ftrl::set_mantissa_nbits, args_mantissa_nbits);
-  ADD_GETSET(gs, &Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs);
-  ADD_GETTER(gs, &Ftrl::get_double_precision, args_double_precision);
-  ADD_GETSET(gs, &Ftrl::get_negative_class, &Ftrl::set_negative_class, args_negative_class);
-  ADD_GETSET(gs, &Ftrl::get_interactions, &Ftrl::set_interactions, args_interactions);
-  ADD_GETSET(gs, &Ftrl::get_model_type, &Ftrl::set_model_type, args_model_type);
+  xt.add(GETTER(&Ftrl::get_params_namedtuple, args_params));
+  xt.add(GETSET(&Ftrl::get_alpha, &Ftrl::set_alpha, args_alpha));
+  xt.add(GETSET(&Ftrl::get_beta, &Ftrl::set_beta, args_beta));
+  xt.add(GETSET(&Ftrl::get_lambda1, &Ftrl::set_lambda1, args_lambda1));
+  xt.add(GETSET(&Ftrl::get_lambda2, &Ftrl::set_lambda2, args_lambda2));
+  xt.add(GETSET(&Ftrl::get_nbins, &Ftrl::set_nbins, args_nbins));
+  xt.add(GETSET(&Ftrl::get_mantissa_nbits, &Ftrl::set_mantissa_nbits, args_mantissa_nbits));
+  xt.add(GETSET(&Ftrl::get_nepochs, &Ftrl::set_nepochs, args_nepochs));
+  xt.add(GETTER(&Ftrl::get_double_precision, args_double_precision));
+  xt.add(GETSET(&Ftrl::get_negative_class, &Ftrl::set_negative_class, args_negative_class));
+  xt.add(GETSET(&Ftrl::get_interactions, &Ftrl::set_interactions, args_interactions));
+  xt.add(GETSET(&Ftrl::get_model_type, &Ftrl::set_model_type, args_model_type));
 
   // Model and features
-  ADD_GETTER(gs, &Ftrl::get_labels, args_labels);
-  ADD_GETTER(gs, &Ftrl::get_model_type_trained, args_model_type_trained);
-  ADD_GETTER(gs, &Ftrl::get_model, args_model);
-  ADD_GETTER(gs, &Ftrl::get_fi, args_fi);
-  ADD_GETTER(gs, &Ftrl::get_colnames, args_colnames);
-  ADD_GETTER(gs, &Ftrl::get_colname_hashes, args_colname_hashes);
+  xt.add(GETTER(&Ftrl::get_labels, args_labels));
+  xt.add(GETTER(&Ftrl::get_model_type_trained, args_model_type_trained));
+  xt.add(GETTER(&Ftrl::get_model, args_model));
+  xt.add(GETTER(&Ftrl::get_fi, args_fi));
+  xt.add(GETTER(&Ftrl::get_colnames, args_colnames));
+  xt.add(GETTER(&Ftrl::get_colname_hashes, args_colname_hashes));
 
   // Fit, predict and reset
-  ADD_METHOD(mm, &Ftrl::fit, args_fit);
-  ADD_METHOD(mm, &Ftrl::predict, args_predict);
-  ADD_METHOD(mm, &Ftrl::reset, args_reset);
+  xt.add(METHOD(&Ftrl::fit, args_fit));
+  xt.add(METHOD(&Ftrl::predict, args_predict));
+  xt.add(METHOD(&Ftrl::reset, args_reset));
 
   // Pickling and unpickling
-  ADD_METHOD(mm, &Ftrl::m__getstate__, args___getstate__);
-  ADD_METHOD(mm, &Ftrl::m__setstate__, args___setstate__);
+  xt.add(METHOD(&Ftrl::m__getstate__, args___getstate__));
+  xt.add(METHOD(&Ftrl::m__setstate__, args___setstate__));
 }
+
+
 
 
 } // namespace py

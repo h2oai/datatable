@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_FRAME_PYFRAME_h
 #define dt_FRAME_PYFRAME_h
-#include "python/ext_type.h"
+#include "python/xobject.h"
 #include "datatable.h"
 
 
@@ -33,7 +33,7 @@ namespace py {
  * all functionality will be moved here, and this class will be the main
  * user-facing Frame class.
  */
-class Frame : public PyObject {
+class Frame : public XObject<Frame> {
   private:
     DataTable* dt;  // owned (cannot use unique_ptr because this class's
                     // destructor is never called by Python)
@@ -41,42 +41,36 @@ class Frame : public PyObject {
     mutable PyObject* ltypes;  // memoized tuple of ltypes
 
   public:
-    class Type : public ExtType<Frame> {
-      public:
-        static PKArgs args___init__;
-        static const char* classname();
-        static const char* classdoc();
-        static bool is_subclassable() { return true; }
-        static void init_methods_and_getsets(Methods&, GetSetters&);
-      private:
-        static void _init_cbind(Methods&);
-        static void _init_init(Methods&);
-        static void _init_jay(Methods&);
-        static void _init_key(GetSetters&);
-        static void _init_names(Methods&, GetSetters&);
-        static void _init_rbind(Methods&);
-        static void _init_replace(Methods&);
-        static void _init_repr(Methods&);
-        static void _init_sizeof(Methods&);
-        static void _init_sort(Methods&);
-        static void _init_stats(Methods&);
-        static void _init_tocsv(Methods&);
-        static void _init_tonumpy(Methods&);
-        static void _init_topython(Methods&);
-    };
+    static void impl_init_type(XTypeMaker&);
+    static void _init_cbind(XTypeMaker&);
+    static void _init_init(XTypeMaker&);
+    static void _init_jay(XTypeMaker&);
+    static void _init_key(XTypeMaker&);
+    static void _init_names(XTypeMaker&);
+    static void _init_rbind(XTypeMaker&);
+    static void _init_replace(XTypeMaker&);
+    static void _init_repr(XTypeMaker&);
+    static void _init_sizeof(XTypeMaker&);
+    static void _init_sort(XTypeMaker&);
+    static void _init_stats(XTypeMaker&);
+    static void _init_tocsv(XTypeMaker&);
+    static void _init_tonumpy(XTypeMaker&);
+    static void _init_topython(XTypeMaker&);
 
     // Internal "constructor" of Frame objects. We do not use real constructors
     // because Frame objects must be allocated/initialized by Python.
     static Frame* from_datatable(DataTable* dt);
     DataTable* get_datatable() const { return dt; }
 
-    void m__init__(PKArgs&);
+    void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj m__getitem__(robj item);
     void m__setitem__(robj item, robj value);
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
     oobj m__sizeof__(const PKArgs&);
+    void m__getbuffer__(Py_buffer* view, int flags);
+    void m__releasebuffer__(Py_buffer* view);
 
     // Frame display
     oobj m__repr__();

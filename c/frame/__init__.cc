@@ -39,7 +39,7 @@ namespace py {
 
 class FrameInitializationManager {
   private:
-    PKArgs& all_args;
+    const PKArgs& all_args;
     const Arg& src;
     const Arg& names_arg;
     const Arg& stypes_arg;
@@ -61,7 +61,7 @@ class FrameInitializationManager {
   // External API
   //----------------------------------------------------------------------------
   public:
-    FrameInitializationManager(PKArgs& args, Frame* f)
+    FrameInitializationManager(const PKArgs& args, Frame* f)
       : all_args(args),
         src(args[0]),
         names_arg(args[1]),
@@ -664,7 +664,7 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 // Main Frame constructor
 //------------------------------------------------------------------------------
 
-void Frame::m__init__(PKArgs& args) {
+void Frame::m__init__(const PKArgs& args) {
   if (dt) m__dealloc__();
   dt = nullptr;
   stypes = nullptr;
@@ -713,9 +713,9 @@ void Frame::m__setstate__(const PKArgs& args) {
 }
 
 
-void Frame::Type::_init_init(Methods& mm) {
-  ADD_METHOD(mm, &Frame::m__getstate__, fn___getstate__);
-  ADD_METHOD(mm, &Frame::m__setstate__, fn___setstate__);
+void Frame::_init_init(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::m__getstate__, fn___getstate__));
+  xt.add(METHOD(&Frame::m__setstate__, fn___setstate__));
 }
 
 

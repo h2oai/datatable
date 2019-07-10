@@ -181,8 +181,8 @@ void Frame::replace(const PKArgs& args) {
 }
 
 
-void Frame::Type::_init_replace(Methods& mm) {
-  ADD_METHOD(mm, &Frame::replace, args_replace);
+void Frame::_init_replace(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::replace, args_replace));
 }
 
 

@@ -84,8 +84,8 @@ void Frame::set_key(const Arg& val) {
 
 
 
-void Frame::Type::_init_key(GetSetters& gs) {
-  ADD_GETSET(gs, &Frame::get_key, &Frame::set_key, args_key);
+void Frame::_init_key(XTypeMaker& xt) {
+  xt.add(GETSET(&Frame::get_key, &Frame::set_key, args_key));
 }
 
 
