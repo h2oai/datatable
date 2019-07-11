@@ -162,6 +162,7 @@ def test_dt_properties(dt0):
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
+    assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
                           ltype.bool, ltype.bool, ltype.str)
@@ -306,6 +307,25 @@ def test_dt_getitem(dt0):
         noop(dt0["A"])
     assert ("Single-item selectors `DT[col]` are prohibited"
             in str(e.value))
+
+
+def test_frame_as_iterable(dt0):
+    assert iter(dt0)
+    assert iter(dt0).__length_hint__() == dt0.ncols
+    for i, col in enumerate(dt0):
+        assert_equals(col, dt0[:, i])
+    for i, col in enumerate(reversed(dt0)):
+        assert_equals(col, dt0[:, -i-1])
+
+
+def test_frame_star_expansion(dt0):
+    def foo(*args):
+        for arg in args:
+            assert isinstance(arg, dt.Frame)
+            assert arg.shape == (dt0.nrows, 1)
+            frame_integrity_check(arg)
+
+    foo(*dt0)
 
 
 def test_issue1406(dt0):

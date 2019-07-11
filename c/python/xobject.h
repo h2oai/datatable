@@ -45,11 +45,14 @@ class XTypeMaker {
     static struct DestructorTag {} destructor_tag;
     static struct GetSetTag {} getset_tag;
     static struct MethodTag {} method_tag;
+    static struct Method0Tag {} method0_tag;
     static struct ReprTag {} repr_tag;
     static struct StrTag {} str_tag;
     static struct GetitemTag {} getitem_tag;
     static struct SetitemTag {} setitem_tag;
     static struct BuffersTag {} buffers_tag;
+    static struct IterTag {} iter_tag;
+    static struct NextTag {} next_tag;
 
     XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
       std::memset(type, 0, sizeof(PyTypeObject));
@@ -76,11 +79,12 @@ class XTypeMaker {
       int r = PyType_Ready(type);
       if (r < 0) throw PyError();
 
-      const char* dot = std::strrchr(type->tp_name, '.');
-      const char* name = dot? dot + 1 : type->tp_name;
-
-      r = PyModule_AddObject(module, name, reinterpret_cast<PyObject*>(type));
-      if (r < 0) throw PyError();
+      if (module) {
+        const char* dot = std::strrchr(type->tp_name, '.');
+        const char* name = dot? dot + 1 : type->tp_name;
+        r = PyModule_AddObject(module, name, reinterpret_cast<PyObject*>(type));
+        if (r < 0) throw PyError();
+      }
     }
 
     void set_class_name(const char* name) {
@@ -105,15 +109,19 @@ class XTypeMaker {
       }
     }
 
+    // initproc = int(*)(PyObject*, PyObject*, PyObject*)
     void add(initproc _init, PKArgs& args, ConstructorTag) {
       args.set_class_name(type->tp_name);
       type->tp_init = _init;
     }
 
+    // destructor = void(*)(PyObject*)
     void add(destructor _dealloc, DestructorTag) {
       type->tp_dealloc = _dealloc;
     }
 
+    // getter = PyObject*(*)(PyObject*, void*)
+    // setter = int(*)(PyObject*, PyObject*, void*)
     void add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
       get_defs.push_back(PyGetSetDef {
         const_cast<char*>(args.name),
@@ -123,6 +131,7 @@ class XTypeMaker {
       });
     }
 
+    // PyCFunctionWithKeywords = PyObject*(*)(PyObject*, PyObject*, PyObject*)
     void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
       args.set_class_name(type->tp_name);
       meth_defs.push_back(PyMethodDef {
@@ -133,30 +142,57 @@ class XTypeMaker {
       });
     }
 
+    // unaryfunc = PyObject*(*)(PyObject*)
+    void add(unaryfunc meth, const char* name, Method0Tag) {
+      meth_defs.push_back(PyMethodDef {
+        name, reinterpret_cast<PyCFunction>(meth),
+        METH_NOARGS, nullptr
+      });
+    }
+
+    // reprfunc = PyObject*(*)(PyObject*)
     void add(reprfunc _repr, ReprTag) {
       type->tp_repr = _repr;
     }
 
+    // reprfunc = PyObject*(*)(PyObject*)
     void add(reprfunc _str, StrTag) {
       type->tp_str = _str;
     }
 
+    // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
     void add(binaryfunc _getitem, GetitemTag) {
       init_tp_as_mapping();
       type->tp_as_mapping->mp_subscript = _getitem;
     }
 
+    // objobjargproc = int(*)(PyObject*, PyObject*, PyObject*)
     void add(objobjargproc _setitem, SetitemTag) {
       init_tp_as_mapping();
       type->tp_as_mapping->mp_ass_subscript = _setitem;
     }
 
+    // getbufferproc = int(*)(PyObject*, Py_buffer*, int)
+    // releasebufferproc = void(*)(PyObject*, Py_buffer*)
     void add(getbufferproc _get, releasebufferproc _del, BuffersTag) {
       xassert(type->tp_as_buffer == nullptr);
       PyBufferProcs* bufs = new PyBufferProcs();
       bufs->bf_getbuffer = _get;
       bufs->bf_releasebuffer = _del;
       type->tp_as_buffer = bufs;
+    }
+
+    // getiterfunc = PyObject*(*)(PyObject*)
+    void add(getiterfunc _iter, IterTag) {
+      type->tp_iter = _iter;
+    }
+
+    // iternextfunc = PyObject*(*)(PyObject*)
+    void add(iternextfunc _next, NextTag) {
+      if (!type->tp_iter) {
+        type->tp_iter = PyObject_SelfIter;
+      }
+      type->tp_iternext = _next;
     }
 
   private:
@@ -244,6 +280,12 @@ struct XObject : public PyObject {
     int ret = PyObject_IsInstance(v, typeptr);
     if (ret == -1) PyErr_Clear();
     return (ret == 1);
+  }
+
+  template <typename... Args>
+  static oobj make(Args... args) {
+    robj rtype(reinterpret_cast<PyObject*>(&type));
+    return rtype.call({args...});
   }
 };
 
@@ -466,6 +508,10 @@ static T _class_of_impl(R(T::*)(Args...) const);
     }, ARGS, py::XTypeMaker::method_tag
 
 
+#define METHOD0(METH, NAME)                                                    \
+    _safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
+
+
 #define BUFFERS(GETMETH, DELMETH)                                              \
     _safe_getbuffer<CLASS_OF(GETMETH), GETMETH>,                               \
     _safe_releasebuffer<CLASS_OF(DELMETH), DELMETH>,                           \
@@ -488,6 +534,20 @@ static T _class_of_impl(R(T::*)(Args...) const);
     _safe_setitem<CLASS_OF(METH), METH>, py::XTypeMaker::setitem_tag
 
 
+#define METHOD__ITER__(METH)                                                   \
+    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::iter_tag
+
+
+#define METHOD__REVERSED__(METH)                                               \
+    METHOD0(METH, "__reversed__")
+
+
+#define METHOD__NEXT__(METH)                                                   \
+    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::next_tag
+
+
+#define METHOD__LENGTH_HINT__(METH)                                            \
+    METHOD0(METH, "__length_hint__")
 
 
 } // namespace py

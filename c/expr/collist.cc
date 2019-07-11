@@ -110,7 +110,7 @@ class collist_maker
           _process_element(kv.second);
         }
       }
-      else if (src.is_iterable() && !src.is_bytes()) {
+      else if (src.is_generator()) {
         for (auto elem : src.to_oiter()) {
           _process_element(elem);
         }

@@ -212,6 +212,15 @@ oobj Frame::get_shape() const {
 }
 
 
+static GSArgs args_ndims(
+  "ndims",
+  "Number of dimensions in the Frame, always 2\n");
+
+oobj Frame::get_ndims() const {
+  return oint(2);
+}
+
+
 static GSArgs args_stypes(
   "stypes",
   "The tuple of each column's stypes (\"storage types\")\n");
@@ -278,6 +287,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_cbind(xt);
   _init_key(xt);
   _init_init(xt);
+  _init_iter(xt);
   _init_jay(xt);
   _init_names(xt);
   _init_rbind(xt);
@@ -295,6 +305,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_shape, args_shape));
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
+  xt.add(GETTER(&Frame::get_ndims, args_ndims));
 
   xt.add(METHOD(&Frame::head, args_head));
   xt.add(METHOD(&Frame::tail, args_tail));

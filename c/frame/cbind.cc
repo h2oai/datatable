@@ -79,25 +79,31 @@ void Frame::cbind(const PKArgs& args) {
   bool force = args[0]? args[0].to_bool_strict() : false;
 
   size_t nrows = dt->nrows == 0 && dt->ncols == 0? size_t(-1) : dt->nrows;
+
+  std::vector<py::oobj> frame_objs;
   std::vector<DataTable*> dts;
   for (auto va : args.varargs()) {
     if (va.is_frame()) {
       DataTable* idt = va.to_datatable();
       if (idt->ncols == 0) continue;
       if (!force) check_nrows(idt, &nrows);
+      frame_objs.emplace_back(va);
       dts.push_back(idt);
     }
-    else if (va.is_iterable()) {
+    else if (va.is_list_or_tuple() || va.is_generator()) {
       for (auto item : va.to_oiter()) {
         if (item.is_frame()) {
           DataTable* idt = item.to_datatable();
           if (idt->ncols == 0) continue;
           if (!force) check_nrows(idt, &nrows);
+          frame_objs.emplace_back(item);
           dts.push_back(idt);
+        } else if (item.is_none()) {
         } else {
           throw item_error(item);
         }
       }
+    } else if (va.is_none()) {
     } else {
       throw item_error(va);
     }

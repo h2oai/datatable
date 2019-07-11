@@ -44,6 +44,7 @@ class Frame : public XObject<Frame> {
     static void impl_init_type(XTypeMaker&);
     static void _init_cbind(XTypeMaker&);
     static void _init_init(XTypeMaker&);
+    static void _init_iter(XTypeMaker&);
     static void _init_jay(XTypeMaker&);
     static void _init_key(XTypeMaker&);
     static void _init_names(XTypeMaker&);
@@ -71,6 +72,8 @@ class Frame : public XObject<Frame> {
     oobj m__sizeof__(const PKArgs&);
     void m__getbuffer__(Py_buffer* view, int flags);
     void m__releasebuffer__(Py_buffer* view);
+    oobj m__iter__();
+    oobj m__reversed__();
 
     // Frame display
     oobj m__repr__();
@@ -81,6 +84,7 @@ class Frame : public XObject<Frame> {
 
     oobj get_ncols() const;
     oobj get_nrows() const;
+    oobj get_ndims() const;
     oobj get_shape() const;
     oobj get_stypes() const;
     oobj get_ltypes() const;

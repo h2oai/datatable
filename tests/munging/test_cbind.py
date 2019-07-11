@@ -43,6 +43,23 @@ def test_cbind_simple():
     assert_equals(d0, dr)
 
 
+def test_cbind_api():
+    DT1 = dt.Frame(A=[1, 2, 3])
+    DT2 = dt.Frame(B=[-4, -5, None])
+    DT3 = dt.Frame(X=["makes", "gonna", "make"])
+    RES1 = dt.cbind(DT1, DT2, DT3)
+    RES2 = dt.cbind([DT1, DT2, DT3])
+    RES3 = dt.cbind((DT1, DT2, DT3))  # tuple
+    RES4 = dt.cbind([DT1], [DT2, DT3])
+    RES5 = dt.cbind(DT1, [DT2], DT3)
+    RES6 = dt.cbind((frame for frame in [DT1, DT2, DT3]))  # generator
+    assert_equals(RES1, RES2)
+    assert_equals(RES1, RES3)
+    assert_equals(RES1, RES4)
+    assert_equals(RES1, RES5)
+    assert_equals(RES1, RES6)
+
+
 def test_cbind_empty1():
     d0 = dt.Frame([1, 2, 3])
     dt_compute_stats(d0)
@@ -55,6 +72,11 @@ def test_cbind_empty2():
     dt_compute_stats(d0)
     d0.cbind(dt.Frame())
     assert_equals(d0, dt.Frame([1, 2, 3]))
+
+
+def test_cbind_empty3():
+    DT = dt.cbind()
+    assert_equals(DT, dt.Frame())
 
 
 def test_cbind_self():
@@ -306,3 +328,24 @@ def test_cbind_error_3():
         DT.cbind(dt.Frame(B=[]))
     assert ("Cannot cbind frame with 0 rows to a frame with 5 rows"
             in str(e.value))
+
+
+def test_issue1905():
+    # cbind() is passed a generator, where each generated Frame is a
+    # temporary. In this case cbind() should take care to keep the
+    # references to all frames while working, lest they get gc-d by
+    # the end of the generator loop.
+    DT = dt.cbind(dt.Frame(range(50), names=[str(i)])
+                  for i in range(30))
+    assert DT.shape == (50, 30)
+
+
+def test_cbind_nones():
+    DT = dt.cbind(None, dt.Frame(A=range(5)), None, dt.Frame(B=[0]*5))
+    assert_equals(DT, dt.Frame(A=range(5), B=[0]*5))
+
+
+def test_cbind_expanded_frame():
+    DT = dt.Frame(A=[1, 2], B=['a', "E"], C=[7, 1000], D=[-3.14, 159265])
+    RES = dt.cbind(*DT)
+    assert_equals(DT, RES)

@@ -179,6 +179,7 @@ bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
 bool _obj::is_buffer()        const noexcept { return v && PyObject_CheckBuffer(v); }
 bool _obj::is_range()         const noexcept { return v && PyRange_Check(v); }
 bool _obj::is_slice()         const noexcept { return v && PySlice_Check(v); }
+bool _obj::is_generator()     const noexcept { return v && PyGen_Check(v); }
 
 bool _obj::is_iterable() const noexcept {
   return v && (v->ob_type->tp_iter || PySequence_Check(v));
