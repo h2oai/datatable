@@ -359,14 +359,14 @@ def test_dt_colindex_bad1(dt0):
 def test_dt_colindex_bad2(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert ("Column index `7` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `7` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 
 def test_dt_colindex_bad3(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert ("Column index `-8` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `-8` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 
