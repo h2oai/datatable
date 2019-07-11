@@ -75,6 +75,17 @@ DataTable::DataTable(colvec&& cols, const DataTable* nn)
 // Public API
 //------------------------------------------------------------------------------
 
+size_t DataTable::xcolindex(int64_t index) const {
+  int64_t incols = static_cast<int64_t>(ncols);
+  if (index < -incols || index >= incols) {
+    throw ValueError() << "Column index `" << index << "` is invalid "
+        "for a frame with " << ncols << " column" << (ncols == 1? "" : "s");
+  }
+  if (index < 0) index += incols;
+  xassert(index >= 0 && index < incols);
+  return static_cast<size_t>(index);
+}
+
 /**
  * Make a shallow copy of the current DataTable.
  */
