@@ -67,7 +67,6 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-
 namespace py {
 
 // Sentinel values for __getitem__() mode
@@ -107,26 +106,14 @@ oobj Frame::_main_getset(robj item, robj value) {
     if (a0int && (a1int || arg1.is_string())) {
       int64_t irow = arg0.to_int64_strict();
       int64_t nrows = static_cast<int64_t>(dt->nrows);
-      int64_t ncols = static_cast<int64_t>(dt->ncols);
       if (irow < -nrows || irow >= nrows) {
         throw ValueError() << "Row `" << irow << "` is invalid for a frame "
             "with " << nrows << " row" << (nrows == 1? "" : "s");
       }
       if (irow < 0) irow += nrows;
       size_t zrow = static_cast<size_t>(irow);
-      size_t zcol;
-      if (a1int) {
-        int64_t icol = arg1.to_int64_strict();
-        if (icol < -ncols || icol >= ncols) {
-          throw ValueError() << "Column index `" << icol << "` is invalid "
-              "for a frame with " << ncols << " column" <<
-              (ncols == 1? "" : "s");
-        }
-        if (icol < 0) icol += ncols;
-        zcol = static_cast<size_t>(icol);
-      } else {
-        zcol = dt->xcolindex(arg1);
-      }
+      size_t zcol = a1int? dt->xcolindex(arg1.to_int64_strict())
+                         : dt->xcolindex(arg1);
       Column* col = dt->columns[zcol];
       return col->get_value_at_index(zrow);
     }
