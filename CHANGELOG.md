@@ -172,6 +172,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed a crash when replacing values in a str64 column (#1890).
 
+- `cbind()` no longer throws an error when passed a generator producing
+  temporary frames (#1905).
+
 
 ### Changed
 
@@ -220,7 +223,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816, #1837),
   - [NachiGithub][] (#1789, #1793),
-  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905)
   - [Tom Kraljevic][] (#1805)
   - [XiaomoWu][] (#1825)
 
