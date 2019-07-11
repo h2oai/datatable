@@ -33,10 +33,10 @@ namespace py {
 
 
 static PKArgs args_aggregate(
-  1, 0, 10, false, false,
+  1, 0, 9, false, false,
   {
     "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-    "max_dimensions", "seed", "progress_fn", "nthreads", "double_precision"
+    "max_dimensions", "seed", "nthreads", "double_precision"
   },
   "aggregate",
 
@@ -68,9 +68,6 @@ max_dimensions: int
     Number of columns at which start using the projection method.
 seed: int
     Seed to be used for the projection method.
-progress_fn:
-    [DEPRECATED]
-    Please use ``dt.options.progress.callback`` instead.
 nthreads: int
     Number of threads aggregator should use. `0` means
     use all the threads.
@@ -120,9 +117,8 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_nd_max_bins = !args[5].is_none_or_undefined();
   bool defined_max_dimensions = !args[6].is_none_or_undefined();
   bool defined_seed = !args[7].is_none_or_undefined();
-  bool defined_progress_fn = !args[8].is_none_or_undefined();
-  bool defined_nthreads = !args[9].is_none_or_undefined();
-  bool defined_double_precision = !args[10].is_none_or_undefined();
+  bool defined_nthreads = !args[8].is_none_or_undefined();
+  bool defined_double_precision = !args[9].is_none_or_undefined();
 
   if (defined_min_rows) {
     min_rows = args[1].to_size_t();
@@ -152,18 +148,12 @@ static oobj aggregate(const PKArgs& args) {
     seed = static_cast<unsigned int>(args[7].to_size_t());
   }
 
-  if (defined_progress_fn) {
-    DeprecationWarning() << "Parameter `progress_fn` is ignored. It will be "
-        "removed in datatable 0.9.0. Please set `options.progress.callback` "
-        "instead";
-  }
-
   if (defined_nthreads) {
-    nthreads = static_cast<unsigned int>(args[9].to_size_t());
+    nthreads = static_cast<unsigned int>(args[8].to_size_t());
   }
 
   if (defined_double_precision) {
-    double_precision = args[10].to_bool_strict();
+    double_precision = args[9].to_bool_strict();
   }
 
   dtptr dt_members, dt_exemplars;

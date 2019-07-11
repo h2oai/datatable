@@ -194,6 +194,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `datatable` no longer uses OpenMP for parallelism. Instead, we use our own
   thread pool to perform multi-threaded computations (#1736).
 
+- Parameter `progress_fn` in function `dt.models.aggregate()` is removed.
+  In its place you can set the global option `dt.options.progress.callback`.
+
+- Removed deprecated Frame methods `.topython()`, `.topandas()`, `.tonumpy()`,
+  and `Frame.__call__()`.
+
 
 ### Deprecated
 
@@ -206,10 +212,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame method `.save()` was renamed into `.to_jay()` (for consistency with
   other `.to_*()` methods). The old name is still usable, but marked as
   deprecated and will be removed in 0.10.0.
-
-- Parameter `progress_fn` in function `dt.models.aggregate()` is deprecated,
-  to be removed in 0.9.0. In its place you can set the global option
-  `dt.options.progress.callback`.
 
 
 ### Notes
