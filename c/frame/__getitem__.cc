@@ -89,9 +89,9 @@ oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
   size_t nargs = targs? targs.size() : 0;
   if (nargs <= 1) {
-    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
-        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
-        "will be interpreted as a row selector instead.";
+    throw ValueError() << "Single-item selector `DT[a]` is not supported; "
+        "please use `DT[:, a]` for selecting columns, and `DT[a, :]` for "
+        "selecting rows.";
   }
 
   // "Fast" get/set only handles the case of the form `DT[i, j]` where

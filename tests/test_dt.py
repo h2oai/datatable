@@ -305,7 +305,7 @@ def test_dt_getitem(dt0):
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
     with pytest.raises(ValueError) as e:
         noop(dt0["A"])
-    assert ("Single-item selectors `DT[col]` are prohibited"
+    assert ("Single-item selector `DT[a]` is not supported"
             in str(e.value))
 
 
@@ -331,10 +331,10 @@ def test_frame_star_expansion(dt0):
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])
-    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
+    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
     with pytest.raises(ValueError) as e:
         noop(dt0[(None,)])
-    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
+    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
 
 
 
