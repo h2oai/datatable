@@ -110,7 +110,7 @@ static oobj repeat(const PKArgs& args) {
 
   // Empty Frame: repeating is a noop
   if (dt->ncols == 0 || dt->nrows == 0) {
-    return oobj::from_new_reference(Frame::from_datatable(dt->copy()));
+    return Frame::oframe(dt->copy());
   }
 
   // Single-colum fixed-width Frame:
@@ -121,7 +121,7 @@ static oobj repeat(const PKArgs& args) {
   {
     Column* newcol = col0->repeat(n);
     DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
-    return oobj::from_new_reference(Frame::from_datatable(newdt));
+    return Frame::oframe(newdt);
   }
 
   constexpr size_t MAX32 = std::numeric_limits<int32_t>::max();
@@ -131,7 +131,7 @@ static oobj repeat(const PKArgs& args) {
                            : _make_repeat_rowindex<int64_t>(dt->nrows, n);
 
   DataTable* newdt = apply_rowindex(dt, ri);
-  return oobj::from_new_reference(Frame::from_datatable(newdt));
+  return Frame::oframe(newdt);
 }
 
 

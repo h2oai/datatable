@@ -60,7 +60,7 @@ class Frame : public XObject<Frame> {
 
     // Internal "constructor" of Frame objects. We do not use real constructors
     // because Frame objects must be allocated/initialized by Python.
-    static Frame* from_datatable(DataTable* dt);
+    static oobj oframe(DataTable* dt);
     DataTable* get_datatable() const { return dt; }
 
     void m__init__(const PKArgs&);

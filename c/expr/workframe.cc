@@ -160,7 +160,7 @@ py::oobj workframe::get_result() {
       result->nrows = frames[0].ri? frames[0].ri.size()
                                   : frames[0].dt->nrows;
     }
-    return py::oobj::from_new_reference(py::Frame::from_datatable(result));
+    return py::Frame::oframe(result);
   }
   return py::None();
 }

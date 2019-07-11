@@ -56,7 +56,7 @@ static py::oobj make_pyframe(sort_result& sr, arr32_t&& arr) {
   Column* out_col = sr.col->shallowcopy(out_ri);
   out_col->materialize();
   DataTable* dt = new DataTable({out_col}, {sr.colname});
-  return py::oobj::from_new_reference(py::Frame::from_datatable(dt));
+  return py::Frame::oframe(dt);
 }
 
 static void verify_frame_1column(DataTable* dt) {
@@ -122,8 +122,7 @@ static sort_result sort_columns(ccolvec&& cv) {
 
 static py::oobj _union(ccolvec&& cols) {
   if (cols.cols.empty()) {
-    return py::oobj::from_new_reference(
-              py::Frame::from_datatable(new DataTable()));
+    return py::Frame::oframe(new DataTable());
   }
   sort_result sorted = sort_columns(std::move(cols));
 

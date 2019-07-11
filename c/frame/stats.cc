@@ -274,7 +274,7 @@ static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
 oobj Frame::stat(const PKArgs& args) {
   Stat stat = stat_from_args[&args];
   DataTable* res = _make_frame(dt, stat);
-  return oobj::from_new_reference(Frame::from_datatable(res));
+  return Frame::oframe(res);
 }
 
 

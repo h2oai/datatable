@@ -446,9 +446,7 @@ oobj Ftrl::predict(const PKArgs& args) {
 
 
   DataTable* dt_p = dtft->dispatch_predict(dt_X).release();
-  py::oobj df_p = py::oobj::from_new_reference(
-                         py::Frame::from_datatable(dt_p)
-                  );
+  py::oobj df_p = py::Frame::oframe(dt_p);
 
   return df_p;
 }
@@ -492,9 +490,7 @@ static GSArgs args_labels(
 oobj Ftrl::get_labels() const {
   DataTable* dt_labels = dtft->get_labels();
   if (dt_labels ==nullptr) return py::None();
-  py::oobj df_labels = py::oobj::from_new_reference(
-                     py::Frame::from_datatable(dt_labels)
-                   );
+  py::oobj df_labels = py::Frame::oframe(dt_labels);
   return df_labels;
 }
 
@@ -514,9 +510,7 @@ oobj Ftrl::get_model() const {
   if (!dtft->is_model_trained()) return py::None();
 
   DataTable* dt_model = dtft->get_model();
-  py::oobj df_model = py::oobj::from_new_reference(
-                        py::Frame::from_datatable(dt_model)
-                      );
+  py::oobj df_model = py::Frame::oframe(dt_model);
   return df_model;
 }
 
@@ -578,9 +572,7 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
   if (!dtft->is_model_trained()) return py::None();
 
   DataTable* dt_fi = dtft->get_fi(normalize);
-  py::oobj df_fi = py::oobj::from_new_reference(
-                     py::Frame::from_datatable(dt_fi)
-                   );
+  py::oobj df_fi = py::Frame::oframe(dt_fi);
   return df_fi;
 }
 

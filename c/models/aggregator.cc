@@ -169,12 +169,8 @@ static oobj aggregate(const PKArgs& args) {
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
-  py::oobj df_exemplars = py::oobj::from_new_reference(
-                            py::Frame::from_datatable(dt_exemplars.release())
-                          );
-  py::oobj df_members = py::oobj::from_new_reference(
-                          py::Frame::from_datatable(dt_members.release())
-                        );
+  py::oobj df_exemplars = py::Frame::oframe(dt_exemplars.release());
+  py::oobj df_members = py::Frame::oframe(dt_members.release());
 
   // Return exemplars and members frames
   py::olist list(2);

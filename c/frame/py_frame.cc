@@ -91,10 +91,11 @@ it was deep-copied.)"
 );
 
 oobj Frame::copy(const PKArgs&) {
-  Frame* newframe = Frame::from_datatable(dt->copy());
+  oobj res = Frame::oframe(dt->copy());
+  Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
-  return py::oobj::from_new_reference(newframe);
+  return res;
 }
 
 
@@ -105,8 +106,7 @@ oobj Frame::copy(const PKArgs&) {
 bool Frame::internal_construction = false;
 
 
-Frame* Frame::from_datatable(DataTable* dt) {
-  // PyObject* pytype = reinterpret_cast<PyObject*>(&Frame::Type::type);
+oobj Frame::oframe(DataTable* dt) {
   Frame::internal_construction = true;
   PyObject* res = PyObject_CallObject(Frame_Type, nullptr);
   Frame::internal_construction = false;
@@ -114,7 +114,7 @@ Frame* Frame::from_datatable(DataTable* dt) {
 
   Frame* frame = reinterpret_cast<Frame*>(res);
   frame->dt = dt;
-  return frame;
+  return oobj::from_new_reference(frame);
 }
 
 

@@ -63,7 +63,7 @@ class FrameIterator : public XObject<FrameIterator>
 
       DataTable* newdt = new DataTable({dt->columns[i]->shallowcopy()},
                                        {dt->get_names()[i]});
-      return oobj::from_new_reference(Frame::from_datatable(newdt));
+      return Frame::oframe(newdt);
     }
 
   public:

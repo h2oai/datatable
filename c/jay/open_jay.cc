@@ -189,8 +189,7 @@ static oobj open_jay(const PKArgs& args) {
   else {
     throw TypeError() << "Invalid type of the argument to open_jay()";
   }
-  Frame* frame = Frame::from_datatable(dt);
-  return oobj::from_new_reference(frame);
+  return Frame::oframe(dt);
 }
 
 

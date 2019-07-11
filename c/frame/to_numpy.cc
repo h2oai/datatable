@@ -147,7 +147,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
       });
 
     DataTable* mask_dt = new DataTable({mask_col});
-    oobj mask_frame = oobj::from_new_reference(Frame::from_datatable(mask_dt));
+    oobj mask_frame = Frame::oframe(mask_dt);
     oobj mask_array = nparray.call({mask_frame});
 
     mask_array = mask_array.invoke("reshape", {oint(ncols), oint(dt->nrows)})
