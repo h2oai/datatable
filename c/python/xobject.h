@@ -324,6 +324,19 @@ PyObject* _safe_repr(PyObject* self) noexcept {
 }
 
 
+template <typename T, py::oobj(T::*METH)() const>
+PyObject* _safe_repr(PyObject* self) noexcept {
+  try {
+    T* tself = static_cast<T*>(self);
+    return (tself->*METH)().release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
 template <class T, oobj(T::*METH)() const>
 PyObject* _safe_getter(PyObject* obj, void*) noexcept {
   try {

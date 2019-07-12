@@ -76,8 +76,8 @@ class Frame : public XObject<Frame> {
     oobj m__reversed__();
 
     // Frame display
-    oobj m__repr__();
-    oobj m__str__();
+    oobj m__repr__() const;
+    oobj m__str__() const;
     oobj _repr_html_(const PKArgs&);
     oobj _repr_pretty_(const PKArgs&);
     void view(const PKArgs&);

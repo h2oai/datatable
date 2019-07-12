@@ -311,6 +311,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::tail, args_tail));
   xt.add(METHOD(&Frame::copy, args_copy));
   xt.add(METHOD(&Frame::materialize, args_materialize));
+  xt.add(METHOD0(&Frame::get_names, "keys"));
 }
 
 
