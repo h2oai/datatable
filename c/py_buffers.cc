@@ -77,8 +77,16 @@ Column* Column::from_buffer(const py::robj& pyobj)
     if (ret != 0) throw PyError();
   }
   if (view->ndim != 1) {
-    throw NotImplError() << "Source buffer has ndim=" << view->ndim
-      << ", however only 1-D buffers are supported";
+    int num_nontrivial_dimensions = view->ndim;
+    if (view->shape && !view->strides) {
+      for (int i = 0; i < view->ndim; ++i) {
+        num_nontrivial_dimensions -= (view->shape[i] == 1);
+      }
+    }
+    if (num_nontrivial_dimensions > 1) {
+      throw NotImplError() << "Source buffer has " << num_nontrivial_dimensions
+        << " non-trivial dimensions, however only 1-D buffers are supported";
+    }
   }
 
   SType stype = stype_from_format(view->format, view->itemsize);

@@ -58,7 +58,7 @@ static oobj split_into_nhot(const PKArgs& args) {
   }
 
   DataTable* res = dt::split_into_nhot(col0, sep[0], sort);
-  return Frame::from_datatable(res);
+  return Frame::oframe(res);
 }
 
 

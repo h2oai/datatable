@@ -67,7 +67,6 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-
 namespace py {
 
 // Sentinel values for __getitem__() mode
@@ -85,13 +84,60 @@ void Frame::m__setitem__(robj item, robj value) {
 }
 
 
+//------------------------------------------------------------------------------
+// Implementation of various selectors
+//------------------------------------------------------------------------------
+
+oobj Frame::_get_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  throw TypeError() << "Column selector must be an integer or a string, not "
+                    << selector.typeobj();
+}
+
+oobj Frame::_del_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else {
+    throw TypeError() << "Column selector must be an integer or a string, not "
+                  << selector.typeobj();
+  }
+  _clear_types();
+  return oobj();
+}
+
+
 oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
+
+  // Single-column-selector case. Commonly used expressions such as
+  // DT[3] or DT["col"] will result in `item` being an int/string not
+  // a tuple, and thus having `nargs == 1`.
+  if (!targs) {
+    if (value == GETITEM) return _get_single_column(item);
+    if (value == DELITEM) return _del_single_column(item);
+    return _main_getset(otuple({py::None(), item}), value);
+  }
+
   size_t nargs = targs? targs.size() : 0;
   if (nargs <= 1) {
-    throw ValueError() << "Single-item selector `DT[a]` is not supported; "
-        "please use `DT[:, a]` for selecting columns, and `DT[a, :]` for "
-        "selecting rows.";
+    // Selectors of the type `DT[tuple()]` or `DT[0,]`
+    throw ValueError() << "Invalid tuple of size " << nargs
+        << " used as a frame selector";
   }
 
   // "Fast" get/set only handles the case of the form `DT[i, j]` where
@@ -107,26 +153,14 @@ oobj Frame::_main_getset(robj item, robj value) {
     if (a0int && (a1int || arg1.is_string())) {
       int64_t irow = arg0.to_int64_strict();
       int64_t nrows = static_cast<int64_t>(dt->nrows);
-      int64_t ncols = static_cast<int64_t>(dt->ncols);
       if (irow < -nrows || irow >= nrows) {
         throw ValueError() << "Row `" << irow << "` is invalid for a frame "
             "with " << nrows << " row" << (nrows == 1? "" : "s");
       }
       if (irow < 0) irow += nrows;
       size_t zrow = static_cast<size_t>(irow);
-      size_t zcol;
-      if (a1int) {
-        int64_t icol = arg1.to_int64_strict();
-        if (icol < -ncols || icol >= ncols) {
-          throw ValueError() << "Column index `" << icol << "` is invalid "
-              "for a frame with " << ncols << " column" <<
-              (ncols == 1? "" : "s");
-        }
-        if (icol < 0) icol += ncols;
-        zcol = static_cast<size_t>(icol);
-      } else {
-        zcol = dt->xcolindex(arg1);
-      }
+      size_t zcol = a1int? dt->xcolindex(arg1.to_int64_strict())
+                         : dt->xcolindex(arg1);
       Column* col = dt->columns[zcol];
       return col->get_value_at_index(zrow);
     }

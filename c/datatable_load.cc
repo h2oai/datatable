@@ -101,9 +101,9 @@ static oobj open_nff(const PKArgs& args) {
   int recode = args[3].to_bool_strict();
 
   DataTable* dt = DataTable::load(colspec, nrows, path, recode);
-  Frame* frame = Frame::from_datatable(dt);
-  frame->set_names(args[4]);
-  return oobj::from_new_reference(frame);
+  oobj res = Frame::oframe(dt);
+  static_cast<Frame*>(res.to_borrowed_ref())->set_names(args[4]);
+  return res;
 }
 
 

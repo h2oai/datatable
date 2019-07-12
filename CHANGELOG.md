@@ -92,6 +92,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame can now be treated as an iterable over the columns. Thus, a Frame
   object can now be used in a for-loop, producing its individual columns.
 
+- A Frame can now be treated as a mapping; in particular both `dict(frame)`
+  and `**frame` are now valid.
+
+- Single-column frames can be be used as sources for Frame construction.
+
 
 ### Fixed
 
@@ -199,6 +204,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Removed deprecated Frame methods `.topython()`, `.topandas()`, `.tonumpy()`,
   and `Frame.__call__()`.
+
+- Syntax `DT[col]` has been restored (was previously deprecated in 0.7.0),
+  however it works only for `col` an integer or a string. Support for slices
+  may be added in the future, or not: there is a potential to confuse
+  `DT[a:b]` for a row selection. A column slice may still be selected via
+  the i-j selector `DT[:, a:b]`.
 
 
 ### Deprecated

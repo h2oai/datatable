@@ -303,10 +303,11 @@ def test_dt_getitem(dt0):
     with pytest.raises(TypeError) as e:
         noop(dt0[0, 1, 2, 3])
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
-    with pytest.raises(ValueError) as e:
-        noop(dt0["A"])
-    assert ("Single-item selector `DT[a]` is not supported"
-            in str(e.value))
+
+
+def test_dt_getitem2(dt0):
+    assert_equals(dt0["A"], dt0[:, "A"])
+    assert_equals(dt0[1], dt0[:, 1])
 
 
 def test_frame_as_iterable(dt0):
@@ -328,13 +329,35 @@ def test_frame_star_expansion(dt0):
     foo(*dt0)
 
 
+@pytest.mark.usefixtures("py36")
+def test_frame_as_mapping(dt0):
+    assert dt0.keys() == dt0.names
+    i = 0
+    for name, col in dict(dt0).items():
+        assert name == dt0.names[i]
+        assert_equals(col, dt0[:, i])
+        i += 1
+
+
+def test_frame_doublestar_expansion(dt0):
+    def foo(**kwds):
+        for name, col in kwds.items():
+            assert isinstance(name, str)
+            assert isinstance(col, dt.Frame)
+            assert col.shape == (dt0.nrows, 1)
+            assert name == col.names[0]
+            frame_integrity_check(col)
+
+    foo(**dt0)
+
+
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])
-    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
+    assert "Invalid tuple of size 0 used as a frame selector" in str(e.value)
     with pytest.raises(ValueError) as e:
-        noop(dt0[(None,)])
-    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
+        noop(dt0[3,])
+    assert "Invalid tuple of size 1 used as a frame selector" in str(e.value)
 
 
 
@@ -359,14 +382,14 @@ def test_dt_colindex_bad1(dt0):
 def test_dt_colindex_bad2(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert ("Column index `7` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `7` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 
 def test_dt_colindex_bad3(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert ("Column index `-8` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `-8` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 

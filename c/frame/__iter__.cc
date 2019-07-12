@@ -60,10 +60,7 @@ class FrameIterator : public XObject<FrameIterator>
       }
       size_t i = (iteration_index++);
       if (reverse) i = dt->ncols - i - 1;
-
-      DataTable* newdt = new DataTable({dt->columns[i]->shallowcopy()},
-                                       {dt->get_names()[i]});
-      return oobj::from_new_reference(Frame::from_datatable(newdt));
+      return Frame::oframe(dt->extract_column(i));
     }
 
   public:

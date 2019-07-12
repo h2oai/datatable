@@ -404,7 +404,7 @@ bool HtmlWidget::styles_emitted = false;
 //------------------------------------------------------------------------------
 namespace py {
 
-oobj Frame::m__repr__() {
+oobj Frame::m__repr__() const {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
   std::ostringstream out;
@@ -413,7 +413,7 @@ oobj Frame::m__repr__() {
   return ostring(out.str());
 }
 
-oobj Frame::m__str__() {
+oobj Frame::m__str__() const {
   oobj DFWidget = oobj::import("datatable")
                   .get_attr("widget")
                   .get_attr("DataFrameWidget");

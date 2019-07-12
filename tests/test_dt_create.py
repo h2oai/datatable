@@ -124,6 +124,14 @@ def test_different_column_lengths():
             "columns (10)" == str(e.value))
 
 
+def test_from_frame_as_column():
+    DT = dt.Frame(A=[1, 2, 3], B=[7, 4, 1])
+    with pytest.raises(ValueError) as e:
+        dt.Frame(X=DT)
+    assert ("A column cannot be constructed from a Frame with 2 columns"
+            == str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create empty Frame
@@ -351,6 +359,24 @@ def test_create_from_frame_error():
     with pytest.raises(TypeError) as e2:
         dt.Frame(d0, stypes=[stype.str32])
     assert str(e1.value) == str(e2.value)
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_column_frames():
+    DT0 = dt.Frame(A=range(5), B=list("dfkjd"),
+                   C=[False, True, True, None, True])
+    DT1 = dt.Frame(a=DT0["A"], b=DT0["B"], c=DT0["C"])
+    assert DT1.names == ("a", "b", "c")
+    assert DT1.stypes == DT0.stypes
+    assert DT1.to_list() == DT0.to_list()
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_doublestar_expansion():
+    DT0 = dt.Frame(A=range(3), B=["df", "qe;r", None])
+    DT1 = dt.Frame(D=[7.99, -12.5, 0.1], E=[None]*3)
+    DT = dt.Frame(**DT0, **DT1)
+    assert_equals(DT, dt.cbind(DT0, DT1))
 
 
 

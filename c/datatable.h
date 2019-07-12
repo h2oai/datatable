@@ -109,6 +109,7 @@ class DataTable {
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;
+    DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
     /**
@@ -123,6 +124,7 @@ class DataTable {
     py::otuple get_pynames() const;
     int64_t colindex(const py::_obj& pyname) const;
     size_t xcolindex(const py::_obj& pyname) const;
+    size_t xcolindex(int64_t index) const;
     void copy_names_from(const DataTable* other);
     void set_names_to_default();
     void set_names(const py::olist& names_list);

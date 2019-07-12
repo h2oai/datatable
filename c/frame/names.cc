@@ -146,23 +146,13 @@ oobj Frame::colindex(const PKArgs& args) {
   }
 
   if (col.is_string()) {
-    int64_t index = dt->colindex(col.to_robj());
-    if (index == -1) {
-      throw _name_not_found_error(dt, col.to_string());
-    }
+    size_t index = dt->xcolindex(col.to_robj());
     return py::oint(index);
   }
   if (col.is_int()) {
-    int64_t colidx = col.to_int64_strict();
-    int64_t ncols = static_cast<int64_t>(dt->ncols);
-    if (colidx < 0 && colidx + ncols >= 0) {
-      colidx += ncols;
-    }
-    if (colidx >= 0 && colidx < ncols) {
-      return py::oint(colidx);
-    }
-    throw ValueError() << "Column index `" << colidx << "` is invalid for a "
-        "Frame with " << ncols << " column" << (ncols==1? "" : "s");
+    // dt->xcolindex() throws an exception if column index is out of bounds
+    size_t index = dt->xcolindex(col.to_int64_strict());
+    return py::oint(index);
   }
   throw TypeError() << "The argument to Frame.colindex() should be a string "
       "or an integer, not " << col.typeobj();

@@ -36,8 +36,7 @@ static oobj read_csv(const PKArgs& args)
   robj pyreader = args[0];
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read_all();
-  return oobj::from_new_reference(
-          Frame::from_datatable(dtptr.release()));
+  return Frame::oframe(dtptr.release());
 }
 
 
