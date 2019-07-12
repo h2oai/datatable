@@ -329,6 +329,7 @@ def test_frame_star_expansion(dt0):
     foo(*dt0)
 
 
+@pytest.mark.usefixtures("py36")
 def test_frame_as_mapping(dt0):
     assert dt0.keys() == dt0.names
     i = 0
