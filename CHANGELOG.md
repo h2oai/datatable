@@ -92,6 +92,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame can now be treated as an iterable over the columns. Thus, a Frame
   object can now be used in a for-loop, producing its individual columns.
 
+- A Frame can now be treated as a mapping; in particular both `dict(frame)`
+  and `**frame` are now valid.
+
+- Single-column frames can be be used as sources for Frame construction.
+
 
 ### Fixed
 

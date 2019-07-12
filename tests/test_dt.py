@@ -329,6 +329,27 @@ def test_frame_star_expansion(dt0):
     foo(*dt0)
 
 
+def test_frame_as_mapping(dt0):
+    assert dt0.keys() == dt0.names
+    i = 0
+    for name, col in dict(dt0).items():
+        assert name == dt0.names[i]
+        assert_equals(col, dt0[:, i])
+        i += 1
+
+
+def test_frame_doublestar_expansion(dt0):
+    def foo(**kwds):
+        for name, col in kwds.items():
+            assert isinstance(name, str)
+            assert isinstance(col, dt.Frame)
+            assert col.shape == (dt0.nrows, 1)
+            assert name == col.names[0]
+            frame_integrity_check(col)
+
+    foo(**dt0)
+
+
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])
