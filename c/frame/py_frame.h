@@ -131,7 +131,6 @@ class Frame : public XObject<Frame> {
 
     ~Frame() {}
     void _clear_types() const;
-    void _clear_names();
     void _init_names() const;
     void _init_inames() const;
     void _fill_default_names();
@@ -140,6 +139,8 @@ class Frame : public XObject<Frame> {
 
     // getitem / setitem support
     oobj _main_getset(robj item, robj value);
+    oobj _get_single_column(robj selector);
+    oobj _del_single_column(robj selector);
 
     friend class FrameInitializationManager;
     friend class pylistNP;

@@ -102,6 +102,11 @@ DataTable* DataTable::copy() const {
   return res;
 }
 
+DataTable* DataTable::extract_column(size_t i) const {
+  xassert(i < ncols);
+  return new DataTable({columns[i]->shallowcopy()}, {names[i]});
+}
+
 
 
 void DataTable::delete_columns(std::vector<size_t>& cols_to_remove) {

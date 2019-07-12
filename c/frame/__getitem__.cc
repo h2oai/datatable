@@ -84,13 +84,60 @@ void Frame::m__setitem__(robj item, robj value) {
 }
 
 
+//------------------------------------------------------------------------------
+// Implementation of various selectors
+//------------------------------------------------------------------------------
+
+oobj Frame::_get_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  throw TypeError() << "Column selector must be an integer or a string, not "
+                    << selector.typeobj();
+}
+
+oobj Frame::_del_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else {
+    throw TypeError() << "Column selector must be an integer or a string, not "
+                  << selector.typeobj();
+  }
+  _clear_types();
+  return oobj();
+}
+
+
 oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
+
+  // Single-column-selector case. Commonly used expressions such as
+  // DT[3] or DT["col"] will result in `item` being an int/string not
+  // a tuple, and thus having `nargs == 1`.
+  if (!targs) {
+    if (value == GETITEM) return _get_single_column(item);
+    if (value == DELITEM) return _del_single_column(item);
+    return _main_getset(otuple({py::None(), item}), value);
+  }
+
   size_t nargs = targs? targs.size() : 0;
   if (nargs <= 1) {
-    throw ValueError() << "Single-item selector `DT[a]` is not supported; "
-        "please use `DT[:, a]` for selecting columns, and `DT[a, :]` for "
-        "selecting rows.";
+    // Selectors of the type `DT[tuple()]` or `DT[0,]`
+    throw ValueError() << "Invalid tuple of size " << nargs
+        << " used as a frame selector";
   }
 
   // "Fast" get/set only handles the case of the form `DT[i, j]` where

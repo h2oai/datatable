@@ -303,10 +303,11 @@ def test_dt_getitem(dt0):
     with pytest.raises(TypeError) as e:
         noop(dt0[0, 1, 2, 3])
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
-    with pytest.raises(ValueError) as e:
-        noop(dt0["A"])
-    assert ("Single-item selector `DT[a]` is not supported"
-            in str(e.value))
+
+
+def test_dt_getitem2(dt0):
+    assert_equals(dt0["A"], dt0[:, "A"])
+    assert_equals(dt0[1], dt0[:, 1])
 
 
 def test_frame_as_iterable(dt0):
@@ -331,10 +332,10 @@ def test_frame_star_expansion(dt0):
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])
-    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
+    assert "Invalid tuple of size 0 used as a frame selector" in str(e.value)
     with pytest.raises(ValueError) as e:
-        noop(dt0[(None,)])
-    assert "Single-item selector `DT[a]` is not supported" in str(e.value)
+        noop(dt0[3,])
+    assert "Invalid tuple of size 1 used as a frame selector" in str(e.value)
 
 
 

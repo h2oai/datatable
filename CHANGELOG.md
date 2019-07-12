@@ -200,6 +200,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Removed deprecated Frame methods `.topython()`, `.topandas()`, `.tonumpy()`,
   and `Frame.__call__()`.
 
+- Syntax `DT[col]` has been restored (was previously deprecated in 0.7.0),
+  however it works only for `col` an integer or a string. Support for slices
+  may be added in the future, or not: there is a potential to confuse
+  `DT[a:b]` for a row selection. A column slice may still be selected via
+  the i-j selector `DT[:, a:b]`.
+
 
 ### Deprecated
 

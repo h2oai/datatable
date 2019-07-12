@@ -109,6 +109,7 @@ class DataTable {
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;
+    DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
     /**

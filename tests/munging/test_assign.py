@@ -202,6 +202,22 @@ def test_stats_after_assign():
     assert DT.countna1() == 0
 
 
+def test_assign_to_single_column_selector():
+    DT = dt.Frame(A=range(5), B=list('abcde'))[:, ['A', 'B']]
+    DT["A"] = 17
+    assert_equals(DT, dt.Frame([[17] * 5, list('abcde')],
+                               names=('A', 'B'),
+                               stypes=(dt.int32, dt.str32)))
+    DT["C"] = False
+    assert_equals(DT, dt.Frame([[17] * 5, list('abcde'), [False] * 5],
+                               names=('A', 'B', 'C'),
+                               stypes=(dt.int32, dt.str32, dt.bool8)))
+    DT[-2] = "hi!"
+    assert_equals(DT, dt.Frame([[17] * 5, ["hi!"] * 5, [False] * 5],
+                               names=('A', 'B', 'C'),
+                               stypes=(dt.int32, dt.str32, dt.bool8)))
+
+
 
 
 #-------------------------------------------------------------------------------
