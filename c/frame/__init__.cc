@@ -590,7 +590,15 @@ class FrameInitializationManager {
 
     void make_column(py::robj colsrc, SType s) {
       Column* col = nullptr;
-      if (colsrc.is_buffer()) {
+      if (colsrc.is_frame()) {
+        DataTable* srcdt = colsrc.to_datatable();
+        if (srcdt->ncols != 1) {
+          throw ValueError() << "A column cannot be constructed from a Frame "
+              "with " << srcdt->ncols << " columns";
+        }
+        col = srcdt->columns[0]->shallowcopy();
+      }
+      else if (colsrc.is_buffer()) {
         col = Column::from_buffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
