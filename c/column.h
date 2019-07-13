@@ -334,6 +334,33 @@ private:
 
 
 
+// "owner" of a Column
+// To be renamed into simple Column
+class OColumn {
+  private:
+    Column* pcol;
+
+  public:
+    OColumn() : pcol(nullptr) {}
+    explicit OColumn(Column* col) : pcol(col) {}  // Steal ownership
+    OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
+    OColumn(OColumn&& other) : OColumn() { std::swap(pcol, other.pcol); }
+    ~OColumn() { delete pcol; }
+
+    const Column* get() const { return pcol; }  // borrowed ref
+    Column* release() {
+      Column* ret = pcol;
+      pcol = nullptr;
+      return ret;
+    }
+
+    Column* operator->() { return pcol; }
+    const Column* operator->() const { return pcol; }
+};
+
+
+
+
 //==============================================================================
 
 template <typename T> class FwColumn : public Column
