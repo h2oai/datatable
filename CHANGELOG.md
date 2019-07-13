@@ -180,6 +180,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `cbind()` no longer throws an error when passed a generator producing
   temporary frames (#1905).
 
+- Fixed comparison of string columns vs. value `None` (#1912).
+
 
 ### Changed
 
@@ -235,6 +237,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [Olivier][] (#1872),
   - [Hawk Berry][] (#1834),
   - [Jonathan McKinney][] (#1816, #1837),
+  - [Mateusz Dymczyk][] (#1912),
   - [NachiGithub][] (#1789, #1793),
   - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905)
   - [Tom Kraljevic][] (#1805)
@@ -1157,6 +1160,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [hawk berry]: https://github.com/hawkberry
 [jonathan mckinney]: https://github.com/pseudotensor
 [joseph granados]: https://github.com/g-eoj
+[mateusz dymczyk]: https://github.com/mdymczyk
 [megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska
