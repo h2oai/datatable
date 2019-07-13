@@ -246,7 +246,7 @@ inline constexpr size_t id(Stat stat, SType stype) {
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
   out_cols.reserve(dt->ncols);
-  for (Column* dtcol : dt->columns) {
+  for (Column* dtcol : dt->get_columns()) {
     SType stype = dtcol->stype();
     colmakerfn f = statfns[id(stat, stype)];
     Column* newcol = f(dtcol->get_stats(), dtcol);
@@ -292,7 +292,7 @@ oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols != 1) {
     throw ValueError() << "This method can only be applied to a 1-column Frame";
   }
-  Column* col0 = dt->columns[0];
+  Column* col0 = dt->get_column(0);
   Stat stat = stat_from_args[&args];
   SType stype = col0->stype();
   colmakerfn1 f = statfns1[id(stat, stype)];

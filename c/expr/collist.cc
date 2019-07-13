@@ -314,7 +314,7 @@ class collist_maker
     void _select_types(const std::vector<SType>& stypes) {
       size_t ncols = dt0->ncols;
       for (size_t i = 0; i < ncols; ++i) {
-        SType st = dt0->columns[i]->stype();
+        SType st = dt0->get_column(i)->stype();
         for (SType s : stypes) {
           if (s == st) {
             indices.push_back(i);

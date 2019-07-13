@@ -476,7 +476,7 @@ size_t CsvWriter::estimate_output_size()
   const strvec& column_names = dt->get_names();
   fixed_size_per_row = ncols;  // 1 byte per separator
   for (size_t i = 0; i < ncols; i++) {
-    Column *col = dt->columns[i];
+    Column *col = dt->get_column(i);
     if (auto scol32 = dynamic_cast<StringColumn<uint32_t>*>(col)) {
       total_string_size += scol32->datasize();
     } else
@@ -594,7 +594,7 @@ void CsvWriter::create_column_writers(size_t ncols)
   writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
   writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
   for (size_t i = 0; i < ncols; ++i) {
-    Column* dtcol = dt->columns[i];
+    Column* dtcol = dt->get_column(i);
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);

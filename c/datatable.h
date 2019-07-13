@@ -18,6 +18,7 @@
 
 // avoid circular dependency between .h files
 class Column;
+class OColumn;
 class Stats;
 class DataTable;
 class NameProvider;
@@ -83,9 +84,9 @@ class DataTable {
     size_t   nrows;
     size_t   ncols;
     Groupby  groupby;
-    colvec   columns;
 
   private:
+    colvec   columns;
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
@@ -111,6 +112,13 @@ class DataTable {
     DataTable* copy() const;
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
+
+    Column* get_column(size_t i) const { return columns[i]; }
+    const colvec& get_columns() const { return columns; }
+    void set_column(size_t i, Column* newcol) {
+      delete columns[i];
+      columns[i] = newcol;
+    }
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding

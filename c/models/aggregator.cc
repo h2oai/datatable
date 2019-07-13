@@ -250,7 +250,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     // and create a vector of categoricals.
     for (size_t i = 0; i < dt->ncols; ++i) {
       bool is_continuous = true;
-      Column* col = dt->columns[i];
+      auto col = dt->get_column(i);
       switch (col->stype()) {
         case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, BoolColumn>(col)); break;
         case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, IntColumn<int8_t>>(col)); break;
@@ -261,7 +261,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
         case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T, RealColumn<double>>(col)); break;
         default:             if (dt->ncols < 3) {
                                is_continuous = false;
-                               catcols.push_back(dt->columns[i]->shallowcopy());
+                               catcols.push_back(dt->get_column(i)->shallowcopy());
                              }
       }
       if (is_continuous && contconv != nullptr) {
@@ -346,7 +346,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
   // for the additional N/A bins that may appear during grouping.
   if (gb_members.ngroups() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
-    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+    auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
 
     // First, set all `exemplar_id`s to `N/A`.
     for (size_t i = 0; i < dt_members->nrows; ++i) {
@@ -371,7 +371,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
         k++;
       }
     }
-    dt_members->columns[0]->get_stats()->reset();
+    dt_members->get_column(0)->get_stats()->reset();
     was_sampled = true;
   }
 
@@ -406,7 +406,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     size_t i_sampled = i - was_sampled;
     size_t off_i = static_cast<size_t>(offsets[i]);
@@ -428,7 +428,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
         d_members[ri_members[member_shift + j]] = static_cast<int32_t>(i_sampled);
       }
     });
-  dt_members->columns[0]->get_stats()->reset();
+  dt_members->get_column(0)->get_stats()->reset();
 
   // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
@@ -448,7 +448,7 @@ void Aggregator<T>::group_0d() {
     auto res = dt->group(spec);
     RowIndex ri_exemplars = std::move(res.first);
 
-    auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+    auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
     ri_exemplars.iterate(0, dt->nrows, 1,
       [&](size_t i, size_t j) {
         d_members[j] = static_cast<int32_t>(i);
@@ -501,7 +501,7 @@ void Aggregator<T>::group_2d() {
  */
 template <typename T>
 void Aggregator<T>::group_1d_continuous() {
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   T norm_factor, norm_shift;
   set_norm_coeffs(norm_factor, norm_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), n_bins);
 
@@ -522,7 +522,7 @@ void Aggregator<T>::group_1d_continuous() {
  */
 template <typename T>
 void Aggregator<T>::group_2d_continuous() {
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
 
   T normx_factor, normx_shift;
   T normy_factor, normy_shift;
@@ -555,7 +555,7 @@ void Aggregator<T>::group_1d_categorical() {
   RowIndex ri0 = std::move(res.first);
   Groupby grpby0 = std::move(res.second);
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
   dt::parallel_for_dynamic(grpby0.ngroups(),
@@ -575,8 +575,8 @@ void Aggregator<T>::group_1d_categorical() {
  */
 template <typename T>
 void Aggregator<T>::group_2d_categorical () {
-  switch (dt_cat->columns[0]->stype()) {
-    case SType::STR32:  switch (dt_cat->columns[1]->stype()) {
+  switch (dt_cat->get_column(0)->stype()) {
+    case SType::STR32:  switch (dt_cat->get_column(1)->stype()) {
                           case SType::STR32:  group_2d_categorical_str<uint32_t, uint32_t>(); break;
                           case SType::STR64:  group_2d_categorical_str<uint32_t, uint64_t>(); break;
                           default:            throw ValueError() << "For 2D categorical aggregation, all column types"
@@ -584,7 +584,7 @@ void Aggregator<T>::group_2d_categorical () {
                         }
                         break;
 
-    case SType::STR64:  switch (dt_cat->columns[1]->stype()) {
+    case SType::STR64:  switch (dt_cat->get_column(1)->stype()) {
                           case SType::STR32:  group_2d_categorical_str<uint64_t, uint32_t>(); break;
                           case SType::STR64:  group_2d_categorical_str<uint64_t, uint64_t>(); break;
                           default:            throw ValueError() << "For 2D categorical aggregation, all column types"
@@ -611,12 +611,12 @@ void Aggregator<T>::group_2d_categorical_str() {
   RowIndex ri = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
-  auto c0 = static_cast<const StringColumn<U0>*>(dt_cat->columns[0]);
-  auto c1 = static_cast<const StringColumn<U1>*>(dt_cat->columns[1]);
+  auto c0 = static_cast<const StringColumn<U0>*>(dt_cat->get_column(0));
+  auto c1 = static_cast<const StringColumn<U1>*>(dt_cat->get_column(1));
   const U0* d_c0 = c0->offsets();
   const U1* d_c1 = c1->offsets();
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   const int32_t* offsets = grpby.offsets_r();
 
   dt::parallel_for_dynamic(grpby.ngroups(),
@@ -643,7 +643,7 @@ void Aggregator<T>::group_2d_categorical_str() {
  */
 template <typename T>
 void Aggregator<T>::group_2d_mixed() {
-  switch (dt_cat->columns[0]->stype()) {
+  switch (dt_cat->get_column(0)->stype()) {
     case SType::STR32:  group_2d_mixed_str<uint32_t>(); break;
     case SType::STR64:  group_2d_mixed_str<uint64_t>(); break;
     default:            throw ValueError() << "For 2D mixed aggretation, the categorical column "
@@ -660,7 +660,7 @@ void Aggregator<T>::group_2d_mixed() {
 template<typename T>
 template<typename U0>
 void Aggregator<T>::group_2d_mixed_str() {
-  auto c_cat = static_cast<const StringColumn<U0>*>(dt_cat->columns[0]);
+  auto c_cat = static_cast<const StringColumn<U0>*>(dt_cat->get_column(0));
   const U0* d_cat = c_cat->offsets();
 
   std::vector<sort_spec> spec = {sort_spec(0)};
@@ -668,7 +668,7 @@ void Aggregator<T>::group_2d_mixed_str() {
   RowIndex ri_cat = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   const int32_t* offsets_cat = grpby.offsets_r();
 
   T normx_factor, normx_shift;
@@ -732,7 +732,7 @@ void Aggregator<T>::group_nd() {
   size_t nexemplars = 0;
   size_t ncoprimes = 0;
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   tptr<T> pmatrix;
   bool do_projection = ncols > max_dimensions;
   if (do_projection) pmatrix = generate_pmatrix(ncols);
@@ -915,7 +915,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
 template <typename T>
 void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
 
-  auto d_members = static_cast<int32_t*>(dt_members->columns[0]->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
   auto nids = ids.size();
 

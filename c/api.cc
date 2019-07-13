@@ -83,14 +83,14 @@ size_t DtFrame_NRows(PyObject* pydt) {
 int DtFrame_ColumnStype(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return -1;
-  return static_cast<int>(dt->columns[i]->stype());  // stype() is noexcept
+  return static_cast<int>(dt->get_column(i)->stype());  // stype() is noexcept
 }
 
 
 PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
-  const RowIndex& ri = dt->columns[i]->rowindex();  // rowindex() is noexcept
+  const RowIndex& ri = dt->get_column(i)->rowindex();  // rowindex() is noexcept
   return (ri? py::orowindex(ri) : py::None()).release();
 }
 
@@ -99,7 +99,7 @@ const void* DtFrame_ColumnDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->columns[i]->data();
+    return dt->get_column(i)->data();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -110,7 +110,7 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->columns[i]->data_w();
+    return dt->get_column(i)->data_w();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -121,14 +121,14 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
 const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
-  SType st = dt->columns[i]->stype();
+  SType st = dt->get_column(i)->stype();
   try {
     if (st == SType::STR32) {
-      auto scol = static_cast<StringColumn<uint32_t>*>(dt->columns[i]);
+      auto scol = static_cast<StringColumn<uint32_t>*>(dt->get_column(i));
       return scol->strdata();
     }
     if (st == SType::STR64) {
-      auto scol = static_cast<StringColumn<uint64_t>*>(dt->columns[i]);
+      auto scol = static_cast<StringColumn<uint64_t>*>(dt->get_column(i));
       return scol->strdata();
     }
   } catch (const std::exception& e) {

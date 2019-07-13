@@ -68,7 +68,7 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   Column* col0 = nullptr;
   if (rcols == 1) {
-    col0 = dtr->columns[0]->shallowcopy();
+    col0 = dtr->get_column(0)->shallowcopy();
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
       col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
@@ -77,12 +77,11 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     Column* coli = rcols == 1? col0->shallowcopy()
-                             : dtr->columns[i]->shallowcopy();
+                             : dtr->get_column(i)->shallowcopy();
     if (coli->nrows == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
-    delete dt0->columns[j];
-    dt0->columns[j] = coli;
+    dt0->set_column(j, coli);
   }
   delete col0;
 }
@@ -100,11 +99,11 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
   xassert(rcols == 1 || rcols == lcols);
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = dtr->columns[rcols == 1? 0 : i];
-    Column* colj = dt0->columns[j];
+    Column* coli = dtr->get_column(rcols == 1? 0 : i);
+    Column* colj = dt0->get_column(j);
     if (!colj) {
       colj = Column::new_na_column(coli->stype(), dt0->nrows);
-      dt0->columns[j] = colj;
+      dt0->set_column(j, colj);
     }
     colj->replace_values(ri0, coli);
   }
@@ -142,7 +141,7 @@ void scalar_rn::check_column_types(
   const DataTable* dt0, const intvec& indices) const
 {
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
+    Column* col = dt0->get_column(j);
     if (col && !valid_ltype(col->ltype())) {
       throw TypeError() << "Cannot assign " << value_type()
         << " value to column `" << dt0->get_names()[j]
@@ -158,13 +157,12 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   std::unordered_map<SType, colptr, EnumClassHash> new_columns;
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
+    Column* col = dt0->get_column(j);
     SType st = col? col->stype() : SType::VOID;
     if (new_columns.count(st) == 0) {
       new_columns[st] = make_column(st, dt0->nrows);
     }
-    delete col;
-    dt0->columns[j] = new_columns[st]->shallowcopy();
+    dt0->set_column(j, new_columns[st]->shallowcopy());
   }
 }
 
@@ -175,19 +173,18 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
+    Column* col = dt0->get_column(j);
     SType st = col? col->stype() : SType::VOID;
     colptr replcol = make_column(st, 1);
     if (col) {
       SType res_stype = replcol->stype();
       if (col->stype() != res_stype) {
-        dt0->columns[j] = col->cast(res_stype);
-        delete col;
-        col = dt0->columns[j];
+        dt0->set_column(j, col->cast(res_stype));
+        col = dt0->get_column(j);
       }
     } else {
       col = Column::new_na_column(replcol->stype(), dt0->nrows);
-      dt0->columns[j] = col;
+      dt0->set_column(j, col);
     }
     col->replace_values(ri0, replcol.get());
   }
@@ -455,10 +452,9 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     Column* col = i < rcols? exprs[i]->evaluate_eager(wf).release()
-                           : dt0->columns[indices[0]]->shallowcopy();
+                           : dt0->get_column(indices[0])->shallowcopy();
     xassert(col->nrows == dt0->nrows);
-    delete dt0->columns[j];
-    dt0->columns[j] = col;
+    dt0->set_column(j, col);
   }
 }
 

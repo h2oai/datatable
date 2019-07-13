@@ -226,7 +226,7 @@ DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
   for (auto& rcitem : rc) {
     RowIndex newri = ri * rcitem.rowindex;
     for (size_t i : rcitem.colindices) {
-      newcols[i] = dt->columns[i]->shallowcopy(newri);
+      newcols[i] = dt->get_column(i)->shallowcopy(newri);
     }
   }
   return new DataTable(std::move(newcols), dt);

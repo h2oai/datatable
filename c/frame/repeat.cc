@@ -114,7 +114,7 @@ static oobj repeat(const PKArgs& args) {
   }
 
   // Single-colum fixed-width Frame:
-  Column* col0 = dt->columns[0];
+  Column* col0 = dt->get_column(0);
   if (dt->ncols == 1 &&
       !info(col0->stype()).is_varwidth() &&
       !col0->rowindex())

@@ -86,7 +86,7 @@ void allcols_jn::select(workframe& wf) {
     const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
       if (by.has_group_column(j)) continue;
-      wf.add_column(dti->columns[j], rii, std::string(dti_names[j]));
+      wf.add_column(dti->get_column(j), rii, std::string(dti_names[j]));
     }
   }
 }
@@ -184,7 +184,7 @@ void collist_jn::select(workframe& wf) {
   wf.reserve(n);
   for (size_t i = 0; i < n; ++i) {
     size_t j = indices[i];
-    wf.add_column(dt0->columns[j], ri0, std::move(names[i]));
+    wf.add_column(dt0->get_column(j), ri0, std::move(names[i]));
   }
 }
 
@@ -194,7 +194,7 @@ void collist_jn::delete_(workframe& wf) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
     for (size_t i : indices) {
-      dt0->columns[i]->replace_values(ri0, nullptr);
+      dt0->get_column(i)->replace_values(ri0, nullptr);
     }
   } else {
     dt0->delete_columns(indices);
@@ -226,7 +226,6 @@ void collist_jn::update(workframe& wf, repl_node* repl) {
   if (num_new_columns) {
     strvec new_names = dt0->get_names();  // copy names
     new_names.reserve(dt0->ncols + num_new_columns);
-    dt0->columns.resize(dt0->ncols + num_new_columns);
     for (size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] == size_t(-1)) {
         indices[i] = dt0->ncols++;

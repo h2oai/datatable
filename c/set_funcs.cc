@@ -72,7 +72,7 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
       DataTable* dt = va.to_datatable();
       if (dt->ncols == 0) continue;
       verify_frame_1column(dt);
-      Column* col = dt->columns[0]->shallowcopy();
+      Column* col = dt->get_column(0)->shallowcopy();
       col->materialize();
       res.cols.push_back(col);
       if (res.colname.empty()) res.colname = dt->get_names()[0];
@@ -82,7 +82,7 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
         DataTable* dt = item.to_datatable();
         if (dt->ncols == 0) continue;
         verify_frame_1column(dt);
-        Column* col = dt->columns[0]->shallowcopy();
+        Column* col = dt->get_column(0)->shallowcopy();
         col->materialize();
         res.cols.push_back(col);
         if (res.colname.empty()) res.colname = dt->get_names()[0];
@@ -171,7 +171,7 @@ static py::oobj unique(const py::PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
 
   ccolvec cc;
-  for (auto col : dt->columns) {
+  for (auto col : dt->get_columns()) {
     cc.cols.push_back(col->shallowcopy());
   }
   if (dt->ncols == 1) {

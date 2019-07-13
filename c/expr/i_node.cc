@@ -319,7 +319,7 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
         "selector, instead got a Frame with " << dt->ncols << " columns";
   }
-  SType st = dt->columns[0]->stype();
+  SType st = dt->get_column(0)->stype();
   if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
     throw TypeError() << "A Frame which is used as an `i` selector should be "
         "either boolean or integer, instead got `" << st << "`";
@@ -328,7 +328,7 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
 
 
 void frame_in::post_init_check(workframe& wf) {
-  Column* col = dt->columns[0];
+  Column* col = dt->get_column(0);
   size_t nrows = wf.nrows();
   if (col->stype() == SType::BOOL) {
     if (col->nrows != nrows) {
@@ -355,7 +355,7 @@ void frame_in::post_init_check(workframe& wf) {
 
 
 void frame_in::execute(workframe& wf) {
-  RowIndex ri { dt->columns[0] };
+  RowIndex ri { dt->get_column(0) };
   wf.apply_rowindex(ri);
 }
 

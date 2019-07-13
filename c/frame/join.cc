@@ -103,8 +103,8 @@ MultiCmp::MultiCmp(const indvec& Xindices, const indvec& Jindices,
   for (size_t i = 0; i < Xindices.size(); ++i) {
     size_t xi = Xindices[i];
     size_t ji = Jindices[i];
-    const Column* col1 = Xdt->columns[xi];
-    const Column* col2 = Jdt->columns[ji];
+    const Column* col1 = Xdt->get_column(xi);
+    const Column* col2 = Jdt->get_column(ji);
     size_t st1 = static_cast<size_t>(col1->stype());
     size_t st2 = static_cast<size_t>(col2->stype());
     auto cmp = cmps[st1][st2];
@@ -403,7 +403,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   // its columns have the same rowindex (or at least all columns needed to
   // compute the result).
   for (size_t j : xcols) {
-    xdt->columns[j]->materialize();
+    xdt->get_column(j)->materialize();
   }
 
   arr32_t arr_result_indices(xdt->nrows);

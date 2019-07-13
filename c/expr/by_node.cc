@@ -144,7 +144,7 @@ void by_node::create_columns(workframe& wf) {
     if (col.sort_only) continue;
     size_t j = col.index;
     xassert(j != size_t(-1));
-    Column* colj = dt0->columns[j]->shallowcopy();
+    Column* colj = dt0->get_column(j)->shallowcopy();
     wf.add_column(colj, ri0, col.name.empty()? dt0_names[j]
                                              : std::move(col.name));
   }

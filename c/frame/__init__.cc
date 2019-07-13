@@ -348,7 +348,7 @@ class FrameInitializationManager {
             "a copy of a Frame";
       }
       for (size_t i = 0; i < ncols; ++i) {
-        cols.push_back(srcdt->columns[i]->shallowcopy());
+        cols.push_back(srcdt->get_column(i)->shallowcopy());
       }
       if (names_arg) {
         make_datatable(names_arg.to_pylist());
@@ -596,7 +596,7 @@ class FrameInitializationManager {
           throw ValueError() << "A column cannot be constructed from a Frame "
               "with " << srcdt->ncols << " columns";
         }
-        col = srcdt->columns[0]->shallowcopy();
+        col = srcdt->get_column(0)->shallowcopy();
       }
       else if (colsrc.is_buffer()) {
         col = Column::from_buffer(colsrc);

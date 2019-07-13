@@ -146,7 +146,7 @@ class HtmlWidget {
           j = ncols - cols1;
           html << "<td></td>";
         }
-        SType stype = dt->columns[j]->stype();
+        SType stype = dt->get_column(j)->stype();
         size_t elemsize = info(stype).elemsize();
         html << "<td class='" << info(stype).ltype_name()
              << "' title='" << info(stype).name() << "'>";
@@ -192,7 +192,7 @@ class HtmlWidget {
           html << "<td class=vellipsis>&hellip;</td>";
         }
         html << "<td>";
-        const Column* col = dt->columns[j];
+        const Column* col = dt->get_column(j);
         switch (col->stype()) {
           case SType::BOOL:
           case SType::INT8:    render_fw_value<int8_t>(col, i); break;

@@ -34,10 +34,10 @@ namespace py {
 
 static bool datatable_has_nas(DataTable* dt, size_t force_col) {
   if (force_col != size_t(-1)) {
-    return dt->columns[force_col]->countna() > 0;
+    return dt->get_column(force_col)->countna() > 0;
   }
   for (size_t i = 0; i < dt->ncols; ++i) {
-    if (dt->columns[i]->countna() > 0) {
+    if (dt->get_column(i)->countna() > 0) {
       return true;
     }
   }
@@ -129,7 +129,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
     size_t n_chunks = ncols * n_row_chunks;
     // precompute `countna` for all columns
-    for (size_t j = 0; j < ncols; ++j) dt->columns[j]->countna();
+    for (size_t j = 0; j < ncols; ++j) dt->get_column(j)->countna();
 
     dt::parallel_for_static(n_chunks,
       [&](size_t j) {
@@ -138,7 +138,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
         int8_t* mask_ptr = mask_data + icol * dt->nrows;
-        Column* col = dt->columns[icol + i0];
+        Column* col = dt->get_column(icol + i0);
         if (col->countna()) {
           col->fill_na_mask(mask_ptr, row0, row1);
         } else {

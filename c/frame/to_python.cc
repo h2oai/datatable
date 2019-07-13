@@ -202,7 +202,7 @@ oobj Frame::to_tuples(const PKArgs&) {
     list_of_tuples.push_back(py::otuple(dt->ncols));
   }
   for (size_t j = 0; j < dt->ncols; ++j) {
-    const Column* col = dt->columns[j];
+    const Column* col = dt->get_column(j);
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
     ri.iterate(0, dt->nrows, 1,
@@ -243,7 +243,7 @@ oobj Frame::to_list(const PKArgs&) {
   py::olist res(dt->ncols);
   for (size_t j = 0; j < dt->ncols; ++j) {
     py::olist pycol(dt->nrows);
-    const Column* col = dt->columns[j];
+    const Column* col = dt->get_column(j);
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
     ri.iterate(0, dt->nrows, 1,
@@ -282,7 +282,7 @@ oobj Frame::to_dict(const PKArgs&) {
   py::odict res;
   for (size_t j = 0; j < dt->ncols; ++j) {
     py::olist pycol(dt->nrows);
-    const Column* col = dt->columns[j];
+    const Column* col = dt->get_column(j);
     const RowIndex& ri = col->rowindex();
     auto conv = make_converter(col);
     ri.iterate(0, dt->nrows, 1,
