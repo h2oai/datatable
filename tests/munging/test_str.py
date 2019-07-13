@@ -23,6 +23,14 @@ from datatable.internal import frame_integrity_check
 from tests import noop, random_string, assert_equals
 
 
+def test_issue_1912():
+    # Check that the expression `A==None` works if A is a string column
+    DT = dt.Frame(A=["dfv", None, None, "adfknlkad", None])
+    RES = DT[:, f.A == None]
+    assert RES.to_list()[0] == [0, 1, 1, 0, 1]
+
+
+
 #-------------------------------------------------------------------------------
 # split_into_nhot
 #-------------------------------------------------------------------------------

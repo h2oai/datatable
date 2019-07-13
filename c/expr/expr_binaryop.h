@@ -40,6 +40,14 @@ class expr_binaryop : public base_expr {
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     colptr evaluate_eager(workframe& wf) override;
+
+  private:
+    /**
+     * Check whether one of the operands is a literal NA. If yes, then
+     * adjust its stype to match the stype of the other operand.
+     * Returns true if such adjustment was made, or false otherwise.
+     */
+    bool check_for_operation_with_literal_na(const workframe&);
 };
 
 

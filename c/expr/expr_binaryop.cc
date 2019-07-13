@@ -40,6 +40,8 @@
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
 #include "expr/expr_binaryop.h"
+#include "expr/expr_cast.h"
+#include "expr/expr_literal.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"
@@ -600,6 +602,9 @@ SType expr_binaryop::resolve(const workframe& wf) {
   SType rhs_stype = rhs->resolve(wf);
   size_t triple = id(opcode, lhs_stype, rhs_stype);
   if (binop_rules.count(triple) == 0) {
+    if (check_for_operation_with_literal_na(wf)) {
+      return resolve(wf);  // Try resolving again, one of lhs/rhs has changed
+    }
     throw TypeError() << "Binary operator `"
         << binop_names[id(opcode)]
         << "` cannot be applied to columns with stypes `" << lhs_stype
@@ -621,6 +626,43 @@ colptr expr_binaryop::evaluate_eager(workframe& wf) {
   auto rhs_res = rhs->evaluate_eager(wf);
   return colptr(expr::binaryop(opcode, lhs_res.get(), rhs_res.get()));
 }
+
+
+// This function tries to solve the problem described in issue #1912: when
+// a literal `None` is present in an expression, its type is ambiguous. We
+// instantiate it into an stype BOOL, but that may not be correct: the
+// expression may demand a different stype in that place.
+//
+// The "solution" created by this function is to detect the situations where
+// one of the operands of a binary expression is literal `None`, and replace
+// that expression with a cast into the stype of the other operand.
+//
+// A more robust approach would be to create a separate type (VOID) for a
+// column created out of None values only, and have that type convert into
+// any other stype as necessary.
+//
+bool expr_binaryop::check_for_operation_with_literal_na(const workframe& wf) {
+  auto check_operand = [&](pexpr& arg) -> bool {
+    auto pliteral = dynamic_cast<expr_literal*>(arg.get());
+    if (!pliteral) return false;
+    if (pliteral->resolve(wf) != SType::BOOL) return false;
+    colptr pcol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
+    if (pcol->nrows != 1) return false;
+    return ISNA<int8_t>(reinterpret_cast<const int8_t*>(pcol->data())[0]);
+  };
+  if (check_operand(rhs)) {
+    SType lhs_stype = lhs->resolve(wf);
+    rhs = pexpr(new expr_cast(std::move(rhs), lhs_stype));
+    return true;
+  }
+  if (check_operand(lhs)) {
+    SType rhs_stype = rhs->resolve(wf);
+    lhs = pexpr(new expr_cast(std::move(lhs), rhs_stype));
+    return true;
+  }
+  return false;
+}
+
 
 
 
