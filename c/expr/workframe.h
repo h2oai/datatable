@@ -88,7 +88,7 @@ class workframe {
     size_t : 48;
 
     // Result
-    colvec columns;
+    ocolvec columns;
     strvec colnames;
     struct ripair { RowIndex ab, bc, ac; };
     std::vector<ripair> all_ri;

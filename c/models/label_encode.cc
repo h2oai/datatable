@@ -87,17 +87,18 @@ void label_encode_bool(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   if (nas_only) return;
 
   // Set up boolean labels and their corresponding ids.
-  auto ids_col = new BoolColumn(2);
-  auto labels_col = new BoolColumn(2);
-  auto ids_data = ids_col->elements_w();
-  auto labels_data = labels_col->elements_w();
+  OColumn ids_col(new BoolColumn(2));
+  OColumn labels_col(new BoolColumn(2));
+  auto ids_data = static_cast<int8_t*>(ids_col->data_w());
+  auto labels_data = static_cast<int8_t*>(labels_col->data_w());
   ids_data[0] = 0;
   ids_data[1] = 1;
   labels_data[0] = 0;
   labels_data[1] = 1;
 
-  dt_labels = dtptr(new DataTable({labels_col, ids_col}, {"label", "id"}));
-  dt_encoded = dtptr(new DataTable({col->shallowcopy()}));
+  dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
+                                  {"label", "id"}));
+  dt_encoded = dtptr(new DataTable({OColumn(col->shallowcopy())}));
 }
 
 

@@ -72,7 +72,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   size_t nrows = frame->nrows();
   auto msg_columns = frame->columns();
 
-  std::vector<Column*> columns;
+  ocolvec columns;
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
@@ -81,7 +81,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
       throw IOError() << "Length of column " << i << " is " << col->nrows
           << ", however the Frame contains " << nrows << " rows";
     }
-    columns.push_back(col);
+    columns.emplace_back(col);
     colnames.push_back(jcol->name()->str());
     ++i;
   }

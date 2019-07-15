@@ -234,11 +234,11 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool was_sampled = false;
 
-  Column* col0 = Column::new_data_column(SType::INT32, dt->nrows);
-  dt_members = dtptr(new DataTable({col0}, {"exemplar_id"}));
+  OColumn col0(Column::new_data_column(SType::INT32, dt->nrows));
+  dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
-    colvec catcols;
+    ocolvec catcols;
     size_t ncols, max_bins;
     contconvs.reserve(dt->ncols);
     ccptr<T> contconv;
@@ -261,7 +261,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
         case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T, RealColumn<double>>(col)); break;
         default:             if (dt->ncols < 3) {
                                is_continuous = false;
-                               catcols.push_back(dt->get_column(i)->shallowcopy());
+                               catcols.push_back(dt->get_ocolumn(i));
                              }
       }
       if (is_continuous && contconv != nullptr) {
@@ -401,7 +401,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Setting up a table for counts
   Column* col = Column::new_data_column(SType::INT32, n_exemplars);
-  dtptr dt_counts = dtptr(new DataTable({col}, {"members_count"}));
+  dtptr dt_counts = dtptr(new DataTable({OColumn(col)}, {"members_count"}));
   auto d_counts = static_cast<int32_t*>(col->data_w());
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 

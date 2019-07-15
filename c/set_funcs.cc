@@ -55,7 +55,7 @@ static py::oobj make_pyframe(sort_result& sr, arr32_t&& arr) {
   RowIndex out_ri = RowIndex(std::move(arr), false);
   Column* out_col = sr.col->shallowcopy(out_ri);
   out_col->materialize();
-  DataTable* dt = new DataTable({out_col}, {sr.colname});
+  DataTable* dt = new DataTable({OColumn(out_col)}, {sr.colname});
   return py::Frame::oframe(dt);
 }
 

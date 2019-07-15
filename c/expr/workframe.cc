@@ -239,7 +239,7 @@ void workframe::add_column(
 {
   const RowIndex& ricol = col->rowindex();
   Column* newcol = col->shallowcopy(_product(ri, ricol));
-  columns.push_back(newcol);
+  columns.emplace_back(newcol);
   colnames.push_back(std::move(name));
 }
 

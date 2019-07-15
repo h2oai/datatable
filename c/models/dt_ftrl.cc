@@ -768,10 +768,11 @@ template <typename T>
 void Ftrl<T>::create_model() {
   size_t nlabels = (dt_labels == nullptr)? 0 : dt_labels->nrows;
   size_t ncols = (model_type == FtrlModelType::BINOMIAL)? 2 : 2 * nlabels;
-  colvec cols(ncols);
 
+  ocolvec cols;
+  cols.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    cols[i] = new RealColumn<T>(nbins);
+    cols.emplace_back(new RealColumn<T>(nbins));
   }
   dt_model = dtptr(new DataTable(std::move(cols)));
   init_model();
@@ -790,30 +791,32 @@ void Ftrl<T>::adjust_model() {
   size_t ncols_model_new = 2 * dt_labels->nrows;
   xassert(ncols_model_new > ncols_model)
 
-  colvec cols(ncols_model_new);
+  ocolvec cols;
+  cols.reserve(ncols_model_new);
   for (size_t i = 0; i < ncols_model; ++i) {
-    cols[i] = dt_model->get_column(i)->shallowcopy();
+    cols.push_back(dt_model->get_ocolumn(i));
   }
 
-  colvec cols_new(2);
-  colptr col;
+  OColumn newcol0, newcol1;
   // If we have a negative class, then all the new classes
   // get a copy of its weights to start learning from.
   // Otherwise, new classes start learning from zero weights.
   // if (params.negative_class) {
-  //   cols_new[0] = dt_model->columns[0];
-  //   cols_new[1] = dt_model->columns[1];
-  // } else {
-    col = std::unique_ptr<Column>(new RealColumn<T>(nbins));
+  //   newcol0 = dt_model->get_ocolumn(0);
+  //   cols_new[1] = dt_model->get_ocolumn(1);
+  // } else
+  {
+    OColumn col(new RealColumn<T>(nbins));
     auto data = static_cast<T*>(col->data_w());
     std::memset(data, 0, nbins * sizeof(T));
-    cols_new[0] = col.get();
-    cols_new[1] = col.get();
-  // }
+    newcol0 = col;
+    newcol1 = col;
+  }
+
 
   for (size_t i = ncols_model; i < ncols_model_new; i+=2) {
-    cols[i] = cols_new[0]->shallowcopy();
-    cols[i + 1] = cols_new[1]->shallowcopy();
+    cols.push_back(newcol0);
+    cols.push_back(newcol1);
   }
 
   dt_model = dtptr(new DataTable(std::move(cols)));
@@ -842,9 +845,10 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
     labels_vec[i] = std::move(str);
   }
 
-  colvec cols(nlabels);
+  ocolvec cols;
+  cols.reserve(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    cols[i] = new RealColumn<T>(nrows);
+    cols.emplace_back(new RealColumn<T>(nrows));
   }
 
   // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
@@ -927,8 +931,8 @@ void Ftrl<T>::create_fi() {
   sb.order();
   sb.commit_and_start_new_chunk(nfeatures);
 
-  Column* c_fi_values = new RealColumn<T>(nfeatures);
-  dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_column(), c_fi_values},
+  OColumn c_fi_values(new RealColumn<T>(nfeatures));
+  dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_ocolumn(), std::move(c_fi_values)},
                               {"feature_name", "feature_importance"})
                              );
   init_fi();

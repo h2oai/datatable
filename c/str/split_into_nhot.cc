@@ -78,7 +78,7 @@ static void tokenize_string(
  * Encode NA's with NA's
  */
 template<typename T>
-static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) {
+static void encode_nones(const T* offsets, const RowIndex& ri, ocolvec& outcols) {
   size_t ncols = outcols.size();
   if (ncols == 0) return;
 
@@ -106,16 +106,16 @@ static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) 
 /**
  * Re-order columns, so that column names go in alphabetical order.
  */
-static void sort_colnames(colvec& outcols, strvec& outnames) {
+static void sort_colnames(ocolvec& outcols, strvec& outnames) {
   size_t ncols = outcols.size();
-  std::vector<std::string> outnames_sorted(ncols);
-  std::vector<Column*> outcols_sorted(ncols);
-  std::vector<size_t> colindex = sort_index<std::string>(outnames);
+  strvec outnames_sorted(ncols);
+  ocolvec outcols_sorted(ncols);
+  intvec colindex = sort_index<std::string>(outnames);
 
   for (size_t i = 0; i < ncols; ++i) {
     size_t j = colindex[i];
     outnames_sorted[i] = std::move(outnames[j]);
-    outcols_sorted[i] = outcols[j];
+    outcols_sorted[i] = std::move(outcols[j]);
   }
 
   outcols = std::move(outcols_sorted);
@@ -142,7 +142,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   size_t nrows = col->nrows;
   std::unordered_map<std::string, size_t> colsmap;
   strvec outnames;
-  colvec outcols;
+  ocolvec outcols;
   std::vector<int8_t*> outdata;
   dt::shared_mutex shmutex;
   const RowIndex& ri = col->rowindex();
@@ -191,7 +191,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
                 int8_t* data = newcol->elements_w();
                 std::memset(data, 0, nrows);
                 data[irow] = 1;
-                outcols.push_back(newcol);
+                outcols.emplace_back(newcol);
                 outdata.push_back(data);
                 outnames.push_back(s);
               } else {

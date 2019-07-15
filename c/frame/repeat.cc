@@ -120,7 +120,7 @@ static oobj repeat(const PKArgs& args) {
       !col0->rowindex())
   {
     Column* newcol = col0->repeat(n);
-    DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
+    DataTable* newdt = new DataTable({OColumn(newcol)}, dt);  // copy names from dt
     return Frame::oframe(newdt);
   }
 

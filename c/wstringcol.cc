@@ -42,7 +42,7 @@ writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
 }
 
 
-Column* writable_string_col::to_column() && {
+OColumn writable_string_col::to_ocolumn() && {
   strdata.finalize();
   auto strbuf = strdata.get_mbuf();
   if (str64) {
@@ -50,7 +50,7 @@ Column* writable_string_col::to_column() && {
   } else {
     offdata.set_element<uint32_t>(0, 0);
   }
-  return new_string_column(n, std::move(offdata), std::move(strbuf));
+  return OColumn(new_string_column(n, std::move(offdata), std::move(strbuf)));
 }
 
 

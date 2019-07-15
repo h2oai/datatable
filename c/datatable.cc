@@ -40,9 +40,6 @@ static ocolvec convert_columns_vector(colvec&& cols) {
   return res;
 }
 
-DataTable::DataTable(colvec&& cols)
-  : DataTable(convert_columns_vector(std::move(cols))) {}
-
 DataTable::DataTable(ocolvec&& cols) : DataTable()
 {
   ocolumns = std::move(cols);
@@ -61,14 +58,7 @@ DataTable::DataTable(ocolvec&& cols) : DataTable()
   set_names_to_default();
 }
 
-
-DataTable::DataTable(colvec&& cols, const py::olist& nn)
-  : DataTable(std::move(cols))
-{
-  set_names(nn);
-}
-
-DataTable::DataTable(colvec&& cols, const strvec& nn)
+DataTable::DataTable(ocolvec&& cols, const py::olist& nn)
   : DataTable(std::move(cols))
 {
   set_names(nn);
@@ -78,12 +68,6 @@ DataTable::DataTable(ocolvec&& cols, const strvec& nn)
   : DataTable(std::move(cols))
 {
   set_names(nn);
-}
-
-DataTable::DataTable(colvec&& cols, const DataTable* nn)
-  : DataTable(std::move(cols))
-{
-  copy_names_from(nn);
 }
 
 DataTable::DataTable(ocolvec&& cols, const DataTable* nn)
@@ -233,11 +217,12 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
  */
 DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
   auto rc = dt->split_columns_by_rowindices();
-  colvec newcols(dt->ncols);
+  ocolvec newcols(dt->ncols);
   for (auto& rcitem : rc) {
     RowIndex newri = ri * rcitem.rowindex;
     for (size_t i : rcitem.colindices) {
-      newcols[i] = dt->get_column(i)->shallowcopy(newri);
+      newcols[i] = dt->get_ocolumn(i);
+      newcols[i]->replace_rowindex(newri);
     }
   }
   return new DataTable(std::move(newcols), dt);

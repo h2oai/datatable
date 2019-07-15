@@ -92,10 +92,7 @@ class DataTable {
     DataTable(ocolvec&& cols);
     DataTable(ocolvec&& cols, const strvec&);
     DataTable(ocolvec&& cols, const DataTable*);
-    DataTable(colvec&& cols);
-    DataTable(colvec&& cols, const py::olist&);
-    DataTable(colvec&& cols, const strvec&);
-    DataTable(colvec&& cols, const DataTable*);
+    DataTable(ocolvec&& cols, const py::olist&);
     ~DataTable();
 
     void delete_columns(intvec&);

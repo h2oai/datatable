@@ -38,8 +38,8 @@ void label_encode_bool(const Column*, dtptr&, dtptr&);
 template <SType stype_from, SType stype_to>
 dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  auto labels_col = Column::new_data_column(stype_from, nlabels);
-  auto ids_col = Column::new_data_column(stype_to, nlabels);
+  OColumn labels_col(Column::new_data_column(stype_from, nlabels));
+  OColumn ids_col(Column::new_data_column(stype_to, nlabels));
 
   auto labels_data = static_cast<element_t<stype_from>*>(labels_col->data_w());
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
@@ -49,7 +49,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, elemen
     ids_data[label.second] = label.second;
   }
   return dtptr(new DataTable(
-           {labels_col, ids_col},
+           {std::move(labels_col), std::move(ids_col)},
            {"label", "id"}
          ));
 }
@@ -60,7 +60,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, elemen
 template <typename T, SType stype_to>
 dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  auto ids_col = Column::new_data_column(stype_to, nlabels);
+  OColumn ids_col(Column::new_data_column(stype_to, nlabels));
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
   dt::writable_string_col c_label_names(nlabels);
   dt::writable_string_col::buffer_impl<T> sb(c_label_names);
@@ -76,7 +76,7 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
   sb.order();
   sb.commit_and_start_new_chunk(nlabels);
   return dtptr(new DataTable(
-           {std::move(c_label_names).to_column(), ids_col},
+           {std::move(c_label_names).to_ocolumn(), std::move(ids_col)},
            {"label", "id"}
          ));
 }
@@ -104,7 +104,7 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   const size_t nrows = col->nrows;
   const RowIndex& ri = col->rowindex();
 
-  colptr outcol = colptr(Column::new_data_column(stype_to, nrows));
+  OColumn outcol(Column::new_data_column(stype_to, nrows));
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
@@ -148,7 +148,7 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   if (labels_map.size() == 0) return;
 
   dt_labels = create_dt_labels_fw<stype_from, stype_to>(labels_map);
-  dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
+  dt_encoded = dtptr(new DataTable({std::move(outcol)}, {"label_id"}));
 }
 
 
@@ -160,7 +160,7 @@ void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
   const size_t nrows = col->nrows;
   const RowIndex& ri = col->rowindex();
-  colptr outcol = colptr(Column::new_data_column(stype_to, nrows));
+  OColumn outcol(Column::new_data_column(stype_to, nrows));
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;
@@ -214,7 +214,7 @@ void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
   if (labels_map.size() == 0) return;
 
   dt_labels = create_dt_labels_str<U, stype_to>(labels_map);
-  dt_encoded = dtptr(new DataTable({outcol->shallowcopy()}, {"label_id"}));
+  dt_encoded = dtptr(new DataTable({std::move(outcol)}, {"label_id"}));
 }
 
 

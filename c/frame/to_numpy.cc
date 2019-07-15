@@ -122,7 +122,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t i0 = one_col? force_col : 0;
 
     size_t dtsize = ncols * dt->nrows;
-    Column* mask_col = Column::new_data_column(SType::BOOL, dtsize);
+    OColumn mask_col(Column::new_data_column(SType::BOOL, dtsize));
     int8_t* mask_data = static_cast<int8_t*>(mask_col->data_w());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
@@ -146,7 +146,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
         }
       });
 
-    DataTable* mask_dt = new DataTable({mask_col});
+    DataTable* mask_dt = new DataTable({std::move(mask_col)});
     oobj mask_frame = Frame::oframe(mask_dt);
     oobj mask_array = nparray.call({mask_frame});
 

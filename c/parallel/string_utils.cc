@@ -67,7 +67,7 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
       sb->commit_and_start_new_chunk(nrows);
     });
 
-  return std::move(outcol).to_column();
+  return std::move(outcol).to_ocolumn().release();
 }
 
 

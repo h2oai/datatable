@@ -244,14 +244,14 @@ inline constexpr size_t id(Stat stat, SType stype) {
 }
 
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
-  colvec out_cols;
+  ocolvec out_cols;
   out_cols.reserve(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
     auto dtcol = dt->get_column(i);
     SType stype = dtcol->stype();
     colmakerfn f = statfns[id(stat, stype)];
     Column* newcol = f(dtcol->get_stats(), dtcol);
-    out_cols.push_back(newcol);
+    out_cols.emplace_back(newcol);
   }
   return new DataTable(std::move(out_cols), dt);
 }

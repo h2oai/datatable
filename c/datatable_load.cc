@@ -30,7 +30,7 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
                            bool recode)
 {
     size_t ncols = colspec->nrows;
-    std::vector<Column*> columns;
+    ocolvec columns;
     columns.reserve(ncols);
 
     if (colspec->ncols != 2 && colspec->ncols != 4) {
@@ -80,7 +80,7 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
 
         // Load the column
         Column* newcol = Column::open_mmap_column(stype, nrows, filename, recode);
-        columns.push_back(newcol);
+        columns.emplace_back(newcol);
     }
 
     return new DataTable(std::move(columns));
