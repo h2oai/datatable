@@ -339,44 +339,28 @@ private:
 //------------------------------------------------------------------------------
 
 // "owner" of a Column
-// To be renamed into simple Column
+// Eventually will be renamed into simple Column
 class OColumn {
   private:
     Column* pcol;
 
   public:
-    OColumn() : pcol(nullptr) {}
-    explicit OColumn(Column* col) : pcol(col) {}  // Steal ownership
-    OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
-    OColumn(OColumn&& other) : OColumn() { std::swap(pcol, other.pcol); }
-    OColumn& operator=(const OColumn& other) {
-      delete pcol;
-      pcol = other.pcol->shallowcopy();
-      return *this;
-    }
-    OColumn& operator=(OColumn&& other) {
-      delete pcol;
-      pcol = other.pcol;
-      other.pcol = nullptr;
-      return *this;
-    }
-    ~OColumn() { delete pcol; }
+    OColumn();
+    explicit OColumn(Column* col);  // Steal ownership
+    OColumn(const OColumn&);
+    OColumn(OColumn&&);
+    OColumn& operator=(const OColumn&);
+    OColumn& operator=(OColumn&&);
+    ~OColumn();
 
-    const Column* get() const {
-      return pcol;  // borrowed ref
-    }
-    Column* release() {
-      Column* ret = pcol;
-      pcol = nullptr;
-      return ret;
-    }
+    const Column* get() const;
+    Column* release();
 
-    Column* operator->() { return pcol; }
-    const Column* operator->() const { return pcol; }
+    operator bool() const noexcept;
+    Column* operator->();
+    const Column* operator->() const;
 
-    void rbind(std::vector<const Column*>& columns) {
-      pcol = pcol->rbind(columns);
-    }
+    void rbind(std::vector<const Column*>& columns);
 
     friend void swap(OColumn& lhs, OColumn& rhs);
 };

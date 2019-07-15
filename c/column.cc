@@ -27,10 +27,6 @@ Column::~Column() {
   UNTRACK(this);
 }
 
-void swap(OColumn& lhs, OColumn& rhs) {
-  std::swap(lhs.pcol, rhs.pcol);
-}
-
 
 
 Column* Column::new_column(SType stype) {
@@ -184,6 +180,70 @@ size_t Column::countna() const { return get_stats()->countna(this); }
 size_t Column::nunique() const { return get_stats()->nunique(this); }
 size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
+
+
+//------------------------------------------------------------------------------
+// OColumn
+//------------------------------------------------------------------------------
+
+void swap(OColumn& lhs, OColumn& rhs) {
+  std::swap(lhs.pcol, rhs.pcol);
+}
+
+OColumn::OColumn() : pcol(nullptr) {}
+
+OColumn::OColumn(Column* col) : pcol(col) {}  // Steal ownership
+
+OColumn::OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
+
+OColumn::OColumn(OColumn&& other) : OColumn() {
+  std::swap(pcol, other.pcol);
+}
+
+OColumn& OColumn::operator=(const OColumn& other) {
+  delete pcol;
+  pcol = other.pcol->shallowcopy();
+  return *this;
+}
+
+OColumn& OColumn::operator=(OColumn&& other) {
+  delete pcol;
+  pcol = other.pcol;
+  other.pcol = nullptr;
+  return *this;
+}
+
+OColumn::~OColumn() {
+  delete pcol;
+}
+
+
+
+const Column* OColumn::get() const {
+  return pcol;  // borrowed ref
+}
+
+Column* OColumn::release() {
+  Column* ret = pcol;
+  pcol = nullptr;
+  return ret;
+}
+
+OColumn::operator bool() const noexcept {
+  return (pcol != nullptr);
+}
+
+Column* OColumn::operator->() {
+  return pcol;
+}
+
+const Column* OColumn::operator->() const {
+  return pcol;
+}
+
+void OColumn::rbind(std::vector<const Column*>& columns) {
+  pcol = pcol->rbind(columns);
+}
 
 
 

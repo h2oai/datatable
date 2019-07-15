@@ -36,12 +36,8 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   ncols = columns.size();
   nrows = columns[0]->nrows;
   for (size_t i = 1; i < ncols; ++i) {
-    const Column* col = columns[i].get();
-    if (!col) throw ValueError() << "Column " << i << " is NULL";
-    if (col->nrows != nrows) {
-      throw ValueError() << "Mismatched length in column " << i << ": "
-                         << "found " << col->nrows << ", expected " << nrows;
-    }
+    xassert(columns[i]);
+    xassert(columns[i]->nrows == nrows);
   }
 }
 
