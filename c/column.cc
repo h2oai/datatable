@@ -27,6 +27,10 @@ Column::~Column() {
   UNTRACK(this);
 }
 
+void swap(OColumn& lhs, OColumn& rhs) {
+  std::swap(lhs.pcol, rhs.pcol);
+}
+
 
 
 Column* Column::new_column(SType stype) {

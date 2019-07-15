@@ -328,7 +328,7 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
 
 
 void frame_in::post_init_check(workframe& wf) {
-  Column* col = dt->get_column(0);
+  const Column* col = dt->get_column(0);
   size_t nrows = wf.nrows();
   if (col->stype() == SType::BOOL) {
     if (col->nrows != nrows) {

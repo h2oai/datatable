@@ -43,6 +43,7 @@ struct RowColIndex {
 
 typedef Column* (Column::*colmakerfn)(void) const;
 using colvec = std::vector<Column*>;
+using ocolvec = std::vector<OColumn>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
@@ -69,12 +70,6 @@ using colptr  = std::unique_ptr<Column>;
  *     `column` list. The key values are unique, and the frame is sorted by
  *     these values.
  *
- * rowindex
- *     [DEPRECATED]
- *     If this field is not NULL, then the current datatable is a "view", that
- *     is, all columns should be accessed not directly but via this rowindex.
- *     When this field is set, it must be that `nrows == rowindex->length`.
- *
  * columns
  *     The array of columns within the datatable. This array contains `ncols`
  *     elements, and each column has the same number of rows: `nrows`.
@@ -86,7 +81,7 @@ class DataTable {
     Groupby  groupby;
 
   private:
-    colvec   columns;
+    ocolvec  ocolumns;
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
@@ -94,6 +89,9 @@ class DataTable {
 
   public:
     DataTable();
+    DataTable(ocolvec&& cols);
+    DataTable(ocolvec&& cols, const strvec&);
+    DataTable(ocolvec&& cols, const DataTable*);
     DataTable(colvec&& cols);
     DataTable(colvec&& cols, const py::olist&);
     DataTable(colvec&& cols, const strvec&);
@@ -113,14 +111,20 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
-    Column* get_column(size_t i) const {
-      return columns[i];
+    const Column* get_column(size_t i) const {
+      return ocolumns[i].get();
     }
-    // OColumn& get_ocolumn(size_t i) {
-    // }
+    Column* get_column(size_t i) {
+      return const_cast<Column*>(ocolumns[i].get());
+    }
+    const OColumn& get_ocolumn(size_t i) const {
+      return ocolumns[i];
+    }
+    OColumn& get_ocolumn(size_t i) {
+      return ocolumns[i];
+    }
     void set_column(size_t i, Column* newcol) {
-      delete columns[i];
-      columns[i] = newcol;
+      ocolumns[i] = OColumn(newcol);
     }
 
     /**

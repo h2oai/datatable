@@ -181,7 +181,7 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
 
   // Fix up the main datatable if it has too few rows
   if (nrows < t_nrows) {
-    for (auto col : columns) {
+    for (OColumn& col : ocolumns) {
       col->resize_and_fill(t_nrows);
     }
     nrows = t_nrows;
@@ -195,21 +195,22 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
   // original number of columns). Thus, when iterating over columns of
   // `dt`, it is important NOT to use `for (col : dt->columns)` iterator.
   //
-  std::vector<std::string> newnames = names;
-  columns.reserve(t_ncols);
+  strvec newnames = names;
+  ocolumns.reserve(t_ncols);
   for (auto dt : dts) {
     size_t ncolsi = dt->ncols;
     bool fix_columns = (dt->nrows < t_nrows);
     for (size_t ii = 0; ii < ncolsi; ++ii) {
-      Column* c = dt->columns[ii]->shallowcopy();
-      if (fix_columns) c->resize_and_fill(t_nrows);
-      columns.push_back(c);
+      ocolumns.push_back(dt->ocolumns[ii]);
+      if (fix_columns) {
+        ocolumns.back()->resize_and_fill(t_nrows);
+      }
     }
     const auto& namesi = dt->names;
     xassert(namesi.size() == ncolsi);
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(columns.size() == t_ncols);
+  xassert(ocolumns.size() == t_ncols);
   xassert(newnames.size() == t_ncols);
 
   // Done.

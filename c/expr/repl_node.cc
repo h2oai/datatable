@@ -141,7 +141,7 @@ void scalar_rn::check_column_types(
   const DataTable* dt0, const intvec& indices) const
 {
   for (size_t j : indices) {
-    Column* col = dt0->get_column(j);
+    const Column* col = dt0->get_column(j);
     if (col && !valid_ltype(col->ltype())) {
       throw TypeError() << "Cannot assign " << value_type()
         << " value to column `" << dt0->get_names()[j]

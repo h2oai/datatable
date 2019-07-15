@@ -124,11 +124,11 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   SType st = dt->get_column(i)->stype();
   try {
     if (st == SType::STR32) {
-      auto scol = static_cast<StringColumn<uint32_t>*>(dt->get_column(i));
+      auto scol = static_cast<const StringColumn<uint32_t>*>(dt->get_column(i));
       return scol->strdata();
     }
     if (st == SType::STR64) {
-      auto scol = static_cast<StringColumn<uint64_t>*>(dt->get_column(i));
+      auto scol = static_cast<const StringColumn<uint64_t>*>(dt->get_column(i));
       return scol->strdata();
     }
   } catch (const std::exception& e) {

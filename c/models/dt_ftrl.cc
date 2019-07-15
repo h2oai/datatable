@@ -966,7 +966,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
 
   // Create hashers.
   for (size_t i = 0; i < dt->ncols; ++i) {
-    Column* col = dt->get_column(i);
+    const Column* col = dt->get_column(i);
     hashers.push_back(create_hasher(col));
   }
 

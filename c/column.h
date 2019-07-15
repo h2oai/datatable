@@ -334,6 +334,10 @@ private:
 
 
 
+//------------------------------------------------------------------------------
+// OColumn
+//------------------------------------------------------------------------------
+
 // "owner" of a Column
 // To be renamed into simple Column
 class OColumn {
@@ -345,9 +349,22 @@ class OColumn {
     explicit OColumn(Column* col) : pcol(col) {}  // Steal ownership
     OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
     OColumn(OColumn&& other) : OColumn() { std::swap(pcol, other.pcol); }
+    OColumn& operator=(const OColumn& other) {
+      delete pcol;
+      pcol = other.pcol->shallowcopy();
+      return *this;
+    }
+    OColumn& operator=(OColumn&& other) {
+      delete pcol;
+      pcol = other.pcol;
+      other.pcol = nullptr;
+      return *this;
+    }
     ~OColumn() { delete pcol; }
 
-    const Column* get() const { return pcol; }  // borrowed ref
+    const Column* get() const {
+      return pcol;  // borrowed ref
+    }
     Column* release() {
       Column* ret = pcol;
       pcol = nullptr;
@@ -360,6 +377,8 @@ class OColumn {
     void rbind(std::vector<const Column*>& columns) {
       pcol = pcol->rbind(columns);
     }
+
+    friend void swap(OColumn& lhs, OColumn& rhs);
 };
 
 

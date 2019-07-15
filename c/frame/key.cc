@@ -147,11 +147,12 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   xassert(col_indices.size() == ncols);
 
   // Reorder the columns
-  std::vector<Column*> new_columns(ncols, nullptr);
+  ocolvec new_columns;
+  new_columns.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    new_columns[i] = get_column(col_indices[i]);
+    new_columns.push_back(ocolumns[col_indices[i]]);
   }
-  columns = std::move(new_columns);
+  ocolumns = std::move(new_columns);
   reorder_names(col_indices);
 
   // Apply sort key

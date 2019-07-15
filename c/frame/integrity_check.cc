@@ -94,9 +94,9 @@ void DataTable::verify_integrity() const
 
   // Check the number of columns; the number of allocated columns should be
   // equal to `ncols`.
-  if (columns.size() != ncols) {
+  if (ocolumns.size() != ncols) {
     throw AssertionError()
-        << "DataTable.columns array size is " << columns.size()
+        << "DataTable.columns array size is " << ocolumns.size()
         << " whereas ncols = " << ncols;
   }
 
@@ -109,7 +109,7 @@ void DataTable::verify_integrity() const
    */
   for (size_t i = 0; i < ncols; ++i) {
     std::string col_name = std::string("Column ") + std::to_string(i);
-    Column* col = columns[i];
+    const Column* col = ocolumns[i].get();
     if (col == nullptr) {
       throw AssertionError() << col_name << " of Frame is null";
     }
