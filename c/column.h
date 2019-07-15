@@ -356,6 +356,10 @@ class OColumn {
 
     Column* operator->() { return pcol; }
     const Column* operator->() const { return pcol; }
+
+    void rbind(std::vector<const Column*>& columns) {
+      pcol = pcol->rbind(columns);
+    }
 };
 
 

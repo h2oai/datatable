@@ -277,7 +277,7 @@ void DataTable::rbind(
 
   columns.resize(new_ncols, nullptr);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns[i] = new VoidColumn(nrows);
+    set_column(i, new VoidColumn(nrows));
   }
 
   size_t new_nrows = nrows;
@@ -291,11 +291,14 @@ void DataTable::rbind(
       size_t k = cols[i][j];
       Column* col = k == INVALID_INDEX
                       ? new VoidColumn(dts[j]->nrows)
-                      : dts[j]->columns[k]->shallowcopy();
+                      : dts[j]->get_column(k)->shallowcopy();
       col->materialize();
       cols_to_append[j] = col;
     }
-    columns[i] = columns[i]->rbind(cols_to_append);
+    OColumn ocol_i(columns[i]);
+    ocol_i.rbind(cols_to_append);
+    columns[i] = ocol_i.release();
+    // columns[i] = columns[i]->rbind(cols_to_append);
   }
   ncols = new_ncols;
   nrows = new_nrows;

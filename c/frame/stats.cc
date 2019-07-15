@@ -246,7 +246,8 @@ inline constexpr size_t id(Stat stat, SType stype) {
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
   out_cols.reserve(dt->ncols);
-  for (Column* dtcol : dt->get_columns()) {
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    auto dtcol = dt->get_column(i);
     SType stype = dtcol->stype();
     colmakerfn f = statfns[id(stat, stype)];
     Column* newcol = f(dtcol->get_stats(), dtcol);

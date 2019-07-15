@@ -113,8 +113,11 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
-    Column* get_column(size_t i) const { return columns[i]; }
-    const colvec& get_columns() const { return columns; }
+    Column* get_column(size_t i) const {
+      return columns[i];
+    }
+    // OColumn& get_ocolumn(size_t i) {
+    // }
     void set_column(size_t i, Column* newcol) {
       delete columns[i];
       columns[i] = newcol;

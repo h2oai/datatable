@@ -171,8 +171,8 @@ static py::oobj unique(const py::PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
 
   ccolvec cc;
-  for (auto col : dt->get_columns()) {
-    cc.cols.push_back(col->shallowcopy());
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    cc.cols.push_back(dt->get_column(i)->shallowcopy());
   }
   if (dt->ncols == 1) {
     cc.colname = dt->get_names()[0];

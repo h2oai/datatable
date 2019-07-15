@@ -149,7 +149,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   // Reorder the columns
   std::vector<Column*> new_columns(ncols, nullptr);
   for (size_t i = 0; i < ncols; ++i) {
-    new_columns[i] = columns[col_indices[i]];
+    new_columns[i] = get_column(col_indices[i]);
   }
   columns = std::move(new_columns);
   reorder_names(col_indices);

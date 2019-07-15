@@ -1366,7 +1366,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   size_t n = spec.size();
   xassert(n > 0);
 
-  Column* col0 = columns[spec[0].col_index];
+  Column* col0 = get_column(spec[0].col_index);
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
@@ -1389,7 +1389,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   #endif
   if (!as_view) {
     for (auto& s : spec) {
-      columns[s.col_index]->materialize();
+      get_column(s.col_index)->materialize();
     }
   }
 
@@ -1403,7 +1403,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    sc.continue_sort(columns[spec[j].col_index],
+    sc.continue_sort(get_column(spec[j].col_index),
                      spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();

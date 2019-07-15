@@ -25,7 +25,9 @@ DataTable::DataTable()
 }
 
 DataTable::~DataTable() {
-  for (auto col : columns) delete col;
+  for (auto col : columns) {
+    delete col;
+  }
   columns.clear();
   UNTRACK(this);
 }
@@ -201,7 +203,7 @@ void DataTable::resize_rows(size_t new_nrows) {
     if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
     r.resize(new_nrows);
     for (size_t i : colindices[j]) {
-      columns[i]->replace_rowindex(r);
+      get_column(i)->replace_rowindex(r);
     }
   }
   nrows = new_nrows;
@@ -212,7 +214,7 @@ void DataTable::resize_rows(size_t new_nrows) {
 void DataTable::replace_rowindex(const RowIndex& newri) {
   nrows = newri.size();
   for (size_t i = 0; i < ncols; ++i) {
-    columns[i]->replace_rowindex(newri);
+    get_column(i)->replace_rowindex(newri);
   }
 }
 
@@ -245,7 +247,7 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   for (auto& rcitem : rc) {
     RowIndex newri = ri * rcitem.rowindex;
     for (size_t i : rcitem.colindices) {
-      columns[i]->replace_rowindex(newri);
+      get_column(i)->replace_rowindex(newri);
     }
   }
   nrows = ri.size();
