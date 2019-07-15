@@ -1383,13 +1383,13 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (as_view) {
       // Check that the sorted columns have consistent rowindices.
       for (size_t j = 1; j < spec.size(); ++j) {
-        xassert(ocolumns[spec[j].col_index]->rowindex() == col0->rowindex());
+        xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
       }
     }
   #endif
   if (!as_view) {
     for (auto& s : spec) {
-      const_cast<DataTable*>(this)->ocolumns[s.col_index]->materialize();
+      const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
     }
   }
 

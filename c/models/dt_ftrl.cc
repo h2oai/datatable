@@ -774,7 +774,7 @@ void Ftrl<T>::create_model() {
   for (size_t i = 0; i < ncols; ++i) {
     cols.emplace_back(new RealColumn<T>(nbins));
   }
-  dt_model = dtptr(new DataTable(std::move(cols)));
+  dt_model = dtptr(new DataTable(std::move(cols), DataTable::default_names));
   init_model();
 }
 
@@ -819,7 +819,7 @@ void Ftrl<T>::adjust_model() {
     cols.push_back(newcol1);
   }
 
-  dt_model = dtptr(new DataTable(std::move(cols)));
+  dt_model = dtptr(new DataTable(std::move(cols), DataTable::default_names));
 }
 
 

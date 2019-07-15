@@ -275,9 +275,9 @@ void DataTable::rbind(
   // If this is a view Frame, then it must be materialized.
   this->materialize();
 
-  ocolumns.reserve(new_ncols);
+  columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    ocolumns.emplace_back(new VoidColumn(nrows));
+    columns.emplace_back(new VoidColumn(nrows));
   }
 
   size_t new_nrows = nrows;
@@ -295,7 +295,7 @@ void DataTable::rbind(
       col->materialize();
       cols_to_append[j] = col;
     }
-    ocolumns[i].rbind(cols_to_append);
+    columns[i].rbind(cols_to_append);
   }
   ncols = new_ncols;
   nrows = new_nrows;

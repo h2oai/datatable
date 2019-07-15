@@ -181,7 +181,7 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
 
   // Fix up the main datatable if it has too few rows
   if (nrows < t_nrows) {
-    for (OColumn& col : ocolumns) {
+    for (OColumn& col : columns) {
       col->resize_and_fill(t_nrows);
     }
     nrows = t_nrows;
@@ -196,21 +196,21 @@ void DataTable::cbind(const std::vector<DataTable*>& dts)
   // `dt`, it is important NOT to use `for (col : dt->columns)` iterator.
   //
   strvec newnames = names;
-  ocolumns.reserve(t_ncols);
+  columns.reserve(t_ncols);
   for (auto dt : dts) {
     size_t ncolsi = dt->ncols;
     bool fix_columns = (dt->nrows < t_nrows);
     for (size_t ii = 0; ii < ncolsi; ++ii) {
-      ocolumns.push_back(dt->ocolumns[ii]);
+      columns.push_back(dt->columns[ii]);
       if (fix_columns) {
-        ocolumns.back()->resize_and_fill(t_nrows);
+        columns.back()->resize_and_fill(t_nrows);
       }
     }
     const auto& namesi = dt->names;
     xassert(namesi.size() == ncolsi);
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(ocolumns.size() == t_ncols);
+  xassert(columns.size() == t_ncols);
   xassert(newnames.size() == t_ncols);
 
   // Done.

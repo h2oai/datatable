@@ -80,15 +80,17 @@ class DataTable {
     Groupby  groupby;
 
   private:
-    colvec  ocolumns;
+    colvec  columns;
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
+    static struct DefaultNamesTag {} default_names;
+
     DataTable();
-    DataTable(colvec&& cols);
+    DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&);
     DataTable(colvec&& cols, const DataTable*);
     DataTable(colvec&& cols, const py::olist&);
@@ -108,19 +110,19 @@ class DataTable {
     size_t memory_footprint() const;
 
     const Column* get_column(size_t i) const {
-      return ocolumns[i].get();
+      return columns[i].get();
     }
     Column* get_column(size_t i) {
-      return const_cast<Column*>(ocolumns[i].get());
+      return const_cast<Column*>(columns[i].get());
     }
     const OColumn& get_ocolumn(size_t i) const {
-      return ocolumns[i];
+      return columns[i];
     }
     OColumn& get_ocolumn(size_t i) {
-      return ocolumns[i];
+      return columns[i];
     }
     void set_column(size_t i, Column* newcol) {
-      ocolumns[i] = OColumn(newcol);
+      columns[i] = OColumn(newcol);
     }
 
     /**
@@ -179,6 +181,8 @@ class DataTable {
     void iterate_rows(size_t row0 = 0, size_t row1 = size_t(-1));
 
   private:
+    DataTable(colvec&& cols);
+
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;

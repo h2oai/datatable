@@ -150,9 +150,9 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   colvec new_columns;
   new_columns.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    new_columns.push_back(ocolumns[col_indices[i]]);
+    new_columns.push_back(columns[col_indices[i]]);
   }
-  ocolumns = std::move(new_columns);
+  columns = std::move(new_columns);
   reorder_names(col_indices);
 
   // Apply sort key

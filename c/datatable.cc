@@ -28,24 +28,29 @@ DataTable::~DataTable() {
   UNTRACK(this);
 }
 
-
+// Private constructor, initializes only columns but not names
 DataTable::DataTable(colvec&& cols) : DataTable()
 {
-  ocolumns = std::move(cols);
-  ncols = ocolumns.size();
-  if (ncols > 0) {
-    nrows = ocolumns[0]->nrows;
-    for (size_t i = 1; i < ncols; ++i) {
-      const Column* col = ocolumns[i].get();
-      if (!col) throw ValueError() << "Column " << i << " is NULL";
-      if (col->nrows != nrows) {
-        throw ValueError() << "Mismatched length in column " << i << ": "
-                           << "found " << col->nrows << ", expected " << nrows;
-      }
+  if (cols.empty()) return;
+  columns = std::move(cols);
+  ncols = columns.size();
+  nrows = columns[0]->nrows;
+  for (size_t i = 1; i < ncols; ++i) {
+    const Column* col = columns[i].get();
+    if (!col) throw ValueError() << "Column " << i << " is NULL";
+    if (col->nrows != nrows) {
+      throw ValueError() << "Mismatched length in column " << i << ": "
+                         << "found " << col->nrows << ", expected " << nrows;
     }
   }
+}
+
+DataTable::DataTable(colvec&& cols, DefaultNamesTag)
+  : DataTable(std::move(cols))
+{
   set_names_to_default();
 }
+
 
 DataTable::DataTable(colvec&& cols, const py::olist& nn)
   : DataTable(std::move(cols))
@@ -87,7 +92,7 @@ size_t DataTable::xcolindex(int64_t index) const {
  * Make a shallow copy of the current DataTable.
  */
 DataTable* DataTable::copy() const {
-  colvec newcols = ocolumns;  // copy the vector
+  colvec newcols = columns;  // copy the vector
   DataTable* res = new DataTable(std::move(newcols), this);
   res->nkeys = nkeys;
   return res;
@@ -95,7 +100,7 @@ DataTable* DataTable::copy() const {
 
 DataTable* DataTable::extract_column(size_t i) const {
   xassert(i < ncols);
-  return new DataTable({ocolumns[i]}, {names[i]});
+  return new DataTable({columns[i]}, {names[i]});
 }
 
 
@@ -109,18 +114,18 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   size_t j = 0;
   for (size_t i = 0, k = 1; i < ncols; ++i) {
     if (i == next_col_to_remove) {
-      // "delete" names[i], ocolumns[i]
+      // "delete" names[i], columns[i]
       while (next_col_to_remove == i) {
         next_col_to_remove = cols_to_remove[k++];
       }
     } else {
-      std::swap(ocolumns[j], ocolumns[i]);
+      std::swap(columns[j], columns[i]);
       std::swap(names[j], names[i]);
       ++j;
     }
   }
   ncols = j;
-  ocolumns.resize(j);
+  columns.resize(j);
   names.resize(j);
   py_names  = py::otuple();
   py_inames = py::odict();
@@ -131,7 +136,7 @@ void DataTable::delete_all() {
   ncols = 0;
   nrows = 0;
   nkeys = 0;
-  ocolumns.resize(0);
+  columns.resize(0);
   names.resize(0);
   py_names  = py::otuple();
   py_inames = py::odict();
@@ -143,7 +148,7 @@ void DataTable::delete_all() {
 std::vector<RowColIndex> DataTable::split_columns_by_rowindices() const {
   std::vector<RowColIndex> res;
   for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = ocolumns[i]->rowindex();
+    RowIndex r = columns[i]->rowindex();
     bool found = false;
     for (auto& item : res) {
       if (item.rowindex == r) {
@@ -167,7 +172,7 @@ void DataTable::resize_rows(size_t new_nrows) {
   std::vector<RowIndex> rowindices;
   std::vector<std::vector<size_t>> colindices;
   for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = ocolumns[i]->remove_rowindex();
+    RowIndex r = columns[i]->remove_rowindex();
     size_t j = 0;
     for (; j < rowindices.size(); ++j) {
       if (rowindices[j] == r) break;
@@ -254,7 +259,7 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * Do nothing if the DataTable is not a view.
  */
 void DataTable::materialize() {
-  for (OColumn& col : ocolumns) {
+  for (OColumn& col : columns) {
     col->materialize();
   }
 }

@@ -269,7 +269,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       }
     }
 
-    dt_cat = dtptr(new DataTable(std::move(catcols)));
+    dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
     ncols = contconvs.size() + dt_cat->ncols;
     job.add_done_amount(WORK_PREPARE);
 

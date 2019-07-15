@@ -98,7 +98,8 @@ void label_encode_bool(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
 
   dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
                                   {"label", "id"}));
-  dt_encoded = dtptr(new DataTable({OColumn(col->shallowcopy())}));
+  dt_encoded = dtptr(new DataTable({OColumn(col->shallowcopy())},
+                                   DataTable::default_names));
 }
 
 

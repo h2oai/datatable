@@ -146,7 +146,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
         }
       });
 
-    DataTable* mask_dt = new DataTable({std::move(mask_col)});
+    DataTable* mask_dt = new DataTable({std::move(mask_col)},
+                                       DataTable::default_names);
     oobj mask_frame = Frame::oframe(mask_dt);
     oobj mask_array = nparray.call({mask_frame});
 

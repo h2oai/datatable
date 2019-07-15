@@ -329,14 +329,14 @@ void DataTable::set_names(const py::olist& names_list) {
   if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
   _set_names_impl(&np);
-  ocolumns.resize(names.size());
+  columns.resize(names.size());
 }
 
 
 void DataTable::set_names(const strvec& names_list) {
   strvecNP np(names_list);
   _set_names_impl(&np);
-  ocolumns.resize(names.size());
+  columns.resize(names.size());
 }
 
 
