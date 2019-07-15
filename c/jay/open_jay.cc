@@ -72,7 +72,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   size_t nrows = frame->nrows();
   auto msg_columns = frame->columns();
 
-  ocolvec columns;
+  colvec columns;
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {

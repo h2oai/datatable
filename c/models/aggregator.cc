@@ -238,7 +238,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
-    ocolvec catcols;
+    colvec catcols;
     size_t ncols, max_bins;
     contconvs.reserve(dt->ncols);
     ccptr<T> contconv;

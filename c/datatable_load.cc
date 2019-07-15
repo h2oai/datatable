@@ -30,7 +30,7 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
                            bool recode)
 {
     size_t ncols = colspec->nrows;
-    ocolvec columns;
+    colvec columns;
     columns.reserve(ncols);
 
     if (colspec->ncols != 2 && colspec->ncols != 4) {

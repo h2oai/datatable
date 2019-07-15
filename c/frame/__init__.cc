@@ -50,7 +50,7 @@ class FrameInitializationManager {
     SType stype0;
     int : 32;
     Frame* frame;
-    ocolvec cols;
+    colvec cols;
 
     class em : public py::_obj::error_manager {
       Error error_not_stype(PyObject*) const override;

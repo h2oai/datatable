@@ -78,7 +78,7 @@ static void tokenize_string(
  * Encode NA's with NA's
  */
 template<typename T>
-static void encode_nones(const T* offsets, const RowIndex& ri, ocolvec& outcols) {
+static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) {
   size_t ncols = outcols.size();
   if (ncols == 0) return;
 
@@ -106,10 +106,10 @@ static void encode_nones(const T* offsets, const RowIndex& ri, ocolvec& outcols)
 /**
  * Re-order columns, so that column names go in alphabetical order.
  */
-static void sort_colnames(ocolvec& outcols, strvec& outnames) {
+static void sort_colnames(colvec& outcols, strvec& outnames) {
   size_t ncols = outcols.size();
   strvec outnames_sorted(ncols);
-  ocolvec outcols_sorted(ncols);
+  colvec outcols_sorted(ncols);
   intvec colindex = sort_index<std::string>(outnames);
 
   for (size_t i = 0; i < ncols; ++i) {
@@ -142,7 +142,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
   size_t nrows = col->nrows;
   std::unordered_map<std::string, size_t> colsmap;
   strvec outnames;
-  ocolvec outcols;
+  colvec outcols;
   std::vector<int8_t*> outdata;
   dt::shared_mutex shmutex;
   const RowIndex& ri = col->rowindex();

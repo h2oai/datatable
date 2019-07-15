@@ -244,7 +244,7 @@ inline constexpr size_t id(Stat stat, SType stype) {
 }
 
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
-  ocolvec out_cols;
+  colvec out_cols;
   out_cols.reserve(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
     auto dtcol = dt->get_column(i);

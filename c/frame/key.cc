@@ -147,7 +147,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   xassert(col_indices.size() == ncols);
 
   // Reorder the columns
-  ocolvec new_columns;
+  colvec new_columns;
   new_columns.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
     new_columns.push_back(ocolumns[col_indices[i]]);

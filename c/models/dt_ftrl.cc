@@ -769,7 +769,7 @@ void Ftrl<T>::create_model() {
   size_t nlabels = (dt_labels == nullptr)? 0 : dt_labels->nrows;
   size_t ncols = (model_type == FtrlModelType::BINOMIAL)? 2 : 2 * nlabels;
 
-  ocolvec cols;
+  colvec cols;
   cols.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
     cols.emplace_back(new RealColumn<T>(nbins));
@@ -791,7 +791,7 @@ void Ftrl<T>::adjust_model() {
   size_t ncols_model_new = 2 * dt_labels->nrows;
   xassert(ncols_model_new > ncols_model)
 
-  ocolvec cols;
+  colvec cols;
   cols.reserve(ncols_model_new);
   for (size_t i = 0; i < ncols_model; ++i) {
     cols.push_back(dt_model->get_ocolumn(i));
@@ -845,7 +845,7 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
     labels_vec[i] = std::move(str);
   }
 
-  ocolvec cols;
+  colvec cols;
   cols.reserve(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
     cols.emplace_back(new RealColumn<T>(nrows));
