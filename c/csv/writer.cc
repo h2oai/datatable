@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <mutex>
 #include <new>          // placement new
 #include <stdexcept>    // std::runtime_error
 #include <math.h>
@@ -344,6 +345,7 @@ void CsvWriter::write()
     /* n_threads = */ nthreads,
     [&](dt::ordered* o) {
       if (dt::this_thread_index() == 0) {
+        std::lock_guard<std::mutex> lock(dt::python_mutex());
         log() << "Writing file using " << nchunks << " chunks, with "
               << rows_per_chunk << " rows per chunk";
         log() << "Using nthreads = " << dt::num_threads_in_team();

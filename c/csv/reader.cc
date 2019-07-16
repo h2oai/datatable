@@ -385,8 +385,7 @@ void GenericReader::_message(
     #pragma GCC diagnostic pop
   }
 
-  size_t ith = dt::this_thread_index();
-  if (ith + 1 <= 1) {
+  if (dt::num_threads_in_team() == 0) {
     try {
       Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
       PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
