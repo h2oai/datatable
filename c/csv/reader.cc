@@ -398,6 +398,8 @@ void GenericReader::_message(
     }
   } else {
     if (strcmp(method, "debug") == 0) {
+      // Any other team-wide mutex would work too
+      std::lock_guard<std::mutex> lock(dt::python_mutex());
       delayed_message += msg;
     } else {
       // delayed_warning not implemented yet
