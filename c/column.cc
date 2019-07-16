@@ -241,6 +241,11 @@ const Column* OColumn::operator->() const {
   return pcol;
 }
 
+
+size_t OColumn::get_nrows() const noexcept {
+  return pcol->nrows;
+}
+
 void OColumn::rbind(std::vector<const Column*>& columns) {
   pcol = pcol->rbind(columns);
 }

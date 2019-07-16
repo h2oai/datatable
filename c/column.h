@@ -330,6 +330,7 @@ private:
 
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+  friend class OColumn;
 };
 
 
@@ -359,6 +360,8 @@ class OColumn {
     operator bool() const noexcept;
     Column* operator->();
     const Column* operator->() const;
+
+    size_t get_nrows() const noexcept;
 
     void rbind(std::vector<const Column*>& columns);
 

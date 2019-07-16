@@ -34,10 +34,9 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   if (cols.empty()) return;
   columns = std::move(cols);
   ncols = columns.size();
-  nrows = columns[0]->nrows;
-  for (size_t i = 1; i < ncols; ++i) {
-    xassert(columns[i]);
-    xassert(columns[i]->nrows == nrows);
+  nrows = columns[0].get_nrows();
+  for (const auto& col : columns) {
+    xassert(col && col.get_nrows() == nrows);
   }
 }
 
@@ -84,6 +83,7 @@ size_t DataTable::xcolindex(int64_t index) const {
   return static_cast<size_t>(index);
 }
 
+
 /**
  * Make a shallow copy of the current DataTable.
  */
@@ -94,11 +94,11 @@ DataTable* DataTable::copy() const {
   return res;
 }
 
+
 DataTable* DataTable::extract_column(size_t i) const {
   xassert(i < ncols);
   return new DataTable({columns[i]}, {names[i]});
 }
-
 
 
 void DataTable::delete_columns(intvec& cols_to_remove) {
@@ -106,19 +106,22 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
   cols_to_remove.push_back(size_t(-1));  // guardian value
 
-  size_t next_col_to_remove = cols_to_remove[0];
   size_t j = 0;
-  for (size_t i = 0, k = 1; i < ncols; ++i) {
-    if (i == next_col_to_remove) {
-      // "delete" names[i], columns[i]
-      while (next_col_to_remove == i) {
-        next_col_to_remove = cols_to_remove[k++];
+  for (size_t i = 0, k = 0; i < ncols; ++i) {
+    if (i == cols_to_remove[k]) {
+      // cols_to_remove[] array may contain duplicate values of `i`, so we
+      // skip them. This loop will always terminate, since the last entry
+      // in `cols_to_remove` is -1, which cannot be equal to any `i`.
+      while (i == cols_to_remove[k]) {
+        k++;
       }
-    } else {
+      continue;
+    }
+    if (i != j) {
       std::swap(columns[j], columns[i]);
       std::swap(names[j], names[i]);
-      ++j;
     }
+    ++j;
   }
   ncols = j;
   columns.resize(j);
@@ -166,7 +169,7 @@ void DataTable::resize_rows(size_t new_nrows) {
 
   // Split all columns into groups, by their `RowIndex`es
   std::vector<RowIndex> rowindices;
-  std::vector<std::vector<size_t>> colindices;
+  std::vector<intvec> colindices;
   for (size_t i = 0; i < ncols; ++i) {
     RowIndex r = columns[i]->remove_rowindex();
     size_t j = 0;
@@ -186,7 +189,7 @@ void DataTable::resize_rows(size_t new_nrows) {
     if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
     r.resize(new_nrows);
     for (size_t i : colindices[j]) {
-      get_column(i)->replace_rowindex(r);
+      columns[i]->replace_rowindex(r);
     }
   }
   nrows = new_nrows;
@@ -250,9 +253,7 @@ void DataTable::replace_groupby(const Groupby& newgb) {
 
 
 /**
- * Convert a DataTable view into an actual DataTable. This is done in-place.
- * The resulting DataTable should have a NULL RowIndex and Stats array.
- * Do nothing if the DataTable is not a view.
+ * Materialize all columns in the DataTable.
  */
 void DataTable::materialize() {
   for (OColumn& col : columns) {
