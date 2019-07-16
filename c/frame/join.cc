@@ -34,9 +34,8 @@
 #include "types.h"
 
 class Cmp;
-using indvec = std::vector<size_t>;
 using cmpptr = std::unique_ptr<Cmp>;
-using comparator_maker = cmpptr (*)(const Column*, const Column*);
+using comparator_maker = cmpptr (*)(const OColumn&, const OColumn&);
 static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 
@@ -89,29 +88,29 @@ class MultiCmp : public Cmp {
     std::vector<cmpptr> col_cmps;
 
   public:
-    MultiCmp(const indvec& Xindices, const indvec& Jindices,
+    MultiCmp(const intvec& Xindices, const intvec& Jindices,
              const DataTable* Xdt, const DataTable* Jdt);
     int set_xrow(size_t row) override;
     int cmp_jrow(size_t row) const override;
 };
 
 
-MultiCmp::MultiCmp(const indvec& Xindices, const indvec& Jindices,
+MultiCmp::MultiCmp(const intvec& Xindices, const intvec& Jindices,
                    const DataTable* Xdt, const DataTable* Jdt)
 {
   xassert(Xindices.size() == Jindices.size());
   for (size_t i = 0; i < Xindices.size(); ++i) {
     size_t xi = Xindices[i];
     size_t ji = Jindices[i];
-    const Column* col1 = Xdt->get_column(xi);
-    const Column* col2 = Jdt->get_column(ji);
-    size_t st1 = static_cast<size_t>(col1->stype());
-    size_t st2 = static_cast<size_t>(col2->stype());
-    auto cmp = cmps[st1][st2];
+    const OColumn& col1 = Xdt->get_ocolumn(xi);
+    const OColumn& col2 = Jdt->get_ocolumn(ji);
+    SType stype1 = col1.stype();
+    SType stype2 = col2.stype();
+    auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
     if (!cmp) {
       throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
-          << col1->stype() << " in the left Frame cannot be joined to column `"
-          << Jdt->get_names()[ji] << "` of incompatible type " << col2->stype()
+          << stype1 << " in the left Frame cannot be joined to column `"
+          << Jdt->get_names()[ji] << "` of incompatible type " << stype2
           << " in the right Frame";
     }
     col_cmps.push_back(cmp(col1, col2));
@@ -149,8 +148,8 @@ class FwCmp : public Cmp {
     size_t : (64 - 8 * sizeof(TJ)) & 63;
 
   public:
-    FwCmp(const Column*, const Column*);
-    static cmpptr make(const Column*, const Column*);
+    FwCmp(const OColumn&, const OColumn&);
+    static cmpptr make(const OColumn&, const OColumn&);
 
     int cmp_jrow(size_t row) const override;
     int set_xrow(size_t row) override;
@@ -158,16 +157,16 @@ class FwCmp : public Cmp {
 
 
 template <typename TX, typename TJ>
-FwCmp<TX, TJ>::FwCmp(const Column* xcol, const Column* jcol) {
-  auto xcol_f = dynamic_cast<const FwColumn<TX>*>(xcol);
-  auto jcol_f = dynamic_cast<const FwColumn<TJ>*>(jcol);
+FwCmp<TX, TJ>::FwCmp(const OColumn& xcol, const OColumn& jcol) {
+  auto xcol_f = dynamic_cast<const FwColumn<TX>*>(xcol.get());
+  auto jcol_f = dynamic_cast<const FwColumn<TJ>*>(jcol.get());
   xassert(xcol_f && jcol_f);
   dataX = xcol_f->elements_r();
   dataJ = jcol_f->elements_r();
 }
 
 template <typename TX, typename TJ>
-cmpptr FwCmp<TX, TJ>::make(const Column* col1, const Column* col2) {
+cmpptr FwCmp<TX, TJ>::make(const OColumn& col1, const OColumn& col2) {
   return cmpptr(new FwCmp<TX, TJ>(col1, col2));
 }
 
@@ -223,8 +222,8 @@ class StringCmp : public Cmp {
     size_t : (128 - 2 * 8 * sizeof(TJ)) & 63;
 
   public:
-    StringCmp(const Column*, const Column*);
-    static cmpptr make(const Column*, const Column*);
+    StringCmp(const OColumn&, const OColumn&);
+    static cmpptr make(const OColumn&, const OColumn&);
 
     int cmp_jrow(size_t row) const override;
     int set_xrow(size_t row) override;
@@ -232,9 +231,9 @@ class StringCmp : public Cmp {
 
 
 template <typename TX, typename TJ>
-StringCmp<TX, TJ>::StringCmp(const Column* xcol, const Column* jcol) {
-  auto xcol_s = dynamic_cast<const StringColumn<TX>*>(xcol);
-  auto jcol_s = dynamic_cast<const StringColumn<TJ>*>(jcol);
+StringCmp<TX, TJ>::StringCmp(const OColumn& xcol, const OColumn& jcol) {
+  auto xcol_s = dynamic_cast<const StringColumn<TX>*>(xcol.get());
+  auto jcol_s = dynamic_cast<const StringColumn<TJ>*>(jcol.get());
   xassert(xcol_s && jcol_s);
   strdataX = xcol_s->ustrdata();
   offsetsX = xcol_s->offsets();
@@ -243,7 +242,7 @@ StringCmp<TX, TJ>::StringCmp(const Column* xcol, const Column* jcol) {
 }
 
 template <typename TX, typename TJ>
-cmpptr StringCmp<TX, TJ>::make(const Column* col1, const Column* col2) {
+cmpptr StringCmp<TX, TJ>::make(const OColumn& col1, const OColumn& col2) {
   return cmpptr(new StringCmp<TX, TJ>(col1, col2));
 }
 
@@ -385,7 +384,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   xassert(k > 0);
 
   // Determine how key columns in `jdt` match the columns in `xdt`
-  indvec xcols, jcols;
+  intvec xcols, jcols;
   py::otuple jnames = jdt->get_pynames();
   for (size_t i = 0; i < k; ++i) {
     int64_t index = xdt->colindex(jnames[i]);
