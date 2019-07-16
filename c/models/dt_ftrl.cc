@@ -88,7 +88,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   label_ids_val.clear();
   FtrlFitOutput res;
 
-  SType stype_y = dt_y_train->get_column(0)->stype();
+  SType stype_y = dt_y_train->get_ocolumn(0).stype();
   FtrlModelType model_type_train = !is_model_trained()? params.model_type :
                                                         model_type;
 
@@ -184,7 +184,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 std::vector<size_t>& label_ids) {
   xassert(label_ids.size() == 0);
   dtptr dt_labels_in;
-  label_encode(dt->get_column(0), dt_labels_in, dt_binomial, true);
+  label_encode(dt->get_ocolumn(0), dt_labels_in, dt_binomial, true);
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
@@ -348,7 +348,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                       bool validation /* = false */) {
   xassert(label_ids.size() == 0)
   dtptr dt_labels_in;
-  label_encode(dt->get_column(0), dt_labels_in, dt_multinomial);
+  label_encode(dt->get_ocolumn(0), dt_labels_in, dt_multinomial);
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;

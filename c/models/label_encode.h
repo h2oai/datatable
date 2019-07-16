@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_ENCODE_h
 #define dt_MODELS_ENCODE_h
-
 #include <unordered_map>
 #include <vector>
 #include "datatable.h"
@@ -24,13 +23,11 @@
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "models/dt_ftrl_base.h"
-
-
 namespace dt {
 
 
-void label_encode(const Column*, dtptr&, dtptr&, bool is_binomial = false);
-void label_encode_bool(const Column*, dtptr&, dtptr&);
+void label_encode(const OColumn&, dtptr&, dtptr&, bool is_binomial = false);
+
 
 /**
  *  Create labels datatable from unordered map for fixed widht columns.
@@ -98,10 +95,11 @@ void set_ids(Column* col, T i0) {
  *  Encode fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
+void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_from = element_t<stype_from>;
   using T_to = element_t<stype_to>;
-  const size_t nrows = col->nrows;
+  const Column* col = ocol.get();
+  const size_t nrows = ocol.nrows();
   const RowIndex& ri = col->rowindex();
 
   OColumn outcol(Column::new_data_column(stype_to, nrows));
@@ -156,9 +154,10 @@ void label_encode_fw(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
  *  Encode string columns.
  */
 template <typename U, SType stype_to>
-void label_encode_str(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
+void label_encode_str(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
-  const size_t nrows = col->nrows;
+  const Column* col = ocol.get();
+  const size_t nrows = ocol.nrows();
   const RowIndex& ri = col->rowindex();
   OColumn outcol(Column::new_data_column(stype_to, nrows));
   auto outdata = static_cast<T_to*>(outcol->data_w());

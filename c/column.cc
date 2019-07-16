@@ -242,9 +242,18 @@ const Column* OColumn::operator->() const {
 }
 
 
-size_t OColumn::get_nrows() const noexcept {
+SType OColumn::stype() const noexcept {
+  return pcol->stype();
+}
+
+size_t OColumn::nrows() const noexcept {
   return pcol->nrows;
 }
+
+size_t OColumn::na_count() const {
+  return pcol->countna();
+}
+
 
 void OColumn::rbind(std::vector<const Column*>& columns) {
   pcol = pcol->rbind(columns);

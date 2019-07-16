@@ -361,7 +361,9 @@ class OColumn {
     Column* operator->();
     const Column* operator->() const;
 
-    size_t get_nrows() const noexcept;
+    SType stype() const noexcept;
+    size_t nrows() const noexcept;
+    size_t na_count() const;
 
     void rbind(std::vector<const Column*>& columns);
 
