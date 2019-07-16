@@ -370,6 +370,19 @@ void GenericReader::warn(const char* format, ...) const {
   va_end(args);
 }
 
+static void _send_message_to_python(
+    const char* method, const char* message, const py::oobj& logger)
+{
+  PyObject* pymsg = PyUnicode_FromString(message);
+  if (pymsg) {
+    PyObject* py_logger = logger.to_borrowed_ref();
+    PyObject* res = PyObject_CallMethod(py_logger, method, "(O)", pymsg);
+    Py_XDECREF(res);
+  }
+  PyErr_Clear();  // ignore any exceptions
+  Py_XDECREF(pymsg);
+}
+
 void GenericReader::_message(
   const char* method, const char* format, va_list args) const
 {
@@ -386,34 +399,20 @@ void GenericReader::_message(
   }
 
   if (dt::num_threads_in_team() == 0) {
-    try {
-      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
-      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
-                                         "backslashreplace");  // new ref
-      if (!pymsg) throw PyError();
-      logger.invoke(method, "(O)", pymsg);
-      Py_XDECREF(pymsg);
-    } catch (const std::exception&) {
-      // ignore any exceptions
-    }
+    _send_message_to_python(method, msg, logger);
   } else {
-    if (strcmp(method, "debug") == 0) {
-      // Any other team-wide mutex would work too
-      std::lock_guard<std::mutex> lock(dt::python_mutex());
-      delayed_message += msg;
-    } else {
-      // delayed_warning not implemented yet
-    }
+    // Any other team-wide mutex would work too
+    std::lock_guard<std::mutex> lock(dt::python_mutex());
+    delayed_message += msg;
   }
 }
 
 void GenericReader::emit_delayed_messages() {
+  std::lock_guard<std::mutex> lock(dt::python_mutex());
   if (delayed_message.size()) {
-    std::lock_guard<std::mutex> lock(dt::python_mutex());
-    trace("%s", delayed_message.c_str());
+    _send_message_to_python("debug", delayed_message.c_str(), logger);
     delayed_message.clear();
   }
-  // delayed_warning not implemented
 }
 
 
