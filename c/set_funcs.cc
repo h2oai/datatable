@@ -112,7 +112,11 @@ static sort_result sort_columns(ccolvec&& cv) {
   } else {
     // Note: `rbind` will delete all the columns in the vector `cols`...
     // Therefore, `cols` cannot be used after this call
-    res.col = std::unique_ptr<Column>((new VoidColumn(0))->rbind(cols));
+    colvec newcols;
+    for (const Column* col : cols) {
+      newcols.emplace_back(const_cast<Column*>(col));
+    }
+    res.col = std::unique_ptr<Column>((new VoidColumn(0))->rbind(newcols));
   }
   res.ri = res.col->sort(&res.gb);
 

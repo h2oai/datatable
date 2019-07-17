@@ -40,6 +40,7 @@ template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
+using colvec = std::vector<OColumn>;
 
 /**
  * Helper templates to convert between an stype and a column's type:
@@ -255,7 +256,7 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
-  Column* rbind(std::vector<const Column*>& columns);
+  Column* rbind(colvec& columns);
 
   /**
    * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
@@ -312,8 +313,7 @@ protected:
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
-  virtual void rbind_impl(std::vector<const Column*>& columns,
-                          size_t nrows, bool isempty) = 0;
+  virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
   /**
    * Sets every row in the column to an NA value. As of now this method
@@ -399,7 +399,8 @@ class OColumn
     py::oobj get_element_as_pyobject(size_t i) const;
 
 
-    void rbind(std::vector<const Column*>& columns);
+    void rbind(colvec& columns);
+    void materialize();
 
     friend void swap(OColumn& lhs, OColumn& rhs);
 };
@@ -436,8 +437,7 @@ protected:
   void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
   FwColumn();
@@ -582,8 +582,7 @@ protected:
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
@@ -645,8 +644,7 @@ protected:
   void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
   void fill_na() override;
 
@@ -682,7 +680,7 @@ class VoidColumn : public Column {
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;
-    void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
+    void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
