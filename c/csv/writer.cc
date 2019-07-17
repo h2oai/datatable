@@ -43,20 +43,20 @@ public:
   const char* strbuf;
   writer_fn writer;
 
-  explicit CsvColumn(Column* col) {
+  explicit CsvColumn(const OColumn& col) {
     data = col->data();
     strbuf = nullptr;
-    writer = writers_per_stype[static_cast<int>(col->stype())];
+    writer = writers_per_stype[static_cast<int>(col.stype())];
     if (!writer) {
-      throw ValueError() << "Cannot write type " << col->stype();
+      throw ValueError() << "Cannot write type " << col.stype();
     }
-    if (col->stype() == SType::STR32) {
-      strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
-      data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
+    if (col.stype() == SType::STR32) {
+      strbuf = static_cast<const StringColumn<uint32_t>*>(col.get())->strdata();
+      data = static_cast<const StringColumn<uint32_t>*>(col.get())->offsets();
     }
-    else if (col->stype() == SType::STR64) {
-      strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
-      data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
+    else if (col.stype() == SType::STR64) {
+      strbuf = static_cast<const StringColumn<uint64_t>*>(col.get())->strdata();
+      data = static_cast<const StringColumn<uint64_t>*>(col.get())->offsets();
     }
     TRACK(this, sizeof(*this), "write::CsvColumn");
   }
@@ -476,14 +476,14 @@ size_t CsvWriter::estimate_output_size()
   const strvec& column_names = dt->get_names();
   fixed_size_per_row = ncols;  // 1 byte per separator
   for (size_t i = 0; i < ncols; i++) {
-    Column *col = dt->get_column(i);
-    if (auto scol32 = dynamic_cast<StringColumn<uint32_t>*>(col)) {
+    OColumn& col = dt->get_ocolumn(i);
+    if (auto scol32 = dynamic_cast<const StringColumn<uint32_t>*>(col.get())) {
       total_string_size += scol32->datasize();
     } else
-    if (auto scol64 = dynamic_cast<StringColumn<uint64_t>*>(col)) {
+    if (auto scol64 = dynamic_cast<const StringColumn<uint64_t>*>(col.get())) {
       total_string_size += scol64->datasize();
     }
-    SType stype = col->stype();
+    SType stype = col.stype();
     fixed_size_per_row += bytes_per_stype[static_cast<int>(stype)];
     total_columns_size += column_names[i].size() + 1;
   }
@@ -594,9 +594,9 @@ void CsvWriter::create_column_writers(size_t ncols)
   writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
   writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
   for (size_t i = 0; i < ncols; ++i) {
-    Column* dtcol = dt->get_column(i);
-    SType stype = dtcol->stype();
-    CsvColumn *csvcol = new CsvColumn(dtcol);
+    const OColumn& dtcol = dt->get_ocolumn(i);
+    SType stype = dtcol.stype();
+    CsvColumn* csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);
     if (stype == SType::STR32) strcolumns32.push_back(csvcol);
     if (stype == SType::STR64) strcolumns64.push_back(csvcol);

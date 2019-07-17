@@ -38,7 +38,7 @@ struct ccolvec {
 };
 
 struct sort_result {
-  std::vector<size_t> sizes;
+  intvec sizes;
   OColumn column;
   std::string colname;
   RowIndex ri;
