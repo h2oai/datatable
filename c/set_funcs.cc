@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <functional>
 #include <tuple>
 #include "datatablemodule.h"
 #include "datatable.h"
@@ -32,13 +33,13 @@ namespace dt {
 namespace set {
 
 struct ccolvec {
-  std::vector<const Column*> cols;
-  std::string colname;
+  colvec columns;
+  std::string name;
 };
 
 struct sort_result {
   std::vector<size_t> sizes;
-  std::unique_ptr<Column> col;
+  OColumn column;
   std::string colname;
   RowIndex ri;
   Groupby gb;
@@ -49,86 +50,79 @@ struct sort_result {
 // helper functions
 //------------------------------------------------------------------------------
 
-static py::oobj make_pyframe(sort_result& sr, arr32_t&& arr) {
+static py::oobj make_pyframe(sort_result&& sorted, arr32_t&& arr) {
   // The array of rowindices `arr` is typically shuffled because the values
   // in the input are sorted before they are compared.
   RowIndex out_ri = RowIndex(std::move(arr), false);
-  Column* out_col = sr.col->shallowcopy(out_ri);
-  out_col->materialize();
-  DataTable* dt = new DataTable({OColumn(out_col)}, {sr.colname});
+  sorted.column->replace_rowindex(out_ri);
+  sorted.column.materialize();
+  DataTable* dt = new DataTable({std::move(sorted.column)},
+                                {std::move(sorted.colname)});
   return py::Frame::oframe(dt);
 }
 
-static void verify_frame_1column(DataTable* dt) {
-  if (dt->ncols == 1) return;
-  throw ValueError() << "Only single-column Frames are allowed, but received "
-      "a Frame with " << dt->ncols << " columns";
-}
 
 static ccolvec columns_from_args(const py::PKArgs& args) {
-  ccolvec res;
-  for (auto va : args.varargs()) {
-    if (va.is_frame()) {
-      DataTable* dt = va.to_datatable();
-      if (dt->ncols == 0) continue;
-      verify_frame_1column(dt);
-      Column* col = dt->get_column(0)->shallowcopy();
-      col->materialize();
-      res.cols.push_back(col);
-      if (res.colname.empty()) res.colname = dt->get_names()[0];
+  ccolvec result;
+  std::function<void(py::robj)> process_arg = [&](py::robj arg) {
+    if (arg.is_frame()) {
+      DataTable* dt = arg.to_datatable();
+      if (dt->ncols == 0) return;
+      if (dt->ncols > 1) {
+        throw ValueError() << "Only single-column Frames are allowed, "
+            "but received a Frame with " << dt->ncols << " columns";
+      }
+      OColumn col = dt->get_ocolumn(0);  // copy
+      col.materialize();
+      result.columns.push_back(std::move(col));
+      if (result.name.empty()) {
+        result.name = dt->get_names()[0];
+      }
     }
-    else if (va.is_iterable()) {
-      for (auto item : va.to_oiter()) {
-        DataTable* dt = item.to_datatable();
-        if (dt->ncols == 0) continue;
-        verify_frame_1column(dt);
-        Column* col = dt->get_column(0)->shallowcopy();
-        col->materialize();
-        res.cols.push_back(col);
-        if (res.colname.empty()) res.colname = dt->get_names()[0];
+    else if (arg.is_iterable()) {
+      for (auto item : arg.to_oiter()) {
+        process_arg(item);
       }
     }
     else {
       throw TypeError() << args.get_short_name() << "() expects a list or "
-          "sequence of Frames, but got an argument of type " << va.typeobj();
+          "sequence of Frames, but got an argument of type " << arg.typeobj();
     }
+  };
+
+  for (auto va : args.varargs()) {
+    process_arg(va);
   }
-  return res;
+  return result;
 }
 
 static sort_result sort_columns(ccolvec&& cv) {
-  std::vector<const Column*>& cols = cv.cols;
-  xassert(!cols.empty());
+  xassert(!cv.columns.empty());
   sort_result res;
-  res.colname = std::move(cv.colname);
+  res.colname = std::move(cv.name);
   size_t cumsize = 0;
-  for (auto col : cols) {
-    cumsize += col->nrows;
+  for (const auto& col : cv.columns) {
+    cumsize += col.nrows();
     res.sizes.push_back(cumsize);
   }
-  if (cols.size() == 1) {
-    res.col = std::unique_ptr<Column>(const_cast<Column*>(cols[0]));
-    res.col->materialize();
+  if (cv.columns.size() == 1) {
+    res.column = std::move(cv.columns[0]);
+    res.column.materialize();
   } else {
-    // Note: `rbind` will delete all the columns in the vector `cols`...
-    // Therefore, `cols` cannot be used after this call
-    colvec newcols;
-    for (const Column* col : cols) {
-      newcols.emplace_back(const_cast<Column*>(col));
-    }
-    res.col = std::unique_ptr<Column>((new VoidColumn(0))->rbind(newcols));
+    // TODO: std::move(cv.columns) here
+    res.column = OColumn((new VoidColumn(0))->rbind(cv.columns));
   }
-  res.ri = res.col->sort(&res.gb);
+  res.ri = res.column->sort(&res.gb);
 
   return res;
 }
 
 
-static py::oobj _union(ccolvec&& cols) {
-  if (cols.cols.empty()) {
+static py::oobj _union(ccolvec&& cv) {
+  if (cv.columns.empty()) {
     return py::Frame::oframe(new DataTable());
   }
-  sort_result sorted = sort_columns(std::move(cols));
+  sort_result sorted = sort_columns(std::move(cv));
 
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
@@ -139,7 +133,7 @@ static py::oobj _union(ccolvec&& cols) {
   for (size_t i = 0; i < ngrps; ++i) {
     out_indices[i] = indices[goffsets[i]];
   }
-  return make_pyframe(sorted, std::move(arr));
+  return make_pyframe(std::move(sorted), std::move(arr));
 }
 
 
@@ -174,14 +168,14 @@ static py::oobj unique(const py::PKArgs& args) {
   }
   DataTable* dt = args[0].to_datatable();
 
-  ccolvec cc;
+  ccolvec cv;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    cc.cols.push_back(dt->get_column(i)->shallowcopy());
+    cv.columns.push_back(dt->get_ocolumn(i));
   }
   if (dt->ncols == 1) {
-    cc.colname = dt->get_names()[0];
+    cv.name = dt->get_names()[0];
   }
-  return _union(std::move(cc));
+  return _union(std::move(cv));
 }
 
 
@@ -223,9 +217,9 @@ static py::oobj union_(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 template <bool TWO>
-static py::oobj _intersect(ccolvec&& cc) {
-  size_t K = cc.cols.size();
-  sort_result sorted = sort_columns(std::move(cc));
+static py::oobj _intersect(ccolvec&& cv) {
+  size_t K = cv.columns.size();
+  sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
   const int32_t* indices = sorted.ri.indices32();
@@ -275,7 +269,7 @@ static py::oobj _intersect(ccolvec&& cc) {
     }
   }
   arr.resize(j);
-  return make_pyframe(sorted, std::move(arr));
+  return make_pyframe(std::move(sorted), std::move(arr));
 }
 
 
@@ -302,14 +296,14 @@ the provided ``frames``.
 
 
 static py::oobj intersect(const py::PKArgs& args) {
-  ccolvec cc = columns_from_args(args);
-  if (cc.cols.size() <= 1) {
-    return _union(std::move(cc));
+  ccolvec cv = columns_from_args(args);
+  if (cv.columns.size() <= 1) {
+    return _union(std::move(cv));
   }
-  if (cc.cols.size() == 2) {
-    return _intersect<true>(std::move(cc));
+  if (cv.columns.size() == 2) {
+    return _intersect<true>(std::move(cv));
   } else {
-    return _intersect<false>(std::move(cc));
+    return _intersect<false>(std::move(cv));
   }
 }
 
@@ -319,9 +313,9 @@ static py::oobj intersect(const py::PKArgs& args) {
 // setdiff()
 //------------------------------------------------------------------------------
 
-static py::oobj _setdiff(ccolvec&& cc) {
-  xassert(cc.cols.size() >= 2);
-  sort_result sorted = sort_columns(std::move(cc));
+static py::oobj _setdiff(ccolvec&& cv) {
+  xassert(cv.columns.size() >= 2);
+  sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
   const int32_t* indices = sorted.ri.indices32();
@@ -338,7 +332,7 @@ static py::oobj _setdiff(ccolvec&& cc) {
     }
   }
   arr.resize(j);
-  return make_pyframe(sorted, std::move(arr));
+  return make_pyframe(std::move(sorted), std::move(arr));
 }
 
 
@@ -364,11 +358,11 @@ first frame ``frame0``, but not present in any of the ``frames``.
 )");
 
 static py::oobj setdiff(const py::PKArgs& args) {
-  ccolvec cc = columns_from_args(args);
-  if (cc.cols.size() <= 1) {
-    return _union(std::move(cc));
+  ccolvec cv = columns_from_args(args);
+  if (cv.columns.size() <= 1) {
+    return _union(std::move(cv));
   }
-  return _setdiff(std::move(cc));
+  return _setdiff(std::move(cv));
 }
 
 
@@ -378,9 +372,9 @@ static py::oobj setdiff(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 template <bool TWO>
-static py::oobj _symdiff(ccolvec&& cc) {
-  size_t K = cc.cols.size();
-  sort_result sr = sort_columns(std::move(cc));
+static py::oobj _symdiff(ccolvec&& cv) {
+  size_t K = cv.columns.size();
+  sort_result sr = sort_columns(std::move(cv));
   size_t ngrps = sr.gb.ngroups();
   const int32_t* goffsets = sr.gb.offsets_r();
   const int32_t* indices = sr.ri.indices32();
@@ -425,7 +419,7 @@ static py::oobj _symdiff(ccolvec&& cc) {
     }
   }
   arr.resize(j);
-  return make_pyframe(sr, std::move(arr));
+  return make_pyframe(std::move(sr), std::move(arr));
 }
 
 
@@ -453,14 +447,14 @@ two frames are those values that are present in an odd number of frames.
 
 
 static py::oobj symdiff(const py::PKArgs& args) {
-  ccolvec cc = columns_from_args(args);
-  if (cc.cols.size() <= 1) {
-    return _union(std::move(cc));
+  ccolvec cv = columns_from_args(args);
+  if (cv.columns.size() <= 1) {
+    return _union(std::move(cv));
   }
-  if (cc.cols.size() == 2) {
-    return _symdiff<true>(std::move(cc));
+  if (cv.columns.size() == 2) {
+    return _symdiff<true>(std::move(cv));
   } else {
-    return _symdiff<false>(std::move(cc));
+    return _symdiff<false>(std::move(cv));
   }
 }
 
