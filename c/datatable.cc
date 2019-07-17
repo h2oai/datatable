@@ -200,7 +200,7 @@ void DataTable::resize_rows(size_t new_nrows) {
 void DataTable::replace_rowindex(const RowIndex& newri) {
   nrows = newri.size();
   for (size_t i = 0; i < ncols; ++i) {
-    get_column(i)->replace_rowindex(newri);
+    columns[i]->replace_rowindex(newri);
   }
 }
 
@@ -234,7 +234,7 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   for (auto& rcitem : rc) {
     RowIndex newri = ri * rcitem.rowindex;
     for (size_t i : rcitem.colindices) {
-      get_column(i)->replace_rowindex(newri);
+      columns[i]->replace_rowindex(newri);
     }
   }
   nrows = ri.size();

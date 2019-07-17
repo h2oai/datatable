@@ -138,8 +138,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
         int8_t* mask_ptr = mask_data + icol * dt->nrows;
-        Column* col = dt->get_column(icol + i0);
-        if (col->countna()) {
+        OColumn& col = dt->get_ocolumn(icol + i0);
+        if (col.na_count()) {
           col->fill_na_mask(mask_ptr, row0, row1);
         } else {
           std::memset(mask_ptr, 0, row1 - row0);
