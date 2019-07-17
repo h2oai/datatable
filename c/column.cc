@@ -246,6 +246,10 @@ SType OColumn::stype() const noexcept {
   return pcol->stype();
 }
 
+LType OColumn::ltype() const noexcept {
+  return info(pcol->stype()).ltype();
+}
+
 size_t OColumn::nrows() const noexcept {
   return pcol->nrows;
 }

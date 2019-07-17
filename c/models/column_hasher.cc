@@ -25,15 +25,15 @@
 /**
  *  Abstract Hasher class constructor and destructor.
  */
-Hasher::Hasher(const Column* col) : ri(col->rowindex()) {}
+Hasher::Hasher(const OColumn& col) : ri(col->rowindex()) {}
 Hasher::~Hasher() {}
 
 
 /**
  *  Hash booleans by casting them to `uint64_t`.
  */
-HasherBool::HasherBool(const Column* col) : Hasher(col) {
-  values = dynamic_cast<const BoolColumn*>(col)->elements_r();
+HasherBool::HasherBool(const OColumn& col) : Hasher(col) {
+  values = dynamic_cast<const BoolColumn*>(col.get())->elements_r();
 }
 
 
@@ -49,7 +49,7 @@ uint64_t HasherBool::hash(size_t row) const {
  *  Hash integers by casting them to `uint64_t`.
  */
 template <typename T>
-HasherInt<T>::HasherInt(const Column* col) : Hasher(col) {
+HasherInt<T>::HasherInt(const OColumn& col) : Hasher(col) {
   values = static_cast<const T*>(col->data());
 }
 
@@ -68,7 +68,7 @@ uint64_t HasherInt<T>::hash(size_t row) const {
  *  also do mantissa binning here.
  */
 template <typename T>
-HasherFloat<T>::HasherFloat(const Column* col, unsigned char shift_nbits_in) :
+HasherFloat<T>::HasherFloat(const OColumn& col, unsigned char shift_nbits_in) :
 Hasher(col), shift_nbits(shift_nbits_in) {
   values = static_cast<const T*>(col->data());
 }
@@ -89,8 +89,8 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
  *  Hash strings using Murmur hash function.
  */
 template <typename T>
-HasherString<T>::HasherString(const Column* col) : Hasher(col){
-  auto scol = dynamic_cast<const StringColumn<T>*>(col);
+HasherString<T>::HasherString(const OColumn& col) : Hasher(col){
+  auto scol = dynamic_cast<const StringColumn<T>*>(col.get());
   strdata = scol->strdata();
   offsets = scol->offsets();
 }

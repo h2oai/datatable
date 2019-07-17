@@ -30,7 +30,7 @@
  */
 class Hasher {
   public:
-    explicit Hasher(const Column*);
+    explicit Hasher(const OColumn&);
     virtual ~Hasher();
 
     const RowIndex& ri;
@@ -48,7 +48,7 @@ class HasherBool : public Hasher {
   private:
     const int8_t* values;
   public:
-    explicit HasherBool(const Column*);
+    explicit HasherBool(const OColumn&);
     uint64_t hash(size_t row) const override;
 };
 
@@ -61,7 +61,7 @@ class HasherInt : public Hasher {
   private:
     const T* values;
   public:
-    explicit HasherInt(const Column*);
+    explicit HasherInt(const OColumn&);
     uint64_t hash(size_t row) const override;
 };
 
@@ -76,7 +76,7 @@ class HasherFloat : public Hasher {
     const unsigned char shift_nbits;
     size_t: 56;
   public:
-    explicit HasherFloat(const Column*, unsigned char);
+    explicit HasherFloat(const OColumn&, unsigned char);
     uint64_t hash(size_t row) const override;
 };
 
@@ -90,7 +90,7 @@ class HasherString : public Hasher {
     const char* strdata;
     const T* offsets;
   public:
-    explicit HasherString(const Column*);
+    explicit HasherString(const OColumn&);
     uint64_t hash(size_t row) const override;
 };
 

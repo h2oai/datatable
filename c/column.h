@@ -362,6 +362,7 @@ class OColumn {
     const Column* operator->() const;
 
     SType stype() const noexcept;
+    LType ltype() const noexcept;
     size_t nrows() const noexcept;
     size_t na_count() const;
     bool is_material() const noexcept { return true; }

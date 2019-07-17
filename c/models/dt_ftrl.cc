@@ -729,8 +729,9 @@ void Ftrl<T>::fill_ri_data(const DataTable* dt,
   data.reserve(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
-    data.push_back(static_cast<const U*>(dt->get_column(i)->data()));
-    ri.push_back(dt->get_column(i)->rowindex());
+    const OColumn& col = dt->get_ocolumn(i);
+    data.push_back(static_cast<const U*>(col->data()));
+    ri.push_back(col->rowindex());
   }
 }
 
@@ -970,7 +971,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
 
   // Create hashers.
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const Column* col = dt->get_column(i);
+    const OColumn& col = dt->get_ocolumn(i);
     hashers.push_back(create_hasher(col));
   }
 
@@ -993,7 +994,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
  *  Depending on a column type, create a corresponding hasher.
  */
 template <typename T>
-hasherptr Ftrl<T>::create_hasher(const Column* col) {
+hasherptr Ftrl<T>::create_hasher(const OColumn& col) {
   unsigned char shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   SType stype = col->stype();
   switch (stype) {
