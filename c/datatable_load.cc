@@ -37,16 +37,16 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
         throw ValueError() << "colspec table should have had 2 or 4 columns, "
                            << "but " << colspec->ncols << " were passed";
     }
-    SType stypef = colspec->get_column(0)->stype();
-    SType stypes = colspec->get_column(1)->stype();
+    SType stypef = colspec->get_ocolumn(0).stype();
+    SType stypes = colspec->get_ocolumn(1).stype();
     if (stypef != SType::STR32 || stypes != SType::STR32) {
         throw ValueError() << "String columns are expected in colspec table, "
                            << "instead got " << stypef << " and "
                            << stypes;
     }
 
-    auto colf = static_cast<StringColumn<uint32_t>*>(colspec->get_column(0));
-    auto cols = static_cast<StringColumn<uint32_t>*>(colspec->get_column(1));
+    auto colf = static_cast<const StringColumn<uint32_t>*>(colspec->get_ocolumn(0).get());
+    auto cols = static_cast<const StringColumn<uint32_t>*>(colspec->get_ocolumn(1).get());
 
     const uint32_t* offf = colf->offsets();
     const uint32_t* offs = cols->offsets();

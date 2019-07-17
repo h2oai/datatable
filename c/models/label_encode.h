@@ -83,9 +83,9 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
  *  Used in the multinomial case when we encounter new labels.
  */
 template <typename T>
-void set_ids(Column* col, T i0) {
+void set_ids(OColumn& col, T i0) {
   auto data = static_cast<T*>(col->data_w());
-  for (T i = 0; i < static_cast<T>(col->nrows); ++i) {
+  for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
     data[i] = i0 + i;
   }
 }

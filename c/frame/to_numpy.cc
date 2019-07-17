@@ -34,10 +34,10 @@ namespace py {
 
 static bool datatable_has_nas(DataTable* dt, size_t force_col) {
   if (force_col != size_t(-1)) {
-    return dt->get_column(force_col)->countna() > 0;
+    return dt->get_ocolumn(force_col).na_count() > 0;
   }
   for (size_t i = 0; i < dt->ncols; ++i) {
-    if (dt->get_column(i)->countna() > 0) {
+    if (dt->get_ocolumn(i).na_count() > 0) {
       return true;
     }
   }
@@ -129,7 +129,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
     size_t n_chunks = ncols * n_row_chunks;
     // precompute `countna` for all columns
-    for (size_t j = 0; j < ncols; ++j) dt->get_column(j)->countna();
+    for (size_t j = 0; j < ncols; ++j) dt->get_ocolumn(j).na_count();
 
     dt::parallel_for_static(n_chunks,
       [&](size_t j) {
