@@ -182,6 +182,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed comparison of string columns vs. value `None` (#1912).
 
+- Fixed a crash when trying to select individual cells from a joined Frame,
+  for the cells that were un-matched during the join (#1917).
+
 
 ### Changed
 
@@ -239,8 +242,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - [Jonathan McKinney][] (#1816, #1837),
   - [Mateusz Dymczyk][] (#1912),
   - [NachiGithub][] (#1789, #1793),
-  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905)
-  - [Tom Kraljevic][] (#1805)
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905, #1917),
+  - [Tom Kraljevic][] (#1805),
   - [XiaomoWu][] (#1825)
 
 
