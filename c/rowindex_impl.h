@@ -138,7 +138,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
-    ArrayRowIndexImpl(const Column*);
+    ArrayRowIndexImpl(const OColumn&);
     ~ArrayRowIndexImpl() override;
 
     const int32_t* indices32() const noexcept;

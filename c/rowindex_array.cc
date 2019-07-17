@@ -163,19 +163,19 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(const OColumn& col) {
   data = nullptr;
   owned = true;
   ascending = false;
-  switch (col->stype()) {
+  switch (col.stype()) {
     case SType::BOOL:
-      init_from_boolean_column(static_cast<const BoolColumn*>(col));
+      init_from_boolean_column(static_cast<const BoolColumn*>(col.get()));
       break;
     case SType::INT8:
     case SType::INT16:
     case SType::INT32:
     case SType::INT64:
-      init_from_integer_column(col);
+      init_from_integer_column(col.get());
       break;
     default:
       throw ValueError() << "Column is not of boolean or integer type";
