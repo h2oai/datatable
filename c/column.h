@@ -341,10 +341,21 @@ private:
 
 // "owner" of a Column
 // Eventually will be renamed into simple Column
-class OColumn {
+class OColumn
+{
   private:
+    // shared pointer; its lifetime is governed by `pcol->refcount`: when the
+    // reference count reaches 0, the object is deleted.
+    // We do not use std::shared_ptr<> here primarily because it makes it much
+    // harder to inspect the object in GDB / LLDB.
     Column* pcol;
 
+  public:
+    static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
+
+  //------------------------------------
+  // Constructors
+  //------------------------------------
   public:
     OColumn();
     explicit OColumn(Column* col);  // Steal ownership
@@ -354,18 +365,39 @@ class OColumn {
     OColumn& operator=(OColumn&&);
     ~OColumn();
 
+    // TEMP accessors to the underlying implementation
     const Column* get() const;
     Column* release();
 
-    operator bool() const noexcept;
     Column* operator->();
     const Column* operator->() const;
 
-    SType stype() const noexcept;
-    LType ltype() const noexcept;
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
     size_t nrows() const noexcept;
     size_t na_count() const;
-    bool is_material() const noexcept { return true; }
+    SType stype() const noexcept;
+    LType ltype() const noexcept;
+    bool is_fixedwidth() const noexcept;
+    bool is_virtual() const noexcept;
+    size_t elemsize() const noexcept;
+
+    operator bool() const noexcept;
+
+  //------------------------------------
+  // Data access
+  //------------------------------------
+  public:
+    bool get_element(size_t i, int32_t* out) const;
+    bool get_element(size_t i, int64_t* out) const;
+    bool get_element(size_t i, float* out) const;
+    bool get_element(size_t i, double* out) const;
+    bool get_element(size_t i, CString* out) const;
+    bool get_element(size_t i, py::oobj* out) const;
+    py::oobj get_element_as_pyobject(size_t i) const;
+
 
     void rbind(std::vector<const Column*>& columns);
 

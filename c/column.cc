@@ -229,10 +229,6 @@ Column* OColumn::release() {
   return ret;
 }
 
-OColumn::operator bool() const noexcept {
-  return (pcol != nullptr);
-}
-
 Column* OColumn::operator->() {
   return pcol;
 }
@@ -242,13 +238,7 @@ const Column* OColumn::operator->() const {
 }
 
 
-SType OColumn::stype() const noexcept {
-  return pcol->stype();
-}
-
-LType OColumn::ltype() const noexcept {
-  return info(pcol->stype()).ltype();
-}
+//---- Properties ----------------------
 
 size_t OColumn::nrows() const noexcept {
   return pcol->nrows;
@@ -257,6 +247,31 @@ size_t OColumn::nrows() const noexcept {
 size_t OColumn::na_count() const {
   return pcol->countna();
 }
+
+SType OColumn::stype() const noexcept {
+  return pcol->stype();
+}
+
+LType OColumn::ltype() const noexcept {
+  return info(pcol->stype()).ltype();
+}
+
+bool OColumn::is_fixedwidth() const noexcept {
+  return !info(pcol->stype()).is_varwidth();
+}
+
+bool OColumn::is_virtual() const noexcept {
+  return false;
+}
+
+size_t OColumn::elemsize() const noexcept {
+  return info(pcol->stype()).elemsize();
+}
+
+OColumn::operator bool() const noexcept {
+  return (pcol != nullptr);
+}
+
 
 
 void OColumn::rbind(std::vector<const Column*>& columns) {
