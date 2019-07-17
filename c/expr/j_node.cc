@@ -86,7 +86,8 @@ void allcols_jn::select(workframe& wf) {
     const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
       if (by.has_group_column(j)) continue;
-      wf.add_column(dti->get_column(j), rii, std::string(dti_names[j]));
+      OColumn newcol = dti->get_ocolumn(j);  // copy
+      wf.add_column(std::move(newcol), rii, std::string(dti_names[j]));
     }
   }
 }
@@ -184,7 +185,8 @@ void collist_jn::select(workframe& wf) {
   wf.reserve(n);
   for (size_t i = 0; i < n; ++i) {
     size_t j = indices[i];
-    wf.add_column(dt0->get_column(j), ri0, std::move(names[i]));
+    OColumn newcol = dt0->get_ocolumn(j);  // copy
+    wf.add_column(std::move(newcol), ri0, std::move(names[i]));
   }
 }
 
@@ -295,7 +297,8 @@ void exprlist_jn::select(workframe& wf) {
   RowIndex ri0;  // empty rowindex
   for (size_t i = 0; i < n; ++i) {
     auto col = exprs[i]->evaluate_eager(wf);
-    wf.add_column(col.get(), ri0, std::move(names[i]));
+    OColumn newcol(col.release());
+    wf.add_column(std::move(newcol), ri0, std::move(names[i]));
   }
 }
 
