@@ -273,6 +273,12 @@ OColumn::operator bool() const noexcept {
 }
 
 
+//---- Data access ---------------------
+
+py::oobj OColumn::get_element_as_pyobject(size_t i) const {
+  return pcol->get_value_at_index(i);
+}
+
 
 void OColumn::rbind(colvec& columns) {
   pcol = pcol->rbind(columns);
