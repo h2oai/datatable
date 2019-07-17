@@ -250,8 +250,8 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     // and create a vector of categoricals.
     for (size_t i = 0; i < dt->ncols; ++i) {
       bool is_continuous = true;
-      auto col = dt->get_column(i);
-      switch (col->stype()) {
+      const OColumn& col = dt->get_ocolumn(i);
+      switch (col.stype()) {
         case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, BoolColumn>(col)); break;
         case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, IntColumn<int8_t>>(col)); break;
         case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorReal<int16_t, T, IntColumn<int16_t>>(col)); break;

@@ -109,9 +109,6 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
-    const Column* get_column(size_t i) const {
-      return columns[i].get();
-    }
     Column* get_column(size_t i) {
       return const_cast<Column*>(columns[i].get());
     }
