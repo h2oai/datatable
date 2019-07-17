@@ -276,3 +276,22 @@ def test_issue1800():
     assert X2.to_dict() == {"A": [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
                             "N": [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4,
                                   0.5, 0.5, None, None]}
+
+
+def test_select_from_joined():
+    # Test that selecting unmatched elements in the joined frame does not
+    # lead to a crash. Selection should be done using the "fast" DT[i, j]
+    # syntax, where both i and j are integers.
+    # See issue #1917
+    JDT = dt.Frame(A=[0], B=[True], C1=[34], C2=[17], C3=[18], C4=[20],
+                   D1=[5.2], D2=[-7.7], E1=["foo"], E2=["bar"],
+                   stypes={"A": dt.int32, "B": dt.bool8,
+                           "C1": dt.int8, "C2": dt.int16, "C3": dt.int32, "C4": dt.int64,
+                           "D1": dt.float32, "D2": dt.float64,
+                           "E1": dt.str32, "E2": dt.str64})
+    JDT.key = "A"
+    SRC = dt.Frame(A=[1, 3, 7], stype=dt.int32)
+    DT = SRC[:, :, join(JDT)]
+    for i in range(3):
+        for j in range(1, DT.ncols):
+            assert DT[i, j] is None
