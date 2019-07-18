@@ -27,7 +27,7 @@ namespace expr {
 expr_literal::expr_literal(py::robj v) {
   py::olist lst(1);
   lst.set(0, v);
-  col = colptr(Column::from_pylist(lst, 0));
+  col = OColumn(Column::from_pylist(lst, 0));
 }
 
 
@@ -41,8 +41,8 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-colptr expr_literal::evaluate_eager(workframe&) {
-  return colptr(col->shallowcopy());
+OColumn expr_literal::evaluate_eager(workframe&) {
+  return OColumn(col->shallowcopy());
 }
 
 

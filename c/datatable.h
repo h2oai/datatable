@@ -46,7 +46,6 @@ using colvec = std::vector<OColumn>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
-using colptr  = std::unique_ptr<Column>;
 
 
 //==============================================================================

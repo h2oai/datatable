@@ -97,7 +97,7 @@ template<typename T1, typename T2, typename T3>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
     const /* T1* */ T2* values;
-    colptr column;
+    OColumn column;
   public:
     explicit ColumnConvertorReal(const OColumn&);
     T2 operator[](size_t) const override;
@@ -116,8 +116,8 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const OColumn& column_in) :
   xassert((std::is_same<T2, float>::value || std::is_same<T2, double>::value));
   SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
 
-  column = colptr(column_in->cast(to_stype));
-  auto column_real = static_cast<RealColumn<T2>*>(column.get());
+  column = OColumn(column_in->cast(to_stype));
+  auto column_real = static_cast<const RealColumn<T2>*>(column.get());
   this->min = column_real->min();
   this->max = column_real->max();
   values = column_real->elements_r();

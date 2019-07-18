@@ -87,7 +87,7 @@ GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
 }
 
 
-colptr expr_column::evaluate_eager(workframe& wf) {
+OColumn expr_column::evaluate_eager(workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
   OColumn newcol = dt->get_ocolumn(col_id);  // copy
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
@@ -95,7 +95,7 @@ colptr expr_column::evaluate_eager(workframe& wf) {
   if (dt_ri) {
     newcol->replace_rowindex(wf._product(dt_ri, col_ri));
   }
-  return colptr(newcol.release());
+  return OColumn(newcol.release());
 }
 
 

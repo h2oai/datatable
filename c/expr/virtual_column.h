@@ -28,7 +28,6 @@ namespace dt {
 namespace expr {
 
 class virtual_column;
-using colptr = std::unique_ptr<Column>;
 using vcolptr = std::unique_ptr<virtual_column>;
 
 
@@ -62,11 +61,11 @@ class virtual_column {
     virtual void compute(size_t i, double*  out);
     virtual void compute(size_t i, CString* out);
 
-    virtual colptr materialize();
+    virtual OColumn materialize();
 };
 
 
-vcolptr virtualize(colptr&& column);
+vcolptr virtualize(OColumn&& column);
 
 vcolptr cast(vcolptr&& vcol, SType new_stype);
 
