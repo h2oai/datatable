@@ -341,17 +341,17 @@ void CsvWriter::write()
   // Start writing the CSV
   job.add_tentative_amount(WRITE_MAIN);
   job.set_message("Writing CSV");
+  if (logger) {
+    log() << "Writing file using " << nchunks << " chunks, with "
+          << rows_per_chunk << " rows per chunk";
+    log() << "Using nthreads = " << nthreads;
+    log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
+  }
+
   dt::parallel_for_ordered(
     /* n_iterations = */ nchunks,
     /* n_threads = */ nthreads,
     [&](dt::ordered* o) {
-      if (dt::this_thread_index() == 0) {
-        std::lock_guard<std::mutex> lock(dt::python_mutex());
-        log() << "Writing file using " << nchunks << " chunks, with "
-              << rows_per_chunk << " rows per chunk";
-        log() << "Using nthreads = " << dt::num_threads_in_team();
-        log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
-      }
       // Initialize thread-local variables
       dt::array<char> thbuf(bytes_per_chunk * 2);
       size_t th_write_at = 0;
