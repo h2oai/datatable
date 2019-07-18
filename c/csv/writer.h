@@ -18,7 +18,17 @@
 #include "writebuf.h"
 
 
-class CsvColumn;
+class ColumnWriter {
+public:
+  using writer_fn = void (*)(char** pch, ColumnWriter* col, size_t row);
+  const void* data;
+  const char* strbuf;
+  writer_fn writer;
+
+  ColumnWriter();
+  explicit ColumnWriter(Column* col);
+  void write(char** pch, size_t row);
+};
 
 
 class CsvWriter {
@@ -37,9 +47,7 @@ class CsvWriter {
   double rows_per_chunk;
   size_t bytes_per_chunk;
   size_t nchunks;
-  std::vector<CsvColumn*> columns;
-  std::vector<CsvColumn*> strcolumns32;
-  std::vector<CsvColumn*> strcolumns64;
+  std::vector<ColumnWriter> writers;
   double t_last;
   double t_size_estimation;
   double t_create_target;

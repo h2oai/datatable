@@ -24,10 +24,10 @@
 #include "types.h"
 
 
-class CsvColumn;
+class ColumnWriter;
 static void write_string(char** pch, const char* value);
 
-typedef void (*writer_fn)(char** pch, CsvColumn* col, size_t row);
+typedef void (*writer_fn)(char** pch, ColumnWriter* col, size_t row);
 
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
@@ -37,47 +37,40 @@ static constexpr size_t WRITE_MAIN = 100;
 static constexpr size_t WRITE_FINALIZE = 2;
 
 
-// TODO: replace with classes that derive from CsvColumn and implement write()
-class CsvColumn {
-public:
-  const void* data;
-  const char* strbuf;
-  writer_fn writer;
 
-  explicit CsvColumn(Column* col) {
-    data = col->data();
-    strbuf = nullptr;
-    writer = writers_per_stype[static_cast<int>(col->stype())];
-    if (!writer) {
-      throw ValueError() << "Cannot write type " << col->stype();
-    }
-    if (col->stype() == SType::STR32) {
-      strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
-      data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
-    }
-    else if (col->stype() == SType::STR64) {
-      strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
-      data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
-    }
-    TRACK(this, sizeof(*this), "write::CsvColumn");
-  }
+//------------------------------------------------------------------------------
+// ColumnWriter
+//------------------------------------------------------------------------------
 
-  ~CsvColumn() {
-    UNTRACK(this);
-  }
+ColumnWriter::ColumnWriter() {
+  data = nullptr;
+  strbuf = nullptr;
+  writer = nullptr;
+}
 
-  void write(char** pch, size_t row) {
-    if (row == RowIndex::NA) return;
-    writer(pch, this, row);
+ColumnWriter::ColumnWriter(Column* col) {
+  data = col->data();
+  strbuf = nullptr;
+  writer = writers_per_stype[static_cast<int>(col->stype())];
+  if (!writer) {
+    throw ValueError() << "Cannot write type " << col->stype();
   }
+  if (col->stype() == SType::STR32) {
+    strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
+    data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
+  }
+  else if (col->stype() == SType::STR64) {
+    strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
+    data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
+  }
+  TRACK(this, sizeof(*this), "write::ColumnWriter");
+}
 
-  // This should only be called on a CsvColumn of type i4s / i8s!
-  template <typename T>
-  size_t strsize(size_t row0, size_t row1) {
-    const T* offsets = static_cast<const T*>(data);
-    return (offsets[row1 - 1] - offsets[row0 - 1]) & ~GETNA<T>();
-  }
-};
+void ColumnWriter::write(char** pch, size_t row) {
+  if (row == RowIndex::NA) return;
+  writer(pch, this, row);
+}
+
 
 
 
@@ -88,7 +81,7 @@ public:
 // experiments and benchmarks.
 //=================================================================================================
 
-static void write_b1(char** pch, CsvColumn* col, size_t row) {
+static void write_b1(char** pch, ColumnWriter* col, size_t row) {
   int8_t value = static_cast<const int8_t*>(col->data)[row];
   **pch = static_cast<char>(value) + '0';
   *pch += (value != NA_I1);
@@ -96,7 +89,7 @@ static void write_b1(char** pch, CsvColumn* col, size_t row) {
 
 
 template <typename T>
-void write_iN(char** pch, CsvColumn* col, size_t row) {
+void write_iN(char** pch, ColumnWriter* col, size_t row) {
   T value = static_cast<const T*>(col->data)[row];
   if (ISNA<T>(value)) return;
   toa<T>(pch, value);
@@ -104,7 +97,7 @@ void write_iN(char** pch, CsvColumn* col, size_t row) {
 
 
 template <typename T>
-void write_str(char** pch, CsvColumn* col, size_t row)
+void write_str(char** pch, ColumnWriter* col, size_t row)
 {
   T offset1 = (static_cast<const T*>(col->data))[row];
   T offset0 = (static_cast<const T*>(col->data))[row - 1] & ~GETNA<T>();
@@ -146,7 +139,7 @@ void write_str(char** pch, CsvColumn* col, size_t row)
 
 static char hexdigits16[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-static void write_f8_hex(char** pch, CsvColumn* col, size_t row)
+static void write_f8_hex(char** pch, ColumnWriter* col, size_t row)
 {
   // Read the value as if it was uint64_t
   uint64_t value = static_cast<const uint64_t*>(col->data)[row];
@@ -193,7 +186,7 @@ static void write_f8_hex(char** pch, CsvColumn* col, size_t row)
 }
 
 
-static void write_f4_hex(char** pch, CsvColumn* col, size_t row)
+static void write_f4_hex(char** pch, ColumnWriter* col, size_t row)
 {
   // Read the value as if it was uint32_t
   uint32_t value = static_cast<const uint32_t*>(col->data)[row];
@@ -234,12 +227,12 @@ static void write_f4_hex(char** pch, CsvColumn* col, size_t row)
 }
 
 
-static void write_f8_dec(char** pch, CsvColumn* col, size_t row) {
+static void write_f8_dec(char** pch, ColumnWriter* col, size_t row) {
   double value = static_cast<const double*>(col->data)[row];
   dtoa(pch, value);
 }
 
-static void write_f4_dec(char** pch, CsvColumn* col, size_t row) {
+static void write_f4_dec(char** pch, ColumnWriter* col, size_t row) {
   float value = static_cast<const float*>(col->data)[row];
   ftoa(pch, value);
 }
@@ -292,7 +285,7 @@ static void write_string(char** pch, const char *value)
 //
 //=================================================================================================
 
-CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
+CsvWriter::CsvWriter(DataTable* dt_, const std::string& path_)
   : dt(dt_),
     path(path_),
     nthreads(1),
@@ -302,12 +295,6 @@ CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
     t_last(0)
 {}
 
-
-CsvWriter::~CsvWriter()
-{
-  for (size_t i = 0; i < columns.size(); i++)
-    delete columns[i];
-}
 
 
 void CsvWriter::write()
@@ -335,8 +322,6 @@ void CsvWriter::write()
 
   determine_chunking_strategy(bytes_total, nrows);
   create_column_writers(ncols);
-  nstrcols32 = strcolumns32.size();
-  nstrcols64 = strcolumns64.size();
 
   // Start writing the CSV
   job.add_tentative_amount(WRITE_MAIN);
@@ -345,7 +330,7 @@ void CsvWriter::write()
     log() << "Writing file using " << nchunks << " chunks, with "
           << rows_per_chunk << " rows per chunk";
     log() << "Using nthreads = " << nthreads;
-    log() << "Initial buffer size in each thread: " << bytes_per_chunk*2;
+    log() << "Initial buffer size in each thread: " << bytes_per_chunk * 2;
   }
 
   dt::parallel_for_ordered(
@@ -386,7 +371,7 @@ void CsvWriter::write()
             ri0.iterate(row0, row1, 1,
               [&](size_t, size_t j) {
                 for (size_t col = 0; col < ncols; ++col) {
-                  columns[col]->write(&thch, j);
+                  writers[col].write(&thch, j);
                   *thch++ = ',';
                 }
                 thch[-1] = '\n';
@@ -399,7 +384,7 @@ void CsvWriter::write()
               }
               // Run the serializer function
               for (size_t col = 0; col < ncols; ++col) {
-                columns[col]->write(&thch, js[colmapping[col]]);
+                writers[col].write(&thch, js[colmapping[col]]);
                 *thch++ = ',';
               }
               thch[-1] = '\n';
@@ -587,21 +572,18 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, size_t nrows)
 
 /**
  * Initialize writers for each column in the DataTable, i.e. fill in the vector
- * `columns` of `CsvColumn` objects. The objects created depend on the type of
+ * `columns` of `ColumnWriter` objects. The objects created depend on the type of
  * each column, and on the options passed to the CsvWriter.
  */
 void CsvWriter::create_column_writers(size_t ncols)
 {
-  columns.reserve(ncols);
+  writers.reserve(ncols);
   writers_per_stype[int(SType::FLOAT32)] = usehex? write_f4_hex : write_f4_dec;
   writers_per_stype[int(SType::FLOAT64)] = usehex? write_f8_hex : write_f8_dec;
   for (size_t i = 0; i < ncols; ++i) {
     Column* dtcol = dt->columns[i];
     SType stype = dtcol->stype();
-    CsvColumn *csvcol = new CsvColumn(dtcol);
-    columns.push_back(csvcol);
-    if (stype == SType::STR32) strcolumns32.push_back(csvcol);
-    if (stype == SType::STR64) strcolumns64.push_back(csvcol);
+    writers.emplace_back(dtcol);
   }
   t_prepare_for_writing = checkpoint();
 }
