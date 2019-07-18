@@ -39,7 +39,7 @@ namespace py {
 template <typename T>
 static OColumn _make_column(SType stype, T value) {
   OColumn col{ Column::new_data_column(stype, 1) };
-  static_cast<FwColumn<T>*>(col.get())->set_elem(0, value);
+  static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()))->set_elem(0, value);
   return col;
 }
 

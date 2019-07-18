@@ -261,7 +261,7 @@ bool OColumn::is_fixedwidth() const noexcept {
 }
 
 bool OColumn::is_virtual() const noexcept {
-  return false;
+  return bool(pcol->rowindex());
 }
 
 size_t OColumn::elemsize() const noexcept {

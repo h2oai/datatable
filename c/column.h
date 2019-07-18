@@ -193,7 +193,7 @@ public:
    * column.
    */
   virtual void resize_and_fill(size_t nrows) = 0;
-  Column* repeat(size_t nreps);
+  Column* repeat(size_t nreps) const;
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
