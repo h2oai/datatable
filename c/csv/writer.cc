@@ -67,6 +67,7 @@ public:
   }
 
   void write(char** pch, size_t row) {
+    if (row == RowIndex::NA) return;
     writer(pch, this, row);
   }
 
@@ -384,7 +385,6 @@ void CsvWriter::write()
           if (rcs.size() == 1) {
             ri0.iterate(row0, row1, 1,
               [&](size_t, size_t j) {
-                if (j == RowIndex::NA) return;
                 for (size_t col = 0; col < ncols; ++col) {
                   columns[col]->write(&thch, j);
                   *thch++ = ',';

@@ -395,3 +395,14 @@ def test_issue1615():
     DT.cbind(dt.Frame(B=range(500)))
     RES = dt.fread(DT.to_csv())
     assert_equals(RES, DT)
+
+
+def test_write_joined_frame():
+    # The joined frame will have a rowindex with some rows missing (-1).
+    # Check that such frame can be written correctly. See issue #1919.
+    DT1 = dt.Frame(A=range(5), B=list('ABCDE'))
+    DT1.key = "A"
+    DT2 = dt.Frame(A=[3, 7, 11, -2, 0, 1])
+    DT = DT2[:, :, dt.join(DT1)]
+    out = DT.to_csv()
+    assert out == 'A,B\n3,D\n7,\n11,\n-2,\n0,A\n1,B\n'

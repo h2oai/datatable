@@ -185,6 +185,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed a crash when trying to select individual cells from a joined Frame,
   for the cells that were un-matched during the join (#1917).
 
+- Fixed a crash when writing a joined frame into CSV (#1919).
+
 
 ### Changed
 
@@ -235,15 +237,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890, #1891),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890,
+    #1891, #1919),
+
   - [Antorsae][] (#1639),
+
   - [Olivier][] (#1872),
+
   - [Hawk Berry][] (#1834),
+
   - [Jonathan McKinney][] (#1816, #1837),
+
   - [Mateusz Dymczyk][] (#1912),
+
   - [NachiGithub][] (#1789, #1793),
-  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905, #1917),
+
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905,
+    #1917),
+
   - [Tom Kraljevic][] (#1805),
+
   - [XiaomoWu][] (#1825)
 
 
