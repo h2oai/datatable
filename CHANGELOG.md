@@ -97,6 +97,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Single-column frames can be be used as sources for Frame construction.
 
+- CSV writer now quotes fields containing single-quote mark (`'`).
+
 
 ### Fixed
 
