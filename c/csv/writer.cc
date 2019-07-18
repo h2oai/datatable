@@ -121,19 +121,19 @@ void write_str(char** pch, CsvColumn* col, size_t row)
   const uint8_t* strend = reinterpret_cast<const uint8_t*>(col->strbuf) + offset1;
   const uint8_t* sch = strstart;
   if (*sch == 32) goto quote;
-  while (sch < strend) {  // ',' is 44, '"' is 34
+  while (sch < strend) {  // ',' is 44, '"' is 34, "'" is 39
     uint8_t c = *sch;
     // First `c <= 44` is to give an opportunity to short-circuit early.
-    if (c <= 44 && (c == 44 || c == 34 || c < 32)) break;
+    if (c <= 44 && (c == 44 || c == 39 || c == 34 || c < 32)) break;
     *ch++ = static_cast<char>(c);
     sch++;
   }
   if (sch < strend || sch[-1] == 32) {
     quote:
-    ch = *pch;
-    std::memcpy(ch + 1, strstart, static_cast<size_t>(sch - strstart));
-    *ch = '"';
-    ch += sch - strstart + 1;
+    ch = *pch; // rewind to the beginning
+    *ch++ = '"';
+    std::memcpy(ch, strstart, static_cast<size_t>(sch - strstart));
+    ch += sch - strstart;
     while (sch < strend) {
       if (*sch == '"') *ch++ = '"';  // double the quote
       *ch++ = static_cast<char>(*sch++);
