@@ -19,11 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/writer.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "write/csv_writer.h"
 #include "options.h"
 namespace py {
 
@@ -39,8 +39,7 @@ static PKArgs args_to_csv(
     {"path", "nthreads", "hex", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, nthreads=None, hex=False, verbose=False,
-       _strategy="auto")
+R"(to_csv(self, path=None, hex=False, verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -52,12 +51,6 @@ path: str
     already exists, it will be overwritten. If no path is given,
     then the Frame will be serialized into a string, and that string
     will be returned.
-
-nthreads: int
-    How many threads to use for writing. The value of 0 means to use
-    all available threads. Negative values indicate to use that many
-    threads less than the maximum available. If this parameter is
-    omitted then `dt.options.nthreads` will be used.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
@@ -88,13 +81,6 @@ oobj Frame::to_csv(const PKArgs& args)
   path = oobj::import("os", "path", "expanduser").call({path});
   std::string filename = path.to_string();
 
-  // nthreads
-  int32_t maxth = static_cast<int32_t>(dt::num_threads_in_pool());
-  int32_t nthreads = args[1].to<int32_t>(maxth);
-  if (nthreads > maxth) nthreads = maxth;
-  if (nthreads <= 0) nthreads += maxth;
-  if (nthreads <= 0) nthreads = 1;
-
   // hex
   bool hex = args[2].to<bool>(false);
 
@@ -111,27 +97,12 @@ oobj Frame::to_csv(const PKArgs& args)
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
-  CsvWriter cwriter(dt, filename);
-  cwriter.set_nthreads(static_cast<size_t>(nthreads));
-  cwriter.set_strategy(sstrategy);
-  cwriter.set_usehex(hex);
-  cwriter.set_logger(logger);
-
-  cwriter.write();
-
-  // Post-process the result
-  if (filename.empty()) {
-    WritableBuffer* wb = cwriter.get_output_buffer();
-    MemoryWritableBuffer* mb = dynamic_cast<MemoryWritableBuffer*>(wb);
-    xassert(mb);
-
-    // -1 because the buffer also stores trailing \0
-    size_t len = mb->size() - 1;
-    char* str = static_cast<char*>(mb->get_cptr());
-    return ostring(str, len);
-  }
-
-  return None();
+  dt::write::csv_writer writer(dt, filename);
+  writer.set_strategy(sstrategy);
+  writer.set_usehex(hex);
+  writer.set_logger(logger);
+  writer.write_main();
+  return writer.get_result();
 }
 
 
@@ -143,8 +114,6 @@ oobj Frame::to_csv(const PKArgs& args)
 
 void Frame::_init_tocsv(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::to_csv, args_to_csv));
-
-  init_csvwrite_constants();
 }
 
 

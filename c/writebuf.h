@@ -97,6 +97,10 @@ public:
   void write(size_t n, const void* src) {
     write_at(prep_write(n, src), n, src);
   }
+  void write(const CString& src) {
+    size_t at = prep_write(static_cast<size_t>(src.size), src.ch);
+    write_at(at, static_cast<size_t>(src.size), src.ch);
+  }
 
   // Prevent copying / assignment for these objects
   WritableBuffer(const WritableBuffer&) = delete;
