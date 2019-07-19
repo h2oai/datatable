@@ -34,6 +34,43 @@ namespace dt {
 namespace write {
 
 
+/**
+ * Abstract base class for csv_writer, json_writer, arff_writer, etc.
+ *
+ * It provides the main writing framework, while the derived writers
+ * only fill-in several methods such as write_preamble(), write_row(),
+ * write_epilogue(), etc.
+ *
+ * ---- Implementation details ---------
+ * The main part of the write_manager is the `columns` vector, which
+ * contains writers for each column in the input DataTable. The write
+ * loop is then simple: iterate over `range(dt->nrows)`, and for each
+ * row iterate over the `columns`, and write the corresponding field
+ * into the output using `columns[i].write(ctx, row)`.
+ *
+ * Each column_builder in the `columns` vector consists of two parts:
+ * a value_reader, and a value_writer. Both implement the
+ * State/Strategy pattern (see [GoF]). The reader is responsible for
+ * retrieving the value at a given row from the underlying column and
+ * storing it in the internal buffer; the writer is then responsible
+ * for taking that value and serializing it into the output.
+ *
+ * The writing_context class acts as an intermediary between the
+ * manager, the reader, and the writer. Several instances of this
+ * class are instantiated during reading: one for each thread. This
+ * class contains:
+ *   - a temporary writing buffer (each thread first writes into its
+ *     own buffer, and then its content gets copied into the output);
+ *   - the "value" storage, where value_reader saves the value it
+ *     just read, and value_writer grabs that value to write it into
+ *     the output.
+ *
+ * NAs are handled generically: the value_reader returns a boolean
+ * flag inficating whether the value that in the requested row is
+ * valid or is NA. When it is NA, the column_builder doesn't even
+ * need to invoke its writer -- the NA value is written directly.
+ *
+ */
 class write_manager {
   protected:
     // Input parameters
@@ -87,6 +124,7 @@ class write_manager {
     void finalize_output();
 
   protected:
+    // Return the name of this job to be passed to the progress bar
     virtual std::string get_job_name() const = 0;
 
     // Computes `fixed_size_per_row` and `estimated_output_size`
