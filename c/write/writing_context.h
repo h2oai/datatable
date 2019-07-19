@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,62 +19,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_LOGGER_h
-#define dt_UTILS_LOGGER_h
-#include <iomanip>
-#include <sstream>
-#include "python/_all.h"
-#include "python/obj.h"
-#include "python/string.h"
+#ifndef dt_WRITE_WRITING_CONTEXT_h
+#define dt_WRITE_WRITING_CONTEXT_h
+#include <memory>     // std::unique_ptr
+#include "types.h"
+namespace dt {
+namespace write {
 
 
-struct ff {
-  int width, precision;
-  double value;
-  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
-};
 
+class writing_context {
+  public:
+    char* ch;   // current writing position
 
-class LogMessage {
+    union {
+      int32_t value_i32;
+      int64_t value_i64;
+      float   value_f32;
+      double  value_f64;
+      CString value_str;
+    };
+
   private:
-    std::ostringstream out;
-    py::oobj logger;
+    // do not write var-width fields past this pointer, need to reallocate
+    char* end;
+    char* buffer;
+    size_t buffer_capacity;
+    size_t fixed_size_per_row;
 
   public:
-    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
-    LogMessage(const LogMessage&) = delete;
+    writing_context(size_t size_per_row, size_t nrows);
 
-    LogMessage(LogMessage&& other) {
-      #if defined(__GNUC__) && __GNUC__ < 5
-        // In gcc4.8 string stream was not moveable
-        out << other.out.str();
-      #else
-        std::swap(out, other.out);
-      #endif
-      logger = std::move(other.logger);
-    }
+    void ensure_buffer_capacity(size_t sz);
+    void clear_buffer();
+    CString get_buffer() const;
 
-    ~LogMessage() {
-      if (!logger) return;
-      try {
-        py::ostring s(out.str());
-        logger.get_attr("debug").call({s});
-      } catch (...) {}
-    }
+    void write_na() {}
 
-    template <typename T>
-    LogMessage& operator <<(const T& value) {
-      if (logger) out << value;
-      return *this;
-    }
-
-    LogMessage& operator <<(const ff& f) {
-      out << std::fixed << std::setw(f.width)
-          << std::setprecision(f.precision)
-          << f.value;
-      return *this;
-    }
+  private:
+    void allocate(size_t sz);
 };
 
 
+
+}}  // namespace dt::write
 #endif

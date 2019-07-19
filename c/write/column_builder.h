@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,62 +19,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_LOGGER_h
-#define dt_UTILS_LOGGER_h
-#include <iomanip>
-#include <sstream>
-#include "python/_all.h"
-#include "python/obj.h"
-#include "python/string.h"
+#ifndef dt_WRITE_COLUMN_BUILDER_h
+#define dt_WRITE_COLUMN_BUILDER_h
+#include "write/output_options.h"
+#include "write/value_reader.h"
+#include "write/value_writer.h"
+namespace dt {
+namespace write {
 
 
-struct ff {
-  int width, precision;
-  double value;
-  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
-};
-
-
-class LogMessage {
+class column_builder {
   private:
-    std::ostringstream out;
-    py::oobj logger;
+    value_reader_ptr reader;
+    value_writer_ptr writer;
 
   public:
-    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
-    LogMessage(const LogMessage&) = delete;
+    column_builder(const Column*, const output_options&);
 
-    LogMessage(LogMessage&& other) {
-      #if defined(__GNUC__) && __GNUC__ < 5
-        // In gcc4.8 string stream was not moveable
-        out << other.out.str();
-      #else
-        std::swap(out, other.out);
-      #endif
-      logger = std::move(other.logger);
-    }
+    size_t get_static_output_size() const;
+    size_t get_dynamic_output_size() const;
 
-    ~LogMessage() {
-      if (!logger) return;
-      try {
-        py::ostring s(out.str());
-        logger.get_attr("debug").call({s});
-      } catch (...) {}
-    }
-
-    template <typename T>
-    LogMessage& operator <<(const T& value) {
-      if (logger) out << value;
-      return *this;
-    }
-
-    LogMessage& operator <<(const ff& f) {
-      out << std::fixed << std::setw(f.width)
-          << std::setprecision(f.precision)
-          << f.value;
-      return *this;
-    }
+    void write(writing_context& ctx, size_t row);
 };
 
 
+
+}}  // namespace dt::write
 #endif

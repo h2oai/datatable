@@ -12,16 +12,24 @@
 #include <limits>    // std::numeric_limits
 #include <string>    // std::string
 #include "python/python.h"
+using size_t = std::size_t;
 
 
 struct CString {
   const char* ch;
-  int64_t size;
+  int64_t size;  // TODO: convert into size_t
 
   CString() : ch(nullptr), size(0) {}
   CString(const char* ptr, int64_t sz) : ch(ptr), size(sz) {}
   CString(const CString&) = default;
   CString& operator=(const CString&) = default;
+  CString(const std::string& str)
+    : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
+  CString& operator=(const std::string& str) {
+    ch = str.data();
+    size = static_cast<int64_t>(str.size());
+    return *this;
+  }
   operator bool() { return ch != nullptr; }
   bool isna() const { return ch == nullptr; }
 

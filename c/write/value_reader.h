@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,62 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_LOGGER_h
-#define dt_UTILS_LOGGER_h
-#include <iomanip>
-#include <sstream>
-#include "python/_all.h"
-#include "python/obj.h"
-#include "python/string.h"
+#ifndef dt_WRITE_VALUE_READER_h
+#define dt_WRITE_VALUE_READER_h
+#include <memory>
+#include "write/writing_context.h"
+#include "column.h"
+namespace dt {
+namespace write {
 
 
-struct ff {
-  int width, precision;
-  double value;
-  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
-};
+class value_reader;
+using value_reader_ptr = std::unique_ptr<value_reader>;
 
 
-class LogMessage {
-  private:
-    std::ostringstream out;
-    py::oobj logger;
-
+class value_reader {
   public:
-    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
-    LogMessage(const LogMessage&) = delete;
+    static value_reader_ptr create(const Column* col);
+    virtual ~value_reader();
 
-    LogMessage(LogMessage&& other) {
-      #if defined(__GNUC__) && __GNUC__ < 5
-        // In gcc4.8 string stream was not moveable
-        out << other.out.str();
-      #else
-        std::swap(out, other.out);
-      #endif
-      logger = std::move(other.logger);
-    }
-
-    ~LogMessage() {
-      if (!logger) return;
-      try {
-        py::ostring s(out.str());
-        logger.get_attr("debug").call({s});
-      } catch (...) {}
-    }
-
-    template <typename T>
-    LogMessage& operator <<(const T& value) {
-      if (logger) out << value;
-      return *this;
-    }
-
-    LogMessage& operator <<(const ff& f) {
-      out << std::fixed << std::setw(f.width)
-          << std::setprecision(f.precision)
-          << f.value;
-      return *this;
-    }
+    // Read value `column[row]` and store it in the writing context
+    // as `ctx.value_XX`. Returns true if the value is valid, or
+    // false if the value is NA. When false is returned, nothing has
+    // to be stored in the writing context.
+    //
+    // The value stored depends on the stype of the source Column:
+    //   BOOL, INT8, INT16, INT32 -> value_i32
+    //   INT64 -> value_i64
+    //   FLOAT32 -> value_f32
+    //   FLOAT64 -> value_f64
+    //   STR32, STR64 -> value_str
+    //
+    virtual bool read(writing_context& ctx, size_t row) const = 0;
 };
 
 
+}} // namespace dt::write
 #endif
