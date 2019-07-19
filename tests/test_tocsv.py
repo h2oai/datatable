@@ -411,3 +411,12 @@ def test_write_joined_frame():
     DT = DT2[:, :, dt.join(DT1)]
     out = DT.to_csv()
     assert out == 'A,B\n3,D\n7,\n11,\n-2,\n0,A\n1,B\n'
+
+
+def test_issue1921():
+    n = 1921
+    DTA = dt.Frame(A=range(n))
+    DTB = dt.repeat(dt.Frame(B=["hey"], stype=dt.str64), n)
+    DT = dt.cbind(DTA, DTB)
+    out = DT.to_csv()
+    assert out == "\n".join(["A,B"] + ["%d,hey" % i for i in range(n)] + [""])
