@@ -25,6 +25,13 @@
 namespace dt {
 namespace write {
 
+// Ignore this warning (which should really be emitted for .h files only):
+//     warning: '...' has no out-of-line virtual method definitions; its vtable
+//     will be emitted in every translation unit.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-vtables"
+
+
 
 //------------------------------------------------------------------------------
 // view_column_reader
@@ -40,6 +47,7 @@ class view_column_reader : public value_reader {
 
     bool read(writing_context& ctx, size_t row) const override {
       size_t j = rowindex[row];
+      if (j == RowIndex::NA) return false;
       return basecol->read(ctx, j);
     }
 };
@@ -144,4 +152,5 @@ value_reader_ptr value_reader::create(const Column* col) {
 
 
 
+#pragma clang diagnostic pop
 }}  // namespace dt::write

@@ -160,7 +160,6 @@ void write_manager::create_column_writers() {
 
 
 void write_manager::create_output_target() {
-  xassert(estimated_output_size > 0);
   wb = WritableBuffer::create_target(path, estimated_output_size, strategy);
 }
 
@@ -176,8 +175,8 @@ void write_manager::create_output_target() {
 void write_manager::determine_chunking_strategy()
 {
   size_t nrows = dt->nrows;
-  if (nrows == 0) return;
-  xassert(estimated_output_size > 0);
+  if (nrows == 0 || dt->ncols == 0) return;
+  xassert(estimated_output_size > 0)
   const double bytes_per_row = 1.0 * estimated_output_size / nrows;
 
   static constexpr size_t max_chunk_size = 1024 * 1024;

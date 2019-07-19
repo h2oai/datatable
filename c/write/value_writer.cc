@@ -27,6 +27,12 @@
 namespace dt {
 namespace write {
 
+// Ignore this warning (which should really be emitted for .h files only):
+//     warning: '...' has no out-of-line virtual method definitions; its vtable
+//     will be emitted in every translation unit.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-vtables"
+
 
 
 //------------------------------------------------------------------------------
@@ -159,7 +165,7 @@ class float32_hex_writer : public value_writer {
       if (exp == 0xFF) {  // nan & inf
         if (value == F32_INFINITY) {  // minus sign was already printed, if any
           std::memcpy(ch, "inf", 3);
-          ctx.ch = ch;
+          ctx.ch = ch + 3;
         }
         return;
       }
@@ -360,5 +366,5 @@ size_t value_writer::get_dynamic_output_size() const {
 
 
 
-
+#pragma clang diagnostic pop
 }}  // namespace dt::write

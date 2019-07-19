@@ -245,8 +245,7 @@ def test_save_hexdouble_random(seed):
     assert hexxed == [pyhex(v) for v in src]
 
 
-# TODO: remove dependency on Pandas once #415 is implemented
-def test_save_hexfloat_sample(pandas):
+def test_save_hexfloat_sample():
     # Manually check these values against Java's generated strings
     src = {
         0: "0x0p+0",
@@ -275,14 +274,13 @@ def test_save_hexfloat_sample(pandas):
         3.4028236e38: "inf",
         -3e328: "-inf",
     }
-    d = dt.Frame(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
-    assert d.stypes == (stype.float32, )
-    hexxed = d.to_csv(hex=True).split("\n")[1:-1]
+    DT = dt.Frame(A=list(src.keys()), stype=stype.float32)
+    assert DT.stypes == (stype.float32, )
+    hexxed = DT.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == list(src.values())
 
 
-# TODO: remove dependency on Pandas once #415 is implemented
-def test_save_float_sample(pandas):
+def test_save_float_sample():
     src = {
         0: "0.0",
         10: "10.0",
@@ -307,9 +305,9 @@ def test_save_float_sample(pandas):
         1.13404e+28: "1.13404e+28",
         1.134043e+28: "1.134043e+28",
     }
-    d = dt.Frame(pandas.DataFrame(list(src.keys()), dtype="float32"))
-    assert d.stypes == (stype.float32, )
-    decs = d.to_csv().split("\n")[1:-1]
+    DT = dt.Frame(A=list(src.keys()), stype=stype.float32)
+    assert DT.stypes == (stype.float32, )
+    decs = DT.to_csv().split("\n")[1:-1]
     assert decs == list(src.values())
 
 
