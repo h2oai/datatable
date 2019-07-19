@@ -133,6 +133,13 @@ def test_view_to_csv():
     assert txt1 == txt2
 
 
+def test_save_large():
+    n = 1000000
+    DT = dt.Frame(A=range(n))
+    out1 = DT.to_csv()
+    out2 = "\n".join(["A"] + [str(n) for n in range(n)] + [''])
+    assert out1 == out2
+
 
 
 #-------------------------------------------------------------------------------
