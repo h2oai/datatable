@@ -227,6 +227,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `DT[a:b]` for a row selection. A column slice may still be selected via
   the i-j selector `DT[:, a:b]`.
 
+- The `nthreads=` parameter in `Frame.to_csv()` was removed. If needed, please
+  set the global option `dt.options.nthreads`.
+
 
 ### Deprecated
 

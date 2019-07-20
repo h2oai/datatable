@@ -27,6 +27,12 @@
 #include "options.h"
 namespace py {
 
+static void change_to_lowercase(std::string& str) {
+  for (size_t i = 0; i < str.size(); ++i) {
+    char c = str[i];
+    if (c >= 'A' && c <= 'Z') str[i] = c - 'A' + 'a';
+  }
+}
 
 
 
@@ -36,10 +42,11 @@ namespace py {
 
 static PKArgs args_to_csv(
     0, 1, 4, false, false,
-    {"path", "nthreads", "hex", "verbose", "_strategy"},
+    {"path", "quoting", "hex", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, hex=False, verbose=False, _strategy="auto")
+R"(to_csv(self, path=None, *, quoting=csv.QUOTE_MINIMAL, hex=False,
+       verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -51,6 +58,18 @@ path: str
     already exists, it will be overwritten. If no path is given,
     then the Frame will be serialized into a string, and that string
     will be returned.
+
+quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
+    csv.QUOTE_MINIMAL (0) -- quote the string fields only as
+        necessary, i.e. if the string starts or ends with the
+        whitespace, or contains quote characters, separator, or
+        any of the C0 control characters (including newlines, etc).
+    csv.QUOTE_ALL (1) -- all fields will be quoted, both string and
+        numeric, and even boolean.
+    csv.QUOTE_NONNUMERIC (2) -- all string fields will be quoted.
+    csv.QUOTE_NONE (3) -- none of the fields will be quoted. This
+        option must be used at user's own risk: the file produced
+        may not be valid CSV.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
@@ -81,6 +100,27 @@ oobj Frame::to_csv(const PKArgs& args)
   path = oobj::import("os", "path", "expanduser").call({path});
   std::string filename = path.to_string();
 
+  // quoting
+  int quoting;
+  if (args[1].is_string()) {
+    auto quoting_str = args[1].to_string();
+    change_to_lowercase(quoting_str);
+    if (quoting_str == "minimal") quoting = 0;
+    else if (quoting_str == "all") quoting = 1;
+    else if (quoting_str == "nonnumeric") quoting = 2;
+    else if (quoting_str == "none") quoting = 3;
+    else {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): '" << quoting_str << "'";
+    }
+  } else {
+    quoting = args[1].to<int>(0);
+    if (quoting < 0 || quoting > 3) {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): " << quoting;
+    }
+  }
+
   // hex
   bool hex = args[2].to<bool>(false);
 
@@ -101,6 +141,7 @@ oobj Frame::to_csv(const PKArgs& args)
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
   writer.set_logger(logger);
+  writer.set_quoting(quoting);
   writer.write_main();
   return writer.get_result();
 }

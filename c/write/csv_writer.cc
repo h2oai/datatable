@@ -84,9 +84,12 @@ void csv_writer::write_preamble() {
   auto writer = value_writer::create(SType::STR32, options);
   writing_context ctx { 3*dt->ncols, 1 };
 
+  bool add_quotes = (options.quoting_mode == Quoting::ALL);
   for (const auto& name : column_names) {
+    if (add_quotes) *ctx.ch++ = '"';
     ctx.value_str = name;
     writer->write(ctx);
+    if (add_quotes) *ctx.ch++ = '"';
     *ctx.ch++ = ',';
   }
   // Replace the last ',' with a newline. This is valid since `ncols > 0`.
@@ -99,9 +102,16 @@ void csv_writer::write_preamble() {
 
 
 void csv_writer::write_row(writing_context& ctx, size_t j) {
-  for (auto& column : columns) {
-    column.write(ctx, j);
-    *ctx.ch++ = ',';
+  if (options.quoting_mode == Quoting::ALL) {
+    for (auto& column : columns) {
+      column.write_quoted(ctx, j);
+      *ctx.ch++ = ',';
+    }
+  } else {
+    for (auto& column : columns) {
+      column.write_normal(ctx, j);
+      *ctx.ch++ = ',';
+    }
   }
   ctx.ch[-1] = '\n';
 }
