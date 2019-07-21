@@ -264,6 +264,7 @@ class string_unquoted_writer : public value_writer {
 };
 
 
+template <bool Detect, bool PrintQuotes>
 class string_quoted_writer : public value_writer {
   public:
     string_quoted_writer() : value_writer(2) {}
@@ -283,13 +284,15 @@ class string_quoted_writer : public value_writer {
 
       char* ch = ctx.ch;
       if (strsize == 0) {
-        ch[0] = '"';
-        ch[1] = '"';
-        ctx.ch = ch + 2;
+        if (PrintQuotes) {
+          ch[0] = '"';
+          ch[1] = '"';
+          ctx.ch += 2;
+        }
         return;
       }
       const char* sch = strstart;
-      if (*sch != ' ' && strend[-1] != ' ') {
+      if (Detect && *sch != ' ' && strend[-1] != ' ') {
         while (sch < strend) {
           char c = *sch;
           if (character_needs_escaping(c)) break;
@@ -300,14 +303,18 @@ class string_quoted_writer : public value_writer {
       if (sch < strend) {
         size_t n_chars_to_copy = static_cast<size_t>(sch - strstart);
         ch = ctx.ch;
-        *ch++ = '"';
+        if (PrintQuotes) {
+          *ch++ = '"';
+        }
         std::memcpy(ch, strstart, n_chars_to_copy);
         ch += n_chars_to_copy;
         while (sch < strend) {
           if (*sch == '"') *ch++ = '"';  // double the quote
           *ch++ = *sch++;
         }
-        *ch++ = '"';
+        if (PrintQuotes) {
+          *ch++ = '"';
+        }
       }
       ctx.ch = ch;
     }
@@ -341,15 +348,23 @@ vptr value_writer::create(SType stype, const output_options& options)
     case SType::INT16: return vptr(new int16_dec_writer);
     case SType::INT32: return vptr(new int32_dec_writer);
     case SType::INT64: return vptr(new int64_dec_writer);
-    case SType::FLOAT32:
+    case SType::FLOAT32: {
       return options.floats_as_hex? vptr(new float32_hex_writer)
                                   : vptr(new float32_dec_writer);
-    case SType::FLOAT64:
+    }
+    case SType::FLOAT64: {
       return options.floats_as_hex? vptr(new float64_hex_writer)
                                   : vptr(new float64_dec_writer);
+    }
     case SType::STR32:
-    case SType::STR64:
-      return vptr(new string_quoted_writer);
+    case SType::STR64: {
+      switch (options.quoting_mode) {
+        case Quoting::MINIMAL:    return vptr(new string_quoted_writer<true, true>);
+        case Quoting::ALL:        return vptr(new string_quoted_writer<false, false>);
+        case Quoting::NONNUMERIC: return vptr(new string_quoted_writer<false, true>);
+        case Quoting::NONE:       return vptr(new string_unquoted_writer);
+      }
+    }
     default:
       throw NotImplError() << "Cannot write values of stype " << stype;
   }

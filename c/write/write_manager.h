@@ -102,6 +102,7 @@ class write_manager {
     void set_strategy(WritableBuffer::Strategy);
     void set_logger(py::oobj logger);
     void set_usehex(bool);
+    void set_quoting(int);
 
     void write_main();
     py::oobj get_result();

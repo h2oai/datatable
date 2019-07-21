@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import math
 import os
 import random
 import re
@@ -91,21 +92,6 @@ def test_write_spacenames():
     assert d.to_csv() == '"  foo","bar "," "\n1,1,0\n2,2,0\n3,3,0\n'
     dd = dt.fread(text=d.to_csv())
     assert d.to_list() == dd.to_list()
-
-
-def test_strategy(capsys, tempfile):
-    """Check that the _strategy parameter is respected."""
-    d = dt.Frame({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
-    d.to_csv(tempfile, _strategy="mmap", verbose=True)
-    out, err = capsys.readouterr()
-    assert out
-    assert err == ""
-    # assert ("Creating and memory-mapping destination file " + tempfile) in out
-    d.to_csv(tempfile, _strategy="write", verbose=True)
-    out, err = capsys.readouterr()
-    assert out
-    assert err == ""
-    # assert ("Creating an empty destination file " + tempfile) in out
 
 
 @pytest.mark.parametrize("col, scol", [("col", "col"),
@@ -420,3 +406,85 @@ def test_issue1921():
     DT = dt.cbind(DTA, DTB)
     out = DT.to_csv()
     assert out == "\n".join(["A,B"] + ["%d,hey" % i for i in range(n)] + [""])
+
+
+
+#-------------------------------------------------------------------------------
+# Test options
+#-------------------------------------------------------------------------------
+
+def test_strategy(capsys, tempfile):
+    """Check that the _strategy parameter is respected."""
+    DT = dt.Frame(A=[5, 6, 10, 12], B=["one", "two", "tree", "for"])
+    DT.to_csv(tempfile, _strategy="mmap", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+    DT.to_csv(tempfile, _strategy="write", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+
+
+def test_quoting():
+    import csv
+    DT = dt.Frame(A=range(5),
+                  B=[True, False, None, None, True],
+                  C=[0.77, -3.14, math.inf, math.nan, 200.001],
+                  D=["once", "up'on", "  a time  ", None, ", THE END"])
+    DT = DT[:, list("ABCD")]  # Fix column order in Python 3.5
+
+    answer0 = ("A,B,C,D\n"
+               "0,1,0.77,once\n"
+               "1,0,-3.14,\"up'on\"\n"
+               "2,,inf,\"  a time  \"\n"
+               "3,,,\n"
+               "4,1,200.001,\", THE END\"\n")
+    for q in [csv.QUOTE_MINIMAL, "minimal", "MINIMAL"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer0
+
+    answer1 = ('"A","B","C","D"\n'
+               '"0","1","0.77","once"\n'
+               '"1","0","-3.14","up\'on"\n'
+               '"2",,"inf","  a time  "\n'
+               '"3",,,\n'
+               '"4","1","200.001",", THE END"\n')
+    for q in [csv.QUOTE_ALL, "all", "ALL"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer1
+
+    answer2 = ('"A","B","C","D"\n'
+               '0,1,0.77,"once"\n'
+               '1,0,-3.14,"up\'on"\n'
+               '2,,inf,"  a time  "\n'
+               '3,,,\n'
+               '4,1,200.001,", THE END"\n')
+    for q in [csv.QUOTE_NONNUMERIC, "nonnumeric", "NONNUMERIC"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer2
+
+    answer3 = ('A,B,C,D\n'
+               '0,1,0.77,once\n'
+               '1,0,-3.14,up\'on\n'
+               '2,,inf,  a time  \n'
+               '3,,,\n'
+               '4,1,200.001,, THE END\n')
+    for q in [csv.QUOTE_NONE, "none", "NONE"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer3
+
+
+def test_quoting_invalid():
+    DT = dt.Frame(A=range(5))
+
+    with pytest.raises(TypeError) as e:
+        DT.to_csv(quoting=1.7)
+    assert ("Argument `quoting` in Frame.to_csv() should be an integer"
+            in str(e.value))
+
+    for q in [-1, 4, 99, "ANY"]:
+        with pytest.raises(ValueError) as e:
+            DT.to_csv(quoting=q)
+        assert ("Invalid value of the `quoting` parameter in Frame.to_csv()"
+                in str(e.value))

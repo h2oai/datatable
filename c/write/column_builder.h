@@ -39,7 +39,8 @@ class column_builder {
     size_t get_static_output_size() const;
     size_t get_dynamic_output_size() const;
 
-    void write(writing_context& ctx, size_t row);
+    void write_normal(writing_context& ctx, size_t row);
+    void write_quoted(writing_context& ctx, size_t row);
 };
 
 

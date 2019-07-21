@@ -59,6 +59,9 @@ void write_manager::set_usehex(bool f) {
   options.integers_as_hex = f;
 }
 
+void write_manager::set_quoting(int q) {
+  options.quoting_mode = static_cast<Quoting>(q);
+}
 
 
 

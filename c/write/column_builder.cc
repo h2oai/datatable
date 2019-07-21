@@ -38,10 +38,22 @@ size_t column_builder::get_dynamic_output_size() const {
 }
 
 
-void column_builder::write(writing_context& ctx, size_t row) {
+void column_builder::write_normal(writing_context& ctx, size_t row) {
   bool isvalid = reader->read(ctx, row);
   if (isvalid) {
     writer->write(ctx);
+  } else {
+    ctx.write_na();
+  }
+}
+
+
+void column_builder::write_quoted(writing_context& ctx, size_t row) {
+  bool isvalid = reader->read(ctx, row);
+  if (isvalid) {
+    *ctx.ch++ = '"';
+    writer->write(ctx);
+    *ctx.ch++ = '"';
   } else {
     ctx.write_na();
   }

@@ -21,8 +21,17 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITE_OUTPUT_OPTIONS_h
 #define dt_WRITE_OUTPUT_OPTIONS_h
+#include <cstdint>   // int8_t
 namespace dt {
 namespace write {
+
+// These constants coincide with those defined in the python `csv` module.
+enum class Quoting : int8_t {
+  MINIMAL = 0,
+  ALL = 1,
+  NONNUMERIC = 2,
+  NONE = 3
+};
 
 
 struct output_options {
@@ -33,7 +42,8 @@ struct output_options {
   bool strings_never_quote;
   bool strings_always_quote;
   bool strings_escape_quotes;
-  int : 16;
+  Quoting quoting_mode;
+  int : 8;
 
   output_options()
     : floats_as_hex(false),
@@ -45,7 +55,8 @@ struct output_options {
 };
 
 
-static_assert(sizeof(output_options) == 8, "Unexpected size of output_options");
+static_assert(sizeof(output_options) == 8,
+              "Unexpected size of output_options");
 
 
 }}  // namespace dt::write

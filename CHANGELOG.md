@@ -99,6 +99,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - CSV writer now quotes fields containing single-quote mark (`'`).
 
+- Added parameter `quoting=` to method `Frame.to_csv()`. The accepted values
+  are 4 constants from the standard `csv` module: `csv.QUOTE_MINIMAL`
+  (default), `csv.QUOTE_ALL`, `csv.QUOTE_NONNUMERIC` and `csv.QUOTE_NONE`.
+
 
 ### Fixed
 
@@ -189,6 +193,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed a crash when writing a joined frame into CSV (#1919).
 
+- Fixed a crash when writing into CSV string view columns, especially of
+  str64 type (#1921).
+
 
 ### Changed
 
@@ -220,6 +227,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `DT[a:b]` for a row selection. A column slice may still be selected via
   the i-j selector `DT[:, a:b]`.
 
+- The `nthreads=` parameter in `Frame.to_csv()` was removed. If needed, please
+  set the global option `dt.options.nthreads`.
+
 
 ### Deprecated
 
@@ -240,7 +250,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   and reporting bugs that were fixed in this release:
 
   - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890,
-    #1891, #1919),
+    #1891, #1919, #1921),
 
   - [Antorsae][] (#1639),
 
