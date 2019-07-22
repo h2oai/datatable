@@ -27,6 +27,8 @@ namespace dt {
 namespace write {
 
 
+class zlib_writer;
+
 
 class writing_context {
   public:
@@ -41,23 +43,30 @@ class writing_context {
     };
 
   private:
+    CString output;
     // do not write var-width fields past this pointer, need to reallocate
     char* end;
     char* buffer;
     size_t buffer_capacity;
     size_t fixed_size_per_row;
 
+    // Either nullptr if no compression is needed, or an instance of zlib_writer
+    // class, defined in "writer/zlib_writer.h"
+    zlib_writer* zwriter;
+
   public:
-    writing_context(size_t size_per_row, size_t nrows);
+    writing_context(size_t size_per_row, size_t nrows, bool compress = false);
+    ~writing_context();
 
     void ensure_buffer_capacity(size_t sz);
-    void clear_buffer();
+    void finalize_buffer();
     CString get_buffer() const;
+    void reset_buffer();
 
     void write_na() {}
 
   private:
-    void allocate(size_t sz);
+    void allocate_buffer(size_t sz);
 };
 
 

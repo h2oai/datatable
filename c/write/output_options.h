@@ -36,6 +36,7 @@ enum class Quoting : int8_t {
 
 struct output_options {
   // Not all of these are currently effective
+  bool compress_zlib;
   bool floats_as_hex;
   bool integers_as_hex;
   bool booleans_as_words;
@@ -43,15 +44,16 @@ struct output_options {
   bool strings_always_quote;
   bool strings_escape_quotes;
   Quoting quoting_mode;
-  int : 8;
 
   output_options()
-    : floats_as_hex(false),
+    : compress_zlib(false),
+      floats_as_hex(false),
       integers_as_hex(false),
       booleans_as_words(false),
       strings_never_quote(false),
       strings_always_quote(false),
-      strings_escape_quotes(false) {}
+      strings_escape_quotes(false),
+      quoting_mode(Quoting::MINIMAL) {}
 };
 
 
