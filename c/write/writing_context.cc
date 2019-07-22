@@ -22,6 +22,11 @@
 #include "utils/alloc.h"
 #include "utils/assert.h"
 #include "write/writing_context.h"
+namespace zlib {
+  extern "C" {
+    #include <zlib.h>
+  }
+}
 namespace dt {
 namespace write {
 
@@ -63,5 +68,24 @@ void writing_context::allocate(size_t sz) {
 }
 
 
+//------------------------------------------------------------------------------
+// Compression
+//------------------------------------------------------------------------------
+
+// See http://www.zlib.net/manual.html for documentation of zlib::
+// functions used here.
+//
+void writing_context::compress_buffer() {
+  zlib::z_stream strm;
+  srtm.next_in = buffer;
+  strm.zalloc = nullptr;
+  strm.zfree = nullptr;
+  strm.opaque = nullptr;
+  strm.data_type = Z_TEXT;
+  int r = zlib::deflateInit(&strm, Z_DEFAULT_COMPRESSION);
+  if (r != Z_OK) {
+    throw RuntimeError() << "Error " << r << " in zlib::deflateInit()";
+  }
+}
 
 }}  // namespace dt::write
