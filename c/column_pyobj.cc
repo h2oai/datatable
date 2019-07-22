@@ -34,6 +34,7 @@ SType PyObjectColumn::stype() const noexcept {
 
 py::oobj PyObjectColumn::get_value_at_index(size_t i) const {
   size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return py::None();
   PyObject* x = this->elements_r()[j];
   return py::oobj(x);
 }

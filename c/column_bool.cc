@@ -18,6 +18,7 @@ SType BoolColumn::stype() const noexcept {
 
 py::oobj BoolColumn::get_value_at_index(size_t i) const {
   size_t j = ri[i];
+  if (j == RowIndex::NA) return py::None();
   int8_t x = elements_r()[j];
   return ISNA(x)? py::None() : x? py::True() : py::False();
 }

@@ -133,6 +133,9 @@ class ordered {
 void parallel_for_ordered(size_t n_iterations, size_t n_threads,
                           function<void(ordered*)> fn);
 
+void parallel_for_ordered(size_t n_iterations,
+                          function<void(ordered*)> fn);
+
 
 std::mutex& python_mutex();
 

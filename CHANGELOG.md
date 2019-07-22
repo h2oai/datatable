@@ -99,6 +99,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Single-column frames can be be used as sources for Frame construction.
 
+- CSV writer now quotes fields containing single-quote mark (`'`).
+
+- Added parameter `quoting=` to method `Frame.to_csv()`. The accepted values
+  are 4 constants from the standard `csv` module: `csv.QUOTE_MINIMAL`
+  (default), `csv.QUOTE_ALL`, `csv.QUOTE_NONNUMERIC` and `csv.QUOTE_NONE`.
+
 
 ### Fixed
 
@@ -184,6 +190,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed comparison of string columns vs. value `None` (#1912).
 
+- Fixed a crash when trying to select individual cells from a joined Frame,
+  for the cells that were un-matched during the join (#1917).
+
+- Fixed a crash when writing a joined frame into CSV (#1919).
+
+- Fixed a crash when writing into CSV string view columns, especially of
+  str64 type (#1921).
+
 
 ### Changed
 
@@ -215,6 +229,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `DT[a:b]` for a row selection. A column slice may still be selected via
   the i-j selector `DT[:, a:b]`.
 
+- The `nthreads=` parameter in `Frame.to_csv()` was removed. If needed, please
+  set the global option `dt.options.nthreads`.
+
 
 ### Deprecated
 
@@ -234,15 +251,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890, #1891),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890,
+    #1891, #1919, #1921),
+
   - [Antorsae][] (#1639),
+
   - [Olivier][] (#1872),
+
   - [Hawk Berry][] (#1834),
+
   - [Jonathan McKinney][] (#1816, #1837),
+
   - [Mateusz Dymczyk][] (#1912),
+
   - [NachiGithub][] (#1789, #1793),
-  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905)
-  - [Tom Kraljevic][] (#1805)
+
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905,
+    #1917),
+
+  - [Tom Kraljevic][] (#1805),
+
   - [XiaomoWu][] (#1825)
 
 

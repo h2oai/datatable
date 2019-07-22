@@ -335,6 +335,11 @@ void ordered::set_n_iterations(size_t n) {
 // parallel_for_ordered
 //------------------------------------------------------------------------------
 
+void parallel_for_ordered(size_t niters, function<void(ordered*)> fn) {
+  parallel_for_ordered(niters, thpool->size(), fn);
+}
+
+
 void parallel_for_ordered(size_t niters, size_t nthreads,
                           function<void(ordered*)> fn)
 {
