@@ -547,6 +547,9 @@ def get_extra_link_args():
         if "DTCOVERAGE" in os.environ:
             flags += ["--coverage", "-O0"]
 
+        # link zlib compression library
+        flags += ["-lz"]
+
         libs = sorted(set(os.path.dirname(lib)
                           for lib in find_linked_dynamic_libraries()))
         for lib in libs:
