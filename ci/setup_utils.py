@@ -676,8 +676,9 @@ def monkey_patch_compiler():
                     resolved_name = os.path.join("datatable", "lib",
                                                  lib[len("@rpath/"):])
                     if not os.path.isfile(resolved_name):
-                        raise SystemExit("Dependency %s does not exist"
-                                         % resolved_name)
+                        # raise SystemExit("Dependency %s does not exist"
+                        #                 % resolved_name)
+                        print("Warning: cannot find dependency " + resolved_name)
                 else:
                     resolved_name = lib
                 if resolved_name == executable:
