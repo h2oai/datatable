@@ -493,11 +493,22 @@ def test_quoting_invalid():
 def test_compress1():
     DT = dt.Frame(A=range(5))
     out = DT.to_csv(compression="gzip")
-    assert out == (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x13'
-                   b's\xe4\x02\x00\xa5\x85nH\x02\x00\x00\x00'
-                   b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x13'
-                   b'3\xe02\xe42\xe22\xe62\xe1\x02\x00'
-                   b'\n\x1a\xb4D\n\x00\x00\x00')
+    expected = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff'
+                b's\xe4\x02\x00\xa5\x85nH\x02\x00\x00\x00'
+                b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff'
+                b'3\xe02\xe42\xe22\xe62\xe1\x02\x00'
+                b'\n\x1a\xb4D\n\x00\x00\x00')
+    assert isinstance(out, bytes)
+    assert len(out) == 52
+    # The last byte in the 10-bytes header of each Gzip section is the
+    # OS code, which will be different on different platforms. We
+    # replace those bytes with \xFF so that the output can be safely
+    # compared against the "expected" sample.
+    arr = bytearray(out)
+    arr[9] = 0xFF
+    arr[31] = 0xFF
+    out = bytes(arr)
+    assert out == expected
 
 
 def test_compress2(tempfile):
